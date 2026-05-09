@@ -48,13 +48,14 @@ export const StyleIntentSchema = DiagramIntentSchema.extend({
 export function createInitialDiagramState() {
   const now = new Date().toISOString();
   const styled = applyMermaidStyleDirective({
-    mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]',
+    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     styleConfig: DEFAULT_DIAGRAM_STYLE
   });
 
   return {
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+    mermaidSource: styled.mermaidSource,
+    styleConfig: styled.styleConfig,
     updatedAt: now,
     history: []
   };

@@ -240,7 +240,8 @@ export async function handleClientStateSync({ body, stateStore }) {
   }
 
   const synced = await stateStore.syncClientMermaidSource({
-    mermaidSource: parsed.data.mermaidSource
+    mermaidSource: parsed.data.mermaidSource,
+    styleConfig: parsed.data.styleConfig
   });
 
   if (!synced.accepted) {

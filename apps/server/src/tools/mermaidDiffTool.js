@@ -1,9 +1,28 @@
-import { DiagramPatchSchema } from '@mermaid-architect/shared';
+import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
 export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {
   const candidate = proposedMermaidSource?.trim();
-  const strictValidation = await validateMermaidStrict(candidate);
+
+  const parsedStyle = parseMermaidStyleConfig(candidate);
+  if (!parsedStyle.accepted) {
+    return parsedStyle;
+  }
+
+  let styled;
+  try {
+    styled = applyMermaidStyleDirective({
+      mermaidSource: candidate,
+      styleConfig: parsedStyle.styleConfig
+    });
+  } catch (error) {
+    return {
+      accepted: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
+
+  const strictValidation = await validateMermaidStrict(styled.mermaidSource);
   if (!strictValidation.valid) {
     return {
       accepted: false,

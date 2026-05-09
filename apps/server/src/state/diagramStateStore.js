@@ -11,7 +11,7 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
       return state;
     },
 
-    async syncClientMermaidSource({ mermaidSource }) {
+    async syncClientMermaidSource({ mermaidSource, styleConfig }) {
       const candidate = mermaidSource?.trim();
       if (!candidate) {
         return {
@@ -20,7 +20,25 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
         };
       }
 
-      const validation = await validateMermaidStrict(candidate);
+      const parsedStyle = styleConfig ? { accepted: true, styleConfig } : parseMermaidStyleConfig(candidate);
+      if (!parsedStyle.accepted) {
+        return parsedStyle;
+      }
+
+      let styled;
+      try {
+        styled = applyMermaidStyleDirective({
+          mermaidSource: candidate,
+          styleConfig: parsedStyle.styleConfig
+        });
+      } catch (error) {
+        return {
+          accepted: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+
+      const validation = await validateMermaidStrict(styled.mermaidSource);
       if (!validation.valid) {
         return {
           accepted: false,

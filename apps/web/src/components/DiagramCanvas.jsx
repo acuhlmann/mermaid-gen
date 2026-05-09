@@ -14,6 +14,7 @@ function extractErrorMessage(error) {
 
 export default function DiagramCanvas({
   mermaidSource,
+  styleConfig = DEFAULT_DIAGRAM_STYLE,
   revisionId,
   onManualEdit,
   onValidationChange,
@@ -123,7 +124,7 @@ export default function DiagramCanvas({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [editorSource, reportValidation, streamingPreview]);
+  }, [editorSource, reportValidation, streamingPreview, styleConfig]);
 
   const displayedRenderError = streamingPreview ? '' : renderError;
 
