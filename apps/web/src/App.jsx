@@ -34,6 +34,7 @@ function MermaidArchitect() {
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(null);
   const [error, setError] = useState('');
+  const [showStylePanel, setShowStylePanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [streamingPreview, setStreamingPreview] = useState(false);
   const [autoFixEnabled, setAutoFixEnabled] = useState(true);
