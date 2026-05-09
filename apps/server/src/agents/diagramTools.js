@@ -8,6 +8,7 @@ export function createDiagramTools({ stateStore }) {
       return JSON.stringify({
         revisionId: state.revisionId,
         mermaidSource: state.mermaidSource,
+        styleConfig: state.styleConfig,
         updatedAt: state.updatedAt
       });
     },
@@ -30,7 +31,7 @@ export function createDiagramTools({ stateStore }) {
     {
       name: 'apply_mermaid_patch',
       description:
-        'Validate and apply a complete Mermaid source update. Use this when the user asks to change the diagram.',
+        'Validate and apply a complete Mermaid source update. Use this when the user asks to change diagram content or styling.',
       schema: z.object({
         mermaidSource: z.string().min(1).describe('The full replacement Mermaid diagram source.'),
         reason: z.string().min(1).describe('Short reason for this diagram update.')

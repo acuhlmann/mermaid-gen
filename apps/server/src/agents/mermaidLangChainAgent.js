@@ -103,6 +103,7 @@ function createCurrentDiagramContextMessage(stateStore) {
     role: 'system',
     content: `Current diagram context:
 - revisionId: ${state.revisionId}
+- styleConfig: ${JSON.stringify(state.styleConfig)}
 - mermaidSource:
 \`\`\`mermaid
 ${state.mermaidSource}
@@ -258,6 +259,20 @@ export function createMermaidLangChainAgent({
           }
         ]
       });
+    },
+
+    async applyStyleIntent({ prompt, settings }) {
+      const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
+      const currentState = stateStore.getState();
+
+      return this.invoke({
+        messages: [
+          {
+            role: 'user',
+            content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
+          }
+        ]
+      });
     }
   };
 }
@@ -289,6 +304,10 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 
     async applyCoAuthorIntent(input) {
       return getAgentService().applyCoAuthorIntent(input);
+    },
+
+    async applyStyleIntent(input) {
+      return getAgentService().applyStyleIntent(input);
     }
   };
 }

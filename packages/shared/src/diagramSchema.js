@@ -1,15 +1,23 @@
 import { z } from 'zod';
+import {
+  DEFAULT_DIAGRAM_STYLE,
+  DiagramStyleSchema,
+  applyMermaidStyleDirective,
+  parseMermaidStyleConfig
+} from './mermaidStyle.js';
 
 export const DiagramPatchSchema = z.object({
   previousRevisionId: z.number().int().nonnegative(),
   nextRevisionId: z.number().int().positive(),
   mermaidSource: z.string().min(1),
+  styleConfig: DiagramStyleSchema.default(DEFAULT_DIAGRAM_STYLE),
   reason: z.string().min(1).default('Agent update')
 });
 
 export const DiagramStateSchema = z.object({
   revisionId: z.number().int().nonnegative(),
   mermaidSource: z.string().min(1),
+  styleConfig: DiagramStyleSchema.default(DEFAULT_DIAGRAM_STYLE),
   updatedAt: z.string(),
   history: z.array(DiagramPatchSchema)
 });
@@ -33,8 +41,17 @@ export const CoAuthorIntentSchema = DiagramIntentSchema.extend({
   trigger: z.literal('manual')
 });
 
+export const StyleIntentSchema = DiagramIntentSchema.extend({
+  stylePrompt: z.string().min(1).optional()
+});
+
 export function createInitialDiagramState() {
   const now = new Date().toISOString();
+  const styled = applyMermaidStyleDirective({
+    mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]',
+    styleConfig: DEFAULT_DIAGRAM_STYLE
+  });
+
   return {
     revisionId: 0,
     mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
@@ -57,6 +74,7 @@ export function applyPatch(state, patch) {
     ...state,
     revisionId: parsedPatch.nextRevisionId,
     mermaidSource: parsedPatch.mermaidSource,
+    styleConfig: parsedPatch.styleConfig,
     updatedAt: new Date().toISOString(),
     history: [...state.history, parsedPatch]
   };
@@ -65,4 +83,8 @@ export function applyPatch(state, patch) {
     accepted: true,
     state: DiagramStateSchema.parse(nextState)
   };
+}
+
+export function deriveStyleConfigFromSource(mermaidSource) {
+  return parseMermaidStyleConfig(mermaidSource);
 }

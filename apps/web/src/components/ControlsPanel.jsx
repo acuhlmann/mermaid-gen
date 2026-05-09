@@ -41,7 +41,7 @@ export default function ControlsPanel({
         onChange={(event) => onSettingsChange('maxNodes', Number(event.target.value))}
       />
 
-      <label htmlFor="styleGuide">Style</label>
+      <label htmlFor="styleGuide">Agent tone</label>
       <select
         id="styleGuide"
         value={settings.styleGuide}

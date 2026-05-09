@@ -16,36 +16,39 @@ describe('ControlsPanel', () => {
     cleanup();
   });
 
-  it('contains only settings controls and no prompt field', () => {
+  it('contains only co-author settings controls and no prompt field', () => {
     render(
       <ControlsPanel
         settings={baseSettings}
         onSettingsChange={vi.fn()}
         onUndo={vi.fn()}
-        onCoAuthorExtend={vi.fn()}
         loading={false}
-        prompt="Add an API gateway"
       />
     );
 
     expect(screen.queryByLabelText('Prompt')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Co-author extend' })).toBeTruthy();
+    expect(screen.getByLabelText('Agent tone')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy();
   });
 
-  it('sends manual co-author trigger with the shared prompt', () => {
-    const onCoAuthorExtend = vi.fn();
+  it('sends settings changes and undo actions', () => {
+    const onSettingsChange = vi.fn();
+    const onUndo = vi.fn();
     render(
       <ControlsPanel
         settings={baseSettings}
-        onSettingsChange={vi.fn()}
-        onUndo={vi.fn()}
-        onCoAuthorExtend={onCoAuthorExtend}
+        onSettingsChange={onSettingsChange}
+        onUndo={onUndo}
         loading={false}
-        prompt="Design a resilient ingestion flow"
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Co-author extend' }));
-    expect(onCoAuthorExtend).toHaveBeenCalledWith('Design a resilient ingestion flow');
+    fireEvent.change(screen.getByLabelText('Agent tone'), {
+      target: { value: 'bold' }
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+
+    expect(onSettingsChange).toHaveBeenCalledWith('styleGuide', 'bold');
+    expect(onUndo).toHaveBeenCalled();
   });
 });

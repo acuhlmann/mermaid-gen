@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOptimisticState, submitCoAuthorIntent, syncClientDiagramState } from '../src/state/diagramStore.js';
+import {
+  deriveOptimisticState,
+  submitCoAuthorIntent,
+  submitStyleIntent,
+  syncClientDiagramState
+} from '../src/state/diagramStore.js';
 
 describe('deriveOptimisticState', () => {
   it('adds a pending node snippet for optimistic UI', () => {
@@ -48,6 +53,42 @@ describe('submitCoAuthorIntent', () => {
   });
 });
 
+describe('submitStyleIntent', () => {
+  it('posts style prompts to the style endpoint', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestUrl;
+    let requestBody;
+    try {
+      globalThis.fetch = async (url, options) => {
+        requestUrl = url;
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return {
+              state: { revisionId: 1 },
+              metadata: { agent: 'style' }
+            };
+          }
+        };
+      };
+
+      await submitStyleIntent({
+        prompt: 'Make it dark and rounded',
+        revisionId: 0,
+        mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]',
+        settings: {}
+      });
+
+      const sent = JSON.parse(requestBody);
+      expect(requestUrl).toContain('/api/copilotkit/style');
+      expect(sent.stylePrompt).toBe('Make it dark and rounded');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
 describe('syncClientDiagramState', () => {
   it('posts local editor source to backend state endpoint', async () => {
     const originalFetch = globalThis.fetch;
@@ -69,11 +110,19 @@ describe('syncClientDiagramState', () => {
       };
 
       const payload = await syncClientDiagramState({
-        mermaidSource: 'flowchart TD\n  A --> B'
+        mermaidSource: 'flowchart TD\n  A --> B',
+        styleConfig: {
+          theme: 'forest',
+          look: 'classic',
+          themeVariables: {},
+          themeCSS: '',
+          flowchart: { curve: 'linear' }
+        }
       });
 
       expect(requestUrl).toContain('/api/copilotkit/state');
       expect(JSON.parse(requestBody).mermaidSource).toContain('A --> B');
+      expect(JSON.parse(requestBody).styleConfig.theme).toBe('forest');
       expect(payload.revisionId).toBe(3);
     } finally {
       globalThis.fetch = originalFetch;

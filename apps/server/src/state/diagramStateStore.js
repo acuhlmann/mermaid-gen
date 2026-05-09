@@ -1,4 +1,5 @@
 import { applyPatch, createInitialDiagramState } from '@mermaid-architect/shared';
+import { applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
@@ -30,7 +31,8 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
       state = {
         ...state,
         revisionId: state.revisionId + 1,
-        mermaidSource: candidate,
+        mermaidSource: styled.mermaidSource,
+        styleConfig: styled.styleConfig,
         updatedAt: new Date().toISOString()
       };
 

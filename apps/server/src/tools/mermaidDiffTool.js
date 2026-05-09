@@ -14,7 +14,8 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
   const patch = DiagramPatchSchema.parse({
     previousRevisionId: currentState.revisionId,
     nextRevisionId: currentState.revisionId + 1,
-    mermaidSource: candidate,
+    mermaidSource: styled.mermaidSource,
+    styleConfig: styled.styleConfig,
     reason
   });
 
