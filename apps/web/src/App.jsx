@@ -26,6 +26,7 @@ function App() {
   const [prompt, setPrompt] = useState(defaultPrompt);
   const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(false);
+  const [activeAgent, setActiveAgent] = useState(null);
   const [error, setError] = useState('');
   const [showSettings, setShowSettings] = useState(false);
 
@@ -40,6 +41,7 @@ function App() {
 
   async function runIntent(promptInput) {
     setLoading(true);
+    setActiveAgent('intent');
     setError('');
 
     const optimisticState = deriveOptimisticState(state, promptInput);
@@ -60,11 +62,13 @@ function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setActiveAgent(null);
     }
   }
 
   async function runCoAuthor(promptInput) {
     setLoading(true);
+    setActiveAgent('coauthor');
     setError('');
 
     try {
@@ -81,6 +85,7 @@ function App() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setActiveAgent(null);
     }
   }
 
@@ -93,10 +98,11 @@ function App() {
   }
 
   const status = useMemo(() => {
-    if (loading) return 'Applying agent update...';
+    if (loading && activeAgent === 'coauthor') return 'Co-author surprise mode is extending your diagram...';
+    if (loading) return 'Intent agent is applying your requested update...';
     if (error) return error;
     return `Last updated: ${new Date(state.updatedAt).toLocaleTimeString()}`;
-  }, [error, loading, state.updatedAt]);
+  }, [activeAgent, error, loading, state.updatedAt]);
 
   function handleSettingChange(key, value) {
     setSettings((current) => ({

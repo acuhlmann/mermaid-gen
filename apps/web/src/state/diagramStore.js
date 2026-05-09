@@ -34,7 +34,7 @@ export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, 
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error ?? 'Intent request failed');
+    throw new Error(payload.error ?? 'Co-author request failed');
   }
 
   return payload;

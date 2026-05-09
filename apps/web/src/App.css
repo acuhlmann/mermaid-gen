@@ -134,6 +134,25 @@
   font: inherit;
 }
 
+.coauthor-section {
+  margin-top: 0.6rem;
+  border: 1px solid #d8dce6;
+  border-radius: 8px;
+  padding: 0.6rem;
+  background: #f8fafc;
+}
+
+.coauthor-section h3 {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.coauthor-section p {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr;

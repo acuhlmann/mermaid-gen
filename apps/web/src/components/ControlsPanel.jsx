@@ -60,12 +60,17 @@ export default function ControlsPanel({
         onChange={(event) => onSettingsChange('persona', event.target.value)}
       />
 
+      <section className="coauthor-section" aria-label="Co-author controls">
+        <h3>Co-Author Surprise Mode</h3>
+        <p>Use this to let the creative co-author agent extend the current diagram on demand.</p>
+        <button type="button" onClick={() => onCoAuthorExtend(prompt)} disabled={loading || !prompt.trim()}>
+          Surprise me (Co-Author)
+        </button>
+      </section>
+
       <div className="actions">
         <button type="button" onClick={onUndo} disabled={loading}>
           Undo
-        </button>
-        <button type="button" onClick={() => onCoAuthorExtend(prompt)} disabled={loading || !prompt.trim()}>
-          Co-author extend
         </button>
       </div>
     </aside>

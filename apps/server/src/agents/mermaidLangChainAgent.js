@@ -3,6 +3,20 @@ import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
 
 const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash-lite';
+const INTENT_PROFILE_DEFAULTS = {
+  temperature: 0.7,
+  topP: 1,
+  maxNodes: 25,
+  styleGuide: 'balanced',
+  persona: 'creative architect'
+};
+const COAUTHOR_PROFILE_DEFAULTS = {
+  temperature: 1.1,
+  topP: 1,
+  maxNodes: 40,
+  styleGuide: 'bold',
+  persona: 'playful co-author'
+};
 
 const SYSTEM_PROMPT = `You are Mermaid Architect, an agent that helps edit Mermaid diagrams.
 
@@ -140,14 +154,7 @@ export function createMermaidLangChainAgent({ stateStore, model = createOpenRout
     },
 
     async applyIntent({ prompt, settings }) {
-      const resolvedSettings = {
-        temperature: 0.7,
-        topP: 1,
-        maxNodes: 25,
-        styleGuide: 'balanced',
-        persona: 'creative architect',
-        ...settings
-      };
+      const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
 
       return this.invoke({
         messages: [
@@ -160,14 +167,7 @@ export function createMermaidLangChainAgent({ stateStore, model = createOpenRout
     },
 
     async applyCoAuthorIntent({ prompt, settings }) {
-      const resolvedSettings = {
-        temperature: 0.7,
-        topP: 1,
-        maxNodes: 25,
-        styleGuide: 'balanced',
-        persona: 'creative architect',
-        ...settings
-      };
+      const resolvedSettings = { ...COAUTHOR_PROFILE_DEFAULTS, ...settings };
 
       return this.invoke({
         messages: [
@@ -213,3 +213,4 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 }
 
 export { DEFAULT_OPENROUTER_MODEL };
+export { COAUTHOR_PROFILE_DEFAULTS, INTENT_PROFILE_DEFAULTS };
