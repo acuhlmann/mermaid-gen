@@ -17,6 +17,8 @@ function App() {
   const [temperature, setTemperature] = useState(0.7);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showControls, setShowControls] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   useEffect(() => {
     fetchDiagramState()
@@ -52,6 +54,14 @@ function App() {
     }
   }
 
+  function handleManualEdit(nextSource) {
+    setState((currentState) => ({
+      ...currentState,
+      mermaidSource: nextSource,
+      updatedAt: new Date().toISOString()
+    }));
+  }
+
   const status = useMemo(() => {
     if (loading) return 'Applying agent update...';
     if (error) return error;
@@ -62,24 +72,48 @@ function App() {
     <CopilotKit runtimeUrl={`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'}/api/copilotkit`}>
       <main className="layout">
         <section className="workspace">
-          <h1>Mermaid Architect</h1>
-          <p className="subtitle">Collaborative diagram generation with agentic controls.</p>
-          <DiagramCanvas mermaidSource={state.mermaidSource} revisionId={state.revisionId} />
+          <header className="workspace-header">
+            <div>
+              <h1>Mermaid Architect</h1>
+              <p className="subtitle">Collaborative diagram generation with agentic controls.</p>
+            </div>
+            <div className="floating-toggles">
+              <button type="button" onClick={() => setShowControls((value) => !value)}>
+                {showControls ? 'Hide Controls' : 'Show Controls'}
+              </button>
+              <button type="button" onClick={() => setShowChat((value) => !value)}>
+                {showChat ? 'Hide Chat' : 'Show Chat'}
+              </button>
+            </div>
+          </header>
+          <DiagramCanvas
+            mermaidSource={state.mermaidSource}
+            revisionId={state.revisionId}
+            onManualEdit={handleManualEdit}
+          />
           <p className={`status ${error ? 'status-error' : ''}`}>{status}</p>
-        </section>
 
-        <ControlsPanel
-          temperature={temperature}
-          onTemperatureChange={setTemperature}
-          onApply={(prompt) => runIntent(prompt, 'apply')}
-          onUndo={() => setState(lastCommittedState)}
-          onRegenerate={(prompt) => runIntent(prompt, 'regenerate')}
-          loading={loading}
-        />
+          {showControls ? (
+            <div className="floating-panel floating-controls">
+              <ControlsPanel
+                temperature={temperature}
+                onTemperatureChange={setTemperature}
+                onApply={(prompt) => runIntent(prompt, 'apply')}
+                onUndo={() => setState(lastCommittedState)}
+                onRegenerate={(prompt) => runIntent(prompt, 'regenerate')}
+                loading={loading}
+              />
+            </div>
+          ) : null}
 
-        <section className="chat-panel">
-          <h2>Copilot Chat</h2>
-          <CopilotChat labels={{ title: 'Mermaid Assistant', initial: 'Describe a diagram change.' }} />
+          {showChat ? (
+            <section className="floating-panel floating-chat">
+              <div className="panel-header">
+                <h2>Copilot Chat</h2>
+              </div>
+              <CopilotChat labels={{ title: 'Mermaid Assistant', initial: 'Describe a diagram change.' }} />
+            </section>
+          ) : null}
         </section>
       </main>
     </CopilotKit>
