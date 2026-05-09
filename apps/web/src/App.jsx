@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
 import { CopilotChat } from '@copilotkit/react-ui';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
@@ -19,8 +19,9 @@ function App() {
   const [error, setError] = useState('');
   const [showControls, setShowControls] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const chatWasRunning = useRef(false);
 
-  useEffect(() => {
+  const refreshDiagramState = useCallback(() => {
     fetchDiagramState()
       .then((data) => {
         setState(data);
@@ -28,6 +29,25 @@ function App() {
       })
       .catch((err) => setError(err.message));
   }, []);
+
+  useEffect(() => {
+    refreshDiagramState();
+  }, [refreshDiagramState]);
+
+  const handleChatProgress = useCallback(
+    (inProgress) => {
+      if (inProgress) {
+        chatWasRunning.current = true;
+        return;
+      }
+
+      if (chatWasRunning.current) {
+        chatWasRunning.current = false;
+        refreshDiagramState();
+      }
+    },
+    [refreshDiagramState]
+  );
 
   async function runIntent(prompt, mode = 'apply') {
     setLoading(true);
@@ -111,7 +131,10 @@ function App() {
               <div className="panel-header">
                 <h2>Copilot Chat</h2>
               </div>
-              <CopilotChat labels={{ title: 'Mermaid Assistant', initial: 'Describe a diagram change.' }} />
+              <CopilotChat
+            labels={{ title: 'Mermaid Assistant', initial: 'Describe a diagram change.' }}
+            onInProgress={handleChatProgress}
+          />
             </section>
           ) : null}
         </section>

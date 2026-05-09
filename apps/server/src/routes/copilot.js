@@ -1,61 +1,94 @@
 import express from 'express';
-import { applyPatch, createInitialDiagramState, DiagramIntentSchema } from '@mermaid-architect/shared';
-import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
+import { DiagramIntentSchema } from '@mermaid-architect/shared';
+import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
 
-export function createCopilotRouter() {
+export async function handleDiagramIntent({ body, stateStore, agentService }) {
+  const parsedIntent = DiagramIntentSchema.safeParse(body);
+  if (!parsedIntent.success) {
+    return {
+      status: 400,
+      body: {
+        error: 'Invalid intent payload',
+        details: parsedIntent.error.flatten()
+      }
+    };
+  }
+
+  const intent = parsedIntent.data;
+  const state = stateStore.getState();
+  if (intent.revisionId !== state.revisionId) {
+    return {
+      status: 409,
+      body: {
+        error: 'State revision is stale. Refresh state and retry.',
+        state
+      }
+    };
+  }
+
+  try {
+    const agentResult = await agentService.applyIntent({
+      prompt: intent.prompt,
+      temperature: intent.temperature
+    });
+    const nextState = stateStore.getState();
+    const patch = nextState.history.at(-1);
+
+    if (nextState.revisionId === state.revisionId || !patch) {
+      return {
+        status: 422,
+        body: {
+          error: 'Agent did not apply a diagram patch.',
+          message: agentResult.message,
+          state: nextState
+        }
+      };
+    }
+
+    return {
+      status: 200,
+      body: {
+        message: agentResult.message || 'Patch accepted',
+        patch,
+        state: nextState,
+        metadata: {
+          llm: true
+        }
+      }
+    };
+  } catch (error) {
+    if (error instanceof LlmNotConfiguredError) {
+      return {
+        status: error.statusCode,
+        body: { error: error.message }
+      };
+    }
+
+    return {
+      status: 500,
+      body: {
+        error: 'Agent request failed',
+        details: error instanceof Error ? error.message : String(error)
+      }
+    };
+  }
+}
+
+export function createCopilotRouter({ stateStore, agentService }) {
   const router = express.Router();
-  let state = createInitialDiagramState();
 
   router.get('/state', (_req, res) => {
-    res.json(state);
+    res.json(stateStore.getState());
   });
 
   router.post('/intent', async (req, res) => {
-    const parsedIntent = DiagramIntentSchema.safeParse(req.body);
-    if (!parsedIntent.success) {
-      return res.status(400).json({
-        error: 'Invalid intent payload',
-        details: parsedIntent.error.flatten()
-      });
-    }
-
-    const intent = parsedIntent.data;
-    if (intent.revisionId !== state.revisionId) {
-      return res.status(409).json({
-        error: 'State revision is stale. Refresh state and retry.',
-        state
-      });
-    }
-
-    // Placeholder for CopilotKit model output; deterministic patch for bootstrap.
-    const addition = `\n  Note_${state.revisionId + 1}[${intent.prompt.slice(0, 40)}]`;
-    const nextSource = `${intent.mermaidSource}${addition}`;
-
-    const prepared = await validateAndPreparePatch({
-      currentState: state,
-      proposedMermaidSource: nextSource,
-      reason: `Prompted update (temperature=${intent.temperature})`
+    const result = await handleDiagramIntent({
+      body: req.body,
+      stateStore,
+      agentService
     });
 
-    if (!prepared.accepted) {
-      return res.status(422).json({
-        error: prepared.error
-      });
-    }
-
-    const applied = applyPatch(state, prepared.patch);
-    if (!applied.accepted) {
-      return res.status(409).json({ error: applied.error });
-    }
-
-    state = applied.state;
-
-    return res.json({
-      message: 'Patch accepted',
-      patch: prepared.patch,
-      state,
-      metadata: prepared.metadata
-    });
+    return res.status(result.status).json(result.body);
   });
 
   return router;

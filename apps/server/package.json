@@ -5,7 +5,8 @@
   "main": "src/index.js",
   "scripts": {
     "test": "node --test",
-    "dev": "node --watch src/index.js",
+    "dev": "node src/index.js",
+    "dev:watch": "node --watch-path=src src/index.js",
     "start": "node src/index.js",
     "build": "node -e \"console.log('server build: no-op')\""
   },
@@ -15,10 +16,13 @@
   "type": "module",
   "dependencies": {
     "@copilotkit/runtime": "^1.57.1",
+    "@langchain/core": "^1.1.45",
+    "@langchain/openrouter": "^0.2.4",
     "@mermaid-architect/shared": "^1.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "langchain": "^1.4.0",
     "zod": "^4.4.3"
   }
 }
