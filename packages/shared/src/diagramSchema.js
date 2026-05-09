@@ -37,7 +37,7 @@ export function createInitialDiagramState() {
   const now = new Date().toISOString();
   return {
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]',
+    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     updatedAt: now,
     history: []
   };

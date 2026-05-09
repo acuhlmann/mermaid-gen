@@ -28,3 +28,15 @@ test('diagram state store rejects invalid Mermaid without mutating state', async
   assert.equal(result.accepted, false);
   assert.equal(store.getState(), before);
 });
+
+test('diagram state store rejects invalid client sync source without mutating state', async () => {
+  const store = createDiagramStateStore();
+  const before = store.getState();
+
+  const result = await store.syncClientMermaidSource({
+    mermaidSource: 'flowchart TD\n  A['
+  });
+
+  assert.equal(result.accepted, false);
+  assert.equal(store.getState(), before);
+});

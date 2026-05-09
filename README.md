@@ -31,6 +31,7 @@ Single-repo JavaScript prototype for collaborative Mermaid diagram editing with 
 - This iteration keeps the existing CopilotKit runtime + endpoints as the primary orchestration layer.
 - AG-UI/A2UI/MCP Apps were not newly introduced in runtime flows for this change to keep scope tight.
 - Existing MCP-style usage remains optional Mermaid validation through `MERMAID_MCP_URL`.
+- Server validation now always runs a strict local Mermaid parser check, with MCP validation layered on top when configured.
 
 ## Setup
 1. Install dependencies and CopilotKit skills:
@@ -44,6 +45,12 @@ Single-repo JavaScript prototype for collaborative Mermaid diagram editing with 
 ### Skills folder behavior
 - The generated `.agents/` directory is intentionally git-ignored.
 - Re-run `npm run setup:skills` any time you want to refresh CopilotKit skills locally.
+
+### Mermaid reliability settings
+- `MERMAID_MCP_URL`: optional external Mermaid validator endpoint.
+- `MERMAID_MCP_MAX_RETRIES`: retry count for transient MCP errors (`429`/`5xx`/network failures).
+- `MERMAID_MCP_RETRY_DELAY_MS`: base delay between MCP retries.
+- `MERMAID_REPAIR_MAX_ATTEMPTS`: bounded retry budget for agent-side syntax repair turns.
 
 ## Endpoints
 - `GET /api/health`

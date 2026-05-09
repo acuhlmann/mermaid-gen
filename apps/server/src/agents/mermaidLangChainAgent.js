@@ -1,6 +1,7 @@
 import { ChatOpenRouter } from '@langchain/openrouter';
 import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
+import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 
 const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash-lite';
 const INTENT_PROFILE_DEFAULTS = {
@@ -33,6 +34,7 @@ When the user asks for a diagram change:
 When the user asks a general question, answer concisely.`;
 
 const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch)\b/;
+const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type|mcp/i;
 
 export class LlmNotConfiguredError extends Error {
   constructor() {
@@ -134,8 +136,47 @@ function extractFinalMessage(result) {
   return extractTextContent(lastAssistant?.content).trim() || 'Done.';
 }
 
-export function createMermaidLangChainAgent({ stateStore, model = createOpenRouterModel() }) {
-  const agent = createAgent({
+function extractToolFailureError(result) {
+  const messages = result?.messages ?? [];
+  for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
+    const content = extractTextContent(messages[idx]?.content).trim();
+    if (!content) continue;
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed?.accepted === false && typeof parsed?.error === 'string') {
+        return parsed.error;
+      }
+    } catch {
+      // Ignore non-JSON messages.
+    }
+  }
+  return null;
+}
+
+export function shouldAttemptSyntaxRepair(errorMessage) {
+  if (!errorMessage) return false;
+  return REPAIR_ERROR_PATTERN.test(errorMessage) || isSyntaxValidationError(errorMessage);
+}
+
+export function buildSyntaxRepairInstruction({ messages, errorMessage }) {
+  const originalRequest = toLangChainMessages(messages)
+    .filter((message) => message.role === 'user')
+    .map((message) => message.content)
+    .join('\n\n')
+    .trim();
+
+  return {
+    role: 'user',
+    content: `Your previous patch failed validation.\n\nValidator error:\n${errorMessage}\n\nRepair instructions:\n- Return valid Mermaid syntax.\n- Keep the user's requested intent.\n- Call apply_mermaid_patch with complete Mermaid source.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
+  };
+}
+
+export function createMermaidLangChainAgent({
+  stateStore,
+  model = createOpenRouterModel(),
+  createAgentImpl = createAgent
+}) {
+  const agent = createAgentImpl({
     model,
     tools: createDiagramTools({ stateStore }),
     systemPrompt: SYSTEM_PROMPT
@@ -143,13 +184,52 @@ export function createMermaidLangChainAgent({ stateStore, model = createOpenRout
 
   return {
     async invoke({ messages }) {
-      const result = await agent.invoke({
-        messages: [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)]
-      });
+      const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
+      const beforeRevision = stateStore.getState().revisionId;
+      const firstResult = await agent.invoke({ messages: baseMessages });
+      const firstMessage = extractFinalMessage(firstResult);
+      const afterFirstRevision = stateStore.getState().revisionId;
+      const firstError = extractToolFailureError(firstResult);
+
+      if (afterFirstRevision !== beforeRevision || !shouldAttemptSyntaxRepair(firstError)) {
+        return {
+          message: firstMessage,
+          raw: firstResult
+        };
+      }
+
+      const parsedRepairAttempts = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
+      const maxRepairAttempts = Number.isFinite(parsedRepairAttempts) ? Math.max(0, parsedRepairAttempts) : 1;
+      let latestError = firstError;
+      let latestResult = firstResult;
+
+      for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
+        const retryResult = await agent.invoke({
+          messages: [
+            ...baseMessages,
+            buildSyntaxRepairInstruction({ messages, errorMessage: latestError })
+          ]
+        });
+        latestResult = retryResult;
+
+        const currentRevision = stateStore.getState().revisionId;
+        if (currentRevision !== beforeRevision) {
+          return {
+            message: extractFinalMessage(retryResult),
+            raw: retryResult
+          };
+        }
+
+        const retryError = extractToolFailureError(retryResult);
+        if (!shouldAttemptSyntaxRepair(retryError)) {
+          break;
+        }
+        latestError = retryError;
+      }
 
       return {
-        message: extractFinalMessage(result),
-        raw: result
+        message: extractFinalMessage(latestResult),
+        raw: latestResult
       };
     },
 

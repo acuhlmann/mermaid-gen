@@ -1,5 +1,6 @@
 import { applyPatch, createInitialDiagramState } from '@mermaid-architect/shared';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
+import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
 export function createDiagramStateStore(initialState = createInitialDiagramState()) {
   let state = initialState;
@@ -9,12 +10,20 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
       return state;
     },
 
-    syncClientMermaidSource({ mermaidSource }) {
+    async syncClientMermaidSource({ mermaidSource }) {
       const candidate = mermaidSource?.trim();
       if (!candidate) {
         return {
           accepted: false,
           error: 'Mermaid source is required.'
+        };
+      }
+
+      const validation = await validateMermaidStrict(candidate);
+      if (!validation.valid) {
+        return {
+          accepted: false,
+          error: validation.error
         };
       }
 

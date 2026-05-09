@@ -105,6 +105,38 @@
   color: #334155;
 }
 
+.diagram-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.preview-maximize-button {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.55rem;
+  white-space: nowrap;
+}
+
+.diagram-content.preview-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: #ffffff;
+  margin: 0;
+  padding: 1rem;
+}
+
+.diagram-content.preview-fullscreen .diagram-preview {
+  width: 100% !important;
+  height: calc(100vh - 2rem);
+}
+
+.diagram-content.preview-fullscreen .diagram-output {
+  min-height: 0;
+  height: 100%;
+}
+
 .diagram-output {
   padding: 0.75rem;
   min-height: 360px;

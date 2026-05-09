@@ -8,7 +8,7 @@ function intentPayload(overrides = {}) {
   return {
     prompt: 'Add an API gateway',
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]',
+    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     temperature: 0.7,
     ...overrides
   };
@@ -37,7 +37,7 @@ test('intent route applies a patch from the agent service', async () => {
   const agentService = {
     async applyIntent() {
       await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  Start[Start] --> Gateway[API Gateway]\n  Gateway --> End[End]',
+        mermaidSource: 'flowchart TD\n  Start[Start] --> Gateway[API Gateway]\n  Gateway --> EndNode[End]',
         reason: 'add gateway'
       });
       return { message: 'Added API gateway.' };
@@ -63,7 +63,7 @@ test('coauthor route applies a patch from the coauthor agent service', async () 
   const agentService = {
     async applyCoAuthorIntent() {
       await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]\n  End --> Surprise[Surprise path]',
+        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Surprise[Surprise path]',
         reason: 'coauthor extension'
       });
       return { message: 'Added a surprise extension.' };
@@ -105,4 +105,18 @@ test('client state sync route updates backend source for co-author context', asy
   assert.equal(result.status, 200);
   assert.equal(result.body.revisionId, 1);
   assert.match(result.body.mermaidSource, /Client draft/);
+});
+
+test('client state sync route rejects invalid Mermaid syntax', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleClientStateSync({
+    body: {
+      mermaidSource: 'flowchart TD\n  Broken['
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 422);
+  assert.match(result.body.error, /parser rejected|not valid Mermaid syntax/i);
+  assert.equal(stateStore.getState().revisionId, 0);
 });

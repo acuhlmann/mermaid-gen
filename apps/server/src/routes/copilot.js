@@ -165,7 +165,7 @@ export async function handleClientStateSync({ body, stateStore }) {
     };
   }
 
-  const synced = stateStore.syncClientMermaidSource({
+  const synced = await stateStore.syncClientMermaidSource({
     mermaidSource: parsed.data.mermaidSource
   });
 

@@ -1,52 +1,13 @@
 import { DiagramPatchSchema } from '@mermaid-architect/shared';
-
-function looksLikeMermaid(source) {
-  return /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|journey|mindmap)/m.test(source.trim());
-}
-
-async function validateWithMcpServer(source) {
-  const endpoint = process.env.MERMAID_MCP_URL;
-  if (!endpoint) {
-    return { valid: true, validator: 'local-fallback' };
-  }
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ mermaidSource: source })
-    });
-
-    if (!response.ok) {
-      return { valid: false, error: `MCP returned ${response.status}` };
-    }
-
-    const data = await response.json();
-    if (data?.valid === false) {
-      return { valid: false, error: data.error ?? 'MCP validation failed' };
-    }
-
-    return { valid: true, validator: 'mcp-server' };
-  } catch (error) {
-    return { valid: false, error: `MCP request failed: ${error.message}` };
-  }
-}
+import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
 export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {
   const candidate = proposedMermaidSource?.trim();
-
-  if (!candidate || !looksLikeMermaid(candidate)) {
+  const strictValidation = await validateMermaidStrict(candidate);
+  if (!strictValidation.valid) {
     return {
       accepted: false,
-      error: 'Proposed source is not valid Mermaid syntax (missing known diagram type).'
-    };
-  }
-
-  const mcpValidation = await validateWithMcpServer(candidate);
-  if (!mcpValidation.valid) {
-    return {
-      accepted: false,
-      error: mcpValidation.error
+      error: strictValidation.error
     };
   }
 
@@ -60,6 +21,9 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
   return {
     accepted: true,
     patch,
-    metadata: { validator: mcpValidation.validator }
+    metadata: {
+      validator: strictValidation.validator,
+      warnings: strictValidation.warnings ?? []
+    }
   };
 }

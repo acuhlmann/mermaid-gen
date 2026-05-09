@@ -32,6 +32,7 @@ export default function DiagramCanvas({
   const [isPanning, setIsPanning] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
   const [previewWidth, setPreviewWidth] = useState(50);
+  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   const reportValidation = useCallback(
     (source, error) => {
@@ -58,6 +59,19 @@ export default function DiagramCanvas({
   useEffect(() => {
     setViewport({ x: 0, y: 0, scale: 1 });
   }, [revisionId]);
+
+  useEffect(() => {
+    function handleEscape(event) {
+      if (event.key === 'Escape') {
+        setIsPreviewFullscreen(false);
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,36 +241,54 @@ export default function DiagramCanvas({
         <h2>Live Diagram</h2>
         <span>Revision {revisionId}</span>
       </header>
-      <div className={`diagram-content ${isResizing ? 'is-resizing' : ''}`} ref={contentRef}>
-        <div className="diagram-editor" style={{ width: `${100 - previewWidth}%` }}>
-          <h3>Mermaid DSL</h3>
-          {streamingPreview ? <p className="streaming-note">AG-UI is streaming the validated source into the editor...</p> : null}
-          <Editor
-            height="360px"
-            defaultLanguage="plaintext"
-            value={editorSource}
-            onChange={handleEditorChange}
-            options={{
-              minimap: { enabled: false },
-              wordWrap: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              readOnly: streamingPreview
-            }}
+      <div
+        className={`diagram-content ${isResizing ? 'is-resizing' : ''} ${
+          isPreviewFullscreen ? 'preview-fullscreen' : ''
+        }`}
+        ref={contentRef}
+      >
+        {!isPreviewFullscreen ? (
+          <div className="diagram-editor" style={{ width: `${100 - previewWidth}%` }}>
+            <h3>Mermaid DSL</h3>
+            {streamingPreview ? <p className="streaming-note">AG-UI is streaming the validated source into the editor...</p> : null}
+            <Editor
+              height="360px"
+              defaultLanguage="plaintext"
+              value={editorSource}
+              onChange={handleEditorChange}
+              options={{
+                minimap: { enabled: false },
+                wordWrap: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                readOnly: streamingPreview
+              }}
+            />
+          </div>
+        ) : null}
+        {!isPreviewFullscreen ? (
+          <div
+            className={`diagram-splitter ${isResizing ? 'is-active' : ''}`}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize editor and preview panes"
+            onPointerDown={handleResizePointerDown}
+            onPointerMove={handleResizePointerMove}
+            onPointerUp={handleResizePointerUp}
+            onPointerCancel={handleResizePointerUp}
           />
-        </div>
-        <div
-          className={`diagram-splitter ${isResizing ? 'is-active' : ''}`}
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize editor and preview panes"
-          onPointerDown={handleResizePointerDown}
-          onPointerMove={handleResizePointerMove}
-          onPointerUp={handleResizePointerUp}
-          onPointerCancel={handleResizePointerUp}
-        />
-        <div className="diagram-preview" style={{ width: `${previewWidth}%` }}>
-          <h3>Renderer</h3>
+        ) : null}
+        <div className="diagram-preview" style={{ width: isPreviewFullscreen ? '100%' : `${previewWidth}%` }}>
+          <div className="diagram-preview-header">
+            <h3>Renderer</h3>
+            <button
+              type="button"
+              className="preview-maximize-button"
+              onClick={() => setIsPreviewFullscreen((current) => !current)}
+            >
+              {isPreviewFullscreen ? 'Exit full screen' : 'Maximize'}
+            </button>
+          </div>
           {streamingPreview ? <p className="streaming-note">Renderer will refresh after validation completes.</p> : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
           <div

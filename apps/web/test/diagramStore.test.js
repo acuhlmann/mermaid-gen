@@ -36,7 +36,7 @@ describe('submitCoAuthorIntent', () => {
       await submitCoAuthorIntent({
         prompt: 'Surprise me',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]',
+        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
         settings: {}
       });
 
