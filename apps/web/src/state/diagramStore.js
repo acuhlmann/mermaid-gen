@@ -10,6 +10,21 @@ export async function fetchDiagramState() {
   return response.json();
 }
 
+export async function syncClientDiagramState({ mermaidSource }) {
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ mermaidSource })
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Failed to sync diagram state');
+  }
+
+  return payload;
+}
+
 export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, settings }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/intent`, {
     method: 'POST',

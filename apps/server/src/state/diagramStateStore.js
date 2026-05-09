@@ -9,6 +9,28 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
       return state;
     },
 
+    syncClientMermaidSource({ mermaidSource }) {
+      const candidate = mermaidSource?.trim();
+      if (!candidate) {
+        return {
+          accepted: false,
+          error: 'Mermaid source is required.'
+        };
+      }
+
+      state = {
+        ...state,
+        revisionId: state.revisionId + 1,
+        mermaidSource: candidate,
+        updatedAt: new Date().toISOString()
+      };
+
+      return {
+        accepted: true,
+        state
+      };
+    },
+
     async applyMermaidSource({ mermaidSource, reason }) {
       const prepared = await validateAndPreparePatch({
         currentState: state,

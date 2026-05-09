@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import ControlsPanel from './components/ControlsPanel.jsx';
 import {
   fallbackState,
   fetchDiagramState,
+  syncClientDiagramState,
   submitDiagramIntent,
   submitCoAuthorIntent,
   deriveOptimisticState
@@ -31,6 +32,7 @@ function App() {
   const [activeAgent, setActiveAgent] = useState(null);
   const [error, setError] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const syncTimerRef = useRef(null);
 
   useEffect(() => {
     fetchDiagramState()
@@ -40,6 +42,15 @@ function App() {
       })
       .catch((err) => setError(err.message));
   }, []);
+
+  useEffect(
+    () => () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+    },
+    []
+  );
 
   async function runIntent(promptInput) {
     setLoading(true);
@@ -75,10 +86,16 @@ function App() {
     setError('');
 
     try {
+      const syncedState = await syncClientDiagramState({
+        mermaidSource: state.mermaidSource
+      });
+      setState(syncedState);
+      setLastCommittedState(syncedState);
+
       const payload = await submitCoAuthorIntent({
         prompt: coAuthorPrompt,
-        revisionId: lastCommittedState.revisionId,
-        mermaidSource: lastCommittedState.mermaidSource,
+        revisionId: syncedState.revisionId,
+        mermaidSource: syncedState.mermaidSource,
         settings: coAuthorSettings
       });
 
@@ -98,6 +115,20 @@ function App() {
       mermaidSource: nextSource,
       updatedAt: new Date().toISOString()
     }));
+
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+
+    syncTimerRef.current = setTimeout(async () => {
+      try {
+        const synced = await syncClientDiagramState({ mermaidSource: nextSource });
+        setState(synced);
+        setLastCommittedState(synced);
+      } catch {
+        // Keep local edits even if sync fails; user can still retry with Surprise me.
+      }
+    }, 350);
   }
 
   const status = useMemo(() => {

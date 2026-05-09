@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LlmNotConfiguredError } from '../src/agents/mermaidLangChainAgent.js';
-import { handleCoAuthorIntent, handleDiagramIntent } from '../src/routes/copilot.js';
+import { handleClientStateSync, handleCoAuthorIntent, handleDiagramIntent } from '../src/routes/copilot.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
 function intentPayload(overrides = {}) {
@@ -91,4 +91,18 @@ test('coauthor route applies a patch from the coauthor agent service', async () 
   assert.equal(result.body.patch.nextRevisionId, 1);
   assert.match(result.body.state.mermaidSource, /Surprise/);
   assert.equal(result.body.metadata.agent, 'coauthor');
+});
+
+test('client state sync route updates backend source for co-author context', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleClientStateSync({
+    body: {
+      mermaidSource: 'flowchart TD\n  Idea[Topic] --> Detail[Client draft]'
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.revisionId, 1);
+  assert.match(result.body.mermaidSource, /Client draft/);
 });

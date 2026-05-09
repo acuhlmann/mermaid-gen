@@ -168,12 +168,13 @@ export function createMermaidLangChainAgent({ stateStore, model = createOpenRout
 
     async applyCoAuthorIntent({ prompt, settings }) {
       const resolvedSettings = { ...COAUTHOR_PROFILE_DEFAULTS, ...settings };
+      const currentState = stateStore.getState();
 
       return this.invoke({
         messages: [
           {
             role: 'user',
-            content: `Extend the current Mermaid diagram with a surprising but relevant co-author contribution.\n\nRespect these settings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nHuman intent to build upon:\n${prompt}\n\nPreserve existing structure, then add an extension.`
+            content: `You are in co-author surprise mode. Read the current diagram and extend it into a bigger graph.\n\nHard requirements:\n- You MUST preserve the full existing diagram content and extend from it.\n- You MUST call get_diagram_state first.\n- You MUST call apply_mermaid_patch with full Mermaid source.\n- Add at least 2 new nodes and 2 new edges connected to existing nodes.\n- Do not return only text; apply the patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nRespect these settings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nHuman intent to build upon:\n${prompt}\n\nOutput goal:\n- Produce a creative yet relevant extension that keeps existing concepts and grows the architecture.`
           }
         ]
       });

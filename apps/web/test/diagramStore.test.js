@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveOptimisticState, submitCoAuthorIntent } from '../src/state/diagramStore.js';
+import { deriveOptimisticState, submitCoAuthorIntent, syncClientDiagramState } from '../src/state/diagramStore.js';
 
 describe('deriveOptimisticState', () => {
   it('adds a pending node snippet for optimistic UI', () => {
@@ -42,6 +42,39 @@ describe('submitCoAuthorIntent', () => {
 
       const sent = JSON.parse(requestBody);
       expect(sent.trigger).toBe('manual');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe('syncClientDiagramState', () => {
+  it('posts local editor source to backend state endpoint', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestUrl;
+    let requestBody;
+    try {
+      globalThis.fetch = async (url, options) => {
+        requestUrl = url;
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return {
+              revisionId: 3,
+              mermaidSource: JSON.parse(options.body).mermaidSource
+            };
+          }
+        };
+      };
+
+      const payload = await syncClientDiagramState({
+        mermaidSource: 'flowchart TD\n  A --> B'
+      });
+
+      expect(requestUrl).toContain('/api/copilotkit/state');
+      expect(JSON.parse(requestBody).mermaidSource).toContain('A --> B');
+      expect(payload.revisionId).toBe(3);
     } finally {
       globalThis.fetch = originalFetch;
     }

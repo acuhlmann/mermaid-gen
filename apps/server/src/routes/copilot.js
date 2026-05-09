@@ -1,4 +1,5 @@
 import express from 'express';
+import { z } from 'zod';
 import { CoAuthorIntentSchema, DiagramIntentSchema } from '@mermaid-architect/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
 
@@ -148,11 +149,55 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
   }
 }
 
+const SyncClientStateSchema = z.object({
+  mermaidSource: z.string().min(1)
+});
+
+export async function handleClientStateSync({ body, stateStore }) {
+  const parsed = SyncClientStateSchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      status: 400,
+      body: {
+        error: 'Invalid state sync payload',
+        details: parsed.error.flatten()
+      }
+    };
+  }
+
+  const synced = stateStore.syncClientMermaidSource({
+    mermaidSource: parsed.data.mermaidSource
+  });
+
+  if (!synced.accepted) {
+    return {
+      status: 422,
+      body: {
+        error: synced.error
+      }
+    };
+  }
+
+  return {
+    status: 200,
+    body: synced.state
+  };
+}
+
 export function createCopilotRouter({ stateStore, agentService }) {
   const router = express.Router();
 
   router.get('/state', (_req, res) => {
     res.json(stateStore.getState());
+  });
+
+  router.post('/state', async (req, res) => {
+    const result = await handleClientStateSync({
+      body: req.body,
+      stateStore
+    });
+
+    return res.status(result.status).json(result.body);
   });
 
   router.post('/intent', async (req, res) => {
