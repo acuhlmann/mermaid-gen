@@ -3,7 +3,8 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DiagramCanvas from '../src/components/DiagramCanvas.jsx';
 
-const { renderMock } = vi.hoisted(() => ({
+const { initializeMock, renderMock } = vi.hoisted(() => ({
+  initializeMock: vi.fn(),
   renderMock: vi.fn(async (_id, source) => ({
     svg: `<svg><text>${source}</text></svg>`
   }))
@@ -11,7 +12,7 @@ const { renderMock } = vi.hoisted(() => ({
 
 vi.mock('mermaid', () => ({
   default: {
-    initialize: vi.fn(),
+    initialize: initializeMock,
     render: renderMock
   }
 }));
@@ -31,6 +32,7 @@ vi.mock('@monaco-editor/react', () => ({
 describe('DiagramCanvas', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    initializeMock.mockClear();
     renderMock.mockClear();
   });
 
@@ -78,5 +80,39 @@ describe('DiagramCanvas', () => {
 
     expect(screen.getByLabelText('Mermaid DSL').value).toBe('flowchart TD\nStart --> End');
     expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), 'flowchart TD\nStart --> End');
+  });
+
+  it('renders source containing a Mermaid init directive with per-render style config', async () => {
+    const source =
+      '%%{init: {"theme":"dark","look":"neo","themeVariables":{},"flowchart":{"curve":"rounded"}}}%%\nflowchart TD\nA --> B';
+
+    render(
+      <DiagramCanvas
+        mermaidSource={source}
+        styleConfig={{
+          theme: 'dark',
+          look: 'neo',
+          themeVariables: {},
+          themeCSS: '',
+          flowchart: { curve: 'rounded' }
+        }}
+        revisionId={1}
+        onManualEdit={vi.fn()}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(initializeMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        startOnLoad: false,
+        theme: 'dark',
+        look: 'neo',
+        flowchart: { curve: 'rounded' }
+      })
+    );
+    expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), source);
   });
 });

@@ -13,6 +13,9 @@ test('diagram state store applies a valid Mermaid update', async () => {
   assert.equal(result.accepted, true);
   assert.equal(result.patch.previousRevisionId, 0);
   assert.equal(result.state.revisionId, 1);
+  assert.match(result.state.mermaidSource, /^%%\{init:/);
+  assert.equal(result.state.styleConfig.theme, 'base');
+  assert.equal(result.state.styleConfig.look, 'neo');
   assert.match(store.getState().mermaidSource, /API/);
 });
 

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
+import { applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import ControlsPanel from './components/ControlsPanel.jsx';
+import StylePanel from './components/StylePanel.jsx';
 import {
   fallbackState,
   fetchDiagramState,
   syncClientDiagramState,
   submitDiagramIntent,
   submitCoAuthorIntent,
+  submitStyleIntent,
   deriveOptimisticState
 } from './state/diagramStore.js';
 import './App.css';
@@ -32,6 +35,7 @@ function App() {
   const [activeAgent, setActiveAgent] = useState(null);
   const [error, setError] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [showStylePanel, setShowStylePanel] = useState(false);
   const syncTimerRef = useRef(null);
 
   useEffect(() => {
@@ -87,7 +91,8 @@ function App() {
 
     try {
       const syncedState = await syncClientDiagramState({
-        mermaidSource: state.mermaidSource
+        mermaidSource: state.mermaidSource,
+        styleConfig: state.styleConfig
       });
       setState(syncedState);
       setLastCommittedState(syncedState);
@@ -109,10 +114,53 @@ function App() {
     }
   }
 
+  function clearPendingSync() {
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+  }
+
+  async function runStylePrompt(promptInput) {
+    const stylePrompt = promptInput?.trim();
+    if (!stylePrompt) return;
+
+    setLoading(true);
+    setActiveAgent('style');
+    setError('');
+    clearPendingSync();
+
+    try {
+      const syncedState = await syncClientDiagramState({
+        mermaidSource: state.mermaidSource,
+        styleConfig: state.styleConfig
+      });
+      setState(syncedState);
+      setLastCommittedState(syncedState);
+
+      const payload = await submitStyleIntent({
+        prompt: stylePrompt,
+        revisionId: syncedState.revisionId,
+        mermaidSource: syncedState.mermaidSource,
+        settings: {}
+      });
+
+      setState(payload.state);
+      setLastCommittedState(payload.state);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setActiveAgent(null);
+    }
+  }
+
   function handleManualEdit(nextSource) {
+    const parsedStyle = parseMermaidStyleConfig(nextSource);
     setState((currentState) => ({
       ...currentState,
       mermaidSource: nextSource,
+      styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : currentState.styleConfig,
       updatedAt: new Date().toISOString()
     }));
 
@@ -122,7 +170,10 @@ function App() {
 
     syncTimerRef.current = setTimeout(async () => {
       try {
-        const synced = await syncClientDiagramState({ mermaidSource: nextSource });
+        const synced = await syncClientDiagramState({
+          mermaidSource: nextSource,
+          styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : undefined
+        });
         setState(synced);
         setLastCommittedState(synced);
       } catch {
@@ -131,8 +182,39 @@ function App() {
     }, 350);
   }
 
+  async function handleStyleApply(nextStyleConfig) {
+    clearPendingSync();
+
+    const styled = applyMermaidStyleDirective({
+      mermaidSource: state.mermaidSource,
+      styleConfig: nextStyleConfig
+    });
+
+    setState((currentState) => ({
+      ...currentState,
+      mermaidSource: styled.mermaidSource,
+      styleConfig: styled.styleConfig,
+      updatedAt: new Date().toISOString()
+    }));
+
+    try {
+      const synced = await syncClientDiagramState(styled);
+      setState(synced);
+      setLastCommittedState(synced);
+      setError('');
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  function handleRevertToLastCommitted() {
+    clearPendingSync();
+    setState(lastCommittedState);
+  }
+
   const status = useMemo(() => {
     if (loading && activeAgent === 'coauthor') return 'Co-author surprise mode is extending your diagram...';
+    if (loading && activeAgent === 'style') return 'Style agent is updating the diagram appearance...';
     if (loading) return 'Intent agent is applying your requested update...';
     if (error) return error;
     return `Last updated: ${new Date(state.updatedAt).toLocaleTimeString()}`;
@@ -155,6 +237,9 @@ function App() {
               <p className="subtitle">Collaborative diagram generation with agentic controls.</p>
             </div>
             <div className="floating-toggles">
+              <button type="button" onClick={() => setShowStylePanel((value) => !value)}>
+                {showStylePanel ? 'Hide Style' : 'Style'}
+              </button>
               <button type="button" onClick={() => setShowSettings((value) => !value)}>
                 {showSettings ? 'Hide Co-Author Settings' : 'Co-Author Settings'}
               </button>
@@ -183,17 +268,31 @@ function App() {
           </form>
           <DiagramCanvas
             mermaidSource={state.mermaidSource}
+            styleConfig={state.styleConfig}
             revisionId={state.revisionId}
             onManualEdit={handleManualEdit}
           />
           <p className={`status ${error ? 'status-error' : ''}`}>{status}</p>
+
+          {showStylePanel ? (
+            <div className="floating-panel floating-style">
+              <StylePanel
+                key={JSON.stringify(state.styleConfig)}
+                styleConfig={state.styleConfig}
+                onApply={handleStyleApply}
+                onRevert={handleRevertToLastCommitted}
+                onStylePrompt={runStylePrompt}
+                loading={loading}
+              />
+            </div>
+          ) : null}
 
           {showSettings ? (
             <div className="floating-panel floating-controls">
               <ControlsPanel
                 settings={coAuthorSettings}
                 onSettingsChange={handleSettingChange}
-                onUndo={() => setState(lastCommittedState)}
+                onUndo={handleRevertToLastCommitted}
                 loading={loading}
               />
             </div>

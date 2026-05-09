@@ -1,6 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
-import { CoAuthorIntentSchema, DiagramIntentSchema } from '@mermaid-architect/shared';
+import { CoAuthorIntentSchema, DiagramIntentSchema, DiagramStyleSchema, StyleIntentSchema } from '@mermaid-architect/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
 
 export async function handleDiagramIntent({ body, stateStore, agentService }) {
@@ -149,8 +149,82 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
   }
 }
 
+export async function handleStyleIntent({ body, stateStore, agentService }) {
+  const parsedIntent = StyleIntentSchema.safeParse(body);
+  if (!parsedIntent.success) {
+    return {
+      status: 400,
+      body: {
+        error: 'Invalid style payload',
+        details: parsedIntent.error.flatten()
+      }
+    };
+  }
+
+  const intent = parsedIntent.data;
+  const state = stateStore.getState();
+  if (intent.revisionId !== state.revisionId) {
+    return {
+      status: 409,
+      body: {
+        error: 'State revision is stale. Refresh state and retry.',
+        state
+      }
+    };
+  }
+
+  try {
+    const agentResult = await agentService.applyStyleIntent({
+      prompt: intent.stylePrompt || intent.prompt,
+      settings: intent.settings
+    });
+    const nextState = stateStore.getState();
+    const patch = nextState.history.at(-1);
+
+    if (nextState.revisionId === state.revisionId || !patch) {
+      return {
+        status: 422,
+        body: {
+          error: 'Style agent did not apply a diagram patch.',
+          message: agentResult.message,
+          state: nextState
+        }
+      };
+    }
+
+    return {
+      status: 200,
+      body: {
+        message: agentResult.message || 'Style patch accepted',
+        patch,
+        state: nextState,
+        metadata: {
+          llm: true,
+          agent: 'style'
+        }
+      }
+    };
+  } catch (error) {
+    if (error instanceof LlmNotConfiguredError) {
+      return {
+        status: error.statusCode,
+        body: { error: error.message }
+      };
+    }
+
+    return {
+      status: 500,
+      body: {
+        error: 'Style request failed',
+        details: error instanceof Error ? error.message : String(error)
+      }
+    };
+  }
+}
+
 const SyncClientStateSchema = z.object({
-  mermaidSource: z.string().min(1)
+  mermaidSource: z.string().min(1),
+  styleConfig: DiagramStyleSchema.optional()
 });
 
 export async function handleClientStateSync({ body, stateStore }) {
@@ -166,7 +240,8 @@ export async function handleClientStateSync({ body, stateStore }) {
   }
 
   const synced = stateStore.syncClientMermaidSource({
-    mermaidSource: parsed.data.mermaidSource
+    mermaidSource: parsed.data.mermaidSource,
+    styleConfig: parsed.data.styleConfig
   });
 
   if (!synced.accepted) {
@@ -212,6 +287,16 @@ export function createCopilotRouter({ stateStore, agentService }) {
 
   router.post('/coauthor', async (req, res) => {
     const result = await handleCoAuthorIntent({
+      body: req.body,
+      stateStore,
+      agentService
+    });
+
+    return res.status(result.status).json(result.body);
+  });
+
+  router.post('/style', async (req, res) => {
+    const result = await handleStyleIntent({
       body: req.body,
       stateStore,
       agentService

@@ -11,6 +11,9 @@ test('mermaid tool accepts valid flowchart source', async () => {
 
   assert.equal(result.accepted, true);
   assert.equal(result.patch.nextRevisionId, 1);
+  assert.match(result.patch.mermaidSource, /^%%\{init:/);
+  assert.equal(result.patch.styleConfig.theme, 'base');
+  assert.equal(result.patch.styleConfig.flowchart.curve, 'rounded');
 });
 
 test('mermaid tool rejects invalid source', async () => {

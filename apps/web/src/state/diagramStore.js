@@ -10,11 +10,11 @@ export async function fetchDiagramState() {
   return response.json();
 }
 
-export async function syncClientDiagramState({ mermaidSource }) {
+export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ mermaidSource })
+    body: JSON.stringify({ mermaidSource, styleConfig })
   });
 
   const payload = await response.json();
@@ -50,6 +50,21 @@ export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, 
   const payload = await response.json();
   if (!response.ok) {
     throw new Error(payload.error ?? 'Co-author request failed');
+  }
+
+  return payload;
+}
+
+export async function submitStyleIntent({ prompt, revisionId, mermaidSource, settings }) {
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/style`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt, stylePrompt: prompt, revisionId, mermaidSource, settings })
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Style request failed');
   }
 
   return payload;

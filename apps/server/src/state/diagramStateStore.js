@@ -1,4 +1,5 @@
 import { applyPatch, createInitialDiagramState } from '@mermaid-architect/shared';
+import { applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 
 export function createDiagramStateStore(initialState = createInitialDiagramState()) {
@@ -9,7 +10,7 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
       return state;
     },
 
-    syncClientMermaidSource({ mermaidSource }) {
+    syncClientMermaidSource({ mermaidSource, styleConfig }) {
       const candidate = mermaidSource?.trim();
       if (!candidate) {
         return {
@@ -18,10 +19,32 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
         };
       }
 
+      const parsedStyle = styleConfig
+        ? { accepted: true, styleConfig }
+        : parseMermaidStyleConfig(candidate);
+
+      if (!parsedStyle.accepted) {
+        return parsedStyle;
+      }
+
+      let styled;
+      try {
+        styled = applyMermaidStyleDirective({
+          mermaidSource: candidate,
+          styleConfig: parsedStyle.styleConfig
+        });
+      } catch (error) {
+        return {
+          accepted: false,
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+
       state = {
         ...state,
         revisionId: state.revisionId + 1,
-        mermaidSource: candidate,
+        mermaidSource: styled.mermaidSource,
+        styleConfig: styled.styleConfig,
         updatedAt: new Date().toISOString()
       };
 

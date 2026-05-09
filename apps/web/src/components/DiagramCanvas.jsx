@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
+import { DEFAULT_DIAGRAM_STYLE, styleConfigToMermaidConfig } from '@mermaid-architect/shared';
 
-mermaid.initialize({ startOnLoad: false, theme: 'default' });
+mermaid.initialize({ startOnLoad: false, ...styleConfigToMermaidConfig(DEFAULT_DIAGRAM_STYLE) });
 
 function extractErrorMessage(error) {
   if (!error) return 'Unknown Mermaid error';
@@ -11,7 +12,7 @@ function extractErrorMessage(error) {
   return 'Mermaid render failed';
 }
 
-export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit }) {
+export default function DiagramCanvas({ mermaidSource, styleConfig, revisionId, onManualEdit }) {
   const [editorSource, setEditorSource] = useState(mermaidSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
@@ -42,6 +43,10 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
       async function runRender() {
         try {
           const diagramId = `diagram-${requestId}`;
+          mermaid.initialize({
+            startOnLoad: false,
+            ...styleConfigToMermaidConfig(styleConfig)
+          });
           const { svg } = await mermaid.render(diagramId, editorSource);
           if (cancelled || requestRef.current !== requestId) {
             return;
@@ -66,7 +71,7 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
         clearTimeout(debounceRef.current);
       }
     };
-  }, [editorSource]);
+  }, [editorSource, styleConfig]);
 
   function handleEditorChange(value) {
     const nextValue = value ?? '';

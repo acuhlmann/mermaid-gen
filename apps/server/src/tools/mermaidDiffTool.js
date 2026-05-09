@@ -1,4 +1,9 @@
-import { DiagramPatchSchema } from '@mermaid-architect/shared';
+import {
+  DiagramPatchSchema,
+  applyMermaidStyleDirective,
+  parseMermaidStyleConfig,
+  stripMermaidInitDirective
+} from '@mermaid-architect/shared';
 
 function looksLikeMermaid(source) {
   return /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|journey|mindmap)/m.test(source.trim());
@@ -34,15 +39,33 @@ async function validateWithMcpServer(source) {
 
 export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {
   const candidate = proposedMermaidSource?.trim();
+  const parsedStyle = parseMermaidStyleConfig(candidate);
 
-  if (!candidate || !looksLikeMermaid(candidate)) {
+  if (!candidate) {
     return {
       accepted: false,
       error: 'Proposed source is not valid Mermaid syntax (missing known diagram type).'
     };
   }
 
-  const mcpValidation = await validateWithMcpServer(candidate);
+  if (!parsedStyle.accepted) {
+    return parsedStyle;
+  }
+
+  const diagramBody = stripMermaidInitDirective(candidate);
+  if (!looksLikeMermaid(diagramBody)) {
+    return {
+      accepted: false,
+      error: 'Proposed source is not valid Mermaid syntax (missing known diagram type).'
+    };
+  }
+
+  const styled = applyMermaidStyleDirective({
+    mermaidSource: candidate,
+    styleConfig: parsedStyle.styleConfig
+  });
+
+  const mcpValidation = await validateWithMcpServer(styled.mermaidSource);
   if (!mcpValidation.valid) {
     return {
       accepted: false,
@@ -53,7 +76,8 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
   const patch = DiagramPatchSchema.parse({
     previousRevisionId: currentState.revisionId,
     nextRevisionId: currentState.revisionId + 1,
-    mermaidSource: candidate,
+    mermaidSource: styled.mermaidSource,
+    styleConfig: styled.styleConfig,
     reason
   });
 
