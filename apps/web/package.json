@@ -13,6 +13,7 @@
   "dependencies": {
     "@copilotkit/react-core": "^1.57.1",
     "@copilotkit/react-ui": "^1.57.1",
+    "@copilotkit/runtime-client-gql": "^1.57.1",
     "@mermaid-architect/shared": "^1.0.0",
     "@monaco-editor/react": "^4.7.0",
     "mermaid": "^11.14.0",

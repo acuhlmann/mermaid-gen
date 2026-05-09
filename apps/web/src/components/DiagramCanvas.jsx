@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
 
@@ -11,13 +11,40 @@ function extractErrorMessage(error) {
   return 'Mermaid render failed';
 }
 
-export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit }) {
+export default function DiagramCanvas({
+  mermaidSource,
+  revisionId,
+  onManualEdit,
+  onValidationChange,
+  streamingPreview = false
+}) {
   const [editorSource, setEditorSource] = useState(mermaidSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
   const requestRef = useRef(0);
   const debounceRef = useRef(null);
   const lastAppliedSourceRef = useRef(mermaidSource);
+  const lastReportedValidationRef = useRef({ source: null, error: null });
+  const dragStateRef = useRef({ active: false, pointerId: null, x: 0, y: 0 });
+  const resizeStateRef = useRef({ active: false, pointerId: null, startX: 0, startPreviewWidth: 50 });
+  const contentRef = useRef(null);
+  const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [previewWidth, setPreviewWidth] = useState(50);
+
+  const reportValidation = useCallback(
+    (source, error) => {
+      if (!onValidationChange) return;
+      const previous = lastReportedValidationRef.current;
+      if (previous.source === source && previous.error === error) {
+        return;
+      }
+      lastReportedValidationRef.current = { source, error };
+      onValidationChange({ source, error });
+    },
+    [onValidationChange]
+  );
 
   useEffect(() => {
     if (mermaidSource === lastAppliedSourceRef.current) {
@@ -29,7 +56,15 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
   }, [mermaidSource]);
 
   useEffect(() => {
+    setViewport({ x: 0, y: 0, scale: 1 });
+  }, [revisionId]);
+
+  useEffect(() => {
     let cancelled = false;
+
+    if (streamingPreview) {
+      return undefined;
+    }
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -49,11 +84,14 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
 
           setSvgMarkup(svg);
           setRenderError('');
+          reportValidation(editorSource, null);
         } catch (error) {
           if (cancelled || requestRef.current !== requestId) {
             return;
           }
-          setRenderError(extractErrorMessage(error));
+          const message = extractErrorMessage(error);
+          setRenderError(message);
+          reportValidation(editorSource, message);
         }
       }
 
@@ -66,7 +104,9 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
         clearTimeout(debounceRef.current);
       }
     };
-  }, [editorSource]);
+  }, [editorSource, reportValidation, streamingPreview]);
+
+  const displayedRenderError = streamingPreview ? '' : renderError;
 
   function handleEditorChange(value) {
     const nextValue = value ?? '';
@@ -77,15 +117,120 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
     }
   }
 
+  function clampScale(value) {
+    return Math.min(4, Math.max(0.2, value));
+  }
+
+  function handleWheel(event) {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left;
+    const pointerY = event.clientY - rect.top;
+    const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+
+    setViewport((current) => {
+      const nextScale = clampScale(current.scale * zoomFactor);
+      if (nextScale === current.scale) {
+        return current;
+      }
+
+      const worldX = (pointerX - current.x) / current.scale;
+      const worldY = (pointerY - current.y) / current.scale;
+
+      return {
+        scale: nextScale,
+        x: pointerX - worldX * nextScale,
+        y: pointerY - worldY * nextScale
+      };
+    });
+  }
+
+  function handlePointerDown(event) {
+    if (event.button !== 0) return;
+    dragStateRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY
+    };
+    setIsPanning(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event) {
+    const dragState = dragStateRef.current;
+    if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - dragState.x;
+    const dy = event.clientY - dragState.y;
+    dragStateRef.current = {
+      ...dragState,
+      x: event.clientX,
+      y: event.clientY
+    };
+
+    setViewport((current) => ({
+      ...current,
+      x: current.x + dx,
+      y: current.y + dy
+    }));
+  }
+
+  function endPointerPan(event) {
+    const dragState = dragStateRef.current;
+    if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+
+    dragStateRef.current = { active: false, pointerId: null, x: 0, y: 0 };
+    setIsPanning(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  function handleResizePointerDown(event) {
+    if (event.button !== 0 || !contentRef.current) return;
+    resizeStateRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startPreviewWidth: previewWidth
+    };
+    setIsResizing(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handleResizePointerMove(event) {
+    const resizeState = resizeStateRef.current;
+    if (!resizeState.active || resizeState.pointerId !== event.pointerId || !contentRef.current) return;
+
+    const totalWidth = contentRef.current.getBoundingClientRect().width;
+    if (totalWidth <= 0) return;
+    const deltaX = event.clientX - resizeState.startX;
+    const deltaPercent = (deltaX / totalWidth) * 100;
+    const nextPreviewWidth = Math.min(80, Math.max(20, resizeState.startPreviewWidth - deltaPercent));
+    setPreviewWidth(nextPreviewWidth);
+  }
+
+  function handleResizePointerUp(event) {
+    const resizeState = resizeStateRef.current;
+    if (!resizeState.active || resizeState.pointerId !== event.pointerId) return;
+    resizeStateRef.current = { active: false, pointerId: null, startX: 0, startPreviewWidth: previewWidth };
+    setIsResizing(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
   return (
     <section className="diagram-canvas">
       <header>
         <h2>Live Diagram</h2>
         <span>Revision {revisionId}</span>
       </header>
-      <div className="diagram-content">
-        <div className="diagram-editor">
+      <div className={`diagram-content ${isResizing ? 'is-resizing' : ''}`} ref={contentRef}>
+        <div className="diagram-editor" style={{ width: `${100 - previewWidth}%` }}>
           <h3>Mermaid DSL</h3>
+          {streamingPreview ? <p className="streaming-note">AG-UI is streaming the validated source into the editor...</p> : null}
           <Editor
             height="360px"
             defaultLanguage="plaintext"
@@ -95,14 +240,39 @@ export default function DiagramCanvas({ mermaidSource, revisionId, onManualEdit 
               minimap: { enabled: false },
               wordWrap: 'on',
               scrollBeyondLastLine: false,
-              automaticLayout: true
+              automaticLayout: true,
+              readOnly: streamingPreview
             }}
           />
         </div>
-        <div className="diagram-preview">
+        <div
+          className={`diagram-splitter ${isResizing ? 'is-active' : ''}`}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize editor and preview panes"
+          onPointerDown={handleResizePointerDown}
+          onPointerMove={handleResizePointerMove}
+          onPointerUp={handleResizePointerUp}
+          onPointerCancel={handleResizePointerUp}
+        />
+        <div className="diagram-preview" style={{ width: `${previewWidth}%` }}>
           <h3>Renderer</h3>
-          {renderError ? <p className="diagram-error">{renderError}</p> : null}
-          <div className="diagram-output" dangerouslySetInnerHTML={{ __html: svgMarkup }} />
+          {streamingPreview ? <p className="streaming-note">Renderer will refresh after validation completes.</p> : null}
+          {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
+          <div
+            className={`diagram-output ${isPanning ? 'is-panning' : ''}`}
+            onWheel={handleWheel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={endPointerPan}
+            onPointerCancel={endPointerPan}
+          >
+            <div
+              className="diagram-viewport"
+              style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+          </div>
         </div>
       </div>
     </section>

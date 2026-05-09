@@ -20,7 +20,7 @@ export const DiagramIntentSchema = z.object({
   mermaidSource: z.string().min(1),
   settings: z
     .object({
-      temperature: z.number().min(0).max(2).default(0.7),
+      temperature: z.number().min(0).max(3).default(0.7),
       topP: z.number().min(0).max(1).default(1),
       maxNodes: z.number().int().min(1).max(200).default(25),
       styleGuide: z.enum(['concise', 'balanced', 'bold']).default('balanced'),

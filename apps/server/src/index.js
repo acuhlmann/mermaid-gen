@@ -18,7 +18,7 @@ const stateStore = createDiagramStateStore();
 const agentService = createLazyMermaidAgentService({ stateStore });
 const runtime = new CopilotRuntime({
   agents: {
-    default: createCopilotRuntimeAgent({ agentService })
+    default: createCopilotRuntimeAgent({ agentService, stateStore })
   }
 });
 
@@ -29,7 +29,6 @@ app.use(
   createCopilotExpressHandler({
     runtime,
     basePath: '/api/copilotkit',
-    mode: 'single-route',
     cors: false
   })
 );

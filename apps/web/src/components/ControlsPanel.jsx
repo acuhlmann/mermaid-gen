@@ -2,6 +2,8 @@ export default function ControlsPanel({
   settings,
   onSettingsChange,
   onUndo,
+  onCoAuthorExtend,
+  prompt,
   loading
 }) {
   return (
@@ -12,7 +14,7 @@ export default function ControlsPanel({
         id="temperature"
         type="range"
         min="0"
-        max="2"
+        max="3"
         step="0.1"
         value={settings.temperature}
         onChange={(event) => onSettingsChange('temperature', Number(event.target.value))}
@@ -59,6 +61,9 @@ export default function ControlsPanel({
       />
 
       <div className="actions">
+        <button type="button" onClick={() => onCoAuthorExtend(prompt)} disabled={loading}>
+          Co-author extend
+        </button>
         <button type="button" onClick={onUndo} disabled={loading}>
           Undo
         </button>

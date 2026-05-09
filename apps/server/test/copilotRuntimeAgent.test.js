@@ -9,17 +9,27 @@ test('Copilot runtime agent streams the LangChain agent response', async () => {
       return { message: 'Applied a diagram update.' };
     }
   };
+  const stateStore = {
+    getState() {
+      return { revisionId: 1, mermaidSource: 'flowchart TD\n  A-->B' };
+    }
+  };
 
   for await (const event of createCopilotAgentEvents({
-    input: { runId: 'run-1', messages: [] },
-    agentService
+    input: {
+      runId: 'run-1',
+      messages: [{ role: 'user', content: 'Add a node' }]
+    },
+    agentService,
+    stateStore
   })) {
     events.push(event);
   }
 
   assert.deepEqual(
     events.map((event) => event.type),
-    ['TEXT_MESSAGE_START', 'TEXT_MESSAGE_CONTENT', 'TEXT_MESSAGE_END']
+    ['TEXT_MESSAGE_START', 'TEXT_MESSAGE_CONTENT', 'TEXT_MESSAGE_CONTENT', 'TEXT_MESSAGE_END']
   );
-  assert.equal(events[1].delta, 'Applied a diagram update.');
+  assert.match(events[1].delta, /Reading the current Mermaid diagram/);
+  assert.equal(events[2].delta, 'Applied a diagram update.');
 });
