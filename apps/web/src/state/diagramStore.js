@@ -1,6 +1,7 @@
 import { createInitialDiagramState } from '@mermaid-architect/shared';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000';
+const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL ?? '').trim() || 'http://localhost:4000';
 
 export async function fetchDiagramState() {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`);

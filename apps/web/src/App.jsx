@@ -567,7 +567,12 @@ Hard requirements:
 
 function App() {
   return (
-    <CopilotKit runtimeUrl={`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'}/api/copilotkit`}>
+    <CopilotKit
+      // Multi-route Express runtime (`createCopilotExpressHandler` default mode) exposes
+      // GET …/info. Single-endpoint mode POSTs to the base URL, which returns 404 here.
+      useSingleEndpoint={false}
+      runtimeUrl={`${(import.meta.env.VITE_API_BASE_URL ?? '').trim() || 'http://localhost:4000'}/api/copilotkit`}
+    >
       <MermaidArchitect />
     </CopilotKit>
   );
