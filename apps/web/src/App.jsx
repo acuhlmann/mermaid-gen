@@ -12,19 +12,21 @@ import {
 import './App.css';
 
 const defaultPrompt = 'Describe a diagram change';
-const defaultSettings = {
-  temperature: 0.7,
+const defaultCoAuthorSettings = {
+  temperature: 1.1,
   topP: 1,
-  maxNodes: 25,
-  styleGuide: 'balanced',
-  persona: 'creative architect'
+  maxNodes: 40,
+  styleGuide: 'bold',
+  persona: 'playful co-author'
 };
+const defaultCoAuthorPrompt =
+  'Creatively extend the current diagram into a bigger system while preserving existing structure and concepts.';
 
 function App() {
   const [state, setState] = useState(fallbackState);
   const [lastCommittedState, setLastCommittedState] = useState(fallbackState);
   const [prompt, setPrompt] = useState(defaultPrompt);
-  const [settings, setSettings] = useState(defaultSettings);
+  const [coAuthorSettings, setCoAuthorSettings] = useState(defaultCoAuthorSettings);
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(null);
   const [error, setError] = useState('');
@@ -52,7 +54,7 @@ function App() {
         prompt: promptInput,
         revisionId: lastCommittedState.revisionId,
         mermaidSource: lastCommittedState.mermaidSource,
-        settings
+        settings: {}
       });
 
       setState(payload.state);
@@ -67,16 +69,17 @@ function App() {
   }
 
   async function runCoAuthor(promptInput) {
+    const coAuthorPrompt = promptInput?.trim() || defaultCoAuthorPrompt;
     setLoading(true);
     setActiveAgent('coauthor');
     setError('');
 
     try {
       const payload = await submitCoAuthorIntent({
-        prompt: promptInput,
+        prompt: coAuthorPrompt,
         revisionId: lastCommittedState.revisionId,
         mermaidSource: lastCommittedState.mermaidSource,
-        settings
+        settings: coAuthorSettings
       });
 
       setState(payload.state);
@@ -105,7 +108,7 @@ function App() {
   }, [activeAgent, error, loading, state.updatedAt]);
 
   function handleSettingChange(key, value) {
-    setSettings((current) => ({
+    setCoAuthorSettings((current) => ({
       ...current,
       [key]: key === 'maxNodes' ? Math.max(1, Math.min(200, Number(value) || 1)) : value
     }));
@@ -122,7 +125,10 @@ function App() {
             </div>
             <div className="floating-toggles">
               <button type="button" onClick={() => setShowSettings((value) => !value)}>
-                {showSettings ? 'Hide Settings' : 'Agent Settings'}
+                {showSettings ? 'Hide Co-Author Settings' : 'Co-Author Settings'}
+              </button>
+              <button type="button" onClick={() => runCoAuthor(prompt)} disabled={loading}>
+                Surprise me
               </button>
             </div>
           </header>
@@ -154,12 +160,10 @@ function App() {
           {showSettings ? (
             <div className="floating-panel floating-controls">
               <ControlsPanel
-                settings={settings}
+                settings={coAuthorSettings}
                 onSettingsChange={handleSettingChange}
                 onUndo={() => setState(lastCommittedState)}
-                onCoAuthorExtend={runCoAuthor}
                 loading={loading}
-                prompt={prompt}
               />
             </div>
           ) : null}

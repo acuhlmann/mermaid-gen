@@ -2,13 +2,11 @@ export default function ControlsPanel({
   settings,
   onSettingsChange,
   onUndo,
-  onCoAuthorExtend,
-  loading,
-  prompt
+  loading
 }) {
   return (
     <aside className="controls-panel">
-      <h2>Agent Settings</h2>
+      <h2>Co-Author Settings</h2>
       <label htmlFor="temperature">Temperature ({settings.temperature.toFixed(2)})</label>
       <input
         id="temperature"
@@ -59,14 +57,6 @@ export default function ControlsPanel({
         value={settings.persona}
         onChange={(event) => onSettingsChange('persona', event.target.value)}
       />
-
-      <section className="coauthor-section" aria-label="Co-author controls">
-        <h3>Co-Author Surprise Mode</h3>
-        <p>Use this to let the creative co-author agent extend the current diagram on demand.</p>
-        <button type="button" onClick={() => onCoAuthorExtend(prompt)} disabled={loading || !prompt.trim()}>
-          Surprise me (Co-Author)
-        </button>
-      </section>
 
       <div className="actions">
         <button type="button" onClick={onUndo} disabled={loading}>
