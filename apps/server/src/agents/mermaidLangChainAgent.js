@@ -7,13 +7,18 @@ const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash-lite';
 const SYSTEM_PROMPT = `You are Mermaid Architect, an agent that helps edit Mermaid diagrams.
 
 When the user asks for a diagram change:
-- Read the current diagram with get_diagram_state.
+- Use the current diagram context or read the current diagram yourself with get_diagram_state.
 - Produce complete Mermaid source, not a partial diff.
 - Apply the update with apply_mermaid_patch.
 - Keep valid Mermaid syntax and preserve useful existing nodes unless the user asks to replace them.
 - After applying, briefly summarize what changed.
+- The user cannot call tools. Never ask the user to call get_diagram_state or apply_mermaid_patch.
+- Do not mention internal tool names in user-facing replies.
+- Short requests like "simplify it", "make it clearer", or "current diagram" refer to the current diagram.
 
 When the user asks a general question, answer concisely.`;
+
+const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch)\b/;
 
 export class LlmNotConfiguredError extends Error {
   constructor() {
@@ -55,13 +60,14 @@ function normalizeMessageContent(content) {
   return content == null ? '' : String(content);
 }
 
-function toLangChainMessages(messages) {
+export function toLangChainMessages(messages) {
   return messages
     .map((message) => {
       const content = normalizeMessageContent(message.content);
       if (!content) return null;
 
       if (message.role === 'assistant') {
+        if (INTERNAL_TOOL_NAME_PATTERN.test(content)) return null;
         return { role: 'assistant', content };
       }
 
@@ -72,6 +78,22 @@ function toLangChainMessages(messages) {
       return { role: 'user', content };
     })
     .filter(Boolean);
+}
+
+function createCurrentDiagramContextMessage(stateStore) {
+  const state = stateStore.getState();
+
+  return {
+    role: 'system',
+    content: `Current diagram context:
+- revisionId: ${state.revisionId}
+- mermaidSource:
+\`\`\`mermaid
+${state.mermaidSource}
+\`\`\`
+
+Use this as the current diagram when the user's request is short or refers to "it".`
+  };
 }
 
 function extractTextContent(content) {
@@ -108,7 +130,7 @@ export function createMermaidLangChainAgent({ stateStore, model = createOpenRout
   return {
     async invoke({ messages }) {
       const result = await agent.invoke({
-        messages: toLangChainMessages(messages)
+        messages: [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)]
       });
 
       return {
