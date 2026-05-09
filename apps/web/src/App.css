@@ -1,0 +1,92 @@
+.layout {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.workspace,
+.controls-panel,
+.chat-panel,
+.diagram-canvas {
+  background: #ffffff;
+  border: 1px solid #d8dce6;
+  border-radius: 8px;
+}
+
+.workspace,
+.chat-panel {
+  padding: 1rem;
+}
+
+.subtitle {
+  margin-top: 0;
+  color: #4a5568;
+}
+
+.diagram-canvas header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #d8dce6;
+  padding: 0.75rem 1rem;
+}
+
+.diagram-output {
+  padding: 1rem;
+  min-height: 360px;
+  overflow: auto;
+}
+
+.mermaid-fallback {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.controls-panel {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.controls-panel textarea {
+  resize: vertical;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+button {
+  border: 1px solid #c6cedf;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  background: #f6f8fc;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.status {
+  margin-top: 0.75rem;
+  color: #2f855a;
+}
+
+.status-error {
+  color: #c53030;
+}
+
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
