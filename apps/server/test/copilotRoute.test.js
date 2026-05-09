@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LlmNotConfiguredError } from '../src/agents/mermaidLangChainAgent.js';
-import { handleDiagramIntent } from '../src/routes/copilot.js';
+import { handleCoAuthorIntent, handleDiagramIntent } from '../src/routes/copilot.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
 function intentPayload(overrides = {}) {
@@ -55,4 +55,40 @@ test('intent route applies a patch from the agent service', async () => {
   assert.equal(result.body.patch.nextRevisionId, 1);
   assert.match(result.body.state.mermaidSource, /Gateway/);
   assert.equal(result.body.metadata.llm, true);
+  assert.equal(result.body.metadata.agent, 'intent');
+});
+
+test('coauthor route applies a patch from the coauthor agent service', async () => {
+  const stateStore = createDiagramStateStore();
+  const agentService = {
+    async applyCoAuthorIntent() {
+      await stateStore.applyMermaidSource({
+        mermaidSource: 'flowchart TD\n  Start[Start] --> End[End]\n  End --> Surprise[Surprise path]',
+        reason: 'coauthor extension'
+      });
+      return { message: 'Added a surprise extension.' };
+    }
+  };
+
+  const result = await handleCoAuthorIntent({
+    body: {
+      ...intentPayload(),
+      trigger: 'manual',
+      settings: {
+        temperature: 1.1,
+        topP: 0.95,
+        maxNodes: 30,
+        styleGuide: 'bold',
+        persona: 'playful coauthor'
+      }
+    },
+    stateStore,
+    agentService
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.message, 'Added a surprise extension.');
+  assert.equal(result.body.patch.nextRevisionId, 1);
+  assert.match(result.body.state.mermaidSource, /Surprise/);
+  assert.equal(result.body.metadata.agent, 'coauthor');
 });

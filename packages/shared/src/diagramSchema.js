@@ -18,7 +18,19 @@ export const DiagramIntentSchema = z.object({
   prompt: z.string().min(1),
   revisionId: z.number().int().nonnegative(),
   mermaidSource: z.string().min(1),
-  temperature: z.number().min(0).max(2).default(0.7)
+  settings: z
+    .object({
+      temperature: z.number().min(0).max(2).default(0.7),
+      topP: z.number().min(0).max(1).default(1),
+      maxNodes: z.number().int().min(1).max(200).default(25),
+      styleGuide: z.enum(['concise', 'balanced', 'bold']).default('balanced'),
+      persona: z.string().min(1).max(120).default('creative architect')
+    })
+    .default({})
+});
+
+export const CoAuthorIntentSchema = DiagramIntentSchema.extend({
+  trigger: z.literal('manual')
 });
 
 export function createInitialDiagramState() {

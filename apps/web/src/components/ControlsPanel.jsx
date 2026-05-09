@@ -1,46 +1,71 @@
-import { useState } from 'react';
-
 export default function ControlsPanel({
-  temperature,
-  onTemperatureChange,
-  onApply,
+  settings,
+  onSettingsChange,
   onUndo,
-  onRegenerate,
-  loading
+  onCoAuthorExtend,
+  loading,
+  prompt
 }) {
-  const [prompt, setPrompt] = useState('Add a data store and API gateway step.');
-
   return (
     <aside className="controls-panel">
-      <h2>Agent Controls</h2>
-      <label htmlFor="prompt">Prompt</label>
-      <textarea
-        id="prompt"
-        value={prompt}
-        onChange={(event) => setPrompt(event.target.value)}
-        rows={5}
-      />
-
-      <label htmlFor="temperature">Creativity ({temperature.toFixed(2)})</label>
+      <h2>Agent Settings</h2>
+      <label htmlFor="temperature">Temperature ({settings.temperature.toFixed(2)})</label>
       <input
         id="temperature"
         type="range"
         min="0"
         max="2"
         step="0.1"
-        value={temperature}
-        onChange={(event) => onTemperatureChange(Number(event.target.value))}
+        value={settings.temperature}
+        onChange={(event) => onSettingsChange('temperature', Number(event.target.value))}
+      />
+
+      <label htmlFor="topP">Top P ({settings.topP.toFixed(2)})</label>
+      <input
+        id="topP"
+        type="range"
+        min="0"
+        max="1"
+        step="0.05"
+        value={settings.topP}
+        onChange={(event) => onSettingsChange('topP', Number(event.target.value))}
+      />
+
+      <label htmlFor="maxNodes">Max added nodes ({settings.maxNodes})</label>
+      <input
+        id="maxNodes"
+        type="number"
+        min="1"
+        max="200"
+        value={settings.maxNodes}
+        onChange={(event) => onSettingsChange('maxNodes', Number(event.target.value))}
+      />
+
+      <label htmlFor="styleGuide">Style</label>
+      <select
+        id="styleGuide"
+        value={settings.styleGuide}
+        onChange={(event) => onSettingsChange('styleGuide', event.target.value)}
+      >
+        <option value="concise">Concise</option>
+        <option value="balanced">Balanced</option>
+        <option value="bold">Bold</option>
+      </select>
+
+      <label htmlFor="persona">Persona</label>
+      <input
+        id="persona"
+        type="text"
+        value={settings.persona}
+        onChange={(event) => onSettingsChange('persona', event.target.value)}
       />
 
       <div className="actions">
-        <button type="button" onClick={() => onApply(prompt)} disabled={loading || !prompt.trim()}>
-          Apply change
-        </button>
         <button type="button" onClick={onUndo} disabled={loading}>
           Undo
         </button>
-        <button type="button" onClick={() => onRegenerate(prompt)} disabled={loading || !prompt.trim()}>
-          Regenerate section
+        <button type="button" onClick={() => onCoAuthorExtend(prompt)} disabled={loading || !prompt.trim()}>
+          Co-author extend
         </button>
       </div>
     </aside>

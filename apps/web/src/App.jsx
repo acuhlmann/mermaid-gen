@@ -1,27 +1,35 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
-import { CopilotChat } from '@copilotkit/react-ui';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import ControlsPanel from './components/ControlsPanel.jsx';
 import {
   fallbackState,
   fetchDiagramState,
   submitDiagramIntent,
+  submitCoAuthorIntent,
   deriveOptimisticState
 } from './state/diagramStore.js';
 import './App.css';
 
+const defaultPrompt = 'Describe a diagram change';
+const defaultSettings = {
+  temperature: 0.7,
+  topP: 1,
+  maxNodes: 25,
+  styleGuide: 'balanced',
+  persona: 'creative architect'
+};
+
 function App() {
   const [state, setState] = useState(fallbackState);
   const [lastCommittedState, setLastCommittedState] = useState(fallbackState);
-  const [temperature, setTemperature] = useState(0.7);
+  const [prompt, setPrompt] = useState(defaultPrompt);
+  const [settings, setSettings] = useState(defaultSettings);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showControls, setShowControls] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const chatWasRunning = useRef(false);
+  const [showSettings, setShowSettings] = useState(false);
 
-  const refreshDiagramState = useCallback(() => {
+  useEffect(() => {
     fetchDiagramState()
       .then((data) => {
         setState(data);
@@ -30,44 +38,46 @@ function App() {
       .catch((err) => setError(err.message));
   }, []);
 
-  useEffect(() => {
-    refreshDiagramState();
-  }, [refreshDiagramState]);
-
-  const handleChatProgress = useCallback(
-    (inProgress) => {
-      if (inProgress) {
-        chatWasRunning.current = true;
-        return;
-      }
-
-      if (chatWasRunning.current) {
-        chatWasRunning.current = false;
-        refreshDiagramState();
-      }
-    },
-    [refreshDiagramState]
-  );
-
-  async function runIntent(prompt, mode = 'apply') {
+  async function runIntent(promptInput) {
     setLoading(true);
     setError('');
 
-    const optimisticState = deriveOptimisticState(state, prompt);
+    const optimisticState = deriveOptimisticState(state, promptInput);
     setState(optimisticState);
 
     try {
       const payload = await submitDiagramIntent({
-        prompt: mode === 'regenerate' ? `Regenerate: ${prompt}` : prompt,
+        prompt: promptInput,
         revisionId: lastCommittedState.revisionId,
         mermaidSource: lastCommittedState.mermaidSource,
-        temperature
+        settings
       });
 
       setState(payload.state);
       setLastCommittedState(payload.state);
     } catch (err) {
       setState(lastCommittedState);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function runCoAuthor(promptInput) {
+    setLoading(true);
+    setError('');
+
+    try {
+      const payload = await submitCoAuthorIntent({
+        prompt: promptInput,
+        revisionId: lastCommittedState.revisionId,
+        mermaidSource: lastCommittedState.mermaidSource,
+        settings
+      });
+
+      setState(payload.state);
+      setLastCommittedState(payload.state);
+    } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
@@ -88,6 +98,13 @@ function App() {
     return `Last updated: ${new Date(state.updatedAt).toLocaleTimeString()}`;
   }, [error, loading, state.updatedAt]);
 
+  function handleSettingChange(key, value) {
+    setSettings((current) => ({
+      ...current,
+      [key]: key === 'maxNodes' ? Math.max(1, Math.min(200, Number(value) || 1)) : value
+    }));
+  }
+
   return (
     <CopilotKit runtimeUrl={`${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'}/api/copilotkit`}>
       <main className="layout">
@@ -98,14 +115,29 @@ function App() {
               <p className="subtitle">Collaborative diagram generation with agentic controls.</p>
             </div>
             <div className="floating-toggles">
-              <button type="button" onClick={() => setShowControls((value) => !value)}>
-                {showControls ? 'Hide Controls' : 'Show Controls'}
-              </button>
-              <button type="button" onClick={() => setShowChat((value) => !value)}>
-                {showChat ? 'Hide Chat' : 'Show Chat'}
+              <button type="button" onClick={() => setShowSettings((value) => !value)}>
+                {showSettings ? 'Hide Settings' : 'Agent Settings'}
               </button>
             </div>
           </header>
+          <form
+            className="intent-bar"
+            onSubmit={(event) => {
+              event.preventDefault();
+              runIntent(prompt);
+            }}
+          >
+            <input
+              aria-label="Describe a diagram change"
+              type="text"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="Describe a diagram change"
+            />
+            <button type="submit" disabled={loading || !prompt.trim()}>
+              Draw with agent
+            </button>
+          </form>
           <DiagramCanvas
             mermaidSource={state.mermaidSource}
             revisionId={state.revisionId}
@@ -113,29 +145,17 @@ function App() {
           />
           <p className={`status ${error ? 'status-error' : ''}`}>{status}</p>
 
-          {showControls ? (
+          {showSettings ? (
             <div className="floating-panel floating-controls">
               <ControlsPanel
-                temperature={temperature}
-                onTemperatureChange={setTemperature}
-                onApply={(prompt) => runIntent(prompt, 'apply')}
+                settings={settings}
+                onSettingsChange={handleSettingChange}
                 onUndo={() => setState(lastCommittedState)}
-                onRegenerate={(prompt) => runIntent(prompt, 'regenerate')}
+                onCoAuthorExtend={runCoAuthor}
                 loading={loading}
+                prompt={prompt}
               />
             </div>
-          ) : null}
-
-          {showChat ? (
-            <section className="floating-panel floating-chat">
-              <div className="panel-header">
-                <h2>Copilot Chat</h2>
-              </div>
-              <CopilotChat
-            labels={{ title: 'Mermaid Assistant', initial: 'Describe a diagram change.' }}
-            onInProgress={handleChatProgress}
-          />
-            </section>
           ) : null}
         </section>
       </main>

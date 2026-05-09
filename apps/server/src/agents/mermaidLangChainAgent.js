@@ -139,12 +139,41 @@ export function createMermaidLangChainAgent({ stateStore, model = createOpenRout
       };
     },
 
-    async applyIntent({ prompt, temperature }) {
+    async applyIntent({ prompt, settings }) {
+      const resolvedSettings = {
+        temperature: 0.7,
+        topP: 1,
+        maxNodes: 25,
+        styleGuide: 'balanced',
+        persona: 'creative architect',
+        ...settings
+      };
+
       return this.invoke({
         messages: [
           {
             role: 'user',
-            content: `Apply this requested diagram change. Temperature hint: ${temperature}.\n\n${prompt}`
+            content: `Interpret and apply the user's requested diagram change.\n\nSettings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser request:\n${prompt}`
+          }
+        ]
+      });
+    },
+
+    async applyCoAuthorIntent({ prompt, settings }) {
+      const resolvedSettings = {
+        temperature: 0.7,
+        topP: 1,
+        maxNodes: 25,
+        styleGuide: 'balanced',
+        persona: 'creative architect',
+        ...settings
+      };
+
+      return this.invoke({
+        messages: [
+          {
+            role: 'user',
+            content: `Extend the current Mermaid diagram with a surprising but relevant co-author contribution.\n\nRespect these settings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nHuman intent to build upon:\n${prompt}\n\nPreserve existing structure, then add an extension.`
           }
         ]
       });
@@ -175,6 +204,10 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 
     async applyIntent(input) {
       return getAgentService().applyIntent(input);
+    },
+
+    async applyCoAuthorIntent(input) {
+      return getAgentService().applyCoAuthorIntent(input);
     }
   };
 }

@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Server: Debug (Node)",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/server",
+      "program": "${workspaceFolder}/apps/server/src/index.js",
+      "envFile": "${workspaceFolder}/.env",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "name": "Web: Dev (Vite)",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "command": "npm run dev -w apps/web"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Full Stack: Server + Web",
+      "configurations": ["Server: Debug (Node)", "Web: Dev (Vite)"]
+    }
+  ]
+}

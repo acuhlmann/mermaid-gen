@@ -10,11 +10,26 @@ export async function fetchDiagramState() {
   return response.json();
 }
 
-export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, temperature }) {
+export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, settings }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/intent`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ prompt, revisionId, mermaidSource, temperature })
+    body: JSON.stringify({ prompt, revisionId, mermaidSource, settings })
+  });
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throw new Error(payload.error ?? 'Intent request failed');
+  }
+
+  return payload;
+}
+
+export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, settings }) {
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/coauthor`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prompt, revisionId, mermaidSource, trigger: 'manual', settings })
   });
 
   const payload = await response.json();
