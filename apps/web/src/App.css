@@ -86,7 +86,7 @@
 }
 
 .corner-control {
-  position: absolute;
+  position: fixed;
   z-index: 10;
   pointer-events: auto;
 }
@@ -301,13 +301,13 @@ button {
   .prompt-control {
     left: 0.75rem;
     right: 0.75rem;
-    bottom: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
     grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .surprise-control {
     right: 0.75rem;
-    bottom: 4.6rem;
+    bottom: calc(4.7rem + env(safe-area-inset-bottom));
     gap: 0.45rem;
   }
 
