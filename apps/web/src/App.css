@@ -270,23 +270,7 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (max-width: 760px) {
-  .app-shell {
-    height: 100svh;
-  }
-
-  .diagram-canvas.is-editor-open {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(11rem, 38svh) minmax(0, 62svh);
-  }
-
-  .diagram-editor-panel {
-    padding-top: 0.75rem;
-    border-left: 0;
-    border-top: 1px solid rgba(15, 23, 42, 0.18);
-    box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.22);
-  }
-
+@media (max-width: 900px) {
   .brand-control {
     top: 0.75rem;
     left: 0.75rem;
@@ -327,6 +311,24 @@ button {
 
   .diagram-viewport {
     padding: 5.25rem 1rem 9rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    height: 100svh;
+  }
+
+  .diagram-canvas.is-editor-open {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(11rem, 38svh) minmax(0, 62svh);
+  }
+
+  .diagram-editor-panel {
+    padding-top: 0.75rem;
+    border-left: 0;
+    border-top: 1px solid rgba(15, 23, 42, 0.18);
+    box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.22);
   }
 
   .app-shell.is-editor-open .prompt-control,
