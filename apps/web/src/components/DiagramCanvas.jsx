@@ -12,13 +12,250 @@ function extractErrorMessage(error) {
   return 'Mermaid render failed';
 }
 
+function touchDistance(a, b) {
+  const dx = a.clientX - b.clientX;
+  const dy = a.clientY - b.clientY;
+  return Math.hypot(dx, dy);
+}
+
+function touchMidpoint(a, b) {
+  return {
+    x: (a.clientX + b.clientX) / 2,
+    y: (a.clientY + b.clientY) / 2
+  };
+}
+
+function clampScale(value) {
+  return Math.min(4, Math.max(0.2, value));
+}
+
+/** Pan/zoom surface; `key={revisionId}` from parent resets transform when the diagram revision changes. */
+function DiagramInteractiveViewport({ svgMarkup, streamingPreview, displayedRenderError, editorOpen }) {
+  const outputRef = useRef(null);
+  const pinchRef = useRef(null);
+  const singleTouchPanRef = useRef(null);
+  const dragStateRef = useRef({ active: false, pointerId: null, x: 0, y: 0 });
+  const viewportRef = useRef({ x: 0, y: 0, scale: 1 });
+  const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
+  const [isPanning, setIsPanning] = useState(false);
+
+  useEffect(() => {
+    viewportRef.current = viewport;
+  }, [viewport]);
+
+  function zoomAtPoint(pointerX, pointerY, zoomFactor, rect) {
+    const localX = pointerX - rect.left;
+    const localY = pointerY - rect.top;
+    setViewport((current) => {
+      const nextScale = clampScale(current.scale * zoomFactor);
+      if (nextScale === current.scale) {
+        return current;
+      }
+      const worldX = (localX - current.x) / current.scale;
+      const worldY = (localY - current.y) / current.scale;
+      const next = {
+        scale: nextScale,
+        x: localX - worldX * nextScale,
+        y: localY - worldY * nextScale
+      };
+      viewportRef.current = next;
+      return next;
+    });
+  }
+
+  function handleWheel(event) {
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+    zoomAtPoint(event.clientX, event.clientY, zoomFactor, rect);
+  }
+
+  useEffect(() => {
+    const el = outputRef.current;
+    if (!el) return undefined;
+
+    function onTouchStart(event) {
+      if (event.touches.length === 2) {
+        singleTouchPanRef.current = null;
+        const [a, b] = [event.touches[0], event.touches[1]];
+        const d0 = touchDistance(a, b);
+        if (d0 < 1) return;
+        const mid = touchMidpoint(a, b);
+        const rect = el.getBoundingClientRect();
+        pinchRef.current = {
+          d0,
+          rect,
+          localMidX: mid.x - rect.left,
+          localMidY: mid.y - rect.top,
+          viewport0: { ...viewportRef.current }
+        };
+        dragStateRef.current = { active: false, pointerId: null, x: 0, y: 0 };
+        setIsPanning(false);
+        event.preventDefault();
+        return;
+      }
+
+      if (event.touches.length === 1) {
+        pinchRef.current = null;
+        const t = event.touches[0];
+        singleTouchPanRef.current = {
+          id: t.identifier,
+          x: t.clientX,
+          y: t.clientY
+        };
+      }
+    }
+
+    function onTouchMove(event) {
+      if (event.touches.length === 2 && pinchRef.current) {
+        const pinch = pinchRef.current;
+        const [a, b] = [event.touches[0], event.touches[1]];
+        const d = touchDistance(a, b);
+        if (d < 1 || pinch.d0 < 1) return;
+
+        const { localMidX, localMidY, viewport0 } = pinch;
+        const nextScale = clampScale((viewport0.scale * d) / pinch.d0);
+        if (nextScale === viewport0.scale) {
+          event.preventDefault();
+          return;
+        }
+
+        const worldX = (localMidX - viewport0.x) / viewport0.scale;
+        const worldY = (localMidY - viewport0.y) / viewport0.scale;
+        const next = {
+          scale: nextScale,
+          x: localMidX - worldX * nextScale,
+          y: localMidY - worldY * nextScale
+        };
+        viewportRef.current = next;
+        setViewport(next);
+        event.preventDefault();
+        return;
+      }
+
+      if (event.touches.length === 1 && singleTouchPanRef.current && !pinchRef.current) {
+        const t = event.touches[0];
+        const st = singleTouchPanRef.current;
+        if (t.identifier !== st.id) return;
+        const dx = t.clientX - st.x;
+        const dy = t.clientY - st.y;
+        singleTouchPanRef.current = { ...st, x: t.clientX, y: t.clientY };
+        setViewport((current) => {
+          const next = {
+            ...current,
+            x: current.x + dx,
+            y: current.y + dy
+          };
+          viewportRef.current = next;
+          return next;
+        });
+        event.preventDefault();
+      }
+    }
+
+    function onTouchEnd(event) {
+      if (event.touches.length < 2) {
+        pinchRef.current = null;
+      }
+      if (event.touches.length === 0) {
+        singleTouchPanRef.current = null;
+      } else if (singleTouchPanRef.current) {
+        const t = event.touches[0];
+        singleTouchPanRef.current = { ...singleTouchPanRef.current, id: t.identifier, x: t.clientX, y: t.clientY };
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
+    el.addEventListener('touchcancel', onTouchEnd);
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
+      el.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [editorOpen]);
+
+  function handlePointerDown(event) {
+    if (event.pointerType === 'touch') return;
+    if (event.button !== 0) return;
+    dragStateRef.current = {
+      active: true,
+      pointerId: event.pointerId,
+      x: event.clientX,
+      y: event.clientY
+    };
+    setIsPanning(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  }
+
+  function handlePointerMove(event) {
+    const dragState = dragStateRef.current;
+    if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - dragState.x;
+    const dy = event.clientY - dragState.y;
+    dragStateRef.current = {
+      ...dragState,
+      x: event.clientX,
+      y: event.clientY
+    };
+
+    setViewport((current) => {
+      const next = {
+        ...current,
+        x: current.x + dx,
+        y: current.y + dy
+      };
+      viewportRef.current = next;
+      return next;
+    });
+  }
+
+  function endPointerPan(event) {
+    const dragState = dragStateRef.current;
+    if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+
+    dragStateRef.current = { active: false, pointerId: null, x: 0, y: 0 };
+    setIsPanning(false);
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  }
+
+  return (
+    <div className="diagram-output-wrap">
+      {streamingPreview ? <p className="diagram-streaming-banner">Applying update…</p> : null}
+      {displayedRenderError ? <p className="diagram-error-banner">{displayedRenderError}</p> : null}
+      <div
+        ref={outputRef}
+        className={`diagram-output ${isPanning ? 'is-panning' : ''}`}
+        onWheel={handleWheel}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endPointerPan}
+        onPointerCancel={endPointerPan}
+      >
+        <div
+          className="diagram-viewport"
+          style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
+          dangerouslySetInnerHTML={{ __html: svgMarkup }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function DiagramCanvas({
   mermaidSource,
   styleConfig = DEFAULT_DIAGRAM_STYLE,
   revisionId,
   onManualEdit,
   onValidationChange,
-  streamingPreview = false
+  streamingPreview = false,
+  editorOpen = false
 }) {
   const [editorSource, setEditorSource] = useState(mermaidSource);
   const [svgMarkup, setSvgMarkup] = useState('');
@@ -27,14 +264,6 @@ export default function DiagramCanvas({
   const debounceRef = useRef(null);
   const lastAppliedSourceRef = useRef(mermaidSource);
   const lastReportedValidationRef = useRef({ source: null, error: null });
-  const dragStateRef = useRef({ active: false, pointerId: null, x: 0, y: 0 });
-  const resizeStateRef = useRef({ active: false, pointerId: null, startX: 0, startPreviewWidth: 50 });
-  const contentRef = useRef(null);
-  const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [isResizing, setIsResizing] = useState(false);
-  const [previewWidth, setPreviewWidth] = useState(50);
-  const [isPreviewFullscreen, setIsPreviewFullscreen] = useState(false);
 
   const reportValidation = useCallback(
     (source, error) => {
@@ -57,23 +286,6 @@ export default function DiagramCanvas({
     lastAppliedSourceRef.current = mermaidSource;
     setEditorSource(mermaidSource);
   }, [mermaidSource]);
-
-  useEffect(() => {
-    setViewport({ x: 0, y: 0, scale: 1 });
-  }, [revisionId]);
-
-  useEffect(() => {
-    function handleEscape(event) {
-      if (event.key === 'Escape') {
-        setIsPreviewFullscreen(false);
-      }
-    }
-
-    window.addEventListener('keydown', handleEscape);
-    return () => {
-      window.removeEventListener('keydown', handleEscape);
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,182 +349,40 @@ export default function DiagramCanvas({
     }
   }
 
-  function clampScale(value) {
-    return Math.min(4, Math.max(0.2, value));
-  }
+  const viewport = (
+    <DiagramInteractiveViewport
+      key={revisionId}
+      svgMarkup={svgMarkup}
+      streamingPreview={streamingPreview}
+      displayedRenderError={displayedRenderError}
+      editorOpen={editorOpen}
+    />
+  );
 
-  function handleWheel(event) {
-    event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const pointerX = event.clientX - rect.left;
-    const pointerY = event.clientY - rect.top;
-    const zoomFactor = Math.exp(-event.deltaY * 0.0015);
-
-    setViewport((current) => {
-      const nextScale = clampScale(current.scale * zoomFactor);
-      if (nextScale === current.scale) {
-        return current;
-      }
-
-      const worldX = (pointerX - current.x) / current.scale;
-      const worldY = (pointerY - current.y) / current.scale;
-
-      return {
-        scale: nextScale,
-        x: pointerX - worldX * nextScale,
-        y: pointerY - worldY * nextScale
-      };
-    });
-  }
-
-  function handlePointerDown(event) {
-    if (event.button !== 0) return;
-    dragStateRef.current = {
-      active: true,
-      pointerId: event.pointerId,
-      x: event.clientX,
-      y: event.clientY
-    };
-    setIsPanning(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handlePointerMove(event) {
-    const dragState = dragStateRef.current;
-    if (!dragState.active || dragState.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - dragState.x;
-    const dy = event.clientY - dragState.y;
-    dragStateRef.current = {
-      ...dragState,
-      x: event.clientX,
-      y: event.clientY
-    };
-
-    setViewport((current) => ({
-      ...current,
-      x: current.x + dx,
-      y: current.y + dy
-    }));
-  }
-
-  function endPointerPan(event) {
-    const dragState = dragStateRef.current;
-    if (!dragState.active || dragState.pointerId !== event.pointerId) return;
-
-    dragStateRef.current = { active: false, pointerId: null, x: 0, y: 0 };
-    setIsPanning(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
-  }
-
-  function handleResizePointerDown(event) {
-    if (event.button !== 0 || !contentRef.current) return;
-    resizeStateRef.current = {
-      active: true,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startPreviewWidth: previewWidth
-    };
-    setIsResizing(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
-
-  function handleResizePointerMove(event) {
-    const resizeState = resizeStateRef.current;
-    if (!resizeState.active || resizeState.pointerId !== event.pointerId || !contentRef.current) return;
-
-    const totalWidth = contentRef.current.getBoundingClientRect().width;
-    if (totalWidth <= 0) return;
-    const deltaX = event.clientX - resizeState.startX;
-    const deltaPercent = (deltaX / totalWidth) * 100;
-    const nextPreviewWidth = Math.min(80, Math.max(20, resizeState.startPreviewWidth - deltaPercent));
-    setPreviewWidth(nextPreviewWidth);
-  }
-
-  function handleResizePointerUp(event) {
-    const resizeState = resizeStateRef.current;
-    if (!resizeState.active || resizeState.pointerId !== event.pointerId) return;
-    resizeStateRef.current = { active: false, pointerId: null, startX: 0, startPreviewWidth: previewWidth };
-    setIsResizing(false);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    }
+  if (!editorOpen) {
+    return <div className="diagram-stage diagram-stage-full">{viewport}</div>;
   }
 
   return (
-    <section className="diagram-canvas">
-      <header>
-        <h2>Live Diagram</h2>
-        <span>Revision {revisionId}</span>
-      </header>
-      <div
-        className={`diagram-content ${isResizing ? 'is-resizing' : ''} ${
-          isPreviewFullscreen ? 'preview-fullscreen' : ''
-        }`}
-        ref={contentRef}
-      >
-        {!isPreviewFullscreen ? (
-          <div className="diagram-editor" style={{ width: `${100 - previewWidth}%` }}>
-            <h3>Mermaid DSL</h3>
-            {streamingPreview ? <p className="streaming-note">AG-UI is streaming the validated source into the editor...</p> : null}
-            <Editor
-              height="360px"
-              defaultLanguage="plaintext"
-              value={editorSource}
-              onChange={handleEditorChange}
-              options={{
-                minimap: { enabled: false },
-                wordWrap: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                readOnly: streamingPreview
-              }}
-            />
-          </div>
-        ) : null}
-        {!isPreviewFullscreen ? (
-          <div
-            className={`diagram-splitter ${isResizing ? 'is-active' : ''}`}
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize editor and preview panes"
-            onPointerDown={handleResizePointerDown}
-            onPointerMove={handleResizePointerMove}
-            onPointerUp={handleResizePointerUp}
-            onPointerCancel={handleResizePointerUp}
-          />
-        ) : null}
-        <div className="diagram-preview" style={{ width: isPreviewFullscreen ? '100%' : `${previewWidth}%` }}>
-          <div className="diagram-preview-header">
-            <h3>Renderer</h3>
-            <button
-              type="button"
-              className="preview-maximize-button"
-              onClick={() => setIsPreviewFullscreen((current) => !current)}
-            >
-              {isPreviewFullscreen ? 'Exit full screen' : 'Maximize'}
-            </button>
-          </div>
-          {streamingPreview ? <p className="streaming-note">Renderer will refresh after validation completes.</p> : null}
-          {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
-          <div
-            className={`diagram-output ${isPanning ? 'is-panning' : ''}`}
-            onWheel={handleWheel}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={endPointerPan}
-            onPointerCancel={endPointerPan}
-          >
-            <div
-              className="diagram-viewport"
-              style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
-          </div>
-        </div>
+    <div className="diagram-stage diagram-stage-split">
+      <div className="diagram-split-pane diagram-split-pane-preview">{viewport}</div>
+      <div className="diagram-split-pane diagram-split-pane-editor">
+        <Editor
+          height="100%"
+          defaultLanguage="plaintext"
+          value={editorSource}
+          onChange={handleEditorChange}
+          options={{
+            minimap: { enabled: false },
+            wordWrap: 'on',
+            scrollBeyondLastLine: false,
+            automaticLayout: true,
+            readOnly: streamingPreview,
+            fontSize: 13,
+            ariaLabel: 'Mermaid DSL'
+          }}
+        />
       </div>
-    </section>
+    </div>
   );
 }

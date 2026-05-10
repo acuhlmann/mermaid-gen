@@ -43,7 +43,7 @@ describe('DiagramCanvas', () => {
 
   it('renders svg from initial source and updates when user edits', async () => {
     const onManualEdit = vi.fn();
-    render(<DiagramCanvas mermaidSource={'flowchart TD\nA --> B'} revisionId={1} onManualEdit={onManualEdit} />);
+    render(<DiagramCanvas mermaidSource={'flowchart TD\nA --> B'} revisionId={1} onManualEdit={onManualEdit} editorOpen />);
 
     await act(async () => {
       vi.advanceTimersByTime(250);
@@ -65,14 +65,14 @@ describe('DiagramCanvas', () => {
 
   it('re-syncs editor and renderer when a new agent source arrives', async () => {
     const { rerender } = render(
-      <DiagramCanvas mermaidSource={'flowchart TD\nStart --> Mid'} revisionId={2} onManualEdit={vi.fn()} />
+      <DiagramCanvas mermaidSource={'flowchart TD\nStart --> Mid'} revisionId={2} onManualEdit={vi.fn()} editorOpen />
     );
 
     await act(async () => {
       vi.advanceTimersByTime(250);
     });
 
-    rerender(<DiagramCanvas mermaidSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} />);
+    rerender(<DiagramCanvas mermaidSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} editorOpen />);
 
     await act(async () => {
       vi.advanceTimersByTime(250);
@@ -98,6 +98,7 @@ describe('DiagramCanvas', () => {
         }}
         revisionId={1}
         onManualEdit={vi.fn()}
+        editorOpen
       />
     );
 
