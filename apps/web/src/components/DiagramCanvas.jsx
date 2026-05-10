@@ -38,7 +38,6 @@ function getDistance(first, second) {
 export default function DiagramCanvas({
   mermaidSource,
   styleConfig = DEFAULT_DIAGRAM_STYLE,
-  revisionId,
   onManualEdit,
   onValidationChange,
   streamingPreview = false,
