@@ -6,8 +6,56 @@ import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
 
-/** Default avoids Google Gemini routing (often region-blocked, e.g. Hong Kong). Override with OPENROUTER_MODEL. */
-const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-4o-mini';
+/** Qwen presets for local / HK-style dev (Gemini often blocked in HK). Override with OPENROUTER_MODEL_*. */
+export const PRESET_LOCAL_HK_FAST = 'qwen/qwen3-32b';
+export const PRESET_LOCAL_HK_QUALITY = 'qwen/qwen3-next-80b-a3b-instruct';
+
+/** Gemini presets for GCP / US Cloud Run (`K_SERVICE` set). Override with OPENROUTER_MODEL_*. */
+export const PRESET_GCP_US_FAST = 'google/gemini-2.5-flash';
+export const PRESET_GCP_US_QUALITY = 'google/gemini-2.5-pro';
+
+/**
+ * Where defaults should point: `local-hk` (Qwen) vs `gcp-us` (Gemini).
+ * Set `MERMAID_OPENROUTER_PRESET=gcp-us` or `local-hk` to force; otherwise Cloud Run (`K_SERVICE`) uses GCP presets.
+ */
+export function resolveOpenRouterDeploymentPreset(env = process.env) {
+  const explicit = typeof env.MERMAID_OPENROUTER_PRESET === 'string' ? env.MERMAID_OPENROUTER_PRESET.trim().toLowerCase() : '';
+  if (explicit === 'gcp-us' || explicit === 'gcp') return 'gcp-us';
+  if (explicit === 'local-hk' || explicit === 'local') return 'local-hk';
+  if (env.K_SERVICE) return 'gcp-us';
+  return 'local-hk';
+}
+
+function presetFastModel(env = process.env) {
+  return resolveOpenRouterDeploymentPreset(env) === 'gcp-us' ? PRESET_GCP_US_FAST : PRESET_LOCAL_HK_FAST;
+}
+
+function presetQualityModel(env = process.env) {
+  return resolveOpenRouterDeploymentPreset(env) === 'gcp-us' ? PRESET_GCP_US_QUALITY : PRESET_LOCAL_HK_QUALITY;
+}
+
+/** @param {unknown} profile */
+export function normalizeModelProfile(profile) {
+  return profile === 'quality' ? 'quality' : 'fast';
+}
+
+/**
+ * Resolves OpenRouter model slug for UI profile (never trusts raw client model ids).
+ */
+export function resolveOpenRouterModelId(env = process.env, profile = 'fast') {
+  const p = normalizeModelProfile(profile);
+  const shared = typeof env.OPENROUTER_MODEL === 'string' ? env.OPENROUTER_MODEL.trim() : '';
+  if (p === 'quality') {
+    const quality = typeof env.OPENROUTER_MODEL_QUALITY === 'string' ? env.OPENROUTER_MODEL_QUALITY.trim() : '';
+    if (quality) return quality;
+    if (shared) return shared;
+    return presetQualityModel(env);
+  }
+  const fast = typeof env.OPENROUTER_MODEL_FAST === 'string' ? env.OPENROUTER_MODEL_FAST.trim() : '';
+  if (fast) return fast;
+  if (shared) return shared;
+  return presetFastModel(env);
+}
 const INTENT_PROFILE_DEFAULTS = {
   temperature: 0.7,
   topP: 1,
@@ -120,13 +168,13 @@ export function createOpenRouterModel(env = process.env, overrides = {}) {
     throw new LlmNotConfiguredError();
   }
 
-  const { temperature, ...rest } = overrides;
+  const { temperature, model: explicitModel, ...rest } = overrides;
   const fields = {
     apiKey: env.OPENROUTER_API_KEY,
-    model: env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL,
     siteName: env.OPENROUTER_SITE_NAME || 'Mermaid Architect',
     siteUrl: env.OPENROUTER_SITE_URL || 'http://localhost:5173',
-    ...rest
+    ...rest,
+    model: explicitModel ?? resolveOpenRouterModelId(env, 'fast')
   };
   if (temperature !== undefined) {
     fields.temperature = temperature;
@@ -447,23 +495,29 @@ async function invokeWithRepair(
 
 export function createMermaidLangChainAgent({
   stateStore,
-  model = createOpenRouterModel(),
   env = process.env,
-  createTransformChatModel = (options) => createOpenRouterModel(env, options),
-  createAgentImpl = createAgent
+  createAgentImpl = createAgent,
+  openRouterModelFactory = createOpenRouterModel
 }) {
   const tools = createDiagramTools({ stateStore });
   const agentMiddleware = createDiagramAgentMiddleware(env);
   const agentExtras = agentMiddleware.length > 0 ? { middleware: agentMiddleware } : {};
   const agentCache = new Map();
 
-  function getDefaultAgent() {
-    const key = 'default';
+  function chatModelFor(profile, extraOptions = {}) {
+    const modelId = resolveOpenRouterModelId(env, profile);
+    return openRouterModelFactory(env, { model: modelId, ...extraOptions });
+  }
+
+  function getDefaultAgent(profile = 'fast') {
+    const p = normalizeModelProfile(profile);
+    const modelId = resolveOpenRouterModelId(env, p);
+    const key = `default:${modelId}`;
     if (!agentCache.has(key)) {
       agentCache.set(
         key,
         createAgentImpl({
-          model,
+          model: chatModelFor(p),
           tools,
           systemPrompt: SYSTEM_PROMPT,
           ...agentExtras
@@ -473,11 +527,13 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
-  function getTransformAgent(mode) {
+  function getTransformAgent(mode, profile = 'fast') {
     const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
-    const key = `transform:${m}`;
+    const p = normalizeModelProfile(profile);
+    const modelId = resolveOpenRouterModelId(env, p);
+    const key = `transform:${m}:${modelId}`;
     if (!agentCache.has(key)) {
-      const tm = createTransformChatModel(transformModeModelOptions(m));
+      const tm = chatModelFor(p, transformModeModelOptions(m));
       agentCache.set(
         key,
         createAgentImpl({
@@ -495,14 +551,13 @@ export function createMermaidLangChainAgent({
     return invokeWithRepair(agent, userMessages, { ...opts, emit }, stateStore, env);
   }
 
-  const defaultAgent = getDefaultAgent();
-
   return {
-    async invoke({ messages }) {
-      return invokeWithRepair(defaultAgent, messages, {}, stateStore, env);
+    async invoke({ messages, modelProfile }) {
+      const agent = getDefaultAgent(modelProfile);
+      return invokeWithRepair(agent, messages, {}, stateStore, env);
     },
 
-    async applyIntent({ prompt, settings, focusNode, emit }) {
+    async applyIntent({ prompt, settings, focusNode, modelProfile, emit }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const focusScope = buildFocusScopeInstructions(focusNode);
 
@@ -518,17 +573,18 @@ Settings (response shaping only):
 User request:
 ${prompt}${focusScope}`;
 
+      const agent = getDefaultAgent(modelProfile);
       return invokeMutation(
-        defaultAgent,
+        agent,
         [{ role: 'user', content: userContent }],
         { requirePatch: true },
         emit
       );
     },
 
-    async applyTransformIntent({ mode, focusNode, emit }) {
+    async applyTransformIntent({ mode, focusNode, modelProfile, emit }) {
       const currentState = stateStore.getState();
-      const transformAgent = getTransformAgent(mode);
+      const transformAgent = getTransformAgent(mode, modelProfile);
       const focusScope = buildFocusScopeInstructions(focusNode);
 
       return invokeMutation(
@@ -553,7 +609,7 @@ ${prompt}${focusScope}`;
       const currentState = stateStore.getState();
 
       return invokeWithRepair(
-        defaultAgent,
+        getDefaultAgent('fast'),
         [
           {
             role: 'user',
@@ -566,7 +622,7 @@ ${prompt}${focusScope}`;
       );
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, emit }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
       const state = stateStore.getState();
       const focusScope = buildFocusScopeInstructions(focusNode);
       const diagramBlock = `\`\`\`mermaid\n${state.mermaidSource}\n\`\`\``;
@@ -576,7 +632,9 @@ ${prompt}${focusScope}`;
           ? `Critique this diagram for clarity, structure, and usefulness. Note strengths, weaknesses, ambiguities, and concrete improvements — without rewriting the diagram yourself.${focusScope}`
           : `Explain what this diagram communicates to someone unfamiliar with it: main flows, key entities, and takeaways. Stay descriptive — do not rewrite the diagram.${focusScope}`;
 
-      const analysisModel = createOpenRouterModel(env, {
+      const profile = normalizeModelProfile(modelProfile);
+      const analysisModel = openRouterModelFactory(env, {
+        model: resolveOpenRouterModelId(env, profile),
         temperature: kind === 'critique' ? 0.52 : 0.42,
         maxTokens: 1800
       });
@@ -628,7 +686,6 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 
     agentService ??= createMermaidLangChainAgent({
       stateStore,
-      model: createOpenRouterModel(env),
       env
     });
 
@@ -658,11 +715,13 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 
     async runAgentStream(operation, payload, emit) {
       const agent = getAgentService();
+      const modelProfile = payload.modelProfile;
 
       if (operation === 'analyze') {
         const result = await agent.applyAnalyzeIntent({
           kind: payload.kind,
           focusNode: payload.focusNode,
+          modelProfile,
           emit
         });
         emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
@@ -675,12 +734,14 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           prompt: payload.prompt,
           settings: payload.settings ?? {},
           focusNode: payload.focusNode,
+          modelProfile,
           emit
         });
       } else {
         agentResult = await agent.applyTransformIntent({
           mode: payload.mode,
           focusNode: payload.focusNode,
+          modelProfile,
           emit
         });
       }
@@ -701,5 +762,4 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
   };
 }
 
-export { DEFAULT_OPENROUTER_MODEL };
 export { INTENT_PROFILE_DEFAULTS };

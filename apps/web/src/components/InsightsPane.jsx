@@ -64,7 +64,7 @@ function statusLabel(entry) {
   return 'Working';
 }
 
-export default function InsightsPane({ entries, onClose, soundEnabled, onSoundEnabledChange, celebratingEntryId }) {
+export default function InsightsPane({ entries, soundEnabled, onSoundEnabledChange, celebratingEntryId }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
 
@@ -93,12 +93,6 @@ export default function InsightsPane({ entries, onClose, soundEnabled, onSoundEn
             />
             <span>{soundEnabled ? 'Sound on' : 'Sound off'}</span>
           </label>
-          <button type="button" className="insights-close overlay-button" onClick={onClose}>
-            <span className="button-icon" aria-hidden="true">
-              x
-            </span>
-            Hide thinking
-          </button>
         </div>
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>

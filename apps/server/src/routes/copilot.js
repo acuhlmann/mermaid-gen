@@ -44,7 +44,8 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
     const agentResult = await agentService.applyIntent({
       prompt: intent.prompt,
       settings: intent.settings,
-      focusNode: intent.focusNode
+      focusNode: intent.focusNode,
+      modelProfile: intent.modelProfile
     });
     const nextState = stateStore.getState();
     const patch = nextState.history.at(-1);
@@ -117,7 +118,8 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
   try {
     const agentResult = await agentService.applyTransformIntent({
       mode: intent.mode,
-      focusNode: intent.focusNode
+      focusNode: intent.focusNode,
+      modelProfile: intent.modelProfile
     });
     const nextState = stateStore.getState();
     const patch = nextState.history.at(-1);
@@ -190,7 +192,8 @@ export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
   try {
     const agentResult = await agentService.applyAnalyzeIntent({
       kind: intent.kind,
-      focusNode: intent.focusNode
+      focusNode: intent.focusNode,
+      modelProfile: intent.modelProfile
     });
 
     return {

@@ -155,12 +155,6 @@
   margin: 0;
 }
 
-.insights-close {
-  min-height: 2.25rem;
-  padding: 0.45rem 0.85rem;
-  font-size: 0.82rem;
-}
-
 .insights-pane-body {
   flex: 1;
   min-height: 0;
@@ -426,9 +420,71 @@
   right: 1rem;
 }
 
-.thinking-control {
+.ai-corner-controls {
   right: 1rem;
   bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.42rem;
+}
+
+.model-profile-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.28rem;
+}
+
+.model-profile-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  user-select: none;
+}
+
+.model-profile-segment {
+  display: inline-flex;
+  border-radius: 999px;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  padding: 3px;
+  gap: 2px;
+}
+
+.model-profile-option {
+  appearance: none;
+  border: none;
+  margin: 0;
+  padding: 0.38rem 0.62rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  min-height: 2rem;
+}
+
+.model-profile-option:hover {
+  color: var(--text);
+}
+
+.model-profile-option.is-selected {
+  background: rgba(37, 99, 235, 0.14);
+  color: var(--accent-dark);
+}
+
+.thinking-toggle-button {
+  flex-shrink: 0;
+}
+
+.app-shell.is-insights-open .ai-corner-controls {
+  right: calc(max(260px, 30vw) + 1rem);
 }
 
 .prompt-stack {
@@ -712,10 +768,6 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-.app-shell.is-insights-open .thinking-control {
-  display: none;
-}
-
 @media (max-width: 900px) {
   :root {
     --app-vvh: 100svh;
@@ -732,9 +784,14 @@ button {
     right: 0.75rem;
   }
 
-  .thinking-control {
+  .ai-corner-controls {
     right: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open) .ai-corner-controls {
+    right: 0.75rem;
+    bottom: calc(42svh + 0.75rem + env(safe-area-inset-bottom));
   }
 
   .prompt-stack {
@@ -783,7 +840,7 @@ button {
   }
 
   .app-shell.is-editor-open .prompt-stack,
-  .app-shell.is-editor-open .thinking-control,
+  .app-shell.is-editor-open .ai-corner-controls,
   .app-shell.is-editor-open .node-toolbar-anchor {
     display: none;
   }

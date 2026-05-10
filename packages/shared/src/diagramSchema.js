@@ -27,6 +27,9 @@ export const FocusNodeSchema = z.object({
   label: z.string().optional()
 });
 
+/** Server resolves this to an OpenRouter model id via env (OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY). */
+export const ModelProfileSchema = z.enum(['fast', 'quality']);
+
 export const IntentSettingsSchema = z
   .object({
     temperature: z.number().min(0).max(3).default(0.7),
@@ -43,7 +46,8 @@ export const DiagramIntentSchema = z.object({
   /** Empty string is allowed when starting from a cleared canvas; agent applies a full diagram patch. */
   mermaidSource: z.string(),
   settings: IntentSettingsSchema,
-  focusNode: FocusNodeSchema.optional()
+  focusNode: FocusNodeSchema.optional(),
+  modelProfile: ModelProfileSchema.optional()
 });
 
 export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad']);
@@ -52,14 +56,16 @@ export const DiagramTransformIntentSchema = z.object({
   revisionId: z.number().int().nonnegative(),
   mermaidSource: z.string().min(1),
   mode: TransformModeSchema,
-  focusNode: FocusNodeSchema.optional()
+  focusNode: FocusNodeSchema.optional(),
+  modelProfile: ModelProfileSchema.optional()
 });
 
 export const DiagramAnalyzeSchema = z.object({
   revisionId: z.number().int().nonnegative(),
   mermaidSource: z.string().min(1),
   kind: z.enum(['critique', 'explain']),
-  focusNode: FocusNodeSchema.optional()
+  focusNode: FocusNodeSchema.optional(),
+  modelProfile: ModelProfileSchema.optional()
 });
 
 export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
@@ -69,21 +75,24 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     revisionId: z.number().int().nonnegative(),
     mermaidSource: z.string(),
     settings: IntentSettingsSchema,
-    focusNode: FocusNodeSchema.optional()
+    focusNode: FocusNodeSchema.optional(),
+    modelProfile: ModelProfileSchema.optional()
   }),
   z.object({
     operation: z.literal('transform'),
     revisionId: z.number().int().nonnegative(),
     mermaidSource: z.string().min(1),
     mode: TransformModeSchema,
-    focusNode: FocusNodeSchema.optional()
+    focusNode: FocusNodeSchema.optional(),
+    modelProfile: ModelProfileSchema.optional()
   }),
   z.object({
     operation: z.literal('analyze'),
     revisionId: z.number().int().nonnegative(),
     mermaidSource: z.string().min(1),
     kind: z.enum(['critique', 'explain']),
-    focusNode: FocusNodeSchema.optional()
+    focusNode: FocusNodeSchema.optional(),
+    modelProfile: ModelProfileSchema.optional()
   })
 ]);
 

@@ -168,7 +168,8 @@ describe('App simplified controls', () => {
         operation: 'transform',
         mode: 'refine',
         revisionId: 1,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
+        mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]',
+        modelProfile: 'fast'
       }),
       expect.any(Function)
     );
@@ -189,7 +190,8 @@ describe('App simplified controls', () => {
         operation: 'intent',
         prompt: 'Add a payment step',
         revisionId: 1,
-        mermaidSource: initialState.mermaidSource
+        mermaidSource: initialState.mermaidSource,
+        modelProfile: 'fast'
       }),
       expect.any(Function)
     );
@@ -211,7 +213,8 @@ describe('App simplified controls', () => {
       expect(streamDiagramAgentMock).toHaveBeenCalledWith(
         expect.objectContaining({
           operation: 'intent',
-          prompt: expect.stringContaining('Use clearer labels and simplify branching.')
+          prompt: expect.stringContaining('Use clearer labels and simplify branching.'),
+          modelProfile: 'fast'
         }),
         expect.any(Function)
       )
@@ -253,5 +256,23 @@ describe('App simplified controls', () => {
 
     const source = await screen.findByTestId('mermaid-source');
     expect(source.textContent).toContain('CachedA[Cached]');
+  });
+
+  it('sends quality modelProfile after selecting Quality', async () => {
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Quality' }));
+
+    const refineButton = await screen.findByRole('button', { name: 'Refine' });
+    fireEvent.click(refineButton);
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
+    expect(streamDiagramAgentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operation: 'transform',
+        modelProfile: 'quality'
+      }),
+      expect.any(Function)
+    );
   });
 });

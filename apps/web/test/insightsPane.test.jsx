@@ -24,7 +24,6 @@ describe('InsightsPane', () => {
             ]
           }
         ]}
-        onClose={vi.fn()}
         soundEnabled
         onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
@@ -51,7 +50,6 @@ describe('InsightsPane', () => {
             technicalActions: []
           }
         ]}
-        onClose={vi.fn()}
         soundEnabled={false}
         onSoundEnabledChange={onSoundEnabledChange}
         celebratingEntryId="entry-1"

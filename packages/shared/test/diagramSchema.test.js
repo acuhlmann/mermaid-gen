@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   AgentStreamPayloadSchema,
   DEFAULT_DIAGRAM_STYLE,
+  DiagramAnalyzeSchema,
   DiagramIntentSchema,
   applyMermaidStyleDirective,
   applyPatch,
@@ -113,5 +114,41 @@ test('intent payloads accept empty mermaidSource for cleared canvas', () => {
       ...intent
     }).success,
     true
+  );
+});
+
+test('modelProfile is optional and accepts fast or quality', () => {
+  const baseIntent = {
+    prompt: 'x',
+    revisionId: 0,
+    mermaidSource: 'flowchart TD\n  A --> B',
+    settings: {}
+  };
+
+  const withQuality = DiagramIntentSchema.safeParse({ ...baseIntent, modelProfile: 'quality' });
+  assert.equal(withQuality.success, true);
+  assert.equal(withQuality.data.modelProfile, 'quality');
+
+  const streamTransform = AgentStreamPayloadSchema.safeParse({
+    operation: 'transform',
+    revisionId: 0,
+    mermaidSource: 'flowchart TD\n  A --> B',
+    mode: 'refine',
+    modelProfile: 'fast'
+  });
+  assert.equal(streamTransform.success, true);
+  assert.equal(streamTransform.data.modelProfile, 'fast');
+
+  const analyze = DiagramAnalyzeSchema.safeParse({
+    revisionId: 0,
+    mermaidSource: 'flowchart TD\n  A --> B',
+    kind: 'explain',
+    modelProfile: 'quality'
+  });
+  assert.equal(analyze.success, true);
+
+  assert.equal(
+    DiagramIntentSchema.safeParse({ ...baseIntent, modelProfile: 'invalid' }).success,
+    false
   );
 });

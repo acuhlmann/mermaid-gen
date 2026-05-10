@@ -6,6 +6,9 @@ import {
   buildSyntaxRepairInstruction,
   createMermaidLangChainAgent,
   normalizeAgentStreamEvent,
+  normalizeModelProfile,
+  resolveOpenRouterDeploymentPreset,
+  resolveOpenRouterModelId,
   shouldAttemptSyntaxRepair,
   toLangChainMessages,
   transformModeModelOptions
@@ -54,9 +57,8 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
   const stateStore = createDiagramStateStore();
   const service = createMermaidLangChainAgent({
     stateStore,
-    model: {},
     env: { OPENROUTER_API_KEY: 'test-key' },
-    createTransformChatModel: (options) => {
+    openRouterModelFactory: (_e, options) => {
       modelOptions.push(options);
       return {};
     },
@@ -68,6 +70,33 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
   });
 
   assert.ok(modelOptions.some((options) => options.temperature === transformModeModelOptions('goMad').temperature));
+});
+
+test('resolveOpenRouterModelId maps profiles and env overrides', () => {
+  const base = {
+    OPENROUTER_API_KEY: 'k',
+    OPENROUTER_MODEL: 'fallback-model',
+    MERMAID_OPENROUTER_PRESET: 'local-hk'
+  };
+  assert.equal(resolveOpenRouterModelId(base, 'fast'), 'fallback-model');
+  assert.equal(resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_FAST: 'mini' }, 'fast'), 'mini');
+  assert.equal(resolveOpenRouterModelId(base, 'quality'), 'fallback-model');
+  assert.equal(
+    resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_QUALITY: 'anthropic/claude-3.5-sonnet' }, 'quality'),
+    'anthropic/claude-3.5-sonnet'
+  );
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'local-hk' }, 'fast'), 'qwen/qwen3-32b');
+  assert.equal(
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'local-hk' }, 'quality'),
+    'qwen/qwen3-next-80b-a3b-instruct'
+  );
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'gcp-us' }, 'fast'), 'google/gemini-2.5-flash');
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'gcp-us' }, 'quality'), 'google/gemini-2.5-pro');
+  assert.equal(resolveOpenRouterDeploymentPreset({ MERMAID_OPENROUTER_PRESET: 'gcp-us' }), 'gcp-us');
+  assert.equal(resolveOpenRouterDeploymentPreset({ K_SERVICE: 'my-service' }), 'gcp-us');
+  assert.equal(resolveOpenRouterDeploymentPreset({}), 'local-hk');
+  assert.equal(normalizeModelProfile(undefined), 'fast');
+  assert.equal(normalizeModelProfile('quality'), 'quality');
 });
 
 test('normalizeAgentStreamEvent maps token-bearing stream chunks', () => {
@@ -121,8 +150,8 @@ test('createMermaidLangChainAgent attaches tool-call middleware by default', asy
 
   const service = createMermaidLangChainAgent({
     stateStore,
-    model: {},
     env: { OPENROUTER_API_KEY: 'test-key' },
+    openRouterModelFactory: () => ({}),
     createAgentImpl: (opts) => {
       capturedOptions ??= opts;
       return fakeAgent;
@@ -147,11 +176,11 @@ test('createMermaidLangChainAgent omits middleware when MERMAID_AGENT_MAX_TOOL_C
 
   const service = createMermaidLangChainAgent({
     stateStore,
-    model: {},
     env: {
       OPENROUTER_API_KEY: 'test-key',
       MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN: '0'
     },
+    openRouterModelFactory: () => ({}),
     createAgentImpl: (opts) => {
       capturedOptions ??= opts;
       return fakeAgent;
@@ -203,7 +232,8 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
   try {
     const service = createMermaidLangChainAgent({
       stateStore,
-      model: {},
+      env: { OPENROUTER_API_KEY: 'test-key' },
+      openRouterModelFactory: () => ({}),
       createAgentImpl: () => fakeAgent
     });
 
@@ -243,9 +273,8 @@ test('transform retries once when the model returns prose without applying a pat
 
   const service = createMermaidLangChainAgent({
     stateStore,
-    model: {},
     env: { OPENROUTER_API_KEY: 'test-key' },
-    createTransformChatModel: () => ({}),
+    openRouterModelFactory: () => ({}),
     createAgentImpl: () => fakeAgent
   });
 
@@ -268,8 +297,8 @@ test('invoke maps LangChain invoke failures to assistant-safe messages', async (
 
   const service = createMermaidLangChainAgent({
     stateStore,
-    model: {},
     env: { OPENROUTER_API_KEY: 'test-key', OPENROUTER_MODEL: 'google/gemini-test' },
+    openRouterModelFactory: () => ({}),
     createAgentImpl: () => boomAgent
   });
 

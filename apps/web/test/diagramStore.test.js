@@ -65,6 +65,34 @@ describe('submitDiagramTransform', () => {
       const sent = JSON.parse(requestBody);
       expect(sent.mode).toBe('innovate');
       expect(sent.revisionId).toBe(0);
+      expect(sent.modelProfile).toBeUndefined();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('includes modelProfile when provided', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestBody;
+    try {
+      globalThis.fetch = async (_url, options) => {
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return { state: { revisionId: 1 }, metadata: {} };
+          }
+        };
+      };
+
+      await submitDiagramTransform({
+        mode: 'refine',
+        revisionId: 0,
+        mermaidSource: 'flowchart TD\n  A --> B',
+        modelProfile: 'quality'
+      });
+
+      expect(JSON.parse(requestBody).modelProfile).toBe('quality');
     } finally {
       globalThis.fetch = originalFetch;
     }

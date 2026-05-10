@@ -27,6 +27,15 @@ function focusPayload(node) {
   return { id: node.id, label: node.label };
 }
 
+const MODEL_PROFILE_STORAGE_KEY = 'mermaid-architect:model-profile';
+
+/** Default UI tier is Fast unless the user chose Quality and we persisted it. */
+function readStoredModelProfile() {
+  if (typeof window === 'undefined') return 'fast';
+  const raw = window.localStorage.getItem(MODEL_PROFILE_STORAGE_KEY);
+  return raw === 'quality' ? 'quality' : 'fast';
+}
+
 function hydrateStateFromCache(cached) {
   if (!cached || typeof cached !== 'object') return fallbackState;
   const source = typeof cached.mermaidSource === 'string' ? cached.mermaidSource : fallbackState.mermaidSource;
@@ -118,6 +127,7 @@ function MermaidArchitect() {
     Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []
   );
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
+  const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   const [latestCritique, setLatestCritique] = useState(() => {
     const cachedCritique = cacheRef.current?.latestCritique;
@@ -204,6 +214,14 @@ function MermaidArchitect() {
       soundEnabled
     });
   }, [editorOpen, insightsEntries, insightsOpen, latestCritique, soundEnabled, state.mermaidSource]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(MODEL_PROFILE_STORAGE_KEY, modelProfile);
+    } catch {
+      // ignore quota / privacy mode
+    }
+  }, [modelProfile]);
 
   useEffect(
     () => () => {
@@ -488,7 +506,9 @@ Hard requirements:
 - Output complete, valid Mermaid source.
 - Apply the fix with apply_mermaid_patch before summarizing.`,
           revisionId: syncedState.revisionId,
-          mermaidSource: syncedState.mermaidSource
+          mermaidSource: syncedState.mermaidSource,
+          settings: {},
+          modelProfile
         });
 
         animateAcceptedSource(result.state);
@@ -498,7 +518,7 @@ Hard requirements:
         setActiveRequest(null);
       }
     },
-    [animateAcceptedSource]
+    [animateAcceptedSource, modelProfile]
   );
 
   const scheduleAutoFix = useCallback(
@@ -615,7 +635,8 @@ Hard requirements:
           revisionId: syncedState.revisionId,
           mermaidSource: syncedState.mermaidSource,
           settings: {},
-          focusNode
+          focusNode,
+          modelProfile
         },
         title: selectedNode ? `Go — node “${selectedNode.label || selectedNode.id}”` : 'Go — diagram'
       });
@@ -860,7 +881,8 @@ Hard requirements:
           mode,
           revisionId: syncedState.revisionId,
           mermaidSource: syncedState.mermaidSource,
-          focusNode
+          focusNode,
+          modelProfile
         },
         title: selectedNode
           ? `${labels[mode]} — node “${selectedNode.label || selectedNode.id}”`
@@ -894,7 +916,8 @@ Hard requirements:
           kind,
           revisionId: syncedState.revisionId,
           mermaidSource: syncedState.mermaidSource,
-          focusNode
+          focusNode,
+          modelProfile
         },
         title: selectedNode
           ? `${labels[kind]} — node “${selectedNode.label || selectedNode.id}”`
@@ -947,7 +970,8 @@ Requirements:
           revisionId: syncedState.revisionId,
           mermaidSource: syncedState.mermaidSource,
           settings: {},
-          focusNode: latestCritique.focusNode
+          focusNode: latestCritique.focusNode,
+          modelProfile
         },
         title: latestCritique.focusNode
           ? `Fix from critique — node “${latestCritique.focusNode.label || latestCritique.focusNode.id}”`
@@ -1017,7 +1041,6 @@ Requirements:
   const insightsSlot = insightsOpen ? (
     <InsightsPane
       entries={insightsEntries}
-      onClose={() => setInsightsOpen(false)}
       soundEnabled={soundEnabled}
       onSoundEnabledChange={setSoundEnabled}
       celebratingEntryId={celebratingEntryId}
@@ -1231,8 +1254,29 @@ Requirements:
         ) : null}
       </div>
 
-      <div className="corner-control thinking-control">
-        <button type="button" className="overlay-button" onClick={() => setInsightsOpen((v) => !v)}>
+      <div className="corner-control ai-corner-controls" aria-label="AI model and thinking">
+        <div className="model-profile-toggle" role="group" aria-label="AI model profile">
+          <span className="model-profile-label">Model</span>
+          <div className="model-profile-segment">
+            <button
+              type="button"
+              className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
+              aria-pressed={modelProfile === 'fast'}
+              onClick={() => setModelProfile('fast')}
+            >
+              Fast
+            </button>
+            <button
+              type="button"
+              className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
+              aria-pressed={modelProfile === 'quality'}
+              onClick={() => setModelProfile('quality')}
+            >
+              Quality
+            </button>
+          </div>
+        </div>
+        <button type="button" className="overlay-button thinking-toggle-button" onClick={() => setInsightsOpen((v) => !v)}>
           <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
           {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
         </button>
