@@ -1,9 +1,12 @@
+// @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getOrCreateBrowserSessionId,
+  readDiagramCache,
   SESSION_HEADER,
   submitDiagramTransform,
-  syncClientDiagramState
+  syncClientDiagramState,
+  writeDiagramCache
 } from '../src/state/diagramStore.js';
 
 afterEach(() => {
@@ -135,6 +138,31 @@ describe('syncClientDiagramState', () => {
       globalThis.fetch = originalFetch;
     }
   });
+
+  it('supports syncing an empty source for true clear', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestBody;
+    try {
+      globalThis.fetch = async (_url, options) => {
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return {
+              revisionId: 4,
+              mermaidSource: ''
+            };
+          }
+        };
+      };
+
+      const payload = await syncClientDiagramState({ mermaidSource: '' });
+      expect(JSON.parse(requestBody).mermaidSource).toBe('');
+      expect(payload.mermaidSource).toBe('');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
 });
 
 describe('getOrCreateBrowserSessionId', () => {
@@ -144,5 +172,17 @@ describe('getOrCreateBrowserSessionId', () => {
     expect(first).toBe(second);
     expect(typeof first).toBe('string');
     expect(first.length).toBeGreaterThan(0);
+  });
+});
+
+describe('diagram cache storage', () => {
+  it('roundtrips diagram cache payload', () => {
+    const payload = {
+      mermaidSource: 'flowchart TD\n  A --> B',
+      insightsEntries: [{ id: 'i1', title: 'Critique', content: 'Needs labels' }],
+      latestCritique: { text: 'Needs labels', createdAt: Date.now() }
+    };
+    writeDiagramCache(payload);
+    expect(readDiagramCache()).toEqual(payload);
   });
 });

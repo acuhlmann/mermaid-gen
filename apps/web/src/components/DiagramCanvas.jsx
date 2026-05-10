@@ -1,9 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
-import { DEFAULT_DIAGRAM_STYLE, styleConfigToMermaidConfig } from '@mermaid-architect/shared';
-
-mermaid.initialize({ startOnLoad: false, ...styleConfigToMermaidConfig(DEFAULT_DIAGRAM_STYLE) });
+mermaid.initialize({ startOnLoad: false });
 
 const TAP_MOVE_THRESHOLD_PX = 14;
 
@@ -37,30 +35,6 @@ function getDistance(first, second) {
   return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
-function configureEditorTheme(monaco) {
-  monaco.editor.defineTheme('mermaidgen-dark', {
-    base: 'vs-dark',
-    inherit: true,
-    rules: [
-      { token: '', foreground: 'E5EDF7', background: '0F172A' },
-      { token: 'delimiter', foreground: '93C5FD' },
-      { token: 'string', foreground: 'BAE6FD' },
-      { token: 'number', foreground: 'C4B5FD' }
-    ],
-    colors: {
-      'editor.background': '#0F172A',
-      'editor.foreground': '#E5EDF7',
-      'editorLineNumber.foreground': '#64748B',
-      'editorLineNumber.activeForeground': '#CBD5E1',
-      'editorCursor.foreground': '#F8FAFC',
-      'editor.selectionBackground': '#1D4ED866',
-      'editor.inactiveSelectionBackground': '#33415599',
-      'editorIndentGuide.background1': '#334155',
-      'editorIndentGuide.activeBackground1': '#64748B'
-    }
-  });
-}
-
 function nodeTitleFromElement(nodeEl) {
   const parts = [];
   nodeEl.querySelectorAll('text').forEach((textEl) => {
@@ -73,7 +47,6 @@ function nodeTitleFromElement(nodeEl) {
 
 export default function DiagramCanvas({
   mermaidSource,
-  styleConfig = DEFAULT_DIAGRAM_STYLE,
   onManualEdit,
   onValidationChange,
   streamingPreview = false,
@@ -128,6 +101,13 @@ export default function DiagramCanvas({
       return undefined;
     }
 
+    if (!editorSource.trim()) {
+      setSvgMarkup('');
+      setRenderError('');
+      reportValidation(editorSource, null);
+      return undefined;
+    }
+
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -140,8 +120,7 @@ export default function DiagramCanvas({
         try {
           const diagramId = `diagram-${requestId}`;
           mermaid.initialize({
-            startOnLoad: false,
-            ...styleConfigToMermaidConfig(styleConfig)
+            startOnLoad: false
           });
           const { svg } = await mermaid.render(diagramId, editorSource);
           if (cancelled || requestRef.current !== requestId) {
@@ -170,7 +149,7 @@ export default function DiagramCanvas({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [editorSource, reportValidation, streamingPreview, styleConfig]);
+  }, [editorSource, reportValidation, streamingPreview]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -469,8 +448,7 @@ export default function DiagramCanvas({
           <Editor
             height="100%"
             defaultLanguage="plaintext"
-            theme="mermaidgen-dark"
-            beforeMount={configureEditorTheme}
+            theme="vs-dark"
             value={editorSource}
             onChange={handleEditorChange}
             options={{

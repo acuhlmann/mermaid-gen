@@ -98,13 +98,6 @@ describe('DiagramCanvas', () => {
     render(
       <DiagramCanvas
         mermaidSource={source}
-        styleConfig={{
-          theme: 'dark',
-          look: 'neo',
-          themeVariables: {},
-          themeCSS: '',
-          flowchart: { curve: 'rounded' }
-        }}
         revisionId={1}
         onManualEdit={vi.fn()}
         editorOpen
@@ -117,10 +110,7 @@ describe('DiagramCanvas', () => {
 
     expect(initializeMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        startOnLoad: false,
-        theme: 'dark',
-        look: 'neo',
-        flowchart: { curve: 'rounded' }
+        startOnLoad: false
       })
     );
     expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), source);

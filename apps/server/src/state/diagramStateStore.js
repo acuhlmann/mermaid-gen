@@ -14,9 +14,15 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
     async syncClientMermaidSource({ mermaidSource, styleConfig }) {
       const candidate = mermaidSource?.trim();
       if (!candidate) {
+        state = {
+          ...state,
+          revisionId: state.revisionId + 1,
+          mermaidSource: '',
+          updatedAt: new Date().toISOString()
+        };
         return {
-          accepted: false,
-          error: 'Mermaid source is required.'
+          accepted: true,
+          state
         };
       }
 

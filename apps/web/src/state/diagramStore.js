@@ -9,6 +9,7 @@ export const API_BASE_URL = rawApiBase
     : '';
 export const SESSION_HEADER = 'x-session-id';
 const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
+const DIAGRAM_CACHE_STORAGE_KEY = 'mermaid-architect:diagram-cache-v1';
 const AGENT_REQUEST_TIMEOUT_MS = 60_000;
 
 let inMemorySessionId = null;
@@ -38,6 +39,29 @@ export function getOrCreateBrowserSessionId() {
   const next = createSessionId();
   window.localStorage.setItem(BROWSER_SESSION_STORAGE_KEY, next);
   return next;
+}
+
+export function readDiagramCache() {
+  if (typeof window === 'undefined') return null;
+  const raw = window.localStorage.getItem(DIAGRAM_CACHE_STORAGE_KEY);
+  if (!raw) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function writeDiagramCache(payload) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(DIAGRAM_CACHE_STORAGE_KEY, JSON.stringify(payload ?? {}));
+  } catch {
+    // Ignore localStorage quota/privacy errors.
+  }
 }
 
 function createSessionHeaders() {

@@ -8,6 +8,8 @@ const {
   syncClientDiagramStateMock,
   submitDiagramIntentMock,
   streamDiagramAgentMock,
+  readDiagramCacheMock,
+  writeDiagramCacheMock,
   initialState,
   updatedState
 } = vi.hoisted(() => {
@@ -36,6 +38,8 @@ const {
     syncClientDiagramStateMock: vi.fn(),
     submitDiagramIntentMock: vi.fn(),
     streamDiagramAgentMock: vi.fn(),
+    readDiagramCacheMock: vi.fn(),
+    writeDiagramCacheMock: vi.fn(),
     initialState: initial,
     updatedState: updated
   };
@@ -66,13 +70,16 @@ vi.mock('../src/state/diagramStore.js', () => ({
   fallbackState: initialState,
   fetchDiagramState: fetchDiagramStateMock,
   getOrCreateBrowserSessionId: () => 'test-session',
+  readDiagramCache: readDiagramCacheMock,
   syncClientDiagramState: syncClientDiagramStateMock,
   submitDiagramIntent: submitDiagramIntentMock,
-  streamDiagramAgent: streamDiagramAgentMock
+  streamDiagramAgent: streamDiagramAgentMock,
+  writeDiagramCache: writeDiagramCacheMock
 }));
 
 describe('App simplified controls', () => {
   beforeEach(() => {
+    readDiagramCacheMock.mockReturnValue(null);
     fetchDiagramStateMock.mockResolvedValue(initialState);
     syncClientDiagramStateMock.mockImplementation(async ({ mermaidSource, styleConfig }) => ({
       ...initialState,
@@ -177,5 +184,31 @@ describe('App simplified controls', () => {
         expect.any(Function)
       )
     );
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
+  });
+
+  it('clears to an empty diagram instead of seeded sample', async () => {
+    render(<App />);
+    const clearButton = await screen.findByRole('button', { name: 'Clear' });
+    fireEvent.click(clearButton);
+
+    await waitFor(() =>
+      expect(syncClientDiagramStateMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mermaidSource: ''
+        })
+      )
+    );
+  });
+
+  it('hydrates diagram source from local cache on load', async () => {
+    readDiagramCacheMock.mockReturnValue({
+      mermaidSource: 'flowchart TD\n  CachedA[Cached] --> CachedB[State]'
+    });
+
+    render(<App />);
+
+    const source = await screen.findByTestId('mermaid-source');
+    expect(source.textContent).toContain('CachedA[Cached]');
   });
 });

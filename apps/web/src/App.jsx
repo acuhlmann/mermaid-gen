@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createInitialDiagramState, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
 import {
   fallbackState,
   fetchDiagramState,
+  readDiagramCache,
   streamDiagramAgent,
   syncClientDiagramState,
-  submitDiagramIntent
+  submitDiagramIntent,
+  writeDiagramCache
 } from './state/diagramStore.js';
 import './App.css';
 
@@ -16,8 +17,19 @@ function focusPayload(node) {
   return { id: node.id, label: node.label };
 }
 
+function hydrateStateFromCache(cached) {
+  if (!cached || typeof cached !== 'object') return fallbackState;
+  const source = typeof cached.mermaidSource === 'string' ? cached.mermaidSource : fallbackState.mermaidSource;
+  return {
+    ...fallbackState,
+    mermaidSource: source,
+    updatedAt: new Date().toISOString()
+  };
+}
+
 function MermaidArchitect() {
-  const [state, setState] = useState(fallbackState);
+  const cacheRef = useRef(readDiagramCache());
+  const [state, setState] = useState(() => hydrateStateFromCache(cacheRef.current));
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
@@ -25,10 +37,15 @@ function MermaidArchitect() {
   const [streamingPreview, setStreamingPreview] = useState(false);
   const [validationError, setValidationError] = useState(null);
   const [autoFixAttempted, setAutoFixAttempted] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(false);
-  const [insightsOpen, setInsightsOpen] = useState(false);
-  const [insightsEntries, setInsightsEntries] = useState([]);
-  const [latestCritique, setLatestCritique] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(Boolean(cacheRef.current?.editorOpen));
+  const [insightsOpen, setInsightsOpen] = useState(Boolean(cacheRef.current?.insightsOpen));
+  const [insightsEntries, setInsightsEntries] = useState(() =>
+    Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []
+  );
+  const [latestCritique, setLatestCritique] = useState(() => {
+    const cachedCritique = cacheRef.current?.latestCritique;
+    return cachedCritique?.text ? cachedCritique : null;
+  });
   const [selectedNode, setSelectedNode] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
 
@@ -57,10 +74,29 @@ function MermaidArchitect() {
   useEffect(() => {
     fetchDiagramState()
       .then((data) => {
-        setState(data);
+        const cachedSource = cacheRef.current?.mermaidSource;
+        if (typeof cachedSource === 'string') {
+          setState({
+            ...data,
+            mermaidSource: cachedSource,
+            updatedAt: new Date().toISOString()
+          });
+        } else {
+          setState(data);
+        }
       })
       .catch((err) => setError(err.message));
   }, []);
+
+  useEffect(() => {
+    writeDiagramCache({
+      mermaidSource: state.mermaidSource,
+      insightsEntries,
+      latestCritique,
+      editorOpen,
+      insightsOpen
+    });
+  }, [editorOpen, insightsEntries, insightsOpen, latestCritique, state.mermaidSource]);
 
   useEffect(
     () => () => {
@@ -263,12 +299,10 @@ Hard requirements:
   }, [loading, scheduleAutoFix, streamingPreview, validationError]);
 
   function handleManualEdit(nextSource) {
-    const parsedStyle = parseMermaidStyleConfig(nextSource);
     setState((currentState) => {
       const nextState = {
         ...currentState,
         mermaidSource: nextSource,
-        styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : currentState.styleConfig,
         updatedAt: new Date().toISOString()
       };
       stateRef.current = nextState;
@@ -282,8 +316,7 @@ Hard requirements:
     syncTimerRef.current = setTimeout(async () => {
       try {
         const synced = await syncClientDiagramState({
-          mermaidSource: nextSource,
-          styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : undefined
+          mermaidSource: nextSource
         });
         setState(synced);
       } catch {
@@ -300,8 +333,7 @@ Hard requirements:
 
     const currentState = stateRef.current;
     const syncedState = await syncClientDiagramState({
-      mermaidSource: currentState.mermaidSource,
-      styleConfig: currentState.styleConfig
+      mermaidSource: currentState.mermaidSource
     });
     setState(syncedState);
     return syncedState;
@@ -335,6 +367,7 @@ Hard requirements:
     } catch (err) {
       setError(err.message);
     } finally {
+      setLatestCritique(null);
       setLoading(false);
       setActiveRequest(null);
     }
@@ -449,6 +482,7 @@ Requirements:
           ? `Fix from critique — node “${latestCritique.focusNode.label || latestCritique.focusNode.id}”`
           : 'Fix from critique — diagram'
       });
+      setLatestCritique(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -461,14 +495,13 @@ Requirements:
     if (loadingRef.current || streamingPreviewRef.current) return;
     setSelectedNode(null);
     setToolbarAnchor(null);
+    setLatestCritique(null);
     setError('');
-    const reset = createInitialDiagramState();
     setLoading(true);
     setActiveRequest('clear');
     try {
       const synced = await syncClientDiagramState({
-        mermaidSource: reset.mermaidSource,
-        styleConfig: reset.styleConfig
+        mermaidSource: ''
       });
       setState(synced);
     } catch (err) {
@@ -507,7 +540,6 @@ Requirements:
     >
       <DiagramCanvas
         mermaidSource={state.mermaidSource}
-        styleConfig={state.styleConfig}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
         streamingPreview={streamingPreview}
@@ -550,14 +582,14 @@ Requirements:
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
                 Critique
               </button>
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
-                Explain
-              </button>
               {latestCritique?.text ? (
                 <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
                   Fix
                 </button>
               ) : null}
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+                Explain
+              </button>
             </div>
           </div>
         </div>
@@ -621,14 +653,14 @@ Requirements:
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
                 Critique
               </button>
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
-                Explain
-              </button>
               {latestCritique?.text ? (
                 <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
                   Fix
                 </button>
               ) : null}
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+                Explain
+              </button>
             </div>
           </div>
         ) : null}

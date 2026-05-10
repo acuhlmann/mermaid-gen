@@ -234,3 +234,17 @@ test('client state sync route rejects invalid Mermaid syntax', async () => {
   assert.match(result.body.error, /parser rejected|not valid Mermaid syntax/i);
   assert.equal(stateStore.getState().revisionId, 0);
 });
+
+test('client state sync route accepts empty Mermaid source for clear', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleClientStateSync({
+    body: {
+      mermaidSource: ''
+    },
+    stateStore
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.revisionId, 1);
+  assert.equal(result.body.mermaidSource, '');
+});

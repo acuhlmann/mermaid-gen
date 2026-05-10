@@ -290,7 +290,7 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
 }
 
 const SyncClientStateSchema = z.object({
-  mermaidSource: z.string().min(1),
+  mermaidSource: z.string(),
   styleConfig: DiagramStyleSchema.optional()
 });
 
