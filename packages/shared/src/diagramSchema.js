@@ -37,8 +37,13 @@ export const DiagramIntentSchema = z.object({
     .default({})
 });
 
-export const CoAuthorIntentSchema = DiagramIntentSchema.extend({
-  trigger: z.literal('manual')
+export const CoAuthorSettingsSchema = z.object({
+  surpriseScale: z.number().int().min(1).max(5).default(3)
+});
+
+export const CoAuthorIntentSchema = DiagramIntentSchema.omit({ settings: true }).extend({
+  trigger: z.literal('manual'),
+  settings: CoAuthorSettingsSchema.default({})
 });
 
 export const StyleIntentSchema = DiagramIntentSchema.extend({

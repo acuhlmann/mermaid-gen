@@ -59,14 +59,23 @@ export async function* createCopilotAgentEvents({ input, agentService, stateStor
       delta: result.message
     };
   } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
     if (error instanceof LlmNotConfiguredError) {
       yield {
         type: 'TEXT_MESSAGE_CONTENT',
         messageId,
-        delta: error.message
+        delta: detail
       };
     } else {
-      throw error;
+      const regionHint =
+        /region|not available in your country|unsupported_country/i.test(detail)
+          ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` in your server `.env` to a model that works where you are (for example `openai/gpt-4o-mini` or `anthropic/claude-3.5-haiku`), then restart the API server.\n'
+          : '';
+      yield {
+        type: 'TEXT_MESSAGE_CONTENT',
+        messageId,
+        delta: `**Model request failed**\n\n${detail}${regionHint}`
+      };
     }
   }
 

@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  COAUTHOR_PROFILE_DEFAULTS,
-  INTENT_PROFILE_DEFAULTS,
+  SURPRISE_SCALE_TEMPERATURES,
   buildSyntaxRepairInstruction,
   createMermaidLangChainAgent,
   shouldAttemptSyntaxRepair,
+  surpriseScaleToTemperature,
+  surpriseTierGuidance,
   toLangChainMessages
 } from '../src/agents/mermaidLangChainAgent.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
@@ -30,12 +31,45 @@ test('agent message conversion drops assistant replies that expose internal tool
   ]);
 });
 
-test('intent and co-author defaults use distinct profiles', () => {
-  assert.notDeepEqual(INTENT_PROFILE_DEFAULTS, COAUTHOR_PROFILE_DEFAULTS);
-  assert.equal(INTENT_PROFILE_DEFAULTS.styleGuide, 'balanced');
-  assert.equal(COAUTHOR_PROFILE_DEFAULTS.styleGuide, 'bold');
-  assert.ok(COAUTHOR_PROFILE_DEFAULTS.maxNodes > INTENT_PROFILE_DEFAULTS.maxNodes);
-  assert.ok(COAUTHOR_PROFILE_DEFAULTS.temperature > INTENT_PROFILE_DEFAULTS.temperature);
+test('surprise scale maps to monotonic temperatures', () => {
+  assert.equal(surpriseScaleToTemperature(1), SURPRISE_SCALE_TEMPERATURES[1]);
+  assert.ok(surpriseScaleToTemperature(5) > surpriseScaleToTemperature(1));
+});
+
+test('surprise tier guidance covers scales 1–5', () => {
+  assert.match(surpriseTierGuidance(1), /Subtle/);
+  assert.match(surpriseTierGuidance(5), /Wild/);
+});
+
+test('applyCoAuthorIntent uses distinct ChatOpenRouter temperature per surprise scale', async () => {
+  const temperatures = [];
+
+  const fakeAgent = {
+    async invoke() {
+      return {
+        messages: [{ role: 'assistant', content: 'Done.' }]
+      };
+    }
+  };
+
+  const stateStore = createDiagramStateStore();
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    model: {},
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    createCoAuthorChatModel: (temperature) => {
+      temperatures.push(temperature);
+      return {};
+    },
+    createAgentImpl: () => fakeAgent
+  });
+
+  await service.applyCoAuthorIntent({
+    prompt: 'extend diagram',
+    settings: { surpriseScale: 5 }
+  });
+
+  assert.equal(temperatures.some((t) => t === SURPRISE_SCALE_TEMPERATURES[5]), true);
 });
 
 test('shouldAttemptSyntaxRepair detects syntax-like validation errors', () => {
@@ -110,4 +144,25 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
   } finally {
     process.env.MERMAID_REPAIR_MAX_ATTEMPTS = originalAttempts;
   }
+});
+
+test('invoke maps LangChain invoke failures to assistant-safe messages', async () => {
+  const stateStore = createDiagramStateStore();
+  const boomAgent = {
+    async invoke() {
+      throw new Error('Tool calling rejected by provider');
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    model: {},
+    env: { OPENROUTER_API_KEY: 'test-key', OPENROUTER_MODEL: 'google/gemini-test' },
+    createAgentImpl: () => boomAgent
+  });
+
+  const result = await service.applyIntent({ prompt: 'touch diagram', settings: {} });
+
+  assert.match(result.message, /Model request failed/);
+  assert.match(result.message, /Tool calling rejected/);
 });

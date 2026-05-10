@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CopilotKit, useCopilotChat } from '@copilotkit/react-core';
-import { CopilotSidebar } from '@copilotkit/react-ui';
+import {
+  useCopilotAdditionalInstructions,
+  useCopilotChat
+} from '@copilotkit/react-core';
+import { CopilotChat, CopilotKit, useAgent } from '@copilotkit/react-core/v2';
+import { parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
-import ControlsPanel from './components/ControlsPanel.jsx';
-import StylePanel from './components/StylePanel.jsx';
 import {
   API_BASE_URL,
   fallbackState,
@@ -12,38 +14,40 @@ import {
   SESSION_HEADER,
   syncClientDiagramState,
   submitDiagramIntent,
-  submitCoAuthorIntent,
-  submitStyleIntent,
-  deriveOptimisticState
+  submitCoAuthorIntent
 } from './state/diagramStore.js';
 import './App.css';
 
-const defaultPrompt = 'Describe a diagram change';
-const defaultCoAuthorSettings = {
-  temperature: 1.1,
-  topP: 1,
-  maxNodes: 40,
-  styleGuide: 'bold',
-  persona: 'playful co-author'
-};
 const defaultCoAuthorPrompt =
   'Creatively extend the current diagram into a bigger system while preserving existing structure and concepts.';
 
-function MermaidArchitect({ sessionId }) {
+const HELPER_INSTRUCTIONS =
+  'You are Mermaid Architect (Helper agent). Stream concise commentary while editing the current Mermaid diagram. Apply diagram changes with the server-side patch tool before summarizing.';
+
+const SURPRISE_SCALE_LABELS = ['Subtle', 'Mild', 'Balanced', 'Bold', 'Wild'];
+
+/** Only remount chat when reconnecting may help; broad patterns reset the thread and hide the user's message. */
+function shouldRemountHelperChatFromCopilotEvent(payload) {
+  const code = typeof payload?.code === 'string' ? payload.code : '';
+  const msg = String(payload?.error?.message ?? '');
+  if (code === 'agent_connect_failed') return true;
+  if (/already errored/i.test(msg)) return true;
+  return false;
+}
+
+function MermaidArchitect({ sessionId, helperChatKey = 0, onRemountHelperChat }) {
   const [state, setState] = useState(fallbackState);
-  const [lastCommittedState, setLastCommittedState] = useState(fallbackState);
-  const [prompt, setPrompt] = useState(defaultPrompt);
-  const [coAuthorSettings, setCoAuthorSettings] = useState(defaultCoAuthorSettings);
+  const [surpriseScale, setSurpriseScale] = useState(3);
   const [loading, setLoading] = useState(false);
   const [activeAgent, setActiveAgent] = useState(null);
   const [error, setError] = useState('');
-  const [showStylePanel, setShowStylePanel] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [streamingPreview, setStreamingPreview] = useState(false);
-  const [autoFixEnabled, setAutoFixEnabled] = useState(true);
   const [validationError, setValidationError] = useState(null);
   const [autoFixAttempted, setAutoFixAttempted] = useState(false);
-  const { isLoading: copilotLoading } = useCopilotChat();
+  const { isLoading: legacyCopilotLoading } = useCopilotChat();
+  const { agent: helperAgent } = useAgent();
+  const helperRunning = helperAgent.isRunning === true;
+  useCopilotAdditionalInstructions(HELPER_INSTRUCTIONS);
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
   const autoFixTimerRef = useRef(null);
@@ -54,7 +58,7 @@ function MermaidArchitect({ sessionId }) {
   const loadingRef = useRef(false);
   const streamingPreviewRef = useRef(false);
   const copilotLoadingRef = useRef(false);
-  const autoFixEnabledRef = useRef(true);
+  const autoFixAlwaysOnRef = useRef(true);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -65,12 +69,8 @@ function MermaidArchitect({ sessionId }) {
   }, [streamingPreview]);
 
   useEffect(() => {
-    copilotLoadingRef.current = copilotLoading;
-  }, [copilotLoading]);
-
-  useEffect(() => {
-    autoFixEnabledRef.current = autoFixEnabled;
-  }, [autoFixEnabled]);
+    copilotLoadingRef.current = legacyCopilotLoading || helperRunning;
+  }, [helperRunning, legacyCopilotLoading]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -80,7 +80,6 @@ function MermaidArchitect({ sessionId }) {
     fetchDiagramState()
       .then((data) => {
         setState(data);
-        setLastCommittedState(data);
       })
       .catch((err) => setError(err.message));
   }, []);
@@ -110,7 +109,6 @@ function MermaidArchitect({ sessionId }) {
 
     if (previousState.revisionId === nextState.revisionId || previousState.mermaidSource === nextSource) {
       setState(nextState);
-      setLastCommittedState(nextState);
       setStreamingPreview(false);
       setLoading(false);
       setActiveAgent(null);
@@ -127,7 +125,6 @@ function MermaidArchitect({ sessionId }) {
         clearInterval(streamTimerRef.current);
         streamTimerRef.current = null;
         setState(nextState);
-        setLastCommittedState(nextState);
         setStreamingPreview(false);
         setLoading(false);
         setActiveAgent(null);
@@ -155,7 +152,7 @@ function MermaidArchitect({ sessionId }) {
   }, [animateAcceptedSource]);
 
   useEffect(() => {
-    if (copilotLoading) {
+    if (legacyCopilotLoading || helperRunning) {
       hasStartedCopilotRunRef.current = true;
       return;
     }
@@ -166,7 +163,7 @@ function MermaidArchitect({ sessionId }) {
 
     hasStartedCopilotRunRef.current = false;
     refreshDiagramFromAgentStream();
-  }, [copilotLoading, refreshDiagramFromAgentStream]);
+  }, [helperRunning, legacyCopilotLoading, refreshDiagramFromAgentStream]);
 
   const runAutoFix = useCallback(
     async (brokenSource, errorMessage) => {
@@ -181,7 +178,6 @@ function MermaidArchitect({ sessionId }) {
           mermaidSource: brokenSource
         });
         setState(syncedState);
-        setLastCommittedState(syncedState);
 
         const result = await submitDiagramIntent({
           prompt: `The Mermaid editor currently shows a syntax error. Please fix the diagram and apply a corrected version with apply_mermaid_patch.
@@ -219,7 +215,7 @@ Hard requirements:
         autoFixTimerRef.current = null;
       }
 
-      if (!autoFixEnabledRef.current) return;
+      if (!autoFixAlwaysOnRef.current) return;
       if (!nextError) return;
       if (autoFixAttemptedRef.current) return;
       if (lastAutoFixSourceRef.current === source) return;
@@ -231,7 +227,7 @@ Hard requirements:
           loadingRef.current ||
           copilotLoadingRef.current ||
           streamingPreviewRef.current ||
-          !autoFixEnabledRef.current ||
+          !autoFixAlwaysOnRef.current ||
           autoFixAttemptedRef.current ||
           lastAutoFixSourceRef.current === source
         ) {
@@ -265,47 +261,9 @@ Hard requirements:
     }
 
     scheduleAutoFix(validationError);
-  }, [autoFixEnabled, copilotLoading, loading, scheduleAutoFix, streamingPreview, validationError]);
+  }, [helperRunning, legacyCopilotLoading, loading, scheduleAutoFix, streamingPreview, validationError]);
 
-  function manualAutoFix() {
-    if (!validationError) return;
-    if (loading || copilotLoading || streamingPreview) return;
-    if (autoFixTimerRef.current) {
-      clearTimeout(autoFixTimerRef.current);
-      autoFixTimerRef.current = null;
-    }
-    runAutoFix(validationError.source, validationError.error);
-  }
-
-  async function runIntent(promptInput) {
-    setLoading(true);
-    setActiveAgent('agui');
-    setError('');
-
-    const optimisticState = deriveOptimisticState(state, promptInput);
-    setState(optimisticState);
-    try {
-      const syncedState = await syncClientDiagramState({
-        mermaidSource: state.mermaidSource
-      });
-      setState(syncedState);
-      setLastCommittedState(syncedState);
-
-      const result = await submitDiagramIntent({
-        prompt: promptInput,
-        revisionId: syncedState.revisionId,
-        mermaidSource: syncedState.mermaidSource
-      });
-      animateAcceptedSource(result.state);
-    } catch (err) {
-      setError(err.message);
-      setLoading(false);
-      setActiveAgent(null);
-    }
-  }
-
-  async function runCoAuthor(promptInput) {
-    const coAuthorPrompt = promptInput?.trim() || defaultCoAuthorPrompt;
+  async function runCoAuthor() {
     setLoading(true);
     setActiveAgent('coauthor');
     setError('');
@@ -316,57 +274,15 @@ Hard requirements:
         styleConfig: state.styleConfig
       });
       setState(syncedState);
-      setLastCommittedState(syncedState);
       const result = await submitCoAuthorIntent({
-        prompt: coAuthorPrompt,
+        prompt: defaultCoAuthorPrompt,
         revisionId: syncedState.revisionId,
         mermaidSource: syncedState.mermaidSource,
-        settings: coAuthorSettings
+        settings: { surpriseScale }
       });
       animateAcceptedSource(result.state);
     } catch (err) {
       setError(err.message);
-      setLoading(false);
-      setActiveAgent(null);
-    }
-  }
-
-  function clearPendingSync() {
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-  }
-
-  async function runStylePrompt(promptInput) {
-    const stylePrompt = promptInput?.trim();
-    if (!stylePrompt) return;
-
-    setLoading(true);
-    setActiveAgent('style');
-    setError('');
-    clearPendingSync();
-
-    try {
-      const syncedState = await syncClientDiagramState({
-        mermaidSource: state.mermaidSource,
-        styleConfig: state.styleConfig
-      });
-      setState(syncedState);
-      setLastCommittedState(syncedState);
-
-      const payload = await submitStyleIntent({
-        prompt: stylePrompt,
-        revisionId: syncedState.revisionId,
-        mermaidSource: syncedState.mermaidSource,
-        settings: {}
-      });
-
-      setState(payload.state);
-      setLastCommittedState(payload.state);
-    } catch (err) {
-      setError(err.message);
-    } finally {
       setLoading(false);
       setActiveAgent(null);
     }
@@ -392,64 +308,32 @@ Hard requirements:
           styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : undefined
         });
         setState(synced);
-        setLastCommittedState(synced);
       } catch {
-        // Keep local edits even if sync fails; user can still retry with Surprise me.
+        // Keep local edits even if sync fails.
       }
     }, 350);
   }
 
-  async function handleStyleApply(nextStyleConfig) {
-    clearPendingSync();
-
-    const styled = applyMermaidStyleDirective({
-      mermaidSource: state.mermaidSource,
-      styleConfig: nextStyleConfig
-    });
-
-    setState((currentState) => ({
-      ...currentState,
-      mermaidSource: styled.mermaidSource,
-      styleConfig: styled.styleConfig,
-      updatedAt: new Date().toISOString()
-    }));
-
-    try {
-      const synced = await syncClientDiagramState(styled);
-      setState(synced);
-      setLastCommittedState(synced);
-      setError('');
-    } catch (err) {
-      setError(err.message);
-    }
-  }
-
-  function handleRevertToLastCommitted() {
-    clearPendingSync();
-    setState(lastCommittedState);
-  }
-
   const status = useMemo(() => {
-    if (loading && activeAgent === 'coauthor') return 'Co-author surprise mode is extending your diagram...';
-    if (loading && activeAgent === 'autofix') return 'AG-UI agent is auto-fixing the Mermaid syntax error...';
-    if (copilotLoading || streamingPreview || (loading && activeAgent === 'agui')) {
-      return 'AG-UI stream is coordinating the agent and diagram update...';
+    if (loading && activeAgent === 'coauthor') return 'Surprise me agent is extending your diagram...';
+    if (loading && activeAgent === 'autofix') return 'Helper agent is fixing a syntax error...';
+    if (legacyCopilotLoading || helperRunning || streamingPreview) {
+      return 'Helper agent is updating your diagram...';
     }
-    if (loading) return 'Agent is applying your requested update...';
+    if (loading) return 'Applying update...';
     if (error) return error;
     if (validationError) {
       if (autoFixAttempted) {
-        return `Auto-fix already tried. Please edit the Mermaid manually or click Fix now. Error: ${validationError.error}`;
+        return `Auto-fix already tried. Edit the Mermaid source or ask the Helper agent in chat. Error: ${validationError.error}`;
       }
-      if (autoFixEnabled) return 'Mermaid syntax error detected. Auto-fix will run shortly...';
-      return `Mermaid syntax error: ${validationError.error}`;
+      return 'Mermaid syntax error detected. Auto-fix will run shortly...';
     }
     return `Last updated: ${new Date(state.updatedAt).toLocaleTimeString()}`;
   }, [
     activeAgent,
     autoFixAttempted,
-    autoFixEnabled,
-    copilotLoading,
+    helperRunning,
+    legacyCopilotLoading,
     error,
     loading,
     state.updatedAt,
@@ -457,130 +341,130 @@ Hard requirements:
     validationError
   ]);
 
-  function handleSettingChange(key, value) {
-    setCoAuthorSettings((current) => ({
-      ...current,
-      [key]: key === 'maxNodes' ? Math.max(1, Math.min(200, Number(value) || 1)) : value
-    }));
-  }
-
   return (
-    <CopilotSidebar
-      defaultOpen
-      threadId={sessionId}
-      instructions="You are Mermaid Architect. Stream concise commentary while editing the current Mermaid diagram. Apply diagram changes with the server-side patch tool before summarizing."
-      labels={{
-        title: 'AG-UI Mermaid Agent',
-        initial: 'Ask for a diagram change here, or use the prompt bar. I will stream commentary while the Mermaid patch is validated.'
-      }}
-    >
-      <main className="layout">
-        <section className="workspace">
-          <header className="workspace-header">
-            <div>
-              <h1>Mermaid Architect</h1>
-              <p className="subtitle">Collaborative diagram generation with agentic controls.</p>
-            </div>
-            <div className="floating-toggles">
-              <button type="button" onClick={() => setShowStylePanel((value) => !value)}>
-                {showStylePanel ? 'Hide Style' : 'Style'}
-              </button>
-              <button type="button" onClick={() => setShowSettings((value) => !value)}>
-                {showSettings ? 'Hide Co-Author Settings' : 'Co-Author Settings'}
-              </button>
-              <button type="button" onClick={() => runCoAuthor(prompt)} disabled={loading}>
+    <div className="app-root-layout">
+      <div className="workspace-main-wrap">
+        <main className="layout app-shell">
+          <section className="workspace-main">
+            <header className="workspace-header">
+              <div>
+                <h1>Mermaid Architect</h1>
+                <p className="subtitle">Editor, preview, Helper agent, and Surprise me.</p>
+              </div>
+            </header>
+
+            <DiagramCanvas
+              mermaidSource={state.mermaidSource}
+              styleConfig={state.styleConfig}
+              revisionId={state.revisionId}
+              onManualEdit={handleManualEdit}
+              onValidationChange={handleValidationChange}
+              streamingPreview={streamingPreview}
+            />
+
+            <section className="surprise-agent-panel" aria-labelledby="surprise-agent-heading">
+              <h2 id="surprise-agent-heading" className="surprise-agent-title">
+                Surprise me agent
+              </h2>
+              <p className="surprise-agent-hint">How different should the creative extension be?</p>
+              <div className="surprise-scale" role="radiogroup" aria-label="Surprise scale">
+                {SURPRISE_SCALE_LABELS.map((label, index) => {
+                  const value = index + 1;
+                  const selected = surpriseScale === value;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      className={`surprise-scale-step${selected ? ' surprise-scale-step-active' : ''}`}
+                      onClick={() => setSurpriseScale(value)}
+                    >
+                      <span className="surprise-scale-num">{value}</span>
+                      <span className="surprise-scale-label">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <button type="button" className="surprise-me-btn" onClick={() => runCoAuthor()} disabled={loading}>
                 Surprise me
               </button>
+            </section>
+
+            <p className={`status ${error || validationError ? 'status-error' : ''}`}>{status}</p>
+          </section>
+        </main>
+      </div>
+
+      <aside className="helper-chat-column" aria-label="Helper agent chat">
+        <div className="helper-chat-heading">
+          <div className="helper-chat-heading-row">
+            <div>
+              <h2 className="helper-chat-title">Helper agent</h2>
+              <p className="helper-chat-subtitle">Validated Mermaid patches from chat.</p>
             </div>
-          </header>
-          <form
-            className="intent-bar"
-            onSubmit={(event) => {
-              event.preventDefault();
-              runIntent(prompt);
-            }}
-          >
-            <input
-              aria-label="Describe a diagram change"
-              type="text"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Describe a diagram change"
-            />
-            <button type="submit" disabled={loading || !prompt.trim()}>
-              Draw with agent
-            </button>
-          </form>
-          <DiagramCanvas
-            mermaidSource={state.mermaidSource}
-            styleConfig={state.styleConfig}
-            revisionId={state.revisionId}
-            onManualEdit={handleManualEdit}
-            onValidationChange={handleValidationChange}
-            streamingPreview={streamingPreview}
-          />
-          <div className="autofix-bar">
-            <label className="autofix-toggle">
-              <input
-                type="checkbox"
-                checked={autoFixEnabled}
-                onChange={(event) => setAutoFixEnabled(event.target.checked)}
-              />
-              Auto-fix Mermaid errors with the agent
-            </label>
             <button
               type="button"
-              onClick={manualAutoFix}
-              disabled={!validationError || loading || copilotLoading || streamingPreview}
+              className="helper-chat-reset-btn"
+              onClick={() => onRemountHelperChat?.()}
             >
-              Fix now with agent
+              Reset chat
             </button>
           </div>
-          <p className={`status ${error || validationError ? 'status-error' : ''}`}>{status}</p>
-
-          {showStylePanel ? (
-            <div className="floating-panel floating-style">
-              <StylePanel
-                key={JSON.stringify(state.styleConfig)}
-                styleConfig={state.styleConfig}
-                onApply={handleStyleApply}
-                onRevert={handleRevertToLastCommitted}
-                onStylePrompt={runStylePrompt}
-                loading={loading}
-              />
-            </div>
-          ) : null}
-
-          {showSettings ? (
-            <div className="floating-panel floating-controls">
-              <ControlsPanel
-                settings={coAuthorSettings}
-                onSettingsChange={handleSettingChange}
-                onUndo={() => setState(lastCommittedState)}
-                onCoAuthorExtend={runCoAuthor}
-                prompt={prompt}
-                loading={loading}
-              />
-            </div>
-          ) : null}
-        </section>
-      </main>
-    </CopilotSidebar>
+        </div>
+        <div className="helper-chat-shell">
+          <CopilotChat
+            key={`helper-chat-${helperChatKey}`}
+            threadId={sessionId}
+            welcomeScreen={false}
+            labels={{
+              chatInputPlaceholder: 'Describe what you want, then send.',
+              chatDisclaimerText: ''
+            }}
+            onError={(payload) => {
+              if (shouldRemountHelperChatFromCopilotEvent(payload)) {
+                onRemountHelperChat?.();
+              }
+            }}
+          />
+        </div>
+      </aside>
+    </div>
   );
 }
 
 function App() {
   const sessionId = useMemo(() => getOrCreateBrowserSessionId(), []);
+  const [helperChatKey, setHelperChatKey] = useState(0);
+  const lastHelperRemountRef = useRef(0);
+
+  const remountHelperChat = useCallback(() => {
+    const now = Date.now();
+    if (now - lastHelperRemountRef.current < 1200) {
+      return;
+    }
+    lastHelperRemountRef.current = now;
+    setHelperChatKey((k) => k + 1);
+  }, []);
 
   return (
     <CopilotKit
-      // Multi-route Express runtime (`createCopilotExpressHandler` default mode) exposes
-      // GET …/info. Single-endpoint mode POSTs to the base URL, which returns 404 here.
       useSingleEndpoint={false}
       runtimeUrl={`${API_BASE_URL}/api/copilotkit`}
       headers={() => ({ [SESSION_HEADER]: sessionId })}
+      showDevConsole={false}
+      enableInspector={false}
+      onError={(payload) => {
+        if (shouldRemountHelperChatFromCopilotEvent(payload)) {
+          remountHelperChat();
+        }
+      }}
     >
-      <MermaidArchitect sessionId={sessionId} />
+      <MermaidArchitect
+        sessionId={sessionId}
+        helperChatKey={helperChatKey}
+        onRemountHelperChat={remountHelperChat}
+      />
     </CopilotKit>
   );
 }

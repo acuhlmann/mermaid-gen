@@ -80,11 +80,7 @@ test('coauthor route applies a patch from the coauthor agent service', async () 
       ...intentPayload(),
       trigger: 'manual',
       settings: {
-        temperature: 1.1,
-        topP: 0.95,
-        maxNodes: 30,
-        styleGuide: 'bold',
-        persona: 'playful coauthor'
+        surpriseScale: 4
       }
     },
     stateStore,

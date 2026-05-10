@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import '@copilotkit/react-ui/styles.css';
+import '@copilotkit/react-core/v2/styles.css';
 import './index.css';
 import App from './App.jsx';
 

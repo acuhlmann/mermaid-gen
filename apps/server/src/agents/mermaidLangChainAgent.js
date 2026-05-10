@@ -3,7 +3,8 @@ import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
 import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 
-const DEFAULT_OPENROUTER_MODEL = 'google/gemini-2.5-flash-lite';
+/** Default avoids Google Gemini routing (often region-blocked, e.g. Hong Kong). Override with OPENROUTER_MODEL. */
+const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-4o-mini';
 const INTENT_PROFILE_DEFAULTS = {
   temperature: 0.7,
   topP: 1,
@@ -11,13 +12,68 @@ const INTENT_PROFILE_DEFAULTS = {
   styleGuide: 'balanced',
   persona: 'creative architect'
 };
-const COAUTHOR_PROFILE_DEFAULTS = {
-  temperature: 1.1,
-  topP: 1,
-  maxNodes: 40,
-  styleGuide: 'bold',
-  persona: 'playful co-author'
-};
+
+/** Maps UI surprise scale 1–5 to LLM sampling temperature (OpenRouter-safe range). */
+export const SURPRISE_SCALE_TEMPERATURES = Object.freeze({
+  1: 0.35,
+  2: 0.65,
+  3: 1.0,
+  4: 1.35,
+  5: 1.75
+});
+
+const SURPRISE_TIER_GUIDANCE = Object.freeze({
+  1: 'Surprise scale 1 — Subtle: tiny additive tweaks only; keep the same diagram type and overall layout.',
+  2: 'Surprise scale 2 — Mild: modest additions; prefer keeping the diagram type.',
+  3: 'Surprise scale 3 — Balanced: noticeably richer diagram; mild restructuring is OK.',
+  4: 'Surprise scale 4 — Bold: strong restructuring allowed; you may change diagram type if it improves the story.',
+  5: 'Surprise scale 5 — Wild: maximum surprise; freely switch Mermaid diagram types; aggressively larger and more creative while staying on topic.'
+});
+
+export function surpriseScaleToTemperature(scale) {
+  const s = Number(scale);
+  if (!Number.isInteger(s) || s < 1 || s > 5) {
+    return SURPRISE_SCALE_TEMPERATURES[3];
+  }
+  return SURPRISE_SCALE_TEMPERATURES[s];
+}
+
+export function surpriseTierGuidance(scale) {
+  const s = Number(scale);
+  if (!Number.isInteger(s) || s < 1 || s > 5) {
+    return SURPRISE_TIER_GUIDANCE[3];
+  }
+  return SURPRISE_TIER_GUIDANCE[s];
+}
+
+function buildCoAuthorUserContent({ prompt, surpriseScale, mermaidSource }) {
+  const tierLine = surpriseTierGuidance(surpriseScale);
+
+  return `You are in co-author surprise mode. Read the current diagram and produce a surprising extension.
+
+Hard requirements:
+- You MUST call get_diagram_state first.
+- You MUST call apply_mermaid_patch with full Mermaid source.
+- Do not return only text; apply the patch.
+
+General surprise policy:
+- Preserve the core topic, but match the intensity described by your surprise scale below.
+- Prefer a richer diagram than the current one when the scale allows.
+
+Current committed diagram:
+\`\`\`mermaid
+${mermaidSource}
+\`\`\`
+
+Creative intensity (follow closely):
+${tierLine}
+
+Human intent to build upon:
+${prompt}
+
+Output goal:
+Apply one creative, relevant update via apply_mermaid_patch that matches the surprise scale.`;
+}
 
 const SYSTEM_PROMPT = `You are Mermaid Architect, an agent that helps edit Mermaid diagrams.
 
@@ -50,17 +106,24 @@ export function isLlmConfigured(env = process.env) {
   return Boolean(env.OPENROUTER_API_KEY);
 }
 
-export function createOpenRouterModel(env = process.env) {
+export function createOpenRouterModel(env = process.env, overrides = {}) {
   if (!isLlmConfigured(env)) {
     throw new LlmNotConfiguredError();
   }
 
-  return new ChatOpenRouter({
+  const { temperature, ...rest } = overrides;
+  const fields = {
     apiKey: env.OPENROUTER_API_KEY,
     model: env.OPENROUTER_MODEL || DEFAULT_OPENROUTER_MODEL,
     siteName: env.OPENROUTER_SITE_NAME || 'Mermaid Architect',
-    siteUrl: env.OPENROUTER_SITE_URL || 'http://localhost:5173'
-  });
+    siteUrl: env.OPENROUTER_SITE_URL || 'http://localhost:5173',
+    ...rest
+  };
+  if (temperature !== undefined) {
+    fields.temperature = temperature;
+  }
+
+  return new ChatOpenRouter(fields);
 }
 
 function normalizeMessageContent(content) {
@@ -174,107 +237,172 @@ export function buildSyntaxRepairInstruction({ messages, errorMessage }) {
   };
 }
 
+function formatAgentInvokeFailure(error, env = process.env) {
+  const detail = error instanceof Error ? error.message : String(error);
+  const regionHint = /region|not available in your country|unsupported_country/i.test(detail)
+    ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` in your server `.env` to a model that works where you are (for example `openai/gpt-4o-mini` or `anthropic/claude-3.5-haiku`), then restart the API server.\n'
+    : '';
+  const modelId = env?.OPENROUTER_MODEL ?? '';
+  const toolsHint =
+    /tool|tools|function[_ ]?call|parallel_tool|gemini|unsupported/i.test(detail) ||
+    /gemini/i.test(modelId)
+      ? '\n\nIf failures mention tools or function calling, pick an OpenRouter model that reliably supports tool use (for example `openai/gpt-4o-mini`). Some Gemini routes through OpenRouter do not play well with LangChain tool agents.\n'
+      : '';
+  return {
+    message: `**Model request failed**\n\n${detail}${regionHint}${toolsHint}`,
+    raw: null
+  };
+}
+
 export function createMermaidLangChainAgent({
   stateStore,
   model = createOpenRouterModel(),
+  env = process.env,
+  createCoAuthorChatModel = (temperature) => createOpenRouterModel(env, { temperature }),
   createAgentImpl = createAgent
 }) {
-  const agent = createAgentImpl({
-    model,
-    tools: createDiagramTools({ stateStore }),
-    systemPrompt: SYSTEM_PROMPT
-  });
+  const tools = createDiagramTools({ stateStore });
+  const agentCache = new Map();
 
-  return {
-    async invoke({ messages }) {
-      const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
-      const beforeRevision = stateStore.getState().revisionId;
-      const firstResult = await agent.invoke({ messages: baseMessages });
-      const firstMessage = extractFinalMessage(firstResult);
-      const afterFirstRevision = stateStore.getState().revisionId;
-      const firstError = extractToolFailureError(firstResult);
+  function getDefaultAgent() {
+    const key = 'default';
+    if (!agentCache.has(key)) {
+      agentCache.set(
+        key,
+        createAgentImpl({
+          model,
+          tools,
+          systemPrompt: SYSTEM_PROMPT
+        })
+      );
+    }
+    return agentCache.get(key);
+  }
 
-      if (afterFirstRevision !== beforeRevision || !shouldAttemptSyntaxRepair(firstError)) {
+  function getCoAuthorAgentForScale(scale) {
+    const surpriseScale = Number(scale);
+    const clamped =
+      Number.isInteger(surpriseScale) && surpriseScale >= 1 && surpriseScale <= 5 ? surpriseScale : 3;
+    const key = `coauthor:${clamped}`;
+    if (!agentCache.has(key)) {
+      const temperature = surpriseScaleToTemperature(clamped);
+      const coAuthorModel = createCoAuthorChatModel(temperature);
+      agentCache.set(
+        key,
+        createAgentImpl({
+          model: coAuthorModel,
+          tools,
+          systemPrompt: SYSTEM_PROMPT
+        })
+      );
+    }
+    return agentCache.get(key);
+  }
+
+  async function invokeWithRepair(agent, messages) {
+    const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
+    const beforeRevision = stateStore.getState().revisionId;
+
+    let firstResult;
+    try {
+      firstResult = await agent.invoke({ messages: baseMessages });
+    } catch (error) {
+      return formatAgentInvokeFailure(error, env);
+    }
+
+    const firstMessage = extractFinalMessage(firstResult);
+    const afterFirstRevision = stateStore.getState().revisionId;
+    const firstError = extractToolFailureError(firstResult);
+
+    if (afterFirstRevision !== beforeRevision || !shouldAttemptSyntaxRepair(firstError)) {
+      return {
+        message: firstMessage,
+        raw: firstResult
+      };
+    }
+
+    const parsedRepairAttempts = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
+    const maxRepairAttempts = Number.isFinite(parsedRepairAttempts) ? Math.max(0, parsedRepairAttempts) : 1;
+    let latestError = firstError;
+    let latestResult = firstResult;
+
+    for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
+      let retryResult;
+      try {
+        retryResult = await agent.invoke({
+          messages: [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })]
+        });
+      } catch (error) {
+        return formatAgentInvokeFailure(error, env);
+      }
+      latestResult = retryResult;
+
+      const currentRevision = stateStore.getState().revisionId;
+      if (currentRevision !== beforeRevision) {
         return {
-          message: firstMessage,
-          raw: firstResult
+          message: extractFinalMessage(retryResult),
+          raw: retryResult
         };
       }
 
-      const parsedRepairAttempts = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
-      const maxRepairAttempts = Number.isFinite(parsedRepairAttempts) ? Math.max(0, parsedRepairAttempts) : 1;
-      let latestError = firstError;
-      let latestResult = firstResult;
-
-      for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
-        const retryResult = await agent.invoke({
-          messages: [
-            ...baseMessages,
-            buildSyntaxRepairInstruction({ messages, errorMessage: latestError })
-          ]
-        });
-        latestResult = retryResult;
-
-        const currentRevision = stateStore.getState().revisionId;
-        if (currentRevision !== beforeRevision) {
-          return {
-            message: extractFinalMessage(retryResult),
-            raw: retryResult
-          };
-        }
-
-        const retryError = extractToolFailureError(retryResult);
-        if (!shouldAttemptSyntaxRepair(retryError)) {
-          break;
-        }
-        latestError = retryError;
+      const retryError = extractToolFailureError(retryResult);
+      if (!shouldAttemptSyntaxRepair(retryError)) {
+        break;
       }
+      latestError = retryError;
+    }
 
-      return {
-        message: extractFinalMessage(latestResult),
-        raw: latestResult
-      };
+    return {
+      message: extractFinalMessage(latestResult),
+      raw: latestResult
+    };
+  }
+
+  const defaultAgent = getDefaultAgent();
+
+  return {
+    async invoke({ messages }) {
+      return invokeWithRepair(defaultAgent, messages);
     },
 
     async applyIntent({ prompt, settings }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
 
-      return this.invoke({
-        messages: [
-          {
-            role: 'user',
-            content: `Interpret and apply the user's requested diagram change.\n\nSettings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser request:\n${prompt}`
-          }
-        ]
-      });
+      return invokeWithRepair(defaultAgent, [
+        {
+          role: 'user',
+          content: `Interpret and apply the user's requested diagram change.\n\nSettings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser request:\n${prompt}`
+        }
+      ]);
     },
 
     async applyCoAuthorIntent({ prompt, settings }) {
-      const resolvedSettings = { ...COAUTHOR_PROFILE_DEFAULTS, ...settings };
+      const surpriseScale = settings?.surpriseScale ?? 3;
       const currentState = stateStore.getState();
+      const coAuthorAgent = getCoAuthorAgentForScale(surpriseScale);
 
-      return this.invoke({
-        messages: [
-          {
-            role: 'user',
-            content: `You are in co-author surprise mode. Read the current diagram and produce a surprising extension.\n\nHard requirements:\n- You MUST call get_diagram_state first.\n- You MUST call apply_mermaid_patch with full Mermaid source.\n- Do not return only text; apply the patch.\n\nDefault surprise policy:\n- You are allowed to change the Mermaid diagram type completely by default (for example flowchart to sequenceDiagram/classDiagram/stateDiagram).\n- Preserve the core topic and intent, but you may restructure aggressively for a more creative outcome.\n- Prefer a noticeably larger or richer diagram than the current one.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nRespect these settings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nHuman intent to build upon:\n${prompt}\n\nOutput goal:\n- Produce a creative, relevant update that can either extend the current structure or switch to a different Mermaid diagram type.`
-          }
-        ]
-      });
+      return invokeWithRepair(coAuthorAgent, [
+        {
+          role: 'user',
+          content: buildCoAuthorUserContent({
+            prompt,
+            surpriseScale,
+            mermaidSource: currentState.mermaidSource
+          })
+        }
+      ]);
     },
 
     async applyStyleIntent({ prompt, settings }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const currentState = stateStore.getState();
 
-      return this.invoke({
-        messages: [
-          {
-            role: 'user',
-            content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
-          }
-        ]
-      });
+      return invokeWithRepair(defaultAgent, [
+        {
+          role: 'user',
+          content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
+        }
+      ]);
     }
   };
 }
@@ -289,7 +417,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 
     agentService ??= createMermaidLangChainAgent({
       stateStore,
-      model: createOpenRouterModel(env)
+      model: createOpenRouterModel(env),
+      env
     });
 
     return agentService;
@@ -315,4 +444,4 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
 }
 
 export { DEFAULT_OPENROUTER_MODEL };
-export { COAUTHOR_PROFILE_DEFAULTS, INTENT_PROFILE_DEFAULTS };
+export { INTENT_PROFILE_DEFAULTS };

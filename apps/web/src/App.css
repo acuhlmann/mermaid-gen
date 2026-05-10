@@ -1,12 +1,135 @@
+:root {
+  --copilotkit-license-banner-offset: 0px !important;
+}
+
+/* CopilotKit fixed promos, localhost usage banners, inspector chip */
+.usage-banner,
+cpk-web-inspector {
+  display: none !important;
+}
+
+/* CopilotKit fixed "Powered by CopilotKit" promo (not useful in-app) */
+body > div[style*="position: fixed"][style*="bottom: 8px"][style*="left: 50%"][style*="translateX(-50%)"][style*="z-index: 99999"] {
+  display: none !important;
+}
+
 .layout {
-  min-height: 100vh;
-  display: block;
-  padding: 1rem;
   box-sizing: border-box;
   background: #eef2f8;
 }
 
-.workspace,
+.app-root-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.workspace-main-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.helper-chat-column {
+  flex: 0 0 380px;
+  max-width: min(380px, 100%);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid #d8dce6;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.helper-chat-heading {
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.helper-chat-title {
+  margin: 0;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.helper-chat-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.helper-chat-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.helper-chat-reset-btn {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.78rem;
+}
+
+.helper-chat-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.helper-chat-shell .copilotKitChat {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Collapse message history while idle; expand during an active helper run */
+.helper-chat-shell [data-testid="copilot-chat"][data-copilot-running="false"] [data-testid="copilot-scroll-content"] {
+  display: none !important;
+}
+
+.helper-chat-shell
+  [data-testid="copilot-chat"][data-copilot-running="false"]
+  [class*="cpk:flex-1"][class*="cpk:overflow-y-auto"][class*="cpk:min-h-0"] {
+  flex: 0 0 0 !important;
+  max-height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Hide inline CopilotKit licensing / pricing callouts inside the helper column */
+.helper-chat-column .copilotKitChat div:has(> a[href="https://copilotkit.ai/pricing"]) {
+  display: none !important;
+}
+
+/* Disclaimer strip under composer (we clear the label text; hide residual spacing) */
+.helper-chat-column .copilotKitChat [data-testid="copilot-input-overlay"] div[class*="cpk:py-3"][class*="cpk:text-muted-foreground"] {
+  display: none !important;
+}
+
+.layout.app-shell {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 1rem;
+}
+
+.workspace-main {
+  max-width: 1480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.workspace-main,
 .controls-panel,
 .diagram-canvas {
   background: #ffffff;
@@ -14,11 +137,8 @@
   border-radius: 8px;
 }
 
-.workspace {
+.workspace-main {
   padding: 1rem;
-  max-width: 1480px;
-  margin: 0 auto;
-  position: relative;
 }
 
 .subtitle {
@@ -31,30 +151,78 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 1rem;
-  margin-bottom: 1rem;
 }
 
 .workspace-header h1 {
   margin: 0;
 }
 
-.floating-toggles {
+.surprise-agent-panel {
+  margin-top: 0.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d8dce6;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.surprise-agent-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: #1e293b;
+}
+
+.surprise-agent-hint {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  color: #475569;
+}
+
+.surprise-scale {
   display: flex;
-  gap: 0.5rem;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
 }
 
-.intent-bar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
-}
-
-.intent-bar input {
+.surprise-scale-step {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  padding: 0.45rem 0.55rem;
+  min-width: 4.75rem;
   border: 1px solid #c6cedf;
   border-radius: 6px;
-  padding: 0.55rem 0.7rem;
+  background: #ffffff;
+  cursor: pointer;
   font: inherit;
+  text-align: left;
+}
+
+.surprise-scale-step-active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  box-shadow: 0 0 0 1px #2563eb inset;
+}
+
+.surprise-scale-num {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.surprise-scale-step-active .surprise-scale-num {
+  color: #1d4ed8;
+}
+
+.surprise-scale-label {
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.surprise-me-btn {
+  padding: 0.5rem 1rem;
+  font-weight: 600;
 }
 
 .diagram-canvas header {
@@ -176,118 +344,6 @@
   font-size: 0.85rem;
 }
 
-.autofix-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 0.6rem;
-  padding: 0.45rem 0.7rem;
-  border: 1px solid #d8dce6;
-  border-radius: 6px;
-  background: #f8fafc;
-  font-size: 0.85rem;
-  color: #334155;
-}
-
-.autofix-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-}
-
-.controls-panel {
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  border: 0;
-  background: transparent;
-}
-
-.style-panel {
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.controls-panel h2,
-.panel-header h2,
-.style-panel h2 {
-  margin: 0 0 0.25rem;
-  font-size: 1rem;
-}
-
-.controls-panel label,
-.style-panel label {
-  font-size: 0.85rem;
-  color: #334155;
-}
-
-.controls-panel input,
-.controls-panel select,
-.style-panel input,
-.style-panel textarea {
-  border: 1px solid #c6cedf;
-  border-radius: 6px;
-  padding: 0.35rem 0.5rem;
-  font: inherit;
-}
-
-.style-panel textarea {
-  min-height: 210px;
-  resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
-  font-size: 0.82rem;
-}
-
-.style-error {
-  margin: 0;
-  color: #b91c1c;
-  font-size: 0.85rem;
-}
-
-.style-prompt {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 0.4rem;
-}
-
-.coauthor-section {
-  margin-top: 0.6rem;
-  border: 1px solid #d8dce6;
-  border-radius: 8px;
-  padding: 0.6rem;
-  background: #f8fafc;
-}
-
-.coauthor-section h3 {
-  margin: 0;
-  font-size: 0.92rem;
-}
-
-.coauthor-section p {
-  margin: 0.35rem 0 0.5rem;
-  font-size: 0.82rem;
-  color: #475569;
-}
-
-.actions {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.5rem;
-}
-
-.actions-two {
-  grid-template-columns: 1fr 1fr;
-}
-
-.style-actions {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
 button {
   border: 1px solid #c6cedf;
   border-radius: 6px;
@@ -302,33 +358,12 @@ button:disabled {
 }
 
 .status {
-  margin-top: 0.75rem;
+  margin-top: 0.25rem;
   color: #2f855a;
 }
 
 .status-error {
   color: #c53030;
-}
-
-.floating-panel {
-  position: absolute;
-  z-index: 8;
-  width: min(360px, calc(100% - 2rem));
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
-  backdrop-filter: blur(2px);
-}
-
-.floating-controls {
-  top: 138px;
-  right: 1rem;
-}
-
-.floating-style {
-  top: 138px;
-  left: 1rem;
 }
 
 @media (max-width: 1100px) {
@@ -349,22 +384,26 @@ button:disabled {
     flex-direction: column;
   }
 
-  .floating-toggles {
+  .surprise-scale {
+    flex-direction: column;
+  }
+
+  .surprise-scale-step {
     width: 100%;
   }
+}
 
-  .floating-toggles button {
-    flex: 1;
+@media (max-width: 960px) {
+  .app-root-layout {
+    flex-direction: column;
   }
 
-  .intent-bar {
-    grid-template-columns: 1fr;
-  }
-
-  .floating-panel {
-    position: static;
-    margin-top: 0.75rem;
+  .helper-chat-column {
+    flex: 1 1 auto;
+    max-width: none;
     width: 100%;
-    max-height: none;
+    border-left: none;
+    border-top: 1px solid #d8dce6;
+    min-height: 320px;
   }
 }

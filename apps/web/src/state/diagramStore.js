@@ -12,6 +12,11 @@ const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
 
 let inMemorySessionId = null;
 
+function throwApiPayloadError(payload, fallback) {
+  const text = [payload?.error, payload?.message, payload?.details].filter(Boolean).join('\n').trim();
+  throw new Error(text || fallback);
+}
+
 function createSessionId() {
   if (globalThis.crypto?.randomUUID) {
     return globalThis.crypto.randomUUID();
@@ -59,7 +64,7 @@ export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error ?? 'Failed to sync diagram state');
+    throwApiPayloadError(payload, 'Failed to sync diagram state');
   }
 
   return payload;
@@ -89,33 +94,10 @@ export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, 
 
   const payload = await response.json();
   if (!response.ok) {
-    throw new Error(payload.error ?? 'Co-author request failed');
+    throwApiPayloadError(payload, 'Co-author request failed');
   }
 
   return payload;
-}
-
-export async function submitStyleIntent({ prompt, revisionId, mermaidSource, settings }) {
-  const response = await fetch(`${API_BASE_URL}/api/copilotkit/style`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-    body: JSON.stringify({ prompt, stylePrompt: prompt, revisionId, mermaidSource, settings })
-  });
-
-  const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error ?? 'Style request failed');
-  }
-
-  return payload;
-}
-
-export function deriveOptimisticState(currentState, prompt) {
-  return {
-    ...currentState,
-    mermaidSource: `${currentState.mermaidSource}\n  Pending[${prompt.slice(0, 30)}...]`,
-    updatedAt: new Date().toISOString()
-  };
 }
 
 export const fallbackState = createInitialDiagramState();

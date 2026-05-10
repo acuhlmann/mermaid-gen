@@ -33,3 +33,32 @@ test('Copilot runtime agent streams the LangChain agent response', async () => {
   assert.match(events[1].delta, /Reading the current Mermaid diagram/);
   assert.equal(events[2].delta, 'Applied a diagram update.');
 });
+
+test('Copilot runtime agent yields assistant text for invoke failures instead of aborting the AG-UI run', async () => {
+  const events = [];
+  const agentService = {
+    async invoke() {
+      throw new Error('This model is not available in your region.');
+    }
+  };
+  const stateStore = {
+    getState() {
+      return { revisionId: 1, mermaidSource: 'flowchart TD\n  A-->B' };
+    }
+  };
+
+  for await (const event of createCopilotAgentEvents({
+    input: {
+      runId: 'run-err',
+      messages: [{ role: 'user', content: 'Add a node' }]
+    },
+    agentService,
+    stateStore
+  })) {
+    events.push(event);
+  }
+
+  assert.equal(events.at(-1)?.type, 'TEXT_MESSAGE_END');
+  assert.ok(events.some((e) => e.type === 'TEXT_MESSAGE_CONTENT' && String(e.delta).includes('Model request failed')));
+  assert.ok(events.some((e) => e.type === 'TEXT_MESSAGE_CONTENT' && String(e.delta).includes('region')));
+});
