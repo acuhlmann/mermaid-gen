@@ -1,4 +1,5 @@
 import { applyPatch, createInitialDiagramState } from '@mermaid-architect/shared';
+import { redactSecrets } from '../utils/redactSecrets.js';
 import { applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
@@ -40,7 +41,7 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
       } catch (error) {
         return {
           accepted: false,
-          error: error instanceof Error ? error.message : String(error)
+          error: redactSecrets(error instanceof Error ? error.message : String(error))
         };
       }
 

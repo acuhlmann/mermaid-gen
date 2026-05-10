@@ -12,6 +12,16 @@ import {
 } from './state/diagramStore.js';
 import './App.css';
 
+const TOOL_LABELS = {
+  get_diagram_state: 'Read diagram snapshot',
+  apply_mermaid_patch: 'Apply diagram update'
+};
+
+function formatToolLabel(name) {
+  if (!name) return 'Tool action';
+  return TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
+}
+
 function focusPayload(node) {
   if (!node?.id) return undefined;
   return { id: node.id, label: node.label };
@@ -25,6 +35,71 @@ function hydrateStateFromCache(cached) {
     mermaidSource: source,
     updatedAt: new Date().toISOString()
   };
+}
+
+const SpeechRecognitionCtor = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
+
+function ButtonIcon({ children }) {
+  return (
+    <span className="button-icon" aria-hidden="true">
+      {children}
+    </span>
+  );
+}
+
+function MermaidMarkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="14" height="14">
+      <path d="M3 7h18l-4 5 4 5H3l4-5-4-5Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function MicIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5-3c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"
+      />
+    </svg>
+  );
+}
+
+function MicActiveIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+      <circle cx="12" cy="19" r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function useSyncVisualViewportHeight() {
+  useEffect(() => {
+    const root = document.documentElement;
+
+    function applyHeight() {
+      const vv = window.visualViewport;
+      const h = vv ? vv.height : window.innerHeight;
+      root.style.setProperty('--app-vvh', `${Math.round(h)}px`);
+    }
+
+    applyHeight();
+
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener('resize', applyHeight);
+      vv.addEventListener('scroll', applyHeight);
+      return () => {
+        vv.removeEventListener('resize', applyHeight);
+        vv.removeEventListener('scroll', applyHeight);
+      };
+    }
+
+    window.addEventListener('resize', applyHeight);
+    return () => window.removeEventListener('resize', applyHeight);
+  }, []);
 }
 
 function MermaidArchitect() {
@@ -42,12 +117,23 @@ function MermaidArchitect() {
   const [insightsEntries, setInsightsEntries] = useState(() =>
     Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []
   );
+  const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
+  const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   const [latestCritique, setLatestCritique] = useState(() => {
     const cachedCritique = cacheRef.current?.latestCritique;
     return cachedCritique?.text ? cachedCritique : null;
   });
   const [selectedNode, setSelectedNode] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
+  const [voiceSupported] = useState(
+    () =>
+      Boolean(
+        SpeechRecognitionCtor &&
+          (typeof globalThis.isSecureContext === 'boolean' ? globalThis.isSecureContext : true)
+      )
+  );
+  const [voiceListening, setVoiceListening] = useState(false);
+  const [voiceError, setVoiceError] = useState('');
 
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
@@ -58,6 +144,26 @@ function MermaidArchitect() {
   const loadingRef = useRef(false);
   const streamingPreviewRef = useRef(false);
   const autoFixAlwaysOnRef = useRef(true);
+  const hasInteractedRef = useRef(false);
+  const audioContextRef = useRef(null);
+  const celebrationTimerRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const voicePressedRef = useRef(false);
+  const lastSpeechInterimRef = useRef('');
+  const voiceStopTimerRef = useRef(null);
+  const promptRef = useRef('');
+  const voiceCapturedAnyRef = useRef(false);
+  const voiceAutoSubmitEnabledRef = useRef(false);
+  /** Sync transcript for voice auto-submit (promptRef can lag behind React state). */
+  const voiceAccumulatedRef = useRef('');
+  const micSessionRef = useRef(0);
+  const submitIntentFromVoiceRef = useRef(async (_text) => {});
+
+  useSyncVisualViewportHeight();
+
+  useEffect(() => {
+    promptRef.current = prompt;
+  }, [prompt]);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -94,9 +200,10 @@ function MermaidArchitect() {
       insightsEntries,
       latestCritique,
       editorOpen,
-      insightsOpen
+      insightsOpen,
+      soundEnabled
     });
-  }, [editorOpen, insightsEntries, insightsOpen, latestCritique, state.mermaidSource]);
+  }, [editorOpen, insightsEntries, insightsOpen, latestCritique, soundEnabled, state.mermaidSource]);
 
   useEffect(
     () => () => {
@@ -109,8 +216,72 @@ function MermaidArchitect() {
       if (autoFixTimerRef.current) {
         clearTimeout(autoFixTimerRef.current);
       }
+      if (celebrationTimerRef.current) {
+        clearTimeout(celebrationTimerRef.current);
+      }
+      if (voiceStopTimerRef.current) {
+        clearTimeout(voiceStopTimerRef.current);
+        voiceStopTimerRef.current = null;
+      }
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.abort();
+        } catch {
+          // ignore
+        }
+        recognitionRef.current.onresult = null;
+        recognitionRef.current.onerror = null;
+        recognitionRef.current.onend = null;
+        recognitionRef.current = null;
+      }
     },
     []
+  );
+
+  const appendPromptText = useCallback((text) => {
+    if (!text) return;
+    setPrompt((current) => {
+      const trimmed = text.trim();
+      if (!trimmed) return current;
+      const next = current ? `${current.trimEnd()} ${trimmed}` : trimmed;
+      promptRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const playCompletionChime = useCallback(() => {
+    if (!soundEnabled || !hasInteractedRef.current) return;
+    try {
+      const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
+      if (!AudioContextCtor) return;
+      const context = audioContextRef.current ?? new AudioContextCtor();
+      audioContextRef.current = context;
+      const now = context.currentTime;
+      const oscillator = context.createOscillator();
+      const gainNode = context.createGain();
+      oscillator.type = 'triangle';
+      oscillator.frequency.setValueAtTime(523.25, now);
+      oscillator.frequency.linearRampToValueAtTime(659.25, now + 0.12);
+      gainNode.gain.setValueAtTime(0.0001, now);
+      gainNode.gain.exponentialRampToValueAtTime(0.065, now + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+      oscillator.connect(gainNode);
+      gainNode.connect(context.destination);
+      oscillator.start(now);
+      oscillator.stop(now + 0.3);
+    } catch {
+      // Ignore audio issues (autoplay restrictions, unsupported browser, etc).
+    }
+  }, [soundEnabled]);
+
+  const triggerCompletionDelight = useCallback(
+    (entryId) => {
+      setCelebratingEntryId(entryId);
+      if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
+      celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), 900);
+      playCompletionChime();
+    },
+    [playCompletionChime]
   );
 
   const animateAcceptedSource = useCallback((nextState) => {
@@ -155,15 +326,71 @@ function MermaidArchitect() {
 
   const appendInsightEntry = useCallback((title) => {
     const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
-    setInsightsEntries((prev) => [...prev, { id, title, content: '' }]);
+    setInsightsEntries((prev) => [
+      ...prev,
+      {
+        id,
+        title,
+        content: '',
+        statusText: 'Working on your request...',
+        status: 'running',
+        technicalActions: [],
+        startedAt: Date.now(),
+        completedAt: null
+      }
+    ]);
     return id;
   }, []);
 
-  const appendToInsight = useCallback((id, text) => {
+  const patchInsightEntry = useCallback((id, patcher) => {
     setInsightsEntries((prev) =>
-      prev.map((entry) => (entry.id === id ? { ...entry, content: entry.content + text } : entry))
+      prev.map((entry) => (entry.id === id ? patcher(entry) : entry))
     );
   }, []);
+
+  const appendToInsight = useCallback(
+    (id, text) => {
+      patchInsightEntry(id, (entry) => ({ ...entry, content: entry.content + text }));
+    },
+    [patchInsightEntry]
+  );
+
+  const setInsightStatus = useCallback(
+    (id, statusText) => {
+      patchInsightEntry(id, (entry) => ({ ...entry, statusText }));
+    },
+    [patchInsightEntry]
+  );
+
+  const appendTechnicalAction = useCallback(
+    (id, name, status) => {
+      patchInsightEntry(id, (entry) => {
+        const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
+        if (status === 'done') {
+          const actionIndex = [...current].reverse().findIndex((action) => action.name === name && action.status === 'running');
+          if (actionIndex >= 0) {
+            const realIndex = current.length - 1 - actionIndex;
+            const nextActions = current.map((action, idx) => (idx === realIndex ? { ...action, status: 'done' } : action));
+            return { ...entry, technicalActions: nextActions };
+          }
+        }
+        const actionId = globalThis.crypto?.randomUUID?.() ?? `act-${Date.now()}-${current.length}`;
+        return {
+          ...entry,
+          technicalActions: [
+            ...current,
+            {
+              id: actionId,
+              name,
+              label: formatToolLabel(name),
+              status
+            }
+          ]
+        };
+      });
+    },
+    [patchInsightEntry]
+  );
 
   const runStreamingAgent = useCallback(
     async ({ operation, payload, title, onFinal }) => {
@@ -175,18 +402,34 @@ function MermaidArchitect() {
           if (evt.type === 'token' && evt.text) {
             streamedText += evt.text;
             appendToInsight(sectionId, evt.text);
-          }
-          else if (evt.type === 'status' && evt.text) appendToInsight(sectionId, `\n\n_${evt.text}_\n\n`);
-          else if (evt.type === 'tool_start' && evt.name) appendToInsight(sectionId, `\n→ ${evt.name} …\n`);
-          else if (evt.type === 'tool_end' && evt.name) appendToInsight(sectionId, `\n← ${evt.name}\n`);
-          else if (evt.type === 'error' && evt.message) appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
-          else if (evt.type === 'final') {
+          } else if (evt.type === 'status' && evt.text) {
+            setInsightStatus(sectionId, evt.text);
+          } else if (evt.type === 'tool_start' && evt.name) {
+            appendTechnicalAction(sectionId, evt.name, 'running');
+          } else if (evt.type === 'tool_end' && evt.name) {
+            appendTechnicalAction(sectionId, evt.name, 'done');
+          } else if (evt.type === 'error' && evt.message) {
+            appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
+            patchInsightEntry(sectionId, (entry) => ({
+              ...entry,
+              status: 'failed',
+              statusText: 'Something failed. You can retry.',
+              completedAt: Date.now()
+            }));
+          } else if (evt.type === 'final') {
             if (evt.revisionChanged && evt.state) {
               animateAcceptedSource(evt.state);
             }
             if (evt.message && operation !== 'analyze') {
               appendToInsight(sectionId, `\n\n— _${evt.message}_`);
             }
+            patchInsightEntry(sectionId, (entry) => ({
+              ...entry,
+              status: 'done',
+              statusText: 'Done',
+              completedAt: Date.now()
+            }));
+            triggerCompletionDelight(sectionId);
             if (typeof onFinal === 'function') {
               const finalText =
                 streamedText.trim() || (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');
@@ -196,9 +439,23 @@ function MermaidArchitect() {
         });
       } catch (err) {
         appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
+        patchInsightEntry(sectionId, (entry) => ({
+          ...entry,
+          status: 'failed',
+          statusText: 'Something failed. You can retry.',
+          completedAt: Date.now()
+        }));
       }
     },
-    [animateAcceptedSource, appendInsightEntry, appendToInsight]
+    [
+      animateAcceptedSource,
+      appendInsightEntry,
+      appendTechnicalAction,
+      appendToInsight,
+      patchInsightEntry,
+      setInsightStatus,
+      triggerCompletionDelight
+    ]
   );
 
   const runAutoFix = useCallback(
@@ -339,10 +596,9 @@ Hard requirements:
     return syncedState;
   }
 
-  async function runIntentChange(event) {
-    event.preventDefault();
-    const nextPrompt = prompt.trim();
-    if (!nextPrompt || loadingRef.current || streamingPreviewRef.current) return;
+  async function submitIntentWithPrompt(nextPrompt) {
+    const trimmed = (nextPrompt ?? '').trim();
+    if (!trimmed || loadingRef.current || streamingPreviewRef.current) return;
 
     const focusNode = focusPayload(selectedNode);
     setLoading(true);
@@ -355,7 +611,7 @@ Hard requirements:
         operation: 'intent',
         payload: {
           operation: 'intent',
-          prompt: nextPrompt,
+          prompt: trimmed,
           revisionId: syncedState.revisionId,
           mermaidSource: syncedState.mermaidSource,
           settings: {},
@@ -364,6 +620,7 @@ Hard requirements:
         title: selectedNode ? `Go — node “${selectedNode.label || selectedNode.id}”` : 'Go — diagram'
       });
       setPrompt('');
+      promptRef.current = '';
     } catch (err) {
       setError(err.message);
     } finally {
@@ -373,7 +630,218 @@ Hard requirements:
     }
   }
 
+  submitIntentFromVoiceRef.current = submitIntentWithPrompt;
+
+  async function runIntentChange(event) {
+    event.preventDefault();
+    hasInteractedRef.current = true;
+    await submitIntentWithPrompt(prompt.trim());
+  }
+
+  const stopVoiceInput = useCallback((options = {}) => {
+    const immediate = Boolean(options.immediate);
+    voicePressedRef.current = false;
+    if (voiceStopTimerRef.current) {
+      clearTimeout(voiceStopTimerRef.current);
+      voiceStopTimerRef.current = null;
+    }
+
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      setVoiceListening(false);
+      return;
+    }
+
+    if (immediate) {
+      micSessionRef.current += 1;
+      voiceAutoSubmitEnabledRef.current = false;
+      lastSpeechInterimRef.current = '';
+      try {
+        recognition.abort();
+      } catch {
+        try {
+          recognition.stop();
+        } catch {
+          // ignore
+        }
+      }
+      try {
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+      setVoiceListening(false);
+      return;
+    }
+
+    const recInstance = recognition;
+    voiceStopTimerRef.current = globalThis.setTimeout(() => {
+      voiceStopTimerRef.current = null;
+      if (recognitionRef.current !== recInstance) return;
+      try {
+        recInstance.stop();
+      } catch {
+        micSessionRef.current += 1;
+        voiceAutoSubmitEnabledRef.current = false;
+        const interimFlush = lastSpeechInterimRef.current?.trim();
+        lastSpeechInterimRef.current = '';
+        if (interimFlush) {
+          voiceAccumulatedRef.current = voiceAccumulatedRef.current
+            ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
+            : interimFlush;
+          appendPromptText(interimFlush);
+        }
+        try {
+          recInstance.onresult = null;
+          recInstance.onerror = null;
+          recInstance.onend = null;
+        } catch {
+          // ignore
+        }
+        if (recognitionRef.current === recInstance) recognitionRef.current = null;
+        setVoiceListening(false);
+      }
+    }, 220);
+  }, [appendPromptText]);
+
+  const startVoiceInput = useCallback(() => {
+    if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
+    if (voiceStopTimerRef.current) {
+      clearTimeout(voiceStopTimerRef.current);
+      voiceStopTimerRef.current = null;
+    }
+
+    const stale = recognitionRef.current;
+    if (stale) {
+      micSessionRef.current += 1;
+      try {
+        stale.abort();
+      } catch {
+        // ignore
+      }
+      stale.onresult = null;
+      stale.onerror = null;
+      stale.onend = null;
+      recognitionRef.current = null;
+    }
+
+    micSessionRef.current += 1;
+    const sessionAtStart = micSessionRef.current;
+    voiceCapturedAnyRef.current = false;
+    voiceAutoSubmitEnabledRef.current = true;
+    voiceAccumulatedRef.current = promptRef.current.trim();
+
+    hasInteractedRef.current = true;
+    setVoiceError('');
+    voicePressedRef.current = true;
+    lastSpeechInterimRef.current = '';
+    try {
+      const recognition = new SpeechRecognitionCtor();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = true;
+      recognition.maxAlternatives = 1;
+      recognition.onresult = (event) => {
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          const transcript = result[0]?.transcript ?? '';
+          if (transcript.trim()) voiceCapturedAnyRef.current = true;
+          if (result.isFinal) {
+            const trimmed = transcript.trim();
+            if (trimmed) {
+              voiceAccumulatedRef.current = voiceAccumulatedRef.current
+                ? `${voiceAccumulatedRef.current.trimEnd()} ${trimmed}`
+                : trimmed;
+              appendPromptText(trimmed);
+            }
+            lastSpeechInterimRef.current = '';
+          } else {
+            lastSpeechInterimRef.current = transcript;
+          }
+        }
+      };
+      recognition.onerror = (event) => {
+        if (event?.error === 'no-speech' || event?.error === 'aborted') return;
+        voiceAutoSubmitEnabledRef.current = false;
+        if (event?.error === 'not-allowed') {
+          setVoiceError('Microphone permission denied for speech recognition.');
+          return;
+        }
+        setVoiceError('Voice input failed. Try again.');
+      };
+      recognition.onend = () => {
+        if (sessionAtStart !== micSessionRef.current) return;
+
+        const interimFlush = lastSpeechInterimRef.current?.trim();
+        lastSpeechInterimRef.current = '';
+        if (interimFlush) {
+          voiceCapturedAnyRef.current = true;
+          voiceAccumulatedRef.current = voiceAccumulatedRef.current
+            ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
+            : interimFlush;
+          appendPromptText(interimFlush);
+        }
+
+        try {
+          recognition.onresult = null;
+          recognition.onerror = null;
+          recognition.onend = null;
+        } catch {
+          // ignore
+        }
+        if (recognitionRef.current === recognition) recognitionRef.current = null;
+
+        globalThis.setTimeout(() => {
+          if (sessionAtStart !== micSessionRef.current) return;
+          if (!voiceAutoSubmitEnabledRef.current) return;
+          const captured = voiceCapturedAnyRef.current;
+          voiceAutoSubmitEnabledRef.current = false;
+          const text = voiceAccumulatedRef.current.trim();
+          if (!captured || !text || loadingRef.current || streamingPreviewRef.current) return;
+          hasInteractedRef.current = true;
+          void submitIntentFromVoiceRef.current(text);
+        }, 0);
+
+        setVoiceListening(false);
+      };
+      recognitionRef.current = recognition;
+      recognition.start();
+      setVoiceListening(true);
+    } catch {
+      micSessionRef.current += 1;
+      voiceAutoSubmitEnabledRef.current = false;
+      setVoiceError('Voice input is unavailable in this browser.');
+      voicePressedRef.current = false;
+    }
+  }, [appendPromptText, voiceSupported]);
+
+  function handleMicPointerDown(event) {
+    if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
+    event.preventDefault();
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Some browsers reject capture on unsupported targets.
+    }
+    startVoiceInput();
+  }
+
+  function handleMicPointerUp(event) {
+    try {
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+    } catch {
+      // ignore
+    }
+    stopVoiceInput();
+  }
+
   async function runTransform(mode) {
+    hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.mermaidSource.trim()) return;
 
@@ -407,6 +875,7 @@ Hard requirements:
   }
 
   async function runAnalyze(kind) {
+    hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.mermaidSource.trim()) return;
 
@@ -450,13 +919,14 @@ Hard requirements:
   }
 
   async function handleFixFromCritique() {
+    hasInteractedRef.current = true;
     if (!latestCritique?.text || loadingRef.current || streamingPreviewRef.current) return;
 
     setLoading(true);
     setActiveRequest('fix');
     setError('');
 
-    const fixPrompt = `Improve the current Mermaid diagram based on this critique. Apply concrete fixes directly to the diagram with apply_mermaid_patch.
+    const fixPrompt = `Improve the current Mermaid diagram based on this critique. Apply concrete fixes as a single complete diagram update.
 
 Critique:
 ${latestCritique.text}
@@ -464,7 +934,8 @@ ${latestCritique.text}
 Requirements:
 - Preserve the original intent and main flow.
 - Prioritize readability and clarity improvements first.
-- Keep Mermaid syntax valid and output a complete diagram.`;
+- Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.
+- Keep Mermaid syntax valid and deliver the entire diagram source in one go.`;
 
     try {
       const syncedState = await syncDiagramOrThrow();
@@ -493,10 +964,23 @@ Requirements:
 
   async function handleClearDiagram() {
     if (loadingRef.current || streamingPreviewRef.current) return;
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    stopVoiceInput({ immediate: true });
+    setPrompt('');
+    promptRef.current = '';
     setSelectedNode(null);
     setToolbarAnchor(null);
     setLatestCritique(null);
+    setInsightsEntries([]);
     setError('');
+    setVoiceError('');
+    setValidationError(null);
+    setAutoFixAttempted(false);
+    autoFixAttemptedRef.current = false;
+    lastAutoFixSourceRef.current = null;
     setLoading(true);
     setActiveRequest('clear');
     try {
@@ -525,12 +1009,19 @@ Requirements:
     if (loading && activeRequest === 'autofix') return 'Fixing Mermaid syntax.';
     if (streamingPreview) return 'Refreshing diagram.';
     if (error) return error;
+    if (voiceError) return voiceError;
     if (validationError && autoFixAttempted) return `Mermaid syntax needs manual edit: ${validationError.error}`;
     return '';
-  }, [activeRequest, autoFixAttempted, error, loading, streamingPreview, validationError]);
+  }, [activeRequest, autoFixAttempted, error, loading, streamingPreview, validationError, voiceError]);
 
   const insightsSlot = insightsOpen ? (
-    <InsightsPane entries={insightsEntries} onClose={() => setInsightsOpen(false)} />
+    <InsightsPane
+      entries={insightsEntries}
+      onClose={() => setInsightsOpen(false)}
+      soundEnabled={soundEnabled}
+      onSoundEnabledChange={setSoundEnabled}
+      celebratingEntryId={celebratingEntryId}
+    />
   ) : null;
 
   return (
@@ -556,51 +1047,80 @@ Requirements:
 
       {toolbarAnchor && selectedNode ? (
         <div
-          className="corner-control node-toolbar-anchor"
+          className="corner-control node-toolbar-anchor node-actions-panel"
           style={{
             left: toolbarAnchor.left,
             top: toolbarAnchor.top
           }}
-          role="toolbar"
-          aria-label="Actions for selected node"
+          role="dialog"
+          aria-label="Node actions"
         >
-          <div className="prompt-actions node-toolbar-actions">
-            <span className="button-group-label">Shape</span>
-            <div className="button-group">
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
-                Refine
-              </button>
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
-                Innovate
-              </button>
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
-                Go Mad
-              </button>
-            </div>
-            <span className="button-group-label">Read</span>
-            <div className="button-group">
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
-                Critique
-              </button>
-              {latestCritique?.text ? (
-                <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
-                  Fix
-                </button>
-              ) : null}
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
-                Explain
-              </button>
+          <div className="node-actions-panel-surface">
+            <button
+              type="button"
+              className="overlay-button node-actions-panel-close"
+              onClick={() => {
+                setSelectedNode(null);
+                setToolbarAnchor(null);
+              }}
+              aria-label="Close node actions"
+            >
+              <ButtonIcon>x</ButtonIcon>
+            </button>
+            <div className="node-actions-panel-body">
+              <section className="node-actions-section" aria-label="Shape diagram">
+                <span className="button-group-label node-actions-section-label">Shape</span>
+                <div className="button-group node-actions-button-row">
+                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
+                    <ButtonIcon>
+                      <MermaidMarkIcon />
+                    </ButtonIcon>
+                    Refine
+                  </button>
+                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
+                    <ButtonIcon>+</ButtonIcon>
+                    Innovate
+                  </button>
+                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
+                    <ButtonIcon>!</ButtonIcon>
+                    Go Mad
+                  </button>
+                </div>
+              </section>
+              <section className="node-actions-section" aria-label="Read diagram">
+                <span className="button-group-label node-actions-section-label">Read</span>
+                <div className="button-group node-actions-button-row">
+                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
+                    <ButtonIcon>?</ButtonIcon>
+                    Critique
+                  </button>
+                  {latestCritique?.text ? (
+                    <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
+                      <ButtonIcon>w</ButtonIcon>
+                      Fix
+                    </button>
+                  ) : null}
+                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+                    <ButtonIcon>i</ButtonIcon>
+                    Explain
+                  </button>
+                </div>
+              </section>
             </div>
           </div>
         </div>
       ) : null}
 
-      <div className="corner-control brand-control" aria-label="MermaidGen brand">
-        MermaidGen
+      <div className="corner-control brand-control" aria-label="MermaidGen">
+        <span className="brand-mark" aria-hidden="true">
+          <MermaidMarkIcon />
+        </span>
+        <span className="brand-name">MermaidGen</span>
       </div>
 
       <div className="corner-control edit-control">
         <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
+          <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
           {editorOpen ? 'Close Code' : 'Edit Code'}
         </button>
       </div>
@@ -620,10 +1140,47 @@ Requirements:
             aria-describedby={status ? 'app-status' : undefined}
           />
           <div className="prompt-actions-main">
-            <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
-              Clear
+            <button
+              type="button"
+              className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+              disabled={!voiceSupported || busy}
+              onPointerDown={handleMicPointerDown}
+              onPointerUp={handleMicPointerUp}
+              onPointerCancel={handleMicPointerUp}
+              onLostPointerCapture={() => stopVoiceInput()}
+              onKeyDown={(event) => {
+                if (event.repeat) return;
+                if (event.key === ' ' || event.key === 'Enter') {
+                  event.preventDefault();
+                  startVoiceInput();
+                }
+              }}
+              onKeyUp={(event) => {
+                if (event.key === ' ' || event.key === 'Enter') {
+                  event.preventDefault();
+                  stopVoiceInput();
+                }
+              }}
+              aria-label="Hold to speak"
+              title={
+                voiceSupported
+                  ? 'Hold to dictate prompt'
+                  : SpeechRecognitionCtor
+                    ? 'Voice input needs a secure connection (HTTPS), except on localhost'
+                    : 'Voice input not supported in this browser'
+              }
+            >
+              <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
+              Mic
             </button>
+            {hasDiagramText ? (
+              <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
+                <ButtonIcon>x</ButtonIcon>
+                Clear
+              </button>
+            ) : null}
             <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
+              <ButtonIcon>{'>'}</ButtonIcon>
               Go
             </button>
           </div>
@@ -639,26 +1196,34 @@ Requirements:
             <span className="button-group-label">Shape</span>
             <div className="button-group">
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
+                <ButtonIcon>
+                  <MermaidMarkIcon />
+                </ButtonIcon>
                 Refine
               </button>
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
+                <ButtonIcon>+</ButtonIcon>
                 Innovate
               </button>
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
+                <ButtonIcon>!</ButtonIcon>
                 Go Mad
               </button>
             </div>
             <span className="button-group-label">Read</span>
             <div className="button-group">
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
+                <ButtonIcon>?</ButtonIcon>
                 Critique
               </button>
               {latestCritique?.text ? (
                 <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
+                  <ButtonIcon>w</ButtonIcon>
                   Fix
                 </button>
               ) : null}
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+                <ButtonIcon>i</ButtonIcon>
                 Explain
               </button>
             </div>
@@ -668,6 +1233,7 @@ Requirements:
 
       <div className="corner-control thinking-control">
         <button type="button" className="overlay-button" onClick={() => setInsightsOpen((v) => !v)}>
+          <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
           {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
         </button>
       </div>

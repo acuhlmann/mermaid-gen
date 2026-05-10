@@ -46,21 +46,16 @@ const {
 });
 
 vi.mock('../src/components/DiagramCanvas.jsx', () => ({
-  default: function DiagramCanvasMock({ mermaidSource, onManualEdit }) {
+  default: function DiagramCanvasMock({ mermaidSource, onManualEdit, insightsSlot }) {
     return (
       <section>
         <pre data-testid="mermaid-source">{mermaidSource}</pre>
         <button type="button" onClick={() => onManualEdit('flowchart TD\n  Start[Start] --> Edited[Edited]')}>
           Mock edit
         </button>
+        {insightsSlot}
       </section>
     );
-  }
-}));
-
-vi.mock('../src/components/InsightsPane.jsx', () => ({
-  default: function InsightsPaneMock() {
-    return null;
   }
 }));
 
@@ -79,6 +74,33 @@ vi.mock('../src/state/diagramStore.js', () => ({
 
 describe('App simplified controls', () => {
   beforeEach(() => {
+    const oscillator = {
+      type: 'triangle',
+      frequency: {
+        setValueAtTime: vi.fn(),
+        linearRampToValueAtTime: vi.fn()
+      },
+      connect: vi.fn(),
+      start: vi.fn(),
+      stop: vi.fn()
+    };
+    const gainNode = {
+      gain: {
+        setValueAtTime: vi.fn(),
+        exponentialRampToValueAtTime: vi.fn()
+      },
+      connect: vi.fn()
+    };
+    const audioContext = {
+      currentTime: 0,
+      destination: {},
+      createOscillator: vi.fn(() => oscillator),
+      createGain: vi.fn(() => gainNode)
+    };
+    globalThis.AudioContext = vi.fn(function MockAudioContext() {
+      return audioContext;
+    });
+
     readDiagramCacheMock.mockReturnValue(null);
     fetchDiagramStateMock.mockResolvedValue(initialState);
     syncClientDiagramStateMock.mockImplementation(async ({ mermaidSource, styleConfig }) => ({
@@ -90,6 +112,11 @@ describe('App simplified controls', () => {
     submitDiagramIntentMock.mockResolvedValue({ state: updatedState });
     streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
       if (payload.operation === 'intent') {
+        onEvent?.({ type: 'status', text: 'Working on change request...' });
+        onEvent?.({ type: 'tool_start', name: 'get_diagram_state' });
+        onEvent?.({ type: 'tool_end', name: 'get_diagram_state' });
+        onEvent?.({ type: 'tool_start', name: 'apply_mermaid_patch' });
+        onEvent?.({ type: 'tool_end', name: 'apply_mermaid_patch' });
         onEvent?.({
           type: 'final',
           revisionChanged: true,
@@ -117,6 +144,7 @@ describe('App simplified controls', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    delete globalThis.AudioContext;
   });
 
   it('cancels pending editor sync and streams transform after mock edit', async () => {
@@ -148,6 +176,7 @@ describe('App simplified controls', () => {
 
   it('streams intent when submitting the prompt control', async () => {
     render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
     const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
@@ -164,6 +193,9 @@ describe('App simplified controls', () => {
       }),
       expect.any(Function)
     );
+    await screen.findByText('Read diagram snapshot');
+    await screen.findByText('Apply diagram update');
+    await screen.findByText('Done');
   });
 
   it('shows Fix after critique and applies critique-driven intent', async () => {
@@ -185,6 +217,17 @@ describe('App simplified controls', () => {
       )
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
+  });
+
+  it('plays a completion sound when a request finishes', async () => {
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+
+    const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
+    fireEvent.change(input, { target: { value: 'Tighten wording' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+
+    await waitFor(() => expect(globalThis.AudioContext).toHaveBeenCalled());
   });
 
   it('clears to an empty diagram instead of seeded sample', async () => {

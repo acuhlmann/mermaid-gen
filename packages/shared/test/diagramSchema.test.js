@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  AgentStreamPayloadSchema,
   DEFAULT_DIAGRAM_STYLE,
+  DiagramIntentSchema,
   applyMermaidStyleDirective,
   applyPatch,
   createInitialDiagramState,
@@ -94,4 +96,22 @@ test('parseMermaidStyleConfig rejects invalid JSON and unsupported values', () =
   assert.match(invalidJson.error, /Invalid Mermaid init JSON/);
   assert.equal(invalidTheme.accepted, false);
   assert.match(invalidTheme.error, /Invalid Mermaid style config/);
+});
+
+test('intent payloads accept empty mermaidSource for cleared canvas', () => {
+  const intent = {
+    prompt: 'Create a simple login flow',
+    revisionId: 1,
+    mermaidSource: '',
+    settings: {}
+  };
+
+  assert.equal(DiagramIntentSchema.safeParse(intent).success, true);
+  assert.equal(
+    AgentStreamPayloadSchema.safeParse({
+      operation: 'intent',
+      ...intent
+    }).success,
+    true
+  );
 });

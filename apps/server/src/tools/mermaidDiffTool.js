@@ -1,5 +1,6 @@
 import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
+import { redactSecrets } from '../utils/redactSecrets.js';
 
 export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {
   const candidate = proposedMermaidSource?.trim();
@@ -18,7 +19,7 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
   } catch (error) {
     return {
       accepted: false,
-      error: error instanceof Error ? error.message : String(error)
+      error: redactSecrets(error instanceof Error ? error.message : String(error))
     };
   }
 

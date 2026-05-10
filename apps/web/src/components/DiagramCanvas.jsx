@@ -238,19 +238,6 @@ export default function DiagramCanvas({
     const localY = event.clientY - rect.top;
 
     const nodeEl = event.target?.closest?.('g.node');
-    if (nodeEl && pointersRef.current.size === 0) {
-      event.preventDefault();
-      tapCandidateRef.current = {
-        pointerId: event.pointerId,
-        startClientX: event.clientX,
-        startClientY: event.clientY,
-        nodeEl
-      };
-      if (event.currentTarget.setPointerCapture) {
-        event.currentTarget.setPointerCapture(event.pointerId);
-      }
-      return;
-    }
 
     event.preventDefault();
 
@@ -265,9 +252,18 @@ export default function DiagramCanvas({
       distance: pointers.length >= 2 ? getDistance(pointers[0], pointers[1]) : null
     };
 
-    tapCandidateRef.current = null;
+    if (nodeEl && pointers.length === 1) {
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        nodeEl
+      };
+    } else {
+      tapCandidateRef.current = null;
+    }
 
-    if (pointersRef.current.size === 1) {
+    if (pointers.length === 1 && !nodeEl) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
         sx: event.clientX,
@@ -288,10 +284,10 @@ export default function DiagramCanvas({
     if (tap && tap.pointerId === event.pointerId) {
       event.preventDefault();
       const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
-      if (moved > TAP_MOVE_THRESHOLD_PX) {
-        tapCandidateRef.current = null;
+      if (moved <= TAP_MOVE_THRESHOLD_PX) {
+        return;
       }
-      return;
+      tapCandidateRef.current = null;
     }
 
     if (!pointersRef.current.has(event.pointerId)) return;
@@ -364,8 +360,19 @@ export default function DiagramCanvas({
       event.preventDefault();
       const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
       tapCandidateRef.current = null;
+      pointersRef.current.delete(event.pointerId);
       if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      const remaining = getPointers(pointersRef.current);
+      if (remaining.length === 0) {
+        gestureRef.current = { centroid: null, distance: null };
+        setIsPanning(false);
+      } else {
+        gestureRef.current = {
+          centroid: getCentroid(remaining),
+          distance: remaining.length >= 2 ? getDistance(remaining[0], remaining[1]) : null
+        };
       }
       if (moved <= TAP_MOVE_THRESHOLD_PX && tap.nodeEl?.id && onSelectedNodeChange) {
         const label = nodeTitleFromElement(tap.nodeEl);
@@ -427,7 +434,7 @@ export default function DiagramCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
           onPointerCancel={endPointerGesture}
-          aria-label="Mermaid renderer. Drag to pan. Pinch or wheel to zoom. Tap a node to select."
+          aria-label="Mermaid renderer. Drag to pan from anywhere including nodes. Pinch or wheel to zoom. Tap a node to select."
         >
           {streamingPreview ? <p className="streaming-note">Updating diagram...</p> : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
@@ -445,21 +452,23 @@ export default function DiagramCanvas({
       {editorOpen ? (
         <aside className="diagram-editor-panel" aria-label="Mermaid code editor">
           {streamingPreview ? <p className="streaming-note">Streaming validated source...</p> : null}
-          <Editor
-            height="100%"
-            defaultLanguage="plaintext"
-            theme="vs-dark"
-            value={editorSource}
-            onChange={handleEditorChange}
-            options={{
-              minimap: { enabled: false },
-              wordWrap: 'on',
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-              readOnly: streamingPreview,
-              fontSize: 13
-            }}
-          />
+          <div className="diagram-monaco-wrap">
+            <Editor
+              height="100%"
+              defaultLanguage="plaintext"
+              theme="vs-dark"
+              value={editorSource}
+              onChange={handleEditorChange}
+              options={{
+                minimap: { enabled: false },
+                wordWrap: 'on',
+                scrollBeyondLastLine: false,
+                automaticLayout: true,
+                readOnly: streamingPreview,
+                fontSize: 13
+              }}
+            />
+          </div>
         </aside>
       ) : null}
     </section>

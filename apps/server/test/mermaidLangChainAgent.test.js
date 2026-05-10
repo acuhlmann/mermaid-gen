@@ -105,7 +105,62 @@ test('buildPatchRequiredInstruction asks for a patch after prose-only output', (
   assert.equal(instruction.role, 'user');
   assert.match(instruction.content, /did not apply a diagram patch/i);
   assert.match(instruction.content, /apply_mermaid_patch/);
+  assert.match(instruction.content, /once with complete/);
   assert.match(instruction.content, /Extend wildly/);
+});
+
+test('createMermaidLangChainAgent attaches tool-call middleware by default', async () => {
+  const stateStore = createDiagramStateStore();
+  let capturedOptions;
+
+  const fakeAgent = {
+    async invoke() {
+      return { messages: [{ role: 'assistant', content: 'OK.' }] };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    model: {},
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    createAgentImpl: (opts) => {
+      capturedOptions ??= opts;
+      return fakeAgent;
+    }
+  });
+
+  await service.invoke({ messages: [{ role: 'user', content: 'hello' }] });
+
+  assert.ok(Array.isArray(capturedOptions.middleware));
+  assert.equal(capturedOptions.middleware.length, 1);
+});
+
+test('createMermaidLangChainAgent omits middleware when MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN=0', async () => {
+  const stateStore = createDiagramStateStore();
+  let capturedOptions;
+
+  const fakeAgent = {
+    async invoke() {
+      return { messages: [{ role: 'assistant', content: 'OK.' }] };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    model: {},
+    env: {
+      OPENROUTER_API_KEY: 'test-key',
+      MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN: '0'
+    },
+    createAgentImpl: (opts) => {
+      capturedOptions ??= opts;
+      return fakeAgent;
+    }
+  });
+
+  await service.invoke({ messages: [{ role: 'user', content: 'hello' }] });
+
+  assert.equal(capturedOptions.middleware, undefined);
 });
 
 test('agent invoke performs bounded repair retry after syntax failure', async () => {

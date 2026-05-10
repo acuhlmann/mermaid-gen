@@ -10,6 +10,11 @@ import {
 } from '@mermaid-architect/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
 import { SESSION_HEADER } from '../state/sessionServices.js';
+import { redactSecrets } from '../utils/redactSecrets.js';
+
+function safeErrorMessage(error) {
+  return redactSecrets(error instanceof Error ? error.message : String(error));
+}
 
 export async function handleDiagramIntent({ body, stateStore, agentService }) {
   const parsedIntent = DiagramIntentSchema.safeParse(body);
@@ -71,7 +76,7 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
     if (error instanceof LlmNotConfiguredError) {
       return {
         status: error.statusCode,
-        body: { error: error.message }
+        body: { error: safeErrorMessage(error) }
       };
     }
 
@@ -79,7 +84,7 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
       status: 500,
       body: {
         error: 'Agent request failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: safeErrorMessage(error)
       }
     };
   }
@@ -144,7 +149,7 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
     if (error instanceof LlmNotConfiguredError) {
       return {
         status: error.statusCode,
-        body: { error: error.message }
+        body: { error: safeErrorMessage(error) }
       };
     }
 
@@ -152,7 +157,7 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
       status: 500,
       body: {
         error: 'Transform request failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: safeErrorMessage(error)
       }
     };
   }
@@ -202,7 +207,7 @@ export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
     if (error instanceof LlmNotConfiguredError) {
       return {
         status: error.statusCode,
-        body: { error: error.message }
+        body: { error: safeErrorMessage(error) }
       };
     }
 
@@ -210,7 +215,7 @@ export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
       status: 500,
       body: {
         error: 'Analyze request failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: safeErrorMessage(error)
       }
     };
   }
@@ -275,7 +280,7 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
     if (error instanceof LlmNotConfiguredError) {
       return {
         status: error.statusCode,
-        body: { error: error.message }
+        body: { error: safeErrorMessage(error) }
       };
     }
 
@@ -283,7 +288,7 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
       status: 500,
       body: {
         error: 'Style request failed',
-        details: error instanceof Error ? error.message : String(error)
+        details: safeErrorMessage(error)
       }
     };
   }
@@ -426,11 +431,11 @@ export function createCopilotRouter({ resolveServices }) {
       writeSseData(res, { type: 'done' });
     } catch (error) {
       if (error instanceof LlmNotConfiguredError) {
-        writeSseData(res, { type: 'error', message: error.message });
+        writeSseData(res, { type: 'error', message: safeErrorMessage(error) });
       } else {
         writeSseData(res, {
           type: 'error',
-          message: error instanceof Error ? error.message : String(error)
+          message: safeErrorMessage(error)
         });
       }
       writeSseData(res, { type: 'done' });

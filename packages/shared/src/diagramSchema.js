@@ -40,7 +40,8 @@ export const IntentSettingsSchema = z
 export const DiagramIntentSchema = z.object({
   prompt: z.string().min(1),
   revisionId: z.number().int().nonnegative(),
-  mermaidSource: z.string().min(1),
+  /** Empty string is allowed when starting from a cleared canvas; agent applies a full diagram patch. */
+  mermaidSource: z.string(),
   settings: IntentSettingsSchema,
   focusNode: FocusNodeSchema.optional()
 });
@@ -66,7 +67,7 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     operation: z.literal('intent'),
     prompt: z.string().min(1),
     revisionId: z.number().int().nonnegative(),
-    mermaidSource: z.string().min(1),
+    mermaidSource: z.string(),
     settings: IntentSettingsSchema,
     focusNode: FocusNodeSchema.optional()
   }),

@@ -1,4 +1,5 @@
 import { BuiltInAgent } from '@copilotkit/runtime/v2';
+import { redactSecrets } from '../utils/redactSecrets.js';
 import { LlmNotConfiguredError } from './mermaidLangChainAgent.js';
 
 function getVisibleMessages(messages = []) {
@@ -59,7 +60,7 @@ export async function* createCopilotAgentEvents({ input, agentService, stateStor
       delta: result.message
     };
   } catch (error) {
-    const detail = error instanceof Error ? error.message : String(error);
+    const detail = redactSecrets(error instanceof Error ? error.message : String(error));
     if (error instanceof LlmNotConfiguredError) {
       yield {
         type: 'TEXT_MESSAGE_CONTENT',

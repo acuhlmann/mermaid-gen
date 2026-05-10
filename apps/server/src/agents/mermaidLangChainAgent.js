@@ -3,6 +3,8 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
 import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
+import { redactSecrets } from '../utils/redactSecrets.js';
+import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
 
 /** Default avoids Google Gemini routing (often region-blocked, e.g. Hong Kong). Override with OPENROUTER_MODEL. */
 const DEFAULT_OPENROUTER_MODEL = 'openai/gpt-4o-mini';
@@ -68,8 +70,8 @@ function buildTransformUserContent({ mode, mermaidSource, focusScope }) {
   return `${policy}
 
 Hard requirements:
-- You MUST call get_diagram_state first.
-- You MUST call apply_mermaid_patch with full Mermaid source.
+- Call get_diagram_state at most once unless a patch failed and you need fresh state.
+- Apply exactly one successful transformative update: call apply_mermaid_patch once with complete Mermaid source, then answer in prose only (no further tool calls after acceptance).
 - Do not return only text; apply the patch.
 - Keep node IDs simple ASCII identifiers where possible; keep labels concise.
 ${focusScope}
@@ -86,11 +88,10 @@ Apply one transformative update via apply_mermaid_patch matching the mode above.
 const SYSTEM_PROMPT = `You are Mermaid Architect, an agent that helps edit Mermaid diagrams.
 
 When the user asks for a diagram change:
-- Use the current diagram context or read the current diagram yourself with get_diagram_state.
+- Prefer the injected current diagram context; call get_diagram_state at most once if you truly need to confirm revision or state.
 - Produce complete Mermaid source, not a partial diff.
-- Apply the update with apply_mermaid_patch.
+- For a satisfied request: call apply_mermaid_patch once with the full updated diagram, then briefly summarize what changed in prose only — do not call tools again after an accepted patch (unless the tool returned accepted:false and you must repair).
 - Keep valid Mermaid syntax and preserve useful existing nodes unless the user asks to replace them.
-- After applying, briefly summarize what changed.
 - The user cannot call tools. Never ask the user to call get_diagram_state or apply_mermaid_patch.
 - Do not mention internal tool names in user-facing replies.
 - Short requests like "simplify it", "make it clearer", or "current diagram" refer to the current diagram.
@@ -282,12 +283,12 @@ export function buildPatchRequiredInstruction({ messages }) {
 
   return {
     role: 'user',
-    content: `Your previous response did not apply a diagram patch.\n\nRepair instructions:\n- You MUST call apply_mermaid_patch now with complete, valid Mermaid source.\n- Keep the update smaller if needed so it remains valid.\n- Do not return prose only.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
+    content: `Your previous response did not apply a diagram patch.\n\nRepair instructions:\n- You MUST call apply_mermaid_patch now once with complete, valid Mermaid source, then summarize in prose only (no further tool calls after acceptance).\n- Keep the update smaller if needed so it remains valid.\n- Do not return prose only.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
   };
 }
 
 function formatAgentInvokeFailure(error, env = process.env) {
-  const detail = error instanceof Error ? error.message : String(error);
+  const detail = redactSecrets(error instanceof Error ? error.message : String(error));
   const regionHint = /region|not available in your country|unsupported_country/i.test(detail)
     ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` in your server `.env` to a model that works where you are (for example `openai/gpt-4o-mini` or `anthropic/claude-3.5-haiku`), then restart the API server.\n'
     : '';
@@ -310,10 +311,11 @@ function captureMessagesFromStreamEvent(event, prev) {
   return prev;
 }
 
-async function streamReactAgentEvents(agent, inputMessages, emit) {
+async function streamReactAgentEvents(agent, inputMessages, emit, env) {
+  const runnableConfig = getAgentRunnableConfig(env);
   let latestMessages = [];
   try {
-    const stream = await agent.streamEvents({ messages: inputMessages }, { version: 'v2' });
+    const stream = await agent.streamEvents({ messages: inputMessages }, { version: 'v2', ...runnableConfig });
     for await (const ev of stream) {
       latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
       const normalized = normalizeAgentStreamEvent(ev);
@@ -322,7 +324,10 @@ async function streamReactAgentEvents(agent, inputMessages, emit) {
       }
     }
   } catch (error) {
-    emit({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+    emit({
+      type: 'error',
+      message: redactSecrets(error instanceof Error ? error.message : String(error))
+    });
   }
   return { messages: latestMessages };
 }
@@ -337,16 +342,17 @@ async function invokeWithRepair(
   const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
   const beforeRevision = stateStore.getState().revisionId;
 
+  const runnableConfig = getAgentRunnableConfig(env);
   let firstResult;
   try {
     if (typeof emit === 'function') {
-      firstResult = await streamReactAgentEvents(agent, baseMessages, emit);
+      firstResult = await streamReactAgentEvents(agent, baseMessages, emit, env);
       if (!firstResult.messages?.length) {
         emit({ type: 'status', text: 'Running agent…' });
-        firstResult = await agent.invoke({ messages: baseMessages });
+        firstResult = await agent.invoke({ messages: baseMessages }, runnableConfig);
       }
     } else {
-      firstResult = await agent.invoke({ messages: baseMessages });
+      firstResult = await agent.invoke({ messages: baseMessages }, runnableConfig);
     }
   } catch (error) {
     return formatAgentInvokeFailure(error, env);
@@ -368,9 +374,12 @@ async function invokeWithRepair(
       if (typeof emit === 'function') {
         emit({ type: 'status', text: 'Retrying: diagram patch required…' });
       }
-      const patchRetryResult = await agent.invoke({
-        messages: [...baseMessages, buildPatchRequiredInstruction({ messages })]
-      });
+      const patchRetryResult = await agent.invoke(
+        {
+          messages: [...baseMessages, buildPatchRequiredInstruction({ messages })]
+        },
+        runnableConfig
+      );
       if (stateStore.getState().revisionId !== beforeRevision) {
         return {
           message: extractFinalMessage(patchRetryResult),
@@ -404,9 +413,12 @@ async function invokeWithRepair(
       if (typeof emit === 'function') {
         emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt})…` });
       }
-      retryResult = await agent.invoke({
-        messages: [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })]
-      });
+      retryResult = await agent.invoke(
+        {
+          messages: [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })]
+        },
+        runnableConfig
+      );
     } catch (error) {
       return formatAgentInvokeFailure(error, env);
     }
@@ -441,6 +453,8 @@ export function createMermaidLangChainAgent({
   createAgentImpl = createAgent
 }) {
   const tools = createDiagramTools({ stateStore });
+  const agentMiddleware = createDiagramAgentMiddleware(env);
+  const agentExtras = agentMiddleware.length > 0 ? { middleware: agentMiddleware } : {};
   const agentCache = new Map();
 
   function getDefaultAgent() {
@@ -451,7 +465,8 @@ export function createMermaidLangChainAgent({
         createAgentImpl({
           model,
           tools,
-          systemPrompt: SYSTEM_PROMPT
+          systemPrompt: SYSTEM_PROMPT,
+          ...agentExtras
         })
       );
     }
@@ -468,7 +483,8 @@ export function createMermaidLangChainAgent({
         createAgentImpl({
           model: tm,
           tools,
-          systemPrompt: SYSTEM_PROMPT
+          systemPrompt: SYSTEM_PROMPT,
+          ...agentExtras
         })
       );
     }
@@ -582,7 +598,10 @@ ${prompt}${focusScope}`;
             }
           }
         } catch (error) {
-          emit({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+          emit({
+            type: 'error',
+            message: redactSecrets(error instanceof Error ? error.message : String(error))
+          });
           const fallback = await analysisModel.invoke(messages).catch(() => null);
           const text = fallback ? extractTextContent(fallback.content) : '';
           return { message: text || 'Analysis failed.', raw: null };
