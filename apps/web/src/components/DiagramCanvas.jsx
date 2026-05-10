@@ -297,6 +297,7 @@ export default function DiagramCanvas({
           <Editor
             height="100%"
             defaultLanguage="plaintext"
+            theme="vs-dark"
             value={editorSource}
             onChange={handleEditorChange}
             options={{
