@@ -1,0 +1,69 @@
+# Build the Docker image on GitHub-hosted runners and deploy to Cloud Run.
+# Uses Workload Identity Federation (no long-lived JSON keys). One-time GCP setup: docs/deploy/gcp.md
+name: Deploy Cloud Run
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-cloud-run-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGION: us-central1
+  AR_REPO: mermaid-gen
+  # Production “latest” app — hackathon snapshot is a separate service (manual deploy script).
+  SERVICE_NAME: mermaid-gen-main
+  IMAGE_NAME: web-main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Artifact Registry docker auth
+        run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}"
+          docker build --build-arg UI_VARIANT=main-only -t "${IMAGE}:${GITHUB_SHA}" -t "${IMAGE}:latest" .
+          docker push "${IMAGE}:${GITHUB_SHA}"
+          docker push "${IMAGE}:latest"
+
+      - name: Deploy Cloud Run
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          IMAGE="${{ env.REGION }}-docker.pkg.dev/${PROJECT_ID}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:${GITHUB_SHA}"
+          ARGS=(
+            run deploy "${{ env.SERVICE_NAME }}"
+            --project="${PROJECT_ID}"
+            --region="${{ env.REGION }}"
+            --image="${IMAGE}"
+            --platform=managed
+            --allow-unauthenticated
+            --port=8080
+          )
+          if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/null; then
+            ARGS+=(--set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest")
+          fi
+          gcloud "${ARGS[@]}"

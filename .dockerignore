@@ -1,0 +1,12 @@
+node_modules
+.git
+.agents
+.env
+.env.*
+!.env.example
+apps/web/dist
+packages/shared/dist
+coverage
+*.log
+.DS_Store
+.cursor

@@ -29,6 +29,34 @@ Package-specific commands:
 - Server dev: `npm run dev -w apps/server`
 - Web dev: `npm run dev -w apps/web`
 
+## Operator CLIs
+
+Agents often have **`gcloud`** and **`gh`** available in the terminal. Use them to inspect real account state instead of guessing projects, billing, or Git refs.
+
+### `gcloud` (Google Cloud)
+
+Use for **estate discovery** and deploy operations: projects, billing attachment, enabled APIs, Artifact Registry, Cloud Run services/revisions, IAM, and logs.
+
+Examples:
+
+- `gcloud projects list`
+- `gcloud billing projects describe PROJECT_ID`
+- `gcloud run services list --region=REGION`
+- `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h`
+
+### `gh` (GitHub CLI)
+
+Use for **repo and release inspection**: tags, releases, Actions, PRs.
+
+Examples for this repository:
+
+- `gh release view hackathon-pre-deploy -R acuhlmann/mermaid-gen`
+- `gh api repos/acuhlmann/mermaid-gen/git/refs/tags/hackathon-pre-deploy`
+
+### Public deployment (GCP)
+
+Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional load balancer) live in [`docs/deploy/gcp.md`](docs/deploy/gcp.md).
+
 ## Key code locations
 
 - Server entrypoint: `apps/server/src/index.js`

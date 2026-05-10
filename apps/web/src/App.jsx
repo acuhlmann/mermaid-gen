@@ -5,6 +5,7 @@ import DiagramCanvas from './components/DiagramCanvas.jsx';
 import ControlsPanel from './components/ControlsPanel.jsx';
 import StylePanel from './components/StylePanel.jsx';
 import {
+  API_BASE_URL,
   fallbackState,
   fetchDiagramState,
   syncClientDiagramState,
@@ -571,7 +572,7 @@ function App() {
       // Multi-route Express runtime (`createCopilotExpressHandler` default mode) exposes
       // GET …/info. Single-endpoint mode POSTs to the base URL, which returns 404 here.
       useSingleEndpoint={false}
-      runtimeUrl={`${(import.meta.env.VITE_API_BASE_URL ?? '').trim() || 'http://localhost:4000'}/api/copilotkit`}
+      runtimeUrl={`${API_BASE_URL}/api/copilotkit`}
     >
       <MermaidArchitect />
     </CopilotKit>
