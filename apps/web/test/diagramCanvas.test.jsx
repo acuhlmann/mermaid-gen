@@ -43,7 +43,14 @@ describe('DiagramCanvas', () => {
 
   it('renders svg from initial source and updates when user edits', async () => {
     const onManualEdit = vi.fn();
-    render(<DiagramCanvas mermaidSource={'flowchart TD\nA --> B'} revisionId={1} onManualEdit={onManualEdit} />);
+    render(
+      <DiagramCanvas
+        mermaidSource={'flowchart TD\nA --> B'}
+        revisionId={1}
+        onManualEdit={onManualEdit}
+        editorOpen
+      />
+    );
 
     await act(async () => {
       vi.advanceTimersByTime(250);
@@ -72,7 +79,9 @@ describe('DiagramCanvas', () => {
       vi.advanceTimersByTime(250);
     });
 
-    rerender(<DiagramCanvas mermaidSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} />);
+    rerender(
+      <DiagramCanvas mermaidSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} editorOpen />
+    );
 
     await act(async () => {
       vi.advanceTimersByTime(250);
@@ -98,6 +107,7 @@ describe('DiagramCanvas', () => {
         }}
         revisionId={1}
         onManualEdit={vi.fn()}
+        editorOpen
       />
     );
 
@@ -114,5 +124,20 @@ describe('DiagramCanvas', () => {
       })
     );
     expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), source);
+  });
+
+  it('zooms the renderer with touch pointer gestures', async () => {
+    const { container } = render(<DiagramCanvas mermaidSource={'flowchart TD\nA --> B'} revisionId={1} />);
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    fireEvent.pointerDown(renderer, { pointerId: 1, pointerType: 'touch', clientX: 0, clientY: 0 });
+    fireEvent.pointerDown(renderer, { pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 0 });
+    fireEvent.pointerMove(renderer, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 0 });
+
+    expect(container.querySelector('.diagram-viewport').style.transform).toContain('scale(2)');
   });
 });

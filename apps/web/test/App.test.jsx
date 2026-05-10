@@ -6,6 +6,7 @@ import App from '../src/App.jsx';
 const {
   fetchDiagramStateMock,
   syncClientDiagramStateMock,
+  submitDiagramIntentMock,
   submitCoAuthorIntentMock,
   initialState,
   updatedState
@@ -33,22 +34,12 @@ const {
   return {
     fetchDiagramStateMock: vi.fn(),
     syncClientDiagramStateMock: vi.fn(),
+    submitDiagramIntentMock: vi.fn(),
     submitCoAuthorIntentMock: vi.fn(),
     initialState: initial,
     updatedState: updated
   };
 });
-
-vi.mock('@copilotkit/react-core', () => ({
-  useCopilotAdditionalInstructions: vi.fn(),
-  useCopilotChat: () => ({ isLoading: false })
-}));
-
-vi.mock('@copilotkit/react-core/v2', () => ({
-  CopilotChat: () => <div data-testid="copilot-chat" />,
-  CopilotKit: ({ children }) => <>{children}</>,
-  useAgent: () => ({ agent: { isRunning: false } })
-}));
 
 vi.mock('../src/components/DiagramCanvas.jsx', () => ({
   default: function DiagramCanvasMock({ mermaidSource, onManualEdit, revisionId }) {
@@ -71,10 +62,11 @@ vi.mock('../src/state/diagramStore.js', () => ({
   fetchDiagramState: fetchDiagramStateMock,
   getOrCreateBrowserSessionId: () => 'test-session',
   syncClientDiagramState: syncClientDiagramStateMock,
+  submitDiagramIntent: submitDiagramIntentMock,
   submitCoAuthorIntent: submitCoAuthorIntentMock
 }));
 
-describe('App Surprise me flow', () => {
+describe('App simplified controls', () => {
   beforeEach(() => {
     fetchDiagramStateMock.mockResolvedValue(initialState);
     syncClientDiagramStateMock.mockImplementation(async ({ mermaidSource, styleConfig }) => ({
@@ -83,6 +75,7 @@ describe('App Surprise me flow', () => {
       mermaidSource,
       styleConfig: styleConfig ?? initialState.styleConfig
     }));
+    submitDiagramIntentMock.mockResolvedValue({ state: updatedState });
     submitCoAuthorIntentMock.mockResolvedValue({ state: updatedState });
   });
 
@@ -111,6 +104,24 @@ describe('App Surprise me flow', () => {
       expect.objectContaining({
         revisionId: 1,
         mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
+      })
+    );
+  });
+
+  it('submits the prompt control to the intent endpoint', async () => {
+    render(<App />);
+
+    const input = await screen.findByPlaceholderText('Describe your Change');
+    fireEvent.change(input, { target: { value: 'Add a payment step' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+
+    await waitFor(() => expect(submitDiagramIntentMock).toHaveBeenCalled());
+
+    expect(submitDiagramIntentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'Add a payment step',
+        revisionId: 1,
+        mermaidSource: initialState.mermaidSource
       })
     );
   });
