@@ -43,6 +43,28 @@ function formatToolLabel(name, repeatCount = 1) {
   return base;
 }
 
+function normalizeInsightTextForDedup(text) {
+  return (text ?? '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Token streaming already appends assistant prose; `final.message` repeats it. Skip the closing echo when redundant.
+ */
+function shouldAppendFinalInsightEcho(streamedText, finalMessage) {
+  const msg = (finalMessage ?? '').trim();
+  if (!msg) return false;
+  const stream = (streamedText ?? '').trim();
+  if (!stream) return true;
+
+  const nMsg = normalizeInsightTextForDedup(msg);
+  const nStream = normalizeInsightTextForDedup(stream);
+  if (!nMsg) return false;
+  if (nStream === nMsg) return false;
+  const minSuffixLen = 64;
+  if (nMsg.length >= minSuffixLen && nStream.endsWith(nMsg)) return false;
+  return true;
+}
+
 const STREAM_DEBUG_LS_KEY = 'mermaid-architect-stream-debug';
 
 const NODE_PANEL_EDGE_MARGIN = 12;
@@ -767,7 +789,7 @@ function MermaidArchitect() {
                 { denseSteps: variant === 'goMad' }
               );
             }
-            if (evt.message && operation !== 'analyze') {
+            if (evt.message && operation !== 'analyze' && shouldAppendFinalInsightEcho(streamedText, evt.message)) {
               appendToInsight(sectionId, `\n\n— _${evt.message}_`);
             }
             patchInsightEntry(sectionId, (entry) => ({
