@@ -114,7 +114,7 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
         status: 422,
         body: {
           error: 'Co-author did not apply a diagram patch.',
-          message: agentResult.message,
+          message: 'The co-author returned text instead of a valid diagram update. Please try again with a lower surprise level or a simpler diagram.',
           state: nextState
         }
       };

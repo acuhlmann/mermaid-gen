@@ -94,6 +94,33 @@ test('coauthor route applies a patch from the coauthor agent service', async () 
   assert.equal(result.body.metadata.agent, 'coauthor');
 });
 
+test('coauthor route returns concise no-patch errors', async () => {
+  const stateStore = createDiagramStateStore();
+  const longModelText = 'Let me break new ground '.repeat(80);
+  const agentService = {
+    async applyCoAuthorIntent() {
+      return { message: longModelText };
+    }
+  };
+
+  const result = await handleCoAuthorIntent({
+    body: {
+      ...intentPayload(),
+      trigger: 'manual',
+      settings: {
+        surpriseScale: 5
+      }
+    },
+    stateStore,
+    agentService
+  });
+
+  assert.equal(result.status, 422);
+  assert.equal(result.body.error, 'Co-author did not apply a diagram patch.');
+  assert.match(result.body.message, /returned text instead of a valid diagram update/);
+  assert.doesNotMatch(result.body.message, /break new ground/);
+});
+
 test('style route applies a style patch from the agent service', async () => {
   const stateStore = createDiagramStateStore();
   const agentService = {

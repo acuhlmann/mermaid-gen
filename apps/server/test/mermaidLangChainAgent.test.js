@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  COAUTHOR_MODEL_LIMITS,
   SURPRISE_SCALE_TEMPERATURES,
+  buildPatchRequiredInstruction,
   buildSyntaxRepairInstruction,
+  coAuthorModelOptionsForScale,
   createMermaidLangChainAgent,
   shouldAttemptSyntaxRepair,
   surpriseScaleToTemperature,
@@ -34,6 +37,7 @@ test('agent message conversion drops assistant replies that expose internal tool
 test('surprise scale maps to monotonic temperatures', () => {
   assert.equal(surpriseScaleToTemperature(1), SURPRISE_SCALE_TEMPERATURES[1]);
   assert.ok(surpriseScaleToTemperature(5) > surpriseScaleToTemperature(1));
+  assert.ok(surpriseScaleToTemperature(5) <= 1.2);
 });
 
 test('surprise tier guidance covers scales 1–5', () => {
@@ -42,7 +46,7 @@ test('surprise tier guidance covers scales 1–5', () => {
 });
 
 test('applyCoAuthorIntent uses distinct ChatOpenRouter temperature per surprise scale', async () => {
-  const temperatures = [];
+  const modelOptions = [];
 
   const fakeAgent = {
     async invoke() {
@@ -57,8 +61,8 @@ test('applyCoAuthorIntent uses distinct ChatOpenRouter temperature per surprise 
     stateStore,
     model: {},
     env: { OPENROUTER_API_KEY: 'test-key' },
-    createCoAuthorChatModel: (temperature) => {
-      temperatures.push(temperature);
+    createCoAuthorChatModel: (options) => {
+      modelOptions.push(options);
       return {};
     },
     createAgentImpl: () => fakeAgent
@@ -69,7 +73,17 @@ test('applyCoAuthorIntent uses distinct ChatOpenRouter temperature per surprise 
     settings: { surpriseScale: 5 }
   });
 
-  assert.equal(temperatures.some((t) => t === SURPRISE_SCALE_TEMPERATURES[5]), true);
+  assert.equal(modelOptions.some((options) => options.temperature === SURPRISE_SCALE_TEMPERATURES[5]), true);
+  assert.equal(modelOptions[0].topP, COAUTHOR_MODEL_LIMITS.topP);
+  assert.equal(modelOptions[0].maxTokens, COAUTHOR_MODEL_LIMITS.maxTokens);
+});
+
+test('coAuthorModelOptionsForScale applies bounded wild model settings', () => {
+  assert.deepEqual(coAuthorModelOptionsForScale(5), {
+    temperature: SURPRISE_SCALE_TEMPERATURES[5],
+    topP: COAUTHOR_MODEL_LIMITS.topP,
+    maxTokens: COAUTHOR_MODEL_LIMITS.maxTokens
+  });
 });
 
 test('shouldAttemptSyntaxRepair detects syntax-like validation errors', () => {
@@ -88,6 +102,17 @@ test('buildSyntaxRepairInstruction includes validator feedback', () => {
   assert.match(instruction.content, /Validator error:/);
   assert.match(instruction.content, /Unexpected token/);
   assert.match(instruction.content, /Add a gateway node/);
+});
+
+test('buildPatchRequiredInstruction asks for a patch after prose-only output', () => {
+  const instruction = buildPatchRequiredInstruction({
+    messages: [{ role: 'user', content: 'Surprise me wildly.' }]
+  });
+
+  assert.equal(instruction.role, 'user');
+  assert.match(instruction.content, /did not apply a diagram patch/i);
+  assert.match(instruction.content, /apply_mermaid_patch/);
+  assert.match(instruction.content, /Surprise me wildly/);
 });
 
 test('agent invoke performs bounded repair retry after syntax failure', async () => {
@@ -144,6 +169,44 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
   } finally {
     process.env.MERMAID_REPAIR_MAX_ATTEMPTS = originalAttempts;
   }
+});
+
+test('coauthor retries once when the model returns prose without applying a patch', async () => {
+  const stateStore = createDiagramStateStore();
+  let callCount = 0;
+  const fakeAgent = {
+    async invoke() {
+      callCount += 1;
+      if (callCount === 1) {
+        return {
+          messages: [{ role: 'assistant', content: 'Here is a creative idea in prose only.' }]
+        };
+      }
+
+      await stateStore.applyMermaidSource({
+        mermaidSource: 'flowchart TD\n  Start[Start] --> Portal[Wild Portal]\n  Portal --> EndNode[End]',
+        reason: 'forced patch success'
+      });
+      return {
+        messages: [{ role: 'assistant', content: 'Applied a valid wild extension.' }]
+      };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    model: {},
+    createAgentImpl: () => fakeAgent
+  });
+
+  const result = await service.applyCoAuthorIntent({
+    prompt: 'surprise me',
+    settings: { surpriseScale: 5 }
+  });
+
+  assert.equal(callCount, 2);
+  assert.equal(stateStore.getState().revisionId, 1);
+  assert.match(result.message, /valid wild extension/i);
 });
 
 test('invoke maps LangChain invoke failures to assistant-safe messages', async () => {
