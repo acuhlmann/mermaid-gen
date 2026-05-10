@@ -119,7 +119,8 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
     const agentResult = await agentService.applyTransformIntent({
       mode: intent.mode,
       focusNode: intent.focusNode,
-      modelProfile: intent.modelProfile
+      modelProfile: intent.modelProfile,
+      goMadDepth: intent.goMadDepth
     });
     const nextState = stateStore.getState();
     const patch = nextState.history.at(-1);

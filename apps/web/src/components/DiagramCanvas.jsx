@@ -1,8 +1,16 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
 import registerMermaidMonacoOnce from '../utils/registerMermaidMonacoOnce.js';
-import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
+import {
+  collectLogicalIdCandidates,
+  findMermaidSourceRangeForDiagramSelection
+} from '../utils/mermaidSourceLocate.js';
+import {
+  flowchartEdgeLabelText,
+  parseFlowchartEdgeDataId,
+  resolveFlowchartEdgeInteractionRoot
+} from '../utils/diagramSvgSelection.js';
 
 const MERMAID_INIT = {
   startOnLoad: false,
@@ -86,6 +94,31 @@ function diagramSelectedWrap(root, domId) {
   }
 }
 
+/** Match diff ids to SVG (handles flowchart-* suffixes, hyphen splits, case drift). */
+function idMatchesHighlightSet(id, set) {
+  if (!id || !set?.size) return false;
+  if (set.has(id)) return true;
+  const lower = id.toLowerCase();
+  for (const x of set) {
+    if (x.toLowerCase() === lower) return true;
+  }
+  return false;
+}
+
+function changeHighlightCategory(group, anchor, kind, added, modified) {
+  const domId = anchor?.id;
+  if (!domId) return null;
+  const dataId = group.getAttribute?.('data-id') ?? anchor?.getAttribute?.('data-id');
+  const candidates = collectLogicalIdCandidates({ elementId: domId, dataId, kind });
+  for (const cand of candidates) {
+    if (idMatchesHighlightSet(cand, added)) return 'added';
+  }
+  for (const cand of candidates) {
+    if (idMatchesHighlightSet(cand, modified)) return 'modified';
+  }
+  return null;
+}
+
 export default function DiagramCanvas({
   revisionId = 0,
   mermaidSource,
@@ -98,7 +131,9 @@ export default function DiagramCanvas({
   insightsSlot = null,
   selectedNode = null,
   onSelectedNodeChange,
-  onNodeToolbarAnchor
+  onNodeToolbarAnchor,
+  changeHighlight = null,
+  onDiagramSvgRendered = null
 }) {
   const [editorSource, setEditorSource] = useState(mermaidSource);
   const [svgMarkup, setSvgMarkup] = useState('');
@@ -126,6 +161,7 @@ export default function DiagramCanvas({
   const syncDecoIdsRef = useRef([]);
   const lastDiagramSyncKeyRef = useRef('');
   const diagramSyncRafRef = useRef(0);
+  const lastSvgRenderedReportRef = useRef('');
   const [monacoBind, setMonacoBind] = useState(null);
 
   const handleEditorBeforeMount = useCallback((monaco) => {
@@ -137,6 +173,18 @@ export default function DiagramCanvas({
     monacoRef.current = monaco;
     setMonacoBind({ editor, monaco });
   }, []);
+
+  const monacoEditorOptions = useMemo(
+    () => ({
+      minimap: { enabled: false },
+      wordWrap: 'on',
+      scrollBeyondLastLine: false,
+      automaticLayout: true,
+      readOnly: streamingPreview,
+      fontSize: 13
+    }),
+    [streamingPreview]
+  );
 
   const reportValidation = useCallback(
     (source, error) => {
@@ -258,7 +306,15 @@ export default function DiagramCanvas({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [editorSource, reportValidation, streamingPreview]);
+  }, [editorSource, reportValidation, revisionId, streamingPreview]);
+
+  useLayoutEffect(() => {
+    if (streamingPreview || !svgMarkup || typeof onDiagramSvgRendered !== 'function') return;
+    const reportKey = `${revisionId}:${editorSource}:${svgMarkup.length}`;
+    if (reportKey === lastSvgRenderedReportRef.current) return;
+    lastSvgRenderedReportRef.current = reportKey;
+    onDiagramSvgRendered({ source: editorSource, revisionId });
+  }, [editorSource, onDiagramSvgRendered, revisionId, streamingPreview, svgMarkup]);
 
   useEffect(() => {
     if (!editorOpen) {
@@ -279,6 +335,12 @@ export default function DiagramCanvas({
     }
 
     if (!editorOpen || streamingPreview || !editor || !monaco) {
+      return undefined;
+    }
+
+    if (selectedNode?.kind === 'edge') {
+      syncDecoIdsRef.current = editor.deltaDecorations(syncDecoIdsRef.current, []);
+      lastDiagramSyncKeyRef.current = '';
       return undefined;
     }
 
@@ -345,12 +407,45 @@ export default function DiagramCanvas({
     monacoBind?.monaco
   ]);
 
+  useLayoutEffect(() => {
+    const root = viewportRef.current;
+    if (!root) return;
+    const changeClasses = ['is-diagram-change-added', 'is-diagram-change-modified'];
+    root.querySelectorAll('g.node, g.cluster').forEach((group) => {
+      group.classList.remove(...changeClasses);
+    });
+    if (!changeHighlight) return;
+    const added = new Set(changeHighlight.addedIds ?? []);
+    const modified = new Set(changeHighlight.modifiedIds ?? []);
+    root.querySelectorAll('g.node, g.cluster').forEach((group) => {
+      const anchor = diagramDomAnchor(group);
+      if (!anchor?.id) return;
+      const kind = group.classList.contains('cluster') ? 'cluster' : 'node';
+      const cat = changeHighlightCategory(group, anchor, kind, added, modified);
+      if (cat === 'added') {
+        group.classList.add('is-diagram-change-added');
+      } else if (cat === 'modified') {
+        group.classList.add('is-diagram-change-modified');
+      }
+    });
+  }, [svgMarkup, changeHighlight]);
+
   useEffect(() => {
     const root = viewportRef.current;
     if (!root) return;
+    root.querySelectorAll('path.is-diagram-edge-selected').forEach((el) => el.classList.remove('is-diagram-edge-selected'));
     root.querySelectorAll('g.node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
     root.querySelectorAll('g.cluster.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
     if (!selectedNode?.id) return;
+    if (selectedNode.kind === 'edge') {
+      try {
+        const pathEl = root.querySelector(`path[data-id="${CSS.escape(selectedNode.id)}"]`);
+        pathEl?.classList?.add('is-diagram-edge-selected');
+      } catch {
+        // ignore invalid ids for selector
+      }
+      return;
+    }
     const wrap = diagramSelectedWrap(root, selectedNode.id);
     wrap?.classList?.add('is-diagram-selected');
   }, [svgMarkup, selectedNode]);
@@ -371,7 +466,16 @@ export default function DiagramCanvas({
       return;
     }
     try {
-      const el = diagramSelectedWrap(root, selectedNode.id);
+      let el = null;
+      if (selectedNode.kind === 'edge') {
+        try {
+          el = root.querySelector(`path[data-id="${CSS.escape(selectedNode.id)}"]`);
+        } catch {
+          el = null;
+        }
+      } else {
+        el = diagramSelectedWrap(root, selectedNode.id);
+      }
       if (!el) {
         clearToolbarAnchor();
         return;
@@ -408,8 +512,13 @@ export default function DiagramCanvas({
   const displayedRenderError = streamingPreview ? '' : renderError;
 
   function handleEditorChange(value) {
+    // Monaco can fire `onChange` synchronously while React commits a new `value`. During streaming,
+    // touching editor state here nests updates under the parent's commit and triggers max-depth errors.
+    if (streamingPreview) {
+      return;
+    }
     const nextValue = value ?? '';
-    setEditorSource(nextValue);
+    setEditorSource((prev) => (prev === nextValue ? prev : nextValue));
     lastAppliedSourceRef.current = nextValue;
     if (onManualEdit) {
       onManualEdit(nextValue);
@@ -462,6 +571,7 @@ export default function DiagramCanvas({
 
     const nodeEl = event.target?.closest?.('g.node');
     const clusterEl = nodeEl ? null : event.target?.closest?.('g.cluster');
+    const edgeHit = !nodeEl && !clusterEl ? resolveFlowchartEdgeInteractionRoot(event.target) : null;
 
     event.preventDefault();
 
@@ -484,11 +594,19 @@ export default function DiagramCanvas({
         targetEl: nodeEl || clusterEl,
         kind: nodeEl ? 'node' : 'cluster'
       };
+    } else if (edgeHit && pointers.length === 1) {
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        targetEl: edgeHit.pathEl,
+        kind: 'edge'
+      };
     } else {
       tapCandidateRef.current = null;
     }
 
-    if (pointers.length === 1 && !nodeEl && !clusterEl) {
+    if (pointers.length === 1 && !nodeEl && !clusterEl && !edgeHit) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
         sx: event.clientX,
@@ -599,6 +717,29 @@ export default function DiagramCanvas({
           distance: remaining.length >= 2 ? getDistance(remaining[0], remaining[1]) : null
         };
       }
+      if (tap.kind === 'edge') {
+        const pathEl = tap.targetEl;
+        const pathOk =
+          pathEl &&
+          pathEl.namespaceURI === 'http://www.w3.org/2000/svg' &&
+          pathEl.tagName === 'path';
+        if (moved <= TAP_MOVE_THRESHOLD_PX && pathOk && onSelectedNodeChange) {
+          const dataId = pathEl.getAttribute('data-id');
+          const parsed = parseFlowchartEdgeDataId(dataId);
+          if (parsed) {
+            const labelText = flowchartEdgeLabelText(pathEl, dataId);
+            onSelectedNodeChange({
+              kind: 'edge',
+              id: dataId,
+              edgeFrom: parsed.from,
+              edgeTo: parsed.to,
+              ...(labelText ? { label: labelText } : {})
+            });
+          }
+        }
+        return;
+      }
+
       const anchor = diagramDomAnchor(tap.targetEl);
       if (moved <= TAP_MOVE_THRESHOLD_PX && anchor?.id && onSelectedNodeChange) {
         const label = nodeTitleFromElement(tap.targetEl);
@@ -630,7 +771,8 @@ export default function DiagramCanvas({
         bgTap.pointerId === event.pointerId &&
         onSelectedNodeChange &&
         !event.target?.closest?.('g.node') &&
-        !event.target?.closest?.('g.cluster')
+        !event.target?.closest?.('g.cluster') &&
+        !resolveFlowchartEdgeInteractionRoot(event.target)
       ) {
         const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
         if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
@@ -666,7 +808,7 @@ export default function DiagramCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
           onPointerCancel={endPointerGesture}
-          aria-label="Mermaid renderer. Drag to pan from anywhere including nodes and subgraphs. Pinch or wheel to zoom. Tap a node or subgraph to select."
+          aria-label="Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select."
         >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
@@ -707,14 +849,7 @@ export default function DiagramCanvas({
               beforeMount={handleEditorBeforeMount}
               onMount={handleEditorMount}
               onChange={handleEditorChange}
-              options={{
-                minimap: { enabled: false },
-                wordWrap: 'on',
-                scrollBeyondLastLine: false,
-                automaticLayout: true,
-                readOnly: streamingPreview,
-                fontSize: 13
-              }}
+              options={monacoEditorOptions}
             />
           </div>
         </aside>

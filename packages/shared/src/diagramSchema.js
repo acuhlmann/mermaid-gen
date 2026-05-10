@@ -22,10 +22,27 @@ export const DiagramStateSchema = z.object({
   history: z.array(DiagramPatchSchema)
 });
 
-export const FocusNodeSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().optional()
-});
+export const FocusNodeSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().optional(),
+    /** When omitted, servers treat the focus as a flowchart vertex (legacy behavior). */
+    selectionKind: z.enum(['node', 'cluster', 'edge']).optional(),
+    edgeFrom: z.string().min(1).optional(),
+    edgeTo: z.string().min(1).optional(),
+    dataId: z.string().optional()
+  })
+  .superRefine((val, ctx) => {
+    if (val.selectionKind === 'edge') {
+      if (!val.edgeFrom?.trim() || !val.edgeTo?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'edge focus requires edgeFrom and edgeTo',
+          path: ['edgeFrom']
+        });
+      }
+    }
+  });
 
 /** Server resolves this to an OpenRouter model id via env (OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY). */
 export const ModelProfileSchema = z.enum(['fast', 'quality']);
@@ -52,12 +69,16 @@ export const DiagramIntentSchema = z.object({
 
 export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad']);
 
+/** Escalation tier for repeated Go Mad transforms (1 = first click). Ignored unless mode is goMad. */
+export const GoMadDepthSchema = z.number().int().min(1).max(12).optional();
+
 export const DiagramTransformIntentSchema = z.object({
   revisionId: z.number().int().nonnegative(),
   mermaidSource: z.string().min(1),
   mode: TransformModeSchema,
   focusNode: FocusNodeSchema.optional(),
-  modelProfile: ModelProfileSchema.optional()
+  modelProfile: ModelProfileSchema.optional(),
+  goMadDepth: GoMadDepthSchema
 });
 
 export const DiagramAnalyzeSchema = z.object({
@@ -84,7 +105,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     mermaidSource: z.string().min(1),
     mode: TransformModeSchema,
     focusNode: FocusNodeSchema.optional(),
-    modelProfile: ModelProfileSchema.optional()
+    modelProfile: ModelProfileSchema.optional(),
+    goMadDepth: GoMadDepthSchema
   }),
   z.object({
     operation: z.literal('analyze'),

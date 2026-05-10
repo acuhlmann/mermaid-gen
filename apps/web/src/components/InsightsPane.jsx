@@ -53,6 +53,57 @@ function IconExplain() {
   );
 }
 
+function IconRefine() {
+  return (
+    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1-.9 10.1 1 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"
+      />
+    </svg>
+  );
+}
+
+function IconInnovate() {
+  return (
+    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1-.85-.6V16h-4v-4.5l-.85.6C7.68 13.28 7 12.18 7 11c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.18-.68 2.28-1.15 3.1z"
+      />
+    </svg>
+  );
+}
+
+function IconStopped() {
+  return (
+    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path fill="currentColor" d="M6 6h12v12H6V6z" />
+    </svg>
+  );
+}
+
+function IconGoMad() {
+  return (
+    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm10 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm-8.31 4.39C9.22 17.84 8.46 17 7.5 17h-3c-.55 0-1-.45-1-1s.45-1 1-1h2.57c.39-.61 1.07-1 1.82-1h6.22c.75 0 1.43.39 1.82 1h2.57c.55 0 1 .45 1 1s-.45 1-1 1h-3c-.96 0-1.72-.84-1.19-1.61-.42-.26-.91-.39-1.41-.39h-4c-.5 0-.99.13-1.41.39zM4.5 9h2c.28 0 .5-.22.5-.5S6.78 8 6.5 8h-2c-.28 0-.5.22-.5.5S4.22 9 4.5 9zm15 0h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5h2c.28 0 .5.22.5.5s-.22.5-.5.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.91-1.64 7.95-1.64s5.59.59 7.95 1.64c.03.28.05.57.05.86 0 4.41-3.59 8-8 8z"
+      />
+    </svg>
+  );
+}
+
+function isAccentuatedInsightVariant(variant) {
+  return (
+    variant === 'critique' ||
+    variant === 'explain' ||
+    variant === 'refine' ||
+    variant === 'innovate' ||
+    variant === 'goMad'
+  );
+}
+
 function IconAlert({ small }) {
   const cls = small ? 'insights-svg-icon insights-svg-icon-sm' : 'insights-svg-icon';
   const dim = small ? 13 : 16;
@@ -106,10 +157,14 @@ function IconPhaseGeneric() {
 }
 
 function EntryStatusIcon({ status, variant }) {
+  if (status === 'cancelled') return <IconStopped />;
   if (status === 'failed') return <IconAlert />;
   if (status === 'done') {
     if (variant === 'critique') return <IconCritique />;
     if (variant === 'explain') return <IconExplain />;
+    if (variant === 'refine') return <IconRefine />;
+    if (variant === 'innovate') return <IconInnovate />;
+    if (variant === 'goMad') return <IconGoMad />;
     return <IconSparkles />;
   }
   return <IconThinking />;
@@ -182,8 +237,18 @@ function explainHeadingToneClass(headingText) {
   return 'insights-tone-explain-neutral';
 }
 
+function innovateHeadingToneClass(headingText) {
+  const h = headingText.toLowerCase();
+  if (h.includes('idea') || h.includes('concept') || h.includes('proposal')) return 'insights-tone-innovate-spark';
+  if (h.includes('alternative') || h.includes('option') || h.includes('stretch')) return 'insights-tone-innovate-alt';
+  if (h.includes('experiment') || h.includes('wildcard') || h.includes('wild card')) return 'insights-tone-innovate-play';
+  if (h.includes('risk') || h.includes('tradeoff') || h.includes('trade-off')) return 'insights-tone-innovate-tradeoff';
+  return 'insights-tone-innovate-neutral';
+}
+
 function headingToneClass(headingText, variant = 'general') {
   if (variant === 'explain') return explainHeadingToneClass(headingText);
+  if (variant === 'innovate') return innovateHeadingToneClass(headingText);
   const h = headingText.toLowerCase();
   if (h.includes('strength')) return 'insights-tone-strengths';
   if (h.includes('weakness') || h.includes('limit')) return 'insights-tone-weaknesses';
@@ -192,6 +257,13 @@ function headingToneClass(headingText, variant = 'general') {
   if (h.includes('action')) return 'insights-tone-actionable';
   return 'insights-tone-neutral';
 }
+
+const GO_MAD_SECTION_TONES = [
+  'insights-tone-gomad-a',
+  'insights-tone-gomad-b',
+  'insights-tone-gomad-c',
+  'insights-tone-gomad-d'
+];
 
 function sectionHeadingIconClass(toneClass) {
   if (toneClass === 'insights-tone-strengths') return 'insights-section-icon is-strengths';
@@ -204,6 +276,15 @@ function sectionHeadingIconClass(toneClass) {
   if (toneClass === 'insights-tone-explain-entities') return 'insights-section-icon is-explain-entities';
   if (toneClass === 'insights-tone-explain-takeaways') return 'insights-section-icon is-explain-takeaways';
   if (toneClass === 'insights-tone-explain-neutral') return 'insights-section-icon is-explain-neutral';
+  if (toneClass === 'insights-tone-innovate-spark') return 'insights-section-icon is-innovate-spark';
+  if (toneClass === 'insights-tone-innovate-alt') return 'insights-section-icon is-innovate-alt';
+  if (toneClass === 'insights-tone-innovate-play') return 'insights-section-icon is-innovate-play';
+  if (toneClass === 'insights-tone-innovate-tradeoff') return 'insights-section-icon is-innovate-tradeoff';
+  if (toneClass === 'insights-tone-innovate-neutral') return 'insights-section-icon is-innovate-neutral';
+  if (toneClass === 'insights-tone-gomad-a') return 'insights-section-icon is-gomad-a';
+  if (toneClass === 'insights-tone-gomad-b') return 'insights-section-icon is-gomad-b';
+  if (toneClass === 'insights-tone-gomad-c') return 'insights-section-icon is-gomad-c';
+  if (toneClass === 'insights-tone-gomad-d') return 'insights-section-icon is-gomad-d';
   return 'insights-section-icon is-neutral';
 }
 
@@ -306,6 +387,20 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
   return out;
 }
 
+function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
+  if (!accentuateSections || openerUsedRef.current) return '';
+  const map = {
+    explain: 'insights-explain-opener',
+    refine: 'insights-refine-opener',
+    innovate: 'insights-innovate-opener',
+    goMad: 'insights-gomad-opener'
+  };
+  const extra = map[variant];
+  if (!extra) return '';
+  openerUsedRef.current = true;
+  return extra;
+}
+
 function renderRichContent(content, { accentuateSections, idPrefix = 'ins', variant = 'general' }) {
   const cleaned = preprocessBulletArtifacts(content);
   const chunks = splitMarkdownSections(cleaned);
@@ -316,23 +411,28 @@ function renderRichContent(content, { accentuateSections, idPrefix = 'ins', vari
   }
 
   let sectionAnimIndex = 0;
-  let explainLeadStyled = false;
+  let goMadSectionIx = 0;
+  const openerUsedRef = { current: false };
   return chunks.flatMap((chunk, chunkIdx) => {
     if (chunk.type === 'lead') {
       if (!chunk.body.trim()) return [];
-      const explainOpener = variant === 'explain' && !explainLeadStyled;
-      if (explainOpener) explainLeadStyled = true;
-      const leadClass =
-        explainOpener && accentuateSections
-          ? 'insights-prose-lead insights-explain-opener'
-          : 'insights-prose-lead';
+      const openerExtra = leadOpenerExtraClass(variant, accentuateSections, openerUsedRef);
+      const leadClass = openerExtra ? `insights-prose-lead ${openerExtra}` : 'insights-prose-lead';
       return [
         <div key={`lead-${chunkIdx}`} className={leadClass}>
           {renderBodyLines(chunk.body, `lead-${chunkIdx}`, false)}
         </div>
       ];
     }
-    const tone = accentuateSections ? headingToneClass(chunk.heading, variant) : 'insights-tone-neutral';
+    let tone = 'insights-tone-neutral';
+    if (accentuateSections) {
+      if (variant === 'goMad') {
+        tone = GO_MAD_SECTION_TONES[goMadSectionIx % GO_MAD_SECTION_TONES.length];
+        goMadSectionIx += 1;
+      } else {
+        tone = headingToneClass(chunk.heading, variant);
+      }
+    }
     const iconCls = sectionHeadingIconClass(tone);
     const delayMs = accentuateSections ? Math.min(sectionAnimIndex++, 12) * 55 : 0;
     return [
@@ -360,6 +460,7 @@ function renderRichContent(content, { accentuateSections, idPrefix = 'ins', vari
 
 function statusLabel(entry) {
   if (entry.status === 'failed') return 'Issue';
+  if (entry.status === 'cancelled') return 'Stopped';
   if (entry.status === 'done') return 'Done';
   return 'Working';
 }
@@ -367,17 +468,59 @@ function statusLabel(entry) {
 function contentUpdatesTitle(variant) {
   if (variant === 'critique') return 'Analysis';
   if (variant === 'explain') return 'Explanation';
+  if (variant === 'refine') return 'Refinement';
+  if (variant === 'innovate') return 'Innovation';
+  if (variant === 'goMad') return 'Mad mode';
   return 'Content updates';
 }
 
 function hidePhaseIds(variant, streamDebugEnabled) {
   if (streamDebugEnabled) return false;
-  return variant === 'critique' || variant === 'explain';
+  return (
+    variant === 'critique' ||
+    variant === 'explain' ||
+    variant === 'refine' ||
+    variant === 'innovate' ||
+    variant === 'goMad'
+  );
 }
 
-function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast) {
+function accentContentLaneClass(variant) {
+  if (variant === 'explain') return 'is-explain-content-lane';
+  if (variant === 'refine') return 'is-refine-content-lane';
+  if (variant === 'innovate') return 'is-innovate-content-lane';
+  if (variant === 'goMad') return 'is-gomad-content-lane';
+  return '';
+}
+
+function accentSectionTitleClass(variant) {
+  if (variant === 'explain') return 'insights-section-title-explain';
+  if (variant === 'refine') return 'insights-section-title-refine';
+  if (variant === 'innovate') return 'insights-section-title-innovate';
+  if (variant === 'goMad') return 'insights-section-title-gomad';
+  return '';
+}
+
+function accentSectionTitleIconWrapClass(variant) {
+  if (variant === 'explain') return 'insights-section-title-explain-icon';
+  if (variant === 'refine') return 'insights-section-title-refine-icon';
+  if (variant === 'innovate') return 'insights-section-title-innovate-icon';
+  if (variant === 'goMad') return 'insights-section-title-gomad-icon';
+  return '';
+}
+
+function AccentSectionTitleIcon({ variant }) {
+  if (variant === 'explain') return <IconExplain />;
+  if (variant === 'refine') return <IconRefine />;
+  if (variant === 'innovate') return <IconInnovate />;
+  if (variant === 'goMad') return <IconGoMad />;
+  return null;
+}
+
+function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast, phaseStoppedLast) {
   if (phaseComplete) return <IconPhaseCheck />;
   if (phaseFailedLast) return <IconAlert small />;
+  if (phaseStoppedLast) return <IconPhaseGeneric />;
   if (phaseActive) {
     if (phaseId === 'analyze') return <IconPhaseAnalyze />;
     if (phaseId === 'analyze_stream') return <IconPhaseStream />;
@@ -444,7 +587,12 @@ export default function InsightsPane({
   streamDebugEnabled = false,
   critiqueActionableUi = null,
   diagramUndoDisabled = false,
-  onDiagramUndo
+  onDiagramUndo,
+  diagramChangeHighlightEntryId = null,
+  diagramChangeHighlightSummary = null,
+  diagramChangeHighlightDisabled = false,
+  onToggleDiagramChangeHighlight,
+  onStopStreamingAgent
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
@@ -475,6 +623,15 @@ export default function InsightsPane({
           ) : null}
         </div>
         <div className="insights-pane-controls">
+          {typeof onStopStreamingAgent === 'function' ? (
+            <button
+              type="button"
+              className="insights-stop-stream-btn"
+              onClick={onStopStreamingAgent}
+            >
+              Stop request
+            </button>
+          ) : null}
           <label className="insights-sound-toggle">
             <input
               type="checkbox"
@@ -496,11 +653,11 @@ export default function InsightsPane({
             const isStreaming = isRunning && Boolean(entry.content?.trim());
             const statusStrip =
               entry.statusText &&
-              (rawStatus === 'running' || rawStatus === 'failed') &&
+              (rawStatus === 'running' || rawStatus === 'failed' || rawStatus === 'cancelled') &&
               entry.statusText.trim();
-            const accentuateSections = variant === 'critique' || variant === 'explain';
+            const accentuateSections = isAccentuatedInsightVariant(variant);
             const collapseTech =
-              (variant === 'critique' || variant === 'explain') && (entry.technicalActions?.length ?? 0) > 0;
+              isAccentuatedInsightVariant(variant) && (entry.technicalActions?.length ?? 0) > 0;
             const phaseIdsHidden = hidePhaseIds(variant, streamDebugEnabled);
             const matchesLatestActionable =
               critiqueActionableUi &&
@@ -568,7 +725,8 @@ export default function InsightsPane({
                   entry.id === celebratingEntryId ? 'is-celebrating' : '',
                   isRunning ? 'is-running' : '',
                   isStreaming ? 'is-streaming' : '',
-                  rawStatus === 'done' ? 'is-complete' : ''
+                  rawStatus === 'done' ? 'is-complete' : '',
+                  rawStatus === 'cancelled' ? 'is-cancelled' : ''
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -606,17 +764,26 @@ export default function InsightsPane({
                         const phases = entry.phases;
                         const isLast = idx === phases.length - 1;
                         const isFailed = rawStatus === 'failed';
-                        const phaseComplete = rawStatus === 'done' || (!isLast && (isRunning || isFailed));
-                        const phaseActive = isRunning && isLast && !isFailed;
+                        const isCancelled = rawStatus === 'cancelled';
+                        const phaseComplete =
+                          rawStatus === 'done' || (!isLast && (isRunning || isFailed || isCancelled));
+                        const phaseActive = isRunning && isLast && !isFailed && !isCancelled;
                         const phaseFailedLast = isFailed && isLast;
+                        const phaseStoppedLast = isCancelled && isLast;
                         const friendlyId = PHASE_ID_LABELS[phase.id] ?? phase.id;
                         return (
                           <li
                             key={`${entry.id}-phase-${phase.id}-${idx}`}
-                            className={`insights-phase-item ${phaseActive ? 'is-active' : ''} ${phaseComplete ? 'is-complete' : ''} ${phaseFailedLast ? 'is-failed-at' : ''}`}
+                            className={`insights-phase-item ${phaseActive ? 'is-active' : ''} ${phaseComplete ? 'is-complete' : ''} ${phaseFailedLast ? 'is-failed-at' : ''} ${phaseStoppedLast ? 'is-stopped-at' : ''}`}
                           >
                             <span className="insights-phase-glyph-wrap" aria-hidden="true">
-                              {phaseRowGlyph(phase.id, phaseComplete, phaseActive, phaseFailedLast)}
+                              {phaseRowGlyph(
+                                phase.id,
+                                phaseComplete,
+                                phaseActive,
+                                phaseFailedLast,
+                                phaseStoppedLast
+                              )}
                             </span>
                             <span className="insights-phase-step">{idx + 1}</span>
                             <span className="insights-phase-label">{phase.label}</span>
@@ -659,19 +826,14 @@ export default function InsightsPane({
                   </section>
                 ) : null}
 
-                <section className={`insights-section ${variant === 'explain' ? 'is-explain-content-lane' : ''}`}>
+                <section className={`insights-section ${accentContentLaneClass(variant)}`}>
                   <h4
-                    className={[
-                      'insights-section-title',
-                      variant === 'explain' ? 'insights-section-title-explain' : ''
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
+                    className={['insights-section-title', accentSectionTitleClass(variant)].filter(Boolean).join(' ')}
                   >
-                    {variant === 'explain' ? (
+                    {accentSectionTitleClass(variant) ? (
                       <>
-                        <span className="insights-section-title-explain-icon" aria-hidden="true">
-                          <IconExplain />
+                        <span className={accentSectionTitleIconWrapClass(variant)} aria-hidden="true">
+                          <AccentSectionTitleIcon variant={variant} />
                         </span>
                         <span>{contentUpdatesTitle(variant)}</span>
                       </>
@@ -685,7 +847,10 @@ export default function InsightsPane({
                         className={[
                           'insights-entry-rich-text',
                           accentuateSections ? 'is-analyze-prose' : '',
-                          variant === 'explain' && accentuateSections ? 'is-explain-prose' : ''
+                          variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
+                          variant === 'refine' && accentuateSections ? 'is-refine-prose' : '',
+                          variant === 'innovate' && accentuateSections ? 'is-innovate-prose' : '',
+                          variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
                         ]
                           .filter(Boolean)
                           .join(' ')}
@@ -693,12 +858,20 @@ export default function InsightsPane({
                         {analysisBody}
                       </div>
                       {isRunning && entry.content.trim() ? (
-                        <span className="insights-stream-caret" aria-hidden="true" />
+                        <span
+                          className={[
+                            'insights-stream-caret',
+                            variant === 'goMad' ? 'is-gomad-caret' : ''
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                          aria-hidden="true"
+                        />
                       ) : null}
                     </div>
-                  ) : (
+                  ) : isRunning ? (
                     <p className="insights-waiting-text">Working on your request...</p>
-                  )}
+                  ) : null}
                 </section>
 
                 {collapseTech ? (
@@ -741,14 +914,39 @@ export default function InsightsPane({
 
                 {showDiagramUndo ? (
                   <div className="insights-entry-undo-row">
-                    <button
-                      type="button"
-                      className="insights-entry-undo-btn"
-                      disabled={diagramUndoDisabled}
-                      onClick={() => onDiagramUndo?.(entry.id)}
-                    >
-                      Undo diagram change
-                    </button>
+                    <div className="insights-entry-undo-actions">
+                      <button
+                        type="button"
+                        className="insights-entry-highlight-btn"
+                        disabled={diagramChangeHighlightDisabled}
+                        aria-pressed={entry.id === diagramChangeHighlightEntryId}
+                        onClick={() => onToggleDiagramChangeHighlight?.(entry.id)}
+                      >
+                        {entry.id === diagramChangeHighlightEntryId
+                          ? 'Clear highlights'
+                          : 'Highlight changes'}
+                      </button>
+                      <button
+                        type="button"
+                        className="insights-entry-undo-btn"
+                        disabled={diagramUndoDisabled}
+                        onClick={() => onDiagramUndo?.(entry.id)}
+                      >
+                        Undo diagram change
+                      </button>
+                    </div>
+                    {entry.id === diagramChangeHighlightEntryId &&
+                    diagramChangeHighlightSummary?.removedIds?.length ? (
+                      <p className="insights-change-highlight-note insights-change-highlight-removed">
+                        Removed from diagram: {diagramChangeHighlightSummary.removedIds.join(', ')}
+                      </p>
+                    ) : null}
+                    {entry.id === diagramChangeHighlightEntryId &&
+                    diagramChangeHighlightSummary?.isStructuralEmpty ? (
+                      <p className="insights-change-highlight-note insights-change-highlight-empty" aria-live="polite">
+                        No structural changes detected between this version and the diagram before this step.
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
 

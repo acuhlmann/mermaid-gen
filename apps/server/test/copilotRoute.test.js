@@ -118,6 +118,35 @@ test('transform route returns concise no-patch errors', async () => {
   assert.doesNotMatch(result.body.message, /break new ground/);
 });
 
+test('transform route forwards goMadDepth to applyTransformIntent', async () => {
+  const stateStore = createDiagramStateStore();
+  let received;
+  const agentService = {
+    async applyTransformIntent(input) {
+      received = input;
+      await stateStore.applyMermaidSource({
+        mermaidSource: 'pie title Madness\n  "A" : 1',
+        reason: 'go mad depth'
+      });
+      return { message: 'ok' };
+    }
+  };
+
+  const result = await handleDiagramTransformIntent({
+    body: {
+      revisionId: 0,
+      mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      mode: 'goMad',
+      goMadDepth: 4
+    },
+    stateStore,
+    agentService
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(received.goMadDepth, 4);
+});
+
 test('analyze route returns text without mutating state', async () => {
   const stateStore = createDiagramStateStore();
   const agentService = {

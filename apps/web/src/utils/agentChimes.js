@@ -61,6 +61,46 @@ export function playStreamStartChime(audioContextRef) {
   });
 }
 
+export function playRefineStreamStart(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'triangle',
+    freqHz: 440,
+    freqEndHz: 554,
+    durationSec: 0.1,
+    peakGain: 0.036
+  });
+}
+
+export function playInnovateStreamStart(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 622,
+    freqEndHz: 784,
+    durationSec: 0.12,
+    peakGain: 0.035
+  });
+}
+
+/** Ascending triad — unmistakably “something extra is happening”. */
+export function playGoMadStreamStart(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const freqs = [392, 523.25, 659.25];
+  freqs.forEach((freq, i) => {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = 'triangle';
+    const t0 = now + i * 0.044;
+    oscillator.frequency.setValueAtTime(freq, t0);
+    applyGainEnvelope(gainNode, t0, 0.03, 0.084);
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(t0);
+    oscillator.stop(t0 + 0.1);
+  });
+}
+
 export function playToolStartChime(audioContextRef) {
   playShortTone(audioContextRef, {
     type: 'sine',
@@ -101,6 +141,18 @@ export function playTokenTickChime(audioContextRef) {
   });
 }
 
+/** Playful chatter while Go Mad streams; `tickIndex` varies pitch. */
+export function playGoMadTokenTick(audioContextRef, tickIndex = 0) {
+  const freqs = [720, 840, 660, 910, 780, 990];
+  const f = freqs[Math.abs(tickIndex) % freqs.length];
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: f,
+    durationSec: 0.022,
+    peakGain: 0.014
+  });
+}
+
 /** Existing completion cadence (two-note feel preserved via ramp). */
 export function playCompletionChime(audioContextRef) {
   const context = getContext(audioContextRef);
@@ -118,4 +170,31 @@ export function playCompletionChime(audioContextRef) {
   gainNode.connect(context.destination);
   oscillator.start(now);
   oscillator.stop(now + 0.3);
+}
+
+/** Short fanfare when Go Mad completes. */
+export function playGoMadCompletionChime(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const notes = [
+    { freq: 523.25, dur: 0.068, peak: 0.054 },
+    { freq: 659.25, dur: 0.068, peak: 0.056 },
+    { freq: 783.99, dur: 0.085, peak: 0.05 },
+    { freq: 1046.5, dur: 0.11, peak: 0.042 }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = 'triangle';
+    const t0 = now + offset;
+    oscillator.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(t0);
+    oscillator.stop(t0 + note.dur + 0.02);
+    offset += note.dur * 0.68;
+  }
 }

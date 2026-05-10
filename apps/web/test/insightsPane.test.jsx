@@ -92,10 +92,108 @@ describe('InsightsPane', () => {
       />
     );
 
+    expect(screen.getByRole('button', { name: 'Highlight changes' })).toBeTruthy();
     const undoBtn = screen.getByRole('button', { name: 'Undo diagram change' });
     expect(undoBtn.disabled).toBe(false);
     fireEvent.click(undoBtn);
     expect(onDiagramUndo).toHaveBeenCalledWith('e-undo');
+  });
+
+  it('invokes highlight toggle when Highlight changes is clicked', () => {
+    const onToggleDiagramChangeHighlight = vi.fn();
+    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-hi',
+            title: 'Refine — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Applied.',
+            technicalActions: [],
+            diagramUndoBaseline: baseline,
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: false
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        onDiagramUndo={vi.fn()}
+        diagramUndoDisabled={false}
+        onToggleDiagramChangeHighlight={onToggleDiagramChangeHighlight}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Highlight changes' }));
+    expect(onToggleDiagramChangeHighlight).toHaveBeenCalledWith('e-hi');
+  });
+
+  it('shows Clear highlights and empty-diff note when highlight is active for entry', () => {
+    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-act',
+            title: 'Refine — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Applied.',
+            technicalActions: [],
+            diagramUndoBaseline: baseline,
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: false
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        onDiagramUndo={vi.fn()}
+        diagramChangeHighlightEntryId="e-act"
+        diagramChangeHighlightSummary={{ removedIds: [], isStructuralEmpty: true }}
+        onToggleDiagramChangeHighlight={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: 'Clear highlights' })).toBeTruthy();
+    expect(
+      screen.getByText(/No structural changes detected between this version and the diagram before this step/i)
+    ).toBeTruthy();
+  });
+
+  it('shows removed ids note when highlight is active and nodes were removed', () => {
+    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-rem',
+            title: 'Refine — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Applied.',
+            technicalActions: [],
+            diagramUndoBaseline: baseline,
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: false
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        onDiagramUndo={vi.fn()}
+        diagramChangeHighlightEntryId="e-rem"
+        diagramChangeHighlightSummary={{ removedIds: ['OldNode'], isStructuralEmpty: false }}
+        onToggleDiagramChangeHighlight={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(/Removed from diagram: OldNode/i)).toBeTruthy();
   });
 
   it('hides diagram undo when not revision-applied or already consumed', () => {
@@ -442,6 +540,106 @@ describe('InsightsPane', () => {
     expect(screen.getByText('Tool trace')).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
     expect(screen.getByText('Read snapshot')).toBeTruthy();
+  });
+
+  it('uses Refinement label, opener, and section cards for refine variant', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-ref',
+            title: 'Refine — diagram',
+            variant: 'refine',
+            status: 'done',
+            content: 'Opening paragraph.\n\n## Strengths\n\n- Polished.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Refinement')).toBeTruthy();
+    expect(container.querySelector('.insights-refine-opener')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Strengths/i })).toBeTruthy();
+    expect(container.querySelector('.insights-prose-section.insights-tone-strengths')).toBeTruthy();
+  });
+
+  it('collapses technical actions behind Tool trace for refine variant', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-ref-tools',
+            title: 'Refine — diagram',
+            variant: 'refine',
+            status: 'done',
+            content: '## Summary\n\nDone.',
+            technicalActions: [
+              { id: 't1', name: 'get_diagram_state', label: 'Read snapshot', status: 'done' }
+            ]
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.queryByText('Technical actions')).toBeNull();
+  });
+
+  it('uses Innovation label, opener, and innovate tones for headings', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-inn',
+            title: 'Innovate — diagram',
+            variant: 'innovate',
+            status: 'done',
+            content: 'Lead.\n\n## Core ideas\n\n- Stretch.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Innovation')).toBeTruthy();
+    expect(container.querySelector('.insights-innovate-opener')).toBeTruthy();
+    expect(container.querySelector('.insights-prose-section.insights-tone-innovate-spark')).toBeTruthy();
+  });
+
+  it('uses Mad mode label, opener, and cycles goMad section tones', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-mad',
+            title: 'Go Mad — diagram',
+            variant: 'goMad',
+            status: 'done',
+            content: 'Wild intro.\n\n## Block one\n\nA.\n\n## Block two\n\nB.\n\n## Block three\n\nC.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Mad mode')).toBeTruthy();
+    expect(container.querySelector('.insights-gomad-opener')).toBeTruthy();
+    expect(container.querySelector('.insights-tone-gomad-a')).toBeTruthy();
+    expect(container.querySelector('.insights-tone-gomad-b')).toBeTruthy();
+    expect(container.querySelector('.insights-tone-gomad-c')).toBeTruthy();
   });
 
   it('renders actionable checkboxes and fix controls when critiqueActionableUi matches entry content', () => {

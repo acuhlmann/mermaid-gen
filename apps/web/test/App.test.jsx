@@ -171,7 +171,8 @@ describe('App simplified controls', () => {
         mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]',
         modelProfile: 'fast'
       }),
-      expect.any(Function)
+      expect.any(Function),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
   });
 
@@ -215,7 +216,8 @@ describe('App simplified controls', () => {
         mermaidSource: initialState.mermaidSource,
         modelProfile: 'fast'
       }),
-      expect.any(Function)
+      expect.any(Function),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
     await screen.findByText('Read diagram snapshot');
     await screen.findByText('Apply diagram update');
@@ -238,7 +240,8 @@ describe('App simplified controls', () => {
           prompt: expect.stringContaining('Use clearer labels and simplify branching.'),
           modelProfile: 'fast'
         }),
-        expect.any(Function)
+        expect.any(Function),
+        expect.objectContaining({ signal: expect.any(AbortSignal) })
       )
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
@@ -325,7 +328,42 @@ describe('App simplified controls', () => {
         operation: 'transform',
         modelProfile: 'quality'
       }),
-      expect.any(Function)
+      expect.any(Function),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
     );
+  });
+
+  it('Stop request aborts the agent stream and marks insight stopped', async () => {
+    streamDiagramAgentMock.mockImplementation((_payload, _onEvent, opts) => {
+      return new Promise((_resolve, reject) => {
+        if (opts?.signal?.aborted) {
+          reject(new DOMException('Aborted', 'AbortError'));
+          return;
+        }
+        opts.signal.addEventListener(
+          'abort',
+          () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          },
+          { once: true }
+        );
+      });
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+
+    const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
+    fireEvent.change(input, { target: { value: 'Long request' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
+
+    fireEvent.click(screen.getByRole('button', { name: 'Stop request' }));
+
+    await waitFor(() => {
+      expect(document.querySelector('.insights-entry.is-cancelled')).not.toBeNull();
+    });
+    expect(screen.getByText('Stopped')).toBeTruthy();
   });
 });

@@ -4,6 +4,7 @@ import {
   getOrCreateBrowserSessionId,
   readDiagramCache,
   SESSION_HEADER,
+  streamDiagramAgent,
   submitDiagramTransform,
   syncClientDiagramState,
   writeDiagramCache
@@ -93,6 +94,33 @@ describe('submitDiagramTransform', () => {
       });
 
       expect(JSON.parse(requestBody).modelProfile).toBe('quality');
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('includes goMadDepth when provided', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestBody;
+    try {
+      globalThis.fetch = async (_url, options) => {
+        requestBody = options.body;
+        return {
+          ok: true,
+          async json() {
+            return { state: { revisionId: 1 }, metadata: {} };
+          }
+        };
+      };
+
+      await submitDiagramTransform({
+        mode: 'goMad',
+        revisionId: 0,
+        mermaidSource: 'flowchart TD\n  A --> B',
+        goMadDepth: 3
+      });
+
+      expect(JSON.parse(requestBody).goMadDepth).toBe(3);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -200,6 +228,59 @@ describe('getOrCreateBrowserSessionId', () => {
     expect(first).toBe(second);
     expect(typeof first).toBe('string');
     expect(first.length).toBeGreaterThan(0);
+  });
+});
+
+describe('streamDiagramAgent', () => {
+  it('throws AbortError without calling fetch when already aborted', async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = vi.fn();
+      await expect(
+        streamDiagramAgent(
+          {
+            operation: 'analyze',
+            kind: 'explain',
+            revisionId: 0,
+            mermaidSource: 'flowchart TD\n  A --> B'
+          },
+          vi.fn(),
+          { signal: controller.signal }
+        )
+      ).rejects.toMatchObject({ name: 'AbortError' });
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('propagates abort while awaiting fetch', async () => {
+    const controller = new AbortController();
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = () =>
+        new Promise((_resolve, reject) => {
+          controller.signal.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+      const promise = streamDiagramAgent(
+        {
+          operation: 'analyze',
+          kind: 'explain',
+          revisionId: 0,
+          mermaidSource: 'flowchart TD\n  A --> B'
+        },
+        vi.fn(),
+        { signal: controller.signal }
+      );
+      controller.abort();
+      await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 });
 

@@ -7,33 +7,9 @@ import { redactSecrets } from '../utils/redactSecrets.js';
 import { computeLineDiffStats } from '../utils/patchLineStats.js';
 import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
 
-/** Qwen presets for local / HK-style dev (Gemini often blocked in HK). Override with OPENROUTER_MODEL_*. */
-export const PRESET_LOCAL_HK_FAST = 'qwen/qwen3-32b';
-export const PRESET_LOCAL_HK_QUALITY = 'qwen/qwen3-next-80b-a3b-instruct';
-
-/** Gemini presets for GCP / US Cloud Run (`K_SERVICE` set). Override with OPENROUTER_MODEL_*. */
-export const PRESET_GCP_US_FAST = 'google/gemini-2.5-flash';
-export const PRESET_GCP_US_QUALITY = 'google/gemini-2.5-pro';
-
-/**
- * Where defaults should point: `local-hk` (Qwen) vs `gcp-us` (Gemini).
- * Set `MERMAID_OPENROUTER_PRESET=gcp-us` or `local-hk` to force; otherwise Cloud Run (`K_SERVICE`) uses GCP presets.
- */
-export function resolveOpenRouterDeploymentPreset(env = process.env) {
-  const explicit = typeof env.MERMAID_OPENROUTER_PRESET === 'string' ? env.MERMAID_OPENROUTER_PRESET.trim().toLowerCase() : '';
-  if (explicit === 'gcp-us' || explicit === 'gcp') return 'gcp-us';
-  if (explicit === 'local-hk' || explicit === 'local') return 'local-hk';
-  if (env.K_SERVICE) return 'gcp-us';
-  return 'local-hk';
-}
-
-function presetFastModel(env = process.env) {
-  return resolveOpenRouterDeploymentPreset(env) === 'gcp-us' ? PRESET_GCP_US_FAST : PRESET_LOCAL_HK_FAST;
-}
-
-function presetQualityModel(env = process.env) {
-  return resolveOpenRouterDeploymentPreset(env) === 'gcp-us' ? PRESET_GCP_US_QUALITY : PRESET_LOCAL_HK_QUALITY;
-}
+/** Default OpenRouter slugs when OPENROUTER_MODEL* are unset (Qwen — HK-friendly). Fast = smaller/latency; Quality = flagship MoE (slower, stronger). Override via OPENROUTER_MODEL / OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY. */
+export const DEFAULT_OPENROUTER_MODEL_FAST = 'qwen/qwen3-8b';
+export const DEFAULT_OPENROUTER_MODEL_QUALITY = 'qwen/qwen3-235b-a22b';
 
 /** @param {unknown} profile */
 export function normalizeModelProfile(profile) {
@@ -50,12 +26,12 @@ export function resolveOpenRouterModelId(env = process.env, profile = 'fast') {
     const quality = typeof env.OPENROUTER_MODEL_QUALITY === 'string' ? env.OPENROUTER_MODEL_QUALITY.trim() : '';
     if (quality) return quality;
     if (shared) return shared;
-    return presetQualityModel(env);
+    return DEFAULT_OPENROUTER_MODEL_QUALITY;
   }
   const fast = typeof env.OPENROUTER_MODEL_FAST === 'string' ? env.OPENROUTER_MODEL_FAST.trim() : '';
   if (fast) return fast;
   if (shared) return shared;
-  return presetFastModel(env);
+  return DEFAULT_OPENROUTER_MODEL_FAST;
 }
 const INTENT_PROFILE_DEFAULTS = {
   temperature: 0.7,
@@ -72,9 +48,13 @@ export const TRANSFORM_MODEL_LIMITS = Object.freeze({
 
 const TRANSFORM_MODE_MODEL = Object.freeze({
   refine: { temperature: 0.42 },
-  innovate: { temperature: 0.82 },
-  goMad: { temperature: 1.35 }
+  innovate: { temperature: 0.82 }
 });
+
+/** Base sampling for Go Mad tier 1; ramps up with `goMadDepth` via `goMadTransformModelOptions`. */
+const GO_MAD_TEMP_MIN = 1.52;
+const GO_MAD_TEMP_MAX = 1.74;
+const GO_MAD_TEMP_PER_DEPTH = 0.02;
 
 const ANALYSIS_SYSTEM_PROMPT = `You are Mermaid Architect in read-only mode.
 CRITICAL:
@@ -90,8 +70,80 @@ const ANALYSIS_EXPLAIN_SYSTEM_APPEND = `
 Explain tasks only:
 - Use the required Markdown ## section headings exactly (or clearly labeled equivalents). Do not skip sections; use bullets inside sections where helpful.`;
 
-export function transformModeModelOptions(mode) {
+function isEdgeFocus(focusNode) {
+  return focusNode?.selectionKind === 'edge' && Boolean(focusNode.edgeFrom?.trim()) && Boolean(focusNode.edgeTo?.trim());
+}
+
+/**
+ * Instructions appended to mutation prompts (intent / transform).
+ */
+export function buildFocusScopeInstructions(focusNode) {
+  if (!focusNode?.id) return '';
+  if (isEdgeFocus(focusNode)) {
+    const label = focusNode.label ? ` (edge label: "${focusNode.label}")` : '';
+    return `\n\nFocus scope: Prefer edits centered on the edge from "${focusNode.edgeFrom}" to "${focusNode.edgeTo}"${label} (edge id "${focusNode.id}"). Adjust endpoints, labels on this link, or local routing only as needed for valid Mermaid; minimize unrelated changes elsewhere.`;
+  }
+  const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
+  const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
+  return `\n\nFocus scope: Prefer changes centered on diagram ${role} id "${focusNode.id}"${label}. Minimize edits elsewhere except where required for valid Mermaid syntax or connectivity.`;
+}
+
+/**
+ * Instructions appended to analyze (explain / critique) prompts — read-only, selection-first wording.
+ */
+export function buildAnalyzeFocusInstructions(focusNode, kind) {
+  if (!focusNode?.id) return '';
+  const edgeLabel = focusNode.label ? ` Visible edge label text: "${focusNode.label}".` : '';
+  const link = `"${focusNode.edgeFrom}" → "${focusNode.edgeTo}"`;
+
+  if (isEdgeFocus(focusNode)) {
+    if (kind === 'explain') {
+      return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel} Lead with this relationship in ## Explanation, ## Main flows, and ## Key entities — what it means, what moves or depends along it, and how the two endpoints relate. Use ## Takeaways for conclusions specific to this link. Mention the wider diagram only briefly as supporting context; avoid a generic whole-diagram essay that ignores this edge.`;
+    }
+    return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Strengths and ## Diagram type fit but tie them to how well this selected relationship reads in context.`;
+  }
+
+  const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
+  const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
+
+  if (kind === 'explain') {
+    return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}. In ## Explanation, ## Main flows, and ## Key entities, foreground this ${role}: its role, connections, and how it fits the wider diagram. ## Takeaways should emphasize what matters about this selection. Mention other parts only as supporting context; do not center the whole response on unrelated nodes or edges.`;
+  }
+  return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}. In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Strengths and ## Diagram type fit but reference how this selection reads in context.`;
+}
+
+/** @param {unknown} raw */
+export function clampGoMadDepth(raw) {
+  if (raw == null || typeof raw !== 'number' || !Number.isFinite(raw)) return 1;
+  return Math.min(12, Math.max(1, Math.trunc(raw)));
+}
+
+/**
+ * Sampling for Go Mad transforms; hotter at deeper escalation tiers.
+ * @param {unknown} depthRaw
+ */
+export function goMadTransformModelOptions(depthRaw) {
+  const d = clampGoMadDepth(depthRaw);
+  const span = GO_MAD_TEMP_MAX - GO_MAD_TEMP_MIN;
+  const temperature = GO_MAD_TEMP_MIN + Math.min(span, (d - 1) * GO_MAD_TEMP_PER_DEPTH);
+  const topP =
+    d <= 2 ? 0.96 : d <= 5 ? 0.97 : d <= 8 ? 0.98 : Math.min(0.99, TRANSFORM_MODEL_LIMITS.topP + 0.08);
+  return {
+    temperature,
+    topP,
+    maxTokens: TRANSFORM_MODEL_LIMITS.maxTokens
+  };
+}
+
+/**
+ * @param {string} mode
+ * @param {unknown} [goMadDepth] tier when mode is goMad (defaults to 1)
+ */
+export function transformModeModelOptions(mode, goMadDepth) {
   const key = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
+  if (key === 'goMad') {
+    return goMadTransformModelOptions(goMadDepth ?? 1);
+  }
   return {
     temperature: TRANSFORM_MODE_MODEL[key].temperature,
     topP: TRANSFORM_MODEL_LIMITS.topP,
@@ -99,13 +151,50 @@ export function transformModeModelOptions(mode) {
   };
 }
 
-export function buildFocusScopeInstructions(focusNode) {
-  if (!focusNode?.id) return '';
-  const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
-  return `\n\nFocus scope: Prefer changes centered on diagram element id "${focusNode.id}"${label}. Minimize edits elsewhere except where required for valid Mermaid syntax or connectivity.`;
+/** First diagram declaration keyword from source (e.g. flowchart, sequenceDiagram). */
+export function inferMermaidTopKeyword(source) {
+  const text = typeof source === 'string' ? source : '';
+  for (const line of text.split(/\r?\n/)) {
+    const t = line.trim();
+    if (!t || t.startsWith('%%')) continue;
+    const token = t.split(/\s+/)[0] ?? '';
+    return token.replace(/[:`'"]+$/, '') || 'diagram';
+  }
+  return 'diagram';
 }
 
-function buildTransformUserContent({ mode, mermaidSource, focusScope }) {
+function buildGoMadEscalationInstructions(depth, mermaidSource) {
+  if (depth < 2) return '';
+  const currentKeyword = inferMermaidTopKeyword(mermaidSource);
+  const tierHint =
+    depth >= 5
+      ? `- Tier ${depth}: runtime sampling is near maximum — mirror that chaos. Dial absurdity up while keeping ONE coherent geek joke or metaphor — still valid Mermaid.\n`
+      : `- Tier ${depth} (repeat Go Mad): must feel sharply wilder than tier ${depth - 1}; no lazy relabel-only edits.\n`;
+
+  const deepVisual =
+    depth >= 4
+      ? `- Visual overload mandate: combine at least THREE mechanisms — e.g. %%{init}%% (theme + themeVariables and/or themeCSS) + multiple classDef lines + linkStyle / stroke tweaks on edges OR styled subgraph titles.\n`
+      : `- Use at least TWO distinct styling mechanisms (%%init%% themeVariables, classDef/class, subgraph styling, linkStyle on flows).\n`;
+
+  const ultraTypes =
+    depth >= 6
+      ? `- Pick maximally "wrong-tool" diagram genres when possible: quadrantChart for vibes tradeoffs, pie or radar for architecture, gitGraph for narrative timelines, journey for infra outages, timeline for feelings.\n`
+      : '';
+
+  return `
+GO MAD escalation (tier ${depth}) — mandatory on top of base GO MAD rules:
+${tierHint}- You MUST switch the primary diagram type: the top-level declaration MUST NOT stay "${currentKeyword}". Pick a different species of diagram (not a superficial rename).
+- Rotate into uncommon families: gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4Context, classDiagram, sequenceDiagram (loops/alt/notes), stateDiagram-v2 (composite), erDiagram, zenUML, user-journey syntax variants — whatever renders in common Mermaid builds.
+${ultraTypes}${deepVisual}- Geek nonsense layer: fake RFC titles, imaginary latency folklore, impossible-but-renderable metaphors — commit to the bit.
+- Still avoid broken syntax and keep text/background contrast readable.
+`;
+}
+
+/**
+ * User message body for transform operations (exported for tests).
+ * @param {{ mode: string, mermaidSource: string, focusScope: string, goMadDepth?: number }} args
+ */
+export function buildTransformUserContent({ mode, mermaidSource, focusScope, goMadDepth: rawDepth }) {
   const policy =
     mode === 'refine'
       ? `Transform mode: REFINE — polish and lightly extend the diagram.
@@ -118,12 +207,15 @@ function buildTransformUserContent({ mode, mermaidSource, focusScope }) {
 - Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the idea better; change type only when that shift is clearly justified. Otherwise keep the current type and innovate within it.
 - Larger edits OK; still coherent and valid Mermaid.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
-        : `Transform mode: GO MAD — maximum creative freedom while still vaguely reflecting the original idea.
-- Treat switching or hybridizing diagram types as a primary lever for surprise (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.): prefer unexpected but renderable pivots over playing it safe with the original type.
-- Lean into unusual but valid Mermaid: init/theme/classDef, styling hacks, playful shapes, unconventional grouping.
-- Prioritize spectacle + readability; avoid broken syntax.
+        : `Transform mode: GO MAD — creative chaos while still loosely anchored to the original idea (reinterpret ruthlessly).
+- Diagram-type roulette: aggressively prefer exotic renderable types over dull defaults — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4Context, classDiagram, sequenceDiagram, stateDiagram-v2, erDiagram. If the source is a plain flowchart/graph, treat that as a dare to pivot hard unless you have a killer gag keeping it.
+- Visual assault (valid Mermaid): rework %%{init:...}%% — swing themes (dark/forest/neutral), crank themeVariables (neon borders, loud fills that stay legible), optional themeCSS; pile on classDef/class, playful shapes, stylized subgraphs; use linkStyle on flow edges when it amps the vibe.
+- Prioritize spectacle, meme energy, and novelty over tidy consulting-diagram aesthetics.
 - Keep text/background contrast readable: never produce dark text on dark fills or light text on light fills.
-- Push boundaries — weird, memorable, still renders in standard Mermaid.`;
+- Weird > safe — memorable renders beat bland correctness.${buildGoMadEscalationInstructions(
+            mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
+            mermaidSource
+          )}`;
 
   return `${policy}
 
@@ -348,14 +440,11 @@ export function buildPatchRequiredInstruction({ messages }) {
 function formatAgentInvokeFailure(error, env = process.env) {
   const detail = redactSecrets(error instanceof Error ? error.message : String(error));
   const regionHint = /region|not available in your country|unsupported_country/i.test(detail)
-    ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` in your server `.env` to a model that works where you are (for example `openai/gpt-4o-mini` or `anthropic/claude-3.5-haiku`), then restart the API server.\n'
+    ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` or `OPENROUTER_MODEL_FAST` / `OPENROUTER_MODEL_QUALITY` in your server `.env` to an OpenRouter slug that works where you are (for example `qwen/qwen3-8b`, `qwen/qwen3-32b`, or `deepseek/deepseek-chat-v3-0324`), then restart the API server.\n'
     : '';
-  const modelId = env?.OPENROUTER_MODEL ?? '';
-  const toolsHint =
-    /tool|tools|function[_ ]?call|parallel_tool|gemini|unsupported/i.test(detail) ||
-    /gemini/i.test(modelId)
-      ? '\n\nIf failures mention tools or function calling, pick an OpenRouter model that reliably supports tool use (for example `openai/gpt-4o-mini`). Some Gemini routes through OpenRouter do not play well with LangChain tool agents.\n'
-      : '';
+  const toolsHint = /tool|tools|function[_ ]?call|parallel_tool|unsupported/i.test(detail)
+    ? '\n\nIf failures mention tools or function calling, pick an OpenRouter model that reliably supports agent tool use in your region (for example `qwen/qwen3-30b-a3b` or `qwen/qwen3-32b`).\n'
+    : '';
   return {
     message: `**Model request failed**\n\n${detail}${regionHint}${toolsHint}`,
     raw: null
@@ -544,6 +633,7 @@ export function createMermaidLangChainAgent({
     return openRouterModelFactory(env, { model: modelId, ...extraOptions });
   }
 
+  /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
   function getDefaultAgent(profile = 'fast') {
     const p = normalizeModelProfile(profile);
     const modelId = resolveOpenRouterModelId(env, p);
@@ -562,13 +652,16 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
-  function getTransformAgent(mode, profile = 'fast') {
+  /** Shape buttons Refine / Innovate / Go Mad — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
+  function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
     const p = normalizeModelProfile(profile);
     const modelId = resolveOpenRouterModelId(env, p);
-    const key = `transform:${m}:${modelId}`;
+    const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
+    const key =
+      m === 'goMad' ? `transform:${m}:${modelId}:d${madDepth}` : `transform:${m}:${modelId}`;
     if (!agentCache.has(key)) {
-      const tm = chatModelFor(p, transformModeModelOptions(m));
+      const tm = chatModelFor(p, transformModeModelOptions(m, madDepth ?? 1));
       agentCache.set(
         key,
         createAgentImpl({
@@ -617,9 +710,9 @@ ${prompt}${focusScope}`;
       );
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit }) {
+    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth }) {
       const currentState = stateStore.getState();
-      const transformAgent = getTransformAgent(mode, modelProfile);
+      const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
       const focusScope = buildFocusScopeInstructions(focusNode);
 
       return invokeMutation(
@@ -630,7 +723,8 @@ ${prompt}${focusScope}`;
             content: buildTransformUserContent({
               mode,
               mermaidSource: currentState.mermaidSource,
-              focusScope
+              focusScope,
+              goMadDepth
             })
           }
         ],
@@ -659,7 +753,7 @@ ${prompt}${focusScope}`;
 
     async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
       const state = stateStore.getState();
-      const focusScope = buildFocusScopeInstructions(focusNode);
+      const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
       const diagramBlock = `\`\`\`mermaid\n${state.mermaidSource}\n\`\`\``;
 
       const task =
@@ -823,7 +917,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           mode: payload.mode,
           focusNode: payload.focusNode,
           modelProfile,
-          emit
+          emit,
+          goMadDepth: payload.goMadDepth
         });
       }
 

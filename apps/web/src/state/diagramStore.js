@@ -148,7 +148,7 @@ export async function submitDiagramIntent({
   return payload;
 }
 
-export async function submitDiagramTransform({ revisionId, mermaidSource, mode, focusNode, modelProfile }) {
+export async function submitDiagramTransform({ revisionId, mermaidSource, mode, focusNode, modelProfile, goMadDepth }) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/transform`,
     {
@@ -159,7 +159,8 @@ export async function submitDiagramTransform({ revisionId, mermaidSource, mode, 
         mermaidSource,
         mode,
         focusNode,
-        ...(modelProfile != null ? { modelProfile } : {})
+        ...(modelProfile != null ? { modelProfile } : {}),
+        ...(typeof goMadDepth === 'number' && Number.isFinite(goMadDepth) ? { goMadDepth } : {})
       })
     },
     AGENT_REQUEST_TIMEOUT_MS,
@@ -206,6 +207,10 @@ export async function submitDiagramAnalyze({ revisionId, mermaidSource, kind, fo
  */
 export async function streamDiagramAgent(payload, onEvent, options = {}) {
   const { signal } = options;
+  if (signal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...createSessionHeaders() },
@@ -226,29 +231,46 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
   const decoder = new TextDecoder();
   let buffer = '';
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-
-    let boundary = buffer.indexOf('\n\n');
-    while (boundary !== -1) {
-      const raw = buffer.slice(0, boundary).trim();
-      buffer = buffer.slice(boundary + 2);
-      boundary = buffer.indexOf('\n\n');
-
-      if (!raw.startsWith('data:')) continue;
-      const jsonText = raw.slice(5).trim();
-      if (!jsonText) continue;
+  try {
+    while (true) {
+      let chunk;
       try {
-        const evt = JSON.parse(jsonText);
-        onEvent(evt);
-        if (evt.type === 'done') {
-          return;
+        chunk = await reader.read();
+      } catch (readErr) {
+        if (signal?.aborted || readErr?.name === 'AbortError') {
+          throw new DOMException('Aborted', 'AbortError');
         }
-      } catch {
-        // Ignore malformed SSE payloads.
+        throw readErr;
       }
+      const { done, value } = chunk;
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      let boundary = buffer.indexOf('\n\n');
+      while (boundary !== -1) {
+        const raw = buffer.slice(0, boundary).trim();
+        buffer = buffer.slice(boundary + 2);
+        boundary = buffer.indexOf('\n\n');
+
+        if (!raw.startsWith('data:')) continue;
+        const jsonText = raw.slice(5).trim();
+        if (!jsonText) continue;
+        try {
+          const evt = JSON.parse(jsonText);
+          onEvent(evt);
+          if (evt.type === 'done') {
+            return;
+          }
+        } catch {
+          // Ignore malformed SSE payloads.
+        }
+      }
+    }
+  } finally {
+    try {
+      reader.releaseLock();
+    } catch {
+      // Ignore double-release / aborted streams.
     }
   }
 }

@@ -1,17 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DEFAULT_OPENROUTER_MODEL_FAST,
+  DEFAULT_OPENROUTER_MODEL_QUALITY,
   TRANSFORM_MODEL_LIMITS,
   buildPatchRequiredInstruction,
   buildSyntaxRepairInstruction,
+  buildTransformUserContent,
+  clampGoMadDepth,
   createMermaidLangChainAgent,
+  inferMermaidTopKeyword,
   normalizeAgentStreamEvent,
   normalizeModelProfile,
-  resolveOpenRouterDeploymentPreset,
   resolveOpenRouterModelId,
   shouldAttemptSyntaxRepair,
   toLangChainMessages,
-  transformModeModelOptions
+  transformModeModelOptions,
+  goMadTransformModelOptions
 } from '../src/agents/mermaidLangChainAgent.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
@@ -38,9 +43,60 @@ test('agent message conversion drops assistant replies that expose internal tool
 test('transform mode picks increasing temperatures', () => {
   assert.ok(transformModeModelOptions('refine').temperature < transformModeModelOptions('innovate').temperature);
   assert.ok(transformModeModelOptions('innovate').temperature < transformModeModelOptions('goMad').temperature);
-  assert.ok(transformModeModelOptions('goMad').temperature > 1.12);
-  assert.equal(transformModeModelOptions('goMad').topP, TRANSFORM_MODEL_LIMITS.topP);
+  assert.ok(transformModeModelOptions('goMad').temperature > 1.45);
+  assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
   assert.equal(transformModeModelOptions('goMad').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
+});
+
+test('goMadTransformModelOptions ramps temperature and topP with depth', () => {
+  const shallow = goMadTransformModelOptions(1);
+  const deep = goMadTransformModelOptions(12);
+  assert.ok(deep.temperature > shallow.temperature);
+  assert.ok(deep.temperature <= 1.8);
+  assert.ok(deep.topP >= shallow.topP);
+});
+
+test('clampGoMadDepth coerces and clamps', () => {
+  assert.equal(clampGoMadDepth(undefined), 1);
+  assert.equal(clampGoMadDepth(2), 2);
+  assert.equal(clampGoMadDepth(99), 12);
+  assert.equal(clampGoMadDepth(1.7), 1);
+});
+
+test('inferMermaidTopKeyword skips init comments', () => {
+  assert.equal(inferMermaidTopKeyword('%%{init:{"theme":"dark"}}%%\nflowchart TD\n  A --> B'), 'flowchart');
+  assert.equal(inferMermaidTopKeyword('sequenceDiagram\n  Alice->>Bob: hi'), 'sequenceDiagram');
+});
+
+test('buildTransformUserContent adds escalation for goMad depth >= 2', () => {
+  const src = 'flowchart TD\n  A --> B';
+  const focus = '';
+  const shallow = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 1 });
+  assert.doesNotMatch(shallow, /GO MAD escalation/);
+
+  const deep = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 2 });
+  assert.match(deep, /GO MAD escalation \(tier 2\)/);
+  assert.match(deep, /MUST NOT stay "flowchart"/);
+  assert.match(deep, /gitGraph/);
+
+  const tier5 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 5 });
+  assert.match(tier5, /ONE coherent geek joke/);
+
+  const tier6 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 6 });
+  assert.match(tier6, /wrong-tool/);
+
+  const tier4 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 4 });
+  assert.match(tier4, /THREE mechanisms/);
+});
+
+test('buildTransformUserContent ignores goMadDepth for refine', () => {
+  const text = buildTransformUserContent({
+    mode: 'refine',
+    mermaidSource: 'flowchart TD\n  A --> B',
+    focusScope: '',
+    goMadDepth: 9
+  });
+  assert.doesNotMatch(text, /GO MAD escalation/);
 });
 
 test('applyTransformIntent uses hotter transform model for goMad', async () => {
@@ -66,17 +122,18 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
   });
 
   await service.applyTransformIntent({
-    mode: 'goMad'
+    mode: 'goMad',
+    goMadDepth: 3
   });
 
-  assert.ok(modelOptions.some((options) => options.temperature === transformModeModelOptions('goMad').temperature));
+  assert.ok(modelOptions.some((options) => options.temperature === goMadTransformModelOptions(3).temperature));
+  assert.ok(modelOptions.some((options) => options.temperature > transformModeModelOptions('goMad').temperature));
 });
 
 test('resolveOpenRouterModelId maps profiles and env overrides', () => {
   const base = {
     OPENROUTER_API_KEY: 'k',
-    OPENROUTER_MODEL: 'fallback-model',
-    MERMAID_OPENROUTER_PRESET: 'local-hk'
+    OPENROUTER_MODEL: 'fallback-model'
   };
   assert.equal(resolveOpenRouterModelId(base, 'fast'), 'fallback-model');
   assert.equal(resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_FAST: 'mini' }, 'fast'), 'mini');
@@ -85,16 +142,16 @@ test('resolveOpenRouterModelId maps profiles and env overrides', () => {
     resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_QUALITY: 'anthropic/claude-3.5-sonnet' }, 'quality'),
     'anthropic/claude-3.5-sonnet'
   );
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'local-hk' }, 'fast'), 'qwen/qwen3-32b');
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'fast'), DEFAULT_OPENROUTER_MODEL_FAST);
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'quality'), DEFAULT_OPENROUTER_MODEL_QUALITY);
   assert.equal(
-    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'local-hk' }, 'quality'),
-    'qwen/qwen3-next-80b-a3b-instruct'
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', K_SERVICE: 'my-service' }, 'fast'),
+    DEFAULT_OPENROUTER_MODEL_FAST
   );
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'gcp-us' }, 'fast'), 'google/gemini-2.5-flash');
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', MERMAID_OPENROUTER_PRESET: 'gcp-us' }, 'quality'), 'google/gemini-2.5-pro');
-  assert.equal(resolveOpenRouterDeploymentPreset({ MERMAID_OPENROUTER_PRESET: 'gcp-us' }), 'gcp-us');
-  assert.equal(resolveOpenRouterDeploymentPreset({ K_SERVICE: 'my-service' }), 'gcp-us');
-  assert.equal(resolveOpenRouterDeploymentPreset({}), 'local-hk');
+  assert.equal(
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', K_SERVICE: 'my-service' }, 'quality'),
+    DEFAULT_OPENROUTER_MODEL_QUALITY
+  );
   assert.equal(normalizeModelProfile(undefined), 'fast');
   assert.equal(normalizeModelProfile('quality'), 'quality');
 });

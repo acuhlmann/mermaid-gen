@@ -5,6 +5,8 @@ import {
   DEFAULT_DIAGRAM_STYLE,
   DiagramAnalyzeSchema,
   DiagramIntentSchema,
+  DiagramTransformIntentSchema,
+  FocusNodeSchema,
   applyMermaidStyleDirective,
   applyPatch,
   createInitialDiagramState,
@@ -151,4 +153,66 @@ test('modelProfile is optional and accepts fast or quality', () => {
     DiagramIntentSchema.safeParse({ ...baseIntent, modelProfile: 'invalid' }).success,
     false
   );
+});
+
+test('FocusNodeSchema requires edgeFrom and edgeTo when selectionKind is edge', () => {
+  assert.equal(
+    FocusNodeSchema.safeParse({
+      id: 'L_A_B_0',
+      selectionKind: 'edge'
+    }).success,
+    false
+  );
+
+  const ok = FocusNodeSchema.safeParse({
+    id: 'L_A_B_0',
+    selectionKind: 'edge',
+    edgeFrom: 'A',
+    edgeTo: 'B',
+    label: 'feeds'
+  });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.edgeFrom, 'A');
+});
+
+test('analyze payload accepts extended focusNode for edges', () => {
+  const parsed = DiagramAnalyzeSchema.safeParse({
+    revisionId: 0,
+    mermaidSource: 'flowchart LR\n  A --> B',
+    kind: 'explain',
+    focusNode: {
+      id: 'L_A_B_0',
+      selectionKind: 'edge',
+      edgeFrom: 'A',
+      edgeTo: 'B'
+    }
+  });
+  assert.equal(parsed.success, true);
+});
+
+test('transform payloads accept optional goMadDepth in valid range', () => {
+  const base = {
+    revisionId: 0,
+    mermaidSource: 'flowchart TD\n  A --> B',
+    mode: 'goMad'
+  };
+
+  const rest = DiagramTransformIntentSchema.safeParse(base);
+  assert.equal(rest.success, true);
+  assert.equal(rest.data.goMadDepth, undefined);
+
+  const depthOk = DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 7 });
+  assert.equal(depthOk.success, true);
+  assert.equal(depthOk.data.goMadDepth, 7);
+
+  const stream = AgentStreamPayloadSchema.safeParse({
+    operation: 'transform',
+    ...base,
+    goMadDepth: 2
+  });
+  assert.equal(stream.success, true);
+  assert.equal(stream.data.goMadDepth, 2);
+
+  assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 13 }).success, false);
+  assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 0 }).success, false);
 });

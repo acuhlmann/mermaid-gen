@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
 import {
@@ -14,6 +14,11 @@ import './App.css';
 import {
   playCompletionChime as playCompletionChimeTone,
   playFailureChime,
+  playGoMadCompletionChime,
+  playGoMadStreamStart,
+  playGoMadTokenTick,
+  playInnovateStreamStart,
+  playRefineStreamStart,
   playStreamStartChime,
   playTokenTickChime,
   playToolEndChime,
@@ -21,6 +26,7 @@ import {
 } from './utils/agentChimes.js';
 import { splitCritiqueActionableSections } from './utils/critiqueActionable.js';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
+import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
 
 const TOOL_LABELS = {
   get_diagram_state: 'Read diagram snapshot',
@@ -31,7 +37,8 @@ function formatToolLabel(name, repeatCount = 1) {
   if (!name) return 'Tool action';
   const base = TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
   if (name === 'apply_mermaid_patch' && repeatCount > 1) {
-    return `${base} (×${repeatCount})`;
+    const shown = Math.min(repeatCount, 3);
+    return `${base} (×${shown})`;
   }
   return base;
 }
@@ -41,6 +48,12 @@ const STREAM_DEBUG_LS_KEY = 'mermaid-architect-stream-debug';
 const NODE_PANEL_EDGE_MARGIN = 12;
 const NODE_PANEL_NODE_GAP = 10;
 const NODE_ACTIONS_IDLE_MS = 8000;
+/** Auto-show diagram diff highlights after the final SVG for an agent-applied revision is on screen. */
+const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
+/** Avoid keeping a stale render handshake armed forever if the SVG never confirms. */
+const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
+/** Revision-changing agent variants that should auto-show change highlights. */
+const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
 
 function getVisualViewportBounds() {
   const vv = typeof window !== 'undefined' ? window.visualViewport : null;
@@ -126,12 +139,45 @@ function snapshotStreamEventForDebug(evt) {
 
 function focusPayload(node) {
   if (!node?.id) return undefined;
+  if (node.kind === 'edge' && node.edgeFrom && node.edgeTo) {
+    return {
+      id: node.id,
+      label: node.label,
+      selectionKind: 'edge',
+      edgeFrom: node.edgeFrom,
+      edgeTo: node.edgeTo
+    };
+  }
   return {
     id: node.id,
     label: node.label,
-    ...(node.kind === 'cluster' ? { kind: 'cluster' } : {}),
+    ...(node.kind === 'cluster' ? { selectionKind: 'cluster' } : { selectionKind: 'node' }),
     ...(node.dataId ? { dataId: node.dataId } : {})
   };
+}
+
+/** Works with diagram canvas selection (`kind`) or API focus payloads (`selectionKind`). */
+/** Button label for repeated Go Mad (streak = completed Go Mad count since last reset). */
+function goMadShapeLabel(streak) {
+  if (streak <= 0) return 'Go Mad';
+  if (streak === 1) return 'Go Madder';
+  if (streak === 2) return 'Go Maddest';
+  return 'Max madness';
+}
+
+function selectionActionTitle(selectionLike, verbLabel) {
+  if (!selectionLike) return `${verbLabel} — diagram`;
+  const edgeLike =
+    selectionLike.kind === 'edge' ||
+    (selectionLike.selectionKind === 'edge' && selectionLike.edgeFrom && selectionLike.edgeTo);
+  if (edgeLike) {
+    return `${verbLabel} — edge ${selectionLike.edgeFrom} → ${selectionLike.edgeTo}`;
+  }
+  const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';
+  if (clusterLike) {
+    return `${verbLabel} — subgraph “${selectionLike.label || selectionLike.id}”`;
+  }
+  return `${verbLabel} — node “${selectionLike.label || selectionLike.id}”`;
 }
 
 const MODEL_PROFILE_STORAGE_KEY = 'mermaid-architect:model-profile';
@@ -236,11 +282,16 @@ function MermaidArchitect() {
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
+  const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
+  /** Auto pulse focuses on newly added nodes; manual "Highlight changes" shows full diff. */
+  const [diagramChangeHighlightAddedOnly, setDiagramChangeHighlightAddedOnly] = useState(false);
   const [latestCritique, setLatestCritique] = useState(() => {
     const cachedCritique = cacheRef.current?.latestCritique;
     return cachedCritique?.text ? cachedCritique : null;
   });
   const [critiqueActionableSelected, setCritiqueActionableSelected] = useState([]);
+  /** Successful consecutive Go Mad transforms; resets after Refine/Innovate/Intent/Clear/fix-from-critique. */
+  const [goMadStreak, setGoMadStreak] = useState(0);
   const [selectedNode, setSelectedNode] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
   const [nodePanelPlacement, setNodePanelPlacement] = useState(null);
@@ -257,9 +308,13 @@ function MermaidArchitect() {
 
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
+  /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
+  const streamAgentAbortRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
   const lastAutoFixSourceRef = useRef(null);
+  /** Mirrors latest client-side Mermaid render validation (debounced in DiagramCanvas). */
+  const clientValidationRef = useRef({ source: null, error: null });
   const autoFixAttemptedRef = useRef(false);
   const loadingRef = useRef(false);
   const streamingPreviewRef = useRef(false);
@@ -279,8 +334,24 @@ function MermaidArchitect() {
   const micSessionRef = useRef(0);
   const submitIntentFromVoiceRef = useRef(async (_text) => {});
   const lastTokenSoundAtRef = useRef(0);
+  const goMadTokenTickIndexRef = useRef(0);
   const nodeActionsPanelRef = useRef(null);
   const nodePanelIdleTimerRef = useRef(null);
+  const diagramAutoHighlightTimerRef = useRef(null);
+  /** Until SVG renders, { entryId, revisionId } — arms highlights via `onDiagramSvgRendered`. */
+  const pendingAutoDiagramHighlightRef = useRef(null);
+  /** Watchdog that clears stale pending highlights if the SVG-render handshake never matches. */
+  const pendingAutoDiagramHighlightTimeoutRef = useRef(null);
+  /** Forward ref so the streaming `final` callback can call the latest arm fn without dep churn. */
+  const armAutoDiagramChangeHighlightRef = useRef(null);
+
+  const clearPendingAutoDiagramHighlight = useCallback(() => {
+    pendingAutoDiagramHighlightRef.current = null;
+    if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
+      window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
+      pendingAutoDiagramHighlightTimeoutRef.current = null;
+    }
+  }, []);
 
   useSyncVisualViewportHeight();
 
@@ -350,8 +421,8 @@ function MermaidArchitect() {
       if (syncTimerRef.current) {
         clearTimeout(syncTimerRef.current);
       }
-      if (streamTimerRef.current) {
-        clearInterval(streamTimerRef.current);
+      if (streamTimerRef.current != null) {
+        cancelAnimationFrame(streamTimerRef.current);
       }
       if (autoFixTimerRef.current) {
         clearTimeout(autoFixTimerRef.current);
@@ -378,6 +449,15 @@ function MermaidArchitect() {
         window.clearTimeout(nodePanelIdleTimerRef.current);
         nodePanelIdleTimerRef.current = null;
       }
+      if (diagramAutoHighlightTimerRef.current != null) {
+        window.clearTimeout(diagramAutoHighlightTimerRef.current);
+        diagramAutoHighlightTimerRef.current = null;
+      }
+      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
+        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
+        pendingAutoDiagramHighlightTimeoutRef.current = null;
+      }
+      pendingAutoDiagramHighlightRef.current = null;
     },
     []
   );
@@ -406,21 +486,24 @@ function MermaidArchitect() {
   );
 
   const triggerCompletionDelight = useCallback(
-    (entryId) => {
+    (entryId, variant = 'general') => {
       setCelebratingEntryId(entryId);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
-      celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), 900);
-      tryAgentSound(playCompletionChimeTone);
+      const dwellMs = variant === 'goMad' ? 1100 : 900;
+      celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
+      if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
+      else tryAgentSound(playCompletionChimeTone);
     },
     [tryAgentSound]
   );
 
-  const animateAcceptedSource = useCallback((nextState) => {
+  const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
     const previousState = stateRef.current;
     const nextSource = nextState.mermaidSource;
 
-    if (streamTimerRef.current) {
-      clearInterval(streamTimerRef.current);
+    if (streamTimerRef.current != null) {
+      cancelAnimationFrame(streamTimerRef.current);
+      streamTimerRef.current = null;
     }
 
     if (previousState.revisionId === nextState.revisionId || previousState.mermaidSource === nextSource) {
@@ -428,31 +511,60 @@ function MermaidArchitect() {
       setStreamingPreview(false);
       setLoading(false);
       setActiveRequest(null);
+      queueMicrotask(() => onFullyApplied?.());
       return;
     }
 
-    const chunkSize = Math.max(1, Math.ceil(nextSource.length / 90));
+    const reduceMotion =
+      typeof globalThis.matchMedia === 'function' &&
+      globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduceMotion) {
+      setState(nextState);
+      setStreamingPreview(false);
+      setLoading(false);
+      setActiveRequest(null);
+      queueMicrotask(() => onFullyApplied?.());
+      return;
+    }
+
+    /** Fewer steps than legacy ÷90 so acceptance finishes sooner; Go Mad uses even fewer (heavy agents). */
+    const stepBudget = opts.denseSteps ? 26 : 40;
+    const chunkSize = Math.max(1, Math.ceil(nextSource.length / stepBudget));
     let cursor = 0;
+
     setStreamingPreview(true);
 
-    streamTimerRef.current = setInterval(() => {
-      cursor += chunkSize;
+    function pump() {
+      cursor = Math.min(nextSource.length, cursor + chunkSize);
       if (cursor >= nextSource.length) {
-        clearInterval(streamTimerRef.current);
         streamTimerRef.current = null;
         setState(nextState);
         setStreamingPreview(false);
         setLoading(false);
         setActiveRequest(null);
+        queueMicrotask(() => onFullyApplied?.());
         return;
       }
 
-      setState({
-        ...nextState,
-        mermaidSource: nextSource.slice(0, cursor),
-        updatedAt: nextState.updatedAt ?? previousState.updatedAt
+      startTransition(() => {
+        setState((prev) => {
+          const slice = nextSource.slice(0, cursor);
+          if (prev.mermaidSource === slice && prev.revisionId === nextState.revisionId) {
+            return prev;
+          }
+          return {
+            ...nextState,
+            mermaidSource: slice,
+            updatedAt: nextState.updatedAt ?? previousState.updatedAt
+          };
+        });
       });
-    }, 18);
+
+      streamTimerRef.current = requestAnimationFrame(pump);
+    }
+
+    streamTimerRef.current = requestAnimationFrame(pump);
   }, []);
 
   const appendInsightEntry = useCallback((title, variant = 'general', options = {}) => {
@@ -550,15 +662,27 @@ function MermaidArchitect() {
     [patchInsightEntry]
   );
 
+  const stopStreamingAgentRequest = useCallback(() => {
+    streamAgentAbortRef.current?.abort();
+  }, []);
+
   const runStreamingAgent = useCallback(
     async ({ operation, payload, title, onFinal, variant = 'general', diagramUndoBaseline }) => {
       setInsightsOpen(true);
       const sectionId = appendInsightEntry(title, variant, { diagramUndoBaseline });
-      tryAgentSound(playStreamStartChime);
+      if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
+      else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
+      else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
+      else tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
+      goMadTokenTickIndexRef.current = 0;
       let streamedText = '';
+      const abortCtrl = new AbortController();
+      streamAgentAbortRef.current = abortCtrl;
       try {
-        await streamDiagramAgent(payload, (evt) => {
+        await streamDiagramAgent(
+          payload,
+          (evt) => {
           appendStreamDebugLog(sectionId, evt);
           if (evt.type === 'phase' && evt.id && evt.label) {
             patchInsightEntry(sectionId, (entry) => ({
@@ -582,9 +706,20 @@ function MermaidArchitect() {
             streamedText += evt.text;
             appendToInsight(sectionId, evt.text);
             const now = Date.now();
-            if (now - lastTokenSoundAtRef.current >= 210) {
+            const reduceMotion =
+              typeof globalThis.matchMedia === 'function' &&
+              globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const goMadDense = variant === 'goMad' && !reduceMotion;
+            const minGapMs = goMadDense ? 140 : 210;
+            if (now - lastTokenSoundAtRef.current >= minGapMs) {
               lastTokenSoundAtRef.current = now;
-              tryAgentSound(playTokenTickChime);
+              if (goMadDense) {
+                const idx = goMadTokenTickIndexRef.current;
+                goMadTokenTickIndexRef.current = idx + 1;
+                tryAgentSound((ctx) => playGoMadTokenTick(ctx, idx));
+              } else {
+                tryAgentSound(playTokenTickChime);
+              }
             }
           } else if (evt.type === 'status' && evt.text) {
             setInsightStatus(sectionId, evt.text);
@@ -604,8 +739,33 @@ function MermaidArchitect() {
               completedAt: Date.now()
             }));
           } else if (evt.type === 'final') {
+            if (variant === 'goMad' && evt.revisionChanged) {
+              setGoMadStreak((s) => s + 1);
+            }
             if (evt.revisionChanged && evt.state) {
-              animateAcceptedSource(evt.state);
+              const shouldAutoHighlight =
+                Boolean(diagramUndoBaseline) && AUTO_DIAGRAM_HIGHLIGHT_VARIANTS.has(variant);
+              animateAcceptedSource(
+                evt.state,
+                shouldAutoHighlight
+                  ? () => {
+                      pendingAutoDiagramHighlightRef.current = {
+                        entryId: sectionId,
+                        revisionId: evt.state.revisionId
+                      };
+                      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
+                        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
+                      }
+                      pendingAutoDiagramHighlightTimeoutRef.current = window.setTimeout(() => {
+                        pendingAutoDiagramHighlightTimeoutRef.current = null;
+                        const stillPending = pendingAutoDiagramHighlightRef.current;
+                        if (!stillPending || stillPending.entryId !== sectionId) return;
+                        pendingAutoDiagramHighlightRef.current = null;
+                      }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS);
+                    }
+                  : undefined,
+                { denseSteps: variant === 'goMad' }
+              );
             }
             if (evt.message && operation !== 'analyze') {
               appendToInsight(sectionId, `\n\n— _${evt.message}_`);
@@ -619,23 +779,43 @@ function MermaidArchitect() {
                 ? { diagramRevisionApplied: true }
                 : {})
             }));
-            triggerCompletionDelight(sectionId);
+            triggerCompletionDelight(sectionId, variant);
             if (typeof onFinal === 'function') {
               const finalText =
                 streamedText.trim() || (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');
               onFinal({ evt, finalText });
             }
           }
-        });
+        },
+          { signal: abortCtrl.signal }
+        );
       } catch (err) {
-        appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
-        tryAgentSound(playFailureChime);
-        patchInsightEntry(sectionId, (entry) => ({
-          ...entry,
-          status: 'failed',
-          statusText: 'Something failed. You can retry.',
-          completedAt: Date.now()
-        }));
+        const aborted =
+          err?.name === 'AbortError' ||
+          (typeof DOMException !== 'undefined' &&
+            err instanceof DOMException &&
+            err.name === 'AbortError');
+        if (aborted) {
+          patchInsightEntry(sectionId, (entry) => ({
+            ...entry,
+            status: 'cancelled',
+            statusText: 'Stopped.',
+            completedAt: Date.now()
+          }));
+        } else {
+          appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
+          tryAgentSound(playFailureChime);
+          patchInsightEntry(sectionId, (entry) => ({
+            ...entry,
+            status: 'failed',
+            statusText: 'Something failed. You can retry.',
+            completedAt: Date.now()
+          }));
+        }
+      } finally {
+        if (streamAgentAbortRef.current === abortCtrl) {
+          streamAgentAbortRef.current = null;
+        }
       }
     },
     [
@@ -645,6 +825,7 @@ function MermaidArchitect() {
       appendTechnicalAction,
       appendToInsight,
       patchInsightEntry,
+      setGoMadStreak,
       setInsightStatus,
       triggerCompletionDelight,
       tryAgentSound
@@ -727,6 +908,7 @@ Hard requirements:
   );
 
   const handleValidationChange = useCallback(({ source, error: nextError }) => {
+    clientValidationRef.current = nextError ? { source, error: nextError } : { source: null, error: null };
     setValidationError(nextError ? { source, error: nextError } : null);
 
     if (!nextError) {
@@ -759,7 +941,13 @@ Hard requirements:
   }, [loading, scheduleAutoFix, streamingPreview, validationError]);
 
   function handleManualEdit(nextSource) {
+    let scheduledSource = null;
+
     setState((currentState) => {
+      if (nextSource === currentState.mermaidSource) {
+        return currentState;
+      }
+      scheduledSource = nextSource;
       const nextState = {
         ...currentState,
         mermaidSource: nextSource,
@@ -769,14 +957,22 @@ Hard requirements:
       return nextState;
     });
 
+    if (!scheduledSource) {
+      return;
+    }
+
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
     }
 
     syncTimerRef.current = setTimeout(async () => {
+      const cv = clientValidationRef.current;
+      if (cv.error && cv.source === scheduledSource) {
+        return;
+      }
       try {
         const synced = await syncClientDiagramState({
-          mermaidSource: nextSource
+          mermaidSource: scheduledSource
         });
         setState(synced);
       } catch {
@@ -803,6 +999,7 @@ Hard requirements:
     const trimmed = (nextPrompt ?? '').trim();
     if (!trimmed || loadingRef.current || streamingPreviewRef.current) return;
 
+    setGoMadStreak(0);
     const focusNode = focusPayload(selectedNode);
     setLoading(true);
     setActiveRequest('intent');
@@ -821,7 +1018,7 @@ Hard requirements:
           focusNode,
           modelProfile
         },
-        title: selectedNode ? `Go — node “${selectedNode.label || selectedNode.id}”` : 'Go — diagram',
+        title: selectionActionTitle(selectedNode, 'Go'),
         variant: 'intent',
         diagramUndoBaseline: { ...syncedState }
       });
@@ -1051,6 +1248,8 @@ Hard requirements:
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.mermaidSource.trim()) return;
 
+    if (mode !== 'goMad') setGoMadStreak(0);
+
     const focusNode = focusPayload(selectedNode);
     setLoading(true);
     setActiveRequest(`transform:${mode}`);
@@ -1059,6 +1258,9 @@ Hard requirements:
     try {
       const syncedState = await syncDiagramOrThrow();
       const labels = { refine: 'Refine', innovate: 'Innovate', goMad: 'Go Mad' };
+      const goMadDepth = mode === 'goMad' ? goMadStreak + 1 : undefined;
+      const transformTitleVerb =
+        mode === 'goMad' && goMadDepth > 1 ? `Go Mad (×${goMadDepth})` : labels[mode];
       await runStreamingAgent({
         operation: 'transform',
         payload: {
@@ -1067,12 +1269,11 @@ Hard requirements:
           revisionId: syncedState.revisionId,
           mermaidSource: syncedState.mermaidSource,
           focusNode,
-          modelProfile
+          modelProfile,
+          ...(mode === 'goMad' ? { goMadDepth } : {})
         },
-        title: selectedNode
-          ? `${labels[mode]} — node “${selectedNode.label || selectedNode.id}”`
-          : `${labels[mode]} — diagram`,
-        variant: 'general',
+        title: selectionActionTitle(selectedNode, transformTitleVerb),
+        variant: mode,
         diagramUndoBaseline: { ...syncedState }
       });
     } catch (err) {
@@ -1106,9 +1307,7 @@ Hard requirements:
           focusNode,
           modelProfile
         },
-        title: selectedNode
-          ? `${labels[kind]} — node “${selectedNode.label || selectedNode.id}”`
-          : `${labels[kind]} — diagram`,
+        title: selectionActionTitle(selectedNode, labels[kind]),
         variant: kind,
         onFinal: ({ finalText }) => {
           if (kind !== 'critique') return;
@@ -1179,6 +1378,7 @@ ${requirementsBlock}`;
       setLoading(true);
       setActiveRequest('fix');
       setError('');
+      setGoMadStreak(0);
 
       try {
         const syncedState = await syncDiagramOrThrow();
@@ -1193,9 +1393,7 @@ ${requirementsBlock}`;
             focusNode: latestCritique.focusNode,
             modelProfile
           },
-          title: latestCritique.focusNode
-            ? `Fix from critique — node “${latestCritique.focusNode.label || latestCritique.focusNode.id}”`
-            : 'Fix from critique — diagram',
+          title: selectionActionTitle(latestCritique.focusNode, 'Fix from critique'),
           variant: 'intent',
           diagramUndoBaseline: { ...syncedState }
         });
@@ -1212,6 +1410,7 @@ ${requirementsBlock}`;
 
   async function handleClearDiagram() {
     if (loadingRef.current || streamingPreviewRef.current) return;
+    setGoMadStreak(0);
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
@@ -1223,6 +1422,13 @@ ${requirementsBlock}`;
     setToolbarAnchor(null);
     setLatestCritique(null);
     setInsightsEntries([]);
+    if (diagramAutoHighlightTimerRef.current != null) {
+      window.clearTimeout(diagramAutoHighlightTimerRef.current);
+      diagramAutoHighlightTimerRef.current = null;
+    }
+    clearPendingAutoDiagramHighlight();
+    setDiagramChangeHighlightEntryId(null);
+    setDiagramChangeHighlightAddedOnly(false);
     setError('');
     setVoiceError('');
     setValidationError(null);
@@ -1256,8 +1462,8 @@ ${requirementsBlock}`;
         clearTimeout(syncTimerRef.current);
         syncTimerRef.current = null;
       }
-      if (streamTimerRef.current) {
-        clearInterval(streamTimerRef.current);
+      if (streamTimerRef.current != null) {
+        cancelAnimationFrame(streamTimerRef.current);
         streamTimerRef.current = null;
       }
       setStreamingPreview(false);
@@ -1270,12 +1476,90 @@ ${requirementsBlock}`;
         const synced = await syncClientDiagramState(payload);
         setState(synced);
         patchInsightEntry(entryId, (e) => ({ ...e, diagramUndoConsumed: true }));
+        if (diagramAutoHighlightTimerRef.current != null) {
+          window.clearTimeout(diagramAutoHighlightTimerRef.current);
+          diagramAutoHighlightTimerRef.current = null;
+        }
+        clearPendingAutoDiagramHighlight();
+        setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
       } catch (err) {
         setError(err.message);
       }
     },
-    [insightsEntries, patchInsightEntry]
+    [clearPendingAutoDiagramHighlight, insightsEntries, patchInsightEntry]
   );
+
+  const handleToggleDiagramChangeHighlight = useCallback(
+    (entryId) => {
+      clearPendingAutoDiagramHighlight();
+      if (diagramAutoHighlightTimerRef.current != null) {
+        window.clearTimeout(diagramAutoHighlightTimerRef.current);
+        diagramAutoHighlightTimerRef.current = null;
+      }
+      setDiagramChangeHighlightAddedOnly(false);
+      setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : entryId));
+    },
+    [clearPendingAutoDiagramHighlight]
+  );
+
+  const changeHighlightDiff = useMemo(() => {
+    if (!diagramChangeHighlightEntryId) return null;
+    const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
+    const baseline = entry?.diagramUndoBaseline?.mermaidSource;
+    if (typeof baseline !== 'string') return null;
+    return diffMermaidFlowcharts(baseline, state.mermaidSource ?? '');
+  }, [diagramChangeHighlightEntryId, insightsEntries, state.mermaidSource]);
+
+  const changeHighlightForCanvas = useMemo(() => {
+    if (!diagramChangeHighlightEntryId || !changeHighlightDiff) return null;
+    if (diagramChangeHighlightAddedOnly) {
+      return {
+        addedIds: changeHighlightDiff.addedIds,
+        modifiedIds: [],
+        removedIds: changeHighlightDiff.removedIds
+      };
+    }
+    return {
+      addedIds: changeHighlightDiff.addedIds,
+      modifiedIds: changeHighlightDiff.modifiedIds,
+      removedIds: changeHighlightDiff.removedIds
+    };
+  }, [changeHighlightDiff, diagramChangeHighlightEntryId, diagramChangeHighlightAddedOnly]);
+
+  const diagramChangeHighlightSummary = useMemo(() => {
+    if (!diagramChangeHighlightEntryId || !changeHighlightDiff) return null;
+    const { addedIds, modifiedIds, removedIds } = changeHighlightDiff;
+    const isStructuralEmpty =
+      addedIds.length === 0 && modifiedIds.length === 0 && removedIds.length === 0;
+    return { removedIds, isStructuralEmpty };
+  }, [changeHighlightDiff, diagramChangeHighlightEntryId]);
+
+  useEffect(() => {
+    if (!diagramChangeHighlightEntryId) return;
+    const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
+    const shouldClear =
+      !entry?.diagramUndoBaseline ||
+      entry.diagramUndoConsumed ||
+      (entry.status ?? 'running') === 'failed' ||
+      (entry.status ?? 'running') === 'cancelled' ||
+      ((entry.status ?? 'running') === 'done' && !entry.diagramRevisionApplied);
+    if (shouldClear) {
+      clearPendingAutoDiagramHighlight();
+      setDiagramChangeHighlightEntryId(null);
+    }
+  }, [clearPendingAutoDiagramHighlight, diagramChangeHighlightEntryId, insightsEntries]);
+
+  useEffect(() => {
+    if (!diagramChangeHighlightEntryId) {
+      setDiagramChangeHighlightAddedOnly(false);
+    }
+  }, [diagramChangeHighlightEntryId]);
+
+  useEffect(() => {
+    if (!state.mermaidSource?.trim()) {
+      clearPendingAutoDiagramHighlight();
+    }
+  }, [clearPendingAutoDiagramHighlight, state.mermaidSource]);
 
   const busy = loading || streamingPreview;
 
@@ -1290,6 +1574,60 @@ ${requirementsBlock}`;
       nodePanelIdleTimerRef.current = null;
     }
   }, []);
+
+  const armAutoDiagramChangeHighlight = useCallback(
+    (entryId) => {
+      if (diagramAutoHighlightTimerRef.current != null) {
+        window.clearTimeout(diagramAutoHighlightTimerRef.current);
+        diagramAutoHighlightTimerRef.current = null;
+      }
+      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
+        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
+        pendingAutoDiagramHighlightTimeoutRef.current = null;
+      }
+      clearNodePanelIdleTimer();
+      setSelectedNode(null);
+      setToolbarAnchor(null);
+      setNodePanelPlacement(null);
+      setDiagramChangeHighlightAddedOnly(false);
+      setDiagramChangeHighlightEntryId(entryId);
+      diagramAutoHighlightTimerRef.current = window.setTimeout(() => {
+        diagramAutoHighlightTimerRef.current = null;
+        setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
+      }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS);
+    },
+    [clearNodePanelIdleTimer]
+  );
+
+  useEffect(() => {
+    armAutoDiagramChangeHighlightRef.current = armAutoDiagramChangeHighlight;
+  }, [armAutoDiagramChangeHighlight]);
+
+  /**
+   * Confirms a pending auto-highlight when DiagramCanvas reports that the matching revision's SVG is on screen.
+   *
+   * Notes:
+   * - Only revisionId is matched; the source string is intentionally not compared because chunked streaming
+   *   plus React commit ordering can leave a transient editorSource snapshot, while the *next* render fires
+   *   with the final source under the same revisionId.
+   * - A non-matching revisionId is ignored so a stale render notification cannot wipe out a still-correct
+   *   pending arming. The watchdog set in the streaming `final` handler only clears stale pending state;
+   *   it does not start the pulse on an old SVG.
+   */
+  const handleDiagramSvgRendered = useCallback(
+    ({ revisionId: renderedRevisionId }) => {
+      const pending = pendingAutoDiagramHighlightRef.current;
+      if (!pending) return;
+      if (renderedRevisionId !== pending.revisionId) return;
+      pendingAutoDiagramHighlightRef.current = null;
+      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
+        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
+        pendingAutoDiagramHighlightTimeoutRef.current = null;
+      }
+      armAutoDiagramChangeHighlight(pending.entryId);
+    },
+    [armAutoDiagramChangeHighlight]
+  );
 
   const scheduleNodePanelIdleDismiss = useCallback(() => {
     clearNodePanelIdleTimer();
@@ -1437,6 +1775,16 @@ ${requirementsBlock}`;
 
   const streamDebugEnabled = readStreamDebugEnabled();
 
+  const streamingAgentStoppable = useMemo(() => {
+    if (!loading || !activeRequest) return false;
+    return (
+      activeRequest === 'intent' ||
+      activeRequest === 'fix' ||
+      activeRequest.startsWith('transform:') ||
+      activeRequest.startsWith('analyze:')
+    );
+  }, [activeRequest, loading]);
+
   const insightsSlot = insightsOpen ? (
     <InsightsPane
       entries={insightsEntries}
@@ -1447,6 +1795,11 @@ ${requirementsBlock}`;
       critiqueActionableUi={critiqueActionableUi}
       diagramUndoDisabled={loading}
       onDiagramUndo={handleDiagramUndo}
+      diagramChangeHighlightEntryId={diagramChangeHighlightEntryId}
+      diagramChangeHighlightSummary={diagramChangeHighlightSummary}
+      diagramChangeHighlightDisabled={loading}
+      onToggleDiagramChangeHighlight={handleToggleDiagramChangeHighlight}
+      onStopStreamingAgent={streamingAgentStoppable ? stopStreamingAgentRequest : undefined}
     />
   ) : null;
 
@@ -1471,6 +1824,8 @@ ${requirementsBlock}`;
           if (!next) setToolbarAnchor(null);
         }}
         onNodeToolbarAnchor={setToolbarAnchor}
+        changeHighlight={changeHighlightForCanvas}
+        onDiagramSvgRendered={handleDiagramSvgRendered}
       />
 
       {toolbarAnchor && selectedNode ? (
@@ -1488,7 +1843,7 @@ ${requirementsBlock}`;
             }px), 0)`
           }}
           role="dialog"
-          aria-label="Node actions"
+          aria-label="Diagram selection actions"
           onPointerEnter={bumpNodePanelIdleDismiss}
           onPointerDown={bumpNodePanelIdleDismiss}
           onFocusCapture={bumpNodePanelIdleDismiss}
@@ -1510,7 +1865,7 @@ ${requirementsBlock}`;
                   </button>
                   <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
                     <ButtonIcon>!</ButtonIcon>
-                    Go Mad
+                    {goMadShapeLabel(goMadStreak)}
                   </button>
                 </div>
               </section>
@@ -1625,9 +1980,20 @@ ${requirementsBlock}`;
             </button>
           </div>
           {status ? (
-            <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
-              {status}
-            </p>
+            <div className="overlay-status-row">
+              <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
+                {status}
+              </p>
+              {streamingAgentStoppable && !insightsOpen ? (
+                <button
+                  type="button"
+                  className="overlay-button compact-button overlay-status-stop"
+                  onClick={stopStreamingAgentRequest}
+                >
+                  Stop request
+                </button>
+              ) : null}
+            </div>
           ) : null}
         </form>
 
@@ -1647,7 +2013,7 @@ ${requirementsBlock}`;
               </button>
               <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
                 <ButtonIcon>!</ButtonIcon>
-                Go Mad
+                {goMadShapeLabel(goMadStreak)}
               </button>
             </div>
             <span className="button-group-label">Read</span>

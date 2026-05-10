@@ -4,7 +4,8 @@ import { collapseConsecutiveApplyPatchActions } from '../src/utils/collapsePatch
 function formatLabel(name, repeatCount) {
   const base = name === 'apply_mermaid_patch' ? 'Apply diagram update' : name;
   if (name === 'apply_mermaid_patch' && repeatCount > 1) {
-    return `${base} (×${repeatCount})`;
+    const shown = Math.min(repeatCount, 3);
+    return `${base} (×${shown})`;
   }
   return base;
 }
@@ -48,6 +49,17 @@ describe('collapseConsecutiveApplyPatchActions', () => {
     actions = collapseConsecutiveApplyPatchActions(actions, formatLabel);
     expect(actions).toHaveLength(1);
     expect(actions[0].count).toBe(3);
+    expect(actions[0].label).toBe('Apply diagram update (×3)');
+  });
+
+  it('caps merged patch label display at ×3 while preserving numeric count', () => {
+    let actions = [{ id: 'p1', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+    for (let i = 2; i <= 4; i += 1) {
+      actions = [...actions, { id: `p${i}`, name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+      actions = collapseConsecutiveApplyPatchActions(actions, formatLabel);
+    }
+    expect(actions).toHaveLength(1);
+    expect(actions[0].count).toBe(4);
     expect(actions[0].label).toBe('Apply diagram update (×3)');
   });
 });
