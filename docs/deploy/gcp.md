@@ -49,7 +49,25 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
    - `roles/artifactregistry.writer`
    - `roles/iam.serviceAccountUser` on the **Cloud Run runtime** service account (often `PROJECT_NUMBER-compute@developer.gserviceaccount.com`) so deploy can attach revisions.
 
-4. Configure **Workload Identity Federation** so GitHub can impersonate that SA (recommended; no JSON keys). Follow Google’s guide: [Authenticate to Google Cloud from GitHub Actions](https://github.com/google-github-actions/auth#setting-up-workload-identity-federation) (pool + provider + `iam.workloadIdentityUser` binding for `repo:OWNER/REPO:ref:refs/heads/main`).
+4. Configure **Workload Identity Federation** so GitHub can impersonate that SA (recommended; no JSON keys). Follow Google’s guide: [Authenticate to Google Cloud from GitHub Actions](https://github.com/google-github-actions/auth#setting-up-workload-identity-federation) (pool + OIDC provider + binding).
+
+   Creating the GitHub OIDC provider requires an **`--attribute-condition`** that references JWT claims (GCP rejects providers without it). Restrict to your repo, for example:
+
+   ```bash
+   POOL=github-actions-pool
+   PROVIDER=github
+   PROJECT_NUMBER=$(gcloud projects describe PROJECT_ID --format='value(projectNumber)')
+   gcloud iam workload-identity-pools providers create-oidc "${PROVIDER}" \
+     --project=PROJECT_ID --location=global --workload-identity-pool="${POOL}" \
+     --display-name="GitHub Actions OIDC" \
+     --issuer-uri="https://token.actions.githubusercontent.com" \
+     --attribute-mapping="google.subject=assertion.sub,attribute.actor=assertion.actor,attribute.repository=assertion.repository,attribute.repository_owner=assertion.repository_owner" \
+     --attribute-condition="assertion.repository == 'OWNER/REPO'"
+   ```
+
+   Grant **`roles/iam.workloadIdentityUser`** on the deployer SA for  
+   `principalSet://iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/attribute.repository/OWNER/REPO`  
+   (same `OWNER/REPO` string as in the condition).
 
 5. In the GitHub repo **Settings → Secrets and variables → Actions**, add:
 
