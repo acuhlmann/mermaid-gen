@@ -6,7 +6,7 @@ Replace placeholders such as `PROJECT_ID`, `REGION`, and `AR_REPO` with your val
 
 ## Billing credits (any linked project)
 
-Credits live on your **billing account** ([credits view](https://console.cloud.google.com/billing/015FE8-599FA7-A11AA4/credits/all?organizationId=0)). **Any GCP project linked to that billing account** will invoice usage (Cloud Run, Artifact Registry, outbound egress, etc.) to that account, and **eligible credits are applied there**—the project ID itself does not “hold” credits.
+Credits live on your **billing account** (open [Google Cloud Billing](https://console.cloud.google.com/billing), select the account, then open **Credits**). **Any GCP project linked to that billing account** will invoice usage (Cloud Run, Artifact Registry, outbound egress, etc.) to that account, and **eligible credits are applied there**—the project ID itself does not “hold” credits.
 
 Practical steps:
 
