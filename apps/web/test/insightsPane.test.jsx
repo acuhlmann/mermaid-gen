@@ -34,6 +34,9 @@ describe('InsightsPane', () => {
     expect(screen.getByText('Technical actions')).toBeTruthy();
     expect(screen.getByText('Read diagram snapshot')).toBeTruthy();
     expect(screen.getByText('Working')).toBeTruthy();
+    expect(screen.getByText('Now')).toBeTruthy();
+    expect(screen.getByText('Working on your request...')).toBeTruthy();
+    expect(screen.getByText('Live')).toBeTruthy();
   });
 
   it('shows done state and supports sound toggle', () => {
@@ -91,6 +94,8 @@ describe('InsightsPane', () => {
 
     expect(screen.getByRole('region', { name: 'Agent phases' })).toBeTruthy();
     expect(screen.getByText('Applying your request…')).toBeTruthy();
+    expect(screen.getByText('Live')).toBeTruthy();
+    expect(screen.getByText('Working…')).toBeTruthy();
     expect(screen.getByRole('region', { name: 'Patch summary' })).toBeTruthy();
     expect(screen.getByText('+3 / −1 lines')).toBeTruthy();
     expect(screen.getByText(/Raw stream events/i)).toBeTruthy();

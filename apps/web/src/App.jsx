@@ -11,6 +11,14 @@ import {
   writeDiagramCache
 } from './state/diagramStore.js';
 import './App.css';
+import {
+  playCompletionChime as playCompletionChimeTone,
+  playFailureChime,
+  playStreamStartChime,
+  playTokenTickChime,
+  playToolEndChime,
+  playToolStartChime
+} from './utils/agentChimes.js';
 
 const TOOL_LABELS = {
   get_diagram_state: 'Read diagram snapshot',
@@ -196,6 +204,7 @@ function MermaidArchitect() {
   const voiceAccumulatedRef = useRef('');
   const micSessionRef = useRef(0);
   const submitIntentFromVoiceRef = useRef(async (_text) => {});
+  const lastTokenSoundAtRef = useRef(0);
 
   useSyncVisualViewportHeight();
 
@@ -295,39 +304,26 @@ function MermaidArchitect() {
     });
   }, []);
 
-  const playCompletionChime = useCallback(() => {
-    if (!soundEnabled || !hasInteractedRef.current) return;
-    try {
-      const AudioContextCtor = globalThis.AudioContext || globalThis.webkitAudioContext;
-      if (!AudioContextCtor) return;
-      const context = audioContextRef.current ?? new AudioContextCtor();
-      audioContextRef.current = context;
-      const now = context.currentTime;
-      const oscillator = context.createOscillator();
-      const gainNode = context.createGain();
-      oscillator.type = 'triangle';
-      oscillator.frequency.setValueAtTime(523.25, now);
-      oscillator.frequency.linearRampToValueAtTime(659.25, now + 0.12);
-      gainNode.gain.setValueAtTime(0.0001, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.065, now + 0.02);
-      gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
-      oscillator.connect(gainNode);
-      gainNode.connect(context.destination);
-      oscillator.start(now);
-      oscillator.stop(now + 0.3);
-    } catch {
-      // Ignore audio issues (autoplay restrictions, unsupported browser, etc).
-    }
-  }, [soundEnabled]);
+  const tryAgentSound = useCallback(
+    (playFn) => {
+      if (!soundEnabled || !hasInteractedRef.current) return;
+      try {
+        playFn(audioContextRef);
+      } catch {
+        // Ignore audio issues (autoplay restrictions, unsupported browser, etc).
+      }
+    },
+    [soundEnabled]
+  );
 
   const triggerCompletionDelight = useCallback(
     (entryId) => {
       setCelebratingEntryId(entryId);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
       celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), 900);
-      playCompletionChime();
+      tryAgentSound(playCompletionChimeTone);
     },
-    [playCompletionChime]
+    [tryAgentSound]
   );
 
   const animateAcceptedSource = useCallback((nextState) => {
@@ -365,7 +361,7 @@ function MermaidArchitect() {
       setState({
         ...nextState,
         mermaidSource: nextSource.slice(0, cursor),
-        updatedAt: new Date().toISOString()
+        updatedAt: nextState.updatedAt ?? previousState.updatedAt
       });
     }, 18);
   }, []);
@@ -457,6 +453,8 @@ function MermaidArchitect() {
     async ({ operation, payload, title, onFinal }) => {
       setInsightsOpen(true);
       const sectionId = appendInsightEntry(title);
+      tryAgentSound(playStreamStartChime);
+      lastTokenSoundAtRef.current = 0;
       let streamedText = '';
       try {
         await streamDiagramAgent(payload, (evt) => {
@@ -482,14 +480,22 @@ function MermaidArchitect() {
           } else if (evt.type === 'token' && evt.text) {
             streamedText += evt.text;
             appendToInsight(sectionId, evt.text);
+            const now = Date.now();
+            if (now - lastTokenSoundAtRef.current >= 210) {
+              lastTokenSoundAtRef.current = now;
+              tryAgentSound(playTokenTickChime);
+            }
           } else if (evt.type === 'status' && evt.text) {
             setInsightStatus(sectionId, evt.text);
           } else if (evt.type === 'tool_start' && evt.name) {
             appendTechnicalAction(sectionId, evt.name, 'running');
+            tryAgentSound(playToolStartChime);
           } else if (evt.type === 'tool_end' && evt.name) {
             appendTechnicalAction(sectionId, evt.name, 'done');
+            tryAgentSound(playToolEndChime);
           } else if (evt.type === 'error' && evt.message) {
             appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
+            tryAgentSound(playFailureChime);
             patchInsightEntry(sectionId, (entry) => ({
               ...entry,
               status: 'failed',
@@ -519,6 +525,7 @@ function MermaidArchitect() {
         });
       } catch (err) {
         appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
+        tryAgentSound(playFailureChime);
         patchInsightEntry(sectionId, (entry) => ({
           ...entry,
           status: 'failed',
@@ -535,7 +542,8 @@ function MermaidArchitect() {
       appendToInsight,
       patchInsightEntry,
       setInsightStatus,
-      triggerCompletionDelight
+      triggerCompletionDelight,
+      tryAgentSound
     ]
   );
 
@@ -628,6 +636,14 @@ Hard requirements:
 
   useEffect(() => {
     if (!validationError) {
+      if (autoFixTimerRef.current) {
+        clearTimeout(autoFixTimerRef.current);
+        autoFixTimerRef.current = null;
+      }
+      return;
+    }
+
+    if (streamingPreview) {
       if (autoFixTimerRef.current) {
         clearTimeout(autoFixTimerRef.current);
         autoFixTimerRef.current = null;
@@ -1084,6 +1100,10 @@ Requirements:
   }
 
   const busy = loading || streamingPreview;
+  const agentThinkingChrome = useMemo(
+    () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
+    [loading, insightsEntries]
+  );
   const hasDiagramText = Boolean(state.mermaidSource?.trim());
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
@@ -1124,6 +1144,7 @@ Requirements:
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
         streamingPreview={streamingPreview}
+        agentThinking={agentThinkingChrome && !streamingPreview}
         editorOpen={editorOpen}
         insightsOpen={insightsOpen && Boolean(insightsSlot)}
         insightsSlot={insightsSlot}
@@ -1343,7 +1364,11 @@ Requirements:
             </button>
           </div>
         </div>
-        <button type="button" className="overlay-button thinking-toggle-button" onClick={() => setInsightsOpen((v) => !v)}>
+        <button
+          type="button"
+          className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
+          onClick={() => setInsightsOpen((v) => !v)}
+        >
           <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
           {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
         </button>

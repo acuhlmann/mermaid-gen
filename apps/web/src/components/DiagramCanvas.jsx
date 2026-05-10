@@ -35,6 +35,17 @@ function getDistance(first, second) {
   return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
+function StreamingWaveIcon() {
+  return (
+    <svg className="streaming-wave-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M3 16h2v-8H3v8zm4 8h2V8H7v16zm4-12h2V4h-2v8zm4 8h2v-4h-2v4zm4-6v10h2V10h-2z"
+      />
+    </svg>
+  );
+}
+
 function nodeTitleFromElement(nodeEl) {
   const parts = [];
   nodeEl.querySelectorAll('text').forEach((textEl) => {
@@ -51,6 +62,7 @@ export default function DiagramCanvas({
   onManualEdit,
   onValidationChange,
   streamingPreview = false,
+  agentThinking = false,
   editorOpen = false,
   insightsOpen = false,
   insightsSlot = null,
@@ -75,6 +87,8 @@ export default function DiagramCanvas({
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const viewportRef = useRef(null);
+  const diagramSurfaceRef = useRef(null);
+  const lastToolbarAnchorReportRef = useRef(null);
   const tapCandidateRef = useRef(null);
   const backgroundTapRef = useRef(null);
 
@@ -218,23 +232,40 @@ export default function DiagramCanvas({
   useLayoutEffect(() => {
     if (!onNodeToolbarAnchor) return;
     const root = viewportRef.current;
+
+    function clearToolbarAnchor() {
+      if (lastToolbarAnchorReportRef.current !== null) {
+        lastToolbarAnchorReportRef.current = null;
+        onNodeToolbarAnchor(null);
+      }
+    }
+
     if (!selectedNode?.id || !root) {
-      onNodeToolbarAnchor(null);
+      clearToolbarAnchor();
       return;
     }
     try {
       const el = root.querySelector(`[id="${CSS.escape(selectedNode.id)}"]`);
       if (!el) {
-        onNodeToolbarAnchor(null);
+        clearToolbarAnchor();
         return;
       }
       const rect = el.getBoundingClientRect();
-      onNodeToolbarAnchor({
-        left: rect.left + rect.width / 2,
-        top: rect.bottom + 10
-      });
+      const left = rect.left + rect.width / 2;
+      const top = rect.bottom + 10;
+      const prev = lastToolbarAnchorReportRef.current;
+      if (
+        prev &&
+        prev.nodeId === selectedNode.id &&
+        Math.abs(prev.left - left) < 0.5 &&
+        Math.abs(prev.top - top) < 0.5
+      ) {
+        return;
+      }
+      lastToolbarAnchorReportRef.current = { nodeId: selectedNode.id, left, top };
+      onNodeToolbarAnchor({ left, top });
     } catch {
-      onNodeToolbarAnchor(null);
+      clearToolbarAnchor();
     }
   }, [selectedNode, onNodeToolbarAnchor, svgMarkup, viewport]);
 
@@ -249,13 +280,9 @@ export default function DiagramCanvas({
     }
   }
 
-  function clampScale(value) {
-    return Math.min(4, Math.max(0.2, value));
-  }
-
-  function zoomAtPoint(pointX, pointY, scaleFactor) {
+  const zoomAtPoint = useCallback((pointX, pointY, scaleFactor) => {
     setViewport((current) => {
-      const nextScale = clampScale(current.scale * scaleFactor);
+      const nextScale = Math.min(4, Math.max(0.2, current.scale * scaleFactor));
       if (nextScale === current.scale) {
         return current;
       }
@@ -269,17 +296,26 @@ export default function DiagramCanvas({
         y: pointY - worldY * nextScale
       };
     });
-  }
+  }, []);
 
-  function handleWheel(event) {
-    event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    const pointerX = event.clientX - rect.left;
-    const pointerY = event.clientY - rect.top;
-    const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+  const handleWheel = useCallback(
+    (event) => {
+      event.preventDefault();
+      const rect = event.currentTarget.getBoundingClientRect();
+      const pointerX = event.clientX - rect.left;
+      const pointerY = event.clientY - rect.top;
+      const zoomFactor = Math.exp(-event.deltaY * 0.0015);
+      zoomAtPoint(pointerX, pointerY, zoomFactor);
+    },
+    [zoomAtPoint]
+  );
 
-    zoomAtPoint(pointerX, pointerY, zoomFactor);
-  }
+  useEffect(() => {
+    const el = diagramSurfaceRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
 
   function handlePointerDown(event) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
@@ -375,7 +411,7 @@ export default function DiagramCanvas({
           x: current.x + dx,
           y: current.y + dy
         };
-        const nextScale = clampScale(panned.scale * zoomFactor);
+        const nextScale = Math.min(4, Math.max(0.2, panned.scale * zoomFactor));
         const worldX = (nextCentroid.x - panned.x) / panned.scale;
         const worldY = (nextCentroid.y - panned.y) / panned.scale;
 
@@ -479,15 +515,22 @@ export default function DiagramCanvas({
     <section className={shellClass}>
       <div className="diagram-main-column">
         <div
-          className={`diagram-output ${isPanning ? 'is-panning' : ''}`}
-          onWheel={handleWheel}
+          ref={diagramSurfaceRef}
+          className={`diagram-output ${isPanning ? 'is-panning' : ''} ${agentThinking ? 'is-agent-thinking' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
           onPointerCancel={endPointerGesture}
           aria-label="Mermaid renderer. Drag to pan from anywhere including nodes. Pinch or wheel to zoom. Tap a node to select."
         >
-          {streamingPreview ? <p className="streaming-note">Updating diagram...</p> : null}
+          {streamingPreview ? (
+            <p className="streaming-note" role="status">
+              <span className="streaming-note-inner">
+                <StreamingWaveIcon />
+                <span>Updating diagram…</span>
+              </span>
+            </p>
+          ) : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
           <div
             ref={viewportRef}
@@ -502,7 +545,14 @@ export default function DiagramCanvas({
 
       {editorOpen ? (
         <aside className="diagram-editor-panel" aria-label="Mermaid code editor">
-          {streamingPreview ? <p className="streaming-note">Streaming validated source...</p> : null}
+          {streamingPreview ? (
+            <p className="streaming-note" role="status">
+              <span className="streaming-note-inner">
+                <StreamingWaveIcon />
+                <span>Streaming validated source…</span>
+              </span>
+            </p>
+          ) : null}
           <div className="diagram-monaco-wrap">
             <Editor
               height="100%"
