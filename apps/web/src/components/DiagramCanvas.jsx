@@ -79,10 +79,6 @@ export default function DiagramCanvas({
   }, [mermaidSource]);
 
   useEffect(() => {
-    setViewport({ x: 0, y: 0, scale: 1 });
-  }, [revisionId]);
-
-  useEffect(() => {
     let cancelled = false;
 
     if (streamingPreview) {
