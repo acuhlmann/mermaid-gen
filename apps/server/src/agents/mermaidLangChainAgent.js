@@ -38,7 +38,9 @@ const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejecte
 
 export class LlmNotConfiguredError extends Error {
   constructor() {
-    super('OpenRouter is not configured. Set OPENROUTER_API_KEY in .env to enable LLM-backed agents.');
+    super(
+      'OpenRouter is not configured. For local dev set OPENROUTER_API_KEY in .env; on Cloud Run use Secret Manager secret openrouter-api-key (see docs/deploy/gcp.md).'
+    );
     this.name = 'LlmNotConfiguredError';
     this.statusCode = 503;
   }

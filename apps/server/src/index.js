@@ -6,10 +6,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
-import { createCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
-import { createLazyMermaidAgentService, isLlmConfigured } from './agents/mermaidLangChainAgent.js';
+import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
+import { isLlmConfigured } from './agents/mermaidLangChainAgent.js';
 import { createCopilotRouter } from './routes/copilot.js';
-import { createDiagramStateStore } from './state/diagramStateStore.js';
+import {
+  createSessionServicesRegistry,
+  resolveSessionIdFromRequest,
+  resolveSessionIdFromCopilotInput
+} from './state/sessionServices.js';
 
 const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
 dotenv.config({ path: envPath });
@@ -18,17 +22,33 @@ const app = express();
 if (process.env.NODE_ENV === 'production') {
   app.set('trust proxy', 1);
 }
-const stateStore = createDiagramStateStore();
-const agentService = createLazyMermaidAgentService({ stateStore });
+const sessionRegistry = createSessionServicesRegistry();
+const getSessionServicesForRequest = (req) => {
+  const sessionId = resolveSessionIdFromRequest(req);
+  return sessionRegistry.getSessionServices(sessionId);
+};
 const runtime = new CopilotRuntime({
   agents: {
-    default: createCopilotRuntimeAgent({ agentService, stateStore })
+    default: createSessionAwareCopilotRuntimeAgent({
+      getSessionServicesForInput: (input) => {
+        const sessionId = resolveSessionIdFromCopilotInput(input);
+        return sessionRegistry.getSessionServices(sessionId);
+      }
+    })
   }
 });
 
 app.use(cors());
 app.use(express.json());
-app.use('/api/copilotkit', createCopilotRouter({ stateStore, agentService }));
+app.use(
+  '/api/copilotkit',
+  createCopilotRouter({
+    resolveServices: (req) => {
+      const { sessionId, stateStore, agentService } = getSessionServicesForRequest(req);
+      return { sessionId, stateStore, agentService };
+    }
+  })
+);
 app.use(
   createCopilotExpressHandler({
     runtime,
@@ -97,4 +117,4 @@ const server = app.listen(port, () => {
 });
 server.ref();
 
-export { app, runtime, stateStore, agentService, server };
+export { app, runtime, sessionRegistry, server };

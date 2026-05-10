@@ -8,6 +8,8 @@ import {
   API_BASE_URL,
   fallbackState,
   fetchDiagramState,
+  getOrCreateBrowserSessionId,
+  SESSION_HEADER,
   syncClientDiagramState,
   submitDiagramIntent,
   submitCoAuthorIntent,
@@ -27,7 +29,7 @@ const defaultCoAuthorSettings = {
 const defaultCoAuthorPrompt =
   'Creatively extend the current diagram into a bigger system while preserving existing structure and concepts.';
 
-function MermaidArchitect() {
+function MermaidArchitect({ sessionId }) {
   const [state, setState] = useState(fallbackState);
   const [lastCommittedState, setLastCommittedState] = useState(fallbackState);
   const [prompt, setPrompt] = useState(defaultPrompt);
@@ -465,6 +467,7 @@ Hard requirements:
   return (
     <CopilotSidebar
       defaultOpen
+      threadId={sessionId}
       instructions="You are Mermaid Architect. Stream concise commentary while editing the current Mermaid diagram. Apply diagram changes with the server-side patch tool before summarizing."
       labels={{
         title: 'AG-UI Mermaid Agent',
@@ -567,14 +570,17 @@ Hard requirements:
 }
 
 function App() {
+  const sessionId = useMemo(() => getOrCreateBrowserSessionId(), []);
+
   return (
     <CopilotKit
       // Multi-route Express runtime (`createCopilotExpressHandler` default mode) exposes
       // GET …/info. Single-endpoint mode POSTs to the base URL, which returns 404 here.
       useSingleEndpoint={false}
       runtimeUrl={`${API_BASE_URL}/api/copilotkit`}
+      headers={() => ({ [SESSION_HEADER]: sessionId })}
     >
-      <MermaidArchitect />
+      <MermaidArchitect sessionId={sessionId} />
     </CopilotKit>
   );
 }

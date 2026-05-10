@@ -7,9 +7,43 @@ export const API_BASE_URL = rawApiBase
   : import.meta.env.DEV
     ? 'http://localhost:4000'
     : '';
+export const SESSION_HEADER = 'x-session-id';
+const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
+
+let inMemorySessionId = null;
+
+function createSessionId() {
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function getOrCreateBrowserSessionId() {
+  if (typeof window === 'undefined') {
+    inMemorySessionId ??= createSessionId();
+    return inMemorySessionId;
+  }
+
+  const existing = window.localStorage.getItem(BROWSER_SESSION_STORAGE_KEY);
+  if (existing) return existing;
+
+  const next = createSessionId();
+  window.localStorage.setItem(BROWSER_SESSION_STORAGE_KEY, next);
+  return next;
+}
+
+function createSessionHeaders() {
+  return {
+    [SESSION_HEADER]: getOrCreateBrowserSessionId()
+  };
+}
 
 export async function fetchDiagramState() {
-  const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`);
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
+    headers: createSessionHeaders()
+  });
   if (!response.ok) {
     throw new Error(`Failed to fetch state: ${response.status}`);
   }
@@ -19,7 +53,7 @@ export async function fetchDiagramState() {
 export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
     body: JSON.stringify({ mermaidSource, styleConfig })
   });
 
@@ -34,7 +68,7 @@ export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
 export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, settings }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/intent`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
     body: JSON.stringify({ prompt, revisionId, mermaidSource, settings })
   });
 
@@ -49,7 +83,7 @@ export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, s
 export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, settings }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/coauthor`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
     body: JSON.stringify({ prompt, revisionId, mermaidSource, trigger: 'manual', settings })
   });
 
@@ -64,7 +98,7 @@ export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, 
 export async function submitStyleIntent({ prompt, revisionId, mermaidSource, settings }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/style`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
     body: JSON.stringify({ prompt, stylePrompt: prompt, revisionId, mermaidSource, settings })
   });
 

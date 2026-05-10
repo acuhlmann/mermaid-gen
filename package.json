@@ -15,7 +15,8 @@
     "build": "npm run build -w packages/shared && npm run build -w apps/server && npm run build -w apps/web",
     "test": "npm run test -w packages/shared && npm run test -w apps/server && npm run test -w apps/web",
     "deploy:cloud-run": "bash scripts/deploy-cloud-run.sh",
-    "deploy:cloud-run:hackathon": "bash scripts/deploy-hackathon-cloud-run.sh"
+    "deploy:cloud-run:hackathon": "bash scripts/deploy-hackathon-cloud-run.sh",
+    "secret:openrouter:cloud-run": "bash scripts/push-openrouter-secret-cloud-run.sh"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { CoAuthorIntentSchema, DiagramIntentSchema, DiagramStyleSchema, StyleIntentSchema } from '@mermaid-architect/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
+import { SESSION_HEADER } from '../state/sessionServices.js';
 
 export async function handleDiagramIntent({ body, stateStore, agentService }) {
   const parsedIntent = DiagramIntentSchema.safeParse(body);
@@ -259,49 +260,59 @@ export async function handleClientStateSync({ body, stateStore }) {
   };
 }
 
-export function createCopilotRouter({ stateStore, agentService }) {
+export function createCopilotRouter({ resolveServices }) {
   const router = express.Router();
 
-  router.get('/state', (_req, res) => {
+  router.get('/state', (req, res) => {
+    const { sessionId, stateStore } = resolveServices(req);
+    res.setHeader(SESSION_HEADER, sessionId);
     res.json(stateStore.getState());
   });
 
   router.post('/state', async (req, res) => {
+    const { sessionId, stateStore } = resolveServices(req);
     const result = await handleClientStateSync({
       body: req.body,
       stateStore
     });
 
+    res.setHeader(SESSION_HEADER, sessionId);
     return res.status(result.status).json(result.body);
   });
 
   router.post('/intent', async (req, res) => {
+    const { sessionId, stateStore, agentService } = resolveServices(req);
     const result = await handleDiagramIntent({
       body: req.body,
       stateStore,
       agentService
     });
 
+    res.setHeader(SESSION_HEADER, sessionId);
     return res.status(result.status).json(result.body);
   });
 
   router.post('/coauthor', async (req, res) => {
+    const { sessionId, stateStore, agentService } = resolveServices(req);
     const result = await handleCoAuthorIntent({
       body: req.body,
       stateStore,
       agentService
     });
 
+    res.setHeader(SESSION_HEADER, sessionId);
     return res.status(result.status).json(result.body);
   });
 
   router.post('/style', async (req, res) => {
+    const { sessionId, stateStore, agentService } = resolveServices(req);
     const result = await handleStyleIntent({
       body: req.body,
       stateStore,
       agentService
     });
 
+    res.setHeader(SESSION_HEADER, sessionId);
     return res.status(result.status).json(result.body);
   });
 

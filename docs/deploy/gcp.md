@@ -111,7 +111,23 @@ Build with **`UI_VARIANT=full`** (Docker default). [`apps/server/src/index.js`](
 
 ## Secrets (required for LLM features)
 
-Do **not** commit API keys. Store them in Secret Manager and mount them at deploy time.
+`.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put the key in **Secret Manager** and expose it as env var **`OPENROUTER_API_KEY`** on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
+
+### One command (recommended)
+
+From the repo root, with the same key you use locally:
+
+```bash
+chmod +x scripts/push-openrouter-secret-cloud-run.sh
+export OPENROUTER_API_KEY='your-key-here'   # paste from local .env (never commit)
+GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-openrouter-secret-cloud-run.sh
+```
+
+That creates or updates secret **`openrouter-api-key`**, grants the default Cloud Run runtime service account **`secretAccessor`**, and runs **`gcloud run services update`** on **`mermaid-gen-main`** and **`mermaid-gen-hackathon`** so both pick up the secret.
+
+Optional: set **`OPENROUTER_SITE_URL`** to your public app URL (e.g. `https://mermaid-gen-main-….run.app`) for OpenRouter metadata—either add `--set-env-vars` on update or redeploy with env vars.
+
+### Manual steps
 
 ```bash
 echo -n "$OPENROUTER_API_KEY" | gcloud secrets create openrouter-api-key --data-file=- --project=PROJECT_ID
@@ -127,6 +143,15 @@ gcloud secrets add-iam-policy-binding openrouter-api-key \
   --project=PROJECT_ID \
   --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
+```
+
+Attach the secret to **each** service that needs LLMs (new revisions only):
+
+```bash
+for svc in mermaid-gen-main mermaid-gen-hackathon; do
+  gcloud run services update "$svc" --region=REGION --project=PROJECT_ID \
+    --set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest"
+done
 ```
 
 ## Artifact Registry

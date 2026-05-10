@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   deriveOptimisticState,
+  getOrCreateBrowserSessionId,
+  SESSION_HEADER,
   submitCoAuthorIntent,
   submitStyleIntent,
   syncClientDiagramState
@@ -94,10 +96,12 @@ describe('syncClientDiagramState', () => {
     const originalFetch = globalThis.fetch;
     let requestUrl;
     let requestBody;
+    let requestHeaders;
     try {
       globalThis.fetch = async (url, options) => {
         requestUrl = url;
         requestBody = options.body;
+        requestHeaders = options.headers;
         return {
           ok: true,
           async json() {
@@ -123,9 +127,20 @@ describe('syncClientDiagramState', () => {
       expect(requestUrl).toContain('/api/copilotkit/state');
       expect(JSON.parse(requestBody).mermaidSource).toContain('A --> B');
       expect(JSON.parse(requestBody).styleConfig.theme).toBe('forest');
+      expect(requestHeaders[SESSION_HEADER]).toBeTruthy();
       expect(payload.revisionId).toBe(3);
     } finally {
       globalThis.fetch = originalFetch;
     }
+  });
+});
+
+describe('getOrCreateBrowserSessionId', () => {
+  it('returns a stable session id per browser storage', () => {
+    const first = getOrCreateBrowserSessionId();
+    const second = getOrCreateBrowserSessionId();
+    expect(first).toBe(second);
+    expect(typeof first).toBe('string');
+    expect(first.length).toBeGreaterThan(0);
   });
 });
