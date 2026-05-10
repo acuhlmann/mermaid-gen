@@ -13,21 +13,34 @@ const INTENT_PROFILE_DEFAULTS = {
   persona: 'creative architect'
 };
 
-/** Maps UI surprise scale 1–5 to LLM sampling temperature (OpenRouter-safe range). */
+/** Maps UI surprise scale 1–5 to bounded LLM sampling temperature. */
 export const SURPRISE_SCALE_TEMPERATURES = Object.freeze({
   1: 0.35,
-  2: 0.65,
-  3: 1.0,
-  4: 1.35,
-  5: 1.75
+  2: 0.55,
+  3: 0.75,
+  4: 0.95,
+  5: 1.15
+});
+
+export const COAUTHOR_MODEL_LIMITS = Object.freeze({
+  topP: 0.92,
+  maxTokens: 2200
+});
+
+const SURPRISE_SCALE_BUDGETS = Object.freeze({
+  1: 'Budget: add up to 2 nodes and 3 edges.',
+  2: 'Budget: add up to 4 nodes and 5 edges.',
+  3: 'Budget: add up to 6 nodes and 8 edges.',
+  4: 'Budget: add up to 9 nodes and 12 edges.',
+  5: 'Budget: add up to 12 nodes and 16 edges; keep labels short and readable.'
 });
 
 const SURPRISE_TIER_GUIDANCE = Object.freeze({
   1: 'Surprise scale 1 — Subtle: tiny additive tweaks only; keep the same diagram type and overall layout.',
   2: 'Surprise scale 2 — Mild: modest additions; prefer keeping the diagram type.',
   3: 'Surprise scale 3 — Balanced: noticeably richer diagram; mild restructuring is OK.',
-  4: 'Surprise scale 4 — Bold: strong restructuring allowed; you may change diagram type if it improves the story.',
-  5: 'Surprise scale 5 — Wild: maximum surprise; freely switch Mermaid diagram types; aggressively larger and more creative while staying on topic.'
+  4: 'Surprise scale 4 — Bold: strong restructuring allowed; change diagram type only when it clearly improves validity and readability.',
+  5: 'Surprise scale 5 — Wild but reliable: make an imaginative extension while preserving the diagram type unless a simple valid type switch is necessary.'
 });
 
 export function surpriseScaleToTemperature(scale) {
@@ -46,8 +59,18 @@ export function surpriseTierGuidance(scale) {
   return SURPRISE_TIER_GUIDANCE[s];
 }
 
+export function coAuthorModelOptionsForScale(scale) {
+  return {
+    temperature: surpriseScaleToTemperature(scale),
+    topP: COAUTHOR_MODEL_LIMITS.topP,
+    maxTokens: COAUTHOR_MODEL_LIMITS.maxTokens
+  };
+}
+
 function buildCoAuthorUserContent({ prompt, surpriseScale, mermaidSource }) {
   const tierLine = surpriseTierGuidance(surpriseScale);
+  const s = Number(surpriseScale);
+  const budgetLine = SURPRISE_SCALE_BUDGETS[Number.isInteger(s) && s >= 1 && s <= 5 ? s : 3];
 
   return `You are in co-author surprise mode. Read the current diagram and produce a surprising extension.
 
@@ -55,10 +78,14 @@ Hard requirements:
 - You MUST call get_diagram_state first.
 - You MUST call apply_mermaid_patch with full Mermaid source.
 - Do not return only text; apply the patch.
+- Do not write explanatory prose until after the patch tool succeeds.
+- If an ambitious idea risks invalid Mermaid syntax, choose a smaller valid patch.
 
 General surprise policy:
 - Preserve the core topic, but match the intensity described by your surprise scale below.
 - Prefer a richer diagram than the current one when the scale allows.
+- Keep node IDs simple ASCII identifiers and keep node labels concise.
+- ${budgetLine}
 
 Current committed diagram:
 \`\`\`mermaid
@@ -237,6 +264,19 @@ export function buildSyntaxRepairInstruction({ messages, errorMessage }) {
   };
 }
 
+export function buildPatchRequiredInstruction({ messages }) {
+  const originalRequest = toLangChainMessages(messages)
+    .filter((message) => message.role === 'user')
+    .map((message) => message.content)
+    .join('\n\n')
+    .trim();
+
+  return {
+    role: 'user',
+    content: `Your previous response did not apply a diagram patch.\n\nRepair instructions:\n- You MUST call apply_mermaid_patch now with complete, valid Mermaid source.\n- Keep the update smaller if needed so it remains valid.\n- Do not return prose only.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
+  };
+}
+
 function formatAgentInvokeFailure(error, env = process.env) {
   const detail = error instanceof Error ? error.message : String(error);
   const regionHint = /region|not available in your country|unsupported_country/i.test(detail)
@@ -258,7 +298,7 @@ export function createMermaidLangChainAgent({
   stateStore,
   model = createOpenRouterModel(),
   env = process.env,
-  createCoAuthorChatModel = (temperature) => createOpenRouterModel(env, { temperature }),
+  createCoAuthorChatModel = (options) => createOpenRouterModel(env, options),
   createAgentImpl = createAgent
 }) {
   const tools = createDiagramTools({ stateStore });
@@ -285,8 +325,7 @@ export function createMermaidLangChainAgent({
       Number.isInteger(surpriseScale) && surpriseScale >= 1 && surpriseScale <= 5 ? surpriseScale : 3;
     const key = `coauthor:${clamped}`;
     if (!agentCache.has(key)) {
-      const temperature = surpriseScaleToTemperature(clamped);
-      const coAuthorModel = createCoAuthorChatModel(temperature);
+      const coAuthorModel = createCoAuthorChatModel(coAuthorModelOptionsForScale(clamped));
       agentCache.set(
         key,
         createAgentImpl({
@@ -299,7 +338,7 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
-  async function invokeWithRepair(agent, messages) {
+  async function invokeWithRepair(agent, messages, { requirePatch = false } = {}) {
     const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
     const beforeRevision = stateStore.getState().revisionId;
 
@@ -314,7 +353,34 @@ export function createMermaidLangChainAgent({
     const afterFirstRevision = stateStore.getState().revisionId;
     const firstError = extractToolFailureError(firstResult);
 
-    if (afterFirstRevision !== beforeRevision || !shouldAttemptSyntaxRepair(firstError)) {
+    if (afterFirstRevision !== beforeRevision) {
+      return {
+        message: firstMessage,
+        raw: firstResult
+      };
+    }
+
+    if (requirePatch && !firstError) {
+      try {
+        const patchRetryResult = await agent.invoke({
+          messages: [...baseMessages, buildPatchRequiredInstruction({ messages })]
+        });
+        if (stateStore.getState().revisionId !== beforeRevision) {
+          return {
+            message: extractFinalMessage(patchRetryResult),
+            raw: patchRetryResult
+          };
+        }
+        return {
+          message: extractFinalMessage(patchRetryResult),
+          raw: patchRetryResult
+        };
+      } catch (error) {
+        return formatAgentInvokeFailure(error, env);
+      }
+    }
+
+    if (!shouldAttemptSyntaxRepair(firstError)) {
       return {
         message: firstMessage,
         raw: firstResult
@@ -368,12 +434,16 @@ export function createMermaidLangChainAgent({
     async applyIntent({ prompt, settings }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
 
-      return invokeWithRepair(defaultAgent, [
-        {
-          role: 'user',
-          content: `Interpret and apply the user's requested diagram change.\n\nSettings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser request:\n${prompt}`
-        }
-      ]);
+      return invokeWithRepair(
+        defaultAgent,
+        [
+          {
+            role: 'user',
+            content: `Interpret and apply the user's requested diagram change.\n\nSettings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser request:\n${prompt}`
+          }
+        ],
+        { requirePatch: true }
+      );
     },
 
     async applyCoAuthorIntent({ prompt, settings }) {
@@ -381,28 +451,36 @@ export function createMermaidLangChainAgent({
       const currentState = stateStore.getState();
       const coAuthorAgent = getCoAuthorAgentForScale(surpriseScale);
 
-      return invokeWithRepair(coAuthorAgent, [
-        {
-          role: 'user',
-          content: buildCoAuthorUserContent({
-            prompt,
-            surpriseScale,
-            mermaidSource: currentState.mermaidSource
-          })
-        }
-      ]);
+      return invokeWithRepair(
+        coAuthorAgent,
+        [
+          {
+            role: 'user',
+            content: buildCoAuthorUserContent({
+              prompt,
+              surpriseScale,
+              mermaidSource: currentState.mermaidSource
+            })
+          }
+        ],
+        { requirePatch: true }
+      );
     },
 
     async applyStyleIntent({ prompt, settings }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const currentState = stateStore.getState();
 
-      return invokeWithRepair(defaultAgent, [
-        {
-          role: 'user',
-          content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
-        }
-      ]);
+      return invokeWithRepair(
+        defaultAgent,
+        [
+          {
+            role: 'user',
+            content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
+          }
+        ],
+        { requirePatch: true }
+      );
     }
   };
 }
