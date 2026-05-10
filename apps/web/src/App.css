@@ -82,7 +82,13 @@
 
 .diagram-editor-panel .monaco-editor,
 .diagram-editor-panel .monaco-editor-background {
-  --vscode-editor-background: transparent;
+  background-color: #0f172a !important;
+  color: #e5edf7;
+}
+
+.diagram-editor-panel .margin,
+.diagram-editor-panel .monaco-editor .inputarea.ime-input {
+  background-color: #0f172a !important;
 }
 
 .corner-control {

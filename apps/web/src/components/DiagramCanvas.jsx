@@ -35,6 +35,30 @@ function getDistance(first, second) {
   return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
+function configureEditorTheme(monaco) {
+  monaco.editor.defineTheme('mermaidgen-dark', {
+    base: 'vs-dark',
+    inherit: true,
+    rules: [
+      { token: '', foreground: 'E5EDF7', background: '0F172A' },
+      { token: 'delimiter', foreground: '93C5FD' },
+      { token: 'string', foreground: 'BAE6FD' },
+      { token: 'number', foreground: 'C4B5FD' }
+    ],
+    colors: {
+      'editor.background': '#0F172A',
+      'editor.foreground': '#E5EDF7',
+      'editorLineNumber.foreground': '#64748B',
+      'editorLineNumber.activeForeground': '#CBD5E1',
+      'editorCursor.foreground': '#F8FAFC',
+      'editor.selectionBackground': '#1D4ED866',
+      'editor.inactiveSelectionBackground': '#33415599',
+      'editorIndentGuide.background1': '#334155',
+      'editorIndentGuide.activeBackground1': '#64748B'
+    }
+  });
+}
+
 export default function DiagramCanvas({
   mermaidSource,
   styleConfig = DEFAULT_DIAGRAM_STYLE,
@@ -297,7 +321,8 @@ export default function DiagramCanvas({
           <Editor
             height="100%"
             defaultLanguage="plaintext"
-            theme="vs-dark"
+            theme="mermaidgen-dark"
+            beforeMount={configureEditorTheme}
             value={editorSource}
             onChange={handleEditorChange}
             options={{
