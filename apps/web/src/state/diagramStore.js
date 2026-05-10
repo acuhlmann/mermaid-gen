@@ -9,6 +9,7 @@ export const API_BASE_URL = rawApiBase
     : '';
 export const SESSION_HEADER = 'x-session-id';
 const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
+const AGENT_REQUEST_TIMEOUT_MS = 60_000;
 
 let inMemorySessionId = null;
 
@@ -45,6 +46,25 @@ function createSessionHeaders() {
   };
 }
 
+async function fetchWithTimeout(url, options, timeoutMs, timeoutMessage) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(new Error(timeoutMessage)), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError' || error?.message === timeoutMessage) {
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function fetchDiagramState() {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
     headers: createSessionHeaders()
@@ -71,11 +91,16 @@ export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
 }
 
 export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, settings }) {
-  const response = await fetch(`${API_BASE_URL}/api/copilotkit/intent`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-    body: JSON.stringify({ prompt, revisionId, mermaidSource, settings })
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/copilotkit/intent`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      body: JSON.stringify({ prompt, revisionId, mermaidSource, settings })
+    },
+    AGENT_REQUEST_TIMEOUT_MS,
+    'Helper agent request timed out. Please try again.'
+  );
 
   const payload = await response.json();
   if (!response.ok) {
@@ -86,11 +111,16 @@ export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, s
 }
 
 export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, settings }) {
-  const response = await fetch(`${API_BASE_URL}/api/copilotkit/coauthor`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-    body: JSON.stringify({ prompt, revisionId, mermaidSource, trigger: 'manual', settings })
-  });
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/copilotkit/coauthor`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      body: JSON.stringify({ prompt, revisionId, mermaidSource, trigger: 'manual', settings })
+    },
+    AGENT_REQUEST_TIMEOUT_MS,
+    'Surprise me agent request timed out. Please try again.'
+  );
 
   const payload = await response.json();
   if (!response.ok) {

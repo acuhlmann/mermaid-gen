@@ -264,14 +264,22 @@ Hard requirements:
   }, [helperRunning, legacyCopilotLoading, loading, scheduleAutoFix, streamingPreview, validationError]);
 
   async function runCoAuthor() {
+    if (loadingRef.current || streamingPreviewRef.current) return;
+
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+
+    const currentState = stateRef.current;
     setLoading(true);
     setActiveAgent('coauthor');
     setError('');
 
     try {
       const syncedState = await syncClientDiagramState({
-        mermaidSource: state.mermaidSource,
-        styleConfig: state.styleConfig
+        mermaidSource: currentState.mermaidSource,
+        styleConfig: currentState.styleConfig
       });
       setState(syncedState);
       const result = await submitCoAuthorIntent({
@@ -290,12 +298,16 @@ Hard requirements:
 
   function handleManualEdit(nextSource) {
     const parsedStyle = parseMermaidStyleConfig(nextSource);
-    setState((currentState) => ({
-      ...currentState,
-      mermaidSource: nextSource,
-      styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : currentState.styleConfig,
-      updatedAt: new Date().toISOString()
-    }));
+    setState((currentState) => {
+      const nextState = {
+        ...currentState,
+        mermaidSource: nextSource,
+        styleConfig: parsedStyle.accepted ? parsedStyle.styleConfig : currentState.styleConfig,
+        updatedAt: new Date().toISOString()
+      };
+      stateRef.current = nextState;
+      return nextState;
+    });
 
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
@@ -386,8 +398,14 @@ Hard requirements:
                   );
                 })}
               </div>
-              <button type="button" className="surprise-me-btn" onClick={() => runCoAuthor()} disabled={loading}>
-                Surprise me
+              <button
+                type="button"
+                className="surprise-me-btn"
+                onClick={() => runCoAuthor()}
+                disabled={loading || streamingPreview}
+                aria-busy={loading && activeAgent === 'coauthor'}
+              >
+                {loading && activeAgent === 'coauthor' ? 'Surprising...' : 'Surprise me'}
               </button>
             </section>
 

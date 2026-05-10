@@ -1,10 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getOrCreateBrowserSessionId,
   SESSION_HEADER,
   submitCoAuthorIntent,
   syncClientDiagramState
 } from '../src/state/diagramStore.js';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('submitCoAuthorIntent', () => {
   it('surfaces message and details from non-OK responses', async () => {
@@ -60,6 +64,31 @@ describe('submitCoAuthorIntent', () => {
       const sent = JSON.parse(requestBody);
       expect(sent.trigger).toBe('manual');
       expect(sent.settings.surpriseScale).toBe(4);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('times out a stalled co-author request', async () => {
+    vi.useFakeTimers();
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async (_url, options) =>
+        new Promise((_resolve, reject) => {
+          options.signal.addEventListener('abort', () => {
+            reject(new DOMException('Aborted', 'AbortError'));
+          });
+        });
+
+      const request = submitCoAuthorIntent({
+        prompt: 'Surprise me',
+        revisionId: 0,
+        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+        settings: { surpriseScale: 3 }
+      });
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      await expect(request).rejects.toThrow('Surprise me agent request timed out. Please try again.');
     } finally {
       globalThis.fetch = originalFetch;
     }
