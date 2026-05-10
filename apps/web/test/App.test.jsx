@@ -40,11 +40,14 @@ const {
 });
 
 vi.mock('@copilotkit/react-core', () => ({
-  CopilotChat: () => <div data-testid="copilot-chat" />,
-  CopilotKit: ({ children }) => <>{children}</>,
-  useAgent: () => ({ agent: { isRunning: false } }),
   useCopilotAdditionalInstructions: vi.fn(),
   useCopilotChat: () => ({ isLoading: false })
+}));
+
+vi.mock('@copilotkit/react-core/v2', () => ({
+  CopilotChat: () => <div data-testid="copilot-chat" />,
+  CopilotKit: ({ children }) => <>{children}</>,
+  useAgent: () => ({ agent: { isRunning: false } })
 }));
 
 vi.mock('../src/components/DiagramCanvas.jsx', () => ({
@@ -73,7 +76,6 @@ vi.mock('../src/state/diagramStore.js', () => ({
 
 describe('App Surprise me flow', () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     fetchDiagramStateMock.mockResolvedValue(initialState);
     syncClientDiagramStateMock.mockImplementation(async ({ mermaidSource, styleConfig }) => ({
       ...initialState,
@@ -85,7 +87,6 @@ describe('App Surprise me flow', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     cleanup();
     vi.clearAllMocks();
   });
@@ -93,12 +94,12 @@ describe('App Surprise me flow', () => {
   it('cancels pending editor sync and submits the latest source before co-author runs', async () => {
     render(<App />);
 
-    await screen.findByText('Surprise me');
+    const surpriseButton = await screen.findByRole('button', { name: 'Surprise me' });
     fireEvent.click(screen.getByText('Mock edit'));
-    fireEvent.click(screen.getByText('Surprise me'));
+    fireEvent.click(surpriseButton);
 
     await waitFor(() => expect(submitCoAuthorIntentMock).toHaveBeenCalled());
-    await vi.advanceTimersByTimeAsync(500);
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     expect(syncClientDiagramStateMock).toHaveBeenCalledTimes(1);
     expect(syncClientDiagramStateMock).toHaveBeenCalledWith(

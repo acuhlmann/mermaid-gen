@@ -86,9 +86,10 @@ describe('submitCoAuthorIntent', () => {
         mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
         settings: { surpriseScale: 3 }
       });
+      const assertion = expect(request).rejects.toThrow('Surprise me agent request timed out. Please try again.');
 
       await vi.advanceTimersByTimeAsync(60_000);
-      await expect(request).rejects.toThrow('Surprise me agent request timed out. Please try again.');
+      await assertion;
     } finally {
       globalThis.fetch = originalFetch;
     }
