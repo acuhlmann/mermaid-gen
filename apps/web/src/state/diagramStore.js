@@ -57,7 +57,7 @@ async function fetchWithTimeout(url, options, timeoutMs, timeoutMessage) {
     });
   } catch (error) {
     if (error?.name === 'AbortError' || error?.message === timeoutMessage) {
-      throw new Error(timeoutMessage);
+      throw new Error(timeoutMessage, { cause: error });
     }
     throw error;
   } finally {
