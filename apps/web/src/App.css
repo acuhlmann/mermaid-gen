@@ -314,7 +314,7 @@ button {
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .app-shell {
     height: 100svh;
   }
