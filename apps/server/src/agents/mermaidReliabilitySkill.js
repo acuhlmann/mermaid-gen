@@ -8,6 +8,7 @@ const DEFAULT_MCP_RETRY_DELAY_MS = Number.parseInt(process.env.MERMAID_MCP_RETRY
 
 let initialized = false;
 let mermaidApi = null;
+let renderValidationCounter = 0;
 
 function clampPositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value), 10);
@@ -34,6 +35,23 @@ async function ensureMermaidInitialized() {
     configurable: true,
     writable: true
   });
+  if (!dom.window.SVGElement.prototype.getBBox) {
+    Object.defineProperty(dom.window.SVGElement.prototype, 'getBBox', {
+      configurable: true,
+      value() {
+        const text = this.textContent ?? '';
+        return { x: 0, y: 0, width: Math.max(1, text.length * 8), height: 16 };
+      }
+    });
+  }
+  if (!dom.window.SVGElement.prototype.getComputedTextLength) {
+    Object.defineProperty(dom.window.SVGElement.prototype, 'getComputedTextLength', {
+      configurable: true,
+      value() {
+        return Math.max(1, (this.textContent ?? '').length * 8);
+      }
+    });
+  }
 
   const mermaidModule = await import('mermaid');
   mermaidApi = mermaidModule.default;
@@ -66,6 +84,8 @@ async function validateWithLocalParser(source) {
         validator: 'local-parser'
       };
     }
+    renderValidationCounter += 1;
+    await mermaid.render(`server-validate-${renderValidationCounter}`, source);
     return { valid: true, validator: 'local-parser' };
   } catch (error) {
     return {
