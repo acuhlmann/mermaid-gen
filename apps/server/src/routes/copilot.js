@@ -1,6 +1,13 @@
 import express from 'express';
 import { z } from 'zod';
-import { CoAuthorIntentSchema, DiagramIntentSchema, DiagramStyleSchema, StyleIntentSchema } from '@mermaid-architect/shared';
+import {
+  AgentStreamPayloadSchema,
+  DiagramAnalyzeSchema,
+  DiagramIntentSchema,
+  DiagramStyleSchema,
+  DiagramTransformIntentSchema,
+  StyleIntentSchema
+} from '@mermaid-architect/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
 import { SESSION_HEADER } from '../state/sessionServices.js';
 
@@ -31,7 +38,8 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
   try {
     const agentResult = await agentService.applyIntent({
       prompt: intent.prompt,
-      settings: intent.settings
+      settings: intent.settings,
+      focusNode: intent.focusNode
     });
     const nextState = stateStore.getState();
     const patch = nextState.history.at(-1);
@@ -77,13 +85,13 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
   }
 }
 
-export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
-  const parsedIntent = CoAuthorIntentSchema.safeParse(body);
+export async function handleDiagramTransformIntent({ body, stateStore, agentService }) {
+  const parsedIntent = DiagramTransformIntentSchema.safeParse(body);
   if (!parsedIntent.success) {
     return {
       status: 400,
       body: {
-        error: 'Invalid co-author payload',
+        error: 'Invalid transform payload',
         details: parsedIntent.error.flatten()
       }
     };
@@ -102,9 +110,9 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
   }
 
   try {
-    const agentResult = await agentService.applyCoAuthorIntent({
-      prompt: intent.prompt,
-      settings: intent.settings
+    const agentResult = await agentService.applyTransformIntent({
+      mode: intent.mode,
+      focusNode: intent.focusNode
     });
     const nextState = stateStore.getState();
     const patch = nextState.history.at(-1);
@@ -113,8 +121,8 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
       return {
         status: 422,
         body: {
-          error: 'Co-author did not apply a diagram patch.',
-          message: 'The co-author returned text instead of a valid diagram update. Please try again with a lower surprise level or a simpler diagram.',
+          error: 'Transform did not apply a diagram patch.',
+          message: 'The transform returned text instead of a valid diagram update. Please try again or simplify the diagram.',
           state: nextState
         }
       };
@@ -123,12 +131,12 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
     return {
       status: 200,
       body: {
-        message: agentResult.message || 'Co-author patch accepted',
+        message: agentResult.message || 'Transform patch accepted',
         patch,
         state: nextState,
         metadata: {
           llm: true,
-          agent: 'coauthor'
+          agent: `transform:${intent.mode}`
         }
       }
     };
@@ -143,7 +151,65 @@ export async function handleCoAuthorIntent({ body, stateStore, agentService }) {
     return {
       status: 500,
       body: {
-        error: 'Co-author request failed',
+        error: 'Transform request failed',
+        details: error instanceof Error ? error.message : String(error)
+      }
+    };
+  }
+}
+
+export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
+  const parsed = DiagramAnalyzeSchema.safeParse(body);
+  if (!parsed.success) {
+    return {
+      status: 400,
+      body: {
+        error: 'Invalid analyze payload',
+        details: parsed.error.flatten()
+      }
+    };
+  }
+
+  const intent = parsed.data;
+  const state = stateStore.getState();
+  if (intent.revisionId !== state.revisionId) {
+    return {
+      status: 409,
+      body: {
+        error: 'State revision is stale. Refresh state and retry.',
+        state
+      }
+    };
+  }
+
+  try {
+    const agentResult = await agentService.applyAnalyzeIntent({
+      kind: intent.kind,
+      focusNode: intent.focusNode
+    });
+
+    return {
+      status: 200,
+      body: {
+        text: agentResult.message || '',
+        metadata: {
+          llm: true,
+          agent: `analyze:${intent.kind}`
+        }
+      }
+    };
+  } catch (error) {
+    if (error instanceof LlmNotConfiguredError) {
+      return {
+        status: error.statusCode,
+        body: { error: error.message }
+      };
+    }
+
+    return {
+      status: 500,
+      body: {
+        error: 'Analyze request failed',
         details: error instanceof Error ? error.message : String(error)
       }
     };
@@ -260,6 +326,10 @@ export async function handleClientStateSync({ body, stateStore }) {
   };
 }
 
+function writeSseData(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
 export function createCopilotRouter({ resolveServices }) {
   const router = express.Router();
 
@@ -292,9 +362,9 @@ export function createCopilotRouter({ resolveServices }) {
     return res.status(result.status).json(result.body);
   });
 
-  router.post('/coauthor', async (req, res) => {
+  router.post('/transform', async (req, res) => {
     const { sessionId, stateStore, agentService } = resolveServices(req);
-    const result = await handleCoAuthorIntent({
+    const result = await handleDiagramTransformIntent({
       body: req.body,
       stateStore,
       agentService
@@ -302,6 +372,72 @@ export function createCopilotRouter({ resolveServices }) {
 
     res.setHeader(SESSION_HEADER, sessionId);
     return res.status(result.status).json(result.body);
+  });
+
+  router.post('/analyze', async (req, res) => {
+    const { sessionId, stateStore, agentService } = resolveServices(req);
+    const result = await handleDiagramAnalyze({
+      body: req.body,
+      stateStore,
+      agentService
+    });
+
+    res.setHeader(SESSION_HEADER, sessionId);
+    return res.status(result.status).json(result.body);
+  });
+
+  router.post('/agent-stream', async (req, res) => {
+    const { sessionId, stateStore, agentService } = resolveServices(req);
+    res.setHeader(SESSION_HEADER, sessionId);
+
+    const parsed = AgentStreamPayloadSchema.safeParse(req.body ?? {});
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Invalid stream payload',
+        details: parsed.error.flatten()
+      });
+    }
+
+    const payload = parsed.data;
+    const state = stateStore.getState();
+    if (payload.revisionId !== state.revisionId) {
+      return res.status(409).json({
+        error: 'State revision is stale. Refresh state and retry.',
+        state
+      });
+    }
+
+    const revisionBefore = state.revisionId;
+
+    res.status(200);
+    res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache, no-transform');
+    res.setHeader('Connection', 'keep-alive');
+    if (typeof res.flushHeaders === 'function') {
+      res.flushHeaders();
+    }
+
+    const emit = (evt) => {
+      writeSseData(res, evt);
+    };
+
+    try {
+      await agentService.runAgentStream(payload.operation, { ...payload, _revisionBefore: revisionBefore }, emit);
+      writeSseData(res, { type: 'done' });
+    } catch (error) {
+      if (error instanceof LlmNotConfiguredError) {
+        writeSseData(res, { type: 'error', message: error.message });
+      } else {
+        writeSseData(res, {
+          type: 'error',
+          message: error instanceof Error ? error.message : String(error)
+        });
+      }
+      writeSseData(res, { type: 'done' });
+    }
+
+    res.end();
+    return undefined;
   });
 
   router.post('/style', async (req, res) => {

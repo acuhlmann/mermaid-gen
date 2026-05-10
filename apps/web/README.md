@@ -3,9 +3,9 @@
 UI package for Mermaid Architect.
 
 ## Key UX points
-- The primary input bar triggers the Intent Agent path.
-- Agent Settings include a dedicated **Co-Author Surprise Mode** button for manual creative extensions.
-- Monaco editor + Mermaid preview stay in sync with the shared server diagram state.
+- **Go** streams diagram intents through `/api/copilotkit/agent-stream` while mirroring thoughts into the insights pane.
+- **Refine / Innovate / Go Mad** plus **Critique / Explain** reuse that pane for streamed telemetry or prose-only analyses.
+- **Clear** resets the diagram to the default HK hackathon starter; Monaco stays synced via `/api/copilotkit/state`.
 
 ## Runtime wiring
 - CopilotKit provider runtime URL points to `${VITE_API_BASE_URL}/api/copilotkit`.

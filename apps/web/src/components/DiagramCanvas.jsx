@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
 import { DEFAULT_DIAGRAM_STYLE, styleConfigToMermaidConfig } from '@mermaid-architect/shared';
 
 mermaid.initialize({ startOnLoad: false, ...styleConfigToMermaidConfig(DEFAULT_DIAGRAM_STYLE) });
+
+const TAP_MOVE_THRESHOLD_PX = 14;
 
 function extractErrorMessage(error) {
   if (!error) return 'Unknown Mermaid error';
@@ -59,13 +61,28 @@ function configureEditorTheme(monaco) {
   });
 }
 
+function nodeTitleFromElement(nodeEl) {
+  const parts = [];
+  nodeEl.querySelectorAll('text').forEach((textEl) => {
+    const t = textEl.textContent?.trim();
+    if (t) parts.push(t);
+  });
+  const merged = parts.join(' · ');
+  return merged.slice(0, 240);
+}
+
 export default function DiagramCanvas({
   mermaidSource,
   styleConfig = DEFAULT_DIAGRAM_STYLE,
   onManualEdit,
   onValidationChange,
   streamingPreview = false,
-  editorOpen = false
+  editorOpen = false,
+  insightsOpen = false,
+  insightsSlot = null,
+  selectedNode = null,
+  onSelectedNodeChange,
+  onNodeToolbarAnchor
 }) {
   const [editorSource, setEditorSource] = useState(mermaidSource);
   const [svgMarkup, setSvgMarkup] = useState('');
@@ -78,6 +95,9 @@ export default function DiagramCanvas({
   const gestureRef = useRef({ centroid: null, distance: null });
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
+  const viewportRef = useRef(null);
+  const tapCandidateRef = useRef(null);
+  const backgroundTapRef = useRef(null);
 
   const reportValidation = useCallback(
     (source, error) => {
@@ -152,6 +172,42 @@ export default function DiagramCanvas({
     };
   }, [editorSource, reportValidation, streamingPreview, styleConfig]);
 
+  useEffect(() => {
+    const root = viewportRef.current;
+    if (!root) return;
+    root.querySelectorAll('g.node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
+    if (!selectedNode?.id) return;
+    try {
+      const el = root.querySelector(`[id="${CSS.escape(selectedNode.id)}"]`);
+      el?.classList.add('is-diagram-selected');
+    } catch {
+      // Invalid selector id — skip highlight.
+    }
+  }, [svgMarkup, selectedNode]);
+
+  useLayoutEffect(() => {
+    if (!onNodeToolbarAnchor) return;
+    const root = viewportRef.current;
+    if (!selectedNode?.id || !root) {
+      onNodeToolbarAnchor(null);
+      return;
+    }
+    try {
+      const el = root.querySelector(`[id="${CSS.escape(selectedNode.id)}"]`);
+      if (!el) {
+        onNodeToolbarAnchor(null);
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      onNodeToolbarAnchor({
+        left: rect.left + rect.width / 2,
+        top: rect.bottom + 10
+      });
+    } catch {
+      onNodeToolbarAnchor(null);
+    }
+  }, [selectedNode, onNodeToolbarAnchor, svgMarkup, viewport]);
+
   const displayedRenderError = streamingPreview ? '' : renderError;
 
   function handleEditorChange(value) {
@@ -197,12 +253,31 @@ export default function DiagramCanvas({
 
   function handlePointerDown(event) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    event.preventDefault();
 
     const rect = event.currentTarget.getBoundingClientRect();
+    const localX = event.clientX - rect.left;
+    const localY = event.clientY - rect.top;
+
+    const nodeEl = event.target?.closest?.('g.node');
+    if (nodeEl && pointersRef.current.size === 0) {
+      event.preventDefault();
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        nodeEl
+      };
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
+      return;
+    }
+
+    event.preventDefault();
+
     pointersRef.current.set(event.pointerId, {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
+      x: localX,
+      y: localY
     });
 
     const pointers = getPointers(pointersRef.current);
@@ -211,6 +286,18 @@ export default function DiagramCanvas({
       distance: pointers.length >= 2 ? getDistance(pointers[0], pointers[1]) : null
     };
 
+    tapCandidateRef.current = null;
+
+    if (pointersRef.current.size === 1) {
+      backgroundTapRef.current = {
+        pointerId: event.pointerId,
+        sx: event.clientX,
+        sy: event.clientY
+      };
+    } else {
+      backgroundTapRef.current = null;
+    }
+
     setIsPanning(true);
     if (event.currentTarget.setPointerCapture) {
       event.currentTarget.setPointerCapture(event.pointerId);
@@ -218,8 +305,26 @@ export default function DiagramCanvas({
   }
 
   function handlePointerMove(event) {
+    const tap = tapCandidateRef.current;
+    if (tap && tap.pointerId === event.pointerId) {
+      event.preventDefault();
+      const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
+      if (moved > TAP_MOVE_THRESHOLD_PX) {
+        tapCandidateRef.current = null;
+      }
+      return;
+    }
+
     if (!pointersRef.current.has(event.pointerId)) return;
     event.preventDefault();
+
+    const bgTap = backgroundTapRef.current;
+    if (bgTap && bgTap.pointerId === event.pointerId) {
+      const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
+      if (movedBg > TAP_MOVE_THRESHOLD_PX) {
+        backgroundTapRef.current = null;
+      }
+    }
 
     const rect = event.currentTarget.getBoundingClientRect();
     pointersRef.current.set(event.pointerId, {
@@ -275,6 +380,21 @@ export default function DiagramCanvas({
   }
 
   function endPointerGesture(event) {
+    const tap = tapCandidateRef.current;
+    if (tap && tap.pointerId === event.pointerId) {
+      event.preventDefault();
+      const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
+      tapCandidateRef.current = null;
+      if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId);
+      }
+      if (moved <= TAP_MOVE_THRESHOLD_PX && tap.nodeEl?.id && onSelectedNodeChange) {
+        const label = nodeTitleFromElement(tap.nodeEl);
+        onSelectedNodeChange({ id: tap.nodeEl.id, label });
+      }
+      return;
+    }
+
     if (!pointersRef.current.has(event.pointerId)) return;
     pointersRef.current.delete(event.pointerId);
 
@@ -286,6 +406,21 @@ export default function DiagramCanvas({
     if (pointers.length === 0) {
       gestureRef.current = { centroid: null, distance: null };
       setIsPanning(false);
+
+      const bgTap = backgroundTapRef.current;
+      if (
+        bgTap &&
+        bgTap.pointerId === event.pointerId &&
+        onSelectedNodeChange &&
+        !event.target?.closest?.('g.node')
+      ) {
+        const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
+        if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
+          onSelectedNodeChange(null);
+        }
+      }
+      backgroundTapRef.current = null;
+
       return;
     }
 
@@ -295,25 +430,38 @@ export default function DiagramCanvas({
     };
   }
 
+  const shellClass = [
+    'diagram-canvas',
+    editorOpen ? 'is-editor-open' : '',
+    insightsOpen && insightsSlot ? 'is-insights-open' : ''
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <section className={`diagram-canvas ${editorOpen ? 'is-editor-open' : ''}`}>
-      <div
-        className={`diagram-output ${isPanning ? 'is-panning' : ''}`}
-        onWheel={handleWheel}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={endPointerGesture}
-        onPointerCancel={endPointerGesture}
-        aria-label="Mermaid renderer. Drag to pan. Pinch or wheel to zoom."
-      >
-        {streamingPreview ? <p className="streaming-note">Updating diagram...</p> : null}
-        {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
+    <section className={shellClass}>
+      <div className="diagram-main-column">
         <div
-          className="diagram-viewport"
-          style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
-          dangerouslySetInnerHTML={{ __html: svgMarkup }}
-        />
+          className={`diagram-output ${isPanning ? 'is-panning' : ''}`}
+          onWheel={handleWheel}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endPointerGesture}
+          onPointerCancel={endPointerGesture}
+          aria-label="Mermaid renderer. Drag to pan. Pinch or wheel to zoom. Tap a node to select."
+        >
+          {streamingPreview ? <p className="streaming-note">Updating diagram...</p> : null}
+          {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
+          <div
+            ref={viewportRef}
+            className="diagram-viewport"
+            style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
+            dangerouslySetInnerHTML={{ __html: svgMarkup }}
+          />
+        </div>
       </div>
+
+      {insightsSlot}
 
       {editorOpen ? (
         <aside className="diagram-editor-panel" aria-label="Mermaid code editor">

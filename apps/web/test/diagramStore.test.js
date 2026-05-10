@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getOrCreateBrowserSessionId,
   SESSION_HEADER,
-  submitCoAuthorIntent,
+  submitDiagramTransform,
   syncClientDiagramState
 } from '../src/state/diagramStore.js';
 
@@ -10,7 +10,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('submitCoAuthorIntent', () => {
+describe('submitDiagramTransform', () => {
   it('surfaces message and details from non-OK responses', async () => {
     const originalFetch = globalThis.fetch;
     try {
@@ -18,26 +18,25 @@ describe('submitCoAuthorIntent', () => {
         ok: false,
         async json() {
           return {
-            error: 'Co-author did not apply a diagram patch.',
+            error: 'Transform did not apply a diagram patch.',
             message: 'Model returned text only.'
           };
         }
       });
 
       await expect(
-        submitCoAuthorIntent({
-          prompt: 'Surprise me',
+        submitDiagramTransform({
+          mode: 'refine',
           revisionId: 0,
-          mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
-          settings: { surpriseScale: 3 }
+          mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
         })
-      ).rejects.toThrow(/Co-author did not apply[\s\S]*Model returned text only/);
+      ).rejects.toThrow(/Transform did not apply[\s\S]*Model returned text only/);
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it('sends a manual co-author trigger with surpriseScale', async () => {
+  it('posts refine transform payload', async () => {
     const originalFetch = globalThis.fetch;
     let requestBody;
     try {
@@ -48,28 +47,27 @@ describe('submitCoAuthorIntent', () => {
           async json() {
             return {
               state: { revisionId: 1 },
-              metadata: { agent: 'coauthor' }
+              metadata: { agent: 'transform:refine' }
             };
           }
         };
       };
 
-      await submitCoAuthorIntent({
-        prompt: 'Surprise me',
+      await submitDiagramTransform({
+        mode: 'innovate',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
-        settings: { surpriseScale: 4 }
+        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
 
       const sent = JSON.parse(requestBody);
-      expect(sent.trigger).toBe('manual');
-      expect(sent.settings.surpriseScale).toBe(4);
+      expect(sent.mode).toBe('innovate');
+      expect(sent.revisionId).toBe(0);
     } finally {
       globalThis.fetch = originalFetch;
     }
   });
 
-  it('times out a stalled co-author request', async () => {
+  it('times out a stalled transform request', async () => {
     vi.useFakeTimers();
     const originalFetch = globalThis.fetch;
     try {
@@ -80,13 +78,12 @@ describe('submitCoAuthorIntent', () => {
           });
         });
 
-      const request = submitCoAuthorIntent({
-        prompt: 'Surprise me',
+      const request = submitDiagramTransform({
+        mode: 'goMad',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
-        settings: { surpriseScale: 3 }
+        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
-      const assertion = expect(request).rejects.toThrow('Surprise me agent request timed out. Please try again.');
+      const assertion = expect(request).rejects.toThrow('Transform agent request timed out. Please try again.');
 
       await vi.advanceTimersByTimeAsync(60_000);
       await assertion;

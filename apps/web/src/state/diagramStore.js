@@ -90,13 +90,13 @@ export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
   return payload;
 }
 
-export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, settings }) {
+export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, settings, focusNode }) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/intent`,
     {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-      body: JSON.stringify({ prompt, revisionId, mermaidSource, settings })
+      body: JSON.stringify({ prompt, revisionId, mermaidSource, settings, focusNode })
     },
     AGENT_REQUEST_TIMEOUT_MS,
     'Helper agent request timed out. Please try again.'
@@ -110,24 +110,97 @@ export async function submitDiagramIntent({ prompt, revisionId, mermaidSource, s
   return payload;
 }
 
-export async function submitCoAuthorIntent({ prompt, revisionId, mermaidSource, settings }) {
+export async function submitDiagramTransform({ revisionId, mermaidSource, mode, focusNode }) {
   const response = await fetchWithTimeout(
-    `${API_BASE_URL}/api/copilotkit/coauthor`,
+    `${API_BASE_URL}/api/copilotkit/transform`,
     {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-      body: JSON.stringify({ prompt, revisionId, mermaidSource, trigger: 'manual', settings })
+      body: JSON.stringify({ revisionId, mermaidSource, mode, focusNode })
     },
     AGENT_REQUEST_TIMEOUT_MS,
-    'Surprise me agent request timed out. Please try again.'
+    'Transform agent request timed out. Please try again.'
   );
 
   const payload = await response.json();
   if (!response.ok) {
-    throwApiPayloadError(payload, 'Co-author request failed');
+    throwApiPayloadError(payload, 'Transform request failed');
   }
 
   return payload;
+}
+
+export async function submitDiagramAnalyze({ revisionId, mermaidSource, kind, focusNode }) {
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/copilotkit/analyze`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      body: JSON.stringify({ revisionId, mermaidSource, kind, focusNode })
+    },
+    AGENT_REQUEST_TIMEOUT_MS,
+    'Analyze request timed out. Please try again.'
+  );
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throwApiPayloadError(payload, 'Analyze request failed');
+  }
+
+  return payload;
+}
+
+/**
+ * Streams SSE events from POST /api/copilotkit/agent-stream.
+ * Each parsed event is passed to onEvent. Resolves when the stream ends or `done` is received.
+ */
+export async function streamDiagramAgent(payload, onEvent, options = {}) {
+  const { signal } = options;
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+    body: JSON.stringify(payload),
+    signal
+  });
+
+  if (!response.ok) {
+    const errPayload = await response.json().catch(() => ({}));
+    throwApiPayloadError(errPayload, `Stream request failed (${response.status})`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('Streaming response had no body.');
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf('\n\n');
+    while (boundary !== -1) {
+      const raw = buffer.slice(0, boundary).trim();
+      buffer = buffer.slice(boundary + 2);
+      boundary = buffer.indexOf('\n\n');
+
+      if (!raw.startsWith('data:')) continue;
+      const jsonText = raw.slice(5).trim();
+      if (!jsonText) continue;
+      try {
+        const evt = JSON.parse(jsonText);
+        onEvent(evt);
+        if (evt.type === 'done') {
+          return;
+        }
+      } catch {
+        // Ignore malformed SSE payloads.
+      }
+    }
+  }
 }
 
 export const fallbackState = createInitialDiagramState();

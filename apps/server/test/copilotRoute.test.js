@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { LlmNotConfiguredError } from '../src/agents/mermaidLangChainAgent.js';
 import {
   handleClientStateSync,
-  handleCoAuthorIntent,
+  handleDiagramAnalyze,
   handleDiagramIntent,
+  handleDiagramTransformIntent,
   handleStyleIntent
 } from '../src/routes/copilot.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
@@ -63,62 +64,82 @@ test('intent route applies a patch from the agent service', async () => {
   assert.equal(result.body.metadata.agent, 'intent');
 });
 
-test('coauthor route applies a patch from the coauthor agent service', async () => {
+test('transform route applies a patch from the transform agent service', async () => {
   const stateStore = createDiagramStateStore();
   const agentService = {
-    async applyCoAuthorIntent() {
+    async applyTransformIntent() {
       await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Surprise[Surprise path]',
-        reason: 'coauthor extension'
+        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
+        reason: 'transform extension'
       });
-      return { message: 'Added a surprise extension.' };
+      return { message: 'Added an extension.' };
     }
   };
 
-  const result = await handleCoAuthorIntent({
+  const result = await handleDiagramTransformIntent({
     body: {
-      ...intentPayload(),
-      trigger: 'manual',
-      settings: {
-        surpriseScale: 4
-      }
+      revisionId: 0,
+      mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      mode: 'innovate'
     },
     stateStore,
     agentService
   });
 
   assert.equal(result.status, 200);
-  assert.equal(result.body.message, 'Added a surprise extension.');
+  assert.equal(result.body.message, 'Added an extension.');
   assert.equal(result.body.patch.nextRevisionId, 1);
-  assert.match(result.body.state.mermaidSource, /Surprise/);
-  assert.equal(result.body.metadata.agent, 'coauthor');
+  assert.match(result.body.state.mermaidSource, /Extended/);
+  assert.equal(result.body.metadata.agent, 'transform:innovate');
 });
 
-test('coauthor route returns concise no-patch errors', async () => {
+test('transform route returns concise no-patch errors', async () => {
   const stateStore = createDiagramStateStore();
   const longModelText = 'Let me break new ground '.repeat(80);
   const agentService = {
-    async applyCoAuthorIntent() {
+    async applyTransformIntent() {
       return { message: longModelText };
     }
   };
 
-  const result = await handleCoAuthorIntent({
+  const result = await handleDiagramTransformIntent({
     body: {
-      ...intentPayload(),
-      trigger: 'manual',
-      settings: {
-        surpriseScale: 5
-      }
+      revisionId: 0,
+      mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      mode: 'goMad'
     },
     stateStore,
     agentService
   });
 
   assert.equal(result.status, 422);
-  assert.equal(result.body.error, 'Co-author did not apply a diagram patch.');
-  assert.match(result.body.message, /returned text instead of a valid diagram update/);
+  assert.equal(result.body.error, 'Transform did not apply a diagram patch.');
+  assert.match(result.body.message, /transform returned text instead/i);
   assert.doesNotMatch(result.body.message, /break new ground/);
+});
+
+test('analyze route returns text without mutating state', async () => {
+  const stateStore = createDiagramStateStore();
+  const agentService = {
+    async applyAnalyzeIntent() {
+      return { message: 'Solid diagram overall.' };
+    }
+  };
+
+  const result = await handleDiagramAnalyze({
+    body: {
+      revisionId: 0,
+      mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      kind: 'critique'
+    },
+    stateStore,
+    agentService
+  });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body.text, 'Solid diagram overall.');
+  assert.equal(result.body.metadata.agent, 'analyze:critique');
+  assert.equal(stateStore.getState().revisionId, 0);
 });
 
 test('style route applies a style patch from the agent service', async () => {
@@ -186,7 +207,7 @@ test('style route returns 503 when OpenRouter is not configured', async () => {
   assert.match(result.body.error, /OpenRouter is not configured/);
 });
 
-test('client state sync route updates backend source for co-author context', async () => {
+test('client state sync route updates backend source', async () => {
   const stateStore = createDiagramStateStore();
   const result = await handleClientStateSync({
     body: {

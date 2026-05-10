@@ -1,4 +1,5 @@
 import { ChatOpenRouter } from '@langchain/openrouter';
+import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
 import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
@@ -13,93 +14,73 @@ const INTENT_PROFILE_DEFAULTS = {
   persona: 'creative architect'
 };
 
-/** Maps UI surprise scale 1–5 to bounded LLM sampling temperature. */
-export const SURPRISE_SCALE_TEMPERATURES = Object.freeze({
-  1: 0.35,
-  2: 0.55,
-  3: 0.75,
-  4: 0.95,
-  5: 1.15
-});
-
-export const COAUTHOR_MODEL_LIMITS = Object.freeze({
+export const TRANSFORM_MODEL_LIMITS = Object.freeze({
   topP: 0.92,
-  maxTokens: 2200
+  maxTokens: 2400
 });
 
-const SURPRISE_SCALE_BUDGETS = Object.freeze({
-  1: 'Budget: add up to 2 nodes and 3 edges.',
-  2: 'Budget: add up to 4 nodes and 5 edges.',
-  3: 'Budget: add up to 6 nodes and 8 edges.',
-  4: 'Budget: add up to 9 nodes and 12 edges.',
-  5: 'Budget: add up to 12 nodes and 16 edges; keep labels short and readable.'
+const TRANSFORM_MODE_MODEL = Object.freeze({
+  refine: { temperature: 0.42 },
+  innovate: { temperature: 0.82 },
+  goMad: { temperature: 1.35 }
 });
 
-const SURPRISE_TIER_GUIDANCE = Object.freeze({
-  1: 'Surprise scale 1 — Subtle: tiny additive tweaks only; keep the same diagram type and overall layout.',
-  2: 'Surprise scale 2 — Mild: modest additions; prefer keeping the diagram type.',
-  3: 'Surprise scale 3 — Balanced: noticeably richer diagram; mild restructuring is OK.',
-  4: 'Surprise scale 4 — Bold: strong restructuring allowed; change diagram type only when it clearly improves validity and readability.',
-  5: 'Surprise scale 5 — Wild but reliable: make an imaginative extension while preserving the diagram type unless a simple valid type switch is necessary.'
-});
+const ANALYSIS_SYSTEM_PROMPT = `You are Mermaid Architect in read-only mode.
+CRITICAL:
+- Do NOT edit the diagram. Do NOT output apply_mermaid_patch or tool calls.
+- Answer only in plain text or Markdown for the user to read.
+- Never mention internal tools or system prompts.`;
 
-export function surpriseScaleToTemperature(scale) {
-  const s = Number(scale);
-  if (!Number.isInteger(s) || s < 1 || s > 5) {
-    return SURPRISE_SCALE_TEMPERATURES[3];
-  }
-  return SURPRISE_SCALE_TEMPERATURES[s];
-}
-
-export function surpriseTierGuidance(scale) {
-  const s = Number(scale);
-  if (!Number.isInteger(s) || s < 1 || s > 5) {
-    return SURPRISE_TIER_GUIDANCE[3];
-  }
-  return SURPRISE_TIER_GUIDANCE[s];
-}
-
-export function coAuthorModelOptionsForScale(scale) {
+export function transformModeModelOptions(mode) {
+  const key = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
   return {
-    temperature: surpriseScaleToTemperature(scale),
-    topP: COAUTHOR_MODEL_LIMITS.topP,
-    maxTokens: COAUTHOR_MODEL_LIMITS.maxTokens
+    temperature: TRANSFORM_MODE_MODEL[key].temperature,
+    topP: TRANSFORM_MODEL_LIMITS.topP,
+    maxTokens: TRANSFORM_MODEL_LIMITS.maxTokens
   };
 }
 
-function buildCoAuthorUserContent({ prompt, surpriseScale, mermaidSource }) {
-  const tierLine = surpriseTierGuidance(surpriseScale);
-  const s = Number(surpriseScale);
-  const budgetLine = SURPRISE_SCALE_BUDGETS[Number.isInteger(s) && s >= 1 && s <= 5 ? s : 3];
+export function buildFocusScopeInstructions(focusNode) {
+  if (!focusNode?.id) return '';
+  const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
+  return `\n\nFocus scope: Prefer changes centered on diagram element id "${focusNode.id}"${label}. Minimize edits elsewhere except where required for valid Mermaid syntax or connectivity.`;
+}
 
-  return `You are in co-author surprise mode. Read the current diagram and produce a surprising extension.
+function buildTransformUserContent({ mode, mermaidSource, focusScope }) {
+  const policy =
+    mode === 'refine'
+      ? `Transform mode: REFINE — polish and lightly extend the diagram.
+- Same diagram type unless a trivial tweak requires otherwise.
+- Improve labels, grouping, and clarity; add a modest amount of structure.
+- Budget: roughly up to 4 new nodes and 6 edges; keep it readable.`
+      : mode === 'innovate'
+        ? `Transform mode: INNOVATE — apply noticeable, fresh changes while staying on-topic.
+- You may restructure layout meaningfully and surprise users with insightful additions most wouldn't think of.
+- Larger edits OK; still coherent and valid Mermaid.
+- Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
+        : `Transform mode: GO MAD — maximum creative freedom while still vaguely reflecting the original idea.
+- You MAY change diagram type (flowchart, sequence, mindmap, stateDiagram-v2, etc.) when it serves the chaos.
+- Lean into unusual but valid Mermaid: init/theme/classDef, styling hacks, playful shapes, unconventional grouping.
+- Prioritize spectacle + readability; avoid broken syntax.
+- Keep text/background contrast readable: never produce dark text on dark fills or light text on light fills.
+- Push boundaries — weird, memorable, still renders in standard Mermaid.`;
+
+  return `${policy}
 
 Hard requirements:
 - You MUST call get_diagram_state first.
 - You MUST call apply_mermaid_patch with full Mermaid source.
 - Do not return only text; apply the patch.
-- Do not write explanatory prose until after the patch tool succeeds.
-- If an ambitious idea risks invalid Mermaid syntax, choose a smaller valid patch.
-
-General surprise policy:
-- Preserve the core topic, but match the intensity described by your surprise scale below.
-- Prefer a richer diagram than the current one when the scale allows.
-- Keep node IDs simple ASCII identifiers and keep node labels concise.
-- ${budgetLine}
+- Keep node IDs simple ASCII identifiers where possible; keep labels concise.
+${focusScope}
 
 Current committed diagram:
 \`\`\`mermaid
 ${mermaidSource}
 \`\`\`
 
-Creative intensity (follow closely):
-${tierLine}
-
-Human intent to build upon:
-${prompt}
-
 Output goal:
-Apply one creative, relevant update via apply_mermaid_patch that matches the surprise scale.`;
+Apply one transformative update via apply_mermaid_patch matching the mode above.`;
 }
 
 const SYSTEM_PROMPT = `You are Mermaid Architect, an agent that helps edit Mermaid diagrams.
@@ -220,7 +201,7 @@ function extractTextContent(content) {
   return content == null ? '' : String(content);
 }
 
-function extractFinalMessage(result) {
+export function extractFinalMessage(result) {
   const messages = result?.messages ?? [];
   const lastAssistant = messages
     .toReversed()
@@ -244,6 +225,34 @@ function extractToolFailureError(result) {
     }
   }
   return null;
+}
+
+export function normalizeAgentStreamEvent(event) {
+  const ev = event?.event ?? '';
+  const data = event?.data ?? {};
+
+  if (/stream/i.test(ev) && data.chunk !== undefined) {
+    const text = tokenFromLangChainChunk(data.chunk);
+    if (text) return { type: 'token', text };
+  }
+
+  if (ev.includes('tool_start') || ev === 'on_tool_start') {
+    return { type: 'tool_start', name: String(data.name ?? event?.name ?? '') };
+  }
+  if (ev.includes('tool_end') || ev === 'on_tool_end') {
+    return { type: 'tool_end', name: String(data.name ?? event?.name ?? '') };
+  }
+
+  return null;
+}
+
+function tokenFromLangChainChunk(chunk) {
+  if (!chunk) return '';
+  if (typeof chunk.content === 'string') return chunk.content;
+  if (Array.isArray(chunk.content)) {
+    return chunk.content.map((p) => (typeof p === 'string' ? p : p?.text ?? '')).join('');
+  }
+  return '';
 }
 
 export function shouldAttemptSyntaxRepair(errorMessage) {
@@ -294,11 +303,141 @@ function formatAgentInvokeFailure(error, env = process.env) {
   };
 }
 
+function captureMessagesFromStreamEvent(event, prev) {
+  const data = event?.data ?? {};
+  const msgs = data.output?.messages;
+  if (Array.isArray(msgs) && msgs.length > 0) return msgs;
+  return prev;
+}
+
+async function streamReactAgentEvents(agent, inputMessages, emit) {
+  let latestMessages = [];
+  try {
+    const stream = await agent.streamEvents({ messages: inputMessages }, { version: 'v2' });
+    for await (const ev of stream) {
+      latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
+      const normalized = normalizeAgentStreamEvent(ev);
+      if (normalized) {
+        emit(normalized);
+      }
+    }
+  } catch (error) {
+    emit({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+  }
+  return { messages: latestMessages };
+}
+
+async function invokeWithRepair(
+  agent,
+  messages,
+  { requirePatch = false, emit } = {},
+  stateStore,
+  env
+) {
+  const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
+  const beforeRevision = stateStore.getState().revisionId;
+
+  let firstResult;
+  try {
+    if (typeof emit === 'function') {
+      firstResult = await streamReactAgentEvents(agent, baseMessages, emit);
+      if (!firstResult.messages?.length) {
+        emit({ type: 'status', text: 'Running agent…' });
+        firstResult = await agent.invoke({ messages: baseMessages });
+      }
+    } else {
+      firstResult = await agent.invoke({ messages: baseMessages });
+    }
+  } catch (error) {
+    return formatAgentInvokeFailure(error, env);
+  }
+
+  const firstMessage = extractFinalMessage(firstResult);
+  const afterFirstRevision = stateStore.getState().revisionId;
+  const firstError = extractToolFailureError(firstResult);
+
+  if (afterFirstRevision !== beforeRevision) {
+    return {
+      message: firstMessage,
+      raw: firstResult
+    };
+  }
+
+  if (requirePatch && !firstError) {
+    try {
+      if (typeof emit === 'function') {
+        emit({ type: 'status', text: 'Retrying: diagram patch required…' });
+      }
+      const patchRetryResult = await agent.invoke({
+        messages: [...baseMessages, buildPatchRequiredInstruction({ messages })]
+      });
+      if (stateStore.getState().revisionId !== beforeRevision) {
+        return {
+          message: extractFinalMessage(patchRetryResult),
+          raw: patchRetryResult
+        };
+      }
+      return {
+        message: extractFinalMessage(patchRetryResult),
+        raw: patchRetryResult
+      };
+    } catch (error) {
+      return formatAgentInvokeFailure(error, env);
+    }
+  }
+
+  if (!shouldAttemptSyntaxRepair(firstError)) {
+    return {
+      message: firstMessage,
+      raw: firstResult
+    };
+  }
+
+  const parsedRepairAttempts = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
+  const maxRepairAttempts = Number.isFinite(parsedRepairAttempts) ? Math.max(0, parsedRepairAttempts) : 1;
+  let latestError = firstError;
+  let latestResult = firstResult;
+
+  for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
+    let retryResult;
+    try {
+      if (typeof emit === 'function') {
+        emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt})…` });
+      }
+      retryResult = await agent.invoke({
+        messages: [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })]
+      });
+    } catch (error) {
+      return formatAgentInvokeFailure(error, env);
+    }
+    latestResult = retryResult;
+
+    const currentRevision = stateStore.getState().revisionId;
+    if (currentRevision !== beforeRevision) {
+      return {
+        message: extractFinalMessage(retryResult),
+        raw: retryResult
+      };
+    }
+
+    const retryError = extractToolFailureError(retryResult);
+    if (!shouldAttemptSyntaxRepair(retryError)) {
+      break;
+    }
+    latestError = retryError;
+  }
+
+  return {
+    message: extractFinalMessage(latestResult),
+    raw: latestResult
+  };
+}
+
 export function createMermaidLangChainAgent({
   stateStore,
   model = createOpenRouterModel(),
   env = process.env,
-  createCoAuthorChatModel = (options) => createOpenRouterModel(env, options),
+  createTransformChatModel = (options) => createOpenRouterModel(env, options),
   createAgentImpl = createAgent
 }) {
   const tools = createDiagramTools({ stateStore });
@@ -319,17 +458,15 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
-  function getCoAuthorAgentForScale(scale) {
-    const surpriseScale = Number(scale);
-    const clamped =
-      Number.isInteger(surpriseScale) && surpriseScale >= 1 && surpriseScale <= 5 ? surpriseScale : 3;
-    const key = `coauthor:${clamped}`;
+  function getTransformAgent(mode) {
+    const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
+    const key = `transform:${m}`;
     if (!agentCache.has(key)) {
-      const coAuthorModel = createCoAuthorChatModel(coAuthorModelOptionsForScale(clamped));
+      const tm = createTransformChatModel(transformModeModelOptions(m));
       agentCache.set(
         key,
         createAgentImpl({
-          model: coAuthorModel,
+          model: tm,
           tools,
           systemPrompt: SYSTEM_PROMPT
         })
@@ -338,132 +475,60 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
-  async function invokeWithRepair(agent, messages, { requirePatch = false } = {}) {
-    const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
-    const beforeRevision = stateStore.getState().revisionId;
-
-    let firstResult;
-    try {
-      firstResult = await agent.invoke({ messages: baseMessages });
-    } catch (error) {
-      return formatAgentInvokeFailure(error, env);
-    }
-
-    const firstMessage = extractFinalMessage(firstResult);
-    const afterFirstRevision = stateStore.getState().revisionId;
-    const firstError = extractToolFailureError(firstResult);
-
-    if (afterFirstRevision !== beforeRevision) {
-      return {
-        message: firstMessage,
-        raw: firstResult
-      };
-    }
-
-    if (requirePatch && !firstError) {
-      try {
-        const patchRetryResult = await agent.invoke({
-          messages: [...baseMessages, buildPatchRequiredInstruction({ messages })]
-        });
-        if (stateStore.getState().revisionId !== beforeRevision) {
-          return {
-            message: extractFinalMessage(patchRetryResult),
-            raw: patchRetryResult
-          };
-        }
-        return {
-          message: extractFinalMessage(patchRetryResult),
-          raw: patchRetryResult
-        };
-      } catch (error) {
-        return formatAgentInvokeFailure(error, env);
-      }
-    }
-
-    if (!shouldAttemptSyntaxRepair(firstError)) {
-      return {
-        message: firstMessage,
-        raw: firstResult
-      };
-    }
-
-    const parsedRepairAttempts = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
-    const maxRepairAttempts = Number.isFinite(parsedRepairAttempts) ? Math.max(0, parsedRepairAttempts) : 1;
-    let latestError = firstError;
-    let latestResult = firstResult;
-
-    for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
-      let retryResult;
-      try {
-        retryResult = await agent.invoke({
-          messages: [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })]
-        });
-      } catch (error) {
-        return formatAgentInvokeFailure(error, env);
-      }
-      latestResult = retryResult;
-
-      const currentRevision = stateStore.getState().revisionId;
-      if (currentRevision !== beforeRevision) {
-        return {
-          message: extractFinalMessage(retryResult),
-          raw: retryResult
-        };
-      }
-
-      const retryError = extractToolFailureError(retryResult);
-      if (!shouldAttemptSyntaxRepair(retryError)) {
-        break;
-      }
-      latestError = retryError;
-    }
-
-    return {
-      message: extractFinalMessage(latestResult),
-      raw: latestResult
-    };
+  async function invokeMutation(agent, userMessages, opts, emit) {
+    return invokeWithRepair(agent, userMessages, { ...opts, emit }, stateStore, env);
   }
 
   const defaultAgent = getDefaultAgent();
 
   return {
     async invoke({ messages }) {
-      return invokeWithRepair(defaultAgent, messages);
+      return invokeWithRepair(defaultAgent, messages, {}, stateStore, env);
     },
 
-    async applyIntent({ prompt, settings }) {
+    async applyIntent({ prompt, settings, focusNode, emit }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
+      const focusScope = buildFocusScopeInstructions(focusNode);
 
-      return invokeWithRepair(
+      const userContent = `Interpret and apply the user's requested diagram change strictly according to their wording.
+
+Settings (response shaping only):
+- temperature: ${resolvedSettings.temperature}
+- topP: ${resolvedSettings.topP}
+- maxNodes: ${resolvedSettings.maxNodes}
+- styleGuide: ${resolvedSettings.styleGuide}
+- persona: ${resolvedSettings.persona}
+
+User request:
+${prompt}${focusScope}`;
+
+      return invokeMutation(
         defaultAgent,
-        [
-          {
-            role: 'user',
-            content: `Interpret and apply the user's requested diagram change.\n\nSettings:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser request:\n${prompt}`
-          }
-        ],
-        { requirePatch: true }
+        [{ role: 'user', content: userContent }],
+        { requirePatch: true },
+        emit
       );
     },
 
-    async applyCoAuthorIntent({ prompt, settings }) {
-      const surpriseScale = settings?.surpriseScale ?? 3;
+    async applyTransformIntent({ mode, focusNode, emit }) {
       const currentState = stateStore.getState();
-      const coAuthorAgent = getCoAuthorAgentForScale(surpriseScale);
+      const transformAgent = getTransformAgent(mode);
+      const focusScope = buildFocusScopeInstructions(focusNode);
 
-      return invokeWithRepair(
-        coAuthorAgent,
+      return invokeMutation(
+        transformAgent,
         [
           {
             role: 'user',
-            content: buildCoAuthorUserContent({
-              prompt,
-              surpriseScale,
-              mermaidSource: currentState.mermaidSource
+            content: buildTransformUserContent({
+              mode,
+              mermaidSource: currentState.mermaidSource,
+              focusScope
             })
           }
         ],
-        { requirePatch: true }
+        { requirePatch: true },
+        emit
       );
     },
 
@@ -479,8 +544,57 @@ export function createMermaidLangChainAgent({
             content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
           }
         ],
-        { requirePatch: true }
+        { requirePatch: true },
+        stateStore,
+        env
       );
+    },
+
+    async applyAnalyzeIntent({ kind, focusNode, emit }) {
+      const state = stateStore.getState();
+      const focusScope = buildFocusScopeInstructions(focusNode);
+      const diagramBlock = `\`\`\`mermaid\n${state.mermaidSource}\n\`\`\``;
+
+      const task =
+        kind === 'critique'
+          ? `Critique this diagram for clarity, structure, and usefulness. Note strengths, weaknesses, ambiguities, and concrete improvements — without rewriting the diagram yourself.${focusScope}`
+          : `Explain what this diagram communicates to someone unfamiliar with it: main flows, key entities, and takeaways. Stay descriptive — do not rewrite the diagram.${focusScope}`;
+
+      const analysisModel = createOpenRouterModel(env, {
+        temperature: kind === 'critique' ? 0.52 : 0.42,
+        maxTokens: 1800
+      });
+
+      const messages = [new SystemMessage(ANALYSIS_SYSTEM_PROMPT), new HumanMessage(`${task}\n\n${diagramBlock}`)];
+
+      if (typeof emit === 'function') {
+        let fullText = '';
+        try {
+          const stream = await analysisModel.stream(messages);
+          for await (const chunk of stream) {
+            const piece =
+              extractTextContent(chunk?.content) ||
+              extractTextContent(chunk?.kwargs?.content) ||
+              (typeof chunk?.text === 'string' ? chunk.text : '');
+            if (piece) {
+              fullText += piece;
+              emit({ type: 'token', text: piece });
+            }
+          }
+        } catch (error) {
+          emit({ type: 'error', message: error instanceof Error ? error.message : String(error) });
+          const fallback = await analysisModel.invoke(messages).catch(() => null);
+          const text = fallback ? extractTextContent(fallback.content) : '';
+          return { message: text || 'Analysis failed.', raw: null };
+        }
+        return { message: fullText.trim() || 'Done.', raw: null };
+      }
+
+      const response = await analysisModel.invoke(messages);
+      return {
+        message: extractTextContent(response.content).trim() || 'Done.',
+        raw: response
+      };
     }
   };
 }
@@ -511,12 +625,59 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
       return getAgentService().applyIntent(input);
     },
 
-    async applyCoAuthorIntent(input) {
-      return getAgentService().applyCoAuthorIntent(input);
+    async applyTransformIntent(input) {
+      return getAgentService().applyTransformIntent(input);
+    },
+
+    async applyAnalyzeIntent(input) {
+      return getAgentService().applyAnalyzeIntent(input);
     },
 
     async applyStyleIntent(input) {
       return getAgentService().applyStyleIntent(input);
+    },
+
+    async runAgentStream(operation, payload, emit) {
+      const agent = getAgentService();
+
+      if (operation === 'analyze') {
+        const result = await agent.applyAnalyzeIntent({
+          kind: payload.kind,
+          focusNode: payload.focusNode,
+          emit
+        });
+        emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
+        return result;
+      }
+
+      let agentResult;
+      if (operation === 'intent') {
+        agentResult = await agent.applyIntent({
+          prompt: payload.prompt,
+          settings: payload.settings ?? {},
+          focusNode: payload.focusNode,
+          emit
+        });
+      } else {
+        agentResult = await agent.applyTransformIntent({
+          mode: payload.mode,
+          focusNode: payload.focusNode,
+          emit
+        });
+      }
+
+      const before = payload._revisionBefore;
+      const afterState = stateStore.getState();
+      const revisionChanged = typeof before === 'number' ? afterState.revisionId !== before : true;
+
+      emit({
+        type: 'final',
+        revisionChanged,
+        message: agentResult?.message ?? '',
+        state: revisionChanged ? afterState : undefined
+      });
+
+      return agentResult;
     }
   };
 }

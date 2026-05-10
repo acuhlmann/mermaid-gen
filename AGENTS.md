@@ -100,7 +100,7 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - **Tests**: `npm test` runs all workspaces sequentially (shared → server → web). Server tests use Node's built-in test runner; web tests use Vitest. All 48 tests should pass without any API key.
 - **Lint**: Only `apps/web` has an ESLint config (`npm run lint -w apps/web`). There are pre-existing lint errors in the codebase (4 errors as of initial setup).
 - **Build**: `npm run build` builds shared → server → web. The web build produces a Vite bundle with a chunk-size warning that can be ignored.
-- **AI features require `OPENROUTER_API_KEY`**: Without this key, the health endpoint reports `llmConfigured: false` and intent/coauthor routes return 503. The app still loads and renders diagrams, but AI generation won't work.
+- **AI features require `OPENROUTER_API_KEY`**: Without this key, the health endpoint reports `llmConfigured: false` and intent/transform/analyze/stream routes return 503. The app still loads and renders diagrams, but AI generation won't work.
 - **GCP access (`gcloud`)**: The update script installs `gcloud`, configures project `mermaidgen` / region `us-central1`, and auto-activates the `GCP_MERMAID_GEN` Cursor Secret (service account JSON for `cursor-agent-readonly@mermaidgen.iam.gserviceaccount.com`). Once authenticated, useful inspection commands include:
   - `gcloud run services list` — list Cloud Run services (`mermaid-gen-main`, `mermaid-gen-hackathon`)
   - `gcloud run services describe mermaid-gen-main` — inspect the main service

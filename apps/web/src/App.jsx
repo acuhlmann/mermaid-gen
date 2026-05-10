@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { parseMermaidStyleConfig } from '@mermaid-architect/shared';
+import { createInitialDiagramState, parseMermaidStyleConfig } from '@mermaid-architect/shared';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
+import InsightsPane from './components/InsightsPane.jsx';
 import {
   fallbackState,
   fetchDiagramState,
+  streamDiagramAgent,
   syncClientDiagramState,
-  submitDiagramIntent,
-  submitCoAuthorIntent
+  submitDiagramIntent
 } from './state/diagramStore.js';
 import './App.css';
 
-const defaultCoAuthorPrompt =
-  'Creatively extend the current diagram into a bigger system while preserving existing structure and concepts.';
-
-const SURPRISE_SCALE_LABELS = ['Subtle', 'Mild', 'Balanced', 'Bold', 'Wild'];
+function focusPayload(node) {
+  if (!node?.id) return undefined;
+  return { id: node.id, label: node.label };
+}
 
 function MermaidArchitect() {
   const [state, setState] = useState(fallbackState);
   const [prompt, setPrompt] = useState('');
-  const [surpriseScale, setSurpriseScale] = useState(3);
   const [loading, setLoading] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
   const [error, setError] = useState('');
@@ -26,6 +26,12 @@ function MermaidArchitect() {
   const [validationError, setValidationError] = useState(null);
   const [autoFixAttempted, setAutoFixAttempted] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
+  const [insightsEntries, setInsightsEntries] = useState([]);
+  const [latestCritique, setLatestCritique] = useState(null);
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [toolbarAnchor, setToolbarAnchor] = useState(null);
+
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
   const autoFixTimerRef = useRef(null);
@@ -110,6 +116,54 @@ function MermaidArchitect() {
       });
     }, 18);
   }, []);
+
+  const appendInsightEntry = useCallback((title) => {
+    const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
+    setInsightsEntries((prev) => [...prev, { id, title, content: '' }]);
+    return id;
+  }, []);
+
+  const appendToInsight = useCallback((id, text) => {
+    setInsightsEntries((prev) =>
+      prev.map((entry) => (entry.id === id ? { ...entry, content: entry.content + text } : entry))
+    );
+  }, []);
+
+  const runStreamingAgent = useCallback(
+    async ({ operation, payload, title, onFinal }) => {
+      setInsightsOpen(true);
+      const sectionId = appendInsightEntry(title);
+      let streamedText = '';
+      try {
+        await streamDiagramAgent(payload, (evt) => {
+          if (evt.type === 'token' && evt.text) {
+            streamedText += evt.text;
+            appendToInsight(sectionId, evt.text);
+          }
+          else if (evt.type === 'status' && evt.text) appendToInsight(sectionId, `\n\n_${evt.text}_\n\n`);
+          else if (evt.type === 'tool_start' && evt.name) appendToInsight(sectionId, `\n→ ${evt.name} …\n`);
+          else if (evt.type === 'tool_end' && evt.name) appendToInsight(sectionId, `\n← ${evt.name}\n`);
+          else if (evt.type === 'error' && evt.message) appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
+          else if (evt.type === 'final') {
+            if (evt.revisionChanged && evt.state) {
+              animateAcceptedSource(evt.state);
+            }
+            if (evt.message && operation !== 'analyze') {
+              appendToInsight(sectionId, `\n\n— _${evt.message}_`);
+            }
+            if (typeof onFinal === 'function') {
+              const finalText =
+                streamedText.trim() || (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');
+              onFinal({ evt, finalText });
+            }
+          }
+        });
+      } catch (err) {
+        appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
+      }
+    },
+    [animateAcceptedSource, appendInsightEntry, appendToInsight]
+  );
 
   const runAutoFix = useCallback(
     async (brokenSource, errorMessage) => {
@@ -238,78 +292,203 @@ Hard requirements:
     }, 350);
   }
 
+  async function syncDiagramOrThrow() {
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+
+    const currentState = stateRef.current;
+    const syncedState = await syncClientDiagramState({
+      mermaidSource: currentState.mermaidSource,
+      styleConfig: currentState.styleConfig
+    });
+    setState(syncedState);
+    return syncedState;
+  }
+
   async function runIntentChange(event) {
     event.preventDefault();
     const nextPrompt = prompt.trim();
     if (!nextPrompt || loadingRef.current || streamingPreviewRef.current) return;
 
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-
-    const currentState = stateRef.current;
+    const focusNode = focusPayload(selectedNode);
     setLoading(true);
     setActiveRequest('intent');
     setError('');
 
     try {
-      const syncedState = await syncClientDiagramState({
-        mermaidSource: currentState.mermaidSource,
-        styleConfig: currentState.styleConfig
-      });
-      setState(syncedState);
-      const result = await submitDiagramIntent({
-        prompt: nextPrompt,
-        revisionId: syncedState.revisionId,
-        mermaidSource: syncedState.mermaidSource
+      const syncedState = await syncDiagramOrThrow();
+      await runStreamingAgent({
+        operation: 'intent',
+        payload: {
+          operation: 'intent',
+          prompt: nextPrompt,
+          revisionId: syncedState.revisionId,
+          mermaidSource: syncedState.mermaidSource,
+          settings: {},
+          focusNode
+        },
+        title: selectedNode ? `Go — node “${selectedNode.label || selectedNode.id}”` : 'Go — diagram'
       });
       setPrompt('');
-      animateAcceptedSource(result.state);
     } catch (err) {
       setError(err.message);
+    } finally {
       setLoading(false);
       setActiveRequest(null);
     }
   }
 
-  async function runCoAuthor() {
+  async function runTransform(mode) {
     if (loadingRef.current || streamingPreviewRef.current) return;
+    if (!stateRef.current.mermaidSource.trim()) return;
 
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-      syncTimerRef.current = null;
-    }
-
-    const currentState = stateRef.current;
+    const focusNode = focusPayload(selectedNode);
     setLoading(true);
-    setActiveRequest('coauthor');
+    setActiveRequest(`transform:${mode}`);
     setError('');
 
     try {
-      const syncedState = await syncClientDiagramState({
-        mermaidSource: currentState.mermaidSource,
-        styleConfig: currentState.styleConfig
+      const syncedState = await syncDiagramOrThrow();
+      const labels = { refine: 'Refine', innovate: 'Innovate', goMad: 'Go Mad' };
+      await runStreamingAgent({
+        operation: 'transform',
+        payload: {
+          operation: 'transform',
+          mode,
+          revisionId: syncedState.revisionId,
+          mermaidSource: syncedState.mermaidSource,
+          focusNode
+        },
+        title: selectedNode
+          ? `${labels[mode]} — node “${selectedNode.label || selectedNode.id}”`
+          : `${labels[mode]} — diagram`
       });
-      setState(syncedState);
-      const result = await submitCoAuthorIntent({
-        prompt: defaultCoAuthorPrompt,
-        revisionId: syncedState.revisionId,
-        mermaidSource: syncedState.mermaidSource,
-        settings: { surpriseScale }
-      });
-      animateAcceptedSource(result.state);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+      setActiveRequest(null);
+    }
+  }
+
+  async function runAnalyze(kind) {
+    if (loadingRef.current || streamingPreviewRef.current) return;
+    if (!stateRef.current.mermaidSource.trim()) return;
+
+    const focusNode = focusPayload(selectedNode);
+    setLoading(true);
+    setActiveRequest(`analyze:${kind}`);
+    setError('');
+
+    try {
+      const syncedState = await syncDiagramOrThrow();
+      const labels = { critique: 'Critique', explain: 'Explain' };
+      await runStreamingAgent({
+        operation: 'analyze',
+        payload: {
+          operation: 'analyze',
+          kind,
+          revisionId: syncedState.revisionId,
+          mermaidSource: syncedState.mermaidSource,
+          focusNode
+        },
+        title: selectedNode
+          ? `${labels[kind]} — node “${selectedNode.label || selectedNode.id}”`
+          : `${labels[kind]} — diagram`,
+        onFinal: ({ finalText }) => {
+          if (kind !== 'critique') return;
+          const cleaned = finalText.trim();
+          if (!cleaned) return;
+          setLatestCritique({
+            text: cleaned,
+            focusNode,
+            createdAt: Date.now()
+          });
+        }
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setActiveRequest(null);
+    }
+  }
+
+  async function handleFixFromCritique() {
+    if (!latestCritique?.text || loadingRef.current || streamingPreviewRef.current) return;
+
+    setLoading(true);
+    setActiveRequest('fix');
+    setError('');
+
+    const fixPrompt = `Improve the current Mermaid diagram based on this critique. Apply concrete fixes directly to the diagram with apply_mermaid_patch.
+
+Critique:
+${latestCritique.text}
+
+Requirements:
+- Preserve the original intent and main flow.
+- Prioritize readability and clarity improvements first.
+- Keep Mermaid syntax valid and output a complete diagram.`;
+
+    try {
+      const syncedState = await syncDiagramOrThrow();
+      await runStreamingAgent({
+        operation: 'intent',
+        payload: {
+          operation: 'intent',
+          prompt: fixPrompt,
+          revisionId: syncedState.revisionId,
+          mermaidSource: syncedState.mermaidSource,
+          settings: {},
+          focusNode: latestCritique.focusNode
+        },
+        title: latestCritique.focusNode
+          ? `Fix from critique — node “${latestCritique.focusNode.label || latestCritique.focusNode.id}”`
+          : 'Fix from critique — diagram'
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+      setActiveRequest(null);
+    }
+  }
+
+  async function handleClearDiagram() {
+    if (loadingRef.current || streamingPreviewRef.current) return;
+    setSelectedNode(null);
+    setToolbarAnchor(null);
+    setError('');
+    const reset = createInitialDiagramState();
+    setLoading(true);
+    setActiveRequest('clear');
+    try {
+      const synced = await syncClientDiagramState({
+        mermaidSource: reset.mermaidSource,
+        styleConfig: reset.styleConfig
+      });
+      setState(synced);
+    } catch (err) {
+      setError(err.message);
+    } finally {
       setLoading(false);
       setActiveRequest(null);
     }
   }
 
   const busy = loading || streamingPreview;
+  const hasDiagramText = Boolean(state.mermaidSource?.trim());
+  const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
+
   const status = useMemo(() => {
-    if (loading && activeRequest === 'coauthor') return 'Surprise me is extending the diagram.';
     if (loading && activeRequest === 'intent') return 'Applying diagram change.';
+    if (loading && activeRequest?.startsWith?.('transform')) return 'Transforming diagram.';
+    if (loading && activeRequest?.startsWith?.('analyze')) return 'Analyzing diagram.';
+    if (loading && activeRequest === 'fix') return 'Applying critique fixes.';
+    if (loading && activeRequest === 'clear') return 'Resetting diagram.';
     if (loading && activeRequest === 'autofix') return 'Fixing Mermaid syntax.';
     if (streamingPreview) return 'Refreshing diagram.';
     if (error) return error;
@@ -317,17 +496,72 @@ Hard requirements:
     return '';
   }, [activeRequest, autoFixAttempted, error, loading, streamingPreview, validationError]);
 
+  const insightsSlot = insightsOpen ? (
+    <InsightsPane entries={insightsEntries} onClose={() => setInsightsOpen(false)} />
+  ) : null;
+
   return (
-    <main className={`app-shell ${editorOpen ? 'is-editor-open' : ''}`} aria-label="MermaidGen">
+    <main
+      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}`}
+      aria-label="MermaidGen"
+    >
       <DiagramCanvas
         mermaidSource={state.mermaidSource}
         styleConfig={state.styleConfig}
-        revisionId={state.revisionId}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
         streamingPreview={streamingPreview}
         editorOpen={editorOpen}
+        insightsOpen={insightsOpen && Boolean(insightsSlot)}
+        insightsSlot={insightsSlot}
+        selectedNode={selectedNode}
+        onSelectedNodeChange={(next) => {
+          setSelectedNode(next);
+          if (!next) setToolbarAnchor(null);
+        }}
+        onNodeToolbarAnchor={setToolbarAnchor}
       />
+
+      {toolbarAnchor && selectedNode ? (
+        <div
+          className="corner-control node-toolbar-anchor"
+          style={{
+            left: toolbarAnchor.left,
+            top: toolbarAnchor.top
+          }}
+          role="toolbar"
+          aria-label="Actions for selected node"
+        >
+          <div className="prompt-actions node-toolbar-actions">
+            <span className="button-group-label">Shape</span>
+            <div className="button-group">
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
+                Refine
+              </button>
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
+                Innovate
+              </button>
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
+                Go Mad
+              </button>
+            </div>
+            <span className="button-group-label">Read</span>
+            <div className="button-group">
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
+                Critique
+              </button>
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+                Explain
+              </button>
+              {latestCritique?.text ? (
+                <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
+                  Fix
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="corner-control brand-control" aria-label="MermaidGen brand">
         MermaidGen
@@ -339,57 +573,70 @@ Hard requirements:
         </button>
       </div>
 
-      <form className="corner-control prompt-control" onSubmit={runIntentChange}>
-        <label className="sr-only" htmlFor="diagram-change-prompt">
-          Describe your Change
-        </label>
-        <input
-          id="diagram-change-prompt"
-          value={prompt}
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Describe your Change"
-          disabled={busy}
-          aria-invalid={error ? 'true' : 'false'}
-          aria-describedby={status ? 'app-status' : undefined}
-        />
-        <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
-          Go
-        </button>
-        {status ? (
-          <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
-            {status}
-          </p>
-        ) : null}
-      </form>
+      <div className="corner-control prompt-stack">
+        <form className="prompt-control" onSubmit={runIntentChange}>
+          <label className="sr-only" htmlFor="diagram-change-prompt">
+            Set the Topic, Describe Your Change
+          </label>
+          <input
+            id="diagram-change-prompt"
+            value={prompt}
+            onChange={(event) => setPrompt(event.target.value)}
+            placeholder="Set the Topic, Describe Your Change"
+            disabled={busy}
+            aria-invalid={error ? 'true' : 'false'}
+            aria-describedby={status ? 'app-status' : undefined}
+          />
+          <div className="prompt-actions-main">
+            <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
+              Clear
+            </button>
+            <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
+              Go
+            </button>
+          </div>
+          {status ? (
+            <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
+              {status}
+            </p>
+          ) : null}
+        </form>
 
-      <div className="corner-control surprise-control">
-        <div className="surprise-scale" role="radiogroup" aria-label="Surprise scale">
-          {SURPRISE_SCALE_LABELS.map((label, index) => {
-            const value = index + 1;
-            const selected = surpriseScale === value;
-            return (
-              <button
-                key={label}
-                type="button"
-                role="radio"
-                aria-label={`${label} surprise level`}
-                aria-checked={selected}
-                className={`scale-dot ${selected ? 'is-selected' : ''}`}
-                onClick={() => setSurpriseScale(value)}
-              >
-                {value}
+        {hasDiagramText ? (
+          <div className="prompt-actions">
+            <span className="button-group-label">Shape</span>
+            <div className="button-group">
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
+                Refine
               </button>
-            );
-          })}
-        </div>
-        <button
-          type="button"
-          className="overlay-button surprise-button"
-          onClick={() => runCoAuthor()}
-          disabled={busy}
-          aria-busy={loading && activeRequest === 'coauthor'}
-        >
-          Surprise me
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
+                Innovate
+              </button>
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
+                Go Mad
+              </button>
+            </div>
+            <span className="button-group-label">Read</span>
+            <div className="button-group">
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
+                Critique
+              </button>
+              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+                Explain
+              </button>
+              {latestCritique?.text ? (
+                <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
+                  Fix
+                </button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      <div className="corner-control thinking-control">
+        <button type="button" className="overlay-button" onClick={() => setInsightsOpen((v) => !v)}>
+          {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
         </button>
       </div>
     </main>

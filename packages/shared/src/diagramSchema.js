@@ -22,29 +22,69 @@ export const DiagramStateSchema = z.object({
   history: z.array(DiagramPatchSchema)
 });
 
+export const FocusNodeSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().optional()
+});
+
+export const IntentSettingsSchema = z
+  .object({
+    temperature: z.number().min(0).max(3).default(0.7),
+    topP: z.number().min(0).max(1).default(1),
+    maxNodes: z.number().int().min(1).max(200).default(25),
+    styleGuide: z.enum(['concise', 'balanced', 'bold']).default('balanced'),
+    persona: z.string().min(1).max(120).default('creative architect')
+  })
+  .default({});
+
 export const DiagramIntentSchema = z.object({
   prompt: z.string().min(1),
   revisionId: z.number().int().nonnegative(),
   mermaidSource: z.string().min(1),
-  settings: z
-    .object({
-      temperature: z.number().min(0).max(3).default(0.7),
-      topP: z.number().min(0).max(1).default(1),
-      maxNodes: z.number().int().min(1).max(200).default(25),
-      styleGuide: z.enum(['concise', 'balanced', 'bold']).default('balanced'),
-      persona: z.string().min(1).max(120).default('creative architect')
-    })
-    .default({})
+  settings: IntentSettingsSchema,
+  focusNode: FocusNodeSchema.optional()
 });
 
-export const CoAuthorSettingsSchema = z.object({
-  surpriseScale: z.number().int().min(1).max(5).default(3)
+export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad']);
+
+export const DiagramTransformIntentSchema = z.object({
+  revisionId: z.number().int().nonnegative(),
+  mermaidSource: z.string().min(1),
+  mode: TransformModeSchema,
+  focusNode: FocusNodeSchema.optional()
 });
 
-export const CoAuthorIntentSchema = DiagramIntentSchema.omit({ settings: true }).extend({
-  trigger: z.literal('manual'),
-  settings: CoAuthorSettingsSchema.default({})
+export const DiagramAnalyzeSchema = z.object({
+  revisionId: z.number().int().nonnegative(),
+  mermaidSource: z.string().min(1),
+  kind: z.enum(['critique', 'explain']),
+  focusNode: FocusNodeSchema.optional()
 });
+
+export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
+  z.object({
+    operation: z.literal('intent'),
+    prompt: z.string().min(1),
+    revisionId: z.number().int().nonnegative(),
+    mermaidSource: z.string().min(1),
+    settings: IntentSettingsSchema,
+    focusNode: FocusNodeSchema.optional()
+  }),
+  z.object({
+    operation: z.literal('transform'),
+    revisionId: z.number().int().nonnegative(),
+    mermaidSource: z.string().min(1),
+    mode: TransformModeSchema,
+    focusNode: FocusNodeSchema.optional()
+  }),
+  z.object({
+    operation: z.literal('analyze'),
+    revisionId: z.number().int().nonnegative(),
+    mermaidSource: z.string().min(1),
+    kind: z.enum(['critique', 'explain']),
+    focusNode: FocusNodeSchema.optional()
+  })
+]);
 
 export const StyleIntentSchema = DiagramIntentSchema.extend({
   stylePrompt: z.string().min(1).optional()
@@ -53,7 +93,7 @@ export const StyleIntentSchema = DiagramIntentSchema.extend({
 export function createInitialDiagramState() {
   const now = new Date().toISOString();
   const styled = applyMermaidStyleDirective({
-    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+    mermaidSource: 'flowchart TD\n  A["AI Tinkerers HK"] --> B[Hackathon]',
     styleConfig: DEFAULT_DIAGRAM_STYLE
   });
 

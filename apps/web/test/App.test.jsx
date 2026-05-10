@@ -7,7 +7,7 @@ const {
   fetchDiagramStateMock,
   syncClientDiagramStateMock,
   submitDiagramIntentMock,
-  submitCoAuthorIntentMock,
+  streamDiagramAgentMock,
   initialState,
   updatedState
 } = vi.hoisted(() => {
@@ -28,30 +28,35 @@ const {
   const updated = {
     ...initial,
     revisionId: 2,
-    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Surprise[Surprise path]',
+    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
     updatedAt: '2026-05-10T08:31:00.000Z'
   };
   return {
     fetchDiagramStateMock: vi.fn(),
     syncClientDiagramStateMock: vi.fn(),
     submitDiagramIntentMock: vi.fn(),
-    submitCoAuthorIntentMock: vi.fn(),
+    streamDiagramAgentMock: vi.fn(),
     initialState: initial,
     updatedState: updated
   };
 });
 
 vi.mock('../src/components/DiagramCanvas.jsx', () => ({
-  default: function DiagramCanvasMock({ mermaidSource, onManualEdit, revisionId }) {
+  default: function DiagramCanvasMock({ mermaidSource, onManualEdit }) {
     return (
       <section>
-        <div>Revision {revisionId}</div>
         <pre data-testid="mermaid-source">{mermaidSource}</pre>
         <button type="button" onClick={() => onManualEdit('flowchart TD\n  Start[Start] --> Edited[Edited]')}>
           Mock edit
         </button>
       </section>
     );
+  }
+}));
+
+vi.mock('../src/components/InsightsPane.jsx', () => ({
+  default: function InsightsPaneMock() {
+    return null;
   }
 }));
 
@@ -63,7 +68,7 @@ vi.mock('../src/state/diagramStore.js', () => ({
   getOrCreateBrowserSessionId: () => 'test-session',
   syncClientDiagramState: syncClientDiagramStateMock,
   submitDiagramIntent: submitDiagramIntentMock,
-  submitCoAuthorIntent: submitCoAuthorIntentMock
+  streamDiagramAgent: streamDiagramAgentMock
 }));
 
 describe('App simplified controls', () => {
@@ -76,7 +81,30 @@ describe('App simplified controls', () => {
       styleConfig: styleConfig ?? initialState.styleConfig
     }));
     submitDiagramIntentMock.mockResolvedValue({ state: updatedState });
-    submitCoAuthorIntentMock.mockResolvedValue({ state: updatedState });
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
+      } else if (payload.operation === 'analyze') {
+        onEvent?.({ type: 'token', text: 'Use clearer labels and simplify branching.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: false,
+          analyzeText: 'Use clearer labels and simplify branching.'
+        });
+      } else {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Transformed.'
+        });
+      }
+    });
   });
 
   afterEach(() => {
@@ -84,15 +112,15 @@ describe('App simplified controls', () => {
     vi.clearAllMocks();
   });
 
-  it('cancels pending editor sync and submits the latest source before co-author runs', async () => {
+  it('cancels pending editor sync and streams transform after mock edit', async () => {
     render(<App />);
 
-    const surpriseButton = await screen.findByRole('button', { name: 'Surprise me' });
+    const refineButton = await screen.findByRole('button', { name: 'Refine' });
     fireEvent.click(screen.getByText('Mock edit'));
-    fireEvent.click(surpriseButton);
+    fireEvent.click(refineButton);
 
-    await waitFor(() => expect(submitCoAuthorIntentMock).toHaveBeenCalled());
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 400));
 
     expect(syncClientDiagramStateMock).toHaveBeenCalledTimes(1);
     expect(syncClientDiagramStateMock).toHaveBeenCalledWith(
@@ -100,29 +128,54 @@ describe('App simplified controls', () => {
         mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
       })
     );
-    expect(submitCoAuthorIntentMock).toHaveBeenCalledWith(
+    expect(streamDiagramAgentMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        operation: 'transform',
+        mode: 'refine',
         revisionId: 1,
         mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
-      })
+      }),
+      expect.any(Function)
     );
   });
 
-  it('submits the prompt control to the intent endpoint', async () => {
+  it('streams intent when submitting the prompt control', async () => {
     render(<App />);
 
-    const input = await screen.findByPlaceholderText('Describe your Change');
+    const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
     fireEvent.click(screen.getByRole('button', { name: 'Go' }));
 
-    await waitFor(() => expect(submitDiagramIntentMock).toHaveBeenCalled());
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
 
-    expect(submitDiagramIntentMock).toHaveBeenCalledWith(
+    expect(streamDiagramAgentMock).toHaveBeenCalledWith(
       expect.objectContaining({
+        operation: 'intent',
         prompt: 'Add a payment step',
         revisionId: 1,
         mermaidSource: initialState.mermaidSource
-      })
+      }),
+      expect.any(Function)
+    );
+  });
+
+  it('shows Fix after critique and applies critique-driven intent', async () => {
+    render(<App />);
+
+    const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
+    fireEvent.click(critiqueButton);
+
+    const fixButton = await screen.findByRole('button', { name: 'Fix' });
+    fireEvent.click(fixButton);
+
+    await waitFor(() =>
+      expect(streamDiagramAgentMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          operation: 'intent',
+          prompt: expect.stringContaining('Use clearer labels and simplify branching.')
+        }),
+        expect.any(Function)
+      )
     );
   });
 });

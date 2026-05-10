@@ -1,16 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  COAUTHOR_MODEL_LIMITS,
-  SURPRISE_SCALE_TEMPERATURES,
+  TRANSFORM_MODEL_LIMITS,
   buildPatchRequiredInstruction,
   buildSyntaxRepairInstruction,
-  coAuthorModelOptionsForScale,
   createMermaidLangChainAgent,
+  normalizeAgentStreamEvent,
   shouldAttemptSyntaxRepair,
-  surpriseScaleToTemperature,
-  surpriseTierGuidance,
-  toLangChainMessages
+  toLangChainMessages,
+  transformModeModelOptions
 } from '../src/agents/mermaidLangChainAgent.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
@@ -34,18 +32,15 @@ test('agent message conversion drops assistant replies that expose internal tool
   ]);
 });
 
-test('surprise scale maps to monotonic temperatures', () => {
-  assert.equal(surpriseScaleToTemperature(1), SURPRISE_SCALE_TEMPERATURES[1]);
-  assert.ok(surpriseScaleToTemperature(5) > surpriseScaleToTemperature(1));
-  assert.ok(surpriseScaleToTemperature(5) <= 1.2);
+test('transform mode picks increasing temperatures', () => {
+  assert.ok(transformModeModelOptions('refine').temperature < transformModeModelOptions('innovate').temperature);
+  assert.ok(transformModeModelOptions('innovate').temperature < transformModeModelOptions('goMad').temperature);
+  assert.ok(transformModeModelOptions('goMad').temperature > 1.12);
+  assert.equal(transformModeModelOptions('goMad').topP, TRANSFORM_MODEL_LIMITS.topP);
+  assert.equal(transformModeModelOptions('goMad').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
 });
 
-test('surprise tier guidance covers scales 1–5', () => {
-  assert.match(surpriseTierGuidance(1), /Subtle/);
-  assert.match(surpriseTierGuidance(5), /Wild/);
-});
-
-test('applyCoAuthorIntent uses distinct ChatOpenRouter temperature per surprise scale', async () => {
+test('applyTransformIntent uses hotter transform model for goMad', async () => {
   const modelOptions = [];
 
   const fakeAgent = {
@@ -61,29 +56,27 @@ test('applyCoAuthorIntent uses distinct ChatOpenRouter temperature per surprise 
     stateStore,
     model: {},
     env: { OPENROUTER_API_KEY: 'test-key' },
-    createCoAuthorChatModel: (options) => {
+    createTransformChatModel: (options) => {
       modelOptions.push(options);
       return {};
     },
     createAgentImpl: () => fakeAgent
   });
 
-  await service.applyCoAuthorIntent({
-    prompt: 'extend diagram',
-    settings: { surpriseScale: 5 }
+  await service.applyTransformIntent({
+    mode: 'goMad'
   });
 
-  assert.equal(modelOptions.some((options) => options.temperature === SURPRISE_SCALE_TEMPERATURES[5]), true);
-  assert.equal(modelOptions[0].topP, COAUTHOR_MODEL_LIMITS.topP);
-  assert.equal(modelOptions[0].maxTokens, COAUTHOR_MODEL_LIMITS.maxTokens);
+  assert.ok(modelOptions.some((options) => options.temperature === transformModeModelOptions('goMad').temperature));
 });
 
-test('coAuthorModelOptionsForScale applies bounded wild model settings', () => {
-  assert.deepEqual(coAuthorModelOptionsForScale(5), {
-    temperature: SURPRISE_SCALE_TEMPERATURES[5],
-    topP: COAUTHOR_MODEL_LIMITS.topP,
-    maxTokens: COAUTHOR_MODEL_LIMITS.maxTokens
+test('normalizeAgentStreamEvent maps token-bearing stream chunks', () => {
+  const mapped = normalizeAgentStreamEvent({
+    event: 'on_chat_model_stream',
+    data: { chunk: { content: 'hi' } }
   });
+  assert.equal(mapped?.type, 'token');
+  assert.equal(mapped?.text, 'hi');
 });
 
 test('shouldAttemptSyntaxRepair detects syntax-like validation errors', () => {
@@ -106,13 +99,13 @@ test('buildSyntaxRepairInstruction includes validator feedback', () => {
 
 test('buildPatchRequiredInstruction asks for a patch after prose-only output', () => {
   const instruction = buildPatchRequiredInstruction({
-    messages: [{ role: 'user', content: 'Surprise me wildly.' }]
+    messages: [{ role: 'user', content: 'Extend wildly.' }]
   });
 
   assert.equal(instruction.role, 'user');
   assert.match(instruction.content, /did not apply a diagram patch/i);
   assert.match(instruction.content, /apply_mermaid_patch/);
-  assert.match(instruction.content, /Surprise me wildly/);
+  assert.match(instruction.content, /Extend wildly/);
 });
 
 test('agent invoke performs bounded repair retry after syntax failure', async () => {
@@ -171,7 +164,7 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
   }
 });
 
-test('coauthor retries once when the model returns prose without applying a patch', async () => {
+test('transform retries once when the model returns prose without applying a patch', async () => {
   const stateStore = createDiagramStateStore();
   let callCount = 0;
   const fakeAgent = {
@@ -196,12 +189,13 @@ test('coauthor retries once when the model returns prose without applying a patc
   const service = createMermaidLangChainAgent({
     stateStore,
     model: {},
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    createTransformChatModel: () => ({}),
     createAgentImpl: () => fakeAgent
   });
 
-  const result = await service.applyCoAuthorIntent({
-    prompt: 'surprise me',
-    settings: { surpriseScale: 5 }
+  const result = await service.applyTransformIntent({
+    mode: 'goMad'
   });
 
   assert.equal(callCount, 2);

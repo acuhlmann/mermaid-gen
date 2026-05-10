@@ -3,11 +3,10 @@
 Single-repo JavaScript prototype for collaborative Mermaid diagram editing with a dual-agent authoring model.
 
 ## Product Vision
-- One always-visible user prompt captures the human's drawing intent.
-- The **Intent Agent** interprets that prompt and generates the closest diagram update.
-- The **Co-author Agent** is a second AI that can extend the diagram with creative additions when manually triggered.
-- Agent defaults reflect character: intent stays grounded while co-author is intentionally more exploratory.
-- Advanced settings allow tuning behavior (temperature, style, persona, and extension limits).
+- One always-visible user prompt captures the human's drawing intent; **Go** applies it faithfully via the Intent Agent.
+- **Refine**, **Innovate**, and **Go Mad** apply progressively bolder transforms without rewriting the prompt.
+- **Critique** / **Explain** run read-only analysis into an insights pane; **Show Thinking** streams agent telemetry into the same pane.
+- Optional focus on a diagram node narrows transforms and explanations to that subgraph.
 
 ## Stack
 - `apps/web`: React + Vite UI with Monaco editor + Mermaid live renderer
@@ -15,17 +14,13 @@ Single-repo JavaScript prototype for collaborative Mermaid diagram editing with 
 - `packages/shared`: shared diagram schemas and patch logic
 
 ## Interaction Flow
-1. User enters a prompt in `Describe a diagram change`.
-2. Web app sends prompt + current revision + settings to `POST /api/copilotkit/intent`.
-3. Intent agent applies a patch and updates shared diagram state.
-4. User optionally opens Agent Settings, then uses **Co-Author Surprise Mode** to trigger a creative extension.
-5. Web app sends manual co-author request to `POST /api/copilotkit/coauthor`.
-6. Co-author agent applies an extension patch, preserving the human-authored structure.
+1. User enters a prompt in **Describe your Change** and submits **Go** (streams agent thoughts via SSE).
+2. With diagram content loaded, **Refine / Innovate / Go Mad** send transform payloads that patch state (**Critique / Explain** stream analysis only).
+3. State stays synced via `GET`/`POST /api/copilotkit/state`; diagrams reset from **Clear** to the HK hackathon starter flowchart.
 
 ## Agent Profiles
 - Intent Agent defaults: `temperature 0.7`, `topP 1`, `maxNodes 25`, `style balanced`, `persona creative architect`.
-- Co-author Agent defaults: `temperature 1.1`, `topP 1`, `maxNodes 40`, `style bold`, `persona playful co-author`.
-- UI controls still allow overrides per request, but each path starts from its own profile baseline.
+- Transform paths reuse tooling agents tuned per mode (`refine`, `innovate`, `goMad`) with increasing sampling temperature.
 
 ## Protocol Notes
 - This iteration keeps the existing CopilotKit runtime + endpoints as the primary orchestration layer.
@@ -55,8 +50,10 @@ Single-repo JavaScript prototype for collaborative Mermaid diagram editing with 
 ## Endpoints
 - `GET /api/health`
 - `GET /api/copilotkit/state`
-- `POST /api/copilotkit/intent` - intent agent path
-- `POST /api/copilotkit/coauthor` - manual co-author extension path
+- `POST /api/copilotkit/intent` - grounded diagram edits from natural language
+- `POST /api/copilotkit/transform` - refine / innovate / goMad transforms
+- `POST /api/copilotkit/analyze` - critique / explain without patching state
+- `POST /api/copilotkit/agent-stream` - SSE stream for tokens, tools, and finals used by the web insights pane
 
 ## Tests
 - `npm test`
