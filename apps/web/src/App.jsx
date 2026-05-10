@@ -22,6 +22,34 @@ function formatToolLabel(name) {
   return TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
 }
 
+const STREAM_DEBUG_LS_KEY = 'mermaid-architect-stream-debug';
+
+function readStreamDebugEnabled() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.localStorage?.getItem(STREAM_DEBUG_LS_KEY) === '1') return true;
+    const q = new URLSearchParams(window.location.search);
+    return q.get('streamDebug') === '1';
+  } catch {
+    return false;
+  }
+}
+
+function snapshotStreamEventForDebug(evt) {
+  if (!evt || typeof evt !== 'object') return evt;
+  if (evt.type === 'token' && typeof evt.text === 'string') {
+    const t = evt.text;
+    return { ...evt, text: t.length > 160 ? `${t.slice(0, 160)}…` : t };
+  }
+  if (evt.type === 'final' && evt.state && typeof evt.state === 'object') {
+    return {
+      ...evt,
+      state: { revisionId: evt.state.revisionId, mermaidSource: '[omitted]' }
+    };
+  }
+  return evt;
+}
+
 function focusPayload(node) {
   if (!node?.id) return undefined;
   return { id: node.id, label: node.label };
@@ -353,6 +381,9 @@ function MermaidArchitect() {
         statusText: 'Working on your request...',
         status: 'running',
         technicalActions: [],
+        phases: [],
+        artifacts: [],
+        streamDebugLog: [],
         startedAt: Date.now(),
         completedAt: null
       }
@@ -410,6 +441,18 @@ function MermaidArchitect() {
     [patchInsightEntry]
   );
 
+  const appendStreamDebugLog = useCallback(
+    (id, evt) => {
+      if (!readStreamDebugEnabled()) return;
+      patchInsightEntry(id, (entry) => {
+        const log = Array.isArray(entry.streamDebugLog) ? entry.streamDebugLog : [];
+        const next = [...log, { ...snapshotStreamEventForDebug(evt), _ts: Date.now() }];
+        return { ...entry, streamDebugLog: next.slice(-50) };
+      });
+    },
+    [patchInsightEntry]
+  );
+
   const runStreamingAgent = useCallback(
     async ({ operation, payload, title, onFinal }) => {
       setInsightsOpen(true);
@@ -417,7 +460,26 @@ function MermaidArchitect() {
       let streamedText = '';
       try {
         await streamDiagramAgent(payload, (evt) => {
-          if (evt.type === 'token' && evt.text) {
+          appendStreamDebugLog(sectionId, evt);
+          if (evt.type === 'phase' && evt.id && evt.label) {
+            patchInsightEntry(sectionId, (entry) => ({
+              ...entry,
+              phases: [...(Array.isArray(entry.phases) ? entry.phases : []), { id: evt.id, label: evt.label }]
+            }));
+          } else if (evt.type === 'artifact' && evt.kind === 'patch_summary') {
+            patchInsightEntry(sectionId, (entry) => ({
+              ...entry,
+              artifacts: [
+                ...(Array.isArray(entry.artifacts) ? entry.artifacts : []),
+                {
+                  kind: evt.kind,
+                  revisionId: evt.revisionId,
+                  linesAdded: evt.linesAdded,
+                  linesRemoved: evt.linesRemoved
+                }
+              ]
+            }));
+          } else if (evt.type === 'token' && evt.text) {
             streamedText += evt.text;
             appendToInsight(sectionId, evt.text);
           } else if (evt.type === 'status' && evt.text) {
@@ -468,6 +530,7 @@ function MermaidArchitect() {
     [
       animateAcceptedSource,
       appendInsightEntry,
+      appendStreamDebugLog,
       appendTechnicalAction,
       appendToInsight,
       patchInsightEntry,
@@ -1038,12 +1101,15 @@ Requirements:
     return '';
   }, [activeRequest, autoFixAttempted, error, loading, streamingPreview, validationError, voiceError]);
 
+  const streamDebugEnabled = readStreamDebugEnabled();
+
   const insightsSlot = insightsOpen ? (
     <InsightsPane
       entries={insightsEntries}
       soundEnabled={soundEnabled}
       onSoundEnabledChange={setSoundEnabled}
       celebratingEntryId={celebratingEntryId}
+      streamDebugEnabled={streamDebugEnabled}
     />
   ) : null;
 
@@ -1053,6 +1119,7 @@ Requirements:
       aria-label="MermaidGen"
     >
       <DiagramCanvas
+        revisionId={state.revisionId}
         mermaidSource={state.mermaidSource}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}

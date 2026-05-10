@@ -64,7 +64,13 @@ function statusLabel(entry) {
   return 'Working';
 }
 
-export default function InsightsPane({ entries, soundEnabled, onSoundEnabledChange, celebratingEntryId }) {
+export default function InsightsPane({
+  entries,
+  soundEnabled,
+  onSoundEnabledChange,
+  celebratingEntryId,
+  streamDebugEnabled = false
+}) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
 
@@ -118,6 +124,41 @@ export default function InsightsPane({ entries, soundEnabled, onSoundEnabledChan
                 </span>
               </div>
 
+              {entry.phases?.length ? (
+                <section className="insights-section is-phase-lane" aria-label="Agent phases">
+                  <h4 className="insights-section-title">Agent phases</h4>
+                  <ol className="insights-phase-list">
+                    {entry.phases.map((phase, idx) => (
+                      <li key={`${entry.id}-phase-${phase.id}-${idx}`} className="insights-phase-item">
+                        <span className="insights-phase-step">{idx + 1}</span>
+                        <span className="insights-phase-label">{phase.label}</span>
+                        <code className="insights-phase-id">{phase.id}</code>
+                      </li>
+                    ))}
+                  </ol>
+                </section>
+              ) : null}
+
+              {entry.artifacts?.some((a) => a.kind === 'patch_summary') ? (
+                <section className="insights-section is-artifacts" aria-label="Patch summary">
+                  <h4 className="insights-section-title">Diagram patch</h4>
+                  <ul className="insights-artifact-list">
+                    {entry.artifacts
+                      .filter((a) => a.kind === 'patch_summary')
+                      .map((a, idx) => (
+                        <li key={`${entry.id}-patch-${a.revisionId}-${idx}`} className="insights-patch-summary">
+                          <span>
+                            Revision <strong>{a.revisionId}</strong>
+                          </span>
+                          <span className="insights-patch-stats">
+                            +{a.linesAdded ?? 0} / −{a.linesRemoved ?? 0} lines
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </section>
+              ) : null}
+
               <section className="insights-section">
                 <h4 className="insights-section-title">Content updates</h4>
                 {entry.content ? (
@@ -145,6 +186,15 @@ export default function InsightsPane({ entries, soundEnabled, onSoundEnabledChan
                   <p className="insights-tech-empty">No technical actions yet.</p>
                 )}
               </section>
+
+              {streamDebugEnabled && entry.streamDebugLog?.length ? (
+                <details className="insights-stream-debug">
+                  <summary>Raw stream events ({entry.streamDebugLog.length})</summary>
+                  <pre className="insights-stream-debug-pre">
+                    {entry.streamDebugLog.map((row, i) => JSON.stringify(row)).join('\n')}
+                  </pre>
+                </details>
+              ) : null}
             </article>
           ))
         )}

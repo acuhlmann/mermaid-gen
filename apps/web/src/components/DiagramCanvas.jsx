@@ -46,6 +46,7 @@ function nodeTitleFromElement(nodeEl) {
 }
 
 export default function DiagramCanvas({
+  revisionId = 0,
   mermaidSource,
   onManualEdit,
   onValidationChange,
@@ -62,6 +63,11 @@ export default function DiagramCanvas({
   const [renderError, setRenderError] = useState('');
   const requestRef = useRef(0);
   const debounceRef = useRef(null);
+  const revisionBootRef = useRef(true);
+  const lastRevisionRef = useRef(revisionId);
+  const prevStreamingRef = useRef(streamingPreview);
+  const pulseTimeoutRef = useRef(null);
+  const [revisionTransition, setRevisionTransition] = useState(false);
   const lastAppliedSourceRef = useRef(mermaidSource);
   const lastReportedValidationRef = useRef({ source: null, error: null });
   const pointersRef = useRef(new Map());
@@ -93,6 +99,51 @@ export default function DiagramCanvas({
     lastAppliedSourceRef.current = mermaidSource;
     setEditorSource(mermaidSource);
   }, [mermaidSource]);
+
+  const fireDiagramRevisionPulse = useCallback(() => {
+    if (pulseTimeoutRef.current) {
+      window.clearTimeout(pulseTimeoutRef.current);
+    }
+    setRevisionTransition(true);
+    pulseTimeoutRef.current = window.setTimeout(() => {
+      pulseTimeoutRef.current = null;
+      setRevisionTransition(false);
+    }, 480);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimeoutRef.current) {
+        window.clearTimeout(pulseTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (streamingPreview) {
+      lastRevisionRef.current = revisionId;
+      return undefined;
+    }
+    if (revisionBootRef.current) {
+      revisionBootRef.current = false;
+      lastRevisionRef.current = revisionId;
+      return undefined;
+    }
+    if (lastRevisionRef.current === revisionId) {
+      return undefined;
+    }
+    lastRevisionRef.current = revisionId;
+    fireDiagramRevisionPulse();
+    return undefined;
+  }, [revisionId, streamingPreview, fireDiagramRevisionPulse]);
+
+  useEffect(() => {
+    const wasStreaming = prevStreamingRef.current;
+    prevStreamingRef.current = streamingPreview;
+    if (wasStreaming && !streamingPreview) {
+      fireDiagramRevisionPulse();
+    }
+  }, [streamingPreview, fireDiagramRevisionPulse]);
 
   useEffect(() => {
     let cancelled = false;
@@ -440,7 +491,7 @@ export default function DiagramCanvas({
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
           <div
             ref={viewportRef}
-            className="diagram-viewport"
+            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
             style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
             dangerouslySetInnerHTML={{ __html: svgMarkup }}
           />

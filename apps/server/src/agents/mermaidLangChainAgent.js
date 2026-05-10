@@ -4,6 +4,7 @@ import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
 import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
+import { computeLineDiffStats } from '../utils/patchLineStats.js';
 import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
 
 /** Qwen presets for local / HK-style dev (Gemini often blocked in HK). Override with OPENROUTER_MODEL_*. */
@@ -380,6 +381,20 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env) {
   return { messages: latestMessages };
 }
 
+function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource) {
+  if (typeof emit !== 'function') return;
+  const after = stateStore.getState();
+  if (after.revisionId === beforeRevision) return;
+  const { linesAdded, linesRemoved } = computeLineDiffStats(beforeSource, after.mermaidSource);
+  emit({
+    type: 'artifact',
+    kind: 'patch_summary',
+    revisionId: after.revisionId,
+    linesAdded,
+    linesRemoved
+  });
+}
+
 async function invokeWithRepair(
   agent,
   messages,
@@ -387,8 +402,14 @@ async function invokeWithRepair(
   stateStore,
   env
 ) {
+  const initialSnap = stateStore.getState();
+  const beforeRevision = initialSnap.revisionId;
+  const beforeSource = initialSnap.mermaidSource;
   const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
-  const beforeRevision = stateStore.getState().revisionId;
+
+  if (typeof emit === 'function') {
+    emit({ type: 'phase', id: 'agent_run', label: 'Planning and executing tools…' });
+  }
 
   const runnableConfig = getAgentRunnableConfig(env);
   let firstResult;
@@ -411,6 +432,7 @@ async function invokeWithRepair(
   const firstError = extractToolFailureError(firstResult);
 
   if (afterFirstRevision !== beforeRevision) {
+    emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
     return {
       message: firstMessage,
       raw: firstResult
@@ -420,6 +442,7 @@ async function invokeWithRepair(
   if (requirePatch && !firstError) {
     try {
       if (typeof emit === 'function') {
+        emit({ type: 'phase', id: 'patch_retry', label: 'Retrying diagram patch…' });
         emit({ type: 'status', text: 'Retrying: diagram patch required…' });
       }
       const patchRetryResult = await agent.invoke(
@@ -429,6 +452,7 @@ async function invokeWithRepair(
         runnableConfig
       );
       if (stateStore.getState().revisionId !== beforeRevision) {
+        emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
         return {
           message: extractFinalMessage(patchRetryResult),
           raw: patchRetryResult
@@ -459,6 +483,7 @@ async function invokeWithRepair(
     let retryResult;
     try {
       if (typeof emit === 'function') {
+        emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt})…` });
         emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt})…` });
       }
       retryResult = await agent.invoke(
@@ -474,6 +499,7 @@ async function invokeWithRepair(
 
     const currentRevision = stateStore.getState().revisionId;
     if (currentRevision !== beforeRevision) {
+      emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
       return {
         message: extractFinalMessage(retryResult),
         raw: retryResult
@@ -642,6 +668,7 @@ ${prompt}${focusScope}`;
       const messages = [new SystemMessage(ANALYSIS_SYSTEM_PROMPT), new HumanMessage(`${task}\n\n${diagramBlock}`)];
 
       if (typeof emit === 'function') {
+        emit({ type: 'phase', id: 'analyze_stream', label: 'Streaming analysis…' });
         let fullText = '';
         try {
           const stream = await analysisModel.stream(messages);
@@ -716,6 +743,16 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
     async runAgentStream(operation, payload, emit) {
       const agent = getAgentService();
       const modelProfile = payload.modelProfile;
+
+      if (typeof emit === 'function') {
+        if (operation === 'analyze') {
+          emit({ type: 'phase', id: 'analyze', label: 'Analyzing diagram…' });
+        } else if (operation === 'intent') {
+          emit({ type: 'phase', id: 'intent', label: 'Applying your request…' });
+        } else {
+          emit({ type: 'phase', id: 'transform', label: 'Transforming diagram…' });
+        }
+      }
 
       if (operation === 'analyze') {
         const result = await agent.applyAnalyzeIntent({
