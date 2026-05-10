@@ -46,14 +46,17 @@ export const TRANSFORM_MODEL_LIMITS = Object.freeze({
   maxTokens: 2400
 });
 
+/** Go Mad uses a lower completion cap so runs finish sooner and cost less; surprise lives in tone/type, not word count. */
+export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
+
 const TRANSFORM_MODE_MODEL = Object.freeze({
   refine: { temperature: 0.42 },
   innovate: { temperature: 0.82 }
 });
 
 /** Base sampling for Go Mad tier 1; ramps up with `goMadDepth` via `goMadTransformModelOptions`. */
-const GO_MAD_TEMP_MIN = 1.52;
-const GO_MAD_TEMP_MAX = 1.74;
+const GO_MAD_TEMP_MIN = 1.48;
+const GO_MAD_TEMP_MAX = 1.7;
 const GO_MAD_TEMP_PER_DEPTH = 0.02;
 
 const ANALYSIS_SYSTEM_PROMPT = `You are Mermaid Architect in read-only mode.
@@ -127,11 +130,11 @@ export function goMadTransformModelOptions(depthRaw) {
   const span = GO_MAD_TEMP_MAX - GO_MAD_TEMP_MIN;
   const temperature = GO_MAD_TEMP_MIN + Math.min(span, (d - 1) * GO_MAD_TEMP_PER_DEPTH);
   const topP =
-    d <= 2 ? 0.96 : d <= 5 ? 0.97 : d <= 8 ? 0.98 : Math.min(0.99, TRANSFORM_MODEL_LIMITS.topP + 0.08);
+    d <= 2 ? 0.94 : d <= 5 ? 0.95 : d <= 8 ? 0.96 : Math.min(0.97, TRANSFORM_MODEL_LIMITS.topP + 0.06);
   return {
     temperature,
     topP,
-    maxTokens: TRANSFORM_MODEL_LIMITS.maxTokens
+    maxTokens: GO_MAD_TRANSFORM_MAX_TOKENS
   };
 }
 
@@ -168,25 +171,24 @@ function buildGoMadEscalationInstructions(depth, mermaidSource) {
   const currentKeyword = inferMermaidTopKeyword(mermaidSource);
   const tierHint =
     depth >= 5
-      ? `- Tier ${depth}: runtime sampling is near maximum — mirror that chaos. Dial absurdity up while keeping ONE coherent geek joke or metaphor — still valid Mermaid.\n`
-      : `- Tier ${depth} (repeat Go Mad): must feel sharply wilder than tier ${depth - 1}; no lazy relabel-only edits.\n`;
+      ? `- Tier ${depth}: peak chaos — one coherent geek joke; valid Mermaid.\n`
+      : `- Tier ${depth}: noticeably wilder than tier ${depth - 1}; no relabel-only laziness.\n`;
 
   const deepVisual =
     depth >= 4
-      ? `- Visual overload mandate: combine at least THREE mechanisms — e.g. %%{init}%% (theme + themeVariables and/or themeCSS) + multiple classDef lines + linkStyle / stroke tweaks on edges OR styled subgraph titles.\n`
-      : `- Use at least TWO distinct styling mechanisms (%%init%% themeVariables, classDef/class, subgraph styling, linkStyle on flows).\n`;
+      ? `- Visual overload: ≥3 of %%init%% theming, classDef/class, linkStyle, styled subgraph titles.\n`
+      : `- Visual overload: ≥2 mechanisms (init vars, classDef/class, subgraph, linkStyle).\n`;
 
   const ultraTypes =
     depth >= 6
-      ? `- Pick maximally "wrong-tool" diagram genres when possible: quadrantChart for vibes tradeoffs, pie or radar for architecture, gitGraph for narrative timelines, journey for infra outages, timeline for feelings.\n`
+      ? `- "Wrong-tool" energy when it parses: quadrantChart, pie/radar, gitGraph, journey, timeline, etc.\n`
       : '';
 
   return `
-GO MAD escalation (tier ${depth}) — mandatory on top of base GO MAD rules:
-${tierHint}- You MUST switch the primary diagram type: the top-level declaration MUST NOT stay "${currentKeyword}". Pick a different species of diagram (not a superficial rename).
-- Rotate into uncommon families: gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4Context, classDiagram, sequenceDiagram (loops/alt/notes), stateDiagram-v2 (composite), erDiagram, zenUML, user-journey syntax variants — whatever renders in common Mermaid builds.
-${ultraTypes}${deepVisual}- Geek nonsense layer: fake RFC titles, imaginary latency folklore, impossible-but-renderable metaphors — commit to the bit.
-- Still avoid broken syntax and keep text/background contrast readable.
+GO MAD escalation (tier ${depth}):
+${tierHint}- Primary declaration MUST NOT stay "${currentKeyword}" — different diagram species (not rename-only).
+- Prefer uncommon families when they parse (gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4*, sequence/state/er/zenUML).
+${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short labels, still readable contrast.
 `;
 }
 
@@ -207,12 +209,12 @@ export function buildTransformUserContent({ mode, mermaidSource, focusScope, goM
 - Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the idea better; change type only when that shift is clearly justified. Otherwise keep the current type and innovate within it.
 - Larger edits OK; still coherent and valid Mermaid.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
-        : `Transform mode: GO MAD — creative chaos while still loosely anchored to the original idea (reinterpret ruthlessly).
-- Diagram-type roulette: aggressively prefer exotic renderable types over dull defaults — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4Context, classDiagram, sequenceDiagram, stateDiagram-v2, erDiagram. If the source is a plain flowchart/graph, treat that as a dare to pivot hard unless you have a killer gag keeping it.
-- Visual assault (valid Mermaid): rework %%{init:...}%% — swing themes (dark/forest/neutral), crank themeVariables (neon borders, loud fills that stay legible), optional themeCSS; pile on classDef/class, playful shapes, stylized subgraphs; use linkStyle on flow edges when it amps the vibe.
-- Prioritize spectacle, meme energy, and novelty over tidy consulting-diagram aesthetics.
-- Keep text/background contrast readable: never produce dark text on dark fills or light text on light fills.
-- Weird > safe — memorable renders beat bland correctness.${buildGoMadEscalationInstructions(
+        : `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
+- Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
+- Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
+- Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
+- Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
+- Weird > safe.${buildGoMadEscalationInstructions(
             mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
             mermaidSource
           )}`;

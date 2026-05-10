@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_OPENROUTER_MODEL_FAST,
   DEFAULT_OPENROUTER_MODEL_QUALITY,
+  GO_MAD_TRANSFORM_MAX_TOKENS,
   TRANSFORM_MODEL_LIMITS,
   buildPatchRequiredInstruction,
   buildSyntaxRepairInstruction,
@@ -45,7 +46,8 @@ test('transform mode picks increasing temperatures', () => {
   assert.ok(transformModeModelOptions('innovate').temperature < transformModeModelOptions('goMad').temperature);
   assert.ok(transformModeModelOptions('goMad').temperature > 1.45);
   assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
-  assert.equal(transformModeModelOptions('goMad').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
+  assert.equal(transformModeModelOptions('goMad').maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
+  assert.ok(GO_MAD_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
 });
 
 test('goMadTransformModelOptions ramps temperature and topP with depth', () => {
@@ -54,6 +56,8 @@ test('goMadTransformModelOptions ramps temperature and topP with depth', () => {
   assert.ok(deep.temperature > shallow.temperature);
   assert.ok(deep.temperature <= 1.8);
   assert.ok(deep.topP >= shallow.topP);
+  assert.equal(shallow.maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
+  assert.equal(deep.maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
 });
 
 test('clampGoMadDepth coerces and clamps', () => {
@@ -80,13 +84,13 @@ test('buildTransformUserContent adds escalation for goMad depth >= 2', () => {
   assert.match(deep, /gitGraph/);
 
   const tier5 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 5 });
-  assert.match(tier5, /ONE coherent geek joke/);
+  assert.match(tier5, /one coherent geek joke/i);
 
   const tier6 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 6 });
-  assert.match(tier6, /wrong-tool/);
+  assert.match(tier6, /wrong-tool/i);
 
   const tier4 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 4 });
-  assert.match(tier4, /THREE mechanisms/);
+  assert.match(tier4, /≥3|THREE/i);
 });
 
 test('buildTransformUserContent ignores goMadDepth for refine', () => {
@@ -128,6 +132,7 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
 
   assert.ok(modelOptions.some((options) => options.temperature === goMadTransformModelOptions(3).temperature));
   assert.ok(modelOptions.some((options) => options.temperature > transformModeModelOptions('goMad').temperature));
+  assert.ok(modelOptions.some((options) => options.maxTokens === GO_MAD_TRANSFORM_MAX_TOKENS));
 });
 
 test('resolveOpenRouterModelId maps profiles and env overrides', () => {
