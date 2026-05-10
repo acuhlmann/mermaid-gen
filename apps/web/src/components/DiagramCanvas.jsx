@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import mermaid from 'mermaid';
-mermaid.initialize({ startOnLoad: false });
+import registerMermaidMonacoOnce from '../utils/registerMermaidMonacoOnce.js';
+import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
+
+const MERMAID_INIT = {
+  startOnLoad: false,
+  deterministicIds: true,
+  deterministicIDSeed: 'mermaid-architect'
+};
+mermaid.initialize({ ...MERMAID_INIT });
 
 const TAP_MOVE_THRESHOLD_PX = 14;
 
@@ -56,6 +64,28 @@ function nodeTitleFromElement(nodeEl) {
   return merged.slice(0, 240);
 }
 
+/** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
+function diagramDomAnchor(group) {
+  if (!group) return null;
+  if (group.id) return group;
+  const direct = group.querySelector?.(':scope > [id]');
+  if (direct?.id) return direct;
+  const nested = group.querySelector?.('[id]');
+  if (nested?.id) return nested;
+  return group;
+}
+
+/** Prefer outlining `g.node` / `g.cluster` even when the SVG `id` is on an inner shape. */
+function diagramSelectedWrap(root, domId) {
+  if (!root || !domId) return null;
+  try {
+    const hit = root.querySelector(`[id="${CSS.escape(domId)}"]`);
+    return hit?.closest?.('g.node') ?? hit?.closest?.('g.cluster') ?? hit;
+  } catch {
+    return null;
+  }
+}
+
 export default function DiagramCanvas({
   revisionId = 0,
   mermaidSource,
@@ -91,6 +121,22 @@ export default function DiagramCanvas({
   const lastToolbarAnchorReportRef = useRef(null);
   const tapCandidateRef = useRef(null);
   const backgroundTapRef = useRef(null);
+  const editorRef = useRef(null);
+  const monacoRef = useRef(null);
+  const syncDecoIdsRef = useRef([]);
+  const lastDiagramSyncKeyRef = useRef('');
+  const diagramSyncRafRef = useRef(0);
+  const [monacoBind, setMonacoBind] = useState(null);
+
+  const handleEditorBeforeMount = useCallback((monaco) => {
+    registerMermaidMonacoOnce(monaco);
+  }, []);
+
+  const handleEditorMount = useCallback((editor, monaco) => {
+    editorRef.current = editor;
+    monacoRef.current = monaco;
+    setMonacoBind({ editor, monaco });
+  }, []);
 
   const reportValidation = useCallback(
     (source, error) => {
@@ -184,9 +230,7 @@ export default function DiagramCanvas({
       async function runRender() {
         try {
           const diagramId = `diagram-${requestId}`;
-          mermaid.initialize({
-            startOnLoad: false
-          });
+          mermaid.initialize({ ...MERMAID_INIT });
           const { svg } = await mermaid.render(diagramId, editorSource);
           if (cancelled || requestRef.current !== requestId) {
             return;
@@ -217,16 +261,98 @@ export default function DiagramCanvas({
   }, [editorSource, reportValidation, streamingPreview]);
 
   useEffect(() => {
+    if (!editorOpen) {
+      syncDecoIdsRef.current = [];
+      editorRef.current = null;
+      monacoRef.current = null;
+      setMonacoBind(null);
+      lastDiagramSyncKeyRef.current = '';
+    }
+  }, [editorOpen]);
+
+  useLayoutEffect(() => {
+    const editor = monacoBind?.editor;
+    const monaco = monacoBind?.monaco;
+    if (diagramSyncRafRef.current) {
+      cancelAnimationFrame(diagramSyncRafRef.current);
+      diagramSyncRafRef.current = 0;
+    }
+
+    if (!editorOpen || streamingPreview || !editor || !monaco) {
+      return undefined;
+    }
+
+    if (!selectedNode?.id) {
+      syncDecoIdsRef.current = editor.deltaDecorations(syncDecoIdsRef.current, []);
+      lastDiagramSyncKeyRef.current = '';
+      return undefined;
+    }
+
+    const kind = selectedNode.kind === 'cluster' ? 'cluster' : 'node';
+    const rangePlain = findMermaidSourceRangeForDiagramSelection(editorSource, {
+      elementId: selectedNode.id,
+      dataId: selectedNode.dataId,
+      kind
+    });
+    if (!rangePlain) {
+      syncDecoIdsRef.current = editor.deltaDecorations(syncDecoIdsRef.current, []);
+      lastDiagramSyncKeyRef.current = '';
+      return undefined;
+    }
+
+    const range = new monaco.Range(
+      rangePlain.startLineNumber,
+      rangePlain.startColumn,
+      rangePlain.endLineNumber,
+      rangePlain.endColumn
+    );
+
+    const syncKey = `${selectedNode.id}:${rangePlain.startLineNumber}:${rangePlain.startColumn}:${rangePlain.endLineNumber}:${rangePlain.endColumn}:${editorSource.length}`;
+    if (syncKey === lastDiagramSyncKeyRef.current) {
+      return undefined;
+    }
+    lastDiagramSyncKeyRef.current = syncKey;
+
+    diagramSyncRafRef.current = requestAnimationFrame(() => {
+      diagramSyncRafRef.current = 0;
+      const ed = editorRef.current;
+      const mc = monacoRef.current;
+      if (!ed || ed !== editor || !mc) return;
+      ed.revealRangeInCenter(range);
+      ed.setSelection(range);
+      syncDecoIdsRef.current = ed.deltaDecorations(syncDecoIdsRef.current, [
+        {
+          range,
+          options: {
+            className: 'mermaid-diagram-sync-highlight'
+          }
+        }
+      ]);
+    });
+
+    return () => {
+      if (diagramSyncRafRef.current) {
+        cancelAnimationFrame(diagramSyncRafRef.current);
+        diagramSyncRafRef.current = 0;
+      }
+    };
+  }, [
+    editorOpen,
+    streamingPreview,
+    selectedNode,
+    editorSource,
+    monacoBind?.editor,
+    monacoBind?.monaco
+  ]);
+
+  useEffect(() => {
     const root = viewportRef.current;
     if (!root) return;
     root.querySelectorAll('g.node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
+    root.querySelectorAll('g.cluster.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
     if (!selectedNode?.id) return;
-    try {
-      const el = root.querySelector(`[id="${CSS.escape(selectedNode.id)}"]`);
-      el?.classList.add('is-diagram-selected');
-    } catch {
-      // Invalid selector id — skip highlight.
-    }
+    const wrap = diagramSelectedWrap(root, selectedNode.id);
+    wrap?.classList?.add('is-diagram-selected');
   }, [svgMarkup, selectedNode]);
 
   useLayoutEffect(() => {
@@ -245,7 +371,7 @@ export default function DiagramCanvas({
       return;
     }
     try {
-      const el = root.querySelector(`[id="${CSS.escape(selectedNode.id)}"]`);
+      const el = diagramSelectedWrap(root, selectedNode.id);
       if (!el) {
         clearToolbarAnchor();
         return;
@@ -253,17 +379,27 @@ export default function DiagramCanvas({
       const rect = el.getBoundingClientRect();
       const left = rect.left + rect.width / 2;
       const top = rect.bottom + 10;
+      const nodeTop = rect.top;
+      const nodeBottom = rect.bottom;
       const prev = lastToolbarAnchorReportRef.current;
       if (
         prev &&
         prev.nodeId === selectedNode.id &&
         Math.abs(prev.left - left) < 0.5 &&
-        Math.abs(prev.top - top) < 0.5
+        Math.abs(prev.top - top) < 0.5 &&
+        Math.abs(prev.nodeTop - nodeTop) < 0.5 &&
+        Math.abs(prev.nodeBottom - nodeBottom) < 0.5
       ) {
         return;
       }
-      lastToolbarAnchorReportRef.current = { nodeId: selectedNode.id, left, top };
-      onNodeToolbarAnchor({ left, top });
+      lastToolbarAnchorReportRef.current = {
+        nodeId: selectedNode.id,
+        left,
+        top,
+        nodeTop,
+        nodeBottom
+      };
+      onNodeToolbarAnchor({ left, top, nodeTop, nodeBottom });
     } catch {
       clearToolbarAnchor();
     }
@@ -325,6 +461,7 @@ export default function DiagramCanvas({
     const localY = event.clientY - rect.top;
 
     const nodeEl = event.target?.closest?.('g.node');
+    const clusterEl = nodeEl ? null : event.target?.closest?.('g.cluster');
 
     event.preventDefault();
 
@@ -339,18 +476,19 @@ export default function DiagramCanvas({
       distance: pointers.length >= 2 ? getDistance(pointers[0], pointers[1]) : null
     };
 
-    if (nodeEl && pointers.length === 1) {
+    if ((nodeEl || clusterEl) && pointers.length === 1) {
       tapCandidateRef.current = {
         pointerId: event.pointerId,
         startClientX: event.clientX,
         startClientY: event.clientY,
-        nodeEl
+        targetEl: nodeEl || clusterEl,
+        kind: nodeEl ? 'node' : 'cluster'
       };
     } else {
       tapCandidateRef.current = null;
     }
 
-    if (pointers.length === 1 && !nodeEl) {
+    if (pointers.length === 1 && !nodeEl && !clusterEl) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
         sx: event.clientX,
@@ -461,9 +599,15 @@ export default function DiagramCanvas({
           distance: remaining.length >= 2 ? getDistance(remaining[0], remaining[1]) : null
         };
       }
-      if (moved <= TAP_MOVE_THRESHOLD_PX && tap.nodeEl?.id && onSelectedNodeChange) {
-        const label = nodeTitleFromElement(tap.nodeEl);
-        onSelectedNodeChange({ id: tap.nodeEl.id, label });
+      const anchor = diagramDomAnchor(tap.targetEl);
+      if (moved <= TAP_MOVE_THRESHOLD_PX && anchor?.id && onSelectedNodeChange) {
+        const label = nodeTitleFromElement(tap.targetEl);
+        onSelectedNodeChange({
+          id: anchor.id,
+          label,
+          ...(tap.kind === 'cluster' ? { kind: 'cluster' } : {}),
+          dataId: anchor.getAttribute?.('data-id') ?? undefined
+        });
       }
       return;
     }
@@ -485,7 +629,8 @@ export default function DiagramCanvas({
         bgTap &&
         bgTap.pointerId === event.pointerId &&
         onSelectedNodeChange &&
-        !event.target?.closest?.('g.node')
+        !event.target?.closest?.('g.node') &&
+        !event.target?.closest?.('g.cluster')
       ) {
         const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
         if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
@@ -521,7 +666,7 @@ export default function DiagramCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
           onPointerCancel={endPointerGesture}
-          aria-label="Mermaid renderer. Drag to pan from anywhere including nodes. Pinch or wheel to zoom. Tap a node to select."
+          aria-label="Mermaid renderer. Drag to pan from anywhere including nodes and subgraphs. Pinch or wheel to zoom. Tap a node or subgraph to select."
         >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
@@ -556,9 +701,11 @@ export default function DiagramCanvas({
           <div className="diagram-monaco-wrap">
             <Editor
               height="100%"
-              defaultLanguage="plaintext"
+              language="mermaid"
               theme="vs-dark"
               value={editorSource}
+              beforeMount={handleEditorBeforeMount}
+              onMount={handleEditorMount}
               onChange={handleEditorChange}
               options={{
                 minimap: { enabled: false },

@@ -5,7 +5,7 @@ const RECURSION_CLAMP = Object.freeze({ min: 25, max: 200 });
 export const DEFAULT_MERMAID_AGENT_RECURSION_LIMIT = 50;
 
 const TOOL_RUN_CLAMP = Object.freeze({ min: 4, max: 40 });
-export const DEFAULT_MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN = 12;
+export const DEFAULT_MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN = 6;
 
 /**
  * @param {NodeJS.ProcessEnv} [env]

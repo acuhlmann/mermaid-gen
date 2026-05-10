@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import InsightsPane from '../src/components/InsightsPane.jsx';
+import { splitCritiqueActionableSections } from '../src/utils/critiqueActionable.js';
 import { cleanup } from '@testing-library/react';
 
 afterEach(() => {
@@ -64,6 +65,110 @@ describe('InsightsPane', () => {
     expect(onSoundEnabledChange).toHaveBeenCalledWith(true);
   });
 
+  it('shows diagram undo when revision applied and invokes handler', () => {
+    const onDiagramUndo = vi.fn();
+    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-undo',
+            title: 'Refine — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Applied.',
+            technicalActions: [],
+            diagramUndoBaseline: baseline,
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: false
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        onDiagramUndo={onDiagramUndo}
+        diagramUndoDisabled={false}
+      />
+    );
+
+    const undoBtn = screen.getByRole('button', { name: 'Undo diagram change' });
+    expect(undoBtn.disabled).toBe(false);
+    fireEvent.click(undoBtn);
+    expect(onDiagramUndo).toHaveBeenCalledWith('e-undo');
+  });
+
+  it('hides diagram undo when not revision-applied or already consumed', () => {
+    const baseline = { revisionId: 0, mermaidSource: 'x' };
+
+    const { rerender } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e1',
+            title: 'Refine',
+            status: 'done',
+            content: '',
+            technicalActions: [],
+            diagramUndoBaseline: baseline,
+            diagramRevisionApplied: false,
+            diagramUndoConsumed: false
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull();
+
+    rerender(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e1',
+            title: 'Refine',
+            status: 'done',
+            content: '',
+            technicalActions: [],
+            diagramUndoBaseline: baseline,
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: true
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+    expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull();
+  });
+
+  it('disables diagram undo when diagramUndoDisabled', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-dis',
+            title: 'Refine',
+            status: 'done',
+            content: '',
+            technicalActions: [],
+            diagramUndoBaseline: { mermaidSource: 'a' },
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: false
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        diagramUndoDisabled
+        onDiagramUndo={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Undo diagram change' }).disabled).toBe(true);
+  });
+
   it('shows agent phases, patch summary, and optional stream debug', () => {
     render(
       <InsightsPane
@@ -99,5 +204,287 @@ describe('InsightsPane', () => {
     expect(screen.getByRole('region', { name: 'Patch summary' })).toBeTruthy();
     expect(screen.getByText('+3 / −1 lines')).toBeTruthy();
     expect(screen.getByText(/Raw stream events/i)).toBeTruthy();
+  });
+
+  it('renders ## critique sections with headings and Analysis label', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-crit',
+            title: 'Critique — diagram',
+            variant: 'critique',
+            status: 'done',
+            content: '## Strengths\n\n- Good flow.\n\n## Weaknesses\n\n- Thin labels.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Analysis')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Strengths/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /Weaknesses/i })).toBeTruthy();
+    expect(screen.getByText(/Good flow/i)).toBeTruthy();
+  });
+
+  it('merges orphaned bullet markers with the following line', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-bullet',
+            title: 'Critique — diagram',
+            variant: 'critique',
+            status: 'done',
+            content: '## Notes\n\n•\nMerged bullet sentence.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText(/Merged bullet sentence/i)).toBeTruthy();
+  });
+
+  it('hides raw phase ids for critique unless stream debug is on', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-phase',
+            title: 'Critique — diagram',
+            variant: 'critique',
+            status: 'done',
+            content: '',
+            technicalActions: [],
+            phases: [
+              { id: 'analyze', label: 'Analyzing diagram…' },
+              { id: 'analyze_stream', label: 'Streaming analysis…' }
+            ]
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        streamDebugEnabled={false}
+      />
+    );
+
+    expect(container.querySelector('code.insights-phase-id')).toBeNull();
+    expect(screen.getByText('Analyze')).toBeTruthy();
+    expect(screen.getByText('Stream')).toBeTruthy();
+  });
+
+  it('shows raw phase ids when stream debug is enabled', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-phase-dbg',
+            title: 'Critique — diagram',
+            variant: 'critique',
+            status: 'done',
+            content: '',
+            technicalActions: [],
+            phases: [{ id: 'analyze', label: 'Analyzing…' }]
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        streamDebugEnabled
+      />
+    );
+
+    expect(container.querySelector('code.insights-phase-id')?.textContent).toBe('analyze');
+  });
+
+  it('collapses technical actions behind Tool trace for critique variant', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-tools',
+            title: 'Critique — diagram',
+            variant: 'critique',
+            status: 'done',
+            content: '## Summary\n\nDone.',
+            technicalActions: [
+              { id: 't1', name: 'get_diagram_state', label: 'Read snapshot', status: 'done' }
+            ]
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.queryByText('Technical actions')).toBeNull();
+    expect(screen.getByText('Read snapshot')).toBeTruthy();
+  });
+
+  it('renders aggregated apply_mermaid_patch label in technical actions', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-agg',
+            title: 'Fix — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Fixed.',
+            technicalActions: [
+              {
+                id: 't1',
+                name: 'apply_mermaid_patch',
+                label: 'Apply diagram update (×2)',
+                status: 'done',
+                count: 2
+              }
+            ]
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Apply diagram update (×2)')).toBeTruthy();
+    expect(screen.getByText('Technical actions')).toBeTruthy();
+  });
+
+  it('uses Explanation label for explain variant', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-exp',
+            title: 'Explain — diagram',
+            variant: 'explain',
+            status: 'done',
+            content: 'Plain prose.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Explanation')).toBeTruthy();
+  });
+
+  it('renders explain ## sections with tone classes and opener lead', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-exp-rich',
+            title: 'Explain — node',
+            variant: 'explain',
+            status: 'done',
+            content:
+              'Quick orientation before sections.\n\n## Explanation\nOverview text.\n\n## Main flows\nFlow bullet.\n\n## Key entities\nEntity note.\n\n## Takeaways\nRemember this.',
+            technicalActions: []
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(container.querySelector('.insights-explain-opener')).toBeTruthy();
+    expect(screen.getByText(/Quick orientation/i)).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: /^Explanation$/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: /Main flows/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: /Key entities/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 3, name: /Takeaways/i })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 4, name: /Explanation/i })).toBeTruthy();
+    expect(container.querySelector('.insights-prose-section.insights-tone-explain-overview')).toBeTruthy();
+    expect(container.querySelector('.insights-prose-section.insights-tone-explain-flows')).toBeTruthy();
+    expect(container.querySelector('.insights-prose-section.insights-tone-explain-entities')).toBeTruthy();
+    expect(container.querySelector('.insights-prose-section.insights-tone-explain-takeaways')).toBeTruthy();
+  });
+
+  it('collapses technical actions behind Tool trace for explain variant', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-exp-tools',
+            title: 'Explain — diagram',
+            variant: 'explain',
+            status: 'done',
+            content: '## Explanation\n\nDone.',
+            technicalActions: [
+              { id: 't1', name: 'get_diagram_state', label: 'Read snapshot', status: 'done' }
+            ]
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.queryByText('Technical actions')).toBeNull();
+    expect(screen.getByText('Read snapshot')).toBeTruthy();
+  });
+
+  it('renders actionable checkboxes and fix controls when critiqueActionableUi matches entry content', () => {
+    const critiqueText = `## Summary\n\n- Note.\n\n## Actionable improvements\n\n- First improvement\n- Second improvement\n`;
+    const split = splitCritiqueActionableSections(critiqueText);
+    const onFixSelected = vi.fn();
+    const onFixAll = vi.fn();
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'ent-act',
+            variant: 'critique',
+            status: 'done',
+            title: 'Critique — diagram',
+            content: critiqueText,
+            technicalActions: []
+          }
+        ]}
+        critiqueActionableUi={{
+          critiqueText,
+          headingText: split.headingText,
+          items: split.items,
+          prefix: split.prefix,
+          suffix: split.suffix,
+          selected: [false, true],
+          onToggle: vi.fn(),
+          busy: false,
+          onFixSelected,
+          onFixAll
+        }}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    const actionableRegion = screen.getByRole('region', { name: /Actionable/i });
+    expect(within(actionableRegion).getAllByRole('checkbox')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Fix selected' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Fix all' }));
+    expect(onFixSelected).toHaveBeenCalledTimes(1);
+    expect(onFixAll).toHaveBeenCalledTimes(1);
   });
 });

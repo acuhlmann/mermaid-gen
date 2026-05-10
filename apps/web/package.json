@@ -16,6 +16,7 @@
     "@mermaid-architect/shared": "^1.0.0",
     "@monaco-editor/react": "^4.7.0",
     "mermaid": "^11.14.0",
+    "monaco-mermaid": "^1.1.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

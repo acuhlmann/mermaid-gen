@@ -175,6 +175,28 @@ describe('App simplified controls', () => {
     );
   });
 
+  it(
+    'Thinking segment undo syncs baseline mermaid source after Refine',
+    async () => {
+      render(<App />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Refine' }));
+
+      await screen.findByRole('button', { name: 'Undo diagram change' });
+
+      const callsBefore = syncClientDiagramStateMock.mock.calls.length;
+      fireEvent.click(screen.getByRole('button', { name: 'Undo diagram change' }));
+
+      await waitFor(() => expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore));
+      const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
+      expect(lastPayload.mermaidSource).toBe(initialState.mermaidSource);
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull()
+      );
+    },
+    15_000
+  );
+
   it('streams intent when submitting the prompt control', async () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
@@ -220,6 +242,37 @@ describe('App simplified controls', () => {
       )
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
+  });
+
+  it('Fix selected sends only checked actionable improvements', async () => {
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent') {
+        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+      } else if (payload.operation === 'analyze') {
+        const analyzeBody =
+          '## Summary\n\nOk.\n\n## Actionable improvements\n\n- Keep this change\n- Skip this change\n';
+        onEvent?.({ type: 'token', text: analyzeBody });
+        onEvent?.({ type: 'final', revisionChanged: false, analyzeText: analyzeBody });
+      } else {
+        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Transformed.' });
+      }
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
+
+    const keepBox = await screen.findByRole('checkbox', { name: /Keep this change/i });
+    fireEvent.click(keepBox);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fix selected' }));
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+      expect(intentCalls.length).toBeGreaterThan(0);
+      const prompt = intentCalls[intentCalls.length - 1][0].prompt;
+      expect(prompt).toContain('Keep this change');
+      expect(prompt).not.toContain('Skip this change');
+    });
   });
 
   it('plays a completion sound when a request finishes', async () => {

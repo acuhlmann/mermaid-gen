@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { useLayoutEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DiagramCanvas from '../src/components/DiagramCanvas.jsx';
 
@@ -17,8 +18,37 @@ vi.mock('mermaid', () => ({
   }
 }));
 
+const editorHarness = vi.hoisted(() => ({
+  revealRangeInCenter: vi.fn(),
+  setSelection: vi.fn(),
+  deltaDecorations: vi.fn(() => ['dec-1'])
+}));
+
+vi.mock('../src/utils/registerMermaidMonacoOnce.js', () => ({
+  default: vi.fn()
+}));
+
 vi.mock('@monaco-editor/react', () => ({
-  default: function EditorMock({ value, onChange }) {
+  default: function EditorMock({ value, onChange, beforeMount, onMount }) {
+    useLayoutEffect(() => {
+      const monaco = {
+        Range: class Range {
+          constructor(sl, sc, el, ec) {
+            this.startLineNumber = sl;
+            this.startColumn = sc;
+            this.endLineNumber = el;
+            this.endColumn = ec;
+          }
+        }
+      };
+      beforeMount?.(monaco);
+      const editor = {
+        deltaDecorations: editorHarness.deltaDecorations,
+        revealRangeInCenter: editorHarness.revealRangeInCenter,
+        setSelection: editorHarness.setSelection
+      };
+      onMount?.(editor, monaco);
+    }, []);
     return (
       <textarea
         aria-label="Mermaid DSL"
@@ -34,6 +64,10 @@ describe('DiagramCanvas', () => {
     vi.useFakeTimers();
     initializeMock.mockClear();
     renderMock.mockClear();
+    editorHarness.revealRangeInCenter.mockClear();
+    editorHarness.setSelection.mockClear();
+    editorHarness.deltaDecorations.mockClear();
+    editorHarness.deltaDecorations.mockImplementation(() => ['dec-1']);
   });
 
   afterEach(() => {
@@ -110,7 +144,8 @@ describe('DiagramCanvas', () => {
 
     expect(initializeMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        startOnLoad: false
+        startOnLoad: false,
+        deterministicIds: true
       })
     );
     expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), source);
@@ -129,5 +164,27 @@ describe('DiagramCanvas', () => {
     fireEvent.pointerMove(renderer, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 0 });
 
     expect(container.querySelector('.diagram-viewport').style.transform).toContain('scale(2)');
+  });
+
+  it('reveals and selects editor range when a flowchart node is selected', async () => {
+    const source = 'flowchart TD\n  B[Beta label]\n  A --> B';
+    render(
+      <DiagramCanvas
+        mermaidSource={source}
+        revisionId={1}
+        editorOpen
+        selectedNode={{ id: 'flowchart-B-0', label: 'Beta', dataId: 'B' }}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    await act(async () => {});
+
+    expect(editorHarness.revealRangeInCenter).toHaveBeenCalled();
+    expect(editorHarness.setSelection).toHaveBeenCalled();
+    expect(editorHarness.deltaDecorations).toHaveBeenCalled();
   });
 });

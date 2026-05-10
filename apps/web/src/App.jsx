@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
 import {
@@ -19,18 +19,84 @@ import {
   playToolEndChime,
   playToolStartChime
 } from './utils/agentChimes.js';
+import { splitCritiqueActionableSections } from './utils/critiqueActionable.js';
+import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 
 const TOOL_LABELS = {
   get_diagram_state: 'Read diagram snapshot',
   apply_mermaid_patch: 'Apply diagram update'
 };
 
-function formatToolLabel(name) {
+function formatToolLabel(name, repeatCount = 1) {
   if (!name) return 'Tool action';
-  return TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
+  const base = TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
+  if (name === 'apply_mermaid_patch' && repeatCount > 1) {
+    return `${base} (×${repeatCount})`;
+  }
+  return base;
 }
 
 const STREAM_DEBUG_LS_KEY = 'mermaid-architect-stream-debug';
+
+const NODE_PANEL_EDGE_MARGIN = 12;
+const NODE_PANEL_NODE_GAP = 10;
+const NODE_ACTIONS_IDLE_MS = 8000;
+
+function getVisualViewportBounds() {
+  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
+  if (vv) {
+    const left = vv.offsetLeft;
+    const top = vv.offsetTop;
+    return {
+      left,
+      top,
+      right: left + vv.width,
+      bottom: top + vv.height
+    };
+  }
+  if (typeof window !== 'undefined') {
+    return {
+      left: 0,
+      top: 0,
+      right: window.innerWidth,
+      bottom: window.innerHeight
+    };
+  }
+  return { left: 0, top: 0, right: 0, bottom: 0 };
+}
+
+function computeNodePanelPlacement(toolbarAnchor, panelWidth, panelHeight, vv) {
+  const margin = NODE_PANEL_EDGE_MARGIN;
+  const gap = NODE_PANEL_NODE_GAP;
+  const height = panelHeight;
+  const width = panelWidth;
+  const anchorLeft = toolbarAnchor.left;
+  const anchorTopBelow = toolbarAnchor.top;
+
+  let finalTop = anchorTopBelow;
+  const bottomIfBelow = anchorTopBelow + height;
+  if (bottomIfBelow > vv.bottom - margin) {
+    finalTop = toolbarAnchor.nodeTop - gap - height;
+  }
+  if (finalTop < vv.top + margin) {
+    finalTop = vv.top + margin;
+  }
+  if (finalTop + height > vv.bottom - margin) {
+    finalTop = vv.bottom - margin - height;
+  }
+
+  let nudgeX = 0;
+  let rightEdge = anchorLeft + nudgeX + width / 2;
+  if (rightEdge > vv.right - margin) {
+    nudgeX -= rightEdge - (vv.right - margin);
+  }
+  let leftEdge = anchorLeft + nudgeX - width / 2;
+  if (leftEdge < vv.left + margin) {
+    nudgeX += vv.left + margin - leftEdge;
+  }
+
+  return { top: finalTop, nudgeX };
+}
 
 function readStreamDebugEnabled() {
   if (typeof window === 'undefined') return false;
@@ -60,7 +126,12 @@ function snapshotStreamEventForDebug(evt) {
 
 function focusPayload(node) {
   if (!node?.id) return undefined;
-  return { id: node.id, label: node.label };
+  return {
+    id: node.id,
+    label: node.label,
+    ...(node.kind === 'cluster' ? { kind: 'cluster' } : {}),
+    ...(node.dataId ? { dataId: node.dataId } : {})
+  };
 }
 
 const MODEL_PROFILE_STORAGE_KEY = 'mermaid-architect:model-profile';
@@ -169,8 +240,11 @@ function MermaidArchitect() {
     const cachedCritique = cacheRef.current?.latestCritique;
     return cachedCritique?.text ? cachedCritique : null;
   });
+  const [critiqueActionableSelected, setCritiqueActionableSelected] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
+  const [nodePanelPlacement, setNodePanelPlacement] = useState(null);
+  const [viewportClampEpoch, setViewportClampEpoch] = useState(0);
   const [voiceSupported] = useState(
     () =>
       Boolean(
@@ -205,12 +279,23 @@ function MermaidArchitect() {
   const micSessionRef = useRef(0);
   const submitIntentFromVoiceRef = useRef(async (_text) => {});
   const lastTokenSoundAtRef = useRef(0);
+  const nodeActionsPanelRef = useRef(null);
+  const nodePanelIdleTimerRef = useRef(null);
 
   useSyncVisualViewportHeight();
 
   useEffect(() => {
     promptRef.current = prompt;
   }, [prompt]);
+
+  useEffect(() => {
+    if (!latestCritique?.text) {
+      setCritiqueActionableSelected([]);
+      return;
+    }
+    const { items } = splitCritiqueActionableSections(latestCritique.text);
+    setCritiqueActionableSelected(items.map(() => false));
+  }, [latestCritique?.createdAt, latestCritique?.text]);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -289,6 +374,10 @@ function MermaidArchitect() {
         recognitionRef.current.onend = null;
         recognitionRef.current = null;
       }
+      if (nodePanelIdleTimerRef.current != null) {
+        window.clearTimeout(nodePanelIdleTimerRef.current);
+        nodePanelIdleTimerRef.current = null;
+      }
     },
     []
   );
@@ -366,13 +455,15 @@ function MermaidArchitect() {
     }, 18);
   }, []);
 
-  const appendInsightEntry = useCallback((title) => {
+  const appendInsightEntry = useCallback((title, variant = 'general', options = {}) => {
+    const { diagramUndoBaseline } = options;
     const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
     setInsightsEntries((prev) => [
       ...prev,
       {
         id,
         title,
+        variant,
         content: '',
         statusText: 'Working on your request...',
         status: 'running',
@@ -381,7 +472,14 @@ function MermaidArchitect() {
         artifacts: [],
         streamDebugLog: [],
         startedAt: Date.now(),
-        completedAt: null
+        completedAt: null,
+        ...(diagramUndoBaseline
+          ? {
+              diagramUndoBaseline: { ...diagramUndoBaseline },
+              diagramRevisionApplied: false,
+              diagramUndoConsumed: false
+            }
+          : {})
       }
     ]);
     return id;
@@ -416,7 +514,10 @@ function MermaidArchitect() {
           if (actionIndex >= 0) {
             const realIndex = current.length - 1 - actionIndex;
             const nextActions = current.map((action, idx) => (idx === realIndex ? { ...action, status: 'done' } : action));
-            return { ...entry, technicalActions: nextActions };
+            return {
+              ...entry,
+              technicalActions: collapseConsecutiveApplyPatchActions(nextActions, formatToolLabel)
+            };
           }
         }
         const actionId = globalThis.crypto?.randomUUID?.() ?? `act-${Date.now()}-${current.length}`;
@@ -450,9 +551,9 @@ function MermaidArchitect() {
   );
 
   const runStreamingAgent = useCallback(
-    async ({ operation, payload, title, onFinal }) => {
+    async ({ operation, payload, title, onFinal, variant = 'general', diagramUndoBaseline }) => {
       setInsightsOpen(true);
-      const sectionId = appendInsightEntry(title);
+      const sectionId = appendInsightEntry(title, variant, { diagramUndoBaseline });
       tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
       let streamedText = '';
@@ -513,7 +614,10 @@ function MermaidArchitect() {
               ...entry,
               status: 'done',
               statusText: 'Done',
-              completedAt: Date.now()
+              completedAt: Date.now(),
+              ...(evt.revisionChanged && evt.state && entry.diagramUndoBaseline
+                ? { diagramRevisionApplied: true }
+                : {})
             }));
             triggerCompletionDelight(sectionId);
             if (typeof onFinal === 'function') {
@@ -717,7 +821,9 @@ Hard requirements:
           focusNode,
           modelProfile
         },
-        title: selectedNode ? `Go — node “${selectedNode.label || selectedNode.id}”` : 'Go — diagram'
+        title: selectedNode ? `Go — node “${selectedNode.label || selectedNode.id}”` : 'Go — diagram',
+        variant: 'intent',
+        diagramUndoBaseline: { ...syncedState }
       });
       setPrompt('');
       promptRef.current = '';
@@ -965,7 +1071,9 @@ Hard requirements:
         },
         title: selectedNode
           ? `${labels[mode]} — node “${selectedNode.label || selectedNode.id}”`
-          : `${labels[mode]} — diagram`
+          : `${labels[mode]} — diagram`,
+        variant: 'general',
+        diagramUndoBaseline: { ...syncedState }
       });
     } catch (err) {
       setError(err.message);
@@ -1001,6 +1109,7 @@ Hard requirements:
         title: selectedNode
           ? `${labels[kind]} — node “${selectedNode.label || selectedNode.id}”`
           : `${labels[kind]} — diagram`,
+        variant: kind,
         onFinal: ({ finalText }) => {
           if (kind !== 'critique') return;
           const cleaned = finalText.trim();
@@ -1020,50 +1129,86 @@ Hard requirements:
     }
   }
 
-  async function handleFixFromCritique() {
-    hasInteractedRef.current = true;
-    if (!latestCritique?.text || loadingRef.current || streamingPreviewRef.current) return;
+  const handleFixFromCritique = useCallback(
+    async (scope = 'all') => {
+      hasInteractedRef.current = true;
+      if (!latestCritique?.text || loadingRef.current || streamingPreviewRef.current) return;
 
-    setLoading(true);
-    setActiveRequest('fix');
-    setError('');
+      const split = splitCritiqueActionableSections(latestCritique.text);
+      const actionableItems = split.items;
 
-    const fixPrompt = `Improve the current Mermaid diagram based on this critique. Apply concrete fixes as a single complete diagram update.
+      if (scope === 'selected') {
+        if (actionableItems.length === 0) return;
+        const chosen = actionableItems.filter((_, i) => critiqueActionableSelected[i]);
+        if (chosen.length === 0) return;
+      }
 
-Critique:
-${latestCritique.text}
+      let critiqueBlock = latestCritique.text;
+      const useSelectedOnly = scope === 'selected' && actionableItems.length > 0;
+      if (useSelectedOnly) {
+        critiqueBlock = actionableItems
+          .filter((_, i) => critiqueActionableSelected[i])
+          .map((t) => `- ${t}`)
+          .join('\n');
+      }
 
-Requirements:
+      const intro = useSelectedOnly
+        ? 'Improve the current Mermaid diagram by applying ONLY the following improvements. Do not implement other critique suggestions.'
+        : 'Improve the current Mermaid diagram based on this critique. Apply concrete fixes as a single complete diagram update.';
+      const critiqueLabel = useSelectedOnly ? 'Improvements to apply:' : 'Critique:';
+      const requirementsBlock = useSelectedOnly
+        ? `- Implement only the improvements listed above.
 - Preserve the original intent and main flow.
+- Prioritize readability and clarity within that scope.
+- Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.
+- Keep Mermaid syntax valid and deliver the entire diagram source in one go.`
+        : `- Preserve the original intent and main flow.
+- Address the critique fully: topology and labels, and also any diagram-type or visual/style points raised (e.g. adopt a suggested diagram type when appropriate, improve contrast, simplify clutter, adjust classDef/theme/init styling).
 - Prioritize readability and clarity improvements first.
 - Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.
 - Keep Mermaid syntax valid and deliver the entire diagram source in one go.`;
 
-    try {
-      const syncedState = await syncDiagramOrThrow();
-      await runStreamingAgent({
-        operation: 'intent',
-        payload: {
+      const fixPrompt = `${intro}
+
+${critiqueLabel}
+${critiqueBlock}
+
+Requirements:
+${requirementsBlock}`;
+
+      setLoading(true);
+      setActiveRequest('fix');
+      setError('');
+
+      try {
+        const syncedState = await syncDiagramOrThrow();
+        await runStreamingAgent({
           operation: 'intent',
-          prompt: fixPrompt,
-          revisionId: syncedState.revisionId,
-          mermaidSource: syncedState.mermaidSource,
-          settings: {},
-          focusNode: latestCritique.focusNode,
-          modelProfile
-        },
-        title: latestCritique.focusNode
-          ? `Fix from critique — node “${latestCritique.focusNode.label || latestCritique.focusNode.id}”`
-          : 'Fix from critique — diagram'
-      });
-      setLatestCritique(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setActiveRequest(null);
-    }
-  }
+          payload: {
+            operation: 'intent',
+            prompt: fixPrompt,
+            revisionId: syncedState.revisionId,
+            mermaidSource: syncedState.mermaidSource,
+            settings: {},
+            focusNode: latestCritique.focusNode,
+            modelProfile
+          },
+          title: latestCritique.focusNode
+            ? `Fix from critique — node “${latestCritique.focusNode.label || latestCritique.focusNode.id}”`
+            : 'Fix from critique — diagram',
+          variant: 'intent',
+          diagramUndoBaseline: { ...syncedState }
+        });
+        setLatestCritique(null);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+        setActiveRequest(null);
+      }
+    },
+    [critiqueActionableSelected, latestCritique, modelProfile, runStreamingAgent, syncDiagramOrThrow]
+  );
 
   async function handleClearDiagram() {
     if (loadingRef.current || streamingPreviewRef.current) return;
@@ -1099,13 +1244,182 @@ Requirements:
     }
   }
 
+  const handleDiagramUndo = useCallback(
+    async (entryId) => {
+      if (loadingRef.current) return;
+
+      const entry = insightsEntries.find((e) => e.id === entryId);
+      const baseline = entry?.diagramUndoBaseline;
+      if (!baseline || typeof baseline.mermaidSource !== 'string') return;
+
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+      if (streamTimerRef.current) {
+        clearInterval(streamTimerRef.current);
+        streamTimerRef.current = null;
+      }
+      setStreamingPreview(false);
+
+      try {
+        const payload = { mermaidSource: baseline.mermaidSource };
+        if (baseline.styleConfig != null) {
+          payload.styleConfig = baseline.styleConfig;
+        }
+        const synced = await syncClientDiagramState(payload);
+        setState(synced);
+        patchInsightEntry(entryId, (e) => ({ ...e, diagramUndoConsumed: true }));
+      } catch (err) {
+        setError(err.message);
+      }
+    },
+    [insightsEntries, patchInsightEntry]
+  );
+
   const busy = loading || streamingPreview;
+
+  const dismissNodePanel = useCallback(() => {
+    setSelectedNode(null);
+    setToolbarAnchor(null);
+  }, []);
+
+  const clearNodePanelIdleTimer = useCallback(() => {
+    if (nodePanelIdleTimerRef.current != null) {
+      window.clearTimeout(nodePanelIdleTimerRef.current);
+      nodePanelIdleTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleNodePanelIdleDismiss = useCallback(() => {
+    clearNodePanelIdleTimer();
+    nodePanelIdleTimerRef.current = window.setTimeout(() => {
+      nodePanelIdleTimerRef.current = null;
+      dismissNodePanel();
+    }, NODE_ACTIONS_IDLE_MS);
+  }, [clearNodePanelIdleTimer, dismissNodePanel]);
+
+  const hasToolbarAnchor = toolbarAnchor != null;
+  const critiquePresent = Boolean(latestCritique?.text);
+
+  useLayoutEffect(() => {
+    if (
+      !toolbarAnchor ||
+      selectedNode == null ||
+      typeof toolbarAnchor.nodeTop !== 'number' ||
+      typeof toolbarAnchor.nodeBottom !== 'number'
+    ) {
+      return;
+    }
+    const el = nodeActionsPanelRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const vv = getVisualViewportBounds();
+    const next = computeNodePanelPlacement(toolbarAnchor, rect.width, rect.height, vv);
+    const stamped = { ...next, forNodeId: selectedNode.id };
+    setNodePanelPlacement((prev) => {
+      if (
+        prev?.forNodeId === selectedNode.id &&
+        Math.abs(prev.top - stamped.top) < 0.5 &&
+        Math.abs(prev.nudgeX - stamped.nudgeX) < 0.5
+      ) {
+        return prev;
+      }
+      return stamped;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toolbarAnchor primitives listed; object identity changes each pan tick from DiagramCanvas
+  }, [
+    toolbarAnchor?.left,
+    toolbarAnchor?.top,
+    toolbarAnchor?.nodeTop,
+    toolbarAnchor?.nodeBottom,
+    selectedNode?.id,
+    critiquePresent,
+    viewportClampEpoch
+  ]);
+
+  useEffect(() => {
+    function bumpClampEpoch() {
+      setViewportClampEpoch((n) => n + 1);
+    }
+    window.addEventListener('resize', bumpClampEpoch);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', bumpClampEpoch);
+    vv?.addEventListener('scroll', bumpClampEpoch);
+    return () => {
+      window.removeEventListener('resize', bumpClampEpoch);
+      vv?.removeEventListener('resize', bumpClampEpoch);
+      vv?.removeEventListener('scroll', bumpClampEpoch);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedNode?.id || toolbarAnchor == null) {
+      clearNodePanelIdleTimer();
+      return undefined;
+    }
+    if (busy) {
+      clearNodePanelIdleTimer();
+      return undefined;
+    }
+    scheduleNodePanelIdleDismiss();
+    return () => clearNodePanelIdleTimer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- hasToolbarAnchor covers anchor presence; toolbarAnchor identity churns each pan frame
+  }, [
+    busy,
+    clearNodePanelIdleTimer,
+    scheduleNodePanelIdleDismiss,
+    selectedNode?.id,
+    hasToolbarAnchor
+  ]);
+
+  const bumpNodePanelIdleDismiss = useCallback(() => {
+    if (!selectedNode?.id || !hasToolbarAnchor || busy) return;
+    scheduleNodePanelIdleDismiss();
+  }, [busy, hasToolbarAnchor, scheduleNodePanelIdleDismiss, selectedNode?.id]);
+
   const agentThinkingChrome = useMemo(
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
   );
   const hasDiagramText = Boolean(state.mermaidSource?.trim());
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
+
+  const critiqueActionableSplit = useMemo(
+    () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
+    [latestCritique?.text]
+  );
+
+  const critiqueActionableUi = useMemo(() => {
+    if (
+      !latestCritique?.text ||
+      !critiqueActionableSplit?.hasSection ||
+      critiqueActionableSplit.items.length === 0
+    ) {
+      return null;
+    }
+    const items = critiqueActionableSplit.items;
+    const alignedSelected = items.map((_, i) => critiqueActionableSelected[i] ?? false);
+    return {
+      critiqueText: latestCritique.text,
+      headingText: critiqueActionableSplit.headingText,
+      items,
+      prefix: critiqueActionableSplit.prefix,
+      suffix: critiqueActionableSplit.suffix,
+      selected: alignedSelected,
+      onToggle: (index) => {
+        setCritiqueActionableSelected((prev) => {
+          const next = items.map((_, i) => prev[i] ?? false);
+          if (index < 0 || index >= next.length) return prev;
+          next[index] = !next[index];
+          return next;
+        });
+      },
+      busy,
+      onFixSelected: () => handleFixFromCritique('selected'),
+      onFixAll: () => handleFixFromCritique('all')
+    };
+  }, [busy, critiqueActionableSplit, critiqueActionableSelected, handleFixFromCritique, latestCritique?.text]);
 
   const status = useMemo(() => {
     if (loading && activeRequest === 'intent') return 'Applying diagram change.';
@@ -1130,6 +1444,9 @@ Requirements:
       onSoundEnabledChange={setSoundEnabled}
       celebratingEntryId={celebratingEntryId}
       streamDebugEnabled={streamDebugEnabled}
+      critiqueActionableUi={critiqueActionableUi}
+      diagramUndoDisabled={loading}
+      onDiagramUndo={handleDiagramUndo}
     />
   ) : null;
 
@@ -1158,26 +1475,25 @@ Requirements:
 
       {toolbarAnchor && selectedNode ? (
         <div
+          ref={nodeActionsPanelRef}
           className="corner-control node-toolbar-anchor node-actions-panel"
           style={{
             left: toolbarAnchor.left,
-            top: toolbarAnchor.top
+            top:
+              nodePanelPlacement?.forNodeId === selectedNode.id
+                ? nodePanelPlacement.top
+                : toolbarAnchor.top,
+            transform: `translate(calc(-50% + ${
+              nodePanelPlacement?.forNodeId === selectedNode.id ? nodePanelPlacement.nudgeX : 0
+            }px), 0)`
           }}
           role="dialog"
           aria-label="Node actions"
+          onPointerEnter={bumpNodePanelIdleDismiss}
+          onPointerDown={bumpNodePanelIdleDismiss}
+          onFocusCapture={bumpNodePanelIdleDismiss}
         >
           <div className="node-actions-panel-surface">
-            <button
-              type="button"
-              className="overlay-button node-actions-panel-close"
-              onClick={() => {
-                setSelectedNode(null);
-                setToolbarAnchor(null);
-              }}
-              aria-label="Close node actions"
-            >
-              <ButtonIcon>x</ButtonIcon>
-            </button>
             <div className="node-actions-panel-body">
               <section className="node-actions-section" aria-label="Shape diagram">
                 <span className="button-group-label node-actions-section-label">Shape</span>
@@ -1206,7 +1522,12 @@ Requirements:
                     Critique
                   </button>
                   {latestCritique?.text ? (
-                    <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
+                    <button
+                      type="button"
+                      className="overlay-button compact-button"
+                      disabled={!canFixFromCritique}
+                      onClick={() => handleFixFromCritique('all')}
+                    >
                       <ButtonIcon>w</ButtonIcon>
                       Fix
                     </button>
@@ -1218,6 +1539,14 @@ Requirements:
                 </div>
               </section>
             </div>
+            <button
+              type="button"
+              className="overlay-button node-actions-panel-close"
+              onClick={dismissNodePanel}
+              aria-label="Close node actions"
+            >
+              <ButtonIcon>x</ButtonIcon>
+            </button>
           </div>
         </div>
       ) : null}
@@ -1328,7 +1657,12 @@ Requirements:
                 Critique
               </button>
               {latestCritique?.text ? (
-                <button type="button" className="overlay-button compact-button" disabled={!canFixFromCritique} onClick={handleFixFromCritique}>
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={!canFixFromCritique}
+                  onClick={() => handleFixFromCritique('all')}
+                >
                   <ButtonIcon>w</ButtonIcon>
                   Fix
                 </button>

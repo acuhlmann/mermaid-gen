@@ -2,6 +2,13 @@ import { useEffect, useRef } from 'react';
 
 const BOTTOM_SNAP_THRESHOLD_PX = 72;
 
+const PHASE_ID_LABELS = {
+  analyze: 'Analyze',
+  analyze_stream: 'Stream',
+  intent: 'Apply',
+  agent_run: 'Agent'
+};
+
 function IconThinking() {
   return (
     <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -19,6 +26,28 @@ function IconSparkles() {
       <path
         fill="currentColor"
         d="m11 6.5 1.43 3.24L15.77 11l-3.34 1.26L11 15.5 9.57 12.26 6.23 11l3.34-1.26L11 6.5zm7-2 1 2.25L21.25 8 19 10.25 18 8l-2.25-1.75L18 4.75l1-2.25zm0 11 1 2.25L21.25 19 19 21.25 18 19l-2.25-1.75L18 15.75l1-2.25zM6 16l.85 1.92L8.77 19l-1.92.92L6 21.84l-.85-1.92L3.23 19l1.92-.92L6 16z"
+      />
+    </svg>
+  );
+}
+
+function IconCritique() {
+  return (
+    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M9 21c-.55 0-1-.45-1-1v-1H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-6l-3 3v-3H9v1zm1-7h8V7H7v10h2v2l2-2h1zm2.5-4h-5v1.5h5V10zm3 3h-8V11.5h8V13z"
+      />
+    </svg>
+  );
+}
+
+function IconExplain() {
+  return (
+    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
       />
     </svg>
   );
@@ -49,9 +78,40 @@ function IconPhasePulse() {
   return <span className="insights-phase-glyph insights-phase-pulse-dot" aria-hidden="true" />;
 }
 
-function EntryStatusIcon({ status }) {
-  if (status === 'done') return <IconSparkles />;
+function IconPhaseAnalyze() {
+  return (
+    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C10.01 14 8 11.99 8 9.5S10.01 5 12.5 5 17 7.01 17 9.5 14.99 14 12.5 14z"
+      />
+    </svg>
+  );
+}
+
+function IconPhaseStream() {
+  return (
+    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <path fill="currentColor" d="M4 18h12v2H4v-2zm0-6h18v2H4v-2zm0-6h14v2H4V6zm14 8v3l4-4-4-4v3H8v2h10z" />
+    </svg>
+  );
+}
+
+function IconPhaseGeneric() {
+  return (
+    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
+
+function EntryStatusIcon({ status, variant }) {
   if (status === 'failed') return <IconAlert />;
+  if (status === 'done') {
+    if (variant === 'critique') return <IconCritique />;
+    if (variant === 'explain') return <IconExplain />;
+    return <IconSparkles />;
+  }
   return <IconThinking />;
 }
 
@@ -84,30 +144,217 @@ function parseInline(text) {
   return fragments;
 }
 
-function renderRichContent(content) {
+/** Merge lone bullet markers with the following non-empty line (streaming artifacts). */
+function preprocessBulletArtifacts(content) {
   const lines = content.split('\n');
-  return lines.map((line, index) => {
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const raw = lines[i];
+    const trimmed = raw.trim();
+    if (trimmed === '•' || trimmed === '-' || trimmed === '*' || trimmed === '·') {
+      let j = i + 1;
+      while (j < lines.length && !lines[j].trim()) j += 1;
+      if (j < lines.length) {
+        out.push(`- ${lines[j].trim()}`);
+        i = j;
+        continue;
+      }
+    }
+    out.push(raw);
+  }
+  return out.join('\n');
+}
+
+function explainHeadingToneClass(headingText) {
+  const h = headingText.toLowerCase();
+  if (h.includes('takeaway') || h.includes('conclusion') || h.includes('insight')) {
+    return 'insights-tone-explain-takeaways';
+  }
+  if (h.includes('entit') || h.includes('key nodes') || h.includes('key components')) {
+    return 'insights-tone-explain-entities';
+  }
+  if (h.includes('flow') || h.includes('relationship')) {
+    return 'insights-tone-explain-flows';
+  }
+  if (h.includes('explanation') || h.includes('overview') || h.includes('summary')) {
+    return 'insights-tone-explain-overview';
+  }
+  return 'insights-tone-explain-neutral';
+}
+
+function headingToneClass(headingText, variant = 'general') {
+  if (variant === 'explain') return explainHeadingToneClass(headingText);
+  const h = headingText.toLowerCase();
+  if (h.includes('strength')) return 'insights-tone-strengths';
+  if (h.includes('weakness') || h.includes('limit')) return 'insights-tone-weaknesses';
+  if (h.includes('diagram type') || h.includes('type fit')) return 'insights-tone-diagram-type';
+  if (h.includes('visual') || h.includes('style')) return 'insights-tone-visual';
+  if (h.includes('action')) return 'insights-tone-actionable';
+  return 'insights-tone-neutral';
+}
+
+function sectionHeadingIconClass(toneClass) {
+  if (toneClass === 'insights-tone-strengths') return 'insights-section-icon is-strengths';
+  if (toneClass === 'insights-tone-weaknesses') return 'insights-section-icon is-weaknesses';
+  if (toneClass === 'insights-tone-diagram-type') return 'insights-section-icon is-diagram-type';
+  if (toneClass === 'insights-tone-visual') return 'insights-section-icon is-visual';
+  if (toneClass === 'insights-tone-actionable') return 'insights-section-icon is-actionable';
+  if (toneClass === 'insights-tone-explain-overview') return 'insights-section-icon is-explain-overview';
+  if (toneClass === 'insights-tone-explain-flows') return 'insights-section-icon is-explain-flows';
+  if (toneClass === 'insights-tone-explain-entities') return 'insights-section-icon is-explain-entities';
+  if (toneClass === 'insights-tone-explain-takeaways') return 'insights-section-icon is-explain-takeaways';
+  if (toneClass === 'insights-tone-explain-neutral') return 'insights-section-icon is-explain-neutral';
+  return 'insights-section-icon is-neutral';
+}
+
+/** Split on ## headings; returns [{ type:'lead'|'section', heading?, body }]. */
+function splitMarkdownSections(content) {
+  const lines = content.split('\n');
+  const sections = [];
+  let buf = [];
+
+  function flushLead() {
+    if (!buf.length) return;
+    sections.push({ type: 'lead', body: buf.join('\n') });
+    buf = [];
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed.startsWith('## ') && !trimmed.startsWith('###')) {
+      flushLead();
+      sections.push({ type: 'section', heading: trimmed.slice(3).trim(), bodyLines: [] });
+      continue;
+    }
+    const active = sections.length && sections[sections.length - 1].type === 'section';
+    if (active) {
+      sections[sections.length - 1].bodyLines.push(lines[i]);
+    } else {
+      buf.push(lines[i]);
+    }
+  }
+  flushLead();
+  return sections.map((s) =>
+    s.type === 'section' ? { type: 'section', heading: s.heading, body: s.bodyLines.join('\n') } : s
+  );
+}
+
+function renderBodyLines(body, keyPrefix, useSectionTypography) {
+  const lines = body.split('\n');
+  const out = [];
+
+  lines.forEach((line, index) => {
     const trimmed = line.trim();
-    if (!trimmed) return <div key={`gap-${index}`} className="insights-content-gap" />;
+    if (!trimmed) {
+      out.push(<div key={`${keyPrefix}-gap-${index}`} className="insights-content-gap" />);
+      return;
+    }
+    const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olMatch) {
+      out.push(
+        <p key={`${keyPrefix}-ol-${index}`} className="insights-content-ordered">
+          <span className="insights-ordered-marker" aria-hidden="true">
+            {olMatch[1]}.
+          </span>
+          {parseInline(olMatch[2])}
+        </p>
+      );
+      return;
+    }
     if (trimmed.startsWith('### ')) {
-      return (
-        <h4 key={`h-${index}`} className="insights-content-heading">
+      out.push(
+        <h4 key={`${keyPrefix}-h3-${index}`} className="insights-content-heading">
           {parseInline(trimmed.slice(4))}
         </h4>
       );
+      return;
     }
-    if (trimmed.startsWith('- ')) {
-      return (
-        <p key={`b-${index}`} className="insights-content-bullet">
-          <span aria-hidden="true">•</span> {parseInline(trimmed.slice(2))}
+    if (trimmed.startsWith('# ') && !trimmed.startsWith('##')) {
+      out.push(
+        <h3 key={`${keyPrefix}-h1-${index}`} className="insights-content-heading-xl">
+          {parseInline(trimmed.slice(2))}
+        </h3>
+      );
+      return;
+    }
+    const bullet =
+      trimmed.startsWith('- ') ||
+      trimmed.startsWith('• ') ||
+      (trimmed.startsWith('•') && trimmed.length > 1 && /\s/.test(trimmed[1]));
+    if (bullet) {
+      const inner = trimmed.startsWith('- ')
+        ? trimmed.slice(2)
+        : trimmed.startsWith('• ')
+          ? trimmed.slice(2)
+          : trimmed.replace(/^•\s*/, '');
+      out.push(
+        <p key={`${keyPrefix}-b-${index}`} className="insights-content-bullet">
+          <span className="insights-bullet-icon" aria-hidden="true" />
+          <span className="insights-bullet-text">{parseInline(inner)}</span>
         </p>
       );
+      return;
     }
-    return (
-      <p key={`p-${index}`} className="insights-content-line">
+    const paraClass = useSectionTypography ? 'insights-content-line insights-content-line-in-section' : 'insights-content-line';
+    out.push(
+      <p key={`${keyPrefix}-p-${index}`} className={paraClass}>
         {parseInline(line)}
       </p>
     );
+  });
+
+  return out;
+}
+
+function renderRichContent(content, { accentuateSections, idPrefix = 'ins', variant = 'general' }) {
+  const cleaned = preprocessBulletArtifacts(content);
+  const chunks = splitMarkdownSections(cleaned);
+  const hasSections = chunks.some((c) => c.type === 'section');
+
+  if (!hasSections) {
+    return renderBodyLines(cleaned, 'flat', false);
+  }
+
+  let sectionAnimIndex = 0;
+  let explainLeadStyled = false;
+  return chunks.flatMap((chunk, chunkIdx) => {
+    if (chunk.type === 'lead') {
+      if (!chunk.body.trim()) return [];
+      const explainOpener = variant === 'explain' && !explainLeadStyled;
+      if (explainOpener) explainLeadStyled = true;
+      const leadClass =
+        explainOpener && accentuateSections
+          ? 'insights-prose-lead insights-explain-opener'
+          : 'insights-prose-lead';
+      return [
+        <div key={`lead-${chunkIdx}`} className={leadClass}>
+          {renderBodyLines(chunk.body, `lead-${chunkIdx}`, false)}
+        </div>
+      ];
+    }
+    const tone = accentuateSections ? headingToneClass(chunk.heading, variant) : 'insights-tone-neutral';
+    const iconCls = sectionHeadingIconClass(tone);
+    const delayMs = accentuateSections ? Math.min(sectionAnimIndex++, 12) * 55 : 0;
+    return [
+      <section
+        key={`sec-${chunkIdx}-${chunk.heading.slice(0, 24)}`}
+        className={`insights-prose-section ${accentuateSections ? tone : ''}`}
+        aria-labelledby={`${idPrefix}-h2-${chunkIdx}`}
+        style={
+          accentuateSections
+            ? {
+                animationDelay: `${delayMs}ms`
+              }
+            : undefined
+        }
+      >
+        <h3 id={`${idPrefix}-h2-${chunkIdx}`} className="insights-md-h2">
+          <span className={iconCls} aria-hidden="true" />
+          <span className="insights-md-h2-text">{parseInline(chunk.heading)}</span>
+        </h3>
+        <div className="insights-prose-section-body">{renderBodyLines(chunk.body, `sec-${chunkIdx}`, true)}</div>
+      </section>
+    ];
   });
 }
 
@@ -117,12 +364,87 @@ function statusLabel(entry) {
   return 'Working';
 }
 
+function contentUpdatesTitle(variant) {
+  if (variant === 'critique') return 'Analysis';
+  if (variant === 'explain') return 'Explanation';
+  return 'Content updates';
+}
+
+function hidePhaseIds(variant, streamDebugEnabled) {
+  if (streamDebugEnabled) return false;
+  return variant === 'critique' || variant === 'explain';
+}
+
+function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast) {
+  if (phaseComplete) return <IconPhaseCheck />;
+  if (phaseFailedLast) return <IconAlert small />;
+  if (phaseActive) {
+    if (phaseId === 'analyze') return <IconPhaseAnalyze />;
+    if (phaseId === 'analyze_stream') return <IconPhaseStream />;
+    return <IconPhasePulse />;
+  }
+  return <IconPhaseGeneric />;
+}
+
+function ActionableImprovementsPanel({
+  headingText,
+  items,
+  selected,
+  onToggle,
+  busy,
+  onFixSelected,
+  onFixAll,
+  idPrefix
+}) {
+  const anySelected = selected.some(Boolean);
+  return (
+    <section
+      className="insights-actionable-block insights-prose-section insights-tone-actionable"
+      aria-label={headingText || 'Actionable improvements'}
+    >
+      <h3 className="insights-actionable-title">{headingText || 'Actionable improvements'}</h3>
+      <ul className="insights-actionable-list">
+        {items.map((item, idx) => (
+          <li key={`${idPrefix}-act-${idx}`} className="insights-actionable-item">
+            <label className="insights-actionable-label">
+              <input
+                type="checkbox"
+                className="insights-actionable-checkbox"
+                checked={Boolean(selected[idx])}
+                disabled={busy}
+                onChange={() => onToggle(idx)}
+              />
+              <span className="insights-actionable-text">{parseInline(item)}</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="insights-actionable-actions">
+        <button
+          type="button"
+          className="insights-actionable-btn insights-actionable-btn-selected"
+          disabled={busy || !anySelected}
+          onClick={onFixSelected}
+        >
+          Fix selected
+        </button>
+        <button type="button" className="insights-actionable-btn insights-actionable-btn-all" disabled={busy} onClick={onFixAll}>
+          Fix all
+        </button>
+      </div>
+    </section>
+  );
+}
+
 export default function InsightsPane({
   entries,
   soundEnabled,
   onSoundEnabledChange,
   celebratingEntryId,
-  streamDebugEnabled = false
+  streamDebugEnabled = false,
+  critiqueActionableUi = null,
+  diagramUndoDisabled = false,
+  onDiagramUndo
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
@@ -169,21 +491,84 @@ export default function InsightsPane({
         ) : (
           entries.map((entry) => {
             const rawStatus = entry.status ?? 'running';
+            const variant = entry.variant ?? 'general';
             const isRunning = rawStatus === 'running';
             const isStreaming = isRunning && Boolean(entry.content?.trim());
             const statusStrip =
               entry.statusText &&
               (rawStatus === 'running' || rawStatus === 'failed') &&
               entry.statusText.trim();
+            const accentuateSections = variant === 'critique' || variant === 'explain';
+            const collapseTech =
+              (variant === 'critique' || variant === 'explain') && (entry.technicalActions?.length ?? 0) > 0;
+            const phaseIdsHidden = hidePhaseIds(variant, streamDebugEnabled);
+            const matchesLatestActionable =
+              critiqueActionableUi &&
+              variant === 'critique' &&
+              rawStatus === 'done' &&
+              entry.content?.trim() === critiqueActionableUi.critiqueText.trim();
+
+            const showDiagramUndo =
+              entry.diagramUndoBaseline &&
+              entry.diagramRevisionApplied &&
+              !entry.diagramUndoConsumed &&
+              rawStatus === 'done';
+
+            let analysisBody = null;
+            if (entry.content) {
+              if (matchesLatestActionable && critiqueActionableUi.items.length > 0) {
+                const { prefix, suffix } = critiqueActionableUi;
+                analysisBody = (
+                  <>
+                    {prefix.trim() ? (
+                      <div className="insights-analysis-chunk">
+                        {renderRichContent(prefix, {
+                          accentuateSections,
+                          idPrefix: `${entry.id}-pre`,
+                          variant
+                        })}
+                      </div>
+                    ) : null}
+                    <ActionableImprovementsPanel
+                      headingText={critiqueActionableUi.headingText}
+                      items={critiqueActionableUi.items}
+                      selected={critiqueActionableUi.selected}
+                      onToggle={critiqueActionableUi.onToggle}
+                      busy={critiqueActionableUi.busy}
+                      onFixSelected={critiqueActionableUi.onFixSelected}
+                      onFixAll={critiqueActionableUi.onFixAll}
+                      idPrefix={entry.id}
+                    />
+                    {suffix.trim() ? (
+                      <div className="insights-analysis-chunk">
+                        {renderRichContent(suffix, {
+                          accentuateSections,
+                          idPrefix: `${entry.id}-post`,
+                          variant
+                        })}
+                      </div>
+                    ) : null}
+                  </>
+                );
+              } else {
+                analysisBody = renderRichContent(entry.content, {
+                  accentuateSections,
+                  idPrefix: entry.id,
+                  variant
+                });
+              }
+            }
 
             return (
               <article
                 key={entry.id}
+                data-variant={variant}
                 className={[
                   'insights-entry',
                   entry.id === celebratingEntryId ? 'is-celebrating' : '',
                   isRunning ? 'is-running' : '',
-                  isStreaming ? 'is-streaming' : ''
+                  isStreaming ? 'is-streaming' : '',
+                  rawStatus === 'done' ? 'is-complete' : ''
                 ]
                   .filter(Boolean)
                   .join(' ')}
@@ -191,7 +576,7 @@ export default function InsightsPane({
                 <div className="insights-entry-top">
                   <h3 className="insights-entry-title">
                     <span className="insights-entry-icon" aria-hidden="true">
-                      <EntryStatusIcon status={rawStatus} />
+                      <EntryStatusIcon status={rawStatus} variant={variant} />
                     </span>
                     {entry.title}
                   </h3>
@@ -224,23 +609,29 @@ export default function InsightsPane({
                         const phaseComplete = rawStatus === 'done' || (!isLast && (isRunning || isFailed));
                         const phaseActive = isRunning && isLast && !isFailed;
                         const phaseFailedLast = isFailed && isLast;
+                        const friendlyId = PHASE_ID_LABELS[phase.id] ?? phase.id;
                         return (
                           <li
                             key={`${entry.id}-phase-${phase.id}-${idx}`}
                             className={`insights-phase-item ${phaseActive ? 'is-active' : ''} ${phaseComplete ? 'is-complete' : ''} ${phaseFailedLast ? 'is-failed-at' : ''}`}
                           >
                             <span className="insights-phase-glyph-wrap" aria-hidden="true">
-                              {phaseComplete ? (
-                                <IconPhaseCheck />
-                              ) : phaseFailedLast ? (
-                                <IconAlert small />
-                              ) : (
-                                <IconPhasePulse />
-                              )}
+                              {phaseRowGlyph(phase.id, phaseComplete, phaseActive, phaseFailedLast)}
                             </span>
                             <span className="insights-phase-step">{idx + 1}</span>
                             <span className="insights-phase-label">{phase.label}</span>
-                            <code className="insights-phase-id">{phase.id}</code>
+                            {phaseIdsHidden ? (
+                              <>
+                                <span className="insights-visually-hidden">{phase.id}</span>
+                                <span className="insights-phase-chip" aria-hidden="true">
+                                  {friendlyId}
+                                </span>
+                              </>
+                            ) : (
+                              <code className="insights-phase-id" title={friendlyId}>
+                                {phase.id}
+                              </code>
+                            )}
                           </li>
                         );
                       })}
@@ -268,11 +659,39 @@ export default function InsightsPane({
                   </section>
                 ) : null}
 
-                <section className="insights-section">
-                  <h4 className="insights-section-title">Content updates</h4>
+                <section className={`insights-section ${variant === 'explain' ? 'is-explain-content-lane' : ''}`}>
+                  <h4
+                    className={[
+                      'insights-section-title',
+                      variant === 'explain' ? 'insights-section-title-explain' : ''
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                  >
+                    {variant === 'explain' ? (
+                      <>
+                        <span className="insights-section-title-explain-icon" aria-hidden="true">
+                          <IconExplain />
+                        </span>
+                        <span>{contentUpdatesTitle(variant)}</span>
+                      </>
+                    ) : (
+                      contentUpdatesTitle(variant)
+                    )}
+                  </h4>
                   {entry.content ? (
                     <div className="insights-entry-rich-text-wrap">
-                      <div className="insights-entry-rich-text">{renderRichContent(entry.content)}</div>
+                      <div
+                        className={[
+                          'insights-entry-rich-text',
+                          accentuateSections ? 'is-analyze-prose' : '',
+                          variant === 'explain' && accentuateSections ? 'is-explain-prose' : ''
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
+                        {analysisBody}
+                      </div>
                       {isRunning && entry.content.trim() ? (
                         <span className="insights-stream-caret" aria-hidden="true" />
                       ) : null}
@@ -282,24 +701,56 @@ export default function InsightsPane({
                   )}
                 </section>
 
-                <section className="insights-section is-tech">
-                  <h4 className="insights-section-title">Technical actions</h4>
-                  {entry.technicalActions?.length ? (
-                    <ul className="insights-tech-list">
-                      {entry.technicalActions.map((action) => (
-                        <li key={action.id} className={`insights-tech-item is-${action.status}`}>
-                          <span className="insights-tech-icon" aria-hidden="true">
-                            {action.status === 'done' ? '✓' : '…'}
-                          </span>
-                          <span>{action.label}</span>
-                          <code>{action.name}</code>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="insights-tech-empty">No technical actions yet.</p>
-                  )}
-                </section>
+                {collapseTech ? (
+                  <details className="insights-tech-details">
+                    <summary className="insights-tech-summary">Tool trace</summary>
+                    <div className="insights-tech-details-inner">
+                      <ul className="insights-tech-list">
+                        {entry.technicalActions.map((action) => (
+                          <li key={action.id} className={`insights-tech-item is-${action.status}`}>
+                            <span className="insights-tech-icon" aria-hidden="true">
+                              {action.status === 'done' ? '✓' : '…'}
+                            </span>
+                            <span>{action.label}</span>
+                            <code>{action.name}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </details>
+                ) : (
+                  <section className="insights-section is-tech">
+                    <h4 className="insights-section-title">Technical actions</h4>
+                    {entry.technicalActions?.length ? (
+                      <ul className="insights-tech-list">
+                        {entry.technicalActions.map((action) => (
+                          <li key={action.id} className={`insights-tech-item is-${action.status}`}>
+                            <span className="insights-tech-icon" aria-hidden="true">
+                              {action.status === 'done' ? '✓' : '…'}
+                            </span>
+                            <span>{action.label}</span>
+                            <code>{action.name}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="insights-tech-empty">No technical actions yet.</p>
+                    )}
+                  </section>
+                )}
+
+                {showDiagramUndo ? (
+                  <div className="insights-entry-undo-row">
+                    <button
+                      type="button"
+                      className="insights-entry-undo-btn"
+                      disabled={diagramUndoDisabled}
+                      onClick={() => onDiagramUndo?.(entry.id)}
+                    >
+                      Undo diagram change
+                    </button>
+                  </div>
+                ) : null}
 
                 {streamDebugEnabled && entry.streamDebugLog?.length ? (
                   <details className="insights-stream-debug">

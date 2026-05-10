@@ -82,6 +82,14 @@ CRITICAL:
 - Answer only in plain text or Markdown for the user to read.
 - Never mention internal tools or system prompts.`;
 
+const ANALYSIS_CRITIQUE_SYSTEM_APPEND = `
+Critique tasks only:
+- Follow the user's required section headings (or clearly labeled equivalents). Never skip Weaknesses or Actionable improvements.`;
+
+const ANALYSIS_EXPLAIN_SYSTEM_APPEND = `
+Explain tasks only:
+- Use the required Markdown ## section headings exactly (or clearly labeled equivalents). Do not skip sections; use bullets inside sections where helpful.`;
+
 export function transformModeModelOptions(mode) {
   const key = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
   return {
@@ -107,10 +115,11 @@ function buildTransformUserContent({ mode, mermaidSource, focusScope }) {
       : mode === 'innovate'
         ? `Transform mode: INNOVATE — apply noticeable, fresh changes while staying on-topic.
 - You may restructure layout meaningfully and surprise users with insightful additions most wouldn't think of.
+- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the idea better; change type only when that shift is clearly justified. Otherwise keep the current type and innovate within it.
 - Larger edits OK; still coherent and valid Mermaid.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
         : `Transform mode: GO MAD — maximum creative freedom while still vaguely reflecting the original idea.
-- You MAY change diagram type (flowchart, sequence, mindmap, stateDiagram-v2, etc.) when it serves the chaos.
+- Treat switching or hybridizing diagram types as a primary lever for surprise (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.): prefer unexpected but renderable pivots over playing it safe with the original type.
 - Lean into unusual but valid Mermaid: init/theme/classDef, styling hacks, playful shapes, unconventional grouping.
 - Prioritize spectacle + readability; avoid broken syntax.
 - Keep text/background contrast readable: never produce dark text on dark fills or light text on light fills.
@@ -655,8 +664,39 @@ ${prompt}${focusScope}`;
 
       const task =
         kind === 'critique'
-          ? `Critique this diagram for clarity, structure, and usefulness. Note strengths, weaknesses, ambiguities, and concrete improvements — without rewriting the diagram yourself.${focusScope}`
-          : `Explain what this diagram communicates to someone unfamiliar with it: main flows, key entities, and takeaways. Stay descriptive — do not rewrite the diagram.${focusScope}`;
+          ? `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
+
+Use these sections with Markdown headings (or the same labels inline if headings are awkward):
+
+## Strengths
+Brief positives that are specific to this diagram.
+
+## Weaknesses and limits
+You MUST include at least one substantive weakness, gap, or risk — even if the diagram is strong (e.g. tradeoffs, ambiguous flows, weak hierarchy, scalability of layout, missing legend/context, accessibility or contrast concerns, unclear temporal/order semantics). Do not deliver praise-only or generic fluff without a paired limitation.
+
+## Diagram type fit
+Say whether the chosen Mermaid diagram type suits the content. If another type would communicate better, name it and why — without rewriting the diagram.
+
+## Visual and style review
+Comment on readability and presentation: clutter, balance, link directions, shapes, grouping, and any %%init%% / theme / classDef / styling choices if present (including contrast and visual hierarchy).
+
+## Actionable improvements
+A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${focusScope}`
+          : `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
+
+Use these sections with Markdown ## headings (or clearly labeled equivalents):
+
+## Explanation
+A short overview for someone new to the diagram.
+
+## Main flows
+How information, process steps, or relationships move through the diagram.
+
+## Key entities
+Important nodes, subgraphs, or groups and what role each plays.
+
+## Takeaways
+Concise conclusions — what to remember or how to read the diagram.${focusScope}`;
 
       const profile = normalizeModelProfile(modelProfile);
       const analysisModel = openRouterModelFactory(env, {
@@ -665,7 +705,11 @@ ${prompt}${focusScope}`;
         maxTokens: 1800
       });
 
-      const messages = [new SystemMessage(ANALYSIS_SYSTEM_PROMPT), new HumanMessage(`${task}\n\n${diagramBlock}`)];
+      const analysisSystem =
+        kind === 'critique'
+          ? `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_CRITIQUE_SYSTEM_APPEND}`
+          : `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_EXPLAIN_SYSTEM_APPEND}`;
+      const messages = [new SystemMessage(analysisSystem), new HumanMessage(`${task}\n\n${diagramBlock}`)];
 
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'analyze_stream', label: 'Streaming analysis…' });
