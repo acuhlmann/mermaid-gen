@@ -424,6 +424,10 @@
   justify-content: flex-end;
 }
 
+.insights-pane-dismiss {
+  display: none;
+}
+
 .insights-stop-stream-btn {
   border-radius: 999px;
   padding: 0.28rem 0.65rem;
@@ -2718,10 +2722,15 @@ button {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 960px) {
   :root {
     --app-vvh: 100svh;
   }
+
+  .insights-pane-dismiss {
+    display: inline-flex;
+  }
+
   .brand-control {
     top: 0.75rem;
     left: 0.75rem;
@@ -2734,14 +2743,17 @@ button {
     right: 0.75rem;
   }
 
+  .app-shell.is-editor-open .edit-control {
+    z-index: 26;
+  }
+
   .ai-corner-controls {
     right: 0.75rem;
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
-  .app-shell.is-insights-open:not(.is-editor-open) .ai-corner-controls {
-    right: 0.75rem;
-    bottom: calc(42svh + 0.75rem + env(safe-area-inset-bottom));
+  .app-shell.is-insights-open .ai-corner-controls {
+    display: none;
   }
 
   .prompt-stack {
@@ -2751,52 +2763,94 @@ button {
     max-width: none;
   }
 
+  .app-shell.is-insights-open:not(.is-editor-open) .prompt-stack {
+    display: none;
+  }
+
   .overlay-button {
     min-height: 2.55rem;
     padding: 0.62rem 0.85rem;
   }
 
   .diagram-viewport {
-    padding: 5.25rem 1rem 11rem;
-  }
-
-  .diagram-canvas.is-insights-open.is-editor-open {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 46svh) minmax(11rem, 28svh) minmax(0, 26svh);
+    padding: 5.25rem 1rem 7rem;
   }
 
   .diagram-canvas.is-insights-open:not(.is-editor-open) {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 58svh) minmax(0, 42svh);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .diagram-canvas.is-insights-open:not(.is-editor-open) .insights-pane {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    width: auto;
+    max-width: none;
+    padding-top: calc(0.35rem + env(safe-area-inset-top));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    border-left: 0;
+    border-top: 0;
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.18);
   }
 
   .diagram-canvas.is-editor-open:not(.is-insights-open) {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(11rem, 38svh) minmax(0, 62svh);
+    grid-template-rows: minmax(0, 1fr);
   }
 
-  .insights-pane {
-    padding-top: 0.75rem;
+  .diagram-canvas.is-editor-open:not(.is-insights-open) .diagram-editor-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 18;
+    padding-top: calc(3rem + env(safe-area-inset-top));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
     border-left: 0;
-    border-top: 1px solid rgba(15, 23, 42, 0.12);
-    box-shadow: 0 -14px 36px rgba(15, 23, 42, 0.12);
+    border-top: 0;
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.22);
   }
 
-  .diagram-editor-panel {
-    padding-top: 0.75rem;
+  .diagram-canvas.is-insights-open.is-editor-open {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .diagram-canvas.is-insights-open.is-editor-open .diagram-editor-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 21;
+    padding-top: calc(3rem + env(safe-area-inset-top));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
     border-left: 0;
-    border-top: 1px solid rgba(15, 23, 42, 0.18);
-    box-shadow: 0 -18px 40px rgba(15, 23, 42, 0.22);
+    border-top: 0;
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.22);
+  }
+
+  .diagram-canvas.is-insights-open.is-editor-open .insights-pane {
+    position: fixed;
+    inset: 0;
+    z-index: 22;
+    width: auto;
+    max-width: none;
+    padding-top: calc(0.35rem + env(safe-area-inset-top));
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+    border-left: 0;
+    border-top: 0;
+    box-shadow: 0 12px 48px rgba(15, 23, 42, 0.18);
   }
 
   .app-shell.is-editor-open .prompt-stack,
   .app-shell.is-editor-open .ai-corner-controls,
   .app-shell.is-editor-open .node-toolbar-anchor {
     display: none;
-  }
-
-  .app-shell.is-insights-open:not(.is-editor-open) .prompt-stack {
-    bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
   .app-shell {
