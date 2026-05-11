@@ -592,7 +592,8 @@ export default function InsightsPane({
   diagramChangeHighlightSummary = null,
   diagramChangeHighlightDisabled = false,
   onToggleDiagramChangeHighlight,
-  onStopStreamingAgent
+  onStopStreamingAgent,
+  onDismiss
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
@@ -623,6 +624,16 @@ export default function InsightsPane({
           ) : null}
         </div>
         <div className="insights-pane-controls">
+          {typeof onDismiss === 'function' ? (
+            <button
+              type="button"
+              className="insights-pane-dismiss overlay-button compact-button"
+              onClick={onDismiss}
+              aria-label="Close thinking panel"
+            >
+              Hide
+            </button>
+          ) : null}
           {typeof onStopStreamingAgent === 'function' ? (
             <button
               type="button"

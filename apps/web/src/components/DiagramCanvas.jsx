@@ -163,6 +163,20 @@ export default function DiagramCanvas({
   const diagramSyncRafRef = useRef(0);
   const lastSvgRenderedReportRef = useRef('');
   const [monacoBind, setMonacoBind] = useState(null);
+  const [narrowLayout, setNarrowLayout] = useState(() =>
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(max-width: 960px)').matches
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia('(max-width: 960px)');
+    const sync = () => setNarrowLayout(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   const handleEditorBeforeMount = useCallback((monaco) => {
     registerMermaidMonacoOnce(monaco);
@@ -177,13 +191,15 @@ export default function DiagramCanvas({
   const monacoEditorOptions = useMemo(
     () => ({
       minimap: { enabled: false },
-      wordWrap: 'on',
+      wordWrap: narrowLayout ? 'off' : 'on',
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: streamingPreview,
-      fontSize: 13
+      fontSize: narrowLayout ? 12 : 13,
+      lineNumbers: narrowLayout ? 'off' : 'on',
+      wrappingIndent: 'none'
     }),
-    [streamingPreview]
+    [narrowLayout, streamingPreview]
   );
 
   const reportValidation = useCallback(

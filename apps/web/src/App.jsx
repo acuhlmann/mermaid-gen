@@ -1822,6 +1822,7 @@ ${requirementsBlock}`;
       diagramChangeHighlightDisabled={loading}
       onToggleDiagramChangeHighlight={handleToggleDiagramChangeHighlight}
       onStopStreamingAgent={streamingAgentStoppable ? stopStreamingAgentRequest : undefined}
+      onDismiss={() => setInsightsOpen(false)}
     />
   ) : null;
 
