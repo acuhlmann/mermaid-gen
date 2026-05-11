@@ -19,7 +19,8 @@ This file is a quick operator manual for coding agents working in this repositor
 
 ## Useful commands
 
-- Install deps + skills: `npm run setup`
+- Install deps + skills + Cloud SDK (when missing): `npm run setup`
+- Google Cloud CLI only: `npm run setup:gcloud` (see `scripts/setup-gcloud.sh`; uses `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` key path for service-account auth when set)
 - Refresh skills only: `npm run setup:skills`
 - Run web + server together: `npm run dev`
 - Run all tests: `npm test`
@@ -94,14 +95,14 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 ## Cursor Cloud specific instructions
 
-- **Environment file**: `.env` must exist (copy from `.env.example` if missing). The update script handles `npm install` and CopilotKit skills refresh; you only need to ensure `.env` is present before starting services.
+- **Environment file**: `.env` must exist (copy from `.env.example` if missing). Run `npm run setup` for `npm install`, CopilotKit skills refresh, and `gcloud` install when missing (`scripts/setup-gcloud.sh`); ensure `.env` is present before starting services.
 - **Starting dev servers**: `npm run dev` launches both the Express server (on the port defined by `PORT` in `.env`, default 4000) and Vite dev server (port 5173) via `concurrently`. Use `curl http://localhost:$PORT/api/health` to verify the server is up. The health response includes `llmConfigured` (true when `OPENROUTER_API_KEY` is set) and `runtimeReady`.
 - **No database or Docker required**: All state is in-memory per session. No external services need to be running for local dev or tests.
 - **Tests**: `npm test` runs all workspaces sequentially (shared → server → web). Server tests use Node's built-in test runner; web tests use Vitest. All 48 tests should pass without any API key.
 - **Lint**: Only `apps/web` has an ESLint config (`npm run lint -w apps/web`). There are pre-existing lint errors in the codebase (4 errors as of initial setup).
 - **Build**: `npm run build` builds shared → server → web. The web build produces a Vite bundle with a chunk-size warning that can be ignored.
 - **AI features require `OPENROUTER_API_KEY`**: Without this key, the health endpoint reports `llmConfigured: false` and intent/transform/analyze/stream routes return 503. The app still loads and renders diagrams, but AI generation won't work.
-- **GCP access (`gcloud`)**: The update script installs `gcloud`, configures project `mermaidgen` / region `us-central1`, and auto-activates the `GCP_MERMAID_GEN` Cursor Secret (service account JSON for `cursor-agent-readonly@mermaidgen.iam.gserviceaccount.com`). Once authenticated, useful inspection commands include:
+- **GCP access (`gcloud`)**: `npm run setup` / `npm run setup:gcloud` installs the SDK to `~/google-cloud-sdk` when absent. If `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` points at a service-account JSON file, the script runs `gcloud auth activate-service-account`; it then sets project `mermaidgen` and region `us-central1` when that project is readable. Once authenticated, useful inspection commands include:
   - `gcloud run services list` — list Cloud Run services (`mermaid-gen-main`, `mermaid-gen-hackathon`)
   - `gcloud run services describe mermaid-gen-main` — inspect the main service
   - `gcloud logging read 'resource.type="cloud_run_revision"' --limit=20 --freshness=1h` — recent logs
