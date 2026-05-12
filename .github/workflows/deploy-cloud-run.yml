@@ -66,4 +66,12 @@ jobs:
           if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/null; then
             ARGS+=(--set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest")
           fi
+          VL="${VERTEX_LOCATION:-us-central1}"
+          VF="${VERTEX_MODEL_FAST:-gemini-2.0-flash-001}"
+          VQ="${VERTEX_MODEL_QUALITY:-gemini-1.5-pro-002}"
+          VEV="VERTEX_LOCATION=${VL},VERTEX_MODEL_FAST=${VF},VERTEX_MODEL_QUALITY=${VQ}"
+          if [[ -n "${VERTEX_PROJECT_ID:-}" ]]; then VEV="${VEV},VERTEX_PROJECT_ID=${VERTEX_PROJECT_ID}"; fi
+          if [[ -n "${LLM_PROVIDER:-}" ]]; then VEV="${VEV},LLM_PROVIDER=${LLM_PROVIDER}"; fi
+          if [[ -n "${OPENROUTER_PREFERRED:-}" ]]; then VEV="${VEV},OPENROUTER_PREFERRED=${OPENROUTER_PREFERRED}"; fi
+          ARGS+=(--set-env-vars="${VEV}")
           gcloud "${ARGS[@]}"

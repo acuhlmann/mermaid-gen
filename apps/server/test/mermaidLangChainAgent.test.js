@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   DEFAULT_OPENROUTER_MODEL_FAST,
   DEFAULT_OPENROUTER_MODEL_QUALITY,
+  DEFAULT_VERTEX_MODEL_FAST,
   GO_MAD_TRANSFORM_MAX_TOKENS,
   TRANSFORM_MODEL_LIMITS,
   buildPatchRequiredInstruction,
@@ -118,7 +119,7 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
   const service = createMermaidLangChainAgent({
     stateStore,
     env: { OPENROUTER_API_KEY: 'test-key' },
-    openRouterModelFactory: (_e, options) => {
+    chatModelFactory: (_e, options) => {
       modelOptions.push(options);
       return {};
     },
@@ -213,7 +214,7 @@ test('createMermaidLangChainAgent attaches tool-call middleware by default', asy
   const service = createMermaidLangChainAgent({
     stateStore,
     env: { OPENROUTER_API_KEY: 'test-key' },
-    openRouterModelFactory: () => ({}),
+    chatModelFactory: () => ({}),
     createAgentImpl: (opts) => {
       capturedOptions ??= opts;
       return fakeAgent;
@@ -242,7 +243,7 @@ test('createMermaidLangChainAgent omits middleware when MERMAID_AGENT_MAX_TOOL_C
       OPENROUTER_API_KEY: 'test-key',
       MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN: '0'
     },
-    openRouterModelFactory: () => ({}),
+    chatModelFactory: () => ({}),
     createAgentImpl: (opts) => {
       capturedOptions ??= opts;
       return fakeAgent;
@@ -295,7 +296,7 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
     const service = createMermaidLangChainAgent({
       stateStore,
       env: { OPENROUTER_API_KEY: 'test-key' },
-      openRouterModelFactory: () => ({}),
+      chatModelFactory: () => ({}),
       createAgentImpl: () => fakeAgent
     });
 
@@ -336,7 +337,7 @@ test('transform retries once when the model returns prose without applying a pat
   const service = createMermaidLangChainAgent({
     stateStore,
     env: { OPENROUTER_API_KEY: 'test-key' },
-    openRouterModelFactory: () => ({}),
+    chatModelFactory: () => ({}),
     createAgentImpl: () => fakeAgent
   });
 
@@ -360,7 +361,7 @@ test('invoke maps LangChain invoke failures to assistant-safe messages', async (
   const service = createMermaidLangChainAgent({
     stateStore,
     env: { OPENROUTER_API_KEY: 'test-key', OPENROUTER_MODEL: 'google/gemini-test' },
-    openRouterModelFactory: () => ({}),
+    chatModelFactory: () => ({}),
     createAgentImpl: () => boomAgent
   });
 
@@ -368,4 +369,29 @@ test('invoke maps LangChain invoke failures to assistant-safe messages', async (
 
   assert.match(result.message, /Model request failed/);
   assert.match(result.message, /Tool calling rejected/);
+});
+
+test('Cloud Run auto mode passes Vertex default fast model into chatModelFactory', async () => {
+  const captured = [];
+  const fakeAgent = {
+    async invoke() {
+      return { messages: [{ role: 'assistant', content: 'ok' }] };
+    }
+  };
+  const service = createMermaidLangChainAgent({
+    stateStore: createDiagramStateStore(),
+    env: {
+      K_SERVICE: 'mermaid-gen-main',
+      GOOGLE_CLOUD_PROJECT: 'myproj',
+      OPENROUTER_API_KEY: 'k'
+    },
+    chatModelFactory: (_e, opts) => {
+      captured.push(opts);
+      return {};
+    },
+    createAgentImpl: () => fakeAgent
+  });
+
+  await service.applyIntent({ prompt: 'noop', settings: {} });
+  assert.ok(captured.some((o) => o.model === DEFAULT_VERTEX_MODEL_FAST));
 });

@@ -20,7 +20,7 @@ function intentPayload(overrides = {}) {
   };
 }
 
-test('intent route returns 503 when OpenRouter is not configured', async () => {
+test('intent route returns 503 when LLM is not configured', async () => {
   const stateStore = createDiagramStateStore();
   const agentService = {
     async applyIntent() {
@@ -35,7 +35,7 @@ test('intent route returns 503 when OpenRouter is not configured', async () => {
   });
 
   assert.equal(result.status, 503);
-  assert.match(result.body.error, /OpenRouter is not configured/);
+  assert.match(result.body.error, /No LLM backend is configured/);
 });
 
 test('intent route applies a patch from the agent service', async () => {
@@ -218,7 +218,7 @@ test('style route rejects stale revisions', async () => {
   assert.match(result.body.error, /stale/);
 });
 
-test('style route returns 503 when OpenRouter is not configured', async () => {
+test('style route returns 503 when LLM is not configured', async () => {
   const stateStore = createDiagramStateStore();
   const agentService = {
     async applyStyleIntent() {
@@ -233,7 +233,7 @@ test('style route returns 503 when OpenRouter is not configured', async () => {
   });
 
   assert.equal(result.status, 503);
-  assert.match(result.body.error, /OpenRouter is not configured/);
+  assert.match(result.body.error, /No LLM backend is configured/);
 });
 
 test('client state sync route updates backend source', async () => {

@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
 import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
-import { isLlmConfigured } from './agents/mermaidLangChainAgent.js';
+import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
 import { createCopilotRouter } from './routes/copilot.js';
 import {
   createSessionServicesRegistry,
@@ -62,6 +62,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
+    llmBackend: resolveLlmBackend() ?? 'none',
     hasMermaidMcp: Boolean(process.env.MERMAID_MCP_URL)
   });
 });

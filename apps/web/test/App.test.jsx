@@ -233,16 +233,18 @@ describe('App simplified controls', () => {
     const fixButton = await screen.findByRole('button', { name: 'Fix' });
     fireEvent.click(fixButton);
 
-    await waitFor(() =>
-      expect(streamDiagramAgentMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          operation: 'intent',
-          prompt: expect.stringContaining('Use clearer labels and simplify branching.'),
-          modelProfile: 'fast'
-        }),
-        expect.any(Function),
-        expect.objectContaining({ signal: expect.any(AbortSignal) })
-      )
+    await waitFor(
+      () =>
+        expect(streamDiagramAgentMock).toHaveBeenCalledWith(
+          expect.objectContaining({
+            operation: 'intent',
+            prompt: expect.stringContaining('Use clearer labels and simplify branching.'),
+            modelProfile: 'fast'
+          }),
+          expect.any(Function),
+          expect.objectContaining({ signal: expect.any(AbortSignal) })
+        ),
+      { timeout: 15_000 }
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
   });

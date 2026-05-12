@@ -17,6 +17,7 @@
   "dependencies": {
     "@copilotkit/runtime": "^1.57.1",
     "@langchain/core": "^1.1.45",
+    "@langchain/google-vertexai": "^2.1.30",
     "@langchain/openrouter": "^0.2.4",
     "@mermaid-architect/shared": "^1.0.0",
     "cors": "^2.8.6",
