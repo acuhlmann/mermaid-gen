@@ -8,7 +8,6 @@ const DEFAULT_MCP_RETRY_DELAY_MS = Number.parseInt(process.env.MERMAID_MCP_RETRY
 
 let initialized = false;
 let mermaidApi = null;
-let renderValidationCounter = 0;
 
 function clampPositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value), 10);
@@ -25,7 +24,11 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function ensureMermaidInitialized() {
+/**
+ * Lazily boots a JSDOM + Mermaid environment used to validate diagram source on the server.
+ * Exported so the server can warm the import at startup, so the first user action doesn't pay JSDOM cold start.
+ */
+export async function ensureMermaidInitialized() {
   if (initialized) return mermaidApi;
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
   globalThis.window = dom.window;
@@ -84,8 +87,6 @@ async function validateWithLocalParser(source) {
         validator: 'local-parser'
       };
     }
-    renderValidationCounter += 1;
-    await mermaid.render(`server-validate-${renderValidationCounter}`, source);
     return { valid: true, validator: 'local-parser' };
   } catch (error) {
     return {

@@ -15,6 +15,9 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
     async syncClientMermaidSource({ mermaidSource, styleConfig }) {
       const candidate = mermaidSource?.trim();
       if (!candidate) {
+        if (state.mermaidSource === '') {
+          return { accepted: true, state };
+        }
         state = {
           ...state,
           revisionId: state.revisionId + 1,
@@ -25,6 +28,15 @@ export function createDiagramStateStore(initialState = createInitialDiagramState
           accepted: true,
           state
         };
+      }
+
+      // Short-circuit: if the client is syncing the exact source we already hold (and no new
+      // styleConfig is requested), skip strict JSDOM validation entirely. The current source
+      // was validated when it was accepted; the agent's apply_mermaid_patch will revalidate
+      // before any real change. This removes a full validator round trip from every thinking
+      // action when the user hasn't edited the diagram since the last accept.
+      if (!styleConfig && state.mermaidSource && candidate === state.mermaidSource.trim()) {
+        return { accepted: true, state };
       }
 
       const parsedStyle = styleConfig ? { accepted: true, styleConfig } : parseMermaidStyleConfig(candidate);

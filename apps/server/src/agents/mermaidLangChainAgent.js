@@ -25,8 +25,8 @@ export {
   resolveVertexModelId
 } from './llmProvider.js';
 
-/** Default OpenRouter slugs when OPENROUTER_MODEL* are unset (Qwen — HK-friendly). Fast = smaller/latency; Quality = flagship MoE (slower, stronger). Override via OPENROUTER_MODEL / OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY. */
-export const DEFAULT_OPENROUTER_MODEL_FAST = 'qwen/qwen3-8b';
+/** Default OpenRouter slugs when OPENROUTER_MODEL* are unset. Fast = latency-tuned tool-use model (low TTFT, reliable first-turn tool calls); Quality = flagship MoE (slower, stronger). Override via OPENROUTER_MODEL / OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY (HK users: Qwen slugs like `qwen/qwen3-32b` are good fallbacks). */
+export const DEFAULT_OPENROUTER_MODEL_FAST = 'google/gemini-2.5-flash-lite';
 export const DEFAULT_OPENROUTER_MODEL_QUALITY = 'qwen/qwen3-235b-a22b';
 
 /** @param {unknown} profile */
@@ -90,6 +90,60 @@ Critique tasks only:
 const ANALYSIS_EXPLAIN_SYSTEM_APPEND = `
 Explain tasks only:
 - Use the required Markdown ## section headings exactly (or clearly labeled equivalents). Do not skip sections; use bullets inside sections where helpful.`;
+
+/** Diagrams below this size use a tighter task template — same constraints, fewer instruction tokens. */
+const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
+
+function buildCritiqueTask(focusScope, mermaidSource) {
+  if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+    return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
+
+Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
+
+You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${focusScope}`;
+  }
+  return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
+
+Use these sections with Markdown headings (or the same labels inline if headings are awkward):
+
+## Strengths
+Brief positives that are specific to this diagram.
+
+## Weaknesses and limits
+You MUST include at least one substantive weakness, gap, or risk — even if the diagram is strong (e.g. tradeoffs, ambiguous flows, weak hierarchy, scalability of layout, missing legend/context, accessibility or contrast concerns, unclear temporal/order semantics). Do not deliver praise-only or generic fluff without a paired limitation.
+
+## Diagram type fit
+Say whether the chosen Mermaid diagram type suits the content. If another type would communicate better, name it and why — without rewriting the diagram.
+
+## Visual and style review
+Comment on readability and presentation: clutter, balance, link directions, shapes, grouping, and any %%init%% / theme / classDef / styling choices if present (including contrast and visual hierarchy).
+
+## Actionable improvements
+A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${focusScope}`;
+}
+
+function buildExplainTask(focusScope, mermaidSource) {
+  if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+    return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
+
+Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${focusScope}`;
+  }
+  return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
+
+Use these sections with Markdown ## headings (or clearly labeled equivalents):
+
+## Explanation
+A short overview for someone new to the diagram.
+
+## Main flows
+How information, process steps, or relationships move through the diagram.
+
+## Key entities
+Important nodes, subgraphs, or groups and what role each plays.
+
+## Takeaways
+Concise conclusions — what to remember or how to read the diagram.${focusScope}`;
+}
 
 function isEdgeFocus(focusNode) {
   return focusNode?.selectionKind === 'edge' && Boolean(focusNode.edgeFrom?.trim()) && Boolean(focusNode.edgeTo?.trim());
@@ -240,16 +294,11 @@ export function buildTransformUserContent({ mode, mermaidSource, focusScope, goM
   return `${policy}
 
 Hard requirements:
-- Call get_diagram_state at most once unless a patch failed and you need fresh state.
+- The current diagram is provided in the system "Current diagram context" message — use it directly. Do not call get_diagram_state unless a patch failed and you need fresh state.
 - Apply exactly one successful transformative update: call apply_mermaid_patch once with complete Mermaid source, then answer in prose only (no further tool calls after acceptance).
 - Do not return only text; apply the patch.
 - Keep node IDs simple ASCII identifiers where possible; keep labels concise.
 ${focusScope}
-
-Current committed diagram:
-\`\`\`mermaid
-${mermaidSource}
-\`\`\`
 
 Output goal:
 Apply one transformative update via apply_mermaid_patch matching the mode above.`;
@@ -477,11 +526,44 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env) {
   return { messages: latestMessages };
 }
 
+/**
+ * Runs one agent turn against `inputMessages`.
+ * When `emit` is provided, prefers streamed events so tokens flow to the UI during retries.
+ * Falls back to `agent.invoke` if the stream yielded no messages (and emits `invoke_fallback`
+ * telemetry so we can measure how often the silent fallback fires).
+ */
+async function runAgentTurn(agent, inputMessages, emit, env) {
+  const runnableConfig = getAgentRunnableConfig(env);
+  if (typeof emit !== 'function') {
+    return agent.invoke({ messages: inputMessages }, runnableConfig);
+  }
+
+  const streamed = await streamReactAgentEvents(agent, inputMessages, emit, env);
+  if (streamed.messages?.length) {
+    return streamed;
+  }
+
+  emit({ type: 'phase', id: 'invoke_fallback', label: 'Finalizing response…' });
+  return agent.invoke({ messages: inputMessages }, runnableConfig);
+}
+
+/** Above this combined line count the O(M*N) LCS diff gets noticeable; we still emit the artifact but skip the per-line tally. */
+const PATCH_SUMMARY_DIFF_MAX_LINES = 800;
+
 function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource) {
   if (typeof emit !== 'function') return;
   const after = stateStore.getState();
   if (after.revisionId === beforeRevision) return;
-  const { linesAdded, linesRemoved } = computeLineDiffStats(beforeSource, after.mermaidSource);
+  const afterSource = after.mermaidSource;
+  const beforeLineCount = typeof beforeSource === 'string' ? beforeSource.split('\n').length : 0;
+  const afterLineCount = typeof afterSource === 'string' ? afterSource.split('\n').length : 0;
+  let linesAdded = 0;
+  let linesRemoved = 0;
+  if (beforeLineCount + afterLineCount <= PATCH_SUMMARY_DIFF_MAX_LINES) {
+    const stats = computeLineDiffStats(beforeSource, afterSource);
+    linesAdded = stats.linesAdded;
+    linesRemoved = stats.linesRemoved;
+  }
   emit({
     type: 'artifact',
     kind: 'patch_summary',
@@ -507,18 +589,9 @@ async function invokeWithRepair(
     emit({ type: 'phase', id: 'agent_run', label: 'Planning and executing tools…' });
   }
 
-  const runnableConfig = getAgentRunnableConfig(env);
   let firstResult;
   try {
-    if (typeof emit === 'function') {
-      firstResult = await streamReactAgentEvents(agent, baseMessages, emit, env);
-      if (!firstResult.messages?.length) {
-        emit({ type: 'status', text: 'Running agent…' });
-        firstResult = await agent.invoke({ messages: baseMessages }, runnableConfig);
-      }
-    } else {
-      firstResult = await agent.invoke({ messages: baseMessages }, runnableConfig);
-    }
+    firstResult = await runAgentTurn(agent, baseMessages, emit, env);
   } catch (error) {
     return formatAgentInvokeFailure(error, env);
   }
@@ -541,11 +614,11 @@ async function invokeWithRepair(
         emit({ type: 'phase', id: 'patch_retry', label: 'Retrying diagram patch…' });
         emit({ type: 'status', text: 'Retrying: diagram patch required…' });
       }
-      const patchRetryResult = await agent.invoke(
-        {
-          messages: [...baseMessages, buildPatchRequiredInstruction({ messages })]
-        },
-        runnableConfig
+      const patchRetryResult = await runAgentTurn(
+        agent,
+        [...baseMessages, buildPatchRequiredInstruction({ messages })],
+        emit,
+        env
       );
       if (stateStore.getState().revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
@@ -582,11 +655,11 @@ async function invokeWithRepair(
         emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt})…` });
         emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt})…` });
       }
-      retryResult = await agent.invoke(
-        {
-          messages: [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })]
-        },
-        runnableConfig
+      retryResult = await runAgentTurn(
+        agent,
+        [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })],
+        emit,
+        env
       );
     } catch (error) {
       return formatAgentInvokeFailure(error, env);
@@ -625,6 +698,24 @@ export function createMermaidLangChainAgent({
   const agentMiddleware = createDiagramAgentMiddleware(env);
   const agentExtras = agentMiddleware.length > 0 ? { middleware: agentMiddleware } : {};
   const agentCache = new Map();
+  /** Cached analysis chat models per (backend, modelId, kind). Analysis runs are stateless; the model is safe to reuse. */
+  const analysisModelCache = new Map();
+
+  function getAnalysisModel(backend, modelId, kind) {
+    const key = `analysis:${backend}:${modelId}:${kind}`;
+    if (!analysisModelCache.has(key)) {
+      analysisModelCache.set(
+        key,
+        chatModelFactory(env, {
+          model: modelId,
+          temperature: kind === 'critique' ? 0.52 : 0.42,
+          maxTokens: 1800,
+          maxOutputTokens: 1800
+        })
+      );
+    }
+    return analysisModelCache.get(key);
+  }
 
   function chatModelFor(profile, extraOptions = {}) {
     const backend = resolveLlmBackend(env);
@@ -762,51 +853,14 @@ ${prompt}${focusScope}`;
 
       const task =
         kind === 'critique'
-          ? `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
-
-Use these sections with Markdown headings (or the same labels inline if headings are awkward):
-
-## Strengths
-Brief positives that are specific to this diagram.
-
-## Weaknesses and limits
-You MUST include at least one substantive weakness, gap, or risk — even if the diagram is strong (e.g. tradeoffs, ambiguous flows, weak hierarchy, scalability of layout, missing legend/context, accessibility or contrast concerns, unclear temporal/order semantics). Do not deliver praise-only or generic fluff without a paired limitation.
-
-## Diagram type fit
-Say whether the chosen Mermaid diagram type suits the content. If another type would communicate better, name it and why — without rewriting the diagram.
-
-## Visual and style review
-Comment on readability and presentation: clutter, balance, link directions, shapes, grouping, and any %%init%% / theme / classDef / styling choices if present (including contrast and visual hierarchy).
-
-## Actionable improvements
-A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${focusScope}`
-          : `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
-
-Use these sections with Markdown ## headings (or clearly labeled equivalents):
-
-## Explanation
-A short overview for someone new to the diagram.
-
-## Main flows
-How information, process steps, or relationships move through the diagram.
-
-## Key entities
-Important nodes, subgraphs, or groups and what role each plays.
-
-## Takeaways
-Concise conclusions — what to remember or how to read the diagram.${focusScope}`;
+          ? buildCritiqueTask(focusScope, state.mermaidSource)
+          : buildExplainTask(focusScope, state.mermaidSource);
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env);
       const modelId =
         backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
-      const analysisOpts = {
-        model: modelId,
-        temperature: kind === 'critique' ? 0.52 : 0.42,
-        maxTokens: 1800,
-        maxOutputTokens: 1800
-      };
-      let analysisModel = chatModelFactory(env, analysisOpts);
+      let analysisModel = getAnalysisModel(backend, modelId, kind);
 
       const analysisSystem =
         kind === 'critique'

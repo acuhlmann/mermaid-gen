@@ -1364,20 +1364,29 @@ Hard requirements:
         if (chosen.length === 0) return;
       }
 
-      let critiqueBlock = latestCritique.text;
-      const useSelectedOnly = scope === 'selected' && actionableItems.length > 0;
-      if (useSelectedOnly) {
-        critiqueBlock = actionableItems
-          .filter((_, i) => critiqueActionableSelected[i])
-          .map((t) => `- ${t}`)
-          .join('\n');
+      const itemsToApply =
+        scope === 'selected'
+          ? actionableItems.filter((_, i) => critiqueActionableSelected[i])
+          : actionableItems;
+
+      const useActionableBullets = itemsToApply.length > 0;
+      let critiqueBlock;
+      if (useActionableBullets) {
+        critiqueBlock = itemsToApply.map((t) => `- ${t}`).join('\n');
+      } else {
+        critiqueBlock = latestCritique.text;
       }
 
-      const intro = useSelectedOnly
+      const FIX_PROMPT_MAX_CRITIQUE_CHARS = 2000;
+      if (critiqueBlock.length > FIX_PROMPT_MAX_CRITIQUE_CHARS) {
+        critiqueBlock = `${critiqueBlock.slice(0, FIX_PROMPT_MAX_CRITIQUE_CHARS).trimEnd()}\n…`;
+      }
+
+      const intro = useActionableBullets
         ? 'Improve the current Mermaid diagram by applying ONLY the following improvements. Do not implement other critique suggestions.'
         : 'Improve the current Mermaid diagram based on this critique. Apply concrete fixes as a single complete diagram update.';
-      const critiqueLabel = useSelectedOnly ? 'Improvements to apply:' : 'Critique:';
-      const requirementsBlock = useSelectedOnly
+      const critiqueLabel = useActionableBullets ? 'Improvements to apply:' : 'Critique:';
+      const requirementsBlock = useActionableBullets
         ? `- Implement only the improvements listed above.
 - Preserve the original intent and main flow.
 - Prioritize readability and clarity within that scope.

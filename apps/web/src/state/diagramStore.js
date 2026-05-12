@@ -11,6 +11,8 @@ export const SESSION_HEADER = 'x-session-id';
 const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
 const DIAGRAM_CACHE_STORAGE_KEY = 'mermaid-architect:diagram-cache-v1';
 const AGENT_REQUEST_TIMEOUT_MS = 60_000;
+/** Max gap between SSE events before we treat the stream as hung and abort. Resets on every event. */
+const AGENT_STREAM_IDLE_TIMEOUT_MS = 60_000;
 
 let inMemorySessionId = null;
 
@@ -204,73 +206,122 @@ export async function submitDiagramAnalyze({ revisionId, mermaidSource, kind, fo
 /**
  * Streams SSE events from POST /api/copilotkit/agent-stream.
  * Each parsed event is passed to onEvent. Resolves when the stream ends or `done` is received.
+ *
+ * Includes an idle timeout: if no event arrives for AGENT_STREAM_IDLE_TIMEOUT_MS, the stream is
+ * aborted as if the caller's signal fired. Healthy agent runs emit phase/status/token/tool events
+ * well within that gap, so this only fires on truly hung streams.
  */
 export async function streamDiagramAgent(payload, onEvent, options = {}) {
-  const { signal } = options;
-  if (signal?.aborted) {
+  const { signal: callerSignal } = options;
+  if (callerSignal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-    body: JSON.stringify(payload),
-    signal
-  });
+  const idleController = new AbortController();
+  let idleTimedOut = false;
+  let idleTimer = null;
+  const armIdleTimer = () => {
+    if (idleTimer != null) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+      idleTimedOut = true;
+      idleController.abort();
+    }, AGENT_STREAM_IDLE_TIMEOUT_MS);
+  };
+  const clearIdleTimer = () => {
+    if (idleTimer != null) {
+      clearTimeout(idleTimer);
+      idleTimer = null;
+    }
+  };
 
-  if (!response.ok) {
-    const errPayload = await response.json().catch(() => ({}));
-    throwApiPayloadError(errPayload, `Stream request failed (${response.status})`);
+  let onCallerAbort = null;
+  if (callerSignal) {
+    onCallerAbort = () => idleController.abort();
+    callerSignal.addEventListener('abort', onCallerAbort);
   }
+  const signal = idleController.signal;
+  armIdleTimer();
 
-  const reader = response.body?.getReader();
-  if (!reader) {
-    throw new Error('Streaming response had no body.');
-  }
-
-  const decoder = new TextDecoder();
-  let buffer = '';
+  const isAbortError = (err) =>
+    err?.name === 'AbortError' ||
+    (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
 
   try {
-    while (true) {
-      let chunk;
-      try {
-        chunk = await reader.read();
-      } catch (readErr) {
-        if (signal?.aborted || readErr?.name === 'AbortError') {
-          throw new DOMException('Aborted', 'AbortError');
-        }
-        throw readErr;
-      }
-      const { done, value } = chunk;
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+    const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      body: JSON.stringify(payload),
+      signal
+    });
 
-      let boundary = buffer.indexOf('\n\n');
-      while (boundary !== -1) {
-        const raw = buffer.slice(0, boundary).trim();
-        buffer = buffer.slice(boundary + 2);
-        boundary = buffer.indexOf('\n\n');
+    if (!response.ok) {
+      const errPayload = await response.json().catch(() => ({}));
+      throwApiPayloadError(errPayload, `Stream request failed (${response.status})`);
+    }
 
-        if (!raw.startsWith('data:')) continue;
-        const jsonText = raw.slice(5).trim();
-        if (!jsonText) continue;
+    const reader = response.body?.getReader();
+    if (!reader) {
+      throw new Error('Streaming response had no body.');
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        let chunk;
         try {
-          const evt = JSON.parse(jsonText);
-          onEvent(evt);
-          if (evt.type === 'done') {
-            return;
+          chunk = await reader.read();
+        } catch (readErr) {
+          if (callerSignal?.aborted || isAbortError(readErr)) {
+            if (idleTimedOut) {
+              throw new Error('Agent stream stalled (no events received). Please try again.');
+            }
+            throw new DOMException('Aborted', 'AbortError');
           }
-        } catch {
-          // Ignore malformed SSE payloads.
+          throw readErr;
         }
+        const { done, value } = chunk;
+        if (done) break;
+        armIdleTimer();
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const raw = buffer.slice(0, boundary).trim();
+          buffer = buffer.slice(boundary + 2);
+          boundary = buffer.indexOf('\n\n');
+
+          if (!raw.startsWith('data:')) continue;
+          const jsonText = raw.slice(5).trim();
+          if (!jsonText) continue;
+          try {
+            const evt = JSON.parse(jsonText);
+            onEvent(evt);
+            if (evt.type === 'done') {
+              return;
+            }
+          } catch {
+            // Ignore malformed SSE payloads.
+          }
+        }
+      }
+    } finally {
+      try {
+        reader.releaseLock();
+      } catch {
+        // Ignore double-release / aborted streams.
       }
     }
+  } catch (err) {
+    if (idleTimedOut && isAbortError(err)) {
+      throw new Error('Agent stream stalled (no events received). Please try again.');
+    }
+    throw err;
   } finally {
-    try {
-      reader.releaseLock();
-    } catch {
-      // Ignore double-release / aborted streams.
+    clearIdleTimer();
+    if (callerSignal && onCallerAbort) {
+      callerSignal.removeEventListener('abort', onCallerAbort);
     }
   }
 }

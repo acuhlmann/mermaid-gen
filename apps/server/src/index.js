@@ -8,6 +8,7 @@ import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
 import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
 import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
+import { ensureMermaidInitialized } from './agents/mermaidReliabilitySkill.js';
 import { createCopilotRouter } from './routes/copilot.js';
 import {
   createSessionServicesRegistry,
@@ -115,6 +116,10 @@ if (hasMainUi) {
 const port = Number(process.env.PORT ?? 4000);
 const server = app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
+  // Warm Mermaid JSDOM + parser so the first user action does not pay cold-start cost.
+  ensureMermaidInitialized().catch((error) => {
+    console.warn('Mermaid validator warm-up failed (will lazy-init on first request):', error?.message ?? error);
+  });
 });
 server.ref();
 
