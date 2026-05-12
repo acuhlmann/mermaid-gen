@@ -21,7 +21,7 @@ cd "$ROOT"
 echo "Project=${PROJECT_ID} Region=${REGION} Service=${SERVICE}"
 echo "Git HEAD: $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
-gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com \
+gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com \
   --project="${PROJECT_ID}"
 
 if ! gcloud artifacts repositories describe "${AR_REPO}" --location="${REGION}" --project="${PROJECT_ID}" &>/dev/null; then
@@ -52,6 +52,21 @@ if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/n
 else
   echo "Warning: Secret openrouter-api-key not found; deploy without LLM until you create it." >&2
 fi
+
+VERTEX_LOCATION="${VERTEX_LOCATION:-us-central1}"
+VERTEX_MODEL_FAST="${VERTEX_MODEL_FAST:-gemini-2.0-flash-001}"
+VERTEX_MODEL_QUALITY="${VERTEX_MODEL_QUALITY:-gemini-1.5-pro-002}"
+VERTEX_ENV_VARS="VERTEX_LOCATION=${VERTEX_LOCATION},VERTEX_MODEL_FAST=${VERTEX_MODEL_FAST},VERTEX_MODEL_QUALITY=${VERTEX_MODEL_QUALITY}"
+if [[ -n "${VERTEX_PROJECT_ID:-}" ]]; then
+  VERTEX_ENV_VARS="${VERTEX_ENV_VARS},VERTEX_PROJECT_ID=${VERTEX_PROJECT_ID}"
+fi
+if [[ -n "${LLM_PROVIDER:-}" ]]; then
+  VERTEX_ENV_VARS="${VERTEX_ENV_VARS},LLM_PROVIDER=${LLM_PROVIDER}"
+fi
+if [[ -n "${OPENROUTER_PREFERRED:-}" ]]; then
+  VERTEX_ENV_VARS="${VERTEX_ENV_VARS},OPENROUTER_PREFERRED=${OPENROUTER_PREFERRED}"
+fi
+DEPLOY_ARGS+=(--set-env-vars="${VERTEX_ENV_VARS}")
 
 gcloud "${DEPLOY_ARGS[@]}"
 

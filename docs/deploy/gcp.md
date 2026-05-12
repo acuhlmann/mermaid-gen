@@ -38,7 +38,7 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
 1. Enable APIs on `PROJECT_ID`:
 
    ```bash
-   gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com secretmanager.googleapis.com --project=PROJECT_ID
+   gcloud services enable run.googleapis.com artifactregistry.googleapis.com iamcredentials.googleapis.com sts.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com --project=PROJECT_ID
    ```
 
 2. Create Artifact Registry repo `mermaid-gen` in `REGION` if missing (same as [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh)).
@@ -124,10 +124,37 @@ Build with **`UI_VARIANT=full`** (Docker default). [`apps/server/src/index.js`](
 4. **Enable APIs** (once per project):
 
    ```bash
-   gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com --project=PROJECT_ID
+   gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com --project=PROJECT_ID
    ```
 
-## Secrets (required for LLM features)
+## Vertex AI (optional: Gemini on Cloud Run)
+
+When the API server runs on **Cloud Run**, it can call **Vertex AI** (Gemini / Gemma) using the **runtime service account**—no Google API key in the container. Deploy scripts set `VERTEX_*` env vars by default; override them if you use other model IDs or regions.
+
+1. **Enable the Vertex AI API** (included in the combined `gcloud services enable` commands above, or run alone):
+
+   ```bash
+   gcloud services enable aiplatform.googleapis.com --project=PROJECT_ID
+   ```
+
+2. **Grant the Cloud Run runtime service account** permission to use Vertex AI (default compute SA unless you use a custom runtime SA):
+
+   ```bash
+   PROJECT_NUMBER=$(gcloud projects describe PROJECT_ID --format='value(projectNumber)')
+   gcloud projects add-iam-policy-binding PROJECT_ID \
+     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+     --role="roles/aiplatform.user"
+   ```
+
+3. **Configure routing** (see [`.env.example`](../../.env.example)):
+
+   - **`LLM_PROVIDER=auto`** (default): on Cloud Run (`K_SERVICE` is set), prefer Vertex when project and region resolve; otherwise use OpenRouter if `OPENROUTER_API_KEY` is set. Set **`OPENROUTER_PREFERRED=1`** to use OpenRouter first whenever the key is present (including on Cloud Run).
+   - **`LLM_PROVIDER=vertex`**: Vertex only (requires a resolvable GCP project and region).
+   - **`LLM_PROVIDER=openrouter`**: OpenRouter only (requires Secret Manager or env key).
+
+Keep the **`openrouter-api-key`** secret attached if you want **OpenRouter as backup** (analyze streaming retries once on OpenRouter after a Vertex stream error) or when using **`OPENROUTER_PREFERRED=1`**. Local development typically uses OpenRouter from `.env`; Vertex locally needs `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, and Application Default Credentials (for example `gcloud auth application-default login`).
+
+## Secrets (OpenRouter optional on Cloud Run; common for local dev)
 
 `.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put the key in **Secret Manager** and expose it as env var **`OPENROUTER_API_KEY`** on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
 

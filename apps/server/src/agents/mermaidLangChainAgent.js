@@ -1,4 +1,3 @@
-import { ChatOpenRouter } from '@langchain/openrouter';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
@@ -6,6 +5,25 @@ import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { computeLineDiffStats } from '../utils/patchLineStats.js';
 import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
+import {
+  createOpenRouterModel,
+  createVertexChatModel,
+  isLlmConfigured,
+  LlmNotConfiguredError,
+  resolveLlmBackend,
+  resolveVertexModelId
+} from './llmProvider.js';
+
+export {
+  createOpenRouterModel,
+  createVertexChatModel,
+  DEFAULT_VERTEX_MODEL_FAST,
+  DEFAULT_VERTEX_MODEL_QUALITY,
+  isLlmConfigured,
+  LlmNotConfiguredError,
+  resolveLlmBackend,
+  resolveVertexModelId
+} from './llmProvider.js';
 
 /** Default OpenRouter slugs when OPENROUTER_MODEL* are unset (Qwen — HK-friendly). Fast = smaller/latency; Quality = flagship MoE (slower, stronger). Override via OPENROUTER_MODEL / OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY. */
 export const DEFAULT_OPENROUTER_MODEL_FAST = 'qwen/qwen3-8b';
@@ -253,38 +271,12 @@ When the user asks a general question, answer concisely.`;
 const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch)\b/;
 const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type|mcp/i;
 
-export class LlmNotConfiguredError extends Error {
-  constructor() {
-    super(
-      'OpenRouter is not configured. For local dev set OPENROUTER_API_KEY in .env; on Cloud Run use Secret Manager secret openrouter-api-key (see docs/deploy/gcp.md).'
-    );
-    this.name = 'LlmNotConfiguredError';
-    this.statusCode = 503;
+function defaultChatModelFactory(env, options) {
+  const backend = resolveLlmBackend(env);
+  if (backend === 'vertex') {
+    return createVertexChatModel(env, options);
   }
-}
-
-export function isLlmConfigured(env = process.env) {
-  return Boolean(env.OPENROUTER_API_KEY);
-}
-
-export function createOpenRouterModel(env = process.env, overrides = {}) {
-  if (!isLlmConfigured(env)) {
-    throw new LlmNotConfiguredError();
-  }
-
-  const { temperature, model: explicitModel, ...rest } = overrides;
-  const fields = {
-    apiKey: env.OPENROUTER_API_KEY,
-    siteName: env.OPENROUTER_SITE_NAME || 'Mermaid Architect',
-    siteUrl: env.OPENROUTER_SITE_URL || 'http://localhost:5173',
-    ...rest,
-    model: explicitModel ?? resolveOpenRouterModelId(env, 'fast')
-  };
-  if (temperature !== undefined) {
-    fields.temperature = temperature;
-  }
-
-  return new ChatOpenRouter(fields);
+  return createOpenRouterModel(env, options);
 }
 
 function normalizeMessageContent(content) {
@@ -447,8 +439,12 @@ function formatAgentInvokeFailure(error, env = process.env) {
   const toolsHint = /tool|tools|function[_ ]?call|parallel_tool|unsupported/i.test(detail)
     ? '\n\nIf failures mention tools or function calling, pick an OpenRouter model that reliably supports agent tool use in your region (for example `qwen/qwen3-30b-a3b` or `qwen/qwen3-32b`).\n'
     : '';
+  const vertexHint =
+    resolveLlmBackend(env) === 'vertex' && /permission|403|forbidden|iam|aiplatform/i.test(detail)
+      ? '\n\nIf you are on **Cloud Run** with Vertex, confirm the runtime service account has `roles/aiplatform.user` and that `aiplatform.googleapis.com` is enabled (see `docs/deploy/gcp.md`).\n'
+      : '';
   return {
-    message: `**Model request failed**\n\n${detail}${regionHint}${toolsHint}`,
+    message: `**Model request failed**\n\n${detail}${regionHint}${toolsHint}${vertexHint}`,
     raw: null
   };
 }
@@ -623,7 +619,7 @@ export function createMermaidLangChainAgent({
   stateStore,
   env = process.env,
   createAgentImpl = createAgent,
-  openRouterModelFactory = createOpenRouterModel
+  chatModelFactory = defaultChatModelFactory
 }) {
   const tools = createDiagramTools({ stateStore });
   const agentMiddleware = createDiagramAgentMiddleware(env);
@@ -631,15 +627,19 @@ export function createMermaidLangChainAgent({
   const agentCache = new Map();
 
   function chatModelFor(profile, extraOptions = {}) {
-    const modelId = resolveOpenRouterModelId(env, profile);
-    return openRouterModelFactory(env, { model: modelId, ...extraOptions });
+    const backend = resolveLlmBackend(env);
+    const modelId =
+      backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
+    return chatModelFactory(env, { model: modelId, ...extraOptions });
   }
 
   /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
   function getDefaultAgent(profile = 'fast') {
     const p = normalizeModelProfile(profile);
-    const modelId = resolveOpenRouterModelId(env, p);
-    const key = `default:${modelId}`;
+    const backend = resolveLlmBackend(env);
+    const modelId =
+      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const key = `default:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
       agentCache.set(
         key,
@@ -658,10 +658,12 @@ export function createMermaidLangChainAgent({
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
     const p = normalizeModelProfile(profile);
-    const modelId = resolveOpenRouterModelId(env, p);
+    const backend = resolveLlmBackend(env);
+    const modelId =
+      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
     const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
     const key =
-      m === 'goMad' ? `transform:${m}:${modelId}:d${madDepth}` : `transform:${m}:${modelId}`;
+      m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
       const tm = chatModelFor(p, transformModeModelOptions(m, madDepth ?? 1));
       agentCache.set(
@@ -795,11 +797,16 @@ Important nodes, subgraphs, or groups and what role each plays.
 Concise conclusions — what to remember or how to read the diagram.${focusScope}`;
 
       const profile = normalizeModelProfile(modelProfile);
-      const analysisModel = openRouterModelFactory(env, {
-        model: resolveOpenRouterModelId(env, profile),
+      const backend = resolveLlmBackend(env);
+      const modelId =
+        backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
+      const analysisOpts = {
+        model: modelId,
         temperature: kind === 'critique' ? 0.52 : 0.42,
-        maxTokens: 1800
-      });
+        maxTokens: 1800,
+        maxOutputTokens: 1800
+      };
+      let analysisModel = chatModelFactory(env, analysisOpts);
 
       const analysisSystem =
         kind === 'critique'
@@ -827,6 +834,31 @@ Concise conclusions — what to remember or how to read the diagram.${focusScope
             type: 'error',
             message: redactSecrets(error instanceof Error ? error.message : String(error))
           });
+          if (backend === 'vertex' && env.OPENROUTER_API_KEY) {
+            const orModel = resolveOpenRouterModelId(env, profile);
+            analysisModel = createOpenRouterModel(env, {
+              model: orModel,
+              temperature: kind === 'critique' ? 0.52 : 0.42,
+              maxTokens: 1800
+            });
+            try {
+              const stream2 = await analysisModel.stream(messages);
+              let fullText2 = '';
+              for await (const chunk of stream2) {
+                const piece =
+                  extractTextContent(chunk?.content) ||
+                  extractTextContent(chunk?.kwargs?.content) ||
+                  (typeof chunk?.text === 'string' ? chunk.text : '');
+                if (piece) {
+                  fullText2 += piece;
+                  emit({ type: 'token', text: piece });
+                }
+              }
+              return { message: fullText2.trim() || 'Done.', raw: null };
+            } catch {
+              // fall through to invoke attempts
+            }
+          }
           const fallback = await analysisModel.invoke(messages).catch(() => null);
           const text = fallback ? extractTextContent(fallback.content) : '';
           return { message: text || 'Analysis failed.', raw: null };
