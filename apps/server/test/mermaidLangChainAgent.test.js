@@ -6,6 +6,7 @@ import {
   DEFAULT_VERTEX_MODEL_FAST,
   GO_MAD_TRANSFORM_MAX_TOKENS,
   TRANSFORM_MODEL_LIMITS,
+  buildDiagramMutationSystemMessage,
   buildPatchRequiredInstruction,
   buildSyntaxRepairInstruction,
   buildTransformUserContent,
@@ -198,7 +199,52 @@ test('buildPatchRequiredInstruction asks for a patch after prose-only output', (
   assert.match(instruction.content, /did not apply a diagram patch/i);
   assert.match(instruction.content, /apply_mermaid_patch/);
   assert.match(instruction.content, /once with complete/);
+  assert.match(instruction.content, /Do not ask the user for more details/);
   assert.match(instruction.content, /Extend wildly/);
+});
+
+test('buildDiagramMutationSystemMessage enforces infer-default and patch-first behavior', () => {
+  const msg = buildDiagramMutationSystemMessage();
+  assert.equal(msg.role, 'system');
+  assert.match(msg.content, /infer a reasonable default/i);
+  assert.match(msg.content, /apply_mermaid_patch/);
+  assert.match(msg.content, /clarification/i);
+});
+
+test('applyIntent with requirePatch passes mutation system message before diagram context', async () => {
+  const stateStore = createDiagramStateStore();
+  let capturedMessages = null;
+  const fakeAgent = {
+    async *streamEvents() {
+      // Yield nothing so runAgentTurn falls back to invoke (same as missing stream in tests).
+    },
+    async invoke(payload) {
+      capturedMessages = payload.messages;
+      await stateStore.applyMermaidSource({
+        mermaidSource: 'flowchart TD\n  A[Start] --> B[End]',
+        reason: 'test patch'
+      });
+      return { messages: [{ role: 'assistant', content: 'Applied.' }] };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    chatModelFactory: () => ({}),
+    createAgentImpl: () => fakeAgent
+  });
+
+  await service.applyIntent({ prompt: 'photosynthesis', settings: {} });
+
+  assert.ok(Array.isArray(capturedMessages));
+  const first = capturedMessages[0];
+  const second = capturedMessages[1];
+  const content0 = typeof first?.content === 'string' ? first.content : '';
+  const content1 = typeof second?.content === 'string' ? second.content : '';
+  assert.match(content0, /Diagram mutation mode/i);
+  assert.match(content0, /apply_mermaid_patch/);
+  assert.match(content1, /Current diagram context/i);
 });
 
 test('createMermaidLangChainAgent attaches tool-call middleware by default', async () => {

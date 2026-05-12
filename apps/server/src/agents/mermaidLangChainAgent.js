@@ -545,7 +545,19 @@ export function buildPatchRequiredInstruction({ messages }) {
 
   return {
     role: 'user',
-    content: `Your previous response did not apply a diagram patch.\n\nRepair instructions:\n- You MUST call apply_mermaid_patch now once with complete, valid Mermaid source, then summarize in prose only (no further tool calls after acceptance).\n- Keep the update smaller if needed so it remains valid.\n- Do not return prose only.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
+    content: `Your previous response did not apply a diagram patch.\n\nRepair instructions:\n- You MUST call apply_mermaid_patch now once with complete, valid Mermaid source, then summarize in prose only (no further tool calls after acceptance).\n- Do not ask the user for more details or scope questions; infer a minimal valid diagram that matches the stated topic or request, then call apply_mermaid_patch.\n- Keep the update smaller if needed so it remains valid.\n- Do not return prose only.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
+  };
+}
+
+/** Prepended to agent input when the app requires a diagram patch (prompt-bar Go, transforms, style). Exported for tests. */
+export function buildDiagramMutationSystemMessage() {
+  return {
+    role: 'system',
+    content: `Diagram mutation mode (app-enforced):
+- The user's message is always an instruction to create or change the Mermaid diagram on the canvas. It is not a request for a tutoring session or a clarification questionnaire unless the text is literally empty or unintelligible gibberish.
+- If the request is broad (for example a single topic or concept name), infer a reasonable default scope and diagram type and implement it. Do not refuse or stall by asking the user for more detail instead of drawing.
+- Your first successful action is calling apply_mermaid_patch with complete valid Mermaid source. After acceptance, add a brief prose summary only (no further tool calls).
+- Even when unsure, prefer a minimal valid overview diagram over prose-only clarification.`
   };
 }
 
@@ -652,7 +664,11 @@ async function invokeWithRepair(
   const initialSnap = stateStore.getState();
   const beforeRevision = initialSnap.revisionId;
   const beforeSource = initialSnap.mermaidSource;
-  const baseMessages = [createCurrentDiagramContextMessage(stateStore), ...toLangChainMessages(messages)];
+  const baseMessages = [
+    ...(requirePatch ? [buildDiagramMutationSystemMessage()] : []),
+    createCurrentDiagramContextMessage(stateStore),
+    ...toLangChainMessages(messages)
+  ];
 
   if (typeof emit === 'function') {
     emit({ type: 'phase', id: 'agent_run', label: 'Planning and executing tools…' });
@@ -854,6 +870,8 @@ export function createMermaidLangChainAgent({
       const focusScope = buildFocusScopeInstructions(focusNode);
 
       const userContent = `Interpret and apply the user's requested diagram change strictly according to their wording.
+
+Broad or short requests (for example a single topic name) still require a concrete diagram now: choose a sensible default overview (main entities and flows) instead of asking the user for clarification.
 
 Settings (response shaping only):
 - temperature: ${resolvedSettings.temperature}
