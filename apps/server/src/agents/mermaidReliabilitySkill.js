@@ -77,6 +77,7 @@ export function isSyntaxValidationError(error) {
 }
 
 async function validateWithLocalParser(source) {
+  const started = Date.now();
   try {
     const mermaid = await ensureMermaidInitialized();
     const parseResult = await mermaid.parse(source, { suppressErrors: true });
@@ -84,15 +85,17 @@ async function validateWithLocalParser(source) {
       return {
         valid: false,
         error: 'Mermaid parser rejected source: parse() returned false.',
-        validator: 'local-parser'
+        validator: 'local-parser',
+        durationMs: Date.now() - started
       };
     }
-    return { valid: true, validator: 'local-parser' };
+    return { valid: true, validator: 'local-parser', durationMs: Date.now() - started };
   } catch (error) {
     return {
       valid: false,
       error: `Mermaid parser rejected source: ${sanitizeErrorMessage(error?.message ?? error)}`,
-      validator: 'local-parser'
+      validator: 'local-parser',
+      durationMs: Date.now() - started
     };
   }
 }
@@ -100,12 +103,13 @@ async function validateWithLocalParser(source) {
 async function validateWithMcpServer(source) {
   const endpoint = process.env.MERMAID_MCP_URL;
   if (!endpoint) {
-    return { valid: null, validator: 'mcp-disabled' };
+    return { valid: null, validator: 'mcp-disabled', durationMs: 0 };
   }
 
   const retries = clampPositiveInt(process.env.MERMAID_MCP_MAX_RETRIES, DEFAULT_MCP_MAX_RETRIES);
   const delayMs = clampPositiveInt(process.env.MERMAID_MCP_RETRY_DELAY_MS, DEFAULT_MCP_RETRY_DELAY_MS);
 
+  const started = Date.now();
   let lastError = null;
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
@@ -122,7 +126,7 @@ async function validateWithMcpServer(source) {
           await sleep(delayMs * (attempt + 1));
           continue;
         }
-        return { valid: false, error: errorMessage, validator: 'mcp-server' };
+        return { valid: false, error: errorMessage, validator: 'mcp-server', durationMs: Date.now() - started };
       }
 
       const data = await response.json();
@@ -130,11 +134,24 @@ async function validateWithMcpServer(source) {
         return {
           valid: false,
           error: sanitizeErrorMessage(data.error ?? 'MCP validation failed'),
-          validator: 'mcp-server'
+          validator: 'mcp-server',
+          durationMs: Date.now() - started
         };
       }
 
-      return { valid: true, validator: 'mcp-server' };
+      // Require explicit boolean true. Anything else (missing/null/non-bool) is treated as
+      // "MCP didn't actually validate" so a misconfigured endpoint that returns {} or HTML
+      // can no longer silently pass everything.
+      if (data?.valid === true) {
+        return { valid: true, validator: 'mcp-server', durationMs: Date.now() - started };
+      }
+
+      return {
+        valid: null,
+        validator: 'mcp-inconclusive',
+        error: 'MCP response missing explicit valid:true (treating as unavailable).',
+        durationMs: Date.now() - started
+      };
     } catch (error) {
       lastError = error;
       if (attempt < retries) {
@@ -147,44 +164,83 @@ async function validateWithMcpServer(source) {
   return {
     valid: null,
     validator: 'mcp-unavailable',
-    error: `MCP request failed: ${sanitizeErrorMessage(lastError?.message ?? lastError)}`
+    error: `MCP request failed: ${sanitizeErrorMessage(lastError?.message ?? lastError)}`,
+    durationMs: Date.now() - started
   };
+}
+
+function mcpIsAuthoritative() {
+  const raw = process.env.MERMAID_MCP_AUTHORITATIVE;
+  if (raw == null) return false;
+  const s = String(raw).trim().toLowerCase();
+  return s === '1' || s === 'true' || s === 'yes' || s === 'on';
 }
 
 export async function validateMermaidStrict(source) {
   const candidate = source?.trim();
+  const timings = { heuristic: 0, local: 0, mcp: 0 };
 
   if (!candidate || !looksLikeMermaid(candidate)) {
     return {
       valid: false,
       error: 'Proposed source is not valid Mermaid syntax (missing known diagram type).',
-      validator: 'heuristic'
+      validator: 'heuristic',
+      timings
     };
   }
 
-  const mcpValidation = await validateWithMcpServer(candidate);
-  if (mcpValidation.valid === false) {
-    return mcpValidation;
+  const mcpEnabled = Boolean(process.env.MERMAID_MCP_URL);
+  const authoritative = mcpEnabled && mcpIsAuthoritative();
+
+  // Local parser is in-process, JSDOM is warmed at boot (apps/server/src/index.js:120),
+  // so parse is ~1–5 ms. MCP is an HTTP hop (≥10–100 ms RTT). Run local first and reserve
+  // MCP for an optional second-opinion warning unless the operator explicitly marks MCP
+  // authoritative.
+  const parserValidation = await validateWithLocalParser(candidate);
+  timings.local = parserValidation.durationMs ?? 0;
+
+  if (!parserValidation.valid) {
+    if (authoritative) {
+      const mcpValidation = await validateWithMcpServer(candidate);
+      timings.mcp = mcpValidation.durationMs ?? 0;
+      if (mcpValidation.valid === true) {
+        return {
+          valid: true,
+          validator: 'mcp-overrode-local',
+          warnings: [`Local parser rejected source but MCP accepted: ${parserValidation.error}`],
+          timings
+        };
+      }
+    }
+    return { ...parserValidation, timings };
   }
 
-  const parserValidation = await validateWithLocalParser(candidate);
-  if (!parserValidation.valid) {
-    return parserValidation;
+  if (!mcpEnabled) {
+    return { valid: true, validator: 'local-parser', timings };
+  }
+
+  const mcpValidation = await validateWithMcpServer(candidate);
+  timings.mcp = mcpValidation.durationMs ?? 0;
+
+  if (authoritative && mcpValidation.valid === false) {
+    return { ...mcpValidation, timings };
+  }
+
+  if (mcpValidation.valid === false) {
+    return {
+      valid: true,
+      validator: 'local-parser',
+      warnings: [`MCP disagreed (treating as advisory): ${mcpValidation.error ?? 'MCP rejected source'}`],
+      timings
+    };
   }
 
   if (mcpValidation.valid === null) {
     const warnings = mcpValidation.error ? [mcpValidation.error] : [];
-    return {
-      valid: true,
-      validator: 'local-parser-fallback',
-      warnings
-    };
+    return { valid: true, validator: 'local-parser-fallback', warnings, timings };
   }
 
-  return {
-    valid: true,
-    validator: 'mcp-plus-local-parser'
-  };
+  return { valid: true, validator: 'mcp-plus-local-parser', timings };
 }
 
 export async function attemptRepair({ source, error, maxAttempts = DEFAULT_REPAIR_MAX_ATTEMPTS, repair }) {

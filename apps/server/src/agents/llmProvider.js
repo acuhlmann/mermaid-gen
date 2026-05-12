@@ -190,3 +190,49 @@ export function createLlmChatModel(env = process.env, overrides = {}) {
   }
   return createOpenRouterModel(env, overrides);
 }
+
+/**
+ * Resolve the model used by the Phase 3 syntax fixer. Independent of intent/transform model
+ * so repair runs on a small, fast model regardless of the request profile.
+ *
+ *   MERMAID_REPAIR_BACKEND=vertex|openrouter  — pick the backend explicitly.
+ *   MERMAID_REPAIR_MODEL=<slug-or-model-id>   — override the model id.
+ *   (default: same backend as resolveLlmBackend(), fast profile)
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {{ backend: 'vertex' | 'openrouter', modelId: string } | null}
+ */
+export function resolveSyntaxFixerTarget(env = process.env) {
+  const requested = typeof env.MERMAID_REPAIR_BACKEND === 'string'
+    ? env.MERMAID_REPAIR_BACKEND.trim().toLowerCase()
+    : '';
+  let backend = requested === 'vertex' || requested === 'openrouter' ? requested : null;
+  if (!backend) {
+    backend = resolveLlmBackend(env);
+  }
+  if (!backend) return null;
+  if (backend === 'vertex' && !isVertexEnvConfigured(env)) return null;
+  if (backend === 'openrouter' && !env.OPENROUTER_API_KEY) return null;
+
+  const explicit = typeof env.MERMAID_REPAIR_MODEL === 'string' ? env.MERMAID_REPAIR_MODEL.trim() : '';
+  const modelId = explicit
+    || (backend === 'vertex'
+      ? (typeof env.VERTEX_MODEL_FAST === 'string' && env.VERTEX_MODEL_FAST.trim()) || DEFAULT_VERTEX_MODEL_FAST
+      : (typeof env.OPENROUTER_MODEL_FAST === 'string' && env.OPENROUTER_MODEL_FAST.trim())
+        || 'google/gemini-2.5-flash-lite');
+  return { backend, modelId };
+}
+
+/**
+ * Build a tool-less, low-temperature chat model suited for the syntax fixer single-shot call.
+ * Returns null when no backend is configured.
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function createSyntaxFixerModel(env = process.env) {
+  const target = resolveSyntaxFixerTarget(env);
+  if (!target) return null;
+  const overrides = { model: target.modelId, temperature: 0.1, maxTokens: 1400, maxOutputTokens: 1400 };
+  if (target.backend === 'vertex') return createVertexChatModel(env, overrides);
+  return createOpenRouterModel(env, overrides);
+}

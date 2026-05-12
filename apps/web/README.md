@@ -4,7 +4,8 @@ UI package for Mermaid Architect.
 
 ## Key UX points
 - **Go** streams diagram intents through `/api/copilotkit/agent-stream` while mirroring thoughts into the insights pane.
-- **Refine / Innovate / Go Mad** plus **Critique / Explain** reuse that pane for streamed telemetry or prose-only analyses.
+- **Fix** (after **Critique**) sends another **intent** stream with a client-built prompt derived from the critique; **syntax auto-fix** does the same when the editor shows a parse error.
+- **Refine / Innovate / Go Mad** use the **transform** route; **Critique / Explain** use **analyze** (insights only, no diagram tools).
 - **Clear** resets the diagram to the default HK hackathon starter; Monaco stays synced via `/api/copilotkit/state`.
 
 ## Runtime wiring

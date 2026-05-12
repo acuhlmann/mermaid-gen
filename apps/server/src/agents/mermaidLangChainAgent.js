@@ -5,6 +5,10 @@ import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { computeLineDiffStats } from '../utils/patchLineStats.js';
 import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
+import { recordAgentTurn, classifyAgentTurnError } from '../metrics/agentTurnMetrics.js';
+import { inferDiagramType } from './inferDiagramType.js';
+import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
+import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import {
   createOpenRouterModel,
   createVertexChatModel,
@@ -490,6 +494,42 @@ function extractToolFailureError(result) {
   return null;
 }
 
+/**
+ * Pulls the most recent `apply_mermaid_patch` input from an agent result so the syntax fixer
+ * (and the enriched repair instruction) can show the LLM exactly what it tried before.
+ * Walks the message history backwards looking for assistant tool-call args.
+ */
+export function extractLastAttemptedMermaidSource(result) {
+  const messages = result?.messages ?? [];
+  for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
+    const msg = messages[idx];
+    const calls =
+      (Array.isArray(msg?.tool_calls) && msg.tool_calls) ||
+      (Array.isArray(msg?.toolCalls) && msg.toolCalls) ||
+      (Array.isArray(msg?.kwargs?.tool_calls) && msg.kwargs.tool_calls) ||
+      [];
+    for (let j = calls.length - 1; j >= 0; j -= 1) {
+      const c = calls[j];
+      const name = c?.name ?? c?.function?.name ?? '';
+      if (name !== 'apply_mermaid_patch') continue;
+      const argsRaw = c?.args ?? c?.arguments ?? c?.function?.arguments;
+      if (argsRaw == null) continue;
+      let args = argsRaw;
+      if (typeof argsRaw === 'string') {
+        try {
+          args = JSON.parse(argsRaw);
+        } catch {
+          continue;
+        }
+      }
+      if (args && typeof args.mermaidSource === 'string' && args.mermaidSource.trim()) {
+        return args.mermaidSource;
+      }
+    }
+  }
+  return null;
+}
+
 export function normalizeAgentStreamEvent(event) {
   const ev = event?.event ?? '';
   const data = event?.data ?? {};
@@ -523,16 +563,37 @@ export function shouldAttemptSyntaxRepair(errorMessage) {
   return REPAIR_ERROR_PATTERN.test(errorMessage) || isSyntaxValidationError(errorMessage);
 }
 
-export function buildSyntaxRepairInstruction({ messages, errorMessage }) {
+export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSource }) {
   const originalRequest = toLangChainMessages(messages)
     .filter((message) => message.role === 'user')
     .map((message) => message.content)
     .join('\n\n')
     .trim();
 
+  const diagramType = inferDiagramType(brokenSource ?? '');
+  const rulePack = getRulePack(diagramType);
+  const typeHint = diagramType ? `Detected diagram type: ${diagramType}.` : 'Diagram type unknown — pick a fitting Mermaid type.';
+  const brokenBlock = brokenSource
+    ? `\n\nBroken Mermaid source from your previous attempt:\n\`\`\`mermaid\n${brokenSource.trim()}\n\`\`\``
+    : '';
+
   return {
     role: 'user',
-    content: `Your previous patch failed validation.\n\nValidator error:\n${errorMessage}\n\nRepair instructions:\n- Return valid Mermaid syntax.\n- Keep the user's requested intent.\n- Call apply_mermaid_patch with complete Mermaid source.\n- Do not mention tool names in your final user-facing summary.\n\nOriginal user request:\n${originalRequest || '(No explicit user request provided.)'}`
+    content: `Your previous patch failed Mermaid validation.
+
+Validator error:
+${errorMessage}
+
+${typeHint}
+
+${rulePack}
+Repair instructions:
+- Apply the smallest change that fixes the error while preserving the user's intent.
+- Call apply_mermaid_patch with complete, valid Mermaid source.
+- Do not mention tool names in your final user-facing summary.${brokenBlock}
+
+Original user request:
+${originalRequest || '(No explicit user request provided.)'}`
   };
 }
 
@@ -653,9 +714,36 @@ export async function runInvokeWithStreamingKeepalive(emit, env, invokeAsync) {
   }
 }
 
+/** Lower bound on stream heartbeat cadence (ms) so the client watchdog never trips on a silent model. */
+const STREAM_HEARTBEAT_MS = 6_000;
+
+function resolveStreamHeartbeatMs(env) {
+  const raw = env?.MERMAID_STREAM_HEARTBEAT_MS;
+  if (raw == null || raw === '') return STREAM_HEARTBEAT_MS;
+  const n = Number.parseInt(String(raw), 10);
+  if (!Number.isFinite(n) || n < 1000) return STREAM_HEARTBEAT_MS;
+  return Math.min(60_000, n);
+}
+
 async function streamReactAgentEvents(agent, inputMessages, emit, env) {
   const runnableConfig = getAgentRunnableConfig(env);
   let latestMessages = [];
+
+  // Heartbeat keeps the SSE consumer alive when the model is internally working but not yet
+  // emitting normalized events (tokens, tool starts, tool ends). Without this, a slow first
+  // token (or a stuck repair turn) looks like a stall to the client watchdog. Resets on any
+  // emitted event so a healthy stream costs nothing.
+  let lastActivity = Date.now();
+  const intervalMs = resolveStreamHeartbeatMs(env);
+  const heartbeat = typeof emit === 'function'
+    ? setInterval(() => {
+        if (Date.now() - lastActivity >= intervalMs) {
+          emit({ type: 'status', text: 'Thinking…' });
+          lastActivity = Date.now();
+        }
+      }, intervalMs)
+    : null;
+
   try {
     const stream = await agent.streamEvents({ messages: inputMessages }, { version: 'v2', ...runnableConfig });
     for await (const ev of stream) {
@@ -663,6 +751,7 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env) {
       const normalized = normalizeAgentStreamEvent(ev);
       if (normalized) {
         emit(normalized);
+        lastActivity = Date.now();
       }
     }
   } catch (error) {
@@ -670,6 +759,8 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env) {
       type: 'error',
       message: redactSecrets(error instanceof Error ? error.message : String(error))
     });
+  } finally {
+    if (heartbeat) clearInterval(heartbeat);
   }
   return { messages: latestMessages };
 }
@@ -723,10 +814,13 @@ function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource
   });
 }
 
+/** Default repair attempts (cheap after Phase 1 sanitizer rescue + Phase 3 fast fixer). */
+const DEFAULT_REPAIR_ATTEMPTS = 2;
+
 async function invokeWithRepair(
   agent,
   messages,
-  { requirePatch = false, emit } = {},
+  { requirePatch = false, emit, mode, profile, modelLabel, stableAgent } = {},
   stateStore,
   env
 ) {
@@ -739,6 +833,26 @@ async function invokeWithRepair(
     ...toLangChainMessages(messages)
   ];
 
+  const turnStarted = Date.now();
+  let repairAttempts = 0;
+  /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
+  const finishTurn = (sample) => {
+    recordAgentTurn(
+      {
+        mode: mode ?? 'unknown',
+        model: modelLabel ?? null,
+        profile: profile ?? null,
+        durationMs: Date.now() - turnStarted,
+        accepted: sample.accepted,
+        validator: sample.validator ?? null,
+        repairAttempts,
+        sanitizerHits: 0,
+        errorClass: sample.errorClass ?? null
+      },
+      { env }
+    );
+  };
+
   if (typeof emit === 'function') {
     emit({ type: 'phase', id: 'agent_run', label: 'Planning and executing tools…' });
   }
@@ -747,6 +861,7 @@ async function invokeWithRepair(
   try {
     firstResult = await runAgentTurn(agent, baseMessages, emit, env);
   } catch (error) {
+    finishTurn({ accepted: false, errorClass: 'invoke-error' });
     return formatAgentInvokeFailure(error, env);
   }
 
@@ -756,6 +871,7 @@ async function invokeWithRepair(
 
   if (afterFirstRevision !== beforeRevision) {
     emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
+    finishTurn({ accepted: true, validator: 'first-try' });
     return {
       message: firstMessage,
       raw: firstResult
@@ -763,46 +879,118 @@ async function invokeWithRepair(
   }
 
   if (requirePatch && !firstError) {
+    // When the first agent turn produces prose without calling apply_mermaid_patch (or, worse,
+    // produces incoherent high-temperature token soup as Go Mad sometimes does at deeper tiers),
+    // re-running the same hot agent against the same prompt usually just produces the same
+    // failure. Fall back to a stable agent (typically the fast non-transform agent at sane
+    // temperature) when one was provided. This is the no-patch analogue of the syntax fixer.
+    const retryAgent = stableAgent ?? agent;
+    const usingStable = retryAgent !== agent;
     try {
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'patch_retry', label: 'Retrying diagram patch…' });
-        emit({ type: 'status', text: 'Retrying: diagram patch required…' });
+        emit({
+          type: 'status',
+          text: usingStable
+            ? 'Retrying with stable model: diagram patch required…'
+            : 'Retrying: diagram patch required…'
+        });
       }
       const patchRetryResult = await runAgentTurn(
-        agent,
+        retryAgent,
         [...baseMessages, buildPatchRequiredInstruction({ messages })],
         emit,
         env
       );
       if (stateStore.getState().revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
+        finishTurn({ accepted: true, validator: usingStable ? 'patch-retry-stable' : 'patch-retry' });
         return {
           message: extractFinalMessage(patchRetryResult),
           raw: patchRetryResult
         };
       }
+      finishTurn({ accepted: false, errorClass: 'no-patch' });
       return {
         message: extractFinalMessage(patchRetryResult),
         raw: patchRetryResult
       };
     } catch (error) {
+      finishTurn({ accepted: false, errorClass: 'invoke-error' });
       return formatAgentInvokeFailure(error, env);
     }
   }
 
   if (!shouldAttemptSyntaxRepair(firstError)) {
+    finishTurn({ accepted: false, errorClass: classifyAgentTurnError(firstError) });
     return {
       message: firstMessage,
       raw: firstResult
     };
   }
 
-  const parsedRepairAttempts = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
-  const maxRepairAttempts = Number.isFinite(parsedRepairAttempts) ? Math.max(0, parsedRepairAttempts) : 1;
   let latestError = firstError;
   let latestResult = firstResult;
+  let brokenSource = extractLastAttemptedMermaidSource(firstResult);
+  const originalRequest = toLangChainMessages(messages)
+    .filter((m) => m.role === 'user')
+    .map((m) => m.content)
+    .join('\n\n')
+    .trim();
+
+  // Phase 3: tool-less single-shot fixer using a cheap fast model. Independent of the
+  // intent/transform model so repair runs on a small model regardless of caller profile.
+  // If the fixer accepts, apply through the same patch pipeline (which re-validates and
+  // runs the Phase 1 sanitizer once more for safety) and short-circuit the agent loop.
+  if (brokenSource && isSyntaxFixerAvailable(env)) {
+    try {
+      repairAttempts += 1;
+      if (typeof emit === 'function') {
+        emit({ type: 'phase', id: 'syntax_fixer', label: 'Mermaid syntax fixer…' });
+      }
+      const fixerOutcome = await repairMermaidWithFixer({
+        brokenSource,
+        parseError: latestError,
+        originalRequest,
+        env
+      });
+      if (fixerOutcome.accepted && fixerOutcome.mermaidSource) {
+        const applied = await stateStore.applyMermaidSource({
+          mermaidSource: fixerOutcome.mermaidSource,
+          reason: 'syntax-fixer repair'
+        });
+        if (applied?.accepted) {
+          emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
+          finishTurn({ accepted: true, validator: 'syntax-fixer' });
+          return {
+            message: firstMessage || 'Done.',
+            raw: firstResult,
+            metadata: { repairedBy: 'syntax-fixer', diagramType: fixerOutcome.metadata?.diagramType ?? null }
+          };
+        }
+        // Fixer's source was valid in isolation but the state store rejected it (unlikely);
+        // fall through to the full-agent repair loop with that error as new context.
+        latestError = applied?.error ?? latestError;
+      } else if (fixerOutcome.error) {
+        // Use the fixer's diagnostic to better seed the full-agent repair on fallback.
+        latestError = `${latestError}\nFixer diagnostic: ${fixerOutcome.error}`;
+      }
+    } catch (error) {
+      // Telemetry only — fixer failures must never break the repair fallback.
+      latestError = `${latestError}\nFixer exception: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  }
+
+  const parsedRepairAttempts = Number.parseInt(
+    process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? String(DEFAULT_REPAIR_ATTEMPTS),
+    10
+  );
+  const maxRepairAttempts = Number.isFinite(parsedRepairAttempts)
+    ? Math.max(0, parsedRepairAttempts)
+    : DEFAULT_REPAIR_ATTEMPTS;
 
   for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
+    repairAttempts += 1;
     let retryResult;
     try {
       if (typeof emit === 'function') {
@@ -811,11 +999,15 @@ async function invokeWithRepair(
       }
       retryResult = await runAgentTurn(
         agent,
-        [...baseMessages, buildSyntaxRepairInstruction({ messages, errorMessage: latestError })],
+        [
+          ...baseMessages,
+          buildSyntaxRepairInstruction({ messages, errorMessage: latestError, brokenSource })
+        ],
         emit,
         env
       );
     } catch (error) {
+      finishTurn({ accepted: false, errorClass: 'invoke-error' });
       return formatAgentInvokeFailure(error, env);
     }
     latestResult = retryResult;
@@ -823,6 +1015,7 @@ async function invokeWithRepair(
     const currentRevision = stateStore.getState().revisionId;
     if (currentRevision !== beforeRevision) {
       emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
+      finishTurn({ accepted: true, validator: `repair-attempt-${attempt}` });
       return {
         message: extractFinalMessage(retryResult),
         raw: retryResult
@@ -834,8 +1027,11 @@ async function invokeWithRepair(
       break;
     }
     latestError = retryError;
+    const nextBroken = extractLastAttemptedMermaidSource(retryResult);
+    if (nextBroken) brokenSource = nextBroken;
   }
 
+  finishTurn({ accepted: false, errorClass: classifyAgentTurnError(latestError) });
   return {
     message: extractFinalMessage(latestResult),
     raw: latestResult
@@ -924,6 +1120,15 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
+  function resolveModelLabel(profile) {
+    const backend = resolveLlmBackend(env);
+    if (!backend) return null;
+    const p = normalizeModelProfile(profile);
+    const modelId =
+      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    return `${backend}:${modelId}`;
+  }
+
   async function invokeMutation(agent, userMessages, opts, emit) {
     return invokeWithRepair(agent, userMessages, { ...opts, emit }, stateStore, env);
   }
@@ -931,7 +1136,17 @@ export function createMermaidLangChainAgent({
   return {
     async invoke({ messages, modelProfile }) {
       const agent = getDefaultAgent(modelProfile);
-      return invokeWithRepair(agent, messages, {}, stateStore, env);
+      return invokeWithRepair(
+        agent,
+        messages,
+        {
+          mode: 'invoke',
+          profile: normalizeModelProfile(modelProfile),
+          modelLabel: resolveModelLabel(modelProfile)
+        },
+        stateStore,
+        env
+      );
     },
 
     async applyIntent({ prompt, settings, focusNode, modelProfile, emit }) {
@@ -956,7 +1171,13 @@ ${prompt}${focusScope}`;
       return invokeMutation(
         agent,
         [{ role: 'user', content: userContent }],
-        { requirePatch: true },
+        {
+          requirePatch: true,
+          mode: 'go',
+          profile: normalizeModelProfile(modelProfile),
+          modelLabel: resolveModelLabel(modelProfile),
+          stableAgent: getDefaultAgent('fast')
+        },
         emit
       );
     },
@@ -979,7 +1200,16 @@ ${prompt}${focusScope}`;
             })
           }
         ],
-        { requirePatch: true },
+        {
+          requirePatch: true,
+          mode,
+          profile: normalizeModelProfile(modelProfile),
+          modelLabel: resolveModelLabel(modelProfile),
+          // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
+          // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
+          // agent for the patch_retry turn so we're not just rolling the same dice twice.
+          stableAgent: getDefaultAgent('fast')
+        },
         emit
       );
     },
@@ -996,7 +1226,12 @@ ${prompt}${focusScope}`;
             content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
           }
         ],
-        { requirePatch: true },
+        {
+          requirePatch: true,
+          mode: 'style',
+          profile: 'fast',
+          modelLabel: resolveModelLabel('fast')
+        },
         stateStore,
         env
       );

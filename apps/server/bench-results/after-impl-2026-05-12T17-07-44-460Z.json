@@ -1,0 +1,194 @@
+{
+  "summary": {
+    "tag": "after-impl",
+    "timestamp": "2026-05-12T17:07:44.460Z",
+    "totalCases": 16,
+    "acceptRate": 81.25,
+    "expectationMatch": 93.75,
+    "sanitizerRescues": 5,
+    "rescueableHitRate": 90.91,
+    "latency": {
+      "p50": 6.17,
+      "p95": 23.2,
+      "p99": 23.2,
+      "max": 23.2
+    },
+    "validatorBreakdown": {
+      "local-parser": 8,
+      "sanitizer-rescue": 5,
+      "rejected": 3
+    }
+  },
+  "results": [
+    {
+      "id": "valid-flowchart",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 23.2
+    },
+    {
+      "id": "valid-sequence",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 16.39
+    },
+    {
+      "id": "valid-state",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 13.36
+    },
+    {
+      "id": "smart-quotes",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 5.48
+    },
+    {
+      "id": "parens-label",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "sanitizer-rescue",
+      "sanitizerApplied": [
+        "quoteLabelsWithSpecials"
+      ],
+      "error": null,
+      "durationMs": 11.78
+    },
+    {
+      "id": "slash-label",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 4.38
+    },
+    {
+      "id": "edge-pipe-colon",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 4.94
+    },
+    {
+      "id": "flow-chart-typo",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "sanitizer-rescue",
+      "sanitizerApplied": [
+        "normalizeDiagramHeader"
+      ],
+      "error": null,
+      "durationMs": 5.15
+    },
+    {
+      "id": "flowchart-case",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "sanitizer-rescue",
+      "sanitizerApplied": [
+        "normalizeDiagramHeader"
+      ],
+      "error": null,
+      "durationMs": 5.52
+    },
+    {
+      "id": "state-v2-promotion",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 6.17
+    },
+    {
+      "id": "init-single-quotes",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "local-parser",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 6.26
+    },
+    {
+      "id": "init-trailing-comma",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "Invalid Mermaid init JSON: Expected double-quoted property name in JSON at position 16 (line 1 column 17)",
+      "durationMs": 0.08
+    },
+    {
+      "id": "unbalanced-subgraph",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "sanitizer-rescue",
+      "sanitizerApplied": [
+        "closeUnbalancedSubgraphs"
+      ],
+      "error": null,
+      "durationMs": 9.89
+    },
+    {
+      "id": "reserved-id-end",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "sanitizer-rescue",
+      "sanitizerApplied": [
+        "escapeReservedNodeIds"
+      ],
+      "error": null,
+      "durationMs": 9.48
+    },
+    {
+      "id": "not-a-diagram",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "Proposed source is not valid Mermaid syntax (missing known diagram type).",
+      "durationMs": 0.45
+    },
+    {
+      "id": "empty",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "Proposed source is not valid Mermaid syntax (missing known diagram type).",
+      "durationMs": 0.17
+    }
+  ]
+}

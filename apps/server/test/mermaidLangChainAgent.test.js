@@ -361,6 +361,52 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
   }
 });
 
+test('transform patch_retry uses the stable fast agent, not the hot transform agent', async () => {
+  // Reproduce the Go Mad failure mode: hot agent emits prose-only on the first turn.
+  // The patch_retry should land on the stable fast agent rather than rolling the same
+  // high-temperature dice a second time.
+  const stateStore = createDiagramStateStore();
+  let hotCalls = 0;
+  let stableCalls = 0;
+
+  const hotAgent = {
+    async invoke() {
+      hotCalls += 1;
+      return {
+        messages: [{ role: 'assistant', content: 'Wild prose, zero tool calls, much chaos.' }]
+      };
+    }
+  };
+  const stableAgent = {
+    async invoke() {
+      stableCalls += 1;
+      await stateStore.applyMermaidSource({
+        mermaidSource: 'flowchart TD\n  A[Start] --> B[End]',
+        reason: 'stable fallback patch'
+      });
+      return { messages: [{ role: 'assistant', content: 'Applied via stable fallback.' }] };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    chatModelFactory: (_e, options) => {
+      // Tag the fake model so createAgentImpl can route to the right fake agent.
+      const isGoMadHot = typeof options.temperature === 'number' && options.temperature > 1;
+      return { __profile: isGoMadHot ? 'hot' : 'stable' };
+    },
+    createAgentImpl: (opts) => (opts.model?.__profile === 'hot' ? hotAgent : stableAgent)
+  });
+
+  const result = await service.applyTransformIntent({ mode: 'goMad', goMadDepth: 4 });
+
+  assert.equal(hotCalls, 1, 'hot agent should run exactly once (first turn)');
+  assert.equal(stableCalls, 1, 'stable agent should handle the patch_retry');
+  assert.equal(stateStore.getState().revisionId, 1);
+  assert.match(result.message, /stable fallback/i);
+});
+
 test('transform retries once when the model returns prose without applying a patch', async () => {
   const stateStore = createDiagramStateStore();
   let callCount = 0;
