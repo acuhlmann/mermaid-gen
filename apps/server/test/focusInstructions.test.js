@@ -31,6 +31,20 @@ test('buildAnalyzeFocusInstructions centers critique on selected edge', () => {
   assert.match(text, /feeds/);
 });
 
+test('buildAnalyzeFocusInstructions includes clicked label fragment when distinct from aggregate label', () => {
+  const text = buildAnalyzeFocusInstructions(
+    {
+      id: 'flowchart-v2-X-0',
+      label: 'Alpha · Beta',
+      selectionKind: 'node',
+      clickedLabel: 'Beta'
+    },
+    'explain'
+  );
+  assert.match(text, /label fragment/);
+  assert.match(text, /Beta/);
+});
+
 test('buildFocusScopeInstructions uses mutation wording for edges', () => {
   const text = buildFocusScopeInstructions({
     id: 'L_A_B_0',

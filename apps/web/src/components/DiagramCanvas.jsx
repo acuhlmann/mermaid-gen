@@ -603,12 +603,16 @@ export default function DiagramCanvas({
     };
 
     if ((nodeEl || clusterEl) && pointers.length === 1) {
+      const container = nodeEl || clusterEl;
+      const hitText = event.target?.closest?.('text');
+      const textHitEl = hitText && container.contains(hitText) ? hitText : null;
       tapCandidateRef.current = {
         pointerId: event.pointerId,
         startClientX: event.clientX,
         startClientY: event.clientY,
-        targetEl: nodeEl || clusterEl,
-        kind: nodeEl ? 'node' : 'cluster'
+        targetEl: container,
+        kind: nodeEl ? 'node' : 'cluster',
+        textHitEl
       };
     } else if (edgeHit && pointers.length === 1) {
       tapCandidateRef.current = {
@@ -759,11 +763,18 @@ export default function DiagramCanvas({
       const anchor = diagramDomAnchor(tap.targetEl);
       if (moved <= TAP_MOVE_THRESHOLD_PX && anchor?.id && onSelectedNodeChange) {
         const label = nodeTitleFromElement(tap.targetEl);
+        let clickedLabel;
+        if (tap.textHitEl) {
+          const raw = tap.textHitEl.textContent?.replace(/\s+/g, ' ')?.trim() ?? '';
+          const clipped = raw.slice(0, 240);
+          if (clipped && clipped !== label) clickedLabel = clipped;
+        }
         onSelectedNodeChange({
           id: anchor.id,
           label,
           ...(tap.kind === 'cluster' ? { kind: 'cluster' } : {}),
-          dataId: anchor.getAttribute?.('data-id') ?? undefined
+          dataId: anchor.getAttribute?.('data-id') ?? undefined,
+          ...(clickedLabel ? { clickedLabel } : {})
         });
       }
       return;

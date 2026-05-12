@@ -30,7 +30,9 @@ export const FocusNodeSchema = z
     selectionKind: z.enum(['node', 'cluster', 'edge']).optional(),
     edgeFrom: z.string().min(1).optional(),
     edgeTo: z.string().min(1).optional(),
-    dataId: z.string().optional()
+    dataId: z.string().optional(),
+    /** Text the user tapped (e.g. one line of a multi-line node label), when distinct from aggregate `label`. */
+    clickedLabel: z.string().max(240).optional()
   })
   .superRefine((val, ctx) => {
     if (val.selectionKind === 'edge') {

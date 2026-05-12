@@ -155,6 +155,17 @@ test('modelProfile is optional and accepts fast or quality', () => {
   );
 });
 
+test('FocusNodeSchema accepts optional clickedLabel', () => {
+  const ok = FocusNodeSchema.safeParse({
+    id: 'flowchart-v2-N-0',
+    selectionKind: 'node',
+    label: 'Full title',
+    clickedLabel: 'Subtitle'
+  });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.clickedLabel, 'Subtitle');
+});
+
 test('FocusNodeSchema requires edgeFrom and edgeTo when selectionKind is edge', () => {
   assert.equal(
     FocusNodeSchema.safeParse({

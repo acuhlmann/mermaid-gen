@@ -167,14 +167,16 @@ function focusPayload(node) {
       label: node.label,
       selectionKind: 'edge',
       edgeFrom: node.edgeFrom,
-      edgeTo: node.edgeTo
+      edgeTo: node.edgeTo,
+      ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
     };
   }
   return {
     id: node.id,
     label: node.label,
     ...(node.kind === 'cluster' ? { selectionKind: 'cluster' } : { selectionKind: 'node' }),
-    ...(node.dataId ? { dataId: node.dataId } : {})
+    ...(node.dataId ? { dataId: node.dataId } : {}),
+    ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
   };
 }
 
@@ -1265,14 +1267,16 @@ Hard requirements:
     stopVoiceInput();
   }
 
-  async function runTransform(mode) {
+  async function runTransform(mode, options = {}) {
+    const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.mermaidSource.trim()) return;
 
     if (mode !== 'goMad') setGoMadStreak(0);
 
-    const focusNode = focusPayload(selectedNode);
+    const focusNode = useDiagramFocus ? undefined : focusPayload(selectedNode);
+    const titleSelection = useDiagramFocus ? null : selectedNode;
     setLoading(true);
     setActiveRequest(`transform:${mode}`);
     setError('');
@@ -1294,7 +1298,7 @@ Hard requirements:
           modelProfile,
           ...(mode === 'goMad' ? { goMadDepth } : {})
         },
-        title: selectionActionTitle(selectedNode, transformTitleVerb),
+        title: selectionActionTitle(titleSelection, transformTitleVerb),
         variant: mode,
         diagramUndoBaseline: { ...syncedState }
       });
@@ -1306,12 +1310,14 @@ Hard requirements:
     }
   }
 
-  async function runAnalyze(kind) {
+  async function runAnalyze(kind, options = {}) {
+    const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.mermaidSource.trim()) return;
 
-    const focusNode = focusPayload(selectedNode);
+    const focusNode = useDiagramFocus ? undefined : focusPayload(selectedNode);
+    const titleSelection = useDiagramFocus ? null : selectedNode;
     setLoading(true);
     setActiveRequest(`analyze:${kind}`);
     setError('');
@@ -1329,7 +1335,7 @@ Hard requirements:
           focusNode,
           modelProfile
         },
-        title: selectionActionTitle(selectedNode, labels[kind]),
+        title: selectionActionTitle(titleSelection, labels[kind]),
         variant: kind,
         onFinal: ({ finalText }) => {
           if (kind !== 'critique') return;
@@ -2033,24 +2039,44 @@ ${requirementsBlock}`;
           <div className="prompt-actions">
             <span className="button-group-label">Shape</span>
             <div className="button-group">
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                disabled={busy}
+                onClick={() => runTransform('refine', { useDiagramFocus: true })}
+              >
                 <ButtonIcon>
                   <MermaidMarkIcon />
                 </ButtonIcon>
                 Refine
               </button>
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                disabled={busy}
+                onClick={() => runTransform('innovate', { useDiagramFocus: true })}
+              >
                 <ButtonIcon>+</ButtonIcon>
                 Innovate
               </button>
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                disabled={busy}
+                onClick={() => runTransform('goMad', { useDiagramFocus: true })}
+              >
                 <ButtonIcon>!</ButtonIcon>
                 {goMadShapeLabel(goMadStreak)}
               </button>
             </div>
             <span className="button-group-label">Read</span>
             <div className="button-group">
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                disabled={busy}
+                onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
+              >
                 <ButtonIcon>?</ButtonIcon>
                 Critique
               </button>
@@ -2065,7 +2091,12 @@ ${requirementsBlock}`;
                   Fix
                 </button>
               ) : null}
-              <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
+              <button
+                type="button"
+                className="overlay-button compact-button"
+                disabled={busy}
+                onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
+              >
                 <ButtonIcon>i</ButtonIcon>
                 Explain
               </button>

@@ -94,13 +94,42 @@ Explain tasks only:
 /** Diagrams below this size use a tighter task template — same constraints, fewer instruction tokens. */
 const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
 
-function buildCritiqueTask(focusScope, mermaidSource) {
+function buildCritiqueTask(focusNode, focusScope, mermaidSource) {
+  const focused = Boolean(focusNode?.id);
+  const tail = focused ? '' : focusScope;
+  if (focused) {
+    if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+      return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above (prioritize that element and its neighborhood before unrelated diagram-wide notes).
+
+Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
+
+You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
+    }
+    return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above: strengths/weaknesses about that element first (labels, role, connections, clarity), then broader diagram points only where they clarify the selection.
+
+Use these sections with Markdown headings (or the same labels inline if headings are awkward):
+
+## Strengths
+What works about how the selected element reads (label, placement, role in the flow).
+
+## Weaknesses and limits
+You MUST include at least one substantive weakness — prioritize issues touching the selection (ambiguous label, weak link, unclear responsibility, missing context) before generic diagram-wide gaps.
+
+## Diagram type fit
+Whether the diagram type serves the selected element and its relationships; note type-level issues that affect this selection.
+
+## Visual and style review
+Readability of the selection and its immediate links (contrast, clutter, arrow/label clarity).
+
+## Actionable improvements
+Concrete changes; every weakness above should have a matching improvement. Prioritize fixes for the selection first.${tail}`;
+  }
   if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
     return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
 
 Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
 
-You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${focusScope}`;
+You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
   }
   return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
 
@@ -119,14 +148,38 @@ Say whether the chosen Mermaid diagram type suits the content. If another type w
 Comment on readability and presentation: clutter, balance, link directions, shapes, grouping, and any %%init%% / theme / classDef / styling choices if present (including contrast and visual hierarchy).
 
 ## Actionable improvements
-A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${focusScope}`;
+A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${tail}`;
 }
 
-function buildExplainTask(focusScope, mermaidSource) {
+function buildExplainTask(focusNode, focusScope, mermaidSource) {
+  const focused = Boolean(focusNode?.id);
+  const tail = focused ? '' : focusScope;
+  if (focused) {
+    if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+      return `Explain in read-only prose — do not rewrite Mermaid. The user selected one part of the diagram (see Selection focus above). Interpret label and wording meaning in context, not only topology. Spend most of each section on that selection; at most one short paragraph across the whole answer may summarize how it sits in the wider diagram.
+
+Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${tail}`;
+    }
+    return `Explain in read-only prose — do not rewrite Mermaid. The user selected one part of the diagram (see Selection focus above). Interpret label and wording meaning in context, not only topology. Spend most of each section on that selection; at most one short paragraph across the whole answer may summarize how it sits in the wider diagram.
+
+Use these sections with Markdown ## headings (or clearly labeled equivalents):
+
+## Explanation
+What this selection means — start with the visible label text and its intent in context.
+
+## Main flows
+How information, control, or dependencies attach to this selection (incoming/outgoing links and what they imply).
+
+## Key entities
+How this selection relates to adjacent nodes, subgraphs, or edges; mention elsewhere only as needed to understand the selection.
+
+## Takeaways
+What matters about this selection specifically.${tail}`;
+  }
   if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
     return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
 
-Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${focusScope}`;
+Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${tail}`;
   }
   return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
 
@@ -142,7 +195,7 @@ How information, process steps, or relationships move through the diagram.
 Important nodes, subgraphs, or groups and what role each plays.
 
 ## Takeaways
-Concise conclusions — what to remember or how to read the diagram.${focusScope}`;
+Concise conclusions — what to remember or how to read the diagram.${tail}`;
 }
 
 function isEdgeFocus(focusNode) {
@@ -156,11 +209,19 @@ export function buildFocusScopeInstructions(focusNode) {
   if (!focusNode?.id) return '';
   if (isEdgeFocus(focusNode)) {
     const label = focusNode.label ? ` (edge label: "${focusNode.label}")` : '';
-    return `\n\nFocus scope: Prefer edits centered on the edge from "${focusNode.edgeFrom}" to "${focusNode.edgeTo}"${label} (edge id "${focusNode.id}"). Adjust endpoints, labels on this link, or local routing only as needed for valid Mermaid; minimize unrelated changes elsewhere.`;
+    const clicked =
+      focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
+        ? ` Tapped label fragment: "${focusNode.clickedLabel}".`
+        : '';
+    return `\n\nFocus scope: Prefer edits centered on the edge from "${focusNode.edgeFrom}" to "${focusNode.edgeTo}"${label}${clicked} (edge id "${focusNode.id}"). Adjust endpoints, labels on this link, or local routing only as needed for valid Mermaid; minimize unrelated changes elsewhere.`;
   }
   const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
+  const clicked =
+    focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
+      ? ` Tapped label fragment: "${focusNode.clickedLabel}".`
+      : '';
   const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
-  return `\n\nFocus scope: Prefer changes centered on diagram ${role} id "${focusNode.id}"${label}. Minimize edits elsewhere except where required for valid Mermaid syntax or connectivity.`;
+  return `\n\nFocus scope: Prefer changes centered on diagram ${role} id "${focusNode.id}"${label}${clicked}. Minimize edits elsewhere except where required for valid Mermaid syntax or connectivity.`;
 }
 
 /**
@@ -169,22 +230,30 @@ export function buildFocusScopeInstructions(focusNode) {
 export function buildAnalyzeFocusInstructions(focusNode, kind) {
   if (!focusNode?.id) return '';
   const edgeLabel = focusNode.label ? ` Visible edge label text: "${focusNode.label}".` : '';
+  const edgeClicked =
+    focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
+      ? ` User tapped this edge label fragment: "${focusNode.clickedLabel}". Interpret that wording in context.`
+      : '';
   const link = `"${focusNode.edgeFrom}" → "${focusNode.edgeTo}"`;
 
   if (isEdgeFocus(focusNode)) {
     if (kind === 'explain') {
-      return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel} Lead with this relationship in ## Explanation, ## Main flows, and ## Key entities — what it means, what moves or depends along it, and how the two endpoints relate. Use ## Takeaways for conclusions specific to this link. Mention the wider diagram only briefly as supporting context; avoid a generic whole-diagram essay that ignores this edge.`;
+      return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} Lead with this relationship in ## Explanation, ## Main flows, and ## Key entities — what it means, what moves or depends along it, and how the two endpoints relate. Interpret label text literally in context. Use ## Takeaways for conclusions specific to this link. Mention the wider diagram only briefly as supporting context; avoid a generic whole-diagram essay that ignores this edge.`;
     }
-    return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Strengths and ## Diagram type fit but tie them to how well this selected relationship reads in context.`;
+    return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Strengths and ## Diagram type fit but tie them to how well this selected relationship reads in context.`;
   }
 
   const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
+  const clicked =
+    focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
+      ? ` The user tapped directly on this label fragment: "${focusNode.clickedLabel}". Interpret that specific wording/meaning in the diagram context, not only the aggregate title.`
+      : '';
   const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
 
   if (kind === 'explain') {
-    return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}. In ## Explanation, ## Main flows, and ## Key entities, foreground this ${role}: its role, connections, and how it fits the wider diagram. ## Takeaways should emphasize what matters about this selection. Mention other parts only as supporting context; do not center the whole response on unrelated nodes or edges.`;
+    return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Explanation, ## Main flows, and ## Key entities, foreground this ${role}: its role, connections, and how labels read in context. ## Takeaways should emphasize what matters about this selection. Mention other parts only as supporting context; do not center the whole response on unrelated nodes or edges.`;
   }
-  return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}. In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Strengths and ## Diagram type fit but reference how this selection reads in context.`;
+  return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Strengths and ## Diagram type fit but reference how this selection reads in context.`;
 }
 
 /** @param {unknown} raw */
@@ -849,12 +918,12 @@ ${prompt}${focusScope}`;
     async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
       const state = stateStore.getState();
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
-      const diagramBlock = `\`\`\`mermaid\n${state.mermaidSource}\n\`\`\``;
-
       const task =
         kind === 'critique'
-          ? buildCritiqueTask(focusScope, state.mermaidSource)
-          : buildExplainTask(focusScope, state.mermaidSource);
+          ? buildCritiqueTask(focusNode, focusScope, state.mermaidSource)
+          : buildExplainTask(focusNode, focusScope, state.mermaidSource);
+      const humanPrefix = focusNode?.id ? `${focusScope.trim()}\n\n` : '';
+      const diagramBlock = `\`\`\`mermaid\n${state.mermaidSource}\n\`\`\``;
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env);
@@ -866,7 +935,10 @@ ${prompt}${focusScope}`;
         kind === 'critique'
           ? `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_CRITIQUE_SYSTEM_APPEND}`
           : `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_EXPLAIN_SYSTEM_APPEND}`;
-      const messages = [new SystemMessage(analysisSystem), new HumanMessage(`${task}\n\n${diagramBlock}`)];
+      const messages = [
+        new SystemMessage(analysisSystem),
+        new HumanMessage(`${humanPrefix}${task}\n\n${diagramBlock}`)
+      ];
 
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'analyze_stream', label: 'Streaming analysis…' });
