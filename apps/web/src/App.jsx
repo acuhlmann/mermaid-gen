@@ -755,14 +755,19 @@ function MermaidArchitect() {
             tryAgentSound(playToolEndChime);
           } else if (evt.type === 'error' && evt.message) {
             appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
-            tryAgentSound(playFailureChime);
+            if (evt.code !== 'no_mutation_revision') tryAgentSound(playFailureChime);
             patchInsightEntry(sectionId, (entry) => ({
               ...entry,
               status: 'failed',
-              statusText: 'Something failed. You can retry.',
+              statusText:
+                evt.code === 'no_mutation_revision'
+                  ? 'No diagram update applied.'
+                  : 'Something failed. You can retry.',
               completedAt: Date.now()
             }));
           } else if (evt.type === 'final') {
+            const mutationBlocked =
+              (operation === 'transform' || operation === 'intent') && evt.revisionChanged === false;
             if (variant === 'goMad' && evt.revisionChanged) {
               setGoMadStreak((s) => s + 1);
             }
@@ -796,14 +801,18 @@ function MermaidArchitect() {
             }
             patchInsightEntry(sectionId, (entry) => ({
               ...entry,
-              status: 'done',
-              statusText: 'Done',
+              status: mutationBlocked ? 'failed' : 'done',
+              statusText: mutationBlocked ? 'No diagram update applied.' : 'Done',
               completedAt: Date.now(),
               ...(evt.revisionChanged && evt.state && entry.diagramUndoBaseline
                 ? { diagramRevisionApplied: true }
                 : {})
             }));
-            triggerCompletionDelight(sectionId, variant);
+            if (!mutationBlocked) {
+              triggerCompletionDelight(sectionId, variant);
+            } else {
+              tryAgentSound(playFailureChime);
+            }
             if (typeof onFinal === 'function') {
               const finalText =
                 streamedText.trim() || (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');

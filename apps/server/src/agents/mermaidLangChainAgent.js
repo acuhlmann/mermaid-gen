@@ -586,6 +586,73 @@ function captureMessagesFromStreamEvent(event, prev) {
   return prev;
 }
 
+/** User-visible SSE when a mutation stream ends without a diagram revision bump. */
+export const STREAM_ERROR_NO_MUTATION_REVISION =
+  'The diagram was not updated—no valid patch was applied. You can retry or switch model tier (Fast vs Quality).';
+
+/**
+ * Emits `final` (and optionally `error` when no patch landed) for intent/transform agent streams.
+ * @param {{ emit: (e: unknown) => void, operation: string, revisionBefore: unknown, stateStore: { getState: () => { revisionId: number } }, agentResult: { message?: string } | null | undefined }} args
+ */
+export function emitIntentTransformStreamResult({ emit, operation, revisionBefore, stateStore, agentResult }) {
+  const afterState = stateStore.getState();
+  const revisionChanged =
+    typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
+
+  if (typeof emit === 'function' && !revisionChanged && (operation === 'intent' || operation === 'transform')) {
+    emit({
+      type: 'error',
+      code: 'no_mutation_revision',
+      message: STREAM_ERROR_NO_MUTATION_REVISION
+    });
+  }
+
+  if (typeof emit === 'function') {
+    emit({
+      type: 'final',
+      revisionChanged,
+      message: agentResult?.message ?? '',
+      state: revisionChanged ? afterState : undefined
+    });
+  }
+}
+
+/** Interval between SSE status pings while `agent.invoke` runs (keeps client idle watchdog fed). */
+const DEFAULT_INVOKE_KEEPALIVE_MS = 18_000;
+
+/**
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {number}
+ */
+export function resolveInvokeKeepaliveIntervalMs(env = process.env) {
+  const raw = env.MERMAID_INVOKE_KEEPALIVE_MS;
+  if (raw === undefined || raw === '') return DEFAULT_INVOKE_KEEPALIVE_MS;
+  const n = Number.parseInt(String(raw), 10);
+  if (!Number.isFinite(n) || n < 500) return DEFAULT_INVOKE_KEEPALIVE_MS;
+  return Math.min(120_000, n);
+}
+
+/**
+ * Wraps a blocking `agent.invoke` with periodic `status` events so SSE consumers do not hit idle timeouts.
+ * @param {(e: { type: string, text?: string }) => void} emit
+ * @param {NodeJS.ProcessEnv} env
+ * @param {() => Promise<unknown>} invokeAsync
+ */
+export async function runInvokeWithStreamingKeepalive(emit, env, invokeAsync) {
+  if (typeof emit !== 'function') {
+    return invokeAsync();
+  }
+  const intervalMs = resolveInvokeKeepaliveIntervalMs(env);
+  const id = setInterval(() => {
+    emit({ type: 'status', text: 'Still working…' });
+  }, intervalMs);
+  try {
+    return await invokeAsync();
+  } finally {
+    clearInterval(id);
+  }
+}
+
 async function streamReactAgentEvents(agent, inputMessages, emit, env) {
   const runnableConfig = getAgentRunnableConfig(env);
   let latestMessages = [];
@@ -625,7 +692,9 @@ async function runAgentTurn(agent, inputMessages, emit, env) {
   }
 
   emit({ type: 'phase', id: 'invoke_fallback', label: 'Finalizing response…' });
-  return agent.invoke({ messages: inputMessages }, runnableConfig);
+  return runInvokeWithStreamingKeepalive(emit, env, () =>
+    agent.invoke({ messages: inputMessages }, runnableConfig)
+  );
 }
 
 /** Above this combined line count the O(M*N) LCS diff gets noticeable; we still emit the artifact but skip the per-line tally. */
@@ -1101,14 +1170,12 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
       }
 
       const before = payload._revisionBefore;
-      const afterState = stateStore.getState();
-      const revisionChanged = typeof before === 'number' ? afterState.revisionId !== before : true;
-
-      emit({
-        type: 'final',
-        revisionChanged,
-        message: agentResult?.message ?? '',
-        state: revisionChanged ? afterState : undefined
+      emitIntentTransformStreamResult({
+        emit,
+        operation,
+        revisionBefore: before,
+        stateStore,
+        agentResult
       });
 
       return agentResult;

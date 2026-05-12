@@ -5,6 +5,7 @@ import {
   DEFAULT_OPENROUTER_MODEL_QUALITY,
   DEFAULT_VERTEX_MODEL_FAST,
   GO_MAD_TRANSFORM_MAX_TOKENS,
+  STREAM_ERROR_NO_MUTATION_REVISION,
   TRANSFORM_MODEL_LIMITS,
   buildDiagramMutationSystemMessage,
   buildPatchRequiredInstruction,
@@ -12,10 +13,12 @@ import {
   buildTransformUserContent,
   clampGoMadDepth,
   createMermaidLangChainAgent,
+  emitIntentTransformStreamResult,
   inferMermaidTopKeyword,
   normalizeAgentStreamEvent,
   normalizeModelProfile,
   resolveOpenRouterModelId,
+  runInvokeWithStreamingKeepalive,
   shouldAttemptSyntaxRepair,
   toLangChainMessages,
   transformModeModelOptions,
@@ -440,4 +443,67 @@ test('Cloud Run auto mode passes Vertex default fast model into chatModelFactory
 
   await service.applyIntent({ prompt: 'noop', settings: {} });
   assert.ok(captured.some((o) => o.model === DEFAULT_VERTEX_MODEL_FAST));
+});
+
+test('emitIntentTransformStreamResult emits coded error when mutation stream ends without revision bump', () => {
+  const stateStore = createDiagramStateStore();
+  const events = [];
+  const emit = (e) => events.push(e);
+
+  emitIntentTransformStreamResult({
+    emit,
+    operation: 'transform',
+    revisionBefore: 0,
+    stateStore,
+    agentResult: { message: 'I only wrote prose.' }
+  });
+
+  assert.equal(events.length, 2);
+  assert.equal(events[0].type, 'error');
+  assert.equal(events[0].code, 'no_mutation_revision');
+  assert.equal(events[0].message, STREAM_ERROR_NO_MUTATION_REVISION);
+  assert.equal(events[1].type, 'final');
+  assert.equal(events[1].revisionChanged, false);
+  assert.equal(events[1].message, 'I only wrote prose.');
+  assert.equal(events[1].state, undefined);
+});
+
+test('emitIntentTransformStreamResult emits only final when revision advances', async () => {
+  const stateStore = createDiagramStateStore();
+  await stateStore.applyMermaidSource({
+    mermaidSource: 'flowchart TD\n  A[Start] --> B[End]',
+    reason: 'test'
+  });
+  const events = [];
+  emitIntentTransformStreamResult({
+    emit: (e) => events.push(e),
+    operation: 'transform',
+    revisionBefore: 0,
+    stateStore,
+    agentResult: { message: 'Patched.' }
+  });
+  assert.equal(events.length, 1);
+  assert.equal(events[0].type, 'final');
+  assert.equal(events[0].revisionChanged, true);
+  assert.ok(events[0].state);
+  assert.equal(events[0].message, 'Patched.');
+});
+
+test('runInvokeWithStreamingKeepalive emits status while invoke runs', async () => {
+  const prev = process.env.MERMAID_INVOKE_KEEPALIVE_MS;
+  process.env.MERMAID_INVOKE_KEEPALIVE_MS = '500';
+  const statusTexts = [];
+  const result = await runInvokeWithStreamingKeepalive(
+    (e) => {
+      if (e.type === 'status') statusTexts.push(e.text);
+    },
+    process.env,
+    () => new Promise((resolve) => setTimeout(() => resolve(99), 1100))
+  );
+  if (prev === undefined) delete process.env.MERMAID_INVOKE_KEEPALIVE_MS;
+  else process.env.MERMAID_INVOKE_KEEPALIVE_MS = prev;
+
+  assert.equal(result, 99);
+  assert.ok(statusTexts.length >= 1);
+  assert.ok(statusTexts.every((t) => t === 'Still working…'));
 });

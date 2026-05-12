@@ -368,4 +368,33 @@ describe('App simplified controls', () => {
     });
     expect(screen.getByText('Stopped')).toBeTruthy();
   });
+
+  it('marks transform as failed when stream ends without a diagram revision', async () => {
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'transform') {
+        onEvent?.({
+          type: 'error',
+          code: 'no_mutation_revision',
+          message: 'The diagram was not updated—no valid patch was applied.'
+        });
+        onEvent?.({ type: 'final', revisionChanged: false, message: 'Model reply only.' });
+        return;
+      }
+      if (payload.operation === 'intent') {
+        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        return;
+      }
+      if (payload.operation === 'analyze') {
+        onEvent?.({ type: 'final', revisionChanged: false, analyzeText: 'ok' });
+      }
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
+    await screen.findByText('No diagram update applied.');
+    expect(screen.queryByText('Done')).toBeNull();
+  });
 });
