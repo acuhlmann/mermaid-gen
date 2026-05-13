@@ -99,11 +99,11 @@ Explain tasks only:
 /** Diagrams below this size use a tighter task template — same constraints, fewer instruction tokens. */
 const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
 
-function buildCritiqueTask(focusNode, focusScope, mermaidSource) {
+function buildCritiqueTask(focusNode, focusScope, diagramSource) {
   const focused = Boolean(focusNode?.id);
   const tail = focused ? '' : focusScope;
   if (focused) {
-    if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+    if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
       return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above (prioritize that element and its neighborhood before unrelated diagram-wide notes).
 
 Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
@@ -129,7 +129,7 @@ Readability of the selection and its immediate links (contrast, clutter, arrow/l
 ## Actionable improvements
 Concrete changes; every weakness above should have a matching improvement. Prioritize fixes for the selection first.${tail}`;
   }
-  if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+  if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
     return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
 
 Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
@@ -156,11 +156,11 @@ Comment on readability and presentation: clutter, balance, link directions, shap
 A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${tail}`;
 }
 
-function buildExplainTask(focusNode, focusScope, mermaidSource) {
+function buildExplainTask(focusNode, focusScope, diagramSource) {
   const focused = Boolean(focusNode?.id);
   const tail = focused ? '' : focusScope;
   if (focused) {
-    if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+    if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
       return `Explain in read-only prose — do not rewrite Mermaid. The user selected one part of the diagram (see Selection focus above). Interpret label and wording meaning in context, not only topology. Spend most of each section on that selection; at most one short paragraph across the whole answer may summarize how it sits in the wider diagram.
 
 Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${tail}`;
@@ -181,7 +181,7 @@ How this selection relates to adjacent nodes, subgraphs, or edges; mention elsew
 ## Takeaways
 What matters about this selection specifically.${tail}`;
   }
-  if ((mermaidSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
+  if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
     return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
 
 Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${tail}`;
@@ -312,9 +312,9 @@ export function inferMermaidTopKeyword(source) {
   return 'diagram';
 }
 
-function buildGoMadEscalationInstructions(depth, mermaidSource) {
+function buildGoMadEscalationInstructions(depth, diagramSource) {
   if (depth < 2) return '';
-  const currentKeyword = inferMermaidTopKeyword(mermaidSource);
+  const currentKeyword = inferMermaidTopKeyword(diagramSource);
   const tierHint =
     depth >= 5
       ? `- Tier ${depth}: peak chaos — one coherent geek joke; valid Mermaid.\n`
@@ -340,9 +340,9 @@ ${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short l
 
 /**
  * User message body for transform operations (exported for tests).
- * @param {{ mode: string, mermaidSource: string, focusScope: string, goMadDepth?: number }} args
+ * @param {{ mode: string, diagramSource: string, focusScope: string, goMadDepth?: number }} args
  */
-export function buildTransformUserContent({ mode, mermaidSource, focusScope, goMadDepth: rawDepth }) {
+export function buildTransformUserContent({ mode, diagramSource, focusScope, goMadDepth: rawDepth }) {
   const policy =
     mode === 'refine'
       ? `Transform mode: REFINE — polish and lightly extend the diagram.
@@ -362,7 +362,7 @@ export function buildTransformUserContent({ mode, mermaidSource, focusScope, goM
 - Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
 - Weird > safe.${buildGoMadEscalationInstructions(
             mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
-            mermaidSource
+            diagramSource
           )}`;
 
   return `${policy}
@@ -391,7 +391,7 @@ When the user asks for a diagram change:
 
 When the user asks a general question, answer concisely.`;
 
-const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch)\b/;
+const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch)\b/;
 const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type|mcp/i;
 
 function defaultChatModelFactory(env, options) {
@@ -438,16 +438,16 @@ export function toLangChainMessages(messages) {
 }
 
 function createCurrentDiagramContextMessage(stateStore) {
-  const state = stateStore.getState();
+  const state = stateStore.getSlot('mermaid');
 
   return {
     role: 'system',
     content: `Current diagram context:
 - revisionId: ${state.revisionId}
 - styleConfig: ${JSON.stringify(state.styleConfig)}
-- mermaidSource:
+- diagramSource:
 \`\`\`mermaid
-${state.mermaidSource}
+${state.diagramSource}
 \`\`\`
 
 Use this as the current diagram when the user's request is short or refers to "it".`
@@ -508,8 +508,8 @@ export function extractLastAttemptedMermaidSource(result) {
           continue;
         }
       }
-      if (args && typeof args.mermaidSource === 'string' && args.mermaidSource.trim()) {
-        return args.mermaidSource;
+      if (args && typeof args.diagramSource === 'string' && args.diagramSource.trim()) {
+        return args.diagramSource;
       }
     }
   }
@@ -526,10 +526,22 @@ export function normalizeAgentStreamEvent(event) {
   }
 
   if (ev.includes('tool_start') || ev === 'on_tool_start') {
-    return { type: 'tool_start', name: String(data.name ?? event?.name ?? '') };
+    const name =
+      data.name ??
+      data.toolName ??
+      (data.input && typeof data.input === 'object' ? data.input.name : undefined) ??
+      event?.name ??
+      '';
+    return { type: 'tool_start', name: String(name) };
   }
   if (ev.includes('tool_end') || ev === 'on_tool_end') {
-    return { type: 'tool_end', name: String(data.name ?? event?.name ?? '') };
+    const name =
+      data.name ??
+      data.toolName ??
+      (data.output && typeof data.output === 'object' ? data.output.name : undefined) ??
+      event?.name ??
+      '';
+    return { type: 'tool_end', name: String(name) };
   }
 
   return null;
@@ -642,7 +654,7 @@ export const STREAM_ERROR_NO_MUTATION_REVISION =
  * @param {{ emit: (e: unknown) => void, operation: string, revisionBefore: unknown, stateStore: { getState: () => { revisionId: number } }, agentResult: { message?: string } | null | undefined }} args
  */
 export function emitIntentTransformStreamResult({ emit, operation, revisionBefore, stateStore, agentResult }) {
-  const afterState = stateStore.getState();
+  const afterState = stateStore.getSlot('mermaid');
   const revisionChanged =
     typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
 
@@ -779,9 +791,9 @@ const PATCH_SUMMARY_DIFF_MAX_LINES = 800;
 
 function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource) {
   if (typeof emit !== 'function') return;
-  const after = stateStore.getState();
+  const after = stateStore.getSlot('mermaid');
   if (after.revisionId === beforeRevision) return;
-  const afterSource = after.mermaidSource;
+  const afterSource = after.diagramSource;
   const beforeLineCount = typeof beforeSource === 'string' ? beforeSource.split('\n').length : 0;
   const afterLineCount = typeof afterSource === 'string' ? afterSource.split('\n').length : 0;
   let linesAdded = 0;
@@ -810,9 +822,9 @@ async function invokeWithRepair(
   stateStore,
   env
 ) {
-  const initialSnap = stateStore.getState();
+  const initialSnap = stateStore.getSlot('mermaid');
   const beforeRevision = initialSnap.revisionId;
-  const beforeSource = initialSnap.mermaidSource;
+  const beforeSource = initialSnap.diagramSource;
   const baseMessages = [
     ...(requirePatch ? [buildDiagramMutationSystemMessage()] : []),
     createCurrentDiagramContextMessage(stateStore),
@@ -852,7 +864,7 @@ async function invokeWithRepair(
   }
 
   const firstMessage = extractFinalMessage(firstResult);
-  const afterFirstRevision = stateStore.getState().revisionId;
+  const afterFirstRevision = stateStore.getSlot('mermaid').revisionId;
   const firstError = extractToolFailureError(firstResult);
 
   if (afterFirstRevision !== beforeRevision) {
@@ -888,7 +900,7 @@ async function invokeWithRepair(
         emit,
         env
       );
-      if (stateStore.getState().revisionId !== beforeRevision) {
+      if (stateStore.getSlot('mermaid').revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
         finishTurn({ accepted: true, validator: usingStable ? 'patch-retry-stable' : 'patch-retry' });
         return {
@@ -940,9 +952,10 @@ async function invokeWithRepair(
         originalRequest,
         env
       });
-      if (fixerOutcome.accepted && fixerOutcome.mermaidSource) {
-        const applied = await stateStore.applyMermaidSource({
-          mermaidSource: fixerOutcome.mermaidSource,
+      if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
+        const applied = await stateStore.applyDiagramSource({
+          contentType: 'mermaid',
+          diagramSource: fixerOutcome.diagramSource,
           reason: 'syntax-fixer repair'
         });
         if (applied?.accepted) {
@@ -998,7 +1011,7 @@ async function invokeWithRepair(
     }
     latestResult = retryResult;
 
-    const currentRevision = stateStore.getState().revisionId;
+    const currentRevision = stateStore.getSlot('mermaid').revisionId;
     if (currentRevision !== beforeRevision) {
       emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
       finishTurn({ accepted: true, validator: `repair-attempt-${attempt}` });
@@ -1169,7 +1182,7 @@ ${prompt}${focusScope}`;
     },
 
     async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth }) {
-      const currentState = stateStore.getState();
+      const currentState = stateStore.getSlot('mermaid');
       const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
       const focusScope = buildFocusScopeInstructions(focusNode);
 
@@ -1180,7 +1193,7 @@ ${prompt}${focusScope}`;
             role: 'user',
             content: buildTransformUserContent({
               mode,
-              mermaidSource: currentState.mermaidSource,
+              diagramSource: currentState.diagramSource,
               focusScope,
               goMadDepth
             })
@@ -1202,14 +1215,14 @@ ${prompt}${focusScope}`;
 
     async applyStyleIntent({ prompt, settings }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
-      const currentState = stateStore.getState();
+      const currentState = stateStore.getSlot('mermaid');
 
       return invokeWithRepair(
         getDefaultAgent('fast'),
         [
           {
             role: 'user',
-            content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.mermaidSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
+            content: `Apply a visual styling update to the current Mermaid diagram.\n\nHard requirements:\n- Preserve the diagram structure and all semantic nodes and edges unless the user explicitly asks to change them.\n- You MUST keep or add a top Mermaid init directive in this exact supported form: %%{init: {...}}%%.\n- Use valid JSON inside the init directive.\n- You may update theme, look, themeVariables, themeCSS, and flowchart.curve.\n- You may add Mermaid classDef and class lines only for visual styling.\n- You MUST call apply_mermaid_patch with the full Mermaid source.\n- Do not return only text; apply the style patch.\n\nCurrent committed diagram:\n\`\`\`mermaid\n${currentState.diagramSource}\n\`\`\`\n\nCurrent style config:\n${JSON.stringify(currentState.styleConfig)}\n\nRespect these settings for response style only:\n- temperature: ${resolvedSettings.temperature}\n- topP: ${resolvedSettings.topP}\n- maxNodes: ${resolvedSettings.maxNodes}\n- styleGuide: ${resolvedSettings.styleGuide}\n- persona: ${resolvedSettings.persona}\n\nUser style request:\n${prompt}`
           }
         ],
         {
@@ -1224,14 +1237,14 @@ ${prompt}${focusScope}`;
     },
 
     async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
-      const state = stateStore.getState();
+      const state = stateStore.getSlot('mermaid');
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
       const task =
         kind === 'critique'
-          ? buildCritiqueTask(focusNode, focusScope, state.mermaidSource)
-          : buildExplainTask(focusNode, focusScope, state.mermaidSource);
+          ? buildCritiqueTask(focusNode, focusScope, state.diagramSource)
+          : buildExplainTask(focusNode, focusScope, state.diagramSource);
       const humanPrefix = focusNode?.id ? `${focusScope.trim()}\n\n` : '';
-      const diagramBlock = `\`\`\`mermaid\n${state.mermaidSource}\n\`\`\``;
+      const diagramBlock = `\`\`\`mermaid\n${state.diagramSource}\n\`\`\``;
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env);

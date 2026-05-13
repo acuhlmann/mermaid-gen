@@ -67,7 +67,7 @@ describe('InsightsPane', () => {
 
   it('shows diagram undo when revision applied and invokes handler', () => {
     const onDiagramUndo = vi.fn();
-    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+    const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
     render(
       <InsightsPane
@@ -101,7 +101,7 @@ describe('InsightsPane', () => {
 
   it('invokes highlight toggle when Highlight changes is clicked', () => {
     const onToggleDiagramChangeHighlight = vi.fn();
-    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+    const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
     render(
       <InsightsPane
@@ -132,7 +132,7 @@ describe('InsightsPane', () => {
   });
 
   it('shows Clear highlights and empty-diff note when highlight is active for entry', () => {
-    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+    const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
     render(
       <InsightsPane
@@ -166,7 +166,7 @@ describe('InsightsPane', () => {
   });
 
   it('shows removed ids note when highlight is active and nodes were removed', () => {
-    const baseline = { revisionId: 0, mermaidSource: 'flowchart TD\n  A --> B' };
+    const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
     render(
       <InsightsPane
@@ -197,7 +197,7 @@ describe('InsightsPane', () => {
   });
 
   it('hides diagram undo when not revision-applied or already consumed', () => {
-    const baseline = { revisionId: 0, mermaidSource: 'x' };
+    const baseline = { revisionId: 0, diagramSource: 'x' };
 
     const { rerender } = render(
       <InsightsPane
@@ -252,7 +252,7 @@ describe('InsightsPane', () => {
             status: 'done',
             content: '',
             technicalActions: [],
-            diagramUndoBaseline: { mermaidSource: 'a' },
+            diagramUndoBaseline: { diagramSource: 'a' },
             diagramRevisionApplied: true,
             diagramUndoConsumed: false
           }

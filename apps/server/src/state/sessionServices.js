@@ -1,18 +1,17 @@
-import { createLazyMermaidAgentService } from '../agents/mermaidLangChainAgent.js';
+import { createDiagramAgentDispatcher } from '../agents/diagramAgentDispatcher.js';
 import { createDiagramStateStore } from './diagramStateStore.js';
 
 const SESSION_HEADER = 'x-session-id';
 const SESSION_QUERY_KEYS = ['sessionId', 'threadId'];
 const DEFAULT_SESSION_ID = 'default';
 const MAX_SESSION_ID_LENGTH = 128;
+const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
 
 function sanitizeSessionId(value) {
   const candidate = typeof value === 'string' ? value.trim() : '';
   if (!candidate) return null;
-  if (candidate.length > MAX_SESSION_ID_LENGTH) {
-    return candidate.slice(0, MAX_SESSION_ID_LENGTH);
-  }
-  return candidate;
+  const normalized = candidate.replace(SESSION_ID_ALLOWED_CHARS, '-').slice(0, MAX_SESSION_ID_LENGTH);
+  return normalized || null;
 }
 
 export function resolveSessionIdFromRequest(requestLike) {
@@ -40,7 +39,7 @@ export function createSessionServicesRegistry({ env = process.env } = {}) {
     const resolvedSessionId = sanitizeSessionId(sessionId) ?? DEFAULT_SESSION_ID;
     if (!sessions.has(resolvedSessionId)) {
       const stateStore = createDiagramStateStore();
-      const agentService = createLazyMermaidAgentService({ stateStore, env });
+      const agentService = createDiagramAgentDispatcher({ stateStore, env });
       sessions.set(resolvedSessionId, {
         sessionId: resolvedSessionId,
         stateStore,

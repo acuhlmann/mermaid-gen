@@ -2,56 +2,122 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
-test('diagram state store applies a valid Mermaid update', async () => {
+test('store applies a valid Mermaid update to the mermaid slot', async () => {
   const store = createDiagramStateStore();
 
-  const result = await store.applyMermaidSource({
-    mermaidSource: 'flowchart TD\n  Start[Start] --> API[API]',
+  const result = await store.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  Start[Start] --> API[API]',
     reason: 'test update'
   });
 
   assert.equal(result.accepted, true);
   assert.equal(result.patch.previousRevisionId, 0);
+  assert.equal(result.patch.contentType, 'mermaid');
   assert.equal(result.state.revisionId, 1);
-  assert.match(result.state.mermaidSource, /^%%\{init:/);
+  assert.match(result.state.diagramSource, /^%%\{init:/);
   assert.equal(result.state.styleConfig.theme, 'base');
   assert.equal(result.state.styleConfig.look, 'neo');
-  assert.match(store.getState().mermaidSource, /API/);
+  assert.match(store.getSlot('mermaid').diagramSource, /API/);
 });
 
-test('diagram state store rejects invalid Mermaid without mutating state', async () => {
+test('store rejects invalid Mermaid without mutating the mermaid slot', async () => {
   const store = createDiagramStateStore();
-  const before = store.getState();
+  const before = store.getSlot('mermaid');
 
-  const result = await store.applyMermaidSource({
-    mermaidSource: 'not-a-diagram',
+  const result = await store.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'not-a-diagram',
     reason: 'invalid update'
   });
 
   assert.equal(result.accepted, false);
-  assert.equal(store.getState(), before);
+  assert.equal(store.getSlot('mermaid'), before);
 });
 
-test('diagram state store rejects invalid client sync source without mutating state', async () => {
+test('store rejects invalid client sync source without mutating state', async () => {
   const store = createDiagramStateStore();
-  const before = store.getState();
+  const before = store.getSlot('mermaid');
 
-  const result = await store.syncClientMermaidSource({
-    mermaidSource: 'flowchart TD\n  A['
+  const result = await store.syncClientDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A['
   });
 
   assert.equal(result.accepted, false);
-  assert.equal(store.getState(), before);
+  assert.equal(store.getSlot('mermaid'), before);
 });
 
-test('diagram state store accepts empty client sync source as cleared diagram', async () => {
+test('store accepts empty client sync source as cleared mermaid diagram', async () => {
   const store = createDiagramStateStore();
 
-  const result = await store.syncClientMermaidSource({
-    mermaidSource: ''
+  const result = await store.syncClientDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: ''
   });
 
   assert.equal(result.accepted, true);
   assert.equal(result.state.revisionId, 1);
-  assert.equal(result.state.mermaidSource, '');
+  assert.equal(result.state.diagramSource, '');
+});
+
+test('store keeps infographic slot independent of mermaid mutations', async () => {
+  const store = createDiagramStateStore();
+  const infographicBefore = store.getSlot('infographic');
+
+  await store.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B',
+    reason: 'mermaid change'
+  });
+
+  assert.equal(store.getSlot('infographic'), infographicBefore);
+  assert.equal(store.getSlot('infographic').revisionId, 0);
+  assert.equal(store.getSlot('mermaid').revisionId, 1);
+});
+
+test('store applies infographic DSL via dispatcher', async () => {
+  const store = createDiagramStateStore();
+
+  const result = await store.applyDiagramSource({
+    contentType: 'infographic',
+    diagramSource:
+      'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label Step 1\n        desc Start\n      - label Step 2\n        desc Build',
+    reason: 'infographic update'
+  });
+
+  assert.equal(result.accepted, true);
+  assert.equal(result.patch.contentType, 'infographic');
+  assert.equal(result.state.styleConfig, null);
+  assert.equal(result.state.contentType, 'infographic');
+  assert.equal(store.getSlot('infographic').revisionId, 1);
+  assert.equal(store.getSlot('mermaid').revisionId, 0);
+});
+
+test('store rejects infographic DSL with unknown template', async () => {
+  const store = createDiagramStateStore();
+  const before = store.getSlot('infographic');
+
+  const result = await store.applyDiagramSource({
+    contentType: 'infographic',
+    diagramSource: 'infographic made-up-template\n  data\n    lists',
+    reason: 'bad template'
+  });
+
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /Unknown template/);
+  assert.equal(store.getSlot('infographic'), before);
+});
+
+test('store switches active content type and preserves both slots', async () => {
+  const store = createDiagramStateStore();
+  assert.equal(store.getActiveContentType(), 'mermaid');
+
+  const switched = store.setActiveContentType('infographic');
+  assert.equal(store.getActiveContentType(), 'infographic');
+  assert.equal(switched.contentType, 'infographic');
+
+  store.setActiveContentType('mermaid');
+  assert.equal(store.getActiveContentType(), 'mermaid');
+  assert.equal(store.getActiveSlot().contentType, 'mermaid');
 });

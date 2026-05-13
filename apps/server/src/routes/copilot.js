@@ -2,6 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import {
   AgentStreamPayloadSchema,
+  ContentTypeSchema,
   DiagramAnalyzeSchema,
   DiagramIntentSchema,
   DiagramStyleSchema,
@@ -29,7 +30,7 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
   }
 
   const intent = parsedIntent.data;
-  const state = stateStore.getState();
+  const state = stateStore.getSlot(intent.contentType);
   if (intent.revisionId !== state.revisionId) {
     return {
       status: 409,
@@ -42,12 +43,13 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
 
   try {
     const agentResult = await agentService.applyIntent({
+      contentType: intent.contentType,
       prompt: intent.prompt,
       settings: intent.settings,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile
     });
-    const nextState = stateStore.getState();
+    const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
 
     if (nextState.revisionId === state.revisionId || !patch) {
@@ -69,7 +71,8 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
         state: nextState,
         metadata: {
           llm: true,
-          agent: 'intent'
+          agent: 'intent',
+          contentType: intent.contentType
         }
       }
     };
@@ -104,7 +107,7 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
   }
 
   const intent = parsedIntent.data;
-  const state = stateStore.getState();
+  const state = stateStore.getSlot(intent.contentType);
   if (intent.revisionId !== state.revisionId) {
     return {
       status: 409,
@@ -117,12 +120,13 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
 
   try {
     const agentResult = await agentService.applyTransformIntent({
+      contentType: intent.contentType,
       mode: intent.mode,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
       goMadDepth: intent.goMadDepth
     });
-    const nextState = stateStore.getState();
+    const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
 
     if (nextState.revisionId === state.revisionId || !patch) {
@@ -144,7 +148,8 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
         state: nextState,
         metadata: {
           llm: true,
-          agent: `transform:${intent.mode}`
+          agent: `transform:${intent.mode}`,
+          contentType: intent.contentType
         }
       }
     };
@@ -179,7 +184,7 @@ export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
   }
 
   const intent = parsed.data;
-  const state = stateStore.getState();
+  const state = stateStore.getSlot(intent.contentType);
   if (intent.revisionId !== state.revisionId) {
     return {
       status: 409,
@@ -192,6 +197,7 @@ export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
 
   try {
     const agentResult = await agentService.applyAnalyzeIntent({
+      contentType: intent.contentType,
       kind: intent.kind,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile
@@ -203,7 +209,8 @@ export async function handleDiagramAnalyze({ body, stateStore, agentService }) {
         text: agentResult.message || '',
         metadata: {
           llm: true,
-          agent: `analyze:${intent.kind}`
+          agent: `analyze:${intent.kind}`,
+          contentType: intent.contentType
         }
       }
     };
@@ -238,7 +245,16 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
   }
 
   const intent = parsedIntent.data;
-  const state = stateStore.getState();
+  if (intent.contentType !== 'mermaid') {
+    return {
+      status: 400,
+      body: {
+        error: 'Style intent is only supported for Mermaid diagrams.'
+      }
+    };
+  }
+
+  const state = stateStore.getSlot('mermaid');
   if (intent.revisionId !== state.revisionId) {
     return {
       status: 409,
@@ -254,7 +270,7 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
       prompt: intent.stylePrompt || intent.prompt,
       settings: intent.settings
     });
-    const nextState = stateStore.getState();
+    const nextState = stateStore.getSlot('mermaid');
     const patch = nextState.history.at(-1);
 
     if (nextState.revisionId === state.revisionId || !patch) {
@@ -276,7 +292,8 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
         state: nextState,
         metadata: {
           llm: true,
-          agent: 'style'
+          agent: 'style',
+          contentType: 'mermaid'
         }
       }
     };
@@ -299,7 +316,8 @@ export async function handleStyleIntent({ body, stateStore, agentService }) {
 }
 
 const SyncClientStateSchema = z.object({
-  mermaidSource: z.string(),
+  contentType: ContentTypeSchema.default('mermaid'),
+  diagramSource: z.string(),
   styleConfig: DiagramStyleSchema.optional()
 });
 
@@ -315,8 +333,9 @@ export async function handleClientStateSync({ body, stateStore }) {
     };
   }
 
-  const synced = await stateStore.syncClientMermaidSource({
-    mermaidSource: parsed.data.mermaidSource,
+  const synced = await stateStore.syncClientDiagramSource({
+    contentType: parsed.data.contentType,
+    diagramSource: parsed.data.diagramSource,
     styleConfig: parsed.data.styleConfig
   });
 
@@ -335,6 +354,12 @@ export async function handleClientStateSync({ body, stateStore }) {
   };
 }
 
+function resolveStateContentType(req) {
+  const candidate = req?.query?.contentType;
+  const parsed = ContentTypeSchema.safeParse(candidate);
+  return parsed.success ? parsed.data : null;
+}
+
 function writeSseData(res, payload) {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
@@ -345,7 +370,17 @@ export function createCopilotRouter({ resolveServices }) {
   router.get('/state', (req, res) => {
     const { sessionId, stateStore } = resolveServices(req);
     res.setHeader(SESSION_HEADER, sessionId);
-    res.json(stateStore.getState());
+    const contentType = resolveStateContentType(req);
+    if (contentType) {
+      return res.json(stateStore.getSlot(contentType));
+    }
+    return res.json(stateStore.getActiveSlot());
+  });
+
+  router.get('/session-state', (req, res) => {
+    const { sessionId, stateStore } = resolveServices(req);
+    res.setHeader(SESSION_HEADER, sessionId);
+    return res.json(stateStore.getSessionState());
   });
 
   router.post('/state', async (req, res) => {
@@ -408,7 +443,7 @@ export function createCopilotRouter({ resolveServices }) {
     }
 
     const payload = parsed.data;
-    const state = stateStore.getState();
+    const state = stateStore.getSlot(payload.contentType);
     if (payload.revisionId !== state.revisionId) {
       return res.status(409).json({
         error: 'State revision is stale. Refresh state and retry.',

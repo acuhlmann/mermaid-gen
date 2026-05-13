@@ -267,7 +267,7 @@ export async function attemptRepair({ source, error, maxAttempts = DEFAULT_REPAI
     if (validation.valid) {
       return {
         accepted: true,
-        mermaidSource: nextSource.trim(),
+        diagramSource: nextSource.trim(),
         attempts: attempt,
         metadata: { validator: validation.validator, warnings: validation.warnings ?? [] }
       };

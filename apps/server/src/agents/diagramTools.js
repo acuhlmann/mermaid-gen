@@ -4,10 +4,10 @@ import { z } from 'zod';
 export function createDiagramTools({ stateStore }) {
   const getDiagramState = tool(
     async () => {
-      const state = stateStore.getState();
+      const state = stateStore.getSlot('mermaid');
       return JSON.stringify({
         revisionId: state.revisionId,
-        mermaidSource: state.mermaidSource,
+        diagramSource: state.diagramSource,
         styleConfig: state.styleConfig,
         updatedAt: state.updatedAt
       });
@@ -20,9 +20,10 @@ export function createDiagramTools({ stateStore }) {
   );
 
   const applyMermaidPatch = tool(
-    async ({ mermaidSource, reason }) => {
-      const result = await stateStore.applyMermaidSource({
-        mermaidSource,
+    async ({ diagramSource, reason }) => {
+      const result = await stateStore.applyDiagramSource({
+        contentType: 'mermaid',
+        diagramSource,
         reason: reason || 'LangChain agent update'
       });
 
@@ -33,11 +34,58 @@ export function createDiagramTools({ stateStore }) {
       description:
         'Validate and apply a complete Mermaid source update. Use this when the user asks to change diagram content or styling.',
       schema: z.object({
-        mermaidSource: z.string().min(1).describe('The full replacement Mermaid diagram source.'),
+        diagramSource: z
+          .string()
+          .min(1)
+          .describe('The full replacement Mermaid diagram source.'),
         reason: z.string().min(1).describe('Short reason for this diagram update.')
       })
     }
   );
 
   return [getDiagramState, applyMermaidPatch];
+}
+
+export function createInfographicTools({ stateStore }) {
+  const getInfographicDsl = tool(
+    async () => {
+      const state = stateStore.getSlot('infographic');
+      return JSON.stringify({
+        revisionId: state.revisionId,
+        diagramSource: state.diagramSource,
+        updatedAt: state.updatedAt
+      });
+    },
+    {
+      name: 'get_infographic_dsl',
+      description: 'Read the current AntV Infographic DSL, including revision id and source.',
+      schema: z.object({})
+    }
+  );
+
+  const applyInfographicPatch = tool(
+    async ({ diagramSource, reason }) => {
+      const result = await stateStore.applyDiagramSource({
+        contentType: 'infographic',
+        diagramSource,
+        reason: reason || 'LangChain agent update'
+      });
+
+      return JSON.stringify(result);
+    },
+    {
+      name: 'apply_infographic_patch',
+      description:
+        'Validate and apply a complete AntV Infographic DSL update. Use this when the user asks to change infographic content.',
+      schema: z.object({
+        diagramSource: z
+          .string()
+          .min(1)
+          .describe('The full replacement AntV Infographic DSL.'),
+        reason: z.string().min(1).describe('Short reason for this infographic update.')
+      })
+    }
+  );
+
+  return [getInfographicDsl, applyInfographicPatch];
 }

@@ -20,6 +20,11 @@ test('resolveSessionIdFromRequest falls back to query keys', () => {
   assert.equal(resolveSessionIdFromRequest({ query: { threadId: 'thread-session' } }), 'thread-session');
 });
 
+test('resolveSessionIdFromRequest normalizes URL-safe shared session ids', () => {
+  assert.equal(resolveSessionIdFromRequest({ headers: { 'x-session-id': ' shared/session id ' } }), 'shared-session-id');
+  assert.equal(resolveSessionIdFromRequest({ headers: { 'x-session-id': 'x'.repeat(140) } }).length, 128);
+});
+
 test('resolveSessionIdFromCopilotInput reads threadId', () => {
   assert.equal(resolveSessionIdFromCopilotInput({ threadId: 'thread-1' }), 'thread-1');
   assert.equal(resolveSessionIdFromCopilotInput({}), 'default');
@@ -39,8 +44,9 @@ test('session registry isolates state per session id', async () => {
   assert.equal(alpha.stateStore.getState().revisionId, 0);
   assert.equal(beta.stateStore.getState().revisionId, 0);
 
-  const alphaUpdate = await alpha.stateStore.syncClientMermaidSource({
-    mermaidSource: 'flowchart TD\n  A --> B'
+  const alphaUpdate = await alpha.stateStore.syncClientDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B'
   });
 
   assert.equal(alphaUpdate.accepted, true);

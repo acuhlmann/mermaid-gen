@@ -1,4 +1,4 @@
-import { createInitialDiagramState } from '@mermaid-architect/shared';
+import { createInitialDiagramState, createInitialSessionState } from '@mermaid-architect/shared';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
 /** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, defaults to the local server. */
@@ -9,8 +9,10 @@ export const API_BASE_URL = rawApiBase
     : '';
 export const SESSION_HEADER = 'x-session-id';
 const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
-const DIAGRAM_CACHE_STORAGE_KEY = 'mermaid-architect:diagram-cache-v1';
+const DIAGRAM_CACHE_STORAGE_KEY = 'mermaid-architect:diagram-cache-v2';
 const AGENT_REQUEST_TIMEOUT_MS = 60_000;
+const MAX_SESSION_ID_LENGTH = 128;
+const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
 /** Max gap between SSE events before we treat the stream as hung and abort. Resets on every event. */
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 60_000;
 
@@ -21,12 +23,20 @@ function throwApiPayloadError(payload, fallback) {
   throw new Error(text || fallback);
 }
 
-function createSessionId() {
+export function createSessionId() {
   if (globalThis.crypto?.randomUUID) {
     return globalThis.crypto.randomUUID();
   }
 
   return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+export function normalizeSessionId(value) {
+  const candidate = typeof value === 'string' ? value.trim() : '';
+  if (!candidate) return null;
+
+  const normalized = candidate.replace(SESSION_ID_ALLOWED_CHARS, '-').slice(0, MAX_SESSION_ID_LENGTH);
+  return normalized || null;
 }
 
 export function getOrCreateBrowserSessionId() {
@@ -43,9 +53,14 @@ export function getOrCreateBrowserSessionId() {
   return next;
 }
 
-export function readDiagramCache() {
+function getDiagramCacheKey(sessionId) {
+  const normalizedSessionId = normalizeSessionId(sessionId);
+  return normalizedSessionId ? `${DIAGRAM_CACHE_STORAGE_KEY}:${normalizedSessionId}` : DIAGRAM_CACHE_STORAGE_KEY;
+}
+
+export function readDiagramCache(sessionId) {
   if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(DIAGRAM_CACHE_STORAGE_KEY);
+  const raw = window.localStorage.getItem(getDiagramCacheKey(sessionId));
   if (!raw) return null;
 
   try {
@@ -57,18 +72,19 @@ export function readDiagramCache() {
   }
 }
 
-export function writeDiagramCache(payload) {
+export function writeDiagramCache(payload, sessionId) {
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage.setItem(DIAGRAM_CACHE_STORAGE_KEY, JSON.stringify(payload ?? {}));
+    window.localStorage.setItem(getDiagramCacheKey(sessionId), JSON.stringify(payload ?? {}));
   } catch {
     // Ignore localStorage quota/privacy errors.
   }
 }
 
-function createSessionHeaders() {
+function createSessionHeaders(sessionId) {
+  const resolvedSessionId = normalizeSessionId(sessionId) ?? getOrCreateBrowserSessionId();
   return {
-    [SESSION_HEADER]: getOrCreateBrowserSessionId()
+    [SESSION_HEADER]: resolvedSessionId
   };
 }
 
@@ -91,9 +107,12 @@ async function fetchWithTimeout(url, options, timeoutMs, timeoutMessage) {
   }
 }
 
-export async function fetchDiagramState() {
-  const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
-    headers: createSessionHeaders()
+export async function fetchDiagramState({ contentType, sessionId } = {}) {
+  const url = contentType
+    ? `${API_BASE_URL}/api/copilotkit/state?contentType=${encodeURIComponent(contentType)}`
+    : `${API_BASE_URL}/api/copilotkit/state`;
+  const response = await fetch(url, {
+    headers: createSessionHeaders(sessionId)
   });
   if (!response.ok) {
     throw new Error(`Failed to fetch state: ${response.status}`);
@@ -101,11 +120,15 @@ export async function fetchDiagramState() {
   return response.json();
 }
 
-export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
+export async function syncClientDiagramState({ contentType = 'mermaid', diagramSource, styleConfig, sessionId }) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', ...createSessionHeaders() },
-    body: JSON.stringify({ mermaidSource, styleConfig })
+    headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
+    body: JSON.stringify({
+      contentType,
+      diagramSource,
+      ...(styleConfig != null ? { styleConfig } : {})
+    })
   });
 
   const payload = await response.json();
@@ -119,20 +142,23 @@ export async function syncClientDiagramState({ mermaidSource, styleConfig }) {
 export async function submitDiagramIntent({
   prompt,
   revisionId,
-  mermaidSource,
+  diagramSource,
+  contentType = 'mermaid',
   settings,
   focusNode,
-  modelProfile
+  modelProfile,
+  sessionId
 }) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/intent`,
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
       body: JSON.stringify({
         prompt,
         revisionId,
-        mermaidSource,
+        diagramSource,
+        contentType,
         settings,
         focusNode,
         ...(modelProfile != null ? { modelProfile } : {})
@@ -150,15 +176,25 @@ export async function submitDiagramIntent({
   return payload;
 }
 
-export async function submitDiagramTransform({ revisionId, mermaidSource, mode, focusNode, modelProfile, goMadDepth }) {
+export async function submitDiagramTransform({
+  revisionId,
+  diagramSource,
+  contentType = 'mermaid',
+  mode,
+  focusNode,
+  modelProfile,
+  goMadDepth,
+  sessionId
+}) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/transform`,
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
       body: JSON.stringify({
         revisionId,
-        mermaidSource,
+        diagramSource,
+        contentType,
         mode,
         focusNode,
         ...(modelProfile != null ? { modelProfile } : {}),
@@ -177,15 +213,24 @@ export async function submitDiagramTransform({ revisionId, mermaidSource, mode, 
   return payload;
 }
 
-export async function submitDiagramAnalyze({ revisionId, mermaidSource, kind, focusNode, modelProfile }) {
+export async function submitDiagramAnalyze({
+  revisionId,
+  diagramSource,
+  contentType = 'mermaid',
+  kind,
+  focusNode,
+  modelProfile,
+  sessionId
+}) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/copilotkit/analyze`,
     {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
       body: JSON.stringify({
         revisionId,
-        mermaidSource,
+        diagramSource,
+        contentType,
         kind,
         focusNode,
         ...(modelProfile != null ? { modelProfile } : {})
@@ -212,7 +257,7 @@ export async function submitDiagramAnalyze({ revisionId, mermaidSource, kind, fo
  * well within that gap, so this only fires on truly hung streams.
  */
 export async function streamDiagramAgent(payload, onEvent, options = {}) {
-  const { signal: callerSignal } = options;
+  const { signal: callerSignal, sessionId } = options;
   if (callerSignal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
   }
@@ -249,7 +294,7 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
   try {
     const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', ...createSessionHeaders() },
+      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
       body: JSON.stringify(payload),
       signal
     });
@@ -327,3 +372,4 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
 }
 
 export const fallbackState = createInitialDiagramState();
+export const fallbackSessionState = createInitialSessionState();

@@ -80,28 +80,28 @@ test('inferMermaidTopKeyword skips init comments', () => {
 test('buildTransformUserContent adds escalation for goMad depth >= 2', () => {
   const src = 'flowchart TD\n  A --> B';
   const focus = '';
-  const shallow = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 1 });
+  const shallow = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 1 });
   assert.doesNotMatch(shallow, /GO MAD escalation/);
 
-  const deep = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 2 });
+  const deep = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 2 });
   assert.match(deep, /GO MAD escalation \(tier 2\)/);
   assert.match(deep, /MUST NOT stay "flowchart"/);
   assert.match(deep, /gitGraph/);
 
-  const tier5 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 5 });
+  const tier5 = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 5 });
   assert.match(tier5, /one coherent geek joke/i);
 
-  const tier6 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 6 });
+  const tier6 = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 6 });
   assert.match(tier6, /wrong-tool/i);
 
-  const tier4 = buildTransformUserContent({ mode: 'goMad', mermaidSource: src, focusScope: focus, goMadDepth: 4 });
+  const tier4 = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 4 });
   assert.match(tier4, /≥3|THREE/i);
 });
 
 test('buildTransformUserContent ignores goMadDepth for refine', () => {
   const text = buildTransformUserContent({
     mode: 'refine',
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     focusScope: '',
     goMadDepth: 9
   });
@@ -175,6 +175,15 @@ test('normalizeAgentStreamEvent maps token-bearing stream chunks', () => {
   assert.equal(mapped?.text, 'hi');
 });
 
+test('normalizeAgentStreamEvent maps on_tool_start with nested input name', () => {
+  const mapped = normalizeAgentStreamEvent({
+    event: 'on_tool_start',
+    data: { input: { name: 'apply_infographic_patch' } }
+  });
+  assert.equal(mapped?.type, 'tool_start');
+  assert.equal(mapped?.name, 'apply_infographic_patch');
+});
+
 test('shouldAttemptSyntaxRepair detects syntax-like validation errors', () => {
   assert.equal(shouldAttemptSyntaxRepair('Proposed source is not valid Mermaid syntax.'), true);
   assert.equal(shouldAttemptSyntaxRepair('MCP validation failed'), true);
@@ -223,8 +232,9 @@ test('applyIntent with requirePatch passes mutation system message before diagra
     },
     async invoke(payload) {
       capturedMessages = payload.messages;
-      await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  A[Start] --> B[End]',
+      await stateStore.applyDiagramSource({
+        contentType: "mermaid",
+        diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
         reason: 'test patch'
       });
       return { messages: [{ role: 'assistant', content: 'Applied.' }] };
@@ -331,8 +341,9 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
         };
       }
 
-      await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  Start[Start] --> Gateway[Gateway]',
+      await stateStore.applyDiagramSource({
+        contentType: "mermaid",
+        diagramSource: 'flowchart TD\n  Start[Start] --> Gateway[Gateway]',
         reason: 'retry success'
       });
       return {
@@ -354,7 +365,7 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
     });
 
     assert.equal(callCount, 2);
-    assert.equal(stateStore.getState().revisionId, 1);
+    assert.equal(stateStore.getSlot("mermaid").revisionId, 1);
     assert.match(result.message, /gateway/i);
   } finally {
     process.env.MERMAID_REPAIR_MAX_ATTEMPTS = originalAttempts;
@@ -380,8 +391,9 @@ test('transform patch_retry uses the stable fast agent, not the hot transform ag
   const stableAgent = {
     async invoke() {
       stableCalls += 1;
-      await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  A[Start] --> B[End]',
+      await stateStore.applyDiagramSource({
+        contentType: "mermaid",
+        diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
         reason: 'stable fallback patch'
       });
       return { messages: [{ role: 'assistant', content: 'Applied via stable fallback.' }] };
@@ -403,7 +415,7 @@ test('transform patch_retry uses the stable fast agent, not the hot transform ag
 
   assert.equal(hotCalls, 1, 'hot agent should run exactly once (first turn)');
   assert.equal(stableCalls, 1, 'stable agent should handle the patch_retry');
-  assert.equal(stateStore.getState().revisionId, 1);
+  assert.equal(stateStore.getSlot("mermaid").revisionId, 1);
   assert.match(result.message, /stable fallback/i);
 });
 
@@ -419,8 +431,9 @@ test('transform retries once when the model returns prose without applying a pat
         };
       }
 
-      await stateStore.applyMermaidSource({
-        mermaidSource: 'flowchart TD\n  Start[Start] --> Portal[Wild Portal]\n  Portal --> EndNode[End]',
+      await stateStore.applyDiagramSource({
+        contentType: "mermaid",
+        diagramSource: 'flowchart TD\n  Start[Start] --> Portal[Wild Portal]\n  Portal --> EndNode[End]',
         reason: 'forced patch success'
       });
       return {
@@ -441,7 +454,7 @@ test('transform retries once when the model returns prose without applying a pat
   });
 
   assert.equal(callCount, 2);
-  assert.equal(stateStore.getState().revisionId, 1);
+  assert.equal(stateStore.getSlot("mermaid").revisionId, 1);
   assert.match(result.message, /valid wild extension/i);
 });
 
@@ -516,8 +529,9 @@ test('emitIntentTransformStreamResult emits coded error when mutation stream end
 
 test('emitIntentTransformStreamResult emits only final when revision advances', async () => {
   const stateStore = createDiagramStateStore();
-  await stateStore.applyMermaidSource({
-    mermaidSource: 'flowchart TD\n  A[Start] --> B[End]',
+  await stateStore.applyDiagramSource({
+        contentType: "mermaid",
+    diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
     reason: 'test'
   });
   const events = [];

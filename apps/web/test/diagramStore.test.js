@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   getOrCreateBrowserSessionId,
+  normalizeSessionId,
   readDiagramCache,
   SESSION_HEADER,
   streamDiagramAgent,
@@ -12,6 +13,7 @@ import {
 
 afterEach(() => {
   vi.useRealTimers();
+  window.localStorage.clear();
 });
 
 describe('submitDiagramTransform', () => {
@@ -32,7 +34,7 @@ describe('submitDiagramTransform', () => {
         submitDiagramTransform({
           mode: 'refine',
           revisionId: 0,
-          mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
+          diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
         })
       ).rejects.toThrow(/Transform did not apply[\s\S]*Model returned text only/);
     } finally {
@@ -60,7 +62,7 @@ describe('submitDiagramTransform', () => {
       await submitDiagramTransform({
         mode: 'innovate',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
+        diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
 
       const sent = JSON.parse(requestBody);
@@ -89,7 +91,7 @@ describe('submitDiagramTransform', () => {
       await submitDiagramTransform({
         mode: 'refine',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  A --> B',
+        diagramSource: 'flowchart TD\n  A --> B',
         modelProfile: 'quality'
       });
 
@@ -116,7 +118,7 @@ describe('submitDiagramTransform', () => {
       await submitDiagramTransform({
         mode: 'goMad',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  A --> B',
+        diagramSource: 'flowchart TD\n  A --> B',
         goMadDepth: 3
       });
 
@@ -140,7 +142,7 @@ describe('submitDiagramTransform', () => {
       const request = submitDiagramTransform({
         mode: 'goMad',
         revisionId: 0,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
+        diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
       const assertion = expect(request).rejects.toThrow('Transform agent request timed out. Please try again.');
 
@@ -168,14 +170,14 @@ describe('syncClientDiagramState', () => {
           async json() {
             return {
               revisionId: 3,
-              mermaidSource: JSON.parse(options.body).mermaidSource
+              diagramSource: JSON.parse(options.body).diagramSource
             };
           }
         };
       };
 
       const payload = await syncClientDiagramState({
-        mermaidSource: 'flowchart TD\n  A --> B',
+        diagramSource: 'flowchart TD\n  A --> B',
         styleConfig: {
           theme: 'forest',
           look: 'classic',
@@ -186,10 +188,38 @@ describe('syncClientDiagramState', () => {
       });
 
       expect(requestUrl).toContain('/api/copilotkit/state');
-      expect(JSON.parse(requestBody).mermaidSource).toContain('A --> B');
+      expect(JSON.parse(requestBody).diagramSource).toContain('A --> B');
       expect(JSON.parse(requestBody).styleConfig.theme).toBe('forest');
       expect(requestHeaders[SESSION_HEADER]).toBeTruthy();
       expect(payload.revisionId).toBe(3);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('uses an explicit URL session id when syncing state', async () => {
+    const originalFetch = globalThis.fetch;
+    let requestHeaders;
+    try {
+      globalThis.fetch = async (_url, options) => {
+        requestHeaders = options.headers;
+        return {
+          ok: true,
+          async json() {
+            return {
+              revisionId: 3,
+              diagramSource: JSON.parse(options.body).diagramSource
+            };
+          }
+        };
+      };
+
+      await syncClientDiagramState({
+        sessionId: 'shared-session-123',
+        diagramSource: 'flowchart TD\n  A --> B'
+      });
+
+      expect(requestHeaders[SESSION_HEADER]).toBe('shared-session-123');
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -206,15 +236,15 @@ describe('syncClientDiagramState', () => {
           async json() {
             return {
               revisionId: 4,
-              mermaidSource: ''
+              diagramSource: ''
             };
           }
         };
       };
 
-      const payload = await syncClientDiagramState({ mermaidSource: '' });
-      expect(JSON.parse(requestBody).mermaidSource).toBe('');
-      expect(payload.mermaidSource).toBe('');
+      const payload = await syncClientDiagramState({ diagramSource: '' });
+      expect(JSON.parse(requestBody).diagramSource).toBe('');
+      expect(payload.diagramSource).toBe('');
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -231,6 +261,14 @@ describe('getOrCreateBrowserSessionId', () => {
   });
 });
 
+describe('normalizeSessionId', () => {
+  it('keeps URL-safe session ids bounded', () => {
+    expect(normalizeSessionId(' shared/session id ')).toBe('shared-session-id');
+    expect(normalizeSessionId('x'.repeat(140))).toHaveLength(128);
+    expect(normalizeSessionId('')).toBeNull();
+  });
+});
+
 describe('streamDiagramAgent', () => {
   it('throws AbortError without calling fetch when already aborted', async () => {
     const controller = new AbortController();
@@ -244,7 +282,7 @@ describe('streamDiagramAgent', () => {
             operation: 'analyze',
             kind: 'explain',
             revisionId: 0,
-            mermaidSource: 'flowchart TD\n  A --> B'
+            diagramSource: 'flowchart TD\n  A --> B'
           },
           vi.fn(),
           { signal: controller.signal }
@@ -271,7 +309,7 @@ describe('streamDiagramAgent', () => {
           operation: 'analyze',
           kind: 'explain',
           revisionId: 0,
-          mermaidSource: 'flowchart TD\n  A --> B'
+          diagramSource: 'flowchart TD\n  A --> B'
         },
         vi.fn(),
         { signal: controller.signal }
@@ -287,11 +325,22 @@ describe('streamDiagramAgent', () => {
 describe('diagram cache storage', () => {
   it('roundtrips diagram cache payload', () => {
     const payload = {
-      mermaidSource: 'flowchart TD\n  A --> B',
+      diagramSource: 'flowchart TD\n  A --> B',
       insightsEntries: [{ id: 'i1', title: 'Critique', content: 'Needs labels' }],
       latestCritique: { text: 'Needs labels', createdAt: Date.now() }
     };
     writeDiagramCache(payload);
     expect(readDiagramCache()).toEqual(payload);
+  });
+
+  it('isolates cached diagram payloads by session id', () => {
+    const alpha = { diagramSource: 'flowchart TD\n  A --> B' };
+    const beta = { diagramSource: 'flowchart TD\n  C --> D' };
+
+    writeDiagramCache(alpha, 'alpha');
+    writeDiagramCache(beta, 'beta');
+
+    expect(readDiagramCache('alpha')).toEqual(alpha);
+    expect(readDiagramCache('beta')).toEqual(beta);
   });
 });

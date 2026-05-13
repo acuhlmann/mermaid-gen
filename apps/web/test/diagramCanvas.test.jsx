@@ -79,7 +79,7 @@ describe('DiagramCanvas', () => {
     const onManualEdit = vi.fn();
     render(
       <DiagramCanvas
-        mermaidSource={'flowchart TD\nA --> B'}
+        diagramSource={'flowchart TD\nA --> B'}
         revisionId={1}
         onManualEdit={onManualEdit}
         editorOpen
@@ -106,7 +106,7 @@ describe('DiagramCanvas', () => {
 
   it('re-syncs editor and renderer when a new agent source arrives', async () => {
     const { rerender } = render(
-      <DiagramCanvas mermaidSource={'flowchart TD\nStart --> Mid'} revisionId={2} onManualEdit={vi.fn()} />
+      <DiagramCanvas diagramSource={'flowchart TD\nStart --> Mid'} revisionId={2} onManualEdit={vi.fn()} />
     );
 
     await act(async () => {
@@ -114,7 +114,7 @@ describe('DiagramCanvas', () => {
     });
 
     rerender(
-      <DiagramCanvas mermaidSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} editorOpen />
+      <DiagramCanvas diagramSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} editorOpen />
     );
 
     await act(async () => {
@@ -131,7 +131,7 @@ describe('DiagramCanvas', () => {
 
     render(
       <DiagramCanvas
-        mermaidSource={source}
+        diagramSource={source}
         revisionId={1}
         onManualEdit={vi.fn()}
         editorOpen
@@ -152,7 +152,7 @@ describe('DiagramCanvas', () => {
   });
 
   it('zooms the renderer with touch pointer gestures', async () => {
-    const { container } = render(<DiagramCanvas mermaidSource={'flowchart TD\nA --> B'} revisionId={1} />);
+    const { container } = render(<DiagramCanvas diagramSource={'flowchart TD\nA --> B'} revisionId={1} />);
 
     await act(async () => {
       vi.advanceTimersByTime(250);
@@ -170,7 +170,7 @@ describe('DiagramCanvas', () => {
     const source = 'flowchart TD\n  B[Beta label]\n  A --> B';
     render(
       <DiagramCanvas
-        mermaidSource={source}
+        diagramSource={source}
         revisionId={1}
         editorOpen
         selectedNode={{ id: 'flowchart-B-0', label: 'Beta', dataId: 'B' }}

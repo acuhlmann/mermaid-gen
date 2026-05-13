@@ -6,20 +6,43 @@ import {
   parseMermaidStyleConfig
 } from './mermaidStyle.js';
 
+export const ContentTypeSchema = z.enum(['mermaid', 'infographic']);
+
+const DEFAULT_INFOGRAPHIC_SOURCE =
+  'infographic list-row-simple-horizontal-arrow\n' +
+  '  data\n' +
+  '    lists\n' +
+  '      - label Step 1\n' +
+  '        desc Start\n' +
+  '      - label Step 2\n' +
+  '        desc Build\n' +
+  '      - label Step 3\n' +
+  '        desc Ship';
+
+const DEFAULT_MERMAID_SOURCE = 'flowchart TD\n  A["AI Tinkerers HK"] --> B[Hackathon]';
+
 export const DiagramPatchSchema = z.object({
   previousRevisionId: z.number().int().nonnegative(),
   nextRevisionId: z.number().int().positive(),
-  mermaidSource: z.string().min(1),
-  styleConfig: DiagramStyleSchema.default(DEFAULT_DIAGRAM_STYLE),
-  reason: z.string().min(1).default('Agent update')
+  diagramSource: z.string().min(1),
+  styleConfig: DiagramStyleSchema.nullable().default(DEFAULT_DIAGRAM_STYLE),
+  reason: z.string().min(1).default('Agent update'),
+  contentType: ContentTypeSchema.default('mermaid')
 });
 
 export const DiagramStateSchema = z.object({
   revisionId: z.number().int().nonnegative(),
-  mermaidSource: z.string().min(1),
-  styleConfig: DiagramStyleSchema.default(DEFAULT_DIAGRAM_STYLE),
+  diagramSource: z.string().min(1),
+  styleConfig: DiagramStyleSchema.nullable().default(DEFAULT_DIAGRAM_STYLE),
+  contentType: ContentTypeSchema.default('mermaid'),
   updatedAt: z.string(),
   history: z.array(DiagramPatchSchema)
+});
+
+export const SessionDiagramStateSchema = z.object({
+  activeContentType: ContentTypeSchema.default('mermaid'),
+  mermaid: DiagramStateSchema,
+  infographic: DiagramStateSchema
 });
 
 export const FocusNodeSchema = z
@@ -27,7 +50,7 @@ export const FocusNodeSchema = z
     id: z.string().min(1),
     label: z.string().optional(),
     /** When omitted, servers treat the focus as a flowchart vertex (legacy behavior). */
-    selectionKind: z.enum(['node', 'cluster', 'edge']).optional(),
+    selectionKind: z.enum(['node', 'cluster', 'edge', 'infographic-region']).optional(),
     edgeFrom: z.string().min(1).optional(),
     edgeTo: z.string().min(1).optional(),
     dataId: z.string().optional(),
@@ -63,7 +86,8 @@ export const DiagramIntentSchema = z.object({
   prompt: z.string().min(1),
   revisionId: z.number().int().nonnegative(),
   /** Empty string is allowed when starting from a cleared canvas; agent applies a full diagram patch. */
-  mermaidSource: z.string(),
+  diagramSource: z.string(),
+  contentType: ContentTypeSchema.default('mermaid'),
   settings: IntentSettingsSchema,
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional()
@@ -76,7 +100,8 @@ export const GoMadDepthSchema = z.number().int().min(1).max(12).optional();
 
 export const DiagramTransformIntentSchema = z.object({
   revisionId: z.number().int().nonnegative(),
-  mermaidSource: z.string().min(1),
+  diagramSource: z.string().min(1),
+  contentType: ContentTypeSchema.default('mermaid'),
   mode: TransformModeSchema,
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional(),
@@ -85,7 +110,8 @@ export const DiagramTransformIntentSchema = z.object({
 
 export const DiagramAnalyzeSchema = z.object({
   revisionId: z.number().int().nonnegative(),
-  mermaidSource: z.string().min(1),
+  diagramSource: z.string().min(1),
+  contentType: ContentTypeSchema.default('mermaid'),
   kind: z.enum(['critique', 'explain']),
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional()
@@ -96,7 +122,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     operation: z.literal('intent'),
     prompt: z.string().min(1),
     revisionId: z.number().int().nonnegative(),
-    mermaidSource: z.string(),
+    diagramSource: z.string(),
+    contentType: ContentTypeSchema.default('mermaid'),
     settings: IntentSettingsSchema,
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional()
@@ -104,7 +131,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
   z.object({
     operation: z.literal('transform'),
     revisionId: z.number().int().nonnegative(),
-    mermaidSource: z.string().min(1),
+    diagramSource: z.string().min(1),
+    contentType: ContentTypeSchema.default('mermaid'),
     mode: TransformModeSchema,
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
@@ -113,30 +141,53 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
   z.object({
     operation: z.literal('analyze'),
     revisionId: z.number().int().nonnegative(),
-    mermaidSource: z.string().min(1),
+    diagramSource: z.string().min(1),
+    contentType: ContentTypeSchema.default('mermaid'),
     kind: z.enum(['critique', 'explain']),
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional()
   })
 ]);
 
+/** Style intents are Mermaid-only. The route handler should reject contentType !== 'mermaid'. */
 export const StyleIntentSchema = DiagramIntentSchema.extend({
   stylePrompt: z.string().min(1).optional()
 });
 
-export function createInitialDiagramState() {
+export function createInitialDiagramState(contentType = 'mermaid') {
   const now = new Date().toISOString();
+
+  if (contentType === 'infographic') {
+    return {
+      revisionId: 0,
+      diagramSource: DEFAULT_INFOGRAPHIC_SOURCE,
+      styleConfig: null,
+      contentType: 'infographic',
+      updatedAt: now,
+      history: []
+    };
+  }
+
   const styled = applyMermaidStyleDirective({
-    mermaidSource: 'flowchart TD\n  A["AI Tinkerers HK"] --> B[Hackathon]',
+    mermaidSource: DEFAULT_MERMAID_SOURCE,
     styleConfig: DEFAULT_DIAGRAM_STYLE
   });
 
   return {
     revisionId: 0,
-    mermaidSource: styled.mermaidSource,
+    diagramSource: styled.mermaidSource,
     styleConfig: styled.styleConfig,
+    contentType: 'mermaid',
     updatedAt: now,
     history: []
+  };
+}
+
+export function createInitialSessionState() {
+  return {
+    activeContentType: 'mermaid',
+    mermaid: createInitialDiagramState('mermaid'),
+    infographic: createInitialDiagramState('infographic')
   };
 }
 
@@ -150,11 +201,19 @@ export function applyPatch(state, patch) {
     };
   }
 
+  if (parsedPatch.contentType !== state.contentType) {
+    return {
+      accepted: false,
+      error: `Content type mismatch. Slot is ${state.contentType}, patch is ${parsedPatch.contentType}.`
+    };
+  }
+
   const nextState = {
     ...state,
     revisionId: parsedPatch.nextRevisionId,
-    mermaidSource: parsedPatch.mermaidSource,
+    diagramSource: parsedPatch.diagramSource,
     styleConfig: parsedPatch.styleConfig,
+    contentType: parsedPatch.contentType,
     updatedAt: new Date().toISOString(),
     history: [...state.history, parsedPatch]
   };

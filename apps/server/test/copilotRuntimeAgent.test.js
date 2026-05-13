@@ -11,7 +11,7 @@ test('Copilot runtime agent streams the LangChain agent response', async () => {
   };
   const stateStore = {
     getState() {
-      return { revisionId: 1, mermaidSource: 'flowchart TD\n  A-->B' };
+      return { revisionId: 1, diagramSource: 'flowchart TD\n  A-->B' };
     }
   };
 
@@ -43,7 +43,7 @@ test('Copilot runtime agent yields assistant text for invoke failures instead of
   };
   const stateStore = {
     getState() {
-      return { revisionId: 1, mermaidSource: 'flowchart TD\n  A-->B' };
+      return { revisionId: 1, diagramSource: 'flowchart TD\n  A-->B' };
     }
   };
 

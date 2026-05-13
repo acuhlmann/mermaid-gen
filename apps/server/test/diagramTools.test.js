@@ -8,14 +8,14 @@ test('apply_mermaid_patch tool applies valid Mermaid source', async () => {
   const [, applyMermaidPatch] = createDiagramTools({ stateStore });
 
   const payload = await applyMermaidPatch.invoke({
-    mermaidSource: 'flowchart TD\n  Start[Start] --> Gateway[API Gateway]',
+    diagramSource: 'flowchart TD\n  Start[Start] --> Gateway[API Gateway]',
     reason: 'add gateway'
   });
   const result = JSON.parse(payload);
 
   assert.equal(result.accepted, true);
   assert.equal(result.state.revisionId, 1);
-  assert.match(stateStore.getState().mermaidSource, /Gateway/);
+  assert.match(stateStore.getState().diagramSource, /Gateway/);
 });
 
 test('apply_mermaid_patch tool rejects invalid Mermaid source', async () => {
@@ -24,7 +24,7 @@ test('apply_mermaid_patch tool rejects invalid Mermaid source', async () => {
   const [, applyMermaidPatch] = createDiagramTools({ stateStore });
 
   const payload = await applyMermaidPatch.invoke({
-    mermaidSource: 'not-a-diagram',
+    diagramSource: 'not-a-diagram',
     reason: 'bad update'
   });
   const result = JSON.parse(payload);
@@ -52,7 +52,7 @@ test('apply_mermaid_patch retries transient MCP failures before local parser fal
 
   try {
     const payload = await applyMermaidPatch.invoke({
-      mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
       reason: 'retry mcp'
     });
     const result = JSON.parse(payload);

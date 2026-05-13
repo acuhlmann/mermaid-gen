@@ -2,14 +2,17 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   AgentStreamPayloadSchema,
+  ContentTypeSchema,
   DEFAULT_DIAGRAM_STYLE,
   DiagramAnalyzeSchema,
   DiagramIntentSchema,
   DiagramTransformIntentSchema,
   FocusNodeSchema,
+  SessionDiagramStateSchema,
   applyMermaidStyleDirective,
   applyPatch,
   createInitialDiagramState,
+  createInitialSessionState,
   extractMermaidInitDirective,
   parseMermaidStyleConfig,
   stripMermaidInitDirective
@@ -20,13 +23,14 @@ test('applyPatch accepts valid patch and increments revision', () => {
   const result = applyPatch(initial, {
     previousRevisionId: 0,
     nextRevisionId: 1,
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     reason: 'test patch'
   });
 
   assert.equal(result.accepted, true);
   assert.equal(result.state.revisionId, 1);
-  assert.match(result.state.mermaidSource, /A --> B/);
+  assert.match(result.state.diagramSource, /A --> B/);
+  assert.equal(result.state.contentType, 'mermaid');
   assert.equal(result.state.styleConfig.theme, 'base');
   assert.equal(result.state.styleConfig.look, 'neo');
   assert.equal(result.state.styleConfig.flowchart.curve, 'rounded');
@@ -37,7 +41,7 @@ test('applyPatch rejects stale revisions', () => {
   const result = applyPatch(initial, {
     previousRevisionId: 9,
     nextRevisionId: 10,
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     reason: 'stale patch'
   });
 
@@ -45,14 +49,50 @@ test('applyPatch rejects stale revisions', () => {
   assert.match(result.error, /Revision mismatch/);
 });
 
+test('applyPatch rejects contentType mismatch between slot and patch', () => {
+  const slot = createInitialDiagramState('mermaid');
+  const result = applyPatch(slot, {
+    previousRevisionId: 0,
+    nextRevisionId: 1,
+    diagramSource: 'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label A',
+    contentType: 'infographic',
+    reason: 'wrong slot'
+  });
+
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /Content type mismatch/);
+});
+
 test('createInitialDiagramState includes a managed Mermaid init directive', () => {
   const initial = createInitialDiagramState();
 
-  assert.match(initial.mermaidSource, /^%%\{init:/);
+  assert.match(initial.diagramSource, /^%%\{init:/);
+  assert.equal(initial.contentType, 'mermaid');
   assert.deepEqual(initial.styleConfig, DEFAULT_DIAGRAM_STYLE);
   assert.equal(initial.styleConfig.themeVariables.primaryColor, '#d7ffb8');
   assert.equal(initial.styleConfig.themeVariables.primaryBorderColor, '#58cc02');
   assert.equal(initial.styleConfig.themeVariables.mainBkg, '#d7ffb8');
+});
+
+test('createInitialDiagramState("infographic") returns infographic seed with null styleConfig', () => {
+  const initial = createInitialDiagramState('infographic');
+
+  assert.equal(initial.contentType, 'infographic');
+  assert.equal(initial.styleConfig, null);
+  assert.match(initial.diagramSource, /^infographic /);
+});
+
+test('createInitialSessionState builds independent slots for each content type', () => {
+  const session = createInitialSessionState();
+  const parsed = SessionDiagramStateSchema.parse(session);
+
+  assert.equal(parsed.activeContentType, 'mermaid');
+  assert.equal(parsed.mermaid.contentType, 'mermaid');
+  assert.equal(parsed.infographic.contentType, 'infographic');
+  assert.equal(parsed.mermaid.revisionId, 0);
+  assert.equal(parsed.infographic.revisionId, 0);
+  assert.match(parsed.mermaid.diagramSource, /flowchart/i);
+  assert.match(parsed.infographic.diagramSource, /^infographic /);
 });
 
 test('parseMermaidStyleConfig reads supported init fields', () => {
@@ -101,15 +141,17 @@ test('parseMermaidStyleConfig rejects invalid JSON and unsupported values', () =
   assert.match(invalidTheme.error, /Invalid Mermaid style config/);
 });
 
-test('intent payloads accept empty mermaidSource for cleared canvas', () => {
+test('intent payloads accept empty diagramSource for cleared canvas', () => {
   const intent = {
     prompt: 'Create a simple login flow',
     revisionId: 1,
-    mermaidSource: '',
+    diagramSource: '',
     settings: {}
   };
 
-  assert.equal(DiagramIntentSchema.safeParse(intent).success, true);
+  const parsed = DiagramIntentSchema.safeParse(intent);
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.contentType, 'mermaid');
   assert.equal(
     AgentStreamPayloadSchema.safeParse({
       operation: 'intent',
@@ -119,11 +161,29 @@ test('intent payloads accept empty mermaidSource for cleared canvas', () => {
   );
 });
 
+test('intent payloads accept contentType=infographic', () => {
+  const parsed = DiagramIntentSchema.safeParse({
+    prompt: 'Show three steps',
+    revisionId: 0,
+    diagramSource: '',
+    contentType: 'infographic',
+    settings: {}
+  });
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.contentType, 'infographic');
+});
+
+test('ContentTypeSchema rejects unknown values', () => {
+  assert.equal(ContentTypeSchema.safeParse('mermaid').success, true);
+  assert.equal(ContentTypeSchema.safeParse('infographic').success, true);
+  assert.equal(ContentTypeSchema.safeParse('chart').success, false);
+});
+
 test('modelProfile is optional and accepts fast or quality', () => {
   const baseIntent = {
     prompt: 'x',
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     settings: {}
   };
 
@@ -134,7 +194,7 @@ test('modelProfile is optional and accepts fast or quality', () => {
   const streamTransform = AgentStreamPayloadSchema.safeParse({
     operation: 'transform',
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     mode: 'refine',
     modelProfile: 'fast'
   });
@@ -143,7 +203,7 @@ test('modelProfile is optional and accepts fast or quality', () => {
 
   const analyze = DiagramAnalyzeSchema.safeParse({
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     kind: 'explain',
     modelProfile: 'quality'
   });
@@ -164,6 +224,17 @@ test('FocusNodeSchema accepts optional clickedLabel', () => {
   });
   assert.equal(ok.success, true);
   assert.equal(ok.data.clickedLabel, 'Subtitle');
+});
+
+test('FocusNodeSchema accepts infographic-region selectionKind', () => {
+  const ok = FocusNodeSchema.safeParse({
+    id: 'antv:abc123',
+    selectionKind: 'infographic-region',
+    label: 'Step 1',
+    clickedLabel: 'Step 1'
+  });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.selectionKind, 'infographic-region');
 });
 
 test('FocusNodeSchema requires edgeFrom and edgeTo when selectionKind is edge', () => {
@@ -189,7 +260,7 @@ test('FocusNodeSchema requires edgeFrom and edgeTo when selectionKind is edge', 
 test('analyze payload accepts extended focusNode for edges', () => {
   const parsed = DiagramAnalyzeSchema.safeParse({
     revisionId: 0,
-    mermaidSource: 'flowchart LR\n  A --> B',
+    diagramSource: 'flowchart LR\n  A --> B',
     kind: 'explain',
     focusNode: {
       id: 'L_A_B_0',
@@ -204,7 +275,7 @@ test('analyze payload accepts extended focusNode for edges', () => {
 test('transform payloads accept optional goMadDepth in valid range', () => {
   const base = {
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  A --> B',
+    diagramSource: 'flowchart TD\n  A --> B',
     mode: 'goMad'
   };
 

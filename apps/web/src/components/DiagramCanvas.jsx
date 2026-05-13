@@ -11,6 +11,7 @@ import {
   parseFlowchartEdgeDataId,
   resolveFlowchartEdgeInteractionRoot
 } from '../utils/diagramSvgSelection.js';
+import InfographicRenderer from './InfographicRenderer.jsx';
 
 const MERMAID_INIT = {
   startOnLoad: false,
@@ -72,6 +73,36 @@ function nodeTitleFromElement(nodeEl) {
   return merged.slice(0, 240);
 }
 
+function hashStringStable(input) {
+  let hash = 0;
+  const str = String(input ?? '');
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash).toString(36);
+}
+
+/** Walk from `start` toward `boundary`, returning the nearest element with non-empty text.
+ *  Stops at the root `<svg>` so an empty-background tap (event.target === svg) registers as
+ *  a background tap rather than selecting the entire infographic.
+ */
+function findInfographicTapTarget(start, boundary) {
+  if (!start || !boundary) return null;
+  let node = start;
+  while (node && node !== boundary) {
+    if (node.nodeType === 1) {
+      const tag = node.tagName?.toLowerCase?.();
+      if (tag === 'svg') return null;
+      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text) {
+        return { node, label: text.slice(0, 240) };
+      }
+    }
+    node = node.parentNode;
+  }
+  return null;
+}
+
 /** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
 function diagramDomAnchor(group) {
   if (!group) return null;
@@ -121,7 +152,8 @@ function changeHighlightCategory(group, anchor, kind, added, modified) {
 
 export default function DiagramCanvas({
   revisionId = 0,
-  mermaidSource,
+  diagramSource,
+  contentType = 'mermaid',
   onManualEdit,
   onValidationChange,
   streamingPreview = false,
@@ -135,7 +167,7 @@ export default function DiagramCanvas({
   changeHighlight = null,
   onDiagramSvgRendered = null
 }) {
-  const [editorSource, setEditorSource] = useState(mermaidSource);
+  const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
   const requestRef = useRef(0);
@@ -145,7 +177,7 @@ export default function DiagramCanvas({
   const prevStreamingRef = useRef(streamingPreview);
   const pulseTimeoutRef = useRef(null);
   const [revisionTransition, setRevisionTransition] = useState(false);
-  const lastAppliedSourceRef = useRef(mermaidSource);
+  const lastAppliedSourceRef = useRef(diagramSource);
   const lastReportedValidationRef = useRef({ source: null, error: null });
   const pointersRef = useRef(new Map());
   const gestureRef = useRef({ centroid: null, distance: null });
@@ -216,13 +248,13 @@ export default function DiagramCanvas({
   );
 
   useEffect(() => {
-    if (mermaidSource === lastAppliedSourceRef.current) {
+    if (diagramSource === lastAppliedSourceRef.current) {
       return;
     }
 
-    lastAppliedSourceRef.current = mermaidSource;
-    setEditorSource(mermaidSource);
-  }, [mermaidSource]);
+    lastAppliedSourceRef.current = diagramSource;
+    setEditorSource(diagramSource);
+  }, [diagramSource]);
 
   const fireDiagramRevisionPulse = useCallback(() => {
     if (pulseTimeoutRef.current) {
@@ -271,6 +303,14 @@ export default function DiagramCanvas({
 
   useEffect(() => {
     let cancelled = false;
+
+    if (contentType !== 'mermaid') {
+      // InfographicRenderer owns its own render path.
+      setSvgMarkup('');
+      setRenderError('');
+      reportValidation(editorSource, null);
+      return undefined;
+    }
 
     if (streamingPreview) {
       return undefined;
@@ -322,15 +362,16 @@ export default function DiagramCanvas({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [editorSource, reportValidation, revisionId, streamingPreview]);
+  }, [contentType, editorSource, reportValidation, revisionId, streamingPreview]);
 
   useLayoutEffect(() => {
+    if (contentType !== 'mermaid') return;
     if (streamingPreview || !svgMarkup || typeof onDiagramSvgRendered !== 'function') return;
     const reportKey = `${revisionId}:${editorSource}:${svgMarkup.length}`;
     if (reportKey === lastSvgRenderedReportRef.current) return;
     lastSvgRenderedReportRef.current = reportKey;
     onDiagramSvgRendered({ source: editorSource, revisionId });
-  }, [editorSource, onDiagramSvgRendered, revisionId, streamingPreview, svgMarkup]);
+  }, [contentType, editorSource, onDiagramSvgRendered, revisionId, streamingPreview, svgMarkup]);
 
   useEffect(() => {
     if (!editorOpen) {
@@ -350,7 +391,7 @@ export default function DiagramCanvas({
       diagramSyncRafRef.current = 0;
     }
 
-    if (!editorOpen || streamingPreview || !editor || !monaco) {
+    if (contentType !== 'mermaid' || !editorOpen || streamingPreview || !editor || !monaco) {
       return undefined;
     }
 
@@ -415,6 +456,7 @@ export default function DiagramCanvas({
       }
     };
   }, [
+    contentType,
     editorOpen,
     streamingPreview,
     selectedNode,
@@ -489,6 +531,9 @@ export default function DiagramCanvas({
         } catch {
           el = null;
         }
+      } else if (selectedNode.kind === 'infographic-region') {
+        const candidate = selectedNode.domNode;
+        el = candidate && root.contains(candidate) ? candidate : null;
       } else {
         el = diagramSelectedWrap(root, selectedNode.id);
       }
@@ -585,9 +630,21 @@ export default function DiagramCanvas({
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
 
-    const nodeEl = event.target?.closest?.('g.node');
-    const clusterEl = nodeEl ? null : event.target?.closest?.('g.cluster');
-    const edgeHit = !nodeEl && !clusterEl ? resolveFlowchartEdgeInteractionRoot(event.target) : null;
+    let nodeEl = null;
+    let clusterEl = null;
+    let edgeHit = null;
+    let infographicHit = null;
+
+    if (contentType === 'mermaid') {
+      nodeEl = event.target?.closest?.('g.node') ?? null;
+      clusterEl = nodeEl ? null : event.target?.closest?.('g.cluster') ?? null;
+      edgeHit = !nodeEl && !clusterEl ? resolveFlowchartEdgeInteractionRoot(event.target) : null;
+    } else if (contentType === 'infographic') {
+      const boundary = viewportRef.current;
+      if (boundary && boundary.contains(event.target)) {
+        infographicHit = findInfographicTapTarget(event.target, boundary);
+      }
+    }
 
     event.preventDefault();
 
@@ -622,11 +679,21 @@ export default function DiagramCanvas({
         targetEl: edgeHit.pathEl,
         kind: 'edge'
       };
+    } else if (infographicHit && pointers.length === 1) {
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        targetEl: infographicHit.node,
+        kind: 'infographic-region',
+        label: infographicHit.label
+      };
     } else {
       tapCandidateRef.current = null;
     }
 
-    if (pointers.length === 1 && !nodeEl && !clusterEl && !edgeHit) {
+    const noTap = !nodeEl && !clusterEl && !edgeHit && !infographicHit;
+    if (pointers.length === 1 && noTap) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
         sx: event.clientX,
@@ -760,6 +827,22 @@ export default function DiagramCanvas({
         return;
       }
 
+      if (tap.kind === 'infographic-region') {
+        if (moved <= TAP_MOVE_THRESHOLD_PX && onSelectedNodeChange && tap.targetEl) {
+          const label = tap.label || '';
+          if (label) {
+            onSelectedNodeChange({
+              kind: 'infographic-region',
+              id: `infographic:${hashStringStable(label)}`,
+              label,
+              clickedLabel: label,
+              domNode: tap.targetEl
+            });
+          }
+        }
+        return;
+      }
+
       const anchor = diagramDomAnchor(tap.targetEl);
       if (moved <= TAP_MOVE_THRESHOLD_PX && anchor?.id && onSelectedNodeChange) {
         const label = nodeTitleFromElement(tap.targetEl);
@@ -793,17 +876,22 @@ export default function DiagramCanvas({
       setIsPanning(false);
 
       const bgTap = backgroundTapRef.current;
-      if (
-        bgTap &&
-        bgTap.pointerId === event.pointerId &&
-        onSelectedNodeChange &&
-        !event.target?.closest?.('g.node') &&
-        !event.target?.closest?.('g.cluster') &&
-        !resolveFlowchartEdgeInteractionRoot(event.target)
-      ) {
-        const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
-        if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
-          onSelectedNodeChange(null);
+      if (bgTap && bgTap.pointerId === event.pointerId && onSelectedNodeChange) {
+        let stillBackground = true;
+        if (contentType === 'mermaid') {
+          stillBackground =
+            !event.target?.closest?.('g.node') &&
+            !event.target?.closest?.('g.cluster') &&
+            !resolveFlowchartEdgeInteractionRoot(event.target);
+        } else if (contentType === 'infographic') {
+          const boundary = viewportRef.current;
+          stillBackground = !(boundary && findInfographicTapTarget(event.target, boundary));
+        }
+        if (stillBackground) {
+          const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
+          if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
+            onSelectedNodeChange(null);
+          }
         }
       }
       backgroundTapRef.current = null;
@@ -825,6 +913,14 @@ export default function DiagramCanvas({
     .filter(Boolean)
     .join(' ');
 
+  const aria =
+    contentType === 'infographic'
+      ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select.'
+      : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select.';
+  const streamingLabel = contentType === 'infographic' ? 'Updating infographic…' : 'Updating diagram…';
+  const viewportStyle = {
+    transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
+  };
   return (
     <section className={shellClass}>
       <div className="diagram-main-column">
@@ -835,30 +931,44 @@ export default function DiagramCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
           onPointerCancel={endPointerGesture}
-          aria-label="Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select."
+          aria-label={aria}
         >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
               <span className="streaming-note-inner">
                 <StreamingWaveIcon />
-                <span>Updating diagram…</span>
+                <span>{streamingLabel}</span>
               </span>
             </p>
           ) : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
-          <div
-            ref={viewportRef}
-            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
-            style={{ transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})` }}
-            dangerouslySetInnerHTML={{ __html: svgMarkup }}
-          />
+          {contentType === 'infographic' ? (
+            <div
+              ref={viewportRef}
+              className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
+              style={viewportStyle}
+            >
+              <InfographicRenderer
+                diagramSource={editorSource}
+                selectedNode={selectedNode}
+                streamingPreview={streamingPreview}
+              />
+            </div>
+          ) : (
+            <div
+              ref={viewportRef}
+              className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
+              style={viewportStyle}
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+          )}
         </div>
       </div>
 
       {insightsSlot}
 
       {editorOpen ? (
-        <aside className="diagram-editor-panel" aria-label="Mermaid code editor">
+        <aside className="diagram-editor-panel" aria-label={contentType === 'mermaid' ? 'Mermaid code editor' : 'Infographic DSL editor'}>
           {streamingPreview ? (
             <p className="streaming-note" role="status">
               <span className="streaming-note-inner">
@@ -870,7 +980,7 @@ export default function DiagramCanvas({
           <div className="diagram-monaco-wrap">
             <Editor
               height="100%"
-              language="mermaid"
+              language={contentType === 'mermaid' ? 'mermaid' : 'plaintext'}
               theme="vs-dark"
               value={editorSource}
               beforeMount={handleEditorBeforeMount}

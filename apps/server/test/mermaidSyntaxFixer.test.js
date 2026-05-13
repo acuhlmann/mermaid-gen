@@ -26,7 +26,7 @@ test('repairMermaidWithFixer returns valid Mermaid when model output is valid', 
     modelOverride: fakeModel('```mermaid\nflowchart TD\n  A["user (admin)"] --> B\n```')
   });
   assert.equal(result.accepted, true);
-  assert.match(result.mermaidSource, /A\["user \(admin\)"\]/);
+  assert.match(result.diagramSource, /A\["user \(admin\)"\]/);
   assert.equal(result.metadata.validator, 'syntax-fixer');
 });
 
@@ -37,7 +37,7 @@ test('repairMermaidWithFixer handles unfenced output', async () => {
     modelOverride: fakeModel('flowchart TD\n  A["bad (paren)"] --> B')
   });
   assert.equal(result.accepted, true);
-  assert.match(result.mermaidSource, /A\["bad \(paren\)"\]/);
+  assert.match(result.diagramSource, /A\["bad \(paren\)"\]/);
 });
 
 test('repairMermaidWithFixer rejects when model output is still invalid', async () => {

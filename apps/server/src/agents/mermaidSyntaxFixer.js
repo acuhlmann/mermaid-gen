@@ -25,7 +25,7 @@ function extractMermaidFromResponse(text) {
  * Single-shot, tool-less Mermaid syntax repair using a dedicated fast model. Independent
  * of the LangChain react-agent loop so it doesn't pay tool plumbing / system-prompt overhead.
  *
- * Returns `{ accepted: true, mermaidSource }` when a corrected diagram passes
+ * Returns `{ accepted: true, diagramSource }` when a corrected diagram passes
  * `validateMermaidStrict`, otherwise `{ accepted: false, error }`.
  *
  * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
@@ -82,7 +82,7 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
 
   return {
     accepted: true,
-    mermaidSource: candidate,
+    diagramSource: candidate,
     metadata: {
       validator: 'syntax-fixer',
       diagramType,

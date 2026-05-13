@@ -22,7 +22,7 @@ const {
   };
   const initial = {
     revisionId: 0,
-    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+    diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     styleConfig,
     updatedAt: '2026-05-10T08:30:00.000Z',
     history: []
@@ -30,7 +30,7 @@ const {
   const updated = {
     ...initial,
     revisionId: 2,
-    mermaidSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
+    diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
     updatedAt: '2026-05-10T08:31:00.000Z'
   };
   return {
@@ -46,10 +46,10 @@ const {
 });
 
 vi.mock('../src/components/DiagramCanvas.jsx', () => ({
-  default: function DiagramCanvasMock({ mermaidSource, onManualEdit, insightsSlot }) {
+  default: function DiagramCanvasMock({ diagramSource, onManualEdit, insightsSlot }) {
     return (
       <section>
-        <pre data-testid="mermaid-source">{mermaidSource}</pre>
+        <pre data-testid="mermaid-source">{diagramSource}</pre>
         <button type="button" onClick={() => onManualEdit('flowchart TD\n  Start[Start] --> Edited[Edited]')}>
           Mock edit
         </button>
@@ -62,9 +62,15 @@ vi.mock('../src/components/DiagramCanvas.jsx', () => ({
 vi.mock('../src/state/diagramStore.js', () => ({
   API_BASE_URL: '',
   SESSION_HEADER: 'x-session-id',
+  createSessionId: () => 'generated-session',
   fallbackState: initialState,
   fetchDiagramState: fetchDiagramStateMock,
   getOrCreateBrowserSessionId: () => 'test-session',
+  normalizeSessionId: (value) => {
+    const candidate = typeof value === 'string' ? value.trim() : '';
+    if (!candidate) return null;
+    return candidate.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128) || null;
+  },
   readDiagramCache: readDiagramCacheMock,
   syncClientDiagramState: syncClientDiagramStateMock,
   submitDiagramIntent: submitDiagramIntentMock,
@@ -72,8 +78,15 @@ vi.mock('../src/state/diagramStore.js', () => ({
   writeDiagramCache: writeDiagramCacheMock
 }));
 
+async function waitForControlsReady(buttonName = 'Refine') {
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: buttonName }).disabled).toBe(false);
+  });
+}
+
 describe('App simplified controls', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/');
     const oscillator = {
       type: 'triangle',
       frequency: {
@@ -103,10 +116,10 @@ describe('App simplified controls', () => {
 
     readDiagramCacheMock.mockReturnValue(null);
     fetchDiagramStateMock.mockResolvedValue(initialState);
-    syncClientDiagramStateMock.mockImplementation(async ({ mermaidSource, styleConfig }) => ({
+    syncClientDiagramStateMock.mockImplementation(async ({ diagramSource, styleConfig }) => ({
       ...initialState,
       revisionId: 1,
-      mermaidSource,
+      diagramSource,
       styleConfig: styleConfig ?? initialState.styleConfig
     }));
     submitDiagramIntentMock.mockResolvedValue({ state: updatedState });
@@ -160,7 +173,7 @@ describe('App simplified controls', () => {
     expect(syncClientDiagramStateMock).toHaveBeenCalledTimes(1);
     expect(syncClientDiagramStateMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
+        diagramSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
       })
     );
     expect(streamDiagramAgentMock).toHaveBeenCalledWith(
@@ -168,11 +181,48 @@ describe('App simplified controls', () => {
         operation: 'transform',
         mode: 'refine',
         revisionId: 1,
-        mermaidSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]',
+        diagramSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]',
         modelProfile: 'fast'
       }),
       expect.any(Function),
       expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
+  });
+
+  it('creates a shareable URL session on first visit and fetches server state with it', async () => {
+    render(<App />);
+
+    await waitFor(() => expect(fetchDiagramStateMock).toHaveBeenCalled());
+
+    expect(window.location.pathname).toBe('/sessions/generated-session');
+    expect(fetchDiagramStateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: 'mermaid',
+        sessionId: 'generated-session'
+      })
+    );
+  });
+
+  it('uses an existing URL session id for sync and stream calls', async () => {
+    window.history.replaceState({}, '', '/sessions/shared-room-1');
+
+    render(<App />);
+    const refineButton = await screen.findByRole('button', { name: 'Refine' });
+    fireEvent.click(screen.getByText('Mock edit'));
+    fireEvent.click(refineButton);
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
+
+    expect(syncClientDiagramStateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 'shared-room-1',
+        diagramSource: 'flowchart TD\n  Start[Start] --> Edited[Edited]'
+      })
+    );
+    expect(streamDiagramAgentMock).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.any(Function),
+      expect.objectContaining({ sessionId: 'shared-room-1' })
     );
   });
 
@@ -184,13 +234,14 @@ describe('App simplified controls', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Refine' }));
 
       await screen.findByRole('button', { name: 'Undo diagram change' });
+      await new Promise((resolve) => setTimeout(resolve, 0));
 
       const callsBefore = syncClientDiagramStateMock.mock.calls.length;
       fireEvent.click(screen.getByRole('button', { name: 'Undo diagram change' }));
 
       await waitFor(() => expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore));
       const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
-      expect(lastPayload.mermaidSource).toBe(initialState.mermaidSource);
+      expect(lastPayload.diagramSource).toBe(initialState.diagramSource);
       await waitFor(() =>
         expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull()
       );
@@ -213,7 +264,7 @@ describe('App simplified controls', () => {
         operation: 'intent',
         prompt: 'Add a payment step',
         revisionId: 1,
-        mermaidSource: initialState.mermaidSource,
+        diagramSource: initialState.diagramSource,
         modelProfile: 'fast'
       }),
       expect.any(Function),
@@ -226,6 +277,7 @@ describe('App simplified controls', () => {
 
   it('shows Fix after critique and applies critique-driven intent', async () => {
     render(<App />);
+    await waitForControlsReady('Critique');
 
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
@@ -264,6 +316,7 @@ describe('App simplified controls', () => {
     });
 
     render(<App />);
+    await waitForControlsReady('Critique');
     fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Keep this change/i });
@@ -293,27 +346,30 @@ describe('App simplified controls', () => {
 
   it('clears to an empty diagram instead of seeded sample', async () => {
     render(<App />);
+    await waitForControlsReady('Clear');
     const clearButton = await screen.findByRole('button', { name: 'Clear' });
     fireEvent.click(clearButton);
 
     await waitFor(() =>
       expect(syncClientDiagramStateMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          mermaidSource: ''
+          diagramSource: ''
         })
       )
     );
   });
 
-  it('hydrates diagram source from local cache on load', async () => {
+  it('does not let cached diagram source override URL session server state on load', async () => {
     readDiagramCacheMock.mockReturnValue({
-      mermaidSource: 'flowchart TD\n  CachedA[Cached] --> CachedB[State]'
+      diagramSource: 'flowchart TD\n  CachedA[Cached] --> CachedB[State]'
     });
 
     render(<App />);
 
     const source = await screen.findByTestId('mermaid-source');
-    expect(source.textContent).toContain('CachedA[Cached]');
+    await waitFor(() => expect(fetchDiagramStateMock).toHaveBeenCalled());
+    expect(source.textContent).toContain('Start[Start]');
+    expect(source.textContent).not.toContain('CachedA[Cached]');
   });
 
   it('sends quality modelProfile after selecting Quality', async () => {

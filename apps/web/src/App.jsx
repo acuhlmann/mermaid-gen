@@ -2,8 +2,10 @@ import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
 import {
+  createSessionId,
   fallbackState,
   fetchDiagramState,
+  normalizeSessionId,
   readDiagramCache,
   streamDiagramAgent,
   syncClientDiagramState,
@@ -153,7 +155,7 @@ function snapshotStreamEventForDebug(evt) {
   if (evt.type === 'final' && evt.state && typeof evt.state === 'object') {
     return {
       ...evt,
-      state: { revisionId: evt.state.revisionId, mermaidSource: '[omitted]' }
+      state: { revisionId: evt.state.revisionId, diagramSource: '[omitted]' }
     };
   }
   return evt;
@@ -205,6 +207,57 @@ function selectionActionTitle(selectionLike, verbLabel) {
 }
 
 const MODEL_PROFILE_STORAGE_KEY = 'mermaid-architect:model-profile';
+const CONTENT_MODE_STORAGE_KEY = 'mermaid-architect:content-mode';
+const SESSION_ROUTE_SEGMENT = 'sessions';
+
+function decodePathSegment(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeBasePath(baseUrl) {
+  const raw = typeof baseUrl === 'string' ? baseUrl.trim() : '';
+  if (!raw || raw === '/') return '';
+  return `/${raw.replace(/^\/+|\/+$/g, '')}`;
+}
+
+function relativePathname(pathname) {
+  const basePath = normalizeBasePath(import.meta.env.BASE_URL);
+  const normalizedPath = pathname || '/';
+  if (basePath && (normalizedPath === basePath || normalizedPath.startsWith(`${basePath}/`))) {
+    return normalizedPath.slice(basePath.length) || '/';
+  }
+  return normalizedPath;
+}
+
+function readSessionIdFromLocation(locationLike = typeof window !== 'undefined' ? window.location : null) {
+  if (!locationLike) return null;
+  const segments = relativePathname(locationLike.pathname)
+    .split('/')
+    .filter(Boolean);
+  if (segments[0] !== SESSION_ROUTE_SEGMENT) return null;
+  return normalizeSessionId(decodePathSegment(segments[1] ?? ''));
+}
+
+function sessionPathFor(sessionId) {
+  const basePath = normalizeBasePath(import.meta.env.BASE_URL);
+  return `${basePath}/${SESSION_ROUTE_SEGMENT}/${encodeURIComponent(sessionId)}`;
+}
+
+function ensureUrlBackedSession() {
+  const fallbackSessionId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+  if (typeof window === 'undefined') return fallbackSessionId;
+
+  const sessionId = readSessionIdFromLocation(window.location) ?? fallbackSessionId;
+  const nextPath = sessionPathFor(sessionId);
+  if (window.location.pathname !== nextPath) {
+    window.history.replaceState({}, '', `${nextPath}${window.location.search}${window.location.hash}`);
+  }
+  return sessionId;
+}
 
 /** Default UI tier is Fast unless the user chose Quality and we persisted it. */
 function readStoredModelProfile() {
@@ -213,14 +266,11 @@ function readStoredModelProfile() {
   return raw === 'quality' ? 'quality' : 'fast';
 }
 
-function hydrateStateFromCache(cached) {
-  if (!cached || typeof cached !== 'object') return fallbackState;
-  const source = typeof cached.mermaidSource === 'string' ? cached.mermaidSource : fallbackState.mermaidSource;
-  return {
-    ...fallbackState,
-    mermaidSource: source,
-    updatedAt: new Date().toISOString()
-  };
+/** Default content mode is Diagram (Mermaid). Infographic is opt-in and persisted. */
+function readStoredContentMode() {
+  if (typeof window === 'undefined') return 'mermaid';
+  const raw = window.localStorage.getItem(CONTENT_MODE_STORAGE_KEY);
+  return raw === 'infographic' ? 'infographic' : 'mermaid';
 }
 
 const SpeechRecognitionCtor = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
@@ -289,8 +339,13 @@ function useSyncVisualViewportHeight() {
 }
 
 function MermaidArchitect() {
-  const cacheRef = useRef(readDiagramCache());
-  const [state, setState] = useState(() => hydrateStateFromCache(cacheRef.current));
+  const initialSessionIdRef = useRef(null);
+  if (initialSessionIdRef.current == null) {
+    initialSessionIdRef.current = ensureUrlBackedSession();
+  }
+  const [activeSessionId, setActiveSessionId] = useState(initialSessionIdRef.current);
+  const cacheRef = useRef(readDiagramCache(initialSessionIdRef.current));
+  const [state, setState] = useState(fallbackState);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
@@ -305,6 +360,7 @@ function MermaidArchitect() {
   );
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
+  const [contentMode, setContentMode] = useState(() => readStoredContentMode());
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
   /** Auto pulse focuses on newly added nodes; manual "Highlight changes" shows full diff. */
@@ -405,32 +461,78 @@ function MermaidArchitect() {
   }, [state]);
 
   useEffect(() => {
-    fetchDiagramState()
-      .then((data) => {
-        const cachedSource = cacheRef.current?.mermaidSource;
-        if (typeof cachedSource === 'string') {
-          setState({
-            ...data,
-            mermaidSource: cachedSource,
-            updatedAt: new Date().toISOString()
-          });
-        } else {
-          setState(data);
-        }
-      })
-      .catch((err) => setError(err.message));
+    function handlePopState() {
+      const nextSessionId = ensureUrlBackedSession();
+      setActiveSessionId(nextSessionId);
+    }
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
   useEffect(() => {
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+    if (streamTimerRef.current != null) {
+      cancelAnimationFrame(streamTimerRef.current);
+      streamTimerRef.current = null;
+    }
+    streamAgentAbortRef.current?.abort();
+    cacheRef.current = readDiagramCache(activeSessionId);
+    setPrompt('');
+    promptRef.current = '';
+    setInsightsEntries(Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []);
+    setLatestCritique(cacheRef.current?.latestCritique?.text ? cacheRef.current.latestCritique : null);
+    setEditorOpen(Boolean(cacheRef.current?.editorOpen));
+    setInsightsOpen(Boolean(cacheRef.current?.insightsOpen));
+    setSoundEnabled(cacheRef.current?.soundEnabled ?? true);
+    setSelectedNode(null);
+    setToolbarAnchor(null);
+    setDiagramChangeHighlightEntryId(null);
+    setDiagramChangeHighlightAddedOnly(false);
+    setStreamingPreview(false);
+    setLoading(false);
+    setActiveRequest(null);
+    clearPendingAutoDiagramHighlight();
+    setError('');
+  }, [activeSessionId, clearPendingAutoDiagramHighlight]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setActiveRequest('hydrate');
+    fetchDiagramState({ contentType: contentMode, sessionId: activeSessionId })
+      .then((data) => {
+        if (cancelled) return;
+        stateRef.current = data;
+        setState(data);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setActiveRequest(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeSessionId, contentMode]);
+
+  useEffect(() => {
     writeDiagramCache({
-      mermaidSource: state.mermaidSource,
+      diagramSource: state.diagramSource,
+      contentMode,
       insightsEntries,
       latestCritique,
       editorOpen,
       insightsOpen,
       soundEnabled
-    });
-  }, [editorOpen, insightsEntries, insightsOpen, latestCritique, soundEnabled, state.mermaidSource]);
+    }, activeSessionId);
+  }, [activeSessionId, contentMode, editorOpen, insightsEntries, insightsOpen, latestCritique, soundEnabled, state.diagramSource]);
 
   useEffect(() => {
     try {
@@ -439,6 +541,14 @@ function MermaidArchitect() {
       // ignore quota / privacy mode
     }
   }, [modelProfile]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(CONTENT_MODE_STORAGE_KEY, contentMode);
+    } catch {
+      // ignore quota / privacy mode
+    }
+  }, [contentMode]);
 
   useEffect(
     () => () => {
@@ -523,14 +633,14 @@ function MermaidArchitect() {
 
   const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
     const previousState = stateRef.current;
-    const nextSource = nextState.mermaidSource;
+    const nextSource = nextState.diagramSource;
 
     if (streamTimerRef.current != null) {
       cancelAnimationFrame(streamTimerRef.current);
       streamTimerRef.current = null;
     }
 
-    if (previousState.revisionId === nextState.revisionId || previousState.mermaidSource === nextSource) {
+    if (previousState.revisionId === nextState.revisionId || previousState.diagramSource === nextSource) {
       setState(nextState);
       setStreamingPreview(false);
       setLoading(false);
@@ -574,12 +684,12 @@ function MermaidArchitect() {
       startTransition(() => {
         setState((prev) => {
           const slice = nextSource.slice(0, cursor);
-          if (prev.mermaidSource === slice && prev.revisionId === nextState.revisionId) {
+          if (prev.diagramSource === slice && prev.revisionId === nextState.revisionId) {
             return prev;
           }
           return {
             ...nextState,
-            mermaidSource: slice,
+            diagramSource: slice,
             updatedAt: nextState.updatedAt ?? previousState.updatedAt
           };
         });
@@ -820,7 +930,7 @@ function MermaidArchitect() {
             }
           }
         },
-          { signal: abortCtrl.signal }
+          { signal: abortCtrl.signal, sessionId: activeSessionId }
         );
       } catch (err) {
         const aborted =
@@ -857,6 +967,7 @@ function MermaidArchitect() {
       appendStreamDebugLog,
       appendTechnicalAction,
       appendToInsight,
+      activeSessionId,
       patchInsightEntry,
       setGoMadStreak,
       setInsightStatus,
@@ -875,11 +986,14 @@ function MermaidArchitect() {
       setError('');
       try {
         const syncedState = await syncClientDiagramState({
-          mermaidSource: brokenSource
+          contentType: contentMode,
+          diagramSource: brokenSource,
+          sessionId: activeSessionId
         });
         setState(syncedState);
 
         const result = await submitDiagramIntent({
+          contentType: contentMode,
           prompt: `The Mermaid editor currently shows a syntax error. Please fix the diagram and apply a corrected version with apply_mermaid_patch.
 
 Mermaid renderer error:
@@ -895,9 +1009,10 @@ Hard requirements:
 - Output complete, valid Mermaid source.
 - Apply the fix with apply_mermaid_patch before summarizing.`,
           revisionId: syncedState.revisionId,
-          mermaidSource: syncedState.mermaidSource,
+          diagramSource: syncedState.diagramSource,
           settings: {},
-          modelProfile
+          modelProfile,
+          sessionId: activeSessionId
         });
 
         animateAcceptedSource(result.state);
@@ -907,7 +1022,7 @@ Hard requirements:
         setActiveRequest(null);
       }
     },
-    [animateAcceptedSource, modelProfile]
+    [activeSessionId, animateAcceptedSource, contentMode, modelProfile]
   );
 
   const scheduleAutoFix = useCallback(
@@ -977,13 +1092,13 @@ Hard requirements:
     let scheduledSource = null;
 
     setState((currentState) => {
-      if (nextSource === currentState.mermaidSource) {
+      if (nextSource === currentState.diagramSource) {
         return currentState;
       }
       scheduledSource = nextSource;
       const nextState = {
         ...currentState,
-        mermaidSource: nextSource,
+        diagramSource: nextSource,
         updatedAt: new Date().toISOString()
       };
       stateRef.current = nextState;
@@ -1005,7 +1120,9 @@ Hard requirements:
       }
       try {
         const synced = await syncClientDiagramState({
-          mermaidSource: scheduledSource
+          contentType: contentMode,
+          diagramSource: scheduledSource,
+          sessionId: activeSessionId
         });
         setState(synced);
       } catch {
@@ -1022,7 +1139,9 @@ Hard requirements:
 
     const currentState = stateRef.current;
     const syncedState = await syncClientDiagramState({
-      mermaidSource: currentState.mermaidSource
+      contentType: contentMode,
+      diagramSource: currentState.diagramSource,
+      sessionId: activeSessionId
     });
     setState(syncedState);
     return syncedState;
@@ -1046,7 +1165,8 @@ Hard requirements:
           operation: 'intent',
           prompt: trimmed,
           revisionId: syncedState.revisionId,
-          mermaidSource: syncedState.mermaidSource,
+          diagramSource: syncedState.diagramSource,
+          contentType: contentMode,
           settings: {},
           focusNode,
           modelProfile
@@ -1280,7 +1400,7 @@ Hard requirements:
     const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
-    if (!stateRef.current.mermaidSource.trim()) return;
+    if (!stateRef.current.diagramSource.trim()) return;
 
     if (mode !== 'goMad') setGoMadStreak(0);
 
@@ -1302,7 +1422,8 @@ Hard requirements:
           operation: 'transform',
           mode,
           revisionId: syncedState.revisionId,
-          mermaidSource: syncedState.mermaidSource,
+          diagramSource: syncedState.diagramSource,
+          contentType: contentMode,
           focusNode,
           modelProfile,
           ...(mode === 'goMad' ? { goMadDepth } : {})
@@ -1323,7 +1444,7 @@ Hard requirements:
     const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
-    if (!stateRef.current.mermaidSource.trim()) return;
+    if (!stateRef.current.diagramSource.trim()) return;
 
     const focusNode = useDiagramFocus ? undefined : focusPayload(selectedNode);
     const titleSelection = useDiagramFocus ? null : selectedNode;
@@ -1340,7 +1461,8 @@ Hard requirements:
           operation: 'analyze',
           kind,
           revisionId: syncedState.revisionId,
-          mermaidSource: syncedState.mermaidSource,
+          diagramSource: syncedState.diagramSource,
+          contentType: contentMode,
           focusNode,
           modelProfile
         },
@@ -1434,7 +1556,8 @@ ${requirementsBlock}`;
             operation: 'intent',
             prompt: fixPrompt,
             revisionId: syncedState.revisionId,
-            mermaidSource: syncedState.mermaidSource,
+            diagramSource: syncedState.diagramSource,
+            contentType: contentMode,
             settings: {},
             focusNode: latestCritique.focusNode,
             modelProfile
@@ -1485,7 +1608,9 @@ ${requirementsBlock}`;
     setActiveRequest('clear');
     try {
       const synced = await syncClientDiagramState({
-        mermaidSource: ''
+        contentType: contentMode,
+        diagramSource: '',
+        sessionId: activeSessionId
       });
       setState(synced);
     } catch (err) {
@@ -1502,7 +1627,7 @@ ${requirementsBlock}`;
 
       const entry = insightsEntries.find((e) => e.id === entryId);
       const baseline = entry?.diagramUndoBaseline;
-      if (!baseline || typeof baseline.mermaidSource !== 'string') return;
+      if (!baseline || typeof baseline.diagramSource !== 'string') return;
 
       if (syncTimerRef.current) {
         clearTimeout(syncTimerRef.current);
@@ -1515,7 +1640,7 @@ ${requirementsBlock}`;
       setStreamingPreview(false);
 
       try {
-        const payload = { mermaidSource: baseline.mermaidSource };
+        const payload = { contentType: contentMode, diagramSource: baseline.diagramSource, sessionId: activeSessionId };
         if (baseline.styleConfig != null) {
           payload.styleConfig = baseline.styleConfig;
         }
@@ -1532,7 +1657,7 @@ ${requirementsBlock}`;
         setError(err.message);
       }
     },
-    [clearPendingAutoDiagramHighlight, insightsEntries, patchInsightEntry]
+    [activeSessionId, clearPendingAutoDiagramHighlight, contentMode, insightsEntries, patchInsightEntry]
   );
 
   const handleToggleDiagramChangeHighlight = useCallback(
@@ -1550,11 +1675,13 @@ ${requirementsBlock}`;
 
   const changeHighlightDiff = useMemo(() => {
     if (!diagramChangeHighlightEntryId) return null;
+    // The diff is Mermaid-flowchart specific; infographic mode has no comparable region map yet.
+    if (contentMode !== 'mermaid') return null;
     const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
-    const baseline = entry?.diagramUndoBaseline?.mermaidSource;
+    const baseline = entry?.diagramUndoBaseline?.diagramSource;
     if (typeof baseline !== 'string') return null;
-    return diffMermaidFlowcharts(baseline, state.mermaidSource ?? '');
-  }, [diagramChangeHighlightEntryId, insightsEntries, state.mermaidSource]);
+    return diffMermaidFlowcharts(baseline, state.diagramSource ?? '');
+  }, [contentMode, diagramChangeHighlightEntryId, insightsEntries, state.diagramSource]);
 
   const changeHighlightForCanvas = useMemo(() => {
     if (!diagramChangeHighlightEntryId || !changeHighlightDiff) return null;
@@ -1602,10 +1729,10 @@ ${requirementsBlock}`;
   }, [diagramChangeHighlightEntryId]);
 
   useEffect(() => {
-    if (!state.mermaidSource?.trim()) {
+    if (!state.diagramSource?.trim()) {
       clearPendingAutoDiagramHighlight();
     }
-  }, [clearPendingAutoDiagramHighlight, state.mermaidSource]);
+  }, [clearPendingAutoDiagramHighlight, state.diagramSource]);
 
   const busy = loading || streamingPreview;
 
@@ -1766,7 +1893,7 @@ ${requirementsBlock}`;
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
   );
-  const hasDiagramText = Boolean(state.mermaidSource?.trim());
+  const hasDiagramText = Boolean(state.diagramSource?.trim());
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
   const critiqueActionableSplit = useMemo(
@@ -1812,6 +1939,7 @@ ${requirementsBlock}`;
     if (loading && activeRequest === 'fix') return 'Applying critique fixes.';
     if (loading && activeRequest === 'clear') return 'Resetting diagram.';
     if (loading && activeRequest === 'autofix') return 'Fixing Mermaid syntax.';
+    if (loading && activeRequest === 'hydrate') return 'Loading shared session.';
     if (streamingPreview) return 'Refreshing diagram.';
     if (error) return error;
     if (voiceError) return voiceError;
@@ -1857,7 +1985,8 @@ ${requirementsBlock}`;
     >
       <DiagramCanvas
         revisionId={state.revisionId}
-        mermaidSource={state.mermaidSource}
+        diagramSource={state.diagramSource}
+        contentType={contentMode}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
         streamingPreview={streamingPreview}
@@ -2115,6 +2244,43 @@ ${requirementsBlock}`;
       </div>
 
       <div className="corner-control ai-corner-controls" aria-label="AI model and thinking">
+        <div className="model-profile-toggle" role="group" aria-label="Content mode">
+          <span className="model-profile-label">Mode</span>
+          <div className="model-profile-segment">
+            <button
+              type="button"
+              className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
+              aria-pressed={contentMode === 'mermaid'}
+              disabled={loading || streamingPreview}
+              onClick={() => {
+                if (contentMode === 'mermaid') return;
+                stopStreamingAgentRequest();
+                setSelectedNode(null);
+                setToolbarAnchor(null);
+                setLatestCritique(null);
+                setContentMode('mermaid');
+              }}
+            >
+              Diagram
+            </button>
+            <button
+              type="button"
+              className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
+              aria-pressed={contentMode === 'infographic'}
+              disabled={loading || streamingPreview}
+              onClick={() => {
+                if (contentMode === 'infographic') return;
+                stopStreamingAgentRequest();
+                setSelectedNode(null);
+                setToolbarAnchor(null);
+                setLatestCritique(null);
+                setContentMode('infographic');
+              }}
+            >
+              Infographic
+            </button>
+          </div>
+        </div>
         <div className="model-profile-toggle" role="group" aria-label="AI model profile">
           <span className="model-profile-label">Model</span>
           <div className="model-profile-segment">
