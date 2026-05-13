@@ -43,7 +43,7 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
   }
 
   let workingSource = styled.mermaidSource;
-  let sanitizerApplied = [...preStyleSanitizerApplied];
+  const sanitizerApplied = [...preStyleSanitizerApplied];
   let strictValidation = await validateMermaidStrict(workingSource);
 
   // Parse-fail rescue: try the deterministic sanitizer once and re-validate. Many LLM-emitted
@@ -59,12 +59,12 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
       let candidateStyleConfig = styled.styleConfig;
       if (reparsedStyle.accepted) {
         try {
-          const resaintized = applyMermaidStyleDirective({
+          const resanitized = applyMermaidStyleDirective({
             mermaidSource: sanitized,
             styleConfig: reparsedStyle.styleConfig
           });
-          candidateSource = resaintized.mermaidSource;
-          candidateStyleConfig = resaintized.styleConfig;
+          candidateSource = resanitized.mermaidSource;
+          candidateStyleConfig = resanitized.styleConfig;
         } catch {
           candidateSource = sanitized;
         }
@@ -73,10 +73,9 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
       if (rescueValidation.valid) {
         workingSource = candidateSource;
         styled.styleConfig = candidateStyleConfig;
-        sanitizerApplied = applied;
+        sanitizerApplied.push(...applied);
         strictValidation = {
           ...rescueValidation,
-          validator: 'sanitizer-rescue',
           rescuedFrom: rescueValidation.validator,
           originalError: initialError
         };
@@ -99,19 +98,15 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
     reason
   });
 
-  const finalValidator =
-    sanitizerApplied.length > 0 && strictValidation.validator !== 'sanitizer-rescue'
-      ? 'sanitizer-rescue'
-      : strictValidation.validator;
-
+  const rescued = sanitizerApplied.length > 0;
   return {
     accepted: true,
     patch,
     metadata: {
-      validator: finalValidator,
+      validator: rescued ? 'sanitizer-rescue' : strictValidation.validator,
       warnings: strictValidation.warnings ?? [],
       sanitizerApplied,
-      rescuedFrom: strictValidation.rescuedFrom ?? (sanitizerApplied.length > 0 ? strictValidation.validator : null)
+      rescuedFrom: rescued ? strictValidation.rescuedFrom ?? strictValidation.validator : null
     }
   };
 }

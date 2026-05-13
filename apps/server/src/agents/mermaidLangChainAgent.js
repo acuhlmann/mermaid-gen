@@ -9,6 +9,7 @@ import { recordAgentTurn, classifyAgentTurnError } from '../metrics/agentTurnMet
 import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
+import { extractTextContent } from '../utils/extractTextContent.js';
 import {
   createOpenRouterModel,
   createVertexChatModel,
@@ -453,21 +454,6 @@ Use this as the current diagram when the user's request is short or refers to "i
   };
 }
 
-function extractTextContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        if (typeof part === 'string') return part;
-        if (part?.type === 'text') return part.text;
-        return '';
-      })
-      .filter(Boolean)
-      .join('');
-  }
-  return content == null ? '' : String(content);
-}
-
 export function extractFinalMessage(result) {
   const messages = result?.messages ?? [];
   const lastAssistant = messages
@@ -814,7 +800,7 @@ function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource
   });
 }
 
-/** Default repair attempts (cheap after Phase 1 sanitizer rescue + Phase 3 fast fixer). */
+/** Default full-agent repair attempts that run after the deterministic sanitizer + single-shot fixer. */
 const DEFAULT_REPAIR_ATTEMPTS = 2;
 
 async function invokeWithRepair(
@@ -938,10 +924,10 @@ async function invokeWithRepair(
     .join('\n\n')
     .trim();
 
-  // Phase 3: tool-less single-shot fixer using a cheap fast model. Independent of the
-  // intent/transform model so repair runs on a small model regardless of caller profile.
-  // If the fixer accepts, apply through the same patch pipeline (which re-validates and
-  // runs the Phase 1 sanitizer once more for safety) and short-circuit the agent loop.
+  // Tool-less single-shot fixer using a cheap fast model. Independent of the intent/transform
+  // model so repair runs on a small model regardless of caller profile. If the fixer accepts,
+  // apply through the same patch pipeline (which re-validates and runs the sanitizer once more
+  // for safety) and short-circuit the agent loop.
   if (brokenSource && isSyntaxFixerAvailable(env)) {
     try {
       repairAttempts += 1;

@@ -4,6 +4,7 @@ import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { sanitizeMermaid } from './mermaidSanitizer.js';
 import { validateMermaidStrict } from './mermaidReliabilitySkill.js';
+import { extractTextContent } from '../utils/extractTextContent.js';
 
 const SYSTEM_PROMPT = `You are a Mermaid syntax repair function. Given a broken Mermaid diagram and a parser error, output the smallest set of changes that yield valid Mermaid for the same intent.
 
@@ -15,20 +16,9 @@ CRITICAL output rules:
 
 function extractMermaidFromResponse(text) {
   if (typeof text !== 'string') return '';
-  const fenced = text.match(/```(?:mermaid)?\s*\n([\s\S]*?)```/i);
+  const fenced = text.match(/```(?:mermaid)?\s*([\s\S]*?)```/i);
   if (fenced && fenced[1]) return fenced[1].trim();
   return text.trim();
-}
-
-function extractTextContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => (typeof part === 'string' ? part : part?.text ?? ''))
-      .filter(Boolean)
-      .join('');
-  }
-  return content == null ? '' : String(content);
 }
 
 /**
@@ -75,17 +65,15 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
   }
 
   const text = extractTextContent(response?.content ?? response?.kwargs?.content ?? '');
-  let candidate = extractMermaidFromResponse(text);
-  if (!candidate) {
+  const initial = extractMermaidFromResponse(text);
+  if (!initial) {
     return { accepted: false, error: 'Syntax fixer returned empty output.' };
   }
 
   // Pass the fixer's output through the same sanitizer + validator the agent's patches use,
   // so any residual mechanical issues are still caught before declaring victory.
-  const sanitized = sanitizeMermaid(candidate);
-  if (sanitized.applied.length > 0) {
-    candidate = sanitized.sanitized;
-  }
+  const sanitized = sanitizeMermaid(initial);
+  const candidate = sanitized.sanitized;
 
   const validation = await validateMermaidStrict(candidate);
   if (!validation.valid) {

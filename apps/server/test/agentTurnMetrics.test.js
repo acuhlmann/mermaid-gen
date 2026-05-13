@@ -24,8 +24,7 @@ test('recordAgentTurn emits structured line when enabled', () => {
       validator: 'sanitizer-rescue',
       repairAttempts: 0,
       sanitizerHits: 2,
-      errorClass: null,
-      validatorTimings: { local: 4, mcp: 0 }
+      errorClass: null
     },
     { env: { MERMAID_METRICS: '1' }, sink: (line) => lines.push(line) }
   );
@@ -36,7 +35,6 @@ test('recordAgentTurn emits structured line when enabled', () => {
   assert.equal(parsed.durationMs, 1287);
   assert.equal(parsed.validator, 'sanitizer-rescue');
   assert.equal(parsed.sanitizerHits, 2);
-  assert.deepEqual(parsed.validatorTimings, { local: 4, mcp: 0 });
   assert.equal(out.accepted, true);
 });
 

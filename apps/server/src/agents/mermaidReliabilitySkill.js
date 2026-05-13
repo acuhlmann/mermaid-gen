@@ -1,6 +1,6 @@
 import { JSDOM } from 'jsdom';
 
-const DIAGRAM_PREFIX_PATTERN = /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta)\b/m;
+const DIAGRAM_PREFIX_PATTERN = /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram-v2|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta)\b/m;
 
 const DEFAULT_REPAIR_MAX_ATTEMPTS = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
 const DEFAULT_MCP_MAX_RETRIES = Number.parseInt(process.env.MERMAID_MCP_MAX_RETRIES ?? '2', 10);

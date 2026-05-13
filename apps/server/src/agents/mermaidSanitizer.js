@@ -36,17 +36,35 @@ const KNOWN_DIAGRAM_PREFIXES = [
   'xychart-beta'
 ];
 
-const RESERVED_NODE_IDS = new Set([
-  'end',
-  'class',
-  'style',
-  'default',
-  'interpolate',
-  'linkStyle',
-  'subgraph'
-]);
+const RESERVED_NODE_IDS = ['end', 'class', 'style', 'default', 'interpolate', 'linkStyle'];
 
 const SPECIAL_LABEL_CHARS_RE = /[():/?&<>]|[^\x00-\x7F]/;
+
+const FLOWCHART_FAMILY_RE = /^(\s*)(flowchart|graph)\b/m;
+const TRAILING_SEMICOLON_LINE_RE = /;[ \t]*$/gm;
+
+// Precomputed per-keyword node-id rename regex. Ordering of edge tokens matters: longest first
+// so `---` matches before `--`, `-->` doesn't get split, etc.
+const RESERVED_ID_RENAME_REGEXES = Object.freeze(
+  Object.fromEntries(
+    RESERVED_NODE_IDS.map((raw) => [
+      raw,
+      new RegExp(
+        `(^|[\\s;{[(>|])${escapeRegex(raw)}(?=\\s*(---|--|-\\.|==|\\[|\\(|\\{|<))`,
+        'g'
+      )
+    ])
+  )
+);
+
+// Precomputed case-insensitive header replacements keyed on canonical prefix. Compiled at module
+// load so `normalizeDiagramHeader` doesn't recompile 24 regexes per call.
+const HEADER_PREFIX_REGEXES = Object.freeze(
+  KNOWN_DIAGRAM_PREFIXES.map((prefix) => ({
+    prefix,
+    re: new RegExp(`^(\\s*)${prefix.replace(/[-]/g, '\\-')}\\b`, 'i')
+  }))
+);
 
 const SMART_QUOTE_MAP = {
   '“': '"',
@@ -73,7 +91,6 @@ function normalizeSmartQuotes(source) {
 /** Replace `flow chart` and case-variant prefixes; promote v2 syntax to `stateDiagram-v2`. */
 function normalizeDiagramHeader(source) {
   const lines = source.split('\n');
-  let changed = false;
   let headerIdx = -1;
 
   for (let i = 0; i < lines.length; i += 1) {
@@ -85,19 +102,20 @@ function normalizeDiagramHeader(source) {
   if (headerIdx === -1) return null;
 
   const original = lines[headerIdx];
-  let updated = original;
+  let updated = original.replace(/^(\s*)flow\s+chart\b/i, '$1flowchart');
 
-  // `flow chart` → `flowchart`
-  updated = updated.replace(/^(\s*)flow\s+chart\b/i, '$1flowchart');
-  // case-variant of known prefixes (e.g. `Flowchart`, `SEQUENCEDIAGRAM`)
-  for (const prefix of KNOWN_DIAGRAM_PREFIXES) {
-    const re = new RegExp(`^(\\s*)${prefix.replace(/[-]/g, '\\-')}\\b`, 'i');
-    if (re.test(updated) && !new RegExp(`^\\s*${prefix.replace(/[-]/g, '\\-')}\\b`).test(updated)) {
+  // Case-variant of known prefixes (e.g. `Flowchart`, `SEQUENCEDIAGRAM`). Skip replacement
+  // when the prefix already appears in its canonical case so a no-op match doesn't dirty the
+  // line. Uses precomputed regexes from module load.
+  for (const { prefix, re } of HEADER_PREFIX_REGEXES) {
+    const match = re.exec(updated);
+    if (match && match[0].slice(match[1].length) !== prefix) {
       updated = updated.replace(re, `$1${prefix}`);
       break;
     }
   }
-  // bare `stateDiagram` followed by v2-only syntax → `stateDiagram-v2`
+
+  // Bare `stateDiagram` followed by v2-only syntax → `stateDiagram-v2`.
   if (/^\s*stateDiagram\b(?!-v2)/.test(updated)) {
     const rest = lines.slice(headerIdx + 1).join('\n');
     if (/-->/.test(rest) || /\bnote\s+(left|right)\s+of\b/i.test(rest) || /\bstate\s+"[^"]+"\s+as\b/i.test(rest)) {
@@ -105,11 +123,9 @@ function normalizeDiagramHeader(source) {
     }
   }
 
-  if (updated !== original) {
-    lines[headerIdx] = updated;
-    changed = true;
-  }
-  return changed ? lines.join('\n') : null;
+  if (updated === original) return null;
+  lines[headerIdx] = updated;
+  return lines.join('\n');
 }
 
 /**
@@ -117,7 +133,7 @@ function normalizeDiagramHeader(source) {
  * Only attempts in flowchart-family diagrams since other diagram types have different ID grammars.
  */
 function escapeReservedNodeIds(source) {
-  if (!/^(\s*)(flowchart|graph)\b/m.test(source)) return null;
+  if (!FLOWCHART_FAMILY_RE.test(source)) return null;
 
   const candidates = new Set();
   // Node declarations like `end[label]`, `end(label)`, `end{label}`, or bare `end -->`.
@@ -132,7 +148,7 @@ function escapeReservedNodeIds(source) {
     if (beforeId === '' && (id === 'subgraph' || id === 'end')) continue;
     candidates.add(m[2]);
   }
-  const edgeRe = /([\s;{[(>|])(end|class|style|default|interpolate|linkStyle)\s*(--|-\.|==|<-|<--|<==|-\-|---)/gi;
+  const edgeRe = /([\s;{[(>|])(end|class|style|default|interpolate|linkStyle)\s*(---|--|-\.|==|<==|<--|<-)/gi;
   while ((m = edgeRe.exec(source)) != null) {
     candidates.add(m[2]);
   }
@@ -140,15 +156,10 @@ function escapeReservedNodeIds(source) {
 
   let updated = source;
   for (const raw of candidates) {
-    const safe = `n_${raw.toLowerCase()}`;
-    // Rewrite the bare identifier wherever it appears as a node reference. We avoid renaming
-    // when it stands alone on a line as a keyword (`end` closing a subgraph). The pattern
-    // requires either a shape opener immediately after, or an edge operator.
-    const idRe = new RegExp(
-      `(^|[\\s;{[(>|])${escapeRegex(raw)}(?=\\s*(\\[|\\(|\\{|<|--|-\\.|==|---))`,
-      'g'
-    );
-    updated = updated.replace(idRe, `$1${safe}`);
+    const idRe = RESERVED_ID_RENAME_REGEXES[raw.toLowerCase()];
+    if (!idRe) continue;
+    idRe.lastIndex = 0;
+    updated = updated.replace(idRe, `$1n_${raw.toLowerCase()}`);
   }
   return updated === source ? null : updated;
 }
@@ -193,9 +204,9 @@ function quoteLabelsWithSpecials(source) {
 
 /** Strip trailing semicolons outside flowchart/graph (other diagram types reject them). */
 function stripInvalidSemicolons(source) {
-  if (/^(\s*)(flowchart|graph)\b/m.test(source)) return null;
+  if (FLOWCHART_FAMILY_RE.test(source)) return null;
   if (!/;\s*$/m.test(source)) return null;
-  const updated = source.replace(/;[ \t]*$/gm, '');
+  const updated = source.replace(TRAILING_SEMICOLON_LINE_RE, '');
   return updated === source ? null : updated;
 }
 
@@ -209,7 +220,7 @@ function closeUnbalancedSubgraphs(source) {
     else if (/^end\b/i.test(t)) depth -= 1;
   }
   if (depth <= 0 || depth > 3) return null;
-  return `${source.replace(/\s+$/, '')}\n${'end\n'.repeat(depth)}`.replace(/\n+$/, '\n');
+  return `${source.replace(/\s+$/, '')}\n${'end\n'.repeat(depth)}`;
 }
 
 /**

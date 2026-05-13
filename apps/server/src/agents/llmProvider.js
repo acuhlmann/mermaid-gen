@@ -191,9 +191,18 @@ export function createLlmChatModel(env = process.env, overrides = {}) {
   return createOpenRouterModel(env, overrides);
 }
 
+function resolveFastDefaultForBackend(env, backend) {
+  if (backend === 'vertex') {
+    const explicit = typeof env.VERTEX_MODEL_FAST === 'string' && env.VERTEX_MODEL_FAST.trim();
+    return explicit || DEFAULT_VERTEX_MODEL_FAST;
+  }
+  const explicit = typeof env.OPENROUTER_MODEL_FAST === 'string' && env.OPENROUTER_MODEL_FAST.trim();
+  return explicit || 'google/gemini-2.5-flash-lite';
+}
+
 /**
- * Resolve the model used by the Phase 3 syntax fixer. Independent of intent/transform model
- * so repair runs on a small, fast model regardless of the request profile.
+ * Resolve the model used by the syntax fixer. Independent of the intent/transform model so
+ * repair runs on a small, fast model regardless of the request profile.
  *
  *   MERMAID_REPAIR_BACKEND=vertex|openrouter  — pick the backend explicitly.
  *   MERMAID_REPAIR_MODEL=<slug-or-model-id>   — override the model id.
@@ -206,22 +215,18 @@ export function resolveSyntaxFixerTarget(env = process.env) {
   const requested = typeof env.MERMAID_REPAIR_BACKEND === 'string'
     ? env.MERMAID_REPAIR_BACKEND.trim().toLowerCase()
     : '';
-  let backend = requested === 'vertex' || requested === 'openrouter' ? requested : null;
-  if (!backend) {
-    backend = resolveLlmBackend(env);
-  }
+  const backend = requested === 'vertex' || requested === 'openrouter' ? requested : resolveLlmBackend(env);
   if (!backend) return null;
   if (backend === 'vertex' && !isVertexEnvConfigured(env)) return null;
   if (backend === 'openrouter' && !env.OPENROUTER_API_KEY) return null;
 
   const explicit = typeof env.MERMAID_REPAIR_MODEL === 'string' ? env.MERMAID_REPAIR_MODEL.trim() : '';
-  const modelId = explicit
-    || (backend === 'vertex'
-      ? (typeof env.VERTEX_MODEL_FAST === 'string' && env.VERTEX_MODEL_FAST.trim()) || DEFAULT_VERTEX_MODEL_FAST
-      : (typeof env.OPENROUTER_MODEL_FAST === 'string' && env.OPENROUTER_MODEL_FAST.trim())
-        || 'google/gemini-2.5-flash-lite');
-  return { backend, modelId };
+  return { backend, modelId: explicit || resolveFastDefaultForBackend(env, backend) };
 }
+
+// Cache fixer chat models per (backend, modelId) so repeated repair turns don't reconstruct the
+// SDK client (auth resolution, http agent) every time. Stateless, safe to reuse.
+const syntaxFixerModelCache = new Map();
 
 /**
  * Build a tool-less, low-temperature chat model suited for the syntax fixer single-shot call.
@@ -232,7 +237,13 @@ export function resolveSyntaxFixerTarget(env = process.env) {
 export function createSyntaxFixerModel(env = process.env) {
   const target = resolveSyntaxFixerTarget(env);
   if (!target) return null;
-  const overrides = { model: target.modelId, temperature: 0.1, maxTokens: 1400, maxOutputTokens: 1400 };
-  if (target.backend === 'vertex') return createVertexChatModel(env, overrides);
-  return createOpenRouterModel(env, overrides);
+  const key = `${target.backend}:${target.modelId}`;
+  const cached = syntaxFixerModelCache.get(key);
+  if (cached) return cached;
+  const overrides = { model: target.modelId, temperature: 0.1, maxOutputTokens: 1400 };
+  const model = target.backend === 'vertex'
+    ? createVertexChatModel(env, overrides)
+    : createOpenRouterModel(env, overrides);
+  syntaxFixerModelCache.set(key, model);
+  return model;
 }

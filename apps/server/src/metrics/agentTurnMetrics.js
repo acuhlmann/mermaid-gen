@@ -25,7 +25,7 @@ function sanitizeShortString(value, max = 120) {
  *
  * Shape stays stable so log shippers can index on it:
  *   { tag, ts, mode, model, profile, durationMs, accepted, validator,
- *     repairAttempts, sanitizerHits, errorClass, validatorTimings }
+ *     repairAttempts, sanitizerHits, errorClass }
  *
  * @param {{
  *   mode?: string,
@@ -36,8 +36,7 @@ function sanitizeShortString(value, max = 120) {
  *   validator?: string | null,
  *   repairAttempts?: number,
  *   sanitizerHits?: number,
- *   errorClass?: string | null,
- *   validatorTimings?: Record<string, number> | null
+ *   errorClass?: string | null
  * }} sample
  * @param {{ env?: NodeJS.ProcessEnv, sink?: (line: string) => void }} [opts]
  */
@@ -56,8 +55,7 @@ export function recordAgentTurn(sample, opts = {}) {
     validator: sanitizeShortString(sample.validator),
     repairAttempts: safeNumber(sample.repairAttempts) ?? 0,
     sanitizerHits: safeNumber(sample.sanitizerHits) ?? 0,
-    errorClass: sanitizeShortString(sample.errorClass),
-    validatorTimings: sample.validatorTimings ?? null
+    errorClass: sanitizeShortString(sample.errorClass)
   };
 
   const line = JSON.stringify(record);
