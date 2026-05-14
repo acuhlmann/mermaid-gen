@@ -122,7 +122,7 @@ export function createOpenRouterModel(env, overrides = {}) {
   const { temperature, model: explicitModel, ...rest } = overrides;
   const fields = {
     apiKey: env.OPENROUTER_API_KEY,
-    siteName: env.OPENROUTER_SITE_NAME || 'Mermaid Architect',
+    siteName: env.OPENROUTER_SITE_NAME || 'ArchiSlop',
     siteUrl: env.OPENROUTER_SITE_URL || 'http://localhost:5173',
     ...rest
   };

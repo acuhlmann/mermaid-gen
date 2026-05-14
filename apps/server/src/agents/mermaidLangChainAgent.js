@@ -82,7 +82,7 @@ const GO_MAD_TEMP_MIN = 1.48;
 const GO_MAD_TEMP_MAX = 1.7;
 const GO_MAD_TEMP_PER_DEPTH = 0.02;
 
-const ANALYSIS_SYSTEM_PROMPT = `You are Mermaid Architect in read-only mode.
+const ANALYSIS_SYSTEM_PROMPT = `You are ArchiSlop in read-only mode.
 CRITICAL:
 - Do NOT edit the diagram. Do NOT output apply_mermaid_patch or tool calls.
 - Answer only in plain text or Markdown for the user to read.
@@ -378,7 +378,7 @@ Output goal:
 Apply one transformative update via apply_mermaid_patch matching the mode above.`;
 }
 
-const SYSTEM_PROMPT = `You are Mermaid Architect, an agent that helps edit Mermaid diagrams.
+const SYSTEM_PROMPT = `You are ArchiSlop, an agent that helps edit Mermaid diagrams.
 
 When the user asks for a diagram change:
 - Prefer the injected current diagram context; call get_diagram_state at most once if you truly need to confirm revision or state.
@@ -638,7 +638,7 @@ function formatAgentInvokeFailure(error, env = process.env) {
   };
 }
 
-function captureMessagesFromStreamEvent(event, prev) {
+export function captureMessagesFromStreamEvent(event, prev) {
   const data = event?.data ?? {};
   const msgs = data.output?.messages;
   if (Array.isArray(msgs) && msgs.length > 0) return msgs;

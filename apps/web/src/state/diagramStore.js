@@ -1,4 +1,4 @@
-import { createInitialDiagramState, createInitialSessionState } from '@mermaid-architect/shared';
+import { createInitialDiagramState, createInitialSessionState } from '@archislop/shared';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
 /** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, defaults to the local server. */
@@ -8,8 +8,8 @@ export const API_BASE_URL = rawApiBase
     ? 'http://localhost:4000'
     : '';
 export const SESSION_HEADER = 'x-session-id';
-const BROWSER_SESSION_STORAGE_KEY = 'mermaid-architect:session-id';
-const DIAGRAM_CACHE_STORAGE_KEY = 'mermaid-architect:diagram-cache-v2';
+const BROWSER_SESSION_STORAGE_KEY = 'archislop:session-id';
+const DIAGRAM_CACHE_STORAGE_KEY = 'archislop:diagram-cache-v2';
 const AGENT_REQUEST_TIMEOUT_MS = 60_000;
 const MAX_SESSION_ID_LENGTH = 128;
 const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
@@ -249,6 +249,115 @@ export async function submitDiagramAnalyze({
 }
 
 /**
+ * Translates an AG-UI wire event back into the legacy internal event shape that
+ * App.jsx already consumes. State across an SSE run (open message id, cached
+ * state snapshot) is held by the closure returned from createAgUiTranslator.
+ *
+ * Mapping summary:
+ *   STEP_STARTED                                 -> { type:'phase', id, label }
+ *   TEXT_MESSAGE_CONTENT                         -> { type:'token', text }
+ *   STATE_DELTA(/lastPatchSummary)               -> { type:'artifact', kind:'patch_summary' }
+ *   STATE_DELTA(/<contentType>/draftSource)      -> { type:'draftPreview', contentType, source }
+ *   STATE_SNAPSHOT                               -> cached, attached to RUN_FINISHED
+ *   RUN_FINISHED                                 -> { type:'final', state, message, ... }
+ *   RUN_ERROR                                    -> { type:'error', message }
+ *   CUSTOM(status)                               -> { type:'status', text }
+ *   TOOL_CALL_START/END                          -> { type:'tool_start' | 'tool_end', name }
+ *
+ * Legacy event shapes pass through unchanged so the server can mix protocols.
+ */
+export function createAgUiTranslator() {
+  let lastSnapshot = null;
+  return function translate(evt) {
+    if (!evt || typeof evt !== 'object') return null;
+    switch (evt.type) {
+      case 'RUN_STARTED':
+        // Surface so the UI can show "starting" affordances; carries no
+        // user-visible text but the optimistic chip path needs the trigger.
+        return { type: 'phase', id: 'run_started', label: 'Starting…' };
+      case 'STEP_STARTED':
+        return { type: 'phase', id: evt.stepName || 'step', label: evt.stepName || 'Working…' };
+      case 'STEP_FINISHED':
+        return null; // no legacy equivalent; the next STEP_STARTED overwrites
+      case 'TEXT_MESSAGE_START':
+      case 'TEXT_MESSAGE_END':
+        return null;
+      case 'TEXT_MESSAGE_CONTENT': {
+        const text = typeof evt.delta === 'string' ? evt.delta : '';
+        if (!text) return null;
+        return { type: 'token', text };
+      }
+      case 'TOOL_CALL_START':
+        return { type: 'tool_start', name: String(evt.toolCallName ?? 'tool') };
+      case 'TOOL_CALL_END':
+        return { type: 'tool_end', name: '' };
+      case 'TOOL_CALL_ARGS':
+        return null; // not surfaced legacy-side
+      case 'STATE_SNAPSHOT':
+        lastSnapshot = evt.snapshot ?? null;
+        return null;
+      case 'STATE_DELTA': {
+        const ops = Array.isArray(evt.delta) ? evt.delta : [];
+        // Live infographic/mermaid draft preview rides on /<contentType>/draftSource.
+        // Surface as the legacy draftPreview event the App.jsx switch already
+        // consumes, so the React state plumbing doesn't need to know the wire
+        // moved from CUSTOM to STATE_DELTA.
+        const draftOp = ops.find(
+          (op) => typeof op?.path === 'string' && /^\/(mermaid|infographic)\/draftSource$/.test(op.path)
+        );
+        if (draftOp) {
+          const ct = draftOp.path.split('/')[1];
+          if (draftOp.op === 'remove') {
+            return { type: 'draftPreview', contentType: ct, source: '', delta: '' };
+          }
+          const v = typeof draftOp.value === 'string' ? draftOp.value : '';
+          return { type: 'draftPreview', contentType: ct, source: v, delta: '' };
+        }
+        // Convert the route's synthetic JSON Patch back into a patch_summary
+        // artifact so existing UI sparklines/insight chips keep working.
+        const summaryOp = ops.find((op) => op?.path === '/lastPatchSummary');
+        if (summaryOp?.value) {
+          const v = summaryOp.value;
+          return {
+            type: 'artifact',
+            kind: 'patch_summary',
+            revisionId: v.revisionId ?? 0,
+            linesAdded: v.linesAdded ?? 0,
+            linesRemoved: v.linesRemoved ?? 0
+          };
+        }
+        return null;
+      }
+      case 'RUN_FINISHED': {
+        const result = evt.result ?? {};
+        const out = {
+          type: 'final',
+          revisionChanged: Boolean(result.revisionChanged),
+          ...(typeof result.message === 'string' ? { message: result.message } : {}),
+          ...(typeof result.analyzeText === 'string' ? { analyzeText: result.analyzeText } : {}),
+          ...(lastSnapshot ? { state: lastSnapshot } : {})
+        };
+        lastSnapshot = null;
+        return out;
+      }
+      case 'RUN_ERROR':
+        return { type: 'error', message: String(evt.message ?? 'Unknown error') };
+      case 'CUSTOM': {
+        if (evt.name === 'status') {
+          const text = evt.value?.text ?? '';
+          return { type: 'status', text };
+        }
+        if (evt.name === 'artifact') return evt.value ?? null;
+        return null;
+      }
+      default:
+        // Legacy event shape — pass through unchanged.
+        return evt;
+    }
+  };
+}
+
+/**
  * Streams SSE events from POST /api/copilotkit/agent-stream.
  * Each parsed event is passed to onEvent. Resolves when the stream ends or `done` is received.
  *
@@ -291,8 +400,10 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
     err?.name === 'AbortError' ||
     (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
 
+  const translate = createAgUiTranslator();
+
   try {
-    const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream`, {
+    const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream?protocol=agui`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
       body: JSON.stringify(payload),
@@ -342,8 +453,9 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
           if (!jsonText) continue;
           try {
             const evt = JSON.parse(jsonText);
-            onEvent(evt);
-            if (evt.type === 'done') {
+            const translated = translate(evt);
+            if (translated) onEvent(translated);
+            if (evt?.type === 'done' || evt?.type === 'RUN_FINISHED' || evt?.type === 'RUN_ERROR') {
               return;
             }
           } catch {

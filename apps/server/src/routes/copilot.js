@@ -8,10 +8,17 @@ import {
   DiagramStyleSchema,
   DiagramTransformIntentSchema,
   StyleIntentSchema
-} from '@mermaid-architect/shared';
+} from '@archislop/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
 import { SESSION_HEADER } from '../state/sessionServices.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
+import {
+  createAgUiEmit,
+  newRunIds,
+  runStarted,
+  runError,
+  stepStarted
+} from '../agents/agUiEvents.js';
 
 function safeErrorMessage(error) {
   return redactSecrets(error instanceof Error ? error.message : String(error));
@@ -452,6 +459,7 @@ export function createCopilotRouter({ resolveServices }) {
     }
 
     const revisionBefore = state.revisionId;
+    const useAgUi = req.query?.protocol === 'agui';
 
     res.status(200);
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -461,23 +469,43 @@ export function createCopilotRouter({ resolveServices }) {
       res.flushHeaders();
     }
 
-    const emit = (evt) => {
-      writeSseData(res, evt);
-    };
+    const rawEmit = (evt) => writeSseData(res, evt);
+
+    // First-paint: emit RUN_STARTED + an initial STEP_STARTED immediately so
+    // the client can show feedback before the (lazy) agent service warms up.
+    let emit;
+    let ids = null;
+    if (useAgUi) {
+      ids = newRunIds();
+      rawEmit(runStarted(ids));
+      rawEmit(stepStarted({ stepName: 'planning' }));
+      emit = createAgUiEmit({
+        rawEmit,
+        threadId: ids.threadId,
+        runId: ids.runId,
+        contentType: payload.contentType
+      });
+    } else {
+      emit = rawEmit;
+    }
 
     try {
       await agentService.runAgentStream(payload.operation, { ...payload, _revisionBefore: revisionBefore }, emit);
-      writeSseData(res, { type: 'done' });
-    } catch (error) {
-      if (error instanceof LlmNotConfiguredError) {
-        writeSseData(res, { type: 'error', message: safeErrorMessage(error) });
-      } else {
-        writeSseData(res, {
-          type: 'error',
-          message: safeErrorMessage(error)
-        });
+      if (!useAgUi) {
+        writeSseData(res, { type: 'done' });
       }
-      writeSseData(res, { type: 'done' });
+    } catch (error) {
+      const message = safeErrorMessage(error);
+      if (useAgUi && ids) {
+        rawEmit(runError({ message }));
+      } else {
+        if (error instanceof LlmNotConfiguredError) {
+          writeSseData(res, { type: 'error', message });
+        } else {
+          writeSseData(res, { type: 'error', message });
+        }
+        writeSseData(res, { type: 'done' });
+      }
     }
 
     res.end();

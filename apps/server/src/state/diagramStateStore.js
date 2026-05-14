@@ -3,7 +3,7 @@ import {
   createInitialSessionState,
   applyMermaidStyleDirective,
   parseMermaidStyleConfig
-} from '@mermaid-architect/shared';
+} from '@archislop/shared';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 import { validateAndPrepareInfographicPatch } from '../tools/infographicDslTool.js';

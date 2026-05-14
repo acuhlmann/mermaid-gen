@@ -1,5 +1,5 @@
 {
-  "name": "@mermaid-architect/web",
+  "name": "@archislop/web",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -14,13 +14,14 @@
     "@antv/infographic": "^0.2.19",
     "@copilotkit/react-core": "^1.57.1",
     "@copilotkit/runtime-client-gql": "^1.57.1",
-    "@mermaid-architect/shared": "^1.0.0",
+    "@archislop/shared": "^1.0.0",
     "@monaco-editor/react": "^4.7.0",
+    "canvas-confetti": "^1.9.4",
     "mermaid": "^11.14.0",
     "monaco-mermaid": "^1.1.0",
+    "path-browserify": "^1.0.1",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
-    "path-browserify": "^1.0.1",
     "source-map-js": "^1.2.1"
   },
   "devDependencies": {

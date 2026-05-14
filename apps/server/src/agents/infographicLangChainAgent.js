@@ -20,6 +20,7 @@ import {
 import {
   buildFocusScopeInstructions,
   buildAnalyzeFocusInstructions,
+  captureMessagesFromStreamEvent,
   clampGoMadDepth,
   emitIntentTransformStreamResult,
   extractFinalMessage,
@@ -30,6 +31,7 @@ import {
   toLangChainMessages,
   transformModeModelOptions
 } from './mermaidLangChainAgent.js';
+import { extractJsonStringPrefix } from './partialJsonString.js';
 
 const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an infographic patch.
 - You MUST call apply_infographic_patch now once with complete, valid AntV Infographic DSL, then briefly summarize in prose only.
@@ -129,17 +131,53 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
 
     let result;
     try {
-      if (typeof agent.stream === 'function' && typeof emit === 'function') {
-        const stream = await agent.stream({ messages });
-        let captured;
-        for await (const event of stream) {
-          const normalized = normalizeAgentStreamEvent(event);
+      if (typeof agent.streamEvents === 'function' && typeof emit === 'function') {
+        const stream = await agent.streamEvents({ messages }, { version: 'v2' });
+        // Per tool_call_id buffers so we can lazily decode the partial
+        // diagramSource argument as the model streams it. The patch tool's
+        // schema is a single string field, so a streaming prefix is a valid
+        // draft for the InfographicRenderer to render incrementally.
+        const toolCallBuffers = new Map();
+        let latestMessages = [];
+        for await (const ev of stream) {
+          latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
+          const normalized = normalizeAgentStreamEvent(ev);
           if (normalized) emit(normalized);
-          if (event && typeof event === 'object' && 'messages' in event && Array.isArray(event.messages)) {
-            captured = event;
+
+          if (ev?.event === 'on_chat_model_stream') {
+            const chunks = ev.data?.chunk?.tool_call_chunks;
+            if (Array.isArray(chunks) && chunks.length > 0) {
+              for (const tcc of chunks) {
+                const bufferKey = tcc.id || `idx_${tcc.index ?? 0}`;
+                let entry = toolCallBuffers.get(bufferKey);
+                if (!entry) {
+                  entry = { name: '', argsBuffer: '', lastEmitted: 0 };
+                  toolCallBuffers.set(bufferKey, entry);
+                }
+                if (tcc.name) entry.name = tcc.name;
+                if (typeof tcc.args === 'string' && tcc.args) {
+                  entry.argsBuffer += tcc.args;
+                }
+                if (entry.name === 'apply_infographic_patch' && entry.argsBuffer) {
+                  const accumulated = extractJsonStringPrefix(entry.argsBuffer, 'diagramSource');
+                  if (accumulated.length > entry.lastEmitted) {
+                    const delta = accumulated.slice(entry.lastEmitted);
+                    entry.lastEmitted = accumulated.length;
+                    emit({
+                      type: 'draftPreview',
+                      contentType: 'infographic',
+                      delta,
+                      accumulated
+                    });
+                  }
+                }
+              }
+            }
           }
         }
-        result = captured;
+        // streamEvents doesn't return a single envelope object; reconstruct
+        // the legacy shape so the post-loop revision/repair logic still works.
+        result = latestMessages.length > 0 ? { messages: latestMessages } : null;
       } else {
         result = await agent.invoke({ messages });
       }

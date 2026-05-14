@@ -15,17 +15,40 @@ import {
 import './App.css';
 import {
   playCompletionChime as playCompletionChimeTone,
+  playConfettiPop,
+  playDraftTick,
   playFailureChime,
   playGoMadCompletionChime,
   playGoMadStreamStart,
   playGoMadTokenTick,
   playInnovateStreamStart,
+  playModeSwoosh,
   playRefineStreamStart,
   playStreamStartChime,
+  playSubmitThunk,
   playTokenTickChime,
   playToolEndChime,
   playToolStartChime
 } from './utils/agentChimes.js';
+import confetti from 'canvas-confetti';
+
+// canvas-confetti uses HTMLCanvasElement.getContext('2d') and trips on jsdom
+// (which returns null). Gate so test runs don't see async confetti errors.
+let _confettiSupportCache = null;
+function canvasConfettiAvailable() {
+  if (_confettiSupportCache !== null) return _confettiSupportCache;
+  if (typeof document === 'undefined') {
+    _confettiSupportCache = false;
+    return false;
+  }
+  try {
+    const c = document.createElement('canvas');
+    _confettiSupportCache = Boolean(c.getContext?.('2d'));
+  } catch {
+    _confettiSupportCache = false;
+  }
+  return _confettiSupportCache;
+}
 import { splitCritiqueActionableSections } from './utils/critiqueActionable.js';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
@@ -67,7 +90,7 @@ function shouldAppendFinalInsightEcho(streamedText, finalMessage) {
   return true;
 }
 
-const STREAM_DEBUG_LS_KEY = 'mermaid-architect-stream-debug';
+const STREAM_DEBUG_LS_KEY = 'archislop-stream-debug';
 
 const NODE_PANEL_EDGE_MARGIN = 12;
 const NODE_PANEL_NODE_GAP = 10;
@@ -206,8 +229,8 @@ function selectionActionTitle(selectionLike, verbLabel) {
   return `${verbLabel} — node “${selectionLike.label || selectionLike.id}”`;
 }
 
-const MODEL_PROFILE_STORAGE_KEY = 'mermaid-architect:model-profile';
-const CONTENT_MODE_STORAGE_KEY = 'mermaid-architect:content-mode';
+const MODEL_PROFILE_STORAGE_KEY = 'archislop:model-profile';
+const CONTENT_MODE_STORAGE_KEY = 'archislop:content-mode';
 const SESSION_ROUTE_SEGMENT = 'sessions';
 
 function decodePathSegment(value) {
@@ -291,6 +314,19 @@ function MermaidMarkIcon() {
   );
 }
 
+function ArchiSlopMarkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path d="M5 16 Q5 7 12 6 Q19 7 19 16 Z" fill="#F4A300" />
+      <ellipse cx="12" cy="16" rx="9" ry="1.4" fill="#C77A00" />
+      <path d="M12 6 L11 16 L13 16 Z" fill="#C77A00" opacity="0.55" />
+      <path d="M6 17 Q6 20 7 22 Q8 20 8 17 Z" fill="#7CFC00" />
+      <path d="M11 17 Q11 22 12 23.5 Q13 22 13 17 Z" fill="#3FA700" />
+      <path d="M16 17 Q16 20 17 22 Q18 20 18 17 Z" fill="#7CFC00" />
+    </svg>
+  );
+}
+
 function MicIcon() {
   return (
     <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
@@ -338,7 +374,7 @@ function useSyncVisualViewportHeight() {
   }, []);
 }
 
-function MermaidArchitect() {
+function ArchiSlop() {
   const initialSessionIdRef = useRef(null);
   if (initialSessionIdRef.current == null) {
     initialSessionIdRef.current = ensureUrlBackedSession();
@@ -351,6 +387,11 @@ function MermaidArchitect() {
   const [activeRequest, setActiveRequest] = useState(null);
   const [error, setError] = useState('');
   const [streamingPreview, setStreamingPreview] = useState(false);
+  // In-flight draft DSL streamed from the agent's tool-call args, used to render
+  // an infographic incrementally before the final patch revision lands. Cleared
+  // on final/error. Separate from `streamingPreview` (the post-patch typewriter).
+  const [liveDraftSource, setLiveDraftSource] = useState('');
+  const [liveDraftContentType, setLiveDraftContentType] = useState(null);
   const [validationError, setValidationError] = useState(null);
   const [autoFixAttempted, setAutoFixAttempted] = useState(false);
   const [editorOpen, setEditorOpen] = useState(Boolean(cacheRef.current?.editorOpen));
@@ -398,6 +439,7 @@ function MermaidArchitect() {
   const autoFixAttemptedRef = useRef(false);
   const loadingRef = useRef(false);
   const streamingPreviewRef = useRef(false);
+  const lastDraftTickAtRef = useRef(0);
   const autoFixAlwaysOnRef = useRef(true);
   const hasInteractedRef = useRef(false);
   const audioContextRef = useRef(null);
@@ -627,6 +669,26 @@ function MermaidArchitect() {
       celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
       if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
       else tryAgentSound(playCompletionChimeTone);
+
+      const reduceMotion =
+        typeof globalThis.matchMedia === 'function' &&
+        globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (!reduceMotion && canvasConfettiAvailable()) {
+        try {
+          const burstParticles = variant === 'goMad' ? 120 : 70;
+          confetti({
+            particleCount: burstParticles,
+            spread: variant === 'goMad' ? 92 : 70,
+            startVelocity: variant === 'goMad' ? 55 : 42,
+            ticks: 200,
+            origin: { x: 0.5, y: 0.4 },
+            colors: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
+          });
+        } catch {
+          // canvas-confetti can throw in headless test envs; ignore.
+        }
+        tryAgentSound(playConfettiPop);
+      }
     },
     [tryAgentSound]
   );
@@ -863,9 +925,23 @@ function MermaidArchitect() {
           } else if (evt.type === 'tool_end' && evt.name) {
             appendTechnicalAction(sectionId, evt.name, 'done');
             tryAgentSound(playToolEndChime);
+          } else if (evt.type === 'draftPreview') {
+            // Live in-flight DSL — render incrementally for infographics.
+            // Mermaid intentionally opts out (partial syntax usually fails).
+            if (evt.contentType === 'infographic' && typeof evt.source === 'string' && evt.source) {
+              setLiveDraftSource(evt.source);
+              setLiveDraftContentType('infographic');
+              const tickNow = Date.now();
+              if (tickNow - lastDraftTickAtRef.current >= 110) {
+                lastDraftTickAtRef.current = tickNow;
+                tryAgentSound(playDraftTick);
+              }
+            }
           } else if (evt.type === 'error' && evt.message) {
             appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
             if (evt.code !== 'no_mutation_revision') tryAgentSound(playFailureChime);
+            setLiveDraftSource('');
+            setLiveDraftContentType(null);
             patchInsightEntry(sectionId, (entry) => ({
               ...entry,
               status: 'failed',
@@ -876,6 +952,9 @@ function MermaidArchitect() {
               completedAt: Date.now()
             }));
           } else if (evt.type === 'final') {
+            // Live draft is superseded by the authoritative state in `evt.state`.
+            setLiveDraftSource('');
+            setLiveDraftContentType(null);
             const mutationBlocked =
               (operation === 'transform' || operation === 'intent') && evt.revisionChanged === false;
             if (variant === 'goMad' && evt.revisionChanged) {
@@ -1151,6 +1230,7 @@ Hard requirements:
     const trimmed = (nextPrompt ?? '').trim();
     if (!trimmed || loadingRef.current || streamingPreviewRef.current) return;
 
+    tryAgentSound(playSubmitThunk);
     setGoMadStreak(0);
     const focusNode = focusPayload(selectedNode);
     setLoading(true);
@@ -1981,15 +2061,19 @@ ${requirementsBlock}`;
   return (
     <main
       className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}`}
-      aria-label="MermaidGen"
+      aria-label="ArchiSlop"
     >
       <DiagramCanvas
         revisionId={state.revisionId}
-        diagramSource={state.diagramSource}
+        diagramSource={
+          liveDraftSource && liveDraftContentType === contentMode
+            ? liveDraftSource
+            : state.diagramSource
+        }
         contentType={contentMode}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
-        streamingPreview={streamingPreview}
+        streamingPreview={streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)}
         agentThinking={agentThinkingChrome && !streamingPreview}
         editorOpen={editorOpen}
         insightsOpen={insightsOpen && Boolean(insightsSlot)}
@@ -2082,11 +2166,11 @@ ${requirementsBlock}`;
         </div>
       ) : null}
 
-      <div className="corner-control brand-control" aria-label="MermaidGen">
+      <div className="corner-control brand-control" aria-label="ArchiSlop">
         <span className="brand-mark" aria-hidden="true">
-          <MermaidMarkIcon />
+          <ArchiSlopMarkIcon />
         </span>
-        <span className="brand-name">MermaidGen</span>
+        <span className="brand-name">ArchiSlop</span>
       </div>
 
       <div className="corner-control edit-control">
@@ -2258,6 +2342,7 @@ ${requirementsBlock}`;
                 setSelectedNode(null);
                 setToolbarAnchor(null);
                 setLatestCritique(null);
+                tryAgentSound(playModeSwoosh);
                 setContentMode('mermaid');
               }}
             >
@@ -2274,6 +2359,7 @@ ${requirementsBlock}`;
                 setSelectedNode(null);
                 setToolbarAnchor(null);
                 setLatestCritique(null);
+                tryAgentSound(playModeSwoosh);
                 setContentMode('infographic');
               }}
             >
@@ -2316,7 +2402,7 @@ ${requirementsBlock}`;
 }
 
 function App() {
-  return <MermaidArchitect />;
+  return <ArchiSlop />;
 }
 
 export default App;

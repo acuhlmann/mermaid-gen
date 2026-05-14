@@ -1,4 +1,4 @@
-import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@mermaid-architect/shared';
+import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@archislop/shared';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 import { sanitizeMermaid } from '../agents/mermaidSanitizer.js';
 import { redactSecrets } from '../utils/redactSecrets.js';

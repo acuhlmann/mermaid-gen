@@ -16,7 +16,7 @@ import InfographicRenderer from './InfographicRenderer.jsx';
 const MERMAID_INIT = {
   startOnLoad: false,
   deterministicIds: true,
-  deterministicIDSeed: 'mermaid-architect'
+  deterministicIDSeed: 'archislop'
 };
 mermaid.initialize({ ...MERMAID_INIT });
 
@@ -487,6 +487,23 @@ export default function DiagramCanvas({
       }
     });
   }, [svgMarkup, changeHighlight]);
+
+  // Stagger node fade-in after each Mermaid SVG render. Pure DOM annotation —
+  // the CSS keyframe `diagram-node-pop-in` lives in App.css.
+  useEffect(() => {
+    if (!svgMarkup) return;
+    const root = viewportRef.current;
+    if (!root) return;
+    const reduceMotion =
+      typeof globalThis.matchMedia === 'function' &&
+      globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return;
+    const nodes = root.querySelectorAll('g.node, g.cluster');
+    nodes.forEach((node, i) => {
+      node.setAttribute('data-node-fade', '1');
+      node.style.animationDelay = `${Math.min(i * 35, 700)}ms`;
+    });
+  }, [svgMarkup]);
 
   useEffect(() => {
     const root = viewportRef.current;

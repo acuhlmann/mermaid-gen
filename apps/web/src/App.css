@@ -2875,3 +2875,72 @@ button {
     padding-inline: 0.55rem;
   }
 }
+
+/* --- Streaming infographic preview shimmer (token-by-token draft) --- */
+.infographic-output.is-streaming-preview {
+  position: relative;
+  isolation: isolate;
+}
+
+.infographic-output.is-streaming-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(28, 176, 246, 0) 35%,
+    rgba(28, 176, 246, 0.16) 50%,
+    rgba(88, 204, 2, 0.18) 65%,
+    rgba(88, 204, 2, 0) 78%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  mix-blend-mode: screen;
+  animation: infographic-streaming-shimmer 1.4s linear infinite;
+}
+
+@keyframes infographic-streaming-shimmer {
+  from { background-position: 120% 0; }
+  to { background-position: -60% 0; }
+}
+
+/* --- Breathing pulse on the prompt-bar submit button while idle --- */
+.prompt-control button[type='submit']:not(:disabled),
+.prompt-control .prompt-submit-button:not(:disabled) {
+  animation: button-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes button-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(88, 204, 2, 0); }
+  50% { box-shadow: 0 0 16px 2px rgba(88, 204, 2, 0.42); }
+}
+
+/* --- Mode-switch swoosh fade on the diagram viewport --- */
+.diagram-viewport.is-mode-switching {
+  animation: mode-swoosh 220ms ease-out;
+}
+
+@keyframes mode-swoosh {
+  0% { opacity: 0; transform: translateX(12px); }
+  60% { opacity: 1; }
+  100% { transform: translateX(0); }
+}
+
+/* --- Staggered Mermaid node entry: applied per node via inline delay --- */
+.diagram-viewport [data-node-fade='1'] {
+  animation: diagram-node-pop-in 360ms ease-out both;
+}
+
+@keyframes diagram-node-pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.94); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .infographic-output.is-streaming-preview::after { animation: none; opacity: 0; }
+  .prompt-control button[type='submit']:not(:disabled),
+  .prompt-control .prompt-submit-button:not(:disabled) { animation: none; }
+  .diagram-viewport.is-mode-switching { animation: none; }
+  .diagram-viewport [data-node-fade='1'] { animation: none; }
+}

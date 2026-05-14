@@ -26,7 +26,7 @@ Workflow: [`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/dep
 
 The **hackathon** snapshot uses a **second Cloud Run service** and is **not** updated by GitHub Actions. After checking out the snapshot Git ref you want, run [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh) (image `…/web-hackathon`). Two public URLs, one pipeline.
 
-### Example project [MermaidGen](https://console.cloud.google.com/home/dashboard?project=mermaidgen&organizationId=0)
+### Example project [ArchiSlop](https://console.cloud.google.com/home/dashboard?project=mermaidgen&organizationId=0)
 
 Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below. Services (adjust region if you changed it):
 

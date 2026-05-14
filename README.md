@@ -1,4 +1,4 @@
-# Mermaid Architect
+# ArchiSlop
 
 Single-repo JavaScript prototype for collaborative diagram editing with a dual-agent, dual-content-type authoring model. Supports two canvas modes: **Mermaid** (flowcharts, sequences, etc.) and **Infographic** (AntV template-based visual layouts). The active mode is toggled from the UI and persisted across sessions.
 
@@ -64,7 +64,7 @@ flowchart LR
 
 Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid or Infographic service transparently; routes and stream events are otherwise identical from the client's perspective.
 
-The active content type defaults to `mermaid` and is persisted in `localStorage` under `mermaid-architect:content-mode`.
+The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`.
 
 ## Agent orchestration
 

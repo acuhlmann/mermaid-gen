@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="slime" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#7CFC00"/>
+      <stop offset="1" stop-color="#3FA700"/>
+    </linearGradient>
+    <linearGradient id="hat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFC04D"/>
+      <stop offset="1" stop-color="#F4A300"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0f172a"/>
+  <path d="M12 42 Q12 51 14.5 55 Q17 51 17 42 Z" fill="url(#slime)"/>
+  <path d="M29 44 Q29 58 33 62 Q37 58 37 44 Z" fill="url(#slime)"/>
+  <circle cx="33" cy="61" r="2.6" fill="#3FA700"/>
+  <path d="M47 42 Q47 53 49.5 57 Q52 53 52 42 Z" fill="url(#slime)"/>
+  <ellipse cx="32" cy="42" rx="26" ry="3.5" fill="#C77A00"/>
+  <path d="M12 42 Q12 18 32 16 Q52 18 52 42 Z" fill="url(#hat)"/>
+  <path d="M32 16 L30 42 L34 42 Z" fill="#C77A00" opacity="0.55"/>
+  <path d="M17 40 Q20 24 24 18" stroke="#C77A00" stroke-width="1.6" fill="none" opacity="0.45"/>
+  <path d="M47 40 Q44 24 40 18" stroke="#C77A00" stroke-width="1.6" fill="none" opacity="0.45"/>
+  <ellipse cx="22" cy="24" rx="3" ry="5" fill="#FFE08A" opacity="0.75"/>
+</svg>

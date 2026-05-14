@@ -4,7 +4,7 @@ This file is a quick operator manual for coding agents working in this repositor
 
 ## Project at a glance
 
-- Monorepo name: `mermaid-gen` (aka "Mermaid Architect")
+- Monorepo name: `archislop` (directory and GitHub repo still `mermaid-gen` for legacy reasons)
 - Package manager: `npm` with workspaces
 - Runtime stack:
   - `apps/web`: React + Vite + CopilotKit UI

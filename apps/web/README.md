@@ -1,6 +1,6 @@
 # Web App Notes
 
-UI package for Mermaid Architect.
+UI package for ArchiSlop.
 
 ## Key UX points
 - **Go** streams diagram intents through `/api/copilotkit/agent-stream` while mirroring thoughts into the insights pane.

@@ -1,4 +1,4 @@
-import { DiagramPatchSchema } from '@mermaid-architect/shared';
+import { DiagramPatchSchema } from '@archislop/shared';
 import { parseSyntax } from '@antv/infographic';
 import {
   INFOGRAPHIC_TEMPLATE_WHITELIST,

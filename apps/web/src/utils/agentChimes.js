@@ -172,6 +172,64 @@ export function playCompletionChime(audioContextRef) {
   oscillator.stop(now + 0.3);
 }
 
+/** Low thunk on prompt submit — confirms the action even before SSE opens. */
+export function playSubmitThunk(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'triangle',
+    freqHz: 160,
+    freqEndHz: 100,
+    durationSec: 0.08,
+    peakGain: 0.045
+  });
+}
+
+/** Very quiet click while the live infographic draft updates; caller throttles. */
+export function playDraftTick(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 1320,
+    durationSec: 0.018,
+    peakGain: 0.009
+  });
+}
+
+/** Sweep when the user flips content mode (mermaid <-> infographic). */
+export function playModeSwoosh(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 240,
+    freqEndHz: 480,
+    durationSec: 0.18,
+    peakGain: 0.03
+  });
+}
+
+/** Three-note arpeggio synced to the canvas-confetti burst on RUN_FINISHED. */
+export function playConfettiPop(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const notes = [
+    { freq: 659.25, dur: 0.06, peak: 0.04 },
+    { freq: 880.0, dur: 0.06, peak: 0.04 },
+    { freq: 1174.66, dur: 0.08, peak: 0.038 }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = 'sine';
+    const t0 = now + offset;
+    oscillator.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(t0);
+    oscillator.stop(t0 + note.dur + 0.02);
+    offset += note.dur * 0.55;
+  }
+}
+
 /** Short fanfare when Go Mad completes. */
 export function playGoMadCompletionChime(audioContextRef) {
   const context = getContext(audioContextRef);
