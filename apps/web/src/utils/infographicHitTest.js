@@ -24,6 +24,19 @@ export const INFOGRAPHIC_SELECTABLE_TYPES = new Set([
 ]);
 
 /**
+ * Infographic element types whose DOM is literal text (SVG `text` / `tspan`).
+ * For these we skip diagram pointer-capture and default-action suppression so
+ * the browser can run native text selection and I‑beam cursor behavior.
+ */
+export const INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES = new Set([
+  'item-label',
+  'item-desc',
+  'item-value',
+  'title',
+  'desc'
+]);
+
+/**
  * Element types that should NEVER be selectable: backgrounds, container groups, and
  * editor-only buttons. Walking up the DOM we skip past these even when they carry
  * `data-indexes`, since selecting "the items group" isn't a user-meaningful action.

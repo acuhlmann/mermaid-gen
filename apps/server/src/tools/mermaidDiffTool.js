@@ -1,6 +1,6 @@
 import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@archislop/shared';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
-import { sanitizeMermaid } from '../agents/mermaidSanitizer.js';
+import { sanitizeMermaid } from '@archislop/shared';
 import { redactSecrets } from '../utils/redactSecrets.js';
 
 export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {

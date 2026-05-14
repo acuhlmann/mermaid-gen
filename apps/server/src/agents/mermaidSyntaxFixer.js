@@ -2,7 +2,7 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createSyntaxFixerModel, resolveSyntaxFixerTarget } from './llmProvider.js';
 import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
-import { sanitizeMermaid } from './mermaidSanitizer.js';
+import { sanitizeMermaid } from '@archislop/shared';
 import { validateMermaidStrict } from './mermaidReliabilitySkill.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 

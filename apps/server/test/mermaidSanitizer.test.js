@@ -128,6 +128,15 @@ test('sanitizeMermaid composes fixers — smart quotes + parens labels', () => {
   assert.doesNotMatch(sanitized, /[“”]/);
 });
 
+test('sanitizeMermaid quotes bracket labels containing embedded double quotes', () => {
+  const src = 'flowchart TD\n  E --> F[MEME SKY\\n"I thirst"] --> G[Done]';
+  const { sanitized, applied } = sanitizeMermaid(src);
+  assert.ok(applied.includes('quoteBracketLabelsWithEmbeddedQuotes'), applied);
+  assert.match(sanitized, /F\["MEME SKY/);
+  assert.match(sanitized, /I thirst/);
+  assert.doesNotMatch(sanitized, /F\[MEME SKY\\n"I/);
+});
+
 test('validateAndPreparePatch rescues a smart-quote + specials failure via sanitizer', async () => {
   // Smart quotes alone are tolerated by mermaid.parse; pair them with parens-in-label so the
   // source actually fails the parser. The rescue should fire both normalizeSmartQuotes and

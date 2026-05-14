@@ -11,7 +11,10 @@ import {
   parseFlowchartEdgeDataId,
   resolveFlowchartEdgeInteractionRoot
 } from '../utils/diagramSvgSelection.js';
-import { findInfographicTapTarget } from '../utils/infographicHitTest.js';
+import {
+  findInfographicTapTarget,
+  INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES
+} from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 
 const MERMAID_INIT = {
@@ -644,20 +647,29 @@ export default function DiagramCanvas({
       }
     }
 
-    event.preventDefault();
+    const prevPointers = getPointers(pointersRef.current);
+    const passiveInfographicText =
+      contentType === 'infographic' &&
+      infographicHit &&
+      INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES.has(infographicHit.elementType);
 
-    pointersRef.current.set(event.pointerId, {
-      x: localX,
-      y: localY
-    });
+    if (!passiveInfographicText) {
+      event.preventDefault();
+      pointersRef.current.set(event.pointerId, {
+        x: localX,
+        y: localY
+      });
+    }
 
     const pointers = getPointers(pointersRef.current);
-    gestureRef.current = {
-      centroid: getCentroid(pointers),
-      distance: pointers.length >= 2 ? getDistance(pointers[0], pointers[1]) : null
-    };
+    if (!passiveInfographicText) {
+      gestureRef.current = {
+        centroid: getCentroid(pointers),
+        distance: pointers.length >= 2 ? getDistance(pointers[0], pointers[1]) : null
+      };
+    }
 
-    if ((nodeEl || clusterEl) && pointers.length === 1) {
+    if ((nodeEl || clusterEl) && prevPointers.length === 0) {
       const container = nodeEl || clusterEl;
       const hitText = event.target?.closest?.('text');
       const textHitEl = hitText && container.contains(hitText) ? hitText : null;
@@ -669,7 +681,7 @@ export default function DiagramCanvas({
         kind: nodeEl ? 'node' : 'cluster',
         textHitEl
       };
-    } else if (edgeHit && pointers.length === 1) {
+    } else if (edgeHit && prevPointers.length === 0) {
       tapCandidateRef.current = {
         pointerId: event.pointerId,
         startClientX: event.clientX,
@@ -677,7 +689,7 @@ export default function DiagramCanvas({
         targetEl: edgeHit.pathEl,
         kind: 'edge'
       };
-    } else if (infographicHit && pointers.length === 1) {
+    } else if (infographicHit && prevPointers.length === 0) {
       tapCandidateRef.current = {
         pointerId: event.pointerId,
         startClientX: event.clientX,
@@ -687,14 +699,15 @@ export default function DiagramCanvas({
         label: infographicHit.label,
         clickedLabel: infographicHit.clickedLabel,
         indexes: infographicHit.indexes,
-        elementType: infographicHit.elementType
+        elementType: infographicHit.elementType,
+        passiveNativeText: passiveInfographicText
       };
     } else {
       tapCandidateRef.current = null;
     }
 
     const noTap = !nodeEl && !clusterEl && !edgeHit && !infographicHit;
-    if (pointers.length === 1 && noTap) {
+    if (pointers.length === 1 && noTap && !passiveInfographicText) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
         sx: event.clientX,
@@ -704,16 +717,20 @@ export default function DiagramCanvas({
       backgroundTapRef.current = null;
     }
 
-    setIsPanning(true);
-    if (event.currentTarget.setPointerCapture) {
-      event.currentTarget.setPointerCapture(event.pointerId);
+    if (!passiveInfographicText) {
+      setIsPanning(true);
+      if (event.currentTarget.setPointerCapture) {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }
     }
   }
 
   function handlePointerMove(event) {
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
-      event.preventDefault();
+      if (!tap.passiveNativeText) {
+        event.preventDefault();
+      }
       const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
       if (moved <= TAP_MOVE_THRESHOLD_PX) {
         return;
@@ -788,7 +805,9 @@ export default function DiagramCanvas({
   function endPointerGesture(event) {
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
-      event.preventDefault();
+      if (!tap.passiveNativeText) {
+        event.preventDefault();
+      }
       const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
       tapCandidateRef.current = null;
       pointersRef.current.delete(event.pointerId);

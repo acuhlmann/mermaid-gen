@@ -142,6 +142,30 @@
   cursor: pointer;
 }
 
+/* AntV infographic SVG: not Mermaid — restore hits and allow native text selection on labels. */
+.diagram-viewport .infographic-canvas svg {
+  pointer-events: auto;
+}
+
+.diagram-viewport .infographic-canvas svg [data-element-type='item-label'],
+.diagram-viewport .infographic-canvas svg [data-element-type='item-desc'],
+.diagram-viewport .infographic-canvas svg [data-element-type='item-value'],
+.diagram-viewport .infographic-canvas svg [data-element-type='title'],
+.diagram-viewport .infographic-canvas svg [data-element-type='desc'] {
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.diagram-viewport .infographic-canvas svg [data-element-type='item-icon'],
+.diagram-viewport .infographic-canvas svg [data-element-type='item-icon-group'],
+.diagram-viewport .infographic-canvas svg [data-element-type='item-illus'] {
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+}
+
 .diagram-viewport svg path.is-diagram-edge-selected {
   stroke: var(--accent) !important;
   stroke-width: 5px !important;
@@ -1236,6 +1260,94 @@
   font-size: 0.81rem;
   line-height: 1.45;
   color: var(--text);
+}
+
+.insights-embedded-diagram {
+  pointer-events: none;
+  user-select: none;
+  margin-top: 0.55rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(248, 250, 252, 0.72);
+  overflow: hidden;
+  max-height: 13.5rem;
+}
+
+.insights-embedded-diagram-inner {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 5.5rem;
+  max-height: 12.5rem;
+  overflow: hidden;
+}
+
+.insights-embedded-diagram--mermaid .insights-embedded-diagram-inner {
+  padding: 0.35rem 0.45rem 0.45rem;
+}
+
+.insights-embedded-mermaid-svg-host {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.insights-embedded-mermaid-svg-host svg {
+  max-width: 100%;
+  max-height: 11rem;
+  width: auto !important;
+  height: auto !important;
+}
+
+.insights-embedded-diagram--infographic .insights-embedded-diagram-inner {
+  height: 10.5rem;
+  transform: scale(0.78);
+  transform-origin: top center;
+  width: 128%;
+  margin-left: -14%;
+}
+
+.insights-embedded-diagram .diagram-error {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  padding: 0.35rem 0.45rem;
+  margin: 0;
+  text-align: center;
+}
+
+.insights-diagram-patch-callout {
+  margin-top: 0.5rem;
+  margin-bottom: 0.35rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  background: rgba(255, 241, 242, 0.42);
+  overflow: hidden;
+}
+
+.insights-diagram-patch-callout-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.42rem 0.55rem 0.18rem;
+  font-size: 0.72rem;
+  color: rgba(71, 85, 105, 0.95);
+}
+
+.insights-diagram-patch-callout-title {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.66rem;
+  color: rgba(190, 24, 93, 0.88);
+}
+
+.insights-diagram-patch-callout-reason {
+  font-size: 0.74rem;
+  line-height: 1.38;
+  color: var(--text);
+  opacity: 0.9;
 }
 
 .insights-entry-rich-text.is-analyze-prose {

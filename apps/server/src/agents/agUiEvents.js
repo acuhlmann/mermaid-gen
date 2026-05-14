@@ -169,9 +169,12 @@ export function createAgUiEmit({ rawEmit, threadId, runId, contentType, initialS
       case 'phase': {
         endActiveMessage();
         endActiveStep();
-        const name = String(evt.label || evt.id || 'step');
-        activeStep = name;
-        return rawEmit(stepStarted({ stepName: name }));
+        const id = String(evt.id || 'step');
+        const label = String(evt.label || evt.id || 'Working…');
+        // Pack stable id + human label so the web translator can recover both; AG-UI only carries stepName.
+        const stepWire = `${id}\x1f${label}`;
+        activeStep = stepWire;
+        return rawEmit(stepStarted({ stepName: stepWire }));
       }
       case 'status':
         return rawEmit(

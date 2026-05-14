@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   findInfographicTapTarget,
+  INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES,
   infographicIndexesFor,
   infographicItemLabelFor
 } from '../src/utils/infographicHitTest.js';
@@ -257,6 +258,14 @@ describe('findInfographicTapTarget', () => {
     svg.appendChild(btn);
 
     expect(findInfographicTapTarget(btn, boundary)).toBeNull();
+  });
+});
+
+describe('INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES', () => {
+  it('lists AntV text slots that should allow native selection in the viewer', () => {
+    expect(INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES.has('item-label')).toBe(true);
+    expect(INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES.has('title')).toBe(true);
+    expect(INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES.has('item-icon')).toBe(false);
   });
 });
 

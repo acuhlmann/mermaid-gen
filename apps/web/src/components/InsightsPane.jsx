@@ -1,4 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef } from 'react';
+import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
+import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.js';
+import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
 
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
@@ -8,7 +11,15 @@ const PHASE_ID_LABELS = {
   analyze: 'Analyze',
   analyze_stream: 'Stream',
   intent: 'Apply',
-  agent_run: 'Agent'
+  agent_run: 'Tools',
+  transform: 'Transform',
+  run_started: 'Start',
+  planning: 'Plan',
+  syntax_fixer: 'Syntax',
+  syntax_repair: 'Repair',
+  patch_retry: 'Retry',
+  invoke: 'Generate',
+  invoke_fallback: 'Finalize'
 };
 
 function IconThinking() {
@@ -403,6 +414,71 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   return extra;
 }
 
+function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
+  if (!text.trim()) return null;
+  const split = splitEmbeddedDiagramDsl(text);
+  if (!split) {
+    return renderRichContent(text, richOpts);
+  }
+  return (
+    <>
+      {split.prose.trim() ? renderRichContent(split.prose, richOpts) : null}
+      <InsightsEmbeddedDiagram
+        idPrefix={`${embedOpts.idPrefix}-dsl`}
+        source={split.dsl}
+        kind={split.kind}
+        streamingPreview={embedOpts.streamingPreview}
+      />
+    </>
+  );
+}
+
+function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
+  const working = stripInsightStreamDelimiters(preprocessBulletArtifacts(content));
+  const segments = partitionDiagramToolJsonBlocks(working);
+
+  if (segments.length === 1 && segments[0].type === 'text') {
+    return renderTextWithEmbeddedDsl(segments[0].value, richOpts, embedOpts);
+  }
+
+  return (
+    <>
+      {segments.map((seg, i) => {
+        if (seg.type === 'text') {
+          const inner = renderTextWithEmbeddedDsl(seg.value, richOpts, {
+            ...embedOpts,
+            idPrefix: `${embedOpts.idPrefix}-s${i}`
+          });
+          return inner ? <Fragment key={`seg-${i}`}>{inner}</Fragment> : null;
+        }
+        return (
+          <div
+            key={`patch-${i}`}
+            className="insights-diagram-patch-callout"
+            role="region"
+            aria-label="Diagram patch from agent tool"
+          >
+            <div className="insights-diagram-patch-callout-head">
+              <span className="insights-diagram-patch-callout-title">Patch preview</span>
+              {seg.reason?.trim() ? (
+                <span className="insights-diagram-patch-callout-reason" title={seg.reason}>
+                  {seg.reason.length > 140 ? `${seg.reason.slice(0, 137)}…` : seg.reason}
+                </span>
+              ) : null}
+            </div>
+            <InsightsEmbeddedDiagram
+              idPrefix={`${embedOpts.idPrefix}-json-${i}`}
+              source={seg.source}
+              kind={seg.kind}
+              streamingPreview={embedOpts.streamingPreview}
+            />
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 function renderRichContent(content, { accentuateSections, idPrefix = 'ins', variant = 'general' }) {
   const cleaned = preprocessBulletArtifacts(content);
   const chunks = splitMarkdownSections(cleaned);
@@ -692,11 +768,15 @@ export default function InsightsPane({
                   <>
                     {prefix.trim() ? (
                       <div className="insights-analysis-chunk">
-                        {renderRichContent(prefix, {
-                          accentuateSections,
-                          idPrefix: `${entry.id}-pre`,
-                          variant
-                        })}
+                        {renderEmbeddedAwareRich(
+                          prefix,
+                          {
+                            accentuateSections,
+                            idPrefix: `${entry.id}-pre`,
+                            variant
+                          },
+                          { idPrefix: `${entry.id}-pre`, streamingPreview: isRunning }
+                        )}
                       </div>
                     ) : null}
                     <ActionableImprovementsPanel
@@ -711,21 +791,29 @@ export default function InsightsPane({
                     />
                     {suffix.trim() ? (
                       <div className="insights-analysis-chunk">
-                        {renderRichContent(suffix, {
-                          accentuateSections,
-                          idPrefix: `${entry.id}-post`,
-                          variant
-                        })}
+                        {renderEmbeddedAwareRich(
+                          suffix,
+                          {
+                            accentuateSections,
+                            idPrefix: `${entry.id}-post`,
+                            variant
+                          },
+                          { idPrefix: `${entry.id}-post`, streamingPreview: isRunning }
+                        )}
                       </div>
                     ) : null}
                   </>
                 );
               } else {
-                analysisBody = renderRichContent(entry.content, {
-                  accentuateSections,
-                  idPrefix: entry.id,
-                  variant
-                });
+                analysisBody = renderEmbeddedAwareRich(
+                  entry.content,
+                  {
+                    accentuateSections,
+                    idPrefix: entry.id,
+                    variant
+                  },
+                  { idPrefix: entry.id, streamingPreview: isRunning }
+                );
               }
             }
 

@@ -7,7 +7,12 @@ function runThrough(events) {
 }
 
 describe('createAgUiTranslator', () => {
-  it('translates STEP_STARTED into a legacy phase event', () => {
+  it('translates STEP_STARTED with id+label wire form into legacy phase event', () => {
+    const [out] = runThrough([{ type: 'STEP_STARTED', stepName: 'planning\x1fPlanning…' }]);
+    expect(out).toEqual({ type: 'phase', id: 'planning', label: 'Planning…' });
+  });
+
+  it('legacy STEP_STARTED without unit separator uses same string for id and label', () => {
     const [out] = runThrough([{ type: 'STEP_STARTED', stepName: 'planning' }]);
     expect(out).toEqual({ type: 'phase', id: 'planning', label: 'planning' });
   });

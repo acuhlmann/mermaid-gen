@@ -126,7 +126,7 @@ test('createAgUiEmit translates a full legacy lifecycle into AG-UI events', () =
 
   // First event is STEP_STARTED for the legacy phase.
   assert.equal(captured[0].type, 'STEP_STARTED');
-  assert.equal(captured[0].stepName, 'Planning…');
+  assert.equal(captured[0].stepName, 'planning\x1fPlanning…');
 
   // Tokens open a TEXT_MESSAGE_START + emit TEXT_MESSAGE_CONTENT deltas.
   const startIdx = captured.findIndex((e) => e.type === 'TEXT_MESSAGE_START');

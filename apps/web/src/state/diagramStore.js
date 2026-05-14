@@ -422,8 +422,16 @@ export function createAgUiTranslator() {
         // Surface so the UI can show "starting" affordances; carries no
         // user-visible text but the optimistic chip path needs the trigger.
         return { type: 'phase', id: 'run_started', label: 'Starting…' };
-      case 'STEP_STARTED':
-        return { type: 'phase', id: evt.stepName || 'step', label: evt.stepName || 'Working…' };
+      case 'STEP_STARTED': {
+        const raw = String(evt.stepName ?? 'step');
+        const sep = raw.indexOf('\x1f');
+        if (sep >= 0) {
+          const id = raw.slice(0, sep) || 'step';
+          const label = raw.slice(sep + 1) || id;
+          return { type: 'phase', id, label };
+        }
+        return { type: 'phase', id: raw, label: raw };
+      }
       case 'STEP_FINISHED':
         return null; // no legacy equivalent; the next STEP_STARTED overwrites
       case 'TEXT_MESSAGE_START':
