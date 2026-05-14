@@ -63,23 +63,21 @@ test('applyPatch rejects contentType mismatch between slot and patch', () => {
   assert.match(result.error, /Content type mismatch/);
 });
 
-test('createInitialDiagramState includes a managed Mermaid init directive', () => {
+test('createInitialDiagramState starts with an empty Mermaid canvas (style defaults only)', () => {
   const initial = createInitialDiagramState();
 
-  assert.match(initial.diagramSource, /^%%\{init:/);
+  assert.equal(initial.diagramSource, '');
   assert.equal(initial.contentType, 'mermaid');
   assert.deepEqual(initial.styleConfig, DEFAULT_DIAGRAM_STYLE);
   assert.equal(initial.styleConfig.themeVariables.primaryColor, '#d7ffb8');
-  assert.equal(initial.styleConfig.themeVariables.primaryBorderColor, '#58cc02');
-  assert.equal(initial.styleConfig.themeVariables.mainBkg, '#d7ffb8');
 });
 
-test('createInitialDiagramState("infographic") returns infographic seed with null styleConfig', () => {
+test('createInitialDiagramState("infographic") returns empty DSL with null styleConfig', () => {
   const initial = createInitialDiagramState('infographic');
 
   assert.equal(initial.contentType, 'infographic');
   assert.equal(initial.styleConfig, null);
-  assert.match(initial.diagramSource, /^infographic /);
+  assert.equal(initial.diagramSource, '');
 });
 
 test('createInitialSessionState builds independent slots for each content type', () => {
@@ -91,8 +89,8 @@ test('createInitialSessionState builds independent slots for each content type',
   assert.equal(parsed.infographic.contentType, 'infographic');
   assert.equal(parsed.mermaid.revisionId, 0);
   assert.equal(parsed.infographic.revisionId, 0);
-  assert.match(parsed.mermaid.diagramSource, /flowchart/i);
-  assert.match(parsed.infographic.diagramSource, /^infographic /);
+  assert.equal(parsed.mermaid.diagramSource, '');
+  assert.equal(parsed.infographic.diagramSource, '');
 });
 
 test('parseMermaidStyleConfig reads supported init fields', () => {

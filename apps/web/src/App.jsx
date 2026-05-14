@@ -8,12 +8,15 @@ import {
   fetchSessionDiagramState,
   normalizeSessionId,
   readDiagramCache,
+  SESSION_NOT_FOUND_CODE,
   shouldAutoSubmitModeSwitchIntent,
   streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
+  wipeClientCachesAfterLostServerSession,
   writeDiagramCache
 } from './state/diagramStore.js';
+import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent.js';
 import './App.css';
 import {
   playCompletionChime as playCompletionChimeTone,
@@ -51,7 +54,7 @@ function canvasConfettiAvailable() {
   }
   return _confettiSupportCache;
 }
-import { splitCritiqueActionableSections } from './utils/critiqueActionable.js';
+import { createInitialDiagramState, splitCritiqueActionableSections } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
 
@@ -70,28 +73,6 @@ function formatToolLabel(name, repeatCount = 1) {
   return base;
 }
 
-function normalizeInsightTextForDedup(text) {
-  return (text ?? '').replace(/\s+/g, ' ').trim();
-}
-
-/**
- * Token streaming already appends assistant prose; `final.message` repeats it. Skip the closing echo when redundant.
- */
-function shouldAppendFinalInsightEcho(streamedText, finalMessage) {
-  const msg = (finalMessage ?? '').trim();
-  if (!msg) return false;
-  const stream = (streamedText ?? '').trim();
-  if (!stream) return true;
-
-  const nMsg = normalizeInsightTextForDedup(msg);
-  const nStream = normalizeInsightTextForDedup(stream);
-  if (!nMsg) return false;
-  if (nStream === nMsg) return false;
-  const minSuffixLen = 64;
-  if (nMsg.length >= minSuffixLen && nStream.endsWith(nMsg)) return false;
-  return true;
-}
-
 const STREAM_DEBUG_LS_KEY = 'archislop-stream-debug';
 
 const NODE_PANEL_EDGE_MARGIN = 12;
@@ -101,8 +82,6 @@ const NODE_ACTIONS_IDLE_MS = 8000;
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
 /** Avoid keeping a stale render handshake armed forever if the SVG never confirms. */
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
-/** Revision-changing agent variants that should auto-show change highlights. */
-const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
 
 function getVisualViewportBounds() {
   const vv = typeof window !== 'undefined' ? window.visualViewport : null;
@@ -612,28 +591,34 @@ function ArchiSlop() {
         }
         stateRef.current = data;
         setState(data);
-        // Seed lastTopicByModeRef from the server's authoritative slot. This is the only
-        // path that fires on first mount, and also on every mode-switch hydration.
-        if (data?.contentType && typeof data.lastUserPrompt === 'string') {
-          lastTopicByModeRef.current = {
-            ...lastTopicByModeRef.current,
-            [data.contentType]: data.lastUserPrompt
-          };
+
+        const slotLastTopic = (slot) => {
+          const p = slot?.lastUserPrompt;
+          return typeof p === 'string' && p.trim() ? p.trim() : null;
+        };
+
+        const topicsNext = { ...lastTopicByModeRef.current };
+        for (const mode of ['mermaid', 'infographic']) {
+          const t = slotLastTopic(session?.[mode]);
+          if (t) topicsNext[mode] = t;
         }
-        // Auto-rerun on mode switch: if we know a topic from the OTHER mode and the new
-        // mode doesn't already reflect it, fire an intent for the new mode using the same
-        // topic. Gated on the textarea being "in sync" (empty or matching the candidate)
-        // so we never trample a half-typed message.
+        lastTopicByModeRef.current = topicsNext;
+
         const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-        const otherTopic = lastTopicByModeRef.current[otherMode];
-        const candidate = data?.lastUserPrompt ?? otherTopic ?? null;
+        const otherSlot = session?.[otherMode];
+        const candidate =
+          slotLastTopic(data) ?? slotLastTopic(otherSlot) ?? topicsNext[otherMode] ?? null;
+
         const newSlotInSync =
-          typeof data?.lastUserPrompt === 'string' &&
-          candidate != null &&
-          data.lastUserPrompt === candidate &&
-          (data.revisionId ?? 0) > 0;
+          candidate != null && slotLastTopic(data) === candidate && (data.revisionId ?? 0) > 0;
         const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
         const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
+
+        if (candidate && !textareaDirty) {
+          setPrompt(candidate);
+          promptRef.current = candidate;
+        }
+
         const peerContext = buildIntentPeerContext(contentMode, session, candidate);
         if (
           shouldAutoSubmitModeSwitchIntent({
@@ -645,10 +630,6 @@ function ArchiSlop() {
             contentMode
           })
         ) {
-          // Pre-fill so the textarea visibly reflects what's running, then submit using
-          // the freshly-hydrated state to avoid a 409 from stale revisionId.
-          setPrompt(candidate);
-          promptRef.current = candidate;
           // Defer to a microtask so React has committed the state update before the auto
           // submit kicks off; pass the override anyway so revisionId is correct regardless.
           Promise.resolve().then(async () => {
@@ -674,7 +655,26 @@ function ArchiSlop() {
         }
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message);
+        if (cancelled) return;
+        if (err?.code === SESSION_NOT_FOUND_CODE) {
+          wipeClientCachesAfterLostServerSession();
+          lastTopicByModeRef.current = { mermaid: null, infographic: null };
+          const fresh = createInitialDiagramState(contentMode);
+          stateRef.current = fresh;
+          setState(fresh);
+          setLiveDraftSource('');
+          setLiveDraftContentType(null);
+          setLatestCritique(null);
+          setInsightsEntries([]);
+          setGoMadStreak(0);
+          setCritiqueActionableSelected([]);
+          cacheRef.current = null;
+          const nid = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+          window.history.replaceState({}, '', `${sessionPathFor(nid)}`);
+          setActiveSessionId(nid);
+          return;
+        }
+        setError(err?.message ?? String(err));
       })
       .finally(() => {
         if (cancelled) return;
@@ -995,151 +995,45 @@ function ArchiSlop() {
       else tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
       goMadTokenTickIndexRef.current = 0;
-      let streamedText = '';
+      const streamAcc = { text: '' };
       const abortCtrl = new AbortController();
       streamAgentAbortRef.current = abortCtrl;
+      const streamCtx = {
+        sectionId,
+        operation,
+        variant,
+        diagramUndoBaseline,
+        patchInsightEntry,
+        appendToInsight,
+        setInsightStatus,
+        appendTechnicalAction,
+        lastTokenSoundAtRef,
+        goMadTokenTickIndexRef,
+        lastDraftTickAtRef,
+        tryAgentSound,
+        playGoMadTokenTick,
+        playTokenTickChime,
+        playToolStartChime,
+        playToolEndChime,
+        playDraftTick,
+        playFailureChime,
+        setLiveDraftSource,
+        setLiveDraftContentType,
+        setGoMadStreak,
+        lastTopicByModeRef,
+        animateAcceptedSource,
+        pendingAutoDiagramHighlightRef,
+        pendingAutoDiagramHighlightTimeoutRef,
+        triggerCompletionDelight,
+        onFinal
+      };
       try {
         await streamDiagramAgent(
           payload,
           (evt) => {
-          appendStreamDebugLog(sectionId, evt);
-          if (evt.type === 'phase' && evt.id && evt.label) {
-            patchInsightEntry(sectionId, (entry) => ({
-              ...entry,
-              phases: [...(Array.isArray(entry.phases) ? entry.phases : []), { id: evt.id, label: evt.label }]
-            }));
-          } else if (evt.type === 'artifact' && evt.kind === 'patch_summary') {
-            patchInsightEntry(sectionId, (entry) => ({
-              ...entry,
-              artifacts: [
-                ...(Array.isArray(entry.artifacts) ? entry.artifacts : []),
-                {
-                  kind: evt.kind,
-                  revisionId: evt.revisionId,
-                  linesAdded: evt.linesAdded,
-                  linesRemoved: evt.linesRemoved
-                }
-              ]
-            }));
-          } else if (evt.type === 'token' && evt.text) {
-            streamedText += evt.text;
-            appendToInsight(sectionId, evt.text);
-            const now = Date.now();
-            const reduceMotion =
-              typeof globalThis.matchMedia === 'function' &&
-              globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            const goMadDense = variant === 'goMad' && !reduceMotion;
-            const minGapMs = goMadDense ? 140 : 210;
-            if (now - lastTokenSoundAtRef.current >= minGapMs) {
-              lastTokenSoundAtRef.current = now;
-              if (goMadDense) {
-                const idx = goMadTokenTickIndexRef.current;
-                goMadTokenTickIndexRef.current = idx + 1;
-                tryAgentSound((ctx) => playGoMadTokenTick(ctx, idx));
-              } else {
-                tryAgentSound(playTokenTickChime);
-              }
-            }
-          } else if (evt.type === 'status' && evt.text) {
-            setInsightStatus(sectionId, evt.text);
-          } else if (evt.type === 'tool_start' && evt.name) {
-            appendTechnicalAction(sectionId, evt.name, 'running');
-            tryAgentSound(playToolStartChime);
-          } else if (evt.type === 'tool_end' && evt.name) {
-            appendTechnicalAction(sectionId, evt.name, 'done');
-            tryAgentSound(playToolEndChime);
-          } else if (evt.type === 'draftPreview') {
-            // Live in-flight DSL — render incrementally for infographics.
-            // Mermaid intentionally opts out (partial syntax usually fails).
-            if (evt.contentType === 'infographic' && typeof evt.source === 'string' && evt.source) {
-              setLiveDraftSource(evt.source);
-              setLiveDraftContentType('infographic');
-              const tickNow = Date.now();
-              if (tickNow - lastDraftTickAtRef.current >= 110) {
-                lastDraftTickAtRef.current = tickNow;
-                tryAgentSound(playDraftTick);
-              }
-            }
-          } else if (evt.type === 'error' && evt.message) {
-            appendToInsight(sectionId, `\n\n**Error:** ${evt.message}\n\n`);
-            if (evt.code !== 'no_mutation_revision') tryAgentSound(playFailureChime);
-            setLiveDraftSource('');
-            setLiveDraftContentType(null);
-            patchInsightEntry(sectionId, (entry) => ({
-              ...entry,
-              status: 'failed',
-              statusText:
-                evt.code === 'no_mutation_revision'
-                  ? 'No diagram update applied.'
-                  : 'Something failed. You can retry.',
-              completedAt: Date.now()
-            }));
-          } else if (evt.type === 'final') {
-            // Live draft is superseded by the authoritative state in `evt.state`.
-            setLiveDraftSource('');
-            setLiveDraftContentType(null);
-            const mutationBlocked =
-              (operation === 'transform' || operation === 'intent') && evt.revisionChanged === false;
-            if (variant === 'goMad' && evt.revisionChanged) {
-              setGoMadStreak((s) => s + 1);
-            }
-            // Cache the slot's last topic so mode-switch can carry it across. We only update
-            // on revisionChanged so a failed intent (no patch) doesn't poison the carry-over.
-            if (evt.revisionChanged && evt.state?.lastUserPrompt && evt.state?.contentType) {
-              lastTopicByModeRef.current = {
-                ...lastTopicByModeRef.current,
-                [evt.state.contentType]: evt.state.lastUserPrompt
-              };
-            }
-            if (evt.revisionChanged && evt.state) {
-              const shouldAutoHighlight =
-                Boolean(diagramUndoBaseline) && AUTO_DIAGRAM_HIGHLIGHT_VARIANTS.has(variant);
-              animateAcceptedSource(
-                evt.state,
-                shouldAutoHighlight
-                  ? () => {
-                      pendingAutoDiagramHighlightRef.current = {
-                        entryId: sectionId,
-                        revisionId: evt.state.revisionId
-                      };
-                      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
-                        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
-                      }
-                      pendingAutoDiagramHighlightTimeoutRef.current = window.setTimeout(() => {
-                        pendingAutoDiagramHighlightTimeoutRef.current = null;
-                        const stillPending = pendingAutoDiagramHighlightRef.current;
-                        if (!stillPending || stillPending.entryId !== sectionId) return;
-                        pendingAutoDiagramHighlightRef.current = null;
-                      }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS);
-                    }
-                  : undefined,
-                { denseSteps: variant === 'goMad' }
-              );
-            }
-            if (evt.message && operation !== 'analyze' && shouldAppendFinalInsightEcho(streamedText, evt.message)) {
-              appendToInsight(sectionId, `\n\n— _${evt.message}_`);
-            }
-            patchInsightEntry(sectionId, (entry) => ({
-              ...entry,
-              status: mutationBlocked ? 'failed' : 'done',
-              statusText: mutationBlocked ? 'No diagram update applied.' : 'Done',
-              completedAt: Date.now(),
-              ...(evt.revisionChanged && evt.state && entry.diagramUndoBaseline
-                ? { diagramRevisionApplied: true }
-                : {})
-            }));
-            if (!mutationBlocked) {
-              triggerCompletionDelight(sectionId, variant);
-            } else {
-              tryAgentSound(playFailureChime);
-            }
-            if (typeof onFinal === 'function') {
-              const finalText =
-                streamedText.trim() || (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');
-              onFinal({ evt, finalText });
-            }
-          }
-        },
+            appendStreamDebugLog(sectionId, evt);
+            applyAgentStreamInsightEvent(streamAcc, streamCtx, evt);
+          },
           { signal: abortCtrl.signal, sessionId: activeSessionId }
         );
       } catch (err) {
@@ -1712,22 +1606,27 @@ Hard requirements:
   }
 
   const handleFixFromCritique = useCallback(
-    async (scope = 'all') => {
+    async (scope = 'all', options = {}) => {
       hasInteractedRef.current = true;
       if (!latestCritique?.text || loadingRef.current || streamingPreviewRef.current) return;
 
       const split = splitCritiqueActionableSections(latestCritique.text);
       const actionableItems = split.items;
+      const checkValues = options.checkValues;
+      const selectedMask =
+        checkValues != null
+          ? actionableItems.map((_, i) => Boolean(checkValues[i]))
+          : actionableItems.map((_, i) => Boolean(critiqueActionableSelected[i]));
 
       if (scope === 'selected') {
         if (actionableItems.length === 0) return;
-        const chosen = actionableItems.filter((_, i) => critiqueActionableSelected[i]);
+        const chosen = actionableItems.filter((_, i) => selectedMask[i]);
         if (chosen.length === 0) return;
       }
 
       const itemsToApply =
         scope === 'selected'
-          ? actionableItems.filter((_, i) => critiqueActionableSelected[i])
+          ? actionableItems.filter((_, i) => selectedMask[i])
           : actionableItems;
 
       const useActionableBullets = itemsToApply.length > 0;

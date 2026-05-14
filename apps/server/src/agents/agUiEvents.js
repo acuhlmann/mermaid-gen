@@ -2,8 +2,16 @@
 // project's legacy internal event shapes ({type:'phase'|'token'|...}) into
 // AG-UI's standard event types. The runtime values mirror EventType from
 // @ag-ui/core so consumers can parse with @ag-ui/core's Zod schemas.
+//
+// Extending the stream: add a legacy `emit({ type })` branch here, mirror it in
+// `createAgUiTranslator` (web) and any UI reducer (`applyAgentStreamInsightEvent`).
 
 import { randomUUID } from 'node:crypto';
+import {
+  AGUI_CUSTOM_NAME_A2UI,
+  AGUI_CUSTOM_NAME_STATUS,
+  LEGACY_STREAM_TYPE_A2UI
+} from '@archislop/shared';
 
 export const AGUI_EVENT_TYPE = Object.freeze({
   TEXT_MESSAGE_START: 'TEXT_MESSAGE_START',
@@ -166,7 +174,9 @@ export function createAgUiEmit({ rawEmit, threadId, runId, contentType, initialS
         return rawEmit(stepStarted({ stepName: name }));
       }
       case 'status':
-        return rawEmit(customEvent({ name: 'status', value: { text: String(evt.text ?? '') } }));
+        return rawEmit(
+          customEvent({ name: AGUI_CUSTOM_NAME_STATUS, value: { text: String(evt.text ?? '') } })
+        );
       case 'token': {
         const delta = typeof evt.text === 'string' ? evt.text : '';
         if (!delta) return;
@@ -176,6 +186,13 @@ export function createAgUiEmit({ rawEmit, threadId, runId, contentType, initialS
         }
         return rawEmit(textMessageContent({ messageId: activeMessageId, delta }));
       }
+      case LEGACY_STREAM_TYPE_A2UI:
+        if (Array.isArray(evt.messages) && evt.messages.length > 0) {
+          return rawEmit(
+            customEvent({ name: AGUI_CUSTOM_NAME_A2UI, value: { messages: evt.messages } })
+          );
+        }
+        return;
       case 'artifact':
         if (evt.kind === 'patch_summary') {
           return rawEmit(stateDelta({ delta: patchSummaryToJsonPatch(evt, contentType) }));

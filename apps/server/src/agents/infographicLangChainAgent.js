@@ -18,6 +18,7 @@ import {
   resolveLlmBackend,
   resolveVertexModelId
 } from './llmProvider.js';
+import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
 import {
   buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
   buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
@@ -797,6 +798,7 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
           modelProfile,
           emit
         });
+        emitCritiqueA2uiBeforeFinal(emit, { kind: payload.kind, analyzeText: result.message });
         emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
         return result;
       }

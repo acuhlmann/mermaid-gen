@@ -2,7 +2,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import InsightsPane from '../src/components/InsightsPane.jsx';
-import { splitCritiqueActionableSections } from '../src/utils/critiqueActionable.js';
+import { splitCritiqueActionableSections } from '@archislop/shared';
 import { cleanup } from '@testing-library/react';
 
 afterEach(() => {

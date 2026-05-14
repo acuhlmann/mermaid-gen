@@ -344,6 +344,27 @@ describe('App simplified controls', () => {
     });
   });
 
+  it('shows actionable checkboxes when critique final has analyzeText but no token stream', async () => {
+    const analyzeBody =
+      '## Summary\n\nOk.\n\n## Actionable improvements\n\n- Alpha\n- Beta\n';
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'analyze') {
+        onEvent?.({ type: 'final', revisionChanged: false, analyzeText: analyzeBody });
+      } else {
+        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+      }
+    });
+
+    render(<App />);
+    await waitForControlsReady('Critique');
+    fireEvent.click(screen.getByRole('button', { name: 'Show Thinking' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
+
+    const keepBox = await screen.findByRole('checkbox', { name: /Alpha/i });
+    expect(keepBox).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: /Beta/i })).toBeTruthy();
+  });
+
   it('plays a completion sound when a request finishes', async () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));

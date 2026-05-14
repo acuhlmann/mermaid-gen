@@ -64,6 +64,7 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Copilot server routes: `apps/server/src/routes/copilot.js`
 - Mermaid validation helper: `apps/server/src/tools/mermaidDiffTool.js`
 - Shared exports/schemas: `packages/shared/src/`
+- A2UI critique payloads (wire) + AG-UI: [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md); actionable checklist UI: `apps/web/src/components/InsightsPane.jsx` (`ActionableImprovementsPanel`)
 - Web app entry/UI: `apps/web/src/`
 
 ## CopilotKit skill note

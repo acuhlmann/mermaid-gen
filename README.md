@@ -18,10 +18,12 @@ The browser owns the editor and renderer; the server owns authoritative diagram 
 flowchart LR
   subgraph client ["apps/web (React + Vite)"]
     UI["Editor + renderer\n(Mermaid or Infographic)"]
+    GenUI["A2UI surface\nCritique checklist"]
     ModeToggle["Mode toggle\nDiagram ↔ Infographic"]
     Store[diagramStore fetch helpers]
     UI --- ModeToggle
     UI --- Store
+    Store --- GenUI
   end
 
   subgraph server ["apps/server (Express)"]
@@ -42,13 +44,15 @@ flowchart LR
 
   LLM[("OpenRouter or Vertex AI\n(see LLM_PROVIDER)")]
 
-  Store <-->|"JSON + SSE\nwith contentType"| Router
+  Store <-->|"JSON + SSE AG-UI\ncontentType + CUSTOM a2ui"| Router
   Store <-->|"optional CopilotKit clients"| CK
   MA <-->|"chat + tools"| LLM
   IA <-->|"chat + tools"| LLM
 ```
 
 **Custom routes** (`apps/server/src/routes/copilot.js`) power the main UI: structured JSON for intent/transform/analyze/style and Server-Sent Events for the insights stream.
+
+**Critique actionable checklist** — When **Critique** returns an `## Actionable …` section, the Thinking pane shows checkboxes and **Fix selected** / **Fix all** using the same styled React panel as before. The server may still emit optional A2UI-shaped `CUSTOM` (`name: "a2ui"`) messages on AG-UI streams for forward-compatible clients; see [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md). Diagram source remains the primary artifact (Mermaid / Infographic DSL).
 
 **CopilotKit runtime** (`CopilotRuntime` + `createCopilotExpressHandler` in `apps/server/src/index.js`) exposes the same backend agent through AG-UI streaming events (`TEXT_MESSAGE_*`). It resolves the session from Copilot `threadId` so chat threads align with diagram sessions when clients send that field.
 

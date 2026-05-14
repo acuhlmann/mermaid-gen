@@ -1,10 +1,5 @@
 import { z } from 'zod';
-import {
-  DEFAULT_DIAGRAM_STYLE,
-  DiagramStyleSchema,
-  applyMermaidStyleDirective,
-  parseMermaidStyleConfig
-} from './mermaidStyle.js';
+import { DEFAULT_DIAGRAM_STYLE, DiagramStyleSchema, parseMermaidStyleConfig } from './mermaidStyle.js';
 
 export const ContentTypeSchema = z.enum(['mermaid', 'infographic']);
 
@@ -13,19 +8,6 @@ export const IntentPeerContextSchema = z.object({
   contentType: ContentTypeSchema,
   diagramSource: z.string().max(200_000)
 });
-
-const DEFAULT_INFOGRAPHIC_SOURCE =
-  'infographic list-row-simple-horizontal-arrow\n' +
-  '  data\n' +
-  '    lists\n' +
-  '      - label Step 1\n' +
-  '        desc Start\n' +
-  '      - label Step 2\n' +
-  '        desc Build\n' +
-  '      - label Step 3\n' +
-  '        desc Ship';
-
-const DEFAULT_MERMAID_SOURCE = 'flowchart TD\n  A["AI Tinkerers HK"] --> B[Hackathon]';
 
 export const DiagramPatchSchema = z.object({
   previousRevisionId: z.number().int().nonnegative(),
@@ -38,7 +20,8 @@ export const DiagramPatchSchema = z.object({
 
 export const DiagramStateSchema = z.object({
   revisionId: z.number().int().nonnegative(),
-  diagramSource: z.string().min(1),
+  /** Empty canvas is valid before the first agent or manual edit. */
+  diagramSource: z.string(),
   styleConfig: DiagramStyleSchema.nullable().default(DEFAULT_DIAGRAM_STYLE),
   contentType: ContentTypeSchema.default('mermaid'),
   updatedAt: z.string(),
@@ -191,7 +174,7 @@ export function createInitialDiagramState(contentType = 'mermaid') {
   if (contentType === 'infographic') {
     return {
       revisionId: 0,
-      diagramSource: DEFAULT_INFOGRAPHIC_SOURCE,
+      diagramSource: '',
       styleConfig: null,
       contentType: 'infographic',
       updatedAt: now,
@@ -200,15 +183,10 @@ export function createInitialDiagramState(contentType = 'mermaid') {
     };
   }
 
-  const styled = applyMermaidStyleDirective({
-    mermaidSource: DEFAULT_MERMAID_SOURCE,
-    styleConfig: DEFAULT_DIAGRAM_STYLE
-  });
-
   return {
     revisionId: 0,
-    diagramSource: styled.mermaidSource,
-    styleConfig: styled.styleConfig,
+    diagramSource: '',
+    styleConfig: DEFAULT_DIAGRAM_STYLE,
     contentType: 'mermaid',
     updatedAt: now,
     history: [],

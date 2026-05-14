@@ -1,4 +1,10 @@
-import { createInitialDiagramState, createInitialSessionState } from '@archislop/shared';
+import {
+  AGUI_CUSTOM_NAME_A2UI,
+  AGUI_CUSTOM_NAME_STATUS,
+  LEGACY_STREAM_TYPE_A2UI,
+  createInitialDiagramState,
+  createInitialSessionState
+} from '@archislop/shared';
 import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
@@ -82,6 +88,45 @@ export function writeDiagramCache(payload, sessionId) {
   }
 }
 
+/** Removes persisted diagram/insights cache for every session (prefix `archislop:diagram-cache-v2`). */
+export function clearAllDiagramCachesFromStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      if (k === DIAGRAM_CACHE_STORAGE_KEY || k.startsWith(`${DIAGRAM_CACHE_STORAGE_KEY}:`)) {
+        keys.push(k);
+      }
+    }
+    for (const k of keys) {
+      window.localStorage.removeItem(k);
+    }
+  } catch {
+    // Ignore privacy / access errors.
+  }
+}
+
+export function clearBrowserBackupSessionId() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(BROWSER_SESSION_STORAGE_KEY);
+  } catch {
+    // Ignore.
+  }
+}
+
+/**
+ * After the server reports the session is gone (404/410), drop all client-side session payloads
+ * so a new room id does not resurrect stale diagrams, insights, or backup session headers.
+ */
+export function wipeClientCachesAfterLostServerSession() {
+  inMemorySessionId = null;
+  clearAllDiagramCachesFromStorage();
+  clearBrowserBackupSessionId();
+}
+
 function createSessionHeaders(sessionId) {
   const resolvedSessionId = normalizeSessionId(sessionId) ?? getOrCreateBrowserSessionId();
   return {
@@ -121,14 +166,43 @@ export async function fetchDiagramState({ contentType, sessionId } = {}) {
   return response.json();
 }
 
+export const SESSION_NOT_FOUND_CODE = 'SESSION_NOT_FOUND';
+
+/**
+ * Coerce GET /session-state JSON into a full dual-slot shape (stale proxies, redeploys, or
+ * partial payloads should not brick the client).
+ */
+export function normalizeFetchedSessionDiagram(payload) {
+  const base = createInitialSessionState();
+  if (!payload || typeof payload !== 'object') return base;
+  const m = payload.mermaid;
+  const i = payload.infographic;
+  return {
+    activeContentType: payload.activeContentType === 'infographic' ? 'infographic' : base.activeContentType,
+    mermaid: m && typeof m === 'object' && typeof m.diagramSource === 'string' ? m : base.mermaid,
+    infographic: i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic
+  };
+}
+
 export async function fetchSessionDiagramState({ sessionId } = {}) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/session-state`, {
     headers: createSessionHeaders(sessionId)
   });
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch {
+    payload = null;
+  }
+  if (response.status === 404 || response.status === 410) {
+    const err = new Error('Session not found');
+    err.code = SESSION_NOT_FOUND_CODE;
+    throw err;
+  }
   if (!response.ok) {
     throw new Error(`Failed to fetch session state: ${response.status}`);
   }
-  return response.json();
+  return normalizeFetchedSessionDiagram(payload);
 }
 
 /**
@@ -318,8 +392,12 @@ export async function submitDiagramAnalyze({
 
 /**
  * Translates an AG-UI wire event back into the legacy internal event shape that
- * App.jsx already consumes. State across an SSE run (open message id, cached
- * state snapshot) is held by the closure returned from createAgUiTranslator.
+ * `applyAgentStreamInsightEvent` + the insights pipeline consume. State across
+ * an SSE run (cached state snapshot) is held by the closure returned here.
+ *
+ * When adding a new AG-UI event: map it here, add server mapping in
+ * `createAgUiEmit` (apps/server), then handle the legacy shape in
+ * `applyAgentStreamInsightEvent` (web).
  *
  * Mapping summary:
  *   STEP_STARTED                                 -> { type:'phase', id, label }
@@ -330,9 +408,10 @@ export async function submitDiagramAnalyze({
  *   RUN_FINISHED                                 -> { type:'final', state, message, ... }
  *   RUN_ERROR                                    -> { type:'error', message }
  *   CUSTOM(status)                               -> { type:'status', text }
+ *   CUSTOM(a2ui)                                 -> { type:'a2ui', messages }
  *   TOOL_CALL_START/END                          -> { type:'tool_start' | 'tool_end', name }
  *
- * Legacy event shapes pass through unchanged so the server can mix protocols.
+ * Legacy event shapes pass through unchanged for forward-compat tests and proxies.
  */
 export function createAgUiTranslator() {
   let lastSnapshot = null;
@@ -411,9 +490,12 @@ export function createAgUiTranslator() {
       case 'RUN_ERROR':
         return { type: 'error', message: String(evt.message ?? 'Unknown error') };
       case 'CUSTOM': {
-        if (evt.name === 'status') {
+        if (evt.name === AGUI_CUSTOM_NAME_STATUS) {
           const text = evt.value?.text ?? '';
           return { type: 'status', text };
+        }
+        if (evt.name === AGUI_CUSTOM_NAME_A2UI && Array.isArray(evt.value?.messages)) {
+          return { type: LEGACY_STREAM_TYPE_A2UI, messages: evt.value.messages };
         }
         if (evt.name === 'artifact') return evt.value ?? null;
         return null;
@@ -426,9 +508,9 @@ export function createAgUiTranslator() {
 }
 
 /**
- * Streams SSE events from POST /api/copilotkit/agent-stream via @ag-ui/client's HttpAgent.
- * HttpAgent owns fetch + SSE decode + AG-UI Zod validation; we only translate each validated
- * event back into the legacy shape App.jsx already consumes.
+ * Streams SSE from POST /api/copilotkit/agent-stream (AG-UI wire only). Uses
+ * @ag-ui/client HttpAgent for decode + validation; `createAgUiTranslator` maps
+ * each event to the legacy union consumed by `applyAgentStreamInsightEvent`.
  *
  * Includes an idle timeout: if no event arrives for AGENT_STREAM_IDLE_TIMEOUT_MS, the run is
  * aborted as if the caller's signal fired. Healthy agent runs emit events well within that gap,

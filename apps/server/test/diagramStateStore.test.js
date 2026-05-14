@@ -51,13 +51,17 @@ test('store rejects invalid client sync source without mutating state', async ()
 test('store accepts empty client sync source as cleared mermaid diagram', async () => {
   const store = createDiagramStateStore();
 
+  await store.syncClientDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B'
+  });
   const result = await store.syncClientDiagramSource({
     contentType: 'mermaid',
     diagramSource: ''
   });
 
   assert.equal(result.accepted, true);
-  assert.equal(result.state.revisionId, 1);
+  assert.equal(result.state.revisionId, 2);
   assert.equal(result.state.diagramSource, '');
 });
 

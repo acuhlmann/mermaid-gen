@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react';
 
+/** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
+
 const BOTTOM_SNAP_THRESHOLD_PX = 72;
 
 const PHASE_ID_LABELS = {

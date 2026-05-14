@@ -465,7 +465,6 @@ export function createCopilotRouter({ resolveServices }) {
     }
 
     const revisionBefore = state.revisionId;
-    const useAgUi = req.query?.protocol === 'agui';
 
     res.status(200);
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -477,42 +476,24 @@ export function createCopilotRouter({ resolveServices }) {
 
     const rawEmit = (evt) => writeSseData(res, evt);
 
-    // First-paint: emit RUN_STARTED + an initial STEP_STARTED immediately so
-    // the client can show feedback before the (lazy) agent service warms up.
-    let emit;
-    let ids = null;
-    if (useAgUi) {
-      ids = newRunIds();
-      rawEmit(runStarted(ids));
-      rawEmit(stepStarted({ stepName: 'planning' }));
-      emit = createAgUiEmit({
-        rawEmit,
-        threadId: ids.threadId,
-        runId: ids.runId,
-        contentType: payload.contentType,
-        initialStep: 'planning'
-      });
-    } else {
-      emit = rawEmit;
-    }
+    // AG-UI is the only wire shape for this route: first-paint RUN_STARTED +
+    // STEP_STARTED, then createAgUiEmit maps agent legacy emit() into AG-UI.
+    const ids = newRunIds();
+    rawEmit(runStarted(ids));
+    rawEmit(stepStarted({ stepName: 'planning' }));
+    const emit = createAgUiEmit({
+      rawEmit,
+      threadId: ids.threadId,
+      runId: ids.runId,
+      contentType: payload.contentType,
+      initialStep: 'planning'
+    });
 
     try {
       await agentService.runAgentStream(payload.operation, { ...payload, _revisionBefore: revisionBefore }, emit);
-      if (!useAgUi) {
-        writeSseData(res, { type: 'done' });
-      }
     } catch (error) {
       const message = safeErrorMessage(error);
-      if (useAgUi && ids) {
-        rawEmit(runError({ message }));
-      } else {
-        if (error instanceof LlmNotConfiguredError) {
-          writeSseData(res, { type: 'error', message });
-        } else {
-          writeSseData(res, { type: 'error', message });
-        }
-        writeSseData(res, { type: 'done' });
-      }
+      rawEmit(runError({ message }));
     }
 
     res.end();

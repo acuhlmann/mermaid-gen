@@ -412,6 +412,13 @@ test('client state sync route rejects invalid Mermaid syntax', async () => {
 
 test('client state sync route accepts empty Mermaid source for clear', async () => {
   const stateStore = createDiagramStateStore();
+  await handleClientStateSync({
+    body: {
+      contentType: 'mermaid',
+      diagramSource: 'flowchart TD\n  A --> B'
+    },
+    stateStore
+  });
   const result = await handleClientStateSync({
     body: {
       contentType: 'mermaid',
@@ -421,7 +428,7 @@ test('client state sync route accepts empty Mermaid source for clear', async () 
   });
 
   assert.equal(result.status, 200);
-  assert.equal(result.body.revisionId, 1);
+  assert.equal(result.body.revisionId, 2);
   assert.equal(result.body.diagramSource, '');
 });
 

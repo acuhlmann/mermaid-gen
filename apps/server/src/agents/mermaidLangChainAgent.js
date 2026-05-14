@@ -10,6 +10,7 @@ import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
 import {
   createOpenRouterModel,
   createVertexChatModel,
@@ -1411,6 +1412,7 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           modelProfile,
           emit
         });
+        emitCritiqueA2uiBeforeFinal(emit, { kind: payload.kind, analyzeText: result.message });
         emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
         return result;
       }

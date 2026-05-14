@@ -3,6 +3,7 @@ import { createInitialDiagramState } from '@archislop/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildIntentPeerContext,
+  clearAllDiagramCachesFromStorage,
   getOrCreateBrowserSessionId,
   normalizeSessionId,
   readDiagramCache,
@@ -11,6 +12,7 @@ import {
   streamDiagramAgent,
   submitDiagramTransform,
   syncClientDiagramState,
+  wipeClientCachesAfterLostServerSession,
   writeDiagramCache
 } from '../src/state/diagramStore.js';
 
@@ -427,6 +429,26 @@ describe('diagram cache storage', () => {
 
     expect(readDiagramCache('alpha')).toEqual(alpha);
     expect(readDiagramCache('beta')).toEqual(beta);
+  });
+});
+
+describe('lost server session cache wipe', () => {
+  it('clearAllDiagramCachesFromStorage removes all diagram cache keys and leaves unrelated keys', () => {
+    writeDiagramCache({ diagramSource: 'a' }, 'room-a');
+    writeDiagramCache({ diagramSource: 'b' }, 'room-b');
+    window.localStorage.setItem('unrelated-key', 'keep');
+    clearAllDiagramCachesFromStorage();
+    expect(readDiagramCache('room-a')).toBeNull();
+    expect(readDiagramCache('room-b')).toBeNull();
+    expect(window.localStorage.getItem('unrelated-key')).toBe('keep');
+  });
+
+  it('wipeClientCachesAfterLostServerSession clears diagram caches and backup session id', () => {
+    writeDiagramCache({ diagramSource: 'x' }, 's1');
+    window.localStorage.setItem('archislop:session-id', 'legacy-backup');
+    wipeClientCachesAfterLostServerSession();
+    expect(readDiagramCache('s1')).toBeNull();
+    expect(window.localStorage.getItem('archislop:session-id')).toBeNull();
   });
 });
 

@@ -105,6 +105,12 @@ describe('createAgUiTranslator', () => {
     expect(out).toEqual({ type: 'status', text: 'Still working…' });
   });
 
+  it('CUSTOM(a2ui) becomes legacy a2ui with messages', () => {
+    const msgs = [{ version: 'v0.9', createSurface: { surfaceId: 's', catalogId: 'c' } }];
+    const [out] = runThrough([{ type: 'CUSTOM', name: 'a2ui', value: { messages: msgs } }]);
+    expect(out).toEqual({ type: 'a2ui', messages: msgs });
+  });
+
   it('TOOL_CALL_START/END translate to legacy tool_start/tool_end', () => {
     const out = runThrough([
       { type: 'TOOL_CALL_START', toolCallId: 't1', toolCallName: 'apply_infographic_patch' },
