@@ -2,11 +2,13 @@ import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useR
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
 import {
+  buildIntentPeerContext,
   createSessionId,
   fallbackState,
-  fetchDiagramState,
+  fetchSessionDiagramState,
   normalizeSessionId,
   readDiagramCache,
+  shouldAutoSubmitModeSwitchIntent,
   streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
@@ -340,13 +342,34 @@ function MermaidMarkIcon() {
 
 function ArchiSlopMarkIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
       <path d="M5 16 Q5 7 12 6 Q19 7 19 16 Z" fill="#F4A300" />
       <ellipse cx="12" cy="16" rx="9" ry="1.4" fill="#C77A00" />
       <path d="M12 6 L11 16 L13 16 Z" fill="#C77A00" opacity="0.55" />
       <path d="M6 17 Q6 20 7 22 Q8 20 8 17 Z" fill="#7CFC00" />
       <path d="M11 17 Q11 22 12 23.5 Q13 22 13 17 Z" fill="#3FA700" />
       <path d="M16 17 Q16 20 17 22 Q18 20 18 17 Z" fill="#7CFC00" />
+    </svg>
+  );
+}
+
+function BrainIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+      <path
+        d="M8.5 3.4c-1.7 0-3 1.2-3 2.7 0 .3 0 .6.1.9-1.2.4-2.1 1.5-2.1 2.8 0 .8.3 1.5.8 2-.5.5-.8 1.2-.8 2 0 1.4 1 2.5 2.3 2.8.1 1.4 1.3 2.5 2.7 2.5.8 0 1.5-.3 2-.9V4.3c-.5-.5-1.2-.9-2-.9Zm7 0c-.8 0-1.5.4-2 .9v14c.5.5 1.2.9 2 .9 1.4 0 2.6-1.1 2.7-2.5 1.3-.3 2.3-1.4 2.3-2.8 0-.8-.3-1.5-.8-2 .5-.5.8-1.2.8-2 0-1.3-.9-2.4-2.1-2.8.1-.3.1-.6.1-.9 0-1.5-1.3-2.7-3-2.7Z"
+        fill="#ff5fb0"
+        stroke="#1f1235"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9.5 7.5c.6.2 1 .6 1.2 1.2M8.2 11.2c.7 0 1.3.3 1.6.8M9.4 15.2c.5-.3 1-.4 1.5-.3M14.5 7.5c-.6.2-1 .6-1.2 1.2M15.8 11.2c-.7 0-1.3.3-1.6.8M14.6 15.2c-.5-.3-1-.4-1.5-.3M12 4.5v15"
+        fill="none"
+        stroke="#1f1235"
+        strokeWidth="1.1"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }
@@ -491,6 +514,14 @@ function ArchiSlop() {
   /** Forward ref so the streaming `final` callback can call the latest arm fn without dep churn. */
   const armAutoDiagramChangeHighlightRef = useRef(null);
 
+  /**
+   * Last topic the user submitted in each mode. Drives auto-rerun on mode switch so a single
+   * topic produces consistent content across mermaid+infographic without the user having to
+   * re-type it. Seeded from `fetchSessionDiagramState` and bumped on every `final` event whose state
+   * carries a non-null `lastUserPrompt`.
+   */
+  const lastTopicByModeRef = useRef({ mermaid: null, infographic: null });
+
   const clearPendingAutoDiagramHighlight = useCallback(() => {
     pendingAutoDiagramHighlightRef.current = null;
     if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
@@ -567,13 +598,80 @@ function ArchiSlop() {
 
   useEffect(() => {
     let cancelled = false;
+    // Capture the textarea state at the moment the user toggled mode. Used below to gate
+    // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
+    const promptAtSwitch = promptRef.current;
     setLoading(true);
     setActiveRequest('hydrate');
-    fetchDiagramState({ contentType: contentMode, sessionId: activeSessionId })
-      .then((data) => {
+    fetchSessionDiagramState({ sessionId: activeSessionId })
+      .then((session) => {
         if (cancelled) return;
+        const data = session?.[contentMode];
+        if (!data) {
+          throw new Error('Invalid session state');
+        }
         stateRef.current = data;
         setState(data);
+        // Seed lastTopicByModeRef from the server's authoritative slot. This is the only
+        // path that fires on first mount, and also on every mode-switch hydration.
+        if (data?.contentType && typeof data.lastUserPrompt === 'string') {
+          lastTopicByModeRef.current = {
+            ...lastTopicByModeRef.current,
+            [data.contentType]: data.lastUserPrompt
+          };
+        }
+        // Auto-rerun on mode switch: if we know a topic from the OTHER mode and the new
+        // mode doesn't already reflect it, fire an intent for the new mode using the same
+        // topic. Gated on the textarea being "in sync" (empty or matching the candidate)
+        // so we never trample a half-typed message.
+        const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+        const otherTopic = lastTopicByModeRef.current[otherMode];
+        const candidate = data?.lastUserPrompt ?? otherTopic ?? null;
+        const newSlotInSync =
+          typeof data?.lastUserPrompt === 'string' &&
+          candidate != null &&
+          data.lastUserPrompt === candidate &&
+          (data.revisionId ?? 0) > 0;
+        const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
+        const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
+        const peerContext = buildIntentPeerContext(contentMode, session, candidate);
+        if (
+          shouldAutoSubmitModeSwitchIntent({
+            candidate,
+            textareaDirty,
+            newSlotInSync,
+            peerContext,
+            session,
+            contentMode
+          })
+        ) {
+          // Pre-fill so the textarea visibly reflects what's running, then submit using
+          // the freshly-hydrated state to avoid a 409 from stale revisionId.
+          setPrompt(candidate);
+          promptRef.current = candidate;
+          // Defer to a microtask so React has committed the state update before the auto
+          // submit kicks off; pass the override anyway so revisionId is correct regardless.
+          Promise.resolve().then(async () => {
+            if (cancelled) return;
+            try {
+              if (!peerContext) {
+                const cleared = await syncClientDiagramState({
+                  contentType: contentMode,
+                  diagramSource: '',
+                  sessionId: activeSessionId
+                });
+                if (cancelled) return;
+                stateRef.current = cleared;
+                setState(cleared);
+                await submitIntentWithPrompt(candidate, { stateOverride: cleared });
+                return;
+              }
+              await submitIntentWithPrompt(candidate, { stateOverride: data, peerContext });
+            } catch (err) {
+              if (!cancelled) setError(err.message);
+            }
+          });
+        }
       })
       .catch((err) => {
         if (!cancelled) setError(err.message);
@@ -586,6 +684,7 @@ function ArchiSlop() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessionId, contentMode]);
 
   useEffect(() => {
@@ -984,6 +1083,14 @@ function ArchiSlop() {
             if (variant === 'goMad' && evt.revisionChanged) {
               setGoMadStreak((s) => s + 1);
             }
+            // Cache the slot's last topic so mode-switch can carry it across. We only update
+            // on revisionChanged so a failed intent (no patch) doesn't poison the carry-over.
+            if (evt.revisionChanged && evt.state?.lastUserPrompt && evt.state?.contentType) {
+              lastTopicByModeRef.current = {
+                ...lastTopicByModeRef.current,
+                [evt.state.contentType]: evt.state.lastUserPrompt
+              };
+            }
             if (evt.revisionChanged && evt.state) {
               const shouldAutoHighlight =
                 Boolean(diagramUndoBaseline) && AUTO_DIAGRAM_HIGHLIGHT_VARIANTS.has(variant);
@@ -1250,7 +1357,7 @@ Hard requirements:
     return syncedState;
   }
 
-  async function submitIntentWithPrompt(nextPrompt) {
+  async function submitIntentWithPrompt(nextPrompt, options = {}) {
     const trimmed = (nextPrompt ?? '').trim();
     if (!trimmed || loadingRef.current || streamingPreviewRef.current) return;
 
@@ -1262,7 +1369,12 @@ Hard requirements:
     setError('');
 
     try {
-      const syncedState = await syncDiagramOrThrow();
+      // Mode-switch auto-rerun passes `stateOverride` so we don't need to wait for React's
+      // setState flush. Without it, syncDiagramOrThrow would read stale `stateRef.current`
+      // (the OLD mode's slot) and submit the wrong revisionId.
+      const syncedState = options.stateOverride
+        ? options.stateOverride
+        : await syncDiagramOrThrow();
       await runStreamingAgent({
         operation: 'intent',
         payload: {
@@ -1273,14 +1385,16 @@ Hard requirements:
           contentType: contentMode,
           settings: {},
           focusNode,
-          modelProfile
+          modelProfile,
+          ...(options.peerContext ? { peerContext: options.peerContext } : {})
         },
         title: selectionActionTitle(selectedNode, 'Go'),
         variant: 'intent',
         diagramUndoBaseline: { ...syncedState }
       });
-      setPrompt('');
-      promptRef.current = '';
+      // Retain the prompt so the user can see and refine the current topic. Mode-switch
+      // carry-over relies on this too — the textarea is the visible source of truth for
+      // "the topic this session is currently about."
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1392,7 +1506,13 @@ Hard requirements:
     const sessionAtStart = micSessionRef.current;
     voiceCapturedAnyRef.current = false;
     voiceAutoSubmitEnabledRef.current = true;
-    voiceAccumulatedRef.current = promptRef.current.trim();
+    // Voice always starts a FRESH dictation. With the prompt textarea now retaining the
+    // last topic after submit, seeding from `promptRef.current` would compound text across
+    // consecutive mic sessions ("topic A topic B topic C…"). Clear here so the user sees
+    // an empty textarea fill in as they speak.
+    setPrompt('');
+    promptRef.current = '';
+    voiceAccumulatedRef.current = '';
 
     hasInteractedRef.current = true;
     setVoiceError('');
@@ -2204,222 +2324,229 @@ ${requirementsBlock}`;
         </button>
       </div>
 
-      <div className="corner-control prompt-stack">
-        <form className="prompt-control" onSubmit={runIntentChange}>
-          <label className="sr-only" htmlFor="diagram-change-prompt">
-            Set the Topic, Describe Your Change
-          </label>
-          <input
-            id="diagram-change-prompt"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder="Set the Topic, Describe Your Change"
-            disabled={busy}
-            aria-invalid={error ? 'true' : 'false'}
-            aria-describedby={status ? 'app-status' : undefined}
-          />
-          <div className="prompt-actions-main">
-            <button
-              type="button"
-              className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-              disabled={!voiceSupported || busy}
-              onPointerDown={handleMicPointerDown}
-              onPointerUp={handleMicPointerUp}
-              onPointerCancel={handleMicPointerUp}
-              onLostPointerCapture={() => stopVoiceInput()}
-              onKeyDown={(event) => {
-                if (event.repeat) return;
-                if (event.key === ' ' || event.key === 'Enter') {
-                  event.preventDefault();
-                  startVoiceInput();
+      <div className="corner-control bottom-chrome">
+        <div className="prompt-stack">
+          <form className="prompt-control" onSubmit={runIntentChange}>
+            <label className="sr-only" htmlFor="diagram-change-prompt">
+              Set the Topic, Describe Your Change
+            </label>
+            <input
+              id="diagram-change-prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              placeholder="Set the Topic, Describe Your Change"
+              disabled={busy}
+              aria-invalid={error ? 'true' : 'false'}
+              aria-describedby={status ? 'app-status' : undefined}
+            />
+            <div className="prompt-actions-main">
+              <button
+                type="button"
+                className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+                disabled={!voiceSupported || busy}
+                onPointerDown={handleMicPointerDown}
+                onPointerUp={handleMicPointerUp}
+                onPointerCancel={handleMicPointerUp}
+                onLostPointerCapture={() => stopVoiceInput()}
+                onKeyDown={(event) => {
+                  if (event.repeat) return;
+                  if (event.key === ' ' || event.key === 'Enter') {
+                    event.preventDefault();
+                    startVoiceInput();
+                  }
+                }}
+                onKeyUp={(event) => {
+                  if (event.key === ' ' || event.key === 'Enter') {
+                    event.preventDefault();
+                    stopVoiceInput();
+                  }
+                }}
+                aria-label="Hold to speak"
+                title={
+                  voiceSupported
+                    ? 'Hold to dictate prompt'
+                    : SpeechRecognitionCtor
+                      ? 'Voice input needs a secure connection (HTTPS), except on localhost'
+                      : 'Voice input not supported in this browser'
                 }
-              }}
-              onKeyUp={(event) => {
-                if (event.key === ' ' || event.key === 'Enter') {
-                  event.preventDefault();
-                  stopVoiceInput();
-                }
-              }}
-              aria-label="Hold to speak"
-              title={
-                voiceSupported
-                  ? 'Hold to dictate prompt'
-                  : SpeechRecognitionCtor
-                    ? 'Voice input needs a secure connection (HTTPS), except on localhost'
-                    : 'Voice input not supported in this browser'
-              }
-            >
-              <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-              Mic
-            </button>
-            {hasDiagramText ? (
-              <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
-                <ButtonIcon>x</ButtonIcon>
-                Clear
+              >
+                <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
+                Mic
               </button>
-            ) : null}
-            <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
-              <ButtonIcon>{'>'}</ButtonIcon>
-              Go
-            </button>
-          </div>
-          {status ? (
-            <div className="overlay-status-row">
-              <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
-                {status}
-              </p>
-              {streamingAgentStoppable && !insightsOpen ? (
-                <button
-                  type="button"
-                  className="overlay-button compact-button overlay-status-stop"
-                  onClick={stopStreamingAgentRequest}
-                >
-                  Stop request
+              {hasDiagramText ? (
+                <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
+                  <ButtonIcon>x</ButtonIcon>
+                  Clear
                 </button>
               ) : null}
+              <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
+                <ButtonIcon>{'>'}</ButtonIcon>
+                Go
+              </button>
             </div>
-          ) : null}
-        </form>
+            {status ? (
+              <div className="overlay-status-row">
+                <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
+                  {status}
+                </p>
+                {streamingAgentStoppable && !insightsOpen ? (
+                  <button
+                    type="button"
+                    className="overlay-button compact-button overlay-status-stop"
+                    onClick={stopStreamingAgentRequest}
+                  >
+                    Stop request
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </form>
 
-        {hasDiagramText ? (
-          <div className="prompt-actions">
-            <span className="button-group-label">Shape</span>
-            <div className="button-group">
-              <button
-                type="button"
-                className="overlay-button compact-button"
-                disabled={busy}
-                onClick={() => runTransform('refine', { useDiagramFocus: true })}
-              >
-                <ButtonIcon>
-                  <MermaidMarkIcon />
-                </ButtonIcon>
-                Refine
-              </button>
-              <button
-                type="button"
-                className="overlay-button compact-button"
-                disabled={busy}
-                onClick={() => runTransform('innovate', { useDiagramFocus: true })}
-              >
-                <ButtonIcon>+</ButtonIcon>
-                Innovate
-              </button>
-              <button
-                type="button"
-                className="overlay-button compact-button"
-                disabled={busy}
-                onClick={() => runTransform('goMad', { useDiagramFocus: true })}
-              >
-                <ButtonIcon>!</ButtonIcon>
-                {goMadShapeLabel(goMadStreak)}
-              </button>
-            </div>
-            <span className="button-group-label">Read</span>
-            <div className="button-group">
-              <button
-                type="button"
-                className="overlay-button compact-button"
-                disabled={busy}
-                onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
-              >
-                <ButtonIcon>?</ButtonIcon>
-                Critique
-              </button>
-              {latestCritique?.text ? (
+          {hasDiagramText ? (
+            <div className="prompt-actions">
+              <span className="button-group-label">Shape</span>
+              <div className="button-group">
                 <button
                   type="button"
                   className="overlay-button compact-button"
-                  disabled={!canFixFromCritique}
-                  onClick={() => handleFixFromCritique('all')}
+                  disabled={busy}
+                  onClick={() => runTransform('refine', { useDiagramFocus: true })}
                 >
-                  <ButtonIcon>w</ButtonIcon>
-                  Fix
+                  <ButtonIcon>
+                    <MermaidMarkIcon />
+                  </ButtonIcon>
+                  Refine
                 </button>
-              ) : null}
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runTransform('innovate', { useDiagramFocus: true })}
+                >
+                  <ButtonIcon>+</ButtonIcon>
+                  Innovate
+                </button>
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runTransform('goMad', { useDiagramFocus: true })}
+                >
+                  <ButtonIcon>!</ButtonIcon>
+                  {goMadShapeLabel(goMadStreak)}
+                </button>
+              </div>
+              <span className="button-group-label">Read</span>
+              <div className="button-group">
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
+                >
+                  <ButtonIcon>?</ButtonIcon>
+                  Critique
+                </button>
+                {latestCritique?.text ? (
+                  <button
+                    type="button"
+                    className="overlay-button compact-button"
+                    disabled={!canFixFromCritique}
+                    onClick={() => handleFixFromCritique('all')}
+                  >
+                    <ButtonIcon>w</ButtonIcon>
+                    Fix
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
+                >
+                  <ButtonIcon>i</ButtonIcon>
+                  Explain
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="ai-corner-controls" aria-label="AI model and thinking">
+          <div className="model-profile-toggle" role="group" aria-label="Content mode">
+            <span className="model-profile-label">Mode</span>
+            <div className="model-profile-segment">
               <button
                 type="button"
-                className="overlay-button compact-button"
-                disabled={busy}
-                onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
+                className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
+                aria-pressed={contentMode === 'mermaid'}
+                disabled={loading || streamingPreview}
+                onClick={() => {
+                  if (contentMode === 'mermaid') return;
+                  stopStreamingAgentRequest();
+                  setSelectedNode(null);
+                  setToolbarAnchor(null);
+                  setLatestCritique(null);
+                  tryAgentSound(playModeSwoosh);
+                  setContentMode('mermaid');
+                }}
               >
-                <ButtonIcon>i</ButtonIcon>
-                Explain
+                Diagram
+              </button>
+              <button
+                type="button"
+                className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
+                aria-pressed={contentMode === 'infographic'}
+                disabled={loading || streamingPreview}
+                onClick={() => {
+                  if (contentMode === 'infographic') return;
+                  stopStreamingAgentRequest();
+                  setSelectedNode(null);
+                  setToolbarAnchor(null);
+                  setLatestCritique(null);
+                  tryAgentSound(playModeSwoosh);
+                  setContentMode('infographic');
+                }}
+              >
+                Infographic
               </button>
             </div>
           </div>
-        ) : null}
-      </div>
-
-      <div className="corner-control ai-corner-controls" aria-label="AI model and thinking">
-        <div className="model-profile-toggle" role="group" aria-label="Content mode">
-          <span className="model-profile-label">Mode</span>
-          <div className="model-profile-segment">
-            <button
-              type="button"
-              className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
-              aria-pressed={contentMode === 'mermaid'}
-              disabled={loading || streamingPreview}
-              onClick={() => {
-                if (contentMode === 'mermaid') return;
-                stopStreamingAgentRequest();
-                setSelectedNode(null);
-                setToolbarAnchor(null);
-                setLatestCritique(null);
-                tryAgentSound(playModeSwoosh);
-                setContentMode('mermaid');
-              }}
-            >
-              Diagram
-            </button>
-            <button
-              type="button"
-              className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
-              aria-pressed={contentMode === 'infographic'}
-              disabled={loading || streamingPreview}
-              onClick={() => {
-                if (contentMode === 'infographic') return;
-                stopStreamingAgentRequest();
-                setSelectedNode(null);
-                setToolbarAnchor(null);
-                setLatestCritique(null);
-                tryAgentSound(playModeSwoosh);
-                setContentMode('infographic');
-              }}
-            >
-              Infographic
-            </button>
+          <div className="model-profile-toggle" role="group" aria-label="AI brain">
+            <span className="model-profile-label model-profile-label--brain">
+              <span className="model-profile-label-icon" aria-hidden="true">
+                <BrainIcon />
+              </span>
+              Brain
+            </span>
+            <div className="model-profile-segment">
+              <button
+                type="button"
+                className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
+                aria-pressed={modelProfile === 'fast'}
+                onClick={() => setModelProfile('fast')}
+              >
+                Fast
+              </button>
+              <button
+                type="button"
+                className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
+                aria-pressed={modelProfile === 'quality'}
+                onClick={() => setModelProfile('quality')}
+              >
+                Quality
+              </button>
+            </div>
           </div>
+          <button
+            type="button"
+            className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
+            onClick={() => setInsightsOpen((v) => !v)}
+          >
+            <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
+            {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
+          </button>
         </div>
-        <div className="model-profile-toggle" role="group" aria-label="AI model profile">
-          <span className="model-profile-label">Model</span>
-          <div className="model-profile-segment">
-            <button
-              type="button"
-              className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
-              aria-pressed={modelProfile === 'fast'}
-              onClick={() => setModelProfile('fast')}
-            >
-              Fast
-            </button>
-            <button
-              type="button"
-              className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
-              aria-pressed={modelProfile === 'quality'}
-              onClick={() => setModelProfile('quality')}
-            >
-              Quality
-            </button>
-          </div>
-        </div>
-        <button
-          type="button"
-          className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
-          onClick={() => setInsightsOpen((v) => !v)}
-        >
-          <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-          {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
-        </button>
       </div>
     </main>
   );

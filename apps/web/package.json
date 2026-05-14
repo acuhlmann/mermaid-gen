@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@ag-ui/client": "0.0.53",
     "@antv/infographic": "^0.2.19",
     "@copilotkit/react-core": "^1.57.1",
     "@copilotkit/runtime-client-gql": "^1.57.1",

@@ -392,7 +392,7 @@ When the user asks for a diagram change:
 When the user asks a general question, answer concisely.`;
 
 const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch)\b/;
-const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type|mcp/i;
+const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type/i;
 
 function defaultChatModelFactory(env, options) {
   const backend = resolveLlmBackend(env);
@@ -451,6 +451,19 @@ ${state.diagramSource}
 \`\`\`
 
 Use this as the current diagram when the user's request is short or refers to "it".`
+  };
+}
+
+/** When switching from Infographic mode, steer the model to translate the peer DSL instead of guessing from topic alone. */
+function createPeerInfographicContextMessage(peerDiagramSource) {
+  return {
+    role: 'system',
+    content: `Mode switch / cross-format: the authoritative content to mirror is the peer Infographic DSL below (not the topic text alone). Reproduce the same entities, relationships, steps, and labels as a valid Mermaid diagram. Call apply_mermaid_patch with complete Mermaid source. Preserve a supported init directive when the current diagram already has one.
+
+Peer Infographic DSL:
+\`\`\`
+${peerDiagramSource}
+\`\`\``
   };
 }
 
@@ -653,10 +666,22 @@ export const STREAM_ERROR_NO_MUTATION_REVISION =
  * Emits `final` (and optionally `error` when no patch landed) for intent/transform agent streams.
  * @param {{ emit: (e: unknown) => void, operation: string, revisionBefore: unknown, stateStore: { getState: () => { revisionId: number } }, agentResult: { message?: string } | null | undefined }} args
  */
-export function emitIntentTransformStreamResult({ emit, operation, revisionBefore, stateStore, agentResult }) {
-  const afterState = stateStore.getSlot('mermaid');
+export function emitIntentTransformStreamResult({
+  emit,
+  operation,
+  revisionBefore,
+  stateStore,
+  agentResult,
+  prompt
+}) {
+  let afterState = stateStore.getSlot('mermaid');
   const revisionChanged =
     typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
+
+  // Record the topic on a successful intent so mode-switch can carry it across.
+  if (revisionChanged && operation === 'intent' && typeof prompt === 'string') {
+    afterState = stateStore.setLastUserPrompt({ contentType: 'mermaid', prompt });
+  }
 
   if (typeof emit === 'function' && !revisionChanged && (operation === 'intent' || operation === 'transform')) {
     emit({
@@ -818,15 +843,20 @@ const DEFAULT_REPAIR_ATTEMPTS = 2;
 async function invokeWithRepair(
   agent,
   messages,
-  { requirePatch = false, emit, mode, profile, modelLabel, stableAgent } = {},
+  { requirePatch = false, emit, mode, profile, modelLabel, stableAgent, peerContext } = {},
   stateStore,
   env
 ) {
   const initialSnap = stateStore.getSlot('mermaid');
   const beforeRevision = initialSnap.revisionId;
   const beforeSource = initialSnap.diagramSource;
+  const peerInfographicPreface =
+    peerContext?.contentType === 'infographic' && typeof peerContext.diagramSource === 'string'
+      ? [createPeerInfographicContextMessage(peerContext.diagramSource)]
+      : [];
   const baseMessages = [
     ...(requirePatch ? [buildDiagramMutationSystemMessage()] : []),
+    ...peerInfographicPreface,
     createCurrentDiagramContextMessage(stateStore),
     ...toLangChainMessages(messages)
   ];
@@ -1148,7 +1178,7 @@ export function createMermaidLangChainAgent({
       );
     },
 
-    async applyIntent({ prompt, settings, focusNode, modelProfile, emit }) {
+    async applyIntent({ prompt, settings, focusNode, modelProfile, emit, peerContext }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const focusScope = buildFocusScopeInstructions(focusNode);
 
@@ -1175,7 +1205,8 @@ ${prompt}${focusScope}`;
           mode: 'go',
           profile: normalizeModelProfile(modelProfile),
           modelLabel: resolveModelLabel(modelProfile),
-          stableAgent: getDefaultAgent('fast')
+          stableAgent: getDefaultAgent('fast'),
+          peerContext
         },
         emit
       );
@@ -1391,7 +1422,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           settings: payload.settings ?? {},
           focusNode: payload.focusNode,
           modelProfile,
-          emit
+          emit,
+          peerContext: payload.peerContext
         });
       } else {
         agentResult = await agent.applyTransformIntent({
@@ -1409,7 +1441,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
         operation,
         revisionBefore: before,
         stateStore,
-        agentResult
+        agentResult,
+        prompt: payload.prompt
       });
 
       return agentResult;

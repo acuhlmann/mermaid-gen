@@ -8,6 +8,12 @@ import {
 
 export const ContentTypeSchema = z.enum(['mermaid', 'infographic']);
 
+/** Optional sibling-slot source for mode-switch conversion (intent only). */
+export const IntentPeerContextSchema = z.object({
+  contentType: ContentTypeSchema,
+  diagramSource: z.string().max(200_000)
+});
+
 const DEFAULT_INFOGRAPHIC_SOURCE =
   'infographic list-row-simple-horizontal-arrow\n' +
   '  data\n' +
@@ -36,7 +42,8 @@ export const DiagramStateSchema = z.object({
   styleConfig: DiagramStyleSchema.nullable().default(DEFAULT_DIAGRAM_STYLE),
   contentType: ContentTypeSchema.default('mermaid'),
   updatedAt: z.string(),
-  history: z.array(DiagramPatchSchema)
+  history: z.array(DiagramPatchSchema),
+  lastUserPrompt: z.string().max(4000).nullable().optional().default(null)
 });
 
 export const SessionDiagramStateSchema = z.object({
@@ -82,16 +89,28 @@ export const IntentSettingsSchema = z
   })
   .default({});
 
-export const DiagramIntentSchema = z.object({
-  prompt: z.string().min(1),
-  revisionId: z.number().int().nonnegative(),
-  /** Empty string is allowed when starting from a cleared canvas; agent applies a full diagram patch. */
-  diagramSource: z.string(),
-  contentType: ContentTypeSchema.default('mermaid'),
-  settings: IntentSettingsSchema,
-  focusNode: FocusNodeSchema.optional(),
-  modelProfile: ModelProfileSchema.optional()
-});
+export const DiagramIntentSchema = z
+  .object({
+    prompt: z.string().min(1),
+    revisionId: z.number().int().nonnegative(),
+    /** Empty string is allowed when starting from a cleared canvas; agent applies a full diagram patch. */
+    diagramSource: z.string(),
+    contentType: ContentTypeSchema.default('mermaid'),
+    settings: IntentSettingsSchema,
+    focusNode: FocusNodeSchema.optional(),
+    modelProfile: ModelProfileSchema.optional(),
+    peerContext: IntentPeerContextSchema.optional()
+  })
+  .superRefine((val, ctx) => {
+    if (!val.peerContext) return;
+    if (val.peerContext.contentType === val.contentType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'peerContext.contentType must differ from intent contentType',
+        path: ['peerContext', 'contentType']
+      });
+    }
+  });
 
 export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad']);
 
@@ -118,16 +137,28 @@ export const DiagramAnalyzeSchema = z.object({
 });
 
 export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
-  z.object({
-    operation: z.literal('intent'),
-    prompt: z.string().min(1),
-    revisionId: z.number().int().nonnegative(),
-    diagramSource: z.string(),
-    contentType: ContentTypeSchema.default('mermaid'),
-    settings: IntentSettingsSchema,
-    focusNode: FocusNodeSchema.optional(),
-    modelProfile: ModelProfileSchema.optional()
-  }),
+  z
+    .object({
+      operation: z.literal('intent'),
+      prompt: z.string().min(1),
+      revisionId: z.number().int().nonnegative(),
+      diagramSource: z.string(),
+      contentType: ContentTypeSchema.default('mermaid'),
+      settings: IntentSettingsSchema,
+      focusNode: FocusNodeSchema.optional(),
+      modelProfile: ModelProfileSchema.optional(),
+      peerContext: IntentPeerContextSchema.optional()
+    })
+    .superRefine((val, ctx) => {
+      if (!val.peerContext) return;
+      if (val.peerContext.contentType === val.contentType) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'peerContext.contentType must differ from intent contentType',
+          path: ['peerContext', 'contentType']
+        });
+      }
+    }),
   z.object({
     operation: z.literal('transform'),
     revisionId: z.number().int().nonnegative(),
@@ -164,7 +195,8 @@ export function createInitialDiagramState(contentType = 'mermaid') {
       styleConfig: null,
       contentType: 'infographic',
       updatedAt: now,
-      history: []
+      history: [],
+      lastUserPrompt: null
     };
   }
 
@@ -179,7 +211,8 @@ export function createInitialDiagramState(contentType = 'mermaid') {
     styleConfig: styled.styleConfig,
     contentType: 'mermaid',
     updatedAt: now,
-    history: []
+    history: [],
+    lastUserPrompt: null
   };
 }
 

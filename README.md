@@ -249,7 +249,7 @@ Default session id is `default` when nothing is sent; the web client generates a
 - Primary UI traffic uses **REST + SSE** on the custom router under `/api/copilotkit`.
 - **CopilotKit v2 runtime** is mounted on the same base path **after** the router so standard AG-UI requests fall through for integrations that expect `CopilotRuntime`.
 - **`contentType` is forwarded in every request** — the dispatcher uses it to select the agent service; state routes use it to select the slot; `applyPatch` validates it against the slot's own `contentType` to catch cross-slot patches.
-- **Validation order (Mermaid)**: the local Mermaid parser runs first. When `MERMAID_MCP_URL` is set, MCP runs as an **advisory** second opinion; local stays authoritative unless `MERMAID_MCP_AUTHORITATIVE=true`. MCP responses must include explicit `valid: true` — anything else is inconclusive.
+- **Validation (Mermaid)**: the server uses the in-process Mermaid parser (`mermaid.parse` in JSDOM) after style/init handling and the deterministic sanitizer rescue path in `validateAndPreparePatch`.
 - **Validation (Infographic)**: always local only; AntV's `parseSyntax` is synchronous and requires no external service.
 
 ## Setup
@@ -274,10 +274,6 @@ All are optional — the defaults make every layer of the validation/repair ladd
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `MERMAID_METRICS` | unset | When `1`/`true`, emits one structured JSON line per agent turn (mode, model, duration, validator outcome, repair attempts, sanitizer hits, error class) to stdout. |
-| `MERMAID_MCP_URL` | unset | Optional external Mermaid validator endpoint. When unset, only the local parser runs. |
-| `MERMAID_MCP_AUTHORITATIVE` | `false` | When `true`, MCP can override the local parser. Default keeps MCP advisory; local stays authoritative. |
-| `MERMAID_MCP_MAX_RETRIES` | `2` | Retry count for transient MCP errors (`429`/`5xx`/network failures). |
-| `MERMAID_MCP_RETRY_DELAY_MS` | `150` | Base delay between MCP retries. |
 | `MERMAID_REPAIR_MAX_ATTEMPTS` | `2` | Bounded retry budget for the full-agent syntax-repair fallback (the last rung in the Mermaid ladder). |
 | `MERMAID_REPAIR_MODEL` | (fast tier) | Override the model id used by the single-shot syntax fixer. |
 | `MERMAID_REPAIR_BACKEND` | (auto) | Pin the syntax fixer to `vertex` or `openrouter` independently of the intent backend. |
@@ -304,7 +300,7 @@ The web client never sends raw model ids — only `modelProfile: "fast" | "quali
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/health` | Liveness + `llmConfigured`, `runtimeReady`, MCP hint |
+| `GET` | `/api/health` | Liveness + `llmConfigured`, `runtimeReady` |
 | `GET` | `/api/copilotkit/state` | Current diagram state for session (active slot by default; pass `contentType` for a specific slot) |
 | `POST` | `/api/copilotkit/state` | Client sync of editor source into server state (`contentType` selects the slot) |
 | `POST` | `/api/copilotkit/intent` | **Intent** path: prompt-bar **Go**, **Fix from critique**, and syntax **auto-fix** (JSON; `contentType` routes to Mermaid or Infographic agent) |

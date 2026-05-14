@@ -8,8 +8,9 @@
  */
 
 /**
- * Element types we treat as selectable hits. Excludes container groups (items-group,
- * btns-group, shapes-group), plain decorative shapes, and the editor add/remove buttons.
+ * Element types that are ALWAYS selectable — the canonical per-item / canvas-level slots
+ * that AntV stamps on every template. A click landing directly on one of these returns
+ * immediately, regardless of whether the element carries `data-indexes`.
  */
 export const INFOGRAPHIC_SELECTABLE_TYPES = new Set([
   'item-label',
@@ -20,6 +21,26 @@ export const INFOGRAPHIC_SELECTABLE_TYPES = new Set([
   'item-illus',
   'title',
   'desc'
+]);
+
+/**
+ * Element types that should NEVER be selectable: backgrounds, container groups, and
+ * editor-only buttons. Walking up the DOM we skip past these even when they carry
+ * `data-indexes`, since selecting "the items group" isn't a user-meaningful action.
+ *
+ * Sourced from `ElementTypeEnum` in @antv/infographic (lowercase wire values seen in
+ * `data-element-type`): background, btns-group, btn-add, btn-remove, items-group,
+ * illus-group, illus-volume, transient-container.
+ */
+const INFOGRAPHIC_NEVER_SELECTABLE_TYPES = new Set([
+  'background',
+  'btns-group',
+  'btn-add',
+  'btn-remove',
+  'items-group',
+  'illus-group',
+  'illus-volume',
+  'transient-container'
 ]);
 
 /** Walk up from `el` collecting the nearest non-empty `data-indexes` attribute. */
@@ -61,10 +82,35 @@ export function infographicItemLabelFor(boundary, indexes, fallbackEl) {
   return own ? own.slice(0, 240) : '';
 }
 
+function buildHit(node, boundary, indexes, elementType) {
+  const clicked = (node.textContent || '').replace(/\s+/g, ' ').trim();
+  const label = infographicItemLabelFor(boundary, indexes, node);
+  return {
+    node,
+    label: label || clicked.slice(0, 240),
+    clickedLabel: clicked ? clicked.slice(0, 240) : '',
+    indexes: indexes || '',
+    elementType: elementType || ''
+  };
+}
+
 /**
  * Walk from `start` toward `boundary`, returning the innermost selectable infographic
- * element (per `data-element-type`), along with its `data-indexes` path and the item's
- * primary label. Returns `null` for container groups / plain shapes / background.
+ * element along with its `data-indexes` path and the item's primary label.
+ *
+ * Three selectability rules, applied per ancestor on the way up:
+ *   1. `data-element-type` in `INFOGRAPHIC_NEVER_SELECTABLE_TYPES` → skip; keep walking.
+ *   2. `data-element-type` in `INFOGRAPHIC_SELECTABLE_TYPES` → return immediately
+ *      (the canonical per-item / canvas-level slots).
+ *   3. Element has `data-element-type` (anything else, e.g. `illus`, `unknown`) AND
+ *      is item-bound by some ancestor's `data-indexes` → return.
+ *
+ * Rule 3 is what makes the colored row body of templates like `list-row-simple-horizontal-arrow`
+ * clickable. Previously only the inner text/icon nodes matched a whitelist and the rest of the
+ * row (the arrow shape, item-bound illustrations, per-template decorative shapes) was treated as
+ * background. Anything truly background-y carries no `data-indexes` and still returns null.
+ *
+ * Returns `null` when the walk reaches the `<svg>` root (or the boundary) without a hit.
  */
 export function findInfographicTapTarget(start, boundary) {
   if (!start || !boundary) return null;
@@ -74,17 +120,22 @@ export function findInfographicTapTarget(start, boundary) {
       const tag = node.tagName?.toLowerCase?.();
       if (tag === 'svg') return null;
       const elementType = node.getAttribute?.('data-element-type');
+      if (elementType && INFOGRAPHIC_NEVER_SELECTABLE_TYPES.has(elementType)) {
+        node = node.parentNode;
+        continue;
+      }
       if (elementType && INFOGRAPHIC_SELECTABLE_TYPES.has(elementType)) {
         const indexes = infographicIndexesFor(node, boundary);
-        const clicked = (node.textContent || '').replace(/\s+/g, ' ').trim();
-        const label = infographicItemLabelFor(boundary, indexes, node);
-        return {
-          node,
-          label: label || clicked.slice(0, 240),
-          clickedLabel: clicked ? clicked.slice(0, 240) : '',
-          indexes: indexes || '',
-          elementType
-        };
+        return buildHit(node, boundary, indexes, elementType);
+      }
+      if (elementType) {
+        // Check this element's OWN data-indexes attribute (not walked up). Inherited indexes
+        // from ancestors must not make decorative children selectable — the user's intent
+        // is to click the visible item-bound shape, not its background scaffolding.
+        const ownIndexes = node.getAttribute?.('data-indexes');
+        if (ownIndexes != null && ownIndexes !== '') {
+          return buildHit(node, boundary, ownIndexes, elementType);
+        }
       }
     }
     node = node.parentNode;

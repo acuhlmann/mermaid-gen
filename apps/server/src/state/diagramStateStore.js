@@ -225,6 +225,24 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
         return applyToMermaidSlot({ diagramSource, reason });
       }
       return applyToInfographicSlot({ diagramSource, reason });
+    },
+
+    /**
+     * Persist the user's most recent intent prompt for a slot so mode-switch can carry
+     * the topic across. Blank/whitespace inputs are ignored (we don't want to clobber
+     * a real topic with an empty submit).
+     */
+    setLastUserPrompt({ contentType, prompt }) {
+      assertContentType(contentType);
+      const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
+      if (!trimmed) return session[contentType];
+      const slot = session[contentType];
+      const next = {
+        ...slot,
+        lastUserPrompt: trimmed.slice(0, 4000)
+      };
+      replaceSlot(contentType, next);
+      return next;
     }
   };
 }

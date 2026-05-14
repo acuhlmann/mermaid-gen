@@ -121,3 +121,36 @@ test('store switches active content type and preserves both slots', async () => 
   assert.equal(store.getActiveContentType(), 'mermaid');
   assert.equal(store.getActiveSlot().contentType, 'mermaid');
 });
+
+test('setLastUserPrompt persists trimmed prompt on the slot', () => {
+  const store = createDiagramStateStore();
+  assert.equal(store.getSlot('mermaid').lastUserPrompt, null);
+
+  const next = store.setLastUserPrompt({ contentType: 'mermaid', prompt: '  show solar system  ' });
+  assert.equal(next.lastUserPrompt, 'show solar system');
+  assert.equal(store.getSlot('mermaid').lastUserPrompt, 'show solar system');
+});
+
+test('setLastUserPrompt ignores blank/whitespace inputs', () => {
+  const store = createDiagramStateStore();
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: 'topic A' });
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: '   ' });
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: '' });
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: undefined });
+  assert.equal(store.getSlot('mermaid').lastUserPrompt, 'topic A');
+});
+
+test('setLastUserPrompt is independent across slots', () => {
+  const store = createDiagramStateStore();
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: 'mermaid topic' });
+  store.setLastUserPrompt({ contentType: 'infographic', prompt: 'infographic topic' });
+  assert.equal(store.getSlot('mermaid').lastUserPrompt, 'mermaid topic');
+  assert.equal(store.getSlot('infographic').lastUserPrompt, 'infographic topic');
+});
+
+test('setLastUserPrompt truncates very long prompts to 4000 chars', () => {
+  const store = createDiagramStateStore();
+  const longPrompt = 'x'.repeat(5000);
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: longPrompt });
+  assert.equal(store.getSlot('mermaid').lastUserPrompt.length, 4000);
+});

@@ -136,9 +136,9 @@ function patchSummaryToJsonPatch(evt, contentType) {
 // - 'final' fans out into TEXT_MESSAGE_END (if open), STATE_SNAPSHOT (if state
 //   carried), and RUN_FINISHED. The route owns RUN_STARTED/RUN_ERROR around
 //   this adapter so unhandled errors still get a proper envelope.
-export function createAgUiEmit({ rawEmit, threadId, runId, contentType }) {
+export function createAgUiEmit({ rawEmit, threadId, runId, contentType, initialStep = null }) {
   let activeMessageId = null;
-  let activeStep = null;
+  let activeStep = initialStep || null;
   let activeToolCallId = null;
 
   function endActiveMessage() {

@@ -1,4 +1,5 @@
 import { createInitialDiagramState, createInitialSessionState } from '@archislop/shared';
+import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
 /** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, defaults to the local server. */
@@ -118,6 +119,73 @@ export async function fetchDiagramState({ contentType, sessionId } = {}) {
     throw new Error(`Failed to fetch state: ${response.status}`);
   }
   return response.json();
+}
+
+export async function fetchSessionDiagramState({ sessionId } = {}) {
+  const response = await fetch(`${API_BASE_URL}/api/copilotkit/session-state`, {
+    headers: createSessionHeaders(sessionId)
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch session state: ${response.status}`);
+  }
+  return response.json();
+}
+
+/**
+ * Optional sibling-slot payload for diagram↔infographic intent alignment (mode switch).
+ * Omits peer when the other slot is still the default seed with no revisions, or when the
+ * peer's recorded `lastUserPrompt` does not match the carried topic (do not translate stale
+ * content from another topic).
+ *
+ * @param {string | null | undefined} candidate - topic string from mode-switch carry-over
+ */
+export function buildIntentPeerContext(contentMode, session, candidate = null) {
+  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return undefined;
+  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+  const peer = session[otherMode];
+  if (!peer || typeof peer.diagramSource !== 'string') return undefined;
+  const trimmed = peer.diagramSource.trim();
+  if (!trimmed) return undefined;
+  const initial = createInitialDiagramState(otherMode);
+  const looksCustom = (peer.revisionId ?? 0) > 0 || trimmed !== initial.diagramSource.trim();
+  if (!looksCustom) return undefined;
+  const cand = candidate != null ? String(candidate).trim() : '';
+  if (cand) {
+    const peerPrompt = typeof peer.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
+    if (peerPrompt !== cand) return undefined;
+  }
+  return { contentType: otherMode, diagramSource: peer.diagramSource };
+}
+
+/**
+ * Whether to auto-fire an intent after a mode switch.
+ * Runs when the target slot is not in sync, when we can translate from a topic-aligned peer,
+ * or when the peer has no substantive artifact for this topic (then the client clears the
+ * target slot and regenerates from the same topic).
+ */
+export function shouldAutoSubmitModeSwitchIntent({
+  candidate,
+  textareaDirty,
+  newSlotInSync,
+  peerContext,
+  session,
+  contentMode
+}) {
+  if (!candidate || textareaDirty) return false;
+  if (!newSlotInSync) return true;
+  if (peerContext) return true;
+  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
+  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+  const peer = session[otherMode];
+  const peerPrompt = typeof peer?.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
+  const cand = String(candidate).trim();
+  const peerTopicAligned = peerPrompt === cand;
+  const initial = createInitialDiagramState(otherMode);
+  const peerCustom =
+    peer &&
+    typeof peer.diagramSource === 'string' &&
+    ((peer.revisionId ?? 0) > 0 || peer.diagramSource.trim() !== initial.diagramSource.trim());
+  return !peerTopicAligned || !peerCustom;
 }
 
 export async function syncClientDiagramState({ contentType = 'mermaid', diagramSource, styleConfig, sessionId }) {
@@ -358,12 +426,13 @@ export function createAgUiTranslator() {
 }
 
 /**
- * Streams SSE events from POST /api/copilotkit/agent-stream.
- * Each parsed event is passed to onEvent. Resolves when the stream ends or `done` is received.
+ * Streams SSE events from POST /api/copilotkit/agent-stream via @ag-ui/client's HttpAgent.
+ * HttpAgent owns fetch + SSE decode + AG-UI Zod validation; we only translate each validated
+ * event back into the legacy shape App.jsx already consumes.
  *
- * Includes an idle timeout: if no event arrives for AGENT_STREAM_IDLE_TIMEOUT_MS, the stream is
- * aborted as if the caller's signal fired. Healthy agent runs emit phase/status/token/tool events
- * well within that gap, so this only fires on truly hung streams.
+ * Includes an idle timeout: if no event arrives for AGENT_STREAM_IDLE_TIMEOUT_MS, the run is
+ * aborted as if the caller's signal fired. Healthy agent runs emit events well within that gap,
+ * so this only fires on truly hung streams.
  */
 export async function streamDiagramAgent(payload, onEvent, options = {}) {
   const { signal: callerSignal, sessionId } = options;
@@ -371,14 +440,14 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
     throw new DOMException('Aborted', 'AbortError');
   }
 
-  const idleController = new AbortController();
+  const abortController = new AbortController();
   let idleTimedOut = false;
   let idleTimer = null;
   const armIdleTimer = () => {
     if (idleTimer != null) clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
       idleTimedOut = true;
-      idleController.abort();
+      abortController.abort();
     }, AGENT_STREAM_IDLE_TIMEOUT_MS);
   };
   const clearIdleTimer = () => {
@@ -390,10 +459,9 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
 
   let onCallerAbort = null;
   if (callerSignal) {
-    onCallerAbort = () => idleController.abort();
+    onCallerAbort = () => abortController.abort();
     callerSignal.addEventListener('abort', onCallerAbort);
   }
-  const signal = idleController.signal;
   armIdleTimer();
 
   const isAbortError = (err) =>
@@ -402,84 +470,52 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
 
   const translate = createAgUiTranslator();
 
+  const agent = new CopilotStreamHttpAgent(
+    {
+      url: `${API_BASE_URL}/api/copilotkit/agent-stream?protocol=agui`,
+      headers: createSessionHeaders(sessionId)
+    },
+    payload
+  );
+
+  agent.subscribe({
+    onEvent: ({ event }) => {
+      armIdleTimer();
+      const translated = translate(event);
+      if (translated) onEvent(translated);
+      // HttpAgent's defaultApplyEvents tries to apply STATE_DELTA/SNAPSHOT against
+      // its own (always empty here) state/messages and warns on every patch miss.
+      // We don't consume agent.state / agent.messages, so short-circuit the apply.
+      return { stopPropagation: true };
+    }
+  });
+
+  let runError = null;
   try {
-    const response = await fetch(`${API_BASE_URL}/api/copilotkit/agent-stream?protocol=agui`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
-      body: JSON.stringify(payload),
-      signal
-    });
-
-    if (!response.ok) {
-      const errPayload = await response.json().catch(() => ({}));
-      throwApiPayloadError(errPayload, `Stream request failed (${response.status})`);
-    }
-
-    const reader = response.body?.getReader();
-    if (!reader) {
-      throw new Error('Streaming response had no body.');
-    }
-
-    const decoder = new TextDecoder();
-    let buffer = '';
-
-    try {
-      while (true) {
-        let chunk;
-        try {
-          chunk = await reader.read();
-        } catch (readErr) {
-          if (callerSignal?.aborted || isAbortError(readErr)) {
-            if (idleTimedOut) {
-              throw new Error('Agent stream stalled (no events received). Please try again.');
-            }
-            throw new DOMException('Aborted', 'AbortError');
-          }
-          throw readErr;
-        }
-        const { done, value } = chunk;
-        if (done) break;
-        armIdleTimer();
-        buffer += decoder.decode(value, { stream: true });
-
-        let boundary = buffer.indexOf('\n\n');
-        while (boundary !== -1) {
-          const raw = buffer.slice(0, boundary).trim();
-          buffer = buffer.slice(boundary + 2);
-          boundary = buffer.indexOf('\n\n');
-
-          if (!raw.startsWith('data:')) continue;
-          const jsonText = raw.slice(5).trim();
-          if (!jsonText) continue;
-          try {
-            const evt = JSON.parse(jsonText);
-            const translated = translate(evt);
-            if (translated) onEvent(translated);
-            if (evt?.type === 'done' || evt?.type === 'RUN_FINISHED' || evt?.type === 'RUN_ERROR') {
-              return;
-            }
-          } catch {
-            // Ignore malformed SSE payloads.
-          }
-        }
-      }
-    } finally {
-      try {
-        reader.releaseLock();
-      } catch {
-        // Ignore double-release / aborted streams.
-      }
-    }
+    await agent.runAgent({ abortController });
   } catch (err) {
-    if (idleTimedOut && isAbortError(err)) {
-      throw new Error('Agent stream stalled (no events received). Please try again.');
-    }
-    throw err;
+    runError = err;
   } finally {
     clearIdleTimer();
     if (callerSignal && onCallerAbort) {
       callerSignal.removeEventListener('abort', onCallerAbort);
     }
+  }
+
+  if (idleTimedOut) {
+    throw new Error('Agent stream stalled (no events received). Please try again.');
+  }
+  if (callerSignal?.aborted) {
+    throw new DOMException('Aborted', 'AbortError');
+  }
+  if (runError) {
+    if (isAbortError(runError)) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    if (runError.payload && typeof runError.payload === 'object') {
+      throwApiPayloadError(runError.payload, runError.message || 'Stream request failed');
+    }
+    throw runError;
   }
 }
 

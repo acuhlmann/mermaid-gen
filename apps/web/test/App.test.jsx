@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
+import { createInitialDiagramState } from '@archislop/shared';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
 
 const {
-  fetchDiagramStateMock,
+  fetchSessionDiagramStateMock,
   syncClientDiagramStateMock,
   submitDiagramIntentMock,
   streamDiagramAgentMock,
@@ -22,10 +23,12 @@ const {
   };
   const initial = {
     revisionId: 0,
+    contentType: 'mermaid',
     diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
     styleConfig,
     updatedAt: '2026-05-10T08:30:00.000Z',
-    history: []
+    history: [],
+    lastUserPrompt: null
   };
   const updated = {
     ...initial,
@@ -34,7 +37,7 @@ const {
     updatedAt: '2026-05-10T08:31:00.000Z'
   };
   return {
-    fetchDiagramStateMock: vi.fn(),
+    fetchSessionDiagramStateMock: vi.fn(),
     syncClientDiagramStateMock: vi.fn(),
     submitDiagramIntentMock: vi.fn(),
     streamDiagramAgentMock: vi.fn(),
@@ -59,24 +62,28 @@ vi.mock('../src/components/DiagramCanvas.jsx', () => ({
   }
 }));
 
-vi.mock('../src/state/diagramStore.js', () => ({
-  API_BASE_URL: '',
-  SESSION_HEADER: 'x-session-id',
-  createSessionId: () => 'generated-session',
-  fallbackState: initialState,
-  fetchDiagramState: fetchDiagramStateMock,
-  getOrCreateBrowserSessionId: () => 'test-session',
-  normalizeSessionId: (value) => {
-    const candidate = typeof value === 'string' ? value.trim() : '';
-    if (!candidate) return null;
-    return candidate.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128) || null;
-  },
-  readDiagramCache: readDiagramCacheMock,
-  syncClientDiagramState: syncClientDiagramStateMock,
-  submitDiagramIntent: submitDiagramIntentMock,
-  streamDiagramAgent: streamDiagramAgentMock,
-  writeDiagramCache: writeDiagramCacheMock
-}));
+vi.mock('../src/state/diagramStore.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    API_BASE_URL: '',
+    SESSION_HEADER: 'x-session-id',
+    createSessionId: () => 'generated-session',
+    fallbackState: initialState,
+    fetchSessionDiagramState: fetchSessionDiagramStateMock,
+    getOrCreateBrowserSessionId: () => 'test-session',
+    normalizeSessionId: (value) => {
+      const candidate = typeof value === 'string' ? value.trim() : '';
+      if (!candidate) return null;
+      return candidate.replace(/[^a-zA-Z0-9._-]/g, '-').slice(0, 128) || null;
+    },
+    readDiagramCache: readDiagramCacheMock,
+    syncClientDiagramState: syncClientDiagramStateMock,
+    submitDiagramIntent: submitDiagramIntentMock,
+    streamDiagramAgent: streamDiagramAgentMock,
+    writeDiagramCache: writeDiagramCacheMock
+  };
+});
 
 async function waitForControlsReady(buttonName = 'Refine') {
   await waitFor(() => {
@@ -86,6 +93,7 @@ async function waitForControlsReady(buttonName = 'Refine') {
 
 describe('App simplified controls', () => {
   beforeEach(() => {
+    window.localStorage.clear();
     window.history.replaceState({}, '', '/');
     const oscillator = {
       type: 'triangle',
@@ -115,7 +123,11 @@ describe('App simplified controls', () => {
     });
 
     readDiagramCacheMock.mockReturnValue(null);
-    fetchDiagramStateMock.mockResolvedValue(initialState);
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: initialState,
+      infographic: createInitialDiagramState('infographic')
+    });
     syncClientDiagramStateMock.mockImplementation(async ({ diagramSource, styleConfig }) => ({
       ...initialState,
       revisionId: 1,
@@ -192,12 +204,11 @@ describe('App simplified controls', () => {
   it('creates a shareable URL session on first visit and fetches server state with it', async () => {
     render(<App />);
 
-    await waitFor(() => expect(fetchDiagramStateMock).toHaveBeenCalled());
+    await waitFor(() => expect(fetchSessionDiagramStateMock).toHaveBeenCalled());
 
     expect(window.location.pathname).toBe('/sessions/generated-session');
-    expect(fetchDiagramStateMock).toHaveBeenCalledWith(
+    expect(fetchSessionDiagramStateMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        contentType: 'mermaid',
         sessionId: 'generated-session'
       })
     );
@@ -367,7 +378,7 @@ describe('App simplified controls', () => {
     render(<App />);
 
     const source = await screen.findByTestId('mermaid-source');
-    await waitFor(() => expect(fetchDiagramStateMock).toHaveBeenCalled());
+    await waitFor(() => expect(fetchSessionDiagramStateMock).toHaveBeenCalled());
     expect(source.textContent).toContain('Start[Start]');
     expect(source.textContent).not.toContain('CachedA[Cached]');
   });

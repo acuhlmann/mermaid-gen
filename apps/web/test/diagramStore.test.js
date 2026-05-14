@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
+import { createInitialDiagramState } from '@archislop/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildIntentPeerContext,
   getOrCreateBrowserSessionId,
   normalizeSessionId,
   readDiagramCache,
   SESSION_HEADER,
+  shouldAutoSubmitModeSwitchIntent,
   streamDiagramAgent,
   submitDiagramTransform,
   syncClientDiagramState,
@@ -298,11 +301,14 @@ describe('streamDiagramAgent', () => {
     const controller = new AbortController();
     const originalFetch = globalThis.fetch;
     try {
-      globalThis.fetch = () =>
+      globalThis.fetch = (_url, options) =>
         new Promise((_resolve, reject) => {
-          controller.signal.addEventListener('abort', () => {
-            reject(new DOMException('Aborted', 'AbortError'));
-          });
+          const reject_ = () => reject(new DOMException('Aborted', 'AbortError'));
+          if (options?.signal?.aborted) {
+            reject_();
+            return;
+          }
+          options?.signal?.addEventListener('abort', reject_);
         });
       const promise = streamDiagramAgent(
         {
@@ -316,6 +322,85 @@ describe('streamDiagramAgent', () => {
       );
       controller.abort();
       await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('translates AG-UI events into legacy onEvent calls', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      const encoder = new TextEncoder();
+      const frames = [
+        { type: 'RUN_STARTED', threadId: 't1', runId: 'r1' },
+        { type: 'TEXT_MESSAGE_START', messageId: 'm1', role: 'assistant' },
+        { type: 'TEXT_MESSAGE_CONTENT', messageId: 'm1', delta: 'hello' },
+        { type: 'TEXT_MESSAGE_END', messageId: 'm1' },
+        { type: 'RUN_FINISHED', threadId: 't1', runId: 'r1' }
+      ];
+      globalThis.fetch = async () => ({
+        ok: true,
+        status: 200,
+        headers: new Headers({ 'content-type': 'text/event-stream' }),
+        body: new ReadableStream({
+          start(streamController) {
+            for (const frame of frames) {
+              streamController.enqueue(encoder.encode(`data: ${JSON.stringify(frame)}\n\n`));
+            }
+            streamController.close();
+          }
+        })
+      });
+
+      const events = [];
+      await streamDiagramAgent(
+        {
+          operation: 'analyze',
+          kind: 'explain',
+          revisionId: 0,
+          diagramSource: 'flowchart TD\n  A --> B'
+        },
+        (evt) => events.push(evt)
+      );
+
+      expect(events).toEqual(
+        expect.arrayContaining([
+          { type: 'phase', id: 'run_started', label: 'Starting…' },
+          { type: 'token', text: 'hello' },
+          expect.objectContaining({ type: 'final' })
+        ])
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+
+  it('surfaces server error payloads on non-OK stream responses', async () => {
+    const originalFetch = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => ({
+        ok: false,
+        status: 409,
+        headers: new Headers({ 'content-type': 'application/json' }),
+        async text() {
+          return JSON.stringify({
+            error: 'Stale revision.',
+            message: 'Refresh the page and try again.'
+          });
+        }
+      });
+
+      await expect(
+        streamDiagramAgent(
+          {
+            operation: 'analyze',
+            kind: 'explain',
+            revisionId: 0,
+            diagramSource: 'flowchart TD\n  A --> B'
+          },
+          vi.fn()
+        )
+      ).rejects.toThrow(/Stale revision[\s\S]*Refresh the page/);
     } finally {
       globalThis.fetch = originalFetch;
     }
@@ -342,5 +427,72 @@ describe('diagram cache storage', () => {
 
     expect(readDiagramCache('alpha')).toEqual(alpha);
     expect(readDiagramCache('beta')).toEqual(beta);
+  });
+});
+
+describe('mode switch peer context', () => {
+  it('buildIntentPeerContext returns mermaid peer for infographic target when peer is customized and topic matches', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 1,
+      diagramSource: 'flowchart TD\n  X --> Y',
+      lastUserPrompt: 'Solar system'
+    };
+    const i = createInitialDiagramState('infographic');
+    const session = { mermaid: customMermaid, infographic: i };
+    const peer = buildIntentPeerContext('infographic', session, 'Solar system');
+    expect(peer).toEqual({ contentType: 'mermaid', diagramSource: customMermaid.diagramSource });
+  });
+
+  it('buildIntentPeerContext omits peer when peer lastUserPrompt does not match candidate topic', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 1,
+      diagramSource: 'flowchart TD\n  X --> Y',
+      lastUserPrompt: 'Old topic'
+    };
+    const i = createInitialDiagramState('infographic');
+    const session = { mermaid: customMermaid, infographic: i };
+    expect(buildIntentPeerContext('infographic', session, 'Solar system')).toBeUndefined();
+  });
+
+  it('buildIntentPeerContext omits peer when still default seed and revision 0', () => {
+    const session = {
+      mermaid: createInitialDiagramState('mermaid'),
+      infographic: createInitialDiagramState('infographic')
+    };
+    expect(buildIntentPeerContext('infographic', session, 'Any')).toBeUndefined();
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent runs when peer forces despite newSlotInSync', () => {
+    expect(
+      shouldAutoSubmitModeSwitchIntent({
+        candidate: 'topic',
+        textareaDirty: false,
+        newSlotInSync: true,
+        peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' },
+        session: { mermaid: {}, infographic: {} },
+        contentMode: 'infographic'
+      })
+    ).toBe(true);
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent runs when newSlotInSync but peer lacks topic-aligned custom content', () => {
+    const session = {
+      mermaid: createInitialDiagramState('mermaid'),
+      infographic: { ...createInitialDiagramState('infographic'), lastUserPrompt: 'topic', revisionId: 1 }
+    };
+    expect(
+      shouldAutoSubmitModeSwitchIntent({
+        candidate: 'topic',
+        textareaDirty: false,
+        newSlotInSync: true,
+        peerContext: undefined,
+        session,
+        contentMode: 'infographic'
+      })
+    ).toBe(true);
   });
 });

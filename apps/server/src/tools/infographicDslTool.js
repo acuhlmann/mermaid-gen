@@ -8,14 +8,28 @@ import {
 const SMART_QUOTE_REGEX = /[‘’“”]/;
 const TEMPLATE_WHITELIST_SET = new Set(INFOGRAPHIC_TEMPLATE_WHITELIST);
 
-function formatParseError(error) {
+const MAX_QUOTED_LINE_LEN = 200;
+
+function formatParseError(error, sourceLines) {
   const path = error.path ? ` at ${error.path}` : '';
   const line = typeof error.line === 'number' ? ` (line ${error.line})` : '';
-  return `${error.message}${path}${line}`;
+  const base = `${error.message}${path}${line}`;
+  // Quote the offending source line so the model can see exactly what to repair without
+  // counting indices itself. AntV's parser gives a 1-based line number.
+  if (Array.isArray(sourceLines) && typeof error.line === 'number') {
+    const raw = sourceLines[error.line - 1];
+    if (typeof raw === 'string') {
+      const trimmed = raw.replace(/\s+$/, '');
+      const truncated =
+        trimmed.length > MAX_QUOTED_LINE_LEN ? `${trimmed.slice(0, MAX_QUOTED_LINE_LEN)}…` : trimmed;
+      return `${base}\n  > ${truncated}`;
+    }
+  }
+  return base;
 }
 
-function summarizeParseErrors(errors, maxShown = 5) {
-  const head = errors.slice(0, maxShown).map(formatParseError);
+function summarizeParseErrors(errors, sourceLines, maxShown = 5) {
+  const head = errors.slice(0, maxShown).map((err) => formatParseError(err, sourceLines));
   if (errors.length > maxShown) {
     head.push(`…and ${errors.length - maxShown} more.`);
   }
@@ -185,9 +199,10 @@ export async function validateAndPrepareInfographicPatch({
   // `{ result, errors }` with structured error objects.
   const parsed = parseSyntax(normalized);
   if (Array.isArray(parsed?.errors) && parsed.errors.length > 0) {
+    const normalizedLines = normalized.split('\n');
     return {
       accepted: false,
-      error: `AntV Infographic parser rejected the DSL:\n${summarizeParseErrors(parsed.errors)}`
+      error: `AntV Infographic parser rejected the DSL:\n${summarizeParseErrors(parsed.errors, normalizedLines)}`
     };
   }
 
@@ -212,6 +227,100 @@ export async function validateAndPrepareInfographicPatch({
       sanitizerApplied
     }
   };
+}
+
+/**
+ * Strict validation for the syntax-fixer: sanitize → lint → parser. Returns the same
+ * `{ valid, error, ... }` shape as `validateMermaidStrict` so reliability skills can be
+ * written against a uniform interface.
+ *
+ * Skips the patch construction step — callers that need a `DiagramPatchSchema`-compatible
+ * patch should use `validateAndPrepareInfographicPatch` instead.
+ */
+export function validateInfographicStrict(source) {
+  if (typeof source !== 'string') {
+    return { valid: false, error: 'Infographic DSL must be a string.', validator: 'infographic-type' };
+  }
+
+  const sanitized = sanitizeInfographicDsl(source);
+  const normalized = sanitized.text;
+  const trimmed = normalized.trim();
+  if (!trimmed) {
+    return { valid: false, error: 'Infographic DSL is empty.', validator: 'infographic-lint' };
+  }
+
+  if (SMART_QUOTE_REGEX.test(trimmed)) {
+    return {
+      valid: false,
+      error: 'Smart quotes (“ ” ‘ ’) are not allowed. Use straight ASCII quotes instead.',
+      validator: 'infographic-lint'
+    };
+  }
+
+  if (/\t/.test(trimmed)) {
+    return {
+      valid: false,
+      error: 'Tabs are not allowed. Indent strictly with 2-space steps.',
+      validator: 'infographic-lint'
+    };
+  }
+
+  const lines = normalized.split('\n');
+  const firstLineIdx = lines.findIndex((line) => line.trim().length > 0);
+  if (firstLineIdx === -1) {
+    return { valid: false, error: 'Infographic DSL is empty.', validator: 'infographic-lint' };
+  }
+
+  const headerLine = lines[firstLineIdx];
+  const headerMatch = headerLine.match(/^infographic\s+([a-z0-9-]+)\s*$/i);
+  if (!headerMatch) {
+    return {
+      valid: false,
+      error:
+        'First non-blank line must be: `infographic <template-name>` (lowercase, hyphens). Got: ' +
+        JSON.stringify(headerLine.trim()),
+      validator: 'infographic-lint'
+    };
+  }
+
+  if (/^\s/.test(headerLine)) {
+    return { valid: false, error: 'Template header must not be indented.', validator: 'infographic-lint' };
+  }
+
+  const headerCount = lines.filter((l) => /^infographic\s+[a-z0-9-]+\s*$/i.test(l)).length;
+  if (headerCount > 1) {
+    return {
+      valid: false,
+      error: 'Multiple `infographic <template>` headers in one diagram. Emit exactly one DSL block per patch.',
+      validator: 'infographic-lint'
+    };
+  }
+
+  const templateName = headerMatch[1];
+  if (TEMPLATE_WHITELIST_SET.size > 0 && !TEMPLATE_WHITELIST_SET.has(templateName)) {
+    const family = templateName.split('-')[0];
+    const familyMatches = INFOGRAPHIC_TEMPLATE_WHITELIST.filter((t) => t.startsWith(family + '-')).slice(0, 8);
+    const suggestion = familyMatches.length > 0
+      ? ` Did you mean one of: ${familyMatches.join(', ')}?`
+      : '';
+    return {
+      valid: false,
+      error: `Unknown template "${templateName}".${suggestion}`,
+      validator: 'infographic-lint'
+    };
+  }
+
+  const parsed = parseSyntax(normalized);
+  if (Array.isArray(parsed?.errors) && parsed.errors.length > 0) {
+    return {
+      valid: false,
+      error: `AntV Infographic parser rejected the DSL:\n${summarizeParseErrors(parsed.errors, lines)}`,
+      validator: 'infographic-parseSyntax'
+    };
+  }
+
+  const diagramSource = normalized.endsWith('\n') ? normalized.slice(0, -1) : normalized;
+  return { valid: true, diagramSource, template: templateName, validator: 'infographic-parseSyntax' };
 }
 
 export { inferInfographicTemplate };

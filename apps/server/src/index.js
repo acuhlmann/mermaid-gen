@@ -63,8 +63,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
-    llmBackend: resolveLlmBackend() ?? 'none',
-    hasMermaidMcp: Boolean(process.env.MERMAID_MCP_URL)
+    llmBackend: resolveLlmBackend() ?? 'none'
   });
 });
 

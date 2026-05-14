@@ -273,7 +273,7 @@ gcloud run deploy mermaid-gen-hackathon \
   --set-env-vars=OPENROUTER_SITE_URL=https://hackathon-service-yyyyy.run.app
 ```
 
-Optional environment variables (Mermaid MCP, model overrides, etc.) can be appended with additional `--set-env-vars` flags or a comma-separated list; mirror variables from [`.env.example`](../../.env.example).
+Optional environment variables (model overrides, `MERMAID_*` tuning, etc.) can be appended with additional `--set-env-vars` flags or a comma-separated list; mirror variables from [`.env.example`](../../.env.example).
 
 ### B) One custom domain with `/hackathon` path (optional)
 

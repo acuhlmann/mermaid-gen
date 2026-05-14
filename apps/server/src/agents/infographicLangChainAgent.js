@@ -7,7 +7,8 @@ import {
   INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT,
   INFOGRAPHIC_CRITIQUE_TASK,
   INFOGRAPHIC_EXPLAIN_TASK,
-  buildInfographicRepairInstruction
+  buildInfographicRepairInstruction,
+  inferInfographicTemplate
 } from '../prompts/infographicSyntaxGuard.js';
 import {
   LlmNotConfiguredError,
@@ -55,6 +56,7 @@ function buildAnalyzeFocusInstructions(focusNode, kind) {
   return buildMermaidAnalyzeFocusInstructions(focusNode, kind);
 }
 import { extractJsonStringPrefix } from './partialJsonString.js';
+import { repairInfographicWithFixer, isInfographicSyntaxFixerAvailable } from './infographicSyntaxFixer.js';
 
 const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an infographic patch.
 - You MUST call apply_infographic_patch now once with complete, valid AntV Infographic DSL, then briefly summarize in prose only.
@@ -64,10 +66,84 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
   refine: `Refine the existing infographic without changing its core message. Tighten labels, fix awkward phrasing, balance the visual.`,
   innovate: `Re-imagine the infographic with bolder visual choices. You may switch to a different template if it better fits the data.`,
-  goMad: `Push the infographic toward something dramatic — denser, more vivid, or organized in a surprising way. Stay within the supported templates.`
+  goMad: `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
+- Speed first: your FIRST assistant turn must call apply_infographic_patch — no preamble, no reasoning essays. Skip get_infographic_dsl unless you truly suspect stale context.
+- Template roulette: do NOT keep the same template — switch to a different family entirely (list → sequence → compare → chart → hierarchy → relation). Prefer exotic supported templates: compare-swot, compare-quadrant-quarter-simple-card, sequence-snake-steps-simple, sequence-circular-simple, sequence-funnel-simple, list-pyramid-rounded-rect-node, list-sector-simple, hierarchy-mindmap-branch-gradient-compact-card, relation-network-simple-circle-node, chart-wordcloud, chart-pie-donut-plain-text.
+- Loud labels: short, absurd, geek-coded riffs (RFC vibes, fake folklore, ironic acronyms) — still readable.
+- Palette mayhem: set a bold \`palette\` line with 3–5 high-contrast hex colors (no quotes, no commas) on every Go Mad pass.
+- Iconography: every semantic item gets an \`icon\` (keyword phrase like \`rocket launch\` or \`shield check\`) unless the template is chart-only.
+- Compact spectacle: 3–7 items is plenty. Density via vivid wording and icons, not item count.
+- Weird > safe. The user clicked Go Mad — make them laugh, not nod politely.`
 };
 
-const MAX_INFOGRAPHIC_REPAIR_ATTEMPTS = 2;
+const GO_MAD_TEMPLATE_FAMILIES = ['list', 'sequence', 'compare', 'chart', 'hierarchy', 'relation'];
+
+const GO_MAD_EXOTIC_TEMPLATES = [
+  'compare-swot',
+  'compare-quadrant-quarter-simple-card',
+  'sequence-snake-steps-simple',
+  'sequence-circular-simple',
+  'sequence-funnel-simple',
+  'sequence-pyramid-simple',
+  'list-pyramid-rounded-rect-node',
+  'list-sector-simple',
+  'list-grid-progress-card',
+  'hierarchy-mindmap-branch-gradient-compact-card',
+  'relation-network-simple-circle-node',
+  'chart-wordcloud'
+];
+
+function templateFamily(name) {
+  return (name || '').split('-')[0] || '';
+}
+
+/** Tier-aware nudge appended to the goMad directive — heats up labels/templates with depth. */
+function buildInfographicGoMadEscalation(depth, currentDsl) {
+  if (depth < 2) return '';
+  const currentTemplate = inferInfographicTemplate(currentDsl) || '';
+  const currentFamily = templateFamily(currentTemplate);
+  const forbidden = currentFamily ? ` (current family "${currentFamily}" is OFF-LIMITS this turn)` : '';
+  const familyOptions = GO_MAD_TEMPLATE_FAMILIES.filter((f) => f !== currentFamily).join(', ');
+  const exoticHint =
+    depth >= 4
+      ? `- Prefer truly exotic templates: ${GO_MAD_EXOTIC_TEMPLATES.slice(0, 8).join(', ')}.\n`
+      : `- Lean exotic: ${GO_MAD_EXOTIC_TEMPLATES.slice(0, 5).join(', ')}.\n`;
+  const tierHint =
+    depth >= 5
+      ? `- Tier ${depth}: peak chaos — one coherent geek joke binds the whole piece; still valid DSL.\n`
+      : `- Tier ${depth}: noticeably wilder than tier ${depth - 1}; no rename-only laziness on existing items.\n`;
+  const paletteHint =
+    depth >= 3
+      ? `- Palette MUST swing: pick a loud 4–5 color scheme (neon, retro, vapor) the previous version didn't use.\n`
+      : `- Palette MUST swing to something different from before (3+ bold colors).\n`;
+  return `
+GO MAD escalation (tier ${depth}):
+${tierHint}- Primary template MUST switch family this turn${forbidden}. Pick from: ${familyOptions}.
+${exoticHint}${paletteHint}- Labels: short, absurd, geek-coded; no generic business jargon.
+`;
+}
+
+const DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS = 2;
+
+function resolveInfographicRepairAttempts(env) {
+  const raw = env?.INFOGRAPHIC_REPAIR_MAX_ATTEMPTS;
+  if (raw == null || raw === '') return DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS;
+  const n = Number.parseInt(String(raw), 10);
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS;
+  // Bound at 6 so a misconfigured env doesn't burn the whole quota on a single bad prompt.
+  return Math.min(6, n);
+}
+
+/** Best-effort extraction of the user's request text from the message bag that drives a turn. */
+function extractOriginalRequest(userMessages) {
+  if (!Array.isArray(userMessages)) return null;
+  for (const m of userMessages) {
+    if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
+    const text = typeof m?.content === 'string' ? m.content : extractTextContent(m?.content ?? m?.kwargs?.content);
+    if (text && text.trim()) return text.trim();
+  }
+  return null;
+}
 
 function defaultChatModelFactory(env, options) {
   const backend = resolveLlmBackend(env);
@@ -85,8 +161,19 @@ function extractTextContent(content) {
   return '';
 }
 
-function buildIntentUserContent({ prompt, focusScope, currentDsl }) {
-  return `Interpret and apply the user's requested infographic change strictly according to their wording.
+function buildIntentUserContent({ prompt, focusScope, currentDsl, peerMermaid }) {
+  const peerBlock =
+    typeof peerMermaid === 'string' && peerMermaid.trim()
+      ? `Cross-format / mode switch: reproduce the same information as the peer Mermaid diagram below as Infographic DSL (entities, flow, labels). Prefer this source over improvising from the topic text alone.
+
+Peer Mermaid:
+\`\`\`mermaid
+${peerMermaid.trim()}
+\`\`\`
+
+`
+      : '';
+  return `${peerBlock}Interpret and apply the user's requested infographic change strictly according to their wording.
 
 Broad or short requests (for example a single topic name) still require a concrete infographic now: choose a sensible template and produce real content. Do not ask the user to clarify.
 
@@ -101,9 +188,10 @@ ${prompt}${focusScope}`;
 
 function buildTransformUserContent({ mode, focusScope, currentDsl, goMadDepth }) {
   const directive = INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine;
-  const depthLine =
-    mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${clampGoMadDepth(goMadDepth)} of 12.` : '';
-  return `${directive}${depthLine}
+  const depthValue = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : 0;
+  const depthLine = mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${depthValue} of 12.` : '';
+  const escalation = mode === 'goMad' ? buildInfographicGoMadEscalation(depthValue, currentDsl) : '';
+  return `${directive}${depthLine}${escalation}
 
 Current committed infographic DSL:
 \`\`\`
@@ -123,6 +211,45 @@ ${currentDsl}
 \`\`\``;
 }
 
+/** Strip a single outer ```…``` wrapper if the whole string is one fenced block. */
+function stripOptionalOuterFencedBlock(text) {
+  const t = text.trim();
+  const m = t.match(/^```(?:infographic|dsl|text)?\s*\n([\s\S]*?)\n```$/i);
+  if (m) return m[1].trim();
+  return t;
+}
+
+/**
+ * Some chat models emit valid AntV Infographic DSL in the assistant message instead of
+ * calling apply_infographic_patch. When tool_calls are empty, recover by validating/applying
+ * that prose block through the same pipeline as the tool.
+ *
+ * @param {{ messages?: unknown[] } | null | undefined} result
+ * @returns {string | null}
+ */
+function extractInfographicDslFromAssistantResult(result) {
+  const messages = result?.messages ?? [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    const type = m?.type ?? m?.role ?? m?.kwargs?.role ?? '';
+    if (type !== 'ai' && type !== 'assistant') continue;
+    const raw = extractTextContent(m?.content ?? m?.kwargs?.content ?? '');
+    if (!raw?.trim()) continue;
+    const cleaned = stripOptionalOuterFencedBlock(raw);
+    const lines = cleaned.split('\n');
+    let start = -1;
+    for (let j = 0; j < lines.length; j += 1) {
+      if (/^\s*infographic\s+[\w-]+\s*$/.test(lines[j])) {
+        start = j;
+        break;
+      }
+    }
+    if (start === -1) continue;
+    return lines.slice(start).join('\n').trim();
+  }
+  return null;
+}
+
 async function emitTokens(stream, emit) {
   let full = '';
   for await (const chunk of stream) {
@@ -139,23 +266,29 @@ async function emitTokens(stream, emit) {
 }
 
 async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
-  const { requirePatch = false, emit } = opts ?? {};
+  const { requirePatch = false, emit, stableAgent = null } = opts ?? {};
+  const maxRepairAttempts = resolveInfographicRepairAttempts(env);
   const beforeRevision = stateStore.getSlot('infographic').revisionId;
+  const originalRequest = extractOriginalRequest(userMessages);
 
   let messages = toLangChainMessages(userMessages);
   let lastResult = null;
   let lastError = null;
   let lastBrokenSource = null;
+  let currentAgent = agent;
+  // Reliability hooks fire at most once each across the entire repair sequence.
+  let syntaxFixerTried = false;
+  let stableAgentTried = false;
 
-  for (let attempt = 0; attempt <= MAX_INFOGRAPHIC_REPAIR_ATTEMPTS; attempt += 1) {
+  for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
     if (typeof emit === 'function') {
       emit({ type: 'phase', id: attempt === 0 ? 'invoke' : `repair_${attempt}`, label: attempt === 0 ? 'Generating infographic…' : 'Repairing infographic…' });
     }
 
     let result;
     try {
-      if (typeof agent.streamEvents === 'function' && typeof emit === 'function') {
-        const stream = await agent.streamEvents({ messages }, { version: 'v2' });
+      if (typeof currentAgent.streamEvents === 'function' && typeof emit === 'function') {
+        const stream = await currentAgent.streamEvents({ messages }, { version: 'v2' });
         // Per tool_call_id buffers so we can lazily decode the partial
         // diagramSource argument as the model streams it. The patch tool's
         // schema is a single string field, so a streaming prefix is a valid
@@ -202,7 +335,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         // the legacy shape so the post-loop revision/repair logic still works.
         result = latestMessages.length > 0 ? { messages: latestMessages } : null;
       } else {
-        result = await agent.invoke({ messages });
+        result = await currentAgent.invoke({ messages });
       }
     } catch (error) {
       lastError = redactSecrets(error instanceof Error ? error.message : String(error));
@@ -232,30 +365,111 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     }
 
     // Patch was required but not produced. Build a repair turn.
-    const failureError = extractToolFailureMessage(result);
+    let failureError = extractToolFailureMessage(result);
+
+    // Prose-in-body recovery: models sometimes stream DSL as plain assistant text (zero tool
+    // calls). Try the same apply path the tool uses; on failure, fall through so the syntax
+    // fixer + repair instructions see a real error and broken source.
+    if (!failureError) {
+      const proseDsl = extractInfographicDslFromAssistantResult(result);
+      if (proseDsl) {
+        const applied = await stateStore.applyDiagramSource({
+          contentType: 'infographic',
+          diagramSource: proseDsl,
+          reason: 'prose-dsl recovery'
+        });
+        if (applied.accepted) {
+          return {
+            message: extractFinalMessage(result) || 'Infographic updated.',
+            raw: result,
+            metadata: { agent: 'infographic', validator: 'prose-dsl-recovery' }
+          };
+        }
+        failureError = applied.error ?? 'Infographic validation failed';
+        lastBrokenSource = proseDsl;
+        lastError = failureError;
+      }
+    }
+
     if (failureError) {
       lastError = failureError;
       lastBrokenSource = extractLastAttemptedDsl(result) || lastBrokenSource;
+
+      // (a) Tool-less single-shot syntax fixer: runs ONCE before the next full agent retry.
+      // Mirrors the Mermaid pattern (mermaidLangChainAgent.js around line 949). The fixer is
+      // a cheap fast model and skips tool plumbing entirely — when it works, we apply the
+      // patch directly and short-circuit the rest of the loop.
+      if (!syntaxFixerTried && lastBrokenSource && isInfographicSyntaxFixerAvailable(env)) {
+        syntaxFixerTried = true;
+        if (typeof emit === 'function') {
+          emit({ type: 'phase', id: 'syntax_fixer', label: 'Infographic syntax fixer…' });
+        }
+        const fixerOutcome = await repairInfographicWithFixer({
+          brokenSource: lastBrokenSource,
+          parseError: failureError,
+          originalRequest,
+          env
+        });
+        if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
+          const applied = await stateStore.applyDiagramSource({
+            contentType: 'infographic',
+            diagramSource: fixerOutcome.diagramSource,
+            reason: 'syntax-fixer repair'
+          });
+          if (applied.accepted) {
+            return {
+              message: 'Infographic updated (repaired by syntax fixer).',
+              raw: result,
+              metadata: { agent: 'infographic', validator: 'syntax-fixer' }
+            };
+          }
+          // If the fixer's candidate failed `applyDiagramSource` (re-validates), fall through
+          // to the agent retry — pass the resulting error along so the next attempt sees it.
+          lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+        } else {
+          lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+        }
+      }
+
       messages = [
         ...messages,
         new SystemMessage(
           buildInfographicRepairInstruction({
             errorMessage: failureError,
-            brokenSource: lastBrokenSource
+            brokenSource: lastBrokenSource,
+            originalRequest
           })
         )
       ];
     } else {
+      // (b) No tool call at all — the model produced prose only. The hot/transform agent
+      // sometimes settles into a refusal loop here; swap to the stable (fast, low-temp,
+      // non-transform) agent for the next attempt. Mirrors mermaidLangChainAgent.js line ~885.
+      if (!stableAgentTried && stableAgent && stableAgent !== currentAgent) {
+        stableAgentTried = true;
+        currentAgent = stableAgent;
+        if (typeof emit === 'function') {
+          emit({ type: 'status', text: 'Retrying with stable model: diagram patch required…' });
+        }
+      }
       messages = [...messages, new SystemMessage(INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION)];
     }
   }
 
   if (requirePatch) {
     const slot = stateStore.getSlot('infographic');
+    const summary = summarizeAttempts(lastResult);
     console.warn('[infographic-agent] patch did not apply after repair attempts', {
       beforeRevision,
       afterRevision: slot.revisionId,
-      lastError: lastError ?? null
+      lastError: lastError ?? null,
+      // When lastError is null but patchToolCalls > 0, the tool ran but its rejection was
+      // not surfaced — read the lastAssistantSnippet to learn what the model produced.
+      // When patchToolCalls === 0, the model never invoked the tool (prose-only response).
+      attempts: maxRepairAttempts + 1,
+      syntaxFixerTried,
+      stableAgentTried,
+      ...summary
     });
   }
 
@@ -267,23 +481,57 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
 }
 
 function extractToolFailureMessage(result) {
+  // Scan every message's content for a JSON-stringified `{accepted:false, error}` payload —
+  // the apply_infographic_patch tool always serializes its result to JSON. We deliberately
+  // don't gate on `tool_call_id` because LangChain v1 stream events sometimes deliver
+  // tool messages without that field exposed where we'd look (it can land on the class
+  // instance, on `kwargs`, on `lc_kwargs`, or be stripped during serialization). The
+  // content-shape check is robust to all of those.
   const messages = result?.messages ?? [];
   for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    if (m?.tool_call_id || m?.kwargs?.tool_call_id) {
-      const text = extractTextContent(m?.content ?? m?.kwargs?.content ?? '');
-      if (!text) continue;
-      try {
-        const parsed = JSON.parse(text);
-        if (parsed && parsed.accepted === false && parsed.error) {
-          return parsed.error;
-        }
-      } catch {
-        // tool result wasn't JSON — fall through
+    const text = extractTextContent(messages[i]?.content ?? messages[i]?.kwargs?.content ?? '').trim();
+    if (!text) continue;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && parsed.accepted === false && typeof parsed.error === 'string') {
+        return parsed.error;
       }
+    } catch {
+      // Not JSON — keep walking back.
     }
   }
   return null;
+}
+
+function summarizeAttempts(result) {
+  const messages = result?.messages ?? [];
+  let toolCalls = 0;
+  let patchToolCalls = 0;
+  let toolResults = 0;
+  let lastAssistantSnippet = '';
+  for (const m of messages) {
+    const calls = m?.tool_calls ?? m?.kwargs?.tool_calls ?? [];
+    if (Array.isArray(calls) && calls.length > 0) {
+      toolCalls += calls.length;
+      for (const c of calls) {
+        const name = c?.name ?? c?.function?.name ?? '';
+        if (name === 'apply_infographic_patch') patchToolCalls += 1;
+      }
+    }
+    const type = m?.type ?? m?.role ?? m?.kwargs?.role ?? '';
+    if (type === 'tool' || m?.tool_call_id || m?.kwargs?.tool_call_id) toolResults += 1;
+    if (type === 'ai' || type === 'assistant') {
+      const text = extractTextContent(m?.content ?? m?.kwargs?.content ?? '');
+      if (text) lastAssistantSnippet = text.slice(0, 200);
+    }
+  }
+  return {
+    messageCount: messages.length,
+    toolCalls,
+    patchToolCalls,
+    toolResults,
+    lastAssistantSnippet
+  };
 }
 
 function extractLastAttemptedDsl(result) {
@@ -350,6 +598,26 @@ export function createInfographicLangChainAgent({
     return agentCache.get(key);
   }
 
+  /** Same tools/prompt as the default intent agent, but low temperature for prose-only retries. */
+  function getStableIntentAgent(profile = 'fast') {
+    const p = normalizeModelProfile(profile);
+    const backend = resolveLlmBackend(env);
+    const modelId =
+      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const key = `intent-stable:${backend}:${modelId}`;
+    if (!agentCache.has(key)) {
+      agentCache.set(
+        key,
+        createAgentImpl({
+          model: chatModelFor(p, { temperature: 0.06 }),
+          tools,
+          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
+        })
+      );
+    }
+    return agentCache.get(key);
+  }
+
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
     const p = normalizeModelProfile(profile);
@@ -390,19 +658,29 @@ export function createInfographicLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit }) {
+    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
       const agent = getDefaultAgent(modelProfile);
+      const peerMermaid =
+        peerContext?.contentType === 'mermaid' && typeof peerContext.diagramSource === 'string'
+          ? peerContext.diagramSource
+          : '';
+      const stableAgent = getStableIntentAgent(modelProfile);
       return invokeWithRepair(
         agent,
         [
           {
             role: 'user',
-            content: buildIntentUserContent({ prompt, focusScope, currentDsl: slot.diagramSource })
+            content: buildIntentUserContent({
+              prompt,
+              focusScope,
+              currentDsl: slot.diagramSource,
+              peerMermaid
+            })
           }
         ],
-        { requirePatch: true, emit },
+        { requirePatch: true, emit, stableAgent },
         stateStore,
         env
       );
@@ -412,6 +690,10 @@ export function createInfographicLangChainAgent({
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
       const agent = getTransformAgent(mode, modelProfile, goMadDepth);
+      // Stable fallback: the default fast (non-transform) agent at the SAME caller profile.
+      // Transform agents — especially goMad — run hot enough to occasionally produce prose-only
+      // turns; the stable agent is the same toolset at default temperature.
+      const stableAgent = getDefaultAgent(modelProfile);
       return invokeWithRepair(
         agent,
         [
@@ -425,7 +707,7 @@ export function createInfographicLangChainAgent({
             })
           }
         ],
-        { requirePatch: true, emit },
+        { requirePatch: true, emit, stableAgent },
         stateStore,
         env
       );
@@ -523,10 +805,10 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
       if (operation === 'intent') {
         agentResult = await agent.applyIntent({
           prompt: payload.prompt,
-          settings: payload.settings ?? {},
           focusNode: payload.focusNode,
           modelProfile,
-          emit
+          emit,
+          peerContext: payload.peerContext
         });
       } else {
         agentResult = await agent.applyTransformIntent({
@@ -541,11 +823,16 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
       const before = payload._revisionBefore;
       // Reuse Mermaid's emitter; it reads stateStore.getSlot('mermaid') for the patch summary,
       // so we emit a thin infographic equivalent here instead.
-      const after = stateStore.getSlot('infographic');
+      let after = stateStore.getSlot('infographic');
+      const revisionChanged = after.revisionId !== before;
+      // Record the topic on a successful intent so mode-switch can carry it across.
+      if (revisionChanged && operation === 'intent' && typeof payload.prompt === 'string') {
+        after = stateStore.setLastUserPrompt({ contentType: 'infographic', prompt: payload.prompt });
+      }
       if (typeof emit === 'function') {
         emit({
           type: 'final',
-          revisionChanged: after.revisionId !== before,
+          revisionChanged,
           message: agentResult.message,
           state: after
         });

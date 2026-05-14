@@ -65,6 +65,28 @@ test('intent route applies a patch from the agent service', async () => {
   assert.equal(result.body.metadata.llm, true);
   assert.equal(result.body.metadata.agent, 'intent');
   assert.equal(result.body.metadata.contentType, 'mermaid');
+  // The intent prompt is recorded on the slot so mode-switch can carry it across.
+  assert.equal(result.body.state.lastUserPrompt, 'Add an API gateway');
+  assert.equal(stateStore.getSlot('mermaid').lastUserPrompt, 'Add an API gateway');
+});
+
+test('intent route does NOT record lastUserPrompt when the agent fails to apply a patch', async () => {
+  const stateStore = createDiagramStateStore();
+  const agentService = {
+    async applyIntent() {
+      // Agent returns success message but never bumps revision.
+      return { message: 'Could not apply.' };
+    }
+  };
+
+  const result = await handleDiagramIntent({
+    body: intentPayload(),
+    stateStore,
+    agentService
+  });
+
+  assert.equal(result.status, 422);
+  assert.equal(stateStore.getSlot('mermaid').lastUserPrompt, null);
 });
 
 test('intent route routes infographic contentType to the infographic slot', async () => {
@@ -100,6 +122,65 @@ test('intent route routes infographic contentType to the infographic slot', asyn
   assert.equal(result.body.state.contentType, 'infographic');
   // Mermaid slot stays at revisionId 0
   assert.equal(stateStore.getSlot('mermaid').revisionId, 0);
+});
+
+test('intent route forwards peerContext to applyIntent', async () => {
+  const stateStore = createDiagramStateStore();
+  let receivedInput;
+  const agentService = {
+    async applyIntent(input) {
+      receivedInput = input;
+      await stateStore.applyDiagramSource({
+        contentType: 'infographic',
+        diagramSource:
+          'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label A\n      - label B',
+        reason: 'infographic intent'
+      });
+      return { message: 'Infographic patched.' };
+    }
+  };
+
+  const result = await handleDiagramIntent({
+    body: {
+      prompt: 'Three-step rollout',
+      revisionId: 0,
+      diagramSource: '',
+      contentType: 'infographic',
+      settings: {},
+      peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' }
+    },
+    stateStore,
+    agentService
+  });
+
+  assert.equal(result.status, 200);
+  assert.deepEqual(receivedInput.peerContext, {
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B'
+  });
+});
+
+test('intent route rejects peerContext when it matches intent contentType', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await handleDiagramIntent({
+    body: {
+      prompt: 'Add an API gateway',
+      revisionId: 0,
+      diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      contentType: 'mermaid',
+      settings: {},
+      peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' }
+    },
+    stateStore,
+    agentService: {
+      async applyIntent() {
+        return { message: 'noop' };
+      }
+    }
+  });
+
+  assert.equal(result.status, 400);
+  assert.match(String(result.body?.error ?? ''), /Invalid intent payload/);
 });
 
 test('transform route applies a patch from the transform agent service', async () => {

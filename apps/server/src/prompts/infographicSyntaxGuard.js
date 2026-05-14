@@ -435,7 +435,7 @@ Rules:
  * Build a Markdown-friendly repair instruction. Mirrors Mermaid's buildSyntaxRepairInstruction
  * but adds a PREVIOUS ATTEMPT echo so the model can diff against itself, plus the self-check.
  */
-export function buildInfographicRepairInstruction({ errorMessage, brokenSource }) {
+export function buildInfographicRepairInstruction({ errorMessage, brokenSource, originalRequest }) {
   const templateName = inferInfographicTemplate(brokenSource ?? '');
   const rulePack = getInfographicRulePack(templateName);
   const previous =
@@ -447,9 +447,19 @@ ${brokenSource}
 
 `
       : '';
+  // Echo the user's original request so the model anchors the repair on intent, not just syntax.
+  // The "(for intent only — do not echo)" hint keeps the agent from quoting the request back at
+  // the user in its narration.
+  const intent =
+    typeof originalRequest === 'string' && originalRequest.trim()
+      ? `ORIGINAL USER REQUEST (for intent only — do not echo):
+${originalRequest.trim()}
+
+`
+      : '';
   return `Your previous output failed AntV Infographic validation.
 
-${previous}ERROR
+${intent}${previous}ERROR
 ${errorMessage}
 
 RULES

@@ -161,6 +161,43 @@ test('intent payloads accept empty diagramSource for cleared canvas', () => {
   );
 });
 
+test('intent payloads reject peerContext when contentType matches intent slot', () => {
+  const base = {
+    prompt: 'x',
+    revisionId: 0,
+    diagramSource: '',
+    contentType: 'mermaid',
+    settings: {},
+    peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' }
+  };
+  assert.equal(DiagramIntentSchema.safeParse(base).success, false);
+  assert.equal(
+    AgentStreamPayloadSchema.safeParse({ operation: 'intent', ...base }).success,
+    false
+  );
+});
+
+test('intent payloads accept valid peerContext for cross-format intent', () => {
+  const intent = {
+    prompt: 'Match the diagram',
+    revisionId: 0,
+    diagramSource: '',
+    contentType: 'infographic',
+    settings: {},
+    peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' }
+  };
+  const parsed = DiagramIntentSchema.safeParse(intent);
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data.peerContext?.contentType, 'mermaid');
+  assert.equal(
+    AgentStreamPayloadSchema.safeParse({
+      operation: 'intent',
+      ...intent
+    }).success,
+    true
+  );
+});
+
 test('intent payloads accept contentType=infographic', () => {
   const parsed = DiagramIntentSchema.safeParse({
     prompt: 'Show three steps',

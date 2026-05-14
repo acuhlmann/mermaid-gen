@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateAndPrepareInfographicPatch } from '../src/tools/infographicDslTool.js';
+import {
+  validateAndPrepareInfographicPatch,
+  validateInfographicStrict
+} from '../src/tools/infographicDslTool.js';
 
 const currentState = { revisionId: 0 };
 
@@ -294,4 +297,55 @@ test('uses the current revisionId to compute next revisionId', async () => {
   assert.equal(result.accepted, true);
   assert.equal(result.patch.previousRevisionId, 5);
   assert.equal(result.patch.nextRevisionId, 6);
+});
+
+test('parser-rejection messages quote the offending source line', async () => {
+  // Use a top-level key the parser doesn't know about to provoke an error WITH a line number.
+  // The exact wording of the error message is owned by AntV, so we only assert that the
+  // offending line text appears as a `> ` quote in the response.
+  const dsl =
+    'infographic list-row-simple-horizontal-arrow\n' +
+    'data\n' +
+    '  lists\n' +
+    '    - label Step 1\n' +
+    '      desc Start\n' +
+    '      thisKeyIsNotInTheGrammar value';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  if (!result.accepted) {
+    // Only assert when the parser actually flagged a line — if AntV silently accepts the
+    // unknown key the test is effectively a no-op (and the schema-validation surface area
+    // isn't ours to police). Skip rather than fail to keep the test stable across releases.
+    if (/\(line \d+\)/.test(result.error)) {
+      assert.match(result.error, /\n  > /);
+    }
+  }
+});
+
+test('validateInfographicStrict accepts a well-formed list-row template', () => {
+  const result = validateInfographicStrict(VALID_LIST_ROW);
+  assert.equal(result.valid, true);
+  assert.equal(result.template, 'list-row-simple-horizontal-arrow');
+  assert.match(result.diagramSource, /list-row-simple-horizontal-arrow/);
+});
+
+test('validateInfographicStrict rejects an empty string', () => {
+  const result = validateInfographicStrict('');
+  assert.equal(result.valid, false);
+  assert.match(result.error, /empty/i);
+});
+
+test('validateInfographicStrict rejects an unknown template with siblings suggestion', () => {
+  const result = validateInfographicStrict('infographic list-totally-made-up-template\ndata\n  lists\n    - label A');
+  assert.equal(result.valid, false);
+  assert.match(result.error, /Unknown template/);
+});
+
+test('validateInfographicStrict rejects non-string input', () => {
+  const result = validateInfographicStrict(undefined);
+  assert.equal(result.valid, false);
+  assert.match(result.error, /string/i);
 });

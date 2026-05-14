@@ -176,6 +176,88 @@ describe('findInfographicTapTarget', () => {
     expect(hit.elementType).toBe('item-label');
     expect(hit.indexes).toBe('0');
   });
+
+  it('clicking an item-bound shape outside the whitelist (e.g. row-arrow `illus`) is selectable via data-indexes', () => {
+    // Models a `list-row-simple-horizontal-arrow` item where the visible row body is a
+    // `<path data-element-type="illus" data-indexes="2">`. Previously this returned null
+    // (illus not in whitelist) — now data-indexes makes it item-bound and selectable.
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const itemsGroup = makeElement('g', { 'data-element-type': 'items-group' });
+    svg.appendChild(itemsGroup);
+    const arrowBody = makeElement('path', { 'data-element-type': 'illus', 'data-indexes': '2' });
+    itemsGroup.appendChild(arrowBody);
+    // Sibling label so infographicItemLabelFor resolves.
+    const label = makeElement('text', { 'data-element-type': 'item-label', 'data-indexes': '2' }, 'Ship');
+    itemsGroup.appendChild(label);
+
+    const hit = findInfographicTapTarget(arrowBody, boundary);
+    expect(hit).not.toBeNull();
+    expect(hit.elementType).toBe('illus');
+    expect(hit.indexes).toBe('2');
+    expect(hit.label).toBe('Ship');
+  });
+
+  it('clicking a non-whitelisted shape WITHOUT data-indexes still returns null (background)', () => {
+    // A decorative `illus` that isn't bound to any item must not become a click target.
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const bgIllus = makeElement('path', { 'data-element-type': 'illus' });
+    svg.appendChild(bgIllus);
+
+    expect(findInfographicTapTarget(bgIllus, boundary)).toBeNull();
+  });
+
+  it('clicking elements typed `unknown` but with data-indexes is selectable (per-template shapes)', () => {
+    // Some AntV templates emit shapes that fall through to ElementTypeEnum.Unknown; if they're
+    // bound to a data item we still want them to be clickable.
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const itemsGroup = makeElement('g', { 'data-element-type': 'items-group' });
+    svg.appendChild(itemsGroup);
+    const itemGroup = makeElement('g', { 'data-element-type': 'unknown', 'data-indexes': '0' });
+    itemsGroup.appendChild(itemGroup);
+    const label = makeElement('text', { 'data-element-type': 'item-label', 'data-indexes': '0' }, 'Step 1');
+    itemsGroup.appendChild(label);
+    // Inner decorative rect with no element-type, no indexes — walker goes up to itemGroup.
+    const innerRect = makeElement('rect');
+    itemGroup.appendChild(innerRect);
+
+    const hit = findInfographicTapTarget(innerRect, boundary);
+    expect(hit).not.toBeNull();
+    expect(hit.elementType).toBe('unknown');
+    expect(hit.indexes).toBe('0');
+    expect(hit.label).toBe('Step 1');
+  });
+
+  it('skips never-selectable container types when walking up (e.g. clicking inside items-group with data-indexes)', () => {
+    // Edge case: a shape with no element-type sits directly inside an items-group container
+    // that itself was tagged with data-indexes (unusual but possible). The walker must still
+    // skip past `items-group` even though it carries `data-indexes` — selecting the container
+    // group isn't user-meaningful.
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const itemsGroup = makeElement('g', { 'data-element-type': 'items-group', 'data-indexes': '0' });
+    svg.appendChild(itemsGroup);
+    const inner = makeElement('rect');
+    itemsGroup.appendChild(inner);
+
+    expect(findInfographicTapTarget(inner, boundary)).toBeNull();
+  });
+
+  it('clicking add/remove buttons returns null (editor-only chrome)', () => {
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const btn = makeElement('g', { 'data-element-type': 'btn-add', 'data-indexes': '0' });
+    svg.appendChild(btn);
+
+    expect(findInfographicTapTarget(btn, boundary)).toBeNull();
+  });
 });
 
 describe('infographicIndexesFor', () => {

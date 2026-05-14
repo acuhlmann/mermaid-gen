@@ -45,7 +45,7 @@ test('classifyAgentTurnError buckets common failures', () => {
     'missing-diagram-type'
   );
   assert.equal(classifyAgentTurnError('Mermaid parser rejected source: Parse error on line 3'), 'parser-rejected');
-  assert.equal(classifyAgentTurnError('MCP returned 500'), 'mcp-error');
+  assert.equal(classifyAgentTurnError('Upstream service returned 503'), 'other');
   assert.equal(classifyAgentTurnError('Your previous response did not apply a diagram patch.'), 'no-patch');
   assert.equal(classifyAgentTurnError('something unexpected'), 'other');
 });

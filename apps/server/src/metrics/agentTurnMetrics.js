@@ -77,7 +77,6 @@ export function classifyAgentTurnError(error) {
   const text = String(error).toLowerCase();
   if (text.includes('missing known diagram type')) return 'missing-diagram-type';
   if (text.includes('parser rejected')) return 'parser-rejected';
-  if (text.includes('mcp')) return 'mcp-error';
   if (text.includes('validation failed')) return 'validation-failed';
   if (text.includes('did not apply') || text.includes('no patch')) return 'no-patch';
   return 'other';

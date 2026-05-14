@@ -54,7 +54,8 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
       prompt: intent.prompt,
       settings: intent.settings,
       focusNode: intent.focusNode,
-      modelProfile: intent.modelProfile
+      modelProfile: intent.modelProfile,
+      peerContext: intent.peerContext
     });
     const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
@@ -70,12 +71,17 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
       };
     }
 
+    const stateWithPrompt = stateStore.setLastUserPrompt({
+      contentType: intent.contentType,
+      prompt: intent.prompt
+    });
+
     return {
       status: 200,
       body: {
         message: agentResult.message || 'Patch accepted',
         patch,
-        state: nextState,
+        state: stateWithPrompt ?? nextState,
         metadata: {
           llm: true,
           agent: 'intent',
@@ -483,7 +489,8 @@ export function createCopilotRouter({ resolveServices }) {
         rawEmit,
         threadId: ids.threadId,
         runId: ids.runId,
-        contentType: payload.contentType
+        contentType: payload.contentType,
+        initialStep: 'planning'
       });
     } else {
       emit = rawEmit;

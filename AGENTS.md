@@ -76,7 +76,6 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 - Health endpoint: `GET /api/health`
 - Copilot endpoints live under: `/api/copilotkit/*`
-- Optional Mermaid MCP validation is controlled by `MERMAID_MCP_URL` in `.env`.
 - Never commit `.env` or secrets.
 
 ## Agent workflow guidance
@@ -86,6 +85,12 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - After edits, run the smallest meaningful test first, then `npm test` if needed.
 - If touching API contracts or schema, update both producer and consumer in the same change.
 - Prefer small, reviewable commits with clear why-focused messages.
+
+## Documentation upkeep
+
+- **Keep `README.md` current** whenever you ship architectural changes, new agents/skills, new modes, new routes, renamed top-level concepts, or other changes notable enough that a new contributor or operator would need to know. Smaller bug fixes and internal refactors don't need a README touch.
+- The README is the **human-facing** doc — write for a reader, not a parser. Prefer prose, bulleted lists, and **diagrams** (Mermaid blocks are great here) over walls of config. A picture of the request flow or the agent topology beats a paragraph describing it.
+- When in doubt, update the README in the same commit/PR as the code change so docs and behavior stay in lockstep. If a diagram in the README becomes inaccurate after your change, redraw it; don't leave a stale one.
 
 ## Safety and hygiene
 
