@@ -82,6 +82,14 @@ function sanitizeInfographicDsl(raw) {
     applied.push('strip-leading-prose');
   }
 
+  // Strip interior code-fence lines (```/```lang) the model occasionally drops between sections.
+  // The outer-fence case is handled above; this catches stray fences inside the DSL.
+  const innerStripped = text.replace(/^\s*```[^\n]*\n?/gm, '');
+  if (innerStripped !== text) {
+    text = innerStripped;
+    applied.push('strip-interior-fences');
+  }
+
   return { text, applied };
 }
 
@@ -145,6 +153,17 @@ export async function validateAndPrepareInfographicPatch({
 
   if (/^\s/.test(headerLine)) {
     return { accepted: false, error: 'Template header must not be indented.' };
+  }
+
+  // Reject multiple `infographic <template>` headers at indent 0 — the model occasionally
+  // concatenates several drafts in one tool argument; parseSyntax then chokes with cryptic errors.
+  const headerCount = lines.filter((l) => /^infographic\s+[a-z0-9-]+\s*$/i.test(l)).length;
+  if (headerCount > 1) {
+    return {
+      accepted: false,
+      error:
+        'Multiple `infographic <template>` headers in one diagram. Emit exactly one DSL block per patch.'
+    };
   }
 
   const templateName = headerMatch[1];

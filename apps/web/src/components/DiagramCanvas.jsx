@@ -11,6 +11,7 @@ import {
   parseFlowchartEdgeDataId,
   resolveFlowchartEdgeInteractionRoot
 } from '../utils/diagramSvgSelection.js';
+import { findInfographicTapTarget } from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 
 const MERMAID_INIT = {
@@ -82,26 +83,6 @@ function hashStringStable(input) {
   return Math.abs(hash).toString(36);
 }
 
-/** Walk from `start` toward `boundary`, returning the nearest element with non-empty text.
- *  Stops at the root `<svg>` so an empty-background tap (event.target === svg) registers as
- *  a background tap rather than selecting the entire infographic.
- */
-function findInfographicTapTarget(start, boundary) {
-  if (!start || !boundary) return null;
-  let node = start;
-  while (node && node !== boundary) {
-    if (node.nodeType === 1) {
-      const tag = node.tagName?.toLowerCase?.();
-      if (tag === 'svg') return null;
-      const text = (node.textContent || '').replace(/\s+/g, ' ').trim();
-      if (text) {
-        return { node, label: text.slice(0, 240) };
-      }
-    }
-    node = node.parentNode;
-  }
-  return null;
-}
 
 /** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
 function diagramDomAnchor(group) {
@@ -548,7 +529,7 @@ export default function DiagramCanvas({
         } catch {
           el = null;
         }
-      } else if (selectedNode.kind === 'infographic-region') {
+      } else if (selectedNode.kind === 'infographic-item' || selectedNode.kind === 'infographic-region') {
         const candidate = selectedNode.domNode;
         el = candidate && root.contains(candidate) ? candidate : null;
       } else {
@@ -702,8 +683,11 @@ export default function DiagramCanvas({
         startClientX: event.clientX,
         startClientY: event.clientY,
         targetEl: infographicHit.node,
-        kind: 'infographic-region',
-        label: infographicHit.label
+        kind: 'infographic-item',
+        label: infographicHit.label,
+        clickedLabel: infographicHit.clickedLabel,
+        indexes: infographicHit.indexes,
+        elementType: infographicHit.elementType
       };
     } else {
       tapCandidateRef.current = null;
@@ -844,15 +828,22 @@ export default function DiagramCanvas({
         return;
       }
 
-      if (tap.kind === 'infographic-region') {
+      if (tap.kind === 'infographic-item') {
         if (moved <= TAP_MOVE_THRESHOLD_PX && onSelectedNodeChange && tap.targetEl) {
           const label = tap.label || '';
-          if (label) {
+          const elementType = tap.elementType || '';
+          const indexes = tap.indexes || '';
+          // Stable id encodes the DSL path + which element-type was clicked so the
+          // toolbar / focus payload stay tied to *this* label rather than the item.
+          const idCore = indexes ? `${elementType}:${indexes}` : elementType || hashStringStable(label);
+          if (label || elementType) {
             onSelectedNodeChange({
-              kind: 'infographic-region',
-              id: `infographic:${hashStringStable(label)}`,
+              kind: 'infographic-item',
+              id: `infographic:${idCore}`,
               label,
-              clickedLabel: label,
+              ...(tap.clickedLabel && tap.clickedLabel !== label ? { clickedLabel: tap.clickedLabel } : {}),
+              indexes,
+              elementType,
               domNode: tap.targetEl
             });
           }

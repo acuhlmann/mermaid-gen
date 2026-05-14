@@ -196,6 +196,16 @@ function focusPayload(node) {
       ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
     };
   }
+  if (node.kind === 'infographic-item') {
+    return {
+      id: node.id,
+      label: node.label,
+      selectionKind: 'infographic-item',
+      ...(node.indexes ? { indexes: node.indexes } : {}),
+      ...(node.elementType ? { elementType: node.elementType } : {}),
+      ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
+    };
+  }
   return {
     id: node.id,
     label: node.label,
@@ -221,6 +231,20 @@ function selectionActionTitle(selectionLike, verbLabel) {
     (selectionLike.selectionKind === 'edge' && selectionLike.edgeFrom && selectionLike.edgeTo);
   if (edgeLike) {
     return `${verbLabel} — edge ${selectionLike.edgeFrom} → ${selectionLike.edgeTo}`;
+  }
+  const infographicLike =
+    selectionLike.kind === 'infographic-item' || selectionLike.selectionKind === 'infographic-item';
+  if (infographicLike) {
+    const labelText = selectionLike.label || selectionLike.clickedLabel || selectionLike.id;
+    const elementType = selectionLike.elementType || '';
+    const noun =
+      elementType === 'title' ? 'title'
+      : elementType === 'desc' ? 'description'
+      : elementType === 'item-desc' ? 'item desc'
+      : elementType === 'item-value' ? 'item value'
+      : elementType === 'item-icon' || elementType === 'item-icon-group' ? 'item icon'
+      : 'item';
+    return `${verbLabel} — ${noun} “${labelText}”`;
   }
   const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';
   if (clusterLike) {

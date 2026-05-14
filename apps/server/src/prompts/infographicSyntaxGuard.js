@@ -13,6 +13,11 @@
  *
  * The actual template registry is loaded from `@antv/infographic` at module load time —
  * we never invent template names.
+ *
+ * Content here is derived from the upstream antvis/Infographic `infographic-syntax-creator`
+ * skill (https://github.com/antvis/Infographic/tree/main/skills) and verified empirically
+ * against `parseSyntax` so the documented per-family data shapes match what the renderer
+ * actually expects (not just what the parser tolerates).
  */
 import { getTemplates } from '@antv/infographic';
 
@@ -30,25 +35,31 @@ export const INFOGRAPHIC_TEMPLATE_WHITELIST = ALL_TEMPLATES;
 /**
  * Curated subset shown in the system prompt. Picks the simplest / most LLM-friendly
  * template per common information shape so the prompt stays small and the model has
- * concrete names to copy. Falls back to alphabetic if any go missing in a future bump.
+ * concrete names to copy. Filtered against the live registry so a missing template
+ * (e.g. after a package bump) silently drops out instead of being suggested.
  */
 const PROMPT_TEMPLATES = [
   'list-row-simple-horizontal-arrow',
   'list-row-horizontal-icon-arrow',
   'list-column-simple-vertical-arrow',
   'list-grid-simple',
+  'list-grid-badge-card',
   'list-grid-progress-card',
   'list-pyramid-rounded-rect-node',
   'list-sector-simple',
   'sequence-steps-simple',
+  'sequence-ascending-steps',
   'sequence-funnel-simple',
   'sequence-pyramid-simple',
   'sequence-timeline-simple',
   'sequence-roadmap-vertical-simple',
   'sequence-snake-steps-simple',
   'sequence-circular-simple',
+  'sequence-interaction-default-badge-card',
   'compare-binary-horizontal-simple-arrow',
   'compare-binary-horizontal-simple-vs',
+  'compare-binary-horizontal-simple-fold',
+  'compare-hierarchy-left-right-circle-node-pill-badge',
   'compare-swot',
   'compare-quadrant-quarter-simple-card',
   'chart-bar-plain-text',
@@ -58,114 +69,240 @@ const PROMPT_TEMPLATES = [
   'chart-pie-donut-plain-text',
   'chart-wordcloud',
   'hierarchy-structure',
-  'hierarchy-tree-bt-curved-line-compact-card',
+  'hierarchy-tree-curved-line-rounded-rect-node',
   'hierarchy-mindmap-branch-gradient-compact-card',
+  'relation-dagre-flow-tb-simple-circle-node',
   'relation-network-simple-circle-node'
 ].filter((t) => ALL_TEMPLATES.includes(t));
+
+const SELF_CHECK = `Self-check before emitting:
+- First non-blank line is exactly \`infographic <template-name>\` (lowercase, hyphens), with no indentation.
+- The DSL contains EXACTLY ONE \`infographic <template>\` header. Never concatenate multiple drafts.
+- The tool argument contains only the DSL — no triple-backtick fences, no language tag, no commentary.
+- Indent strictly by 2 spaces. No tabs. ASCII quotes only.
+- Object array items begin with \`- \` (a hyphen and a space). Children of an item indent 2 more.
+- Use exactly one main data field for the template family (see DATA SHAPES below); never mix \`lists\`, \`sequences\`, \`compares\`, \`values\`, \`root\`, \`nodes\` in the same diagram.
+- Every semantic data item under \`lists\`, \`sequences\`, \`nodes\`, or \`compares.children\` has an \`icon\` unless the template is chart-only or the user asked for text-only output.
+- All user-facing text (\`title\`, \`desc\`, \`label\`) is in the user's input language — never translate unprompted.
+- \`palette\` values are bare colors (\`palette #4f46e5 #06b6d4 #10b981\`) — no quotes, no commas.`;
 
 const COMMON_FIXES = `Universal AntV Infographic DSL rules:
 - Line 1 must be \`infographic <template-name>\` — lowercase, hyphens, no quotes.
 - Use ONLY a template name from the supported list; never invent one.
+- The DSL must contain exactly one \`infographic <template>\` header.
 - Line 2 starts a \`data\` block at indent 0. All content sits under \`data\`.
 - Indent strictly by 2 spaces. Never tabs.
 - Use straight ASCII quotes; no smart quotes.
-- List items begin with \`- key value\` (e.g. \`- label Step 1\`). Children of a list item indent 2 more.
-- Key-value lines use one space: \`key value\` (no colons, no equals).
+- Object array items begin with \`- \` (e.g. \`- label Step 1\`). Children of an item indent 2 more.
+- Key/value lines use one space: \`key value\` (no colons, no equals).
+- Keep all reader-facing text in the user's input language; do not translate unprompted.
+- Prefer adding \`icon\` (exact ID like \`mingcute/server-line\`, or a space-separated keyword phrase like \`rocket launch\`) on every semantic data item.
 `;
 
-const LIST_AND_SEQUENCE_RULES = `${COMMON_FIXES}
-For \`list-*\` and most \`sequence-*\` templates the canonical shape is:
-  infographic <template-name>
+const LIST_RULES = `${COMMON_FIXES}
+For \`list-*\` templates the main data field is \`lists\`:
+  infographic list-grid-badge-card
   data
+    title Feature List
     lists
-      - label Step 1
-        desc Short description
-      - label Step 2
-        desc Another short description
+      - label Fast
+        icon flash fast
+        desc Sub-100ms
+      - label Secure
+        icon shield check
+        desc TLS 1.3
 
 Notes:
 - 3–6 items is the sweet spot.
-- Each item must have \`label <text>\`. Optional: \`desc <text>\`.
-- Avoid colons or newlines inside a single value.
+- Each item must have \`label <text>\`. Optional: \`desc <text>\`, \`value <number>\`, \`icon <id-or-keywords>\`.
+- \`hierarchy-structure\` is the lone hierarchy template that uses \`items\` instead of \`root\`/\`children\`.
+`;
+
+const SEQUENCE_RULES = `${COMMON_FIXES}
+For \`sequence-*\` templates the main data field is \`sequences\` (NOT \`lists\`):
+  infographic sequence-ascending-steps
+  data
+    title Release flow
+    sequences
+      - label Define
+        icon clipboard check
+      - label Build
+        icon code
+      - label Ship
+        icon rocket
+    order asc
+
+For \`sequence-interaction-*\` templates use \`sequences\` (swimlanes) + \`relations\`:
+  infographic sequence-interaction-default-badge-card
+  data
+    title Login flow
+    sequences
+      - label User
+        icon user
+        children
+          - label Submit credentials
+            id u-submit
+            step 0
+            icon login
+          - label See result
+            id u-result
+            step 2
+            icon inbox check
+      - label Server
+        icon server
+        children
+          - label Verify
+            id s-verify
+            step 1
+            icon shield check
+          - label Respond
+            id s-resp
+            step 2
+            icon send
+    relations
+      u-submit - submits creds -> s-verify
+      s-verify - emits result -> s-resp
+      s-resp - returns -> u-result
+
+Notes:
+- Plain \`sequence-*\` templates: 3–6 items. Optional \`order asc|desc\`.
+- \`sequence-interaction-*\`: every swimlane has a \`label\`; every \`children\` item is an object with at least \`label\` and (usually) \`id\` + \`step\`. \`step\` controls vertical alignment — items with the same \`step\` line up.
 `;
 
 const CHART_RULES = `${COMMON_FIXES}
-For \`chart-*\` templates the canonical shape is:
+For \`chart-*\` templates the main data field is \`values\` (NOT \`items\`):
   infographic chart-bar-plain-text
   data
-    items
-      - label A
+    title Quarterly revenue
+    values
+      - label Q1
         value 10
-      - label B
+      - label Q2
         value 18
+      - label Q3
+        value 22
+      - label Q4
+        value 30
 
 Notes:
-- Each item has \`label <text>\` and numeric \`value\`.
-- \`chart-pie-*\` accepts the same \`items\` shape.
-- \`chart-wordcloud\` accepts \`items\` with \`text <word>\` and optional \`weight <number>\`.
+- Each datum has \`label <category>\` and numeric \`value\`. Keep \`value\` a raw number; put units in \`label\` or \`desc\`.
+- \`chart-pie-*\` accepts the same \`values\` shape.
+- \`chart-wordcloud\` uses \`values\` with \`text <word>\` and optional \`weight <number>\` (no \`label\`/\`value\`).
+- Chart data points typically do NOT need \`icon\`.
 `;
 
 const HIERARCHY_RULES = `${COMMON_FIXES}
-For \`hierarchy-*\` templates use a \`root\` + \`children\` tree:
+For most \`hierarchy-*\` templates use a single \`root\` plus recursive \`children\`:
+  infographic hierarchy-tree-curved-line-rounded-rect-node
+  data
+    title Company
+    root
+      label Company
+      children
+        - label Engineering
+          children
+            - label Platform
+            - label Product
+        - label Sales
+
+Special case — \`hierarchy-structure\` uses a flat \`items\` list:
   infographic hierarchy-structure
   data
-    root
-      label Root topic
-      children
-        - label Child A
-        - label Child B
-          children
-            - label Grandchild
+    title Org units
+    items
+      - label Engineering
+      - label Product
+      - label Sales
 
 Notes:
-- Each node has \`label <text>\`. Optional \`desc <text>\`.
+- Each node has \`label <text>\`. Optional \`desc <text>\`, \`icon\`.
 - Indent each \`children\` level by 2 more spaces.
 - Keep depth ≤4 to stay readable.
 `;
 
 const COMPARE_RULES = `${COMMON_FIXES}
-For \`compare-binary-*\` templates use \`data > lists\` with exactly two items:
-  infographic compare-binary-horizontal-simple-arrow
+For \`compare-binary-*\` and \`compare-hierarchy-left-right-*\` the main data field is \`compares\` with EXACTLY TWO root nodes, each containing \`children\` (NOT a flat \`lists\` of 2):
+  infographic compare-binary-horizontal-simple-fold
   data
-    lists
-      - label Before
-        desc Pain points
-      - label After
-        desc Outcome
+    title Day vs sale price
+    compares
+      - label Regular
+        icon calendar
+        children
+          - label List 500
+            icon tag
+          - label Up to 10% off
+            icon percent
+      - label Promo
+        icon megaphone
+        children
+          - label Pays 450
+            icon wallet
+          - label Up to 20% off
+            icon badge percent
 
-For \`compare-swot\` each list item is a quadrant containing nested \`items\`:
+For \`compare-swot\` use \`compares\` with multiple root nodes each containing \`children\`:
   infographic compare-swot
   data
-    lists
+    title Product SWOT
+    compares
       - label Strengths
-        items
-          - text Brand recognition
+        icon trophy
+        children
+          - label Strong brand
+            icon star
       - label Weaknesses
-        items
-          - text Slow time-to-market
+        icon alert circle
+        children
+          - label Cost pressure
+            icon wallet
       - label Opportunities
-        items
-          - text Emerging segment
+        icon sparkles
+        children
+          - label New segment
+            icon target
       - label Threats
-        items
-          - text New entrant
+        icon shield off
+        children
+          - label New entrant
+            icon swords
+
+For \`compare-quadrant-*\` put exactly FOUR root nodes directly under \`compares\` (no \`children\` required):
+  infographic compare-quadrant-quarter-simple-card
+  data
+    title Effort vs value
+    compares
+      - label High value / Low cost
+      - label High value / High cost
+      - label Low value / Low cost
+      - label Low value / High cost
+
+Notes:
+- Every entry under \`compares\` and every entry under \`children\` is an object starting with \`- label …\`.
+- Even if one side has only a single point, write it as a \`children\` list with one item — not as flat \`label\` on the root.
 `;
 
 const RELATION_RULES = `${COMMON_FIXES}
-For \`relation-*\` templates use \`data > items\` for nodes plus \`relations\` for edges:
-  infographic relation-network-simple-circle-node
+For \`relation-*\` templates use \`nodes\` for vertices and \`relations\` for edges:
+  infographic relation-dagre-flow-tb-simple-circle-node
   data
-    items
-      - id a
-        label Alpha
-      - id b
-        label Beta
+    title System map
+    nodes
+      - label API
+        icon api
+      - id db
+        label Postgres
+        icon database
+      - id cache
+        label Redis
+        icon database
     relations
-      - from a
-        to b
+      API - reads/writes -> db
+      API - caches -> cache
 
 Notes:
-- Each node needs a unique \`id\`. Edges reference those ids.
+- Each node should have \`label\`; give it an explicit \`id\` if you reference it from an edge by something other than its label.
+- Edges use the arrow form \`<from> - <edge label> -> <to>\` under \`relations\`, where \`from\`/\`to\` can be a node id or its label.
 - Keep ≤8 nodes for readability.
 `;
 
@@ -181,8 +318,9 @@ export function getInfographicRulePack(templateName) {
   const family = familyFor(templateName);
   switch (family) {
     case 'list':
+      return LIST_RULES;
     case 'sequence':
-      return LIST_AND_SEQUENCE_RULES;
+      return SEQUENCE_RULES;
     case 'chart':
       return CHART_RULES;
     case 'hierarchy':
@@ -196,46 +334,73 @@ export function getInfographicRulePack(templateName) {
   }
 }
 
-export const INFOGRAPHIC_SYSTEM_PROMPT = `You are AntV Infographic Architect, an agent that helps edit AntV Infographic DSL.
+export const INFOGRAPHIC_SYSTEM_PROMPT = `You are AntV Infographic Architect, an agent that edits AntV Infographic DSL.
 
 OUTPUT FORMAT (every patch must follow this):
 - Call apply_infographic_patch once per turn with the FULL updated DSL (no diffs).
+- The tool argument is the DSL only — no triple-backtick fences inside, no language tag, no commentary.
+- Emit EXACTLY ONE \`infographic <template>\` block per call. Never concatenate multiple drafts.
 - Line 1: \`infographic <template-name>\` — pick exactly one template from the supported list. Never invent template names.
 - Line 2: \`data\` (no indent). All content lives under \`data\`.
-- Children indent by 2 spaces per level. ASCII quotes only.
+- Children indent by 2 spaces per level. ASCII quotes only. No tabs.
+- Object array items begin with \`- \` (hyphen + space). Children of an item indent 2 more.
+
+LANGUAGE LOCK:
+- All reader-facing text (\`title\`, \`desc\`, \`label\`, edge labels) is in the user's input language. Never translate unprompted.
+- If the user writes English, output English. If the user writes Chinese, output Chinese. Keep proper nouns and product names as-is.
+
+ICONS:
+- Every semantic data item under \`lists\`, \`sequences\`, \`nodes\`, or \`compares.children\` gets an \`icon\` by default.
+- Use an exact icon ID (\`mingcute/server-line\`) or a short space-separated keyword phrase (\`rocket launch\`, \`shield check\`, \`chart line\`). Never hyphenate keyword phrases.
+- Skip \`icon\` only for chart data points and explicit "text-only / minimal" requests.
 
 CANONICAL EXAMPLE (works as-is):
 \`\`\`
-infographic list-row-simple-horizontal-arrow
+infographic list-row-horizontal-icon-arrow
 data
+  title Growth funnel
+  desc Three stages we care about
   lists
-    - label Step 1
-      desc Start
-    - label Step 2
-      desc Build
-    - label Step 3
-      desc Ship
+    - label Acquire
+      desc Multi-channel outreach
+      icon rocket launch
+    - label Convert
+      desc Reduce drop-off in onboarding
+      icon chart line
+    - label Retain
+      desc Tiered membership benefits
+      icon repeat
+theme
+  palette #3b82f6 #8b5cf6 #f97316
 \`\`\`
 
-DATA SHAPES BY FAMILY:
-- list-* and sequence-*: \`data > lists > - label X / desc Y\` (3–6 items).
-- chart-*: \`data > items > - label X / value <number>\` (chart-wordcloud uses \`text\`/\`weight\`).
-- hierarchy-*: \`data > root > label X / children > - label Y …\`.
-- compare-binary-*: \`data > lists\` with exactly two items.
-- compare-swot: \`data > lists\` of four quadrants, each with nested \`items > - text Z\`.
-- relation-*: \`data > items\` for nodes (\`id\`, \`label\`) and \`relations\` for edges (\`from\`, \`to\`).
+DATA SHAPES BY FAMILY (use exactly one main data field per template):
+- \`list-*\` → \`lists\` of objects with \`label\` (+ optional \`desc\`, \`value\`, \`icon\`). 3–6 items.
+- \`sequence-*\` → \`sequences\` of objects with \`label\` (+ optional \`icon\`, \`desc\`). Optional \`order asc|desc\`.
+- \`sequence-interaction-*\` → \`sequences\` (swimlanes, each with \`children\`) + \`relations\` (arrow syntax). Each \`children\` item has \`label\`, usually \`id\` and \`step\`.
+- \`chart-*\` → \`values\` of objects with \`label\` + numeric \`value\` (\`chart-wordcloud\` uses \`text\` + \`weight\`).
+- \`compare-binary-*\` and \`compare-hierarchy-left-right-*\` → \`compares\` with EXACTLY TWO root nodes, each containing \`children\`. The actual comparison points live inside each root's \`children\` — never as a flat \`lists\`.
+- \`compare-swot\` → \`compares\` with multiple root nodes each containing \`children\`.
+- \`compare-quadrant-*\` → \`compares\` with exactly FOUR root nodes (children optional).
+- \`hierarchy-structure\` → \`items\` (flat list of labels).
+- All other \`hierarchy-*\` → a single \`root\` with recursive \`children\`. Each child is an object \`- label X\` (with optional \`children\`).
+- \`relation-*\` → \`nodes\` (each with \`label\`, optional \`id\`/\`icon\`) + \`relations\` using arrow syntax: \`<from> - <edge label> -> <to>\`.
 
 PICK A TEMPLATE BY THE INFORMATION SHAPE:
-- Process / steps: sequence-steps-simple, sequence-snake-steps-simple, sequence-roadmap-vertical-simple, list-row-simple-horizontal-arrow, sequence-funnel-simple, sequence-pyramid-simple.
-- Bullet / grid list: list-grid-simple, list-grid-progress-card, list-column-simple-vertical-arrow, list-pyramid-rounded-rect-node, list-sector-simple.
-- Comparison: compare-binary-horizontal-simple-arrow, compare-binary-horizontal-simple-vs, compare-swot, compare-quadrant-quarter-simple-card.
-- Chart: chart-bar-plain-text, chart-column-simple, chart-line-plain-text, chart-pie-plain-text, chart-pie-donut-plain-text, chart-wordcloud.
-- Hierarchy / tree: hierarchy-structure, hierarchy-tree-bt-curved-line-compact-card, hierarchy-mindmap-branch-gradient-compact-card.
-- Relationships: relation-network-simple-circle-node.
+- Process / steps / phases → sequence-steps-simple, sequence-ascending-steps, sequence-snake-steps-simple, sequence-roadmap-vertical-simple, sequence-funnel-simple, sequence-pyramid-simple, sequence-timeline-simple, sequence-circular-simple.
+- Multi-role / multi-system interaction → sequence-interaction-default-badge-card.
+- Parallel bullets / grid → list-grid-simple, list-grid-badge-card, list-grid-progress-card, list-row-horizontal-icon-arrow, list-row-simple-horizontal-arrow, list-column-simple-vertical-arrow.
+- Two-side comparison → compare-binary-horizontal-simple-arrow, compare-binary-horizontal-simple-vs, compare-binary-horizontal-simple-fold, compare-hierarchy-left-right-circle-node-pill-badge.
+- SWOT → compare-swot. Quadrant → compare-quadrant-quarter-simple-card.
+- Trend (single series) → chart-line-plain-text. Magnitude comparison → chart-bar-plain-text, chart-column-simple. Share → chart-pie-plain-text, chart-pie-donut-plain-text. Word frequency → chart-wordcloud.
+- Tree / org chart → hierarchy-tree-curved-line-rounded-rect-node. Mindmap → hierarchy-mindmap-branch-gradient-compact-card. Flat units → hierarchy-structure.
+- Node graph / flow → relation-dagre-flow-tb-simple-circle-node, relation-network-simple-circle-node.
 
-Suggested template names: ${PROMPT_TEMPLATES.join(', ')}.
+Suggested template names (a curated subset; pick any from the full registry): ${PROMPT_TEMPLATES.join(', ')}.
 
-If a user request doesn't obviously fit a family, default to \`list-row-simple-horizontal-arrow\` for sequences and \`list-grid-simple\` for general lists. Keep labels short (<24 chars) and descriptions one short sentence.`;
+If the request doesn't obviously map to a family, default to \`list-grid-simple\` for parallel bullets and \`sequence-steps-simple\` for ordered steps. Keep labels short (<24 chars) and descriptions to one short sentence.
+
+${SELF_CHECK}`;
 
 export const INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT = `You are AntV Infographic Architect in read-only mode.
 - Do not modify the diagram. Analyze the provided AntV Infographic DSL and return Markdown only.
@@ -267,18 +432,30 @@ Rules:
 - Keep each section to 1–3 short bullets.`;
 
 /**
- * Build a Markdown-friendly repair instruction. Mirrors Mermaid's buildSyntaxRepairInstruction.
+ * Build a Markdown-friendly repair instruction. Mirrors Mermaid's buildSyntaxRepairInstruction
+ * but adds a PREVIOUS ATTEMPT echo so the model can diff against itself, plus the self-check.
  */
 export function buildInfographicRepairInstruction({ errorMessage, brokenSource }) {
   const templateName = inferInfographicTemplate(brokenSource ?? '');
   const rulePack = getInfographicRulePack(templateName);
-  return `Your previous output failed AntV Infographic validation:
+  const previous =
+    brokenSource && brokenSource.trim()
+      ? `PREVIOUS ATTEMPT (failed)
+\`\`\`
+${brokenSource}
+\`\`\`
 
-ERROR
+`
+      : '';
+  return `Your previous output failed AntV Infographic validation.
+
+${previous}ERROR
 ${errorMessage}
 
 RULES
 ${rulePack}
+
+${SELF_CHECK}
 
 Rewrite the diagram so it satisfies the rules above. Output the FULL DSL via apply_infographic_patch. Do not narrate. Do not add commentary outside the tool call.`;
 }

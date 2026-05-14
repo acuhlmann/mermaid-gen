@@ -18,8 +18,8 @@ import {
   resolveVertexModelId
 } from './llmProvider.js';
 import {
-  buildFocusScopeInstructions,
-  buildAnalyzeFocusInstructions,
+  buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
+  buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
   captureMessagesFromStreamEvent,
   clampGoMadDepth,
   emitIntentTransformStreamResult,
@@ -31,6 +31,29 @@ import {
   toLangChainMessages,
   transformModeModelOptions
 } from './mermaidLangChainAgent.js';
+import {
+  buildInfographicFocusScopeInstructions,
+  buildInfographicAnalyzeFocusInstructions
+} from './infographicFocusInstructions.js';
+
+/**
+ * Route a focus payload to the right vocabulary. `infographic-item` selections come from the
+ * AntV renderer with `indexes` + `elementType`; everything else falls back to the Mermaid
+ * builder (which produces generic "node id …" language that's harmless for unselected paths).
+ */
+function buildFocusScopeInstructions(focusNode) {
+  if (focusNode?.selectionKind === 'infographic-item') {
+    return buildInfographicFocusScopeInstructions(focusNode);
+  }
+  return buildMermaidFocusScopeInstructions(focusNode);
+}
+
+function buildAnalyzeFocusInstructions(focusNode, kind) {
+  if (focusNode?.selectionKind === 'infographic-item') {
+    return buildInfographicAnalyzeFocusInstructions(focusNode, kind);
+  }
+  return buildMermaidAnalyzeFocusInstructions(focusNode, kind);
+}
 import { extractJsonStringPrefix } from './partialJsonString.js';
 
 const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an infographic patch.

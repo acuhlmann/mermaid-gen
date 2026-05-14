@@ -141,6 +141,150 @@ test('parseSyntax rejects bad structure (unknown top-level keys)', async () => {
   assert.match(result.error, /parser rejected/i);
 });
 
+test('rejects DSL containing multiple `infographic <template>` headers', async () => {
+  const dsl =
+    'infographic list-row-simple-horizontal-arrow\n' +
+    'data\n' +
+    '  lists\n' +
+    '    - label Step 1\n' +
+    '      desc Start\n' +
+    '\n' +
+    'infographic list-row-simple-horizontal-arrow\n' +
+    'data\n' +
+    '  lists\n' +
+    '    - label Other\n' +
+    '      desc Drift';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /Multiple `infographic <template>` headers/);
+});
+
+test('strips stray interior code fences inside the DSL', async () => {
+  const dsl =
+    'infographic list-row-simple-horizontal-arrow\n' +
+    'data\n' +
+    '```\n' +
+    '  lists\n' +
+    '    - label Step 1\n' +
+    '      desc Start\n' +
+    '```';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+  assert.ok(result.metadata.sanitizerApplied.includes('strip-interior-fences'));
+  assert.ok(!result.patch.diagramSource.includes('```'));
+});
+
+test('accepts canonical sequence DSL with `sequences` (not `lists`)', async () => {
+  const dsl =
+    'infographic sequence-steps-simple\n' +
+    'data\n' +
+    '  sequences\n' +
+    '    - label Define\n' +
+    '      icon clipboard check\n' +
+    '    - label Build\n' +
+    '      icon code\n' +
+    '    - label Ship\n' +
+    '      icon rocket';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+  assert.equal(result.metadata.template, 'sequence-steps-simple');
+});
+
+test('accepts canonical chart DSL with `values` (not `items`)', async () => {
+  const dsl =
+    'infographic chart-bar-plain-text\n' +
+    'data\n' +
+    '  values\n' +
+    '    - label Q1\n' +
+    '      value 10\n' +
+    '    - label Q2\n' +
+    '      value 18';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+});
+
+test('accepts canonical compare-binary DSL with `compares` of 2 roots + `children`', async () => {
+  const dsl =
+    'infographic compare-binary-horizontal-simple-fold\n' +
+    'data\n' +
+    '  compares\n' +
+    '    - label Before\n' +
+    '      icon calendar\n' +
+    '      children\n' +
+    '        - label Slow\n' +
+    '          icon snail\n' +
+    '    - label After\n' +
+    '      icon rocket\n' +
+    '      children\n' +
+    '        - label Fast\n' +
+    '          icon zap';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+});
+
+test('accepts canonical compare-swot DSL with `compares` of 4 roots + `children`', async () => {
+  const dsl =
+    'infographic compare-swot\n' +
+    'data\n' +
+    '  compares\n' +
+    '    - label Strengths\n' +
+    '      children\n' +
+    '        - label Strong brand\n' +
+    '    - label Weaknesses\n' +
+    '      children\n' +
+    '        - label Cost pressure\n' +
+    '    - label Opportunities\n' +
+    '      children\n' +
+    '        - label New segment\n' +
+    '    - label Threats\n' +
+    '      children\n' +
+    '        - label New entrant';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+});
+
+test('accepts canonical relation DSL with `nodes` + `relations` arrow syntax', async () => {
+  const dsl =
+    'infographic relation-dagre-flow-tb-simple-circle-node\n' +
+    'data\n' +
+    '  nodes\n' +
+    '    - label API\n' +
+    '    - id db\n' +
+    '      label Postgres\n' +
+    '  relations\n' +
+    '    API - reads -> db';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+});
+
 test('uses the current revisionId to compute next revisionId', async () => {
   const result = await validateAndPrepareInfographicPatch({
     currentState: { revisionId: 5 },
