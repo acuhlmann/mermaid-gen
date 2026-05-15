@@ -249,14 +249,14 @@ Infographic uses the same **validate → single-shot fixer → agent repair** sh
 ```mermaid
 flowchart TB
   Raw["Proposed AntV DSL"] --> S["Sanitizer"]
-  S --> L1["Layer 1 — textual lint"]
-  L1 --> L2["Layer 2 — parseSyntax"]
-  L2 -->|valid| P["Patch accepted"]
+  S --> L1["Layer 1: textual lint"]
+  L1 -->|pass| L2["Layer 2: parseSyntax"]
   L1 -->|fail| R["Repair path"]
+  L2 -->|valid| P["Patch accepted"]
   L2 -->|errors| R
-  R --> F["Single-shot syntax fixer\ninfographicSyntaxFixer.js — once"]
+  R --> F["Single-shot syntax fixer once"]
   F -->|accepted| P
-  F -->|fail| A["Agent repair turns\nbuildInfographicRepairInstruction\nup to MAX_INFOGRAPHIC_REPAIR_ATTEMPTS (2)"]
+  F -->|fail| A["Agent repair up to 2 attempts"]
 ```
 
 - **Sanitizer** runs first (`strip-code-fence`, `tabs-to-spaces`, `smart-quotes-to-ascii`, `strip-leading-prose`).
@@ -268,11 +268,11 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  Session["Session\nactiveContentType: mermaid | infographic"]
-  Session --> MS["mermaid slot\n{ revisionId, diagramSource,\nstyleConfig, history }"]
-  Session --> IS["infographic slot\n{ revisionId, diagramSource,\nhistory }"]
-  MS -->|"content type mismatch check\napplyPatch"| MV["Mermaid validator"]
-  IS -->|"content type mismatch check\napplyPatch"| IV["Infographic validator"]
+  Session["Session activeContentType mermaid or infographic"]
+  Session --> MS["mermaid slot revisionId diagramSource styleConfig history"]
+  Session --> IS["infographic slot revisionId diagramSource history"]
+  MS -->|applyPatch| MV["Mermaid validator"]
+  IS -->|applyPatch| IV["Infographic validator"]
 ```
 
 The two slots are fully independent — switching modes does not touch the other slot's revision history. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
@@ -281,15 +281,13 @@ The two slots are fully independent — switching modes does not touch the other
 
 ```mermaid
 flowchart LR
-  H["HTTP header\nx-session-id"]
-  Q["Query sessionId / threadId"]
+  H["HTTP header x-session-id"]
+  Q["Query sessionId or threadId"]
   CT["Copilot input.threadId"]
-
-  H --> RID[Resolved session id]
+  H --> RID["Resolved session id"]
   Q --> RID
   CT --> RID
-
-  RID --> MAP["Map session →\nstateStore + agentDispatcher"]
+  RID --> MAP["Map session to stateStore and agentDispatcher"]
 ```
 
 Default session id is `default` when nothing is sent; the web client generates and persists a UUID in `localStorage` (`diagramStore.js`).
@@ -325,9 +323,9 @@ flowchart LR
   H["Human: Invite agent\n(copy pairing code)"] --> A["Agent: /mcp + join_session"]
   A --> R["register_agent"]
   R --> OK{"Approved?"}
-  OK -->|yes| W["get_session_state → edit → propose_diagram_edit"]
-  W --> U["Human: accept in web or MCP App"]
-  U --> D["Diagram updates · agent sees wait_for_resolution"]
+  OK -->|yes| W["get_session_state then propose_diagram_edit"]
+  W --> U["Human accept in web or MCP App"]
+  U --> D["Diagram updates after wait_for_resolution"]
 ```
 
 1. Open **Invite agent** in the web UI (pairing code + QR + **Add to Cursor** / **Install in VS Code**).
