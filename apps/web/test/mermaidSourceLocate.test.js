@@ -4,7 +4,9 @@ import {
   findFlowchartVertexRange,
   findMermaidSourceRange,
   findMermaidSourceRangeForDiagramSelection,
+  findSequenceParticipantRange,
   findSubgraphBlockRange,
+  peekDiagramDirective,
   logicalIdFromDiagramSelection,
   normalizeDiagramElementId,
   parseSubgraphHeaderId,
@@ -100,6 +102,30 @@ describe('findSubgraphBlockRange', () => {
   });
 });
 
+describe('findSequenceParticipantRange', () => {
+  it('finds explicit participant declarations', () => {
+    const src = ['sequenceDiagram', '  participant Ingestion', '  Ingestion ->> Validation: hi'].join(
+      '\n'
+    );
+    const r = findSequenceParticipantRange(src, 'Ingestion');
+    expect(r?.startLineNumber).toBe(2);
+    expect(r?.startColumn).toBe(15);
+  });
+
+  it('finds implicit participants on message lines', () => {
+    const src = 'sequenceDiagram\n  Alice->>Bob: hi';
+    const r = findSequenceParticipantRange(src, 'Bob');
+    expect(r?.startLineNumber).toBe(2);
+  });
+});
+
+describe('peekDiagramDirective', () => {
+  it('detects sequence diagrams after init directives', () => {
+    const src = '%%{init: {}}%%\nsequenceDiagram\n  A->>B';
+    expect(peekDiagramDirective(src)).toBe('sequence');
+  });
+});
+
 describe('findMermaidSourceRange', () => {
   it('dispatches cluster vs node kind', () => {
     const src = ['flowchart TD', 'subgraph SG', '  X[Hi]', 'end', '  SG -.-> X'].join('\n');
@@ -118,6 +144,17 @@ describe('collectLogicalIdCandidates', () => {
 });
 
 describe('findMermaidSourceRangeForDiagramSelection', () => {
+  it('matches sequence participants using data-id', () => {
+    const src = ['sequenceDiagram', '  participant Storage', '  Storage ->> Index: ok'].join('\n');
+    const r = findMermaidSourceRangeForDiagramSelection(src, {
+      elementId: 'root-3',
+      dataId: 'Storage',
+      kind: 'node'
+    });
+    expect(r?.startLineNumber).toBe(2);
+    expect(r?.startColumn).toBe(15);
+  });
+
   it('matches vertex using only a prefixed svg-style id', () => {
     const src = 'flowchart LR\n  PG[Gate] --> Z';
     const r = findMermaidSourceRangeForDiagramSelection(src, {

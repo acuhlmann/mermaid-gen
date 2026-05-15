@@ -30,6 +30,19 @@ test('resolveSessionIdFromCopilotInput reads threadId', () => {
   assert.equal(resolveSessionIdFromCopilotInput({}), 'default');
 });
 
+test('hasSession returns false for unknown ids and true after lazy creation', () => {
+  const registry = createSessionServicesRegistry({ env: { OPENROUTER_API_KEY: '' } });
+
+  assert.equal(registry.hasSession('never-touched'), false);
+  // Whitespace and empty string normalize to nothing → false.
+  assert.equal(registry.hasSession(''), false);
+  assert.equal(registry.hasSession('   '), false);
+
+  registry.getSessionServices('first-touch');
+  assert.equal(registry.hasSession('first-touch'), true);
+  assert.equal(registry.hasSession('still-unknown'), false);
+});
+
 test('session registry isolates state per session id', async () => {
   const registry = createSessionServicesRegistry({
     env: {

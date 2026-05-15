@@ -55,7 +55,7 @@ export async function ensureMermaidInitialized() {
 
   mermaidApi.initialize({
     startOnLoad: false,
-    securityLevel: 'loose'
+    securityLevel: 'strict'
   });
   initialized = true;
   return mermaidApi;

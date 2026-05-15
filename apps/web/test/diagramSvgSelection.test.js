@@ -1,28 +1,33 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { parseFlowchartEdgeDataId } from '../src/utils/diagramSvgSelection.js';
+import { resolveSequenceActorInteractionRoot } from '../src/utils/diagramSvgSelection.js';
 
-describe('parseFlowchartEdgeDataId', () => {
-  it('parses L_<from>_<to>_<index>', () => {
-    expect(parseFlowchartEdgeDataId('L_A_B_0')).toEqual({
-      from: 'A',
-      to: 'B',
-      index: 0,
-      raw: 'L_A_B_0'
-    });
+const SEQUENCE_SVG = `
+<svg>
+  <g>
+    <line data-et="life-line" data-id="Ingestion" class="actor-line" />
+    <g data-et="participant" data-type="participant" data-id="Ingestion" id="root-1">
+      <rect class="actor actor-top" width="80" height="40" />
+      <text class="actor actor-box">Ingestion</text>
+    </g>
+  </g>
+</svg>
+`;
+
+describe('resolveSequenceActorInteractionRoot', () => {
+  it('resolves participant box clicks via data-et group', () => {
+    document.body.innerHTML = SEQUENCE_SVG;
+    const rect = document.querySelector('rect.actor-top');
+    const hit = resolveSequenceActorInteractionRoot(rect);
+    expect(hit?.dataId).toBe('Ingestion');
+    expect(hit?.groupEl?.getAttribute('data-et')).toBe('participant');
   });
 
-  it('parses numeric suffix for parallel edges', () => {
-    expect(parseFlowchartEdgeDataId('L_X_Y_2')).toEqual({
-      from: 'X',
-      to: 'Y',
-      index: 2,
-      raw: 'L_X_Y_2'
-    });
-  });
-
-  it('returns null for user-defined or unknown ids', () => {
-    expect(parseFlowchartEdgeDataId('myCustomEdge')).toBeNull();
-    expect(parseFlowchartEdgeDataId('')).toBeNull();
-    expect(parseFlowchartEdgeDataId(null)).toBeNull();
+  it('resolves lifeline clicks to the participant group', () => {
+    document.body.innerHTML = SEQUENCE_SVG;
+    const line = document.querySelector('[data-et="life-line"]');
+    const hit = resolveSequenceActorInteractionRoot(line);
+    expect(hit?.dataId).toBe('Ingestion');
+    expect(hit?.groupEl?.getAttribute('data-et')).toBe('participant');
   });
 });

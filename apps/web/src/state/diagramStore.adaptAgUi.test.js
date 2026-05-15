@@ -105,6 +105,17 @@ describe('createAgUiTranslator', () => {
     expect(out).toEqual({ type: 'error', message: 'boom' });
   });
 
+  it('preserves RUN_ERROR code on legacy error events', () => {
+    const [out] = runThrough([
+      { type: 'RUN_ERROR', message: 'no patch', code: 'no_mutation_revision' }
+    ]);
+    expect(out).toEqual({
+      type: 'error',
+      message: 'no patch',
+      code: 'no_mutation_revision'
+    });
+  });
+
   it('CUSTOM(status) becomes legacy status', () => {
     const [out] = runThrough([{ type: 'CUSTOM', name: 'status', value: { text: 'Still working…' } }]);
     expect(out).toEqual({ type: 'status', text: 'Still working…' });

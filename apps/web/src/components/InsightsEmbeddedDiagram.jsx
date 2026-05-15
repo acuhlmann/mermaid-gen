@@ -1,13 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { sanitizeMermaid } from '@archislop/shared';
-import mermaid from 'mermaid';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import InfographicRenderer from './InfographicRenderer.jsx';
-
-const MERMAID_INIT = {
-  startOnLoad: false,
-  deterministicIds: true,
-  deterministicIDSeed: 'archislop-insights-embed'
-};
+import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
+import { applyInfographicHighlight } from '@archislop/shared';
+import { renderMermaidPreviewSvg } from '../utils/renderMermaidPreview.js';
 
 function extractErrorMessage(error) {
   if (!error) return 'Unknown Mermaid error';
@@ -23,10 +18,12 @@ export default function InsightsEmbeddedDiagram({
   source,
   kind,
   idPrefix = 'embed',
-  streamingPreview = false
+  streamingPreview = false,
+  highlight = null
 }) {
   const debounceRef = useRef(0);
   const requestRef = useRef(0);
+  const svgHostRef = useRef(null);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
 
@@ -51,9 +48,7 @@ export default function InsightsEmbeddedDiagram({
       async function runRender() {
         try {
           const diagramId = `insights-embed-${idPrefix}-${requestId}`.replace(/[^a-zA-Z0-9_-]/g, '');
-          mermaid.initialize({ ...MERMAID_INIT });
-          const { sanitized } = sanitizeMermaid(dsl);
-          const { svg } = await mermaid.render(diagramId, sanitized);
+          const { svg } = await renderMermaidPreviewSvg(diagramId, dsl);
           if (requestRef.current !== requestId) return;
           setSvgMarkup(svg);
           setRenderError('');
@@ -74,6 +69,31 @@ export default function InsightsEmbeddedDiagram({
     };
   }, [kind, source, idPrefix, streamingPreview]);
 
+  useLayoutEffect(() => {
+    if (kind !== 'mermaid') return;
+    applyDiagramHighlightToSvg(svgHostRef.current, highlight);
+  }, [kind, svgMarkup, highlight]);
+
+  // Re-apply infographic diff overlay whenever AntV finishes a render. We watch the
+  // host subtree because InfographicRenderer renders asynchronously.
+  useEffect(() => {
+    if (kind !== 'infographic') return undefined;
+    const host = svgHostRef.current;
+    if (!host) return undefined;
+    let frame = 0;
+    const apply = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => applyInfographicHighlight(host, highlight));
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(host, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [kind, source, highlight]);
+
   if (kind === 'infographic') {
     return (
       <div
@@ -81,7 +101,7 @@ export default function InsightsEmbeddedDiagram({
         data-testid="insights-embedded-diagram"
         aria-label="Infographic preview (read-only)"
       >
-        <div className="insights-embedded-diagram-inner">
+        <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <InfographicRenderer
             diagramSource={source}
             selectedNode={null}
@@ -101,7 +121,11 @@ export default function InsightsEmbeddedDiagram({
       <div className="insights-embedded-diagram-inner">
         {renderError ? <p className="diagram-error insights-embedded-diagram-error">{renderError}</p> : null}
         {!renderError && svgMarkup ? (
-          <div className="insights-embedded-mermaid-svg-host" dangerouslySetInnerHTML={{ __html: svgMarkup }} />
+          <div
+            ref={svgHostRef}
+            className="insights-embedded-mermaid-svg-host"
+            dangerouslySetInnerHTML={{ __html: svgMarkup }}
+          />
         ) : null}
       </div>
     </div>

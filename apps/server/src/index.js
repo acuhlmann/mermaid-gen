@@ -15,9 +15,19 @@ import {
   resolveSessionIdFromRequest,
   resolveSessionIdFromCopilotInput
 } from './state/sessionServices.js';
+import { createMcpHandler } from './mcp/mcpServer.js';
+import { createPairingCodeStoreFromEnv } from './state/pairingCodeStoreFactory.js';
+import { createAgentTokenStore } from './state/agentTokenStore.js';
+import { createMcpRateLimiter } from './mcp/mcpRateLimit.js';
+import { assertProductionInviteSecret } from './utils/inviteToken.js';
 
 const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
 dotenv.config({ path: envPath });
+assertProductionInviteSecret();
+
+const { store: pairingCodeStore, backend: pairingStoreBackend } = await createPairingCodeStoreFromEnv();
+const agentTokenStore = createAgentTokenStore();
+const mcpRateLimiter = createMcpRateLimiter();
 
 const app = express();
 if (process.env.NODE_ENV === 'production') {
@@ -39,15 +49,69 @@ const runtime = new CopilotRuntime({
   }
 });
 
-app.use(cors());
+function buildCorsOptions() {
+  if (process.env.NODE_ENV !== 'production') return {};
+  const origins = [];
+  const base = process.env.PUBLIC_BASE_URL?.replace(/\/$/, '');
+  if (base) origins.push(base);
+  const extra = process.env.CORS_ALLOWED_ORIGINS;
+  if (typeof extra === 'string' && extra.trim()) {
+    for (const part of extra.split(',')) {
+      const trimmed = part.trim();
+      if (trimmed) origins.push(trimmed);
+    }
+  }
+  if (origins.length === 0) return {};
+  return {
+    origin(origin, callback) {
+      if (!origin || origins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error('CORS not allowed'));
+    }
+  };
+}
+
+app.use(cors(buildCorsOptions()));
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+        "img-src 'self' data: https:",
+        "connect-src 'self' https: wss:",
+        "font-src 'self' data:"
+      ].join('; ')
+    );
+  }
+  next();
+});
 app.use(express.json());
 app.use(
   '/api/copilotkit',
   createCopilotRouter({
-    resolveServices: (req) => {
-      const { sessionId, stateStore, agentService } = getSessionServicesForRequest(req);
-      return { sessionId, stateStore, agentService };
-    }
+    resolveServices: (req) => sessionRegistry.getSessionServicesForRequest(req),
+    sessionExists: (sessionId) => sessionRegistry.hasSession(sessionId),
+    pairingCodeStore,
+    agentTokenStore,
+    sessionRegistry
+  })
+);
+
+app.all(
+  '/mcp',
+  createMcpHandler({
+    sessionRegistry,
+    pairingCodeStore,
+    agentTokenStore,
+    mcpRateLimiter
   })
 );
 app.use(
@@ -63,7 +127,13 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
-    llmBackend: resolveLlmBackend() ?? 'none'
+    llmBackend: resolveLlmBackend() ?? 'none',
+    pairingStore: pairingStoreBackend,
+    mcpSessionAffinity: 'in-process',
+    hint:
+      pairingStoreBackend === 'memory'
+        ? 'Set REDIS_URL for cross-instance pairing; use Cloud Run min-instances=1 for MCP transport stickiness.'
+        : undefined
   });
 });
 
@@ -115,11 +185,11 @@ if (hasMainUi) {
 const port = Number(process.env.PORT ?? 4000);
 const server = app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
-  // Warm Mermaid JSDOM + parser so the first user action does not pay cold-start cost.
+  console.log(`Pairing store: ${pairingStoreBackend}`);
   ensureMermaidInitialized().catch((error) => {
     console.warn('Mermaid validator warm-up failed (will lazy-init on first request):', error?.message ?? error);
   });
 });
 server.ref();
 
-export { app, runtime, sessionRegistry, server };
+export { app, runtime, sessionRegistry, server, pairingCodeStore, agentTokenStore };

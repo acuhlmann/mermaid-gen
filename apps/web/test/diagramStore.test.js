@@ -8,7 +8,12 @@ import {
   normalizeSessionId,
   readDiagramCache,
   SESSION_HEADER,
+  isPeerSlotAhead,
+  isSlotCustomized,
+  isSlotInSyncForTopic,
+  peerRequiresModeSwitchTranslation,
   shouldAutoSubmitModeSwitchIntent,
+  slotLastTopic,
   streamDiagramAgent,
   submitDiagramTransform,
   syncClientDiagramState,
@@ -488,32 +493,179 @@ describe('mode switch peer context', () => {
     expect(buildIntentPeerContext('infographic', session, 'Any')).toBeUndefined();
   });
 
-  it('shouldAutoSubmitModeSwitchIntent runs when peer forces despite newSlotInSync', () => {
+  it('shouldAutoSubmitModeSwitchIntent skips when target slot is already in sync and peer not ahead', () => {
     expect(
       shouldAutoSubmitModeSwitchIntent({
         candidate: 'topic',
         textareaDirty: false,
         newSlotInSync: true,
-        peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' },
-        session: { mermaid: {}, infographic: {} },
-        contentMode: 'infographic'
+        peerRequiresTranslation: false
+      })
+    ).toBe(false);
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent runs when target in sync but peer requires translation', () => {
+    expect(
+      shouldAutoSubmitModeSwitchIntent({
+        candidate: 'Solar system',
+        textareaDirty: false,
+        newSlotInSync: true,
+        peerRequiresTranslation: true
       })
     ).toBe(true);
   });
 
-  it('shouldAutoSubmitModeSwitchIntent runs when newSlotInSync but peer lacks topic-aligned custom content', () => {
-    const session = {
-      mermaid: createInitialDiagramState('mermaid'),
-      infographic: { ...createInitialDiagramState('infographic'), lastUserPrompt: 'topic', revisionId: 1 }
+  it('isPeerSlotAhead is true when peer has newer updatedAt and matching topic', () => {
+    const m = createInitialDiagramState('mermaid');
+    const staleMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Old',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
     };
+    const i = createInitialDiagramState('infographic');
+    const freshInfographic = {
+      ...i,
+      revisionId: 5,
+      diagramSource: 'infographic sequence-diagram\n  title Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+    const session = { mermaid: staleMermaid, infographic: freshInfographic };
+    // Switching TO mermaid: peer infographic is newer
+    expect(
+      isPeerSlotAhead({ contentMode: 'mermaid', session, candidate: 'Solar system' })
+    ).toBe(true);
+    // Switching TO infographic: peer mermaid is older
+    expect(
+      isPeerSlotAhead({ contentMode: 'infographic', session, candidate: 'Solar system' })
+    ).toBe(false);
+  });
+
+  it('isPeerSlotAhead is false when peer topic differs from candidate', () => {
+    const m = createInitialDiagramState('mermaid');
+    const i = createInitialDiagramState('infographic');
+    const session = {
+      mermaid: { ...m, revisionId: 1, updatedAt: '2026-05-10T08:00:00.000Z' },
+      infographic: {
+        ...i,
+        revisionId: 3,
+        lastUserPrompt: 'Other topic',
+        updatedAt: '2026-05-10T09:00:00.000Z'
+      }
+    };
+    expect(
+      isPeerSlotAhead({ contentMode: 'mermaid', session, candidate: 'Solar system' })
+    ).toBe(false);
+  });
+
+  it('isSlotCustomized detects revision or non-default source', () => {
+    const seed = createInitialDiagramState('mermaid');
+    expect(isSlotCustomized(seed)).toBe(false);
+    expect(isSlotCustomized({ ...seed, revisionId: 1 })).toBe(true);
+  });
+
+  it('slotLastTopic returns trimmed prompt or null', () => {
+    expect(slotLastTopic({ lastUserPrompt: '  hello  ' })).toBe('hello');
+    expect(slotLastTopic({ lastUserPrompt: '   ' })).toBe(null);
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent runs when newSlotInSync is false (target slot empty)', () => {
+    expect(
+      shouldAutoSubmitModeSwitchIntent({
+        candidate: 'topic',
+        textareaDirty: false,
+        newSlotInSync: false,
+        peerContext: undefined
+      })
+    ).toBe(true);
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent skips when target slot is in sync and no peer', () => {
     expect(
       shouldAutoSubmitModeSwitchIntent({
         candidate: 'topic',
         textareaDirty: false,
         newSlotInSync: true,
-        peerContext: undefined,
+        peerRequiresTranslation: false
+      })
+    ).toBe(false);
+  });
+
+  it('isSlotInSyncForTopic requires matching topic and customized slot', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customized = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  X --> Y',
+      lastUserPrompt: 'Solar system'
+    };
+    expect(isSlotInSyncForTopic(customized, 'Solar system')).toBe(true);
+    expect(isSlotInSyncForTopic(customized, 'Other')).toBe(false);
+    expect(isSlotInSyncForTopic(m, 'Solar system')).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation skips when sync marker matches current revisions', () => {
+    const m = createInitialDiagramState('mermaid');
+    const staleMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Old',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const freshInfographic = {
+      ...i,
+      revisionId: 5,
+      diagramSource: 'infographic sequence-diagram\n  title Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+    const session = { mermaid: staleMermaid, infographic: freshInfographic };
+    const syncMarkers = {
+      mermaid: null,
+      infographic: { peerMode: 'mermaid', peerRevisionId: 2, targetRevisionId: 5 }
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'mermaid',
         session,
-        contentMode: 'infographic'
+        candidate: 'Solar system',
+        syncMarkers
+      })
+    ).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation runs when peer revision advanced past sync marker', () => {
+    const m = createInitialDiagramState('mermaid');
+    const staleMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Old',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const refinedInfographic = {
+      ...i,
+      revisionId: 6,
+      diagramSource: 'infographic sequence-diagram\n  title Solar v2',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:30:00.000Z'
+    };
+    const session = { mermaid: staleMermaid, infographic: refinedInfographic };
+    const syncMarkers = {
+      mermaid: null,
+      infographic: { peerMode: 'mermaid', peerRevisionId: 2, targetRevisionId: 5 }
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'mermaid',
+        session,
+        candidate: 'Solar system',
+        syncMarkers
       })
     ).toBe(true);
   });

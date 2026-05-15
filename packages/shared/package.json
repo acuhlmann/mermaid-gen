@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./infographicDiff.js": "./src/infographicDiff.js",
+    "./sanitizeSvg.js": "./src/sanitizeSvg.js"
+  },
   "scripts": {
     "test": "node --test",
     "build": "node -e \"console.log('shared build: no-op')\""

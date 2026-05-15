@@ -1,11 +1,39 @@
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
+import { partKindLabel } from '../utils/partKindLabel.js';
+import AgentProposalCard from './AgentProposalCard.jsx';
+import AgentBadge from './AgentBadge.jsx';
+import CritiqueA2uiSurface from './CritiqueA2uiSurface.jsx';
+import { buildCritiqueActionableA2uiMessages } from '@archislop/shared';
+import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
+import SlopitectStatusBoard from './SlopitectStatusBoard.jsx';
+import { phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
+
+const SLOPITECT_VARIANT_CLASS = {
+  refine: 'is-variant-refine',
+  innovate: 'is-variant-innovate',
+  goMad: 'is-variant-go-mad',
+  critique: 'is-variant-critique',
+  explain: 'is-variant-explain'
+};
+
+const TIP_ROTATION_MS = 7000;
 
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
 const BOTTOM_SNAP_THRESHOLD_PX = 72;
+
+function TopicChip({ topic }) {
+  if (!topic?.partKind) return null;
+  return (
+    <span className="insights-topic-chip" aria-label={`Topic ${partKindLabel(topic.partKind)} ${topic.partName || ''}`}>
+      <span className="insights-topic-chip-type">{partKindLabel(topic.partKind)}</span>
+      {topic.partName ? <span className="insights-topic-chip-name">{topic.partName}</span> : null}
+    </span>
+  );
+}
 
 const PHASE_ID_LABELS = {
   analyze: 'Analyze',
@@ -19,7 +47,9 @@ const PHASE_ID_LABELS = {
   syntax_repair: 'Repair',
   patch_retry: 'Retry',
   invoke: 'Generate',
-  invoke_fallback: 'Finalize'
+  invoke_fallback: 'Finalize',
+  repair_1: 'Repair',
+  repair_2: 'Repair'
 };
 
 function IconThinking() {
@@ -414,20 +444,69 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   return extra;
 }
 
+function EmbeddedDiagramBlock({
+  idPrefix,
+  source,
+  kind,
+  streamingPreview,
+  highlight,
+  showRestore,
+  restoreDisabled,
+  onRestoreDiagramSnapshot
+}) {
+  return (
+    <div className="insights-embedded-diagram-block">
+      <InsightsEmbeddedDiagram
+        idPrefix={idPrefix}
+        source={source}
+        kind={kind}
+        streamingPreview={streamingPreview}
+        highlight={highlight}
+      />
+      {showRestore && onRestoreDiagramSnapshot ? (
+        <div className="insights-embedded-diagram-restore-row">
+          <button
+            type="button"
+            className="insights-entry-undo-btn"
+            disabled={restoreDisabled}
+            title="Load this diagram onto the canvas."
+            onClick={() => onRestoreDiagramSnapshot({ diagramSource: source, contentType: kind })}
+          >
+            Restore
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
   if (!text.trim()) return null;
   const split = splitEmbeddedDiagramDsl(text);
   if (!split) {
     return renderRichContent(text, richOpts);
   }
+  // When the entry already shows a "Resulting diagram" preview at the bottom, drop the
+  // mid-prose DSL preview to avoid duplicating the same diagram twice in one entry.
+  const proseOnly = embedOpts.suppressEmbedded
+    ? split.prose
+    : null;
+  if (embedOpts.suppressEmbedded) {
+    return proseOnly?.trim() ? renderRichContent(proseOnly, richOpts) : null;
+  }
+  const showRestore =
+    embedOpts.showEmbeddedRestore && !embedOpts.streamingPreview && Boolean(split.dsl?.trim());
   return (
     <>
       {split.prose.trim() ? renderRichContent(split.prose, richOpts) : null}
-      <InsightsEmbeddedDiagram
+      <EmbeddedDiagramBlock
         idPrefix={`${embedOpts.idPrefix}-dsl`}
         source={split.dsl}
         kind={split.kind}
         streamingPreview={embedOpts.streamingPreview}
+        showRestore={showRestore}
+        restoreDisabled={embedOpts.restoreDisabled}
+        onRestoreDiagramSnapshot={embedOpts.onRestoreDiagramSnapshot}
       />
     </>
   );
@@ -451,6 +530,13 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
           });
           return inner ? <Fragment key={`seg-${i}`}>{inner}</Fragment> : null;
         }
+        // Same dedup as DSL: hide mid-prose JSON tool-call previews when the bottom
+        // "Resulting diagram" section will already show the same final source.
+        if (embedOpts.suppressEmbedded) return null;
+        const showPatchRestore =
+          embedOpts.showEmbeddedRestore &&
+          !embedOpts.streamingPreview &&
+          Boolean(seg.source?.trim());
         return (
           <div
             key={`patch-${i}`}
@@ -466,11 +552,14 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
                 </span>
               ) : null}
             </div>
-            <InsightsEmbeddedDiagram
+            <EmbeddedDiagramBlock
               idPrefix={`${embedOpts.idPrefix}-json-${i}`}
               source={seg.source}
               kind={seg.kind}
               streamingPreview={embedOpts.streamingPreview}
+              showRestore={showPatchRestore}
+              restoreDisabled={embedOpts.restoreDisabled}
+              onRestoreDiagramSnapshot={embedOpts.onRestoreDiagramSnapshot}
             />
           </div>
         );
@@ -607,56 +696,6 @@ function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast, pha
   return <IconPhaseGeneric />;
 }
 
-function ActionableImprovementsPanel({
-  headingText,
-  items,
-  selected,
-  onToggle,
-  busy,
-  onFixSelected,
-  onFixAll,
-  idPrefix
-}) {
-  const anySelected = selected.some(Boolean);
-  return (
-    <section
-      className="insights-actionable-block insights-prose-section insights-tone-actionable"
-      aria-label={headingText || 'Actionable improvements'}
-    >
-      <h3 className="insights-actionable-title">{headingText || 'Actionable improvements'}</h3>
-      <ul className="insights-actionable-list">
-        {items.map((item, idx) => (
-          <li key={`${idPrefix}-act-${idx}`} className="insights-actionable-item">
-            <label className="insights-actionable-label">
-              <input
-                type="checkbox"
-                className="insights-actionable-checkbox"
-                checked={Boolean(selected[idx])}
-                disabled={busy}
-                onChange={() => onToggle(idx)}
-              />
-              <span className="insights-actionable-text">{parseInline(item)}</span>
-            </label>
-          </li>
-        ))}
-      </ul>
-      <div className="insights-actionable-actions">
-        <button
-          type="button"
-          className="insights-actionable-btn insights-actionable-btn-selected"
-          disabled={busy || !anySelected}
-          onClick={onFixSelected}
-        >
-          Fix selected
-        </button>
-        <button type="button" className="insights-actionable-btn insights-actionable-btn-all" disabled={busy} onClick={onFixAll}>
-          Fix all
-        </button>
-      </div>
-    </section>
-  );
-}
-
 export default function InsightsPane({
   entries,
   soundEnabled,
@@ -665,17 +704,57 @@ export default function InsightsPane({
   streamDebugEnabled = false,
   critiqueActionableUi = null,
   diagramUndoDisabled = false,
-  onDiagramUndo,
+  onRestoreToEntry,
+  onRestoreDiagramSnapshot,
+  onOpenProposalFullPreview,
+  entryDiagramDiffById = {},
   diagramChangeHighlightEntryId = null,
   diagramChangeHighlightSummary = null,
   diagramChangeHighlightDisabled = false,
   onToggleDiagramChangeHighlight,
   onStopStreamingAgent,
-  onDismiss
+  onRetryInsightEntry,
+  onRetryInsightEntryWithQuality,
+  retryActionsDisabled = false,
+  onDismiss,
+  onAcceptProposal,
+  onRejectProposal,
+  agentReactions = []
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
   const hasLiveAgent = entries.some((e) => (e.status ?? 'running') === 'running');
+
+  function buildEmbedOpts(base, { showEmbeddedRestore = false } = {}) {
+    return {
+      ...base,
+      showEmbeddedRestore,
+      restoreDisabled: diagramUndoDisabled,
+      onRestoreDiagramSnapshot
+    };
+  }
+  const headlineTopic = (() => {
+    const liveWithTopic = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running' && e.topic?.partKind);
+    if (liveWithTopic) return liveWithTopic.topic;
+    const latestWithTopic = [...entries].reverse().find((e) => e.topic?.partKind);
+    return latestWithTopic?.topic ?? null;
+  })();
+  const activeVariant = (() => {
+    const liveEntry = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running' && e.variant);
+    if (liveEntry) return liveEntry.variant;
+    const latestWithVariant = [...entries].reverse().find((e) => e.variant);
+    return latestWithVariant?.variant ?? null;
+  })();
+  const slopitectVariantClass =
+    activeVariant && SLOPITECT_VARIANT_CLASS[activeVariant] ? SLOPITECT_VARIANT_CLASS[activeVariant] : '';
+  const slopitectTagline = activeVariant ? VARIANT_TAGLINES[activeVariant] : null;
+
+  const [tipIndex, setTipIndex] = useState(0);
+  useEffect(() => {
+    if (entries.length > 0) return undefined;
+    const handle = setInterval(() => setTipIndex((n) => n + 1), TIP_ROTATION_MS);
+    return () => clearInterval(handle);
+  }, [entries.length]);
 
   useEffect(() => {
     const el = bodyRef.current;
@@ -690,10 +769,17 @@ export default function InsightsPane({
   }
 
   return (
-    <aside className="insights-pane" aria-label="Thoughts and analysis">
+    <aside
+      className={`insights-pane ${slopitectVariantClass}`.trim()}
+      aria-label="Thoughts and analysis"
+      data-variant={activeVariant || undefined}
+    >
       <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
         <div className="insights-pane-title-row">
-          <span className="insights-pane-title">Thinking & notes</span>
+          <span className="insights-pane-title">
+            {headlineTopic ? 'Thinking' : 'Thinking & notes'}
+          </span>
+          {headlineTopic ? <TopicChip topic={headlineTopic} /> : null}
           {hasLiveAgent ? (
             <span className="insights-live-badge" aria-live="polite">
               <span className="insights-live-dot" aria-hidden="true" />
@@ -701,6 +787,11 @@ export default function InsightsPane({
             </span>
           ) : null}
         </div>
+        {slopitectTagline ? (
+          <span className="insights-pane-tagline" data-testid="insights-tagline">
+            {slopitectTagline}
+          </span>
+        ) : null}
         <div className="insights-pane-controls">
           {typeof onDismiss === 'function' ? (
             <button
@@ -733,9 +824,80 @@ export default function InsightsPane({
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
         {entries.length === 0 ? (
-          <p className="insights-pane-empty">Agent thoughts and critique responses appear here.</p>
+          <>
+            <p className="insights-pane-empty">Agent thoughts and critique responses appear here.</p>
+            <aside className="insights-tip-of-the-day" data-testid="slopitect-tip-of-the-day">
+              <span className="insights-tip-of-the-day-label">Slopitect Tip™</span>
+              {tipForIndex(tipIndex)}
+            </aside>
+          </>
         ) : (
           entries.map((entry) => {
+            if (entry.kind === 'proposal') {
+              return (
+                <div key={entry.id} className="insights-entry insights-entry-proposal">
+                  <AgentProposalCard
+                    proposal={entry.proposal}
+                    status={entry.proposalStatus ?? 'pending'}
+                    onAccept={() => onAcceptProposal?.(entry.proposal?.proposalId)}
+                    onReject={() => onRejectProposal?.(entry.proposal?.proposalId)}
+                    onOpenFullPreview={onOpenProposalFullPreview}
+                    openFullPreviewDisabled={diagramUndoDisabled}
+                  />
+                </div>
+              );
+            }
+            if (entry.kind === 'attributed-note') {
+              const noteReactions = agentReactions.filter(
+                (r) => r.target?.kind === 'insight' && r.target?.insightId === entry.id
+              );
+              const noteVariant = entry.variant ?? 'general';
+              const noteAccentuate = isAccentuatedInsightVariant(noteVariant);
+              return (
+                <div
+                  key={entry.id}
+                  className={`insights-entry insights-entry-attributed-note insights-entry-variant-${noteVariant}`}
+                >
+                  <header className="insights-entry-note-head">
+                    <AgentBadge origin={entry.origin} size="sm" />
+                    <span className="insights-entry-note-variant">
+                      {noteVariant === 'critique'
+                        ? 'Critique'
+                        : noteVariant === 'suggestion'
+                          ? 'Suggestion'
+                          : 'Note'}
+                    </span>
+                  </header>
+                  <div
+                    className={`insights-entry-note-body insights-rich-content ${
+                      noteAccentuate ? 'is-accentuated' : ''
+                    }`}
+                  >
+                    {renderEmbeddedAwareRich(
+                      entry.content ?? '',
+                      {
+                        accentuateSections: noteAccentuate,
+                        idPrefix: `${entry.id}-note`,
+                        variant: noteVariant
+                      },
+                      buildEmbedOpts(
+                        { idPrefix: `${entry.id}-note`, streamingPreview: false, suppressEmbedded: false },
+                        { showEmbeddedRestore: true }
+                      )
+                    )}
+                  </div>
+                  {noteReactions.length > 0 ? (
+                    <div className="insights-entry-note-reactions">
+                      {noteReactions.map((r) => (
+                        <span key={r.reactionId} className="agent-reaction-inline" title={r.origin?.agentName}>
+                          {r.emoji}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
             const rawStatus = entry.status ?? 'running';
             const variant = entry.variant ?? 'general';
             const isRunning = rawStatus === 'running';
@@ -754,11 +916,23 @@ export default function InsightsPane({
               rawStatus === 'done' &&
               entry.content?.trim() === critiqueActionableUi.critiqueText.trim();
 
-            const showDiagramUndo =
-              entry.diagramUndoBaseline &&
+            const afterSource =
+              typeof entry.diagramAfterSource === 'string' ? entry.diagramAfterSource : '';
+            const afterKind = entry.diagramAfterContentType;
+            const hasAfterPreview =
               entry.diagramRevisionApplied &&
-              !entry.diagramUndoConsumed &&
-              rawStatus === 'done';
+              afterSource.trim().length > 0 &&
+              (afterKind === 'mermaid' || afterKind === 'infographic');
+            const afterDiff = hasAfterPreview ? entryDiagramDiffById?.[entry.id] ?? null : null;
+            const afterRemovedIds = afterDiff?.removedIds ?? [];
+            // Restore is a per-version bookmark: click to jump the canvas back to this entry's
+            // resulting state. Always available on entries that produced a snapshot.
+            const showDiagramRestore = hasAfterPreview && rawStatus === 'done';
+
+            // Once the run is done and we have a final "Resulting diagram" preview, hide the
+            // mid-prose previews to avoid showing the same diagram twice in the same entry.
+            const suppressEmbedded = !isRunning && hasAfterPreview;
+            const showEmbeddedRestore = rawStatus === 'done' && !suppressEmbedded;
 
             let analysisBody = null;
             if (entry.content) {
@@ -775,19 +949,21 @@ export default function InsightsPane({
                             idPrefix: `${entry.id}-pre`,
                             variant
                           },
-                          { idPrefix: `${entry.id}-pre`, streamingPreview: isRunning }
+                          buildEmbedOpts(
+                            { idPrefix: `${entry.id}-pre`, streamingPreview: isRunning, suppressEmbedded },
+                            { showEmbeddedRestore }
+                          )
                         )}
                       </div>
                     ) : null}
-                    <ActionableImprovementsPanel
-                      headingText={critiqueActionableUi.headingText}
-                      items={critiqueActionableUi.items}
-                      selected={critiqueActionableUi.selected}
-                      onToggle={critiqueActionableUi.onToggle}
+                    <CritiqueA2uiSurface
+                      messages={
+                        critiqueActionableUi.a2uiMessages ??
+                        buildCritiqueActionableA2uiMessages(critiqueActionableUi.critiqueText)
+                      }
                       busy={critiqueActionableUi.busy}
-                      onFixSelected={critiqueActionableUi.onFixSelected}
                       onFixAll={critiqueActionableUi.onFixAll}
-                      idPrefix={entry.id}
+                      onFixSelected={(mask) => critiqueActionableUi.onFixSelected?.(mask)}
                     />
                     {suffix.trim() ? (
                       <div className="insights-analysis-chunk">
@@ -798,7 +974,10 @@ export default function InsightsPane({
                             idPrefix: `${entry.id}-post`,
                             variant
                           },
-                          { idPrefix: `${entry.id}-post`, streamingPreview: isRunning }
+                          buildEmbedOpts(
+                            { idPrefix: `${entry.id}-post`, streamingPreview: isRunning, suppressEmbedded },
+                            { showEmbeddedRestore }
+                          )
                         )}
                       </div>
                     ) : null}
@@ -812,7 +991,10 @@ export default function InsightsPane({
                     idPrefix: entry.id,
                     variant
                   },
-                  { idPrefix: entry.id, streamingPreview: isRunning }
+                  buildEmbedOpts(
+                    { idPrefix: entry.id, streamingPreview: isRunning, suppressEmbedded },
+                    { showEmbeddedRestore }
+                  )
                 );
               }
             }
@@ -827,6 +1009,7 @@ export default function InsightsPane({
                   isRunning ? 'is-running' : '',
                   isStreaming ? 'is-streaming' : '',
                   rawStatus === 'done' ? 'is-complete' : '',
+                  rawStatus === 'failed' ? 'is-failed' : '',
                   rawStatus === 'cancelled' ? 'is-cancelled' : ''
                 ]
                   .filter(Boolean)
@@ -837,7 +1020,9 @@ export default function InsightsPane({
                     <span className="insights-entry-icon" aria-hidden="true">
                       <EntryStatusIcon status={rawStatus} variant={variant} />
                     </span>
-                    {entry.title}
+                    <span className="insights-entry-title-text" title={entry.title}>
+                      {entry.title}
+                    </span>
                   </h3>
                   <span className={`insights-status-chip is-${rawStatus}`}>
                     {rawStatus === 'running' ? <span className="insights-working-dot" aria-hidden="true" /> : null}
@@ -854,7 +1039,41 @@ export default function InsightsPane({
                     <span className="insights-status-strip-pulse" aria-hidden="true" />
                     <span className="insights-status-strip-label">Now</span>
                     <span className="insights-status-strip-text">{entry.statusText}</span>
+                    {entry.failureDetail ? (
+                      <span className="insights-status-strip-detail" title={entry.failureDetail}>
+                        {entry.failureDetail}
+                      </span>
+                    ) : null}
                   </p>
+                ) : null}
+
+                {canRetryInsightEntry(entry) ? (
+                  <div className="insights-entry-retry-row">
+                    <div className="insights-entry-retry-actions">
+                      <button
+                        type="button"
+                        className="insights-entry-retry-btn"
+                        disabled={retryActionsDisabled}
+                        onClick={() => onRetryInsightEntry?.(entry.id)}
+                      >
+                        Retry
+                      </button>
+                      {showRetryWithQualityForEntry(entry) ? (
+                        <button
+                          type="button"
+                          className="insights-entry-retry-btn is-quality"
+                          disabled={retryActionsDisabled}
+                          onClick={() => onRetryInsightEntryWithQuality?.(entry.id)}
+                        >
+                          Retry with Quality
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+
+                {isRunning && entry.phases?.length ? (
+                  <SlopitectStatusBoard variant={variant} phases={entry.phases} />
                 ) : null}
 
                 {entry.phases?.length ? (
@@ -872,6 +1091,7 @@ export default function InsightsPane({
                         const phaseFailedLast = isFailed && isLast;
                         const phaseStoppedLast = isCancelled && isLast;
                         const friendlyId = PHASE_ID_LABELS[phase.id] ?? phase.id;
+                        const slopitectLabel = phaseCeremonyLabel(variant, phase.id, phase.label);
                         return (
                           <li
                             key={`${entry.id}-phase-${phase.id}-${idx}`}
@@ -887,7 +1107,7 @@ export default function InsightsPane({
                               )}
                             </span>
                             <span className="insights-phase-step">{idx + 1}</span>
-                            <span className="insights-phase-label">{phase.label}</span>
+                            <span className="insights-phase-label">{slopitectLabel}</span>
                             {phaseIdsHidden ? (
                               <>
                                 <span className="insights-visually-hidden">{phase.id}</span>
@@ -962,7 +1182,11 @@ export default function InsightsPane({
                         <span
                           className={[
                             'insights-stream-caret',
-                            variant === 'goMad' ? 'is-gomad-caret' : ''
+                            variant === 'goMad' ? 'is-gomad-caret' : '',
+                            variant === 'refine' ? 'is-refine-caret' : '',
+                            variant === 'innovate' ? 'is-innovate-caret' : '',
+                            variant === 'critique' ? 'is-critique-caret' : '',
+                            variant === 'explain' ? 'is-explain-caret' : ''
                           ]
                             .filter(Boolean)
                             .join(' ')}
@@ -1013,7 +1237,50 @@ export default function InsightsPane({
                   </section>
                 )}
 
-                {showDiagramUndo ? (
+                {hasAfterPreview ? (
+                  <section
+                    className="insights-section insights-entry-after-section"
+                    aria-label={afterKind === 'infographic' ? 'Resulting infographic' : 'Resulting diagram'}
+                  >
+                    <h4 className="insights-section-title">
+                      {afterKind === 'infographic' ? 'Resulting infographic' : 'Resulting diagram'}
+                    </h4>
+                    {afterDiff &&
+                    (afterDiff.addedIds.length || afterDiff.modifiedIds.length || afterDiff.removedIds.length) ? (
+                      <p className="insights-after-section-meta" aria-label="Changes since previous version">
+                        {afterDiff.addedIds.length ? (
+                          <span className="insights-after-meta-chip is-added">
+                            +{afterDiff.addedIds.length} added
+                          </span>
+                        ) : null}
+                        {afterDiff.modifiedIds.length ? (
+                          <span className="insights-after-meta-chip is-modified">
+                            ~{afterDiff.modifiedIds.length} changed
+                          </span>
+                        ) : null}
+                        {afterDiff.removedIds.length ? (
+                          <span className="insights-after-meta-chip is-removed">
+                            −{afterDiff.removedIds.length} removed
+                          </span>
+                        ) : null}
+                      </p>
+                    ) : null}
+                    <InsightsEmbeddedDiagram
+                      idPrefix={`${entry.id}-after`}
+                      source={afterSource}
+                      kind={afterKind}
+                      streamingPreview={false}
+                      highlight={afterDiff}
+                    />
+                    {afterRemovedIds.length > 0 ? (
+                      <p className="insights-after-removed-note">
+                        Removed: {afterRemovedIds.join(', ')}
+                      </p>
+                    ) : null}
+                  </section>
+                ) : null}
+
+                {showDiagramRestore ? (
                   <div className="insights-entry-undo-row">
                     <div className="insights-entry-undo-actions">
                       <button
@@ -1024,16 +1291,17 @@ export default function InsightsPane({
                         onClick={() => onToggleDiagramChangeHighlight?.(entry.id)}
                       >
                         {entry.id === diagramChangeHighlightEntryId
-                          ? 'Clear highlights'
-                          : 'Highlight changes'}
+                          ? 'Clear canvas highlights'
+                          : 'Highlight on canvas'}
                       </button>
                       <button
                         type="button"
                         className="insights-entry-undo-btn"
                         disabled={diagramUndoDisabled}
-                        onClick={() => onDiagramUndo?.(entry.id)}
+                        title="Jump the canvas back to this version of the diagram."
+                        onClick={() => onRestoreToEntry?.(entry.id)}
                       >
-                        Undo diagram change
+                        Restore
                       </button>
                     </div>
                     {entry.id === diagramChangeHighlightEntryId &&

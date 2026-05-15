@@ -23,6 +23,7 @@ Flowchart / graph rules:
 - Edge label with specials: A -->|"key: value"| B (quote when colon, paren, slash present).
 - Subgraphs must close: subgraph S [optional title] ... end.
 - classDef + class: classDef hot fill:#f33,color:#fff; class A,B hot;  (no spaces around commas).
+- style: one node per line only — style B fill:#eee; style C fill:#eee;  (NOT style B,C,D — Mermaid treats that as one bogus node id).
 `;
 
 const SEQUENCE_RULES = `${COMMON_FIXES}

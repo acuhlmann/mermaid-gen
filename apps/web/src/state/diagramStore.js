@@ -1,7 +1,10 @@
 import {
   AGUI_CUSTOM_NAME_A2UI,
+  AGUI_CUSTOM_NAME_ARTIFACT,
   AGUI_CUSTOM_NAME_STATUS,
+  AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
+  agUiDraftSourcePath,
   createInitialDiagramState,
   createInitialSessionState
 } from '@archislop/shared';
@@ -188,7 +191,7 @@ export async function fetchSessionDiagramState({ sessionId } = {}) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/session-state`, {
     headers: createSessionHeaders(sessionId)
   });
-  let payload = null;
+  let payload;
   try {
     payload = await response.json();
   } catch {
@@ -203,6 +206,83 @@ export async function fetchSessionDiagramState({ sessionId } = {}) {
     throw new Error(`Failed to fetch session state: ${response.status}`);
   }
   return normalizeFetchedSessionDiagram(payload);
+}
+
+export function slotLastTopic(slot) {
+  const p = slot?.lastUserPrompt;
+  return typeof p === 'string' && p.trim() ? p.trim() : null;
+}
+
+/** True when the slot has agent or user edits beyond the default seed canvas. */
+export function isSlotCustomized(slot) {
+  if (!slot || typeof slot.diagramSource !== 'string') return false;
+  if ((slot.revisionId ?? 0) > 0) return true;
+  const contentType = slot.contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const trimmed = slot.diagramSource.trim();
+  if (!trimmed) return false;
+  const initial = createInitialDiagramState(contentType);
+  return trimmed !== initial.diagramSource.trim();
+}
+
+/**
+ * True when the sibling slot has newer diagram work for the same carried topic (e.g. after
+ * Refine/Innovate in the other mode). Drives auto-intent on mode switch so the user need not
+ * press Go to translate peer edits.
+ */
+export function isPeerSlotAhead({ contentMode, session, candidate }) {
+  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
+  if (!candidate) return false;
+  const cand = String(candidate).trim();
+  if (!cand) return false;
+  const target = session[contentMode];
+  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+  const peer = session[otherMode];
+  if (!isSlotCustomized(peer)) return false;
+  const peerTopic = slotLastTopic(peer);
+  if (peerTopic && peerTopic !== cand) return false;
+  const targetUpdated = target?.updatedAt ?? '';
+  const peerUpdated = peer?.updatedAt ?? '';
+  return peerUpdated > targetUpdated;
+}
+
+/** True when the slot already has customized content for the session topic. */
+export function isSlotInSyncForTopic(slot, candidate) {
+  return candidate != null && slotLastTopic(slot) === candidate && isSlotCustomized(slot);
+}
+
+/**
+ * True when the sibling slot has newer work for the same topic and the target mode still
+ * needs translation. Skips return-trip ping-pong when sync markers match current revisions.
+ *
+ * @param {Record<string, { peerMode: string, peerRevisionId: number, targetRevisionId: number } | null> | null | undefined} syncMarkers
+ */
+export function peerRequiresModeSwitchTranslation({ contentMode, session, candidate, syncMarkers }) {
+  if (!isPeerSlotAhead({ contentMode, session, candidate })) return false;
+
+  const target = session[contentMode];
+  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+  const peer = session[otherMode];
+  if (!target || !peer) return false;
+
+  const markerOnTarget = syncMarkers?.[contentMode];
+  if (
+    markerOnTarget?.peerMode === otherMode &&
+    markerOnTarget.peerRevisionId === (peer.revisionId ?? 0) &&
+    markerOnTarget.targetRevisionId === (target.revisionId ?? 0)
+  ) {
+    return false;
+  }
+
+  const markerOnPeer = syncMarkers?.[otherMode];
+  if (
+    markerOnPeer?.peerMode === contentMode &&
+    markerOnPeer.peerRevisionId === (target.revisionId ?? 0) &&
+    markerOnPeer.targetRevisionId === (peer.revisionId ?? 0)
+  ) {
+    return false;
+  }
+
+  return true;
 }
 
 /**
@@ -220,9 +300,7 @@ export function buildIntentPeerContext(contentMode, session, candidate = null) {
   if (!peer || typeof peer.diagramSource !== 'string') return undefined;
   const trimmed = peer.diagramSource.trim();
   if (!trimmed) return undefined;
-  const initial = createInitialDiagramState(otherMode);
-  const looksCustom = (peer.revisionId ?? 0) > 0 || trimmed !== initial.diagramSource.trim();
-  if (!looksCustom) return undefined;
+  if (!isSlotCustomized(peer)) return undefined;
   const cand = candidate != null ? String(candidate).trim() : '';
   if (cand) {
     const peerPrompt = typeof peer.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
@@ -233,33 +311,20 @@ export function buildIntentPeerContext(contentMode, session, candidate = null) {
 
 /**
  * Whether to auto-fire an intent after a mode switch.
- * Runs when the target slot is not in sync, when we can translate from a topic-aligned peer,
- * or when the peer has no substantive artifact for this topic (then the client clears the
- * target slot and regenerates from the same topic).
+ *
+ * Fires when the target slot is NOT already in sync with the carried topic, or when the
+ * sibling slot has newer diagram work for the same topic (translate without pressing Go).
+ * Skips when the target is in sync and the peer is not ahead.
  */
 export function shouldAutoSubmitModeSwitchIntent({
   candidate,
   textareaDirty,
   newSlotInSync,
-  peerContext,
-  session,
-  contentMode
+  peerRequiresTranslation = false
 }) {
   if (!candidate || textareaDirty) return false;
-  if (!newSlotInSync) return true;
-  if (peerContext) return true;
-  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
-  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-  const peer = session[otherMode];
-  const peerPrompt = typeof peer?.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
-  const cand = String(candidate).trim();
-  const peerTopicAligned = peerPrompt === cand;
-  const initial = createInitialDiagramState(otherMode);
-  const peerCustom =
-    peer &&
-    typeof peer.diagramSource === 'string' &&
-    ((peer.revisionId ?? 0) > 0 || peer.diagramSource.trim() !== initial.diagramSource.trim());
-  return !peerTopicAligned || !peerCustom;
+  if (peerRequiresTranslation) return true;
+  return !newSlotInSync;
 }
 
 export async function syncClientDiagramState({ contentType = 'mermaid', diagramSource, styleConfig, sessionId }) {
@@ -457,9 +522,10 @@ export function createAgUiTranslator() {
         // Surface as the legacy draftPreview event the App.jsx switch already
         // consumes, so the React state plumbing doesn't need to know the wire
         // moved from CUSTOM to STATE_DELTA.
-        const draftOp = ops.find(
-          (op) => typeof op?.path === 'string' && /^\/(mermaid|infographic)\/draftSource$/.test(op.path)
-        );
+        const draftOp = ops.find((op) => {
+          if (typeof op?.path !== 'string') return false;
+          return op.path === agUiDraftSourcePath('mermaid') || op.path === agUiDraftSourcePath('infographic');
+        });
         if (draftOp) {
           const ct = draftOp.path.split('/')[1];
           if (draftOp.op === 'remove') {
@@ -470,7 +536,7 @@ export function createAgUiTranslator() {
         }
         // Convert the route's synthetic JSON Patch back into a patch_summary
         // artifact so existing UI sparklines/insight chips keep working.
-        const summaryOp = ops.find((op) => op?.path === '/lastPatchSummary');
+        const summaryOp = ops.find((op) => op?.path === AGUI_STATE_PATH_LAST_PATCH_SUMMARY);
         if (summaryOp?.value) {
           const v = summaryOp.value;
           return {
@@ -496,7 +562,11 @@ export function createAgUiTranslator() {
         return out;
       }
       case 'RUN_ERROR':
-        return { type: 'error', message: String(evt.message ?? 'Unknown error') };
+        return {
+          type: 'error',
+          message: String(evt.message ?? 'Unknown error'),
+          ...(evt.code ? { code: String(evt.code) } : {})
+        };
       case 'CUSTOM': {
         if (evt.name === AGUI_CUSTOM_NAME_STATUS) {
           const text = evt.value?.text ?? '';
@@ -505,7 +575,7 @@ export function createAgUiTranslator() {
         if (evt.name === AGUI_CUSTOM_NAME_A2UI && Array.isArray(evt.value?.messages)) {
           return { type: LEGACY_STREAM_TYPE_A2UI, messages: evt.value.messages };
         }
-        if (evt.name === 'artifact') return evt.value ?? null;
+        if (evt.name === AGUI_CUSTOM_NAME_ARTIFACT) return evt.value ?? null;
         return null;
       }
       default:

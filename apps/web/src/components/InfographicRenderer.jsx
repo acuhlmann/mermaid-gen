@@ -1,7 +1,13 @@
 import { useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
+import { normalizeRootSvgElement } from '@archislop/shared';
 import { Infographic, parseSyntax } from '@antv/infographic';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
+
+function normalizeInfographicSvgRoot(container) {
+  const svg = container?.querySelector?.('svg');
+  if (svg) normalizeRootSvgElement(svg);
+}
 
 function InfographicRendererImpl(
   { diagramSource, selectedNode = null, streamingPreview = false },
@@ -45,6 +51,7 @@ function InfographicRendererImpl(
           });
         }
         instanceRef.current.render(dsl);
+        normalizeInfographicSvgRoot(containerRef.current);
         lastSourceRef.current = dsl;
         setRenderError('');
       } catch {
@@ -115,6 +122,7 @@ function InfographicRendererImpl(
         editable: false
       });
       inst.render(dsl);
+      normalizeInfographicSvgRoot(containerRef.current);
       instanceRef.current = inst;
       lastSourceRef.current = dsl;
       setRenderError('');

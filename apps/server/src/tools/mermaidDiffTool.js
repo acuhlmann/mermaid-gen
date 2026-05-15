@@ -1,12 +1,13 @@
 import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@archislop/shared';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
-import { sanitizeMermaid } from '@archislop/shared';
+import { prepareMermaidForRender, sanitizeMermaid } from '@archislop/shared';
 import { redactSecrets } from '../utils/redactSecrets.js';
+import { buildMermaidGraphDiff } from '../mcp/diagramDiffSummary.js';
 
 export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {
   const candidate = proposedMermaidSource?.trim();
 
-  let workingInput = candidate;
+  let workingInput = prepareMermaidForRender(candidate);
   let preStyleSanitizerApplied = [];
   let parsedStyle = parseMermaidStyleConfig(workingInput);
 
@@ -107,7 +108,8 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
       validator: rescued ? 'sanitizer-rescue' : strictValidation.validator,
       warnings: strictValidation.warnings ?? [],
       sanitizerApplied,
-      rescuedFrom: rescued ? strictValidation.rescuedFrom ?? strictValidation.validator : null
+      rescuedFrom: rescued ? strictValidation.rescuedFrom ?? strictValidation.validator : null,
+      graphDiff: buildMermaidGraphDiff(currentState.diagramSource ?? '', workingSource)
     }
   };
 }

@@ -68,10 +68,10 @@ const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
   refine: `Refine the existing infographic without changing its core message. Tighten labels, fix awkward phrasing, balance the visual.`,
   innovate: `Re-imagine the infographic with bolder visual choices. You may switch to a different template if it better fits the data.`,
   goMad: `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
-- Speed first: your FIRST assistant turn must call apply_infographic_patch — no preamble, no reasoning essays. Skip get_infographic_dsl unless you truly suspect stale context.
+- Speed first: emit ONE punchy preamble sentence (max ~18 words, e.g. "Switching to a swot quadrant for maximum chaos.") then call apply_infographic_patch immediately. No reasoning essays, no get_infographic_dsl unless you truly suspect stale context.
 - Template roulette: do NOT keep the same template — switch to a different family entirely (list → sequence → compare → chart → hierarchy → relation). Prefer exotic supported templates: compare-swot, compare-quadrant-quarter-simple-card, sequence-snake-steps-simple, sequence-circular-simple, sequence-funnel-simple, list-pyramid-rounded-rect-node, list-sector-simple, hierarchy-mindmap-branch-gradient-compact-card, relation-network-simple-circle-node, chart-wordcloud, chart-pie-donut-plain-text.
 - Loud labels: short, absurd, geek-coded riffs (RFC vibes, fake folklore, ironic acronyms) — still readable.
-- Palette mayhem: set a bold \`palette\` line with 3–5 high-contrast hex colors (no quotes, no commas) on every Go Mad pass.
+- Palette mayhem: under \`theme\`, set ONLY \`palette\` with 3–5 high-contrast hex colors (no quotes, no commas). Never invent other \`theme\` keys.
 - Iconography: every semantic item gets an \`icon\` (keyword phrase like \`rocket launch\` or \`shield check\`) unless the template is chart-only.
 - Compact spectacle: 3–7 items is plenty. Density via vivid wording and icons, not item count.
 - Weird > safe. The user clicked Go Mad — make them laugh, not nod politely.`
@@ -162,6 +162,23 @@ function extractTextContent(content) {
   return '';
 }
 
+function detectPromptLanguageHint(text) {
+  if (typeof text !== 'string' || !text.trim()) return null;
+  // Count CJK characters; if substantial, the user likely wants CJK output. Otherwise Latin.
+  const cjkMatches = text.match(/[㐀-鿿豈-﫿]/g) ?? [];
+  const totalLetters = text.match(/[\p{L}]/gu)?.length ?? 0;
+  if (totalLetters === 0) return null;
+  const cjkRatio = cjkMatches.length / totalLetters;
+  if (cjkRatio >= 0.25) return 'Chinese (zh)';
+  return 'English (en)';
+}
+
+function buildLanguageInstruction(prompt, currentDsl) {
+  const hint = detectPromptLanguageHint(prompt) ?? detectPromptLanguageHint(currentDsl);
+  if (!hint) return '';
+  return `\n\nLANGUAGE LOCK: Output ALL reader-facing text (title, desc, label, edge labels) in ${hint}. Do NOT translate, do NOT add second-language alternates. This is NON-NEGOTIABLE for this turn.`;
+}
+
 function buildIntentUserContent({ prompt, focusScope, currentDsl, peerMermaid }) {
   const peerBlock =
     typeof peerMermaid === 'string' && peerMermaid.trim()
@@ -174,6 +191,7 @@ ${peerMermaid.trim()}
 
 `
       : '';
+  const languageInstruction = buildLanguageInstruction(prompt, currentDsl);
   return `${peerBlock}Interpret and apply the user's requested infographic change strictly according to their wording.
 
 Broad or short requests (for example a single topic name) still require a concrete infographic now: choose a sensible template and produce real content. Do not ask the user to clarify.
@@ -184,14 +202,15 @@ ${currentDsl || '(empty — produce a fresh infographic)'}
 \`\`\`
 
 User request:
-${prompt}${focusScope}`;
+${prompt}${focusScope}${languageInstruction}`;
 }
 
-function buildTransformUserContent({ mode, focusScope, currentDsl, goMadDepth }) {
+function buildTransformUserContent({ mode, focusScope, currentDsl, goMadDepth, originalRequest }) {
   const directive = INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine;
   const depthValue = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : 0;
   const depthLine = mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${depthValue} of 12.` : '';
   const escalation = mode === 'goMad' ? buildInfographicGoMadEscalation(depthValue, currentDsl) : '';
+  const languageInstruction = buildLanguageInstruction(originalRequest, currentDsl);
   return `${directive}${depthLine}${escalation}
 
 Current committed infographic DSL:
@@ -200,7 +219,7 @@ ${currentDsl}
 \`\`\`
 ${focusScope}
 
-Apply one transformative update via apply_infographic_patch. Output the FULL DSL.`;
+Apply one transformative update via apply_infographic_patch. Output the FULL DSL.${languageInstruction}`;
 }
 
 function buildAnalysisUserContent({ task, focusScope, currentDsl }) {
@@ -695,6 +714,9 @@ export function createInfographicLangChainAgent({
       // Transform agents — especially goMad — run hot enough to occasionally produce prose-only
       // turns; the stable agent is the same toolset at default temperature.
       const stableAgent = getDefaultAgent(modelProfile);
+      // The original session prompt anchors the language for transform calls — refine/innovate
+      // have no fresh user text, so without this the agent has nothing recent to detect from.
+      const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
       return invokeWithRepair(
         agent,
         [
@@ -704,7 +726,8 @@ export function createInfographicLangChainAgent({
               mode,
               focusScope,
               currentDsl: slot.diagramSource,
-              goMadDepth
+              goMadDepth,
+              originalRequest
             })
           }
         ],
@@ -823,24 +846,15 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
       }
 
       const before = payload._revisionBefore;
-      // Reuse Mermaid's emitter; it reads stateStore.getSlot('mermaid') for the patch summary,
-      // so we emit a thin infographic equivalent here instead.
-      let after = stateStore.getSlot('infographic');
-      const revisionChanged = after.revisionId !== before;
-      // Record the topic on a successful intent so mode-switch can carry it across.
-      if (revisionChanged && operation === 'intent' && typeof payload.prompt === 'string') {
-        after = stateStore.setLastUserPrompt({ contentType: 'infographic', prompt: payload.prompt });
-      }
-      if (typeof emit === 'function') {
-        emit({
-          type: 'final',
-          revisionChanged,
-          message: agentResult.message,
-          state: after
-        });
-      }
-      // Suppress unused-var warning for the imported helper.
-      void emitIntentTransformStreamResult;
+      emitIntentTransformStreamResult({
+        emit,
+        operation,
+        revisionBefore: before,
+        stateStore,
+        agentResult,
+        prompt: payload.prompt,
+        contentType: 'infographic'
+      });
 
       return agentResult;
     }

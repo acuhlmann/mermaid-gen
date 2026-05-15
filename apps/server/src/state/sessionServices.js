@@ -1,5 +1,10 @@
 import { createDiagramAgentDispatcher } from '../agents/diagramAgentDispatcher.js';
 import { createDiagramStateStore } from './diagramStateStore.js';
+import { createAgentHandshakeStore } from './agentHandshakeStore.js';
+import { createAgentPresenceStore } from './agentPresenceStore.js';
+import { createAgentProposalStore } from './agentProposalStore.js';
+import { createInsightStore } from './insightStore.js';
+import { createSessionEventBus } from './sessionEventBus.js';
 
 const SESSION_HEADER = 'x-session-id';
 const SESSION_QUERY_KEYS = ['sessionId', 'threadId'];
@@ -34,24 +39,42 @@ export function resolveSessionIdFromCopilotInput(input = {}) {
 
 export function createSessionServicesRegistry({ env = process.env } = {}) {
   const sessions = new Map();
+  const eventBus = createSessionEventBus();
 
   function getSessionServices(sessionId) {
     const resolvedSessionId = sanitizeSessionId(sessionId) ?? DEFAULT_SESSION_ID;
     if (!sessions.has(resolvedSessionId)) {
       const stateStore = createDiagramStateStore();
       const agentService = createDiagramAgentDispatcher({ stateStore, env });
+      const handshakeStore = createAgentHandshakeStore();
+      const presenceStore = createAgentPresenceStore();
+      const proposalStore = createAgentProposalStore();
+      const insightStore = createInsightStore();
       sessions.set(resolvedSessionId, {
         sessionId: resolvedSessionId,
         stateStore,
-        agentService
+        agentService,
+        handshakeStore,
+        presenceStore,
+        proposalStore,
+        insightStore,
+        eventBus
       });
     }
 
     return sessions.get(resolvedSessionId);
   }
 
+  function hasSession(sessionId) {
+    const resolvedSessionId = sanitizeSessionId(sessionId);
+    if (!resolvedSessionId) return false;
+    return sessions.has(resolvedSessionId);
+  }
+
   return {
     getSessionServices,
+    hasSession,
+    eventBus,
     getSessionServicesForRequest(req) {
       return getSessionServices(resolveSessionIdFromRequest(req));
     },
@@ -61,4 +84,4 @@ export function createSessionServicesRegistry({ env = process.env } = {}) {
   };
 }
 
-export { DEFAULT_SESSION_ID, SESSION_HEADER };
+export { DEFAULT_SESSION_ID, SESSION_HEADER, sanitizeSessionId };

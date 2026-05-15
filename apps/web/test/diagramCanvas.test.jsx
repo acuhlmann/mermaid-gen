@@ -4,18 +4,24 @@ import { useLayoutEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DiagramCanvas from '../src/components/DiagramCanvas.jsx';
 
-const { initializeMock, renderMock } = vi.hoisted(() => ({
-  initializeMock: vi.fn(),
-  renderMock: vi.fn(async (_id, source) => ({
-    svg: `<svg><text>${source}</text></svg>`
+const { renderMermaidSvgMock } = vi.hoisted(() => ({
+  renderMermaidSvgMock: vi.fn(async (_id, source) => ({
+    svg: `<svg viewBox="0 0 100 50"><text>${source}</text></svg>`,
+    sanitizerApplied: []
   }))
 }));
 
-vi.mock('mermaid', () => ({
-  default: {
-    initialize: initializeMock,
-    render: renderMock
-  }
+vi.mock('../src/utils/renderMermaidPreview.js', () => ({
+  renderMermaidSvg: renderMermaidSvgMock,
+  renderMermaidPreviewSvg: vi.fn()
+}));
+
+vi.mock('../src/utils/diagramViewportFit.js', () => ({
+  measureViewportForDiagram: () => ({ x: 0, y: 0, scale: 1 }),
+  computeFitViewport: vi.fn(),
+  computeCenteredViewport: vi.fn(),
+  readSvgLayoutSize: vi.fn(),
+  readViewportInnerSize: vi.fn()
 }));
 
 const editorHarness = vi.hoisted(() => ({
@@ -62,8 +68,7 @@ vi.mock('@monaco-editor/react', () => ({
 describe('DiagramCanvas', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    initializeMock.mockClear();
-    renderMock.mockClear();
+    renderMermaidSvgMock.mockClear();
     editorHarness.revealRangeInCenter.mockClear();
     editorHarness.setSelection.mockClear();
     editorHarness.deltaDecorations.mockClear();
@@ -90,7 +95,11 @@ describe('DiagramCanvas', () => {
       vi.advanceTimersByTime(250);
     });
 
-    expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), 'flowchart TD\nA --> B');
+    expect(renderMermaidSvgMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^diagram-/),
+      'flowchart TD\nA --> B',
+      expect.objectContaining({ htmlLabels: false })
+    );
 
     fireEvent.change(screen.getByLabelText('Mermaid DSL'), {
       target: { value: 'flowchart TD\nA --> C' }
@@ -101,7 +110,11 @@ describe('DiagramCanvas', () => {
     });
 
     expect(onManualEdit).toHaveBeenCalledWith('flowchart TD\nA --> C');
-    expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), 'flowchart TD\nA --> C');
+    expect(renderMermaidSvgMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^diagram-/),
+      'flowchart TD\nA --> C',
+      expect.any(Object)
+    );
   });
 
   it('re-syncs editor and renderer when a new agent source arrives', async () => {
@@ -122,7 +135,11 @@ describe('DiagramCanvas', () => {
     });
 
     expect(screen.getByLabelText('Mermaid DSL').value).toBe('flowchart TD\nStart --> End');
-    expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), 'flowchart TD\nStart --> End');
+    expect(renderMermaidSvgMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^diagram-/),
+      'flowchart TD\nStart --> End',
+      expect.any(Object)
+    );
   });
 
   it('renders source containing a Mermaid init directive with per-render style config', async () => {
@@ -142,13 +159,31 @@ describe('DiagramCanvas', () => {
       vi.advanceTimersByTime(250);
     });
 
-    expect(initializeMock).toHaveBeenLastCalledWith(
+    expect(renderMermaidSvgMock).toHaveBeenCalledWith(
+      expect.stringMatching(/^diagram-/),
+      source,
       expect.objectContaining({
-        startOnLoad: false,
-        deterministicIds: true
+        deterministicIds: true,
+        htmlLabels: false
       })
     );
-    expect(renderMock).toHaveBeenCalledWith(expect.stringMatching(/^diagram-/), source);
+  });
+
+  it('renders mermaid while streamingPreview is active', async () => {
+    render(
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nA --> B'}
+        revisionId={1}
+        streamingPreview
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(150);
+    });
+
+    expect(renderMermaidSvgMock).toHaveBeenCalled();
+    expect(document.querySelector('.diagram-zoom-layer svg')).toBeTruthy();
   });
 
   it('zooms the renderer with touch pointer gestures', async () => {
@@ -163,7 +198,112 @@ describe('DiagramCanvas', () => {
     fireEvent.pointerDown(renderer, { pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 0 });
     fireEvent.pointerMove(renderer, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 0 });
 
-    expect(container.querySelector('.diagram-viewport').style.transform).toContain('scale(2)');
+    expect(container.querySelector('.diagram-zoom-layer').style.transform).toContain('scale(2)');
+  });
+
+  it('calls onPanGestureStart when drag exceeds tap threshold', async () => {
+    const onPanGestureStart = vi.fn();
+    render(
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nA --> B'}
+        revisionId={1}
+        onPanGestureStart={onPanGestureStart}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    fireEvent.pointerDown(renderer, { pointerId: 1, pointerType: 'mouse', clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(renderer, { pointerId: 1, pointerType: 'mouse', clientX: 40, clientY: 40 });
+
+    expect(onPanGestureStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('selects sequence diagram participants on tap', async () => {
+    const sequenceSvg = `
+<svg viewBox="0 0 200 100">
+  <g>
+    <line data-et="life-line" data-id="Ingestion" class="actor-line" />
+    <g data-et="participant" data-type="participant" data-id="Ingestion" id="root-1">
+      <rect class="actor actor-top" width="80" height="40" />
+      <text class="actor actor-box">Ingestion</text>
+    </g>
+  </g>
+</svg>`;
+    renderMermaidSvgMock.mockResolvedValueOnce({ svg: sequenceSvg, sanitizerApplied: [] });
+
+    const onSelectedNodeChange = vi.fn();
+    render(
+      <DiagramCanvas
+        diagramSource={'sequenceDiagram\n  participant Ingestion\n  Ingestion ->> Validation: hi'}
+        revisionId={1}
+        onSelectedNodeChange={onSelectedNodeChange}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    await act(async () => {});
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    const rect = renderer.querySelector('rect.actor-top');
+    expect(rect).toBeTruthy();
+    const pointerInit = {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      buttons: 1,
+      clientX: 40,
+      clientY: 20,
+      bubbles: true
+    };
+    rect.dispatchEvent(new PointerEvent('pointerdown', pointerInit));
+    rect.dispatchEvent(new PointerEvent('pointerup', pointerInit));
+
+    expect(onSelectedNodeChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dataId: 'Ingestion',
+        partKind: 'participant',
+        partName: 'Ingestion'
+      })
+    );
+  });
+
+  it('does not report toolbar anchor for hover without selection', async () => {
+    const nodeSvg =
+      '<svg><g class="node" id="flowchart-A-0"><rect width="40" height="20"/><text>A</text></g></svg>';
+    renderMermaidSvgMock.mockResolvedValueOnce({ svg: nodeSvg, sanitizerApplied: [] });
+
+    const onNodeToolbarAnchor = vi.fn();
+    const hoverDescriptor = {
+      id: 'flowchart-A-0',
+      label: 'A',
+      partKind: 'node',
+      partName: 'A'
+    };
+
+    render(
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nA'}
+        revisionId={1}
+        hoverDescriptor={hoverDescriptor}
+        onNodeToolbarAnchor={onNodeToolbarAnchor}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    await act(async () => {});
+
+    const anchored = onNodeToolbarAnchor.mock.calls.some(
+      ([arg]) => arg && typeof arg.left === 'number' && arg.nodeId === 'flowchart-A-0'
+    );
+    expect(anchored).toBe(false);
   });
 
   it('reveals and selects editor range when a flowchart node is selected', async () => {

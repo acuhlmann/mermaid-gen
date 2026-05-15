@@ -65,8 +65,8 @@ describe('InsightsPane', () => {
     expect(onSoundEnabledChange).toHaveBeenCalledWith(true);
   });
 
-  it('shows diagram undo when revision applied and invokes handler', () => {
-    const onDiagramUndo = vi.fn();
+  it('shows Restore when entry has an after-snapshot and invokes handler', () => {
+    const onRestoreToEntry = vi.fn();
     const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
     render(
@@ -81,25 +81,27 @@ describe('InsightsPane', () => {
             technicalActions: [],
             diagramUndoBaseline: baseline,
             diagramRevisionApplied: true,
-            diagramUndoConsumed: false
+            diagramUndoConsumed: false,
+            diagramAfterSource: 'flowchart TD\n  A --> C',
+            diagramAfterContentType: 'mermaid'
           }
         ]}
         soundEnabled={false}
         onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
-        onDiagramUndo={onDiagramUndo}
+        onRestoreToEntry={onRestoreToEntry}
         diagramUndoDisabled={false}
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Highlight changes' })).toBeTruthy();
-    const undoBtn = screen.getByRole('button', { name: 'Undo diagram change' });
-    expect(undoBtn.disabled).toBe(false);
-    fireEvent.click(undoBtn);
-    expect(onDiagramUndo).toHaveBeenCalledWith('e-undo');
+    expect(screen.getByRole('button', { name: 'Highlight on canvas' })).toBeTruthy();
+    const restoreBtn = screen.getByRole('button', { name: 'Restore' });
+    expect(restoreBtn.disabled).toBe(false);
+    fireEvent.click(restoreBtn);
+    expect(onRestoreToEntry).toHaveBeenCalledWith('e-undo');
   });
 
-  it('invokes highlight toggle when Highlight changes is clicked', () => {
+  it('invokes highlight toggle when Highlight on canvas is clicked', () => {
     const onToggleDiagramChangeHighlight = vi.fn();
     const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
@@ -115,23 +117,25 @@ describe('InsightsPane', () => {
             technicalActions: [],
             diagramUndoBaseline: baseline,
             diagramRevisionApplied: true,
-            diagramUndoConsumed: false
+            diagramUndoConsumed: false,
+            diagramAfterSource: 'flowchart TD\n  A --> C',
+            diagramAfterContentType: 'mermaid'
           }
         ]}
         soundEnabled={false}
         onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
-        onDiagramUndo={vi.fn()}
+        onRestoreToEntry={vi.fn()}
         diagramUndoDisabled={false}
         onToggleDiagramChangeHighlight={onToggleDiagramChangeHighlight}
       />
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Highlight changes' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Highlight on canvas' }));
     expect(onToggleDiagramChangeHighlight).toHaveBeenCalledWith('e-hi');
   });
 
-  it('shows Clear highlights and empty-diff note when highlight is active for entry', () => {
+  it('shows Clear canvas highlights and empty-diff note when highlight is active for entry', () => {
     const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };
 
     render(
@@ -146,20 +150,22 @@ describe('InsightsPane', () => {
             technicalActions: [],
             diagramUndoBaseline: baseline,
             diagramRevisionApplied: true,
-            diagramUndoConsumed: false
+            diagramUndoConsumed: false,
+            diagramAfterSource: 'flowchart TD\n  A --> B',
+            diagramAfterContentType: 'mermaid'
           }
         ]}
         soundEnabled={false}
         onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
-        onDiagramUndo={vi.fn()}
+        onRestoreToEntry={vi.fn()}
         diagramChangeHighlightEntryId="e-act"
         diagramChangeHighlightSummary={{ removedIds: [], isStructuralEmpty: true }}
         onToggleDiagramChangeHighlight={vi.fn()}
       />
     );
 
-    expect(screen.getByRole('button', { name: 'Clear highlights' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Clear canvas highlights' })).toBeTruthy();
     expect(
       screen.getByText(/No structural changes detected between this version and the diagram before this step/i)
     ).toBeTruthy();
@@ -180,13 +186,15 @@ describe('InsightsPane', () => {
             technicalActions: [],
             diagramUndoBaseline: baseline,
             diagramRevisionApplied: true,
-            diagramUndoConsumed: false
+            diagramUndoConsumed: false,
+            diagramAfterSource: 'flowchart TD\n  A',
+            diagramAfterContentType: 'mermaid'
           }
         ]}
         soundEnabled={false}
         onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
-        onDiagramUndo={vi.fn()}
+        onRestoreToEntry={vi.fn()}
         diagramChangeHighlightEntryId="e-rem"
         diagramChangeHighlightSummary={{ removedIds: ['OldNode'], isStructuralEmpty: false }}
         onToggleDiagramChangeHighlight={vi.fn()}
@@ -196,10 +204,48 @@ describe('InsightsPane', () => {
     expect(screen.getByText(/Removed from diagram: OldNode/i)).toBeTruthy();
   });
 
-  it('hides diagram undo when not revision-applied or already consumed', () => {
+  it('shows Restore on external attributed-note embedded mermaid preview', () => {
+    const onRestoreDiagramSnapshot = vi.fn();
+    const init = '%%{init: {"theme":"base"}}%%';
+    const diagram = `${init}
+flowchart TB
+  A --> B
+  B --> C`;
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'ext-note-1',
+            kind: 'attributed-note',
+            variant: 'general',
+            status: 'done',
+            content: diagram,
+            origin: { kind: 'external-agent', agentName: 'Cursor', color: '#f97316' }
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+        onRestoreDiagramSnapshot={onRestoreDiagramSnapshot}
+        diagramUndoDisabled={false}
+      />
+    );
+
+    const restoreBtn = screen.getByRole('button', { name: 'Restore' });
+    fireEvent.click(restoreBtn);
+    expect(onRestoreDiagramSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: 'mermaid',
+        diagramSource: expect.stringContaining('%%{init:')
+      })
+    );
+  });
+
+  it('hides Restore when there is no after-snapshot to bookmark', () => {
     const baseline = { revisionId: 0, diagramSource: 'x' };
 
-    const { rerender } = render(
+    render(
       <InsightsPane
         entries={[
           {
@@ -218,31 +264,10 @@ describe('InsightsPane', () => {
         celebratingEntryId={null}
       />
     );
-    expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull();
-
-    rerender(
-      <InsightsPane
-        entries={[
-          {
-            id: 'e1',
-            title: 'Refine',
-            status: 'done',
-            content: '',
-            technicalActions: [],
-            diagramUndoBaseline: baseline,
-            diagramRevisionApplied: true,
-            diagramUndoConsumed: true
-          }
-        ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
-        celebratingEntryId={null}
-      />
-    );
-    expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Restore' })).toBeNull();
   });
 
-  it('disables diagram undo when diagramUndoDisabled', () => {
+  it('disables Restore when diagramUndoDisabled', () => {
     render(
       <InsightsPane
         entries={[
@@ -254,17 +279,19 @@ describe('InsightsPane', () => {
             technicalActions: [],
             diagramUndoBaseline: { diagramSource: 'a' },
             diagramRevisionApplied: true,
-            diagramUndoConsumed: false
+            diagramUndoConsumed: false,
+            diagramAfterSource: 'flowchart TD\n  A --> B',
+            diagramAfterContentType: 'mermaid'
           }
         ]}
         soundEnabled={false}
         onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         diagramUndoDisabled
-        onDiagramUndo={vi.fn()}
+        onRestoreToEntry={vi.fn()}
       />
     );
-    expect(screen.getByRole('button', { name: 'Undo diagram change' }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: 'Restore' }).disabled).toBe(true);
   });
 
   it('shows agent phases, patch summary, and optional stream debug', () => {
@@ -666,8 +693,7 @@ describe('InsightsPane', () => {
           items: split.items,
           prefix: split.prefix,
           suffix: split.suffix,
-          selected: [false, true],
-          onToggle: vi.fn(),
+          a2uiMessages: null,
           busy: false,
           onFixSelected,
           onFixAll
@@ -679,10 +705,49 @@ describe('InsightsPane', () => {
     );
 
     const actionableRegion = screen.getByRole('region', { name: /Actionable/i });
-    expect(within(actionableRegion).getAllByRole('checkbox')).toHaveLength(2);
-    fireEvent.click(screen.getByRole('button', { name: 'Fix selected' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Fix all' }));
+    const scope = within(actionableRegion);
+    expect(scope.getAllByRole('checkbox')).toHaveLength(2);
+    expect(scope.getByRole('button', { name: 'Fix selected' }).disabled).toBe(true);
+    fireEvent.click(scope.getAllByRole('checkbox')[1]);
+    fireEvent.click(scope.getByRole('button', { name: 'Fix selected' }));
+    fireEvent.click(scope.getByRole('button', { name: 'Fix all' }));
     expect(onFixSelected).toHaveBeenCalledTimes(1);
     expect(onFixAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders A2UI critique checklist by default', async () => {
+    const critiqueText = `## Summary\n\n- Note.\n\n## Actionable improvements\n\n- First improvement\n`;
+    const split = splitCritiqueActionableSections(critiqueText);
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'ent-a2ui',
+            variant: 'critique',
+            status: 'done',
+            title: 'Critique — diagram',
+            content: critiqueText,
+            technicalActions: []
+          }
+        ]}
+        critiqueActionableUi={{
+          critiqueText,
+          headingText: split.headingText,
+          items: split.items,
+          prefix: split.prefix,
+          suffix: split.suffix,
+          a2uiMessages: null,
+          busy: false,
+          onFixSelected: vi.fn(),
+          onFixAll: vi.fn()
+        }}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(container.querySelector('.insights-a2ui-block')).toBeTruthy();
+    expect(await screen.findByRole('checkbox', { name: /First improvement/i })).toBeTruthy();
   });
 });

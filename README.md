@@ -1,6 +1,25 @@
 # ArchiSlop
 
-Single-repo JavaScript prototype for collaborative diagram editing with a dual-agent, dual-content-type authoring model. Supports two canvas modes: **Mermaid** (flowcharts, sequences, etc.) and **Infographic** (AntV template-based visual layouts). The active mode is toggled from the UI and persisted across sessions.
+Single-repo JavaScript prototype for **collaborative diagram editing**: humans in the browser, built-in LangChain agents, and **external agents over MCP** in the same session. Two canvas modes: **Mermaid** (flowcharts, sequences, etc.) and **Infographic** (AntV template-based layouts). The active mode is toggled from the UI and persisted across sessions.
+
+## Documentation
+
+| Doc | Audience | Contents |
+| --- | --- | --- |
+| This README | Humans, operators | Setup, stack, modes, validation, endpoints |
+| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) | **Integrators, UX** | **Map of all Gen UI layers** (AG-UI, A2UI, MCP Apps), MCP connectivity, host matrix, extension ideas |
+| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | **Guest agents (Cursor, Claude, VS Code, …)** | MCP join flow, handshakes, proposals, MCP Apps, tool list |
+| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) | Integrators | AG-UI SSE contract for built-in agent streams |
+| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) | Integrators | A2UI critique checklists on AG-UI `CUSTOM` events |
+| [`docs/deploy/gcp.md`](docs/deploy/gcp.md) | Operators | Cloud Run deploy and investigation |
+
+## Quick start (local)
+
+1. `npm run setup` then `cp .env.example .env` and set at least `OPENROUTER_API_KEY` (or Vertex vars) for AI features.
+2. `npm run dev` — API on `http://localhost:4000` (`PORT`), Vite UI on `http://localhost:5173` (`VITE_API_BASE_URL` must point at the API).
+3. Open the UI, edit in Monaco, use **Go** in the prompt bar. Toggle **Diagram** vs **Infographic** in the toolbar; each mode keeps its own source slot.
+4. **Invite agent** (toolbar) copies an MCP URL + pairing code for Cursor / VS Code / Claude Desktop — see [External agents](#external-agents-mcp--quick-start).
+5. `curl http://localhost:4000/api/health` — `llmConfigured: true` means intent/transform/analyze will run; the canvas still works when false.
 
 ## Product vision
 
@@ -10,31 +29,65 @@ Single-repo JavaScript prototype for collaborative diagram editing with a dual-a
 - Optional focus on a diagram node or edge narrows transforms, explanations, and critique-driven fixes to that subgraph.
 - Switching between **Diagram** and **Infographic** modes preserves both canvases independently; the active content type is forwarded in every agent call so the right agent and validator handles the request.
 
+## Web UI (what you see)
+
+| Area | Role |
+| --- | --- |
+| **Canvas** | Live Mermaid SVG or AntV Infographic render; click nodes/edges to set **focus** for scoped transforms and critique. |
+| **Monaco editor** | Source for the active slot; syncs to the server on edit. Syntax errors trigger debounced **auto-fix** (Mermaid and Infographic). |
+| **Prompt bar + radial menu** | **Go**, **Refine**, **Innovate**, **Go Mad**, **Critique**, **Explain**, **Style** (Mermaid only). On narrow viewports the same actions live in a **radial menu** over the canvas. |
+| **Insights / Thinking pane** | Streaming tokens, tool phases, patch summaries, and critique output. **Show Thinking** mirrors AG-UI phases; critique **Fix** uses checkboxes (A2UI) when the model emits actionable bullets. |
+| **Agent presence bar** | External agents that completed handshake; emoji reactions and focus highlights from the room. |
+| **Handshakes & proposals** | Dialog when an MCP guest requests join; proposal cards when a guest submits an edit (accept / reject / request changes). |
+| **Invite agent** | Pairing code, QR, **Add to Cursor** / **Install in VS Code** deeplinks, rotate code. |
+| **Slopitect** (cosmetic) | Companion avatar, run HUD, streaks, and session achievements — feedback on agent runs, not a separate backend. |
+
+Built-in agents never bypass validation; external agents never auto-apply (proposals only).
+
+## Generative UI and MCP surfaces (overview)
+
+ArchiSlop uses **three UI strategies** on purpose — full map: [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md).
+
+| Layer | What it is | Where it runs |
+| --- | --- | --- |
+| **AG-UI** | SSE: phases, tokens, tool calls, draft previews, final state | Web toolbar (`agent-stream`) |
+| **A2UI** | Server-built checklist in AG-UI `CUSTOM` events | Web **Critique → Fix selected** |
+| **MCP Apps** | `ui://archislop/*.html` opened by MCP tools | Cursor, VS Code, Claude Desktop, … |
+| **session-events** | Collaboration SSE (not Gen UI) | Web + MCP Apps |
+
+**MCP:** Streamable HTTP at `/mcp`; bind with pairing code; use **`open_web_companion`** when the browser is open; approve/accept in the **web UI** if host App buttons are read-only.
+
 ## How the pieces fit together
 
-The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session now carries **two independent slots** — one for Mermaid source, one for AntV Infographic DSL — plus an `activeContentType` pointer.
+The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **two independent slots** — Mermaid source and AntV Infographic DSL — plus an `activeContentType` pointer.
+
+Three **parallel channels** serve different participants (see [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) for the guest-agent guide):
 
 ```mermaid
-flowchart LR
+flowchart TB
   subgraph client ["apps/web (React + Vite)"]
-    UI["Editor + renderer\n(Mermaid or Infographic)"]
-    GenUI["A2UI surface\nCritique checklist"]
-    ModeToggle["Mode toggle\nDiagram ↔ Infographic"]
-    Store[diagramStore fetch helpers]
-    UI --- ModeToggle
+    UI["Editor + renderer"]
+    GenUI["A2UI critique checklist"]
+    Collab["Presence · proposals · handshakes"]
+    Store[diagramStore + sessionEventsClient]
     UI --- Store
     Store --- GenUI
+    Store --- Collab
   end
 
   subgraph server ["apps/server (Express)"]
     Router["Custom routes\n/api/copilotkit/*"]
-    CK["CopilotKit runtime\nAG-UI handler"]
+    SE["session-events SSE"]
+    MCP["/mcp Streamable HTTP\n+ MCP Apps"]
+    CK["CopilotKit runtime\n(AG-UI fallback)"]
     Reg["Session registry"]
-    SS[("Session state store\nmermaid slot\ninfographic slot")]
-    Dispatcher["DiagramAgentDispatcher\n(routes by contentType)"]
-    MA[Mermaid agent service]
-    IA[Infographic agent service]
+    SS[("Dual-slot state\n+ proposals · presence")]
+    Dispatcher["DiagramAgentDispatcher"]
+    MA[Mermaid agents]
+    IA[Infographic agents]
     Router --- Reg
+    SE --- Reg
+    MCP --- Reg
     CK --- Reg
     Reg --> SS
     Reg --> Dispatcher
@@ -42,19 +95,31 @@ flowchart LR
     Dispatcher --> IA
   end
 
-  LLM[("OpenRouter or Vertex AI\n(see LLM_PROVIDER)")]
+  subgraph guests ["External agents"]
+    Cursor["Cursor · Claude · VS Code …"]
+  end
 
-  Store <-->|"JSON + SSE AG-UI\ncontentType + CUSTOM a2ui"| Router
-  Store <-->|"optional CopilotKit clients"| CK
-  MA <-->|"chat + tools"| LLM
-  IA <-->|"chat + tools"| LLM
+  LLM[("OpenRouter or Vertex")]
+
+  Store <-->|"REST + AG-UI SSE"| Router
+  Collab <-->|"collaboration only"| SE
+  Cursor <-->|"MCP tools · never auto-patch"| MCP
+  Store -.->|"optional"| CK
+  MA & IA <-->|"LangChain + tools"| LLM
+  MCP -.->|"handshake · proposal events"| SE
 ```
 
-**Custom routes** (`apps/server/src/routes/copilot.js`) power the main UI: structured JSON for intent/transform/analyze/style and Server-Sent Events for the insights stream.
+| Channel | Path | Used for |
+| --- | --- | --- |
+| **Built-in agents** | `/api/copilotkit/*` (REST + `agent-stream` AG-UI SSE) | Go, Refine, Critique, Fix, style, CopilotKit clients |
+| **Collaboration** | `GET /api/copilotkit/session-events` | Handshakes, proposals, presence, focus, reactions, attributed insights |
+| **External agents** | `GET/POST /mcp` | Join room, register, propose edits, insights; MCP Apps for human approval UI |
 
-**Critique actionable checklist** — When **Critique** returns an `## Actionable …` section, the Thinking pane shows checkboxes and **Fix selected** / **Fix all** using the same styled React panel as before. The server may still emit optional A2UI-shaped `CUSTOM` (`name: "a2ui"`) messages on AG-UI streams for forward-compatible clients; see [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md). Diagram source remains the primary artifact (Mermaid / Infographic DSL).
+**Custom routes** (`apps/server/src/routes/copilot.js`) power the main UI.
 
-**CopilotKit runtime** (`CopilotRuntime` + `createCopilotExpressHandler` in `apps/server/src/index.js`) exposes the same backend agent through AG-UI streaming events (`TEXT_MESSAGE_*`). It resolves the session from Copilot `threadId` so chat threads align with diagram sessions when clients send that field.
+**Critique checklist (A2UI)** — When **Critique** includes `## Actionable …`, the Thinking pane renders checkboxes via **A2UI v0.9** inside AG-UI `CUSTOM` events (`name: "a2ui"`). The model does not emit raw A2UI; the server builds messages from markdown. See [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md).
+
+**CopilotKit runtime** (`CopilotRuntime` + `createCopilotExpressHandler`) exposes the same backend through standard AG-UI for third-party CopilotKit clients; `threadId` maps to diagram session when provided.
 
 ## Content types
 
@@ -179,22 +244,25 @@ sequenceDiagram
 
 ### Infographic validation pipeline
 
-Infographic uses a leaner **two-layer pipeline** (no multi-attempt LLM fixer; the DSL grammar is much more regular):
+Infographic uses the same **validate → single-shot fixer → agent repair** shape as Mermaid, with a smaller deterministic front end:
 
 ```mermaid
-flowchart LR
-  Raw["Proposed AntV DSL\n(from agent tool call)"] --> S["Sanitizer\nstrip fences, tabs→spaces,\nsmart quotes, leading prose"]
-  S --> L1["Layer 1 — textual lint\nheader shape, template whitelist,\nindentation checks"]
-  L1 -->|pass| L2["Layer 2 — parseSyntax\n(@antv/infographic)"]
-  L2 -->|valid| P["Patch accepted\nvalidator: infographic-parseSyntax"]
-  L1 -->|fail| E["Repair instruction\n(buildInfographicRepairInstruction)\nreturned to agent"]
-  L2 -->|errors| E
+flowchart TB
+  Raw["Proposed AntV DSL"] --> S["Sanitizer"]
+  S --> L1["Layer 1 — textual lint"]
+  L1 --> L2["Layer 2 — parseSyntax"]
+  L2 -->|valid| P["Patch accepted"]
+  L1 -->|fail| R["Repair path"]
+  L2 -->|errors| R
+  R --> F["Single-shot syntax fixer\ninfographicSyntaxFixer.js — once"]
+  F -->|accepted| P
+  F -->|fail| A["Agent repair turns\nbuildInfographicRepairInstruction\nup to MAX_INFOGRAPHIC_REPAIR_ATTEMPTS (2)"]
 ```
 
-- **Sanitizer** runs first, tracking which fixes were applied (`strip-code-fence`, `tabs-to-spaces`, `smart-quotes-to-ascii`, `strip-leading-prose`).
-- **Layer 1** checks the `infographic <template>` header, template against the whitelist loaded from `@antv/infographic` at startup, and indentation rules.
-- **Layer 2** uses AntV's own `parseSyntax` to validate per-template structure (unknown keys, missing parents, malformed list items).
-- On failure, `buildInfographicRepairInstruction` injects a family-specific rule pack (list/sequence, chart, hierarchy, compare, relation) into the next agent message. Up to `MAX_INFOGRAPHIC_REPAIR_ATTEMPTS` (2) retries.
+- **Sanitizer** runs first (`strip-code-fence`, `tabs-to-spaces`, `smart-quotes-to-ascii`, `strip-leading-prose`).
+- **Layer 1** checks the `infographic <template>` header, template whitelist (`@antv/infographic`), and indentation.
+- **Layer 2** uses AntV `parseSyntax` for per-template structure.
+- On failure, a **single-shot syntax fixer** (fast model, no tools) may apply corrected DSL once, then up to **two** full-agent repair turns with family-specific rule packs (list/sequence, chart, hierarchy, compare, relation).
 
 ### Session state: dual-slot model
 
@@ -248,13 +316,78 @@ Default session id is `default` when nothing is sent; the web client generates a
 - **Transform** modes reuse the same tools with different **user** prompts and sampling (`transformModeModelOptions` / `goMadTransformModelOptions`), shared between content types.
 - **Analysis** uses dedicated temperatures for streaming; on Vertex stream failure with an OpenRouter key configured, analyze can **retry once on OpenRouter** with a fixed temperature.
 
+## External agents (MCP) — quick start
+
+**Goal:** let Cursor, Claude Desktop, VS Code Copilot, or any MCP client join the **same diagram room** as the human, propose edits, and comment — with explicit human approval for every change.
+
+```mermaid
+flowchart LR
+  H["Human: Invite agent\n(copy pairing code)"] --> A["Agent: /mcp + join_session"]
+  A --> R["register_agent"]
+  R --> OK{"Approved?"}
+  OK -->|yes| W["get_session_state → edit → propose_diagram_edit"]
+  W --> U["Human: accept in web or MCP App"]
+  U --> D["Diagram updates · agent sees wait_for_resolution"]
+```
+
+1. Open **Invite agent** in the web UI (pairing code + QR + **Add to Cursor** / **Install in VS Code**).
+2. Configure MCP once: stable URL `https://<host>/mcp` (local: `http://localhost:4000/mcp`).
+3. Agent calls `join_session({ pairingCode })` (or connect via `?pairing=` deeplink).
+4. Agent calls `register_agent({ name, emoji?, color? })` → human approves in web or handshake MCP App.
+5. Agent calls `open_diagram_canvas` (optional visual check), reads `get_session_state` (includes `webCanvasUrl`), then `propose_diagram_edit` with current `baseRevisionId` — **never** auto-applied.
+6. Human accepts in Insights pane, **proposal-review** MCP App, or REST; agent polls `wait_for_resolution`.
+
+**Using Cursor (or similar) while ArchiSlop is open in the browser?** Approve handshakes and accept proposals in the **web UI** (handshake dialog + Insights proposal cards). MCP Apps that Cursor opens when the agent calls `register_agent` or `propose_diagram_edit` are optional duplicates for MCP-only hosts; their buttons are often read-only in Cursor, and diagram previews may fall back to the diff tabs.
+
+**Full guide** (tools, session-events, etiquette, REST parity): [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md).
+
+**Cloud Run:** set `PUBLIC_BASE_URL` (no trailing slash), e.g. `https://mermaid-gen-main-464241135431.us-central1.run.app`, so invites and deeplinks use production, not `localhost`.
+
+### MCP Apps (SEP-1865)
+
+Interactive HTML in MCP hosts that support Apps; bundles in [`apps/server/src/mcp/apps/`](apps/server/src/mcp/apps/).
+
+| Tool | MCP App (`ui://…`) | Purpose |
+| --- | --- | --- |
+| `open_web_companion` | `archislop/web-companion.html` | **Hybrid default:** read-only queue + activity feed while you control approvals in the web UI |
+| `join_session` / `open_session_pairing` | `archislop/session-pairing.html` | Paste pairing code from Invite agent |
+| `register_agent` | `archislop/web-companion.html` | Opens web companion (handshake focus); approve in web or `open_handshake_review` for MCP-only |
+| `open_handshake_review` | `archislop/handshake.html` | Legacy Approve/Deny for MCP-only hosts |
+| `open_diagram_canvas` | `archislop/canvas-preview.html` | Live canvas preview + link to web editor |
+| `propose_diagram_edit` | `archislop/web-companion.html` | Opens web companion (proposal focus); accept in web Insights |
+| `open_proposal_review` | `archislop/proposal-review.html` | Full diff review for MCP-only hosts (optional in hybrid) |
+| `open_my_proposals` | `archislop/proposal-inbox.html` | Your proposal status inbox |
+| `open_session_dashboard` | `archislop/session-dashboard.html` | Presence + pending proposals; **Review** opens proposal App |
+| `open_insights_feed` | `archislop/insights-feed.html` | Attributed insights (Thinking pane parity) |
+| `open_critique_review` | `archislop/critique-map.html` | Actionable critique; `request_critique_fix` |
+| `open_welcome` / `get_session_bootstrap` | `archislop/welcome.html` | Onboarding checklist + revision ids |
+| `open_session_events` | `archislop/session-events.html` | Live collaboration feed (SSE + long-poll fallback) |
+| `open_compose_insight` | `archislop/compose-insight.html` | Post note / suggestion / critique |
+| `open_focus_picker` | `archislop/focus-picker.html` | Pick a node to highlight via `set_focus` |
+
+Proposal review includes Mermaid preview (with CDN timeouts and fallback copy), unified diff, graph-level chips, and **Request changes** (proposal stays pending; agent gets session event + attributed insight). Apps share nav chrome and auto-refresh via the session event bridge where noted in [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md).
+
+### Other MCP tools (after handshake)
+
+`open_web_companion` (hybrid read-only queue — prefer when ArchiSlop is open in the browser), `get_insights`, `open_insights_feed`, `get_my_proposals`, `drop_insight`, `set_focus`, `react`, `get_session_snapshot`, plus human-only `resolve_*` / `request_*` from Apps. Prompt `archislop_collaboration_guide` on the server summarizes guest etiquette.
+
+See **[Generative UI and MCP surfaces](#generative-ui-and-mcp-surfaces-overview)** and [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md).
+
 ## Protocol notes
 
-- Primary UI traffic uses **REST + SSE** on the custom router under `/api/copilotkit`.
-- **CopilotKit v2 runtime** is mounted on the same base path **after** the router so standard AG-UI requests fall through for integrations that expect `CopilotRuntime`.
-- **`contentType` is forwarded in every request** — the dispatcher uses it to select the agent service; state routes use it to select the slot; `applyPatch` validates it against the slot's own `contentType` to catch cross-slot patches.
-- **Validation (Mermaid)**: the server uses the in-process Mermaid parser (`mermaid.parse` in JSDOM) after style/init handling and the deterministic sanitizer rescue path in `validateAndPreparePatch`.
-- **Validation (Infographic)**: always local only; AntV's `parseSyntax` is synchronous and requires no external service.
+| Layer | Protocol | Doc |
+| --- | --- | --- |
+| **Overview (all Gen UI + MCP UI)** | AG-UI + A2UI + MCP Apps matrix | [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) |
+| Built-in agent runs | REST + **AG-UI** SSE on `agent-stream` | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) |
+| Critique checklists (web) | **A2UI** inside AG-UI `CUSTOM` | [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) |
+| Multi-agent room sync | **session-events** SSE (not AG-UI) | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) |
+| External agents | **MCP** Streamable HTTP + MCP Apps | same |
+
+- **CopilotKit v2 runtime** is mounted on `/api/copilotkit` **after** the custom router so AG-UI clients can fall through to `CopilotRuntime`.
+- **`contentType`** is forwarded on every mutation — dispatcher, slot selection, and `applyPatch` enforce slot boundaries.
+- **Validation (Mermaid)**: in-process `mermaid.parse` (JSDOM) + sanitizer rescue in `validateAndPreparePatch`.
+- **Validation (Infographic)**: local `parseSyntax` only.
+- **External edits**: validated at proposal time; applied only after human accept (same validators as built-in tools).
 
 ## Setup
 
@@ -279,8 +412,25 @@ All are optional — the defaults make every layer of the validation/repair ladd
 | --- | --- | --- |
 | `MERMAID_METRICS` | unset | When `1`/`true`, emits one structured JSON line per agent turn (mode, model, duration, validator outcome, repair attempts, sanitizer hits, error class) to stdout. |
 | `MERMAID_REPAIR_MAX_ATTEMPTS` | `2` | Bounded retry budget for the full-agent syntax-repair fallback (the last rung in the Mermaid ladder). |
-| `MERMAID_REPAIR_MODEL` | (fast tier) | Override the model id used by the single-shot syntax fixer. |
+| `MERMAID_REPAIR_MODEL` | (fast tier) | Override the model id used by the single-shot syntax fixer (Mermaid and Infographic fixers). |
 | `MERMAID_REPAIR_BACKEND` | (auto) | Pin the syntax fixer to `vertex` or `openrouter` independently of the intent backend. |
+| `MERMAID_STREAM_HEARTBEAT_MS` | `6000` | SSE heartbeat when an `agent-stream` has no events (clamped 1s–60s). |
+| `MERMAID_AGENT_RECURSION_LIMIT` | `50` | LangGraph ReAct step budget per run (clamped 25–200). |
+| `MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN` | `6` | Cap tool invocations per run (`0` disables the cap). |
+
+### Collaboration and production
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `PUBLIC_BASE_URL` | (derived) | Public origin for MCP invite URLs and deeplinks — **required on Cloud Run** (no trailing slash). |
+| `ARCHISLOP_WEB_URL` | (optional) | Vite app origin for `webCanvasUrl` in MCP tools when the UI is not same-host as the API (e.g. local dev: `http://localhost:5173`). |
+| `INVITE_TOKEN_SECRET` | dev placeholder | HMAC for signed `?token=` on `/mcp`; must be strong in production. |
+| `PAIRING_CODE_TTL_MS` / `PAIRING_INVITE_TTL_MS` | 60m / 30m | Pairing code lifetime; refreshed when **Invite agent** opens. |
+| `REDIS_URL` | unset | Share pairing codes across Cloud Run instances (diagram/session state stays in-process). |
+| `MCP_RATE_LIMIT_*` / `API_*_RATE_LIMIT_*` | see `.env.example` | Per-IP sliding windows on failed MCP joins, `join-room`, and LLM routes. |
+| `CORS_ALLOWED_ORIGINS` | unset | Extra allowed origins in production (`PUBLIC_BASE_URL` is always allowed). |
+
+Cloud Run operators: see [`docs/deploy/gcp.md`](docs/deploy/gcp.md) for `PUBLIC_BASE_URL`, `INVITE_TOKEN_SECRET` via Secret Manager, optional Redis, and `min-instances` guidance for MCP session stickiness.
 
 ### LLM configuration
 
@@ -306,6 +456,7 @@ The web client never sends raw model ids — only `modelProfile: "fast" | "quali
 | --- | --- | --- |
 | `GET` | `/api/health` | Liveness + `llmConfigured`, `runtimeReady` |
 | `GET` | `/api/copilotkit/state` | Current diagram state for session (active slot by default; pass `contentType` for a specific slot) |
+| `GET` | `/api/copilotkit/session-state` | Full session payload (both slots + `activeContentType`) |
 | `POST` | `/api/copilotkit/state` | Client sync of editor source into server state (`contentType` selects the slot) |
 | `POST` | `/api/copilotkit/intent` | **Intent** path: prompt-bar **Go**, **Fix from critique**, and syntax **auto-fix** (JSON; `contentType` routes to Mermaid or Infographic agent) |
 | `POST` | `/api/copilotkit/transform` | Refine / innovate / goMad (JSON response; `contentType` forwarded) |
@@ -313,6 +464,18 @@ The web client never sends raw model ids — only `modelProfile: "fast" | "quali
 | `POST` | `/api/copilotkit/style` | Style-only patch (`%%init%%` / theme shaping) — **Mermaid only**, rejects `contentType: infographic` |
 | `POST` | `/api/copilotkit/agent-stream` | SSE: tokens, tool phases, `final`, `done` (`contentType` forwarded) |
 | `*` | `/api/copilotkit/...` | CopilotKit AG-UI routes (runtime handler) |
+| `GET` | `/api/copilotkit/invite` | MCP URL, pairing code, QR, Cursor/VS Code install links |
+| `POST` | `/api/copilotkit/invite/rotate-pairing` | Invalidate current pairing code (same session) |
+| `POST` | `/api/copilotkit/join-room` | Bind a room with `{ pairingCode }` → `{ sessionId }` (rate-limited) |
+| `GET` | `/api/copilotkit/session-events` | SSE: handshakes, proposals, presence, insights, reactions |
+| `GET` | `/api/copilotkit/presence` | Connected agents snapshot |
+| `GET` | `/api/copilotkit/handshakes` | Pending handshake requests |
+| `POST` | `/api/copilotkit/handshakes/:requestId/approve` | Approve external agent |
+| `POST` | `/api/copilotkit/handshakes/:requestId/deny` | Deny external agent |
+| `GET` | `/api/copilotkit/proposals` | Pending diagram proposals |
+| `POST` | `/api/copilotkit/proposals/:proposalId/accept` | Accept proposal (applies patch) |
+| `POST` | `/api/copilotkit/proposals/:proposalId/reject` | Reject proposal |
+| `*` | `/mcp` | MCP Streamable HTTP (optional `?pairing=` / `?session=` on initialize) |
 
 ## Tests
 

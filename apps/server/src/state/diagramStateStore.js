@@ -127,7 +127,7 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
     return { accepted: true, state: next };
   }
 
-  async function applyToMermaidSlot({ diagramSource, reason }) {
+  async function applyToMermaidSlot({ diagramSource, reason, origin }) {
     const slot = session.mermaid;
     const prepared = await validateAndPreparePatch({
       currentState: slot,
@@ -139,7 +139,8 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
       return prepared;
     }
 
-    const applied = applyPatch(slot, prepared.patch);
+    const patchWithOrigin = origin ? { ...prepared.patch, origin } : prepared.patch;
+    const applied = applyPatch(slot, patchWithOrigin);
     if (!applied.accepted) {
       return applied;
     }
@@ -147,13 +148,13 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
 
     return {
       accepted: true,
-      patch: prepared.patch,
+      patch: patchWithOrigin,
       state: applied.state,
       metadata: prepared.metadata
     };
   }
 
-  async function applyToInfographicSlot({ diagramSource, reason }) {
+  async function applyToInfographicSlot({ diagramSource, reason, origin }) {
     const slot = session.infographic;
     const prepared = await validateAndPrepareInfographicPatch({
       currentState: slot,
@@ -164,7 +165,8 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
       return prepared;
     }
 
-    const applied = applyPatch(slot, prepared.patch);
+    const patchWithOrigin = origin ? { ...prepared.patch, origin } : prepared.patch;
+    const applied = applyPatch(slot, patchWithOrigin);
     if (!applied.accepted) {
       return applied;
     }
@@ -172,7 +174,7 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
 
     return {
       accepted: true,
-      patch: prepared.patch,
+      patch: patchWithOrigin,
       state: applied.state,
       metadata: prepared.metadata
     };
@@ -219,12 +221,12 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
       return syncInfographicSlot({ diagramSource });
     },
 
-    async applyDiagramSource({ contentType, diagramSource, reason }) {
+    async applyDiagramSource({ contentType, diagramSource, reason, origin }) {
       assertContentType(contentType);
       if (contentType === 'mermaid') {
-        return applyToMermaidSlot({ diagramSource, reason });
+        return applyToMermaidSlot({ diagramSource, reason, origin });
       }
-      return applyToInfographicSlot({ diagramSource, reason });
+      return applyToInfographicSlot({ diagramSource, reason, origin });
     },
 
     /**
@@ -243,6 +245,21 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
       };
       replaceSlot(contentType, next);
       return next;
+    },
+
+    /**
+     * Copy `lastUserPrompt` to the sibling slot (metadata only) so mode-switch topic carry-over
+     * and peer-context matching work before the user visits the other mode.
+     */
+    mirrorLastUserPromptToSibling({ contentType, prompt }) {
+      assertContentType(contentType);
+      const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
+      if (!trimmed) return session[contentType];
+      const value = trimmed.slice(0, 4000);
+      const sibling = contentType === 'mermaid' ? 'infographic' : 'mermaid';
+      const siblingSlot = session[sibling];
+      replaceSlot(sibling, { ...siblingSlot, lastUserPrompt: value });
+      return session[contentType];
     }
   };
 }

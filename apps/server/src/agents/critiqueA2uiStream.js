@@ -14,5 +14,9 @@ export function emitCritiqueA2uiBeforeFinal(emit, input) {
   if (typeof text !== 'string' || !text.trim()) return;
   const messages = buildCritiqueActionableA2uiMessages(text);
   if (!messages.length) return;
-  emit(createLegacyA2uiStreamEvent(messages));
+  if (typeof emit.a2ui === 'function') {
+    emit.a2ui(messages);
+  } else {
+    emit(createLegacyA2uiStreamEvent(messages));
+  }
 }

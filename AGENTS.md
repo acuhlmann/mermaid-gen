@@ -60,12 +60,23 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 ## Key code locations
 
-- Server entrypoint: `apps/server/src/index.js`
-- Copilot server routes: `apps/server/src/routes/copilot.js`
+- Server entrypoint: `apps/server/src/index.js` (mounts `/api/copilotkit`, `/mcp`, CopilotKit handler)
+- Copilot + collaboration routes: `apps/server/src/routes/copilot.js` (intent/transform/analyze, invite, session-events, handshakes, proposals)
+- MCP server + tools: `apps/server/src/mcp/mcpServer.js`; MCP App HTML: `apps/server/src/mcp/apps/`
 - Mermaid validation helper: `apps/server/src/tools/mermaidDiffTool.js`
 - Shared exports/schemas: `packages/shared/src/`
-- A2UI critique payloads (wire) + AG-UI: [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md); actionable checklist UI: `apps/web/src/components/InsightsPane.jsx` (`ActionableImprovementsPanel`)
 - Web app entry/UI: `apps/web/src/`
+- Session event bus: `apps/server/src/state/sessionEventBus.js`; web client: `apps/web/src/state/sessionEventsClient.js`
+
+## Architecture docs (read before changing wire contracts)
+
+| Doc | Topic |
+| --- | --- |
+| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix |
+| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events |
+| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) | AG-UI SSE for built-in `agent-stream` |
+| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) | A2UI critique `CUSTOM` on AG-UI streams |
+| [`README.md`](README.md) | Human-facing overview, setup, endpoints |
 
 ## CopilotKit skill note
 
@@ -76,7 +87,8 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 ## Environment and integration notes
 
 - Health endpoint: `GET /api/health`
-- Copilot endpoints live under: `/api/copilotkit/*`
+- Built-in agents + collaboration: `/api/copilotkit/*` (including `session-events` SSE)
+- External agents: `POST/GET /mcp` (Streamable HTTP); set `PUBLIC_BASE_URL` and production `INVITE_TOKEN_SECRET` for invite URLs; optional `ARCHISLOP_WEB_URL` when UI and API origins differ
 - Never commit `.env` or secrets.
 
 ## Agent workflow guidance
@@ -103,8 +115,8 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 - **Environment file**: `.env` must exist (copy from `.env.example` if missing). Run `npm run setup` for `npm install`, CopilotKit skills refresh, and `gcloud` install when missing (`scripts/setup-gcloud.sh`); ensure `.env` is present before starting services.
 - **Starting dev servers**: `npm run dev` launches both the Express server (on the port defined by `PORT` in `.env`, default 4000) and Vite dev server (port 5173) via `concurrently`. Use `curl http://localhost:$PORT/api/health` to verify the server is up. The health response includes `llmConfigured` (true when any LLM backend resolves: OpenRouter key and/or Vertex project + region per `LLM_PROVIDER`; see `resolveLlmBackend` in `apps/server/src/agents/llmProvider.js`) and `runtimeReady`.
-- **No database or Docker required**: All state is in-memory per session. No external services need to be running for local dev or tests.
-- **Tests**: `npm test` runs all workspaces sequentially (shared → server → web). Server tests use Node's built-in test runner; web tests use Vitest. All tests (143+ across workspaces) should pass without any API key.
+- **No database or Docker required** for local dev: diagram and collaboration state are in-memory per server process. Optional **`REDIS_URL`** shares pairing codes across Cloud Run instances (see `.env.example`); diagram slots are not Redis-backed yet.
+- **Tests**: `npm test` runs all workspaces sequentially (shared → server → web). Server tests use Node's built-in test runner; web tests use Vitest. All tests should pass without any API key (300+ cases across workspaces).
 - **Lint**: Only `apps/web` has an ESLint config (`npm run lint -w apps/web`). There are pre-existing lint errors in the codebase (24 errors, 2 warnings as of initial setup).
 - **Build**: `npm run build` builds shared → server → web. The web build produces a Vite bundle with a chunk-size warning that can be ignored.
 - **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` for local dev, or Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503. The app still loads and renders diagrams, but AI generation will not work.

@@ -5,6 +5,28 @@
  * @typedef {{ startLineNumber: number, startColumn: number, endLineNumber: number, endColumn: number }} SourceRange
  */
 
+/** First non-comment diagram directive (after optional YAML frontmatter fences). */
+export function peekDiagramDirective(source) {
+  if (!source || typeof source !== 'string') return 'unknown';
+  const lines = source.split(/\r?\n/);
+  let inYamlFence = false;
+  for (let i = 0; i < lines.length && i < 48; i++) {
+    const t = stripLineComment(lines[i]).trim();
+    if (!t || t.startsWith('%%')) continue;
+    if (t === '---') {
+      inYamlFence = !inYamlFence;
+      continue;
+    }
+    if (inYamlFence) continue;
+    const low = t.toLowerCase();
+    if (low.startsWith('sequencediagram')) return 'sequence';
+    if (/^statediagram(?:-v2)?\b/i.test(t)) return 'state';
+    if (/^(flowchart|graph)\b/i.test(low)) return 'flowchart';
+    return 'unknown';
+  }
+  return 'unknown';
+}
+
 /** Strip %% line comments for scanning (keeps diagram keywords intact). */
 export function stripLineComment(line) {
   const idx = line.indexOf('%%');
@@ -165,6 +187,40 @@ export function findVertexIdColumn(line, logicalId) {
  * @param {string} logicalId
  * @returns {SourceRange|null}
  */
+/**
+ * Locate sequenceDiagram participant/actor declarations or message-line mentions.
+ * @param {string} source
+ * @param {string} logicalId
+ * @returns {SourceRange|null}
+ */
+export function findSequenceParticipantRange(source, logicalId) {
+  if (!logicalId) return null;
+  const lines = source.split(/\r?\n/);
+  const escaped = escapeRegExp(logicalId);
+  const declareRe = new RegExp(`^\\s*(?:participant|actor)\\s+(${escaped})\\b`, 'i');
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = stripLineComment(lines[i]);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('%%')) continue;
+    const dm = line.match(declareRe);
+    if (dm) {
+      return rangeForToken(lines, i, line.indexOf(dm[1]), logicalId);
+    }
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = stripLineComment(lines[i]);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('%%')) continue;
+    const col = findVertexIdColumn(line, logicalId);
+    if (col !== null) {
+      return rangeForToken(lines, i, col, logicalId);
+    }
+  }
+  return null;
+}
+
 export function findFlowchartVertexRange(source, logicalId) {
   if (!logicalId) return null;
   const lines = source.split(/\r?\n/);
@@ -236,6 +292,9 @@ export function findMermaidSourceRange(source, opts) {
   if (!logicalId) return null;
   if (kind === 'cluster') {
     return findSubgraphBlockRange(source, logicalId);
+  }
+  if (peekDiagramDirective(source) === 'sequence') {
+    return findSequenceParticipantRange(source, logicalId);
   }
   return findFlowchartVertexRange(source, logicalId);
 }

@@ -19,7 +19,7 @@ import {
   CustomEventSchema
 } from '@ag-ui/core';
 import {
-  createAgUiEmit,
+  createAgentStreamEmitter,
   customEvent,
   newRunIds,
   runError,
@@ -105,10 +105,10 @@ test('every helper validates against EventSchemas discriminated union', () => {
   }
 });
 
-test('createAgUiEmit translates a full legacy lifecycle into AG-UI events', () => {
+test('createAgentStreamEmitter translates a full legacy lifecycle into AG-UI events', () => {
   const ids = newRunIds();
   const captured = [];
-  const emit = createAgUiEmit({
+  const emit = createAgentStreamEmitter({
     rawEmit: (e) => captured.push(e),
     threadId: ids.threadId,
     runId: ids.runId,
@@ -186,10 +186,10 @@ test('createAgUiEmit translates a full legacy lifecycle into AG-UI events', () =
   }
 });
 
-test('createAgUiEmit on legacy error closes open message + emits RUN_ERROR', () => {
+test('createAgentStreamEmitter on legacy error closes open message + emits RUN_ERROR', () => {
   const ids = newRunIds();
   const captured = [];
-  const emit = createAgUiEmit({
+  const emit = createAgentStreamEmitter({
     rawEmit: (e) => captured.push(e),
     threadId: ids.threadId,
     runId: ids.runId,

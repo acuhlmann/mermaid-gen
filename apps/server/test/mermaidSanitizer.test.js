@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { sanitizeMermaid, __internal } from '../src/agents/mermaidSanitizer.js';
+import { sanitizeMermaid, prepareMermaidForRender, __internal } from '@archislop/shared';
 import { validateAndPreparePatch } from '../src/tools/mermaidDiffTool.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
@@ -82,6 +82,22 @@ test('quoteLabelsWithSpecials leaves plain alphanumeric labels alone', () => {
   assert.equal(__internal.quoteLabelsWithSpecials('flowchart TD\n  A[Plain Label] --> B'), null);
 });
 
+test('quoteLabelsWithSpecials does not mangle circle shape `id((label))`', () => {
+  // Regression: the regex used to match `id(label)` greedily, capturing the inner `(`
+  // of a circle node `ROOT((Key AI Domains))` and producing the invalid `ROOT("(Key AI Domains"))`.
+  assert.equal(
+    __internal.quoteLabelsWithSpecials('graph TD\n  ROOT((Key AI Domains)) --> ML'),
+    null
+  );
+});
+
+test('quoteLabelsWithSpecials does not mangle subroutine shape `id[[label]]`', () => {
+  assert.equal(
+    __internal.quoteLabelsWithSpecials('flowchart TD\n  SUB[[Sub routine]] --> X'),
+    null
+  );
+});
+
 test('stripInvalidSemicolons removes trailing ; outside flowchart', () => {
   const out = __internal.stripInvalidSemicolons('sequenceDiagram\n  Alice->>Bob: hi;\n  Bob->>Alice: ok;');
   assert.doesNotMatch(out, /;$/m);
@@ -118,6 +134,45 @@ test('repairInitDirective handles trailing commas', () => {
 test('repairInitDirective returns null when init JSON is unrecoverable', () => {
   const src = '%%{init: this is not even close to json}%%\nflowchart TD\n  A --> B';
   assert.equal(__internal.repairInitDirective(src), null);
+});
+
+test('expandCommaSeparatedStyleLines splits multi-node style rows', () => {
+  const src = `flowchart TD
+  A --> B
+  style B,C fill:#efffe5,stroke:#89e219
+  style G,H,I fill:#fff4b8,stroke:#ffc800`;
+  const out = __internal.expandCommaSeparatedStyleLines(src);
+  assert.ok(out);
+  assert.match(out, /style B fill:#efffe5,stroke:#89e219/);
+  assert.match(out, /style C fill:#efffe5,stroke:#89e219/);
+  assert.match(out, /style G fill:#fff4b8,stroke:#ffc800/);
+  assert.match(out, /style I fill:#fff4b8,stroke:#ffc800/);
+  assert.doesNotMatch(out, /style B,C/);
+});
+
+test('prepareMermaidForRender is idempotent on expanded style lines', () => {
+  const src = 'flowchart TD\n  A --> B\n  style B,C fill:#eee';
+  const once = prepareMermaidForRender(src);
+  const twice = prepareMermaidForRender(once);
+  assert.equal(once, twice);
+  assert.match(once, /style B fill:#eee/);
+  assert.match(once, /style C fill:#eee/);
+});
+
+test('validateAndPreparePatch expands comma-separated style lines in stored source', async () => {
+  const stateStore = createDiagramStateStore();
+  const result = await validateAndPreparePatch({
+    currentState: stateStore.getState(),
+    proposedMermaidSource: `flowchart TD
+  A --> B
+  A --> C
+  style B,C fill:#efffe5,stroke:#89e219`,
+    reason: 'style expand'
+  });
+  assert.equal(result.accepted, true);
+  assert.match(result.patch.diagramSource, /style B fill:#efffe5/);
+  assert.match(result.patch.diagramSource, /style C fill:#efffe5/);
+  assert.doesNotMatch(result.patch.diagramSource, /style B,C/);
 });
 
 test('sanitizeMermaid composes fixers — smart quotes + parens labels', () => {

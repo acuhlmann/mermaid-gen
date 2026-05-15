@@ -673,15 +673,18 @@ export function emitIntentTransformStreamResult({
   revisionBefore,
   stateStore,
   agentResult,
-  prompt
+  prompt,
+  contentType = 'mermaid'
 }) {
-  let afterState = stateStore.getSlot('mermaid');
+  const slotKey = contentType === 'infographic' ? 'infographic' : 'mermaid';
+  let afterState = stateStore.getSlot(slotKey);
   const revisionChanged =
     typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
 
   // Record the topic on a successful intent so mode-switch can carry it across.
   if (revisionChanged && operation === 'intent' && typeof prompt === 'string') {
-    afterState = stateStore.setLastUserPrompt({ contentType: 'mermaid', prompt });
+    afterState = stateStore.setLastUserPrompt({ contentType: slotKey, prompt });
+    stateStore.mirrorLastUserPromptToSibling({ contentType: slotKey, prompt });
   }
 
   if (typeof emit === 'function' && !revisionChanged && (operation === 'intent' || operation === 'transform')) {

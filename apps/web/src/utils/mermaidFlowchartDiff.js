@@ -1,4 +1,6 @@
-import { parseSubgraphHeaderId, stripLineComment } from './mermaidSourceLocate.js';
+import { parseSubgraphHeaderId, peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js';
+
+export { peekDiagramDirective };
 
 /** Mermaid keywords / diagram keywords — excluded from edge-line token extraction. */
 const TOKEN_DENYLIST = new Set([
@@ -30,28 +32,6 @@ const VERTEX_DEFINE_RE = /^\s*([A-Za-z][A-Za-z0-9_-]*)\s*[\[(\{<>]/;
 
 function normalizeLine(s) {
   return s.trim().replace(/\s+/g, ' ');
-}
-
-/** First non-comment diagram directive (after optional YAML frontmatter fences). */
-export function peekDiagramDirective(source) {
-  if (!source || typeof source !== 'string') return 'unknown';
-  const lines = source.split(/\r?\n/);
-  let inYamlFence = false;
-  for (let i = 0; i < lines.length && i < 48; i++) {
-    const t = stripLineComment(lines[i]).trim();
-    if (!t || t.startsWith('%%')) continue;
-    if (t === '---') {
-      inYamlFence = !inYamlFence;
-      continue;
-    }
-    if (inYamlFence) continue;
-    const low = t.toLowerCase();
-    if (low.startsWith('sequencediagram')) return 'sequence';
-    if (/^statediagram(?:-v2)?\b/i.test(t)) return 'state';
-    if (/^(flowchart|graph)\b/i.test(low)) return 'flowchart';
-    return 'unknown';
-  }
-  return 'unknown';
 }
 
 /**

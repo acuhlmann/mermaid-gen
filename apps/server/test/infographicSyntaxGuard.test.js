@@ -32,6 +32,7 @@ test('system prompt advertises one concrete template from each major family', ()
   assert.match(INFOGRAPHIC_SYSTEM_PROMPT, /LANGUAGE LOCK/);
   assert.match(INFOGRAPHIC_SYSTEM_PROMPT, /ICONS/);
   assert.match(INFOGRAPHIC_SYSTEM_PROMPT, /Self-check before emitting/);
+  assert.match(INFOGRAPHIC_SYSTEM_PROMPT, /Under `theme`, ONLY `palette`/);
   // Per-family data shapes must spell out the correct main data field for sequence/chart/relation.
   assert.match(INFOGRAPHIC_SYSTEM_PROMPT, /`sequence-\*` → `sequences`/);
   assert.match(INFOGRAPHIC_SYSTEM_PROMPT, /`chart-\*` → `values`/);

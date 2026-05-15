@@ -158,3 +158,24 @@ test('setLastUserPrompt truncates very long prompts to 4000 chars', () => {
   store.setLastUserPrompt({ contentType: 'mermaid', prompt: longPrompt });
   assert.equal(store.getSlot('mermaid').lastUserPrompt.length, 4000);
 });
+
+test('mirrorLastUserPromptToSibling copies topic to sibling without changing diagramSource', () => {
+  const store = createDiagramStateStore();
+  const mermaidBefore = store.getSlot('mermaid').diagramSource;
+  const infographicBefore = store.getSlot('infographic').diagramSource;
+
+  store.setLastUserPrompt({ contentType: 'infographic', prompt: 'Solar system' });
+  store.mirrorLastUserPromptToSibling({ contentType: 'infographic', prompt: 'Solar system' });
+
+  assert.equal(store.getSlot('infographic').lastUserPrompt, 'Solar system');
+  assert.equal(store.getSlot('mermaid').lastUserPrompt, 'Solar system');
+  assert.equal(store.getSlot('mermaid').diagramSource, mermaidBefore);
+  assert.equal(store.getSlot('infographic').diagramSource, infographicBefore);
+});
+
+test('mirrorLastUserPromptToSibling ignores blank prompts', () => {
+  const store = createDiagramStateStore();
+  store.setLastUserPrompt({ contentType: 'mermaid', prompt: 'keep me' });
+  store.mirrorLastUserPromptToSibling({ contentType: 'mermaid', prompt: '   ' });
+  assert.equal(store.getSlot('infographic').lastUserPrompt, null);
+});

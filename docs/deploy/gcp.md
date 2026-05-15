@@ -172,6 +172,17 @@ That creates or updates secret **`openrouter-api-key`**, grants the default Clou
 
 Optional: set **`OPENROUTER_SITE_URL`** to your public app URL (e.g. `https://mermaid-gen-main-….run.app`) for OpenRouter metadata—either add `--set-env-vars` on update or redeploy with env vars.
 
+### Invite token secret (production MCP)
+
+Signed invite links (`?token=` on `/mcp`) require **`INVITE_TOKEN_SECRET`**. The dev server uses a placeholder; production must use a strong random value in Secret Manager.
+
+```bash
+chmod +x scripts/push-invite-token-secret-cloud-run.sh
+GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-invite-token-secret-cloud-run.sh
+```
+
+This creates or rotates secret **`invite-token-secret`**, grants the runtime service account access, and attaches **`INVITE_TOKEN_SECRET`** to **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**. Deploy scripts also reference this secret when present ([`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh)).
+
 ### Manual steps
 
 ```bash
@@ -275,6 +286,16 @@ gcloud run deploy mermaid-gen-hackathon \
 
 Optional environment variables (model overrides, `MERMAID_*` tuning, etc.) can be appended with additional `--set-env-vars` flags or a comma-separated list; mirror variables from [`.env.example`](../../.env.example).
 
+### MCP and external agents on Cloud Run
+
+ArchiSlop serves **Streamable HTTP MCP** at `/mcp` on the same Cloud Run service as the API. **Invite agent** in the web UI builds pairing codes and install deeplinks from **`PUBLIC_BASE_URL`** — set it to the public service origin **without a trailing slash**, for example:
+
+```bash
+--set-env-vars=PUBLIC_BASE_URL=https://mermaid-gen-main-PROJECT_NUMBER.us-central1.run.app
+```
+
+If unset, invite links may fall back to `localhost` and external agents cannot join production rooms. Guest-agent flows (handshakes, proposals, MCP Apps) are documented in [`docs/architecture-external-agents.md`](../architecture-external-agents.md).
+
 ### B) One custom domain with `/hackathon` path (optional)
 
 To present **one hostname** where `/` is **main** and `/hackathon/` is the frozen build:
@@ -296,7 +317,13 @@ This adds monthly load balancer cost and more moving parts; use it when you need
 curl -sS "https://YOUR_SERVICE_URL/api/health"
 ```
 
-Open the service URL in a browser and confirm the UI loads and Copilot traffic reaches `/api/copilotkit/*`.
+Open the service URL in a browser and confirm the UI loads, Copilot traffic reaches `/api/copilotkit/*`, and (if using external agents) **Invite agent** shows an `https://…/mcp` URL matching `PUBLIC_BASE_URL`.
+
+### External agents on Cloud Run (MCP + pairing)
+
+- **MCP transport** (`/mcp`) keeps Streamable HTTP session state **in-process**. For reliable MCP without Redis, set **`--min-instances=1`** on the service so clients stay on one revision/instance, or accept occasional `400` after scale-out until the client re-initializes.
+- **Pairing codes** can be shared across instances when **`REDIS_URL`** is set (see `.env.example`). Diagram/session collaboration state remains in-memory per instance unless you add further shared storage.
+- Set **`PUBLIC_BASE_URL`**, **`INVITE_TOKEN_SECRET`** (production), and optionally **`ARCHISLOP_WEB_URL`** for correct invite/deeplink and canvas URLs.
 
 ## Investigation commands
 

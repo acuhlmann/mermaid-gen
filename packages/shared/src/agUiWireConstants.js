@@ -1,16 +1,35 @@
 /**
- * AG-UI `CUSTOM` event `name` values produced or consumed by archislop.
- * Keep server (`createAgUiEmit`) and web (`createAgUiTranslator`) aligned.
+ * AG-UI wire contracts shared by server emitters and web translators.
+ * Documented in docs/architecture-ag-ui.md.
  */
+
+/** AG-UI `CUSTOM` event `name` values. */
 export const AGUI_CUSTOM_NAME_A2UI = 'a2ui';
 export const AGUI_CUSTOM_NAME_STATUS = 'status';
+export const AGUI_CUSTOM_NAME_ARTIFACT = 'artifact';
+export const AGUI_CUSTOM_NAME_LEGACY = 'legacy';
 
-/** Legacy stream `{ type }` before `createAgUiEmit` maps it to AG-UI `CUSTOM`. */
+/** Legacy stream `{ type }` consumed by `createAgentStreamEmitter` / web translator. */
 export const LEGACY_STREAM_TYPE_A2UI = 'a2ui';
+
+/** RFC 6902 paths on AG-UI STATE_DELTA / STATE_SNAPSHOT. */
+export const AGUI_STATE_PATH_LAST_PATCH_SUMMARY = '/lastPatchSummary';
+export const AGUI_STATE_PATH_MERMAID_REVISION = '/mermaid/revisionId';
+export const AGUI_STATE_PATH_INFOGRAPHIC_REVISION = '/infographic/revisionId';
+
+export function agUiDraftSourcePath(contentType) {
+  const slot = contentType === 'infographic' ? 'infographic' : 'mermaid';
+  return `/${slot}/draftSource`;
+}
+
+export function agUiRevisionPath(contentType) {
+  return contentType === 'infographic'
+    ? AGUI_STATE_PATH_INFOGRAPHIC_REVISION
+    : AGUI_STATE_PATH_MERMAID_REVISION;
+}
 
 /**
  * Legacy emit payload for host-built A2UI messages (critique checklist, future surfaces).
- * Server agents call `emit(...)` with this shape; `createAgUiEmit` turns it into AG-UI `CUSTOM`.
  *
  * @param {unknown[]} messages
  * @returns {{ type: typeof LEGACY_STREAM_TYPE_A2UI, messages: unknown[] }}

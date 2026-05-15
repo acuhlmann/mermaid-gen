@@ -171,8 +171,8 @@ function escapeReservedNodeIds(source) {
 /** Wrap node and edge labels containing problematic characters in double quotes. Idempotent. */
 function quoteLabelsWithSpecials(source) {
   let changed = false;
-  // Node labels in []
-  let updated = source.replace(/(\w[\w-]*)\[([^\]\n]+)\]/g, (whole, id, label) => {
+  // Node labels in [] — skip subroutine shapes `id[[…]]` so we don't break them.
+  let updated = source.replace(/(\w[\w-]*)\[(?!\[)([^\]\n]+)\](?!\])/g, (whole, id, label) => {
     const inner = label.trim();
     if (inner.length === 0) return whole;
     if (/^".*"$/.test(inner)) return whole;
@@ -182,8 +182,8 @@ function quoteLabelsWithSpecials(source) {
     changed = true;
     return `${id}["${inner}"]`;
   });
-  // Node labels in ()
-  updated = updated.replace(/(\w[\w-]*)\(([^)\n]+)\)/g, (whole, id, label) => {
+  // Node labels in () — skip circle shapes `id((…))` so we don't break them.
+  updated = updated.replace(/(\w[\w-]*)\((?!\()([^)\n]+)\)(?!\))/g, (whole, id, label) => {
     const inner = label.trim();
     if (inner.length === 0) return whole;
     if (/^".*"$/.test(inner)) return whole;
@@ -237,6 +237,63 @@ function quoteBracketLabelsWithEmbeddedQuotes(source) {
     return `${id}("${esc(inner)}")`;
   });
   return changed ? updated : null;
+}
+
+/**
+ * Mermaid `style` accepts one node id per line; comma lists (e.g. `style B,C,D fill:#fff`)
+ * are parsed as a single bogus node id. Expand to one `style` line per id (classDef/class
+ * already support comma lists — this fix is style-only).
+ */
+const STYLE_LINE_PROPERTY_RE = /\b(fill|stroke|stroke-width|color|stroke-dasharray)\s*:/i;
+
+function expandCommaSeparatedStyleLines(source) {
+  if (!FLOWCHART_FAMILY_RE.test(source)) return null;
+
+  const lines = source.split('\n');
+  let changed = false;
+  const out = [];
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!/^\s*style\s+/i.test(trimmed)) {
+      out.push(line);
+      continue;
+    }
+
+    const bodyMatch = trimmed.match(/^\s*style\s+(.+)$/i);
+    if (!bodyMatch) {
+      out.push(line);
+      continue;
+    }
+
+    const rest = bodyMatch[1];
+    const propMatch = STYLE_LINE_PROPERTY_RE.exec(rest);
+    if (!propMatch) {
+      out.push(line);
+      continue;
+    }
+
+    const idPart = rest.slice(0, propMatch.index).trim();
+    const propPart = rest.slice(propMatch.index).trim();
+    if (!idPart.includes(',')) {
+      out.push(line);
+      continue;
+    }
+
+    const ids = idPart.split(/\s*,\s*/).filter(Boolean);
+    if (ids.length < 2) {
+      out.push(line);
+      continue;
+    }
+
+    const indent = line.match(/^\s*/)?.[0] ?? '';
+    for (const id of ids) {
+      out.push(`${indent}style ${id} ${propPart}`);
+    }
+    changed = true;
+  }
+
+  return changed ? out.join('\n') : null;
 }
 
 /** Strip trailing semicolons outside flowchart/graph (other diagram types reject them). */
@@ -304,6 +361,7 @@ const FIXERS = [
   { name: 'normalizeSmartQuotes', fn: normalizeSmartQuotes },
   { name: 'normalizeDiagramHeader', fn: normalizeDiagramHeader },
   { name: 'repairInitDirective', fn: repairInitDirective },
+  { name: 'expandCommaSeparatedStyleLines', fn: expandCommaSeparatedStyleLines },
   { name: 'escapeReservedNodeIds', fn: escapeReservedNodeIds },
   { name: 'quoteLabelsWithSpecials', fn: quoteLabelsWithSpecials },
   { name: 'quoteBracketLabelsWithEmbeddedQuotes', fn: quoteBracketLabelsWithEmbeddedQuotes },
@@ -318,6 +376,19 @@ const FIXERS = [
  * @param {string} source
  * @param {{parseError?: string | null}} [ctx]
  */
+/**
+ * Lightweight pre-render normalization (safe to run on every client render).
+ * Expands invalid multi-node `style` lines; idempotent.
+ *
+ * @param {string} source
+ * @returns {string}
+ */
+export function prepareMermaidForRender(source) {
+  if (typeof source !== 'string' || source.trim() === '') return source;
+  const expanded = expandCommaSeparatedStyleLines(source);
+  return expanded ?? source;
+}
+
 export function sanitizeMermaid(source, ctx = {}) {
   if (typeof source !== 'string' || source.trim() === '') {
     return { sanitized: source, applied: [] };
@@ -348,5 +419,6 @@ export const __internal = {
   quoteBracketLabelsWithEmbeddedQuotes,
   stripInvalidSemicolons,
   closeUnbalancedSubgraphs,
-  repairInitDirective
+  repairInitDirective,
+  expandCommaSeparatedStyleLines
 };

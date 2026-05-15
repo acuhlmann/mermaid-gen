@@ -1,15 +1,31 @@
-import { startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
+import RadialActionMenu from './components/RadialActionMenu.jsx';
+import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
+import AgentPresenceBar from './components/AgentPresenceBar.jsx';
+import InviteAgentDialog from './components/InviteAgentDialog.jsx';
+import {
+  openSessionEventsStream,
+  approveHandshake,
+  denyHandshake,
+  acceptProposal as acceptProposalApi,
+  rejectProposal as rejectProposalApi,
+  joinRoomByPairingCode
+} from './state/sessionEventsClient.js';
+import { partKindLabel } from './utils/partKindLabel.js';
 import {
   buildIntentPeerContext,
   createSessionId,
   fallbackState,
   fetchSessionDiagramState,
+  isSlotInSyncForTopic,
   normalizeSessionId,
+  peerRequiresModeSwitchTranslation,
   readDiagramCache,
   SESSION_NOT_FOUND_CODE,
   shouldAutoSubmitModeSwitchIntent,
+  slotLastTopic,
   streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
@@ -19,22 +35,58 @@ import {
 import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent.js';
 import './App.css';
 import {
+  playAchievementFanfare,
+  playKonamiRainbow,
+  playRefinePolishLoop,
+  playInnovateSynthLoop,
+  playGoMadKlaxonLoop,
+  playGoMadAirhornBlast,
+  playCritiqueScribbleLoop,
+  playCritiquePenStab,
+  playExplainPageFlipLoop,
+  playComboStinger,
   playCompletionChime as playCompletionChimeTone,
   playConfettiPop,
+  playCritiqueBoot,
+  playCritiqueCompletion,
   playDraftTick,
+  playExplainBoot,
+  playExplainCompletion,
   playFailureChime,
+  playGoMadBoot,
   playGoMadCompletionChime,
   playGoMadStreamStart,
   playGoMadTokenTick,
+  playCritiqueTokenTick,
+  playExplainTokenTick,
+  playInnovateBoot,
+  playInnovateCompletion,
   playInnovateStreamStart,
+  playInnovateTokenTick,
   playModeSwoosh,
+  playPhaseChangePluck,
+  playRefineBoot,
+  playRefineCompletion,
   playRefineStreamStart,
+  playRefineTokenTick,
+  playStreakStinger,
   playStreamStartChime,
   playSubmitThunk,
   playTokenTickChime,
   playToolEndChime,
   playToolStartChime
 } from './utils/agentChimes.js';
+import ActionBootSequence from './components/ActionBootSequence.jsx';
+import StreakHud from './components/StreakHud.jsx';
+import SlopitectCompanion from './components/SlopitectCompanion.jsx';
+import LiveRunHud from './components/LiveRunHud.jsx';
+import {
+  applyCompletedRun,
+  createInitialState as createInitialGamificationState,
+  readFromStorage as readGamificationFromStorage,
+  writeToStorage as writeGamificationToStorage
+} from './state/runGamificationStore.js';
+import { CONSOLE_STAMP_LINES, PROMPT_EASTER_EGGS, IDLE_TIPS, KONAMI_ACHIEVEMENT } from './utils/slopitectCopy.js';
 import confetti from 'canvas-confetti';
 
 // canvas-confetti uses HTMLCanvasElement.getContext('2d') and trips on jsdom
@@ -54,9 +106,18 @@ function canvasConfettiAvailable() {
   }
   return _confettiSupportCache;
 }
-import { createInitialDiagramState, splitCritiqueActionableSections } from '@archislop/shared';
+import {
+  createInitialDiagramState,
+  diffInfographicSources,
+  LEGACY_STREAM_TYPE_A2UI,
+  splitCritiqueActionableSections
+} from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
+import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
+import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
+import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
+import { MOBILE_MEDIA_QUERY } from './utils/layoutBreakpoints.js';
 
 const TOOL_LABELS = {
   get_diagram_state: 'Read diagram snapshot',
@@ -75,69 +136,11 @@ function formatToolLabel(name, repeatCount = 1) {
 
 const STREAM_DEBUG_LS_KEY = 'archislop-stream-debug';
 
-const NODE_PANEL_EDGE_MARGIN = 12;
-const NODE_PANEL_NODE_GAP = 10;
-const NODE_ACTIONS_IDLE_MS = 8000;
+const RADIAL_MENU_CLOSE_GRACE_MS = 450;
 /** Auto-show diagram diff highlights after the final SVG for an agent-applied revision is on screen. */
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
 /** Avoid keeping a stale render handshake armed forever if the SVG never confirms. */
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
-
-function getVisualViewportBounds() {
-  const vv = typeof window !== 'undefined' ? window.visualViewport : null;
-  if (vv) {
-    const left = vv.offsetLeft;
-    const top = vv.offsetTop;
-    return {
-      left,
-      top,
-      right: left + vv.width,
-      bottom: top + vv.height
-    };
-  }
-  if (typeof window !== 'undefined') {
-    return {
-      left: 0,
-      top: 0,
-      right: window.innerWidth,
-      bottom: window.innerHeight
-    };
-  }
-  return { left: 0, top: 0, right: 0, bottom: 0 };
-}
-
-function computeNodePanelPlacement(toolbarAnchor, panelWidth, panelHeight, vv) {
-  const margin = NODE_PANEL_EDGE_MARGIN;
-  const gap = NODE_PANEL_NODE_GAP;
-  const height = panelHeight;
-  const width = panelWidth;
-  const anchorLeft = toolbarAnchor.left;
-  const anchorTopBelow = toolbarAnchor.top;
-
-  let finalTop = anchorTopBelow;
-  const bottomIfBelow = anchorTopBelow + height;
-  if (bottomIfBelow > vv.bottom - margin) {
-    finalTop = toolbarAnchor.nodeTop - gap - height;
-  }
-  if (finalTop < vv.top + margin) {
-    finalTop = vv.top + margin;
-  }
-  if (finalTop + height > vv.bottom - margin) {
-    finalTop = vv.bottom - margin - height;
-  }
-
-  let nudgeX = 0;
-  let rightEdge = anchorLeft + nudgeX + width / 2;
-  if (rightEdge > vv.right - margin) {
-    nudgeX -= rightEdge - (vv.right - margin);
-  }
-  let leftEdge = anchorLeft + nudgeX - width / 2;
-  if (leftEdge < vv.left + margin) {
-    nudgeX += vv.left + margin - leftEdge;
-  }
-
-  return { top: finalTop, nudgeX };
-}
 
 function readStreamDebugEnabled() {
   if (typeof window === 'undefined') return false;
@@ -163,6 +166,32 @@ function snapshotStreamEventForDebug(evt) {
     };
   }
   return evt;
+}
+
+function proposalToInsightEntry(proposal) {
+  return {
+    id: proposal.proposalId,
+    kind: 'proposal',
+    variant: 'general',
+    status: 'running',
+    statusText: 'Awaiting your decision.',
+    createdAt: proposal.createdAt ?? new Date().toISOString(),
+    proposal,
+    proposalStatus: 'pending'
+  };
+}
+
+function attributedInsightToInsightEntry(insight) {
+  return {
+    id: insight.insightId,
+    kind: 'attributed-note',
+    variant: insight.variant === 'critique' ? 'critique' : 'general',
+    status: 'done',
+    statusText: 'Note',
+    createdAt: insight.createdAt ?? new Date().toISOString(),
+    content: insight.text ?? '',
+    origin: insight.origin ?? null
+  };
 }
 
 function focusPayload(node) {
@@ -207,6 +236,9 @@ function goMadShapeLabel(streak) {
 
 function selectionActionTitle(selectionLike, verbLabel) {
   if (!selectionLike) return `${verbLabel} — diagram`;
+  if (selectionLike.partKind && selectionLike.partName) {
+    return `${verbLabel} · ${partKindLabel(selectionLike.partKind)} · ${selectionLike.partName}`;
+  }
   const edgeLike =
     selectionLike.kind === 'edge' ||
     (selectionLike.selectionKind === 'edge' && selectionLike.edgeFrom && selectionLike.edgeTo);
@@ -232,6 +264,19 @@ function selectionActionTitle(selectionLike, verbLabel) {
     return `${verbLabel} — subgraph “${selectionLike.label || selectionLike.id}”`;
   }
   return `${verbLabel} — node “${selectionLike.label || selectionLike.id}”`;
+}
+
+function descriptorKey(descriptor) {
+  if (!descriptor) return null;
+  return `${descriptor.kind || 'node'}|${descriptor.id || ''}|${descriptor.partKind || ''}|${descriptor.partName || ''}`;
+}
+
+function topicFromDescriptor(descriptor) {
+  if (!descriptor) return null;
+  if (descriptor.partKind && descriptor.partName) {
+    return { partKind: descriptor.partKind, partName: descriptor.partName };
+  }
+  return null;
 }
 
 const MODEL_PROFILE_STORAGE_KEY = 'archislop:model-profile';
@@ -275,16 +320,22 @@ function sessionPathFor(sessionId) {
   return `${basePath}/${SESSION_ROUTE_SEGMENT}/${encodeURIComponent(sessionId)}`;
 }
 
+/**
+ * @returns {{sessionId: string, fromUrl: boolean}} `fromUrl` is true when the URL already had
+ *   a session id we adopted; false when we minted a brand-new id (so the server hasn't seen it yet).
+ */
 function ensureUrlBackedSession() {
   const fallbackSessionId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
-  if (typeof window === 'undefined') return fallbackSessionId;
+  if (typeof window === 'undefined') return { sessionId: fallbackSessionId, fromUrl: false };
 
-  const sessionId = readSessionIdFromLocation(window.location) ?? fallbackSessionId;
+  const urlSessionId = readSessionIdFromLocation(window.location);
+  const sessionId = urlSessionId ?? fallbackSessionId;
+  const fromUrl = Boolean(urlSessionId);
   const nextPath = sessionPathFor(sessionId);
   if (window.location.pathname !== nextPath) {
     window.history.replaceState({}, '', `${nextPath}${window.location.search}${window.location.hash}`);
   }
-  return sessionId;
+  return { sessionId, fromUrl };
 }
 
 /** Default UI tier is Fast unless the user chose Quality and we persisted it. */
@@ -321,7 +372,7 @@ function MermaidMarkIcon() {
 
 function ArchiSlopMarkIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true">
+    <svg className="brand-helmet-svg" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true">
       <path d="M5 16 Q5 7 12 6 Q19 7 19 16 Z" fill="#F4A300" />
       <ellipse cx="12" cy="16" rx="9" ry="1.4" fill="#C77A00" />
       <path d="M12 6 L11 16 L13 16 Z" fill="#C77A00" opacity="0.55" />
@@ -373,6 +424,93 @@ function MicActiveIcon() {
   );
 }
 
+function AiCornerControlsInner({
+  contentMode,
+  onSelectContentMode,
+  modelProfile,
+  onSelectModelProfile,
+  modeSwitchDisabled,
+  pendingHandshake,
+  externalAgentPresence,
+  onInviteAgent,
+  agentThinkingChrome,
+  insightsOpen,
+  onToggleInsights
+}) {
+  return (
+    <>
+      <div className="model-profile-toggle" role="group" aria-label="Content mode">
+        <span className="model-profile-label">Mode</span>
+        <div className="model-profile-segment">
+          <button
+            type="button"
+            className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
+            aria-pressed={contentMode === 'mermaid'}
+            disabled={modeSwitchDisabled}
+            onClick={() => onSelectContentMode('mermaid')}
+          >
+            Diagram
+          </button>
+          <button
+            type="button"
+            className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
+            aria-pressed={contentMode === 'infographic'}
+            disabled={modeSwitchDisabled}
+            onClick={() => onSelectContentMode('infographic')}
+          >
+            Infographic
+          </button>
+        </div>
+      </div>
+      <div className="model-profile-toggle" role="group" aria-label="AI brain">
+        <span className="model-profile-label model-profile-label--brain">
+          <span className="model-profile-label-icon" aria-hidden="true">
+            <BrainIcon />
+          </span>
+          Brain
+        </span>
+        <div className="model-profile-segment">
+          <button
+            type="button"
+            className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
+            aria-pressed={modelProfile === 'fast'}
+            onClick={() => onSelectModelProfile('fast')}
+          >
+            Fast
+          </button>
+          <button
+            type="button"
+            className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
+            aria-pressed={modelProfile === 'quality'}
+            onClick={() => onSelectModelProfile('quality')}
+          >
+            Quality
+          </button>
+        </div>
+      </div>
+      <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
+        <span className="model-profile-label">Agents</span>
+        <div className="agent-collab-segment">
+          {pendingHandshake ? (
+            <span className="agent-handshake-waiting" role="status">
+              Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
+            </span>
+          ) : null}
+          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
+        </div>
+      </div>
+      <button
+        type="button"
+        className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
+        onClick={onToggleInsights}
+      >
+        <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
+        {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
+      </button>
+    </>
+  );
+}
+
 function useSyncVisualViewportHeight() {
   useEffect(() => {
     const root = document.documentElement;
@@ -400,10 +538,35 @@ function useSyncVisualViewportHeight() {
   }, []);
 }
 
+function useNarrowLayout() {
+  const [narrowLayout, setNarrowLayout] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(MOBILE_MEDIA_QUERY).matches
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
+    const sync = () => setNarrowLayout(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  return narrowLayout;
+}
+
 function ArchiSlop() {
   const initialSessionIdRef = useRef(null);
+  // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
+  // 404 handler uses this to decide whether to keep the same id or rotate to a new one.
+  const freshlyMintedSessionIdsRef = useRef(new Set());
   if (initialSessionIdRef.current == null) {
-    initialSessionIdRef.current = ensureUrlBackedSession();
+    const { sessionId: bootId, fromUrl } = ensureUrlBackedSession();
+    initialSessionIdRef.current = bootId;
+    if (!fromUrl) freshlyMintedSessionIdsRef.current.add(bootId);
   }
   const [activeSessionId, setActiveSessionId] = useState(initialSessionIdRef.current);
   const cacheRef = useRef(readDiagramCache(initialSessionIdRef.current));
@@ -437,12 +600,25 @@ function ArchiSlop() {
     return cachedCritique?.text ? cachedCritique : null;
   });
   const [critiqueActionableSelected, setCritiqueActionableSelected] = useState([]);
+  /** A2UI v0.9 messages from the latest critique stream (`CUSTOM a2ui`), when present. */
+  const [latestCritiqueA2uiMessages, setLatestCritiqueA2uiMessages] = useState(null);
   /** Successful consecutive Go Mad transforms; resets after Refine/Innovate/Intent/Clear/fix-from-critique. */
   const [goMadStreak, setGoMadStreak] = useState(0);
+  /** Slopitect gamification state (persisted) + transient emissions queue for StreakHud. */
+  const [gamification, setGamification] = useState(() => {
+    if (typeof window === 'undefined') return createInitialGamificationState();
+    return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
+  });
+  const [streakHudToasts, setStreakHudToasts] = useState([]);
+  const [streakHudAchievement, setStreakHudAchievement] = useState(null);
+  const streakEmissionSeqRef = useRef(0);
+  /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
+  const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
   const [selectedNode, setSelectedNode] = useState(null);
+  const [hoverDescriptor, setHoverDescriptor] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
-  const [nodePanelPlacement, setNodePanelPlacement] = useState(null);
-  const [viewportClampEpoch, setViewportClampEpoch] = useState(0);
+  /** Pinned radial menu; survives diagram hover leave until menu grace expires or explicit close. */
+  const [radialMenuSession, setRadialMenuSession] = useState(null);
   const [voiceSupported] = useState(
     () =>
       Boolean(
@@ -452,6 +628,11 @@ function ArchiSlop() {
   );
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceError, setVoiceError] = useState('');
+  /** External-agent collaboration: handshake awaiting user action, connected agents, ephemeral reactions, invite dialog. */
+  const [pendingHandshake, setPendingHandshake] = useState(null);
+  const [externalAgentPresence, setExternalAgentPresence] = useState([]);
+  const [agentReactions, setAgentReactions] = useState([]);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
@@ -483,8 +664,10 @@ function ArchiSlop() {
   const submitIntentFromVoiceRef = useRef(async (_text) => {});
   const lastTokenSoundAtRef = useRef(0);
   const goMadTokenTickIndexRef = useRef(0);
-  const nodeActionsPanelRef = useRef(null);
-  const nodePanelIdleTimerRef = useRef(null);
+  const hoverCloseTimerRef = useRef(null);
+  /** False after pan or menu pointer-leave; re-opens when selection id changes. */
+  const [radialMenuVisible, setRadialMenuVisible] = useState(false);
+  const prevSelectedNodeIdRef = useRef(null);
   const diagramAutoHighlightTimerRef = useRef(null);
   /** Until SVG renders, { entryId, revisionId } — arms highlights via `onDiagramSvgRendered`. */
   const pendingAutoDiagramHighlightRef = useRef(null);
@@ -493,13 +676,21 @@ function ArchiSlop() {
   /** Forward ref so the streaming `final` callback can call the latest arm fn without dep churn. */
   const armAutoDiagramChangeHighlightRef = useRef(null);
 
+  /** Single session topic; seeded from hydrate and updated on successful intent revisions. */
+  const sessionTopicRef = useRef(null);
+
   /**
-   * Last topic the user submitted in each mode. Drives auto-rerun on mode switch so a single
-   * topic produces consistent content across mermaid+infographic without the user having to
-   * re-type it. Seeded from `fetchSessionDiagramState` and bumped on every `final` event whose state
-   * carries a non-null `lastUserPrompt`.
+   * Per target mode: revision ids of the last successful peer→target mode-switch translation.
+   * Prevents ping-pong re-translation when toggling Diagram/Infographic without new edits.
    */
-  const lastTopicByModeRef = useRef({ mermaid: null, infographic: null });
+  const crossModeSyncRef = useRef({ mermaid: null, infographic: null });
+
+  /**
+   * One-shot flag set by handleRestoreToEntry when restoring across modes. The hydrate effect
+   * fires on contentMode change and would otherwise auto-rerun the topic in the new mode,
+   * clobbering the just-restored snapshot.
+   */
+  const suppressNextModeSwitchRerunRef = useRef(false);
 
   const clearPendingAutoDiagramHighlight = useCallback(() => {
     pendingAutoDiagramHighlightRef.current = null;
@@ -510,9 +701,39 @@ function ArchiSlop() {
   }, []);
 
   useSyncVisualViewportHeight();
+  const narrowLayout = useNarrowLayout();
 
   useEffect(() => {
     promptRef.current = prompt;
+  }, [prompt]);
+
+  // Slopitect console stamp on first mount — pure flavor, no functional effect.
+  useEffect(() => {
+    if (typeof console === 'undefined' || typeof console.log !== 'function') return;
+    try {
+      console.log('%c' + CONSOLE_STAMP_LINES.join('\n'), 'color:#c77a00;font-weight:700;');
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Slopitect prompt easter eggs: fire each keyword's toast at most once per session.
+  const promptEasterEggsFiredRef = useRef(new Set());
+  const promptEasterEggSeqRef = useRef(0);
+  useEffect(() => {
+    if (!prompt) return;
+    for (const egg of PROMPT_EASTER_EGGS) {
+      if (egg.match.test(prompt) && !promptEasterEggsFiredRef.current.has(egg.toast)) {
+        promptEasterEggsFiredRef.current.add(egg.toast);
+        const seq = promptEasterEggSeqRef.current + 1;
+        promptEasterEggSeqRef.current = seq;
+        const toast = { id: `easter-${Date.now()}-${seq}`, kind: 'text', label: egg.toast };
+        setStreakHudToasts((q) => [...q, toast]);
+        setTimeout(() => {
+          setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
+        }, 1800);
+      }
+    }
   }, [prompt]);
 
   useEffect(() => {
@@ -523,6 +744,73 @@ function ArchiSlop() {
     const { items } = splitCritiqueActionableSections(latestCritique.text);
     setCritiqueActionableSelected(items.map(() => false));
   }, [latestCritique?.createdAt, latestCritique?.text]);
+
+  // Konami code (↑↑↓↓←→←→BA) easter egg → "SLOPITECT AWAKENED" banner + rainbow body tint + fanfare.
+  const konamiBufferRef = useRef([]);
+  const konamiFiredRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const sequence = [
+      'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+      'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+      'b', 'a'
+    ];
+    function isEditable(target) {
+      if (!target) return false;
+      const tag = (target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      return target.isContentEditable === true;
+    }
+    function handleKey(e) {
+      if (konamiFiredRef.current) return;
+      if (isEditable(e.target)) return;
+      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+      konamiBufferRef.current = [...konamiBufferRef.current, key].slice(-sequence.length);
+      const buf = konamiBufferRef.current;
+      if (buf.length !== sequence.length) return;
+      for (let i = 0; i < sequence.length; i++) {
+        if (buf[i] !== sequence[i]) return;
+      }
+      konamiFiredRef.current = true;
+      const banner = { id: `konami-${Date.now()}`, title: KONAMI_ACHIEVEMENT.title, subtitle: KONAMI_ACHIEVEMENT.subtitle };
+      setStreakHudAchievement(banner);
+      setTimeout(() => {
+        setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
+      }, 3200);
+      tryAgentSound(playAchievementFanfare);
+      setTimeout(() => tryAgentSound(playKonamiRainbow), 120);
+      if (typeof document !== 'undefined' && document.body) {
+        document.body.classList.add('slopitect-rainbow-tint');
+        setTimeout(() => document.body.classList.remove('slopitect-rainbow-tint'), 5200);
+      }
+    }
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+    // tryAgentSound is stable enough for this listener and we want a one-shot lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Triple-click on brand logo → random tip toast.
+  const brandTripleClickRef = useRef({ count: 0, lastAt: 0 });
+  const handleBrandTripleClick = useCallback(() => {
+    const now = Date.now();
+    const state = brandTripleClickRef.current;
+    if (now - state.lastAt > 600) {
+      state.count = 1;
+    } else {
+      state.count += 1;
+    }
+    state.lastAt = now;
+    if (state.count >= 3) {
+      state.count = 0;
+      const tip = IDLE_TIPS[Math.floor(Math.random() * IDLE_TIPS.length)] || '';
+      const toast = { id: `tip-${now}`, kind: 'text', label: `Slopitect Tip™ — ${tip}` };
+      setStreakHudToasts((q) => [...q, toast]);
+      setTimeout(() => {
+        setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
+      }, 2600);
+    }
+  }, []);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -538,12 +826,36 @@ function ArchiSlop() {
 
   useEffect(() => {
     function handlePopState() {
-      const nextSessionId = ensureUrlBackedSession();
+      const { sessionId: nextSessionId, fromUrl } = ensureUrlBackedSession();
+      if (!fromUrl) freshlyMintedSessionIdsRef.current.add(nextSessionId);
       setActiveSessionId(nextSessionId);
     }
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const room = new URLSearchParams(window.location.search).get('room');
+    if (!room) return undefined;
+    let cancelled = false;
+    joinRoomByPairingCode({ pairingCode: room })
+      .then(({ sessionId }) => {
+        if (cancelled || !sessionId) return;
+        freshlyMintedSessionIdsRef.current.delete(sessionId);
+        setActiveSessionId(sessionId);
+        const nextPath = sessionPathFor(sessionId);
+        const url = new URL(window.location.href);
+        url.searchParams.delete('room');
+        window.history.replaceState({}, '', `${nextPath}${url.search}${url.hash}`);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err?.message ?? 'Invalid or expired room code.');
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -565,6 +877,7 @@ function ArchiSlop() {
     setInsightsOpen(Boolean(cacheRef.current?.insightsOpen));
     setSoundEnabled(cacheRef.current?.soundEnabled ?? true);
     setSelectedNode(null);
+    setHoverDescriptor(null);
     setToolbarAnchor(null);
     setDiagramChangeHighlightEntryId(null);
     setDiagramChangeHighlightAddedOnly(false);
@@ -573,7 +886,191 @@ function ArchiSlop() {
     setActiveRequest(null);
     clearPendingAutoDiagramHighlight();
     setError('');
+    setPendingHandshake(null);
+    setExternalAgentPresence([]);
+    setAgentReactions([]);
   }, [activeSessionId, clearPendingAutoDiagramHighlight]);
+
+  // External-agent session events: handshake requests, proposals, presence, reactions, attributed insights.
+  // One always-open SSE stream per active session.
+  useEffect(() => {
+    if (!activeSessionId) return undefined;
+
+    const close = openSessionEventsStream({
+      sessionId: activeSessionId,
+      onEvent: (envelope) => {
+        if (!envelope || typeof envelope !== 'object') return;
+        const { type, payload } = envelope;
+
+        if (type === 'snapshot') {
+          setExternalAgentPresence(Array.isArray(payload?.presence) ? payload.presence : []);
+          // Re-hydrate any proposals that arrived before this client connected.
+          const proposals = Array.isArray(payload?.pendingProposals) ? payload.pendingProposals : [];
+          if (proposals.length > 0) {
+            setInsightsEntries((prev) => {
+              const existingIds = new Set(prev.map((e) => e.id));
+              const additions = proposals
+                .filter((p) => !existingIds.has(p.proposalId))
+                .map((p) => proposalToInsightEntry(p));
+              return additions.length > 0 ? [...prev, ...additions] : prev;
+            });
+          }
+          return;
+        }
+
+        if (type === 'pairing_rotated') {
+          return;
+        }
+
+        if (type === 'handshake_request') {
+          // Newest pending handshake wins (one modal at a time is enough for v1).
+          setPendingHandshake(payload ?? null);
+          return;
+        }
+
+        if (type === 'handshake_resolved') {
+          setPendingHandshake((current) =>
+            current && current.requestId === payload?.requestId ? null : current
+          );
+          return;
+        }
+
+        if (type === 'presence_update') {
+          setExternalAgentPresence(Array.isArray(payload) ? payload : []);
+          return;
+        }
+
+        if (type === 'proposal_received' && payload?.proposalId) {
+          setInsightsEntries((prev) => {
+            if (prev.some((e) => e.id === payload.proposalId)) return prev;
+            return [...prev, proposalToInsightEntry(payload)];
+          });
+          return;
+        }
+
+        if (type === 'proposal_resolved' && payload?.proposalId) {
+          setInsightsEntries((prev) =>
+            prev.map((entry) =>
+              entry.id === payload.proposalId
+                ? {
+                    ...entry,
+                    proposalStatus: payload.status ?? 'rejected',
+                    status: 'done',
+                    statusText:
+                      payload.status === 'accepted'
+                        ? 'Proposal applied.'
+                        : payload.status === 'rejected'
+                          ? 'Proposal rejected.'
+                          : payload.status === 'stale'
+                            ? 'Proposal stale.'
+                            : 'Proposal resolved.',
+                    completedAt: Date.now()
+                  }
+                : entry
+            )
+          );
+          return;
+        }
+
+        if (type === 'attributed_insight' && payload?.insightId) {
+          setInsightsEntries((prev) => [
+            ...prev,
+            attributedInsightToInsightEntry(payload)
+          ]);
+          return;
+        }
+
+        if (type === 'reaction' && payload?.reactionId) {
+          setAgentReactions((prev) => [...prev, payload]);
+          // Auto-expire after 4s so the UI doesn't grow unbounded.
+          setTimeout(() => {
+            setAgentReactions((prev) => prev.filter((r) => r.reactionId !== payload.reactionId));
+          }, 4000);
+          return;
+        }
+
+        if (type === 'state_changed') {
+          // An external proposal was accepted (or otherwise mutated state). Refetch session
+          // state so the canvas + insights reflect the new revision.
+          fetchSessionDiagramState({ sessionId: activeSessionId })
+            .then((session) => {
+              const data = session?.[contentMode];
+              if (data) {
+                stateRef.current = data;
+                setState(data);
+              }
+            })
+            .catch(() => {
+              // Non-fatal; the next user action will resync.
+            });
+        }
+      },
+      onError: () => {
+        // The browser auto-reconnects EventSource; nothing to do here for now.
+      }
+    });
+
+    return close;
+  }, [activeSessionId, contentMode]);
+
+  const handleApproveHandshake = useCallback(async () => {
+    if (!pendingHandshake) return;
+    try {
+      await approveHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
+    } catch (err) {
+      console.error('handshake approve failed', err);
+    }
+    setPendingHandshake(null);
+  }, [pendingHandshake, activeSessionId]);
+
+  const handleDenyHandshake = useCallback(async () => {
+    if (!pendingHandshake) return;
+    try {
+      await denyHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
+    } catch (err) {
+      console.error('handshake deny failed', err);
+    }
+    setPendingHandshake(null);
+  }, [pendingHandshake, activeSessionId]);
+
+  const patchProposalInsightEntry = useCallback((proposalId, patch) => {
+    if (!proposalId) return;
+    setInsightsEntries((prev) =>
+      prev.map((entry) => (entry.id === proposalId ? { ...entry, ...patch } : entry))
+    );
+  }, []);
+
+  const handleAcceptProposal = useCallback(
+    async (proposalId) => {
+      if (!proposalId) throw new Error('Missing proposal id.');
+      const body = await acceptProposalApi({ sessionId: activeSessionId, proposalId });
+      patchProposalInsightEntry(proposalId, {
+        proposalStatus: 'accepted',
+        status: 'done',
+        statusText: 'Proposal applied.',
+        completedAt: Date.now()
+      });
+      if (body?.state?.diagramSource != null) {
+        stateRef.current = body.state;
+        setState(body.state);
+      }
+    },
+    [activeSessionId, contentMode, patchProposalInsightEntry]
+  );
+
+  const handleRejectProposal = useCallback(
+    async (proposalId) => {
+      if (!proposalId) throw new Error('Missing proposal id.');
+      await rejectProposalApi({ sessionId: activeSessionId, proposalId });
+      patchProposalInsightEntry(proposalId, {
+        proposalStatus: 'rejected',
+        status: 'done',
+        statusText: 'Proposal rejected.',
+        completedAt: Date.now()
+      });
+    },
+    [activeSessionId, patchProposalInsightEntry]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -592,27 +1089,39 @@ function ArchiSlop() {
         stateRef.current = data;
         setState(data);
 
-        const slotLastTopic = (slot) => {
-          const p = slot?.lastUserPrompt;
-          return typeof p === 'string' && p.trim() ? p.trim() : null;
-        };
-
-        const topicsNext = { ...lastTopicByModeRef.current };
-        for (const mode of ['mermaid', 'infographic']) {
-          const t = slotLastTopic(session?.[mode]);
-          if (t) topicsNext[mode] = t;
-        }
-        lastTopicByModeRef.current = topicsNext;
-
         const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
         const otherSlot = session?.[otherMode];
-        const candidate =
-          slotLastTopic(data) ?? slotLastTopic(otherSlot) ?? topicsNext[otherMode] ?? null;
+        // "There should only be one topic at a time" — pick the slot whose `updatedAt` is most
+        // recent so the topic the user most recently asked about always wins on a mode switch,
+        // even if the destination slot has stale content from a different topic.
+        const dataTopic = slotLastTopic(data);
+        const otherTopic = slotLastTopic(otherSlot);
+        const dataUpdatedAt = data?.updatedAt ?? '';
+        const otherUpdatedAt = otherSlot?.updatedAt ?? '';
+        let candidate = null;
+        if (dataTopic && otherTopic) {
+          candidate = otherUpdatedAt > dataUpdatedAt ? otherTopic : dataTopic;
+        } else {
+          candidate = dataTopic ?? otherTopic ?? sessionTopicRef.current ?? null;
+        }
 
-        const newSlotInSync =
-          candidate != null && slotLastTopic(data) === candidate && (data.revisionId ?? 0) > 0;
+        if (candidate) {
+          sessionTopicRef.current = candidate;
+        }
+
         const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
+        if (!candidate && trimmedAtSwitch) {
+          candidate = trimmedAtSwitch;
+        }
+
+        const newSlotInSync = isSlotInSyncForTopic(data, candidate);
         const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
+        const peerRequiresTranslation = peerRequiresModeSwitchTranslation({
+          contentMode,
+          session,
+          candidate,
+          syncMarkers: crossModeSyncRef.current
+        });
 
         if (candidate && !textareaDirty) {
           setPrompt(candidate);
@@ -620,16 +1129,20 @@ function ArchiSlop() {
         }
 
         const peerContext = buildIntentPeerContext(contentMode, session, candidate);
+        // Cross-mode Restore intentionally jumps to a specific snapshot — don't let the auto
+        // mode-switch rerun overwrite it on the very next hydrate pass.
+        const restoreSuppressed = suppressNextModeSwitchRerunRef.current;
+        if (restoreSuppressed) suppressNextModeSwitchRerunRef.current = false;
         if (
+          !restoreSuppressed &&
           shouldAutoSubmitModeSwitchIntent({
             candidate,
             textareaDirty,
             newSlotInSync,
-            peerContext,
-            session,
-            contentMode
+            peerRequiresTranslation
           })
         ) {
+          const peerRevisionAtSubmit = otherSlot?.revisionId ?? 0;
           // Defer to a microtask so React has committed the state update before the auto
           // submit kicks off; pass the override anyway so revisionId is correct regardless.
           Promise.resolve().then(async () => {
@@ -644,40 +1157,81 @@ function ArchiSlop() {
                 if (cancelled) return;
                 stateRef.current = cleared;
                 setState(cleared);
-                await submitIntentWithPrompt(candidate, { stateOverride: cleared });
+                await submitIntentWithPrompt(candidate, {
+                  stateOverride: cleared,
+                  skipLoadingGuard: true
+                });
                 return;
               }
-              await submitIntentWithPrompt(candidate, { stateOverride: data, peerContext });
+              await submitIntentWithPrompt(candidate, {
+                stateOverride: data,
+                peerContext,
+                skipLoadingGuard: true,
+                modeSwitchSync: true,
+                modeSwitchPeerRevisionId: peerRevisionAtSubmit
+              });
             } catch (err) {
               if (!cancelled) setError(err.message);
             }
           });
         }
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (cancelled) return;
         if (err?.code === SESSION_NOT_FOUND_CODE) {
-          wipeClientCachesAfterLostServerSession();
-          lastTopicByModeRef.current = { mermaid: null, infographic: null };
-          const fresh = createInitialDiagramState(contentMode);
-          stateRef.current = fresh;
-          setState(fresh);
-          setLiveDraftSource('');
-          setLiveDraftContentType(null);
-          setLatestCritique(null);
-          setInsightsEntries([]);
-          setGoMadStreak(0);
-          setCritiqueActionableSelected([]);
-          cacheRef.current = null;
-          const nid = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
-          window.history.replaceState({}, '', `${sessionPathFor(nid)}`);
-          setActiveSessionId(nid);
+          // Two cases:
+          //  (a) The URL had a stale session id (e.g., bookmark from before a server restart).
+          //      We rotate to a fresh id so the user clearly leaves the dead session behind.
+          //  (b) The session id we're hydrating is one WE just minted in ensureUrlBackedSession
+          //      (first visit, no URL session), so the server has never seen it yet — the 404
+          //      is expected. Keep the id (no URL flip) and just prime the server.
+          const wasFreshlyMinted = freshlyMintedSessionIdsRef.current.has(activeSessionId);
+          let targetId = activeSessionId;
+          if (!wasFreshlyMinted) {
+            wipeClientCachesAfterLostServerSession();
+            sessionTopicRef.current = null;
+            crossModeSyncRef.current = { mermaid: null, infographic: null };
+            const fresh = createInitialDiagramState(contentMode);
+            stateRef.current = fresh;
+            setState(fresh);
+            setLiveDraftSource('');
+            setLiveDraftContentType(null);
+            setLatestCritique(null);
+            setInsightsEntries([]);
+            setGoMadStreak(0);
+            setCritiqueActionableSelected([]);
+            cacheRef.current = null;
+            targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+            freshlyMintedSessionIdsRef.current.add(targetId);
+          }
+          // Prime the server BEFORE re-running the hydrate effect, so the next fetch finds
+          // the session in the registry instead of 404'ing again.
+          try {
+            await Promise.all([
+              syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
+              syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId })
+            ]);
+          } catch {
+            // best-effort — if priming sync fails the next user action will create the session
+          }
+          if (cancelled) return;
+          freshlyMintedSessionIdsRef.current.delete(targetId); // server now knows about it
+          if (targetId !== activeSessionId) {
+            window.history.replaceState({}, '', `${sessionPathFor(targetId)}`);
+            setActiveSessionId(targetId);
+          } else {
+            // Same id, server now primed — set empty state directly so we don't refetch.
+            const fresh = createInitialDiagramState(contentMode);
+            stateRef.current = fresh;
+            setState(fresh);
+          }
           return;
         }
         setError(err?.message ?? String(err));
       })
       .finally(() => {
         if (cancelled) return;
+        loadingRef.current = false;
         setLoading(false);
         setActiveRequest(null);
       });
@@ -744,9 +1298,9 @@ function ArchiSlop() {
         recognitionRef.current.onend = null;
         recognitionRef.current = null;
       }
-      if (nodePanelIdleTimerRef.current != null) {
-        window.clearTimeout(nodePanelIdleTimerRef.current);
-        nodePanelIdleTimerRef.current = null;
+      if (hoverCloseTimerRef.current != null) {
+        window.clearTimeout(hoverCloseTimerRef.current);
+        hoverCloseTimerRef.current = null;
       }
       if (diagramAutoHighlightTimerRef.current != null) {
         window.clearTimeout(diagramAutoHighlightTimerRef.current);
@@ -785,17 +1339,30 @@ function ArchiSlop() {
   );
 
   const triggerCompletionDelight = useCallback(
-    (entryId, variant = 'general') => {
+    (entryId, variant = 'general', extras = {}) => {
       setCelebratingEntryId(entryId);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
       const dwellMs = variant === 'goMad' ? 1100 : 900;
       celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
       if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
+      else if (variant === 'refine') tryAgentSound(playRefineCompletion);
+      else if (variant === 'innovate') tryAgentSound(playInnovateCompletion);
+      else if (variant === 'critique') tryAgentSound(playCritiqueCompletion);
+      else if (variant === 'explain') tryAgentSound(playExplainCompletion);
       else tryAgentSound(playCompletionChimeTone);
 
       const reduceMotion =
         typeof globalThis.matchMedia === 'function' &&
         globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const variantPalettes = {
+        refine: ['#2563eb', '#60a5fa', '#bfdbfe', '#1d4ed8'],
+        innovate: ['#9333ea', '#ec4899', '#f0abfc', '#a855f7'],
+        goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
+        critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
+        explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
+        general: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
+      };
+      const palette = variantPalettes[variant] || variantPalettes.general;
       if (!reduceMotion && canvasConfettiAvailable()) {
         try {
           const burstParticles = variant === 'goMad' ? 120 : 70;
@@ -805,16 +1372,87 @@ function ArchiSlop() {
             startVelocity: variant === 'goMad' ? 55 : 42,
             ticks: 200,
             origin: { x: 0.5, y: 0.4 },
-            colors: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
+            colors: palette
           });
         } catch {
           // canvas-confetti can throw in headless test envs; ignore.
         }
         tryAgentSound(playConfettiPop);
       }
+
+      // Slopitect gamification: derive XP / streak / combo / achievement emissions.
+      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+      if (knownVariants.includes(variant)) {
+        const now = Date.now();
+        // `goMadStreak` here is the closure-captured value at stream start (i.e. the
+        // count of previous successful Go Mads); the just-completed run pushes depth to +1.
+        const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;
+        setGamification((current) => {
+          const { state, emissions } = applyCompletedRun(current, {
+            variant,
+            now,
+            goMadDepth: extras?.goMadDepth ?? inferredGoMadDepth,
+            critiquePerfect: extras?.critiquePerfect
+          });
+          if (typeof window !== 'undefined') {
+            writeGamificationToStorage(window.localStorage, state);
+          }
+          if (emissions.length > 0) {
+            const stamped = emissions.map((e) => {
+              const seq = streakEmissionSeqRef.current + 1;
+              streakEmissionSeqRef.current = seq;
+              return { ...e, id: `slop-${now}-${seq}` };
+            });
+            const toasts = stamped.filter((e) =>
+              e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
+            );
+            const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
+            if (toasts.length > 0) {
+              setStreakHudToasts((q) => [...q, ...toasts]);
+              for (const t of toasts) {
+                setTimeout(() => {
+                  setStreakHudToasts((q) => q.filter((x) => x.id !== t.id));
+                }, 1800);
+              }
+            }
+            if (banner) {
+              setStreakHudAchievement(banner);
+              setTimeout(() => {
+                setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
+              }, 3200);
+            }
+            // Audio: streak / combo / achievement.
+            for (const e of emissions) {
+              if (e.kind === 'streak' && e.streak >= 2) {
+                tryAgentSound((ctx) => playStreakStinger(ctx, e.streak));
+              } else if (e.kind === 'combo') {
+                tryAgentSound((ctx) => playComboStinger(ctx, e.combo));
+              } else if (e.kind === 'achievement' || e.kind === 'prestige') {
+                tryAgentSound(playAchievementFanfare);
+                if (!reduceMotion && canvasConfettiAvailable()) {
+                  try {
+                    confetti({
+                      particleCount: 160,
+                      spread: 110,
+                      startVelocity: 60,
+                      ticks: 240,
+                      origin: { x: 0.5, y: 0.35 },
+                      colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7', '#22d3ee']
+                    });
+                  } catch {
+                    // ignore
+                  }
+                }
+              }
+            }
+          }
+          return state;
+        });
+      }
     },
-    [tryAgentSound]
+    [tryAgentSound, goMadStreak]
   );
+
 
   const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
     const previousState = stateRef.current;
@@ -887,7 +1525,7 @@ function ArchiSlop() {
   }, []);
 
   const appendInsightEntry = useCallback((title, variant = 'general', options = {}) => {
-    const { diagramUndoBaseline } = options;
+    const { diagramUndoBaseline, topic, retryDescriptor } = options;
     const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
     setInsightsEntries((prev) => [
       ...prev,
@@ -895,6 +1533,7 @@ function ArchiSlop() {
         id,
         title,
         variant,
+        topic: topic ?? null,
         content: '',
         statusText: 'Working on your request...',
         status: 'running',
@@ -904,11 +1543,15 @@ function ArchiSlop() {
         streamDebugLog: [],
         startedAt: Date.now(),
         completedAt: null,
+        ...(retryDescriptor ? { retryDescriptor } : {}),
         ...(diagramUndoBaseline
           ? {
               diagramUndoBaseline: { ...diagramUndoBaseline },
               diagramRevisionApplied: false,
-              diagramUndoConsumed: false
+              diagramUndoConsumed: false,
+              diagramAfterSource: null,
+              diagramAfterContentType: null,
+              diagramAfterRevisionId: null
             }
           : {})
       }
@@ -985,10 +1628,48 @@ function ArchiSlop() {
     streamAgentAbortRef.current?.abort();
   }, []);
 
+  const handleSelectContentMode = useCallback(
+    (nextMode) => {
+      if (nextMode === contentMode) return;
+      stopStreamingAgentRequest();
+      setSelectedNode(null);
+      setHoverDescriptor(null);
+      setToolbarAnchor(null);
+      setLatestCritique(null);
+      tryAgentSound(playModeSwoosh);
+      setContentMode(nextMode);
+    },
+    [contentMode, stopStreamingAgentRequest]
+  );
+
   const runStreamingAgent = useCallback(
-    async ({ operation, payload, title, onFinal, variant = 'general', diagramUndoBaseline }) => {
+    async ({
+      operation,
+      payload,
+      title,
+      onFinal,
+      variant = 'general',
+      diagramUndoBaseline,
+      topic,
+      modeSwitchSync = false,
+      modeSwitchPeerRevisionId = null
+    }) => {
       setInsightsOpen(true);
-      const sectionId = appendInsightEntry(title, variant, { diagramUndoBaseline });
+      const retryDescriptor = buildInsightRetryDescriptor({
+        operation,
+        payload,
+        variant,
+        topic,
+        modelProfile: payload.modelProfile ?? modelProfile,
+        modeSwitchSync,
+        modeSwitchPeerRevisionId,
+        focusNode: payload.focusNode
+      });
+      const sectionId = appendInsightEntry(title, variant, {
+        diagramUndoBaseline,
+        topic,
+        retryDescriptor
+      });
       if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
       else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
       else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
@@ -1017,10 +1698,25 @@ function ArchiSlop() {
         playToolEndChime,
         playDraftTick,
         playFailureChime,
+        playPhaseChangePluck,
+        playRefineTokenTick,
+        playInnovateTokenTick,
+        playCritiqueTokenTick,
+        playExplainTokenTick,
+        playRefinePolishLoop,
+        playInnovateSynthLoop,
+        playGoMadKlaxonLoop,
+        playGoMadAirhornBlast,
+        playCritiqueScribbleLoop,
+        playCritiquePenStab,
+        playExplainPageFlipLoop,
         setLiveDraftSource,
         setLiveDraftContentType,
         setGoMadStreak,
-        lastTopicByModeRef,
+        sessionTopicRef,
+        crossModeSyncRef,
+        modeSwitchSync,
+        modeSwitchPeerRevisionId,
         animateAcceptedSource,
         pendingAutoDiagramHighlightRef,
         pendingAutoDiagramHighlightTimeoutRef,
@@ -1032,6 +1728,13 @@ function ArchiSlop() {
           payload,
           (evt) => {
             appendStreamDebugLog(sectionId, evt);
+            if (
+              evt?.type === LEGACY_STREAM_TYPE_A2UI &&
+              Array.isArray(evt.messages) &&
+              evt.messages.length > 0
+            ) {
+              setLatestCritiqueA2uiMessages(evt.messages);
+            }
             applyAgentStreamInsightEvent(streamAcc, streamCtx, evt);
           },
           { signal: abortCtrl.signal, sessionId: activeSessionId }
@@ -1052,10 +1755,13 @@ function ArchiSlop() {
         } else {
           appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
           tryAgentSound(playFailureChime);
+          const failure = resolveAgentStreamFailureStatus({ operation, message: err.message });
           patchInsightEntry(sectionId, (entry) => ({
             ...entry,
             status: 'failed',
-            statusText: 'Something failed. You can retry.',
+            statusText: failure.statusText,
+            failureClass: failure.failureClass,
+            failureDetail: failure.detail,
             completedAt: Date.now()
           }));
         }
@@ -1072,12 +1778,84 @@ function ArchiSlop() {
       appendTechnicalAction,
       appendToInsight,
       activeSessionId,
+      modelProfile,
       patchInsightEntry,
       setGoMadStreak,
       setInsightStatus,
       triggerCompletionDelight,
       tryAgentSound
     ]
+  );
+
+  const insightsEntriesRef = useRef(insightsEntries);
+  useEffect(() => {
+    insightsEntriesRef.current = insightsEntries;
+  }, [insightsEntries]);
+
+  const retryFailedInsight = useCallback(
+    async (entryId, options = {}) => {
+      const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
+      const desc = entry?.retryDescriptor;
+      if (!desc || loadingRef.current || streamingPreviewRef.current) return;
+
+      const useQuality = Boolean(options.useQuality);
+      const profile = useQuality ? 'quality' : desc.modelProfile ?? modelProfile;
+
+      setLoading(true);
+      setActiveRequest(desc.operation === 'intent' ? 'intent' : `transform:${desc.mode}`);
+      setError('');
+      if (desc.variant !== 'goMad') setGoMadStreak(0);
+
+      try {
+        const syncedState = await syncDiagramOrThrow();
+        const sharedPayload = {
+          revisionId: syncedState.revisionId,
+          diagramSource: syncedState.diagramSource,
+          contentType: contentMode,
+          modelProfile: profile,
+          focusNode: desc.focusNode ?? undefined,
+          ...(desc.peerContext ? { peerContext: desc.peerContext } : {})
+        };
+
+        if (desc.operation === 'intent') {
+          await runStreamingAgent({
+            operation: 'intent',
+            payload: {
+              operation: 'intent',
+              prompt: desc.prompt,
+              settings: desc.settings ?? {},
+              ...sharedPayload
+            },
+            title: entry.title,
+            variant: desc.variant,
+            diagramUndoBaseline: { ...syncedState },
+            topic: desc.topic,
+            modeSwitchSync: desc.modeSwitchSync,
+            modeSwitchPeerRevisionId: desc.modeSwitchPeerRevisionId
+          });
+        } else {
+          await runStreamingAgent({
+            operation: 'transform',
+            payload: {
+              operation: 'transform',
+              mode: desc.mode,
+              ...(desc.goMadDepth != null ? { goMadDepth: desc.goMadDepth } : {}),
+              ...sharedPayload
+            },
+            title: entry.title,
+            variant: desc.variant,
+            diagramUndoBaseline: { ...syncedState },
+            topic: desc.topic
+          });
+        }
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+        setActiveRequest(null);
+      }
+    },
+    [contentMode, modelProfile, runStreamingAgent, syncDiagramOrThrow]
   );
 
   const runAutoFix = useCallback(
@@ -1253,7 +2031,13 @@ Hard requirements:
 
   async function submitIntentWithPrompt(nextPrompt, options = {}) {
     const trimmed = (nextPrompt ?? '').trim();
-    if (!trimmed || loadingRef.current || streamingPreviewRef.current) return;
+    if (!trimmed) return;
+    if (
+      !options.skipLoadingGuard &&
+      (loadingRef.current || streamingPreviewRef.current)
+    ) {
+      return;
+    }
 
     tryAgentSound(playSubmitThunk);
     setGoMadStreak(0);
@@ -1282,9 +2066,13 @@ Hard requirements:
           modelProfile,
           ...(options.peerContext ? { peerContext: options.peerContext } : {})
         },
-        title: selectionActionTitle(selectedNode, 'Go'),
+        title: goIntentInsightTitle(trimmed, selectedNode),
         variant: 'intent',
-        diagramUndoBaseline: { ...syncedState }
+        diagramUndoBaseline: { ...syncedState },
+        topic: topicFromDescriptor(selectedNode),
+        modeSwitchSync: Boolean(options.modeSwitchSync),
+        modeSwitchPeerRevisionId:
+          options.modeSwitchPeerRevisionId != null ? options.modeSwitchPeerRevisionId : null
       });
       // Retain the prompt so the user can see and refine the current topic. Mode-switch
       // carry-over relies on this too — the textarea is the visible source of truth for
@@ -1522,8 +2310,10 @@ Hard requirements:
 
     if (mode !== 'goMad') setGoMadStreak(0);
 
-    const focusNode = useDiagramFocus ? undefined : focusPayload(selectedNode);
-    const titleSelection = useDiagramFocus ? null : selectedNode;
+    const focusOverride = options.focusTarget ?? null;
+    const baseFocus = focusOverride || selectedNode;
+    const focusNode = useDiagramFocus ? undefined : focusPayload(baseFocus);
+    const titleSelection = useDiagramFocus ? null : baseFocus;
     setLoading(true);
     setActiveRequest(`transform:${mode}`);
     setError('');
@@ -1548,7 +2338,8 @@ Hard requirements:
         },
         title: selectionActionTitle(titleSelection, transformTitleVerb),
         variant: mode,
-        diagramUndoBaseline: { ...syncedState }
+        diagramUndoBaseline: { ...syncedState },
+        topic: topicFromDescriptor(titleSelection)
       });
     } catch (err) {
       setError(err.message);
@@ -1564,8 +2355,10 @@ Hard requirements:
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.diagramSource.trim()) return;
 
-    const focusNode = useDiagramFocus ? undefined : focusPayload(selectedNode);
-    const titleSelection = useDiagramFocus ? null : selectedNode;
+    const focusOverride = options.focusTarget ?? null;
+    const baseFocus = focusOverride || selectedNode;
+    const focusNode = useDiagramFocus ? undefined : focusPayload(baseFocus);
+    const titleSelection = useDiagramFocus ? null : baseFocus;
     setLoading(true);
     setActiveRequest(`analyze:${kind}`);
     setError('');
@@ -1586,6 +2379,7 @@ Hard requirements:
         },
         title: selectionActionTitle(titleSelection, labels[kind]),
         variant: kind,
+        topic: topicFromDescriptor(titleSelection),
         onFinal: ({ finalText }) => {
           if (kind !== 'critique') return;
           const cleaned = finalText.trim();
@@ -1593,6 +2387,7 @@ Hard requirements:
           setLatestCritique({
             text: cleaned,
             focusNode,
+            topic: topicFromDescriptor(titleSelection),
             createdAt: Date.now()
           });
         }
@@ -1687,7 +2482,8 @@ ${requirementsBlock}`;
           },
           title: selectionActionTitle(latestCritique.focusNode, 'Fix from critique'),
           variant: 'intent',
-          diagramUndoBaseline: { ...syncedState }
+          diagramUndoBaseline: { ...syncedState },
+          topic: latestCritique.topic ?? topicFromDescriptor(latestCritique.focusNode)
         });
         setLatestCritique(null);
       } catch (err) {
@@ -1707,13 +2503,24 @@ ${requirementsBlock}`;
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
     }
+    if (streamTimerRef.current != null) {
+      cancelAnimationFrame(streamTimerRef.current);
+      streamTimerRef.current = null;
+    }
     stopVoiceInput({ immediate: true });
+    setStreamingPreview(false);
+    setLiveDraftSource('');
+    setLiveDraftContentType(null);
     setPrompt('');
     promptRef.current = '';
     setSelectedNode(null);
+    setHoverDescriptor(null);
     setToolbarAnchor(null);
     setLatestCritique(null);
     setInsightsEntries([]);
+    setCritiqueActionableSelected([]);
+    sessionTopicRef.current = null;
+    crossModeSyncRef.current = { mermaid: null, infographic: null };
     if (diagramAutoHighlightTimerRef.current != null) {
       window.clearTimeout(diagramAutoHighlightTimerRef.current);
       diagramAutoHighlightTimerRef.current = null;
@@ -1730,12 +2537,23 @@ ${requirementsBlock}`;
     setLoading(true);
     setActiveRequest('clear');
     try {
-      const synced = await syncClientDiagramState({
-        contentType: contentMode,
-        diagramSource: '',
-        sessionId: activeSessionId
-      });
-      setState(synced);
+      // Spin up a fresh server-side session, seeded with empty state for BOTH slots so the
+      // canvas, thinking pane, and the inactive mode all start blank — and so the next
+      // hydration call (triggered by the activeSessionId change below) sees a created session
+      // instead of 404'ing.
+      const nid = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+      freshlyMintedSessionIdsRef.current.add(nid);
+      await Promise.all([
+        syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: nid }),
+        syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: nid })
+      ]);
+      freshlyMintedSessionIdsRef.current.delete(nid);
+      const fresh = createInitialDiagramState(contentMode);
+      stateRef.current = fresh;
+      setState(fresh);
+      cacheRef.current = null;
+      window.history.replaceState({}, '', sessionPathFor(nid));
+      setActiveSessionId(nid);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1744,13 +2562,20 @@ ${requirementsBlock}`;
     }
   }
 
-  const handleDiagramUndo = useCallback(
-    async (entryId) => {
-      if (loadingRef.current) return;
+  /**
+   * Restore the canvas to the version produced by an entry's run — i.e., the diagram shown
+   * in that entry's "Resulting diagram" preview. This is a per-version bookmark: the user
+   * can click Restore on any past entry to jump back to that snapshot.
+   *
+   * If the entry was created in a different mode than the current one, switch modes first —
+   * otherwise the restored DSL would be fed to the wrong renderer and fail to draw.
+   */
+  const applyDiagramSnapshotToCanvas = useCallback(
+    async ({ diagramSource, contentType, styleConfig }) => {
+      if (typeof diagramSource !== 'string' || !diagramSource.trim()) return;
+      if (contentType !== 'mermaid' && contentType !== 'infographic') return;
 
-      const entry = insightsEntries.find((e) => e.id === entryId);
-      const baseline = entry?.diagramUndoBaseline;
-      if (!baseline || typeof baseline.diagramSource !== 'string') return;
+      const needsModeSwitch = contentType !== contentMode;
 
       if (syncTimerRef.current) {
         clearTimeout(syncTimerRef.current);
@@ -1761,26 +2586,75 @@ ${requirementsBlock}`;
         streamTimerRef.current = null;
       }
       setStreamingPreview(false);
+      if (needsModeSwitch) suppressNextModeSwitchRerunRef.current = true;
 
       try {
-        const payload = { contentType: contentMode, diagramSource: baseline.diagramSource, sessionId: activeSessionId };
-        if (baseline.styleConfig != null) {
-          payload.styleConfig = baseline.styleConfig;
+        const payload = {
+          contentType,
+          diagramSource,
+          sessionId: activeSessionId
+        };
+        if (styleConfig != null) {
+          payload.styleConfig = styleConfig;
         }
         const synced = await syncClientDiagramState(payload);
         setState(synced);
-        patchInsightEntry(entryId, (e) => ({ ...e, diagramUndoConsumed: true }));
+        if (needsModeSwitch) setContentMode(contentType);
         if (diagramAutoHighlightTimerRef.current != null) {
           window.clearTimeout(diagramAutoHighlightTimerRef.current);
           diagramAutoHighlightTimerRef.current = null;
         }
         clearPendingAutoDiagramHighlight();
-        setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
+        setDiagramChangeHighlightEntryId(null);
       } catch (err) {
+        if (needsModeSwitch) suppressNextModeSwitchRerunRef.current = false;
         setError(err.message);
       }
     },
-    [activeSessionId, clearPendingAutoDiagramHighlight, contentMode, insightsEntries, patchInsightEntry]
+    [activeSessionId, clearPendingAutoDiagramHighlight, contentMode]
+  );
+
+  const handleRestoreToEntry = useCallback(
+    async (entryId) => {
+      if (loadingRef.current) return;
+
+      const entry = insightsEntries.find((e) => e.id === entryId);
+      const targetSource = entry?.diagramAfterSource;
+      const targetContentType = entry?.diagramAfterContentType;
+      if (typeof targetSource !== 'string' || !targetSource.trim()) return;
+      if (targetContentType !== 'mermaid' && targetContentType !== 'infographic') return;
+
+      const baseline = entry?.diagramUndoBaseline;
+      await applyDiagramSnapshotToCanvas({
+        diagramSource: targetSource,
+        contentType: targetContentType,
+        styleConfig: baseline?.styleConfig
+      });
+    },
+    [applyDiagramSnapshotToCanvas, insightsEntries]
+  );
+
+  const handleRestoreDiagramSnapshot = useCallback(
+    async ({ diagramSource, contentType }) => {
+      if (loadingRef.current) return;
+      await applyDiagramSnapshotToCanvas({ diagramSource, contentType });
+    },
+    [applyDiagramSnapshotToCanvas]
+  );
+
+  const handleOpenProposalFullPreview = useCallback(
+    async ({ diagramSource, contentType }) => {
+      if (loadingRef.current) return;
+      await applyDiagramSnapshotToCanvas({ diagramSource, contentType });
+      requestAnimationFrame(() => {
+        document.querySelector('.diagram-output')?.scrollIntoView?.({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'nearest'
+        });
+      });
+    },
+    [applyDiagramSnapshotToCanvas]
   );
 
   const handleToggleDiagramChangeHighlight = useCallback(
@@ -1798,12 +2672,16 @@ ${requirementsBlock}`;
 
   const changeHighlightDiff = useMemo(() => {
     if (!diagramChangeHighlightEntryId) return null;
-    // The diff is Mermaid-flowchart specific; infographic mode has no comparable region map yet.
-    if (contentMode !== 'mermaid') return null;
     const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
     const baseline = entry?.diagramUndoBaseline?.diagramSource;
     if (typeof baseline !== 'string') return null;
-    return diffMermaidFlowcharts(baseline, state.diagramSource ?? '');
+    if (contentMode === 'mermaid') {
+      return diffMermaidFlowcharts(baseline, state.diagramSource ?? '');
+    }
+    if (contentMode === 'infographic') {
+      return diffInfographicSources(baseline, state.diagramSource ?? '');
+    }
+    return null;
   }, [contentMode, diagramChangeHighlightEntryId, insightsEntries, state.diagramSource]);
 
   const changeHighlightForCanvas = useMemo(() => {
@@ -1829,6 +2707,30 @@ ${requirementsBlock}`;
       addedIds.length === 0 && modifiedIds.length === 0 && removedIds.length === 0;
     return { removedIds, isStructuralEmpty };
   }, [changeHighlightDiff, diagramChangeHighlightEntryId]);
+
+  // Per-entry structural diff used to auto-highlight changes inside the embedded
+  // "Resulting diagram" preview. Mermaid uses flowchart parser; infographic walks the
+  // indented item tree (see infographicDiff.js).
+  const entryDiagramDiffById = useMemo(() => {
+    const map = {};
+    for (const entry of insightsEntries) {
+      if (!entry?.diagramRevisionApplied) continue;
+      const kind = entry.diagramAfterContentType;
+      const baseline = entry.diagramUndoBaseline?.diagramSource;
+      const after = entry.diagramAfterSource;
+      if (typeof baseline !== 'string' || typeof after !== 'string') continue;
+      try {
+        if (kind === 'mermaid') {
+          map[entry.id] = diffMermaidFlowcharts(baseline, after);
+        } else if (kind === 'infographic') {
+          map[entry.id] = diffInfographicSources(baseline, after);
+        }
+      } catch {
+        // diff is best-effort; skip entry on failure
+      }
+    }
+    return map;
+  }, [insightsEntries]);
 
   useEffect(() => {
     if (!diagramChangeHighlightEntryId) return;
@@ -1859,17 +2761,86 @@ ${requirementsBlock}`;
 
   const busy = loading || streamingPreview;
 
-  const dismissNodePanel = useCallback(() => {
-    setSelectedNode(null);
-    setToolbarAnchor(null);
-  }, []);
-
-  const clearNodePanelIdleTimer = useCallback(() => {
-    if (nodePanelIdleTimerRef.current != null) {
-      window.clearTimeout(nodePanelIdleTimerRef.current);
-      nodePanelIdleTimerRef.current = null;
+  const clearHoverCloseTimer = useCallback(() => {
+    if (hoverCloseTimerRef.current != null) {
+      window.clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    const id = selectedNode?.id ?? null;
+    if (id && id !== prevSelectedNodeIdRef.current) {
+      setRadialMenuVisible(true);
+    } else if (!id) {
+      setRadialMenuVisible(false);
+    }
+    prevSelectedNodeIdRef.current = id;
+  }, [selectedNode?.id]);
+
+  useEffect(() => {
+    if (!radialMenuVisible || !selectedNode?.id || !toolbarAnchor) {
+      setRadialMenuSession(null);
+      return;
+    }
+    const nextKey = descriptorKey(selectedNode);
+    setRadialMenuSession((prev) => {
+      const prevKey = prev ? descriptorKey(prev.descriptor) : null;
+      if (prevKey === nextKey && prev?.anchor) return prev;
+      return { descriptor: selectedNode, anchor: toolbarAnchor };
+    });
+  }, [radialMenuVisible, selectedNode, toolbarAnchor]);
+
+  const handleHoverTargetChange = useCallback(
+    (descriptor) => {
+      if (descriptor) {
+        clearHoverCloseTimer();
+        setHoverDescriptor(descriptor);
+        return;
+      }
+      clearHoverCloseTimer();
+      hoverCloseTimerRef.current = window.setTimeout(() => {
+        hoverCloseTimerRef.current = null;
+        setHoverDescriptor(null);
+      }, 120);
+    },
+    [clearHoverCloseTimer]
+  );
+
+  const dismissRadialMenu = useCallback(() => {
+    clearHoverCloseTimer();
+    setRadialMenuVisible(false);
+  }, [clearHoverCloseTimer]);
+
+  const handleSelectedNodeChange = useCallback(
+    (next) => {
+      if (next?.id && radialMenuVisible && selectedNode?.id && next.id === selectedNode.id) {
+        dismissRadialMenu();
+        return;
+      }
+      setSelectedNode(next);
+      if (!next) setToolbarAnchor(null);
+    },
+    [dismissRadialMenu, radialMenuVisible, selectedNode?.id]
+  );
+
+  const cancelMenuClose = useCallback(() => {
+    clearHoverCloseTimer();
+  }, [clearHoverCloseTimer]);
+
+  const scheduleMenuClose = useCallback(() => {
+    clearHoverCloseTimer();
+    hoverCloseTimerRef.current = window.setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      setRadialMenuVisible(false);
+    }, RADIAL_MENU_CLOSE_GRACE_MS);
+  }, [clearHoverCloseTimer]);
+
+  const closeRadialMenu = useCallback(() => {
+    clearHoverCloseTimer();
+    setRadialMenuVisible(false);
+    setHoverDescriptor(null);
+  }, [clearHoverCloseTimer]);
 
   const armAutoDiagramChangeHighlight = useCallback(
     (entryId) => {
@@ -1881,10 +2852,12 @@ ${requirementsBlock}`;
         window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
         pendingAutoDiagramHighlightTimeoutRef.current = null;
       }
-      clearNodePanelIdleTimer();
+      clearHoverCloseTimer();
+      setRadialMenuVisible(false);
+      setRadialMenuSession(null);
       setSelectedNode(null);
+      setHoverDescriptor(null);
       setToolbarAnchor(null);
-      setNodePanelPlacement(null);
       setDiagramChangeHighlightAddedOnly(false);
       setDiagramChangeHighlightEntryId(entryId);
       diagramAutoHighlightTimerRef.current = window.setTimeout(() => {
@@ -1892,7 +2865,7 @@ ${requirementsBlock}`;
         setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
       }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS);
     },
-    [clearNodePanelIdleTimer]
+    [clearHoverCloseTimer]
   );
 
   useEffect(() => {
@@ -1925,93 +2898,6 @@ ${requirementsBlock}`;
     [armAutoDiagramChangeHighlight]
   );
 
-  const scheduleNodePanelIdleDismiss = useCallback(() => {
-    clearNodePanelIdleTimer();
-    nodePanelIdleTimerRef.current = window.setTimeout(() => {
-      nodePanelIdleTimerRef.current = null;
-      dismissNodePanel();
-    }, NODE_ACTIONS_IDLE_MS);
-  }, [clearNodePanelIdleTimer, dismissNodePanel]);
-
-  const hasToolbarAnchor = toolbarAnchor != null;
-  const critiquePresent = Boolean(latestCritique?.text);
-
-  useLayoutEffect(() => {
-    if (
-      !toolbarAnchor ||
-      selectedNode == null ||
-      typeof toolbarAnchor.nodeTop !== 'number' ||
-      typeof toolbarAnchor.nodeBottom !== 'number'
-    ) {
-      return;
-    }
-    const el = nodeActionsPanelRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const vv = getVisualViewportBounds();
-    const next = computeNodePanelPlacement(toolbarAnchor, rect.width, rect.height, vv);
-    const stamped = { ...next, forNodeId: selectedNode.id };
-    setNodePanelPlacement((prev) => {
-      if (
-        prev?.forNodeId === selectedNode.id &&
-        Math.abs(prev.top - stamped.top) < 0.5 &&
-        Math.abs(prev.nudgeX - stamped.nudgeX) < 0.5
-      ) {
-        return prev;
-      }
-      return stamped;
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- toolbarAnchor primitives listed; object identity changes each pan tick from DiagramCanvas
-  }, [
-    toolbarAnchor?.left,
-    toolbarAnchor?.top,
-    toolbarAnchor?.nodeTop,
-    toolbarAnchor?.nodeBottom,
-    selectedNode?.id,
-    critiquePresent,
-    viewportClampEpoch
-  ]);
-
-  useEffect(() => {
-    function bumpClampEpoch() {
-      setViewportClampEpoch((n) => n + 1);
-    }
-    window.addEventListener('resize', bumpClampEpoch);
-    const vv = window.visualViewport;
-    vv?.addEventListener('resize', bumpClampEpoch);
-    vv?.addEventListener('scroll', bumpClampEpoch);
-    return () => {
-      window.removeEventListener('resize', bumpClampEpoch);
-      vv?.removeEventListener('resize', bumpClampEpoch);
-      vv?.removeEventListener('scroll', bumpClampEpoch);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!selectedNode?.id || toolbarAnchor == null) {
-      clearNodePanelIdleTimer();
-      return undefined;
-    }
-    if (busy) {
-      clearNodePanelIdleTimer();
-      return undefined;
-    }
-    scheduleNodePanelIdleDismiss();
-    return () => clearNodePanelIdleTimer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- hasToolbarAnchor covers anchor presence; toolbarAnchor identity churns each pan frame
-  }, [
-    busy,
-    clearNodePanelIdleTimer,
-    scheduleNodePanelIdleDismiss,
-    selectedNode?.id,
-    hasToolbarAnchor
-  ]);
-
-  const bumpNodePanelIdleDismiss = useCallback(() => {
-    if (!selectedNode?.id || !hasToolbarAnchor || busy) return;
-    scheduleNodePanelIdleDismiss();
-  }, [busy, hasToolbarAnchor, scheduleNodePanelIdleDismiss, selectedNode?.id]);
-
   const agentThinkingChrome = useMemo(
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
@@ -2033,27 +2919,28 @@ ${requirementsBlock}`;
       return null;
     }
     const items = critiqueActionableSplit.items;
-    const alignedSelected = items.map((_, i) => critiqueActionableSelected[i] ?? false);
+    const streamMessages =
+      Array.isArray(latestCritiqueA2uiMessages) && latestCritiqueA2uiMessages.length > 0
+        ? latestCritiqueA2uiMessages
+        : null;
     return {
       critiqueText: latestCritique.text,
       headingText: critiqueActionableSplit.headingText,
       items,
       prefix: critiqueActionableSplit.prefix,
       suffix: critiqueActionableSplit.suffix,
-      selected: alignedSelected,
-      onToggle: (index) => {
-        setCritiqueActionableSelected((prev) => {
-          const next = items.map((_, i) => prev[i] ?? false);
-          if (index < 0 || index >= next.length) return prev;
-          next[index] = !next[index];
-          return next;
-        });
-      },
+      a2uiMessages: streamMessages,
       busy,
-      onFixSelected: () => handleFixFromCritique('selected'),
+      onFixSelected: (mask) => {
+        if (Array.isArray(mask)) {
+          handleFixFromCritique('selected', { checkValues: mask });
+        } else {
+          handleFixFromCritique('selected');
+        }
+      },
       onFixAll: () => handleFixFromCritique('all')
     };
-  }, [busy, critiqueActionableSplit, critiqueActionableSelected, handleFixFromCritique, latestCritique?.text]);
+  }, [busy, critiqueActionableSplit, handleFixFromCritique, latestCritique?.text, latestCritiqueA2uiMessages]);
 
   const status = useMemo(() => {
     if (loading && activeRequest === 'intent') return 'Applying diagram change.';
@@ -2082,6 +2969,79 @@ ${requirementsBlock}`;
     );
   }, [activeRequest, loading]);
 
+  const handleRadialAction = (action, descriptor) => {
+    if (!descriptor) return;
+    setSelectedNode(descriptor);
+    closeRadialMenu();
+    const runOpts = { focusTarget: descriptor };
+    const variantForBoot =
+      action.id === 'refine' || action.id === 'innovate' || action.id === 'goMad' ||
+      action.id === 'critique' || action.id === 'explain'
+        ? action.id
+        : null;
+    if (variantForBoot) {
+      setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: variantForBoot }));
+      if (variantForBoot === 'refine') tryAgentSound(playRefineBoot);
+      else if (variantForBoot === 'innovate') tryAgentSound(playInnovateBoot);
+      else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
+      else if (variantForBoot === 'critique') tryAgentSound(playCritiqueBoot);
+      else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
+    }
+    if (action.id === 'refine') runTransform('refine', runOpts);
+    else if (action.id === 'innovate') runTransform('innovate', runOpts);
+    else if (action.id === 'goMad') runTransform('goMad', runOpts);
+    else if (action.id === 'critique') runAnalyze('critique', runOpts);
+    else if (action.id === 'explain') runAnalyze('explain', runOpts);
+    else if (action.id === 'fix') handleFixFromCritique('all');
+  };
+
+  const radialActions = useMemo(() => {
+    const list = [
+      {
+        id: 'refine',
+        label: 'Refine',
+        icon: <MermaidMarkIcon />,
+        variant: 'refine'
+      },
+      {
+        id: 'innovate',
+        label: 'Innovate',
+        icon: '+',
+        variant: 'innovate',
+        sizeClass: 'is-wide-label'
+      },
+      {
+        id: 'goMad',
+        label: goMadShapeLabel(goMadStreak),
+        icon: '!',
+        variant: 'go-mad'
+      },
+      {
+        id: 'critique',
+        label: 'Critique',
+        icon: '?',
+        variant: 'critique',
+        sizeClass: 'is-wide-label'
+      },
+      {
+        id: 'fix',
+        label: 'Fix',
+        icon: 'w',
+        variant: 'fix',
+        hidden: !latestCritique?.text,
+        disabled: !canFixFromCritique
+      },
+      {
+        id: 'explain',
+        label: 'Explain',
+        icon: 'i',
+        variant: 'explain',
+        sizeClass: 'is-wide-label'
+      }
+    ];
+    return list;
+  }, [canFixFromCritique, goMadStreak, latestCritique?.text]);
+
   const insightsSlot = insightsOpen ? (
     <InsightsPane
       entries={insightsEntries}
@@ -2091,20 +3051,34 @@ ${requirementsBlock}`;
       streamDebugEnabled={streamDebugEnabled}
       critiqueActionableUi={critiqueActionableUi}
       diagramUndoDisabled={loading}
-      onDiagramUndo={handleDiagramUndo}
+      onRestoreToEntry={handleRestoreToEntry}
+      onRestoreDiagramSnapshot={handleRestoreDiagramSnapshot}
+      onOpenProposalFullPreview={handleOpenProposalFullPreview}
+      entryDiagramDiffById={entryDiagramDiffById}
       diagramChangeHighlightEntryId={diagramChangeHighlightEntryId}
       diagramChangeHighlightSummary={diagramChangeHighlightSummary}
       diagramChangeHighlightDisabled={loading}
       onToggleDiagramChangeHighlight={handleToggleDiagramChangeHighlight}
       onStopStreamingAgent={streamingAgentStoppable ? stopStreamingAgentRequest : undefined}
+      onRetryInsightEntry={retryFailedInsight}
+      onRetryInsightEntryWithQuality={(entryId) => retryFailedInsight(entryId, { useQuality: true })}
+      retryActionsDisabled={loading}
       onDismiss={() => setInsightsOpen(false)}
+      onAcceptProposal={handleAcceptProposal}
+      onRejectProposal={handleRejectProposal}
+      agentReactions={agentReactions}
     />
   ) : null;
 
+  // Pick a variant for shell-level FX during an active stream.
+  const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');
+  const liveVariant = liveStreamingEntry?.variant ?? null;
   return (
     <main
       className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}`}
       aria-label="ArchiSlop"
+      data-live-variant={liveStreamingEntry ? liveVariant : undefined}
+      data-streaming={liveStreamingEntry ? 'true' : undefined}
     >
       <DiagramCanvas
         revisionId={state.revisionId}
@@ -2122,99 +3096,80 @@ ${requirementsBlock}`;
         insightsOpen={insightsOpen && Boolean(insightsSlot)}
         insightsSlot={insightsSlot}
         selectedNode={selectedNode}
-        onSelectedNodeChange={(next) => {
-          setSelectedNode(next);
-          if (!next) setToolbarAnchor(null);
-        }}
+        hoverDescriptor={hoverDescriptor}
+        onSelectedNodeChange={handleSelectedNodeChange}
+        onHoverTargetChange={handleHoverTargetChange}
+        onPanGestureStart={dismissRadialMenu}
         onNodeToolbarAnchor={setToolbarAnchor}
         changeHighlight={changeHighlightForCanvas}
         onDiagramSvgRendered={handleDiagramSvgRendered}
+        runFx={{
+          variant: liveVariant,
+          streaming: Boolean(liveStreamingEntry),
+          intensity:
+            (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || goMadStreak >= 2
+              ? 'high'
+              : 'normal'
+        }}
       />
 
-      {toolbarAnchor && selectedNode ? (
-        <div
-          ref={nodeActionsPanelRef}
-          className="corner-control node-toolbar-anchor node-actions-panel"
-          style={{
-            left: toolbarAnchor.left,
-            top:
-              nodePanelPlacement?.forNodeId === selectedNode.id
-                ? nodePanelPlacement.top
-                : toolbarAnchor.top,
-            transform: `translate(calc(-50% + ${
-              nodePanelPlacement?.forNodeId === selectedNode.id ? nodePanelPlacement.nudgeX : 0
-            }px), 0)`
-          }}
-          role="dialog"
-          aria-label="Diagram selection actions"
-          onPointerEnter={bumpNodePanelIdleDismiss}
-          onPointerDown={bumpNodePanelIdleDismiss}
-          onFocusCapture={bumpNodePanelIdleDismiss}
-        >
-          <div className="node-actions-panel-surface">
-            <div className="node-actions-panel-body">
-              <section className="node-actions-section" aria-label="Shape diagram">
-                <span className="button-group-label node-actions-section-label">Shape</span>
-                <div className="button-group node-actions-button-row">
-                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('refine')}>
-                    <ButtonIcon>
-                      <MermaidMarkIcon />
-                    </ButtonIcon>
-                    Refine
-                  </button>
-                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('innovate')}>
-                    <ButtonIcon>+</ButtonIcon>
-                    Innovate
-                  </button>
-                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runTransform('goMad')}>
-                    <ButtonIcon>!</ButtonIcon>
-                    {goMadShapeLabel(goMadStreak)}
-                  </button>
-                </div>
-              </section>
-              <section className="node-actions-section" aria-label="Read diagram">
-                <span className="button-group-label node-actions-section-label">Read</span>
-                <div className="button-group node-actions-button-row">
-                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('critique')}>
-                    <ButtonIcon>?</ButtonIcon>
-                    Critique
-                  </button>
-                  {latestCritique?.text ? (
-                    <button
-                      type="button"
-                      className="overlay-button compact-button"
-                      disabled={!canFixFromCritique}
-                      onClick={() => handleFixFromCritique('all')}
-                    >
-                      <ButtonIcon>w</ButtonIcon>
-                      Fix
-                    </button>
-                  ) : null}
-                  <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => runAnalyze('explain')}>
-                    <ButtonIcon>i</ButtonIcon>
-                    Explain
-                  </button>
-                </div>
-              </section>
-            </div>
-            <button
-              type="button"
-              className="overlay-button node-actions-panel-close"
-              onClick={dismissNodePanel}
-              aria-label="Close node actions"
-            >
-              <ButtonIcon>x</ButtonIcon>
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <RadialActionMenu
+        descriptor={radialMenuSession?.descriptor ?? null}
+        anchor={radialMenuSession?.anchor ?? null}
+        actions={radialActions}
+        busy={busy}
+        onActionPick={handleRadialAction}
+        onHoverHold={cancelMenuClose}
+        onHoverRelease={scheduleMenuClose}
+        onBackdropPointerDown={dismissRadialMenu}
+        onClose={closeRadialMenu}
+      />
 
-      <div className="corner-control brand-control" aria-label="ArchiSlop">
+      <ActionBootSequence trigger={bootSeq.trigger} variant={bootSeq.variant} />
+      <StreakHud toasts={streakHudToasts} achievement={streakHudAchievement} />
+      <SlopitectCompanion
+        key={`companion-${bootSeq.trigger}`}
+        variant={liveVariant}
+        streaming={Boolean(liveStreamingEntry)}
+      />
+      <LiveRunHud
+        key={`live-${bootSeq.trigger}`}
+        variant={liveVariant}
+        streaming={Boolean(liveStreamingEntry)}
+        streak={gamification?.streakByVariant?.[liveVariant] ?? 0}
+      />
+
+      <div
+        className="corner-control brand-control"
+        aria-label="ArchiSlop"
+        onClick={handleBrandTripleClick}
+      >
         <span className="brand-mark" aria-hidden="true">
           <ArchiSlopMarkIcon />
         </span>
         <span className="brand-name">ArchiSlop</span>
+        {gamification?.prestigeShortLabel ? (
+          <span
+            className="brand-prestige-badge"
+            title={`${gamification.totalRuns ?? 0} total slop runs`}
+            data-testid="brand-prestige-badge"
+          >
+            {gamification.prestigeShortLabel}
+          </span>
+        ) : null}
       </div>
+
+      <AgentHandshakeDialog
+        request={pendingHandshake}
+        onApprove={handleApproveHandshake}
+        onDeny={handleDenyHandshake}
+      />
+
+      <InviteAgentDialog
+        sessionId={activeSessionId}
+        open={inviteDialogOpen}
+        onClose={() => setInviteDialogOpen(false)}
+      />
 
       <div className="corner-control edit-control">
         <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
@@ -2223,17 +3178,25 @@ ${requirementsBlock}`;
         </button>
       </div>
 
+      {editorOpen ? (
+        <div className="corner-control editor-done-bar">
+          <button type="button" className="overlay-button primary-button" onClick={() => setEditorOpen(false)}>
+            Done editing
+          </button>
+        </div>
+      ) : null}
+
       <div className="corner-control bottom-chrome">
         <div className="prompt-stack">
           <form className="prompt-control" onSubmit={runIntentChange}>
             <label className="sr-only" htmlFor="diagram-change-prompt">
-              Set the Topic, Describe Your Change
+              Your Topic
             </label>
             <input
               id="diagram-change-prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Set the Topic, Describe Your Change"
+              placeholder="Your Topic"
               disabled={busy}
               aria-invalid={error ? 'true' : 'false'}
               aria-describedby={status ? 'app-status' : undefined}
@@ -2301,8 +3264,8 @@ ${requirementsBlock}`;
             ) : null}
           </form>
 
-          {hasDiagramText ? (
-            <div className="prompt-actions">
+          {hasDiagramText && !narrowLayout ? (
+            <div className="prompt-actions prompt-actions--desktop">
               <span className="button-group-label">Shape</span>
               <div className="button-group">
                 <button
@@ -2369,83 +3332,128 @@ ${requirementsBlock}`;
               </div>
             </div>
           ) : null}
+
+          {narrowLayout ? (
+          <div className="bottom-chrome-drawer-row">
+            {hasDiagramText ? (
+              <details className="bottom-chrome-drawer bottom-chrome-drawer--tools">
+                <summary className="bottom-chrome-drawer-toggle">
+                  <span className="drawer-toggle-label">Diagram actions</span>
+                </summary>
+                <div className="bottom-chrome-drawer-panel">
+                  <div className="prompt-actions">
+                    <span className="button-group-label">Shape</span>
+                    <div className="button-group">
+                      <button
+                        type="button"
+                        className="overlay-button compact-button"
+                        disabled={busy}
+                        onClick={() => runTransform('refine', { useDiagramFocus: true })}
+                      >
+                        <ButtonIcon>
+                          <MermaidMarkIcon />
+                        </ButtonIcon>
+                        <span className="button-label">Refine</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="overlay-button compact-button"
+                        disabled={busy}
+                        onClick={() => runTransform('innovate', { useDiagramFocus: true })}
+                      >
+                        <ButtonIcon>+</ButtonIcon>
+                        <span className="button-label">Innovate</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="overlay-button compact-button"
+                        disabled={busy}
+                        onClick={() => runTransform('goMad', { useDiagramFocus: true })}
+                      >
+                        <ButtonIcon>!</ButtonIcon>
+                        <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
+                      </button>
+                    </div>
+                    <span className="button-group-label">Read</span>
+                    <div className="button-group">
+                      <button
+                        type="button"
+                        className="overlay-button compact-button"
+                        disabled={busy}
+                        onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
+                      >
+                        <ButtonIcon>?</ButtonIcon>
+                        <span className="button-label">Critique</span>
+                      </button>
+                      {latestCritique?.text ? (
+                        <button
+                          type="button"
+                          className="overlay-button compact-button"
+                          disabled={!canFixFromCritique}
+                          onClick={() => handleFixFromCritique('all')}
+                        >
+                          <ButtonIcon>w</ButtonIcon>
+                          <span className="button-label">Fix</span>
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        className="overlay-button compact-button"
+                        disabled={busy}
+                        onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
+                      >
+                        <ButtonIcon>i</ButtonIcon>
+                        <span className="button-label">Explain</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </details>
+            ) : null}
+
+            <details className="bottom-chrome-drawer bottom-chrome-drawer--settings">
+              <summary className="bottom-chrome-drawer-toggle">
+                <span className="drawer-toggle-label">AI settings</span>
+              </summary>
+              <div className="bottom-chrome-drawer-panel">
+                <div className="ai-corner-controls">
+                  <AiCornerControlsInner
+                    contentMode={contentMode}
+                    onSelectContentMode={handleSelectContentMode}
+                    modelProfile={modelProfile}
+                    onSelectModelProfile={setModelProfile}
+                    modeSwitchDisabled={loading || streamingPreview}
+                    pendingHandshake={pendingHandshake}
+                    externalAgentPresence={externalAgentPresence}
+                    onInviteAgent={() => setInviteDialogOpen(true)}
+                    agentThinkingChrome={agentThinkingChrome}
+                    insightsOpen={insightsOpen}
+                    onToggleInsights={() => setInsightsOpen((v) => !v)}
+                  />
+                </div>
+              </div>
+            </details>
+          </div>
+          ) : null}
         </div>
 
-        <div className="ai-corner-controls" aria-label="AI model and thinking">
-          <div className="model-profile-toggle" role="group" aria-label="Content mode">
-            <span className="model-profile-label">Mode</span>
-            <div className="model-profile-segment">
-              <button
-                type="button"
-                className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
-                aria-pressed={contentMode === 'mermaid'}
-                disabled={loading || streamingPreview}
-                onClick={() => {
-                  if (contentMode === 'mermaid') return;
-                  stopStreamingAgentRequest();
-                  setSelectedNode(null);
-                  setToolbarAnchor(null);
-                  setLatestCritique(null);
-                  tryAgentSound(playModeSwoosh);
-                  setContentMode('mermaid');
-                }}
-              >
-                Diagram
-              </button>
-              <button
-                type="button"
-                className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
-                aria-pressed={contentMode === 'infographic'}
-                disabled={loading || streamingPreview}
-                onClick={() => {
-                  if (contentMode === 'infographic') return;
-                  stopStreamingAgentRequest();
-                  setSelectedNode(null);
-                  setToolbarAnchor(null);
-                  setLatestCritique(null);
-                  tryAgentSound(playModeSwoosh);
-                  setContentMode('infographic');
-                }}
-              >
-                Infographic
-              </button>
-            </div>
-          </div>
-          <div className="model-profile-toggle" role="group" aria-label="AI brain">
-            <span className="model-profile-label model-profile-label--brain">
-              <span className="model-profile-label-icon" aria-hidden="true">
-                <BrainIcon />
-              </span>
-              Brain
-            </span>
-            <div className="model-profile-segment">
-              <button
-                type="button"
-                className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
-                aria-pressed={modelProfile === 'fast'}
-                onClick={() => setModelProfile('fast')}
-              >
-                Fast
-              </button>
-              <button
-                type="button"
-                className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
-                aria-pressed={modelProfile === 'quality'}
-                onClick={() => setModelProfile('quality')}
-              >
-                Quality
-              </button>
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
-            onClick={() => setInsightsOpen((v) => !v)}
-          >
-            <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-            {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
-          </button>
+        {!narrowLayout ? (
+        <div className="ai-corner-controls ai-corner-controls--desktop" aria-label="AI model and thinking">
+          <AiCornerControlsInner
+            contentMode={contentMode}
+            onSelectContentMode={handleSelectContentMode}
+            modelProfile={modelProfile}
+            onSelectModelProfile={setModelProfile}
+            modeSwitchDisabled={loading || streamingPreview}
+            pendingHandshake={pendingHandshake}
+            externalAgentPresence={externalAgentPresence}
+            onInviteAgent={() => setInviteDialogOpen(true)}
+            agentThinkingChrome={agentThinkingChrome}
+            insightsOpen={insightsOpen}
+            onToggleInsights={() => setInsightsOpen((v) => !v)}
+          />
         </div>
+        ) : null}
       </div>
     </main>
   );

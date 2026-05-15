@@ -1,30 +1,38 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import mermaid from 'mermaid';
 import registerMermaidMonacoOnce from '../utils/registerMermaidMonacoOnce.js';
-import {
-  collectLogicalIdCandidates,
-  findMermaidSourceRangeForDiagramSelection
-} from '../utils/mermaidSourceLocate.js';
+import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
+import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
+import { applyInfographicHighlight } from '@archislop/shared';
 import {
   flowchartEdgeLabelText,
   parseFlowchartEdgeDataId,
-  resolveFlowchartEdgeInteractionRoot
+  resolveFlowchartEdgeInteractionRoot,
+  resolveSequenceActorInteractionRoot
 } from '../utils/diagramSvgSelection.js';
 import {
   findInfographicTapTarget,
   INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES
 } from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
-
-const MERMAID_INIT = {
-  startOnLoad: false,
-  deterministicIds: true,
-  deterministicIDSeed: 'archislop'
-};
-mermaid.initialize({ ...MERMAID_INIT });
+import DiagramRunFx from './DiagramRunFx.jsx';
+import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
+import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
+import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
 
 const TAP_MOVE_THRESHOLD_PX = 14;
+/** Debounce before clearing diagram hover when the pointer leaves a node hit area. */
+const DIAGRAM_HOVER_CLOSE_MS = 120;
+
+const INFOGRAPHIC_PART_KINDS = {
+  title: 'title',
+  desc: 'description',
+  'item-desc': 'description',
+  'item-value': 'value',
+  'item-icon': 'icon',
+  'item-icon-group': 'icon'
+};
 
 function extractErrorMessage(error) {
   if (!error) return 'Unknown Mermaid error';
@@ -69,12 +77,25 @@ function StreamingWaveIcon() {
 
 function nodeTitleFromElement(nodeEl) {
   const parts = [];
-  nodeEl.querySelectorAll('text').forEach((textEl) => {
-    const t = textEl.textContent?.trim();
-    if (t) parts.push(t);
-  });
-  const merged = parts.join(' · ');
-  return merged.slice(0, 240);
+  const seen = new Set();
+  function pushText(t) {
+    if (!t) return;
+    const trimmed = t.replace(/\s+/g, ' ').trim();
+    if (!trimmed || seen.has(trimmed)) return;
+    seen.add(trimmed);
+    parts.push(trimmed);
+  }
+  nodeEl.querySelectorAll('text').forEach((textEl) => pushText(textEl.textContent));
+  // Mermaid 11 renders flowchart node labels as HTML inside <foreignObject>; <text> is empty there.
+  if (parts.length === 0) {
+    nodeEl.querySelectorAll('foreignObject .nodeLabel, foreignObject .label').forEach((el) => {
+      pushText(el.textContent);
+    });
+  }
+  if (parts.length === 0) {
+    nodeEl.querySelectorAll('foreignObject').forEach((fo) => pushText(fo.textContent));
+  }
+  return parts.join(' · ').slice(0, 240);
 }
 
 function hashStringStable(input) {
@@ -103,35 +124,15 @@ function diagramSelectedWrap(root, domId) {
   if (!root || !domId) return null;
   try {
     const hit = root.querySelector(`[id="${CSS.escape(domId)}"]`);
-    return hit?.closest?.('g.node') ?? hit?.closest?.('g.cluster') ?? hit;
+    return (
+      hit?.closest?.('g.node') ??
+      hit?.closest?.('g.cluster') ??
+      hit?.closest?.('[data-et="participant"]') ??
+      hit
+    );
   } catch {
     return null;
   }
-}
-
-/** Match diff ids to SVG (handles flowchart-* suffixes, hyphen splits, case drift). */
-function idMatchesHighlightSet(id, set) {
-  if (!id || !set?.size) return false;
-  if (set.has(id)) return true;
-  const lower = id.toLowerCase();
-  for (const x of set) {
-    if (x.toLowerCase() === lower) return true;
-  }
-  return false;
-}
-
-function changeHighlightCategory(group, anchor, kind, added, modified) {
-  const domId = anchor?.id;
-  if (!domId) return null;
-  const dataId = group.getAttribute?.('data-id') ?? anchor?.getAttribute?.('data-id');
-  const candidates = collectLogicalIdCandidates({ elementId: domId, dataId, kind });
-  for (const cand of candidates) {
-    if (idMatchesHighlightSet(cand, added)) return 'added';
-  }
-  for (const cand of candidates) {
-    if (idMatchesHighlightSet(cand, modified)) return 'modified';
-  }
-  return null;
 }
 
 export default function DiagramCanvas({
@@ -146,10 +147,14 @@ export default function DiagramCanvas({
   insightsOpen = false,
   insightsSlot = null,
   selectedNode = null,
+  hoverDescriptor = null,
   onSelectedNodeChange,
+  onHoverTargetChange,
+  onPanGestureStart,
   onNodeToolbarAnchor,
   changeHighlight = null,
-  onDiagramSvgRendered = null
+  onDiagramSvgRendered = null,
+  runFx = null
 }) {
   const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
@@ -168,10 +173,16 @@ export default function DiagramCanvas({
   const [viewport, setViewport] = useState({ x: 0, y: 0, scale: 1 });
   const [isPanning, setIsPanning] = useState(false);
   const viewportRef = useRef(null);
+  const zoomLayerRef = useRef(null);
+  const pendingViewportFitRef = useRef(true);
   const diagramSurfaceRef = useRef(null);
   const lastToolbarAnchorReportRef = useRef(null);
   const tapCandidateRef = useRef(null);
   const backgroundTapRef = useRef(null);
+  const lastHoverKeyRef = useRef(null);
+  const diagramHoverCloseTimerRef = useRef(null);
+  const panGestureNotifiedRef = useRef(false);
+  const panGestureStartRef = useRef(null);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const syncDecoIdsRef = useRef([]);
@@ -182,12 +193,12 @@ export default function DiagramCanvas({
   const [narrowLayout, setNarrowLayout] = useState(() =>
     typeof window !== 'undefined' &&
     typeof window.matchMedia === 'function' &&
-    window.matchMedia('(max-width: 960px)').matches
+    window.matchMedia(MOBILE_MEDIA_QUERY).matches
   );
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia('(max-width: 960px)');
+    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
     const sync = () => setNarrowLayout(mq.matches);
     sync();
     mq.addEventListener('change', sync);
@@ -207,11 +218,11 @@ export default function DiagramCanvas({
   const monacoEditorOptions = useMemo(
     () => ({
       minimap: { enabled: false },
-      wordWrap: narrowLayout ? 'off' : 'on',
+      wordWrap: 'on',
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: streamingPreview,
-      fontSize: narrowLayout ? 12 : 13,
+      fontSize: narrowLayout ? 13 : 13,
       lineNumbers: narrowLayout ? 'off' : 'on',
       wrappingIndent: 'none'
     }),
@@ -238,7 +249,45 @@ export default function DiagramCanvas({
 
     lastAppliedSourceRef.current = diagramSource;
     setEditorSource(diagramSource);
+    pendingViewportFitRef.current = true;
   }, [diagramSource]);
+
+  useEffect(() => {
+    pendingViewportFitRef.current = true;
+  }, [revisionId, contentType]);
+
+  const applyViewportFit = useCallback((preferFit = true) => {
+    const viewportEl = viewportRef.current;
+    if (!viewportEl?.querySelector('svg')) return;
+    setViewport(measureViewportForDiagram(viewportEl, { preferFit }));
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!pendingViewportFitRef.current || streamingPreview) return;
+    const viewportEl = viewportRef.current;
+    if (!viewportEl) return;
+    if (contentType === 'mermaid' && !svgMarkup) return;
+    if (!viewportEl.querySelector('svg')) return;
+    pendingViewportFitRef.current = false;
+    applyViewportFit(true);
+  }, [applyViewportFit, contentType, editorSource, revisionId, streamingPreview, svgMarkup]);
+
+  // Infographic SVG is rendered asynchronously; refit when it lands in the DOM.
+  useEffect(() => {
+    if (contentType !== 'infographic' || streamingPreview) return undefined;
+    const root = viewportRef.current;
+    if (!root) return undefined;
+    const tryFit = () => {
+      if (!pendingViewportFitRef.current) return;
+      if (!root.querySelector('svg')) return;
+      pendingViewportFitRef.current = false;
+      applyViewportFit(true);
+    };
+    tryFit();
+    const observer = new MutationObserver(tryFit);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [applyViewportFit, contentType, editorSource, revisionId, streamingPreview]);
 
   const fireDiagramRevisionPulse = useCallback(() => {
     if (pulseTimeoutRef.current) {
@@ -296,10 +345,6 @@ export default function DiagramCanvas({
       return undefined;
     }
 
-    if (streamingPreview) {
-      return undefined;
-    }
-
     if (!editorSource.trim()) {
       setSvgMarkup('');
       setRenderError('');
@@ -311,6 +356,8 @@ export default function DiagramCanvas({
       clearTimeout(debounceRef.current);
     }
 
+    const debounceMs = streamingPreview ? 120 : 200;
+
     debounceRef.current = setTimeout(() => {
       const requestId = requestRef.current + 1;
       requestRef.current = requestId;
@@ -318,8 +365,7 @@ export default function DiagramCanvas({
       async function runRender() {
         try {
           const diagramId = `diagram-${requestId}`;
-          mermaid.initialize({ ...MERMAID_INIT });
-          const { svg } = await mermaid.render(diagramId, editorSource);
+          const { svg } = await renderMermaidSvg(diagramId, editorSource, ARCHISLOP_MERMAID_CANVAS_INIT);
           if (cancelled || requestRef.current !== requestId) {
             return;
           }
@@ -331,6 +377,9 @@ export default function DiagramCanvas({
           if (cancelled || requestRef.current !== requestId) {
             return;
           }
+          if (streamingPreview) {
+            return;
+          }
           const message = extractErrorMessage(error);
           setRenderError(message);
           reportValidation(editorSource, message);
@@ -338,7 +387,7 @@ export default function DiagramCanvas({
       }
 
       runRender();
-    }, 200);
+    }, debounceMs);
 
     return () => {
       cancelled = true;
@@ -450,27 +499,29 @@ export default function DiagramCanvas({
   ]);
 
   useLayoutEffect(() => {
+    if (contentType === 'mermaid') {
+      applyDiagramHighlightToSvg(viewportRef.current, changeHighlight);
+    }
+  }, [contentType, svgMarkup, changeHighlight]);
+
+  // Infographic canvas is rendered async by AntV; observe DOM mutations and re-apply.
+  useEffect(() => {
+    if (contentType !== 'infographic') return undefined;
     const root = viewportRef.current;
-    if (!root) return;
-    const changeClasses = ['is-diagram-change-added', 'is-diagram-change-modified'];
-    root.querySelectorAll('g.node, g.cluster').forEach((group) => {
-      group.classList.remove(...changeClasses);
-    });
-    if (!changeHighlight) return;
-    const added = new Set(changeHighlight.addedIds ?? []);
-    const modified = new Set(changeHighlight.modifiedIds ?? []);
-    root.querySelectorAll('g.node, g.cluster').forEach((group) => {
-      const anchor = diagramDomAnchor(group);
-      if (!anchor?.id) return;
-      const kind = group.classList.contains('cluster') ? 'cluster' : 'node';
-      const cat = changeHighlightCategory(group, anchor, kind, added, modified);
-      if (cat === 'added') {
-        group.classList.add('is-diagram-change-added');
-      } else if (cat === 'modified') {
-        group.classList.add('is-diagram-change-modified');
-      }
-    });
-  }, [svgMarkup, changeHighlight]);
+    if (!root) return undefined;
+    let frame = 0;
+    const apply = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => applyInfographicHighlight(root, changeHighlight));
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [contentType, editorSource, changeHighlight]);
 
   // Stagger node fade-in after each Mermaid SVG render. Pure DOM annotation —
   // the CSS keyframe `diagram-node-pop-in` lives in App.css.
@@ -495,6 +546,9 @@ export default function DiagramCanvas({
     root.querySelectorAll('path.is-diagram-edge-selected').forEach((el) => el.classList.remove('is-diagram-edge-selected'));
     root.querySelectorAll('g.node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
     root.querySelectorAll('g.cluster.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
+    root
+      .querySelectorAll('[data-et="participant"].is-diagram-selected')
+      .forEach((el) => el.classList.remove('is-diagram-selected'));
     if (!selectedNode?.id) return;
     if (selectedNode.kind === 'edge') {
       try {
@@ -509,6 +563,31 @@ export default function DiagramCanvas({
     wrap?.classList?.add('is-diagram-selected');
   }, [svgMarkup, selectedNode]);
 
+  useEffect(() => {
+    const root = viewportRef.current;
+    if (!root) return;
+    root.querySelectorAll('.is-diagram-hover').forEach((el) => el.classList.remove('is-diagram-hover'));
+    if (!hoverDescriptor?.id) return;
+    if (hoverDescriptor.kind === 'edge') {
+      try {
+        const pathEl = root.querySelector(`path[data-id="${CSS.escape(hoverDescriptor.id)}"]`);
+        pathEl?.classList?.add('is-diagram-hover');
+      } catch {
+        // ignore invalid ids for selector
+      }
+      return;
+    }
+    if (hoverDescriptor.kind === 'infographic-item') {
+      const candidate = hoverDescriptor.anchorEl || hoverDescriptor.domNode;
+      if (candidate && root.contains(candidate)) {
+        candidate.classList.add('is-diagram-hover');
+      }
+      return;
+    }
+    const wrap = diagramSelectedWrap(root, hoverDescriptor.id);
+    wrap?.classList?.add('is-diagram-hover');
+  }, [svgMarkup, hoverDescriptor]);
+
   useLayoutEffect(() => {
     if (!onNodeToolbarAnchor) return;
     const root = viewportRef.current;
@@ -520,23 +599,24 @@ export default function DiagramCanvas({
       }
     }
 
-    if (!selectedNode?.id || !root) {
+    const target = selectedNode;
+    if (!target?.id || !root) {
       clearToolbarAnchor();
       return;
     }
     try {
       let el = null;
-      if (selectedNode.kind === 'edge') {
+      if (target.kind === 'edge') {
         try {
-          el = root.querySelector(`path[data-id="${CSS.escape(selectedNode.id)}"]`);
+          el = root.querySelector(`path[data-id="${CSS.escape(target.id)}"]`);
         } catch {
           el = null;
         }
-      } else if (selectedNode.kind === 'infographic-item' || selectedNode.kind === 'infographic-region') {
-        const candidate = selectedNode.domNode;
+      } else if (target.kind === 'infographic-item' || target.kind === 'infographic-region') {
+        const candidate = target.anchorEl || target.domNode;
         el = candidate && root.contains(candidate) ? candidate : null;
       } else {
-        el = diagramSelectedWrap(root, selectedNode.id);
+        el = diagramSelectedWrap(root, target.id);
       }
       if (!el) {
         clearToolbarAnchor();
@@ -547,29 +627,52 @@ export default function DiagramCanvas({
       const top = rect.bottom + 10;
       const nodeTop = rect.top;
       const nodeBottom = rect.bottom;
+      const nodeLeft = rect.left;
+      const nodeRight = rect.right;
+      const centerY = rect.top + rect.height / 2;
       const prev = lastToolbarAnchorReportRef.current;
       if (
         prev &&
-        prev.nodeId === selectedNode.id &&
+        prev.nodeId === target.id &&
         Math.abs(prev.left - left) < 0.5 &&
         Math.abs(prev.top - top) < 0.5 &&
         Math.abs(prev.nodeTop - nodeTop) < 0.5 &&
-        Math.abs(prev.nodeBottom - nodeBottom) < 0.5
+        Math.abs(prev.nodeBottom - nodeBottom) < 0.5 &&
+        Math.abs((prev.nodeLeft ?? 0) - nodeLeft) < 0.5 &&
+        Math.abs((prev.nodeRight ?? 0) - nodeRight) < 0.5
       ) {
         return;
       }
       lastToolbarAnchorReportRef.current = {
-        nodeId: selectedNode.id,
+        nodeId: target.id,
         left,
         top,
         nodeTop,
-        nodeBottom
+        nodeBottom,
+        nodeLeft,
+        nodeRight,
+        centerY
       };
-      onNodeToolbarAnchor({ left, top, nodeTop, nodeBottom });
+      onNodeToolbarAnchor({ left, top, nodeTop, nodeBottom, nodeLeft, nodeRight, centerY });
     } catch {
       clearToolbarAnchor();
     }
   }, [selectedNode, onNodeToolbarAnchor, svgMarkup, viewport]);
+
+  function notifyPanGestureStart() {
+    if (panGestureNotifiedRef.current) return;
+    panGestureNotifiedRef.current = true;
+    onPanGestureStart?.();
+  }
+
+  function checkPanGestureThreshold(clientX, clientY) {
+    const start = panGestureStartRef.current;
+    if (!start || panGestureNotifiedRef.current) return;
+    const moved = Math.hypot(clientX - start.x, clientY - start.y);
+    if (moved > TAP_MOVE_THRESHOLD_PX) {
+      notifyPanGestureStart();
+    }
+  }
 
   const displayedRenderError = streamingPreview ? '' : renderError;
 
@@ -624,6 +727,184 @@ export default function DiagramCanvas({
     return () => el.removeEventListener('wheel', handleWheel);
   }, [handleWheel]);
 
+  function resolveTargetUnder(target) {
+    let nodeEl = null;
+    let clusterEl = null;
+    let actorHit = null;
+    let edgeHit = null;
+    let infographicHit = null;
+    let textHitEl = null;
+
+    if (contentType === 'mermaid') {
+      nodeEl = target?.closest?.('g.node') ?? null;
+      clusterEl = nodeEl ? null : target?.closest?.('g.cluster') ?? null;
+      actorHit = !nodeEl && !clusterEl ? resolveSequenceActorInteractionRoot(target) : null;
+      edgeHit =
+        !nodeEl && !clusterEl && !actorHit ? resolveFlowchartEdgeInteractionRoot(target) : null;
+      const container = nodeEl || clusterEl || actorHit?.groupEl;
+      if (container) {
+        const hitText = target?.closest?.('text');
+        textHitEl = hitText && container.contains(hitText) ? hitText : null;
+      }
+    } else if (contentType === 'infographic') {
+      const boundary = viewportRef.current;
+      if (boundary && boundary.contains(target)) {
+        infographicHit = findInfographicTapTarget(target, boundary);
+      }
+    }
+    return { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, textHitEl };
+  }
+
+  function buildDescriptorFromHit({ nodeEl, clusterEl, actorHit, edgeHit, infographicHit, textHitEl }) {
+    if (actorHit) {
+      const container = actorHit.groupEl;
+      const anchor = diagramDomAnchor(container);
+      const dataId = actorHit.dataId;
+      const label = nodeTitleFromElement(container) || dataId;
+      let clickedLabel;
+      if (textHitEl) {
+        const raw = textHitEl.textContent?.replace(/\s+/g, ' ')?.trim() ?? '';
+        const clipped = raw.slice(0, 240);
+        if (clipped && clipped !== label) clickedLabel = clipped;
+      }
+      const partKind = textHitEl ? 'label' : 'participant';
+      const partName = clickedLabel || label;
+      return {
+        id: anchor?.id || dataId,
+        label,
+        dataId,
+        ...(clickedLabel ? { clickedLabel } : {}),
+        partKind,
+        partName,
+        anchorEl: container
+      };
+    }
+    if (nodeEl || clusterEl) {
+      const container = nodeEl || clusterEl;
+      const anchor = diagramDomAnchor(container);
+      if (!anchor?.id) return null;
+      const label = nodeTitleFromElement(container);
+      let clickedLabel;
+      if (textHitEl) {
+        const raw = textHitEl.textContent?.replace(/\s+/g, ' ')?.trim() ?? '';
+        const clipped = raw.slice(0, 240);
+        if (clipped && clipped !== label) clickedLabel = clipped;
+      }
+      const partKind = textHitEl ? 'label' : nodeEl ? 'node' : 'cluster';
+      const partName = clickedLabel || label;
+      return {
+        id: anchor.id,
+        label,
+        ...(clusterEl && !nodeEl ? { kind: 'cluster' } : {}),
+        dataId: anchor.getAttribute?.('data-id') ?? undefined,
+        ...(clickedLabel ? { clickedLabel } : {}),
+        partKind,
+        partName,
+        anchorEl: container
+      };
+    }
+    if (edgeHit) {
+      const pathEl = edgeHit.pathEl;
+      if (!pathEl || pathEl.tagName !== 'path') return null;
+      const dataId = pathEl.getAttribute('data-id');
+      const parsed = parseFlowchartEdgeDataId(dataId);
+      if (!parsed) return null;
+      const labelText = flowchartEdgeLabelText(pathEl, dataId);
+      return {
+        kind: 'edge',
+        id: dataId,
+        edgeFrom: parsed.from,
+        edgeTo: parsed.to,
+        ...(labelText ? { label: labelText } : {}),
+        partKind: 'edge',
+        partName: `${parsed.from} → ${parsed.to}`,
+        anchorEl: pathEl
+      };
+    }
+    if (infographicHit) {
+      const label = infographicHit.label || '';
+      const elementType = infographicHit.elementType || '';
+      const indexes = infographicHit.indexes || '';
+      if (!(label || elementType)) return null;
+      const idCore = indexes ? `${elementType}:${indexes}` : elementType || hashStringStable(label);
+      const partKind = INFOGRAPHIC_PART_KINDS[elementType] || 'item';
+      const partName = infographicHit.clickedLabel || label;
+      return {
+        kind: 'infographic-item',
+        id: `infographic:${idCore}`,
+        label,
+        ...(infographicHit.clickedLabel && infographicHit.clickedLabel !== label
+          ? { clickedLabel: infographicHit.clickedLabel }
+          : {}),
+        indexes,
+        elementType,
+        domNode: infographicHit.node,
+        partKind,
+        partName,
+        anchorEl: infographicHit.node
+      };
+    }
+    return null;
+  }
+
+  function descriptorFromTap(tap) {
+    if (!tap?.targetEl) return null;
+    if (tap.kind === 'edge') {
+      return buildDescriptorFromHit({ edgeHit: { pathEl: tap.targetEl } });
+    }
+    if (tap.kind === 'infographic-item') {
+      return buildDescriptorFromHit({
+        infographicHit: {
+          node: tap.targetEl,
+          label: tap.label,
+          clickedLabel: tap.clickedLabel,
+          indexes: tap.indexes,
+          elementType: tap.elementType
+        }
+      });
+    }
+    if (tap.kind === 'cluster') {
+      return buildDescriptorFromHit({ clusterEl: tap.targetEl, textHitEl: tap.textHitEl });
+    }
+    if (tap.kind === 'participant') {
+      return buildDescriptorFromHit({
+        actorHit: { groupEl: tap.targetEl, dataId: tap.dataId },
+        textHitEl: tap.textHitEl
+      });
+    }
+    return buildDescriptorFromHit({ nodeEl: tap.targetEl, textHitEl: tap.textHitEl });
+  }
+
+  function descriptorKey(descriptor) {
+    if (!descriptor) return null;
+    return `${descriptor.kind || 'node'}|${descriptor.id || ''}|${descriptor.partKind || ''}|${descriptor.partName || ''}`;
+  }
+
+  function clearDiagramHoverCloseTimer() {
+    if (diagramHoverCloseTimerRef.current != null) {
+      window.clearTimeout(diagramHoverCloseTimerRef.current);
+      diagramHoverCloseTimerRef.current = null;
+    }
+  }
+
+  function emitHoverDescriptor(descriptor) {
+    clearDiagramHoverCloseTimer();
+    const key = descriptorKey(descriptor);
+    if (key === lastHoverKeyRef.current) return;
+    lastHoverKeyRef.current = key;
+    onHoverTargetChange?.(descriptor);
+  }
+
+  function scheduleHoverClose() {
+    if (lastHoverKeyRef.current === null) return;
+    clearDiagramHoverCloseTimer();
+    diagramHoverCloseTimerRef.current = window.setTimeout(() => {
+      diagramHoverCloseTimerRef.current = null;
+      lastHoverKeyRef.current = null;
+      onHoverTargetChange?.(null);
+    }, DIAGRAM_HOVER_CLOSE_MS);
+  }
+
   function handlePointerDown(event) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
 
@@ -631,21 +912,8 @@ export default function DiagramCanvas({
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
 
-    let nodeEl = null;
-    let clusterEl = null;
-    let edgeHit = null;
-    let infographicHit = null;
-
-    if (contentType === 'mermaid') {
-      nodeEl = event.target?.closest?.('g.node') ?? null;
-      clusterEl = nodeEl ? null : event.target?.closest?.('g.cluster') ?? null;
-      edgeHit = !nodeEl && !clusterEl ? resolveFlowchartEdgeInteractionRoot(event.target) : null;
-    } else if (contentType === 'infographic') {
-      const boundary = viewportRef.current;
-      if (boundary && boundary.contains(event.target)) {
-        infographicHit = findInfographicTapTarget(event.target, boundary);
-      }
-    }
+    const { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, textHitEl } =
+      resolveTargetUnder(event.target);
 
     const prevPointers = getPointers(pointersRef.current);
     const passiveInfographicText =
@@ -671,8 +939,6 @@ export default function DiagramCanvas({
 
     if ((nodeEl || clusterEl) && prevPointers.length === 0) {
       const container = nodeEl || clusterEl;
-      const hitText = event.target?.closest?.('text');
-      const textHitEl = hitText && container.contains(hitText) ? hitText : null;
       tapCandidateRef.current = {
         pointerId: event.pointerId,
         startClientX: event.clientX,
@@ -688,6 +954,16 @@ export default function DiagramCanvas({
         startClientY: event.clientY,
         targetEl: edgeHit.pathEl,
         kind: 'edge'
+      };
+    } else if (actorHit && prevPointers.length === 0) {
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        targetEl: actorHit.groupEl,
+        dataId: actorHit.dataId,
+        kind: 'participant',
+        textHitEl
       };
     } else if (infographicHit && prevPointers.length === 0) {
       tapCandidateRef.current = {
@@ -706,7 +982,7 @@ export default function DiagramCanvas({
       tapCandidateRef.current = null;
     }
 
-    const noTap = !nodeEl && !clusterEl && !edgeHit && !infographicHit;
+    const noTap = !nodeEl && !clusterEl && !actorHit && !edgeHit && !infographicHit;
     if (pointers.length === 1 && noTap && !passiveInfographicText) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
@@ -718,6 +994,8 @@ export default function DiagramCanvas({
     }
 
     if (!passiveInfographicText) {
+      panGestureNotifiedRef.current = false;
+      panGestureStartRef.current = { x: event.clientX, y: event.clientY };
       setIsPanning(true);
       if (event.currentTarget.setPointerCapture) {
         event.currentTarget.setPointerCapture(event.pointerId);
@@ -736,10 +1014,23 @@ export default function DiagramCanvas({
         return;
       }
       tapCandidateRef.current = null;
+      notifyPanGestureStart();
     }
 
-    if (!pointersRef.current.has(event.pointerId)) return;
+    if (!pointersRef.current.has(event.pointerId)) {
+      if (event.pointerType === 'mouse' && onHoverTargetChange) {
+        const resolved = resolveTargetUnder(event.target);
+        const descriptor = buildDescriptorFromHit(resolved);
+        if (descriptor) {
+          emitHoverDescriptor(descriptor);
+        } else {
+          scheduleHoverClose();
+        }
+      }
+      return;
+    }
     event.preventDefault();
+    checkPanGestureThreshold(event.clientX, event.clientY);
 
     const bgTap = backgroundTapRef.current;
     if (bgTap && bgTap.pointerId === event.pointerId) {
@@ -824,68 +1115,11 @@ export default function DiagramCanvas({
           distance: remaining.length >= 2 ? getDistance(remaining[0], remaining[1]) : null
         };
       }
-      if (tap.kind === 'edge') {
-        const pathEl = tap.targetEl;
-        const pathOk =
-          pathEl &&
-          pathEl.namespaceURI === 'http://www.w3.org/2000/svg' &&
-          pathEl.tagName === 'path';
-        if (moved <= TAP_MOVE_THRESHOLD_PX && pathOk && onSelectedNodeChange) {
-          const dataId = pathEl.getAttribute('data-id');
-          const parsed = parseFlowchartEdgeDataId(dataId);
-          if (parsed) {
-            const labelText = flowchartEdgeLabelText(pathEl, dataId);
-            onSelectedNodeChange({
-              kind: 'edge',
-              id: dataId,
-              edgeFrom: parsed.from,
-              edgeTo: parsed.to,
-              ...(labelText ? { label: labelText } : {})
-            });
-          }
+      if (moved <= TAP_MOVE_THRESHOLD_PX) {
+        const descriptor = descriptorFromTap(tap);
+        if (descriptor) {
+          onSelectedNodeChange?.(descriptor);
         }
-        return;
-      }
-
-      if (tap.kind === 'infographic-item') {
-        if (moved <= TAP_MOVE_THRESHOLD_PX && onSelectedNodeChange && tap.targetEl) {
-          const label = tap.label || '';
-          const elementType = tap.elementType || '';
-          const indexes = tap.indexes || '';
-          // Stable id encodes the DSL path + which element-type was clicked so the
-          // toolbar / focus payload stay tied to *this* label rather than the item.
-          const idCore = indexes ? `${elementType}:${indexes}` : elementType || hashStringStable(label);
-          if (label || elementType) {
-            onSelectedNodeChange({
-              kind: 'infographic-item',
-              id: `infographic:${idCore}`,
-              label,
-              ...(tap.clickedLabel && tap.clickedLabel !== label ? { clickedLabel: tap.clickedLabel } : {}),
-              indexes,
-              elementType,
-              domNode: tap.targetEl
-            });
-          }
-        }
-        return;
-      }
-
-      const anchor = diagramDomAnchor(tap.targetEl);
-      if (moved <= TAP_MOVE_THRESHOLD_PX && anchor?.id && onSelectedNodeChange) {
-        const label = nodeTitleFromElement(tap.targetEl);
-        let clickedLabel;
-        if (tap.textHitEl) {
-          const raw = tap.textHitEl.textContent?.replace(/\s+/g, ' ')?.trim() ?? '';
-          const clipped = raw.slice(0, 240);
-          if (clipped && clipped !== label) clickedLabel = clipped;
-        }
-        onSelectedNodeChange({
-          id: anchor.id,
-          label,
-          ...(tap.kind === 'cluster' ? { kind: 'cluster' } : {}),
-          dataId: anchor.getAttribute?.('data-id') ?? undefined,
-          ...(clickedLabel ? { clickedLabel } : {})
-        });
       }
       return;
     }
@@ -901,14 +1135,16 @@ export default function DiagramCanvas({
     if (pointers.length === 0) {
       gestureRef.current = { centroid: null, distance: null };
       setIsPanning(false);
+      panGestureStartRef.current = null;
 
       const bgTap = backgroundTapRef.current;
-      if (bgTap && bgTap.pointerId === event.pointerId && onSelectedNodeChange) {
+      if (bgTap && bgTap.pointerId === event.pointerId) {
         let stillBackground = true;
         if (contentType === 'mermaid') {
           stillBackground =
             !event.target?.closest?.('g.node') &&
             !event.target?.closest?.('g.cluster') &&
+            !resolveSequenceActorInteractionRoot(event.target) &&
             !resolveFlowchartEdgeInteractionRoot(event.target);
         } else if (contentType === 'infographic') {
           const boundary = viewportRef.current;
@@ -917,7 +1153,8 @@ export default function DiagramCanvas({
         if (stillBackground) {
           const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
           if (movedBg <= TAP_MOVE_THRESHOLD_PX) {
-            onSelectedNodeChange(null);
+            onSelectedNodeChange?.(null);
+            scheduleHoverClose();
           }
         }
       }
@@ -945,9 +1182,14 @@ export default function DiagramCanvas({
       ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select.'
       : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select.';
   const streamingLabel = contentType === 'infographic' ? 'Updating infographic…' : 'Updating diagram…';
-  const viewportStyle = {
+  const zoomLayerStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
   };
+
+  const showZoomControls =
+    !streamingPreview &&
+    ((contentType === 'mermaid' && Boolean(svgMarkup)) || contentType === 'infographic');
+
   return (
     <section className={shellClass}>
       <div className="diagram-main-column">
@@ -958,7 +1200,12 @@ export default function DiagramCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
           onPointerCancel={endPointerGesture}
+          onPointerLeave={(event) => {
+            if (event.pointerType === 'mouse') scheduleHoverClose();
+          }}
           aria-label={aria}
+          data-run-variant={runFx?.streaming && runFx?.variant ? runFx.variant : undefined}
+          data-run-intensity={runFx?.streaming ? runFx.intensity || 'normal' : undefined}
         >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
@@ -969,26 +1216,53 @@ export default function DiagramCanvas({
             </p>
           ) : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
-          {contentType === 'infographic' ? (
+          {showZoomControls ? (
             <div
-              ref={viewportRef}
-              className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
-              style={viewportStyle}
+              className="diagram-zoom-controls"
+              aria-label="Diagram zoom"
+              onPointerDown={(event) => event.stopPropagation()}
             >
-              <InfographicRenderer
-                diagramSource={editorSource}
-                selectedNode={selectedNode}
-                streamingPreview={streamingPreview}
-              />
+              <button
+                type="button"
+                className="diagram-zoom-btn"
+                title="Fit diagram in view"
+                aria-label="Fit diagram in view"
+                onClick={() => applyViewportFit(true)}
+              >
+                Fit
+              </button>
+              <button
+                type="button"
+                className="diagram-zoom-btn"
+                title="Reset zoom to 100%"
+                aria-label="Reset zoom to 100 percent"
+                onClick={() => applyViewportFit(false)}
+              >
+                100%
+              </button>
             </div>
-          ) : (
-            <div
-              ref={viewportRef}
-              className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
-              style={viewportStyle}
-              dangerouslySetInnerHTML={{ __html: svgMarkup }}
-            />
-          )}
+          ) : null}
+          <div
+            ref={viewportRef}
+            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
+          >
+            <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>
+              {contentType === 'infographic' ? (
+                <InfographicRenderer
+                  diagramSource={editorSource}
+                  selectedNode={selectedNode}
+                  streamingPreview={streamingPreview}
+                />
+              ) : (
+                <div dangerouslySetInnerHTML={{ __html: svgMarkup }} />
+              )}
+            </div>
+          </div>
+          <DiagramRunFx
+            variant={runFx?.variant}
+            streaming={Boolean(runFx?.streaming)}
+            intensity={runFx?.intensity || 'normal'}
+          />
         </div>
       </div>
 

@@ -15,6 +15,9 @@ const MERMAID_C4 = /^C4(?:Context|Container|Component|Dynamic|Deployment)\b/i;
 
 const MERMAID_BARE_FLOW = /^(?:flowchart|graph)\b/i;
 
+/** Leading `%%{init: …}%%` or other full-line `%% … %%` Mermaid directives. */
+const MERMAID_DIRECTIVE_LINE = /^%%[\s\S]*%%\s*$/;
+
 export function classifyDiagramStartLine(trimmedLine) {
   if (!trimmedLine) return null;
   if (INFOGRAPHIC_FIRST_LINE.test(trimmedLine)) return 'infographic';
@@ -38,6 +41,29 @@ function isSubstantialDsl(dsl, kind) {
 }
 
 /**
+ * Include `%%{init: …}%%` (and similar) lines that precede the diagram header.
+ * @param {string[]} lines
+ * @param {number} diagramLineIndex
+ * @returns {number}
+ */
+export function mermaidDslStartIndex(lines, diagramLineIndex) {
+  let startIndex = diagramLineIndex;
+  for (let j = diagramLineIndex - 1; j >= 0; j--) {
+    const t = lines[j].trim();
+    if (!t) {
+      startIndex = j;
+      continue;
+    }
+    if (MERMAID_DIRECTIVE_LINE.test(t)) {
+      startIndex = j;
+      continue;
+    }
+    break;
+  }
+  return startIndex;
+}
+
+/**
  * @param {string} text
  * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' } | null}
  */
@@ -52,7 +78,8 @@ export function splitEmbeddedDiagramDsl(text) {
     const kind = classifyDiagramStartLine(trimmed);
     if (!kind) continue;
 
-    const dsl = lines.slice(i).join('\n').trim();
+    const dslStart = kind === 'mermaid' ? mermaidDslStartIndex(lines, i) : i;
+    const dsl = lines.slice(dslStart).join('\n').trim();
     if (!isSubstantialDsl(dsl, kind)) continue;
 
     if (kind === 'mermaid' && MERMAID_BARE_FLOW.test(trimmed) && !MERMAID_FIRST_LINE.test(trimmed)) {
@@ -64,7 +91,7 @@ export function splitEmbeddedDiagramDsl(text) {
       if (!looksLikeFlowchartBody) continue;
     }
 
-    const prose = lines.slice(0, i).join('\n');
+    const prose = lines.slice(0, dslStart).join('\n');
     return { prose, dsl, kind };
   }
   return null;

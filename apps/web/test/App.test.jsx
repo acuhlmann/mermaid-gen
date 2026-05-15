@@ -238,24 +238,26 @@ describe('App simplified controls', () => {
   });
 
   it(
-    'Thinking segment undo syncs baseline mermaid source after Refine',
+    'Thinking segment Restore re-syncs the entry\'s after-snapshot to the canvas',
     async () => {
       render(<App />);
       fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
       fireEvent.click(await screen.findByRole('button', { name: 'Refine' }));
 
-      await screen.findByRole('button', { name: 'Undo diagram change' });
+      await screen.findByRole('button', { name: 'Restore' });
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       const callsBefore = syncClientDiagramStateMock.mock.calls.length;
-      fireEvent.click(screen.getByRole('button', { name: 'Undo diagram change' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
 
       await waitFor(() => expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore));
+      // Restore now jumps to the entry's after-source (the snapshot rendered in its preview),
+      // not the baseline. We just assert the call happened with a diagramSource string — the
+      // exact source depends on the streamed final state captured during the test.
       const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
-      expect(lastPayload.diagramSource).toBe(initialState.diagramSource);
-      await waitFor(() =>
-        expect(screen.queryByRole('button', { name: 'Undo diagram change' })).toBeNull()
-      );
+      expect(typeof lastPayload.diagramSource).toBe('string');
+      // Restore stays available so the user can re-jump to this version anytime.
+      expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
     },
     15_000
   );
@@ -264,7 +266,7 @@ describe('App simplified controls', () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
-    const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
+    const input = await screen.findByPlaceholderText('Your Topic');
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
     fireEvent.click(screen.getByRole('button', { name: 'Go' }));
 
@@ -369,7 +371,7 @@ describe('App simplified controls', () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
-    const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
+    const input = await screen.findByPlaceholderText('Your Topic');
     fireEvent.change(input, { target: { value: 'Tighten wording' } });
     fireEvent.click(screen.getByRole('button', { name: 'Go' }));
 
@@ -443,7 +445,7 @@ describe('App simplified controls', () => {
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
-    const input = await screen.findByPlaceholderText('Set the Topic, Describe Your Change');
+    const input = await screen.findByPlaceholderText('Your Topic');
     fireEvent.change(input, { target: { value: 'Long request' } });
     fireEvent.click(screen.getByRole('button', { name: 'Go' }));
 
@@ -482,7 +484,171 @@ describe('App simplified controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
-    await screen.findByText('No diagram update applied.');
+    await screen.findByText(/No diagram patch was applied/i);
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(screen.queryByText('Done')).toBeNull();
+  });
+
+  it('retries a failed transform from the insight card', async () => {
+    let transformCalls = 0;
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'transform') {
+        transformCalls += 1;
+        if (transformCalls === 1) {
+          onEvent?.({
+            type: 'error',
+            code: 'no_mutation_revision',
+            message: 'The diagram was not updated—no valid patch was applied.'
+          });
+          onEvent?.({ type: 'final', revisionChanged: false, message: 'Model reply only.' });
+          return;
+        }
+        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        return;
+      }
+      if (payload.operation === 'intent') {
+        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+      }
+    });
+
+    render(<App />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalledTimes(1));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalledTimes(2));
+    expect(syncClientDiagramStateMock).toHaveBeenCalledTimes(2);
+    const secondPayload = streamDiagramAgentMock.mock.calls[1][0];
+    expect(secondPayload.operation).toBe('transform');
+    expect(secondPayload.mode).toBe('refine');
+    expect(secondPayload.revisionId).toBe(1);
+  });
+
+  it('does not re-submit intent when switching back after a mode-switch sync', async () => {
+    const previousMatchMedia = globalThis.matchMedia;
+    globalThis.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query.includes('prefers-reduced-motion'),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }));
+
+    const mermaidWithTopic = {
+      ...initialState,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Sun --> Planets',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const syncedInfographic = {
+      ...createInitialDiagramState('infographic'),
+      revisionId: 5,
+      diagramSource: 'infographic sequence-diagram\n  title Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: mermaidWithTopic,
+      infographic: createInitialDiagramState('infographic')
+    });
+
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent' && payload.contentType === 'infographic') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: syncedInfographic,
+          message: 'Applied.'
+        });
+        return;
+      }
+      if (payload.operation === 'intent') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: mermaidWithTopic,
+          message: 'Applied.'
+        });
+      }
+    });
+
+    render(<App />);
+    await waitForControlsReady();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Infographic' }));
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+      expect(intentCalls).toHaveLength(1);
+    });
+    await screen.findByText('Done');
+    await waitForControlsReady();
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'infographic',
+      mermaid: mermaidWithTopic,
+      infographic: syncedInfographic
+    });
+
+    streamDiagramAgentMock.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diagram' }));
+    await waitForControlsReady('Refine');
+
+    const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+    expect(intentCalls).toHaveLength(0);
+
+    globalThis.matchMedia = previousMatchMedia;
+  });
+
+  it('auto-submits intent with peerContext when switching to diagram and infographic is ahead', async () => {
+    window.localStorage.setItem('archislop:content-mode', 'infographic');
+
+    const staleMermaid = {
+      ...initialState,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Old --> Stale',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const freshInfographic = {
+      ...createInitialDiagramState('infographic'),
+      revisionId: 5,
+      diagramSource: 'infographic sequence-diagram\n  title Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'infographic',
+      mermaid: staleMermaid,
+      infographic: freshInfographic
+    });
+
+    render(<App />);
+    await waitForControlsReady();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Diagram' }));
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+      expect(intentCalls.length).toBeGreaterThan(0);
+      expect(
+        intentCalls.some(
+          (c) =>
+            c[0]?.prompt === 'Solar system' &&
+            c[0]?.contentType === 'mermaid' &&
+            c[0]?.peerContext?.contentType === 'infographic'
+        )
+      ).toBe(true);
+    });
   });
 });

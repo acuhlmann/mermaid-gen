@@ -527,6 +527,27 @@ test('emitIntentTransformStreamResult emits coded error when mutation stream end
   assert.equal(events[1].state, undefined);
 });
 
+test('emitIntentTransformStreamResult uses infographic slot when contentType is infographic', async () => {
+  const stateStore = createDiagramStateStore();
+  await stateStore.applyDiagramSource({
+    contentType: 'infographic',
+    diagramSource: 'template: relation-dagre-flow-tb-simple-circle-node\nnodes: []',
+    reason: 'test'
+  });
+  const events = [];
+  emitIntentTransformStreamResult({
+    emit: (e) => events.push(e),
+    operation: 'intent',
+    revisionBefore: 0,
+    stateStore,
+    agentResult: { message: 'No patch.' },
+    contentType: 'infographic'
+  });
+  assert.equal(events.length, 2);
+  assert.equal(events[0].code, 'no_mutation_revision');
+  assert.equal(events[1].revisionChanged, false);
+});
+
 test('emitIntentTransformStreamResult emits only final when revision advances', async () => {
   const stateStore = createDiagramStateStore();
   await stateStore.applyDiagramSource({

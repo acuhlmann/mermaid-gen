@@ -58,10 +58,19 @@ DEPLOY_ARGS=(
   --port=8080
 )
 
+CLOUD_RUN_SECRETS=()
 if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/null; then
-  DEPLOY_ARGS+=(--set-secrets="OPENROUTER_API_KEY=openrouter-api-key:latest")
+  CLOUD_RUN_SECRETS+=("OPENROUTER_API_KEY=openrouter-api-key:latest")
 else
   echo "Warning: Secret openrouter-api-key not found; deploy without LLM until you create it (docs/deploy/gcp.md)." >&2
+fi
+if gcloud secrets describe invite-token-secret --project="${PROJECT_ID}" &>/dev/null; then
+  CLOUD_RUN_SECRETS+=("INVITE_TOKEN_SECRET=invite-token-secret:latest")
+else
+  echo "Warning: Secret invite-token-secret not found; run npm run secret:invite-token:cloud-run (docs/deploy/gcp.md)." >&2
+fi
+if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
+  DEPLOY_ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
 fi
 
 VERTEX_LOCATION="${VERTEX_LOCATION:-us-central1}"
@@ -77,6 +86,8 @@ fi
 if [[ -n "${OPENROUTER_PREFERRED:-}" ]]; then
   VERTEX_ENV_VARS="${VERTEX_ENV_VARS},OPENROUTER_PREFERRED=${OPENROUTER_PREFERRED}"
 fi
+PUBLIC_BASE_URL="${PUBLIC_BASE_URL:-https://mermaid-gen-main-464241135431.us-central1.run.app}"
+VERTEX_ENV_VARS="${VERTEX_ENV_VARS},PUBLIC_BASE_URL=${PUBLIC_BASE_URL}"
 DEPLOY_ARGS+=(--set-env-vars="${VERTEX_ENV_VARS}")
 
 gcloud "${DEPLOY_ARGS[@]}"

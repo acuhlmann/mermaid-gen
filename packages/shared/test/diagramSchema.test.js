@@ -1,13 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  AgentHandshakeRequestSchema,
+  AgentInsightSchema,
+  AgentPresenceSchema,
+  AgentProposalSchema,
+  AgentReactionSchema,
   AgentStreamPayloadSchema,
   ContentTypeSchema,
   DEFAULT_DIAGRAM_STYLE,
   DiagramAnalyzeSchema,
   DiagramIntentSchema,
+  DiagramPatchSchema,
   DiagramTransformIntentSchema,
   FocusNodeSchema,
+  OriginSchema,
   SessionDiagramStateSchema,
   applyMermaidStyleDirective,
   applyPatch,
@@ -272,6 +279,20 @@ test('FocusNodeSchema accepts infographic-region selectionKind', () => {
   assert.equal(ok.data.selectionKind, 'infographic-region');
 });
 
+test('FocusNodeSchema accepts infographic-item selection with indexes/elementType', () => {
+  const ok = FocusNodeSchema.safeParse({
+    id: 'infographic:item-1-2',
+    selectionKind: 'infographic-item',
+    label: 'Corona',
+    clickedLabel: 'Corona',
+    indexes: '1,2',
+    elementType: 'item-label'
+  });
+  assert.equal(ok.success, true);
+  assert.equal(ok.data.indexes, '1,2');
+  assert.equal(ok.data.elementType, 'item-label');
+});
+
 test('FocusNodeSchema requires edgeFrom and edgeTo when selectionKind is edge', () => {
   assert.equal(
     FocusNodeSchema.safeParse({
@@ -332,4 +353,112 @@ test('transform payloads accept optional goMadDepth in valid range', () => {
 
   assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 13 }).success, false);
   assert.equal(DiagramTransformIntentSchema.safeParse({ ...base, goMadDepth: 0 }).success, false);
+});
+
+test('OriginSchema accepts external-agent shape', () => {
+  const result = OriginSchema.safeParse({
+    kind: 'external-agent',
+    agentId: 'a1',
+    agentName: 'Cursor',
+    color: '#f97316',
+    emoji: '🦊'
+  });
+  assert.equal(result.success, true);
+});
+
+test('OriginSchema rejects invalid color', () => {
+  const result = OriginSchema.safeParse({ kind: 'external-agent', color: 'orange' });
+  assert.equal(result.success, false);
+});
+
+test('DiagramPatchSchema accepts optional origin', () => {
+  const patch = DiagramPatchSchema.parse({
+    previousRevisionId: 0,
+    nextRevisionId: 1,
+    diagramSource: 'graph TD; A-->B;',
+    contentType: 'mermaid',
+    reason: 'external proposal accepted',
+    origin: {
+      kind: 'external-agent',
+      agentId: 'a1',
+      agentName: 'Cursor',
+      color: '#f97316'
+    }
+  });
+  assert.equal(patch.origin.agentName, 'Cursor');
+});
+
+test('AgentProposalSchema requires reason and diagramSource', () => {
+  const ok = AgentProposalSchema.safeParse({
+    proposalId: 'p1',
+    sessionId: 's1',
+    origin: { kind: 'external-agent', agentName: 'Cursor', color: '#f97316' },
+    contentType: 'mermaid',
+    baseRevisionId: 0,
+    diagramSource: 'graph TD; A-->B;',
+    reason: 'fix typo',
+    createdAt: new Date().toISOString()
+  });
+  assert.equal(ok.success, true);
+  const bad = AgentProposalSchema.safeParse({
+    proposalId: 'p1',
+    sessionId: 's1',
+    origin: { kind: 'external-agent' },
+    contentType: 'mermaid',
+    baseRevisionId: 0,
+    diagramSource: '',
+    reason: '',
+    createdAt: new Date().toISOString()
+  });
+  assert.equal(bad.success, false);
+});
+
+test('AgentHandshakeRequestSchema accepts minimal request', () => {
+  const result = AgentHandshakeRequestSchema.safeParse({
+    requestId: 'r1',
+    sessionId: 's1',
+    proposedName: 'Cursor',
+    createdAt: new Date().toISOString()
+  });
+  assert.equal(result.success, true);
+});
+
+test('AgentPresenceSchema accepts presence with focus', () => {
+  const result = AgentPresenceSchema.safeParse({
+    agentId: 'a1',
+    agentName: 'Cursor',
+    color: '#f97316',
+    lastSeenAt: new Date().toISOString(),
+    focus: { contentType: 'mermaid', nodeId: 'A', label: 'Start' }
+  });
+  assert.equal(result.success, true);
+});
+
+test('AgentReactionSchema requires a recognized target kind', () => {
+  const ok = AgentReactionSchema.safeParse({
+    reactionId: 'r1',
+    origin: { kind: 'external-agent', agentName: 'Cursor', color: '#f97316' },
+    target: { kind: 'revision', contentType: 'mermaid', revisionId: 1 },
+    emoji: '🎉',
+    createdAt: new Date().toISOString()
+  });
+  assert.equal(ok.success, true);
+  const bad = AgentReactionSchema.safeParse({
+    reactionId: 'r1',
+    origin: { kind: 'external-agent' },
+    target: { kind: 'whatever' },
+    emoji: '🎉',
+    createdAt: new Date().toISOString()
+  });
+  assert.equal(bad.success, false);
+});
+
+test('AgentInsightSchema defaults variant to note', () => {
+  const result = AgentInsightSchema.parse({
+    insightId: 'i1',
+    origin: { kind: 'external-agent', agentName: 'Cursor', color: '#f97316' },
+    text: 'looks good',
+    createdAt: new Date().toISOString()
+  });
+  assert.equal(result.variant, 'note');
 });

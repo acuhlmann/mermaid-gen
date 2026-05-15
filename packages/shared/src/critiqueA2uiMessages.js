@@ -2,7 +2,7 @@ import { splitCritiqueActionableSections } from './critiqueActionable.js';
 
 /**
  * Critique checklist A2UI payloads. Wire path: `emit(createLegacyA2uiStreamEvent(messages))`
- * in the agent → `createAgUiEmit` → AG-UI `CUSTOM` (`AGUI_CUSTOM_NAME_A2UI`) →
+ * in the agent → `createAgentStreamEmitter` → AG-UI `CUSTOM` (`AGUI_CUSTOM_NAME_A2UI`) →
  * `createAgUiTranslator` on the client. For a second surface, add builders here (or a sibling
  * module), reuse `createLegacyA2uiStreamEvent`, and render with the same allowlisted catalog pattern.
  */

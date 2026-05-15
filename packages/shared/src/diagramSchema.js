@@ -3,6 +3,19 @@ import { DEFAULT_DIAGRAM_STYLE, DiagramStyleSchema, parseMermaidStyleConfig } fr
 
 export const ContentTypeSchema = z.enum(['mermaid', 'infographic']);
 
+/**
+ * Identifies who contributed a patch / insight / reaction / presence update.
+ * Defaults are `host-agent` when an internal LangChain agent applies a patch,
+ * `external-agent` for MCP-connected agents, and `user` for manual edits.
+ */
+export const OriginSchema = z.object({
+  kind: z.enum(['user', 'host-agent', 'external-agent']).default('host-agent'),
+  agentId: z.string().max(64).optional(),
+  agentName: z.string().max(64).optional(),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  emoji: z.string().max(8).optional()
+});
+
 /** Optional sibling-slot source for mode-switch conversion (intent only). */
 export const IntentPeerContextSchema = z.object({
   contentType: ContentTypeSchema,
@@ -15,7 +28,8 @@ export const DiagramPatchSchema = z.object({
   diagramSource: z.string().min(1),
   styleConfig: DiagramStyleSchema.nullable().default(DEFAULT_DIAGRAM_STYLE),
   reason: z.string().min(1).default('Agent update'),
-  contentType: ContentTypeSchema.default('mermaid')
+  contentType: ContentTypeSchema.default('mermaid'),
+  origin: OriginSchema.optional()
 });
 
 export const DiagramStateSchema = z.object({
@@ -40,12 +54,18 @@ export const FocusNodeSchema = z
     id: z.string().min(1),
     label: z.string().optional(),
     /** When omitted, servers treat the focus as a flowchart vertex (legacy behavior). */
-    selectionKind: z.enum(['node', 'cluster', 'edge', 'infographic-region']).optional(),
+    selectionKind: z
+      .enum(['node', 'cluster', 'edge', 'infographic-item', 'infographic-region'])
+      .optional(),
     edgeFrom: z.string().min(1).optional(),
     edgeTo: z.string().min(1).optional(),
     dataId: z.string().optional(),
     /** Text the user tapped (e.g. one line of a multi-line node label), when distinct from aggregate `label`. */
-    clickedLabel: z.string().max(240).optional()
+    clickedLabel: z.string().max(240).optional(),
+    /** AntV `data-indexes` path for an infographic item selection (e.g. "0", "1,2"). */
+    indexes: z.string().max(64).optional(),
+    /** AntV `data-element-type` for the clicked sub-element (e.g. "item-label", "item-value"). */
+    elementType: z.string().max(64).optional()
   })
   .superRefine((val, ctx) => {
     if (val.selectionKind === 'edge') {
@@ -238,3 +258,77 @@ export function applyPatch(state, patch) {
 export function deriveStyleConfigFromSource(mermaidSource) {
   return parseMermaidStyleConfig(mermaidSource);
 }
+
+/** External agent's pending edit. Lives in agentProposalStore until the user accepts or rejects. */
+export const AgentProposalSchema = z.object({
+  proposalId: z.string().min(1),
+  sessionId: z.string().min(1),
+  origin: OriginSchema,
+  contentType: ContentTypeSchema,
+  baseRevisionId: z.number().int().nonnegative(),
+  diagramSource: z.string().min(1),
+  reason: z.string().min(1).max(2000),
+  createdAt: z.string(),
+  status: z.enum(['pending', 'accepted', 'rejected', 'stale']).default('pending'),
+  /** Optional metadata from validateAndPreparePatch (linesAdded/Removed, sanitizerApplied, …). */
+  metadata: z.record(z.string(), z.unknown()).optional()
+});
+
+export const AgentHandshakeRequestSchema = z.object({
+  requestId: z.string().min(1),
+  sessionId: z.string().min(1),
+  proposedName: z.string().min(1).max(64),
+  proposedColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  proposedEmoji: z.string().max(8).optional(),
+  clientInfo: z.string().max(200).optional(),
+  createdAt: z.string(),
+  status: z.enum(['pending', 'approved', 'denied', 'expired']).default('pending')
+});
+
+export const AgentPresenceSchema = z.object({
+  agentId: z.string().min(1),
+  agentName: z.string().min(1).max(64),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  emoji: z.string().max(8).optional(),
+  lastSeenAt: z.string(),
+  focus: z
+    .object({
+      contentType: ContentTypeSchema,
+      nodeId: z.string().optional(),
+      label: z.string().optional()
+    })
+    .nullable()
+    .optional()
+});
+
+export const AgentReactionSchema = z.object({
+  reactionId: z.string().min(1),
+  origin: OriginSchema,
+  target: z.discriminatedUnion('kind', [
+    z.object({
+      kind: z.literal('revision'),
+      contentType: ContentTypeSchema,
+      revisionId: z.number().int().nonnegative()
+    }),
+    z.object({
+      kind: z.literal('insight'),
+      insightId: z.string().min(1)
+    }),
+    z.object({
+      kind: z.literal('node'),
+      contentType: ContentTypeSchema,
+      nodeId: z.string().min(1)
+    })
+  ]),
+  emoji: z.string().min(1).max(8),
+  createdAt: z.string()
+});
+
+/** Attributed prose insight dropped into the InsightsPane by an external agent. */
+export const AgentInsightSchema = z.object({
+  insightId: z.string().min(1),
+  origin: OriginSchema,
+  variant: z.enum(['note', 'critique', 'suggestion']).default('note'),
+  text: z.string().min(1).max(8000),
+  createdAt: z.string()
+});

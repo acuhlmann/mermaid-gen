@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  stripInvalidThemeKeys,
   validateAndPrepareInfographicPatch,
   validateInfographicStrict
 } from '../src/tools/infographicDslTool.js';
@@ -348,4 +349,44 @@ test('validateInfographicStrict rejects non-string input', () => {
   const result = validateInfographicStrict(undefined);
   assert.equal(result.valid, false);
   assert.match(result.error, /string/i);
+});
+
+test('stripInvalidThemeKeys removes invented theme keys but keeps palette', () => {
+  const dsl =
+    'infographic list-grid-simple\n' +
+    'data\n' +
+    '  lists\n' +
+    '    - label A\n' +
+    '      icon star\n' +
+    'theme\n' +
+    '  palette #1cb0f6 #58cc02\n' +
+    '  node-border-colors #1cb0f6 #58cc02\n' +
+    '  edge-label-bg #ffffff';
+  const { text, applied } = stripInvalidThemeKeys(dsl);
+  assert.ok(applied.includes('strip-invalid-theme-keys'));
+  assert.match(text, /palette #1cb0f6/);
+  assert.ok(!text.includes('node-border-colors'));
+  assert.ok(!text.includes('edge-label-bg'));
+});
+
+test('accepts DSL with invalid theme keys after sanitizer strips them', async () => {
+  const dsl =
+    'infographic list-grid-simple\n' +
+    'data\n' +
+    '  title Slop palette\n' +
+    '  lists\n' +
+    '    - label Acquire\n' +
+    '      icon rocket\n' +
+    'theme\n' +
+    '  palette #ec4899 #8b5cf6\n' +
+    '  node-border-colors #1cb0f6 #58cc02 #89e219\n' +
+    '  edge-label-bg #ffffff';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState,
+    proposedDiagramSource: dsl,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, true);
+  assert.ok(result.metadata.sanitizerApplied.includes('strip-invalid-theme-keys'));
+  assert.ok(!result.patch.diagramSource.includes('node-border-colors'));
 });

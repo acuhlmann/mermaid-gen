@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { classifyDiagramStartLine, splitEmbeddedDiagramDsl } from '../src/utils/insightsEmbeddedDiagramSplit.js';
+import {
+  classifyDiagramStartLine,
+  mermaidDslStartIndex,
+  splitEmbeddedDiagramDsl
+} from '../src/utils/insightsEmbeddedDiagramSplit.js';
 
 describe('splitEmbeddedDiagramDsl', () => {
   it('splits prose then infographic DSL', () => {
@@ -52,6 +56,33 @@ We should simplify.`;
   it('returns null for bare graph line without flowchart body', () => {
     const text = `graph TD`;
     expect(splitEmbeddedDiagramDsl(text)).toBeNull();
+  });
+
+  it('includes leading %%{init}%% directive in mermaid dsl', () => {
+    const init = '%%{init: {"theme":"base","flowchart":{"curve":"rounded"}}}%%';
+    const text = `${init}
+flowchart TB
+  A --> B
+  B --> C
+`;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('mermaid');
+    expect(r.dsl.startsWith('%%{init:')).toBe(true);
+    expect(r.dsl).toContain('flowchart TB');
+    expect(r.dsl).toContain('A --> B');
+  });
+});
+
+describe('mermaidDslStartIndex', () => {
+  it('walks back over init directives', () => {
+    const lines = [
+      '%%{init: {"theme":"dark"}}%%',
+      '',
+      'flowchart LR',
+      '  A --> B'
+    ];
+    expect(mermaidDslStartIndex(lines, 2)).toBe(0);
   });
 });
 

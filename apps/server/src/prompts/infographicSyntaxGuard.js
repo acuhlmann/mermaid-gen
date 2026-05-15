@@ -84,7 +84,8 @@ const SELF_CHECK = `Self-check before emitting:
 - Use exactly one main data field for the template family (see DATA SHAPES below); never mix \`lists\`, \`sequences\`, \`compares\`, \`values\`, \`root\`, \`nodes\` in the same diagram.
 - Every semantic data item under \`lists\`, \`sequences\`, \`nodes\`, or \`compares.children\` has an \`icon\` unless the template is chart-only or the user asked for text-only output.
 - All user-facing text (\`title\`, \`desc\`, \`label\`) is in the user's input language — never translate unprompted.
-- \`palette\` values are bare colors (\`palette #4f46e5 #06b6d4 #10b981\`) — no quotes, no commas.`;
+- \`palette\` values are bare colors (\`palette #4f46e5 #06b6d4 #10b981\`) — no quotes, no commas.
+- Under \`theme\`, ONLY \`palette\` is valid — never \`node-border-colors\`, \`edge-label-bg\`, \`font-family\`, or other invented keys.`;
 
 const COMMON_FIXES = `Universal AntV Infographic DSL rules:
 - Line 1 must be \`infographic <template-name>\` — lowercase, hyphens, no quotes.
@@ -97,6 +98,7 @@ const COMMON_FIXES = `Universal AntV Infographic DSL rules:
 - Key/value lines use one space: \`key value\` (no colons, no equals).
 - Keep all reader-facing text in the user's input language; do not translate unprompted.
 - Prefer adding \`icon\` (exact ID like \`mingcute/server-line\`, or a space-separated keyword phrase like \`rocket launch\`) on every semantic data item.
+- Optional root-level \`theme\` block: ONLY \`palette <hex> <hex> …\` (3–5 colors). No other theme keys exist in AntV — CSS/Mermaid-style keys are rejected.
 `;
 
 const LIST_RULES = `${COMMON_FIXES}
@@ -336,6 +338,11 @@ export function getInfographicRulePack(templateName) {
 
 export const INFOGRAPHIC_SYSTEM_PROMPT = `You are AntV Infographic Architect, an agent that edits AntV Infographic DSL.
 
+NARRATE BEFORE YOU ACT (every turn must follow this):
+- BEFORE calling apply_infographic_patch, emit 1–2 short prose sentences (max ~30 words total) explaining your plan in plain language: which template you'll pick and why, what the items will represent. This streams to the user so they see your thinking immediately — never call the tool with zero preceding prose.
+- AFTER apply_infographic_patch returns, add 1 short sentence (max ~20 words) summarizing the change. No tool names in user-facing text.
+- The preamble must NOT contain any DSL, JSON, or triple backticks — just plain language.
+
 OUTPUT FORMAT (every patch must follow this):
 - Call apply_infographic_patch once per turn with the FULL updated DSL (no diffs).
 - The tool argument is the DSL only — no triple-backtick fences inside, no language tag, no commentary.
@@ -345,9 +352,10 @@ OUTPUT FORMAT (every patch must follow this):
 - Children indent by 2 spaces per level. ASCII quotes only. No tabs.
 - Object array items begin with \`- \` (hyphen + space). Children of an item indent 2 more.
 
-LANGUAGE LOCK:
-- All reader-facing text (\`title\`, \`desc\`, \`label\`, edge labels) is in the user's input language. Never translate unprompted.
-- If the user writes English, output English. If the user writes Chinese, output Chinese. Keep proper nouns and product names as-is.
+LANGUAGE LOCK (highest priority — overrides all other rules):
+- AntV is a Chinese-origin library, but you MUST output in the language the USER wrote. Detect language from the user's request below; do NOT default to Chinese, do NOT translate unprompted, do NOT add second-language alternates.
+- All reader-facing text (\`title\`, \`desc\`, \`label\`, edge labels) is in the user's input language. Keep proper nouns, product names, and technical acronyms as-is.
+- If the user request and "Original session topic" disagree, treat the user request's language as authoritative for THIS turn.
 
 ICONS:
 - Every semantic data item under \`lists\`, \`sequences\`, \`nodes\`, or \`compares.children\` gets an \`icon\` by default.

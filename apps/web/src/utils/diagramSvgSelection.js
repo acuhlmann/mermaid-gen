@@ -73,6 +73,52 @@ export function resolveFlowchartEdgeInteractionRoot(target) {
  * @param {string} edgeDataId
  * @returns {string}
  */
+/**
+ * Sequence diagrams render participants as inner `g` groups with `data-et="participant"`
+ * and `data-id` set to the actor name (not `g.node`).
+ *
+ * @param {EventTarget | null | undefined} target
+ * @returns {{ groupEl: Element, dataId: string } | null}
+ */
+export function resolveSequenceActorInteractionRoot(target) {
+  if (!target || typeof target !== 'object') return null;
+  const el = /** @type {Element} */ (target);
+
+  const participant = el.closest?.('[data-et="participant"]');
+  if (participant) {
+    const dataId = participant.getAttribute('data-id');
+    if (dataId) return { groupEl: participant, dataId };
+  }
+
+  const lifeline = el.closest?.('[data-et="life-line"]');
+  if (lifeline) {
+    const dataId = lifeline.getAttribute('data-id') || lifeline.getAttribute('name');
+    if (dataId) {
+      const svgRoot = lifeline.closest('svg');
+      const groups = svgRoot?.querySelectorAll?.('[data-et="participant"]');
+      if (groups) {
+        for (const group of groups) {
+          if (group.getAttribute('data-id') === dataId) {
+            return { groupEl: group, dataId };
+          }
+        }
+      }
+      return { groupEl: lifeline, dataId };
+    }
+  }
+
+  const actorShape = el.closest?.('.actor-top, .actor-bottom, rect.actor, text.actor');
+  if (actorShape) {
+    const host =
+      actorShape.closest?.('[data-et="participant"]') ??
+      actorShape.closest?.('[data-id]');
+    const dataId = host?.getAttribute?.('data-id');
+    if (dataId) return { groupEl: host, dataId };
+  }
+
+  return null;
+}
+
 export function flowchartEdgeLabelText(pathEl, edgeDataId) {
   if (!edgeDataId) return '';
   const svgRoot = pathEl.closest('svg');

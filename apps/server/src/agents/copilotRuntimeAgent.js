@@ -1,4 +1,5 @@
 import { BuiltInAgent } from '@copilotkit/runtime/v2';
+import { stateSnapshot } from '@archislop/shared';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { LlmNotConfiguredError } from './mermaidLangChainAgent.js';
 
@@ -47,6 +48,7 @@ export async function* createCopilotAgentEvents({ input, agentService, stateStor
     const afterState = stateStore.getState();
 
     if (afterState.revisionId !== beforeState.revisionId) {
+      yield stateSnapshot({ snapshot: afterState });
       yield {
         type: 'TEXT_MESSAGE_CONTENT',
         messageId,
