@@ -2886,26 +2886,30 @@
 }
 
 .bottom-chrome-drawer {
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   min-width: 0;
+}
+
+.bottom-chrome-drawer[open] {
+  flex-basis: 100%;
 }
 
 .bottom-chrome-drawer-toggle {
   list-style: none;
   cursor: pointer;
-  width: 100%;
+  width: auto;
   text-align: left;
-  border-radius: 0.65rem;
+  border-radius: 999px;
   border: 1px solid var(--control-border);
   background: var(--control-bg);
   box-shadow: var(--control-shadow);
   font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.85rem;
   color: var(--text);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
 }
 
 .bottom-chrome-drawer-toggle::-webkit-details-marker {
@@ -3526,9 +3530,17 @@ button {
     padding: 0.62rem 0.85rem;
   }
 
-  .prompt-control .primary-button,
-  .bottom-chrome-drawer-toggle {
+  .prompt-control .primary-button {
     min-height: 2.75rem;
+  }
+
+  .bottom-chrome-drawer-toggle {
+    min-height: 2.25rem;
+  }
+
+  .prompt-control input {
+    padding: 0.5rem 0.95rem;
+    font-size: 0.95rem;
   }
 
   .diagram-viewport {

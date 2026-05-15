@@ -3338,7 +3338,7 @@ ${requirementsBlock}`;
             {hasDiagramText ? (
               <details className="bottom-chrome-drawer bottom-chrome-drawer--tools">
                 <summary className="bottom-chrome-drawer-toggle">
-                  <span className="drawer-toggle-label">Diagram actions</span>
+                  <span className="drawer-toggle-label">Actions</span>
                 </summary>
                 <div className="bottom-chrome-drawer-panel">
                   <div className="prompt-actions">
@@ -3413,7 +3413,7 @@ ${requirementsBlock}`;
 
             <details className="bottom-chrome-drawer bottom-chrome-drawer--settings">
               <summary className="bottom-chrome-drawer-toggle">
-                <span className="drawer-toggle-label">AI settings</span>
+                <span className="drawer-toggle-label">Settings</span>
               </summary>
               <div className="bottom-chrome-drawer-panel">
                 <div className="ai-corner-controls">
