@@ -487,6 +487,17 @@ function AiCornerControlsInner({
 }) {
   return (
     <>
+      <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
+        <span className="model-profile-label">Invite agent</span>
+        <div className="agent-collab-segment">
+          {pendingHandshake ? (
+            <span className="agent-handshake-waiting" role="status">
+              Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
+            </span>
+          ) : null}
+          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
+        </div>
+      </div>
       <div className="model-profile-toggle" role="group" aria-label="Content mode">
         <span className="model-profile-label">Mode</span>
         <div className="model-profile-segment">
@@ -534,17 +545,6 @@ function AiCornerControlsInner({
           >
             Quality
           </button>
-        </div>
-      </div>
-      <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
-        <span className="model-profile-label">Agents</span>
-        <div className="agent-collab-segment">
-          {pendingHandshake ? (
-            <span className="agent-handshake-waiting" role="status">
-              Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
-            </span>
-          ) : null}
-          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
         </div>
       </div>
       {includeThinkingToggle ? (
@@ -3215,6 +3215,7 @@ ${requirementsBlock}`;
         onHoverTargetChange={handleHoverTargetChange}
         onPanGestureStart={dismissRadialMenu}
         onNodeToolbarAnchor={setToolbarAnchor}
+        onEditorClose={() => setEditorOpen(false)}
         changeHighlight={changeHighlightForCanvas}
         onDiagramSvgRendered={handleDiagramSvgRendered}
         runFx={{
@@ -3286,17 +3287,6 @@ ${requirementsBlock}`;
       />
 
       <div className="corner-control edit-control">
-        {narrowLayout ? (
-          <button
-            type="button"
-            className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
-            onClick={() => setInsightsOpen((v) => !v)}
-            aria-label={insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
-          >
-            <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-            Thinking
-          </button>
-        ) : null}
         <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
           <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
           {editorOpen ? 'Close' : 'Code'}
@@ -3626,7 +3616,6 @@ ${requirementsBlock}`;
               agentThinkingChrome={agentThinkingChrome}
               insightsOpen={insightsOpen}
               onToggleInsights={() => setInsightsOpen((v) => !v)}
-              includeThinkingToggle={false}
             />
           </div>
         ) : null}
