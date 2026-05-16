@@ -153,6 +153,7 @@ export default function DiagramCanvas({
   onHoverTargetChange,
   onPanGestureStart,
   onNodeToolbarAnchor,
+  onEditorClose = null,
   changeHighlight = null,
   onDiagramSvgRendered = null,
   runFx = null
@@ -187,6 +188,7 @@ export default function DiagramCanvas({
   const panGestureStartRef = useRef(null);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
+  const mobileTextAreaRef = useRef(null);
   const syncDecoIdsRef = useRef([]);
   const lastDiagramSyncKeyRef = useRef('');
   const diagramSyncRafRef = useRef(0);
@@ -690,6 +692,13 @@ export default function DiagramCanvas({
     if (onManualEdit) {
       onManualEdit(nextValue);
     }
+  }
+
+  function handleMobileSelectAll() {
+    const textarea = mobileTextAreaRef.current;
+    if (!textarea) return;
+    textarea.focus({ preventScroll: true });
+    textarea.select();
   }
 
   const zoomAtPoint = useCallback((pointX, pointY, scaleFactor) => {
@@ -1283,18 +1292,50 @@ export default function DiagramCanvas({
               </span>
             </p>
           ) : null}
-          <div className="diagram-monaco-wrap">
-            <Editor
-              height="100%"
-              language={contentType === 'mermaid' ? 'mermaid' : 'plaintext'}
-              theme="vs-dark"
-              value={editorSource}
-              beforeMount={handleEditorBeforeMount}
-              onMount={handleEditorMount}
-              onChange={handleEditorChange}
-              options={monacoEditorOptions}
-            />
-          </div>
+          {narrowLayout ? (
+            <div className="mobile-code-editor-wrap">
+              <div className="mobile-code-editor-toolbar">
+                <span className="mobile-code-editor-title">
+                  {contentType === 'mermaid' ? 'Mermaid code' : 'Infographic DSL'}
+                </span>
+                <div className="mobile-code-editor-actions">
+                  <button type="button" className="overlay-button compact-button" onClick={handleMobileSelectAll}>
+                    Select all
+                  </button>
+                  {onEditorClose ? (
+                    <button type="button" className="overlay-button compact-button primary-button" onClick={onEditorClose}>
+                      Done
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              <textarea
+                ref={mobileTextAreaRef}
+                className="mobile-code-editor"
+                value={editorSource}
+                onChange={(event) => handleEditorChange(event.target.value)}
+                readOnly={streamingPreview}
+                spellCheck={false}
+                autoCapitalize="off"
+                autoCorrect="off"
+                inputMode="text"
+                aria-label={contentType === 'mermaid' ? 'Mermaid code editor' : 'Infographic DSL editor'}
+              />
+            </div>
+          ) : (
+            <div className="diagram-monaco-wrap">
+              <Editor
+                height="100%"
+                language={contentType === 'mermaid' ? 'mermaid' : 'plaintext'}
+                theme="vs-dark"
+                value={editorSource}
+                beforeMount={handleEditorBeforeMount}
+                onMount={handleEditorMount}
+                onChange={handleEditorChange}
+                options={monacoEditorOptions}
+              />
+            </div>
+          )}
         </aside>
       ) : null}
     </section>

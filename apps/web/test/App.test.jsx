@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createInitialDiagramState } from '@archislop/shared';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
 
@@ -508,6 +508,63 @@ describe('App simplified controls', () => {
     await screen.findByText(/No diagram patch was applied/i);
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy();
     expect(screen.queryByText('Done')).toBeNull();
+  });
+
+  it('auto-closes Thinking on mobile after Refine applies a diagram revision', async () => {
+    readDiagramCacheMock.mockReturnValue({
+      insightsEntries: [
+        {
+          id: 'legacy-entry-without-status',
+          title: 'Legacy note',
+          content: 'Cached before status was persisted.'
+        }
+      ]
+    });
+    const previousMatchMedia = globalThis.matchMedia;
+    globalThis.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query.includes('1024px'),
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    }));
+    let finishStream;
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation !== 'transform') return;
+      onEvent?.({ type: 'status', text: 'Working on change request...' });
+      await new Promise((resolve) => {
+        finishStream = () => {
+          onEvent?.({
+            type: 'final',
+            revisionChanged: true,
+            state: updatedState,
+            message: 'Transformed.'
+          });
+          resolve();
+        };
+      });
+    });
+
+    try {
+      render(<App />);
+      fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+      await waitFor(() => expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open'));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
+      await waitFor(() => expect(document.querySelector('.insights-entry.is-running')).not.toBeNull());
+
+      await act(async () => {
+        finishStream();
+      });
+
+      await screen.findByText('Done');
+      await waitFor(() => expect(document.querySelector('.app-shell')?.className).not.toContain('is-insights-open'));
+    } finally {
+      globalThis.matchMedia = previousMatchMedia;
+    }
   });
 
   it('retries a failed transform from the insight card', async () => {

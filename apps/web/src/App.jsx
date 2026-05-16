@@ -487,6 +487,17 @@ function AiCornerControlsInner({
 }) {
   return (
     <>
+      <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
+        <span className="model-profile-label">Invite agent</span>
+        <div className="agent-collab-segment">
+          {pendingHandshake ? (
+            <span className="agent-handshake-waiting" role="status">
+              Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
+            </span>
+          ) : null}
+          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
+        </div>
+      </div>
       <div className="model-profile-toggle" role="group" aria-label="Content mode">
         <span className="model-profile-label">Mode</span>
         <div className="model-profile-segment">
@@ -534,17 +545,6 @@ function AiCornerControlsInner({
           >
             Quality
           </button>
-        </div>
-      </div>
-      <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
-        <span className="model-profile-label">Agents</span>
-        <div className="agent-collab-segment">
-          {pendingHandshake ? (
-            <span className="agent-handshake-waiting" role="status">
-              Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
-            </span>
-          ) : null}
-          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
         </div>
       </div>
       {includeThinkingToggle ? (
@@ -689,6 +689,7 @@ function ArchiSlop() {
   const streamTimerRef = useRef(null);
   /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
   const streamAgentAbortRef = useRef(null);
+  const autoCloseActiveEntryIdRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
   const lastAutoFixSourceRef = useRef(null);
@@ -1721,6 +1722,9 @@ function ArchiSlop() {
         topic,
         retryDescriptor
       });
+      if (diagramUndoBaseline) {
+        autoCloseActiveEntryIdRef.current = sectionId;
+      }
       if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
       else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
       else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
@@ -2814,24 +2818,39 @@ ${requirementsBlock}`;
   // insights pane so the freshly-rendered diagram becomes visible without the user manually
   // closing the thinking pane that otherwise covers the whole canvas.
   const prevAutoCloseRunningRef = useRef(false);
-  const prevAutoCloseRevisionIdRef = useRef(state.revisionId);
+  const autoCloseRunStartRevisionRef = useRef(state.revisionId);
   useEffect(() => {
-    const anyRunning = insightsEntries.some((e) => (e.status ?? 'running') === 'running');
+    const activeEntryId = autoCloseActiveEntryIdRef.current;
+    const activeAutoCloseEntry = insightsEntries.find((e) => e.id === activeEntryId);
+    const activeEntryStatus = activeAutoCloseEntry?.status ?? null;
+    const activeEntryRunning = activeEntryStatus === 'running';
     const wasRunning = prevAutoCloseRunningRef.current;
-    const prevRevisionId = prevAutoCloseRevisionIdRef.current;
-    const revisionChanged = state.revisionId !== prevRevisionId;
+    if (activeEntryRunning && !wasRunning) {
+      autoCloseRunStartRevisionRef.current = state.revisionId;
+    }
+    const revisionChanged = state.revisionId !== autoCloseRunStartRevisionRef.current;
+    const completedActiveMutation =
+      activeEntryStatus === 'done' &&
+      Boolean(activeAutoCloseEntry?.diagramRevisionApplied);
+    const runProducedCanvasResult = revisionChanged || completedActiveMutation;
     if (
       narrowLayout &&
       insightsOpen &&
-      wasRunning &&
-      !anyRunning &&
-      revisionChanged &&
+      !activeEntryRunning &&
+      Boolean(activeEntryId) &&
+      runProducedCanvasResult &&
       Boolean(state.diagramSource?.trim())
     ) {
       setInsightsOpen(false);
+      autoCloseActiveEntryIdRef.current = null;
+    } else if (
+      !activeEntryRunning &&
+      activeAutoCloseEntry &&
+      ['failed', 'cancelled'].includes(activeEntryStatus)
+    ) {
+      autoCloseActiveEntryIdRef.current = null;
     }
-    prevAutoCloseRunningRef.current = anyRunning;
-    prevAutoCloseRevisionIdRef.current = state.revisionId;
+    prevAutoCloseRunningRef.current = activeEntryRunning;
   }, [insightsEntries, narrowLayout, insightsOpen, state.revisionId, state.diagramSource]);
 
   const busy = loading || streamingPreview;
@@ -3196,6 +3215,7 @@ ${requirementsBlock}`;
         onHoverTargetChange={handleHoverTargetChange}
         onPanGestureStart={dismissRadialMenu}
         onNodeToolbarAnchor={setToolbarAnchor}
+        onEditorClose={() => setEditorOpen(false)}
         changeHighlight={changeHighlightForCanvas}
         onDiagramSvgRendered={handleDiagramSvgRendered}
         runFx={{
@@ -3267,17 +3287,6 @@ ${requirementsBlock}`;
       />
 
       <div className="corner-control edit-control">
-        {narrowLayout ? (
-          <button
-            type="button"
-            className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
-            onClick={() => setInsightsOpen((v) => !v)}
-            aria-label={insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
-          >
-            <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-            Thinking
-          </button>
-        ) : null}
         <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
           <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
           {editorOpen ? 'Close' : 'Code'}
@@ -3607,7 +3616,6 @@ ${requirementsBlock}`;
               agentThinkingChrome={agentThinkingChrome}
               insightsOpen={insightsOpen}
               onToggleInsights={() => setInsightsOpen((v) => !v)}
-              includeThinkingToggle={false}
             />
           </div>
         ) : null}
