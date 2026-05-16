@@ -103,8 +103,13 @@ describe('radial menu click-to-open UX', () => {
     render(<RadialMenuHarness />);
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
     expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Refine' })).toBeTruthy();
-    expect(screen.getByText('Polisher')).toBeTruthy();
+    // Labels are no longer rendered in the radial menu — accessibility still
+    // surfaces the action name (with persona) via `aria-label`.
+    const refineBtn = screen.getByRole('button', { name: 'Refine (Polisher)' });
+    expect(refineBtn).toBeTruthy();
+    expect(refineBtn.getAttribute('data-persona')).toBe('Polisher');
+    // No persona / label chip rendered inside the button anymore.
+    expect(screen.queryByText('Polisher', { selector: '.radial-action-button-persona' })).toBeNull();
   });
 
   it('closes the menu when the same part is clicked again', () => {

@@ -220,31 +220,30 @@ export default function RadialActionMenu({
       {layout.positions.map((pos, index) => {
         const action = visibleActions[index];
         if (!action) return null;
-        const sizeClass = action.sizeClass || '';
-        const title = action.personaTitle ? `${action.label} — ${action.personaTitle}` : action.label;
+        const personaShort = action.persona ? action.persona.replace(/^The\s+/i, '') : '';
+        const title = action.personaTitle
+          ? `${action.label} — ${action.personaTitle}`
+          : personaShort
+            ? `${action.label} — ${personaShort}`
+            : action.label;
         return (
           <button
             key={action.id}
             type="button"
-            className={`radial-action-button ${action.variant ? `is-${action.variant}` : ''} ${sizeClass}`.trim()}
+            className={`radial-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim()}
             style={{ left: pos.x, top: pos.y }}
             disabled={busy || action.disabled}
             onClick={() => onActionPick?.(action, descriptor)}
             onPointerEnter={onHoverHold}
             onPointerLeave={onHoverRelease}
-            aria-label={action.label}
+            aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}
             title={title}
+            data-persona={personaShort || undefined}
+            data-action-id={action.id}
           >
             <span className="radial-action-button-icon" aria-hidden="true">
               {action.icon}
             </span>
-            <span className="radial-action-button-label">{action.label}</span>
-            {action.persona ? (
-              <span className="radial-action-button-persona">
-                {action.personaEmoji ? <span aria-hidden="true">{action.personaEmoji}</span> : null}
-                {action.persona.replace(/^The\s+/i, '')}
-              </span>
-            ) : null}
           </button>
         );
       })}

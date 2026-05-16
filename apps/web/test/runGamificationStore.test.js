@@ -4,7 +4,10 @@ import {
   createInitialState,
   loadFromStorage,
   serializeForStorage,
-  COMBO_WINDOW_MS
+  COMBO_WINDOW_MS,
+  HAT_TRICK_WINDOW_MS,
+  SLOP_MARATHON_SESSION_THRESHOLD,
+  levelForXp
 } from '../src/state/runGamificationStore.js';
 
 describe('runGamificationStore', () => {
@@ -14,6 +17,10 @@ describe('runGamificationStore', () => {
     expect(s.runsByVariant.refine).toBe(0);
     expect(s.runsByVariant.goMad).toBe(0);
     expect(s.lastVariant).toBeNull();
+    expect(s.xp).toBe(0);
+    expect(s.level).toBe(1);
+    expect(s.levelProgressRatio).toBeGreaterThanOrEqual(0);
+    expect(s.levelProgressRatio).toBeLessThan(1);
   });
 
   it('emits xp on a single completed run', () => {
@@ -23,6 +30,9 @@ describe('runGamificationStore', () => {
     expect(state.runsByVariant.refine).toBe(1);
     expect(state.streakByVariant.refine).toBe(1);
     expect(emissions.some((e) => e.kind === 'xp' && e.amount === 25)).toBe(true);
+    // First-ever run unlocks the firstSlop achievement banner.
+    expect(emissions.some((e) => e.kind === 'achievement' && e.id === 'firstSlop')).toBe(true);
+    expect(state.xp).toBe(25);
   });
 
   it('tracks consecutive same-variant streaks and resets on switch', () => {
@@ -112,7 +122,7 @@ describe('runGamificationStore', () => {
     expect(crossedAt).toBe(9);
   });
 
-  it('persists totals and achievements but resets session state on load', () => {
+  it('persists totals, xp, and achievements but resets session state on load', () => {
     let s = createInitialState();
     s = applyCompletedRun(s, { variant: 'goMad', now: 1, goMadDepth: 3 }).state;
     s = applyCompletedRun(s, { variant: 'refine', now: 2 }).state;
@@ -122,15 +132,99 @@ describe('runGamificationStore', () => {
     expect(reloaded.runsByVariant.refine).toBe(1);
     expect(reloaded.runsByVariant.goMad).toBe(1);
     expect(reloaded.achievements?.slopitectCertified).toBe(true);
+    expect(reloaded.xp).toBe(s.xp);
+    expect(reloaded.level).toBe(levelForXp(s.xp).level);
     // Session-only state should not carry over.
     expect(reloaded.variantsSeenInSession).toEqual([]);
     expect(reloaded.lastVariant).toBeNull();
     expect(reloaded.combo).toBe(0);
+    expect(reloaded.sessionRuns).toBe(0);
+    expect(reloaded.recentVariantTimeline).toEqual([]);
   });
 
-  it('rejects malformed or wrong-version serialized state', () => {
+  it('migrates legacy v1 records with xp=0 default', () => {
+    const legacy = JSON.stringify({
+      v: 1,
+      runsByVariant: { refine: 3 },
+      totalRuns: 3,
+      achievements: { firstSlop: true }
+    });
+    const reloaded = loadFromStorage(legacy);
+    expect(reloaded).not.toBeNull();
+    expect(reloaded.totalRuns).toBe(3);
+    expect(reloaded.runsByVariant.refine).toBe(3);
+    expect(reloaded.achievements?.firstSlop).toBe(true);
+    expect(reloaded.xp).toBe(0);
+    expect(reloaded.level).toBe(1);
+  });
+
+  it('rejects malformed or unknown-version serialized state', () => {
     expect(loadFromStorage(null)).toBeNull();
     expect(loadFromStorage('not-json')).toBeNull();
     expect(loadFromStorage(JSON.stringify({ v: 999, runsByVariant: {} }))).toBeNull();
+  });
+
+  it('awards xp, advances level, and emits a levelUp emission when crossing a threshold', () => {
+    let s = createInitialState();
+    let lastEmissions = [];
+    // Pump enough runs to cross the Lvl 2 threshold (50 XP) and observe levelUp.
+    for (let i = 0; i < 4; i += 1) {
+      const r = applyCompletedRun(s, { variant: 'refine', now: 1000 + i * 100 });
+      s = r.state;
+      lastEmissions = r.emissions;
+      if (lastEmissions.some((e) => e.kind === 'levelUp')) break;
+    }
+    expect(s.xp).toBeGreaterThanOrEqual(50);
+    expect(s.level).toBeGreaterThanOrEqual(2);
+    expect(lastEmissions.some((e) => e.kind === 'levelUp' && e.to === s.level)).toBe(true);
+  });
+
+  it('streak bonus stacks into the XP award', () => {
+    let s = createInitialState();
+    const first = applyCompletedRun(s, { variant: 'refine', now: 1 });
+    s = first.state;
+    const second = applyCompletedRun(s, { variant: 'refine', now: 2 });
+    const firstXp = first.emissions.find((e) => e.kind === 'xp');
+    const secondXp = second.emissions.find((e) => e.kind === 'xp');
+    expect(secondXp.amount).toBeGreaterThan(firstXp.amount);
+    expect(secondXp.bonus).toBeGreaterThan(0);
+  });
+
+  it('unlocks Hat Trick when 3 distinct variants land inside the window', () => {
+    let s = createInitialState();
+    s = applyCompletedRun(s, { variant: 'refine', now: 0 }).state;
+    s = applyCompletedRun(s, { variant: 'innovate', now: 1000 }).state;
+    const r = applyCompletedRun(s, { variant: 'critique', now: 2000 });
+    expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(true);
+  });
+
+  it('does not unlock Hat Trick when the window expires between variants', () => {
+    let s = createInitialState();
+    s = applyCompletedRun(s, { variant: 'refine', now: 0 }).state;
+    s = applyCompletedRun(s, { variant: 'innovate', now: HAT_TRICK_WINDOW_MS + 100 }).state;
+    const r = applyCompletedRun(s, { variant: 'critique', now: HAT_TRICK_WINDOW_MS + 200 });
+    expect(r.emissions.some((e) => e.id === 'hatTrick')).toBe(false);
+  });
+
+  it('unlocks Slop Marathon at the session threshold', () => {
+    let s = createInitialState();
+    let unlockedAt = -1;
+    for (let i = 0; i < SLOP_MARATHON_SESSION_THRESHOLD; i += 1) {
+      const r = applyCompletedRun(s, { variant: 'refine', now: i * 1000 });
+      s = r.state;
+      if (r.emissions.some((e) => e.id === 'slopMarathon')) unlockedAt = i;
+    }
+    expect(unlockedAt).toBe(SLOP_MARATHON_SESSION_THRESHOLD - 1);
+  });
+
+  it('unlocks per-variant mastery at 10 runs of that variant', () => {
+    let s = createInitialState();
+    let unlockedAt = -1;
+    for (let i = 0; i < 10; i += 1) {
+      const r = applyCompletedRun(s, { variant: 'critique', now: i * 1000 });
+      s = r.state;
+      if (r.emissions.some((e) => e.id === 'auditTribunal')) unlockedAt = i;
+    }
+    expect(unlockedAt).toBe(9);
   });
 });

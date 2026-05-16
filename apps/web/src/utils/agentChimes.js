@@ -467,6 +467,75 @@ export function playAchievementFanfare(audioContextRef) {
   ], { stagger: 0.65 });
 }
 
+/**
+ * Quick coin-pickup-style blip for the floating "+XP" toast — short, bright,
+ * deliberately non-melodic so it doesn't conflict with the streak/combo
+ * stingers when several emissions land in the same frame.
+ */
+export function playXpPickup(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const osc = context.createOscillator();
+  const gainNode = context.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(880, now);
+  osc.frequency.exponentialRampToValueAtTime(1760, now + 0.07);
+  gainNode.gain.setValueAtTime(0.0001, now);
+  gainNode.gain.exponentialRampToValueAtTime(0.034, now + 0.015);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.16);
+  osc.connect(gainNode);
+  gainNode.connect(context.destination);
+  osc.start(now);
+  osc.stop(now + 0.18);
+}
+
+/**
+ * Full level-up fanfare — taller and more triumphant than the achievement
+ * cue. Used when the Slopitect council promotes the operator to a new tier.
+ */
+export function playLevelUpFanfare(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  // C5 - E5 - G5 - C6 ascending, then a square bell on top for sparkle.
+  const notes = [
+    { freq: 523.25, dur: 0.1, peak: 0.05, type: 'triangle' },
+    { freq: 659.25, dur: 0.1, peak: 0.05, type: 'triangle' },
+    { freq: 783.99, dur: 0.1, peak: 0.05, type: 'triangle' },
+    { freq: 1046.5, dur: 0.2, peak: 0.06, type: 'square' },
+    { freq: 1318.5, dur: 0.26, peak: 0.05, type: 'triangle' }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = note.type;
+    const t0 = now + offset;
+    osc.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + note.dur + 0.02);
+    offset += note.dur * 0.7;
+  }
+  // Final shimmer chord (G6 + C7) ringing over the last note.
+  const shimmerFreqs = [1567.98, 2093.0];
+  for (const freq of shimmerFreqs) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'sine';
+    const t0 = now + offset;
+    osc.frequency.setValueAtTime(freq, t0);
+    applyGainEnvelope(gainNode, t0, 0.04, 0.42);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.46);
+  }
+}
+
 /** ────────────────────────────────────────────────────────────────
  *  Streaming ambient textures — short, sporadic, per-variant.
  *  Triggered every ~4–7s during a run for additional flavor.

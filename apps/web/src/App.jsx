@@ -63,6 +63,7 @@ import {
   playInnovateCompletion,
   playInnovateStreamStart,
   playInnovateTokenTick,
+  playLevelUpFanfare,
   playModeSwoosh,
   playPhaseChangePluck,
   playRefineBoot,
@@ -74,12 +75,14 @@ import {
   playSubmitThunk,
   playTokenTickChime,
   playToolEndChime,
-  playToolStartChime
+  playToolStartChime,
+  playXpPickup
 } from './utils/agentChimes.js';
 import ActionBootSequence from './components/ActionBootSequence.jsx';
 import StreakHud from './components/StreakHud.jsx';
 import SlopitectCompanion from './components/SlopitectCompanion.jsx';
 import LiveRunHud from './components/LiveRunHud.jsx';
+import XpProgressBar from './components/XpProgressBar.jsx';
 import {
   applyCompletedRun,
   createInitialState as createInitialGamificationState,
@@ -662,6 +665,9 @@ function ArchiSlop() {
   });
   const [streakHudToasts, setStreakHudToasts] = useState([]);
   const [streakHudAchievement, setStreakHudAchievement] = useState(null);
+  const [streakHudLevelUp, setStreakHudLevelUp] = useState(null);
+  /** Bumped each time the player crosses a level. The XP bar uses it as a flash key. */
+  const [xpBarFlashKey, setXpBarFlashKey] = useState(0);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
   const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
@@ -1459,6 +1465,7 @@ function ArchiSlop() {
               e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
             );
             const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
+            const levelUpEmission = stamped.find((e) => e.kind === 'levelUp');
             if (toasts.length > 0) {
               setStreakHudToasts((q) => [...q, ...toasts]);
               for (const t of toasts) {
@@ -1467,18 +1474,54 @@ function ArchiSlop() {
                 }, 1800);
               }
             }
+            if (levelUpEmission) {
+              setStreakHudLevelUp(levelUpEmission);
+              setXpBarFlashKey((n) => n + 1);
+              setTimeout(() => {
+                setStreakHudLevelUp((current) =>
+                  current?.id === levelUpEmission.id ? null : current
+                );
+              }, 3400);
+            }
             if (banner) {
               setStreakHudAchievement(banner);
               setTimeout(() => {
                 setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
               }, 3200);
             }
-            // Audio: streak / combo / achievement.
+            // Audio: xp pickup / streak / combo / level-up / achievement.
             for (const e of emissions) {
-              if (e.kind === 'streak' && e.streak >= 2) {
+              if (e.kind === 'xp') {
+                tryAgentSound(playXpPickup);
+              } else if (e.kind === 'streak' && e.streak >= 2) {
                 tryAgentSound((ctx) => playStreakStinger(ctx, e.streak));
               } else if (e.kind === 'combo') {
                 tryAgentSound((ctx) => playComboStinger(ctx, e.combo));
+              } else if (e.kind === 'levelUp') {
+                tryAgentSound(playLevelUpFanfare);
+                if (!reduceMotion && canvasConfettiAvailable()) {
+                  try {
+                    // Two-side burst so level-ups feel different from achievements.
+                    confetti({
+                      particleCount: 110,
+                      spread: 75,
+                      startVelocity: 55,
+                      ticks: 220,
+                      origin: { x: 0.18, y: 0.55 },
+                      colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7']
+                    });
+                    confetti({
+                      particleCount: 110,
+                      spread: 75,
+                      startVelocity: 55,
+                      ticks: 220,
+                      origin: { x: 0.82, y: 0.55 },
+                      colors: ['#22d3ee', '#60a5fa', '#a855f7', '#f472b6', '#fde68a']
+                    });
+                  } catch {
+                    // ignore
+                  }
+                }
               } else if (e.kind === 'achievement' || e.kind === 'prestige') {
                 tryAgentSound(playAchievementFanfare);
                 if (!reduceMotion && canvasConfettiAvailable()) {
@@ -3107,8 +3150,7 @@ ${requirementsBlock}`;
         variant: 'innovate',
         persona: actionPersonaName('innovate'),
         personaEmoji: actionPersonaEmoji('innovate'),
-        personaTitle: actionPersonaTitle('innovate'),
-        sizeClass: 'is-wide-label'
+        personaTitle: actionPersonaTitle('innovate')
       },
       {
         id: 'goMad',
@@ -3126,8 +3168,7 @@ ${requirementsBlock}`;
         variant: 'critique',
         persona: actionPersonaName('critique'),
         personaEmoji: actionPersonaEmoji('critique'),
-        personaTitle: actionPersonaTitle('critique'),
-        sizeClass: 'is-wide-label'
+        personaTitle: actionPersonaTitle('critique')
       },
       {
         id: 'fix',
@@ -3147,8 +3188,7 @@ ${requirementsBlock}`;
         variant: 'explain',
         persona: actionPersonaName('explain'),
         personaEmoji: actionPersonaEmoji('explain'),
-        personaTitle: actionPersonaTitle('explain'),
-        sizeClass: 'is-wide-label'
+        personaTitle: actionPersonaTitle('explain')
       }
     ];
     return list;
@@ -3241,7 +3281,11 @@ ${requirementsBlock}`;
       />
 
       <ActionBootSequence trigger={bootSeq.trigger} variant={bootSeq.variant} />
-      <StreakHud toasts={streakHudToasts} achievement={streakHudAchievement} />
+      <StreakHud
+        toasts={streakHudToasts}
+        achievement={streakHudAchievement}
+        levelUp={streakHudLevelUp}
+      />
       <SlopitectCompanion
         key={`companion-${bootSeq.trigger}`}
         variant={liveVariant}
@@ -3271,6 +3315,20 @@ ${requirementsBlock}`;
           >
             {gamification.prestigeShortLabel}
           </span>
+        ) : null}
+        {gamification?.level ? (
+          <XpProgressBar
+            level={gamification.level}
+            short={gamification.levelShortLabel}
+            flair={gamification.levelFlair}
+            progressRatio={gamification.levelProgressRatio}
+            xpInto={gamification.xpIntoLevel}
+            xpForNext={gamification.xpForNextLevel}
+            totalXp={gamification.xp}
+            isMaxLevel={gamification.xpForNextLevel == null}
+            flashKey={xpBarFlashKey}
+            variant={liveVariant}
+          />
         ) : null}
       </div>
 
