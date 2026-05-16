@@ -21,7 +21,12 @@ export const MCP_APP_DIAGRAM_PREVIEW_SCRIPT = `
 const MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
 const MERMAID_LOAD_MS = 12000;
 const MERMAID_RENDER_MS = 15000;
+const INFOGRAPHIC_CDN = "https://esm.sh/@antv/infographic@0.2.19";
+const INFOGRAPHIC_LOAD_MS = 20000;
+const INFOGRAPHIC_RENDER_MS = 15000;
 let mermaidApi = null;
+let infographicApiPromise = null;
+const infographicInstances = new WeakMap();
 
 function withTimeout(promise, ms, label) {
   return Promise.race([
@@ -118,9 +123,81 @@ async function renderMermaidPreview(el, source) {
   }
 }
 
-function renderInfographicPreview(el, source) {
+function infographicDslFallback(el, source, message) {
   const text = source?.trim() ? source : "(empty)";
   const clipped = text.length > 2400 ? text.slice(0, 2400) + "…" : text;
-  el.innerHTML = "<pre style='margin:0;font-size:11px;white-space:pre-wrap;word-break:break-word'>" + esc(clipped) + "</pre>";
+  const note = message
+    ? '<p class="err" style="margin:0 0 6px">' + esc(message) + ' — showing DSL.</p>'
+    : '';
+  el.innerHTML = note + "<pre style='margin:0;font-size:11px;white-space:pre-wrap;word-break:break-word'>" + esc(clipped) + "</pre>";
+}
+
+async function getInfographicApi() {
+  if (!infographicApiPromise) {
+    infographicApiPromise = withTimeout(import(INFOGRAPHIC_CDN), INFOGRAPHIC_LOAD_MS, "Infographic library load")
+      .catch((err) => { infographicApiPromise = null; throw err; });
+  }
+  return infographicApiPromise;
+}
+
+function disposeInfographicInstance(el) {
+  const prev = infographicInstances.get(el);
+  if (!prev) return;
+  try { prev.destroy(); } catch { /* noop */ }
+  infographicInstances.delete(el);
+}
+
+async function renderInfographicPreview(el, source) {
+  if (!source?.trim()) {
+    disposeInfographicInstance(el);
+    el.innerHTML = '<span class="muted">(empty)</span>';
+    return;
+  }
+  let api;
+  try {
+    api = await getInfographicApi();
+  } catch (e) {
+    infographicDslFallback(el, source, esc(e?.message ?? "AntV failed to load"));
+    return;
+  }
+  const Infographic = api?.Infographic;
+  const parseSyntax = api?.parseSyntax;
+  if (typeof Infographic !== "function") {
+    infographicDslFallback(el, source, "AntV bundle missing Infographic export");
+    return;
+  }
+  try {
+    const parsed = typeof parseSyntax === "function" ? parseSyntax(source) : null;
+    if (parsed?.errors?.length) {
+      const head = parsed.errors.slice(0, 3).map((p) => p?.message).filter(Boolean).join(" · ");
+      infographicDslFallback(el, source, "DSL parse error: " + (head || "unknown"));
+      return;
+    }
+  } catch { /* parseSyntax should not throw; fall through to render */ }
+
+  disposeInfographicInstance(el);
+  el.innerHTML = "";
+  const host = document.createElement("div");
+  host.style.width = "100%";
+  host.style.minHeight = "200px";
+  host.style.height = "280px";
+  el.appendChild(host);
+
+  let inst;
+  try {
+    inst = new Infographic({ container: host, width: "100%", height: "100%", editable: false });
+    inst.render(source);
+    infographicInstances.set(el, inst);
+  } catch (e) {
+    disposeInfographicInstance(el);
+    infographicDslFallback(el, source, "Render failed: " + esc(e?.message ?? "unknown"));
+    return;
+  }
+  setTimeout(() => {
+    if (infographicInstances.get(el) !== inst) return;
+    if (host.querySelectorAll("svg").length === 0) {
+      infographicDslFallback(el, source, "Infographic produced no visible output");
+    }
+  }, INFOGRAPHIC_RENDER_MS);
 }
 `;

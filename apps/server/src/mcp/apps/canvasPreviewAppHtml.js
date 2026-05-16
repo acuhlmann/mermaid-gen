@@ -111,8 +111,8 @@ async function renderSlot() {
     els.previewNote.textContent = "Live Mermaid preview (sandboxed). Open web for editor + built-in agents.";
     await renderMermaidPreview(els.previewBox, source);
   } else {
-    els.previewNote.textContent = "Infographic DSL — open ArchiSlop web for full AntV preview.";
-    renderInfographicPreview(els.previewBox, source);
+    els.previewNote.textContent = "Live AntV infographic preview (sandboxed). Open web for editor + built-in agents.";
+    await renderInfographicPreview(els.previewBox, source);
   }
 }
 
