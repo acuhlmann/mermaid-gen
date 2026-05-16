@@ -5,6 +5,8 @@ import RadialActionMenu from './components/RadialActionMenu.jsx';
 import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
 import AgentPresenceBar from './components/AgentPresenceBar.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
+import PromptModal from './components/PromptModal.jsx';
+import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import {
   openSessionEventsStream,
   approveHandshake,
@@ -126,7 +128,7 @@ import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
 import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
-import { MOBILE_MEDIA_QUERY } from './utils/layoutBreakpoints.js';
+import { MOBILE_MEDIA_QUERY, COMPACT_BRAND_MEDIA_QUERY } from './utils/layoutBreakpoints.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 
 const TOOL_LABELS = {
@@ -421,14 +423,27 @@ function ActionPersonaRole({ variant, fallback = null, fallbackEmoji = '🛠️'
 }
 
 function ArchiSlopMarkIcon() {
+  // viewBox tightened to the actual helmet+grass silhouette so the surrounding
+  // brand-control pill doesn't render visible whitespace around the logo.
   return (
-    <svg className="brand-helmet-svg" viewBox="0 0 24 24" width="36" height="36" aria-hidden="true">
+    <svg className="brand-helmet-svg" viewBox="4.5 5.4 15 18.4" width="36" height="36" aria-hidden="true">
       <path d="M5 16 Q5 7 12 6 Q19 7 19 16 Z" fill="#F4A300" />
       <ellipse cx="12" cy="16" rx="9" ry="1.4" fill="#C77A00" />
       <path d="M12 6 L11 16 L13 16 Z" fill="#C77A00" opacity="0.55" />
       <path d="M6 17 Q6 20 7 22 Q8 20 8 17 Z" fill="#7CFC00" />
       <path d="M11 17 Q11 22 12 23.5 Q13 22 13 17 Z" fill="#3FA700" />
       <path d="M16 17 Q16 20 17 22 Q18 20 18 17 Z" fill="#7CFC00" />
+    </svg>
+  );
+}
+
+function PromptIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M4 4h16c1.1 0 2 .9 2 2v10c0 1.1-.9 2-2 2h-8.5l-4.7 3.5c-.7.5-1.7 0-1.7-.9V18H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2zm3 5v1.6h10V9H7zm0 3.2v1.6h7v-1.6H7z"
+      />
     </svg>
   );
 }
@@ -612,6 +627,31 @@ function useNarrowLayout() {
   return narrowLayout;
 }
 
+/**
+ * True when the viewport is narrow enough that the brand chip cannot fit the
+ * XP/level bar inline alongside the prestige badge — so the bar should drop
+ * into the collapsible row below.
+ */
+function useCompactBrandLayout() {
+  const [compact, setCompact] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(COMPACT_BRAND_MEDIA_QUERY).matches
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(COMPACT_BRAND_MEDIA_QUERY);
+    const sync = () => setCompact(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  return compact;
+}
+
 function ArchiSlop() {
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
@@ -692,6 +732,12 @@ function ArchiSlop() {
   const [externalAgentPresence, setExternalAgentPresence] = useState([]);
   const [agentReactions, setAgentReactions] = useState([]);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  /** Modal that lets the user dictate a fresh prompt after a diagram is already on canvas. */
+  const [promptModalOpen, setPromptModalOpen] = useState(false);
+  /** Demolition confirmation overlay shown before the Clear action wipes the session. */
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  /** Currently-displayed Slopitect Tip™ chip rendered below the brand control. */
+  const [slopitectTip, setSlopitectTip] = useState(null);
 
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
@@ -762,6 +808,7 @@ function ArchiSlop() {
 
   useSyncVisualViewportHeight();
   const narrowLayout = useNarrowLayout();
+  const compactBrand = useCompactBrandLayout();
 
   useEffect(() => {
     promptRef.current = prompt;
@@ -850,41 +897,39 @@ function ArchiSlop() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Triple-click on brand logo → random tip toast. The same `tip` kind is also
-  // used by the idle auto-show effect below.
+  // Tip chip lives below the brand logo. A single click on the logo brings up
+  // a fresh tip; the idle scheduler below cycles them on its own.
   const SLOPITECT_TIP_TTL_MS = 7000;
   const tipSeqRef = useRef(0);
+  const tipDismissTimerRef = useRef(null);
   const showSlopitectTip = useCallback(() => {
     const tip = IDLE_TIPS[Math.floor(Math.random() * IDLE_TIPS.length)] || '';
     if (!tip) return;
     const seq = tipSeqRef.current + 1;
     tipSeqRef.current = seq;
-    const toast = {
+    const next = {
       id: `tip-${Date.now()}-${seq}`,
-      kind: 'tip',
-      label: `Slopitect Tip™ — ${tip}`
+      text: tip
     };
-    setStreakHudToasts((q) => [...q, toast]);
-    setTimeout(() => {
-      setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
+    setSlopitectTip(next);
+    if (tipDismissTimerRef.current) clearTimeout(tipDismissTimerRef.current);
+    tipDismissTimerRef.current = setTimeout(() => {
+      setSlopitectTip((current) => (current?.id === next.id ? null : current));
+      tipDismissTimerRef.current = null;
     }, SLOPITECT_TIP_TTL_MS);
   }, []);
 
-  const brandTripleClickRef = useRef({ count: 0, lastAt: 0 });
-  const handleBrandTripleClick = useCallback(() => {
-    const now = Date.now();
-    const state = brandTripleClickRef.current;
-    if (now - state.lastAt > 600) {
-      state.count = 1;
-    } else {
-      state.count += 1;
-    }
-    state.lastAt = now;
-    if (state.count >= 3) {
-      state.count = 0;
-      showSlopitectTip();
-    }
+  const handleBrandClick = useCallback(() => {
+    showSlopitectTip();
   }, [showSlopitectTip]);
+
+  const dismissSlopitectTip = useCallback(() => {
+    if (tipDismissTimerRef.current) {
+      clearTimeout(tipDismissTimerRef.current);
+      tipDismissTimerRef.current = null;
+    }
+    setSlopitectTip(null);
+  }, []);
 
   // Auto-show a Slopitect Tip™ roughly every other minute, with jitter so it
   // doesn't feel metronome-y. Range: ~60s–180s between tips.
@@ -2647,7 +2692,13 @@ ${requirementsBlock}`;
     [critiqueActionableSelected, latestCritique, modelProfile, runStreamingAgent, syncDiagramOrThrow]
   );
 
-  async function handleClearDiagram() {
+  function handleClearDiagram() {
+    if (loadingRef.current || streamingPreviewRef.current) return;
+    setClearConfirmOpen(true);
+  }
+
+  async function performClearDiagram() {
+    setClearConfirmOpen(false);
     if (loadingRef.current || streamingPreviewRef.current) return;
     setGoMadStreak(0);
     if (syncTimerRef.current) {
@@ -3183,10 +3234,20 @@ ${requirementsBlock}`;
     else if (action.id === 'critique') runAnalyze('critique', runOpts);
     else if (action.id === 'explain') runAnalyze('explain', runOpts);
     else if (action.id === 'fix') handleFixFromCritique('all');
+    else if (action.id === 'prompt') setPromptModalOpen(true);
   };
 
   const radialActions = useMemo(() => {
     const list = [
+      {
+        id: 'prompt',
+        label: 'Prompt',
+        icon: <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>,
+        variant: 'prompt',
+        persona: 'Prompt',
+        personaEmoji: '💬',
+        personaTitle: 'Prompt · Direct the agent in your own words'
+      },
       {
         id: 'refine',
         label: 'Refine',
@@ -3352,16 +3413,16 @@ ${requirementsBlock}`;
       />
 
       <div
-        className={`corner-control brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && xpBarMobileOpen ? 'is-xp-open' : ''}`}
+        className={`corner-control brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''}`}
         aria-label="ArchiSlop"
-        onClick={handleBrandTripleClick}
+        onClick={handleBrandClick}
       >
         <span className="brand-mark" aria-hidden="true">
           <ArchiSlopMarkIcon />
         </span>
         <span className="brand-name">ArchiSlop</span>
         {gamification?.prestigeShortLabel ? (
-          narrowLayout ? (
+          narrowLayout && compactBrand ? (
             <button
               type="button"
               className="brand-prestige-badge"
@@ -3403,8 +3464,8 @@ ${requirementsBlock}`;
         {gamification?.level && narrowLayout ? (
           <div
             id="brand-xp-mobile-slot"
-            className={`brand-xp-mobile-slot ${xpBarMobileOpen ? 'is-open' : ''}`}
-            aria-hidden={!xpBarMobileOpen}
+            className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
+            aria-hidden={compactBrand ? !xpBarMobileOpen : false}
           >
             <XpProgressBar
               level={gamification.level}
@@ -3420,6 +3481,23 @@ ${requirementsBlock}`;
             />
           </div>
         ) : null}
+        {slopitectTip ? (
+          <div
+            className="slopitect-tip-chip"
+            role="status"
+            aria-live="polite"
+            data-testid="slopitect-tip-chip"
+            onClick={(event) => {
+              event.stopPropagation();
+              dismissSlopitectTip();
+            }}
+          >
+            <span className="slopitect-tip-chip-label" aria-hidden="true">
+              Slopitect Tip™
+            </span>
+            <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
+          </div>
+        ) : null}
       </div>
 
       <AgentHandshakeDialog
@@ -3432,6 +3510,40 @@ ${requirementsBlock}`;
         sessionId={activeSessionId}
         open={inviteDialogOpen}
         onClose={() => setInviteDialogOpen(false)}
+      />
+
+      <PromptModal
+        open={promptModalOpen}
+        prompt={prompt}
+        busy={busy}
+        voiceSupported={voiceSupported}
+        voiceListening={voiceListening}
+        narrowLayout={narrowLayout}
+        speechRecognitionCtor={SpeechRecognitionCtor}
+        PromptIcon={PromptIcon}
+        MicIcon={MicIcon}
+        MicActiveIcon={MicActiveIcon}
+        ButtonIcon={ButtonIcon}
+        onPromptChange={setPrompt}
+        onSubmit={async (text) => {
+          setPromptModalOpen(false);
+          hasInteractedRef.current = true;
+          await submitIntentWithPrompt(text);
+        }}
+        onClose={() => setPromptModalOpen(false)}
+        onMicToggleClick={handleMicToggleClick}
+        onMicPointerDown={handleMicPointerDown}
+        onMicPointerUp={handleMicPointerUp}
+        onMicLostPointerCapture={() => stopVoiceInput()}
+      />
+
+      <ClearConfirmDialog
+        key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
+        open={clearConfirmOpen}
+        onConfirm={() => {
+          void performClearDiagram();
+        }}
+        onCancel={() => setClearConfirmOpen(false)}
       />
 
       {hasDiagramText || editorOpen ? (
@@ -3537,6 +3649,26 @@ ${requirementsBlock}`;
 
           {hasDiagramText && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
+              <span className="button-group-label">Direct</span>
+              <div className="button-group">
+                <button
+                  type="button"
+                  className="overlay-button compact-button slop-action-button is-prompt"
+                  disabled={busy}
+                  onClick={() => setPromptModalOpen(true)}
+                  aria-label="Prompt"
+                  title="Prompt · Direct the agent in your own words"
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
+                  </ButtonIcon>
+                  <span className="button-label">Prompt</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">💬</span>
+                    Prompt
+                  </span>
+                </button>
+              </div>
               <span className="button-group-label">Shape</span>
               <div className="button-group">
                 <button
@@ -3630,9 +3762,22 @@ ${requirementsBlock}`;
                 </button>
               </div>
               <div className="button-group">
-                <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => handleClearDiagram()}>
-                  <ButtonIcon>x</ButtonIcon>
-                  Clear
+                <button
+                  type="button"
+                  className="overlay-button compact-button slop-action-button is-clear"
+                  disabled={busy}
+                  onClick={() => handleClearDiagram()}
+                  aria-label="Clear"
+                  title="Clear · Demolish the slop and start fresh"
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-clear" aria-hidden="true">🧨</span>
+                  </ButtonIcon>
+                  <span className="button-label">Clear</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">🧨</span>
+                    Demolish
+                  </span>
                 </button>
               </div>
             </div>
@@ -3641,6 +3786,23 @@ ${requirementsBlock}`;
           {hasDiagramText && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
+                <button
+                  type="button"
+                  className="overlay-button compact-button slop-action-button is-prompt"
+                  disabled={busy}
+                  onClick={() => setPromptModalOpen(true)}
+                  aria-label="Prompt"
+                  title="Prompt · Direct the agent in your own words"
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
+                  </ButtonIcon>
+                  <span className="button-label">Prompt</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">💬</span>
+                    Prompt
+                  </span>
+                </button>
                 <button
                   type="button"
                   className={actionButtonClass('refine')}
@@ -3729,14 +3891,20 @@ ${requirementsBlock}`;
                 </button>
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className="overlay-button compact-button slop-action-button is-clear"
                   disabled={busy}
                   onClick={() => handleClearDiagram()}
                   aria-label="Clear"
-                  title="Clear"
+                  title="Clear · Demolish the slop and start fresh"
                 >
-                  <ButtonIcon>x</ButtonIcon>
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-clear" aria-hidden="true">🧨</span>
+                  </ButtonIcon>
                   <span className="button-label">Clear</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">🧨</span>
+                    Demolish
+                  </span>
                 </button>
               </div>
             </div>
