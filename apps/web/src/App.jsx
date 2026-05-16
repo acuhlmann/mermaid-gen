@@ -118,6 +118,7 @@ import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { MOBILE_MEDIA_QUERY } from './utils/layoutBreakpoints.js';
+import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 
 const TOOL_LABELS = {
   get_diagram_state: 'Read diagram snapshot',
@@ -2763,6 +2764,30 @@ ${requirementsBlock}`;
     }
   }, [clearPendingAutoDiagramHighlight, state.diagramSource]);
 
+  // On mobile, when a run completes and produces a new diagram revision, auto-collapse the
+  // insights pane so the freshly-rendered diagram becomes visible without the user manually
+  // closing the thinking pane that otherwise covers the whole canvas.
+  const prevAutoCloseRunningRef = useRef(false);
+  const prevAutoCloseRevisionIdRef = useRef(state.revisionId);
+  useEffect(() => {
+    const anyRunning = insightsEntries.some((e) => (e.status ?? 'running') === 'running');
+    const wasRunning = prevAutoCloseRunningRef.current;
+    const prevRevisionId = prevAutoCloseRevisionIdRef.current;
+    const revisionChanged = state.revisionId !== prevRevisionId;
+    if (
+      narrowLayout &&
+      insightsOpen &&
+      wasRunning &&
+      !anyRunning &&
+      revisionChanged &&
+      Boolean(state.diagramSource?.trim())
+    ) {
+      setInsightsOpen(false);
+    }
+    prevAutoCloseRunningRef.current = anyRunning;
+    prevAutoCloseRevisionIdRef.current = state.revisionId;
+  }, [insightsEntries, narrowLayout, insightsOpen, state.revisionId, state.diagramSource]);
+
   const busy = loading || streamingPreview;
 
   const clearHoverCloseTimer = useCallback(() => {
@@ -3046,7 +3071,8 @@ ${requirementsBlock}`;
     return list;
   }, [canFixFromCritique, goMadStreak, latestCritique?.text]);
 
-  const insightsSlot = insightsOpen ? (
+  const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(insightsOpen, 240);
+  const insightsSlot = insightsMounted ? (
     <InsightsPane
       entries={insightsEntries}
       soundEnabled={soundEnabled}
@@ -3071,6 +3097,7 @@ ${requirementsBlock}`;
       onAcceptProposal={handleAcceptProposal}
       onRejectProposal={handleRejectProposal}
       agentReactions={agentReactions}
+      closing={insightsClosing}
     />
   ) : null;
 
@@ -3097,7 +3124,7 @@ ${requirementsBlock}`;
         streamingPreview={streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)}
         agentThinking={agentThinkingChrome && !streamingPreview}
         editorOpen={editorOpen}
-        insightsOpen={insightsOpen && Boolean(insightsSlot)}
+        insightsOpen={insightsMounted && Boolean(insightsSlot)}
         insightsSlot={insightsSlot}
         selectedNode={selectedNode}
         hoverDescriptor={hoverDescriptor}
@@ -3203,81 +3230,78 @@ ${requirementsBlock}`;
 
       <div className="corner-control bottom-chrome">
         <div className="prompt-stack">
-          <form className="prompt-control" onSubmit={runIntentChange}>
-            <label className="sr-only" htmlFor="diagram-change-prompt">
-              Your Topic
-            </label>
-            <input
-              id="diagram-change-prompt"
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Your Topic"
-              disabled={busy}
-              aria-invalid={error ? 'true' : 'false'}
-              aria-describedby={status ? 'app-status' : undefined}
-            />
-            <div className="prompt-actions-main">
-              <button
-                type="button"
-                className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-                disabled={!voiceSupported || busy}
-                onPointerDown={handleMicPointerDown}
-                onPointerUp={handleMicPointerUp}
-                onPointerCancel={handleMicPointerUp}
-                onLostPointerCapture={() => stopVoiceInput()}
-                onKeyDown={(event) => {
-                  if (event.repeat) return;
-                  if (event.key === ' ' || event.key === 'Enter') {
-                    event.preventDefault();
-                    startVoiceInput();
+          {!hasDiagramText ? (
+            <form className="prompt-control" onSubmit={runIntentChange}>
+              <label className="sr-only" htmlFor="diagram-change-prompt">
+                Your Topic
+              </label>
+              <input
+                id="diagram-change-prompt"
+                value={prompt}
+                onChange={(event) => setPrompt(event.target.value)}
+                placeholder="Your Topic"
+                disabled={busy}
+                aria-invalid={error ? 'true' : 'false'}
+                aria-describedby={status ? 'app-status' : undefined}
+              />
+              <div className="prompt-actions-main">
+                <button
+                  type="button"
+                  className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+                  disabled={!voiceSupported || busy}
+                  onPointerDown={handleMicPointerDown}
+                  onPointerUp={handleMicPointerUp}
+                  onPointerCancel={handleMicPointerUp}
+                  onLostPointerCapture={() => stopVoiceInput()}
+                  onKeyDown={(event) => {
+                    if (event.repeat) return;
+                    if (event.key === ' ' || event.key === 'Enter') {
+                      event.preventDefault();
+                      startVoiceInput();
+                    }
+                  }}
+                  onKeyUp={(event) => {
+                    if (event.key === ' ' || event.key === 'Enter') {
+                      event.preventDefault();
+                      stopVoiceInput();
+                    }
+                  }}
+                  aria-label="Hold to speak"
+                  title={
+                    voiceSupported
+                      ? 'Hold to dictate prompt'
+                      : SpeechRecognitionCtor
+                        ? 'Voice input needs a secure connection (HTTPS), except on localhost'
+                        : 'Voice input not supported in this browser'
                   }
-                }}
-                onKeyUp={(event) => {
-                  if (event.key === ' ' || event.key === 'Enter') {
-                    event.preventDefault();
-                    stopVoiceInput();
-                  }
-                }}
-                aria-label="Hold to speak"
-                title={
-                  voiceSupported
-                    ? 'Hold to dictate prompt'
-                    : SpeechRecognitionCtor
-                      ? 'Voice input needs a secure connection (HTTPS), except on localhost'
-                      : 'Voice input not supported in this browser'
-                }
-              >
-                <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-                <span className="button-label">Mic</span>
-              </button>
-              {hasDiagramText && !narrowLayout ? (
-                <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
-                  <ButtonIcon>x</ButtonIcon>
-                  <span className="button-label">Clear</span>
+                >
+                  <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
+                  <span className="button-label">Mic</span>
+                </button>
+                <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
+                  <ButtonIcon>{'>'}</ButtonIcon>
+                  <span className="button-label">Go</span>
+                </button>
+              </div>
+            </form>
+          ) : null}
+
+          {status ? (
+            <div className="overlay-status-row">
+              <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
+                {status}
+              </p>
+              {streamingAgentStoppable && !insightsOpen ? (
+                <button
+                  type="button"
+                  className="overlay-button compact-button overlay-status-stop"
+                  onClick={stopStreamingAgentRequest}
+                >
+                  Stop request
                 </button>
               ) : null}
-              <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
-                <ButtonIcon>{'>'}</ButtonIcon>
-                <span className="button-label">Go</span>
-              </button>
             </div>
-            {status ? (
-              <div className="overlay-status-row">
-                <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
-                  {status}
-                </p>
-                {streamingAgentStoppable && !insightsOpen ? (
-                  <button
-                    type="button"
-                    className="overlay-button compact-button overlay-status-stop"
-                    onClick={stopStreamingAgentRequest}
-                  >
-                    Stop request
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
-          </form>
+          ) : null}
 
           {hasDiagramText && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
@@ -3345,142 +3369,139 @@ ${requirementsBlock}`;
                   Explain
                 </button>
               </div>
+              <div className="button-group">
+                <button type="button" className="overlay-button compact-button" disabled={busy} onClick={() => handleClearDiagram()}>
+                  <ButtonIcon>x</ButtonIcon>
+                  Clear
+                </button>
+              </div>
             </div>
           ) : null}
 
-          {narrowLayout ? (
-          <div className="bottom-chrome-drawer-row">
-            {hasDiagramText ? (
-              <details className="bottom-chrome-drawer bottom-chrome-drawer--tools">
-                <summary className="bottom-chrome-drawer-toggle">
-                  <span className="drawer-toggle-label">Actions</span>
-                </summary>
-                <div className="bottom-chrome-drawer-panel">
-                  <div className="prompt-actions">
-                    <span className="button-group-label">Shape</span>
-                    <div className="button-group">
-                      <button
-                        type="button"
-                        className="overlay-button compact-button"
-                        disabled={busy}
-                        onClick={() => runTransform('refine', { useDiagramFocus: true })}
-                      >
-                        <ButtonIcon>
-                          <MermaidMarkIcon />
-                        </ButtonIcon>
-                        <span className="button-label">Refine</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="overlay-button compact-button"
-                        disabled={busy}
-                        onClick={() => runTransform('innovate', { useDiagramFocus: true })}
-                      >
-                        <ButtonIcon>+</ButtonIcon>
-                        <span className="button-label">Innovate</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="overlay-button compact-button"
-                        disabled={busy}
-                        onClick={() => runTransform('goMad', { useDiagramFocus: true })}
-                      >
-                        <ButtonIcon>!</ButtonIcon>
-                        <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
-                      </button>
-                    </div>
-                    <span className="button-group-label">Read</span>
-                    <div className="button-group">
-                      <button
-                        type="button"
-                        className="overlay-button compact-button"
-                        disabled={busy}
-                        onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
-                      >
-                        <ButtonIcon>?</ButtonIcon>
-                        <span className="button-label">Critique</span>
-                      </button>
-                      {latestCritique?.text ? (
-                        <button
-                          type="button"
-                          className="overlay-button compact-button"
-                          disabled={!canFixFromCritique}
-                          onClick={() => handleFixFromCritique('all')}
-                        >
-                          <ButtonIcon>w</ButtonIcon>
-                          <span className="button-label">Fix</span>
-                        </button>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="overlay-button compact-button"
-                        disabled={busy}
-                        onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
-                      >
-                        <ButtonIcon>i</ButtonIcon>
-                        <span className="button-label">Explain</span>
-                      </button>
-                    </div>
-                    <span className="button-group-label">Reset</span>
-                    <div className="button-group">
-                      <button
-                        type="button"
-                        className="overlay-button compact-button"
-                        disabled={busy}
-                        onClick={() => handleClearDiagram()}
-                      >
-                        <ButtonIcon>x</ButtonIcon>
-                        <span className="button-label">Clear</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </details>
-            ) : null}
-
-            <details className="bottom-chrome-drawer bottom-chrome-drawer--settings">
-              <summary className="bottom-chrome-drawer-toggle">
-                <span className="drawer-toggle-label">Settings</span>
-              </summary>
-              <div className="bottom-chrome-drawer-panel">
-                <div className="ai-corner-controls">
-                  <AiCornerControlsInner
-                    contentMode={contentMode}
-                    onSelectContentMode={handleSelectContentMode}
-                    modelProfile={modelProfile}
-                    onSelectModelProfile={setModelProfile}
-                    modeSwitchDisabled={loading || streamingPreview}
-                    pendingHandshake={pendingHandshake}
-                    externalAgentPresence={externalAgentPresence}
-                    onInviteAgent={() => setInviteDialogOpen(true)}
-                    agentThinkingChrome={agentThinkingChrome}
-                    insightsOpen={insightsOpen}
-                    onToggleInsights={() => setInsightsOpen((v) => !v)}
-                    includeThinkingToggle={false}
-                  />
-                </div>
+          {hasDiagramText && narrowLayout ? (
+            <div className="prompt-actions prompt-actions--mobile">
+              <div className="button-group">
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runTransform('refine', { useDiagramFocus: true })}
+                  aria-label="Refine"
+                  title="Refine"
+                >
+                  <ButtonIcon>
+                    <MermaidMarkIcon />
+                  </ButtonIcon>
+                  <span className="button-label">Refine</span>
+                </button>
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runTransform('innovate', { useDiagramFocus: true })}
+                  aria-label="Innovate"
+                  title="Innovate"
+                >
+                  <ButtonIcon>+</ButtonIcon>
+                  <span className="button-label">Innovate</span>
+                </button>
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runTransform('goMad', { useDiagramFocus: true })}
+                  aria-label={goMadShapeLabel(goMadStreak)}
+                  title={goMadShapeLabel(goMadStreak)}
+                >
+                  <ButtonIcon>!</ButtonIcon>
+                  <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
+                </button>
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
+                  aria-label="Critique"
+                  title="Critique"
+                >
+                  <ButtonIcon>?</ButtonIcon>
+                  <span className="button-label">Critique</span>
+                </button>
+                {latestCritique?.text ? (
+                  <button
+                    type="button"
+                    className="overlay-button compact-button"
+                    disabled={!canFixFromCritique}
+                    onClick={() => handleFixFromCritique('all')}
+                    aria-label="Fix"
+                    title="Fix"
+                  >
+                    <ButtonIcon>w</ButtonIcon>
+                    <span className="button-label">Fix</span>
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
+                  aria-label="Explain"
+                  title="Explain"
+                >
+                  <ButtonIcon>i</ButtonIcon>
+                  <span className="button-label">Explain</span>
+                </button>
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  disabled={busy}
+                  onClick={() => handleClearDiagram()}
+                  aria-label="Clear"
+                  title="Clear"
+                >
+                  <ButtonIcon>x</ButtonIcon>
+                  <span className="button-label">Clear</span>
+                </button>
               </div>
-            </details>
-          </div>
+            </div>
           ) : null}
         </div>
 
         {!narrowLayout ? (
-        <div className="ai-corner-controls ai-corner-controls--desktop" aria-label="AI model and thinking">
-          <AiCornerControlsInner
-            contentMode={contentMode}
-            onSelectContentMode={handleSelectContentMode}
-            modelProfile={modelProfile}
-            onSelectModelProfile={setModelProfile}
-            modeSwitchDisabled={loading || streamingPreview}
-            pendingHandshake={pendingHandshake}
-            externalAgentPresence={externalAgentPresence}
-            onInviteAgent={() => setInviteDialogOpen(true)}
-            agentThinkingChrome={agentThinkingChrome}
-            insightsOpen={insightsOpen}
-            onToggleInsights={() => setInsightsOpen((v) => !v)}
-          />
-        </div>
+          <div className="ai-corner-controls ai-corner-controls--desktop" aria-label="AI model and thinking">
+            <AiCornerControlsInner
+              contentMode={contentMode}
+              onSelectContentMode={handleSelectContentMode}
+              modelProfile={modelProfile}
+              onSelectModelProfile={setModelProfile}
+              modeSwitchDisabled={loading || streamingPreview}
+              pendingHandshake={pendingHandshake}
+              externalAgentPresence={externalAgentPresence}
+              onInviteAgent={() => setInviteDialogOpen(true)}
+              agentThinkingChrome={agentThinkingChrome}
+              insightsOpen={insightsOpen}
+              onToggleInsights={() => setInsightsOpen((v) => !v)}
+            />
+          </div>
+        ) : null}
+
+        {narrowLayout ? (
+          <div className="ai-corner-controls ai-corner-controls--mobile" aria-label="AI model and thinking">
+            <AiCornerControlsInner
+              contentMode={contentMode}
+              onSelectContentMode={handleSelectContentMode}
+              modelProfile={modelProfile}
+              onSelectModelProfile={setModelProfile}
+              modeSwitchDisabled={loading || streamingPreview}
+              pendingHandshake={pendingHandshake}
+              externalAgentPresence={externalAgentPresence}
+              onInviteAgent={() => setInviteDialogOpen(true)}
+              agentThinkingChrome={agentThinkingChrome}
+              insightsOpen={insightsOpen}
+              onToggleInsights={() => setInsightsOpen((v) => !v)}
+              includeThinkingToggle={false}
+            />
+          </div>
         ) : null}
       </div>
     </main>

@@ -719,7 +719,8 @@ export default function InsightsPane({
   onDismiss,
   onAcceptProposal,
   onRejectProposal,
-  agentReactions = []
+  agentReactions = [],
+  closing = false
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
@@ -770,7 +771,7 @@ export default function InsightsPane({
 
   return (
     <aside
-      className={`insights-pane ${slopitectVariantClass}`.trim()}
+      className={`insights-pane ${slopitectVariantClass} ${closing ? 'is-closing' : ''}`.trim()}
       aria-label="Thoughts and analysis"
       data-variant={activeVariant || undefined}
     >
