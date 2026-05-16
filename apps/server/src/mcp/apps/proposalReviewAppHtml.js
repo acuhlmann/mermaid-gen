@@ -214,9 +214,9 @@ async function renderPreviews(data) {
     await renderMermaidPreview(els.previewBefore, before);
     await renderMermaidPreview(els.previewAfter, after);
   } else {
-    els.previewNote.textContent = "Infographic DSL — open ArchiSlop web for full AntV preview.";
-    renderInfographicPreview(els.previewBefore, before);
-    renderInfographicPreview(els.previewAfter, after);
+    els.previewNote.textContent = "Live AntV infographic preview. If previews stay blank, use Unified diff or the web Insights proposal card.";
+    await renderInfographicPreview(els.previewBefore, before);
+    await renderInfographicPreview(els.previewAfter, after);
   }
 }
 
