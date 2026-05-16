@@ -30,6 +30,7 @@ function renderToastContent(toast) {
     return toast.label ? toast.label : `⚡ COMBO ×${toast.combo}`;
   }
   if (toast.kind === 'text') return toast.label || '';
+  if (toast.kind === 'tip') return toast.label || '';
   return '';
 }
 
@@ -50,6 +51,7 @@ export default function StreakHud({ toasts = [], achievement = null, levelUp = n
           if (toast.kind === 'streak') cls.push('is-streak');
           if (toast.kind === 'combo') cls.push('is-combo');
           if (toast.kind === 'xp') cls.push('is-xp');
+          if (toast.kind === 'tip') cls.push('is-tip');
           if (toast.variant && VARIANT_CLASS[toast.variant]) cls.push(VARIANT_CLASS[toast.variant]);
           return (
             <span key={toast.id} className={cls.join(' ')} data-testid={`streak-hud-${toast.kind}`}>

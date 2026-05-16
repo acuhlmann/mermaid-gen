@@ -668,6 +668,8 @@ function ArchiSlop() {
   const [streakHudLevelUp, setStreakHudLevelUp] = useState(null);
   /** Bumped each time the player crosses a level. The XP bar uses it as a flash key. */
   const [xpBarFlashKey, setXpBarFlashKey] = useState(0);
+  /** Mobile-only: XP bar starts collapsed below the brand row; toggled by tapping the role badge. */
+  const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
   const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
@@ -848,7 +850,26 @@ function ArchiSlop() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Triple-click on brand logo → random tip toast.
+  // Triple-click on brand logo → random tip toast. The same `tip` kind is also
+  // used by the idle auto-show effect below.
+  const SLOPITECT_TIP_TTL_MS = 7000;
+  const tipSeqRef = useRef(0);
+  const showSlopitectTip = useCallback(() => {
+    const tip = IDLE_TIPS[Math.floor(Math.random() * IDLE_TIPS.length)] || '';
+    if (!tip) return;
+    const seq = tipSeqRef.current + 1;
+    tipSeqRef.current = seq;
+    const toast = {
+      id: `tip-${Date.now()}-${seq}`,
+      kind: 'tip',
+      label: `Slopitect Tip™ — ${tip}`
+    };
+    setStreakHudToasts((q) => [...q, toast]);
+    setTimeout(() => {
+      setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
+    }, SLOPITECT_TIP_TTL_MS);
+  }, []);
+
   const brandTripleClickRef = useRef({ count: 0, lastAt: 0 });
   const handleBrandTripleClick = useCallback(() => {
     const now = Date.now();
@@ -861,14 +882,30 @@ function ArchiSlop() {
     state.lastAt = now;
     if (state.count >= 3) {
       state.count = 0;
-      const tip = IDLE_TIPS[Math.floor(Math.random() * IDLE_TIPS.length)] || '';
-      const toast = { id: `tip-${now}`, kind: 'text', label: `Slopitect Tip™ — ${tip}` };
-      setStreakHudToasts((q) => [...q, toast]);
-      setTimeout(() => {
-        setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
-      }, 2600);
+      showSlopitectTip();
     }
-  }, []);
+  }, [showSlopitectTip]);
+
+  // Auto-show a Slopitect Tip™ roughly every other minute, with jitter so it
+  // doesn't feel metronome-y. Range: ~60s–180s between tips.
+  useEffect(() => {
+    let cancelled = false;
+    let timeoutId = null;
+    function scheduleNext() {
+      if (cancelled) return;
+      const jitterMs = 60_000 + Math.random() * 120_000;
+      timeoutId = setTimeout(() => {
+        if (cancelled) return;
+        showSlopitectTip();
+        scheduleNext();
+      }, jitterMs);
+    }
+    scheduleNext();
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
+  }, [showSlopitectTip]);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -2405,6 +2442,17 @@ Hard requirements:
     stopVoiceInput();
   }
 
+  // Mobile uses tap-to-toggle (touch taps are too brief for the hold-to-speak flow
+  // to actually capture audio before pointerup stops it).
+  function handleMicToggleClick() {
+    if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
+    if (voiceListening) {
+      stopVoiceInput({ immediate: true });
+    } else {
+      startVoiceInput();
+    }
+  }
+
   async function runTransform(mode, options = {}) {
     const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
@@ -3304,7 +3352,7 @@ ${requirementsBlock}`;
       />
 
       <div
-        className="corner-control brand-control"
+        className={`corner-control brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && xpBarMobileOpen ? 'is-xp-open' : ''}`}
         aria-label="ArchiSlop"
         onClick={handleBrandTripleClick}
       >
@@ -3313,15 +3361,32 @@ ${requirementsBlock}`;
         </span>
         <span className="brand-name">ArchiSlop</span>
         {gamification?.prestigeShortLabel ? (
-          <span
-            className="brand-prestige-badge"
-            title={`${gamification.totalRuns ?? 0} total slop runs`}
-            data-testid="brand-prestige-badge"
-          >
-            {gamification.prestigeShortLabel}
-          </span>
+          narrowLayout ? (
+            <button
+              type="button"
+              className="brand-prestige-badge"
+              title={`${gamification.totalRuns ?? 0} total slop runs · tap to ${xpBarMobileOpen ? 'hide' : 'show'} XP`}
+              data-testid="brand-prestige-badge"
+              aria-expanded={xpBarMobileOpen}
+              aria-controls="brand-xp-mobile-slot"
+              onClick={(event) => {
+                event.stopPropagation();
+                setXpBarMobileOpen((current) => !current);
+              }}
+            >
+              {gamification.prestigeShortLabel}
+            </button>
+          ) : (
+            <span
+              className="brand-prestige-badge"
+              title={`${gamification.totalRuns ?? 0} total slop runs`}
+              data-testid="brand-prestige-badge"
+            >
+              {gamification.prestigeShortLabel}
+            </span>
+          )
         ) : null}
-        {gamification?.level ? (
+        {gamification?.level && !narrowLayout ? (
           <XpProgressBar
             level={gamification.level}
             short={gamification.levelShortLabel}
@@ -3334,6 +3399,26 @@ ${requirementsBlock}`;
             flashKey={xpBarFlashKey}
             variant={liveVariant}
           />
+        ) : null}
+        {gamification?.level && narrowLayout ? (
+          <div
+            id="brand-xp-mobile-slot"
+            className={`brand-xp-mobile-slot ${xpBarMobileOpen ? 'is-open' : ''}`}
+            aria-hidden={!xpBarMobileOpen}
+          >
+            <XpProgressBar
+              level={gamification.level}
+              short={gamification.levelShortLabel}
+              flair={gamification.levelFlair}
+              progressRatio={gamification.levelProgressRatio}
+              xpInto={gamification.xpIntoLevel}
+              xpForNext={gamification.xpForNextLevel}
+              totalXp={gamification.xp}
+              isMaxLevel={gamification.xpForNextLevel == null}
+              flashKey={xpBarFlashKey}
+              variant={liveVariant}
+            />
+          </div>
         ) : null}
       </div>
 
@@ -3349,12 +3434,14 @@ ${requirementsBlock}`;
         onClose={() => setInviteDialogOpen(false)}
       />
 
-      <div className="corner-control edit-control">
-        <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
-          <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
-          {editorOpen ? 'Close' : 'Code'}
-        </button>
-      </div>
+      {hasDiagramText || editorOpen ? (
+        <div className="corner-control edit-control">
+          <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
+            <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
+            {editorOpen ? 'Close' : 'Code'}
+          </button>
+        </div>
+      ) : null}
 
       {editorOpen ? (
         <div className="corner-control editor-done-bar">
@@ -3385,27 +3472,36 @@ ${requirementsBlock}`;
                   type="button"
                   className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
                   disabled={!voiceSupported || busy}
-                  onPointerDown={handleMicPointerDown}
-                  onPointerUp={handleMicPointerUp}
-                  onPointerCancel={handleMicPointerUp}
-                  onLostPointerCapture={() => stopVoiceInput()}
-                  onKeyDown={(event) => {
-                    if (event.repeat) return;
-                    if (event.key === ' ' || event.key === 'Enter') {
-                      event.preventDefault();
-                      startVoiceInput();
-                    }
-                  }}
-                  onKeyUp={(event) => {
-                    if (event.key === ' ' || event.key === 'Enter') {
-                      event.preventDefault();
-                      stopVoiceInput();
-                    }
-                  }}
-                  aria-label="Hold to speak"
+                  {...(narrowLayout
+                    ? { onClick: handleMicToggleClick }
+                    : {
+                        onPointerDown: handleMicPointerDown,
+                        onPointerUp: handleMicPointerUp,
+                        onPointerCancel: handleMicPointerUp,
+                        onLostPointerCapture: () => stopVoiceInput(),
+                        onKeyDown: (event) => {
+                          if (event.repeat) return;
+                          if (event.key === ' ' || event.key === 'Enter') {
+                            event.preventDefault();
+                            startVoiceInput();
+                          }
+                        },
+                        onKeyUp: (event) => {
+                          if (event.key === ' ' || event.key === 'Enter') {
+                            event.preventDefault();
+                            stopVoiceInput();
+                          }
+                        }
+                      })}
+                  aria-label={narrowLayout ? (voiceListening ? 'Tap to stop dictation' : 'Tap to dictate') : 'Hold to speak'}
+                  aria-pressed={narrowLayout ? voiceListening : undefined}
                   title={
                     voiceSupported
-                      ? 'Hold to dictate prompt'
+                      ? narrowLayout
+                        ? voiceListening
+                          ? 'Tap to stop dictation'
+                          : 'Tap to dictate prompt'
+                        : 'Hold to dictate prompt'
                       : SpeechRecognitionCtor
                         ? 'Voice input needs a secure connection (HTTPS), except on localhost'
                         : 'Voice input not supported in this browser'
