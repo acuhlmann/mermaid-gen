@@ -1,4 +1,4 @@
-import { phaseCeremonyLabel } from '../utils/slopitectCopy.js';
+import { getVariantPersona, phaseCeremonyLabel } from '../utils/slopitectCopy.js';
 
 const VARIANT_CSS_CLASS = {
   refine: 'is-variant-refine',
@@ -25,6 +25,7 @@ export default function SlopitectStatusBoard({ variant, phases, totalSteps }) {
   const className = `slopitect-status-board ${VARIANT_CSS_CLASS[variant] || ''}`.trim();
   const step = phases.length;
   const stepHint = totalSteps && totalSteps > step ? ` / ${totalSteps}` : '';
+  const persona = getVariantPersona(variant);
 
   return (
     <div
@@ -34,6 +35,12 @@ export default function SlopitectStatusBoard({ variant, phases, totalSteps }) {
       data-testid="slopitect-status-board"
     >
       <span className="slopitect-status-board-dot" aria-hidden="true" />
+      <span className="slopitect-status-board-persona" title={persona.title}>
+        <span className="slopitect-status-board-emoji" aria-hidden="true">
+          {persona.avatarEmoji || '🏗️'}
+        </span>
+        {persona.name}
+      </span>
       <span className="slopitect-status-board-label">{ceremonyLabel}</span>
       <span className="slopitect-status-board-step" aria-hidden="true">
         Phase {step}

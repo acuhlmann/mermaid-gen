@@ -5,8 +5,8 @@ import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 const ARC_RADIUS_DESKTOP_PX = 112;
 const ARC_RADIUS_MOBILE_PX = 88;
 const ARC_SPREAD_DEG = 165;
-const BUTTON_HALF_DESKTOP_PX = 30;
-const BUTTON_HALF_MOBILE_PX = 26;
+const BUTTON_HALF_DESKTOP_PX = 34;
+const BUTTON_HALF_MOBILE_PX = 32;
 const VIEWPORT_MARGIN_PX = 8;
 const MOBILE_BOTTOM_CHROME_RESERVE_PX = 120;
 const HOVER_DISK_EXTRA_PX = 12;
@@ -221,6 +221,7 @@ export default function RadialActionMenu({
         const action = visibleActions[index];
         if (!action) return null;
         const sizeClass = action.sizeClass || '';
+        const title = action.personaTitle ? `${action.label} — ${action.personaTitle}` : action.label;
         return (
           <button
             key={action.id}
@@ -232,12 +233,18 @@ export default function RadialActionMenu({
             onPointerEnter={onHoverHold}
             onPointerLeave={onHoverRelease}
             aria-label={action.label}
-            title={action.label}
+            title={title}
           >
             <span className="radial-action-button-icon" aria-hidden="true">
               {action.icon}
             </span>
             <span className="radial-action-button-label">{action.label}</span>
+            {action.persona ? (
+              <span className="radial-action-button-persona">
+                {action.personaEmoji ? <span aria-hidden="true">{action.personaEmoji}</span> : null}
+                {action.persona.replace(/^The\s+/i, '')}
+              </span>
+            ) : null}
           </button>
         );
       })}

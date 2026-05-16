@@ -22,8 +22,8 @@ const MOCK_DESCRIPTOR = {
 };
 
 const MOCK_ACTIONS = [
-  { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine' },
-  { id: 'explain', label: 'Explain', icon: 'i', variant: 'explain' }
+  { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' },
+  { id: 'explain', label: 'Explain', icon: 'i', variant: 'explain', persona: 'The Wise Architect' }
 ];
 
 /** Mirrors App.jsx radial menu open/close rules without the full shell. */
@@ -104,6 +104,7 @@ describe('radial menu click-to-open UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
     expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Refine' })).toBeTruthy();
+    expect(screen.getByText('Polisher')).toBeTruthy();
   });
 
   it('closes the menu when the same part is clicked again', () => {
