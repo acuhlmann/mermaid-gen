@@ -435,7 +435,8 @@ function AiCornerControlsInner({
   onInviteAgent,
   agentThinkingChrome,
   insightsOpen,
-  onToggleInsights
+  onToggleInsights,
+  includeThinkingToggle = true
 }) {
   return (
     <>
@@ -499,14 +500,17 @@ function AiCornerControlsInner({
           <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
         </div>
       </div>
-      <button
-        type="button"
-        className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
-        onClick={onToggleInsights}
-      >
-        <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-        {insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
-      </button>
+      {includeThinkingToggle ? (
+        <button
+          type="button"
+          className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
+          onClick={onToggleInsights}
+          aria-label={insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
+        >
+          <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
+          Thinking
+        </button>
+      ) : null}
     </>
   );
 }
@@ -3172,9 +3176,20 @@ ${requirementsBlock}`;
       />
 
       <div className="corner-control edit-control">
+        {narrowLayout ? (
+          <button
+            type="button"
+            className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
+            onClick={() => setInsightsOpen((v) => !v)}
+            aria-label={insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
+          >
+            <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
+            Thinking
+          </button>
+        ) : null}
         <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
           <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
-          {editorOpen ? 'Close Code' : 'Edit Code'}
+          {editorOpen ? 'Close' : 'Code'}
         </button>
       </div>
 
@@ -3233,17 +3248,17 @@ ${requirementsBlock}`;
                 }
               >
                 <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-                Mic
+                <span className="button-label">Mic</span>
               </button>
-              {hasDiagramText ? (
+              {hasDiagramText && !narrowLayout ? (
                 <button type="button" className="overlay-button" disabled={busy} onClick={() => handleClearDiagram()}>
                   <ButtonIcon>x</ButtonIcon>
-                  Clear
+                  <span className="button-label">Clear</span>
                 </button>
               ) : null}
               <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
                 <ButtonIcon>{'>'}</ButtonIcon>
-                Go
+                <span className="button-label">Go</span>
               </button>
             </div>
             {status ? (
@@ -3406,6 +3421,18 @@ ${requirementsBlock}`;
                         <span className="button-label">Explain</span>
                       </button>
                     </div>
+                    <span className="button-group-label">Reset</span>
+                    <div className="button-group">
+                      <button
+                        type="button"
+                        className="overlay-button compact-button"
+                        disabled={busy}
+                        onClick={() => handleClearDiagram()}
+                      >
+                        <ButtonIcon>x</ButtonIcon>
+                        <span className="button-label">Clear</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </details>
@@ -3429,6 +3456,7 @@ ${requirementsBlock}`;
                     agentThinkingChrome={agentThinkingChrome}
                     insightsOpen={insightsOpen}
                     onToggleInsights={() => setInsightsOpen((v) => !v)}
+                    includeThinkingToggle={false}
                   />
                 </div>
               </div>
