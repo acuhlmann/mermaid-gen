@@ -313,6 +313,102 @@ export function prestigeForTotalRuns(totalRuns) {
   return best;
 }
 
+/**
+ * Slopitect XP-based leveling ladder. Each entry defines the cumulative XP
+ * required to *enter* the level. Level 1 starts at 0 XP. The cap is a soft
+ * cap — anything past the final entry stays at the top level but still
+ * accrues XP (used by the bar to keep flexing).
+ *
+ * Cadence: gentle at first to reward early activity, then a slow grind so
+ * the bar always has somewhere to fill toward.
+ */
+export const LEVELS = [
+  { level: 1, xp: 0, title: 'Intern Architect', short: 'Lvl 1', flair: '🪜' },
+  { level: 2, xp: 50, title: 'Associate Slopitect', short: 'Lvl 2', flair: '📐' },
+  { level: 3, xp: 120, title: 'Junior Slopitect', short: 'Lvl 3', flair: '✏️' },
+  { level: 4, xp: 220, title: 'Mid-level Slopitect', short: 'Lvl 4', flair: '🪧' },
+  { level: 5, xp: 360, title: 'Senior Slopitect', short: 'Lvl 5', flair: '🎯' },
+  { level: 6, xp: 540, title: 'Staff Slopitect', short: 'Lvl 6', flair: '🛠️' },
+  { level: 7, xp: 760, title: 'Principal Slopitect', short: 'Lvl 7', flair: '🏗️' },
+  { level: 8, xp: 1020, title: 'Distinguished Slopitect', short: 'Lvl 8', flair: '🌟' },
+  { level: 9, xp: 1320, title: 'Slopitect Fellow', short: 'Lvl 9', flair: '🪐' },
+  { level: 10, xp: 1700, title: 'Chief Slopitect Officer', short: 'Lvl 10', flair: '👑' },
+  { level: 11, xp: 2200, title: 'Mythic Slopitect', short: 'Lvl 11', flair: '🌈' },
+  { level: 12, xp: 2900, title: 'Slopitect, Lord of Synergy', short: 'Lvl 12', flair: '🔮' }
+];
+
+/**
+ * @typedef {{ level: number, title: string, short: string, flair: string,
+ *  xpInto: number, xpForNext: number | null, totalXp: number, isMaxLevel: boolean,
+ *  progressRatio: number, nextLevel: typeof LEVELS[number] | null }} LevelInfo
+ */
+
+/**
+ * Resolve a level descriptor from a cumulative XP value. Returns the level,
+ * the XP banked toward the next level, and the XP gap remaining. At the
+ * soft cap `xpForNext` is null and `progressRatio` is 1.
+ *
+ * @param {number} totalXp
+ * @returns {LevelInfo}
+ */
+export function levelForXp(totalXp) {
+  const safe = Math.max(0, Number.isFinite(totalXp) ? totalXp : 0);
+  let current = LEVELS[0];
+  for (const tier of LEVELS) {
+    if (safe >= tier.xp) current = tier;
+  }
+  const idx = LEVELS.indexOf(current);
+  const next = idx + 1 < LEVELS.length ? LEVELS[idx + 1] : null;
+  const xpInto = safe - current.xp;
+  const xpForNext = next ? next.xp - current.xp : null;
+  const isMaxLevel = !next;
+  const progressRatio = isMaxLevel
+    ? 1
+    : Math.max(0, Math.min(1, xpForNext === 0 ? 1 : xpInto / xpForNext));
+  return {
+    level: current.level,
+    title: current.title,
+    short: current.short,
+    flair: current.flair,
+    xpInto,
+    xpForNext,
+    totalXp: safe,
+    isMaxLevel,
+    progressRatio,
+    nextLevel: next
+  };
+}
+
+/** Per-variant total-run milestones that unlock a "specialist" achievement. */
+export const VARIANT_MASTERY_THRESHOLD = 10;
+export const VARIANT_MASTERY_ACHIEVEMENTS = {
+  refine: {
+    id: 'masterPolisher',
+    title: '🪞 MASTER POLISHER',
+    subtitle: '10 refines on the books. You are the squeegee.'
+  },
+  innovate: {
+    id: 'serialDisruptor',
+    title: '⚡ SERIAL DISRUPTOR',
+    subtitle: '10 disruptions delivered. Series C is yours.'
+  },
+  goMad: {
+    id: 'distinguishedChaos',
+    title: '🪖 DISTINGUISHED CHAOS FELLOW',
+    subtitle: '10 mad runs. Frame the helmet.'
+  },
+  critique: {
+    id: 'auditTribunal',
+    title: '📋 AUDIT TRIBUNAL',
+    subtitle: '10 critiques filed. Compliance loves you.'
+  },
+  explain: {
+    id: 'archivedStoryteller',
+    title: '📜 ARCHIVED STORYTELLER',
+    subtitle: '10 explanations canonised in the architecture lore.'
+  }
+};
+
 export const ACHIEVEMENTS = {
   slopitectCertified: {
     id: 'slopitectCertified',
@@ -333,7 +429,37 @@ export const ACHIEVEMENTS = {
     id: 'prestige',
     title: 'PROMOTION',
     subtitle: 'You have ascended a prestige tier.'
-  }
+  },
+  firstSlop: {
+    id: 'firstSlop',
+    title: '🥚 FIRST SLOP',
+    subtitle: 'Your first run! A piece of slop has been born.'
+  },
+  hatTrick: {
+    id: 'hatTrick',
+    title: '🎩 HAT TRICK',
+    subtitle: 'Three different personas inside 30 seconds. Bravo.'
+  },
+  slopMarathon: {
+    id: 'slopMarathon',
+    title: '🏃 SLOP MARATHON',
+    subtitle: 'Ten runs in one session. Hydrate.'
+  },
+  comboKing: {
+    id: 'comboKing',
+    title: '⚡ COMBO KING',
+    subtitle: 'Five different personas chained in a row.'
+  },
+  ...VARIANT_MASTERY_ACHIEVEMENTS
+};
+
+/**
+ * Level-up banner copy. Triggered when the player crosses any XP threshold.
+ * The runtime appends the level number / new title.
+ */
+export const LEVEL_UP_BANNER = {
+  title: '⬆️ LEVEL UP',
+  subtitle: 'The Slopitect Council recognises your synergy.'
 };
 
 export const CONSOLE_STAMP_LINES = [

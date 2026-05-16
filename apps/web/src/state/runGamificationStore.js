@@ -2,18 +2,30 @@
  * Slopitect run-gamification state.
  *
  * Pure reducer with helpers for localStorage persistence. Tracks per-variant
- * streaks, combo windows across variants, total runs, and prestige tier. Used by
- * App.jsx to drive XP toasts, streak stingers, and achievement banners.
+ * streaks, combo windows across variants, total runs, XP, level progression,
+ * and a growing collection of achievements. Used by App.jsx to drive XP
+ * toasts, streak stingers, level-up celebrations, and achievement banners.
  *
  * Designed to be unit-testable independently of React — the reducer is pure,
  * persistence is opt-in via separate functions.
  */
 
-import { prestigeForTotalRuns, getVariantPersona, ACHIEVEMENTS } from '../utils/slopitectCopy.js';
+import {
+  prestigeForTotalRuns,
+  getVariantPersona,
+  levelForXp,
+  ACHIEVEMENTS,
+  VARIANT_MASTERY_ACHIEVEMENTS,
+  VARIANT_MASTERY_THRESHOLD,
+  LEVEL_UP_BANNER
+} from '../utils/slopitectCopy.js';
 
 export const COMBO_WINDOW_MS = 6000;
+export const HAT_TRICK_WINDOW_MS = 30_000;
+export const SLOP_MARATHON_SESSION_THRESHOLD = 10;
+export const COMBO_KING_THRESHOLD = 5;
 export const STORAGE_KEY = 'archislop:slopitect-progress';
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 
 const VARIANTS = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 
@@ -24,15 +36,26 @@ export function createInitialState() {
     runsByVariant[v] = 0;
     streakByVariant[v] = 0;
   }
+  const levelInfo = levelForXp(0);
   return {
     runsByVariant,
     streakByVariant,
     totalRuns: 0,
+    xp: 0,
+    level: levelInfo.level,
+    levelTitle: levelInfo.title,
+    levelShortLabel: levelInfo.short,
+    levelFlair: levelInfo.flair,
+    levelProgressRatio: levelInfo.progressRatio,
+    xpIntoLevel: levelInfo.xpInto,
+    xpForNextLevel: levelInfo.xpForNext,
     lastVariant: null,
     lastCompletedAt: 0,
     combo: 0,
     prestigeShortLabel: prestigeForTotalRuns(0).short,
     variantsSeenInSession: [],
+    sessionRuns: 0,
+    recentVariantTimeline: [], // [{ variant, at }] for hat-trick window
     achievements: {} // id -> true
   };
 }
@@ -43,10 +66,16 @@ function cloneRecord(record) {
   return out;
 }
 
+function pruneTimeline(timeline, now) {
+  if (!Array.isArray(timeline) || timeline.length === 0) return [];
+  return timeline.filter((entry) => entry && now - entry.at <= HAT_TRICK_WINDOW_MS);
+}
+
 /**
  * Apply a completed run. Returns `{ state, emissions }`. Emissions are events
- * the UI should render (XP toast, streak stinger, combo stinger, achievement banner).
- * Caller is responsible for actually playing sounds / rendering toasts.
+ * the UI should render (XP toast, streak stinger, combo stinger, level-up
+ * banner, achievement banner). Caller is responsible for actually playing
+ * sounds and rendering toasts.
  *
  * @param {ReturnType<typeof createInitialState>} state
  * @param {{ variant: string, now?: number, goMadDepth?: number, critiquePerfect?: boolean }} input
@@ -79,27 +108,52 @@ export function applyCompletedRun(state, input) {
     withinWindow && state.lastVariant && state.lastVariant !== variant ? (state.combo || 1) + 1 : 0;
 
   const totalRuns = state.totalRuns + 1;
+  const sessionRuns = (state.sessionRuns ?? 0) + 1;
   const variantsSeen = state.variantsSeenInSession.includes(variant)
     ? state.variantsSeenInSession
     : [...state.variantsSeenInSession, variant];
 
-  const xp =
-    persona.xpAward +
-    Math.max(0, streakByVariant[variant] - 1) * persona.xpStreakBonus +
-    (variant === 'goMad' && (input.goMadDepth ?? 0) >= 3 ? 35 : 0);
+  const recentVariantTimeline = pruneTimeline(state.recentVariantTimeline, now);
+  recentVariantTimeline.push({ variant, at: now });
+
+  const streakBonus = Math.max(0, streakByVariant[variant] - 1) * persona.xpStreakBonus;
+  const goMadDepthBonus =
+    variant === 'goMad' && (input.goMadDepth ?? 0) >= 3 ? 35 : 0;
+  const comboBonus = combo >= 2 ? 8 + Math.min(combo, 6) * 4 : 0;
+  const xpGained = persona.xpAward + streakBonus + goMadDepthBonus + comboBonus;
+  const totalXp = (state.xp ?? 0) + xpGained;
+  const previousLevelInfo = levelForXp(state.xp ?? 0);
+  const nextLevelInfo = levelForXp(totalXp);
 
   const emissions = [];
   emissions.push({
     kind: 'xp',
     variant,
-    amount: xp,
-    streak: streakByVariant[variant]
+    amount: xpGained,
+    streak: streakByVariant[variant],
+    bonus: streakBonus + goMadDepthBonus + comboBonus
   });
   if (streakByVariant[variant] >= 2) {
     emissions.push({ kind: 'streak', variant, streak: streakByVariant[variant] });
   }
   if (combo >= 2) {
     emissions.push({ kind: 'combo', combo });
+  }
+
+  // Level up — emit once per crossing (a big XP haul could span multiple
+  // levels, but we surface only the highest reached to keep banners sane).
+  if (nextLevelInfo.level > previousLevelInfo.level) {
+    emissions.push({
+      kind: 'levelUp',
+      from: previousLevelInfo.level,
+      to: nextLevelInfo.level,
+      title: nextLevelInfo.title,
+      flair: nextLevelInfo.flair,
+      short: nextLevelInfo.short,
+      totalXp,
+      bannerTitle: LEVEL_UP_BANNER.title,
+      bannerSubtitle: LEVEL_UP_BANNER.subtitle
+    });
   }
 
   // Achievements.
@@ -111,6 +165,9 @@ export function applyCompletedRun(state, input) {
     return true;
   }
 
+  if (totalRuns === 1) {
+    unlock(ACHIEVEMENTS.firstSlop.id, ACHIEVEMENTS.firstSlop);
+  }
   if (variant === 'goMad' && (input.goMadDepth ?? 0) >= 3) {
     unlock(ACHIEVEMENTS.slopitectCertified.id, ACHIEVEMENTS.slopitectCertified);
   }
@@ -119,6 +176,23 @@ export function applyCompletedRun(state, input) {
   }
   if (variantsSeen.length >= 5) {
     unlock(ACHIEVEMENTS.fullStackSlopitect.id, ACHIEVEMENTS.fullStackSlopitect);
+  }
+  if (combo >= COMBO_KING_THRESHOLD) {
+    unlock(ACHIEVEMENTS.comboKing.id, ACHIEVEMENTS.comboKing);
+  }
+  if (sessionRuns >= SLOP_MARATHON_SESSION_THRESHOLD) {
+    unlock(ACHIEVEMENTS.slopMarathon.id, ACHIEVEMENTS.slopMarathon);
+  }
+  {
+    const distinctInWindow = new Set(recentVariantTimeline.map((e) => e.variant));
+    if (distinctInWindow.size >= 3) {
+      unlock(ACHIEVEMENTS.hatTrick.id, ACHIEVEMENTS.hatTrick);
+    }
+  }
+  // Per-variant mastery — gates on cumulative variant count.
+  const variantMastery = VARIANT_MASTERY_ACHIEVEMENTS[variant];
+  if (variantMastery && runsByVariant[variant] >= VARIANT_MASTERY_THRESHOLD) {
+    unlock(variantMastery.id, variantMastery);
   }
 
   // Prestige tier transition.
@@ -137,11 +211,21 @@ export function applyCompletedRun(state, input) {
       runsByVariant,
       streakByVariant,
       totalRuns,
+      xp: totalXp,
+      level: nextLevelInfo.level,
+      levelTitle: nextLevelInfo.title,
+      levelShortLabel: nextLevelInfo.short,
+      levelFlair: nextLevelInfo.flair,
+      levelProgressRatio: nextLevelInfo.progressRatio,
+      xpIntoLevel: nextLevelInfo.xpInto,
+      xpForNextLevel: nextLevelInfo.xpForNext,
       lastVariant: variant,
       lastCompletedAt: now,
       combo,
       prestigeShortLabel: nextPrestige.short,
       variantsSeenInSession: variantsSeen,
+      sessionRuns,
+      recentVariantTimeline,
       achievements
     },
     emissions
@@ -149,8 +233,9 @@ export function applyCompletedRun(state, input) {
 }
 
 /**
- * Persist a subset of the store across reloads. We keep run counts, total, prestige,
- * and unlocked achievements; session-only fields (lastCompletedAt, combo, variantsSeenInSession)
+ * Persist a subset of the store across reloads. We keep run counts, total,
+ * cumulative XP, unlocked achievements, and prestige. Session-only fields
+ * (lastCompletedAt, combo, variantsSeenInSession, sessionRuns, timeline)
  * reset on a new session.
  */
 export function serializeForStorage(state) {
@@ -158,8 +243,35 @@ export function serializeForStorage(state) {
     v: SCHEMA_VERSION,
     runsByVariant: state.runsByVariant,
     totalRuns: state.totalRuns,
+    xp: state.xp ?? 0,
     achievements: state.achievements
   });
+}
+
+function rehydrateFromParsed(parsed) {
+  const initial = createInitialState();
+  const runsByVariant = cloneRecord(parsed.runsByVariant);
+  const totalRuns = Number.isFinite(parsed.totalRuns) ? parsed.totalRuns : 0;
+  const xp = Number.isFinite(parsed.xp) ? parsed.xp : 0;
+  const levelInfo = levelForXp(xp);
+  return {
+    ...initial,
+    runsByVariant,
+    totalRuns,
+    xp,
+    level: levelInfo.level,
+    levelTitle: levelInfo.title,
+    levelShortLabel: levelInfo.short,
+    levelFlair: levelInfo.flair,
+    levelProgressRatio: levelInfo.progressRatio,
+    xpIntoLevel: levelInfo.xpInto,
+    xpForNextLevel: levelInfo.xpForNext,
+    prestigeShortLabel: prestigeForTotalRuns(totalRuns).short,
+    achievements:
+      parsed.achievements && typeof parsed.achievements === 'object'
+        ? { ...parsed.achievements }
+        : {}
+  };
 }
 
 export function loadFromStorage(rawJson) {
@@ -170,17 +282,14 @@ export function loadFromStorage(rawJson) {
   } catch {
     return null;
   }
-  if (!parsed || parsed.v !== SCHEMA_VERSION) return null;
-  const initial = createInitialState();
-  const runsByVariant = cloneRecord(parsed.runsByVariant);
-  const totalRuns = Number.isFinite(parsed.totalRuns) ? parsed.totalRuns : 0;
-  return {
-    ...initial,
-    runsByVariant,
-    totalRuns,
-    prestigeShortLabel: prestigeForTotalRuns(totalRuns).short,
-    achievements: parsed.achievements && typeof parsed.achievements === 'object' ? { ...parsed.achievements } : {}
-  };
+  if (!parsed) return null;
+  // Forward-compat: accept legacy v1 records (no xp yet) and rehydrate the
+  // surviving fields with xp=0 so returning users keep their unlocked
+  // achievements and run totals.
+  if (parsed.v === 1 || parsed.v === SCHEMA_VERSION) {
+    return rehydrateFromParsed(parsed);
+  }
+  return null;
 }
 
 export function clearStorage(storage) {
@@ -207,3 +316,7 @@ export function writeToStorage(storage, state) {
     // ignore quota / private-mode errors
   }
 }
+
+// Re-export so callers building UI from this store can derive level info
+// without importing the copy module directly.
+export { levelForXp };

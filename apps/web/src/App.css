@@ -3062,21 +3062,51 @@
 
   .prompt-actions--mobile .button-group {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    align-items: center;
+    flex-wrap: nowrap;
+    gap: 0.45rem;
+    align-items: stretch;
     width: 100%;
   }
 
-  .prompt-actions--mobile .overlay-button {
-    flex: 1 1 auto;
+  /* Icon-prominent mobile action bar: every variant button collapses to an
+     icon-only square-ish pill. Labels and persona-role chips are hidden so
+     the bar reads as a compact row of persona stamps. We avoid an explicit
+     `aspect-ratio` so the row can flex from 4 to 7 buttons (Fix appears
+     conditionally) without spilling onto two lines. */
+  .prompt-actions--mobile .overlay-button.slop-action-button {
+    flex: 1 1 0;
     min-width: 0;
-    padding-inline: 0.55rem;
-    min-height: 2.5rem;
+    width: auto;
+    padding: 0.36rem 0.4rem;
+    min-height: 3.2rem;
+    border-radius: 0.95rem;
+    max-width: 4.2rem;
   }
 
+  .prompt-actions--mobile .overlay-button.slop-action-button .button-icon {
+    width: 2.15rem;
+    height: 2.15rem;
+  }
+
+  .prompt-actions--mobile .overlay-button.slop-action-button .action-persona-icon {
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 0.65rem;
+    font-size: 1.55rem;
+  }
+
+  .prompt-actions--mobile .overlay-button .button-label,
   .prompt-actions--mobile .slop-action-role {
     display: none;
+  }
+
+  /* Clear button isn't a slop-action-button. Keep it square-ish too so the
+     row reads as a single rhythm of tap targets. Label is hidden. */
+  .prompt-actions--mobile .button-group > .overlay-button:not(.slop-action-button) {
+    flex: 0 0 auto;
+    min-height: 3.2rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 0.95rem;
   }
 
   .ai-corner-controls--mobile {
@@ -3355,6 +3385,12 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
+  /* Compact button hosts a 1.95rem persona-icon; bump min-height so the
+     icon doesn't overflow the pill, and tighten the inline padding so the
+     icon visually dominates instead of getting lost in whitespace. */
+  min-height: 2.7rem;
+  padding: 0.38rem 0.82rem 0.38rem 0.5rem;
+  gap: 0.55rem;
   border-color: color-mix(in srgb, var(--slop-action-accent) 45%, transparent);
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.72)),
@@ -3388,23 +3424,47 @@
     radial-gradient(circle at 80% 12%, rgba(236, 72, 153, 0.45), transparent 44%);
 }
 
+/* Action buttons in the chrome host the persona icon directly — the icon is the
+   star of the show, no inner circle wrapper. The .button-icon wrapper is sized
+   to the persona-icon and kept as a thin layout container only. */
 .slop-action-button .button-icon {
-  width: 1.45rem;
-  height: 1.45rem;
-}
-
-.action-persona-icon {
-  width: 1.35rem;
-  height: 1.35rem;
+  width: 1.95rem;
+  height: 1.95rem;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  background: linear-gradient(135deg, color-mix(in srgb, var(--slop-action-accent) 18%, white), color-mix(in srgb, var(--slop-action-accent-2) 28%, white));
-  border: 1px solid color-mix(in srgb, var(--slop-action-accent) 42%, transparent);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 4px 12px var(--slop-action-glow);
-  font-size: 0.9rem;
+}
+
+.action-persona-icon {
+  width: 1.95rem;
+  height: 1.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Rounded-badge silhouette (not a circle) so it doesn't read as
+     "circle within a pill" when nested in the overlay-button. */
+  border-radius: 0.62rem;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.55) 55%, transparent 75%),
+    linear-gradient(150deg,
+      color-mix(in srgb, var(--slop-action-accent) 32%, white),
+      color-mix(in srgb, var(--slop-action-accent-2) 46%, white));
+  border: 1px solid color-mix(in srgb, var(--slop-action-accent) 58%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 6px color-mix(in srgb, var(--slop-action-accent) 32%, transparent),
+    0 6px 16px var(--slop-action-glow);
+  font-size: 1.18rem;
   line-height: 1;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+  /* Compositor hint — keeps the icon on its own layer so ancestor
+     transforms (e.g. variant shell-shake during goMad) don't repaint
+     the whole button on every frame. */
+  transform: translateZ(0);
 }
 
 .slop-action-role {
@@ -3638,29 +3698,32 @@
   transform: translate(-50%, -50%);
   pointer-events: auto;
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.04rem;
-  width: 4rem;
-  height: 4rem;
-  padding: 0.26rem 0.18rem 0.18rem;
-  border: 1px solid color-mix(in srgb, var(--slop-action-accent) 42%, transparent);
-  border-radius: 1.3rem;
+  width: 3.55rem;
+  height: 3.55rem;
+  padding: 0;
+  border: 2px solid color-mix(in srgb, var(--slop-action-accent) 65%, transparent);
+  border-radius: 50%;
   background:
-    radial-gradient(circle at 20% 15%, color-mix(in srgb, var(--slop-action-accent-2) 34%, white), transparent 45%),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.9));
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.55) 55%, transparent 75%),
+    linear-gradient(150deg,
+      color-mix(in srgb, var(--slop-action-accent) 30%, white),
+      color-mix(in srgb, var(--slop-action-accent-2) 42%, white));
   color: var(--text);
-  box-shadow: 0 12px 28px var(--slop-action-glow), 0 10px 22px rgba(15, 23, 42, 0.18);
+  box-shadow:
+    0 14px 32px var(--slop-action-glow),
+    0 8px 18px rgba(15, 23, 42, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
   cursor: pointer;
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
   z-index: 2;
   overflow: hidden;
   isolation: isolate;
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
   animation: radial-button-pop 220ms ease-out;
 }
 
@@ -3669,25 +3732,23 @@
   position: absolute;
   inset: 0;
   z-index: -1;
+  border-radius: inherit;
   background:
-    linear-gradient(135deg, transparent 0 34%, color-mix(in srgb, var(--slop-action-accent) 18%, transparent) 47%, transparent 60%),
-    repeating-linear-gradient(0deg, color-mix(in srgb, var(--slop-action-accent) 10%, transparent) 0 1px, transparent 1px 8px);
-  opacity: 0.72;
-}
-
-.radial-action-button.is-wide-label {
-  width: 4.3rem;
-  height: 4.15rem;
-  padding: 0.26rem 0.2rem 0.18rem;
-  letter-spacing: 0.02em;
+    linear-gradient(135deg,
+      transparent 0 34%,
+      color-mix(in srgb, var(--slop-action-accent) 22%, transparent) 47%,
+      transparent 60%);
+  opacity: 0.7;
 }
 
 .radial-action-button:hover:not(:disabled),
 .radial-action-button:focus-visible:not(:disabled) {
-  transform: translate(-50%, -50%) scale(1.08);
-  box-shadow: 0 16px 34px var(--slop-action-glow), 0 14px 28px rgba(15, 23, 42, 0.22);
-  background: #f8fafc;
-  border-color: color-mix(in srgb, var(--slop-action-accent) 70%, white);
+  transform: translate(-50%, -50%) scale(1.12);
+  box-shadow:
+    0 18px 38px var(--slop-action-glow),
+    0 12px 24px rgba(15, 23, 42, 0.24),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  border-color: color-mix(in srgb, var(--slop-action-accent) 85%, white);
   outline: none;
 }
 
@@ -3696,45 +3757,27 @@
   cursor: not-allowed;
 }
 
+/* Icon-only radial menu: emoji takes the whole button. No inner circle. */
 .radial-action-button-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 1.85rem;
   line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.25));
 }
 
+/* When the icon is rendered as an ActionPersonaIcon (rounded badge), strip
+   its inner background so it's just the emoji floating in the radial pill. */
 .radial-action-button-icon .action-persona-icon {
-  width: 1.55rem;
-  height: 1.55rem;
-  font-size: 1rem;
-}
-
-.radial-action-button-label {
-  font-size: 0.57rem;
-  line-height: 1.05;
-  letter-spacing: 0.05em;
-}
-
-.radial-action-button-persona {
-  max-width: 3.6rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.44rem;
-  line-height: 1;
-  letter-spacing: 0.08em;
-  color: color-mix(in srgb, var(--slop-action-accent) 82%, #0f172a);
-  opacity: 0.86;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.12rem;
-}
-
-.radial-action-button-persona span {
-  font-size: 0.55rem;
-  letter-spacing: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  border: none;
+  box-shadow: none;
+  border-radius: 0;
+  text-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  font-size: 1.85rem;
 }
 
 @keyframes radial-chip-pop {
@@ -3899,9 +3942,13 @@ button {
   }
 
   .radial-action-menu .radial-action-button {
-    width: 2.85rem;
-    height: 2.85rem;
-    font-size: 0.82rem;
+    width: 3.15rem;
+    height: 3.15rem;
+  }
+
+  .radial-action-menu .radial-action-button-icon,
+  .radial-action-menu .radial-action-button-icon .action-persona-icon {
+    font-size: 1.55rem;
   }
 
   .diagram-canvas.is-insights-open:not(.is-editor-open) {
@@ -5073,18 +5120,36 @@ button {
   margin-bottom: 4px;
 }
 
-/* ── Variant FX on the app shell while a stream is live ─────────────── */
+/* ── Variant FX on the app shell while a stream is live ─────────────────
+ *
+ * Mobile / foldable note: the shell-level ::after overlays previously had
+ * a `position: fixed; inset: 0` shape that covered the bottom chrome and
+ * the thinking pane. Combined with `animation: slopitect-shell-shake` on
+ * goMad and `slopitect-polish-sweep` on refine, weak compositors on
+ * foldables ended up dropping frames and the Thinking button + pane
+ * visibly flickered every animation tick. We now (a) gate the heaviest
+ * animations behind a desktop breakpoint, (b) cap the overlay area so
+ * it does not paint over the chrome strip, and (c) push affected nodes
+ * onto their own compositor layer with `will-change: transform`.
+ *
+ * Reduced-motion preference still disables the animation entirely. */
 @media (prefers-reduced-motion: no-preference) {
   .app-shell[data-streaming='true'][data-live-variant='goMad']::after {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 100;
+    z-index: 5;
     background:
       repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0 1px, transparent 1px 3px),
       radial-gradient(ellipse at top right, rgba(236, 72, 153, 0.06), transparent 60%);
-    animation: slopitect-shell-shake 0.55s ease-in-out infinite;
+    contain: strict;
+    will-change: transform;
+  }
+  @media (min-width: 1025px) {
+    .app-shell[data-streaming='true'][data-live-variant='goMad']::after {
+      animation: slopitect-shell-shake 0.55s ease-in-out infinite;
+    }
   }
   @keyframes slopitect-shell-shake {
     0%, 100% { transform: translate(0, 0); }
@@ -5098,10 +5163,16 @@ button {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 90;
+    z-index: 5;
     background: linear-gradient(135deg, transparent 40%, rgba(37, 99, 235, 0.06) 50%, transparent 60%);
     background-size: 240% 240%;
-    animation: slopitect-polish-sweep 3.2s linear infinite;
+    contain: strict;
+    will-change: background-position;
+  }
+  @media (min-width: 1025px) {
+    .app-shell[data-streaming='true'][data-live-variant='refine']::after {
+      animation: slopitect-polish-sweep 3.2s linear infinite;
+    }
   }
   @keyframes slopitect-polish-sweep {
     0% { background-position: 200% 200%; }
@@ -5110,30 +5181,60 @@ button {
   .app-shell[data-streaming='true'][data-live-variant='innovate']::after {
     content: '';
     position: fixed;
-    left: 0; right: 0; bottom: 0; height: 26vh;
+    /* Capped near the top so the band doesn't repaint the same pixels the
+       bottom chrome occupies. Was `bottom: 0; height: 26vh` which sat
+       directly under the Thinking button on mobile and re-painted with
+       every device-pixel scroll. */
+    left: 0; right: 0;
+    top: 0;
+    height: 55%;
     pointer-events: none;
-    z-index: 90;
+    z-index: 5;
     background:
       linear-gradient(180deg, transparent 0%, rgba(168, 85, 247, 0.04) 50%, rgba(236, 72, 153, 0.06) 100%),
       repeating-linear-gradient(90deg, transparent 0 28px, rgba(236, 72, 153, 0.08) 28px 29px);
+    contain: strict;
   }
   .app-shell[data-streaming='true'][data-live-variant='critique']::after {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 90;
+    z-index: 5;
     box-shadow: inset 8px 0 0 rgba(185, 28, 28, 0.18);
+    contain: strict;
   }
   .app-shell[data-streaming='true'][data-live-variant='explain']::after {
     content: '';
     position: fixed;
     inset: 0;
     pointer-events: none;
-    z-index: 90;
+    z-index: 5;
     background:
       linear-gradient(180deg, transparent 60%, rgba(13, 148, 136, 0.05) 100%);
+    contain: strict;
   }
+}
+
+/* Keep the thinking pane, thinking toggle, and bottom chrome on their own
+   GPU layers. Without this the variant ::after overlays (especially the
+   `inset 0` rules on critique / explain / goMad) trigger a full-window
+   repaint on every paint tick, which on a foldable's lower-power
+   compositor is what the user sees as flicker. */
+.insights-pane,
+.thinking-toggle-button,
+.bottom-chrome {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.insights-pane {
+  will-change: transform, opacity;
+  contain: paint;
+}
+
+.thinking-toggle-button.is-agent-active:not(:disabled) {
+  will-change: box-shadow;
 }
 
 .brand-prestige-badge {
@@ -5148,6 +5249,299 @@ button {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+}
+
+/* ── XP / Level progress bar (rendered inside .brand-control) ─────────── */
+.xp-progress-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  padding: 0.26rem 0.52rem 0.26rem 0.42rem;
+  margin-left: 0.55rem;
+  border-radius: 999px;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.06));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #f8fafc;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: background 220ms ease, border-color 220ms ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.xp-progress-bar-flair {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.xp-progress-bar-level {
+  letter-spacing: 0.08em;
+  font-size: 0.6rem;
+  color: #fde68a;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+.xp-progress-bar-track {
+  position: relative;
+  width: 4.6rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.38);
+  overflow: hidden;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.42);
+}
+
+.xp-progress-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #fcd34d, #f97316, #ec4899);
+  box-shadow: 0 0 8px rgba(252, 211, 77, 0.6);
+  transition: width 480ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.xp-progress-bar.is-variant-refine .xp-progress-bar-fill {
+  background: linear-gradient(90deg, #60a5fa, #2563eb);
+}
+.xp-progress-bar.is-variant-innovate .xp-progress-bar-fill {
+  background: linear-gradient(90deg, #c084fc, #9333ea, #ec4899);
+}
+.xp-progress-bar.is-variant-goMad .xp-progress-bar-fill {
+  background: linear-gradient(90deg, #f97316, #ec4899, #a855f7);
+}
+.xp-progress-bar.is-variant-critique .xp-progress-bar-fill {
+  background: linear-gradient(90deg, #b91c1c, #f97316);
+}
+.xp-progress-bar.is-variant-explain .xp-progress-bar-fill {
+  background: linear-gradient(90deg, #0d9488, #22d3ee);
+}
+
+.xp-progress-bar-spark {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0,
+    transparent 35%,
+    rgba(255, 255, 255, 0.6) 50%,
+    transparent 65%,
+    transparent 100%
+  );
+  background-size: 240% 100%;
+  background-position: -120% 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .xp-progress-bar-spark {
+    animation: xp-progress-shimmer 4.8s linear infinite;
+  }
+}
+
+@keyframes xp-progress-shimmer {
+  0% { background-position: -120% 0; }
+  60% { background-position: 220% 0; }
+  100% { background-position: 220% 0; }
+}
+
+.xp-progress-bar-xp {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.58rem;
+  color: rgba(248, 250, 252, 0.92);
+  opacity: 0.92;
+}
+
+.xp-progress-bar.is-max-level .xp-progress-bar-xp {
+  color: #fcd34d;
+  text-shadow: 0 0 6px rgba(252, 211, 77, 0.45);
+}
+
+.xp-progress-bar.is-level-up {
+  border-color: #fde68a;
+  background: linear-gradient(120deg, rgba(252, 211, 77, 0.35), rgba(236, 72, 153, 0.32));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .xp-progress-bar.is-level-up {
+    animation: xp-level-up-flash 1.4s ease-out;
+  }
+}
+
+@keyframes xp-level-up-flash {
+  0% { box-shadow: 0 0 0 0 rgba(252, 211, 77, 0.0); transform: scale(1); }
+  20% { box-shadow: 0 0 0 6px rgba(252, 211, 77, 0.45); transform: scale(1.045); }
+  60% { box-shadow: 0 0 0 14px rgba(252, 211, 77, 0); transform: scale(1); }
+  100% { box-shadow: none; transform: scale(1); }
+}
+
+/* On very narrow screens, keep the bar compact so the brand chip still fits
+   alongside the prestige badge. */
+@media (max-width: 540px) {
+  .xp-progress-bar {
+    margin-left: 0.35rem;
+    padding: 0.22rem 0.4rem 0.22rem 0.34rem;
+    gap: 0.32rem;
+  }
+  .xp-progress-bar-level {
+    display: none;
+  }
+  .xp-progress-bar-track {
+    width: 3.4rem;
+    height: 0.34rem;
+  }
+  .xp-progress-bar-xp {
+    font-size: 0.56rem;
+  }
+}
+
+/* ── Richer XP toasts (multi-line: amount + source + bonus) ───────────── */
+.streak-hud-toast.is-xp {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 7px 14px 8px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #1cb0f6, #2563eb);
+  box-shadow: 0 6px 18px rgba(28, 96, 224, 0.32);
+}
+
+.streak-hud-toast.is-xp.is-variant-refine {
+  background: linear-gradient(135deg, #2563eb, #60a5fa);
+}
+.streak-hud-toast.is-xp.is-variant-innovate {
+  background: linear-gradient(135deg, #9333ea, #ec4899);
+}
+.streak-hud-toast.is-xp.is-variant-go-mad {
+  background: linear-gradient(135deg, #f97316, #ec4899, #a855f7);
+}
+.streak-hud-toast.is-xp.is-variant-critique {
+  background: linear-gradient(135deg, #b91c1c, #f97316);
+}
+.streak-hud-toast.is-xp.is-variant-explain {
+  background: linear-gradient(135deg, #0d9488, #22d3ee);
+}
+
+.streak-hud-toast-amount {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
+
+.streak-hud-toast-source {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.86;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.streak-hud-toast-bonus {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-top: 2px;
+}
+
+/* ── Level-up banner ─────────────────────────────────────────────────── */
+.streak-hud-level-up {
+  position: absolute;
+  top: 124px;
+  right: 24px;
+  max-width: min(22rem, calc(100vw - 2rem));
+  display: flex;
+  align-items: stretch;
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.34), transparent 55%),
+    linear-gradient(120deg, #6d28d9, #ec4899 55%, #f97316);
+  color: #fff;
+  box-shadow:
+    0 24px 64px rgba(112, 26, 117, 0.45),
+    0 0 0 4px rgba(253, 230, 138, 0.32);
+}
+
+.streak-hud-level-up-stripe {
+  width: 6px;
+  background: linear-gradient(180deg, #fde68a, #f59e0b);
+}
+
+.streak-hud-level-up-body {
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.streak-hud-level-up-eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 900;
+  color: #fde68a;
+  opacity: 0.95;
+}
+
+.streak-hud-level-up-title {
+  font-size: clamp(18px, 3.6vw, 26px);
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+}
+
+.streak-hud-level-up-flair {
+  font-size: 1.4em;
+  line-height: 1;
+}
+
+.streak-hud-level-up-name {
+  font-weight: 700;
+  font-size: 0.78em;
+  opacity: 0.94;
+  letter-spacing: 0.02em;
+}
+
+.streak-hud-level-up-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.86;
+  letter-spacing: 0.02em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .streak-hud-level-up {
+    animation: slopitect-level-up-pop 3400ms cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streak-hud-level-up {
+    animation: slopitect-xp-fade 3400ms ease-out forwards;
+  }
+}
+
+@keyframes slopitect-level-up-pop {
+  0% { transform: translateY(-32px) scale(0.6); opacity: 0; transform-origin: top right; }
+  14% { transform: translateY(0) scale(1.1) rotate(-1.5deg); opacity: 1; }
+  24% { transform: translateY(0) scale(0.97) rotate(0.8deg); opacity: 1; }
+  36% { transform: translateY(0) scale(1.02) rotate(0); opacity: 1; }
+  86% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+  100% { transform: translateY(-12px) scale(0.96); opacity: 0; }
+}
+
+@media (max-width: 1024px) {
+  .streak-hud-level-up {
+    top: calc(env(safe-area-inset-top) + 8rem);
+    right: max(0.75rem, env(safe-area-inset-right));
+    max-width: min(20rem, calc(100% - 1.5rem));
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────
