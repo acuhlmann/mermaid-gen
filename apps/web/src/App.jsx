@@ -1481,7 +1481,7 @@ function ArchiSlop() {
                 setStreakHudLevelUp((current) =>
                   current?.id === levelUpEmission.id ? null : current
                 );
-              }, 3400);
+              }, 5200);
             }
             if (banner) {
               setStreakHudAchievement(banner);
@@ -1620,7 +1620,7 @@ function ArchiSlop() {
   }, []);
 
   const appendInsightEntry = useCallback((title, variant = 'general', options = {}) => {
-    const { diagramUndoBaseline, topic, retryDescriptor } = options;
+    const { diagramUndoBaseline, topic, retryDescriptor, contentType, modelProfile } = options;
     const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
     setInsightsEntries((prev) => [
       ...prev,
@@ -1638,6 +1638,8 @@ function ArchiSlop() {
         streamDebugLog: [],
         startedAt: Date.now(),
         completedAt: null,
+        contentType: contentType ?? null,
+        modelProfile: modelProfile ?? null,
         ...(retryDescriptor ? { retryDescriptor } : {}),
         ...(diagramUndoBaseline
           ? {
@@ -1763,7 +1765,9 @@ function ArchiSlop() {
       const sectionId = appendInsightEntry(title, variant, {
         diagramUndoBaseline,
         topic,
-        retryDescriptor
+        retryDescriptor,
+        contentType: payload.contentType ?? contentMode,
+        modelProfile: payload.modelProfile ?? modelProfile
       });
       if (diagramUndoBaseline) {
         autoCloseActiveEntryIdRef.current = sectionId;
@@ -1876,6 +1880,7 @@ function ArchiSlop() {
       appendTechnicalAction,
       appendToInsight,
       activeSessionId,
+      contentMode,
       modelProfile,
       patchInsightEntry,
       setGoMadStreak,

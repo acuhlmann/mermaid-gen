@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import registerMermaidMonacoOnce from '../utils/registerMermaidMonacoOnce.js';
+import registerInfographicMonacoOnce from '../utils/registerInfographicMonacoOnce.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
@@ -188,7 +189,6 @@ export default function DiagramCanvas({
   const panGestureStartRef = useRef(null);
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
-  const mobileTextAreaRef = useRef(null);
   const syncDecoIdsRef = useRef([]);
   const lastDiagramSyncKeyRef = useRef('');
   const diagramSyncRafRef = useRef(0);
@@ -211,6 +211,7 @@ export default function DiagramCanvas({
 
   const handleEditorBeforeMount = useCallback((monaco) => {
     registerMermaidMonacoOnce(monaco);
+    registerInfographicMonacoOnce(monaco);
   }, []);
 
   const handleEditorMount = useCallback((editor, monaco) => {
@@ -529,8 +530,13 @@ export default function DiagramCanvas({
 
   // Stagger node fade-in after each Mermaid SVG render. Pure DOM annotation —
   // the CSS keyframe `diagram-node-pop-in` lives in App.css.
+  //
+  // We skip this during streaming: each token re-renders the SVG, and replaying
+  // the pop-in animation per tick made the diagram strobe. The fade is only
+  // meaningful on the final settled SVG, so we wait for streaming to end.
   useEffect(() => {
     if (!svgMarkup) return;
+    if (streamingPreview) return;
     const root = viewportRef.current;
     if (!root) return;
     const reduceMotion =
@@ -542,7 +548,7 @@ export default function DiagramCanvas({
       node.setAttribute('data-node-fade', '1');
       node.style.animationDelay = `${Math.min(i * 35, 700)}ms`;
     });
-  }, [svgMarkup]);
+  }, [svgMarkup, streamingPreview]);
 
   useEffect(() => {
     const root = viewportRef.current;
@@ -692,13 +698,6 @@ export default function DiagramCanvas({
     if (onManualEdit) {
       onManualEdit(nextValue);
     }
-  }
-
-  function handleMobileSelectAll() {
-    const textarea = mobileTextAreaRef.current;
-    if (!textarea) return;
-    textarea.focus({ preventScroll: true });
-    textarea.select();
   }
 
   const zoomAtPoint = useCallback((pointX, pointY, scaleFactor) => {
@@ -1299,9 +1298,6 @@ export default function DiagramCanvas({
                   {contentType === 'mermaid' ? 'Mermaid code' : 'Infographic DSL'}
                 </span>
                 <div className="mobile-code-editor-actions">
-                  <button type="button" className="overlay-button compact-button" onClick={handleMobileSelectAll}>
-                    Select all
-                  </button>
                   {onEditorClose ? (
                     <button type="button" className="overlay-button compact-button primary-button" onClick={onEditorClose}>
                       Done
@@ -1310,7 +1306,6 @@ export default function DiagramCanvas({
                 </div>
               </div>
               <textarea
-                ref={mobileTextAreaRef}
                 className="mobile-code-editor"
                 value={editorSource}
                 onChange={(event) => handleEditorChange(event.target.value)}
@@ -1326,7 +1321,7 @@ export default function DiagramCanvas({
             <div className="diagram-monaco-wrap">
               <Editor
                 height="100%"
-                language={contentType === 'mermaid' ? 'mermaid' : 'plaintext'}
+                language={contentType === 'mermaid' ? 'mermaid' : 'infographic'}
                 theme="vs-dark"
                 value={editorSource}
                 beforeMount={handleEditorBeforeMount}

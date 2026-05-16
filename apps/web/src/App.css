@@ -703,9 +703,10 @@
   pointer-events: none;
 }
 
-.insights-entry.is-streaming::before {
-  animation-duration: 1.45s;
-}
+/* Note: previously `is-streaming` overrode the shimmer duration to 1.45s once
+   the first content arrived. Mid-flight `animation-duration` changes restart
+   the keyframe from t=0, which read as a flicker. Keep the running duration
+   stable through the whole run. */
 
 .insights-entry[data-variant='explain'] {
   border-left: 3px solid rgba(13, 148, 136, 0.42);
@@ -996,6 +997,52 @@
   justify-content: space-between;
   gap: 0.5rem;
   margin-bottom: 0.45rem;
+}
+
+.insights-entry-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.32rem;
+  margin: 0 0 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.insights-entry-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.14rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.insights-entry-meta-chip.is-mode {
+  color: #1e40af;
+  background: rgba(191, 219, 254, 0.4);
+  border-color: rgba(37, 99, 235, 0.18);
+}
+
+.insights-entry-meta-chip.is-brain {
+  color: #6d28d9;
+  background: rgba(221, 214, 254, 0.45);
+  border-color: rgba(147, 51, 234, 0.2);
+}
+
+.insights-entry-meta-chip.is-time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.insights-entry-meta-emoji {
+  font-size: 0.78rem;
+  line-height: 1;
 }
 
 .insights-entry-title {
@@ -4037,6 +4084,16 @@ button {
   }
 }
 
+/* Narrow viewports: the brand chip + XP/level bar can run wide enough that the
+   Code button starts overlapping it. Drop the Code button to a second row below
+   the brand, still right-aligned. */
+@media (max-width: 640px) {
+  .app-shell:not(.is-editor-open) .edit-control {
+    top: calc(env(safe-area-inset-top) + 4.4rem);
+    right: max(0.75rem, env(safe-area-inset-right));
+  }
+}
+
 @media (max-width: 420px) {
   .brand-control {
     font-size: 0.82rem;
@@ -5365,14 +5422,15 @@ button {
 
 @media (prefers-reduced-motion: no-preference) {
   .xp-progress-bar.is-level-up {
-    animation: xp-level-up-flash 1.4s ease-out;
+    animation: xp-level-up-flash 2.4s ease-out;
   }
 }
 
 @keyframes xp-level-up-flash {
   0% { box-shadow: 0 0 0 0 rgba(252, 211, 77, 0.0); transform: scale(1); }
-  20% { box-shadow: 0 0 0 6px rgba(252, 211, 77, 0.45); transform: scale(1.045); }
-  60% { box-shadow: 0 0 0 14px rgba(252, 211, 77, 0); transform: scale(1); }
+  12% { box-shadow: 0 0 0 6px rgba(252, 211, 77, 0.45); transform: scale(1.045); }
+  40% { box-shadow: 0 0 0 14px rgba(252, 211, 77, 0); transform: scale(1.02); }
+  75% { box-shadow: 0 0 0 14px rgba(252, 211, 77, 0); transform: scale(1); }
   100% { box-shadow: none; transform: scale(1); }
 }
 
@@ -5517,22 +5575,22 @@ button {
 
 @media (prefers-reduced-motion: no-preference) {
   .streak-hud-level-up {
-    animation: slopitect-level-up-pop 3400ms cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
+    animation: slopitect-level-up-pop 5200ms cubic-bezier(0.3, 0.6, 0.3, 1) forwards;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .streak-hud-level-up {
-    animation: slopitect-xp-fade 3400ms ease-out forwards;
+    animation: slopitect-xp-fade 5200ms ease-out forwards;
   }
 }
 
 @keyframes slopitect-level-up-pop {
   0% { transform: translateY(-32px) scale(0.6); opacity: 0; transform-origin: top right; }
-  14% { transform: translateY(0) scale(1.1) rotate(-1.5deg); opacity: 1; }
-  24% { transform: translateY(0) scale(0.97) rotate(0.8deg); opacity: 1; }
-  36% { transform: translateY(0) scale(1.02) rotate(0); opacity: 1; }
-  86% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
+  9% { transform: translateY(0) scale(1.1) rotate(-1.5deg); opacity: 1; }
+  16% { transform: translateY(0) scale(0.97) rotate(0.8deg); opacity: 1; }
+  24% { transform: translateY(0) scale(1.02) rotate(0); opacity: 1; }
+  92% { transform: translateY(0) scale(1) rotate(0); opacity: 1; }
   100% { transform: translateY(-12px) scale(0.96); opacity: 0; }
 }
 

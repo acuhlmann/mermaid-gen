@@ -213,6 +213,62 @@ function EntryStatusIcon({ status, variant }) {
   return <IconThinking />;
 }
 
+const CONTENT_TYPE_META = {
+  mermaid: { label: 'Mermaid', emoji: '🧜‍♀️' },
+  infographic: { label: 'Infographic', emoji: '📊' }
+};
+
+const MODEL_PROFILE_META = {
+  fast: { label: 'Fast', emoji: '⚡' },
+  quality: { label: 'Quality', emoji: '🧠' }
+};
+
+function formatEntryTime(timestamp) {
+  if (!Number.isFinite(timestamp)) return '';
+  try {
+    return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(
+      new Date(timestamp)
+    );
+  } catch {
+    return '';
+  }
+}
+
+function EntryRunMeta({ entry }) {
+  const contentMeta = entry?.contentType ? CONTENT_TYPE_META[entry.contentType] : null;
+  const brainMeta = entry?.modelProfile ? MODEL_PROFILE_META[entry.modelProfile] : null;
+  const timeLabel = formatEntryTime(entry?.startedAt);
+  if (!contentMeta && !brainMeta && !timeLabel) return null;
+  return (
+    <div className="insights-entry-meta" aria-label="Run details">
+      {contentMeta ? (
+        <span className="insights-entry-meta-chip is-mode" title={`${contentMeta.label} mode`}>
+          <span className="insights-entry-meta-emoji" aria-hidden="true">
+            {contentMeta.emoji}
+          </span>
+          <span>{contentMeta.label}</span>
+        </span>
+      ) : null}
+      {brainMeta ? (
+        <span className="insights-entry-meta-chip is-brain" title={`${brainMeta.label} brain`}>
+          <span className="insights-entry-meta-emoji" aria-hidden="true">
+            {brainMeta.emoji}
+          </span>
+          <span>{brainMeta.label}</span>
+        </span>
+      ) : null}
+      {timeLabel ? (
+        <time
+          className="insights-entry-meta-chip is-time"
+          dateTime={new Date(entry.startedAt).toISOString()}
+        >
+          {timeLabel}
+        </time>
+      ) : null}
+    </div>
+  );
+}
+
 function parseInline(text) {
   const fragments = [];
   let rest = text;
@@ -1030,6 +1086,8 @@ export default function InsightsPane({
                     {statusLabel(entry)}
                   </span>
                 </div>
+
+                <EntryRunMeta entry={entry} />
 
                 {statusStrip ? (
                   <p

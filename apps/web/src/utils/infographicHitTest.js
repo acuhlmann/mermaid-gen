@@ -108,6 +108,36 @@ function buildHit(node, boundary, indexes, elementType) {
 }
 
 /**
+ * Returns the trimmed text of a direct `<title>` SVG child if it carries content.
+ *
+ * Relation / network / dagre templates (e.g. `relation-dagre-flow-tb-simple-circle-node`)
+ * tag each node shape with a child `<title>` element whose text is the node's label —
+ * the exact same string surfaced as the browser's native hover tooltip. Templates from
+ * other families don't emit these tooltips, so this is a safe positive signal.
+ */
+function readSvgTitleLabel(node) {
+  if (!node?.children?.length) return '';
+  for (const child of node.children) {
+    const tag = child.tagName?.toLowerCase?.();
+    if (tag === 'title') {
+      const text = (child.textContent || '').replace(/\s+/g, ' ').trim();
+      if (text) return text.slice(0, 240);
+    }
+  }
+  return '';
+}
+
+function buildTitleAnchoredHit(node, titleLabel, elementType) {
+  return {
+    node,
+    label: titleLabel,
+    clickedLabel: titleLabel,
+    indexes: '',
+    elementType: elementType || ''
+  };
+}
+
+/**
  * Walk from `start` toward `boundary`, returning the innermost selectable infographic
  * element along with its `data-indexes` path and the item's primary label.
  *
@@ -148,6 +178,13 @@ export function findInfographicTapTarget(start, boundary) {
         const ownIndexes = node.getAttribute?.('data-indexes');
         if (ownIndexes != null && ownIndexes !== '') {
           return buildHit(node, boundary, ownIndexes, elementType);
+        }
+        // Relation / dagre / network templates omit `data-indexes` entirely; instead each
+        // node shape carries a child `<title>` tooltip with the node label. Use that as
+        // a selectability signal so the radial action menu can anchor to it.
+        const titleLabel = readSvgTitleLabel(node);
+        if (titleLabel) {
+          return buildTitleAnchoredHit(node, titleLabel, elementType);
         }
       }
     }
