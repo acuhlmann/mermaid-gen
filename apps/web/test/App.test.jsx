@@ -263,6 +263,13 @@ describe('App simplified controls', () => {
   );
 
   it('streams intent when submitting the prompt control', async () => {
+    // Prompt input is only shown when no diagram is set (initial topic-setting state).
+    fetchSessionDiagramStateMock.mockResolvedValueOnce({
+      activeContentType: 'mermaid',
+      mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
+      infographic: createInitialDiagramState('infographic')
+    });
+
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
@@ -277,7 +284,7 @@ describe('App simplified controls', () => {
         operation: 'intent',
         prompt: 'Add a payment step',
         revisionId: 1,
-        diagramSource: initialState.diagramSource,
+        diagramSource: '',
         modelProfile: 'fast'
       }),
       expect.any(Function),
@@ -368,6 +375,13 @@ describe('App simplified controls', () => {
   });
 
   it('plays a completion sound when a request finishes', async () => {
+    // Prompt input is only shown when no diagram is set (initial topic-setting state).
+    fetchSessionDiagramStateMock.mockResolvedValueOnce({
+      activeContentType: 'mermaid',
+      mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
+      infographic: createInitialDiagramState('infographic')
+    });
+
     render(<App />);
     fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
@@ -440,6 +454,13 @@ describe('App simplified controls', () => {
           { once: true }
         );
       });
+    });
+
+    // Prompt input is only shown when no diagram is set (initial topic-setting state).
+    fetchSessionDiagramStateMock.mockResolvedValueOnce({
+      activeContentType: 'mermaid',
+      mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
+      infographic: createInitialDiagramState('infographic')
     });
 
     render(<App />);

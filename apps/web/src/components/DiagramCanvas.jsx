@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import Editor from '@monaco-editor/react';
 import registerMermaidMonacoOnce from '../utils/registerMermaidMonacoOnce.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import { applyInfographicHighlight } from '@archislop/shared';
@@ -156,6 +157,7 @@ export default function DiagramCanvas({
   onDiagramSvgRendered = null,
   runFx = null
 }) {
+  const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
   const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
@@ -1171,7 +1173,7 @@ export default function DiagramCanvas({
 
   const shellClass = [
     'diagram-canvas',
-    editorOpen ? 'is-editor-open' : '',
+    editorMounted ? 'is-editor-open' : '',
     insightsOpen && insightsSlot ? 'is-insights-open' : ''
   ]
     .filter(Boolean)
@@ -1268,8 +1270,11 @@ export default function DiagramCanvas({
 
       {insightsSlot}
 
-      {editorOpen ? (
-        <aside className="diagram-editor-panel" aria-label={contentType === 'mermaid' ? 'Mermaid code editor' : 'Infographic DSL editor'}>
+      {editorMounted ? (
+        <aside
+          className={`diagram-editor-panel ${editorClosing ? 'is-closing' : ''}`.trim()}
+          aria-label={contentType === 'mermaid' ? 'Mermaid code editor' : 'Infographic DSL editor'}
+        >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
               <span className="streaming-note-inner">
