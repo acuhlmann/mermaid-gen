@@ -398,6 +398,11 @@ describe('App simplified controls', () => {
     const clearButton = await screen.findByRole('button', { name: 'Clear' });
     fireEvent.click(clearButton);
 
+    // Clear now opens a "demolition" confirmation overlay first — click through to
+    // actually wipe the diagram.
+    const demolishButton = await screen.findByRole('button', { name: 'Demolish it' });
+    fireEvent.click(demolishButton);
+
     await waitFor(() =>
       expect(syncClientDiagramStateMock).toHaveBeenCalledWith(
         expect.objectContaining({
