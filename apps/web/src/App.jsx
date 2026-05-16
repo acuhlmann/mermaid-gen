@@ -689,6 +689,7 @@ function ArchiSlop() {
   const streamTimerRef = useRef(null);
   /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
   const streamAgentAbortRef = useRef(null);
+  const autoCloseActiveEntryIdRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
   const lastAutoFixSourceRef = useRef(null);
@@ -1721,6 +1722,9 @@ function ArchiSlop() {
         topic,
         retryDescriptor
       });
+      if (diagramUndoBaseline) {
+        autoCloseActiveEntryIdRef.current = sectionId;
+      }
       if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
       else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
       else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
@@ -2814,24 +2818,39 @@ ${requirementsBlock}`;
   // insights pane so the freshly-rendered diagram becomes visible without the user manually
   // closing the thinking pane that otherwise covers the whole canvas.
   const prevAutoCloseRunningRef = useRef(false);
-  const prevAutoCloseRevisionIdRef = useRef(state.revisionId);
+  const autoCloseRunStartRevisionRef = useRef(state.revisionId);
   useEffect(() => {
-    const anyRunning = insightsEntries.some((e) => (e.status ?? 'running') === 'running');
+    const activeEntryId = autoCloseActiveEntryIdRef.current;
+    const activeAutoCloseEntry = insightsEntries.find((e) => e.id === activeEntryId);
+    const activeEntryStatus = activeAutoCloseEntry?.status ?? null;
+    const activeEntryRunning = activeEntryStatus === 'running';
     const wasRunning = prevAutoCloseRunningRef.current;
-    const prevRevisionId = prevAutoCloseRevisionIdRef.current;
-    const revisionChanged = state.revisionId !== prevRevisionId;
+    if (activeEntryRunning && !wasRunning) {
+      autoCloseRunStartRevisionRef.current = state.revisionId;
+    }
+    const revisionChanged = state.revisionId !== autoCloseRunStartRevisionRef.current;
+    const completedActiveMutation =
+      activeEntryStatus === 'done' &&
+      Boolean(activeAutoCloseEntry?.diagramRevisionApplied);
+    const runProducedCanvasResult = revisionChanged || completedActiveMutation;
     if (
       narrowLayout &&
       insightsOpen &&
-      wasRunning &&
-      !anyRunning &&
-      revisionChanged &&
+      !activeEntryRunning &&
+      Boolean(activeEntryId) &&
+      runProducedCanvasResult &&
       Boolean(state.diagramSource?.trim())
     ) {
       setInsightsOpen(false);
+      autoCloseActiveEntryIdRef.current = null;
+    } else if (
+      !activeEntryRunning &&
+      activeAutoCloseEntry &&
+      ['failed', 'cancelled'].includes(activeEntryStatus)
+    ) {
+      autoCloseActiveEntryIdRef.current = null;
     }
-    prevAutoCloseRunningRef.current = anyRunning;
-    prevAutoCloseRevisionIdRef.current = state.revisionId;
+    prevAutoCloseRunningRef.current = activeEntryRunning;
   }, [insightsEntries, narrowLayout, insightsOpen, state.revisionId, state.diagramSource]);
 
   const busy = loading || streamingPreview;
