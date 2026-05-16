@@ -29,7 +29,7 @@ export default function XpProgressBar({
     if (flashKey === previousFlashKey.current) return undefined;
     previousFlashKey.current = flashKey;
     setFlashing(true);
-    const handle = setTimeout(() => setFlashing(false), 1400);
+    const handle = setTimeout(() => setFlashing(false), 2400);
     return () => clearTimeout(handle);
   }, [flashKey]);
 

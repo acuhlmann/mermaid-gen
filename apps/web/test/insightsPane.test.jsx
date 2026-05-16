@@ -40,6 +40,38 @@ describe('InsightsPane', () => {
     expect(screen.getByText('Live')).toBeTruthy();
   });
 
+  it('shows the diagram mode, brain, and start time on each run entry', () => {
+    const fixedTime = new Date('2024-04-05T09:07:00').getTime();
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-meta',
+            title: 'Refine - diagram',
+            status: 'running',
+            statusText: 'Working on your request...',
+            content: '',
+            technicalActions: [],
+            contentType: 'infographic',
+            modelProfile: 'quality',
+            startedAt: fixedTime
+          }
+        ]}
+        soundEnabled={false}
+        onSoundEnabledChange={vi.fn()}
+        celebratingEntryId={null}
+      />
+    );
+
+    const meta = screen.getByLabelText('Run details');
+    expect(within(meta).getByText('Infographic')).toBeTruthy();
+    expect(within(meta).getByText('Quality')).toBeTruthy();
+    const timeEl = meta.querySelector('time');
+    expect(timeEl).toBeTruthy();
+    expect(timeEl.dateTime).toBe(new Date(fixedTime).toISOString());
+    expect(timeEl.textContent.trim().length).toBeGreaterThan(0);
+  });
+
   it('shows done state and supports sound toggle', () => {
     const onSoundEnabledChange = vi.fn();
     render(

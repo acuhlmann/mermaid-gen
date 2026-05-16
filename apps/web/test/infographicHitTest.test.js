@@ -259,6 +259,39 @@ describe('findInfographicTapTarget', () => {
 
     expect(findInfographicTapTarget(btn, boundary)).toBeNull();
   });
+
+  it('relation / dagre node shape with a child <title> tooltip is selectable', () => {
+    // Models `relation-dagre-flow-tb-simple-circle-node`: nodes are rendered as
+    // `<ellipse data-element-type="shape">` with a `<title>` child carrying the label.
+    // No data-indexes anywhere on the tree, so the older rules return null.
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const itemsGroup = makeElement('g', { 'data-element-type': 'items-group' });
+    svg.appendChild(itemsGroup);
+    const nodeGroup = makeElement('g');
+    itemsGroup.appendChild(nodeGroup);
+    const ellipse = makeElement('ellipse', { 'data-element-type': 'shape' });
+    const tooltip = makeElement('title', {}, 'Trend Analysis');
+    ellipse.appendChild(tooltip);
+    nodeGroup.appendChild(ellipse);
+
+    const hit = findInfographicTapTarget(ellipse, boundary);
+    expect(hit).not.toBeNull();
+    expect(hit.elementType).toBe('shape');
+    expect(hit.label).toBe('Trend Analysis');
+    expect(hit.node).toBe(ellipse);
+  });
+
+  it('decorative shape without a child <title> still returns null (background)', () => {
+    const boundary = document.createElement('div');
+    const svg = makeElement('svg');
+    boundary.appendChild(svg);
+    const decor = makeElement('rect', { 'data-element-type': 'shape' });
+    svg.appendChild(decor);
+
+    expect(findInfographicTapTarget(decor, boundary)).toBeNull();
+  });
 });
 
 describe('INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES', () => {
