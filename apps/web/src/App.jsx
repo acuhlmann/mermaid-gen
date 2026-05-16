@@ -86,7 +86,13 @@ import {
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage
 } from './state/runGamificationStore.js';
-import { CONSOLE_STAMP_LINES, PROMPT_EASTER_EGGS, IDLE_TIPS, KONAMI_ACHIEVEMENT } from './utils/slopitectCopy.js';
+import {
+  CONSOLE_STAMP_LINES,
+  PROMPT_EASTER_EGGS,
+  IDLE_TIPS,
+  KONAMI_ACHIEVEMENT,
+  getVariantPersona
+} from './utils/slopitectCopy.js';
 import confetti from 'canvas-confetti';
 
 // canvas-confetti uses HTMLCanvasElement.getContext('2d') and trips on jsdom
@@ -363,11 +369,51 @@ function ButtonIcon({ children }) {
   );
 }
 
-function MermaidMarkIcon() {
+function actionCssVariant(variant) {
+  return variant === 'goMad' ? 'go-mad' : variant;
+}
+
+const ACTION_PERSONA_SHORT_NAMES = {
+  explain: 'Architect'
+};
+
+function actionPersonaName(variant) {
+  const persona = getVariantPersona(variant);
+  return ACTION_PERSONA_SHORT_NAMES[variant] || persona.name.replace(/^The\s+/i, '');
+}
+
+function actionPersonaEmoji(variant) {
+  return getVariantPersona(variant).avatarEmoji || '🏗️';
+}
+
+function actionPersonaTitle(variant) {
+  const persona = getVariantPersona(variant);
+  return `${persona.name} · ${persona.title}`;
+}
+
+function actionButtonClass(variant, extra = '') {
+  return `overlay-button compact-button slop-action-button is-${actionCssVariant(variant)} ${extra}`.trim();
+}
+
+function ActionPersonaIcon({ variant, fallback = '🏗️' }) {
+  const persona = getVariantPersona(variant);
   return (
-    <svg viewBox="0 0 24 24" width="14" height="14">
-      <path d="M3 7h18l-4 5 4 5H3l4-5-4-5Z" fill="currentColor" />
-    </svg>
+    <span className={`action-persona-icon is-${actionCssVariant(variant)}`} aria-hidden="true">
+      {persona.avatarEmoji || fallback}
+    </span>
+  );
+}
+
+function ActionPersonaRole({ variant, fallback = null, fallbackEmoji = '🛠️' }) {
+  const persona = variant ? getVariantPersona(variant) : null;
+  const label = persona?.name || fallback;
+  const emoji = persona?.avatarEmoji || fallbackEmoji;
+  if (!label) return null;
+  return (
+    <span className="slop-action-role">
+      <span className="slop-action-role-emoji" aria-hidden="true">{emoji}</span>
+      {variant ? actionPersonaName(variant) : label.replace(/^The\s+/i, '')}
+    </span>
   );
 }
 
@@ -3029,42 +3075,60 @@ ${requirementsBlock}`;
       {
         id: 'refine',
         label: 'Refine',
-        icon: <MermaidMarkIcon />,
-        variant: 'refine'
+        icon: <ActionPersonaIcon variant="refine" />,
+        variant: 'refine',
+        persona: actionPersonaName('refine'),
+        personaEmoji: actionPersonaEmoji('refine'),
+        personaTitle: actionPersonaTitle('refine')
       },
       {
         id: 'innovate',
         label: 'Innovate',
-        icon: '+',
+        icon: <ActionPersonaIcon variant="innovate" />,
         variant: 'innovate',
+        persona: actionPersonaName('innovate'),
+        personaEmoji: actionPersonaEmoji('innovate'),
+        personaTitle: actionPersonaTitle('innovate'),
         sizeClass: 'is-wide-label'
       },
       {
         id: 'goMad',
         label: goMadShapeLabel(goMadStreak),
-        icon: '!',
-        variant: 'go-mad'
+        icon: <ActionPersonaIcon variant="goMad" />,
+        variant: 'go-mad',
+        persona: actionPersonaName('goMad'),
+        personaEmoji: actionPersonaEmoji('goMad'),
+        personaTitle: actionPersonaTitle('goMad')
       },
       {
         id: 'critique',
         label: 'Critique',
-        icon: '?',
+        icon: <ActionPersonaIcon variant="critique" />,
         variant: 'critique',
+        persona: actionPersonaName('critique'),
+        personaEmoji: actionPersonaEmoji('critique'),
+        personaTitle: actionPersonaTitle('critique'),
         sizeClass: 'is-wide-label'
       },
       {
         id: 'fix',
         label: 'Fix',
-        icon: 'w',
+        icon: <span className="action-persona-icon is-fix" aria-hidden="true">🛠️</span>,
         variant: 'fix',
+        persona: 'Site Foreman',
+        personaEmoji: '🛠️',
+        personaTitle: 'Site Foreman · Fixing the slop',
         hidden: !latestCritique?.text,
         disabled: !canFixFromCritique
       },
       {
         id: 'explain',
         label: 'Explain',
-        icon: 'i',
+        icon: <ActionPersonaIcon variant="explain" />,
         variant: 'explain',
+        persona: actionPersonaName('explain'),
+        personaEmoji: actionPersonaEmoji('explain'),
+        personaTitle: actionPersonaTitle('explain'),
         sizeClass: 'is-wide-label'
       }
     ];
@@ -3309,64 +3373,92 @@ ${requirementsBlock}`;
               <div className="button-group">
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('refine')}
                   disabled={busy}
                   onClick={() => runTransform('refine', { useDiagramFocus: true })}
+                  aria-label="Refine"
+                  title={actionPersonaTitle('refine')}
                 >
                   <ButtonIcon>
-                    <MermaidMarkIcon />
+                    <ActionPersonaIcon variant="refine" />
                   </ButtonIcon>
-                  Refine
+                  <span className="button-label">Refine</span>
+                  <ActionPersonaRole variant="refine" />
                 </button>
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('innovate')}
                   disabled={busy}
                   onClick={() => runTransform('innovate', { useDiagramFocus: true })}
+                  aria-label="Innovate"
+                  title={actionPersonaTitle('innovate')}
                 >
-                  <ButtonIcon>+</ButtonIcon>
-                  Innovate
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="innovate" />
+                  </ButtonIcon>
+                  <span className="button-label">Innovate</span>
+                  <ActionPersonaRole variant="innovate" />
                 </button>
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('goMad')}
                   disabled={busy}
                   onClick={() => runTransform('goMad', { useDiagramFocus: true })}
+                  aria-label={goMadShapeLabel(goMadStreak)}
+                  title={actionPersonaTitle('goMad')}
                 >
-                  <ButtonIcon>!</ButtonIcon>
-                  {goMadShapeLabel(goMadStreak)}
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="goMad" />
+                  </ButtonIcon>
+                  <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
+                  <ActionPersonaRole variant="goMad" />
                 </button>
               </div>
               <span className="button-group-label">Read</span>
               <div className="button-group">
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('critique')}
                   disabled={busy}
                   onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
+                  aria-label="Critique"
+                  title={actionPersonaTitle('critique')}
                 >
-                  <ButtonIcon>?</ButtonIcon>
-                  Critique
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="critique" />
+                  </ButtonIcon>
+                  <span className="button-label">Critique</span>
+                  <ActionPersonaRole variant="critique" />
                 </button>
                 {latestCritique?.text ? (
                   <button
                     type="button"
-                    className="overlay-button compact-button"
+                    className="overlay-button compact-button slop-action-button is-fix"
                     disabled={!canFixFromCritique}
                     onClick={() => handleFixFromCritique('all')}
+                    aria-label="Fix"
+                    title="Site Foreman · Fixing the slop"
                   >
-                    <ButtonIcon>w</ButtonIcon>
-                    Fix
+                    <ButtonIcon>
+                      <span className="action-persona-icon is-fix" aria-hidden="true">🛠️</span>
+                    </ButtonIcon>
+                    <span className="button-label">Fix</span>
+                    <ActionPersonaRole fallback="Site Foreman" />
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('explain')}
                   disabled={busy}
                   onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
+                  aria-label="Explain"
+                  title={actionPersonaTitle('explain')}
                 >
-                  <ButtonIcon>i</ButtonIcon>
-                  Explain
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="explain" />
+                  </ButtonIcon>
+                  <span className="button-label">Explain</span>
+                  <ActionPersonaRole variant="explain" />
                 </button>
               </div>
               <div className="button-group">
@@ -3383,73 +3475,89 @@ ${requirementsBlock}`;
               <div className="button-group">
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('refine')}
                   disabled={busy}
                   onClick={() => runTransform('refine', { useDiagramFocus: true })}
                   aria-label="Refine"
-                  title="Refine"
+                  title={actionPersonaTitle('refine')}
                 >
                   <ButtonIcon>
-                    <MermaidMarkIcon />
+                    <ActionPersonaIcon variant="refine" />
                   </ButtonIcon>
                   <span className="button-label">Refine</span>
+                  <ActionPersonaRole variant="refine" />
                 </button>
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('innovate')}
                   disabled={busy}
                   onClick={() => runTransform('innovate', { useDiagramFocus: true })}
                   aria-label="Innovate"
-                  title="Innovate"
+                  title={actionPersonaTitle('innovate')}
                 >
-                  <ButtonIcon>+</ButtonIcon>
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="innovate" />
+                  </ButtonIcon>
                   <span className="button-label">Innovate</span>
+                  <ActionPersonaRole variant="innovate" />
                 </button>
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('goMad')}
                   disabled={busy}
                   onClick={() => runTransform('goMad', { useDiagramFocus: true })}
                   aria-label={goMadShapeLabel(goMadStreak)}
-                  title={goMadShapeLabel(goMadStreak)}
+                  title={actionPersonaTitle('goMad')}
                 >
-                  <ButtonIcon>!</ButtonIcon>
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="goMad" />
+                  </ButtonIcon>
                   <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
+                  <ActionPersonaRole variant="goMad" />
                 </button>
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('critique')}
                   disabled={busy}
                   onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
                   aria-label="Critique"
-                  title="Critique"
+                  title={actionPersonaTitle('critique')}
                 >
-                  <ButtonIcon>?</ButtonIcon>
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="critique" />
+                  </ButtonIcon>
                   <span className="button-label">Critique</span>
+                  <ActionPersonaRole variant="critique" />
                 </button>
                 {latestCritique?.text ? (
                   <button
                     type="button"
-                    className="overlay-button compact-button"
+                    className="overlay-button compact-button slop-action-button is-fix"
                     disabled={!canFixFromCritique}
                     onClick={() => handleFixFromCritique('all')}
                     aria-label="Fix"
-                    title="Fix"
+                    title="Site Foreman · Fixing the slop"
                   >
-                    <ButtonIcon>w</ButtonIcon>
+                    <ButtonIcon>
+                      <span className="action-persona-icon is-fix" aria-hidden="true">🛠️</span>
+                    </ButtonIcon>
                     <span className="button-label">Fix</span>
+                    <ActionPersonaRole fallback="Site Foreman" />
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  className="overlay-button compact-button"
+                  className={actionButtonClass('explain')}
                   disabled={busy}
                   onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
                   aria-label="Explain"
-                  title="Explain"
+                  title={actionPersonaTitle('explain')}
                 >
-                  <ButtonIcon>i</ButtonIcon>
+                  <ButtonIcon>
+                    <ActionPersonaIcon variant="explain" />
+                  </ButtonIcon>
                   <span className="button-label">Explain</span>
+                  <ActionPersonaRole variant="explain" />
                 </button>
                 <button
                   type="button"
