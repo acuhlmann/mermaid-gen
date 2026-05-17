@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramStore.js';
+import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getVisibleDiagramLabels } from '../utils/visibleDiagramLabels.js';
 
 const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
+const ACTIVITY_THROTTLE_MS = 1000;
 const SHOW_MS = 10_000;
 const GAP_MS = 2200;
 const FAILURE_BACKOFF_MS = 30_000;
@@ -70,6 +73,8 @@ export function useAdvisorOrchestrator(params) {
   const pauseRef = useRef(pause);
   const pinnedRef = useRef(false);
   const onAcceptRef = useRef(onAccept);
+  const lastActivityAtRef = useRef(Date.now());
+  const idlePausedRef = useRef(false);
 
   // Imperative loop API, populated by the setup effect.
   const scheduleNextRef = useRef(() => {});
@@ -108,10 +113,24 @@ export function useAdvisorOrchestrator(params) {
       }
     };
 
+    const applyIdlePauseIfNeeded = () => {
+      if (isHidden()) return;
+      if (Date.now() - lastActivityAtRef.current <= ADVISOR_IDLE_PAUSE_MS) return;
+      if (idlePausedRef.current) return;
+      idlePausedRef.current = true;
+      clearPhaseTimer();
+      cancelInFlight();
+      setSuggestion(null);
+      setHighlightIds([]);
+      setThinkingPersona(null);
+    };
+
     const shouldPauseNow = () => {
+      applyIdlePauseIfNeeded();
       if (mutedRef.current) return true;
       if (pauseRef.current) return true;
       if (isHidden()) return true;
+      if (idlePausedRef.current) return true;
       const src = paramsRef.current.getDiagramSource?.() ?? '';
       if (!src.trim()) return true;
       const now = Date.now();
@@ -179,6 +198,7 @@ export function useAdvisorOrchestrator(params) {
         if (!alive || gen !== generation) return;
         const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
         const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
+        const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinkingPersona(null);
           scheduleNext(GAP_MS);
@@ -194,7 +214,9 @@ export function useAdvisorOrchestrator(params) {
         pinnedRef.current = false;
         setActivePersona(persona);
         setSuggestion(text);
-        setHighlightIds(replyIds.length > 0 ? replyIds : visibleIds.slice(0, 4));
+        const highlight =
+          replyIds.length > 0 ? replyIds : focusId ? [focusId] : visibleIds.slice(0, 4);
+        setHighlightIds(highlight);
         setError(null);
         setThinkingPersona(null);
         startDismissTimer();
@@ -276,6 +298,31 @@ export function useAdvisorOrchestrator(params) {
   }, []);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    let throttleUntil = 0;
+    const onActivity = () => {
+      const now = Date.now();
+      const wakingFromIdle = idlePausedRef.current;
+      if (!wakingFromIdle && now < throttleUntil) return;
+      throttleUntil = now + ACTIVITY_THROTTLE_MS;
+      lastActivityAtRef.current = now;
+      if (wakingFromIdle && !mutedRef.current && !pauseRef.current) {
+        idlePausedRef.current = false;
+        scheduleNextRef.current?.(0);
+      }
+    };
+    const events = ['pointerdown', 'keydown', 'mousemove', 'scroll', 'touchstart'];
+    for (const type of events) {
+      window.addEventListener(type, onActivity, { passive: true });
+    }
+    return () => {
+      for (const type of events) {
+        window.removeEventListener(type, onActivity);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const id = setTimeout(() => {
       if (mutedRef.current || pauseRef.current) {
         setSuggestion(null);
@@ -335,7 +382,11 @@ export function useAdvisorOrchestrator(params) {
   }, [suggestion, activePersona]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted((m) => !m);
+    setIsMuted((m) => {
+      const next = !m;
+      writeAdvisorMuted(next);
+      return next;
+    });
   }, []);
 
   const togglePin = useCallback(() => {

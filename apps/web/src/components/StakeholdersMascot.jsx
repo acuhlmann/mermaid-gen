@@ -22,17 +22,12 @@ const ACTION_LABEL = {
 };
 
 /**
- * Unified council dock: one mascot button represents the whole advisory cast.
- * When idle it shows a neutral "Council" face; when an advisor is speaking
- * (proactive bubble active), it morphs into that persona's avatar with their
- * accent glow so the dock visibly "becomes" the current speaker.
- *
- * Clicking the mascot fans out the five persona action buttons (refine /
- * innovate / goMad / critique / explain) inline. Auto-collapses on outside
- * click or COLLAPSE_AFTER_MS of inactivity. Each persona button reuses the
- * existing transform/analyze handlers passed by the parent.
+ * Unified stakeholders dock: one mascot button represents the whole advisory cast.
+ * When idle it shows a neutral face; when an advisor is speaking the mascot morphs
+ * into that persona's avatar with their accent glow. Clicking fans out the five
+ * persona action buttons inline; auto-collapses on outside click or inactivity.
  */
-export default function CouncilMascot({
+export default function StakeholdersMascot({
   personas,
   activeAdvisorVariant = null,
   thinkingPersona = null,
@@ -81,26 +76,35 @@ export default function CouncilMascot({
   }, [expanded]);
 
   const stageMeta = stagePersona ? getVariantPersona(stagePersona) : null;
-  const mascotEmoji = stageMeta?.avatarEmoji ?? '🏛️';
-  const mascotName = stageMeta?.name ?? 'The Council';
+  // Expanded menu lists each persona — keep the dock on the neutral Stakeholders face.
+  const mascotEmoji = expanded ? '🏛️' : (stageMeta?.avatarEmoji ?? '🏛️');
+  const mascotName = expanded ? 'The Stakeholders' : (stageMeta?.name ?? 'The Stakeholders');
   const mascotClass = [
     'overlay-button',
     'compact-button',
     'slop-action-button',
-    'council-mascot',
-    stagePersona ? `council-mascot--active ${VARIANT_CLASS[stagePersona] || ''}` : 'council-mascot--idle',
-    thinkingPersona ? 'council-mascot--thinking' : '',
+    'stakeholders-mascot',
+    expanded
+      ? 'stakeholders-mascot--idle'
+      : stagePersona
+        ? `stakeholders-mascot--active ${VARIANT_CLASS[stagePersona] || ''}`
+        : 'stakeholders-mascot--idle',
+    !expanded && thinkingPersona ? 'stakeholders-mascot--thinking' : '',
     expanded ? 'is-expanded' : ''
   ].filter(Boolean).join(' ');
 
-  const accentVar = stageMeta?.accentColorVar;
+  const accentVar = expanded ? null : stageMeta?.accentColorVar;
   const accentStyle = accentVar
     ? (accentVar.startsWith('--') ? `var(${accentVar})` : accentVar)
     : 'var(--accent)';
-  const style = { '--council-accent': accentStyle };
+  const style = { '--stakeholders-accent': accentStyle };
 
   return (
-    <div className="council-mascot-wrap" ref={wrapperRef} style={style}>
+    <div
+      className={['stakeholders-mascot-wrap', expanded ? 'is-menu-expanded' : ''].filter(Boolean).join(' ')}
+      ref={wrapperRef}
+      style={style}
+    >
       {thinkingPersona
         ? <AdvisorThinkingIndicator persona={thinkingPersona} />
         : (bubbleProps ? <AdvisorSpeechBubble {...bubbleProps} /> : null)}
@@ -109,20 +113,20 @@ export default function CouncilMascot({
         className={mascotClass}
         aria-expanded={expanded}
         aria-haspopup="true"
-        aria-label={expanded ? 'Hide council actions' : `Open the Council · ${mascotName}`}
-        title={expanded ? 'Tap to hide' : `${mascotName} · tap to open the Council`}
+        aria-label={expanded ? 'Hide stakeholders actions' : `Open the Stakeholders · ${mascotName}`}
+        title={expanded ? 'Tap to hide' : `${mascotName} · tap to open the Stakeholders`}
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className="council-mascot-emoji" aria-hidden="true">{mascotEmoji}</span>
-        <span className="button-label">{stageMeta ? stageMeta.name.split(' ').pop() : 'Council'}</span>
-        <span className="slop-action-role council-mascot-role">
+        <span className="stakeholders-mascot-emoji" aria-hidden="true">{mascotEmoji}</span>
+        <span className="button-label">{expanded ? 'Stakeholders' : (stageMeta ? stageMeta.name.split(' ').pop() : 'Stakeholders')}</span>
+        <span className="slop-action-role stakeholders-mascot-role">
           <span className="slop-action-role-emoji" aria-hidden="true">🏛️</span>
-          {expanded ? 'Tap a persona' : 'Council'}
+          {expanded ? 'Tap a persona' : 'Stakeholders'}
         </span>
       </button>
       {expanded ? (
         <div
-          className="council-mascot-fan"
+          className="stakeholders-mascot-fan"
           onPointerEnter={armCollapseTimer}
           onPointerMove={armCollapseTimer}
         >
@@ -135,7 +139,7 @@ export default function CouncilMascot({
               'compact-button',
               'slop-action-button',
               `is-${p.cssVariant ?? p.variant}`,
-              'council-mascot-fan-item',
+              'stakeholders-mascot-fan-item',
               isActiveAdvisor ? 'is-advisor-active' : ''
             ].filter(Boolean).join(' ');
             return (

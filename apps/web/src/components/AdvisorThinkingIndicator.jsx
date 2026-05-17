@@ -18,8 +18,8 @@ const THINKING_VERB = {
 
 /**
  * Compact "<persona> is thinking…" bubble shown while the advisor LLM call is
- * in flight. Anchored above the council mascot, same coordinate system as
- * AdvisorSpeechBubble — they are mutually exclusive (CouncilMascot picks one).
+ * in flight. Anchored above the stakeholders mascot, same coordinate system as
+ * AdvisorSpeechBubble — they are mutually exclusive (StakeholdersMascot picks one).
  */
 export default function AdvisorThinkingIndicator({ persona }) {
   if (!persona) return null;

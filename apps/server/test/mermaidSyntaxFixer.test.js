@@ -94,3 +94,33 @@ test('repairMermaidWithFixer reports missing model gracefully', async () => {
   assert.equal(result.accepted, false);
   assert.match(String(result.error), /not configured/);
 });
+
+test('repairMermaidWithFixer renders previousAttempts in the prompt', async () => {
+  const spy = { responseText: '```mermaid\nflowchart TD\n  A --> B\n```' };
+  await repairMermaidWithFixer({
+    brokenSource: 'flowchart TD\n  A[bad (paren)] --> B',
+    parseError: 'still broken',
+    previousAttempts: [
+      { source: 'flowchart TD\n  A[bad (paren)] --> B', error: 'unexpected (' }
+    ],
+    modelOverride: fakeModelFromMessages(spy)
+  });
+  const human = spy.lastMessages[spy.lastMessages.length - 1];
+  const content = typeof human.content === 'string' ? human.content : '';
+  assert.match(content, /Previous attempt 1/);
+  assert.match(content, /unexpected \(/);
+  assert.match(content, /Do not repeat the same mistakes/);
+});
+
+test('repairMermaidWithFixer ignores empty previousAttempts gracefully', async () => {
+  const spy = { responseText: '```mermaid\nflowchart TD\n  A --> B\n```' };
+  await repairMermaidWithFixer({
+    brokenSource: 'flowchart TD\n  A --> B',
+    parseError: 'x',
+    previousAttempts: [],
+    modelOverride: fakeModelFromMessages(spy)
+  });
+  const human = spy.lastMessages[spy.lastMessages.length - 1];
+  const content = typeof human.content === 'string' ? human.content : '';
+  assert.doesNotMatch(content, /Previous attempt/);
+});

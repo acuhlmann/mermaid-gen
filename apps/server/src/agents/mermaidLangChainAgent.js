@@ -554,7 +554,7 @@ export function shouldAttemptSyntaxRepair(errorMessage) {
   return REPAIR_ERROR_PATTERN.test(errorMessage) || isSyntaxValidationError(errorMessage);
 }
 
-export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSource }) {
+export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSource, previousAttempts }) {
   const originalRequest = toLangChainMessages(messages)
     .filter((message) => message.role === 'user')
     .map((message) => message.content)
@@ -566,6 +566,16 @@ export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSou
   const typeHint = diagramType ? `Detected diagram type: ${diagramType}.` : 'Diagram type unknown — pick a fitting Mermaid type.';
   const brokenBlock = brokenSource
     ? `\n\nBroken Mermaid source from your previous attempt:\n\`\`\`mermaid\n${brokenSource.trim()}\n\`\`\``
+    : '';
+  const priorBlock = Array.isArray(previousAttempts) && previousAttempts.length > 0
+    ? `\n\nPrior failed attempts in this repair loop (don't repeat the same mistake — try a different fix):\n${previousAttempts
+        .slice(-2)
+        .map((entry, index) => {
+          const err = (entry?.error ?? '').toString().trim().slice(0, 300);
+          const src = (entry?.source ?? '').toString().trim();
+          return `Attempt ${index + 1} (error: ${err}):\n\`\`\`mermaid\n${src}\n\`\`\``;
+        })
+        .join('\n\n')}`
     : '';
 
   return {
@@ -581,7 +591,7 @@ ${rulePack}
 Repair instructions:
 - Apply the smallest change that fixes the error while preserving the user's intent.
 - Call apply_mermaid_patch with complete, valid Mermaid source.
-- Do not mention tool names in your final user-facing summary.${brokenBlock}
+- Do not mention tool names in your final user-facing summary.${brokenBlock}${priorBlock}
 
 Original user request:
 ${originalRequest || '(No explicit user request provided.)'}`
@@ -610,6 +620,36 @@ export function buildDiagramMutationSystemMessage() {
 - If the request is broad (for example a single topic or concept name), infer a reasonable default scope and diagram type and implement it. Do not refuse or stall by asking the user for more detail instead of drawing.
 - Your first successful action is calling apply_mermaid_patch with complete valid Mermaid source. After acceptance, add a brief prose summary only (no further tool calls).
 - Even when unsure, prefer a minimal valid overview diagram over prose-only clarification.`
+  };
+}
+
+/**
+ * Builds an advisory system message that injects the active diagram type's rule pack BEFORE the
+ * first agent turn — so common foot-guns (style A,B,C; reserved words; ER attr order; classDef on
+ * [*]) are warned against on initial generation, not only after a parse failure.
+ *
+ * For modes that may switch diagram type (innovate / goMad), the rules are marked advisory so the
+ * agent doesn't anchor on the wrong type.
+ *
+ * Exported for tests.
+ *
+ * @param {{ stateStore: { getSlot: (kind: string) => { diagramSource?: string } }, mode?: string | null }} args
+ * @returns {{ role: 'system', content: string } | null}
+ */
+export function buildSyntaxGuidanceSystemMessage({ stateStore, mode }) {
+  const source = stateStore?.getSlot?.('mermaid')?.diagramSource ?? '';
+  const detected = inferDiagramType(source);
+  if (!detected) return null;
+  const rulePack = getRulePack(detected);
+  const mayChangeType = mode === 'innovate' || mode === 'goMad';
+  const lead = mayChangeType
+    ? `Active diagram type: ${detected}. The rules below apply IF you keep this type. If you switch types (allowed in this mode), the rules below no longer apply — use the target type's syntax instead.`
+    : `Active diagram type: ${detected}. Apply these rules when generating the patch (don't wait for a parser failure):`;
+  return {
+    role: 'system',
+    content: `${lead}
+
+${rulePack}`
   };
 }
 
@@ -837,8 +877,12 @@ async function invokeWithRepair(
     peerContext?.contentType === 'infographic' && typeof peerContext.diagramSource === 'string'
       ? [createPeerInfographicContextMessage(peerContext.diagramSource)]
       : [];
+  const syntaxGuidance = requirePatch
+    ? buildSyntaxGuidanceSystemMessage({ stateStore, mode })
+    : null;
   const baseMessages = [
     ...(requirePatch ? [buildDiagramMutationSystemMessage()] : []),
+    ...(syntaxGuidance ? [syntaxGuidance] : []),
     ...peerInfographicPreface,
     createCurrentDiagramContextMessage(stateStore),
     ...toLangChainMessages(messages)
@@ -964,6 +1008,7 @@ async function invokeWithRepair(
         parseError: latestError,
         originalRequest,
         env
+        // No previousAttempts on first fixer call — this is the first repair pass.
       });
       if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
         const applied = await stateStore.applyDiagramSource({
@@ -1001,6 +1046,7 @@ async function invokeWithRepair(
     ? Math.max(0, parsedRepairAttempts)
     : DEFAULT_REPAIR_ATTEMPTS;
 
+  const repairHistory = [];
   for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
     repairAttempts += 1;
     let retryResult;
@@ -1013,7 +1059,12 @@ async function invokeWithRepair(
         agent,
         [
           ...baseMessages,
-          buildSyntaxRepairInstruction({ messages, errorMessage: latestError, brokenSource })
+          buildSyntaxRepairInstruction({
+            messages,
+            errorMessage: latestError,
+            brokenSource,
+            previousAttempts: repairHistory.slice(-2)
+          })
         ],
         emit,
         env
@@ -1038,6 +1089,9 @@ async function invokeWithRepair(
     if (!shouldAttemptSyntaxRepair(retryError)) {
       break;
     }
+    // Record this failed attempt before moving on so the next iteration's prompt
+    // can show the agent what it already tried.
+    repairHistory.push({ source: brokenSource ?? '', error: latestError ?? '' });
     latestError = retryError;
     const nextBroken = extractLastAttemptedMermaidSource(retryResult);
     if (nextBroken) brokenSource = nextBroken;

@@ -11,6 +11,7 @@ import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAge
 import { ensureMermaidInitialized } from './agents/mermaidReliabilitySkill.js';
 import { createCopilotRouter } from './routes/copilot.js';
 import { createAdvisorRouter } from './routes/advisor.js';
+import { createDiagramRepairRouter } from './routes/diagramRepair.js';
 import {
   createSessionServicesRegistry,
   resolveSessionIdFromRequest,
@@ -106,6 +107,12 @@ app.use(
   })
 );
 app.use('/api/advisor', createAdvisorRouter());
+app.use(
+  '/api/diagram',
+  createDiagramRepairRouter({
+    resolveServices: (req) => sessionRegistry.getSessionServicesForRequest(req)
+  })
+);
 
 app.all(
   '/mcp',

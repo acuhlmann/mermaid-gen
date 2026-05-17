@@ -1,6 +1,10 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
+import {
+  applyEmbeddedDiagramFocus,
+  resetEmbeddedDiagramFocus
+} from '../utils/embeddedDiagramFocus.js';
 import { applyInfographicHighlight } from '@archislop/shared';
 import { renderMermaidPreviewSvg } from '../utils/renderMermaidPreview.js';
 
@@ -23,9 +27,17 @@ export default function InsightsEmbeddedDiagram({
 }) {
   const debounceRef = useRef(0);
   const requestRef = useRef(0);
+  const outerRef = useRef(null);
   const svgHostRef = useRef(null);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
+
+  const applyPreviewFocus = useCallback(() => {
+    if (streamingPreview) return;
+    const host = svgHostRef.current;
+    if (!host) return;
+    applyEmbeddedDiagramFocus(host, highlight, kind);
+  }, [highlight, kind, streamingPreview]);
 
   useEffect(() => {
     if (kind !== 'mermaid') return undefined;
@@ -72,7 +84,8 @@ export default function InsightsEmbeddedDiagram({
   useLayoutEffect(() => {
     if (kind !== 'mermaid') return;
     applyDiagramHighlightToSvg(svgHostRef.current, highlight);
-  }, [kind, svgMarkup, highlight]);
+    applyPreviewFocus();
+  }, [kind, svgMarkup, highlight, applyPreviewFocus]);
 
   // Re-apply infographic diff overlay whenever AntV finishes a render. We watch the
   // host subtree because InfographicRenderer renders asynchronously.
@@ -83,7 +96,10 @@ export default function InsightsEmbeddedDiagram({
     let frame = 0;
     const apply = () => {
       cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => applyInfographicHighlight(host, highlight));
+      frame = requestAnimationFrame(() => {
+        applyInfographicHighlight(host, highlight);
+        applyPreviewFocus();
+      });
     };
     apply();
     const observer = new MutationObserver(apply);
@@ -92,11 +108,25 @@ export default function InsightsEmbeddedDiagram({
       cancelAnimationFrame(frame);
       observer.disconnect();
     };
-  }, [kind, source, highlight]);
+  }, [kind, source, highlight, applyPreviewFocus]);
+
+  useEffect(() => {
+    if (streamingPreview) return undefined;
+    const outer = outerRef.current;
+    if (!outer || typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(() => applyPreviewFocus());
+    observer.observe(outer);
+    return () => observer.disconnect();
+  }, [applyPreviewFocus, streamingPreview]);
+
+  useEffect(() => {
+    return () => resetEmbeddedDiagramFocus(svgHostRef.current);
+  }, []);
 
   if (kind === 'infographic') {
     return (
       <div
+        ref={outerRef}
         className="insights-embedded-diagram insights-embedded-diagram--infographic"
         data-testid="insights-embedded-diagram"
         aria-label="Infographic preview (read-only)"
@@ -114,6 +144,7 @@ export default function InsightsEmbeddedDiagram({
 
   return (
     <div
+      ref={outerRef}
       className="insights-embedded-diagram insights-embedded-diagram--mermaid"
       data-testid="insights-embedded-diagram"
       aria-label="Mermaid preview (read-only)"

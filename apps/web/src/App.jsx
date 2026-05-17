@@ -7,8 +7,9 @@ import AgentPresenceBar from './components/AgentPresenceBar.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
-import CouncilMascot from './components/CouncilMascot.jsx';
+import StakeholdersMascot from './components/StakeholdersMascot.jsx';
 import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
+import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
 import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import {
   openSessionEventsStream,
@@ -34,6 +35,7 @@ import {
   streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
+  submitDiagramRenderRepair,
   wipeClientCachesAfterLostServerSession,
   writeDiagramCache
 } from './state/diagramStore.js';
@@ -2106,6 +2108,22 @@ function ArchiSlop() {
         });
         setState(syncedState);
 
+        // Fast path: ask the cheap syntax-fixer model directly via the render-error endpoint.
+        // One LLM call vs an entire agent turn. Fall back to the full intent pipeline only when
+        // the fixer rejects (e.g., fixer model not configured, repair didn't validate, stale).
+        if (contentMode === 'mermaid') {
+          const fast = await submitDiagramRenderRepair({
+            revisionId: syncedState.revisionId,
+            source: syncedState.diagramSource,
+            renderError: errorMessage,
+            sessionId: activeSessionId
+          });
+          if (fast?.repaired && fast.state) {
+            animateAcceptedSource(fast.state);
+            return;
+          }
+        }
+
         const result = await submitDiagramIntent({
           contentType: contentMode,
           prompt: `The Mermaid editor currently shows a syntax error. Please fix the diagram and apply a corrected version with apply_mermaid_patch.
@@ -2765,27 +2783,63 @@ ${requirementsBlock}`;
     focusSource: advisorFocusDescriptor?.source ?? null,
     getSvgRoot: () => (typeof document !== 'undefined' ? document : null),
     pause: advisorPause,
+    initialMuted: readAdvisorMuted(),
     onAccept: (text, persona) => {
       void submitIntentWithPrompt(text, { variantOverride: persona });
     }
   });
 
+  const advisorPinFocusIds = useMemo(() => {
+    if (!advisor.isPinned || !(advisor.highlightIds?.length > 0)) return null;
+    return advisor.highlightIds;
+  }, [advisor.highlightIds, advisor.isPinned]);
+
+  const advisorDiagramHighlight = useMemo(() => {
+    const ids = advisor.highlightIds ?? [];
+    const active =
+      ids.length > 0 &&
+      Boolean(advisor.suggestion || advisor.isPinned || advisor.thinkingPersona);
+    return active ? { addedIds: ids } : null;
+  }, [
+    advisor.highlightIds,
+    advisor.isPinned,
+    advisor.suggestion,
+    advisor.thinkingPersona
+  ]);
+
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
     const root = document.querySelector('.diagram-zoom-layer') ?? document;
-    const ids = advisor.highlightIds ?? [];
-    applyDiagramHighlightToSvg(
-      root,
-      ids.length > 0 ? { addedIds: ids } : null,
-      { addedClass: 'is-advisor-pointing', modifiedClass: 'is-advisor-pointing' }
-    );
+    const diagramOutput = document.querySelector('.diagram-output');
+    const accentPersona = advisor.activePersona ?? advisor.thinkingPersona;
+    const accentMeta = accentPersona ? getVariantPersona(accentPersona) : null;
+    const accentVar = accentMeta?.accentColorVar;
+    if (diagramOutput) {
+      if (advisorDiagramHighlight && accentVar) {
+        const resolved = accentVar.startsWith('--') ? `var(${accentVar})` : accentVar;
+        diagramOutput.style.setProperty('--advisor-highlight-accent', resolved);
+        diagramOutput.classList.toggle('has-advisor-highlight', true);
+        diagramOutput.classList.toggle('has-advisor-highlight-pinned', advisor.isPinned);
+      } else {
+        diagramOutput.style.removeProperty('--advisor-highlight-accent');
+        diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
+      }
+    }
+    applyDiagramHighlightToSvg(root, advisorDiagramHighlight, {
+      addedClass: 'is-advisor-pointing',
+      modifiedClass: 'is-advisor-pointing'
+    });
     return () => {
       applyDiagramHighlightToSvg(root, null, {
         addedClass: 'is-advisor-pointing',
         modifiedClass: 'is-advisor-pointing'
       });
+      if (diagramOutput) {
+        diagramOutput.style.removeProperty('--advisor-highlight-accent');
+        diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
+      }
     };
-  }, [advisor.highlightIds, state.revisionId, state.diagramSource]);
+  }, [advisor.activePersona, advisor.isPinned, advisor.thinkingPersona, advisorDiagramHighlight, state.revisionId, state.diagramSource]);
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -3333,12 +3387,12 @@ ${requirementsBlock}`;
     const list = [
       {
         id: 'prompt',
-        label: 'Prompt',
+        label: 'Weigh In',
         icon: <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>,
         variant: 'prompt',
-        persona: 'Prompt',
+        persona: 'Weigh In',
         personaEmoji: '💬',
-        personaTitle: 'Prompt · Direct the agent in your own words'
+        personaTitle: 'Weigh In · Share your thoughts on the matter'
       },
       {
         id: 'refine',
@@ -3470,6 +3524,7 @@ ${requirementsBlock}`;
               ? 'high'
               : 'normal'
         }}
+        advisorPinFocusIds={advisorPinFocusIds}
       />
 
       <RadialActionMenu
@@ -3782,41 +3837,62 @@ ${requirementsBlock}`;
                   disabled={busy}
                   onClick={toggleChromeSlopPrompt}
                   aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label="Prompt"
-                  title="Prompt · Direct the agent in your own words"
+                  aria-label="Weigh In"
+                  title="Weigh In · Share your thoughts on the matter"
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
                   </ButtonIcon>
-                  <span className="button-label">Prompt</span>
+                  <span className="button-label">Weigh In</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">💬</span>
-                    Prompt
+                    Weigh In
                   </span>
                 </button>
               </div>
-              <CouncilMascot
-                personas={[
-                  { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
-                  { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
-                  { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
-                  { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
-                  { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
-                ]}
-                activeAdvisorVariant={advisor.activePersona}
-                thinkingPersona={advisor.thinkingPersona}
-                busy={busy}
-                bubbleProps={advisor.suggestion ? {
-                  persona: advisor.activePersona,
-                  suggestion: advisor.suggestion,
-                  isPinned: advisor.isPinned,
-                  onGo: advisor.accept,
-                  onDismiss: advisor.dismiss,
-                  onTogglePin: advisor.togglePin,
-                  onPauseTimer: advisor.pauseTimer,
-                  onResumeTimer: advisor.resumeTimer
-                } : null}
-              />
+              <div className="button-group">
+                <StakeholdersMascot
+                  personas={[
+                    { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
+                    { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
+                    { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
+                    { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
+                    { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
+                  ]}
+                  activeAdvisorVariant={advisor.activePersona}
+                  thinkingPersona={advisor.thinkingPersona}
+                  busy={busy}
+                  bubbleProps={advisor.suggestion ? {
+                    persona: advisor.activePersona,
+                    suggestion: advisor.suggestion,
+                    isPinned: advisor.isPinned,
+                    onGo: advisor.accept,
+                    onDismiss: advisor.dismiss,
+                    onTogglePin: advisor.togglePin,
+                    onPauseTimer: advisor.pauseTimer,
+                    onResumeTimer: advisor.resumeTimer
+                  } : null}
+                />
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
+                  onClick={advisor.toggleMute}
+                  aria-pressed={advisor.isMuted}
+                  aria-label={advisor.isMuted ? 'Unmute stakeholders' : 'Mute stakeholders'}
+                  title={advisor.isMuted ? 'Stakeholders muted · click to unmute' : 'Stakeholders watching · click to mute'}
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
+                      {advisor.isMuted ? '🔇' : '🔊'}
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
+                    {advisor.isMuted ? 'Muted' : 'Stakeholders'}
+                  </span>
+                </button>
+              </div>
               {latestCritique?.text ? (
                 <div className="button-group">
                   <button
@@ -3836,25 +3912,6 @@ ${requirementsBlock}`;
                 </div>
               ) : null}
               <div className="button-group">
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
-                  onClick={advisor.toggleMute}
-                  aria-pressed={advisor.isMuted}
-                  aria-label={advisor.isMuted ? 'Unmute council advisors' : 'Mute council advisors'}
-                  title={advisor.isMuted ? 'Advisors muted · click to wake the council' : 'Council watching · click to mute'}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
-                      {advisor.isMuted ? '🔇' : '🔊'}
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{advisor.isMuted ? 'Wake' : 'Hush'}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
-                    {advisor.isMuted ? 'Muted' : 'Council'}
-                  </span>
-                </button>
                 <button
                   type="button"
                   className="overlay-button compact-button slop-action-button is-clear"
@@ -3885,19 +3942,19 @@ ${requirementsBlock}`;
                   disabled={busy}
                   onClick={toggleChromeSlopPrompt}
                   aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label="Prompt"
-                  title="Prompt · Direct the agent in your own words"
+                  aria-label="Weigh In"
+                  title="Weigh In · Share your thoughts on the matter"
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
                   </ButtonIcon>
-                  <span className="button-label">Prompt</span>
+                  <span className="button-label">Weigh In</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">💬</span>
-                    Prompt
+                    Weigh In
                   </span>
                 </button>
-                <CouncilMascot
+                <StakeholdersMascot
                   personas={[
                     { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
                     { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
@@ -3919,6 +3976,25 @@ ${requirementsBlock}`;
                     onResumeTimer: advisor.resumeTimer
                   } : null}
                 />
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
+                  onClick={advisor.toggleMute}
+                  aria-pressed={advisor.isMuted}
+                  aria-label={advisor.isMuted ? 'Unmute stakeholders' : 'Mute stakeholders'}
+                  title={advisor.isMuted ? 'Stakeholders muted · tap to unmute' : 'Stakeholders watching · tap to mute'}
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
+                      {advisor.isMuted ? '🔇' : '🔊'}
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
+                    {advisor.isMuted ? 'Muted' : 'Stakeholders'}
+                  </span>
+                </button>
                 {latestCritique?.text ? (
                   <button
                     type="button"
@@ -3935,25 +4011,6 @@ ${requirementsBlock}`;
                     <ActionPersonaRole fallback="Site Foreman" />
                   </button>
                 ) : null}
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
-                  onClick={advisor.toggleMute}
-                  aria-pressed={advisor.isMuted}
-                  aria-label={advisor.isMuted ? 'Unmute council advisors' : 'Mute council advisors'}
-                  title={advisor.isMuted ? 'Advisors muted · tap to wake the council' : 'Council watching · tap to mute'}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
-                      {advisor.isMuted ? '🔇' : '🔊'}
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{advisor.isMuted ? 'Wake' : 'Hush'}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
-                    {advisor.isMuted ? 'Muted' : 'Council'}
-                  </span>
-                </button>
                 <button
                   type="button"
                   className="overlay-button compact-button slop-action-button is-clear"

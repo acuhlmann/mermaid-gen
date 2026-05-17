@@ -9,6 +9,7 @@ import {
   TRANSFORM_MODEL_LIMITS,
   buildDiagramMutationSystemMessage,
   buildPatchRequiredInstruction,
+  buildSyntaxGuidanceSystemMessage,
   buildSyntaxRepairInstruction,
   buildTransformUserContent,
   clampGoMadDepth,
@@ -221,6 +222,42 @@ test('buildDiagramMutationSystemMessage enforces infer-default and patch-first b
   assert.match(msg.content, /infer a reasonable default/i);
   assert.match(msg.content, /apply_mermaid_patch/);
   assert.match(msg.content, /clarification/i);
+});
+
+test('buildSyntaxGuidanceSystemMessage injects rule pack for detected diagram type', async () => {
+  const stateStore = createDiagramStateStore();
+  await stateStore.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'sequenceDiagram\n  Alice->>Bob: hi',
+    reason: 'seed'
+  });
+  const msg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'refine' });
+  assert.ok(msg);
+  assert.equal(msg.role, 'system');
+  assert.match(msg.content, /Active diagram type: sequenceDiagram/);
+  assert.match(msg.content, /Sequence diagram rules:/);
+  // Refine mode anchors on the type — no "may change type" disclaimer.
+  assert.doesNotMatch(msg.content, /no longer apply/);
+});
+
+test('buildSyntaxGuidanceSystemMessage marks rules advisory for type-changing modes', async () => {
+  const stateStore = createDiagramStateStore();
+  await stateStore.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n  A --> B',
+    reason: 'seed'
+  });
+  const innovateMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'innovate' });
+  const goMadMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'goMad' });
+  assert.match(innovateMsg.content, /no longer apply/);
+  assert.match(goMadMsg.content, /no longer apply/);
+});
+
+test('buildSyntaxGuidanceSystemMessage returns null when no diagram type is detectable', () => {
+  const stateStore = createDiagramStateStore();
+  // Default state has empty diagramSource.
+  const msg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'refine' });
+  assert.equal(msg, null);
 });
 
 test('applyIntent with requirePatch passes mutation system message before diagram context', async () => {

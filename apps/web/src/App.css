@@ -1577,17 +1577,27 @@
   border-radius: 0.55rem;
   border: 1px solid rgba(15, 23, 42, 0.12);
   background: rgba(248, 250, 252, 0.72);
-  overflow: auto;
+  overflow: hidden;
+  min-height: 9rem;
   max-height: min(28rem, 52vh);
 }
 
 .insights-embedded-diagram-inner {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 5.5rem;
+  height: 100%;
+  min-height: 9rem;
   padding: 0.15rem 0;
+}
+
+.insights-embedded-diagram svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .insights-embedded-diagram--mermaid .insights-embedded-diagram-inner {
@@ -1601,10 +1611,13 @@
   align-items: flex-start;
 }
 
-.insights-embedded-mermaid-svg-host svg {
-  max-width: 100%;
-  width: auto !important;
-  height: auto !important;
+.insights-embedded-mermaid-svg-host {
+  width: 100%;
+  height: 100%;
+  min-height: 9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Embedded preview highlights are styled bolder than the canvas overlay because the
@@ -1700,12 +1713,12 @@
   color: rgba(127, 29, 29, 0.82);
 }
 
-.insights-embedded-diagram--infographic .insights-embedded-diagram-inner {
-  height: 10.5rem;
-  transform: scale(0.78);
-  transform-origin: top center;
-  width: 128%;
-  margin-left: -14%;
+.insights-embedded-diagram--infographic .insights-embedded-diagram-inner,
+.insights-embedded-diagram--infographic .infographic-output,
+.insights-embedded-diagram--infographic .infographic-canvas {
+  width: 100%;
+  height: 100%;
+  min-height: 9rem;
 }
 
 .insights-embedded-diagram .diagram-error {
@@ -3195,33 +3208,98 @@
     display: none;
   }
 
-  /* Council dock: on narrow viewports the wrap only exists to host the speech
-     bubble, thinking chip, or expanded persona fan. When none of those are
-     showing, collapse the wrapper so the mascot button sits in the row like
-     its neighbors (no phantom gap from inline-flex). */
-  .prompt-actions--mobile .council-mascot-wrap:not(:has(.advisor-speech-bubble, .advisor-thinking-indicator, .council-mascot-fan)) {
+  /* Stakeholders dock: collapse the wrapper when idle so the mascot button sits in
+     the row like its neighbors. When a bubble, thinking chip, or expanded fan
+     is active, use display:contents so those children participate in the
+     button-group flex layout (full-width bubble row + optional fan row). */
+  .prompt-actions--mobile .stakeholders-mascot-wrap:not(.is-menu-expanded):not(:has(.advisor-speech-bubble, .advisor-thinking-indicator)) {
     display: contents;
   }
 
-  .prompt-actions--mobile .council-mascot-wrap:has(.advisor-speech-bubble, .advisor-thinking-indicator, .council-mascot-fan) {
-    display: inline-flex;
-    position: relative;
+  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded,
+  .prompt-actions--mobile .stakeholders-mascot-wrap:has(.advisor-speech-bubble, .advisor-thinking-indicator) {
+    display: contents;
   }
 
-  .prompt-actions--mobile .council-mascot {
+  .prompt-actions--mobile .button-group:has(.stakeholders-mascot-fan, .advisor-speech-bubble, .advisor-thinking-indicator) {
+    flex-wrap: wrap;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot {
     flex: 1 1 0;
     min-width: 0;
-    max-width: 4.2rem;
+    max-width: none;
     min-height: 3.2rem;
     padding: 0.36rem 0.4rem;
     border-radius: 0.95rem;
   }
 
-  .prompt-actions--mobile .council-mascot .council-mascot-emoji {
+  .prompt-actions--mobile .stakeholders-mascot .stakeholders-mascot-emoji {
     width: 2.15rem;
     height: 2.15rem;
     font-size: 1.55rem;
     border-radius: 0.65rem;
+  }
+
+  /* Speech bubble / thinking chip: full-width row above the icon buttons. */
+  .prompt-actions--mobile .advisor-speech-bubble,
+  .prompt-actions--mobile .advisor-thinking-indicator {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    flex: 1 1 100%;
+    order: -1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    margin-bottom: 0.2rem;
+  }
+
+  .prompt-actions--mobile .advisor-speech-bubble::after,
+  .prompt-actions--mobile .advisor-thinking-indicator::after {
+    left: 2.6rem;
+    bottom: -7px;
+  }
+
+  .prompt-actions--mobile .advisor-speech-body {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  /* Expanded stakeholders personas: second full-width row below the main actions. */
+  .prompt-actions--mobile .stakeholders-mascot-fan {
+    position: static;
+    flex: 1 1 100%;
+    order: 10;
+    width: 100%;
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 0.35rem;
+    padding: 0.35rem 0.15rem;
+    border-radius: 0.95rem;
+    z-index: auto;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot-fan-item {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding: 0.32rem 0.35rem;
+    justify-content: center;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot-fan-item .button-label {
+    display: none;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot-fan-item .action-persona-icon {
+    width: 2rem;
+    height: 2rem;
+    font-size: 1.45rem;
+    border-radius: 0.6rem;
   }
 
   /* Clear button isn't a slop-action-button. Keep it square-ish too so the
@@ -3808,7 +3886,7 @@
   letter-spacing: 0.04em;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28);
   text-align: center;
-  max-width: 9rem;
+  max-width: 100px;
   z-index: 3;
   animation: radial-chip-pop 180ms ease-out;
 }
@@ -3819,16 +3897,22 @@
   color: #93c5fd;
   font-size: 0.62rem;
   letter-spacing: 0.08em;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.2;
 }
 
 .radial-action-chip-name {
   font-weight: 600;
   font-size: 0.78rem;
   letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 8.5rem;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.25;
 }
 
 .radial-action-button {
@@ -4689,6 +4773,7 @@ button {
 .agent-proposal-preview .insights-embedded-diagram {
   max-height: min(34rem, 66vh);
   width: 100%;
+  overflow: hidden;
 }
 
 .agent-proposal-restore-row {
@@ -7093,9 +7178,9 @@ body.slopitect-rainbow-tint::before {
 }
 
 /* ──────────────────────────────────────────────────────────────────
- * Council of Advisors — unified mascot dock + proactive bubble
+ * Stakeholders — unified mascot dock + proactive bubble
  * ────────────────────────────────────────────────────────────────── */
-.council-mascot-wrap {
+.stakeholders-mascot-wrap {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -7103,24 +7188,24 @@ body.slopitect-rainbow-tint::before {
   pointer-events: auto;
 }
 
-.council-mascot {
-  --slop-action-accent: var(--council-accent, #6366f1);
-  --slop-action-accent-2: var(--council-accent, #8b5cf6);
-  --slop-action-glow: color-mix(in srgb, var(--council-accent, #6366f1) 28%, transparent);
+.stakeholders-mascot {
+  --slop-action-accent: var(--stakeholders-accent, #6366f1);
+  --slop-action-accent-2: var(--stakeholders-accent, #8b5cf6);
+  --slop-action-glow: color-mix(in srgb, var(--stakeholders-accent, #6366f1) 28%, transparent);
   min-width: 6.5rem;
   cursor: pointer;
   transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
 }
 
-.council-mascot.is-expanded {
+.stakeholders-mascot.is-expanded {
   transform: translateY(-1px);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--council-accent, #6366f1) 30%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--stakeholders-accent, #6366f1) 30%, transparent),
     0 14px 30px var(--slop-action-glow),
     var(--control-shadow);
 }
 
-.council-mascot-emoji {
+.stakeholders-mascot-emoji {
   font-size: 1.55rem;
   line-height: 1;
   width: 1.95rem;
@@ -7132,41 +7217,41 @@ body.slopitect-rainbow-tint::before {
   background:
     radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.55) 55%, transparent 75%),
     linear-gradient(150deg,
-      color-mix(in srgb, var(--council-accent, var(--accent)) 28%, white),
-      color-mix(in srgb, var(--council-accent, var(--accent)) 44%, white));
-  border: 1px solid color-mix(in srgb, var(--council-accent, var(--accent)) 55%, transparent);
+      color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 28%, white),
+      color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 44%, white));
+  border: 1px solid color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 55%, transparent);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
-    inset 0 -2px 6px color-mix(in srgb, var(--council-accent, var(--accent)) 28%, transparent),
-    0 6px 14px color-mix(in srgb, var(--council-accent, var(--accent)) 22%, transparent);
+    inset 0 -2px 6px color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 28%, transparent),
+    0 6px 14px color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 22%, transparent);
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .council-mascot--active .council-mascot-emoji {
-    animation: council-mascot-breathe 1.8s ease-in-out infinite;
+  .stakeholders-mascot--active .stakeholders-mascot-emoji {
+    animation: stakeholders-mascot-breathe 1.8s ease-in-out infinite;
   }
-  .council-mascot--idle .council-mascot-emoji {
-    animation: council-mascot-idle 4.2s ease-in-out infinite;
+  .stakeholders-mascot--idle .stakeholders-mascot-emoji {
+    animation: stakeholders-mascot-idle 4.2s ease-in-out infinite;
   }
 }
 
-@keyframes council-mascot-breathe {
+@keyframes stakeholders-mascot-breathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08); }
 }
 
-@keyframes council-mascot-idle {
+@keyframes stakeholders-mascot-idle {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-2px); }
 }
 
-.council-mascot-role {
-  background: color-mix(in srgb, var(--council-accent, var(--accent)) 12%, white);
-  border-color: color-mix(in srgb, var(--council-accent, var(--accent)) 22%, transparent);
-  color: color-mix(in srgb, var(--council-accent, var(--accent)) 80%, #0f172a);
+.stakeholders-mascot-role {
+  background: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 12%, white);
+  border-color: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 22%, transparent);
+  color: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 80%, #0f172a);
 }
 
-.council-mascot-fan {
+.stakeholders-mascot-fan {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
@@ -7175,22 +7260,22 @@ body.slopitect-rainbow-tint::before {
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(99, 102, 241, 0.18);
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  animation: council-fan-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
+  animation: stakeholders-fan-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
   pointer-events: auto;
 }
 
-.council-mascot-fan-item {
+.stakeholders-mascot-fan-item {
   /* Persona buttons inside the fan are visually a touch smaller than the dock
      base, since the mascot already carries the heavy chrome. */
   min-height: 2.55rem;
   padding: 0.3rem 0.7rem 0.3rem 0.42rem;
 }
 
-.council-mascot-fan-item .slop-action-role {
+.stakeholders-mascot-fan-item .slop-action-role {
   display: none;
 }
 
-@keyframes council-fan-in {
+@keyframes stakeholders-fan-in {
   from { opacity: 0; transform: translateX(-6px); }
   to { opacity: 1; transform: translateX(0); }
 }
@@ -7199,10 +7284,12 @@ body.slopitect-rainbow-tint::before {
   position: absolute;
   left: 0;
   bottom: calc(100% + 0.55rem);
-  width: max-content;
-  max-width: min(38rem, calc(100vw - 2rem));
-  display: inline-flex;
-  align-items: center;
+  width: min(28rem, calc(100vw - 2rem));
+  min-width: min(18rem, calc(100vw - 2rem));
+  max-width: min(32rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
   gap: 0.6rem;
   padding: 0.5rem 0.6rem 0.5rem 0.5rem;
   border-radius: 14px;
@@ -7358,7 +7445,7 @@ body.slopitect-rainbow-tint::before {
 
 /* During thinking, the mascot avatar takes on the persona accent and pulses
    a touch faster — the dock visibly anticipates the next speaker. */
-.council-mascot--thinking .council-mascot-emoji {
+.stakeholders-mascot--thinking .stakeholders-mascot-emoji {
   animation: advisor-thinking-pulse 1.1s ease-in-out infinite;
 }
 
@@ -7380,8 +7467,7 @@ body.slopitect-rainbow-tint::before {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
-  min-width: 12rem;
-  max-width: 30rem;
+  min-width: 11rem;
   flex: 1 1 auto;
 }
 
@@ -7399,6 +7485,8 @@ body.slopitect-rainbow-tint::before {
   color: #1f2937;
   font-weight: 500;
   overflow-wrap: anywhere;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .advisor-speech-actions {
@@ -7451,12 +7539,23 @@ body.slopitect-rainbow-tint::before {
 
 @media (max-width: 540px) {
   .advisor-speech-bubble {
-    left: 0.5rem;
-    right: 0.5rem;
+    width: calc(100vw - 1rem);
+    min-width: 0;
     max-width: none;
     padding: 0.5rem 0.55rem;
     gap: 0.5rem;
   }
+
+  .advisor-speech-body {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .advisor-speech-actions {
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+
   .advisor-speech-emoji {
     font-size: 1.4rem;
     width: 2rem;
@@ -7469,6 +7568,7 @@ body.slopitect-rainbow-tint::before {
     padding: 0.28rem 0.62rem;
     font-size: 0.72rem;
   }
+
 }
 
 @keyframes advisor-bubble-in {
@@ -7511,19 +7611,29 @@ body.slopitect-rainbow-tint::before {
 }
 
 /* Highlighted nodes that the active advisor is pointing at. */
-.is-advisor-pointing {
-  outline: 2px solid rgba(99, 102, 241, 0.78);
-  outline-offset: 2px;
-  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.55));
+.diagram-output.has-advisor-highlight .is-advisor-pointing {
+  outline: 2.5px solid color-mix(in srgb, var(--advisor-highlight-accent, #6366f1) 82%, transparent);
+  outline-offset: 3px;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--advisor-highlight-accent, #6366f1) 55%, transparent));
+}
+
+.diagram-output.has-advisor-highlight-pinned .is-advisor-pointing {
+  outline-width: 3px;
+  outline-offset: 4px;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--advisor-highlight-accent, #6366f1) 68%, transparent));
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  .is-advisor-pointing {
+  .diagram-output.has-advisor-highlight .is-advisor-pointing {
     animation: advisor-pointing-pulse 1.6s ease-in-out infinite;
   }
 }
 
 @keyframes advisor-pointing-pulse {
-  0%, 100% { filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.45)); }
-  50% { filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.7)); }
+  0%, 100% {
+    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--advisor-highlight-accent, #6366f1) 42%, transparent));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px color-mix(in srgb, var(--advisor-highlight-accent, #6366f1) 72%, transparent));
+  }
 }

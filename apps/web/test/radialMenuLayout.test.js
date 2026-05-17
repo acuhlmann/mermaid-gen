@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   adjacentButtonSeparationPx,
+  chipBoundingClearancePx,
   RADIAL_MIN_CENTER_SEPARATION_PX,
   resolveArcGeometry
 } from '../src/utils/radialMenuLayout.js';
@@ -16,5 +17,11 @@ describe('radialMenuLayout', () => {
     const { radiusPx, spreadDeg } = resolveArcGeometry(2, 82);
     expect(radiusPx).toBe(82);
     expect(spreadDeg).toBeGreaterThanOrEqual(165);
+  });
+
+  it('pushes the arc outward when the center chip is large', () => {
+    const clearance = chipBoundingClearancePx(220, 48, 34);
+    const { radiusPx } = resolveArcGeometry(3, 82, clearance);
+    expect(radiusPx).toBeGreaterThanOrEqual(clearance);
   });
 });

@@ -346,6 +346,36 @@ export async function syncClientDiagramState({ contentType = 'mermaid', diagramS
   return payload;
 }
 
+/**
+ * Cheap render-error repair: posts the current source plus the browser's Mermaid render error
+ * to the dedicated render-error endpoint. The server runs only the single-shot syntax-fixer
+ * model (no full agent loop), so this returns in roughly one LLM call instead of an entire
+ * agent turn.
+ *
+ * Returns `{repaired: true, state}` when the server applied a fix, `{repaired: false, ...}` when
+ * the fixer rejected, the revision was stale, or the server isn't configured. Callers should
+ * fall back to the heavyweight agent-based fix on `repaired: false`.
+ */
+export async function submitDiagramRenderRepair({ revisionId, source, renderError, sessionId }) {
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/diagram/render-error`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
+      body: JSON.stringify({ revisionId, source, renderError })
+    },
+    AGENT_REQUEST_TIMEOUT_MS,
+    'Render-error repair timed out.'
+  );
+
+  const payload = await response.json();
+  if (!response.ok) {
+    // Don't throw — let the caller decide whether to fall back to the heavyweight path.
+    return { repaired: false, error: payload?.error ?? `HTTP ${response.status}` };
+  }
+  return payload;
+}
+
 export async function submitDiagramIntent({
   prompt,
   revisionId,

@@ -21,6 +21,7 @@ import {
 import InfographicRenderer from './InfographicRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
+import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighlightIds.js';
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
 
@@ -159,7 +160,9 @@ export default function DiagramCanvas({
   onEditorClose = null,
   changeHighlight = null,
   onDiagramSvgRendered = null,
-  runFx = null
+  runFx = null,
+  /** When set, pan/zoom the canvas to frame these advisor highlight ids (e.g. on pin). */
+  advisorPinFocusIds = null
 }) {
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
   const [editorSource, setEditorSource] = useState(diagramSource);
@@ -295,6 +298,19 @@ export default function DiagramCanvas({
     observer.observe(root, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, [applyViewportFit, contentType, editorSource, revisionId, streamingPreview]);
+
+  useEffect(() => {
+    if (!Array.isArray(advisorPinFocusIds) || advisorPinFocusIds.length === 0) return undefined;
+    if (streamingPreview) return undefined;
+    const viewportEl = viewportRef.current;
+    if (!viewportEl?.querySelector('svg')) return undefined;
+    const next = computeViewportFocusForHighlightIds(viewportEl, advisorPinFocusIds);
+    if (!next) return undefined;
+    const id = requestAnimationFrame(() => {
+      setViewport(next);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [advisorPinFocusIds, revisionId, streamingPreview, svgMarkup]);
 
   const fireDiagramRevisionPulse = useCallback(() => {
     if (pulseTimeoutRef.current) {

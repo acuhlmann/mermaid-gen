@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "name": "mermaid",
+  "owner": "diegomarino",
+  "repo": "claude-toolshed",
+  "path": "plugins/mermaid/skills/mermaid",
+  "branch": "main",
+  "sha": "9d11ccd8abf7d483567fac9745d87feada8ca304",
+  "source": "manual"
+}

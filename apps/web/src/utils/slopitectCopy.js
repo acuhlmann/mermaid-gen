@@ -459,7 +459,7 @@ export const ACHIEVEMENTS = {
  */
 export const LEVEL_UP_BANNER = {
   title: '⬆️ LEVEL UP',
-  subtitle: 'The Slopitect Council recognises your synergy.'
+  subtitle: 'The Slopitect Stakeholders recognise your synergy.'
 };
 
 export const CONSOLE_STAMP_LINES = [

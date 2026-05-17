@@ -117,16 +117,21 @@ export async function validateMermaidStrict(source) {
   return { valid: true, validator: 'local-parser', timings };
 }
 
+/** Keep the most recent prior attempts to avoid bloating the repair prompt. */
+const PREVIOUS_ATTEMPTS_LIMIT = 2;
+
 export async function attemptRepair({ source, error, maxAttempts = DEFAULT_REPAIR_MAX_ATTEMPTS, repair }) {
   const retries = clampPositiveInt(maxAttempts, DEFAULT_REPAIR_MAX_ATTEMPTS);
   let currentSource = source;
   let currentError = sanitizeErrorMessage(error);
+  const previousAttempts = [];
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     const nextSource = await repair({
       source: currentSource,
       error: currentError,
-      attempt
+      attempt,
+      previousAttempts: previousAttempts.slice(-PREVIOUS_ATTEMPTS_LIMIT)
     });
 
     if (!nextSource || nextSource.trim() === currentSource.trim()) {
@@ -147,6 +152,7 @@ export async function attemptRepair({ source, error, maxAttempts = DEFAULT_REPAI
       };
     }
 
+    previousAttempts.push({ source: currentSource, error: currentError });
     currentSource = nextSource;
     currentError = validation.error;
   }

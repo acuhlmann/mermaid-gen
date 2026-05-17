@@ -10,7 +10,7 @@ const PERSONA_CLASS = {
 
 /**
  * Floating speech bubble that surfaces a proactive suggestion from the active
- * council persona. Anchored above the dock mascot so the tail points down toward
+ * stakeholders persona. Anchored above the dock mascot so the tail points down toward
  * the avatar without overlapping it.
  *
  * Interaction:

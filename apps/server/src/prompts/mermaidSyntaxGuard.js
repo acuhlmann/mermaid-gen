@@ -8,18 +8,20 @@
 
 const COMMON_FIXES = `Universal Mermaid rules:
 - Label with special characters must be quoted: A["user (admin)"], not A[user (admin)].
-- Avoid reserved words as node IDs (end, class, style, default, subgraph) — use n_end, n_class, etc.
+- Avoid reserved words as node IDs (end, class, style, default, subgraph, classDef, click, call, graph, interpolate, linkStyle, flowchart, sequenceDiagram, loop, alt, else, opt, par, and) — use n_end, n_class, etc.
 - Keep node IDs to ASCII letters/digits/underscores; put any unicode/punctuation in the quoted label only.
-- Use straight ASCII quotes (" '), never smart quotes (“ ”).
+- Use straight ASCII quotes (" '), never smart quotes (“ ”). Don't mix quote types inside one label.
+- For literal quotes/parens in labels, use Mermaid #NNN; codes (#34; for ", #40; for (, #41; for )); HTML named entities like &lt; &gt; &amp; render literally — only &quot; works.
 - One diagram-type keyword on the first non-blank line, no init directive after it.
 - %%{init: { ... }}%% must be valid JSON with double-quoted keys/strings.
 `;
 
 const FLOWCHART_RULES = `${COMMON_FIXES}
 Flowchart / graph rules:
-- Header: \`flowchart TD\` or \`graph LR\` (TD, TB, BT, LR, RL).
+- Header: \`flowchart TD\` or \`graph LR\` (TD, TB, BT, LR, RL). Header line stands alone — never put nodes on the same line.
 - Node shapes: A[Rect], A(Round), A([Stadium]), A{Diamond}, A[[Sub]], A>Asym], A{{Hex}}.
-- Edges: A --> B, A --- B (no arrow), A -. text .-> B (dotted), A == text ==> B (thick).
+- Node IDs: ASCII letters/digits/_/- only — never @ # % or spaces in the ID itself (those belong in the quoted label).
+- Edges: A --> B, A --- B (no arrow), A -. text .-> B (dotted), A == text ==> B (thick). Never -> (one dash), ---> (three dashes), or <--> in flowchart.
 - Edge label with specials: A -->|"key: value"| B (quote when colon, paren, slash present).
 - Subgraphs must close: subgraph S [optional title] ... end.
 - classDef + class: classDef hot fill:#f33,color:#fff; class A,B hot;  (no spaces around commas).
@@ -29,11 +31,12 @@ Flowchart / graph rules:
 const SEQUENCE_RULES = `${COMMON_FIXES}
 Sequence diagram rules:
 - Header: sequenceDiagram (no direction).
-- Declare with participant (or actor) Alice, then arrows: Alice->>Bob: msg, Alice-->>Bob: dashed, Alice-)Bob: async, Alice--xBob: cross.
+- Declare with participant (or actor) Alice (space required between keyword and name), then arrows: Alice->>Bob: msg, Alice-->>Bob: dashed, Alice-)Bob: async, Alice--xBob: cross.
+- Arrow MUST be followed by a colon before the message: \`Alice->>Bob: hello\` — never \`Alice->>Bob hello\`.
 - Note over Alice,Bob: text. Note left of Alice: text. Note right of Bob: text.
-- Loops/alt/opt require matching end: loop poll\\n ...\\nend; alt cond\\n ...\\nelse\\n ...\\nend.
+- Never put \`;\` inside Note text — the parser truncates the Note silently at the first semicolon. Use \`,\` to separate items.
+- Loops/alt/opt require matching end: loop poll\\n ...\\nend; alt cond\\n ...\\nelse\\n ...\\nend. Same for opt, par, rect, break, critical.
 - Activations: activate Alice / deactivate Alice (must pair).
-- No semicolons. Colons after participant names are the message delimiter, not statement terminators.
 `;
 
 const CLASS_RULES = `${COMMON_FIXES}
@@ -49,16 +52,19 @@ const STATE_RULES = `${COMMON_FIXES}
 State diagram (v2) rules:
 - Header: stateDiagram-v2.
 - Transitions: A --> B : event; [*] --> A is the entry; A --> [*] is the exit.
+- Transition labels (text after \`:\`) must be a single unbroken line — no \\n. Use \`,\` to separate multiple events: \`A --> B : step one, step two\`.
+- State descriptions use \`as\`, not a colon: \`state "Long description" as s1\` — never \`state "Long description": s1\`.
 - Composite states: state Compound { Idle --> Active : start } ... use braces, not subgraph.
 - Concurrent states: split with -- inside the composite.
+- classDef cannot target \`[*]\` (start/end pseudo-states) — apply classes only to named states.
 - Note left of A : text  /  Note right of A : text.
 `;
 
 const ER_RULES = `${COMMON_FIXES}
 Entity-relationship rules:
 - Header: erDiagram.
-- Cardinality between entities uses dots and pipes: CUSTOMER ||--o{ ORDER : places. ||--|| (one-one), }o--o{ (many-many).
-- Attribute blocks: ENTITY { string name PK "comment optional" } — type first, then name, then key (PK/FK), then optional quoted comment.
+- Cardinality between entities uses dots and pipes: CUSTOMER ||--o{ ORDER : places. ||--|| (one-one), }o--o{ (many-many). Never abbreviate to \`|--\` — both sides need cardinality markers.
+- Attribute blocks: ENTITY { string name PK "comment optional" } — attribute order is ALWAYS \`type name\` (e.g., \`int id\`, \`string email\`), never \`name type\`. Wrong order yields \`Expected ATTRIBUTE_WORD but found BLOCK_STOP\`.
 - Entity and attribute names must be uppercase identifiers (Mermaid convention).
 `;
 
@@ -67,7 +73,9 @@ Gantt rules:
 - Header: gantt then dateFormat YYYY-MM-DD on the next line.
 - Sections: section Name. Tasks: \`Task name :id, after otherId, 3d\` or \`Task :2024-01-02, 5d\`.
 - Status prefixes: done, active, crit, milestone.
-- Avoid colons in task names (use them only as the task-line separator).
+- Always put a comma between the task id and the date: \`task :id, 2024-01-02, 3d\` — missing comma (\`task :id 2024-01-02, 3d\`) silently fails in Firefox.
+- Avoid colons, semicolons, and # in task names (use \`:\` only as the task-line separator); they cause truncation or parse errors.
+- Reserved gantt keywords (don't use as bare task names): gantt, section, dateFormat, click, title, axisFormat, excludes, includes, todayMarker, topAxis — quote them if needed (\`"section task" :2024-01-04, 1d\`).
 `;
 
 const JOURNEY_RULES = `${COMMON_FIXES}
@@ -110,7 +118,8 @@ Quadrant chart rules:
 const PIE_RULES = `${COMMON_FIXES}
 Pie chart rules:
 - Header: pie or pie showData, then optional title.
-- Slices: "Label" : 42  (quoted label, then colon, then number).
+- Slices: "Label" : 42  (quoted label, then colon, then positive number).
+- Values must be positive numbers — negative, zero, empty, or non-numeric values fail silently with no error and a blank chart.
 `;
 
 const BLOCK_RULES = `${COMMON_FIXES}

@@ -6,6 +6,18 @@ export const RADIAL_MIN_CENTER_SEPARATION_PX = RADIAL_BUTTON_SIZE_PX + RADIAL_BU
 
 export const ARC_SPREAD_DEFAULT_DEG = 165;
 export const ARC_SPREAD_MAX_DEG = 250;
+/** Gap between the chip edge and the nearest action button edge. */
+export const CHIP_TO_BUTTON_GAP_PX = 12;
+
+/**
+ * Smallest arc radius (px) so button centers sit outside a rectangular chip
+ * centered on the menu origin.
+ */
+export function chipBoundingClearancePx(chipWidth, chipHeight, buttonHalfPx, gapPx = CHIP_TO_BUTTON_GAP_PX) {
+  if (!chipWidth || !chipHeight) return 0;
+  const halfDiagonal = Math.hypot(chipWidth / 2, chipHeight / 2);
+  return halfDiagonal + buttonHalfPx + gapPx;
+}
 
 /**
  * Minimum total arc spread (degrees) so button centers are at least
@@ -31,17 +43,18 @@ export function radiusForSpreadDeg(count, spreadDeg) {
  * Pick arc radius and spread so radial buttons do not overlap, preferring
  * the base radius and widening the arc before pushing buttons farther out.
  */
-export function resolveArcGeometry(count, baseRadiusPx) {
-  if (count <= 0) return { radiusPx: baseRadiusPx, spreadDeg: 0 };
-  if (count === 1) return { radiusPx: baseRadiusPx, spreadDeg: 0 };
+export function resolveArcGeometry(count, baseRadiusPx, minRadiusPx = 0) {
+  const effectiveBase = Math.max(baseRadiusPx, minRadiusPx);
+  if (count <= 0) return { radiusPx: effectiveBase, spreadDeg: 0 };
+  if (count === 1) return { radiusPx: effectiveBase, spreadDeg: 0 };
 
-  const minSpreadAtBase = minArcSpreadDeg(count, baseRadiusPx);
+  const minSpreadAtBase = minArcSpreadDeg(count, effectiveBase);
   let spreadDeg = Math.max(ARC_SPREAD_DEFAULT_DEG, minSpreadAtBase);
-  let radiusPx = baseRadiusPx;
+  let radiusPx = effectiveBase;
 
   if (spreadDeg > ARC_SPREAD_MAX_DEG) {
     spreadDeg = ARC_SPREAD_MAX_DEG;
-    radiusPx = Math.max(baseRadiusPx, radiusForSpreadDeg(count, spreadDeg));
+    radiusPx = Math.max(effectiveBase, radiusForSpreadDeg(count, spreadDeg));
     const minSpreadAtRadius = minArcSpreadDeg(count, radiusPx);
     if (minSpreadAtRadius > spreadDeg) {
       spreadDeg = Math.min(minSpreadAtRadius, ARC_SPREAD_MAX_DEG + 40);

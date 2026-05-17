@@ -492,7 +492,7 @@ export function playXpPickup(audioContextRef) {
 
 /**
  * Full level-up fanfare — taller and more triumphant than the achievement
- * cue. Used when the Slopitect council promotes the operator to a new tier.
+ * cue. Used when the Slopitect stakeholders promotes the operator to a new tier.
  */
 export function playLevelUpFanfare(audioContextRef) {
   const context = getContext(audioContextRef);

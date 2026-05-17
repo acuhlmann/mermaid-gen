@@ -21,6 +21,21 @@ function extractMermaidFromResponse(text) {
   return text.trim();
 }
 
+/** Render up to N prior failed attempts as a compact "don't repeat" hint for the fixer. */
+function formatPreviousAttempts(previousAttempts) {
+  if (!Array.isArray(previousAttempts) || previousAttempts.length === 0) return '';
+  const block = previousAttempts
+    .filter((entry) => entry && typeof entry.source === 'string')
+    .slice(-2)
+    .map((entry, index) => {
+      const error = (entry.error ?? '').toString().trim().slice(0, 400);
+      return `Previous attempt ${index + 1} (rejected — error: ${error}):\n\`\`\`mermaid\n${entry.source.trim()}\n\`\`\``;
+    })
+    .join('\n\n');
+  if (!block) return '';
+  return `${block}\n\nDo not repeat the same mistakes from the attempts above. Apply a different fix.\n\n`;
+}
+
 /**
  * Single-shot, tool-less Mermaid syntax repair using a dedicated fast model. Independent
  * of the LangChain react-agent loop so it doesn't pay tool plumbing / system-prompt overhead.
@@ -28,9 +43,9 @@ function extractMermaidFromResponse(text) {
  * Returns `{ accepted: true, diagramSource }` when a corrected diagram passes
  * `validateMermaidStrict`, otherwise `{ accepted: false, error }`.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
  */
-export async function repairMermaidWithFixer({ brokenSource, parseError, originalRequest, env, modelOverride } = {}) {
+export async function repairMermaidWithFixer({ brokenSource, parseError, originalRequest, previousAttempts, env, modelOverride } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
   }
@@ -42,12 +57,13 @@ export async function repairMermaidWithFixer({ brokenSource, parseError, origina
   const diagramType = inferDiagramType(brokenSource);
   const rulePack = getRulePack(diagramType);
   const errorText = (parseError ?? '').toString().trim() || 'Mermaid parser rejected the source.';
+  const priorBlock = formatPreviousAttempts(previousAttempts);
 
   const userContent = `${rulePack}
 Parser error:
 ${errorText}
 
-${originalRequest ? `Original user request (for intent only — do not echo):\n${originalRequest}\n\n` : ''}Broken Mermaid source:
+${originalRequest ? `Original user request (for intent only — do not echo):\n${originalRequest}\n\n` : ''}${priorBlock}Broken Mermaid source:
 \`\`\`mermaid
 ${brokenSource.trim()}
 \`\`\`

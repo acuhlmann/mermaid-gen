@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { partKindLabel } from '../utils/partKindLabel.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
-import { resolveArcGeometry } from '../utils/radialMenuLayout.js';
+import { chipBoundingClearancePx, resolveArcGeometry } from '../utils/radialMenuLayout.js';
 
 const ARC_RADIUS_DESKTOP_PX = 82;
 const ARC_RADIUS_MOBILE_PX = 62;
@@ -10,8 +10,23 @@ const BUTTON_HALF_MOBILE_PX = 32;
 const VIEWPORT_MARGIN_PX = 8;
 const MOBILE_BOTTOM_CHROME_RESERVE_PX = 120;
 const HOVER_DISK_EXTRA_PX = 12;
-const CHIP_NAME_OFFSET_THRESHOLD = 18;
-const CHIP_NAME_OFFSET_PX = 14;
+/** Max chip width before the label wraps (keeps the action ring compact). */
+export const CHIP_MAX_WIDTH_PX = 100;
+
+function estimateChipSize(name, typeLabel) {
+  const maxW = CHIP_MAX_WIDTH_PX;
+  const padX = 20;
+  const padY = 10;
+  const typeLineH = 12;
+  const nameLineH = 14;
+  const avgChar = 6.5;
+  const contentW = Math.max(typeLabel.length * 5.5, (name || '').length * avgChar);
+  const width = Math.min(maxW, Math.max(72, contentW + padX));
+  const charsPerLine = Math.max(8, (width - padX) / avgChar);
+  const lines = name ? Math.max(1, Math.ceil(name.length / charsPerLine)) : 0;
+  const height = padY * 2 + typeLineH + (lines ? lines * nameLineH + 2 : 0);
+  return { width, height };
+}
 
 function pickArcSide(anchor, vv) {
   const spaces = {
@@ -94,6 +109,8 @@ export default function RadialActionMenu({
   onClose
 }) {
   const wrapperRef = useRef(null);
+  const chipRef = useRef(null);
+  const [chipSize, setChipSize] = useState(null);
   const [viewportTick, setViewportTick] = useState(0);
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
@@ -132,15 +149,57 @@ export default function RadialActionMenu({
     [actions]
   );
 
+  const chipTypeLabel = descriptor ? partKindLabel(descriptor.partKind) : '';
+  const chipName = descriptor ? descriptor.partName || descriptor.label || descriptor.id || '' : '';
+
+  useEffect(() => {
+    setChipSize(null);
+  }, [descriptor?.id, chipName, chipTypeLabel]);
+
+  useLayoutEffect(() => {
+    const el = chipRef.current;
+    if (!el || !descriptor) return undefined;
+    function measure() {
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+      setChipSize((prev) => {
+        if (
+          prev &&
+          Math.abs(prev.width - rect.width) < 0.5 &&
+          Math.abs(prev.height - rect.height) < 0.5
+        ) {
+          return prev;
+        }
+        return { width: rect.width, height: rect.height };
+      });
+    }
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [descriptor, chipName, chipTypeLabel, narrowLayout]);
+
+  const effectiveChipSize = useMemo(
+    () => chipSize ?? estimateChipSize(chipName, chipTypeLabel),
+    [chipName, chipSize, chipTypeLabel]
+  );
+
   const layout = useMemo(() => {
     if (!anchor) return null;
     const vv = readViewportBounds();
     const baseRadiusPx = narrowLayout ? ARC_RADIUS_MOBILE_PX : ARC_RADIUS_DESKTOP_PX;
+    const buttonHalfPx = narrowLayout ? BUTTON_HALF_MOBILE_PX : BUTTON_HALF_DESKTOP_PX;
+    const chipClearancePx = chipBoundingClearancePx(
+      effectiveChipSize.width,
+      effectiveChipSize.height,
+      buttonHalfPx
+    );
     const { radiusPx: arcRadiusPx, spreadDeg: arcSpreadDeg } = resolveArcGeometry(
       visibleActions.length,
-      baseRadiusPx
+      baseRadiusPx,
+      chipClearancePx
     );
-    const buttonHalfPx = narrowLayout ? BUTTON_HALF_MOBILE_PX : BUTTON_HALF_DESKTOP_PX;
     const bottomReservePx = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
     const centerX = typeof anchor.left === 'number' ? anchor.left : (anchor.nodeLeft + anchor.nodeRight) / 2;
     const centerY = typeof anchor.centerY === 'number' ? anchor.centerY : (anchor.nodeTop + anchor.nodeBottom) / 2;
@@ -152,6 +211,7 @@ export default function RadialActionMenu({
       centerY,
       side,
       hoverDiskDiameter,
+      chipHalfHeight: effectiveChipSize.height / 2,
       positions: positions.map((pos) => {
         const rawX = centerX + pos.dx;
         const rawY = centerY + pos.dy;
@@ -161,7 +221,7 @@ export default function RadialActionMenu({
     };
     // viewportTick forces re-layout when the visual viewport size changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchor, narrowLayout, visibleActions.length, viewportTick]);
+  }, [anchor, effectiveChipSize.height, effectiveChipSize.width, narrowLayout, visibleActions.length, viewportTick]);
 
   useEffect(() => {
     function onKey(event) {
@@ -186,15 +246,10 @@ export default function RadialActionMenu({
     onBackdropPointerDown?.();
   }
 
-  const chipTypeLabel = partKindLabel(descriptor.partKind);
-  const chipName = descriptor.partName || descriptor.label || descriptor.id || '';
-  const chipShiftUp = chipName.length > CHIP_NAME_OFFSET_THRESHOLD;
   const chipStyle = {
     left: layout.centerX,
     top: layout.centerY,
-    transform: chipShiftUp
-      ? `translate(-50%, calc(-50% - ${CHIP_NAME_OFFSET_PX}px))`
-      : 'translate(-50%, -50%)'
+    transform: 'translate(-50%, -50%)'
   };
 
   return (
@@ -249,7 +304,8 @@ export default function RadialActionMenu({
         );
       })}
       <div
-        className={`radial-action-chip${chipShiftUp ? ' is-shifted-up' : ''}`}
+        ref={chipRef}
+        className="radial-action-chip"
         style={chipStyle}
         onPointerDown={handleBackdropPointerDown}
         onPointerEnter={onHoverHold}
@@ -263,7 +319,7 @@ export default function RadialActionMenu({
           className="radial-slop-prompt-tray"
           style={{
             left: layout.centerX,
-            top: layout.centerY + (narrowLayout ? 52 : 68),
+            top: layout.centerY + layout.chipHalfHeight + (narrowLayout ? 14 : 18),
             transform: 'translate(-50%, 0)'
           }}
           onPointerDown={(event) => event.stopPropagation()}
