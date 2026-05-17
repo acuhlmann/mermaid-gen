@@ -173,6 +173,11 @@
   cursor: pointer;
 }
 
+.diagram-viewport svg g.timeline-node {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 .diagram-viewport svg .cluster {
   pointer-events: auto;
   cursor: pointer;
@@ -219,7 +224,8 @@
   vector-effect: non-scaling-stroke;
 }
 
-.diagram-viewport svg g.node.is-diagram-selected {
+.diagram-viewport svg g.node.is-diagram-selected,
+.diagram-viewport svg g.timeline-node.is-diagram-selected {
   filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent) 65%, transparent))
     drop-shadow(0 0 5px color-mix(in srgb, var(--accent) 45%, transparent));
   cursor: pointer;
@@ -229,7 +235,9 @@
 .diagram-viewport svg g.node.is-diagram-selected rect,
 .diagram-viewport svg g.node.is-diagram-selected polygon,
 .diagram-viewport svg g.node.is-diagram-selected circle,
-.diagram-viewport svg g.node.is-diagram-selected ellipse {
+.diagram-viewport svg g.node.is-diagram-selected ellipse,
+.diagram-viewport svg g.timeline-node.is-diagram-selected path,
+.diagram-viewport svg g.timeline-node.is-diagram-selected line {
   stroke: var(--accent) !important;
   stroke-width: 4px !important;
 }
@@ -252,7 +260,8 @@
   stroke-width: 2px !important;
 }
 
-.diagram-viewport svg g.node.is-diagram-hover {
+.diagram-viewport svg g.node.is-diagram-hover,
+.diagram-viewport svg g.timeline-node.is-diagram-hover {
   filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 28%, transparent));
 }
 
@@ -260,7 +269,9 @@
 .diagram-viewport svg g.node.is-diagram-hover rect,
 .diagram-viewport svg g.node.is-diagram-hover polygon,
 .diagram-viewport svg g.node.is-diagram-hover circle,
-.diagram-viewport svg g.node.is-diagram-hover ellipse {
+.diagram-viewport svg g.node.is-diagram-hover ellipse,
+.diagram-viewport svg g.timeline-node.is-diagram-hover path,
+.diagram-viewport svg g.timeline-node.is-diagram-hover line {
   stroke: color-mix(in srgb, var(--accent) 55%, #ffffff) !important;
   stroke-width: 2px !important;
 }
@@ -475,6 +486,11 @@
   border-left: 1px solid rgba(15, 23, 42, 0.1);
   box-shadow: -12px 0 36px rgba(15, 23, 42, 0.08);
   animation: insights-pane-slide-in 260ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Code button sits top-right; when hidden, reclaim that clearance. */
+.app-shell:not(.has-edit-control) .insights-pane {
+  padding-top: 1rem;
 }
 
 .insights-pane.is-closing {
@@ -2959,26 +2975,53 @@
 .brand-control {
   top: 1rem;
   left: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  max-width: calc(100vw - 2rem);
+  user-select: none;
+  overflow: visible;
+}
+
+.brand-control-chip {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
   padding: 0.32rem 0.72rem 0.32rem 0.38rem;
   border: 1px solid var(--control-border);
-  border-radius: 1.25rem;
+  border-radius: 999px;
   background: rgba(15, 23, 42, 0.88);
   color: #ffffff;
   box-shadow: var(--control-shadow);
   font-size: 0.92rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-  user-select: none;
-  overflow: visible;
-  max-width: min(26rem, calc(100vw - 2rem));
 }
 
-.brand-control:not(.has-tip):not(.is-xp-open) {
-  border-radius: 999px;
+.brand-control-chip-row {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.brand-control.is-mobile .brand-control-chip {
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.brand-control.is-mobile.is-xp-open .brand-control-chip,
+.brand-control.is-mobile .brand-control-chip:has(.brand-xp-mobile-slot.is-always-on) {
+  border-radius: 1.1rem;
+  padding-bottom: 0.38rem;
 }
 
 .brand-mark {
@@ -3150,6 +3193,35 @@
   .prompt-actions--mobile .overlay-button .button-label,
   .prompt-actions--mobile .slop-action-role {
     display: none;
+  }
+
+  /* Council dock: on narrow viewports the wrap only exists to host the speech
+     bubble, thinking chip, or expanded persona fan. When none of those are
+     showing, collapse the wrapper so the mascot button sits in the row like
+     its neighbors (no phantom gap from inline-flex). */
+  .prompt-actions--mobile .council-mascot-wrap:not(:has(.advisor-speech-bubble, .advisor-thinking-indicator, .council-mascot-fan)) {
+    display: contents;
+  }
+
+  .prompt-actions--mobile .council-mascot-wrap:has(.advisor-speech-bubble, .advisor-thinking-indicator, .council-mascot-fan) {
+    display: inline-flex;
+    position: relative;
+  }
+
+  .prompt-actions--mobile .council-mascot {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 4.2rem;
+    min-height: 3.2rem;
+    padding: 0.36rem 0.4rem;
+    border-radius: 0.95rem;
+  }
+
+  .prompt-actions--mobile .council-mascot .council-mascot-emoji {
+    width: 2.15rem;
+    height: 2.15rem;
+    font-size: 1.55rem;
+    border-radius: 0.65rem;
   }
 
   /* Clear button isn't a slop-action-button. Keep it square-ish too so the
@@ -3737,7 +3809,7 @@
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.28);
   text-align: center;
   max-width: 9rem;
-  z-index: 1;
+  z-index: 3;
   animation: radial-chip-pop 180ms ease-out;
 }
 
@@ -3881,11 +3953,19 @@ button {
 
   .insights-pane-dismiss {
     display: inline-flex;
+    position: fixed;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom));
+    z-index: 26;
+    pointer-events: auto;
   }
 
   .brand-control {
     top: 0.75rem;
     left: 0.75rem;
+  }
+
+  .brand-control-chip {
     padding: 0.28rem 0.58rem 0.28rem 0.36rem;
     font-size: 0.86rem;
   }
@@ -4114,7 +4194,7 @@ button {
 }
 
 @media (max-width: 420px) {
-  .brand-control {
+  .brand-control-chip {
     font-size: 0.82rem;
     gap: 0.42rem;
     padding-inline: 0.5rem 0.6rem;
@@ -5340,7 +5420,7 @@ button {
   display: inline-flex;
   align-items: center;
   padding: 2px 8px;
-  margin-left: 8px;
+  margin-left: 0;
   border-radius: 999px;
   background: linear-gradient(120deg, #fde68a, #f59e0b);
   color: #1a1235;
@@ -5498,12 +5578,6 @@ button {
 
 /* ── Mobile: XP slot below the brand row. Always visible on wider mobile
    widths; collapsible (with a chevron) only on truly compact screens. ─── */
-.brand-control.is-mobile {
-  flex-wrap: wrap;
-  align-items: center;
-  row-gap: 0;
-}
-
 .brand-control.is-compact button.brand-prestige-badge {
   font-family: inherit;
   font-size: inherit;
@@ -5539,24 +5613,27 @@ button {
 }
 
 .brand-xp-mobile-slot {
-  flex-basis: 100%;
-  width: 100%;
+  box-sizing: border-box;
+  align-self: stretch;
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  margin-top: 0;
+  margin: 0;
+  padding: 0 0.34rem;
   transform: translateY(-4px);
   transition: max-height 240ms ease, opacity 220ms ease, margin-top 240ms ease, transform 240ms ease;
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  pointer-events: none;
 }
 
 .brand-xp-mobile-slot.is-open {
   max-height: 3rem;
   opacity: 1;
-  margin-top: 0.4rem;
+  margin-top: 0.35rem;
   transform: translateY(0);
+  pointer-events: auto;
 }
 
 /* Wider mobile (no compact gate): always-on slot, no expansion animation. */
@@ -5567,12 +5644,15 @@ button {
   transform: none;
   transition: none;
   overflow: visible;
+  pointer-events: auto;
 }
 
 .brand-xp-mobile-slot .xp-progress-bar {
   margin-left: 0;
   width: 100%;
   max-width: 100%;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08));
+  border-color: rgba(255, 255, 255, 0.28);
 }
 
 .brand-xp-mobile-slot .xp-progress-bar-track {
@@ -5588,9 +5668,12 @@ button {
 
 /* ── Slopitect Tip™ chip docked below the brand control ─────────────── */
 .slopitect-tip-chip {
-  flex-basis: 100%;
-  width: 100%;
-  margin-top: 0.45rem;
+  box-sizing: border-box;
+  align-self: stretch;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  min-width: 100%;
+  margin-top: 0.1rem;
   padding: 0.5rem 0.78rem 0.55rem 0.7rem;
   border-radius: 0.85rem;
   background: linear-gradient(135deg, #facc15, #f97316);
@@ -5631,14 +5714,6 @@ button {
 @media (prefers-reduced-motion: reduce) {
   .slopitect-tip-chip {
     animation: none;
-  }
-}
-
-/* On very wide displays, cap the chip width so the line doesn't read like
-   a paragraph beside the (much narrower) brand pill. */
-@media (min-width: 1025px) {
-  .slopitect-tip-chip {
-    max-width: 22rem;
   }
 }
 
@@ -6703,7 +6778,145 @@ body.slopitect-rainbow-tint::before {
   user-select: none;
 }
 
-/* ── Prompt modal: floating input + mic + go ─────────────────────────── */
+/* ── Inline slop-next prompt (action bar + radial tray) ─────────────── */
+.slop-prompt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.slop-prompt-panel--chrome {
+  width: 100%;
+  padding: 0.72rem 0.8rem 0.78rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid var(--control-border);
+  box-shadow: var(--control-shadow);
+  animation: slop-prompt-reveal 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+.prompt-stack.has-slop-prompt-expanded {
+  gap: 0.55rem;
+}
+
+.slop-action-button.is-prompt.is-expanded {
+  border-color: rgba(56, 189, 248, 0.55);
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.18), var(--control-shadow);
+}
+
+.radial-slop-prompt-tray {
+  position: fixed;
+  z-index: 19;
+  width: min(420px, calc(100vw - 1.5rem));
+  pointer-events: auto;
+}
+
+.slop-prompt-panel--radial {
+  padding: 0.72rem 0.8rem 0.78rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+  animation: slop-prompt-reveal 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@keyframes slop-prompt-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slop-prompt-panel--chrome,
+  .slop-prompt-panel--radial {
+    animation: none;
+  }
+}
+
+.slop-prompt-panel-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.slop-prompt-panel-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.58rem;
+  background: linear-gradient(135deg, #38bdf8, #14b8a6);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.28);
+}
+
+.slop-prompt-panel-eyebrow svg {
+  display: block;
+  width: 17px;
+  height: 17px;
+}
+
+.slop-prompt-panel-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.slop-prompt-panel-close {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1.35rem;
+  line-height: 1;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  border-radius: 0.4rem;
+}
+
+.slop-prompt-panel-close:hover,
+.slop-prompt-panel-close:focus-visible {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.slop-prompt-panel-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.62rem 0.75rem;
+  border-radius: 0.72rem;
+  border: 1px solid var(--control-border);
+  font-size: 0.95rem;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.slop-prompt-panel-input:focus {
+  outline: 2px solid rgba(56, 189, 248, 0.45);
+  outline-offset: 1px;
+}
+
+.slop-prompt-panel-actions {
+  display: flex;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+@media (max-width: 1024px) {
+  .app-shell.is-insights-open.has-slop-prompt-chrome:not(.is-editor-open) {
+    --mobile-bottom-chrome-est: 13.75rem;
+  }
+}
+
+/* Legacy prompt modal styles (unused) ───────────────────────────────── */
 .prompt-modal-overlay {
   position: fixed;
   inset: 0;
@@ -6877,4 +7090,440 @@ body.slopitect-rainbow-tint::before {
 .clear-confirm-demolish:focus-visible:not(:disabled) {
   border-color: rgba(220, 38, 38, 0.85);
   background: linear-gradient(135deg, #ef4444, #fb923c);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Council of Advisors — unified mascot dock + proactive bubble
+ * ────────────────────────────────────────────────────────────────── */
+.council-mascot-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: auto;
+}
+
+.council-mascot {
+  --slop-action-accent: var(--council-accent, #6366f1);
+  --slop-action-accent-2: var(--council-accent, #8b5cf6);
+  --slop-action-glow: color-mix(in srgb, var(--council-accent, #6366f1) 28%, transparent);
+  min-width: 6.5rem;
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+
+.council-mascot.is-expanded {
+  transform: translateY(-1px);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--council-accent, #6366f1) 30%, transparent),
+    0 14px 30px var(--slop-action-glow),
+    var(--control-shadow);
+}
+
+.council-mascot-emoji {
+  font-size: 1.55rem;
+  line-height: 1;
+  width: 1.95rem;
+  height: 1.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.62rem;
+  background:
+    radial-gradient(circle at 28% 22%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.55) 55%, transparent 75%),
+    linear-gradient(150deg,
+      color-mix(in srgb, var(--council-accent, var(--accent)) 28%, white),
+      color-mix(in srgb, var(--council-accent, var(--accent)) 44%, white));
+  border: 1px solid color-mix(in srgb, var(--council-accent, var(--accent)) 55%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 6px color-mix(in srgb, var(--council-accent, var(--accent)) 28%, transparent),
+    0 6px 14px color-mix(in srgb, var(--council-accent, var(--accent)) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .council-mascot--active .council-mascot-emoji {
+    animation: council-mascot-breathe 1.8s ease-in-out infinite;
+  }
+  .council-mascot--idle .council-mascot-emoji {
+    animation: council-mascot-idle 4.2s ease-in-out infinite;
+  }
+}
+
+@keyframes council-mascot-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes council-mascot-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.council-mascot-role {
+  background: color-mix(in srgb, var(--council-accent, var(--accent)) 12%, white);
+  border-color: color-mix(in srgb, var(--council-accent, var(--accent)) 22%, transparent);
+  color: color-mix(in srgb, var(--council-accent, var(--accent)) 80%, #0f172a);
+}
+
+.council-mascot-fan {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  animation: council-fan-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
+  pointer-events: auto;
+}
+
+.council-mascot-fan-item {
+  /* Persona buttons inside the fan are visually a touch smaller than the dock
+     base, since the mascot already carries the heavy chrome. */
+  min-height: 2.55rem;
+  padding: 0.3rem 0.7rem 0.3rem 0.42rem;
+}
+
+.council-mascot-fan-item .slop-action-role {
+  display: none;
+}
+
+@keyframes council-fan-in {
+  from { opacity: 0; transform: translateX(-6px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.advisor-speech-bubble {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.55rem);
+  width: max-content;
+  max-width: min(38rem, calc(100vw - 2rem));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.6rem 0.5rem 0.5rem;
+  border-radius: 14px;
+  white-space: normal;
+  cursor: pointer;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.92));
+  border: 1.5px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--advisor-accent, var(--accent)) 18%, rgba(15, 23, 42, 0.18)),
+    0 2px 8px rgba(15, 23, 42, 0.12);
+  pointer-events: auto;
+  z-index: 30;
+  animation: advisor-bubble-in 240ms cubic-bezier(0.22, 1.18, 0.62, 1);
+}
+
+.advisor-speech-bubble.is-pinned {
+  border-color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 75%, transparent);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--advisor-accent, var(--accent)) 22%, transparent),
+    0 14px 34px color-mix(in srgb, var(--advisor-accent, var(--accent)) 22%, rgba(15, 23, 42, 0.2));
+}
+
+.advisor-speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: 1.4rem;
+  bottom: -8px;
+  width: 14px;
+  height: 14px;
+  background: inherit;
+  border-right: 1.5px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
+  border-bottom: 1.5px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
+  transform: rotate(45deg);
+  box-shadow: 4px 4px 8px rgba(15, 23, 42, 0.08);
+}
+
+.advisor-speech-pin {
+  margin-left: 0.32rem;
+  font-size: 0.78rem;
+  vertical-align: middle;
+}
+
+/* "<persona> is thinking…" — compact pre-bubble shown while the LLM call is
+   in flight; same anchor as the speech bubble, mutually exclusive. */
+.advisor-thinking-indicator {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.55rem);
+  max-width: min(24rem, calc(100vw - 2rem));
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.7rem 0.4rem 0.45rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.88));
+  border: 1.5px dashed color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
+  box-shadow:
+    0 8px 22px color-mix(in srgb, var(--advisor-accent, var(--accent)) 14%, rgba(15, 23, 42, 0.12)),
+    0 1px 4px rgba(15, 23, 42, 0.08);
+  pointer-events: none;
+  z-index: 30;
+  animation: advisor-bubble-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
+}
+
+.advisor-thinking-indicator::after {
+  content: '';
+  position: absolute;
+  left: 1.4rem;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  background: inherit;
+  border-right: 1.5px dashed color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
+  transform: rotate(45deg);
+}
+
+.advisor-thinking-emoji {
+  font-size: 1.4rem;
+  line-height: 1;
+  width: 1.9rem;
+  height: 1.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 14%, white);
+  border: 1px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 35%, transparent);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .advisor-thinking-emoji {
+    animation: advisor-thinking-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes advisor-thinking-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.06); opacity: 1; }
+}
+
+.advisor-thinking-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #1f2937;
+}
+
+.advisor-thinking-persona {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 80%, #0f172a);
+}
+
+.advisor-thinking-verb {
+  font-style: italic;
+  color: #475569;
+}
+
+.advisor-thinking-dots {
+  display: inline-flex;
+  gap: 0.18rem;
+  align-items: baseline;
+  margin-left: 0.05rem;
+}
+
+.advisor-thinking-dots > span {
+  width: 0.32rem;
+  height: 0.32rem;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 70%, transparent);
+  display: inline-block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .advisor-thinking-dots > span {
+    animation: advisor-thinking-dot 1.1s ease-in-out infinite;
+  }
+  .advisor-thinking-dots > span:nth-child(2) {
+    animation-delay: 0.18s;
+  }
+  .advisor-thinking-dots > span:nth-child(3) {
+    animation-delay: 0.36s;
+  }
+}
+
+@keyframes advisor-thinking-dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+  40% { transform: translateY(-2px); opacity: 1; }
+}
+
+/* During thinking, the mascot avatar takes on the persona accent and pulses
+   a touch faster — the dock visibly anticipates the next speaker. */
+.council-mascot--thinking .council-mascot-emoji {
+  animation: advisor-thinking-pulse 1.1s ease-in-out infinite;
+}
+
+.advisor-speech-emoji {
+  font-size: 1.7rem;
+  line-height: 1;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 18%, white);
+  border: 1px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 45%, transparent);
+  flex-shrink: 0;
+}
+
+.advisor-speech-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 12rem;
+  max-width: 30rem;
+  flex: 1 1 auto;
+}
+
+.advisor-speech-persona {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 78%, #0f172a);
+}
+
+.advisor-speech-text {
+  font-size: 0.92rem;
+  line-height: 1.32;
+  color: #1f2937;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.advisor-speech-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.advisor-speech-btn {
+  border: 1px solid color-mix(in srgb, var(--advisor-accent, var(--accent)) 40%, transparent);
+  background: transparent;
+  border-radius: 999px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.advisor-speech-btn--go {
+  padding: 0.32rem 0.78rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 88%, white);
+  color: white;
+  border-color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 72%, transparent);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--advisor-accent, var(--accent)) 24%, transparent);
+}
+
+.advisor-speech-btn--go:hover,
+.advisor-speech-btn--go:focus-visible {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 95%, white);
+}
+
+.advisor-speech-btn--dismiss {
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  font-size: 1rem;
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.45);
+}
+
+.advisor-speech-btn--dismiss:hover,
+.advisor-speech-btn--dismiss:focus-visible {
+  color: #0f172a;
+  border-color: rgba(15, 23, 42, 0.45);
+}
+
+@media (max-width: 540px) {
+  .advisor-speech-bubble {
+    left: 0.5rem;
+    right: 0.5rem;
+    max-width: none;
+    padding: 0.5rem 0.55rem;
+    gap: 0.5rem;
+  }
+  .advisor-speech-emoji {
+    font-size: 1.4rem;
+    width: 2rem;
+    height: 2rem;
+  }
+  .advisor-speech-text {
+    font-size: 0.85rem;
+  }
+  .advisor-speech-btn--go {
+    padding: 0.28rem 0.62rem;
+    font-size: 0.72rem;
+  }
+}
+
+@keyframes advisor-bubble-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Active persona avatar pulses in the dock while the bubble is up. */
+.slop-action-button.is-advisor-active {
+  border-color: color-mix(in srgb, var(--slop-action-accent) 88%, white);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--slop-action-accent) 28%, transparent),
+    0 14px 28px var(--slop-action-glow),
+    var(--control-shadow);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .slop-action-button.is-advisor-active .action-persona-icon {
+    animation: advisor-avatar-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes advisor-avatar-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+/* Mute toggle styling — neutral grey when active, muted when off. */
+.slop-action-button.is-advisor-mute {
+  --slop-action-accent: #6366f1;
+  --slop-action-accent-2: #8b5cf6;
+  --slop-action-glow: rgba(99, 102, 241, 0.24);
+}
+
+.slop-action-button.is-advisor-mute.is-muted {
+  --slop-action-accent: #94a3b8;
+  --slop-action-accent-2: #cbd5f5;
+  --slop-action-glow: rgba(100, 116, 139, 0.22);
+  opacity: 0.85;
+}
+
+/* Highlighted nodes that the active advisor is pointing at. */
+.is-advisor-pointing {
+  outline: 2px solid rgba(99, 102, 241, 0.78);
+  outline-offset: 2px;
+  filter: drop-shadow(0 0 6px rgba(99, 102, 241, 0.55));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .is-advisor-pointing {
+    animation: advisor-pointing-pulse 1.6s ease-in-out infinite;
+  }
+}
+
+@keyframes advisor-pointing-pulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(99, 102, 241, 0.45)); }
+  50% { filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.7)); }
 }

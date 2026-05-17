@@ -10,6 +10,7 @@ import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAg
 import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
 import { ensureMermaidInitialized } from './agents/mermaidReliabilitySkill.js';
 import { createCopilotRouter } from './routes/copilot.js';
+import { createAdvisorRouter } from './routes/advisor.js';
 import {
   createSessionServicesRegistry,
   resolveSessionIdFromRequest,
@@ -104,6 +105,7 @@ app.use(
     sessionRegistry
   })
 );
+app.use('/api/advisor', createAdvisorRouter());
 
 app.all(
   '/mcp',

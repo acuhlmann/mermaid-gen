@@ -222,6 +222,58 @@ describe('DiagramCanvas', () => {
     expect(onPanGestureStart).toHaveBeenCalledTimes(1);
   });
 
+  it('selects timeline diagram nodes on tap', async () => {
+    const timelineSvg = `
+<svg viewBox="0 0 400 200">
+  <g class="timeline-node section-0">
+    <g>
+      <path id="diagram-1-node-0" class="node-bkg" d="M0 0 h150 v40 H0 Z" />
+    </g>
+    <g>
+      <text><tspan x="75" y="20">Dev Types</tspan></text>
+    </g>
+  </g>
+</svg>`;
+    renderMermaidSvgMock.mockResolvedValueOnce({ svg: timelineSvg, sanitizerApplied: [] });
+
+    const onSelectedNodeChange = vi.fn();
+    render(
+      <DiagramCanvas
+        diagramSource={'timeline\n  title T\n  section S\n    Dev : Monolith : DB'}
+        revisionId={1}
+        onSelectedNodeChange={onSelectedNodeChange}
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+    await act(async () => {});
+
+    const renderer = screen.getByLabelText(/Mermaid renderer/i);
+    const path = renderer.querySelector('path.node-bkg');
+    expect(path).toBeTruthy();
+    const pointerInit = {
+      pointerId: 1,
+      pointerType: 'mouse',
+      button: 0,
+      buttons: 1,
+      clientX: 40,
+      clientY: 20,
+      bubbles: true
+    };
+    path.dispatchEvent(new PointerEvent('pointerdown', pointerInit));
+    path.dispatchEvent(new PointerEvent('pointerup', pointerInit));
+
+    expect(onSelectedNodeChange).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'diagram-1-node-0',
+        partKind: 'timeline',
+        partName: 'Dev Types'
+      })
+    );
+  });
+
   it('selects sequence diagram participants on tap', async () => {
     const sequenceSvg = `
 <svg viewBox="0 0 200 100">

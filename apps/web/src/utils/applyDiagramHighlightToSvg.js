@@ -53,14 +53,14 @@ export function applyDiagramHighlightToSvg(
   { addedClass = 'is-diagram-change-added', modifiedClass = 'is-diagram-change-modified' } = {}
 ) {
   if (!rootEl?.querySelectorAll) return;
-  rootEl.querySelectorAll('g.node, g.cluster, [data-et="participant"]').forEach((group) => {
+  rootEl.querySelectorAll('g.node, g.timeline-node, g.cluster, [data-et="participant"]').forEach((group) => {
     group.classList.remove(addedClass, modifiedClass);
   });
   if (!highlight) return;
   const added = new Set(highlight.addedIds ?? []);
   const modified = new Set(highlight.modifiedIds ?? []);
   if (added.size === 0 && modified.size === 0) return;
-  rootEl.querySelectorAll('g.node, g.cluster, [data-et="participant"]').forEach((group) => {
+  rootEl.querySelectorAll('g.node, g.timeline-node, g.cluster, [data-et="participant"]').forEach((group) => {
     const anchor = diagramDomAnchor(group);
     const dataId = group.getAttribute?.('data-id') ?? anchor?.getAttribute?.('data-id');
     if (!anchor?.id && !dataId) return;
@@ -68,7 +68,9 @@ export function applyDiagramHighlightToSvg(
       ? 'cluster'
       : group.getAttribute?.('data-et') === 'participant'
         ? 'node'
-        : 'node';
+        : group.classList.contains('timeline-node')
+          ? 'node'
+          : 'node';
     const cat = changeHighlightCategory(group, anchor, kind, added, modified);
     if (cat === 'added') {
       group.classList.add(addedClass);

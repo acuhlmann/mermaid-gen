@@ -13,10 +13,10 @@ import {
 import {
   LlmNotConfiguredError,
   isLlmConfigured,
+  createLlmChatModel,
   createOpenRouterModel,
-  createVertexChatModel,
   resolveLlmBackend,
-  resolveVertexModelId
+  resolveModelId
 } from './llmProvider.js';
 import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
 import {
@@ -29,7 +29,6 @@ import {
   goMadTransformModelOptions,
   normalizeAgentStreamEvent,
   normalizeModelProfile,
-  resolveOpenRouterModelId,
   toLangChainMessages,
   transformModeModelOptions
 } from './mermaidLangChainAgent.js';
@@ -147,9 +146,7 @@ function extractOriginalRequest(userMessages) {
 }
 
 function defaultChatModelFactory(env, options) {
-  const backend = resolveLlmBackend(env);
-  if (backend === 'vertex') return createVertexChatModel(env, options);
-  return createOpenRouterModel(env, options);
+  return createLlmChatModel(env, options);
 }
 
 function extractTextContent(content) {
@@ -594,16 +591,14 @@ export function createInfographicLangChainAgent({
 
   function chatModelFor(profile, extraOptions = {}) {
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
+    const modelId = resolveModelId(env, profile, backend);
     return chatModelFactory(env, { model: modelId, ...extraOptions });
   }
 
   function getDefaultAgent(profile = 'fast') {
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const modelId = resolveModelId(env, p, backend);
     const key = `default:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
       agentCache.set(
@@ -622,8 +617,7 @@ export function createInfographicLangChainAgent({
   function getStableIntentAgent(profile = 'fast') {
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const modelId = resolveModelId(env, p, backend);
     const key = `intent-stable:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
       agentCache.set(
@@ -642,8 +636,7 @@ export function createInfographicLangChainAgent({
     const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const modelId = resolveModelId(env, p, backend);
     const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
     const key =
       m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
@@ -744,8 +737,7 @@ export function createInfographicLangChainAgent({
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env);
-      const modelId =
-        backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
+      const modelId = resolveModelId(env, profile, backend);
       const analysisModel = getAnalysisModel(backend, modelId, kind);
 
       const messages = [

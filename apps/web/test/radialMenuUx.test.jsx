@@ -21,13 +21,20 @@ const MOCK_DESCRIPTOR = {
   partName: 'Alpha'
 };
 
+const OTHER_DESCRIPTOR = {
+  id: 'flowchart-B-0',
+  label: 'Beta',
+  partKind: 'node',
+  partName: 'Beta'
+};
+
 const MOCK_ACTIONS = [
   { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' },
   { id: 'explain', label: 'Explain', icon: 'i', variant: 'explain', persona: 'The Wise Architect' }
 ];
 
 /** Mirrors App.jsx radial menu open/close rules without the full shell. */
-function RadialMenuHarness({ initialSelected = null }) {
+function RadialMenuHarness({ initialSelected = null, anchorsById = null }) {
   const [selectedNode, setSelectedNode] = useState(initialSelected);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
   const [radialMenuVisible, setRadialMenuVisible] = useState(Boolean(initialSelected?.id));
@@ -49,8 +56,9 @@ function RadialMenuHarness({ initialSelected = null }) {
       setRadialMenuSession(null);
       return;
     }
-    setRadialMenuSession({ descriptor: selectedNode, anchor: MOCK_ANCHOR });
-  }, [radialMenuVisible, selectedNode]);
+    const anchor = anchorsById?.[selectedNode.id] ?? MOCK_ANCHOR;
+    setRadialMenuSession({ descriptor: selectedNode, anchor });
+  }, [anchorsById, radialMenuVisible, selectedNode?.id, selectedNode]);
 
   function handleSelect() {
     if (radialMenuVisible && selectedNode?.id === MOCK_DESCRIPTOR.id) {
@@ -58,6 +66,14 @@ function RadialMenuHarness({ initialSelected = null }) {
       return;
     }
     setSelectedNode(MOCK_DESCRIPTOR);
+  }
+
+  function handleSelectOther() {
+    if (selectedNode?.id && selectedNode.id !== OTHER_DESCRIPTOR.id) {
+      setRadialMenuSession(null);
+      setRadialMenuVisible(true);
+    }
+    setSelectedNode(OTHER_DESCRIPTOR);
   }
 
   return (
@@ -71,6 +87,9 @@ function RadialMenuHarness({ initialSelected = null }) {
       </button>
       <button type="button" onClick={handleSelect}>
         Simulate select
+      </button>
+      <button type="button" onClick={handleSelectOther}>
+        Simulate select other
       </button>
       <button type="button" onClick={() => setRadialMenuVisible(false)}>
         Simulate pan dismiss
@@ -124,6 +143,26 @@ describe('radial menu click-to-open UX', () => {
     expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
     fireEvent.pointerDown(screen.getByTestId('radial-hit-area'), { button: 0 });
     expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+  });
+
+  it('reopens the menu at a new anchor when another part is selected', () => {
+    const anchorA = { ...MOCK_ANCHOR, left: 200, centerY: 180 };
+    const anchorB = { ...MOCK_ANCHOR, left: 420, centerY: 320 };
+    render(
+      <RadialMenuHarness
+        initialSelected={MOCK_DESCRIPTOR}
+        anchorsById={{
+          [MOCK_DESCRIPTOR.id]: anchorA,
+          [OTHER_DESCRIPTOR.id]: anchorB
+        }}
+      />
+    );
+    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate select other' }));
+    expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe(OTHER_DESCRIPTOR.id);
+    const chip = document.querySelector('.radial-action-chip');
+    expect(chip).toBeTruthy();
+    expect(chip.style.left).toBe(`${anchorB.left}px`);
   });
 
   it('closes the menu on pan dismiss while selection state remains', () => {

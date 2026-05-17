@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { partKindLabel } from '../utils/partKindLabel.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { resolveArcGeometry } from '../utils/radialMenuLayout.js';
 
-const ARC_RADIUS_DESKTOP_PX = 112;
-const ARC_RADIUS_MOBILE_PX = 88;
-const ARC_SPREAD_DEG = 165;
+const ARC_RADIUS_DESKTOP_PX = 82;
+const ARC_RADIUS_MOBILE_PX = 62;
 const BUTTON_HALF_DESKTOP_PX = 34;
 const BUTTON_HALF_MOBILE_PX = 32;
 const VIEWPORT_MARGIN_PX = 8;
@@ -34,11 +34,11 @@ function arcCenterDeg(side) {
   return 270; // top
 }
 
-function computeButtonPositions(side, count, arcRadiusPx) {
+function computeButtonPositions(side, count, arcRadiusPx, arcSpreadDeg) {
   if (count <= 0) return [];
   const center = arcCenterDeg(side);
-  const start = center - ARC_SPREAD_DEG / 2;
-  const step = count === 1 ? 0 : ARC_SPREAD_DEG / (count - 1);
+  const start = center - arcSpreadDeg / 2;
+  const step = count === 1 ? 0 : arcSpreadDeg / (count - 1);
   const result = [];
   for (let i = 0; i < count; i += 1) {
     const angleDeg = start + step * i;
@@ -84,6 +84,9 @@ export default function RadialActionMenu({
   anchor,
   actions,
   busy = false,
+  slopPrompt = null,
+  slopPromptOpen = false,
+  onSlopPromptClose,
   onActionPick,
   onHoverHold,
   onHoverRelease,
@@ -132,13 +135,17 @@ export default function RadialActionMenu({
   const layout = useMemo(() => {
     if (!anchor) return null;
     const vv = readViewportBounds();
-    const arcRadiusPx = narrowLayout ? ARC_RADIUS_MOBILE_PX : ARC_RADIUS_DESKTOP_PX;
+    const baseRadiusPx = narrowLayout ? ARC_RADIUS_MOBILE_PX : ARC_RADIUS_DESKTOP_PX;
+    const { radiusPx: arcRadiusPx, spreadDeg: arcSpreadDeg } = resolveArcGeometry(
+      visibleActions.length,
+      baseRadiusPx
+    );
     const buttonHalfPx = narrowLayout ? BUTTON_HALF_MOBILE_PX : BUTTON_HALF_DESKTOP_PX;
     const bottomReservePx = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
     const centerX = typeof anchor.left === 'number' ? anchor.left : (anchor.nodeLeft + anchor.nodeRight) / 2;
     const centerY = typeof anchor.centerY === 'number' ? anchor.centerY : (anchor.nodeTop + anchor.nodeBottom) / 2;
     const side = pickArcSide(anchor, vv);
-    const positions = computeButtonPositions(side, visibleActions.length, arcRadiusPx);
+    const positions = computeButtonPositions(side, visibleActions.length, arcRadiusPx, arcSpreadDeg);
     const hoverDiskDiameter = 2 * (arcRadiusPx + buttonHalfPx + HOVER_DISK_EXTRA_PX);
     return {
       centerX,
@@ -158,13 +165,17 @@ export default function RadialActionMenu({
 
   useEffect(() => {
     function onKey(event) {
-      if (event.key === 'Escape' && typeof onClose === 'function') {
-        onClose();
+      if (event.key !== 'Escape') return;
+      if (slopPromptOpen && typeof onSlopPromptClose === 'function') {
+        event.preventDefault();
+        onSlopPromptClose();
+        return;
       }
+      if (typeof onClose === 'function') onClose();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, onSlopPromptClose, slopPromptOpen]);
 
   if (!descriptor || !anchor || !layout) return null;
 
@@ -207,16 +218,6 @@ export default function RadialActionMenu({
         aria-hidden="true"
         data-testid="radial-hit-area"
       />
-      <div
-        className={`radial-action-chip${chipShiftUp ? ' is-shifted-up' : ''}`}
-        style={chipStyle}
-        onPointerDown={handleBackdropPointerDown}
-        onPointerEnter={onHoverHold}
-        onPointerLeave={onHoverRelease}
-      >
-        <span className="radial-action-chip-type">{chipTypeLabel}</span>
-        {chipName ? <span className="radial-action-chip-name">{chipName}</span> : null}
-      </div>
       {layout.positions.map((pos, index) => {
         const action = visibleActions[index];
         if (!action) return null;
@@ -247,6 +248,31 @@ export default function RadialActionMenu({
           </button>
         );
       })}
+      <div
+        className={`radial-action-chip${chipShiftUp ? ' is-shifted-up' : ''}`}
+        style={chipStyle}
+        onPointerDown={handleBackdropPointerDown}
+        onPointerEnter={onHoverHold}
+        onPointerLeave={onHoverRelease}
+      >
+        <span className="radial-action-chip-type">{chipTypeLabel}</span>
+        {chipName ? <span className="radial-action-chip-name">{chipName}</span> : null}
+      </div>
+      {slopPrompt ? (
+        <div
+          className="radial-slop-prompt-tray"
+          style={{
+            left: layout.centerX,
+            top: layout.centerY + (narrowLayout ? 52 : 68),
+            transform: 'translate(-50%, 0)'
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={onHoverHold}
+          onPointerLeave={onHoverRelease}
+        >
+          {slopPrompt}
+        </div>
+      ) : null}
     </div>
   );
 }

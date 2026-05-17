@@ -1,11 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  DEFAULT_DEEPSEEK_MODEL_FAST,
+  DEFAULT_DEEPSEEK_MODEL_QUALITY,
+  DEFAULT_OPENROUTER_MODEL_FAST,
+  DEFAULT_OPENROUTER_MODEL_QUALITY,
   DEFAULT_VERTEX_MODEL_FAST,
   DEFAULT_VERTEX_MODEL_QUALITY,
   isLlmConfigured,
   isVertexEnvConfigured,
+  createDeepSeekChatModel,
+  resolveDeepSeekModelId,
+  resolveDeepSeekThinkingKwargs,
   resolveLlmBackend,
+  resolveModelId,
+  resolveOpenRouterModelId,
   resolveVertexLocation,
   resolveVertexModelId,
   resolveVertexProjectId
@@ -53,6 +62,11 @@ test('resolveLlmBackend openrouter mode requires API key', () => {
   assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'openrouter', OPENROUTER_API_KEY: 'k' }), 'openrouter');
 });
 
+test('resolveLlmBackend deepseek mode requires API key', () => {
+  assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'deepseek' }), null);
+  assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'deepseek', DEEPSEEK_API_KEY: 'k' }), 'deepseek');
+});
+
 test('resolveLlmBackend vertex mode requires project', () => {
   assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'vertex' }), null);
   assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'vertex', GOOGLE_CLOUD_PROJECT: 'p' }), 'vertex');
@@ -77,7 +91,18 @@ test('resolveLlmBackend auto uses OpenRouter when OPENROUTER_PREFERRED is set', 
   assert.equal(resolveLlmBackend(env), 'openrouter');
 });
 
-test('resolveLlmBackend auto uses OpenRouter locally when key present and not on Cloud Run', () => {
+test('resolveLlmBackend auto uses DeepSeek locally when key present and not on Cloud Run', () => {
+  assert.equal(resolveLlmBackend({ DEEPSEEK_API_KEY: 'k' }), 'deepseek');
+});
+
+test('resolveLlmBackend auto prefers DeepSeek over OpenRouter locally when both keys are set', () => {
+  assert.equal(
+    resolveLlmBackend({ DEEPSEEK_API_KEY: 'd', OPENROUTER_API_KEY: 'o' }),
+    'deepseek'
+  );
+});
+
+test('resolveLlmBackend auto uses OpenRouter locally when only OpenRouter key is set', () => {
   assert.equal(resolveLlmBackend({ OPENROUTER_API_KEY: 'k' }), 'openrouter');
 });
 
@@ -85,8 +110,53 @@ test('resolveLlmBackend auto uses Vertex when only Vertex is configured', () => 
   assert.equal(resolveLlmBackend({ GOOGLE_CLOUD_PROJECT: 'p' }), 'vertex');
 });
 
+test('resolveDeepSeekModelId mirrors tier env keys', () => {
+  const base = { DEEPSEEK_API_KEY: 'k', DEEPSEEK_MODEL: 'shared' };
+  assert.equal(resolveDeepSeekModelId(base, 'fast'), 'shared');
+  assert.equal(resolveDeepSeekModelId(base, 'quality'), 'shared');
+  assert.equal(resolveDeepSeekModelId({ ...base, DEEPSEEK_MODEL_FAST: 'flash' }, 'fast'), 'flash');
+  assert.equal(resolveDeepSeekModelId({ ...base, DEEPSEEK_MODEL_QUALITY: 'pro' }, 'quality'), 'pro');
+  assert.equal(resolveDeepSeekModelId({ DEEPSEEK_API_KEY: 'k' }, 'fast'), DEFAULT_DEEPSEEK_MODEL_FAST);
+  assert.equal(resolveDeepSeekModelId({ DEEPSEEK_API_KEY: 'k' }, 'quality'), DEFAULT_DEEPSEEK_MODEL_QUALITY);
+});
+
+test('resolveModelId dispatches by backend', () => {
+  const env = {
+    DEEPSEEK_API_KEY: 'd',
+    OPENROUTER_API_KEY: 'o',
+    GOOGLE_CLOUD_PROJECT: 'p',
+    DEEPSEEK_MODEL_FAST: 'ds-fast',
+    OPENROUTER_MODEL_FAST: 'or-fast',
+    VERTEX_MODEL_FAST: 'vx-fast'
+  };
+  assert.equal(resolveModelId(env, 'fast', 'deepseek'), 'ds-fast');
+  assert.equal(resolveModelId(env, 'fast', 'openrouter'), 'or-fast');
+  assert.equal(resolveModelId(env, 'fast', 'vertex'), 'vx-fast');
+});
+
+test('resolveOpenRouterModelId uses defaults when tier env is unset', () => {
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'fast'), DEFAULT_OPENROUTER_MODEL_FAST);
+  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'quality'), DEFAULT_OPENROUTER_MODEL_QUALITY);
+});
+
+test('resolveDeepSeekThinkingKwargs disables thinking by default', () => {
+  assert.deepEqual(resolveDeepSeekThinkingKwargs({}), { thinking: { type: 'disabled' } });
+  assert.deepEqual(resolveDeepSeekThinkingKwargs({ DEEPSEEK_THINKING: '1' }), {
+    thinking: { type: 'enabled' }
+  });
+});
+
+test('createDeepSeekChatModel passes thinking disabled for tool-agent compatibility', () => {
+  const model = createDeepSeekChatModel(
+    { DEEPSEEK_API_KEY: 'k' },
+    { model: 'deepseek-v4-flash' }
+  );
+  assert.deepEqual(model.modelKwargs, { thinking: { type: 'disabled' } });
+});
+
 test('isLlmConfigured reflects any usable backend', () => {
   assert.equal(isLlmConfigured({}), false);
+  assert.equal(isLlmConfigured({ DEEPSEEK_API_KEY: 'k' }), true);
   assert.equal(isLlmConfigured({ OPENROUTER_API_KEY: 'k' }), true);
   assert.equal(isLlmConfigured({ GOOGLE_CLOUD_PROJECT: 'p' }), true);
 });

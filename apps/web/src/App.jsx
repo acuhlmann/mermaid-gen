@@ -5,8 +5,11 @@ import RadialActionMenu from './components/RadialActionMenu.jsx';
 import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
 import AgentPresenceBar from './components/AgentPresenceBar.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
-import PromptModal from './components/PromptModal.jsx';
+import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
+import CouncilMascot from './components/CouncilMascot.jsx';
+import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
+import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import {
   openSessionEventsStream,
   approveHandshake,
@@ -666,6 +669,8 @@ function ArchiSlop() {
   const cacheRef = useRef(readDiagramCache(initialSessionIdRef.current));
   const [state, setState] = useState(fallbackState);
   const [prompt, setPrompt] = useState('');
+  /** Fresh instruction for the inline “slop next” prompt — never prefilled from the session topic. */
+  const [slopNextPrompt, setSlopNextPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
   const [error, setError] = useState('');
@@ -732,8 +737,9 @@ function ArchiSlop() {
   const [externalAgentPresence, setExternalAgentPresence] = useState([]);
   const [agentReactions, setAgentReactions] = useState([]);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
-  /** Modal that lets the user dictate a fresh prompt after a diagram is already on canvas. */
-  const [promptModalOpen, setPromptModalOpen] = useState(false);
+  /** Inline slop-next prompt expanded from the action bar or radial menu. */
+  const [slopPromptExpanded, setSlopPromptExpanded] = useState(false);
+  const [slopPromptSource, setSlopPromptSource] = useState(null);
   /** Demolition confirmation overlay shown before the Clear action wipes the session. */
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   /** Currently-displayed Slopitect Tip™ chip rendered below the brand control. */
@@ -763,11 +769,9 @@ function ArchiSlop() {
   const voiceStopTimerRef = useRef(null);
   const promptRef = useRef('');
   const voiceCapturedAnyRef = useRef(false);
-  const voiceAutoSubmitEnabledRef = useRef(false);
-  /** Sync transcript for voice auto-submit (promptRef can lag behind React state). */
   const voiceAccumulatedRef = useRef('');
   const micSessionRef = useRef(0);
-  const submitIntentFromVoiceRef = useRef(async (_text) => {});
+  const slopPromptExpandedRef = useRef(false);
   const lastTokenSoundAtRef = useRef(0);
   const goMadTokenTickIndexRef = useRef(0);
   const hoverCloseTimerRef = useRef(null);
@@ -813,6 +817,36 @@ function ArchiSlop() {
   useEffect(() => {
     promptRef.current = prompt;
   }, [prompt]);
+
+  useEffect(() => {
+    slopPromptExpandedRef.current = slopPromptExpanded;
+  }, [slopPromptExpanded]);
+
+  const closeSlopPrompt = useCallback(() => {
+    setSlopPromptExpanded(false);
+    setSlopPromptSource(null);
+    setSlopNextPrompt('');
+  }, []);
+
+  const openChromeSlopPrompt = useCallback(() => {
+    setSlopNextPrompt('');
+    setSlopPromptSource('chrome');
+    setSlopPromptExpanded(true);
+  }, []);
+
+  const toggleChromeSlopPrompt = useCallback(() => {
+    if (slopPromptExpanded && slopPromptSource === 'chrome') {
+      closeSlopPrompt();
+    } else {
+      openChromeSlopPrompt();
+    }
+  }, [slopPromptExpanded, slopPromptSource, closeSlopPrompt, openChromeSlopPrompt]);
+
+  const openRadialSlopPrompt = useCallback(() => {
+    setSlopNextPrompt('');
+    setSlopPromptSource('radial');
+    setSlopPromptExpanded(true);
+  }, []);
 
   // Slopitect console stamp on first mount — pure flavor, no functional effect.
   useEffect(() => {
@@ -1319,6 +1353,18 @@ function ArchiSlop() {
       .catch(async (err) => {
         if (cancelled) return;
         if (err?.code === SESSION_NOT_FOUND_CODE) {
+          // Drop any cached or in-flight thinking-pane content — the server session is gone.
+          setInsightsEntries([]);
+          setLatestCritique(null);
+          setLatestCritiqueA2uiMessages(null);
+          setCritiqueActionableSelected([]);
+          if (cacheRef.current) {
+            cacheRef.current = {
+              ...cacheRef.current,
+              insightsEntries: [],
+              latestCritique: null
+            };
+          }
           // Two cases:
           //  (a) The URL had a stale session id (e.g., bookmark from before a server restart).
           //      We rotate to a fresh id so the user clearly leaves the dead session behind.
@@ -1336,10 +1382,7 @@ function ArchiSlop() {
             setState(fresh);
             setLiveDraftSource('');
             setLiveDraftContentType(null);
-            setLatestCritique(null);
-            setInsightsEntries([]);
             setGoMadStreak(0);
-            setCritiqueActionableSelected([]);
             cacheRef.current = null;
             targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
             freshlyMintedSessionIdsRef.current.add(targetId);
@@ -1455,11 +1498,15 @@ function ArchiSlop() {
     []
   );
 
-  const appendPromptText = useCallback((text) => {
+  const appendActivePromptText = useCallback((text) => {
     if (!text) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    if (slopPromptExpandedRef.current) {
+      setSlopNextPrompt((current) => (current ? `${current.trimEnd()} ${trimmed}` : trimmed));
+      return;
+    }
     setPrompt((current) => {
-      const trimmed = text.trim();
-      if (!trimmed) return current;
       const next = current ? `${current.trimEnd()} ${trimmed}` : trimmed;
       promptRef.current = next;
       return next;
@@ -2252,7 +2299,7 @@ Hard requirements:
           ...(options.peerContext ? { peerContext: options.peerContext } : {})
         },
         title: goIntentInsightTitle(trimmed, selectedNode),
-        variant: 'intent',
+        variant: options.variantOverride ?? 'intent',
         diagramUndoBaseline: { ...syncedState },
         topic: topicFromDescriptor(selectedNode),
         modeSwitchSync: Boolean(options.modeSwitchSync),
@@ -2271,12 +2318,26 @@ Hard requirements:
     }
   }
 
-  submitIntentFromVoiceRef.current = submitIntentWithPrompt;
-
   async function runIntentChange(event) {
     event.preventDefault();
     hasInteractedRef.current = true;
     await submitIntentWithPrompt(prompt.trim());
+  }
+
+  async function handleSlopPromptSubmit(text) {
+    const trimmed = (text ?? '').trim();
+    if (!trimmed) return;
+    const radialDescriptor =
+      slopPromptSource === 'radial' ? radialMenuSession?.descriptor ?? null : null;
+    closeSlopPrompt();
+    if (radialDescriptor) {
+      closeRadialMenu();
+    }
+    hasInteractedRef.current = true;
+    if (radialDescriptor) {
+      setSelectedNode(radialDescriptor);
+    }
+    await submitIntentWithPrompt(trimmed);
   }
 
   const stopVoiceInput = useCallback((options = {}) => {
@@ -2295,7 +2356,6 @@ Hard requirements:
 
     if (immediate) {
       micSessionRef.current += 1;
-      voiceAutoSubmitEnabledRef.current = false;
       lastSpeechInterimRef.current = '';
       try {
         recognition.abort();
@@ -2326,14 +2386,13 @@ Hard requirements:
         recInstance.stop();
       } catch {
         micSessionRef.current += 1;
-        voiceAutoSubmitEnabledRef.current = false;
         const interimFlush = lastSpeechInterimRef.current?.trim();
         lastSpeechInterimRef.current = '';
         if (interimFlush) {
           voiceAccumulatedRef.current = voiceAccumulatedRef.current
             ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
             : interimFlush;
-          appendPromptText(interimFlush);
+          appendActivePromptText(interimFlush);
         }
         try {
           recInstance.onresult = null;
@@ -2346,7 +2405,7 @@ Hard requirements:
         setVoiceListening(false);
       }
     }, 220);
-  }, [appendPromptText]);
+  }, [appendActivePromptText]);
 
   const startVoiceInput = useCallback(() => {
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
@@ -2372,13 +2431,6 @@ Hard requirements:
     micSessionRef.current += 1;
     const sessionAtStart = micSessionRef.current;
     voiceCapturedAnyRef.current = false;
-    voiceAutoSubmitEnabledRef.current = true;
-    // Voice always starts a FRESH dictation. With the prompt textarea now retaining the
-    // last topic after submit, seeding from `promptRef.current` would compound text across
-    // consecutive mic sessions ("topic A topic B topic C…"). Clear here so the user sees
-    // an empty textarea fill in as they speak.
-    setPrompt('');
-    promptRef.current = '';
     voiceAccumulatedRef.current = '';
 
     hasInteractedRef.current = true;
@@ -2402,7 +2454,7 @@ Hard requirements:
               voiceAccumulatedRef.current = voiceAccumulatedRef.current
                 ? `${voiceAccumulatedRef.current.trimEnd()} ${trimmed}`
                 : trimmed;
-              appendPromptText(trimmed);
+              appendActivePromptText(trimmed);
             }
             lastSpeechInterimRef.current = '';
           } else {
@@ -2412,7 +2464,6 @@ Hard requirements:
       };
       recognition.onerror = (event) => {
         if (event?.error === 'no-speech' || event?.error === 'aborted') return;
-        voiceAutoSubmitEnabledRef.current = false;
         if (event?.error === 'not-allowed') {
           setVoiceError('Microphone permission denied for speech recognition.');
           return;
@@ -2429,7 +2480,7 @@ Hard requirements:
           voiceAccumulatedRef.current = voiceAccumulatedRef.current
             ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
             : interimFlush;
-          appendPromptText(interimFlush);
+          appendActivePromptText(interimFlush);
         }
 
         try {
@@ -2441,17 +2492,6 @@ Hard requirements:
         }
         if (recognitionRef.current === recognition) recognitionRef.current = null;
 
-        globalThis.setTimeout(() => {
-          if (sessionAtStart !== micSessionRef.current) return;
-          if (!voiceAutoSubmitEnabledRef.current) return;
-          const captured = voiceCapturedAnyRef.current;
-          voiceAutoSubmitEnabledRef.current = false;
-          const text = voiceAccumulatedRef.current.trim();
-          if (!captured || !text || loadingRef.current || streamingPreviewRef.current) return;
-          hasInteractedRef.current = true;
-          void submitIntentFromVoiceRef.current(text);
-        }, 0);
-
         setVoiceListening(false);
       };
       recognitionRef.current = recognition;
@@ -2459,11 +2499,10 @@ Hard requirements:
       setVoiceListening(true);
     } catch {
       micSessionRef.current += 1;
-      voiceAutoSubmitEnabledRef.current = false;
       setVoiceError('Voice input is unavailable in this browser.');
       voicePressedRef.current = false;
     }
-  }, [appendPromptText, voiceSupported]);
+  }, [appendActivePromptText, voiceSupported]);
 
   function handleMicPointerDown(event) {
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
@@ -2696,6 +2735,57 @@ ${requirementsBlock}`;
     if (loadingRef.current || streamingPreviewRef.current) return;
     setClearConfirmOpen(true);
   }
+
+  const advisorPause =
+    loading ||
+    streamingPreview ||
+    voiceListening ||
+    slopPromptExpanded ||
+    clearConfirmOpen ||
+    editorOpen;
+
+  // Focus priority: an explicit click (selectedNode) is a strong signal — comment
+  // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce
+  // so rapid pointer travel doesn't spam the LLM. Nothing focused → viewport mode.
+  const advisorFocusDescriptor = selectedNode
+    ? { id: selectedNode.id, label: selectedNode.label, kind: selectedNode.kind, source: 'selected' }
+    : hoverDescriptor?.id
+      ? { id: hoverDescriptor.id, label: hoverDescriptor.label, kind: hoverDescriptor.kind, source: 'hover' }
+      : null;
+  const advisorFocusKey = advisorFocusDescriptor
+    ? `${advisorFocusDescriptor.source}:${advisorFocusDescriptor.id}`
+    : null;
+
+  const advisor = useAdvisorOrchestrator({
+    getDiagramSource: () => stateRef.current?.diagramSource ?? '',
+    getContentType: () => contentMode,
+    getSessionId: () => activeSessionId,
+    getFocusDescriptor: () => advisorFocusDescriptor,
+    focusKey: advisorFocusKey,
+    focusSource: advisorFocusDescriptor?.source ?? null,
+    getSvgRoot: () => (typeof document !== 'undefined' ? document : null),
+    pause: advisorPause,
+    onAccept: (text, persona) => {
+      void submitIntentWithPrompt(text, { variantOverride: persona });
+    }
+  });
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const root = document.querySelector('.diagram-zoom-layer') ?? document;
+    const ids = advisor.highlightIds ?? [];
+    applyDiagramHighlightToSvg(
+      root,
+      ids.length > 0 ? { addedIds: ids } : null,
+      { addedClass: 'is-advisor-pointing', modifiedClass: 'is-advisor-pointing' }
+    );
+    return () => {
+      applyDiagramHighlightToSvg(root, null, {
+        addedClass: 'is-advisor-pointing',
+        modifiedClass: 'is-advisor-pointing'
+      });
+    };
+  }, [advisor.highlightIds, state.revisionId, state.diagramSource]);
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -3024,12 +3114,7 @@ ${requirementsBlock}`;
       setRadialMenuSession(null);
       return;
     }
-    const nextKey = descriptorKey(selectedNode);
-    setRadialMenuSession((prev) => {
-      const prevKey = prev ? descriptorKey(prev.descriptor) : null;
-      if (prevKey === nextKey && prev?.anchor) return prev;
-      return { descriptor: selectedNode, anchor: toolbarAnchor };
-    });
+    setRadialMenuSession({ descriptor: selectedNode, anchor: toolbarAnchor });
   }, [radialMenuVisible, selectedNode, toolbarAnchor]);
 
   const handleHoverTargetChange = useCallback(
@@ -3058,6 +3143,10 @@ ${requirementsBlock}`;
       if (next?.id && radialMenuVisible && selectedNode?.id && next.id === selectedNode.id) {
         dismissRadialMenu();
         return;
+      }
+      if (next?.id && selectedNode?.id && next.id !== selectedNode.id) {
+        setRadialMenuSession(null);
+        setRadialMenuVisible(true);
       }
       setSelectedNode(next);
       if (!next) setToolbarAnchor(null);
@@ -3213,6 +3302,10 @@ ${requirementsBlock}`;
   const handleRadialAction = (action, descriptor) => {
     if (!descriptor) return;
     setSelectedNode(descriptor);
+    if (action.id === 'prompt') {
+      openRadialSlopPrompt();
+      return;
+    }
     closeRadialMenu();
     const runOpts = { focusTarget: descriptor };
     const variantForBoot =
@@ -3234,7 +3327,6 @@ ${requirementsBlock}`;
     else if (action.id === 'critique') runAnalyze('critique', runOpts);
     else if (action.id === 'explain') runAnalyze('explain', runOpts);
     else if (action.id === 'fix') handleFixFromCritique('all');
-    else if (action.id === 'prompt') setPromptModalOpen(true);
   };
 
   const radialActions = useMemo(() => {
@@ -3312,8 +3404,6 @@ ${requirementsBlock}`;
   const insightsSlot = insightsMounted ? (
     <InsightsPane
       entries={insightsEntries}
-      soundEnabled={soundEnabled}
-      onSoundEnabledChange={setSoundEnabled}
       celebratingEntryId={celebratingEntryId}
       streamDebugEnabled={streamDebugEnabled}
       critiqueActionableUi={critiqueActionableUi}
@@ -3343,7 +3433,7 @@ ${requirementsBlock}`;
   const liveVariant = liveStreamingEntry?.variant ?? null;
   return (
     <main
-      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}`}
+      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasDiagramText || editorOpen ? ' has-edit-control' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -3383,14 +3473,47 @@ ${requirementsBlock}`;
       />
 
       <RadialActionMenu
+        key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
         descriptor={radialMenuSession?.descriptor ?? null}
         anchor={radialMenuSession?.anchor ?? null}
         actions={radialActions}
         busy={busy}
+        slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
+        onSlopPromptClose={closeSlopPrompt}
+        slopPrompt={
+          slopPromptExpanded && slopPromptSource === 'radial' ? (
+            <SlopNextPrompt
+              layout="radial"
+              prompt={slopNextPrompt}
+              busy={busy}
+              voiceSupported={voiceSupported}
+              voiceListening={voiceListening}
+              narrowLayout={narrowLayout}
+              speechRecognitionCtor={SpeechRecognitionCtor}
+              PromptIcon={PromptIcon}
+              MicIcon={MicIcon}
+              MicActiveIcon={MicActiveIcon}
+              ButtonIcon={ButtonIcon}
+              onPromptChange={setSlopNextPrompt}
+              onSubmit={handleSlopPromptSubmit}
+              onClose={closeSlopPrompt}
+              onMicToggleClick={handleMicToggleClick}
+              onMicPointerDown={handleMicPointerDown}
+              onMicPointerUp={handleMicPointerUp}
+              onMicLostPointerCapture={() => stopVoiceInput()}
+            />
+          ) : null
+        }
         onActionPick={handleRadialAction}
         onHoverHold={cancelMenuClose}
         onHoverRelease={scheduleMenuClose}
-        onBackdropPointerDown={dismissRadialMenu}
+        onBackdropPointerDown={() => {
+          if (slopPromptExpanded && slopPromptSource === 'radial') {
+            closeSlopPrompt();
+            return;
+          }
+          dismissRadialMenu();
+        }}
         onClose={closeRadialMenu}
       />
 
@@ -3417,12 +3540,14 @@ ${requirementsBlock}`;
         aria-label="ArchiSlop"
         onClick={handleBrandClick}
       >
-        <span className="brand-mark" aria-hidden="true">
-          <ArchiSlopMarkIcon />
-        </span>
-        <span className="brand-name">ArchiSlop</span>
-        {gamification?.prestigeShortLabel ? (
-          narrowLayout && compactBrand ? (
+        <div className="brand-control-chip">
+          <div className="brand-control-chip-row">
+            <span className="brand-mark" aria-hidden="true">
+              <ArchiSlopMarkIcon />
+            </span>
+            <span className="brand-name">ArchiSlop</span>
+          {gamification?.prestigeShortLabel ? (
+            narrowLayout && compactBrand ? (
             <button
               type="button"
               className="brand-prestige-badge"
@@ -3437,30 +3562,31 @@ ${requirementsBlock}`;
             >
               {gamification.prestigeShortLabel}
             </button>
-          ) : (
-            <span
-              className="brand-prestige-badge"
-              title={`${gamification.totalRuns ?? 0} total slop runs`}
-              data-testid="brand-prestige-badge"
-            >
-              {gamification.prestigeShortLabel}
-            </span>
-          )
-        ) : null}
-        {gamification?.level && !narrowLayout ? (
-          <XpProgressBar
-            level={gamification.level}
-            short={gamification.levelShortLabel}
-            flair={gamification.levelFlair}
-            progressRatio={gamification.levelProgressRatio}
-            xpInto={gamification.xpIntoLevel}
-            xpForNext={gamification.xpForNextLevel}
-            totalXp={gamification.xp}
-            isMaxLevel={gamification.xpForNextLevel == null}
-            flashKey={xpBarFlashKey}
-            variant={liveVariant}
-          />
-        ) : null}
+            ) : (
+              <span
+                className="brand-prestige-badge"
+                title={`${gamification.totalRuns ?? 0} total slop runs`}
+                data-testid="brand-prestige-badge"
+              >
+                {gamification.prestigeShortLabel}
+              </span>
+            )
+          ) : null}
+          {gamification?.level && !narrowLayout ? (
+            <XpProgressBar
+              level={gamification.level}
+              short={gamification.levelShortLabel}
+              flair={gamification.levelFlair}
+              progressRatio={gamification.levelProgressRatio}
+              xpInto={gamification.xpIntoLevel}
+              xpForNext={gamification.xpForNextLevel}
+              totalXp={gamification.xp}
+              isMaxLevel={gamification.xpForNextLevel == null}
+              flashKey={xpBarFlashKey}
+              variant={liveVariant}
+            />
+          ) : null}
+        </div>
         {gamification?.level && narrowLayout ? (
           <div
             id="brand-xp-mobile-slot"
@@ -3479,8 +3605,9 @@ ${requirementsBlock}`;
               flashKey={xpBarFlashKey}
               variant={liveVariant}
             />
-          </div>
-        ) : null}
+            </div>
+          ) : null}
+        </div>
         {slopitectTip ? (
           <div
             className="slopitect-tip-chip"
@@ -3512,31 +3639,6 @@ ${requirementsBlock}`;
         onClose={() => setInviteDialogOpen(false)}
       />
 
-      <PromptModal
-        open={promptModalOpen}
-        prompt={prompt}
-        busy={busy}
-        voiceSupported={voiceSupported}
-        voiceListening={voiceListening}
-        narrowLayout={narrowLayout}
-        speechRecognitionCtor={SpeechRecognitionCtor}
-        PromptIcon={PromptIcon}
-        MicIcon={MicIcon}
-        MicActiveIcon={MicActiveIcon}
-        ButtonIcon={ButtonIcon}
-        onPromptChange={setPrompt}
-        onSubmit={async (text) => {
-          setPromptModalOpen(false);
-          hasInteractedRef.current = true;
-          await submitIntentWithPrompt(text);
-        }}
-        onClose={() => setPromptModalOpen(false)}
-        onMicToggleClick={handleMicToggleClick}
-        onMicPointerDown={handleMicPointerDown}
-        onMicPointerUp={handleMicPointerUp}
-        onMicLostPointerCapture={() => stopVoiceInput()}
-      />
-
       <ClearConfirmDialog
         key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
         open={clearConfirmOpen}
@@ -3564,7 +3666,31 @@ ${requirementsBlock}`;
       ) : null}
 
       <div className="corner-control bottom-chrome">
-        <div className="prompt-stack">
+        <div
+          className={`prompt-stack${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-expanded' : ''}`}
+        >
+          {hasDiagramText && slopPromptExpanded && slopPromptSource === 'chrome' ? (
+            <SlopNextPrompt
+              layout="chrome"
+              prompt={slopNextPrompt}
+              busy={busy}
+              voiceSupported={voiceSupported}
+              voiceListening={voiceListening}
+              narrowLayout={narrowLayout}
+              speechRecognitionCtor={SpeechRecognitionCtor}
+              PromptIcon={PromptIcon}
+              MicIcon={MicIcon}
+              MicActiveIcon={MicActiveIcon}
+              ButtonIcon={ButtonIcon}
+              onPromptChange={setSlopNextPrompt}
+              onSubmit={handleSlopPromptSubmit}
+              onClose={closeSlopPrompt}
+              onMicToggleClick={handleMicToggleClick}
+              onMicPointerDown={handleMicPointerDown}
+              onMicPointerUp={handleMicPointerUp}
+              onMicLostPointerCapture={() => stopVoiceInput()}
+            />
+          ) : null}
           {!hasDiagramText ? (
             <form className="prompt-control" onSubmit={runIntentChange}>
               <label className="sr-only" htmlFor="diagram-change-prompt">
@@ -3649,13 +3775,13 @@ ${requirementsBlock}`;
 
           {hasDiagramText && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
-              <span className="button-group-label">Direct</span>
               <div className="button-group">
                 <button
                   type="button"
-                  className="overlay-button compact-button slop-action-button is-prompt"
+                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
                   disabled={busy}
-                  onClick={() => setPromptModalOpen(true)}
+                  onClick={toggleChromeSlopPrompt}
+                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
                   aria-label="Prompt"
                   title="Prompt · Direct the agent in your own words"
                 >
@@ -3669,68 +3795,30 @@ ${requirementsBlock}`;
                   </span>
                 </button>
               </div>
-              <span className="button-group-label">Shape</span>
-              <div className="button-group">
-                <button
-                  type="button"
-                  className={actionButtonClass('refine')}
-                  disabled={busy}
-                  onClick={() => runTransform('refine', { useDiagramFocus: true })}
-                  aria-label="Refine"
-                  title={actionPersonaTitle('refine')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="refine" />
-                  </ButtonIcon>
-                  <span className="button-label">Refine</span>
-                  <ActionPersonaRole variant="refine" />
-                </button>
-                <button
-                  type="button"
-                  className={actionButtonClass('innovate')}
-                  disabled={busy}
-                  onClick={() => runTransform('innovate', { useDiagramFocus: true })}
-                  aria-label="Innovate"
-                  title={actionPersonaTitle('innovate')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="innovate" />
-                  </ButtonIcon>
-                  <span className="button-label">Innovate</span>
-                  <ActionPersonaRole variant="innovate" />
-                </button>
-                <button
-                  type="button"
-                  className={actionButtonClass('goMad')}
-                  disabled={busy}
-                  onClick={() => runTransform('goMad', { useDiagramFocus: true })}
-                  aria-label={goMadShapeLabel(goMadStreak)}
-                  title={actionPersonaTitle('goMad')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="goMad" />
-                  </ButtonIcon>
-                  <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
-                  <ActionPersonaRole variant="goMad" />
-                </button>
-              </div>
-              <span className="button-group-label">Read</span>
-              <div className="button-group">
-                <button
-                  type="button"
-                  className={actionButtonClass('critique')}
-                  disabled={busy}
-                  onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
-                  aria-label="Critique"
-                  title={actionPersonaTitle('critique')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="critique" />
-                  </ButtonIcon>
-                  <span className="button-label">Critique</span>
-                  <ActionPersonaRole variant="critique" />
-                </button>
-                {latestCritique?.text ? (
+              <CouncilMascot
+                personas={[
+                  { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
+                  { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
+                  { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
+                  { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
+                  { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
+                ]}
+                activeAdvisorVariant={advisor.activePersona}
+                thinkingPersona={advisor.thinkingPersona}
+                busy={busy}
+                bubbleProps={advisor.suggestion ? {
+                  persona: advisor.activePersona,
+                  suggestion: advisor.suggestion,
+                  isPinned: advisor.isPinned,
+                  onGo: advisor.accept,
+                  onDismiss: advisor.dismiss,
+                  onTogglePin: advisor.togglePin,
+                  onPauseTimer: advisor.pauseTimer,
+                  onResumeTimer: advisor.resumeTimer
+                } : null}
+              />
+              {latestCritique?.text ? (
+                <div className="button-group">
                   <button
                     type="button"
                     className="overlay-button compact-button slop-action-button is-fix"
@@ -3745,23 +3833,28 @@ ${requirementsBlock}`;
                     <span className="button-label">Fix</span>
                     <ActionPersonaRole fallback="Site Foreman" />
                   </button>
-                ) : null}
+                </div>
+              ) : null}
+              <div className="button-group">
                 <button
                   type="button"
-                  className={actionButtonClass('explain')}
-                  disabled={busy}
-                  onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
-                  aria-label="Explain"
-                  title={actionPersonaTitle('explain')}
+                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
+                  onClick={advisor.toggleMute}
+                  aria-pressed={advisor.isMuted}
+                  aria-label={advisor.isMuted ? 'Unmute council advisors' : 'Mute council advisors'}
+                  title={advisor.isMuted ? 'Advisors muted · click to wake the council' : 'Council watching · click to mute'}
                 >
                   <ButtonIcon>
-                    <ActionPersonaIcon variant="explain" />
+                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
+                      {advisor.isMuted ? '🔇' : '🔊'}
+                    </span>
                   </ButtonIcon>
-                  <span className="button-label">Explain</span>
-                  <ActionPersonaRole variant="explain" />
+                  <span className="button-label">{advisor.isMuted ? 'Wake' : 'Hush'}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
+                    {advisor.isMuted ? 'Muted' : 'Council'}
+                  </span>
                 </button>
-              </div>
-              <div className="button-group">
                 <button
                   type="button"
                   className="overlay-button compact-button slop-action-button is-clear"
@@ -3788,9 +3881,10 @@ ${requirementsBlock}`;
               <div className="button-group">
                 <button
                   type="button"
-                  className="overlay-button compact-button slop-action-button is-prompt"
+                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
                   disabled={busy}
-                  onClick={() => setPromptModalOpen(true)}
+                  onClick={toggleChromeSlopPrompt}
+                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
                   aria-label="Prompt"
                   title="Prompt · Direct the agent in your own words"
                 >
@@ -3803,62 +3897,28 @@ ${requirementsBlock}`;
                     Prompt
                   </span>
                 </button>
-                <button
-                  type="button"
-                  className={actionButtonClass('refine')}
-                  disabled={busy}
-                  onClick={() => runTransform('refine', { useDiagramFocus: true })}
-                  aria-label="Refine"
-                  title={actionPersonaTitle('refine')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="refine" />
-                  </ButtonIcon>
-                  <span className="button-label">Refine</span>
-                  <ActionPersonaRole variant="refine" />
-                </button>
-                <button
-                  type="button"
-                  className={actionButtonClass('innovate')}
-                  disabled={busy}
-                  onClick={() => runTransform('innovate', { useDiagramFocus: true })}
-                  aria-label="Innovate"
-                  title={actionPersonaTitle('innovate')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="innovate" />
-                  </ButtonIcon>
-                  <span className="button-label">Innovate</span>
-                  <ActionPersonaRole variant="innovate" />
-                </button>
-                <button
-                  type="button"
-                  className={actionButtonClass('goMad')}
-                  disabled={busy}
-                  onClick={() => runTransform('goMad', { useDiagramFocus: true })}
-                  aria-label={goMadShapeLabel(goMadStreak)}
-                  title={actionPersonaTitle('goMad')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="goMad" />
-                  </ButtonIcon>
-                  <span className="button-label">{goMadShapeLabel(goMadStreak)}</span>
-                  <ActionPersonaRole variant="goMad" />
-                </button>
-                <button
-                  type="button"
-                  className={actionButtonClass('critique')}
-                  disabled={busy}
-                  onClick={() => runAnalyze('critique', { useDiagramFocus: true })}
-                  aria-label="Critique"
-                  title={actionPersonaTitle('critique')}
-                >
-                  <ButtonIcon>
-                    <ActionPersonaIcon variant="critique" />
-                  </ButtonIcon>
-                  <span className="button-label">Critique</span>
-                  <ActionPersonaRole variant="critique" />
-                </button>
+                <CouncilMascot
+                  personas={[
+                    { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
+                    { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
+                    { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
+                    { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
+                    { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
+                  ]}
+                  activeAdvisorVariant={advisor.activePersona}
+                  thinkingPersona={advisor.thinkingPersona}
+                  busy={busy}
+                  bubbleProps={advisor.suggestion ? {
+                    persona: advisor.activePersona,
+                    suggestion: advisor.suggestion,
+                    isPinned: advisor.isPinned,
+                    onGo: advisor.accept,
+                    onDismiss: advisor.dismiss,
+                    onTogglePin: advisor.togglePin,
+                    onPauseTimer: advisor.pauseTimer,
+                    onResumeTimer: advisor.resumeTimer
+                  } : null}
+                />
                 {latestCritique?.text ? (
                   <button
                     type="button"
@@ -3877,17 +3937,22 @@ ${requirementsBlock}`;
                 ) : null}
                 <button
                   type="button"
-                  className={actionButtonClass('explain')}
-                  disabled={busy}
-                  onClick={() => runAnalyze('explain', { useDiagramFocus: true })}
-                  aria-label="Explain"
-                  title={actionPersonaTitle('explain')}
+                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
+                  onClick={advisor.toggleMute}
+                  aria-pressed={advisor.isMuted}
+                  aria-label={advisor.isMuted ? 'Unmute council advisors' : 'Mute council advisors'}
+                  title={advisor.isMuted ? 'Advisors muted · tap to wake the council' : 'Council watching · tap to mute'}
                 >
                   <ButtonIcon>
-                    <ActionPersonaIcon variant="explain" />
+                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
+                      {advisor.isMuted ? '🔇' : '🔊'}
+                    </span>
                   </ButtonIcon>
-                  <span className="button-label">Explain</span>
-                  <ActionPersonaRole variant="explain" />
+                  <span className="button-label">{advisor.isMuted ? 'Wake' : 'Hush'}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
+                    {advisor.isMuted ? 'Muted' : 'Council'}
+                  </span>
                 </button>
                 <button
                   type="button"

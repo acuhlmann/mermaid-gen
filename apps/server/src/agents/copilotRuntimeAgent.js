@@ -72,7 +72,7 @@ export async function* createCopilotAgentEvents({ input, agentService, stateStor
     } else {
       const regionHint =
         /region|not available in your country|unsupported_country/i.test(detail)
-          ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` or `OPENROUTER_MODEL_FAST` / `OPENROUTER_MODEL_QUALITY` in your server `.env` to an OpenRouter slug that works where you are (for example `qwen/qwen3-8b`, `qwen/qwen3-32b`, or `deepseek/deepseek-chat-v3-0324`), then restart the API server.\n'
+          ? '\n\nIf this is a **region / model availability** issue, set `DEEPSEEK_MODEL*` / `OPENROUTER_MODEL*` / `VERTEX_MODEL*` tier env vars in your server `.env` (for example DeepSeek `deepseek-v4-flash` or OpenRouter `qwen/qwen3-32b`), then restart the API server.\n'
           : '';
       yield {
         type: 'TEXT_MESSAGE_CONTENT',

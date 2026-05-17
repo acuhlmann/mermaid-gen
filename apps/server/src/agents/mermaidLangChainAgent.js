@@ -12,51 +12,34 @@ import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxF
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
 import {
+  createLlmChatModel,
   createOpenRouterModel,
-  createVertexChatModel,
   isLlmConfigured,
   LlmNotConfiguredError,
+  normalizeModelProfile,
   resolveLlmBackend,
-  resolveVertexModelId
+  resolveModelId
 } from './llmProvider.js';
 
 export {
+  createDeepSeekChatModel,
   createOpenRouterModel,
   createVertexChatModel,
+  DEFAULT_DEEPSEEK_MODEL_FAST,
+  DEFAULT_DEEPSEEK_MODEL_QUALITY,
+  DEFAULT_OPENROUTER_MODEL_FAST,
+  DEFAULT_OPENROUTER_MODEL_QUALITY,
   DEFAULT_VERTEX_MODEL_FAST,
   DEFAULT_VERTEX_MODEL_QUALITY,
   isLlmConfigured,
   LlmNotConfiguredError,
+  normalizeModelProfile,
+  resolveDeepSeekModelId,
   resolveLlmBackend,
+  resolveModelId,
+  resolveOpenRouterModelId,
   resolveVertexModelId
 } from './llmProvider.js';
-
-/** Default OpenRouter slugs when OPENROUTER_MODEL* are unset. Fast = latency-tuned tool-use model (low TTFT, reliable first-turn tool calls); Quality = flagship MoE (slower, stronger). Override via OPENROUTER_MODEL / OPENROUTER_MODEL_FAST / OPENROUTER_MODEL_QUALITY (HK users: Qwen slugs like `qwen/qwen3-32b` are good fallbacks). */
-export const DEFAULT_OPENROUTER_MODEL_FAST = 'google/gemini-2.5-flash-lite';
-export const DEFAULT_OPENROUTER_MODEL_QUALITY = 'qwen/qwen3-235b-a22b';
-
-/** @param {unknown} profile */
-export function normalizeModelProfile(profile) {
-  return profile === 'quality' ? 'quality' : 'fast';
-}
-
-/**
- * Resolves OpenRouter model slug for UI profile (never trusts raw client model ids).
- */
-export function resolveOpenRouterModelId(env = process.env, profile = 'fast') {
-  const p = normalizeModelProfile(profile);
-  const shared = typeof env.OPENROUTER_MODEL === 'string' ? env.OPENROUTER_MODEL.trim() : '';
-  if (p === 'quality') {
-    const quality = typeof env.OPENROUTER_MODEL_QUALITY === 'string' ? env.OPENROUTER_MODEL_QUALITY.trim() : '';
-    if (quality) return quality;
-    if (shared) return shared;
-    return DEFAULT_OPENROUTER_MODEL_QUALITY;
-  }
-  const fast = typeof env.OPENROUTER_MODEL_FAST === 'string' ? env.OPENROUTER_MODEL_FAST.trim() : '';
-  if (fast) return fast;
-  if (shared) return shared;
-  return DEFAULT_OPENROUTER_MODEL_FAST;
-}
 const INTENT_PROFILE_DEFAULTS = {
   temperature: 0.7,
   topP: 1,
@@ -396,11 +379,7 @@ const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch|g
 const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type/i;
 
 function defaultChatModelFactory(env, options) {
-  const backend = resolveLlmBackend(env);
-  if (backend === 'vertex') {
-    return createVertexChatModel(env, options);
-  }
-  return createOpenRouterModel(env, options);
+  return createLlmChatModel(env, options);
 }
 
 function normalizeMessageContent(content) {
@@ -637,7 +616,7 @@ export function buildDiagramMutationSystemMessage() {
 function formatAgentInvokeFailure(error, env = process.env) {
   const detail = redactSecrets(error instanceof Error ? error.message : String(error));
   const regionHint = /region|not available in your country|unsupported_country/i.test(detail)
-    ? '\n\nIf this is a **region / model availability** issue, set `OPENROUTER_MODEL` or `OPENROUTER_MODEL_FAST` / `OPENROUTER_MODEL_QUALITY` in your server `.env` to an OpenRouter slug that works where you are (for example `qwen/qwen3-8b`, `qwen/qwen3-32b`, or `deepseek/deepseek-chat-v3-0324`), then restart the API server.\n'
+    ? '\n\nIf this is a **region / model availability** issue, set `DEEPSEEK_MODEL*` / `OPENROUTER_MODEL*` / `VERTEX_MODEL*` tier env vars in your server `.env` (for example OpenRouter `qwen/qwen3-32b` or DeepSeek `deepseek-v4-flash`), then restart the API server.\n'
     : '';
   const toolsHint = /tool|tools|function[_ ]?call|parallel_tool|unsupported/i.test(detail)
     ? '\n\nIf failures mention tools or function calling, pick an OpenRouter model that reliably supports agent tool use in your region (for example `qwen/qwen3-30b-a3b` or `qwen/qwen3-32b`).\n'
@@ -1102,8 +1081,7 @@ export function createMermaidLangChainAgent({
 
   function chatModelFor(profile, extraOptions = {}) {
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
+    const modelId = resolveModelId(env, profile, backend);
     return chatModelFactory(env, { model: modelId, ...extraOptions });
   }
 
@@ -1111,8 +1089,7 @@ export function createMermaidLangChainAgent({
   function getDefaultAgent(profile = 'fast') {
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const modelId = resolveModelId(env, p, backend);
     const key = `default:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
       agentCache.set(
@@ -1133,8 +1110,7 @@ export function createMermaidLangChainAgent({
     const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const modelId = resolveModelId(env, p, backend);
     const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
     const key =
       m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
@@ -1157,8 +1133,7 @@ export function createMermaidLangChainAgent({
     const backend = resolveLlmBackend(env);
     if (!backend) return null;
     const p = normalizeModelProfile(profile);
-    const modelId =
-      backend === 'vertex' ? resolveVertexModelId(env, p) : resolveOpenRouterModelId(env, p);
+    const modelId = resolveModelId(env, p, backend);
     return `${backend}:${modelId}`;
   }
 
@@ -1283,8 +1258,7 @@ ${prompt}${focusScope}`;
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env);
-      const modelId =
-        backend === 'vertex' ? resolveVertexModelId(env, profile) : resolveOpenRouterModelId(env, profile);
+      const modelId = resolveModelId(env, profile, backend);
       let analysisModel = getAnalysisModel(backend, modelId, kind);
 
       const analysisSystem =

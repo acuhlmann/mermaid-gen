@@ -11,7 +11,8 @@ import {
   flowchartEdgeLabelText,
   parseFlowchartEdgeDataId,
   resolveFlowchartEdgeInteractionRoot,
-  resolveSequenceActorInteractionRoot
+  resolveSequenceActorInteractionRoot,
+  resolveTimelineNodeInteractionRoot
 } from '../utils/diagramSvgSelection.js';
 import {
   findInfographicTapTarget,
@@ -128,6 +129,7 @@ function diagramSelectedWrap(root, domId) {
     const hit = root.querySelector(`[id="${CSS.escape(domId)}"]`);
     return (
       hit?.closest?.('g.node') ??
+      hit?.closest?.('g.timeline-node') ??
       hit?.closest?.('g.cluster') ??
       hit?.closest?.('[data-et="participant"]') ??
       hit
@@ -543,7 +545,7 @@ export default function DiagramCanvas({
       typeof globalThis.matchMedia === 'function' &&
       globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduceMotion) return;
-    const nodes = root.querySelectorAll('g.node, g.cluster');
+    const nodes = root.querySelectorAll('g.node, g.timeline-node, g.cluster');
     nodes.forEach((node, i) => {
       node.setAttribute('data-node-fade', '1');
       node.style.animationDelay = `${Math.min(i * 35, 700)}ms`;
@@ -555,6 +557,7 @@ export default function DiagramCanvas({
     if (!root) return;
     root.querySelectorAll('path.is-diagram-edge-selected').forEach((el) => el.classList.remove('is-diagram-edge-selected'));
     root.querySelectorAll('g.node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
+    root.querySelectorAll('g.timeline-node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
     root.querySelectorAll('g.cluster.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
     root
       .querySelectorAll('[data-et="participant"].is-diagram-selected')
@@ -746,7 +749,7 @@ export default function DiagramCanvas({
     let textHitEl = null;
 
     if (contentType === 'mermaid') {
-      nodeEl = target?.closest?.('g.node') ?? null;
+      nodeEl = target?.closest?.('g.node') ?? target?.closest?.('g.timeline-node') ?? null;
       clusterEl = nodeEl ? null : target?.closest?.('g.cluster') ?? null;
       actorHit = !nodeEl && !clusterEl ? resolveSequenceActorInteractionRoot(target) : null;
       edgeHit =
@@ -800,7 +803,13 @@ export default function DiagramCanvas({
         const clipped = raw.slice(0, 240);
         if (clipped && clipped !== label) clickedLabel = clipped;
       }
-      const partKind = textHitEl ? 'label' : nodeEl ? 'node' : 'cluster';
+      const partKind = textHitEl
+        ? 'label'
+        : nodeEl?.classList?.contains?.('timeline-node')
+          ? 'timeline'
+          : nodeEl
+            ? 'node'
+            : 'cluster';
       const partName = clickedLabel || label;
       return {
         id: anchor.id,
@@ -1153,9 +1162,11 @@ export default function DiagramCanvas({
         if (contentType === 'mermaid') {
           stillBackground =
             !event.target?.closest?.('g.node') &&
+            !event.target?.closest?.('g.timeline-node') &&
             !event.target?.closest?.('g.cluster') &&
             !resolveSequenceActorInteractionRoot(event.target) &&
-            !resolveFlowchartEdgeInteractionRoot(event.target);
+            !resolveFlowchartEdgeInteractionRoot(event.target) &&
+            !resolveTimelineNodeInteractionRoot(event.target);
         } else if (contentType === 'infographic') {
           const boundary = viewportRef.current;
           stillBackground = !(boundary && findInfographicTapTarget(event.target, boundary));

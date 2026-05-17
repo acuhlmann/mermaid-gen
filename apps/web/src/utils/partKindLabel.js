@@ -1,6 +1,7 @@
 const PART_KIND_LABELS = {
   label: 'Label',
   node: 'Node',
+  timeline: 'Timeline',
   participant: 'Participant',
   cluster: 'Subgraph',
   edge: 'Edge',

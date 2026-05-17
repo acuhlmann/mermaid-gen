@@ -2,7 +2,6 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
-import { partKindLabel } from '../utils/partKindLabel.js';
 import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
 import CritiqueA2uiSurface from './CritiqueA2uiSurface.jsx';
@@ -24,16 +23,6 @@ const TIP_ROTATION_MS = 7000;
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
 const BOTTOM_SNAP_THRESHOLD_PX = 72;
-
-function TopicChip({ topic }) {
-  if (!topic?.partKind) return null;
-  return (
-    <span className="insights-topic-chip" aria-label={`Topic ${partKindLabel(topic.partKind)} ${topic.partName || ''}`}>
-      <span className="insights-topic-chip-type">{partKindLabel(topic.partKind)}</span>
-      {topic.partName ? <span className="insights-topic-chip-name">{topic.partName}</span> : null}
-    </span>
-  );
-}
 
 const PHASE_ID_LABELS = {
   analyze: 'Analyze',
@@ -754,8 +743,6 @@ function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast, pha
 
 export default function InsightsPane({
   entries,
-  soundEnabled,
-  onSoundEnabledChange,
   celebratingEntryId,
   streamDebugEnabled = false,
   critiqueActionableUi = null,
@@ -790,12 +777,6 @@ export default function InsightsPane({
       onRestoreDiagramSnapshot
     };
   }
-  const headlineTopic = (() => {
-    const liveWithTopic = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running' && e.topic?.partKind);
-    if (liveWithTopic) return liveWithTopic.topic;
-    const latestWithTopic = [...entries].reverse().find((e) => e.topic?.partKind);
-    return latestWithTopic?.topic ?? null;
-  })();
   const activeVariant = (() => {
     const liveEntry = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running' && e.variant);
     if (liveEntry) return liveEntry.variant;
@@ -833,10 +814,7 @@ export default function InsightsPane({
     >
       <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
         <div className="insights-pane-title-row">
-          <span className="insights-pane-title">
-            {headlineTopic ? 'Thinking' : 'Thinking & notes'}
-          </span>
-          {headlineTopic ? <TopicChip topic={headlineTopic} /> : null}
+          <span className="insights-pane-title">Thinking</span>
           {hasLiveAgent ? (
             <span className="insights-live-badge" aria-live="polite">
               <span className="insights-live-dot" aria-hidden="true" />
@@ -850,16 +828,6 @@ export default function InsightsPane({
           </span>
         ) : null}
         <div className="insights-pane-controls">
-          {typeof onDismiss === 'function' ? (
-            <button
-              type="button"
-              className="insights-pane-dismiss overlay-button compact-button"
-              onClick={onDismiss}
-              aria-label="Close thinking panel"
-            >
-              Hide
-            </button>
-          ) : null}
           {typeof onStopStreamingAgent === 'function' ? (
             <button
               type="button"
@@ -869,14 +837,6 @@ export default function InsightsPane({
               Stop request
             </button>
           ) : null}
-          <label className="insights-sound-toggle">
-            <input
-              type="checkbox"
-              checked={Boolean(soundEnabled)}
-              onChange={(event) => onSoundEnabledChange?.(event.target.checked)}
-            />
-            <span>{soundEnabled ? 'Sound on' : 'Sound off'}</span>
-          </label>
         </div>
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
@@ -1391,6 +1351,16 @@ export default function InsightsPane({
           })
         )}
       </div>
+      {typeof onDismiss === 'function' ? (
+        <button
+          type="button"
+          className="insights-pane-dismiss overlay-button compact-button"
+          onClick={onDismiss}
+          aria-label="Close thinking panel"
+        >
+          Hide
+        </button>
+      ) : null}
     </aside>
   );
 }

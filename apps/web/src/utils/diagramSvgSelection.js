@@ -80,6 +80,21 @@ export function resolveFlowchartEdgeInteractionRoot(target) {
  * @param {EventTarget | null | undefined} target
  * @returns {{ groupEl: Element, dataId: string } | null}
  */
+/**
+ * Timeline diagrams render interactive units as `g.timeline-node` with an inner `path[id]`,
+ * not flowchart `g.node` (see mermaid timeline drawNode).
+ *
+ * @param {EventTarget | null | undefined} target
+ * @returns {{ groupEl: Element } | null}
+ */
+export function resolveTimelineNodeInteractionRoot(target) {
+  if (!target || typeof target !== 'object') return null;
+  const el = /** @type {Element} */ (target);
+  const group = el.closest?.('g.timeline-node');
+  if (!group) return null;
+  return { groupEl: group };
+}
+
 export function resolveSequenceActorInteractionRoot(target) {
   if (!target || typeof target !== 'object') return null;
   const el = /** @type {Element} */ (target);

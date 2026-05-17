@@ -25,8 +25,6 @@ describe('InsightsPane', () => {
             ]
           }
         ]}
-        soundEnabled
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -57,8 +55,6 @@ describe('InsightsPane', () => {
             startedAt: fixedTime
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -72,8 +68,7 @@ describe('InsightsPane', () => {
     expect(timeEl.textContent.trim().length).toBeGreaterThan(0);
   });
 
-  it('shows done state and supports sound toggle', () => {
-    const onSoundEnabledChange = vi.fn();
+  it('shows done state in the thinking pane', () => {
     render(
       <InsightsPane
         entries={[
@@ -86,15 +81,12 @@ describe('InsightsPane', () => {
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={onSoundEnabledChange}
         celebratingEntryId="entry-1"
       />
     );
 
     expect(screen.getByText('Done')).toBeTruthy();
-    fireEvent.click(screen.getAllByRole('checkbox')[0]);
-    expect(onSoundEnabledChange).toHaveBeenCalledWith(true);
+    expect(screen.getByText('Thinking')).toBeTruthy();
   });
 
   it('shows Restore when entry has an after-snapshot and invokes handler', () => {
@@ -118,8 +110,6 @@ describe('InsightsPane', () => {
             diagramAfterContentType: 'mermaid'
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         onRestoreToEntry={onRestoreToEntry}
         diagramUndoDisabled={false}
@@ -154,8 +144,6 @@ describe('InsightsPane', () => {
             diagramAfterContentType: 'mermaid'
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         onRestoreToEntry={vi.fn()}
         diagramUndoDisabled={false}
@@ -187,8 +175,6 @@ describe('InsightsPane', () => {
             diagramAfterContentType: 'mermaid'
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         onRestoreToEntry={vi.fn()}
         diagramChangeHighlightEntryId="e-act"
@@ -223,8 +209,6 @@ describe('InsightsPane', () => {
             diagramAfterContentType: 'mermaid'
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         onRestoreToEntry={vi.fn()}
         diagramChangeHighlightEntryId="e-rem"
@@ -256,8 +240,6 @@ flowchart TB
             origin: { kind: 'external-agent', agentName: 'Cursor', color: '#f97316' }
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         onRestoreDiagramSnapshot={onRestoreDiagramSnapshot}
         diagramUndoDisabled={false}
@@ -291,8 +273,6 @@ flowchart TB
             diagramUndoConsumed: false
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -316,8 +296,6 @@ flowchart TB
             diagramAfterContentType: 'mermaid'
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         diagramUndoDisabled
         onRestoreToEntry={vi.fn()}
@@ -347,8 +325,6 @@ flowchart TB
             streamDebugLog: [{ type: 'phase', id: 'intent', _ts: 1 }]
           }
         ]}
-        soundEnabled
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         streamDebugEnabled
       />
@@ -376,8 +352,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -401,8 +375,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -427,8 +399,6 @@ flowchart TB
             ]
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         streamDebugEnabled={false}
       />
@@ -453,8 +423,6 @@ flowchart TB
             phases: [{ id: 'analyze', label: 'Analyzing…' }]
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
         streamDebugEnabled
       />
@@ -478,8 +446,6 @@ flowchart TB
             ]
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -510,8 +476,6 @@ flowchart TB
             ]
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -533,8 +497,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -556,8 +518,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -590,8 +550,6 @@ flowchart TB
             ]
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -614,8 +572,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -641,8 +597,6 @@ flowchart TB
             ]
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -664,8 +618,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -688,8 +640,6 @@ flowchart TB
             technicalActions: []
           }
         ]}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -730,8 +680,6 @@ flowchart TB
           onFixSelected,
           onFixAll
         }}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
@@ -773,8 +721,6 @@ flowchart TB
           onFixSelected: vi.fn(),
           onFixAll: vi.fn()
         }}
-        soundEnabled={false}
-        onSoundEnabledChange={vi.fn()}
         celebratingEntryId={null}
       />
     );
