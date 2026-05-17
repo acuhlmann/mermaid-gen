@@ -496,6 +496,17 @@ function MicActiveIcon() {
   );
 }
 
+function SettingsGearIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M19.14 12.94c.04-.31.06-.62.06-.94 0-.32-.02-.63-.06-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54A.484.484 0 0 0 13.91 2h-3.84a.48.48 0 0 0-.49.42l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.485.485 0 0 0-.59.22L2.71 8.48a.49.49 0 0 0 .12.61l2.03 1.58c-.04.31-.06.63-.06.94 0 .32.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.39.31.61.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.27.42.49.42h3.84c.24 0 .44-.18.48-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.09.49 0 .61-.22l1.92-3.32c.12-.22.07-.49-.12-.61l-2.01-1.58zM12 15.6A3.6 3.6 0 0 1 8.4 12 3.6 3.6 0 0 1 12 8.4a3.6 3.6 0 0 1 3.6 3.6 3.6 3.6 0 0 1-3.6 3.6z"
+      />
+    </svg>
+  );
+}
+
 function AiCornerControlsInner({
   contentMode,
   onSelectContentMode,
@@ -510,66 +521,92 @@ function AiCornerControlsInner({
   onToggleInsights,
   includeThinkingToggle = true
 }) {
+  const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
+  const [settingsOpen, setSettingsOpen] = useState(startExpanded);
+  // A pending handshake forces the panel open so the user can see what's waiting.
+  const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
   return (
     <>
-      <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
-        <span className="model-profile-label">Invite agent</span>
-        <div className="agent-collab-segment">
-          {pendingHandshake ? (
-            <span className="agent-handshake-waiting" role="status">
-              Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
+      <button
+        type="button"
+        className={`overlay-button ai-corner-settings-toggle${effectiveOpen ? ' is-open' : ''}${pendingHandshake ? ' has-pending' : ''}`}
+        onClick={() => setSettingsOpen((v) => !v)}
+        aria-expanded={effectiveOpen}
+        aria-controls="ai-corner-settings-panel"
+        aria-label={effectiveOpen ? 'Hide settings' : 'Show settings'}
+        title={effectiveOpen ? 'Hide settings' : 'Settings · invite agent, mode, brain'}
+      >
+        <ButtonIcon>
+          <SettingsGearIcon />
+        </ButtonIcon>
+        <span className="button-label">Settings</span>
+      </button>
+      <div
+        id="ai-corner-settings-panel"
+        className={`ai-corner-settings-panel${effectiveOpen ? ' is-open' : ''}`}
+        role="region"
+        aria-label="Session settings"
+        hidden={!effectiveOpen}
+      >
+        <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
+          <span className="model-profile-label">Invite agent</span>
+          <div className="agent-collab-segment">
+            {pendingHandshake ? (
+              <span className="agent-handshake-waiting" role="status">
+                Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
+              </span>
+            ) : null}
+            <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
+          </div>
+        </div>
+        <div className="model-profile-toggle" role="group" aria-label="Content mode">
+          <span className="model-profile-label">Mode</span>
+          <div className="model-profile-segment">
+            <button
+              type="button"
+              className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
+              aria-pressed={contentMode === 'mermaid'}
+              disabled={modeSwitchDisabled}
+              onClick={() => onSelectContentMode('mermaid')}
+            >
+              Diagram
+            </button>
+            <button
+              type="button"
+              className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
+              aria-pressed={contentMode === 'infographic'}
+              disabled={modeSwitchDisabled}
+              onClick={() => onSelectContentMode('infographic')}
+            >
+              Infographic
+            </button>
+          </div>
+        </div>
+        <div className="model-profile-toggle" role="group" aria-label="AI brain">
+          <span className="model-profile-label model-profile-label--brain">
+            <span className="model-profile-label-icon" aria-hidden="true">
+              <BrainIcon />
             </span>
-          ) : null}
-          <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
-        </div>
-      </div>
-      <div className="model-profile-toggle" role="group" aria-label="Content mode">
-        <span className="model-profile-label">Mode</span>
-        <div className="model-profile-segment">
-          <button
-            type="button"
-            className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
-            aria-pressed={contentMode === 'mermaid'}
-            disabled={modeSwitchDisabled}
-            onClick={() => onSelectContentMode('mermaid')}
-          >
-            Diagram
-          </button>
-          <button
-            type="button"
-            className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
-            aria-pressed={contentMode === 'infographic'}
-            disabled={modeSwitchDisabled}
-            onClick={() => onSelectContentMode('infographic')}
-          >
-            Infographic
-          </button>
-        </div>
-      </div>
-      <div className="model-profile-toggle" role="group" aria-label="AI brain">
-        <span className="model-profile-label model-profile-label--brain">
-          <span className="model-profile-label-icon" aria-hidden="true">
-            <BrainIcon />
+            Brain
           </span>
-          Brain
-        </span>
-        <div className="model-profile-segment">
-          <button
-            type="button"
-            className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
-            aria-pressed={modelProfile === 'fast'}
-            onClick={() => onSelectModelProfile('fast')}
-          >
-            Fast
-          </button>
-          <button
-            type="button"
-            className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
-            aria-pressed={modelProfile === 'quality'}
-            onClick={() => onSelectModelProfile('quality')}
-          >
-            Quality
-          </button>
+          <div className="model-profile-segment">
+            <button
+              type="button"
+              className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
+              aria-pressed={modelProfile === 'fast'}
+              onClick={() => onSelectModelProfile('fast')}
+            >
+              Fast
+            </button>
+            <button
+              type="button"
+              className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
+              aria-pressed={modelProfile === 'quality'}
+              onClick={() => onSelectModelProfile('quality')}
+            >
+              Quality
+            </button>
+          </div>
         </div>
       </div>
       {includeThinkingToggle ? (
@@ -694,6 +731,8 @@ function ArchiSlop() {
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   const [contentMode, setContentMode] = useState(() => readStoredContentMode());
+  /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
+  const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
   /** Auto pulse focuses on newly added nodes; manual "Highlight changes" shows full diff. */
@@ -1869,6 +1908,10 @@ function ArchiSlop() {
       setLatestCritique(null);
       tryAgentSound(playModeSwoosh);
       setContentMode(nextMode);
+      // Force renderers to fully recompute layout on every mode switch — the
+      // infographic engine in particular caches per-instance layout state and
+      // a fresh render is the only way to guarantee a clean layout pass.
+      setRendererRefreshKey((n) => n + 1);
     },
     [contentMode, stopStreamingAgentRequest]
   );
@@ -3503,6 +3546,7 @@ ${requirementsBlock}`;
             : state.diagramSource
         }
         contentType={contentMode}
+        rendererRefreshKey={rendererRefreshKey}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
         streamingPreview={streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)}
@@ -3828,6 +3872,39 @@ ${requirementsBlock}`;
                   Stop request
                 </button>
               ) : null}
+            </div>
+          ) : null}
+
+          {!hasDiagramText ? (
+            <div
+              className={`prompt-actions prompt-actions--idle${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
+            >
+              <div className="button-group">
+                <StakeholdersMascot
+                  personas={[
+                    { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
+                    { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
+                    { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
+                    { variant: 'exec', onClick: () => runTransform('exec', { useDiagramFocus: true }) },
+                    { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
+                    { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
+                  ]}
+                  activeAdvisorVariant={advisor.activePersona}
+                  thinkingPersona={advisor.thinkingPersona}
+                  busy={true}
+                  bubbleProps={advisor.suggestion ? {
+                    persona: advisor.activePersona,
+                    suggestion: advisor.suggestion,
+                    kind: advisor.suggestionKind,
+                    isPinned: advisor.isPinned,
+                    onGo: advisor.accept,
+                    onDismiss: advisor.dismiss,
+                    onTogglePin: advisor.togglePin,
+                    onPauseTimer: advisor.pauseTimer,
+                    onResumeTimer: advisor.resumeTimer
+                  } : null}
+                />
+              </div>
             </div>
           ) : null}
 

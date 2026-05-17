@@ -162,7 +162,9 @@ export default function DiagramCanvas({
   onDiagramSvgRendered = null,
   runFx = null,
   /** When set, pan/zoom the canvas to frame these advisor highlight ids (e.g. on pin). */
-  advisorPinFocusIds = null
+  advisorPinFocusIds = null,
+  /** Incremented by App on each mode switch so the infographic renderer fully remounts. */
+  rendererRefreshKey = 0
 }) {
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
   const [editorSource, setEditorSource] = useState(diagramSource);
@@ -1286,6 +1288,7 @@ export default function DiagramCanvas({
             <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>
               {contentType === 'infographic' ? (
                 <InfographicRenderer
+                  key={`infographic-${rendererRefreshKey}`}
                   diagramSource={editorSource}
                   selectedNode={selectedNode}
                   streamingPreview={streamingPreview}
