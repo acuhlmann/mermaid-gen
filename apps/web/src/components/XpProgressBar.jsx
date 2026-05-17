@@ -7,6 +7,9 @@ import { useEffect, useRef, useState } from 'react';
  * flashes the wrapper momentarily when xp crosses a level boundary so a
  * fresh fill reads as "you just levelled". Pure presentation — App.jsx
  * owns the level / xp state and passes it down.
+ *
+ * When `onClick` is supplied, the pill renders as a button that toggles
+ * the level info popover. `expanded` reflects the open state for ARIA.
  */
 export default function XpProgressBar({
   level,
@@ -18,7 +21,10 @@ export default function XpProgressBar({
   totalXp = 0,
   isMaxLevel = false,
   flashKey = 0,
-  variant = null
+  variant = null,
+  onClick = null,
+  expanded = false,
+  controlsId = null
 }) {
   const ratio = Number.isFinite(progressRatio) ? Math.max(0, Math.min(1, progressRatio)) : 0;
   const fillWidth = `${Math.round(ratio * 1000) / 10}%`;
@@ -37,25 +43,19 @@ export default function XpProgressBar({
     'xp-progress-bar',
     flashing ? 'is-level-up' : '',
     isMaxLevel ? 'is-max-level' : '',
-    variant ? `is-variant-${variant}` : ''
+    variant ? `is-variant-${variant}` : '',
+    onClick ? 'is-interactive' : '',
+    expanded ? 'is-expanded' : ''
   ]
     .filter(Boolean)
     .join(' ');
 
-  return (
-    <div
-      className={className}
-      role="meter"
-      aria-label={
-        isMaxLevel
-          ? `Level ${level}, max level, ${Math.round(totalXp)} XP total`
-          : `Level ${level}, ${Math.round(xpInto)} of ${Math.round(xpForNext ?? 0)} XP to next level`
-      }
-      aria-valuenow={Math.round(xpInto)}
-      aria-valuemin={0}
-      aria-valuemax={Math.round(xpForNext ?? Math.max(1, xpInto))}
-      data-testid="xp-progress-bar"
-    >
+  const ariaLabel = isMaxLevel
+    ? `Level ${level}, max level, ${Math.round(totalXp)} XP total${onClick ? ' — tap for details' : ''}`
+    : `Level ${level}, ${Math.round(xpInto)} of ${Math.round(xpForNext ?? 0)} XP to next level${onClick ? ' — tap for details' : ''}`;
+
+  const sharedChildren = (
+    <>
       <span className="xp-progress-bar-flair" aria-hidden="true">
         {flair || '⭐'}
       </span>
@@ -67,6 +67,41 @@ export default function XpProgressBar({
       <span className="xp-progress-bar-xp" aria-hidden="true">
         {widthLabel}
       </span>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        className={className}
+        aria-label={ariaLabel}
+        aria-expanded={expanded}
+        aria-controls={controlsId ?? undefined}
+        aria-haspopup="dialog"
+        onClick={(event) => {
+          event.stopPropagation();
+          onClick(event);
+        }}
+        data-testid="xp-progress-bar"
+        data-xp-bar-anchor="true"
+      >
+        {sharedChildren}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={className}
+      role="meter"
+      aria-label={ariaLabel}
+      aria-valuenow={Math.round(xpInto)}
+      aria-valuemin={0}
+      aria-valuemax={Math.round(xpForNext ?? Math.max(1, xpInto))}
+      data-testid="xp-progress-bar"
+    >
+      {sharedChildren}
     </div>
   );
 }

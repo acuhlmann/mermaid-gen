@@ -90,6 +90,7 @@ import StreakHud from './components/StreakHud.jsx';
 import SlopitectCompanion from './components/SlopitectCompanion.jsx';
 import LiveRunHud from './components/LiveRunHud.jsx';
 import XpProgressBar from './components/XpProgressBar.jsx';
+import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
   applyCompletedRun,
   createInitialState as createInitialGamificationState,
@@ -758,6 +759,8 @@ function ArchiSlop() {
   const [xpBarFlashKey, setXpBarFlashKey] = useState(0);
   /** Mobile-only: XP bar starts collapsed below the brand row; toggled by tapping the role badge. */
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
+  /** Click-to-open level/XP info popover anchored to the XP bar. */
+  const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
   const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
@@ -3686,6 +3689,9 @@ ${requirementsBlock}`;
               isMaxLevel={gamification.xpForNextLevel == null}
               flashKey={xpBarFlashKey}
               variant={liveVariant}
+              onClick={() => setXpInfoPanelOpen((open) => !open)}
+              expanded={xpInfoPanelOpen}
+              controlsId="levelup-info-panel"
             />
           ) : null}
         </div>
@@ -3706,9 +3712,36 @@ ${requirementsBlock}`;
               isMaxLevel={gamification.xpForNextLevel == null}
               flashKey={xpBarFlashKey}
               variant={liveVariant}
+              onClick={() => setXpInfoPanelOpen((open) => !open)}
+              expanded={xpInfoPanelOpen}
+              controlsId="levelup-info-panel"
             />
             </div>
           ) : null}
+        {xpInfoPanelOpen && gamification?.level ? (
+          <div
+            id="levelup-info-panel"
+            className="levelup-info-panel-mount"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <LevelUpInfoPanel
+              level={gamification.level}
+              levelTitle={gamification.levelTitle}
+              levelFlair={gamification.levelFlair}
+              levelShortLabel={gamification.levelShortLabel}
+              progressRatio={gamification.levelProgressRatio}
+              xpInto={gamification.xpIntoLevel}
+              xpForNext={gamification.xpForNextLevel}
+              totalXp={gamification.xp}
+              isMaxLevel={gamification.xpForNextLevel == null}
+              prestigeShortLabel={gamification.prestigeShortLabel}
+              totalRuns={gamification.totalRuns}
+              runsByVariant={gamification.runsByVariant}
+              achievements={gamification.achievements}
+              onClose={() => setXpInfoPanelOpen(false)}
+            />
+          </div>
+        ) : null}
         </div>
         {slopitectTip ? (
           <div
