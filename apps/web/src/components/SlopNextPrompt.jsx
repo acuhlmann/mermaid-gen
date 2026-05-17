@@ -59,7 +59,7 @@ export default function SlopNextPrompt({
 
   return (
     <form
-      className={`slop-prompt-panel slop-prompt-panel--${layout}`}
+      className={`slop-prompt-panel slop-prompt-panel--${layout}${narrowLayout ? ' is-narrow' : ''}`}
       style={style}
       onSubmit={handleSubmit}
       data-testid={`slop-prompt-panel-${layout}`}
@@ -132,7 +132,7 @@ export default function SlopNextPrompt({
           disabled={busy || !(prompt ?? '').trim()}
         >
           {ButtonIcon ? <ButtonIcon>{'>'}</ButtonIcon> : '>'}
-          <span className="button-label">Go</span>
+          <span className="button-label">Do it</span>
         </button>
       </div>
     </form>

@@ -1056,6 +1056,24 @@
   font-variant-numeric: tabular-nums;
 }
 
+.insights-entry-meta-chip.is-time.is-running {
+  color: #047857;
+  background: rgba(167, 243, 208, 0.45);
+  border-color: rgba(16, 185, 129, 0.32);
+  animation: insights-time-pulse 1s ease-in-out infinite;
+}
+
+@keyframes insights-time-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .insights-entry-meta-chip.is-time.is-running {
+    animation: none;
+  }
+}
+
 .insights-entry-meta-emoji {
   font-size: 0.78rem;
   line-height: 1;
@@ -2995,6 +3013,7 @@
   max-width: calc(100vw - 2rem);
   user-select: none;
   overflow: visible;
+  z-index: 25;
 }
 
 .brand-control-chip {
@@ -3120,6 +3139,68 @@
   align-items: flex-end;
   gap: 0.42rem;
   flex: 0 0 auto;
+}
+
+.ai-corner-settings-toggle {
+  align-self: flex-end;
+  position: relative;
+}
+
+.ai-corner-settings-toggle.has-pending::after {
+  content: '';
+  position: absolute;
+  top: 0.18rem;
+  right: 0.18rem;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+  background: #f97316;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.85);
+}
+
+.ai-corner-settings-toggle.is-open .button-icon {
+  transform: rotate(45deg);
+  transition: transform 200ms ease;
+}
+
+.ai-corner-settings-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.42rem;
+  width: 100%;
+  animation: ai-corner-settings-reveal 180ms ease-out;
+}
+
+.ai-corner-settings-panel[hidden] {
+  display: none;
+}
+
+@keyframes ai-corner-settings-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-corner-settings-panel,
+  .ai-corner-settings-toggle.is-open .button-icon {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .ai-corner-controls--mobile .ai-corner-settings-panel {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem 0.65rem;
+    flex: 1 1 100%;
+  }
+
+  .ai-corner-controls--mobile .ai-corner-settings-toggle {
+    align-self: stretch;
+  }
 }
 
 .editor-done-bar {
@@ -3580,6 +3661,12 @@
   padding: 0.35rem 0.55rem;
   border-radius: 1.25rem;
   background: transparent;
+}
+
+/* No-diagram fallback: just the stakeholder mascot, gently anchored. */
+.prompt-actions--idle {
+  justify-content: flex-end;
+  padding-top: 0.55rem;
 }
 
 .button-group {
@@ -5876,6 +5963,8 @@ button {
   gap: 0.18rem;
   cursor: pointer;
   pointer-events: auto;
+  position: relative;
+  z-index: 50;
   animation: slopitect-tip-chip-pop 240ms ease-out;
 }
 
@@ -7100,6 +7189,14 @@ body.slopitect-rainbow-tint::before {
 @media (max-width: 1024px) {
   .app-shell.is-insights-open.has-slop-prompt-chrome:not(.is-editor-open) {
     --mobile-bottom-chrome-est: 13.75rem;
+  }
+
+  .slop-prompt-panel.is-narrow {
+    gap: 0.45rem;
+  }
+
+  .slop-prompt-panel.is-narrow .slop-prompt-panel-head {
+    display: none;
   }
 }
 

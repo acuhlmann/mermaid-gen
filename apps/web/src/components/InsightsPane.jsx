@@ -212,22 +212,41 @@ const MODEL_PROFILE_META = {
   quality: { label: 'Quality', emoji: '🧠' }
 };
 
-function formatEntryTime(timestamp) {
-  if (!Number.isFinite(timestamp)) return '';
-  try {
-    return new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' }).format(
-      new Date(timestamp)
-    );
-  } catch {
-    return '';
+function formatElapsedDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '';
+  const totalSeconds = Math.floor(ms / 1000);
+  const seconds = totalSeconds % 60;
+  const totalMinutes = Math.floor(totalSeconds / 60);
+  const minutes = totalMinutes % 60;
+  const hours = Math.floor(totalMinutes / 60);
+  const ss = String(seconds).padStart(2, '0');
+  if (hours > 0) {
+    const mm = String(minutes).padStart(2, '0');
+    return `${hours}:${mm}:${ss}`;
   }
+  return `${minutes}:${ss}`;
+}
+
+function useElapsedNow(running) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!running) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [running]);
+  return now;
 }
 
 function EntryRunMeta({ entry }) {
   const contentMeta = entry?.contentType ? CONTENT_TYPE_META[entry.contentType] : null;
   const brainMeta = entry?.modelProfile ? MODEL_PROFILE_META[entry.modelProfile] : null;
-  const timeLabel = formatEntryTime(entry?.startedAt);
-  if (!contentMeta && !brainMeta && !timeLabel) return null;
+  const startedAt = Number.isFinite(entry?.startedAt) ? entry.startedAt : null;
+  const completedAt = Number.isFinite(entry?.completedAt) ? entry.completedAt : null;
+  const isRunning = startedAt != null && completedAt == null;
+  const now = useElapsedNow(isRunning);
+  const elapsedMs = startedAt == null ? null : (completedAt ?? now) - startedAt;
+  const elapsedLabel = elapsedMs != null ? formatElapsedDuration(elapsedMs) : '';
+  if (!contentMeta && !brainMeta && !elapsedLabel) return null;
   return (
     <div className="insights-entry-meta" aria-label="Run details">
       {contentMeta ? (
@@ -246,12 +265,16 @@ function EntryRunMeta({ entry }) {
           <span>{brainMeta.label}</span>
         </span>
       ) : null}
-      {timeLabel ? (
+      {elapsedLabel ? (
         <time
-          className="insights-entry-meta-chip is-time"
-          dateTime={new Date(entry.startedAt).toISOString()}
+          className={`insights-entry-meta-chip is-time${isRunning ? ' is-running' : ''}`}
+          dateTime={startedAt != null ? new Date(startedAt).toISOString() : undefined}
+          title={isRunning ? 'Elapsed time' : 'Total time'}
         >
-          {timeLabel}
+          <span className="insights-entry-meta-emoji" aria-hidden="true">
+            ⏱️
+          </span>
+          <span>{elapsedLabel}</span>
         </time>
       ) : null}
     </div>
