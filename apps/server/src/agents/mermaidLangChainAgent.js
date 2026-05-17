@@ -58,8 +58,15 @@ export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
 
 const TRANSFORM_MODE_MODEL = Object.freeze({
   refine: { temperature: 0.42 },
-  innovate: { temperature: 0.82 }
+  innovate: { temperature: 0.82 },
+  exec: { temperature: 0.35 }
 });
+
+const TRANSFORM_MODES = Object.freeze(['refine', 'innovate', 'goMad', 'exec']);
+
+export function isTransformMode(value) {
+  return typeof value === 'string' && TRANSFORM_MODES.includes(value);
+}
 
 /** Base sampling for Go Mad tier 1; ramps up with `goMadDepth` via `goMadTransformModelOptions`. */
 const GO_MAD_TEMP_MIN = 1.48;
@@ -273,7 +280,7 @@ export function goMadTransformModelOptions(depthRaw) {
  * @param {unknown} [goMadDepth] tier when mode is goMad (defaults to 1)
  */
 export function transformModeModelOptions(mode, goMadDepth) {
-  const key = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
+  const key = isTransformMode(mode) ? mode : 'refine';
   if (key === 'goMad') {
     return goMadTransformModelOptions(goMadDepth ?? 1);
   }
@@ -339,7 +346,16 @@ export function buildTransformUserContent({ mode, diagramSource, focusScope, goM
 - Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the idea better; change type only when that shift is clearly justified. Otherwise keep the current type and innovate within it.
 - Larger edits OK; still coherent and valid Mermaid.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
-        : `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
+        : mode === 'exec'
+          ? `Transform mode: EXEC — ruthless executive simplification. The VP wants the board-deck version — Synergy and Co-Design.
+- Keep the SAME diagram type — never switch types. The VP doesn't care about your craft.
+- Subtractive only: NEVER introduce new concepts, nodes, or edges that weren't already implied. Merge or drop near-duplicates, collapse intermediaries, kill stragglers.
+- Target shape: roughly 4–8 nodes total and 5–10 edges. If the input is already small, still tighten labels; don't pad.
+- Merge or remove subgraphs where one (or none) tells the same story; aim for ≤1 subgraph.
+- Keep classDef / linkStyle / %%init%% theme styling intact — preserve brand colors, just trim the noise.
+- Labels: shorten to executive-summary phrasing — verbs and nouns, no parentheticals, no "(optional)" / "(async)" asides.
+- Voice for any prose you emit after the patch: synergy and Co-Design jargon ("Synergy and Co-Design", "Co-Designed", "aligned", "boiled down", "the MVP slice"). Short.`
+          : `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
 - Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
 - Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
@@ -1159,9 +1175,9 @@ export function createMermaidLangChainAgent({
     return agentCache.get(key);
   }
 
-  /** Shape buttons Refine / Innovate / Go Mad — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
+  /** Shape buttons Refine / Innovate / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
+    const m = isTransformMode(mode) ? mode : 'refine';
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
     const modelId = resolveModelId(env, p, backend);

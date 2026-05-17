@@ -5,9 +5,12 @@ import {
   VARIANT_BOOT_HEADLINES,
   VARIANT_QUOTES,
   VARIANT_PERSONAS,
+  PROMPT_ACTION_COPY,
   PROMPT_EASTER_EGGS,
+  STAKEHOLDERS_MUTE_COPY,
   KONAMI_ACHIEVEMENT,
   getVariantPersona,
+  stakeholderTooltip,
   phaseCeremonyLabel,
   prestigeForTotalRuns,
   quoteForRotation,
@@ -16,8 +19,8 @@ import {
 } from '../src/utils/slopitectCopy.js';
 
 describe('slopitectCopy', () => {
-  it('has a ceremony label for every real phase id × all five mutator variants', () => {
-    const mutatorVariants = ['refine', 'innovate', 'goMad'];
+  it('has a ceremony label for every real phase id × all mutator variants', () => {
+    const mutatorVariants = ['refine', 'innovate', 'goMad', 'exec'];
     const mutationPhases = [
       'analyze', 'analyze_stream', 'intent', 'agent_run', 'transform',
       'planning', 'syntax_fixer', 'syntax_repair', 'patch_retry', 'invoke',
@@ -43,7 +46,7 @@ describe('slopitectCopy', () => {
   });
 
   it('returns a tagline for every variant', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain']) {
+    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
       expect(VARIANT_TAGLINES[v]).toBeTruthy();
       expect(VARIANT_BOOT_HEADLINES[v]).toBeTruthy();
     }
@@ -71,7 +74,7 @@ describe('slopitectCopy', () => {
   });
 
   it('has at least 3 quotes for every variant', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain']) {
+    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
       expect(VARIANT_QUOTES[v], `quotes for ${v}`).toBeDefined();
       expect(VARIANT_QUOTES[v].length).toBeGreaterThanOrEqual(3);
       for (const quote of VARIANT_QUOTES[v]) {
@@ -88,8 +91,14 @@ describe('slopitectCopy', () => {
     expect(typeof quoteForRotation('refine', NaN)).toBe('string');
   });
 
+  it('titles The Polisher as Engineer (not another architect)', () => {
+    expect(VARIANT_PERSONAS.refine.title).toBe('Engineer');
+    expect(stakeholderTooltip('refine')).toContain('Engineer');
+    expect(stakeholderTooltip('refine')).toContain('The Polisher');
+  });
+
   it('exposes avatar emoji and entry/exit lines per persona', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain']) {
+    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
       const persona = VARIANT_PERSONAS[v];
       expect(persona.avatarEmoji, `avatar for ${v}`).toBeTruthy();
       expect(persona.entryLine, `entry for ${v}`).toBeTruthy();
@@ -107,6 +116,9 @@ describe('slopitectCopy', () => {
         expect.stringMatching(/Born in the cloud/)
       ])
     );
+    expect(eggMatches('schedule a co-design workshop for synergy')).toEqual(
+      expect.arrayContaining([expect.stringMatching(/Co-Design|VP/)])
+    );
     expect(eggMatches('scrum standup')).toEqual(
       expect.arrayContaining([expect.stringMatching(/STAND UP/)])
     );
@@ -116,5 +128,12 @@ describe('slopitectCopy', () => {
     expect(KONAMI_ACHIEVEMENT.id).toBeTruthy();
     expect(KONAMI_ACHIEVEMENT.title).toMatch(/AWAKENED/);
     expect(KONAMI_ACHIEVEMENT.subtitle).toBeTruthy();
+  });
+
+  it('keeps prompt and mute chrome copy distinct (no duplicate role tag)', () => {
+    expect(PROMPT_ACTION_COPY.label).toBe('Weigh In');
+    expect(PROMPT_ACTION_COPY.roleTag).not.toBe(PROMPT_ACTION_COPY.label);
+    expect(PROMPT_ACTION_COPY.roleTag).toBe('Just Say It');
+    expect(STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('Stakeholders');
   });
 });

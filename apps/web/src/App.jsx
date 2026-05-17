@@ -98,9 +98,11 @@ import {
 } from './state/runGamificationStore.js';
 import {
   CONSOLE_STAMP_LINES,
+  PROMPT_ACTION_COPY,
   PROMPT_EASTER_EGGS,
   IDLE_TIPS,
   KONAMI_ACHIEVEMENT,
+  STAKEHOLDERS_MUTE_COPY,
   getVariantPersona
 } from './utils/slopitectCopy.js';
 import confetti from 'canvas-confetti';
@@ -1549,6 +1551,7 @@ function ArchiSlop() {
         goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
         critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
         explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
+        exec: ['#1e3a8a', '#94a3b8', '#cbd5e1', '#1e293b'],
         general: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
       };
       const palette = variantPalettes[variant] || variantPalettes.general;
@@ -1570,7 +1573,7 @@ function ArchiSlop() {
       }
 
       // Slopitect gamification: derive XP / streak / combo / achievement emissions.
-      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
       if (knownVariants.includes(variant)) {
         const now = Date.now();
         // `goMadStreak` here is the closure-captured value at stream start (i.e. the
@@ -2573,7 +2576,7 @@ Hard requirements:
 
     try {
       const syncedState = await syncDiagramOrThrow();
-      const labels = { refine: 'Refine', innovate: 'Innovate', goMad: 'Go Mad' };
+      const labels = { refine: 'Refine', innovate: 'Innovate', goMad: 'Go Mad', exec: 'Co-Design' };
       const goMadDepth = mode === 'goMad' ? goMadStreak + 1 : undefined;
       const transformTitleVerb =
         mode === 'goMad' && goMadDepth > 1 ? `Go Mad (×${goMadDepth})` : labels[mode];
@@ -3387,12 +3390,12 @@ ${requirementsBlock}`;
     const list = [
       {
         id: 'prompt',
-        label: 'Weigh In',
+        label: PROMPT_ACTION_COPY.label,
         icon: <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>,
         variant: 'prompt',
-        persona: 'Weigh In',
-        personaEmoji: '💬',
-        personaTitle: 'Weigh In · Share your thoughts on the matter'
+        persona: PROMPT_ACTION_COPY.roleTag,
+        personaEmoji: PROMPT_ACTION_COPY.roleEmoji,
+        personaTitle: PROMPT_ACTION_COPY.title
       },
       {
         id: 'refine',
@@ -3837,16 +3840,16 @@ ${requirementsBlock}`;
                   disabled={busy}
                   onClick={toggleChromeSlopPrompt}
                   aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label="Weigh In"
-                  title="Weigh In · Share your thoughts on the matter"
+                  aria-label={PROMPT_ACTION_COPY.label}
+                  title={PROMPT_ACTION_COPY.title}
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
                   </ButtonIcon>
-                  <span className="button-label">Weigh In</span>
+                  <span className="button-label">{PROMPT_ACTION_COPY.label}</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">💬</span>
-                    Weigh In
+                    <span className="slop-action-role-emoji" aria-hidden="true">{PROMPT_ACTION_COPY.roleEmoji}</span>
+                    {PROMPT_ACTION_COPY.roleTag}
                   </span>
                 </button>
               </div>
@@ -3856,6 +3859,7 @@ ${requirementsBlock}`;
                     { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
                     { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
                     { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
+                    { variant: 'exec', onClick: () => runTransform('exec', { useDiagramFocus: true }) },
                     { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
                     { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
                   ]}
@@ -3865,6 +3869,7 @@ ${requirementsBlock}`;
                   bubbleProps={advisor.suggestion ? {
                     persona: advisor.activePersona,
                     suggestion: advisor.suggestion,
+                    kind: advisor.suggestionKind,
                     isPinned: advisor.isPinned,
                     onGo: advisor.accept,
                     onDismiss: advisor.dismiss,
@@ -3888,8 +3893,10 @@ ${requirementsBlock}`;
                   </ButtonIcon>
                   <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
-                    {advisor.isMuted ? 'Muted' : 'Stakeholders'}
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {advisor.isMuted ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                    </span>
+                    {STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
                   </span>
                 </button>
               </div>
@@ -3942,16 +3949,16 @@ ${requirementsBlock}`;
                   disabled={busy}
                   onClick={toggleChromeSlopPrompt}
                   aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label="Weigh In"
-                  title="Weigh In · Share your thoughts on the matter"
+                  aria-label={PROMPT_ACTION_COPY.label}
+                  title={PROMPT_ACTION_COPY.title}
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
                   </ButtonIcon>
-                  <span className="button-label">Weigh In</span>
+                  <span className="button-label">{PROMPT_ACTION_COPY.label}</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">💬</span>
-                    Weigh In
+                    <span className="slop-action-role-emoji" aria-hidden="true">{PROMPT_ACTION_COPY.roleEmoji}</span>
+                    {PROMPT_ACTION_COPY.roleTag}
                   </span>
                 </button>
                 <StakeholdersMascot
@@ -3959,6 +3966,7 @@ ${requirementsBlock}`;
                     { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
                     { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
                     { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
+                    { variant: 'exec', onClick: () => runTransform('exec', { useDiagramFocus: true }) },
                     { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
                     { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
                   ]}
@@ -3968,6 +3976,7 @@ ${requirementsBlock}`;
                   bubbleProps={advisor.suggestion ? {
                     persona: advisor.activePersona,
                     suggestion: advisor.suggestion,
+                    kind: advisor.suggestionKind,
                     isPinned: advisor.isPinned,
                     onGo: advisor.accept,
                     onDismiss: advisor.dismiss,
@@ -3991,8 +4000,10 @@ ${requirementsBlock}`;
                   </ButtonIcon>
                   <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">{advisor.isMuted ? '🔇' : '👀'}</span>
-                    {advisor.isMuted ? 'Muted' : 'Stakeholders'}
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {advisor.isMuted ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                    </span>
+                    {STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
                   </span>
                 </button>
                 {latestCritique?.text ? (

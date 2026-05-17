@@ -3176,19 +3176,39 @@
     width: 100%;
   }
 
-  /* Icon-prominent mobile action bar: every variant button collapses to an
-     icon-only square-ish pill. Labels and persona-role chips are hidden so
-     the bar reads as a compact row of persona stamps. We avoid an explicit
-     `aspect-ratio` so the row can flex from 4 to 7 buttons (Fix appears
-     conditionally) without spilling onto two lines. */
-  .prompt-actions--mobile .overlay-button.slop-action-button {
-    flex: 1 1 0;
+  /* Icon-only mobile action bar: labels and role chips are hidden; the persona
+     stamp is the tap target — strip outer pill chrome so we don't get a
+     background/padding shell around the icon. */
+  .prompt-actions--mobile .overlay-button.slop-action-button,
+  .prompt-actions--mobile .stakeholders-mascot.slop-action-button {
+    flex: 0 0 auto;
     min-width: 0;
     width: auto;
-    padding: 0.36rem 0.4rem;
-    min-height: 3.2rem;
-    border-radius: 0.95rem;
-    max-width: 4.2rem;
+    max-width: none;
+    padding: 0;
+    min-height: 0;
+    gap: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    overflow: visible;
+    color: inherit;
+  }
+
+  .prompt-actions--mobile .overlay-button.slop-action-button::before,
+  .prompt-actions--mobile .stakeholders-mascot.slop-action-button::before {
+    content: none;
+  }
+
+  .prompt-actions--mobile .overlay-button.slop-action-button:hover:not(:disabled),
+  .prompt-actions--mobile .overlay-button.slop-action-button:focus-visible:not(:disabled),
+  .prompt-actions--mobile .stakeholders-mascot:hover:not(:disabled),
+  .prompt-actions--mobile .stakeholders-mascot:focus-visible:not(:disabled) {
+    border: none;
+    background: transparent;
+    box-shadow: none;
   }
 
   .prompt-actions--mobile .overlay-button.slop-action-button .button-icon {
@@ -3196,11 +3216,40 @@
     height: 2.15rem;
   }
 
-  .prompt-actions--mobile .overlay-button.slop-action-button .action-persona-icon {
+  .prompt-actions--mobile .overlay-button.slop-action-button .action-persona-icon,
+  .prompt-actions--mobile .stakeholders-mascot .stakeholders-mascot-emoji {
     width: 2.15rem;
     height: 2.15rem;
     border-radius: 0.65rem;
     font-size: 1.55rem;
+  }
+
+  .prompt-actions--mobile .overlay-button.slop-action-button:hover:not(:disabled) .action-persona-icon,
+  .prompt-actions--mobile .overlay-button.slop-action-button:focus-visible:not(:disabled) .action-persona-icon,
+  .prompt-actions--mobile .stakeholders-mascot:hover:not(:disabled) .stakeholders-mascot-emoji,
+  .prompt-actions--mobile .stakeholders-mascot:focus-visible:not(:disabled) .stakeholders-mascot-emoji {
+    border-color: color-mix(in srgb, var(--slop-action-accent) 72%, white);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -2px 6px color-mix(in srgb, var(--slop-action-accent) 32%, transparent),
+      0 0 0 3px color-mix(in srgb, var(--slop-action-accent) 16%, transparent),
+      0 8px 18px var(--slop-action-glow);
+  }
+
+  .prompt-actions--mobile .slop-action-button.is-prompt.is-expanded .action-persona-icon {
+    box-shadow:
+      0 0 0 2px rgba(56, 189, 248, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -2px 6px color-mix(in srgb, var(--slop-action-accent) 32%, transparent),
+      0 8px 18px var(--slop-action-glow);
+  }
+
+  .prompt-actions--mobile .slop-action-button.is-advisor-mute.is-muted {
+    opacity: 1;
+  }
+
+  .prompt-actions--mobile .slop-action-button.is-advisor-mute.is-muted .action-persona-icon {
+    opacity: 0.85;
   }
 
   .prompt-actions--mobile .overlay-button .button-label,
@@ -3209,51 +3258,83 @@
   }
 
   /* Stakeholders dock: collapse the wrapper when idle so the mascot button sits in
-     the row like its neighbors. When a bubble, thinking chip, or expanded fan
-     is active, use display:contents so those children participate in the
-     button-group flex layout (full-width bubble row + optional fan row). */
-  .prompt-actions--mobile .stakeholders-mascot-wrap:not(.is-menu-expanded):not(:has(.advisor-speech-bubble, .advisor-thinking-indicator)) {
+     the row like its neighbors. Expanded menu uses a column wrap so persona icons
+     stack under the mascot. Speech bubble/thinking overlay the bar (see below). */
+  .prompt-actions--mobile .stakeholders-mascot-wrap:not(.is-menu-expanded) {
     display: contents;
   }
 
-  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded,
-  .prompt-actions--mobile .stakeholders-mascot-wrap:has(.advisor-speech-bubble, .advisor-thinking-indicator) {
-    display: contents;
-  }
-
-  .prompt-actions--mobile .button-group:has(.stakeholders-mascot-fan, .advisor-speech-bubble, .advisor-thinking-indicator) {
+  /* Expanded roster: wrap to a full-width second row under the icon action bar. */
+  .prompt-actions--mobile .button-group:has(.stakeholders-mascot-wrap.is-menu-expanded) {
     flex-wrap: wrap;
   }
 
-  .prompt-actions--mobile .stakeholders-mascot {
-    flex: 1 1 0;
+  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
     min-width: 0;
-    max-width: none;
-    min-height: 3.2rem;
-    padding: 0.36rem 0.4rem;
-    border-radius: 0.95rem;
+    gap: 0.35rem;
+    order: 10;
+    position: static;
   }
 
-  .prompt-actions--mobile .stakeholders-mascot .stakeholders-mascot-emoji {
-    width: 2.15rem;
-    height: 2.15rem;
-    font-size: 1.55rem;
-    border-radius: 0.65rem;
+  /* Keep the mascot stamp at its row position — don't stretch to full width
+     (overlay-button centers content, which reads as "icon jumped to center"). */
+  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded .stakeholders-mascot {
+    width: auto;
+    align-self: flex-start;
+    justify-content: flex-start;
   }
 
-  /* Speech bubble / thinking chip: full-width row above the icon buttons. */
+  .prompt-actions--mobile {
+    position: relative;
+    overflow: visible;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot-wrap {
+    position: static;
+  }
+
+  .prompt-actions--mobile .button-group {
+    overflow: visible;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot {
+    min-width: 0;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot.is-expanded {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot.is-expanded .stakeholders-mascot-emoji {
+    transform: translateY(-1px);
+    box-shadow:
+      0 0 0 3px color-mix(in srgb, var(--stakeholders-accent, #6366f1) 30%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85),
+      inset 0 -2px 6px color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 28%, transparent),
+      0 8px 18px color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 22%, transparent);
+  }
+
+  /* Speech bubble / thinking chip: float above the action bar without shifting buttons. */
   .prompt-actions--mobile .advisor-speech-bubble,
   .prompt-actions--mobile .advisor-thinking-indicator {
-    position: relative;
-    left: auto;
-    right: auto;
-    bottom: auto;
-    flex: 1 1 100%;
-    order: -1;
-    width: 100%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(100% + 0.35rem);
+    width: auto;
     min-width: 0;
     max-width: none;
-    margin-bottom: 0.2rem;
+    margin: 0;
+    flex: none;
+    order: unset;
+    z-index: 40;
   }
 
   .prompt-actions--mobile .advisor-speech-bubble::after,
@@ -3267,39 +3348,53 @@
     flex: 1 1 auto;
   }
 
-  /* Expanded stakeholders personas: second full-width row below the main actions. */
-  .prompt-actions--mobile .stakeholders-mascot-fan {
+  /* Expanded stakeholders roster: size to content up to the action-bar width. */
+  .prompt-actions--mobile .stakeholders-roster {
     position: static;
-    flex: 1 1 100%;
-    order: 10;
+    width: fit-content;
+    min-width: min(100%, 13.5rem);
+    max-width: 100%;
+    align-self: flex-start;
+    max-height: min(38vh, 16.5rem);
+    overflow-y: auto;
+    padding: 0.15rem 0.22rem;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid rgba(99, 102, 241, 0.16);
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+    gap: 0;
+  }
+
+  .prompt-actions--mobile .stakeholders-roster-row {
     width: 100%;
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    justify-content: space-between;
-    gap: 0.35rem;
-    padding: 0.35rem 0.15rem;
-    border-radius: 0.95rem;
-    z-index: auto;
+    max-width: none;
+    padding: 0.28rem 0.38rem;
+    gap: 0.28rem;
+    min-height: 2.35rem;
   }
 
-  .prompt-actions--mobile .stakeholders-mascot-fan-item {
-    flex: 1 1 0;
+  .prompt-actions--mobile .stakeholders-roster-label {
+    flex: 1 1 auto;
     min-width: 0;
-    min-height: 2.75rem;
-    padding: 0.32rem 0.35rem;
-    justify-content: center;
   }
 
-  .prompt-actions--mobile .stakeholders-mascot-fan-item .button-label {
-    display: none;
+  .prompt-actions--mobile .stakeholders-roster-name {
+    flex: 0 0 auto;
+    overflow: visible;
+    text-overflow: clip;
   }
 
-  .prompt-actions--mobile .stakeholders-mascot-fan-item .action-persona-icon {
-    width: 2rem;
-    height: 2rem;
-    font-size: 1.45rem;
-    border-radius: 0.6rem;
+  .prompt-actions--mobile .stakeholders-roster-row .action-persona-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+    font-size: 1.05rem;
+    border-radius: 0.48rem;
+  }
+
+  .prompt-actions--mobile .stakeholders-roster-chip {
+    min-width: 3.5rem;
+    padding: 0.14rem 0.42rem;
+    font-size: 0.72rem;
   }
 
   /* Clear button isn't a slop-action-button. Keep it square-ish too so the
@@ -3574,6 +3669,13 @@
   --slop-action-accent: #0d9488;
   --slop-action-accent-2: #22d3ee;
   --slop-action-glow: rgba(13, 148, 136, 0.3);
+}
+
+.slop-action-button.is-exec,
+.radial-action-button.is-exec {
+  --slop-action-accent: #1e3a8a;
+  --slop-action-accent-2: #94a3b8;
+  --slop-action-glow: rgba(30, 58, 138, 0.28);
 }
 
 .slop-action-button.is-fix,
@@ -7251,33 +7353,187 @@ body.slopitect-rainbow-tint::before {
   color: color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 80%, #0f172a);
 }
 
-.stakeholders-mascot-fan {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.4rem;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(99, 102, 241, 0.18);
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
-  animation: stakeholders-fan-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
+.stakeholders-roster {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   pointer-events: auto;
+  animation: stakeholders-roster-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
+  box-sizing: border-box;
 }
 
-.stakeholders-mascot-fan-item {
-  /* Persona buttons inside the fan are visually a touch smaller than the dock
-     base, since the mascot already carries the heavy chrome. */
-  min-height: 2.55rem;
-  padding: 0.3rem 0.7rem 0.3rem 0.42rem;
+.stakeholders-roster-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.32rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0.3rem 0.4rem;
+  min-height: 2.4rem;
+  border: none;
+  border-radius: 0.55rem;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.stakeholders-mascot-fan-item .slop-action-role {
+.stakeholders-roster-row::before {
   display: none;
 }
 
-@keyframes stakeholders-fan-in {
-  from { opacity: 0; transform: translateX(-6px); }
-  to { opacity: 1; transform: translateX(0); }
+.stakeholders-roster-row:hover:not(:disabled),
+.stakeholders-roster-row:focus-visible:not(:disabled) {
+  background: color-mix(in srgb, var(--slop-action-accent) 8%, white);
+  box-shadow: none;
+}
+
+.stakeholders-roster-row + .stakeholders-roster-row {
+  border-top: 1px solid rgba(99, 102, 241, 0.1);
+  border-radius: 0;
+}
+
+.stakeholders-roster-row + .stakeholders-roster-row:hover:not(:disabled),
+.stakeholders-roster-row + .stakeholders-roster-row:focus-visible:not(:disabled) {
+  border-radius: 0.55rem;
+}
+
+.stakeholders-roster-row .action-persona-icon {
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: 1.12rem;
+  border-radius: 0.52rem;
+}
+
+.stakeholders-roster-label {
+  flex: 1 1 auto;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: nowrap;
+  gap: 0.15rem 0.3rem;
+  min-width: 0;
+}
+
+.stakeholders-roster-name {
+  flex: 0 0 auto;
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
+/* Only ellipsize persona names when the roster row is genuinely cramped. */
+@media (max-width: 360px) {
+  .prompt-actions--mobile .stakeholders-roster-label {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .prompt-actions--mobile .stakeholders-roster-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.stakeholders-roster-title {
+  display: none;
+  font-size: 0.62rem;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stakeholders-roster-title::before {
+  content: '·';
+  margin-right: 0.28rem;
+  opacity: 0.55;
+  text-transform: none;
+}
+
+.prompt-actions--mobile .stakeholders-roster-title {
+  display: none;
+}
+
+.stakeholders-roster-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 3.75rem;
+  padding: 0.16rem 0.48rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: var(--slop-action-ink, #0f172a);
+  background: color-mix(in srgb, var(--slop-action-accent) 10%, white);
+  border: 1px solid color-mix(in srgb, var(--slop-action-accent) 28%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  pointer-events: none;
+}
+
+.prompt-actions--desktop .stakeholders-mascot-wrap.is-menu-expanded {
+  position: relative;
+  align-items: flex-start;
+}
+
+.prompt-actions--desktop .stakeholders-roster {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.45rem);
+  z-index: 35;
+  width: min(17.5rem, calc(100vw - 2rem));
+  min-width: 0;
+  max-width: min(17.5rem, calc(100vw - 2rem));
+  max-height: min(21rem, 50vh);
+  overflow-y: auto;
+  padding: 0.28rem 0.35rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+}
+
+.prompt-actions--desktop .stakeholders-roster-row {
+  padding: 0.28rem 0.35rem;
+  gap: 0.32rem;
+}
+
+.prompt-actions--desktop .stakeholders-roster-label {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.prompt-actions--desktop .stakeholders-roster-name {
+  flex: 0 0 auto;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.prompt-actions--desktop .stakeholders-roster-title {
+  display: inline;
+}
+
+@keyframes stakeholders-roster-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .advisor-speech-bubble {

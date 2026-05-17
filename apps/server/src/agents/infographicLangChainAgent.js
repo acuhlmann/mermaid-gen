@@ -66,6 +66,12 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
   refine: `Refine the existing infographic without changing its core message. Tighten labels, fix awkward phrasing, balance the visual.`,
   innovate: `Re-imagine the infographic with bolder visual choices. You may switch to a different template if it better fits the data.`,
+  exec: `Transform mode: EXEC — the VP wants the board-deck version. Synergy and Co-Design. Subtractive only.
+- KEEP the current template; do not switch families. The VP doesn't care about template variety.
+- Cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes.
+- Shorten every label to executive-summary phrasing: verbs and nouns, no parentheticals, no asides.
+- Keep \`theme\` / \`palette\` untouched if present — preserve brand colors.
+- Output valid AntV Infographic DSL; one apply_infographic_patch call, then a one-sentence "Synergy and Co-Design — boiled down" summary.`,
   goMad: `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
 - Speed first: emit ONE punchy preamble sentence (max ~18 words, e.g. "Switching to a swot quadrant for maximum chaos.") then call apply_infographic_patch immediately. No reasoning essays, no get_infographic_dsl unless you truly suspect stale context.
 - Template roulette: do NOT keep the same template — switch to a different family entirely (list → sequence → compare → chart → hierarchy → relation). Prefer exotic supported templates: compare-swot, compare-quadrant-quarter-simple-card, sequence-snake-steps-simple, sequence-circular-simple, sequence-funnel-simple, list-pyramid-rounded-rect-node, list-sector-simple, hierarchy-mindmap-branch-gradient-compact-card, relation-network-simple-circle-node, chart-wordcloud, chart-pie-donut-plain-text.
@@ -633,7 +639,8 @@ export function createInfographicLangChainAgent({
   }
 
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const m = mode === 'refine' || mode === 'innovate' || mode === 'goMad' ? mode : 'refine';
+    const m =
+      mode === 'refine' || mode === 'innovate' || mode === 'goMad' || mode === 'exec' ? mode : 'refine';
     const p = normalizeModelProfile(profile);
     const backend = resolveLlmBackend(env);
     const modelId = resolveModelId(env, p, backend);

@@ -3,7 +3,7 @@ import { API_BASE_URL, SESSION_HEADER } from '../state/diagramStore.js';
 import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getVisibleDiagramLabels } from '../utils/visibleDiagramLabels.js';
 
-const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
 const ACTIVITY_THROTTLE_MS = 1000;
 const SHOW_MS = 10_000;
@@ -65,6 +65,7 @@ export function useAdvisorOrchestrator(params) {
   const [activePersona, setActivePersona] = useState(null);
   const [thinkingPersona, setThinkingPersona] = useState(null);
   const [suggestion, setSuggestion] = useState(null);
+  const [suggestionKind, setSuggestionKind] = useState('suggestion');
   const [highlightIds, setHighlightIds] = useState([]);
   const [error, setError] = useState(null);
 
@@ -79,6 +80,7 @@ export function useAdvisorOrchestrator(params) {
   // Imperative loop API, populated by the setup effect.
   const scheduleNextRef = useRef(() => {});
   const cancelLoopRef = useRef(() => {});
+  const cancelPendingRef = useRef(() => {});
   const pauseTimerRef = useRef(() => {});
   const resumeTimerRef = useRef(() => {});
 
@@ -198,10 +200,20 @@ export function useAdvisorOrchestrator(params) {
         if (!alive || gen !== generation) return;
         const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
         const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
+        const rawKind = typeof payload?.kind === 'string' ? payload.kind.toLowerCase() : '';
+        // Belt-and-suspenders: even if the model leaked a "suggestion" for explain,
+        // we never want the Wise Architect's bubble to show a Do-it button.
+        const kind =
+          persona === 'explain' || rawKind === 'comment' ? 'comment' : 'suggestion';
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinkingPersona(null);
           scheduleNext(GAP_MS);
+          return;
+        }
+        if (pinnedRef.current) {
+          // Fetch finished after pin — keep the pinned bubble, skip rotation.
+          setThinkingPersona(null);
           return;
         }
         lastSuggestions.unshift(text);
@@ -214,6 +226,7 @@ export function useAdvisorOrchestrator(params) {
         pinnedRef.current = false;
         setActivePersona(persona);
         setSuggestion(text);
+        setSuggestionKind(kind);
         const highlight =
           replyIds.length > 0 ? replyIds : focusId ? [focusId] : visibleIds.slice(0, 4);
         setHighlightIds(highlight);
@@ -240,6 +253,7 @@ export function useAdvisorOrchestrator(params) {
       phaseTimer = setTimeout(() => {
         phaseTimer = null;
         if (!alive) return;
+        if (pinnedRef.current) return; // pinned — hold current bubble until unpin
         if (shouldPauseNow()) {
           scheduleNext(GAP_MS);
           return;
@@ -265,6 +279,10 @@ export function useAdvisorOrchestrator(params) {
 
     scheduleNextRef.current = (delay) => scheduleNext(delay);
     cancelLoopRef.current = (opts) => dismissCycle(opts);
+    cancelPendingRef.current = () => {
+      cancelInFlight();
+      clearPhaseTimer();
+    };
     pauseTimerRef.current = () => clearPhaseTimer();
     resumeTimerRef.current = () => {
       if (pinnedRef.current) return;
@@ -347,6 +365,7 @@ export function useAdvisorOrchestrator(params) {
     if (mutedRef.current || pauseRef.current) return undefined;
     const debounce = focusSource === 'hover' ? HOVER_FOCUS_DEBOUNCE_MS : SELECT_FOCUS_DEBOUNCE_MS;
     const id = setTimeout(() => {
+      if (pinnedRef.current) return; // canvas focus must not rotate a pinned comment
       setSuggestion(null);
       setHighlightIds([]);
       setIsPinned(false);
@@ -358,6 +377,7 @@ export function useAdvisorOrchestrator(params) {
 
   const dismiss = useCallback(() => {
     setSuggestion(null);
+    setSuggestionKind('suggestion');
     setHighlightIds([]);
     setIsPinned(false);
     setThinkingPersona(null);
@@ -367,9 +387,13 @@ export function useAdvisorOrchestrator(params) {
 
   const accept = useCallback(() => {
     if (!suggestion || !activePersona) return;
+    // Comments are pure flavor and have no action — guard so a stray Do-it click
+    // (e.g. via keyboard) on a comment-kind bubble doesn't accidentally fire a prompt.
+    if (suggestionKind === 'comment') return;
     const text = suggestion;
     const persona = activePersona;
     setSuggestion(null);
+    setSuggestionKind('suggestion');
     setHighlightIds([]);
     setIsPinned(false);
     setThinkingPersona(null);
@@ -379,7 +403,7 @@ export function useAdvisorOrchestrator(params) {
     } finally {
       cancelLoopRef.current?.({ resetStreak: true });
     }
-  }, [suggestion, activePersona]);
+  }, [suggestion, suggestionKind, activePersona]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((m) => {
@@ -395,6 +419,7 @@ export function useAdvisorOrchestrator(params) {
       pinnedRef.current = next;
       if (next) {
         pauseTimerRef.current?.();
+        cancelPendingRef.current?.();
       } else {
         resumeTimerRef.current?.();
       }
@@ -414,6 +439,7 @@ export function useAdvisorOrchestrator(params) {
     activePersona,
     thinkingPersona,
     suggestion,
+    suggestionKind,
     highlightIds,
     isMuted,
     isPinned,

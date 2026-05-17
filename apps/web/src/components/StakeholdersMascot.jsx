@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 
@@ -10,7 +10,8 @@ const VARIANT_CLASS = {
   innovate: 'is-innovate',
   goMad: 'is-go-mad',
   critique: 'is-critique',
-  explain: 'is-explain'
+  explain: 'is-explain',
+  exec: 'is-exec'
 };
 
 const ACTION_LABEL = {
@@ -18,14 +19,19 @@ const ACTION_LABEL = {
   innovate: 'Innovate',
   goMad: 'Go Mad',
   critique: 'Critique',
-  explain: 'Explain'
+  explain: 'Explain',
+  exec: 'Align'
 };
+
+function cssVariant(variant) {
+  return variant === 'goMad' ? 'go-mad' : variant;
+}
 
 /**
  * Unified stakeholders dock: one mascot button represents the whole advisory cast.
  * When idle it shows a neutral face; when an advisor is speaking the mascot morphs
- * into that persona's avatar with their accent glow. Clicking fans out the five
- * persona action buttons inline; auto-collapses on outside click or inactivity.
+ * into that persona's avatar with their accent glow. Clicking opens a roster of
+ * personas (name, title, action); auto-collapses on outside click or inactivity.
  */
 export default function StakeholdersMascot({
   personas,
@@ -34,13 +40,7 @@ export default function StakeholdersMascot({
   busy = false,
   bubbleProps = null
 }) {
-  // Mascot avatar reflects whoever is "on stage" right now: the persona
-  // currently thinking takes priority (priming the user), then a persona with
-  // an active suggestion, then idle.
   const stagePersona = thinkingPersona ?? activeAdvisorVariant;
-  // Default open in test runs so integration tests can find persona buttons
-  // without each test having to click the mascot first; real users always
-  // start collapsed and click to expand.
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
   const wrapperRef = useRef(null);
@@ -76,7 +76,6 @@ export default function StakeholdersMascot({
   }, [expanded]);
 
   const stageMeta = stagePersona ? getVariantPersona(stagePersona) : null;
-  // Expanded menu lists each persona — keep the dock on the neutral Stakeholders face.
   const mascotEmoji = expanded ? '🏛️' : (stageMeta?.avatarEmoji ?? '🏛️');
   const mascotName = expanded ? 'The Stakeholders' : (stageMeta?.name ?? 'The Stakeholders');
   const mascotClass = [
@@ -112,7 +111,7 @@ export default function StakeholdersMascot({
         type="button"
         className={mascotClass}
         aria-expanded={expanded}
-        aria-haspopup="true"
+        aria-haspopup="menu"
         aria-label={expanded ? 'Hide stakeholders actions' : `Open the Stakeholders · ${mascotName}`}
         title={expanded ? 'Tap to hide' : `${mascotName} · tap to open the Stakeholders`}
         onClick={() => setExpanded((v) => !v)}
@@ -121,12 +120,14 @@ export default function StakeholdersMascot({
         <span className="button-label">{expanded ? 'Stakeholders' : (stageMeta ? stageMeta.name.split(' ').pop() : 'Stakeholders')}</span>
         <span className="slop-action-role stakeholders-mascot-role">
           <span className="slop-action-role-emoji" aria-hidden="true">🏛️</span>
-          {expanded ? 'Tap a persona' : 'Stakeholders'}
+          {expanded ? 'Pick a persona' : 'Stakeholders'}
         </span>
       </button>
       {expanded ? (
         <div
-          className="stakeholders-mascot-fan"
+          className="stakeholders-roster"
+          role="menu"
+          aria-label="Stakeholder personas"
           onPointerEnter={armCollapseTimer}
           onPointerMove={armCollapseTimer}
         >
@@ -134,32 +135,35 @@ export default function StakeholdersMascot({
             const meta = getVariantPersona(p.variant);
             const actionLabel = p.label ?? ACTION_LABEL[p.variant] ?? meta.name;
             const isActiveAdvisor = activeAdvisorVariant === p.variant;
-            const className = [
-              'overlay-button',
-              'compact-button',
+            const variantClass = p.cssVariant ?? cssVariant(p.variant);
+            const rowClassName = [
+              'stakeholders-roster-row',
               'slop-action-button',
-              `is-${p.cssVariant ?? p.variant}`,
-              'stakeholders-mascot-fan-item',
+              `is-${variantClass}`,
               isActiveAdvisor ? 'is-advisor-active' : ''
             ].filter(Boolean).join(' ');
             return (
               <button
                 key={p.variant}
                 type="button"
-                className={className}
+                className={rowClassName}
                 disabled={busy || p.disabled}
+                title={p.title ?? `${stakeholderTooltip(p.variant)} · ${actionLabel}`}
+                aria-label={p.ariaLabel ?? actionLabel}
                 onClick={(event) => {
                   event.stopPropagation();
                   armCollapseTimer();
                   p.onClick?.();
                 }}
-                aria-label={p.ariaLabel ?? actionLabel}
-                title={p.title ?? `${meta.name} · ${meta.title}`}
               >
-                <span className={`action-persona-icon is-${p.cssVariant ?? p.variant}`} aria-hidden="true">
+                <span className={`action-persona-icon is-${variantClass}`} aria-hidden="true">
                   {meta.avatarEmoji || '🏗️'}
                 </span>
-                <span className="button-label">{actionLabel}</span>
+                <span className="stakeholders-roster-label">
+                  <span className="stakeholders-roster-name">{meta.name}</span>
+                  <span className="stakeholders-roster-title">{meta.title}</span>
+                </span>
+                <span className="stakeholders-roster-chip" aria-hidden="true">{actionLabel}</span>
               </button>
             );
           })}

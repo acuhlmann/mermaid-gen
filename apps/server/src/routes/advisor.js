@@ -81,15 +81,16 @@ export function createAdvisorRouter() {
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const raw = extractTextContent(reply?.content ?? reply);
-      const parsedReply = parseAdvisorReply(raw);
+      const parsedReply = parseAdvisorReply(raw, { persona: payload.persona });
       if (!parsedReply) {
-        res.status(200).json({ persona: payload.persona, suggestion: null, highlightIds: [] });
+        res.status(200).json({ persona: payload.persona, suggestion: null, highlightIds: [], kind: 'comment' });
         return;
       }
       res.status(200).json({
         persona: payload.persona,
         suggestion: parsedReply.suggestion,
-        highlightIds: parsedReply.highlightIds
+        highlightIds: parsedReply.highlightIds,
+        kind: parsedReply.kind
       });
     } catch (error) {
       res.status(502).json({ error: safeErrorMessage(error) });

@@ -12,8 +12,8 @@
 export const VARIANT_PERSONAS = {
   refine: {
     name: 'The Polisher',
-    title: 'Junior Architect',
-    tagline: 'Refining the slop.',
+    title: 'Engineer',
+    tagline: 'Co-Designing the polish.',
     avatarEmoji: '🪞',
     entryLine: 'Polishing in progress…',
     exitLine: 'Polished ✨',
@@ -24,7 +24,7 @@ export const VARIANT_PERSONAS = {
   innovate: {
     name: 'The Disruptor',
     title: 'Chief Innovation Officer',
-    tagline: 'Disrupting the synergy.',
+    tagline: 'Co-Designing disruptive synergy.',
     avatarEmoji: '⚡',
     entryLine: 'Pivot incoming…',
     exitLine: 'Disrupted 🚀',
@@ -46,7 +46,7 @@ export const VARIANT_PERSONAS = {
   critique: {
     name: 'The Auditor',
     title: 'Compliance Inspector',
-    tagline: 'Inspection in session.',
+    tagline: 'Co-Design review in session.',
     avatarEmoji: '📋',
     entryLine: 'Audit commenced.',
     exitLine: 'Filed. Stamped. 🔴',
@@ -57,14 +57,40 @@ export const VARIANT_PERSONAS = {
   explain: {
     name: 'The Wise Architect',
     title: 'Principal Tech Evangelist',
-    tagline: 'Story time, gather round.',
+    tagline: 'Co-Design story time — gather round.',
     avatarEmoji: '📜',
     entryLine: 'Picture, if you will…',
     exitLine: 'Architecture explained 📜',
     accentColorVar: '#0d9488',
     xpAward: 25,
     xpStreakBonus: 5
+  },
+  exec: {
+    name: 'The VP',
+    title: 'SVP of Synergy & Co-Design',
+    tagline: 'Synergy and Co-Design — boiled down for the board.',
+    avatarEmoji: '🎩',
+    entryLine: 'Co-Designing the north star…',
+    exitLine: 'Synergy Co-Designed ✅',
+    accentColorVar: '#1e3a8a',
+    xpAward: 30,
+    xpStreakBonus: 6
   }
+};
+
+/** Chrome "weigh in" prompt — primary label vs funny role tag (avoids duplicate text on the button). */
+export const PROMPT_ACTION_COPY = {
+  label: 'Weigh In',
+  roleTag: 'Just Say It',
+  roleEmoji: '🗣️',
+  title: 'Weigh In · Share your thoughts on the matter'
+};
+
+/** Mute / unmute stakeholders chrome action — role pill always names who you are silencing. */
+export const STAKEHOLDERS_MUTE_COPY = {
+  stakeholdersTag: 'Stakeholders',
+  watchingEmoji: '👀',
+  stakeholdersEmoji: '🏛️'
 };
 
 /**
@@ -78,14 +104,15 @@ export const VARIANT_QUOTES = {
     'Subtle is strong.',
     'Crisper. Sharper. Calmer.',
     'A 1-pixel nudge is still a deliverable.',
-    'Negative space is also stakeholder space.',
+    'Negative space is also Co-Design space.',
+    'We Co-Designed this kerning.',
     'Ship the polish.',
     'Buff. Repeat. Buff.'
   ],
   innovate: [
     'What if blockchain?',
     'Pivot to micro-frontends.',
-    'Cloud-native is just synergy with steps.',
+    'Cloud-native is Co-Design with extra synergy steps.',
     'Have we considered AI?',
     'Let’s 10x this.',
     'I see a flywheel.',
@@ -127,10 +154,27 @@ export const VARIANT_QUOTES = {
     'As Bezos said in the API memo…',
     'Imagine the data flowing like a river.',
     'This is a teaching moment.',
-    'A diagram is just a frozen story.',
+    'A diagram is a Co-Design artifact frozen in time.',
     'Allow me to gesture vaguely.',
     'The path of least confusion is forward.',
     'Every box is a verb in disguise.'
+  ],
+  exec: [
+    'Synergy and Co-Design — boil this down for the board.',
+    'Where’s the Co-Design north star here?',
+    'I just need three bullets for the Co-Design review.',
+    'Ladder it up to the OKR — Co-Design edition.',
+    'Send me the one-pager on our Co-Design synergy.',
+    'What does this mean for the customer Co-Design journey?',
+    'MVP slice only — Co-Design the rest later.',
+    'Synergize the redundancies through Co-Design.',
+    'Leverage the synergy. Co-Design the leverage.',
+    'I have a hard stop in four minutes — Co-Design async.',
+    'Let’s circle back at the 30,000-foot Co-Design view.',
+    'Kill your darlings. Ship the headline. Co-Design wins.',
+    'This box needs a Co-Design workshop, not a diagram.',
+    'Are we Co-Designing or just drawing boxes?',
+    'The board wants synergy, not your subgraph.'
   ]
 };
 
@@ -159,6 +203,12 @@ export function getVariantPersona(variant) {
   return VARIANT_PERSONAS[variant] ?? FALLBACK_PERSONA;
 }
 
+/** Full persona line for roster row tooltips (name · title · tagline). */
+export function stakeholderTooltip(variant) {
+  const p = getVariantPersona(variant);
+  return `${p.name} · ${p.title} · ${p.tagline}`;
+}
+
 /**
  * Maps real phase ids → ceremony labels per variant. When a variant entry is absent
  * the renderer should fall back to the canonical label from the SSE event itself.
@@ -169,80 +219,94 @@ export const PHASE_CEREMONIES = {
     innovate: 'Scoping the disruption…',
     goMad: 'Eyeballing the slop 👀',
     critique: 'Opening JIRA…',
-    explain: 'Pondering the diagram…'
+    explain: 'Pondering the diagram…',
+    exec: 'Co-Designing the deck skim…'
   },
   analyze_stream: {
     refine: 'Word-smithing…',
     innovate: 'Brainstorming…',
     goMad: 'Yelling at it 📣',
     critique: 'Drafting findings…',
-    explain: 'Composing the saga…'
+    explain: 'Composing the saga…',
+    exec: 'Co-Designing the one-pager…'
   },
   intent: {
     refine: 'Aligning intent…',
     innovate: 'Aligning intent…',
     goMad: 'Skipping the meeting',
     critique: 'Citing the SOC 2 controls',
-    explain: 'Aligning intent…'
+    explain: 'Aligning intent…',
+    exec: 'Co-Designing to the north star…'
   },
   agent_run: {
     refine: 'Polishing the slop…',
     innovate: 'Ideating outside the box…',
     goMad: 'MIGRATING TO BLOCKCHAIN',
     critique: 'Filing tickets…',
-    explain: 'Annotating the architecture…'
+    explain: 'Annotating the architecture…',
+    exec: 'Synergy and Co-Design — boiling it down…'
   },
   transform: {
     refine: 'Tightening the lines…',
     innovate: 'Restructuring the layout…',
-    goMad: 'Adding more microservices 🔥'
+    goMad: 'Adding more microservices 🔥',
+    exec: 'Co-Designing the darlings out…'
   },
   run_started: {
     refine: 'Kicking off…',
     innovate: 'Kicking off…',
     goMad: 'OK NOW HOLD ON 🪖',
     critique: 'Inspector inbound…',
-    explain: 'Clearing the throat…'
+    explain: 'Clearing the throat…',
+    exec: 'Co-Design hard stop in four minutes…'
   },
   planning: {
     refine: 'Drafting deltas…',
     innovate: 'Drafting deltas…',
-    goMad: 'Throwing darts at the diagram 🎯'
+    goMad: 'Throwing darts at the diagram 🎯',
+    exec: 'Co-Designing the headline…'
   },
   syntax_fixer: {
     refine: 'Mending syntax…',
     innovate: 'Mending syntax…',
-    goMad: 'Duct-taping it back together'
+    goMad: 'Duct-taping it back together',
+    exec: 'Co-Designing the deck tighter…'
   },
   syntax_repair: {
     refine: 'Re-mending syntax…',
     innovate: 'Re-mending syntax…',
-    goMad: 'More duct tape'
+    goMad: 'More duct tape',
+    exec: 'Re-Co-Designing the deck…'
   },
   patch_retry: {
     refine: 'Awaiting CAB approval…',
     innovate: 'Awaiting CAB approval…',
-    goMad: 'Bribing the CAB'
+    goMad: 'Bribing the CAB',
+    exec: 'Asking the board to re-Co-Design…'
   },
   invoke: {
     refine: 'Patching prod 🛠',
     innovate: 'Shipping it 🚀',
-    goMad: 'Setting buildings on fire 🔥'
+    goMad: 'Setting buildings on fire 🔥',
+    exec: 'Boarding the jet — synergy en route 🛩️'
   },
   invoke_fallback: {
     refine: 'Hotfix in flight…',
     innovate: 'Hotfix in flight…',
-    goMad: 'WE PIVOT'
+    goMad: 'WE PIVOT',
+    exec: 'Rerouting the Co-Design one-pager…'
   },
   repair_1: {
     refine: 'Hotfix in flight…',
     innovate: 'Hotfix in flight…',
-    goMad: 'More hard hats! 🪖🪖'
+    goMad: 'More hard hats! 🪖🪖',
+    exec: 'Sliding the Co-Design deadline 🗓️'
   },
   repair_2: {
     refine: 'Second hotfix in flight…',
     innovate: 'Second hotfix in flight…',
-    goMad: 'EVEN MORE HARD HATS 🪖🪖🪖'
+    goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
+    exec: 'Sliding the Co-Design deadline again 🗓️🗓️'
   }
 };
 
@@ -259,35 +323,38 @@ export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
 }
 
 export const VARIANT_TAGLINES = {
-  refine: 'Slopitect: refining the slop',
-  innovate: 'Slopitect: disrupting the synergy',
+  refine: 'Slopitect: Co-Designing the polish',
+  innovate: 'Slopitect: Co-Designing disruptive synergy',
   goMad: 'Slopitect: GENIUS LOOSE 🚨',
-  critique: 'Slopitect: compliance inspection in session',
-  explain: 'Slopitect: architecture story time',
+  critique: 'Slopitect: Co-Design compliance review',
+  explain: 'Slopitect: Co-Design story time',
+  exec: 'Slopitect: Synergy and Co-Design mode',
   fix: 'Slopitect: site foreman fixing the slop'
 };
 
 export const VARIANT_BOOT_HEADLINES = {
-  refine: 'Polishing the diagram…',
-  innovate: 'Disrupting the synergy…',
+  refine: 'Co-Designing the polish…',
+  innovate: 'Co-Designing the synergy disruption…',
   goMad: 'BONK! THE SLOPITECT IS HERE',
-  critique: 'INSPECTION INCOMING',
-  explain: 'Story time, gather round'
+  critique: 'CO-DESIGN REVIEW INCOMING',
+  explain: 'Co-Design story time — gather round',
+  exec: 'Synergy and Co-Design in progress…'
 };
 
 export const IDLE_TIPS = [
-  'Always over-engineer. The microservices love it.',
-  'If in doubt, add another abstraction layer.',
-  'A diagram is just a Jira ticket with arrows.',
-  'Compliance is just synergy with paperwork.',
+  'Always over-engineer. The microservices love a good Co-Design session.',
+  'If in doubt, add another abstraction layer — then Co-Design it away.',
+  'A diagram is just a Jira ticket with arrows and a Co-Design workshop.',
+  'Compliance is synergy with paperwork and a mandatory Co-Design sign-off.',
   'A monolith is a microservice that hasn\'t lawyered up yet.',
-  'Synergy is the second-strongest force in the enterprise. Politics is the first.',
-  'When the diagram gets confusing, add a Kafka.',
-  'Slopitect Tip™: every box is a stakeholder waiting to happen.',
-  'If two teams agree on the architecture, one of them is wrong.',
-  'A 9-box matrix solves any problem you can\'t pronounce.',
-  'When the CTO asks "is it cloud-native?", the answer is yes.',
-  'Re-orgs are just architecture refactors with feelings.'
+  'Synergy is the second-strongest force in the enterprise. Co-Design is the third. Politics is the first.',
+  'When the diagram gets confusing, schedule a Co-Design retro and add a Kafka.',
+  'Slopitect Tip™: every box is a stakeholder waiting for Co-Design.',
+  'If two teams agree on the architecture, one of them skipped Co-Design.',
+  'A 9-box matrix solves any problem you can\'t pronounce — Co-Design the tenth box away.',
+  'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
+  'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
+  'The VP runs on synergy, Co-Design, and a hard stop in four minutes.'
 ];
 
 /** Pick a tip for the given rotation index (stable, no random). */
@@ -406,6 +473,11 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
     id: 'archivedStoryteller',
     title: '📜 ARCHIVED STORYTELLER',
     subtitle: '10 explanations canonised in the architecture lore.'
+  },
+  exec: {
+    id: 'serialAligner',
+    title: '🎩 SERIAL CO-DESIGNER',
+    subtitle: '10 synergy Co-Designs shipped. The board approves.'
   }
 };
 
@@ -423,7 +495,7 @@ export const ACHIEVEMENTS = {
   fullStackSlopitect: {
     id: 'fullStackSlopitect',
     title: '🥞 FULL-STACK SLOPITECT',
-    subtitle: 'All five personas in one session. Synergy maximised.'
+    subtitle: 'All five personas in one session. Synergy and Co-Design maximised.'
   },
   prestige: {
     id: 'prestige',
@@ -459,7 +531,7 @@ export const ACHIEVEMENTS = {
  */
 export const LEVEL_UP_BANNER = {
   title: '⬆️ LEVEL UP',
-  subtitle: 'The Slopitect Stakeholders recognise your synergy.'
+  subtitle: 'The Slopitect Stakeholders recognise your synergy and Co-Design.'
 };
 
 export const CONSOLE_STAMP_LINES = [
@@ -472,19 +544,20 @@ export const CONSOLE_STAMP_LINES = [
   '       |||      ',
   '       |||      ',
   '   ArchiSlop v∞ · Slopitect Engine warmed up.',
-  '   Powered by Synergy™ — please file a JIRA ticket.'
+  '   Powered by Synergy™ & Co-Design™ — please file a JIRA ticket.'
 ];
 
 export const PROMPT_EASTER_EGGS = [
   { match: /\bblockchain\b/i, toast: '🔗 Slopitect approves.' },
-  { match: /\bsynergy\b/i, toast: '🤝 Synergy detected. +1 alignment.' },
+  { match: /\bco[- ]?design/i, toast: '🎩 Synergy and Co-Design detected. The VP nods.' },
+  { match: /\bsynergy\b/i, toast: '🤝 Synergy detected. +1 Co-Design alignment.' },
   { match: /\bmicroservice/i, toast: '🛎️ One microservice added to the slop.' },
   { match: /\bkubernetes\b|\bk8s\b/i, toast: '☸️ The container has been deployed to your soul.' },
   { match: /\bAI\b|\bGPT\b|\bLLM\b/i, toast: '🧠 Bold of you to mention us.' },
   { match: /\bagile\b/i, toast: '📈 Story points are vibes.' },
   { match: /\bscrum\b/i, toast: '🧎 STAND UP.' },
-  { match: /\bstakeholder/i, toast: '✅ Stakeholder aligned.' },
-  { match: /\bleverage\b/i, toast: '🤝 Synergised.' },
+  { match: /\bstakeholder/i, toast: '✅ Stakeholder Co-Designed and aligned.' },
+  { match: /\bleverage\b/i, toast: '🤝 Synergised through Co-Design.' },
   { match: /\bdevops\b/i, toast: '👨‍🍳 *chef\'s kiss*' },
   { match: /\bcloud[- ]?native\b/i, toast: '☁️ Born in the cloud.' },
   { match: /\bSaaS\b/i, toast: '💸 SaaS-ified. Onwards.' },
@@ -498,5 +571,5 @@ export const PROMPT_EASTER_EGGS = [
 export const KONAMI_ACHIEVEMENT = {
   id: 'slopitectAwakened',
   title: '🌈 SLOPITECT AWAKENED',
-  subtitle: 'You speak the ancient cheat. The synergy now flows freely.'
+  subtitle: 'You speak the ancient cheat. Synergy and Co-Design now flow freely.'
 };

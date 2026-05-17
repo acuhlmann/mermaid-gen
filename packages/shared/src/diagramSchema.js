@@ -115,7 +115,7 @@ export const DiagramIntentSchema = z
     }
   });
 
-export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad']);
+export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad', 'exec']);
 
 /** Escalation tier for repeated Go Mad transforms (1 = first click). Ignored unless mode is goMad. */
 export const GoMadDepthSchema = z.number().int().min(1).max(12).optional();
