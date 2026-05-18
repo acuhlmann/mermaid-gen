@@ -51,6 +51,27 @@
   grid-template-columns: minmax(0, 1fr) minmax(220px, 24vw) minmax(320px, 38vw);
 }
 
+/* Code editor open: keep diagram shell (and Monaco column) above the fixed brand
+   chip (z-index: 25). Bump radial base layer so the menu stays usable; popover
+   variants keep their higher z-index. Edit / Done corner controls stay on top. */
+.app-shell.is-editor-open .diagram-canvas {
+  z-index: 28;
+}
+
+.app-shell.is-editor-open .radial-action-menu {
+  z-index: 29;
+}
+
+.app-shell.is-editor-open .radial-action-menu.is-popover,
+.app-shell.is-editor-open .radial-action-menu.is-slop-prompt {
+  z-index: 120;
+}
+
+.app-shell.is-editor-open .edit-control,
+.app-shell.is-editor-open .editor-done-bar {
+  z-index: 35;
+}
+
 .diagram-output {
   position: relative;
   min-width: 0;
@@ -4971,7 +4992,7 @@ button {
   .diagram-canvas.is-editor-open:not(.is-insights-open) .diagram-editor-panel {
     position: fixed;
     inset: 0;
-    z-index: 18;
+    z-index: 30;
     padding-top: 0;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
