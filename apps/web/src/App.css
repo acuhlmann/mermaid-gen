@@ -648,31 +648,35 @@
   animation: insights-pulse 1s ease-in-out infinite;
 }
 
-.insights-pane-controls {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 .insights-pane-dismiss {
   display: none;
 }
 
 .insights-stop-stream-btn {
+  position: absolute;
+  right: 0.75rem;
+  bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  z-index: 27;
+  pointer-events: auto;
   border-radius: 999px;
-  padding: 0.28rem 0.65rem;
-  font-size: 0.76rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.82rem;
   font-weight: 800;
-  border: 1px solid rgba(185, 28, 28, 0.35);
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(185, 28, 28, 0.45);
   color: #991b1b;
-  background: rgba(254, 226, 226, 0.85);
+  background: rgba(254, 226, 226, 0.96);
   cursor: pointer;
+  box-shadow: 0 8px 22px rgba(185, 28, 28, 0.18), 0 1px 3px rgba(15, 23, 42, 0.08);
+  transition: background 160ms ease, transform 160ms ease;
 }
 
 .insights-stop-stream-btn:hover {
-  background: rgba(254, 202, 202, 0.95);
+  background: rgba(254, 202, 202, 1);
+}
+
+.insights-stop-stream-btn:active {
+  transform: translateY(1px);
 }
 
 .insights-sound-toggle {
@@ -4827,6 +4831,12 @@ button {
     pointer-events: auto;
   }
 
+  /* Stack above the Hide button so both stay reachable bottom-right. */
+  .insights-stop-stream-btn {
+    position: fixed;
+    bottom: calc(0.75rem + 2.85rem + env(safe-area-inset-bottom));
+  }
+
   .brand-control {
     top: 0.75rem;
     left: 0.75rem;
@@ -5107,14 +5117,6 @@ button {
     border: 0;
   }
 
-  .insights-pane-controls {
-    gap: 0.3rem;
-  }
-
-  .insights-pane-controls .overlay-button {
-    padding-inline: 0.5rem;
-    font-size: 0.72rem;
-  }
 }
 
 /* --- Streaming infographic preview shimmer (token-by-token draft) --- */
@@ -6437,6 +6439,31 @@ button {
 .insights-pane {
   will-change: transform, opacity;
   contain: paint;
+  /* Establish a strict stacking context so the variant ::after overlays
+     beneath us can't bleed through the pane's translucent background on
+     a foldable's compositor. */
+  isolation: isolate;
+}
+
+/* Streaming entries shimmer continuously — keep the paint scope local
+   so a foldable's tile compositor doesn't repaint adjacent rows. */
+.insights-entry.is-running {
+  contain: paint;
+}
+
+/* When the pane covers the whole viewport (mobile / folded narrow), pause
+   the variant overlay + canvas glow that sit behind it. They're occluded
+   anyway, and on a low-power foldable compositor each animation tick
+   re-rasterises the layer underneath the pane, showing as flicker. */
+@media (max-width: 1024px) {
+  .app-shell.is-insights-open[data-streaming='true']::after {
+    display: none;
+  }
+
+  .app-shell.is-insights-open .diagram-output.is-agent-thinking::after {
+    animation: none;
+    opacity: 0;
+  }
 }
 
 .thinking-toggle-button.is-agent-active:not(:disabled) {

@@ -850,17 +850,6 @@ export default function InsightsPane({
             {slopitectTagline}
           </span>
         ) : null}
-        <div className="insights-pane-controls">
-          {typeof onStopStreamingAgent === 'function' ? (
-            <button
-              type="button"
-              className="insights-stop-stream-btn"
-              onClick={onStopStreamingAgent}
-            >
-              Stop request
-            </button>
-          ) : null}
-        </div>
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
         {entries.length === 0 ? (
@@ -1374,6 +1363,15 @@ export default function InsightsPane({
           })
         )}
       </div>
+      {typeof onStopStreamingAgent === 'function' ? (
+        <button
+          type="button"
+          className="insights-stop-stream-btn"
+          onClick={onStopStreamingAgent}
+        >
+          Stop request
+        </button>
+      ) : null}
       {typeof onDismiss === 'function' ? (
         <button
           type="button"
