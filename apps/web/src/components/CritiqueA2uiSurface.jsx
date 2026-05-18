@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { MessageProcessor } from '@a2ui/web_core/v0_9';
 import { A2uiSurface, basicCatalog } from '@a2ui/react/v0_9';
 import '@a2ui/react/styles';
@@ -18,7 +18,7 @@ function findFixSelectedButton(root) {
  * Renders critique "Fix selected / Fix all" using A2UI v0.9 + basic catalog only.
  * Messages are produced server-side from the same critique markdown.
  */
-export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSelected }) {
+export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSelected, onUnavailable }) {
   const callbacksRef = useRef({ onFixAll, onFixSelected, busy });
   callbacksRef.current = { onFixAll, onFixSelected, busy };
 
@@ -56,7 +56,7 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
     fixSelectedBtn.disabled = isBusy || !anySelected;
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const p = processorRef.current;
     const sync = () => setSurfaces(Array.from(p.model.surfacesMap.values()));
 
@@ -68,20 +68,29 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
       p.model.deleteSurface(A2UI_CRITIQUE_SURFACE_ID);
     }
 
-    if (Array.isArray(messages) && messages.length > 0) {
-      try {
-        p.processMessages(messages);
-      } catch (err) {
-        console.error('CritiqueA2uiSurface: invalid A2UI messages', err);
-      }
+    if (!Array.isArray(messages) || messages.length === 0) {
+      onUnavailable?.();
+      return () => {
+        subA.unsubscribe();
+        subB.unsubscribe();
+      };
+    }
+
+    try {
+      p.processMessages(messages);
+    } catch (err) {
+      console.error('CritiqueA2uiSurface: invalid A2UI messages', err);
     }
     sync();
+    if (p.model.surfacesMap.size === 0) {
+      onUnavailable?.();
+    }
 
     return () => {
       subA.unsubscribe();
       subB.unsubscribe();
     };
-  }, [messages]);
+  }, [messages, onUnavailable]);
 
   useEffect(() => {
     syncFixSelectedDisabled();

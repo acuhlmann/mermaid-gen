@@ -11,6 +11,7 @@ import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
+import { inferMermaidTopKeyword, isMermaidTransformConstraintError } from '@archislop/shared';
 import {
   createLlmChatModel,
   createOpenRouterModel,
@@ -291,16 +292,15 @@ export function transformModeModelOptions(mode, goMadDepth) {
   };
 }
 
-/** First diagram declaration keyword from source (e.g. flowchart, sequenceDiagram). */
-export function inferMermaidTopKeyword(source) {
-  const text = typeof source === 'string' ? source : '';
-  for (const line of text.split(/\r?\n/)) {
-    const t = line.trim();
-    if (!t || t.startsWith('%%')) continue;
-    const token = t.split(/\s+/)[0] ?? '';
-    return token.replace(/[:`'"]+$/, '') || 'diagram';
+export { inferMermaidTopKeyword };
+
+async function withTransformContext(stateStore, context, fn) {
+  stateStore.setTransformContext(context);
+  try {
+    return await fn();
+  } finally {
+    stateStore.clearTransformContext();
   }
-  return 'diagram';
 }
 
 function buildGoMadEscalationInstructions(depth, diagramSource) {
@@ -567,7 +567,11 @@ function tokenFromLangChainChunk(chunk) {
 
 export function shouldAttemptSyntaxRepair(errorMessage) {
   if (!errorMessage) return false;
-  return REPAIR_ERROR_PATTERN.test(errorMessage) || isSyntaxValidationError(errorMessage);
+  return (
+    REPAIR_ERROR_PATTERN.test(errorMessage) ||
+    isSyntaxValidationError(errorMessage) ||
+    isMermaidTransformConstraintError(errorMessage)
+  );
 }
 
 export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSource, previousAttempts }) {
@@ -1262,34 +1266,41 @@ ${prompt}${focusScope}`;
     },
 
     async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth }) {
-      const currentState = stateStore.getSlot('mermaid');
-      const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
-      const focusScope = buildFocusScopeInstructions(focusNode);
+      const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
+      return withTransformContext(
+        stateStore,
+        { mode, goMadDepth: depth },
+        async () => {
+          const currentState = stateStore.getSlot('mermaid');
+          const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
+          const focusScope = buildFocusScopeInstructions(focusNode);
 
-      return invokeMutation(
-        transformAgent,
-        [
-          {
-            role: 'user',
-            content: buildTransformUserContent({
+          return invokeMutation(
+            transformAgent,
+            [
+              {
+                role: 'user',
+                content: buildTransformUserContent({
+                  mode,
+                  diagramSource: currentState.diagramSource,
+                  focusScope,
+                  goMadDepth
+                })
+              }
+            ],
+            {
+              requirePatch: true,
               mode,
-              diagramSource: currentState.diagramSource,
-              focusScope,
-              goMadDepth
-            })
-          }
-        ],
-        {
-          requirePatch: true,
-          mode,
-          profile: normalizeModelProfile(modelProfile),
-          modelLabel: resolveModelLabel(modelProfile),
-          // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
-          // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
-          // agent for the patch_retry turn so we're not just rolling the same dice twice.
-          stableAgent: getDefaultAgent('fast')
-        },
-        emit
+              profile: normalizeModelProfile(modelProfile),
+              modelLabel: resolveModelLabel(modelProfile),
+              // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
+              // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
+              // agent for the patch_retry turn so we're not just rolling the same dice twice.
+              stableAgent: getDefaultAgent('fast')
+            },
+            emit
+          );
+        }
       );
     },
 

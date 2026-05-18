@@ -2,6 +2,17 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { partKindLabel } from '../utils/partKindLabel.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { chipBoundingClearancePx, resolveArcGeometry } from '../utils/radialMenuLayout.js';
+import {
+  fallbackLabelGibberish,
+  getLabelExplainDumbLevel,
+  isLabelExplainGiveUpLevel,
+  isLabelExplainGibberishLevel,
+  LABEL_EXPLAIN_GIBBERISH_LEVEL,
+  labelExplainDumbAudienceBadge,
+  labelExplainDumbChipLabel,
+  labelExplainDumbLoadingText,
+  MAX_LABEL_EXPLAIN_DUMB_LEVEL
+} from '@archislop/shared';
 import { fetchLabelExplanation } from '../utils/fetchLabelExplanation.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 
@@ -129,8 +140,10 @@ export default function RadialActionMenu({
   const [viewportTick, setViewportTick] = useState(0);
   const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
-  const [explainStyle, setExplainStyle] = useState('brief');
-  const [explainSimpleRefresh, setExplainSimpleRefresh] = useState(0);
+  /** 0 = Wise Architect brief; 1–6 = younger; 7 = pre-verbal babble. */
+  const [dumbLevel, setDumbLevel] = useState(0);
+  const [explainerSurrendering, setExplainerSurrendering] = useState(false);
+  const surrenderTimerRef = useRef(null);
   const [explanation, setExplanation] = useState({ status: 'idle', text: '', error: '' });
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
@@ -232,10 +245,53 @@ export default function RadialActionMenu({
   // selected element changes, so popover state (explainer / stakeholders) starts
   // fresh per selection — no manual reset needed here.
 
+  // Closing the explainer (or swapping to stakeholders) resets dumb-down depth
+  // so reopening starts at the Wise Architect brief again.
+  useEffect(() => {
+    if (!explainerOpen) {
+      setDumbLevel(0);
+      setExplainerSurrendering(false);
+    }
+  }, [explainerOpen]);
+
+  useEffect(
+    () => () => {
+      if (surrenderTimerRef.current != null) {
+        window.clearTimeout(surrenderTimerRef.current);
+        surrenderTimerRef.current = null;
+      }
+    },
+    []
+  );
+
+  function triggerExplainerSurrender() {
+    if (explainerSurrendering) return;
+    setExplainerSurrendering(true);
+    surrenderTimerRef.current = window.setTimeout(() => {
+      surrenderTimerRef.current = null;
+      setExplainerSurrendering(false);
+      onClose?.();
+    }, 1400);
+  }
+
+  function handleDumbDownClick() {
+    if (explainerSurrendering || explanation.status === 'loading') return;
+    if (isLabelExplainGiveUpLevel(dumbLevel)) {
+      triggerExplainerSurrender();
+      return;
+    }
+    if (dumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL) {
+      setDumbLevel(LABEL_EXPLAIN_GIBBERISH_LEVEL);
+      return;
+    }
+    setDumbLevel((level) => (level <= 0 ? 1 : level + 1));
+  }
+
   // When the explainer opens (or the focused part changes while it's open),
   // kick off a fresh fast-agent fetch. Cancel any in-flight call.
   useEffect(() => {
-    if (!explainerOpen || !descriptor) return undefined;
+    if (!explainerOpen || !descriptor || explainerSurrendering) return undefined;
+    const isGibberish = isLabelExplainGibberishLevel(dumbLevel);
     const controller = new AbortController();
     let alive = true;
     setExplanation({ status: 'loading', text: '', error: '' });
@@ -244,13 +300,16 @@ export default function RadialActionMenu({
       contentType,
       diagramSource,
       sessionId,
-      style: explainStyle,
+      style: isGibberish ? 'gibberish' : dumbLevel > 0 ? 'simple' : 'brief',
+      simpleLevel: dumbLevel > 0 && !isGibberish ? dumbLevel : undefined,
       signal: controller.signal
     })
       .then((text) => {
         if (!alive) return;
-        if (text) {
-          setExplanation({ status: 'ready', text, error: '' });
+        const resolved =
+          text || (isGibberish ? fallbackLabelGibberish(explainTarget) : '');
+        if (resolved) {
+          setExplanation({ status: 'ready', text: resolved, error: '' });
         } else {
           setExplanation({
             status: 'error',
@@ -272,7 +331,16 @@ export default function RadialActionMenu({
       alive = false;
       controller.abort();
     };
-  }, [contentType, descriptor, diagramSource, explainerOpen, explainStyle, explainSimpleRefresh, sessionId]);
+  }, [contentType, descriptor, diagramSource, explainerOpen, dumbLevel, sessionId, explainTarget, explainerSurrendering]);
+
+  const dumbChipLabel = labelExplainDumbChipLabel(dumbLevel);
+  const dumbChipEmoji = isLabelExplainGiveUpLevel(dumbLevel)
+    ? '🏳️'
+    : dumbLevel > 0
+      ? getLabelExplainDumbLevel(dumbLevel)?.emoji ?? '🍼'
+      : getLabelExplainDumbLevel(1)?.emoji ?? '🍼';
+  const dumbAudienceBadge = dumbLevel > 0 ? labelExplainDumbAudienceBadge(dumbLevel) : '';
+  const isGibberishAnswer = isLabelExplainGibberishLevel(dumbLevel);
 
   useLayoutEffect(() => {
     const el = chipRef.current;
@@ -580,7 +648,7 @@ export default function RadialActionMenu({
       {explainerOpen && !slopPrompt ? (
         <div
           ref={popoverRef}
-          className={`radial-explainer-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}`}
+          className={`radial-explainer-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}${explainerSurrendering ? ' is-surrendering' : ''}`}
           role="dialog"
           aria-label={`What does ${explainTarget || 'this'} mean?`}
           style={{
@@ -591,6 +659,15 @@ export default function RadialActionMenu({
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
         >
+          {explainerSurrendering ? (
+            <div className="radial-explainer-surrender-debris" aria-hidden="true">
+              <span className="radial-explainer-surrender-tag">OUT OF SCOPE</span>
+              <span className="radial-explainer-surrender-tag">WON&apos;T FIX</span>
+              <span className="radial-explainer-surrender-tag">→ BACKLOG</span>
+              <span className="radial-explainer-surrender-tag">DEPRECATED</span>
+            </div>
+          ) : null}
+          <div className={`radial-explainer-panel${explainerSurrendering ? ' is-surrendering' : ''}`}>
           <div
             className="radial-explainer-head"
             onPointerDown={handleDragPointerDown}
@@ -602,19 +679,22 @@ export default function RadialActionMenu({
             <span
               className="radial-explainer-eyebrow"
               role="img"
-              aria-label="The Wise Architect"
-              title="The Wise Architect"
+              aria-label={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
+              title={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
             >
-              {WISE_ARCHITECT_EMOJI}
+              {explainerSurrendering ? '📋' : WISE_ARCHITECT_EMOJI}
             </span>
             <span className="radial-explainer-heading">
-              <span className="radial-explainer-attribution">The Wise Architect on</span>
+              <span className="radial-explainer-attribution">
+                {explainerSurrendering ? 'Scheduling deprecation for' : 'The Wise Architect on'}
+              </span>
               {explainTarget ? <strong>“{explainTarget}”</strong> : <strong>this element</strong>}
             </span>
             <button
               type="button"
               className="radial-explainer-close"
               onClick={() => onClose?.()}
+              disabled={explainerSurrendering}
               aria-label="Close explanation"
             >
               ×
@@ -625,31 +705,52 @@ export default function RadialActionMenu({
               <span className="radial-explainer-dot" aria-hidden="true" />
               <span className="radial-explainer-dot" aria-hidden="true" />
               <span className="radial-explainer-dot" aria-hidden="true" />
-              <span className="sr-only">
-                {explainStyle === 'simple' ? 'Dumbing it down…' : 'Consulting the Wise Architect…'}
-              </span>
+              <span className="sr-only">{labelExplainDumbLoadingText(dumbLevel)}</span>
             </p>
           ) : explanation.status === 'error' ? (
             <p className="radial-explainer-body is-error" role="status">
               {explanation.error}
             </p>
           ) : explanation.status === 'ready' ? (
-            <p className="radial-explainer-body">{explanation.text}</p>
+            <>
+              {dumbAudienceBadge ? (
+                <p className="radial-explainer-audience" aria-live="polite">
+                  {dumbAudienceBadge}
+                </p>
+              ) : null}
+              <p
+                className={`radial-explainer-body${isGibberishAnswer ? ' is-gibberish' : ''}`}
+              >
+                {explanation.text}
+              </p>
+            </>
+          ) : null}
+          {explainerSurrendering ? (
+            <p className="radial-explainer-surrender-caption" aria-live="assertive">
+              Moved to the architecture backlog. Won&apos;t fix. 🏳️
+            </p>
           ) : null}
           <div className="radial-explainer-followups" role="group" aria-label="Rephrase options">
             <button
               type="button"
-              className={`radial-explainer-followup is-simple${explainStyle === 'simple' ? ' is-active' : ''}`}
-              onClick={() => {
-                if (explainStyle === 'simple') setExplainSimpleRefresh((n) => n + 1);
-                else setExplainStyle('simple');
-              }}
-              disabled={explanation.status === 'loading'}
-              aria-pressed={explainStyle === 'simple'}
-              title="Rephrase in plain language for the back row"
+              className={`radial-explainer-followup is-simple${dumbLevel > 0 ? ' is-active' : ''}${isLabelExplainGiveUpLevel(dumbLevel) ? ' is-give-up' : ''}`}
+              onClick={handleDumbDownClick}
+              disabled={explanation.status === 'loading' || explainerSurrendering}
+              aria-pressed={dumbLevel > 0}
+              title={
+                isLabelExplainGiveUpLevel(dumbLevel)
+                  ? 'Decommission this explanation (OUT OF SCOPE)'
+                  : dumbLevel <= 0
+                    ? 'Rephrase in plain language — click again for even simpler'
+                    : dumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
+                      ? 'One last try: pre-verbal babble'
+                      : 'Make it even simpler for a younger audience'
+              }
             >
-              <span className="radial-explainer-followup-emoji" aria-hidden="true">🍼</span>
-              <span className="radial-explainer-followup-label">Dumb it Down</span>
+              <span className="radial-explainer-followup-emoji" aria-hidden="true">
+                {dumbChipEmoji}
+              </span>
+              <span className="radial-explainer-followup-label">{dumbChipLabel}</span>
             </button>
             <button
               type="button"
@@ -657,12 +758,13 @@ export default function RadialActionMenu({
               onClick={() => {
                 onDrillDeeper?.(descriptor);
               }}
-              disabled={typeof onDrillDeeper !== 'function'}
+              disabled={typeof onDrillDeeper !== 'function' || explainerSurrendering}
               title="Spin up a full architecture deep-dive in the Thinking panel"
             >
               <span className="radial-explainer-followup-emoji" aria-hidden="true">🔍</span>
               <span className="radial-explainer-followup-label">Drill Deeper</span>
             </button>
+          </div>
           </div>
         </div>
       ) : null}

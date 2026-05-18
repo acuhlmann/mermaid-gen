@@ -58,9 +58,17 @@ describe('CritiqueA2uiSurface', () => {
   });
 
   it('returns null when messages are empty', () => {
+    const onUnavailable = vi.fn();
     const { container } = render(
-      <CritiqueA2uiSurface messages={[]} busy={false} onFixAll={vi.fn()} onFixSelected={vi.fn()} />
+      <CritiqueA2uiSurface
+        messages={[]}
+        busy={false}
+        onFixAll={vi.fn()}
+        onFixSelected={vi.fn()}
+        onUnavailable={onUnavailable}
+      />
     );
     expect(container.firstChild).toBeNull();
+    expect(onUnavailable).toHaveBeenCalled();
   });
 });

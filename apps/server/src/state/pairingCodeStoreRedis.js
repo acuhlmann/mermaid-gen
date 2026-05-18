@@ -28,7 +28,8 @@ export async function createRedisPairingCodeStore(redisUrl) {
     if (!raw) return null;
     try {
       return JSON.parse(raw);
-    } catch {
+    } catch (err) {
+      console.warn('pairingCodeStoreRedis: readEntry JSON parse failed:', err?.message ?? err);
       return null;
     }
   }
@@ -64,7 +65,8 @@ export async function createRedisPairingCodeStore(redisUrl) {
         ttl
       );
       return code;
-    } catch {
+    } catch (err) {
+      console.warn('pairingCodeStoreRedis: getOrCreateCode falling back to memory store:', err?.message ?? err);
       return memoryFallback.getOrCreateCode(sessionId, options);
     }
   }
@@ -88,7 +90,8 @@ export async function createRedisPairingCodeStore(redisUrl) {
         await writeEntry(normalized, entry, Math.max(1000, entry.expiresAt - Date.now()));
       }
       return { ok: true, sessionId: entry.sessionId };
-    } catch {
+    } catch (err) {
+      console.warn('pairingCodeStoreRedis: resolveDetailed falling back to memory store:', err?.message ?? err);
       return memoryFallback.resolveDetailed(code, options);
     }
   }
@@ -105,8 +108,8 @@ export async function createRedisPairingCodeStore(redisUrl) {
       const old = await client.get(`${KEY_PREFIX}session:${sid}`);
       if (old) await client.del(`${KEY_PREFIX}code:${old}`);
       await client.del(`${KEY_PREFIX}session:${sid}`);
-    } catch {
-      // ignore redis errors
+    } catch (err) {
+      console.warn('pairingCodeStoreRedis: regenerate cleanup failed:', err?.message ?? err);
     }
     return getOrCreateCode(sid, {
       ttlMs: options.ttlMs ?? inviteTtlMs,

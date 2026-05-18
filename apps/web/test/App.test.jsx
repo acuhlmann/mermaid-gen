@@ -6,6 +6,7 @@ import App from '../src/App.jsx';
 
 const {
   fetchSessionDiagramStateMock,
+  mintFreshServerSessionMock,
   syncClientDiagramStateMock,
   submitDiagramIntentMock,
   streamDiagramAgentMock,
@@ -38,6 +39,7 @@ const {
   };
   return {
     fetchSessionDiagramStateMock: vi.fn(),
+    mintFreshServerSessionMock: vi.fn(),
     syncClientDiagramStateMock: vi.fn(),
     submitDiagramIntentMock: vi.fn(),
     streamDiagramAgentMock: vi.fn(),
@@ -71,6 +73,7 @@ vi.mock('../src/state/diagramStore.js', async (importOriginal) => {
     createSessionId: () => 'generated-session',
     fallbackState: initialState,
     fetchSessionDiagramState: fetchSessionDiagramStateMock,
+    mintFreshServerSession: mintFreshServerSessionMock,
     getOrCreateBrowserSessionId: () => 'test-session',
     normalizeSessionId: (value) => {
       const candidate = typeof value === 'string' ? value.trim() : '';
@@ -123,6 +126,7 @@ describe('App simplified controls', () => {
     });
 
     readDiagramCacheMock.mockReturnValue(null);
+    mintFreshServerSessionMock.mockResolvedValue('fresh-recovered-session');
     fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
       mermaid: initialState,
@@ -212,6 +216,46 @@ describe('App simplified controls', () => {
         sessionId: 'generated-session'
       })
     );
+  });
+
+  it('rotates to a fresh session and clears storage when the URL session is gone on the server', async () => {
+    window.history.replaceState({}, '', '/sessions/stale-before-restart');
+    window.localStorage.setItem(
+      'archislop:diagram-cache-v2:stale-before-restart',
+      JSON.stringify({ diagramSource: 'flowchart TD\n  A --> B', insightsEntries: [{ id: 'i1' }] })
+    );
+    window.localStorage.setItem('archislop:model-profile', 'quality');
+    const notFound = new Error('Session not found');
+    notFound.code = 'SESSION_NOT_FOUND';
+    fetchSessionDiagramStateMock.mockRejectedValueOnce(notFound);
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/sessions/fresh-recovered-session');
+    });
+    expect(mintFreshServerSessionMock).toHaveBeenCalled();
+  });
+
+  it('treats a pristine server room plus stale local cache as a lost URL session', async () => {
+    window.history.replaceState({}, '', '/sessions/phantom-room');
+    readDiagramCacheMock.mockImplementation((sessionId) =>
+      sessionId === 'phantom-room'
+        ? { diagramSource: 'flowchart TD\n  A --> B', insightsEntries: [{ id: 'i1' }] }
+        : null
+    );
+    fetchSessionDiagramStateMock.mockResolvedValueOnce({
+      activeContentType: 'mermaid',
+      mermaid: { ...createInitialDiagramState('mermaid') },
+      infographic: createInitialDiagramState('infographic')
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/sessions/fresh-recovered-session');
+    });
+    expect(mintFreshServerSessionMock).toHaveBeenCalled();
   });
 
   it('uses an existing URL session id for sync and stream calls', async () => {

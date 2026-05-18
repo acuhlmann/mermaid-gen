@@ -18,7 +18,13 @@ const FocusDescriptorSchema = z.object({
   id: z.string().max(200),
   label: z.string().max(200).optional(),
   kind: z.string().max(40).optional(),
-  source: z.enum(['selected', 'hover']).optional()
+  selectionKind: z
+    .enum(['node', 'cluster', 'edge', 'infographic-item', 'infographic-region'])
+    .optional(),
+  source: z.enum(['selected', 'hover']).optional(),
+  indexes: z.string().max(64).optional(),
+  elementType: z.string().max(64).optional(),
+  clickedLabel: z.string().max(240).optional()
 });
 
 const AdvisorSuggestSchema = z.object({
@@ -38,7 +44,8 @@ const ExplainLabelSchema = z.object({
   contentType: z.enum(['mermaid', 'infographic']).default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
-  style: z.enum(['brief', 'simple']).default('brief')
+  style: z.enum(['brief', 'simple', 'gibberish']).default('brief'),
+  simpleLevel: z.number().int().min(1).max(6).optional()
 });
 
 function safeErrorMessage(error) {
@@ -80,7 +87,7 @@ export function createAdvisorRouter() {
       return;
     }
 
-    const system = buildAdvisorSystemPrompt(payload.persona);
+    const system = buildAdvisorSystemPrompt(payload.persona, payload.contentType);
     const user = buildAdvisorUserPrompt({
       contentType: payload.contentType,
       diagramSource: trimmedSource,

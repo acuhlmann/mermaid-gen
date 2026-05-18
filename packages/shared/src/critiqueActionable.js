@@ -2,6 +2,28 @@
  * Split critique markdown around an "## Actionable …" section and extract bullet / numbered items.
  * Heading must be a level-2 markdown heading (`##`), not `###`.
  */
+
+/**
+ * Prefer the server's canonical analyze body when token streaming was partial or diverged.
+ *
+ * @param {string} streamedText
+ * @param {string | undefined} analyzeText
+ * @returns {string}
+ */
+export function resolveCritiqueAnalyzeFinalText(streamedText, analyzeText) {
+  const stream = (streamedText ?? '').trim();
+  const canonical = typeof analyzeText === 'string' ? analyzeText.trim() : '';
+  if (canonical && (!stream || canonical.length > stream.length)) {
+    return canonical;
+  }
+  return stream || canonical;
+}
+
+/** Normalize critique markdown for stable entry ↔ latestCritique matching. */
+export function normalizeCritiqueMarkdownForMatch(text) {
+  return (text ?? '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();
+}
+
 export function splitCritiqueActionableSections(markdown) {
   if (markdown == null || typeof markdown !== 'string') {
     return { prefix: '', items: [], suffix: '', hasSection: false, headingText: '' };
@@ -49,14 +71,17 @@ export function splitCritiqueActionableSections(markdown) {
 
     const bullet =
       t.startsWith('- ') ||
+      t.startsWith('* ') ||
       t.startsWith('• ') ||
       (t.startsWith('•') && t.length > 1 && /\s/.test(t[1]));
     if (bullet) {
       const inner = t.startsWith('- ')
         ? t.slice(2)
-        : t.startsWith('• ')
+        : t.startsWith('* ')
           ? t.slice(2)
-          : t.replace(/^•\s*/, '');
+          : t.startsWith('• ')
+            ? t.slice(2)
+            : t.replace(/^•\s*/, '');
       items.push(inner.trim());
     }
   }

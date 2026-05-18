@@ -8,6 +8,7 @@
  */
 
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
+import { fallbackLabelGibberish, getLabelExplainDumbLevel } from '@archislop/shared';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -32,15 +33,38 @@ const SYSTEM_PROMPT = [
   '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
 ].join('\n');
 
-const SIMPLE_SYSTEM_PROMPT = [
-  'You are a friendly architecture-diagram explainer. Imagine the reader is brand new — no jargon, no acronyms.',
-  'The user clicked one element on a diagram and asked you to "dumb it down".',
+function buildSimpleSystemPrompt(simpleLevel = 1) {
+  const meta = getLabelExplainDumbLevel(simpleLevel);
+  const audience = meta?.audience ?? 'a beginner';
+  const voice = meta?.voice ?? 'a friendly explainer';
+  const maxWords = meta?.maxWords ?? 25;
+  const extra =
+    simpleLevel >= 5
+      ? '- Wholesome silliness is welcome (onomatopoeia, toy analogies) but stay on-topic about the label.'
+      : simpleLevel >= 3
+        ? '- Prefer concrete everyday analogies over technical metaphors.'
+        : '- Use a real-world analogy if it helps ("like a mailbox", "like a waiter").';
+  return [
+    `You are ${voice}, explaining a diagram label to ${audience}.`,
+    'The user clicked one element on a diagram and asked you to "dumb it down" — each click should feel easier than the last.',
+    'RULES:',
+    '- Explain the CONTENT (the actual text on the label) in the simplest possible terms for this audience.',
+    extra,
+    '- Plain text only. No markdown, no quotes, no preambles like "This means".',
+    `- Max ${maxWords} words. One sentence. Avoid acronyms — expand them or skip them.`,
+    '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
+  ].join('\n');
+}
+
+const GIBBERISH_SYSTEM_PROMPT = [
+  'You are a baby who cannot speak yet, "explaining" a diagram label.',
+  'The user has dumbed down explanations until real words failed.',
   'RULES:',
-  '- Explain the CONTENT (the actual text on the label) in the simplest possible terms.',
-  '- Use a real-world analogy if it helps ("like a mailbox", "like a waiter").',
-  '- Plain text only. No markdown, no quotes, no preambles like "This means".',
-  '- Max 25 words. One sentence. Avoid acronyms — expand them or skip them.',
-  '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
+  '- Output ONLY nonsense baby babble: repeated syllables (goo ga, bwah, nya), raspberries, squeals.',
+  '- NO real English words except maybe mangling 1–2 letters from the label into babble.',
+  '- No markdown, no quotes, no definitions, no "this means".',
+  '- One short burst, max 14 tokens. End with !!! if excited.',
+  '- Wholesome and silly, never offensive.'
 ].join('\n');
 
 function resolveExplainerModelId(env, backend) {
@@ -78,12 +102,14 @@ export function createLabelExplainerChatModel(env = process.env) {
 }
 
 /**
- * @param {'brief'|'simple'} [style]
- *   'brief'  (default) — one-sentence glossary entry, normal tone.
- *   'simple' — ELI5 plain-language rephrase for the "Dumb it Down" follow-up.
+ * @param {'brief'|'simple'|'gibberish'} [style]
+ * @param {number} [simpleLevel] 1–6 when style is 'simple'
  */
-export function buildLabelExplainerSystemPrompt(style = 'brief') {
-  return style === 'simple' ? SIMPLE_SYSTEM_PROMPT : SYSTEM_PROMPT;
+export function buildLabelExplainerSystemPrompt(style = 'brief', simpleLevel = 1) {
+  if (style === 'gibberish') return GIBBERISH_SYSTEM_PROMPT;
+  if (style !== 'simple') return SYSTEM_PROMPT;
+  const level = Math.min(6, Math.max(1, Number(simpleLevel) || 1));
+  return buildSimpleSystemPrompt(level);
 }
 
 export function buildLabelExplainerUserPrompt({
@@ -93,7 +119,8 @@ export function buildLabelExplainerUserPrompt({
   contentType,
   diagramSource,
   visibleLabels,
-  style = 'brief'
+  style = 'brief',
+  simpleLevel = 1
 }) {
   const target = String(partName || label || '').slice(0, 240);
   const lines = [];
@@ -118,8 +145,18 @@ export function buildLabelExplainerUserPrompt({
     lines.push('```');
   }
   lines.push('');
-  if (style === 'simple') {
-    lines.push(`Reply with ONE short plain-language sentence (max 25 words, beginner-friendly) explaining what "${target}" means in this diagram.`);
+  if (style === 'gibberish') {
+    lines.push(
+      `Reply with ONE short burst of baby babble (no real words) reacting to the sounds of "${target}". Max 14 tokens.`
+    );
+  } else if (style === 'simple') {
+    const level = Math.min(6, Math.max(1, Number(simpleLevel) || 1));
+    const meta = getLabelExplainDumbLevel(level);
+    const maxWords = meta?.maxWords ?? 25;
+    const audience = meta?.audience ?? 'a beginner';
+    lines.push(
+      `Reply with ONE short plain-language sentence (max ${maxWords} words) explaining what "${target}" means in this diagram, pitched to ${audience}.`
+    );
   } else {
     lines.push(`Reply with ONE short plain-text sentence (max 30 words) explaining what "${target}" means in this diagram.`);
   }
@@ -148,6 +185,19 @@ export function sanitizeLabelExplanation(raw) {
   return text;
 }
 
+/** Keep baby-babble punctuation; strip only fences and obvious preambles. */
+export function sanitizeLabelGibberish(raw) {
+  if (typeof raw !== 'string') return '';
+  let text = raw.replace(/\r/g, '').trim();
+  if (!text) return '';
+  text = text.replace(/^```[\w-]*\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
+  text = text.replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '').trim();
+  text = text.replace(/^(this\s+(?:means|is)|it\s+means)[:,\s]+/i, '').trim();
+  text = (text.split(/\n+/, 1)[0] ?? '').trim();
+  if (text.length > 120) text = text.slice(0, 117).trim() + '!!!';
+  return text;
+}
+
 /**
  * Run the explainer model against a single label and return the cleaned sentence.
  * Centralized so the route handler and tests share the same plumbing.
@@ -160,10 +210,25 @@ export function sanitizeLabelExplanation(raw) {
 export async function explainLabelOnce({ env = process.env, payload }) {
   const model = createLabelExplainerChatModel(env);
   if (!model) return '';
-  const style = payload?.style === 'simple' ? 'simple' : 'brief';
-  const system = buildLabelExplainerSystemPrompt(style);
-  const user = buildLabelExplainerUserPrompt({ ...payload, style });
+  const style =
+    payload?.style === 'gibberish'
+      ? 'gibberish'
+      : payload?.style === 'simple'
+        ? 'simple'
+        : 'brief';
+  const simpleLevel =
+    style === 'simple'
+      ? Math.min(6, Math.max(1, Number(payload?.simpleLevel) || 1))
+      : 1;
+  const system = buildLabelExplainerSystemPrompt(style, simpleLevel);
+  const user = buildLabelExplainerUserPrompt({ ...payload, style, simpleLevel });
   const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
   const raw = extractTextContent(reply?.content ?? reply);
-  return sanitizeLabelExplanation(raw);
+  const cleaned =
+    style === 'gibberish' ? sanitizeLabelGibberish(raw) : sanitizeLabelExplanation(raw);
+  if (cleaned) return cleaned;
+  if (style === 'gibberish') {
+    return fallbackLabelGibberish(payload?.partName || payload?.label || '');
+  }
+  return '';
 }

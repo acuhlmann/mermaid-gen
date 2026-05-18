@@ -18,8 +18,37 @@ export function parseViewBoxPixelSize(viewBoxValue) {
  * @param {SVGElement | null | undefined} svgEl
  * @returns {boolean} true when width/height were updated
  */
+/**
+ * Expand a tight AntV viewBox so labels/edges drawn outside the initial box are not clipped.
+ *
+ * @param {SVGElement | null | undefined} svgEl
+ * @param {number} [padding]
+ * @returns {boolean}
+ */
+export function expandRootSvgViewBoxToContent(svgEl, padding = 20) {
+  if (!svgEl || typeof svgEl.getBBox !== 'function') return false;
+  let bbox;
+  try {
+    bbox = svgEl.getBBox();
+  } catch {
+    return false;
+  }
+  if (!(bbox.width > 0) || !(bbox.height > 0)) return false;
+
+  const pad = Math.max(0, padding);
+  const x = bbox.x - pad;
+  const y = bbox.y - pad;
+  const width = bbox.width + pad * 2;
+  const height = bbox.height + pad * 2;
+  svgEl.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+  svgEl.setAttribute('width', String(width));
+  svgEl.setAttribute('height', String(height));
+  return true;
+}
+
 export function normalizeRootSvgElement(svgEl) {
   if (!svgEl) return false;
+  expandRootSvgViewBoxToContent(svgEl);
   const vb = svgEl.viewBox?.baseVal;
   const size =
     (vb && vb.width > 0 && vb.height > 0 ? { width: vb.width, height: vb.height } : null) ??

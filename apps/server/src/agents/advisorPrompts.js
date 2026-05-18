@@ -42,6 +42,14 @@ RULES (apply to every reply):
 - Never claim you have changed anything — you are only commenting.
 `.trim();
 
+const INFOGRAPHIC_ADVISOR_APPENDIX = `
+INFOGRAPHIC MODE (when Diagram type is infographic):
+- The canvas is an AntV infographic: a template line plus \`data\` items (\`lists\`, \`sequences\`, \`compares\`, etc.) — not Mermaid nodes/edges.
+- Reference visible item labels by name. For highlightIds use data-index paths when provided (e.g. "0", "1") or the item label text — not flowchart node ids.
+- Suggestions should fit the persona: Polisher = tighten one label/item; Disruptor = one structural pivot within the same template family; VP = subtract/merge items; Slopitect = absurd label/icon twist (same template at low intensity); Auditor/Architect = comment on clarity or pattern.
+- Do NOT suggest switching infographic template families unless the persona is Slopitect (goMad) or Disruptor (innovate) and the suggestion explicitly calls for a layout pivot.
+`.trim();
+
 export const ADVISOR_PERSONAS = {
   refine: {
     temperature: 0.55,
@@ -113,10 +121,12 @@ export function isAdvisorPersona(value) {
   return typeof value === 'string' && Object.prototype.hasOwnProperty.call(ADVISOR_PERSONAS, value);
 }
 
-export function buildAdvisorSystemPrompt(persona) {
+export function buildAdvisorSystemPrompt(persona, contentType = 'mermaid') {
   const spec = ADVISOR_PERSONAS[persona];
   if (!spec) return '';
-  return `${spec.persona}\n\n${COMMON_RULES}`;
+  const infographic =
+    contentType === 'infographic' ? `\n\n${INFOGRAPHIC_ADVISOR_APPENDIX}` : '';
+  return `${spec.persona}\n\n${COMMON_RULES}${infographic}`;
 }
 
 export function buildAdvisorUserPrompt({
@@ -137,7 +147,14 @@ export function buildAdvisorUserPrompt({
   // viewport-wide commentary. The label or id is the *target* of the suggestion.
   const focusId = focusNode?.id ? String(focusNode.id).slice(0, 200) : null;
   const focusLabel = focusNode?.label ? String(focusNode.label).slice(0, 200) : null;
-  const focusKind = focusNode?.kind ? String(focusNode.kind).slice(0, 40) : null;
+  const focusKind =
+    focusNode?.selectionKind || focusNode?.kind
+      ? String(focusNode.selectionKind || focusNode.kind).slice(0, 40)
+      : null;
+  const focusIndexes =
+    focusNode?.indexes && focusNode.selectionKind === 'infographic-item'
+      ? String(focusNode.indexes).slice(0, 64)
+      : null;
   const focusSource = focusNode?.source === 'selected'
     ? 'SELECTED (user clicked it — strong signal)'
     : focusNode?.source === 'hover'
@@ -148,10 +165,13 @@ export function buildAdvisorUserPrompt({
     ? [
         '🎯 USER IS LOOKING AT THIS RIGHT NOW:',
         `  ${focusKind ? `[${focusKind}] ` : ''}${focusLabel ?? focusId}${focusLabel && focusLabel !== focusId ? ` (id: ${focusId})` : ''}`,
+        focusIndexes ? `  Item path: ${focusIndexes}` : '',
         `  Signal: ${focusSource}`,
         '',
-        'Your suggestion MUST be specifically about this part. Reference its label by name.',
-        'Include its id in highlightIds.',
+        contentType === 'infographic'
+          ? 'Your suggestion MUST be about this infographic item or title. Reference its label by name; put the item path or label in highlightIds.'
+          : 'Your suggestion MUST be specifically about this part. Reference its label by name.',
+        'Include its id (or data-index path for infographics) in highlightIds.',
         ''
       ].join('\n')
     : null;
@@ -245,7 +265,8 @@ export function parseAdvisorReply(raw, opts = {}) {
   let parsed;
   try {
     parsed = JSON.parse(match[0]);
-  } catch {
+  } catch (err) {
+    console.warn('advisorPrompts: advisor reply JSON parse failed:', err?.message ?? err);
     return null;
   }
   if (!parsed || typeof parsed !== 'object') return null;

@@ -28,6 +28,9 @@ import {
   isSlotInSyncForTopic,
   normalizeSessionId,
   peerRequiresModeSwitchTranslation,
+  isDiagramCacheSubstantial,
+  isServerSessionPristine,
+  mintFreshServerSession,
   readDiagramCache,
   SESSION_NOT_FOUND_CODE,
   shouldAutoSubmitModeSwitchIntent,
@@ -36,7 +39,6 @@ import {
   syncClientDiagramState,
   submitDiagramIntent,
   submitDiagramRenderRepair,
-  wipeClientCachesAfterLostServerSession,
   writeDiagramCache
 } from './state/diagramStore.js';
 import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent.js';
@@ -87,12 +89,15 @@ import {
 } from './utils/agentChimes.js';
 import ActionBootSequence from './components/ActionBootSequence.jsx';
 import StreakHud from './components/StreakHud.jsx';
+import ErrorToast from './components/ErrorToast.jsx';
+import { pushError } from './state/errorToastStore.js';
 import SlopitectCompanion from './components/SlopitectCompanion.jsx';
 import LiveRunHud from './components/LiveRunHud.jsx';
 import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
   applyCompletedRun,
+  clearStorage as clearGamificationStorage,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage
@@ -702,13 +707,20 @@ function ArchiSlop() {
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
   // 404 handler uses this to decide whether to keep the same id or rotate to a new one.
   const freshlyMintedSessionIdsRef = useRef(new Set());
+  /** True when the boot URL already contained `/sessions/:id` (bookmark / share link). */
+  const sessionIdFromUrlRef = useRef(false);
   if (initialSessionIdRef.current == null) {
     const { sessionId: bootId, fromUrl } = ensureUrlBackedSession();
     initialSessionIdRef.current = bootId;
+    sessionIdFromUrlRef.current = fromUrl;
     if (!fromUrl) freshlyMintedSessionIdsRef.current.add(bootId);
   }
   const [activeSessionId, setActiveSessionId] = useState(initialSessionIdRef.current);
-  const cacheRef = useRef(readDiagramCache(initialSessionIdRef.current));
+  /** Skip local cache for URL-backed sessions until hydrate proves the server still has that room. */
+  const cacheRef = useRef(
+    sessionIdFromUrlRef.current ? null : readDiagramCache(initialSessionIdRef.current)
+  );
+  const [sessionHydrated, setSessionHydrated] = useState(false);
   const [state, setState] = useState(fallbackState);
   const [prompt, setPrompt] = useState('');
   /** Fresh instruction for the inline “slop next” prompt — never prefilled from the session topic. */
@@ -1112,9 +1124,9 @@ function ArchiSlop() {
   }, [activeSessionId, clearPendingAutoDiagramHighlight]);
 
   // External-agent session events: handshake requests, proposals, presence, reactions, attributed insights.
-  // One always-open SSE stream per active session.
+  // One always-open SSE stream per active session (after hydrate so SSE cannot register a phantom room).
   useEffect(() => {
-    if (!activeSessionId) return undefined;
+    if (!activeSessionId || !sessionHydrated) return undefined;
 
     const close = openSessionEventsStream({
       sessionId: activeSessionId,
@@ -1231,7 +1243,7 @@ function ArchiSlop() {
     });
 
     return close;
-  }, [activeSessionId, contentMode]);
+  }, [activeSessionId, sessionHydrated]);
 
   const handleApproveHandshake = useCallback(async () => {
     if (!pendingHandshake) return;
@@ -1239,6 +1251,7 @@ function ArchiSlop() {
       await approveHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
     } catch (err) {
       console.error('handshake approve failed', err);
+      pushError(`Handshake approve failed: ${err?.message ?? 'unknown error'}`);
     }
     setPendingHandshake(null);
   }, [pendingHandshake, activeSessionId]);
@@ -1249,6 +1262,7 @@ function ArchiSlop() {
       await denyHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
     } catch (err) {
       console.error('handshake deny failed', err);
+      pushError(`Handshake deny failed: ${err?.message ?? 'unknown error'}`);
     }
     setPendingHandshake(null);
   }, [pendingHandshake, activeSessionId]);
@@ -1297,11 +1311,22 @@ function ArchiSlop() {
     // Capture the textarea state at the moment the user toggled mode. Used below to gate
     // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
     const promptAtSwitch = promptRef.current;
+    setSessionHydrated(false);
     setLoading(true);
     setActiveRequest('hydrate');
     fetchSessionDiagramState({ sessionId: activeSessionId })
       .then((session) => {
         if (cancelled) return;
+        const staleLocalCache = readDiagramCache(activeSessionId);
+        if (
+          sessionIdFromUrlRef.current &&
+          isServerSessionPristine(session) &&
+          isDiagramCacheSubstantial(staleLocalCache)
+        ) {
+          const err = new Error('Session not found');
+          err.code = SESSION_NOT_FOUND_CODE;
+          throw err;
+        }
         const data = session?.[contentMode];
         if (!data) {
           throw new Error('Invalid session state');
@@ -1399,58 +1424,55 @@ function ArchiSlop() {
       .catch(async (err) => {
         if (cancelled) return;
         if (err?.code === SESSION_NOT_FOUND_CODE) {
-          // Drop any cached or in-flight thinking-pane content — the server session is gone.
           setInsightsEntries([]);
           setLatestCritique(null);
           setLatestCritiqueA2uiMessages(null);
           setCritiqueActionableSelected([]);
-          if (cacheRef.current) {
-            cacheRef.current = {
-              ...cacheRef.current,
-              insightsEntries: [],
-              latestCritique: null
-            };
-          }
+          setPrompt('');
+          promptRef.current = '';
+          setLiveDraftSource('');
+          setLiveDraftContentType(null);
+          setGoMadStreak(0);
+          sessionTopicRef.current = null;
+          crossModeSyncRef.current = { mermaid: null, infographic: null };
+          cacheRef.current = null;
+          sessionIdFromUrlRef.current = false;
+          clearGamificationStorage(window.localStorage);
+          setGamification(createInitialGamificationState());
+          setModelProfile('fast');
+          setContentMode('mermaid');
           // Two cases:
-          //  (a) The URL had a stale session id (e.g., bookmark from before a server restart).
-          //      We rotate to a fresh id so the user clearly leaves the dead session behind.
-          //  (b) The session id we're hydrating is one WE just minted in ensureUrlBackedSession
-          //      (first visit, no URL session), so the server has never seen it yet — the 404
-          //      is expected. Keep the id (no URL flip) and just prime the server.
+          //  (a) Stale URL/bookmark after a server restart — rotate to a new room id + wipe storage.
+          //  (b) Client-minted id on first visit — 404 is expected; keep id and prime the server.
           const wasFreshlyMinted = freshlyMintedSessionIdsRef.current.has(activeSessionId);
           let targetId = activeSessionId;
           if (!wasFreshlyMinted) {
-            wipeClientCachesAfterLostServerSession();
-            sessionTopicRef.current = null;
-            crossModeSyncRef.current = { mermaid: null, infographic: null };
-            const fresh = createInitialDiagramState(contentMode);
+            const fresh = createInitialDiagramState('mermaid');
             stateRef.current = fresh;
             setState(fresh);
-            setLiveDraftSource('');
-            setLiveDraftContentType(null);
-            setGoMadStreak(0);
-            cacheRef.current = null;
-            targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+            try {
+              targetId = await mintFreshServerSession();
+            } catch {
+              targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+            }
             freshlyMintedSessionIdsRef.current.add(targetId);
-          }
-          // Prime the server BEFORE re-running the hydrate effect, so the next fetch finds
-          // the session in the registry instead of 404'ing again.
-          try {
-            await Promise.all([
-              syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
-              syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId })
-            ]);
-          } catch {
-            // best-effort — if priming sync fails the next user action will create the session
+          } else {
+            try {
+              await Promise.all([
+                syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
+                syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId })
+              ]);
+            } catch {
+              // best-effort — if priming sync fails the next user action will create the session
+            }
           }
           if (cancelled) return;
-          freshlyMintedSessionIdsRef.current.delete(targetId); // server now knows about it
+          freshlyMintedSessionIdsRef.current.delete(targetId);
           if (targetId !== activeSessionId) {
             window.history.replaceState({}, '', `${sessionPathFor(targetId)}`);
             setActiveSessionId(targetId);
           } else {
-            // Same id, server now primed — set empty state directly so we don't refetch.
-            const fresh = createInitialDiagramState(contentMode);
+            const fresh = createInitialDiagramState('mermaid');
             stateRef.current = fresh;
             setState(fresh);
           }
@@ -1460,6 +1482,8 @@ function ArchiSlop() {
       })
       .finally(() => {
         if (cancelled) return;
+        sessionIdFromUrlRef.current = false;
+        setSessionHydrated(true);
         loadingRef.current = false;
         setLoading(false);
         setActiveRequest(null);
@@ -2364,7 +2388,8 @@ Hard requirements:
           settings: {},
           focusNode,
           modelProfile,
-          ...(options.peerContext ? { peerContext: options.peerContext } : {})
+          ...(options.peerContext ? { peerContext: options.peerContext } : {}),
+          ...(options.transformPersona ? { transformPersona: options.transformPersona } : {})
         },
         title: goIntentInsightTitle(trimmed, selectedNode),
         variant: options.variantOverride ?? 'intent',
@@ -2618,6 +2643,8 @@ Hard requirements:
     const baseFocus = focusOverride || selectedNode;
     const focusNode = useDiagramFocus ? undefined : focusPayload(baseFocus);
     const titleSelection = useDiagramFocus ? null : baseFocus;
+    const advisorPrompt =
+      typeof options.advisorPrompt === 'string' ? options.advisorPrompt.trim().slice(0, 400) : '';
     setLoading(true);
     setActiveRequest(`transform:${mode}`);
     setError('');
@@ -2638,10 +2665,11 @@ Hard requirements:
           contentType: contentMode,
           focusNode,
           modelProfile,
-          ...(mode === 'goMad' ? { goMadDepth } : {})
+          ...(mode === 'goMad' ? { goMadDepth } : {}),
+          ...(advisorPrompt ? { advisorPrompt } : {})
         },
         title: selectionActionTitle(titleSelection, transformTitleVerb),
-        variant: mode,
+        variant: options.variantOverride ?? mode,
         diagramUndoBaseline: { ...syncedState },
         topic: topicFromDescriptor(titleSelection)
       });
@@ -2684,12 +2712,13 @@ Hard requirements:
         title: selectionActionTitle(titleSelection, labels[kind]),
         variant: kind,
         topic: topicFromDescriptor(titleSelection),
-        onFinal: ({ finalText }) => {
+        onFinal: ({ finalText, sectionId: critiqueEntryId }) => {
           if (kind !== 'critique') return;
           const cleaned = finalText.trim();
           if (!cleaned) return;
           setLatestCritique({
             text: cleaned,
+            insightEntryId: critiqueEntryId,
             focusNode,
             topic: topicFromDescriptor(titleSelection),
             createdAt: Date.now()
@@ -2817,9 +2846,9 @@ ${requirementsBlock}`;
   // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce
   // so rapid pointer travel doesn't spam the LLM. Nothing focused → viewport mode.
   const advisorFocusDescriptor = selectedNode
-    ? { id: selectedNode.id, label: selectedNode.label, kind: selectedNode.kind, source: 'selected' }
+    ? { ...focusPayload(selectedNode), source: 'selected' }
     : hoverDescriptor?.id
-      ? { id: hoverDescriptor.id, label: hoverDescriptor.label, kind: hoverDescriptor.kind, source: 'hover' }
+      ? { ...focusPayload(hoverDescriptor), source: 'hover' }
       : null;
   const advisorFocusKey = advisorFocusDescriptor
     ? `${advisorFocusDescriptor.source}:${advisorFocusDescriptor.id}`
@@ -2836,7 +2865,16 @@ ${requirementsBlock}`;
     pause: advisorPause,
     initialMuted: readAdvisorMuted(),
     onAccept: (text, persona) => {
-      void submitIntentWithPrompt(text, { variantOverride: persona });
+      const transformPersonas = new Set(['refine', 'innovate', 'goMad', 'exec']);
+      if (transformPersonas.has(persona) && (stateRef.current?.diagramSource ?? '').trim()) {
+        void runTransform(persona, { advisorPrompt: text, variantOverride: persona });
+        return;
+      }
+      const intentPersonas = new Set(['critique', 'explain']);
+      void submitIntentWithPrompt(text, {
+        variantOverride: persona,
+        ...(intentPersonas.has(persona) ? { transformPersona: persona } : {})
+      });
     }
   });
 
@@ -3360,6 +3398,7 @@ ${requirementsBlock}`;
         : null;
     return {
       critiqueText: latestCritique.text,
+      insightEntryId: latestCritique.insightEntryId ?? null,
       headingText: critiqueActionableSplit.headingText,
       items,
       prefix: critiqueActionableSplit.prefix,
@@ -3666,6 +3705,7 @@ ${requirementsBlock}`;
       />
 
       <ActionBootSequence trigger={bootSeq.trigger} variant={bootSeq.variant} />
+      <ErrorToast />
       <StreakHud
         toasts={streakHudToasts}
         achievement={streakHudAchievement}

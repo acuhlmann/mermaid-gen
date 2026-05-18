@@ -57,4 +57,14 @@ describe('normalizeRootSvgElement', () => {
     expect(svg.getAttribute('width')).toBe('320');
     expect(svg.getAttribute('height')).toBe('130');
   });
+
+  it('expands viewBox to include off-canvas content before pinning size', () => {
+    document.body.innerHTML =
+      '<svg viewBox="0 0 10 10" width="10" height="10"><rect x="40" y="30" width="20" height="15"/></svg>';
+    const svg = document.querySelector('svg');
+    svg.getBBox = () => ({ x: 40, y: 30, width: 20, height: 15 });
+    expect(normalizeRootSvgElement(svg)).toBe(true);
+    expect(svg.getAttribute('viewBox')).toMatch(/^20 10 60 55$/);
+    expect(svg.getAttribute('width')).toBe('60');
+  });
 });

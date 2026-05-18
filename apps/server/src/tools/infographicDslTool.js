@@ -1,4 +1,10 @@
-import { DiagramPatchSchema, diffInfographicSources } from '@archislop/shared';
+import {
+  DiagramPatchSchema,
+  diffInfographicSources,
+  sanitizeInfographicDsl as sanitizeInfographicDslShared,
+  stripInvalidThemeKeys,
+  validateInfographicTransformConstraint
+} from '@archislop/shared';
 import { parseSyntax } from '@antv/infographic';
 import {
   INFOGRAPHIC_TEMPLATE_WHITELIST,
@@ -10,64 +16,7 @@ const TEMPLATE_WHITELIST_SET = new Set(INFOGRAPHIC_TEMPLATE_WHITELIST);
 
 const MAX_QUOTED_LINE_LEN = 200;
 
-/** Only `palette` is accepted under `theme` — models often invent CSS-like keys that fail parseSyntax. */
-const VALID_THEME_CHILD_KEY = 'palette';
-
-function leadingIndent(line) {
-  const m = line.match(/^(\s*)/);
-  return m ? m[1].length : 0;
-}
-
-/**
- * Drops unknown keys under a root-level `theme` block. LLMs frequently emit Mermaid/CSS-style
- * theme slop (`node-border-colors`, `edge-label-bg`, …) which AntV rejects as unknown_key.
- */
-export function stripInvalidThemeKeys(text) {
-  const lines = text.split('\n');
-  const out = [];
-  let stripped = false;
-
-  for (let i = 0; i < lines.length; ) {
-    const line = lines[i];
-    const trimmed = line.trim();
-    if (/^theme\s*$/i.test(trimmed) && leadingIndent(line) === 0) {
-      const themeIndent = leadingIndent(line);
-      out.push(line);
-      i += 1;
-      let keptChild = false;
-      while (i < lines.length) {
-        const child = lines[i];
-        if (child.trim() === '') {
-          out.push(child);
-          i += 1;
-          continue;
-        }
-        const childIndent = leadingIndent(child);
-        if (childIndent <= themeIndent) break;
-        const key = child.trim().split(/\s+/)[0]?.toLowerCase();
-        if (key === VALID_THEME_CHILD_KEY) {
-          out.push(child);
-          keptChild = true;
-        } else {
-          stripped = true;
-        }
-        i += 1;
-      }
-      // Empty `theme` header with no palette — drop the block entirely.
-      if (!keptChild) {
-        out.pop();
-      }
-      continue;
-    }
-    out.push(line);
-    i += 1;
-  }
-
-  return {
-    text: out.join('\n'),
-    applied: stripped ? ['strip-invalid-theme-keys'] : []
-  };
-}
+export { stripInvalidThemeKeys };
 
 function formatParseError(error, sourceLines) {
   const path = error.path ? ` at ${error.path}` : '';
@@ -163,10 +112,10 @@ function sanitizeInfographicDsl(raw) {
     applied.push('strip-interior-fences');
   }
 
-  const themeStripped = stripInvalidThemeKeys(text);
-  if (themeStripped.applied.length) {
-    text = themeStripped.text;
-    applied.push(...themeStripped.applied);
+  const structural = sanitizeInfographicDslShared(text);
+  if (structural.applied.length) {
+    text = structural.text;
+    applied.push(...structural.applied);
   }
 
   return { text, applied };
@@ -184,7 +133,9 @@ function sanitizeInfographicDsl(raw) {
 export async function validateAndPrepareInfographicPatch({
   currentState,
   proposedDiagramSource,
-  reason
+  reason,
+  transformMode = null,
+  goMadDepth = null
 }) {
   if (typeof proposedDiagramSource !== 'string') {
     return { accepted: false, error: 'Infographic DSL must be a string.' };
@@ -272,6 +223,16 @@ export async function validateAndPrepareInfographicPatch({
   }
 
   const diagramSource = normalized.endsWith('\n') ? normalized.slice(0, -1) : normalized;
+
+  const transformCheck = validateInfographicTransformConstraint({
+    transformMode,
+    goMadDepth,
+    beforeSource: currentState.diagramSource ?? '',
+    afterSource: diagramSource
+  });
+  if (!transformCheck.ok) {
+    return { accepted: false, error: transformCheck.error };
+  }
 
   const patch = DiagramPatchSchema.parse({
     previousRevisionId: currentState.revisionId,

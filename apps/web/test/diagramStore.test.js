@@ -17,6 +17,9 @@ import {
   streamDiagramAgent,
   submitDiagramTransform,
   syncClientDiagramState,
+  clearAllArchislopAppStorage,
+  isDiagramCacheSubstantial,
+  isServerSessionPristine,
   wipeClientCachesAfterLostServerSession,
   writeDiagramCache
 } from '../src/state/diagramStore.js';
@@ -448,12 +451,43 @@ describe('lost server session cache wipe', () => {
     expect(window.localStorage.getItem('unrelated-key')).toBe('keep');
   });
 
-  it('wipeClientCachesAfterLostServerSession clears diagram caches and backup session id', () => {
+  it('wipeClientCachesAfterLostServerSession clears all archislop app storage keys', () => {
     writeDiagramCache({ diagramSource: 'x' }, 's1');
     window.localStorage.setItem('archislop:session-id', 'legacy-backup');
+    window.localStorage.setItem('archislop:model-profile', 'quality');
+    window.localStorage.setItem('archislop-stream-debug', '1');
     wipeClientCachesAfterLostServerSession();
     expect(readDiagramCache('s1')).toBeNull();
     expect(window.localStorage.getItem('archislop:session-id')).toBeNull();
+    expect(window.localStorage.getItem('archislop:model-profile')).toBeNull();
+    expect(window.localStorage.getItem('archislop-stream-debug')).toBeNull();
+  });
+
+  it('clearAllArchislopAppStorage removes archislop-prefixed keys only', () => {
+    writeDiagramCache({ diagramSource: 'a' }, 'room');
+    window.localStorage.setItem('archislop:content-mode', 'infographic');
+    window.localStorage.setItem('other-app', 'keep');
+    clearAllArchislopAppStorage();
+    expect(readDiagramCache('room')).toBeNull();
+    expect(window.localStorage.getItem('archislop:content-mode')).toBeNull();
+    expect(window.localStorage.getItem('other-app')).toBe('keep');
+  });
+});
+
+describe('stale session detection helpers', () => {
+  it('isServerSessionPristine is true for empty dual-slot payloads', () => {
+    expect(
+      isServerSessionPristine({
+        mermaid: { revisionId: 0, diagramSource: '', lastUserPrompt: null },
+        infographic: { revisionId: 0, diagramSource: '', lastUserPrompt: null }
+      })
+    ).toBe(true);
+  });
+
+  it('isDiagramCacheSubstantial detects cached insights and diagrams', () => {
+    expect(isDiagramCacheSubstantial(null)).toBe(false);
+    expect(isDiagramCacheSubstantial({ insightsEntries: [{ id: '1' }] })).toBe(true);
+    expect(isDiagramCacheSubstantial({ diagramSource: 'flowchart TD\n  A --> B' })).toBe(true);
   });
 });
 

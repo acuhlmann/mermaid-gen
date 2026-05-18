@@ -373,6 +373,81 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
     fireEvent.click(dumbBtn);
     await waitFor(() => expect(dumbBtn.getAttribute('aria-pressed')).toBe('true'));
   });
+
+  it('requests a higher simpleLevel on each Dumb it Down click', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '',
+      json: async () => ({ explanation: 'Test gloss.' })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    const firstBody = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(firstBody.style).toBe('brief');
+    expect(firstBody.simpleLevel).toBeUndefined();
+
+    fireEvent.click(await screen.findByRole('button', { name: /Dumb it Down/ }));
+    await waitFor(() => fetchMock.mock.calls.length >= 2);
+    const secondBody = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(secondBody.style).toBe('simple');
+    expect(secondBody.simpleLevel).toBe(1);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Even dumber/i }));
+    await waitFor(() => fetchMock.mock.calls.length >= 3);
+    const thirdBody = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(thirdBody.simpleLevel).toBe(2);
+  });
+
+  it('requests gibberish after toddler then closes on I give up', async () => {
+    const onClose = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => '',
+      json: async () => ({ explanation: 'goo ga bwah!!!' })
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={onClose}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+    const dumbPath = [/Dumb it Down/i, /Even dumber/i, /Kid mode/i, /Little kid mode/i, /Baby talk/i, /Toddler mode/i, /Babble mode/i];
+    let btn = await screen.findByRole('button', { name: dumbPath[0] });
+    for (let i = 0; i < dumbPath.length; i += 1) {
+      btn = await screen.findByRole('button', { name: dumbPath[i] });
+      fireEvent.click(btn);
+      await waitFor(() => fetchMock.mock.calls.length >= i + 2);
+    }
+    const gibberishBody = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(gibberishBody.style).toBe('gibberish');
+
+    const giveUp = await screen.findByRole('button', { name: /I give up/i });
+    vi.useFakeTimers();
+    fireEvent.click(giveUp);
+    expect(screen.getByText(/architecture backlog/i)).toBeTruthy();
+    await vi.advanceTimersByTimeAsync(1500);
+    expect(onClose).toHaveBeenCalled();
+    vi.useRealTimers();
+  }, 15_000);
 });
 
 /**

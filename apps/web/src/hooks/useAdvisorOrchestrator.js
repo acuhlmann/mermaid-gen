@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramStore.js';
 import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getVisibleDiagramLabels } from '../utils/visibleDiagramLabels.js';
+import { getVisibleInfographicLabels } from '../utils/visibleInfographicLabels.js';
 
 const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
@@ -157,9 +158,12 @@ export function useAdvisorOrchestrator(params) {
       const persona = pickNextPersona(previousPersona);
       const svgRoot = paramsRef.current.getSvgRoot?.() ?? null;
       const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
-      const { labels, ids: visibleIds } = getVisibleDiagramLabels(host);
-      const diagramSource = paramsRef.current.getDiagramSource?.() ?? '';
       const contentType = paramsRef.current.getContentType?.() ?? 'mermaid';
+      const { labels, ids: visibleIds } =
+        contentType === 'infographic'
+          ? getVisibleInfographicLabels(host)
+          : getVisibleDiagramLabels(host);
+      const diagramSource = paramsRef.current.getDiagramSource?.() ?? '';
       const sessionId = paramsRef.current.getSessionId?.() ?? '';
       const focusDescriptor = paramsRef.current.getFocusDescriptor?.() ?? null;
 

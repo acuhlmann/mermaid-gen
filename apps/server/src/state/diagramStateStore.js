@@ -19,6 +19,8 @@ function assertContentType(contentType) {
 
 export function createDiagramStateStore(initialSession = createInitialSessionState()) {
   let session = initialSession;
+  /** @type {{ mode: string, goMadDepth?: number } | null} */
+  let transformContext = null;
 
   function getSlot(contentType) {
     assertContentType(contentType);
@@ -129,10 +131,13 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
 
   async function applyToMermaidSlot({ diagramSource, reason, origin }) {
     const slot = session.mermaid;
+    const ctx = transformContext;
     const prepared = await validateAndPreparePatch({
       currentState: slot,
       proposedMermaidSource: diagramSource,
-      reason
+      reason,
+      transformMode: ctx?.mode ?? null,
+      goMadDepth: ctx?.goMadDepth ?? null
     });
 
     if (!prepared.accepted) {
@@ -156,10 +161,13 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
 
   async function applyToInfographicSlot({ diagramSource, reason, origin }) {
     const slot = session.infographic;
+    const ctx = transformContext;
     const prepared = await validateAndPrepareInfographicPatch({
       currentState: slot,
       proposedDiagramSource: diagramSource,
-      reason
+      reason,
+      transformMode: ctx?.mode ?? null,
+      goMadDepth: ctx?.goMadDepth ?? null
     });
     if (!prepared.accepted) {
       return prepared;
@@ -211,6 +219,28 @@ export function createDiagramStateStore(initialSession = createInitialSessionSta
 
     getSlot(contentType) {
       return getSlot(contentType);
+    },
+
+    setTransformContext(context) {
+      transformContext = context ?? null;
+    },
+
+    getTransformContext() {
+      return transformContext;
+    },
+
+    clearTransformContext() {
+      transformContext = null;
+    },
+
+    /** @deprecated use setTransformContext */
+    setInfographicTransformContext(context) {
+      transformContext = context ?? null;
+    },
+
+    /** @deprecated use clearTransformContext */
+    clearInfographicTransformContext() {
+      transformContext = null;
     },
 
     async syncClientDiagramSource({ contentType, diagramSource, styleConfig }) {

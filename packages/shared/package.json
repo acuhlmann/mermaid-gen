@@ -17,6 +17,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@antv/infographic": "^0.2.19",
     "zod": "^4.4.3"
   }
 }

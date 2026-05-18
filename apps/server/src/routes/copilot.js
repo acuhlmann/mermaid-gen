@@ -71,7 +71,8 @@ export async function handleDiagramIntent({ body, stateStore, agentService }) {
       settings: intent.settings,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
-      peerContext: intent.peerContext
+      peerContext: intent.peerContext,
+      transformPersona: intent.transformPersona
     });
     const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
@@ -157,7 +158,8 @@ export async function handleDiagramTransformIntent({ body, stateStore, agentServ
       mode: intent.mode,
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
-      goMadDepth: intent.goMadDepth
+      goMadDepth: intent.goMadDepth,
+      advisorPrompt: intent.advisorPrompt
     });
     const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
@@ -762,6 +764,11 @@ export function createCopilotRouter({
   });
 
   router.get('/session-events', (req, res) => {
+    const requestedId = resolveSessionIdFromRequest(req);
+    if (typeof sessionExists === 'function' && !sessionExists(requestedId)) {
+      res.setHeader(SESSION_HEADER, requestedId);
+      return res.status(404).json({ error: 'Session not found' });
+    }
     const { sessionId, presenceStore, proposalStore, stateStore, eventBus } = resolveServices(req);
     res.setHeader(SESSION_HEADER, sessionId);
 

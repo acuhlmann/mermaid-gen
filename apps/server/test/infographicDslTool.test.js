@@ -17,6 +17,25 @@ const VALID_LIST_ROW =
   '    - label Step 2\n' +
   '      desc Build';
 
+test('refine transform rejects template change', async () => {
+  const switched =
+    'infographic sequence-steps-simple\n' +
+    'data\n' +
+    '  sequences\n' +
+    '    - label Step 1\n' +
+    '      desc Start\n' +
+    '    - label Step 2\n' +
+    '      desc Build';
+  const result = await validateAndPrepareInfographicPatch({
+    currentState: { revisionId: 0, diagramSource: VALID_LIST_ROW },
+    proposedDiagramSource: switched,
+    reason: 'refine',
+    transformMode: 'refine'
+  });
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /keep template/i);
+});
+
 test('accepts a well-formed list-row infographic', async () => {
   const result = await validateAndPrepareInfographicPatch({
     currentState,

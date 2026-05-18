@@ -204,6 +204,7 @@ test('normalizeAgentStreamEvent maps on_tool_start with nested input name', () =
 test('shouldAttemptSyntaxRepair detects syntax-like validation errors', () => {
   assert.equal(shouldAttemptSyntaxRepair('Proposed source is not valid Mermaid syntax.'), true);
   assert.equal(shouldAttemptSyntaxRepair('Mermaid validation failed.'), true);
+  assert.equal(shouldAttemptSyntaxRepair('Executive simplify is subtractive only'), true);
   assert.equal(shouldAttemptSyntaxRepair('Rate limit hit on unrelated endpoint'), false);
 });
 

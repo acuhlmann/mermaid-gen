@@ -1,5 +1,5 @@
-import { useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
-import { normalizeRootSvgElement } from '@archislop/shared';
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
+import { normalizeRootSvgElement, sanitizeInfographicDsl } from '@archislop/shared';
 import { Infographic, parseSyntax } from '@antv/infographic';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
@@ -32,13 +32,19 @@ function InfographicRendererImpl(
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
 
+  const renderDsl = useMemo(() => {
+    const raw = (diagramSource ?? '').trim();
+    if (!raw) return '';
+    return sanitizeInfographicDsl(raw, { allowStructureRewrite: !streamingPreview }).text.trim();
+  }, [diagramSource, streamingPreview]);
+
   // Streaming preview path: tolerate partial DSL, throttle render to keep
   // CPU bounded on fast token streams. We never surface parse errors here —
   // we just hold the last good frame until valid DSL arrives.
   useEffect(() => {
     if (!streamingPreview) return undefined;
     if (!containerRef.current) return undefined;
-    const dsl = (diagramSource ?? '').trim();
+    const dsl = renderDsl;
     if (!dsl) return undefined;
     if (lastSourceRef.current === dsl) return undefined;
 
@@ -82,14 +88,14 @@ function InfographicRendererImpl(
       cancelAnimationFrame(streamingFrameRef.current);
       clearTimeout(streamingTimeoutRef.current);
     };
-  }, [diagramSource, streamingPreview]);
+  }, [renderDsl, streamingPreview]);
 
   useEffect(() => {
     if (!containerRef.current) return undefined;
     if (streamingPreview) {
       return undefined;
     }
-    const dsl = (diagramSource ?? '').trim();
+    const dsl = renderDsl;
     if (!dsl) {
       setRenderError('');
       containerRef.current.innerHTML = '';
@@ -144,7 +150,7 @@ function InfographicRendererImpl(
       setRenderError(`Infographic render failed: ${msg}`);
     }
     return undefined;
-  }, [diagramSource, streamingPreview]);
+  }, [renderDsl, streamingPreview]);
 
   useEffect(() => {
     return () => {

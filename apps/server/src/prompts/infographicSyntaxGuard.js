@@ -304,8 +304,9 @@ For \`relation-*\` templates use \`nodes\` for vertices and \`relations\` for ed
 
 Notes:
 - Each node should have \`label\`; give it an explicit \`id\` if you reference it from an edge by something other than its label.
-- Edges use the arrow form \`<from> - <edge label> -> <to>\` under \`relations\`, where \`from\`/\`to\` can be a node id or its label.
-- Keep ≤8 nodes for readability.
+- Edges use the arrow form \`<from> - <edge label> -> <to>\` under \`relations\`, where \`from\`/\`to\` can be a node id or its label. Omit the label when it is generic (\`A -> B\` instead of \`A - connects to -> B\`).
+- Hub-and-spoke overviews (one center node fanning out to many topics) render poorly on \`relation-dagre-*\` — use \`hierarchy-tree-curved-line-rounded-rect-node\` with \`root\` + \`children\` instead.
+- Keep node labels short (≤24 chars) for circle-node templates. Keep ≤8 nodes for readability.
 `;
 
 function familyFor(templateName) {

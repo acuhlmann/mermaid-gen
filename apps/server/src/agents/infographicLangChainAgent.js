@@ -7,8 +7,7 @@ import {
   INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT,
   INFOGRAPHIC_CRITIQUE_TASK,
   INFOGRAPHIC_EXPLAIN_TASK,
-  buildInfographicRepairInstruction,
-  inferInfographicTemplate
+  buildInfographicRepairInstruction
 } from '../prompts/infographicSyntaxGuard.js';
 import {
   LlmNotConfiguredError,
@@ -36,6 +35,11 @@ import {
   buildInfographicFocusScopeInstructions,
   buildInfographicAnalyzeFocusInstructions
 } from './infographicFocusInstructions.js';
+import { refineInfographicDsl } from '@archislop/shared';
+import {
+  buildInfographicTransformUserContent,
+  INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS
+} from './infographicTransformPrompts.js';
 
 /**
  * Route a focus payload to the right vocabulary. `infographic-item` selections come from the
@@ -63,73 +67,18 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 - Do not return prose only.
 - Do not mention tool names in your final user-facing summary.`;
 
-const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
-  refine: `Refine the existing infographic without changing its core message. Tighten labels, fix awkward phrasing, balance the visual.`,
-  innovate: `Re-imagine the infographic with bolder visual choices. You may switch to a different template if it better fits the data.`,
-  exec: `Transform mode: EXEC — the VP wants the board-deck version. Synergy and Co-Design. Subtractive only.
-- KEEP the current template; do not switch families. The VP doesn't care about template variety.
-- Cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes.
-- Shorten every label to executive-summary phrasing: verbs and nouns, no parentheticals, no asides.
-- Keep \`theme\` / \`palette\` untouched if present — preserve brand colors.
-- Output valid AntV Infographic DSL; one apply_infographic_patch call, then a one-sentence "Synergy and Co-Design — boiled down" summary.`,
-  goMad: `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
-- Speed first: emit ONE punchy preamble sentence (max ~18 words, e.g. "Switching to a swot quadrant for maximum chaos.") then call apply_infographic_patch immediately. No reasoning essays, no get_infographic_dsl unless you truly suspect stale context.
-- Template roulette: do NOT keep the same template — switch to a different family entirely (list → sequence → compare → chart → hierarchy → relation). Prefer exotic supported templates: compare-swot, compare-quadrant-quarter-simple-card, sequence-snake-steps-simple, sequence-circular-simple, sequence-funnel-simple, list-pyramid-rounded-rect-node, list-sector-simple, hierarchy-mindmap-branch-gradient-compact-card, relation-network-simple-circle-node, chart-wordcloud, chart-pie-donut-plain-text.
-- Loud labels: short, absurd, geek-coded riffs (RFC vibes, fake folklore, ironic acronyms) — still readable.
-- Palette mayhem: under \`theme\`, set ONLY \`palette\` with 3–5 high-contrast hex colors (no quotes, no commas). Never invent other \`theme\` keys.
-- Iconography: every semantic item gets an \`icon\` (keyword phrase like \`rocket launch\` or \`shield check\`) unless the template is chart-only.
-- Compact spectacle: 3–7 items is plenty. Density via vivid wording and icons, not item count.
-- Weird > safe. The user clicked Go Mad — make them laugh, not nod politely.`
-};
-
-const GO_MAD_TEMPLATE_FAMILIES = ['list', 'sequence', 'compare', 'chart', 'hierarchy', 'relation'];
-
-const GO_MAD_EXOTIC_TEMPLATES = [
-  'compare-swot',
-  'compare-quadrant-quarter-simple-card',
-  'sequence-snake-steps-simple',
-  'sequence-circular-simple',
-  'sequence-funnel-simple',
-  'sequence-pyramid-simple',
-  'list-pyramid-rounded-rect-node',
-  'list-sector-simple',
-  'list-grid-progress-card',
-  'hierarchy-mindmap-branch-gradient-compact-card',
-  'relation-network-simple-circle-node',
-  'chart-wordcloud'
-];
-
-function templateFamily(name) {
-  return (name || '').split('-')[0] || '';
-}
-
-/** Tier-aware nudge appended to the goMad directive — heats up labels/templates with depth. */
-function buildInfographicGoMadEscalation(depth, currentDsl) {
-  if (depth < 2) return '';
-  const currentTemplate = inferInfographicTemplate(currentDsl) || '';
-  const currentFamily = templateFamily(currentTemplate);
-  const forbidden = currentFamily ? ` (current family "${currentFamily}" is OFF-LIMITS this turn)` : '';
-  const familyOptions = GO_MAD_TEMPLATE_FAMILIES.filter((f) => f !== currentFamily).join(', ');
-  const exoticHint =
-    depth >= 4
-      ? `- Prefer truly exotic templates: ${GO_MAD_EXOTIC_TEMPLATES.slice(0, 8).join(', ')}.\n`
-      : `- Lean exotic: ${GO_MAD_EXOTIC_TEMPLATES.slice(0, 5).join(', ')}.\n`;
-  const tierHint =
-    depth >= 5
-      ? `- Tier ${depth}: peak chaos — one coherent geek joke binds the whole piece; still valid DSL.\n`
-      : `- Tier ${depth}: noticeably wilder than tier ${depth - 1}; no rename-only laziness on existing items.\n`;
-  const paletteHint =
-    depth >= 3
-      ? `- Palette MUST swing: pick a loud 4–5 color scheme (neon, retro, vapor) the previous version didn't use.\n`
-      : `- Palette MUST swing to something different from before (3+ bold colors).\n`;
-  return `
-GO MAD escalation (tier ${depth}):
-${tierHint}- Primary template MUST switch family this turn${forbidden}. Pick from: ${familyOptions}.
-${exoticHint}${paletteHint}- Labels: short, absurd, geek-coded; no generic business jargon.
-`;
-}
+const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['refine', 'innovate', 'goMad', 'exec']);
 
 const DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS = 2;
+
+async function withInfographicTransformContext(stateStore, context, fn) {
+  stateStore.setTransformContext(context);
+  try {
+    return await fn();
+  } finally {
+    stateStore.clearTransformContext();
+  }
+}
 
 function resolveInfographicRepairAttempts(env) {
   const raw = env?.INFOGRAPHIC_REPAIR_MAX_ATTEMPTS;
@@ -182,7 +131,7 @@ function buildLanguageInstruction(prompt, currentDsl) {
   return `\n\nLANGUAGE LOCK: Output ALL reader-facing text (title, desc, label, edge labels) in ${hint}. Do NOT translate, do NOT add second-language alternates. This is NON-NEGOTIABLE for this turn.`;
 }
 
-function buildIntentUserContent({ prompt, focusScope, currentDsl, peerMermaid }) {
+function buildIntentUserContent({ prompt, focusScope, currentDsl, peerMermaid, transformPersona }) {
   const peerBlock =
     typeof peerMermaid === 'string' && peerMermaid.trim()
       ? `Cross-format / mode switch: reproduce the same information as the peer Mermaid diagram below as Infographic DSL (entities, flow, labels). Prefer this source over improvising from the topic text alone.
@@ -195,7 +144,15 @@ ${peerMermaid.trim()}
 `
       : '';
   const languageInstruction = buildLanguageInstruction(prompt, currentDsl);
-  return `${peerBlock}Interpret and apply the user's requested infographic change strictly according to their wording.
+  const personaBlock =
+    transformPersona && INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS[transformPersona]
+      ? `\n\n${INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS[transformPersona]}`
+      : '';
+  const preserveBlock =
+    currentDsl?.trim() && !peerMermaid
+      ? '\n\nWhen the current DSL is non-empty, keep the same `infographic <template>` and main data field unless the user explicitly asks for a different layout.'
+      : '';
+  return `${peerBlock}Interpret and apply the user's requested infographic change strictly according to their wording.${personaBlock}${preserveBlock}
 
 Broad or short requests (for example a single topic name) still require a concrete infographic now: choose a sensible template and produce real content. Do not ask the user to clarify.
 
@@ -206,23 +163,6 @@ ${currentDsl || '(empty — produce a fresh infographic)'}
 
 User request:
 ${prompt}${focusScope}${languageInstruction}`;
-}
-
-function buildTransformUserContent({ mode, focusScope, currentDsl, goMadDepth, originalRequest }) {
-  const directive = INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine;
-  const depthValue = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : 0;
-  const depthLine = mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${depthValue} of 12.` : '';
-  const escalation = mode === 'goMad' ? buildInfographicGoMadEscalation(depthValue, currentDsl) : '';
-  const languageInstruction = buildLanguageInstruction(originalRequest, currentDsl);
-  return `${directive}${depthLine}${escalation}
-
-Current committed infographic DSL:
-\`\`\`
-${currentDsl}
-\`\`\`
-${focusScope}
-
-Apply one transformative update via apply_infographic_patch. Output the FULL DSL.${languageInstruction}`;
 }
 
 function buildAnalysisUserContent({ task, focusScope, currentDsl }) {
@@ -678,7 +618,7 @@ export function createInfographicLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext }) {
+    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, transformPersona }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
       const agent = getDefaultAgent(modelProfile);
@@ -687,53 +627,86 @@ export function createInfographicLangChainAgent({
           ? peerContext.diagramSource
           : '';
       const stableAgent = getStableIntentAgent(modelProfile);
-      return invokeWithRepair(
-        agent,
-        [
-          {
-            role: 'user',
-            content: buildIntentUserContent({
-              prompt,
-              focusScope,
-              currentDsl: slot.diagramSource,
-              peerMermaid
-            })
-          }
-        ],
-        { requirePatch: true, emit, stableAgent },
-        stateStore,
-        env
-      );
+      const personaMode =
+        typeof transformPersona === 'string' && INFOGRAPHIC_TRANSFORM_PERSONAS.has(transformPersona)
+          ? transformPersona
+          : null;
+      const run = () =>
+        invokeWithRepair(
+          agent,
+          [
+            {
+              role: 'user',
+              content: buildIntentUserContent({
+                prompt,
+                focusScope,
+                currentDsl: stateStore.getSlot('infographic').diagramSource,
+                peerMermaid,
+                transformPersona: personaMode ?? transformPersona
+              })
+            }
+          ],
+          { requirePatch: true, emit, stableAgent },
+          stateStore,
+          env
+        );
+      if (personaMode) {
+        return withInfographicTransformContext(
+          stateStore,
+          { mode: personaMode, goMadDepth: 1 },
+          run
+        );
+      }
+      return run();
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth }) {
-      const slot = stateStore.getSlot('infographic');
-      const focusScope = buildFocusScopeInstructions(focusNode);
-      const agent = getTransformAgent(mode, modelProfile, goMadDepth);
-      // Stable fallback: the default fast (non-transform) agent at the SAME caller profile.
-      // Transform agents — especially goMad — run hot enough to occasionally produce prose-only
-      // turns; the stable agent is the same toolset at default temperature.
-      const stableAgent = getDefaultAgent(modelProfile);
-      // The original session prompt anchors the language for transform calls — refine/innovate
-      // have no fresh user text, so without this the agent has nothing recent to detect from.
-      const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
-      return invokeWithRepair(
-        agent,
-        [
-          {
-            role: 'user',
-            content: buildTransformUserContent({
-              mode,
-              focusScope,
-              currentDsl: slot.diagramSource,
-              goMadDepth,
-              originalRequest
-            })
-          }
-        ],
-        { requirePatch: true, emit, stableAgent },
+    async applyTransformIntent({
+      mode,
+      focusNode,
+      modelProfile,
+      emit,
+      goMadDepth,
+      advisorPrompt
+    }) {
+      const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
+      return withInfographicTransformContext(
         stateStore,
-        env
+        { mode, goMadDepth: depth },
+        async () => {
+          let slot = stateStore.getSlot('infographic');
+          if (mode === 'refine' && slot.diagramSource?.trim()) {
+            const prepass = refineInfographicDsl(slot.diagramSource);
+            if (prepass.applied.length > 0 && prepass.dsl !== slot.diagramSource) {
+              const prepApplied = await stateStore.applyDiagramSource({
+                contentType: 'infographic',
+                diagramSource: prepass.dsl,
+                reason: 'refine-prepass'
+              });
+              if (prepApplied.accepted) slot = prepApplied.state;
+            }
+          }
+
+          const focusScope = buildFocusScopeInstructions(focusNode);
+          const agent = getTransformAgent(mode, modelProfile, goMadDepth);
+          const stableAgent = getDefaultAgent(modelProfile);
+          const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
+          const languageInstruction = buildLanguageInstruction(originalRequest, slot.diagramSource);
+          const body = `${buildInfographicTransformUserContent({
+            mode,
+            focusScope,
+            currentDsl: slot.diagramSource,
+            goMadDepth,
+            advisorPrompt
+          })}${languageInstruction}`;
+
+          return invokeWithRepair(
+            agent,
+            [{ role: 'user', content: body }],
+            { requirePatch: true, emit, stableAgent },
+            stateStore,
+            env
+          );
+        }
       );
     },
 
@@ -832,7 +805,8 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
           focusNode: payload.focusNode,
           modelProfile,
           emit,
-          peerContext: payload.peerContext
+          peerContext: payload.peerContext,
+          transformPersona: payload.transformPersona
         });
       } else {
         agentResult = await agent.applyTransformIntent({
@@ -840,7 +814,8 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
           focusNode: payload.focusNode,
           modelProfile,
           emit,
-          goMadDepth: payload.goMadDepth
+          goMadDepth: payload.goMadDepth,
+          advisorPrompt: payload.advisorPrompt
         });
       }
 

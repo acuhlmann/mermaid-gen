@@ -1,10 +1,21 @@
-import { DiagramPatchSchema, applyMermaidStyleDirective, parseMermaidStyleConfig } from '@archislop/shared';
+import {
+  DiagramPatchSchema,
+  applyMermaidStyleDirective,
+  parseMermaidStyleConfig,
+  validateMermaidTransformConstraint
+} from '@archislop/shared';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 import { prepareMermaidForRender, sanitizeMermaid } from '@archislop/shared';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { buildMermaidGraphDiff } from '../mcp/diagramDiffSummary.js';
 
-export async function validateAndPreparePatch({ currentState, proposedMermaidSource, reason }) {
+export async function validateAndPreparePatch({
+  currentState,
+  proposedMermaidSource,
+  reason,
+  transformMode = null,
+  goMadDepth = null
+}) {
   const candidate = proposedMermaidSource?.trim();
 
   let workingInput = prepareMermaidForRender(candidate);
@@ -89,6 +100,16 @@ export async function validateAndPreparePatch({ currentState, proposedMermaidSou
       accepted: false,
       error: strictValidation.error
     };
+  }
+
+  const transformCheck = validateMermaidTransformConstraint({
+    transformMode,
+    goMadDepth,
+    beforeSource: currentState.diagramSource ?? '',
+    afterSource: workingSource
+  });
+  if (!transformCheck.ok) {
+    return { accepted: false, error: transformCheck.error };
   }
 
   const patch = DiagramPatchSchema.parse({

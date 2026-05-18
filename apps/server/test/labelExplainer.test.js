@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   buildLabelExplainerSystemPrompt,
   buildLabelExplainerUserPrompt,
-  sanitizeLabelExplanation
+  sanitizeLabelExplanation,
+  sanitizeLabelGibberish
 } from '../src/agents/labelExplainer.js';
 
 test('system prompt instructs to explain content, not element type', () => {
@@ -75,22 +76,37 @@ test('sanitizer clamps overly long answers', () => {
   assert.ok(out.endsWith('…'), 'expected ellipsis');
 });
 
-test('simple-style system prompt drops jargon and trims word budget', () => {
-  const sys = buildLabelExplainerSystemPrompt('simple');
+test('simple-style system prompt targets audience and trims word budget', () => {
+  const sys = buildLabelExplainerSystemPrompt('simple', 1);
   assert.match(sys, /dumb it down/i);
-  assert.match(sys, /no jargon|no acronyms/i);
+  assert.match(sys, /grown-up who wants zero jargon/i);
   assert.match(sys, /Max 25 words/);
+  const toddler = buildLabelExplainerSystemPrompt('simple', 6);
+  assert.match(toddler, /toddler/i);
+  assert.match(toddler, /Max 12 words/);
 });
 
-test('simple-style user prompt asks for plain-language reply', () => {
+test('simple-style user prompt asks for plain-language reply pitched to audience', () => {
   const user = buildLabelExplainerUserPrompt({
     partKind: 'label',
     partName: 'OAuth',
     contentType: 'mermaid',
-    style: 'simple'
+    style: 'simple',
+    simpleLevel: 3
   });
   assert.match(user, /plain-language/);
-  assert.match(user, /max 25 words/i);
+  assert.match(user, /smart 10-year-old/i);
+  assert.match(user, /max 20 words/i);
+});
+
+test('gibberish-style system prompt asks for baby babble only', () => {
+  const sys = buildLabelExplainerSystemPrompt('gibberish');
+  assert.match(sys, /baby babble/i);
+  assert.match(sys, /NO real English/i);
+});
+
+test('gibberish sanitizer keeps exclamation bursts', () => {
+  assert.equal(sanitizeLabelGibberish('goo ga bwah nya!!!'), 'goo ga bwah nya!!!');
 });
 
 test('brief style remains the default when no style is passed', () => {

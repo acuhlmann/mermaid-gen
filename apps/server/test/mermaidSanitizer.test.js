@@ -253,3 +253,27 @@ test('validateAndPreparePatch still rejects truly-broken source', async () => {
   assert.equal(result.accepted, false);
   assert.match(String(result.error), /missing known diagram type|parser rejected/);
 });
+
+test('validateAndPreparePatch rejects exec patches that only relabel a busy flowchart', async () => {
+  const before =
+    'flowchart TD\n' +
+    '  A[Acquire] --> B[Build]\n' +
+    '  B --> C[Test]\n' +
+    '  C --> D[Ship]\n' +
+    '  D --> E[Operate]\n' +
+    '  E --> F[Retire]';
+  const stateStore = createDiagramStateStore();
+  await stateStore.applyDiagramSource({
+    contentType: 'mermaid',
+    diagramSource: before,
+    reason: 'seed'
+  });
+  const result = await validateAndPreparePatch({
+    currentState: stateStore.getState(),
+    proposedMermaidSource: before.replace(/Acquire/g, 'Buy'),
+    reason: 'exec',
+    transformMode: 'exec'
+  });
+  assert.equal(result.accepted, false);
+  assert.match(String(result.error), /remove nodes or edges/i);
+});

@@ -92,6 +92,11 @@ export const IntentSettingsSchema = z
   })
   .default({});
 
+export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad', 'exec']);
+
+/** When set (refine|innovate|goMad|exec), intent edits follow stakeholder transform constraints. */
+export const TransformPersonaSchema = TransformModeSchema;
+
 export const DiagramIntentSchema = z
   .object({
     prompt: z.string().min(1),
@@ -102,7 +107,8 @@ export const DiagramIntentSchema = z
     settings: IntentSettingsSchema,
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
-    peerContext: IntentPeerContextSchema.optional()
+    peerContext: IntentPeerContextSchema.optional(),
+    transformPersona: TransformPersonaSchema.optional()
   })
   .superRefine((val, ctx) => {
     if (!val.peerContext) return;
@@ -115,8 +121,6 @@ export const DiagramIntentSchema = z
     }
   });
 
-export const TransformModeSchema = z.enum(['refine', 'innovate', 'goMad', 'exec']);
-
 /** Escalation tier for repeated Go Mad transforms (1 = first click). Ignored unless mode is goMad. */
 export const GoMadDepthSchema = z.number().int().min(1).max(12).optional();
 
@@ -127,7 +131,9 @@ export const DiagramTransformIntentSchema = z.object({
   mode: TransformModeSchema,
   focusNode: FocusNodeSchema.optional(),
   modelProfile: ModelProfileSchema.optional(),
-  goMadDepth: GoMadDepthSchema
+  goMadDepth: GoMadDepthSchema,
+  /** Stakeholder bubble text when transform is triggered from advisor "Do it". */
+  advisorPrompt: z.string().max(400).optional()
 });
 
 export const DiagramAnalyzeSchema = z.object({
@@ -150,7 +156,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
       settings: IntentSettingsSchema,
       focusNode: FocusNodeSchema.optional(),
       modelProfile: ModelProfileSchema.optional(),
-      peerContext: IntentPeerContextSchema.optional()
+      peerContext: IntentPeerContextSchema.optional(),
+      transformPersona: TransformPersonaSchema.optional()
     })
     .superRefine((val, ctx) => {
       if (!val.peerContext) return;
@@ -170,7 +177,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     mode: TransformModeSchema,
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
-    goMadDepth: GoMadDepthSchema
+    goMadDepth: GoMadDepthSchema,
+    advisorPrompt: z.string().max(400).optional()
   }),
   z.object({
     operation: z.literal('analyze'),

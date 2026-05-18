@@ -3,6 +3,7 @@
  * Pair with `createAgUiTranslator` + server `createAgUiEmit` when adding new wire types.
  */
 
+import { resolveCritiqueAnalyzeFinalText } from '@archislop/shared';
 import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
@@ -286,11 +287,14 @@ export function applyAgentStreamInsightEvent(streamAcc, ctx, evt) {
     }
     if (typeof onFinal === 'function') {
       const finalText =
-        streamAcc.text.trim() || (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');
+        operation === 'analyze' && variant === 'critique'
+          ? resolveCritiqueAnalyzeFinalText(streamAcc.text, evt.analyzeText)
+          : streamAcc.text.trim() ||
+            (typeof evt.analyzeText === 'string' ? evt.analyzeText.trim() : '');
       if (operation === 'analyze' && variant === 'critique' && finalText) {
         patchInsightEntry(sectionId, (entry) => ({ ...entry, content: finalText }));
       }
-      onFinal({ evt, finalText });
+      onFinal({ evt, finalText, sectionId });
     }
   }
 }

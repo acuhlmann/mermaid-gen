@@ -111,6 +111,26 @@ export function clearAllDiagramCachesFromStorage() {
   }
 }
 
+/** Drops every `archislop` / `archislop:*` key (diagram caches, gamification, prefs, etc.). */
+export function clearAllArchislopAppStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    const keys = [];
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const k = window.localStorage.key(i);
+      if (!k) continue;
+      if (k === 'archislop' || k.startsWith('archislop:') || k.startsWith('archislop-')) {
+        keys.push(k);
+      }
+    }
+    for (const k of keys) {
+      window.localStorage.removeItem(k);
+    }
+  } catch {
+    // Ignore privacy / access errors.
+  }
+}
+
 export function clearBrowserBackupSessionId() {
   if (typeof window === 'undefined') return;
   try {
@@ -126,8 +146,44 @@ export function clearBrowserBackupSessionId() {
  */
 export function wipeClientCachesAfterLostServerSession() {
   inMemorySessionId = null;
-  clearAllDiagramCachesFromStorage();
-  clearBrowserBackupSessionId();
+  clearAllArchislopAppStorage();
+}
+
+/** True when both slots are still the default empty seed (server restart / new room). */
+export function isServerSessionPristine(session) {
+  if (!session || typeof session !== 'object') return true;
+  return isSlotPristine(session.mermaid) && isSlotPristine(session.infographic);
+}
+
+function isSlotPristine(slot) {
+  if (!slot || typeof slot !== 'object') return true;
+  if ((slot.revisionId ?? 0) > 0) return false;
+  if (slotLastTopic(slot)) return false;
+  return !isSlotCustomized(slot);
+}
+
+/** True when a persisted per-session cache still has user-visible work to restore. */
+export function isDiagramCacheSubstantial(cache) {
+  if (!cache || typeof cache !== 'object') return false;
+  if (Array.isArray(cache.insightsEntries) && cache.insightsEntries.length > 0) return true;
+  if (typeof cache.latestCritique?.text === 'string' && cache.latestCritique.text.trim()) return true;
+  const src = typeof cache.diagramSource === 'string' ? cache.diagramSource.trim() : '';
+  if (!src) return false;
+  const initial = createInitialDiagramState('mermaid');
+  return src !== initial.diagramSource.trim();
+}
+
+/**
+ * After a server restart, mint a new session id and prime empty dual-slot state on the server.
+ */
+export async function mintFreshServerSession() {
+  wipeClientCachesAfterLostServerSession();
+  const targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
+  await Promise.all([
+    syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
+    syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId })
+  ]);
+  return targetId;
 }
 
 function createSessionHeaders(sessionId) {

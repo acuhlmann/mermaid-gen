@@ -124,8 +124,8 @@ export function createAgentProposalStore() {
     for (const fn of set) {
       try {
         fn(result);
-      } catch {
-        // ignore listener errors
+      } catch (err) {
+        console.warn('agentProposalStore: proposal listener threw:', err?.message ?? err);
       }
     }
     waitersById.delete(proposalId);

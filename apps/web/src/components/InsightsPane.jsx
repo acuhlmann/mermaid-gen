@@ -4,8 +4,8 @@ import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.j
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
 import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
-import CritiqueA2uiSurface from './CritiqueA2uiSurface.jsx';
-import { buildCritiqueActionableA2uiMessages } from '@archislop/shared';
+import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
+import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
 import SlopitectStatusBoard from './SlopitectStatusBoard.jsx';
 import { phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
@@ -943,7 +943,9 @@ export default function InsightsPane({
               critiqueActionableUi &&
               variant === 'critique' &&
               rawStatus === 'done' &&
-              entry.content?.trim() === critiqueActionableUi.critiqueText.trim();
+              (entry.id === critiqueActionableUi.insightEntryId ||
+                normalizeCritiqueMarkdownForMatch(entry.content) ===
+                  normalizeCritiqueMarkdownForMatch(critiqueActionableUi.critiqueText));
 
             const afterSource =
               typeof entry.diagramAfterSource === 'string' ? entry.diagramAfterSource : '';
@@ -985,11 +987,11 @@ export default function InsightsPane({
                         )}
                       </div>
                     ) : null}
-                    <CritiqueA2uiSurface
-                      messages={
-                        critiqueActionableUi.a2uiMessages ??
-                        buildCritiqueActionableA2uiMessages(critiqueActionableUi.critiqueText)
-                      }
+                    <CritiqueActionablePanel
+                      headingText={critiqueActionableUi.headingText}
+                      items={critiqueActionableUi.items}
+                      critiqueText={critiqueActionableUi.critiqueText}
+                      a2uiMessages={critiqueActionableUi.a2uiMessages}
                       busy={critiqueActionableUi.busy}
                       onFixAll={critiqueActionableUi.onFixAll}
                       onFixSelected={(mask) => critiqueActionableUi.onFixSelected?.(mask)}

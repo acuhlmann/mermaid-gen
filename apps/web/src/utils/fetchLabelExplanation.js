@@ -14,8 +14,9 @@ const EXPLAIN_TIMEOUT_MS = 12_000;
  * @param {string} [args.contentType]  'mermaid' | 'infographic'.
  * @param {string} [args.diagramSource]  Current diagram source (for context).
  * @param {string} [args.sessionId]    Session header value.
- * @param {'brief'|'simple'} [args.style]  'brief' (default glossary) or 'simple'
- *   (ELI5 rephrase for the "Dumb it Down" follow-up chip).
+ * @param {'brief'|'simple'|'gibberish'} [args.style]  'brief' (default glossary),
+ *   'simple' (progressive plain-language), or 'gibberish' (pre-verbal babble).
+ * @param {number} [args.simpleLevel]  1–6 when style is 'simple' (younger = higher).
  * @param {AbortSignal} [args.signal]  Caller cancellation signal.
  * @returns {Promise<string>} The explanation, or an empty string if none came back.
  */
@@ -25,6 +26,7 @@ export async function fetchLabelExplanation({
   diagramSource,
   sessionId,
   style = 'brief',
+  simpleLevel = 1,
   signal
 }) {
   if (!descriptor) throw new Error('No descriptor');
@@ -59,7 +61,10 @@ export async function fetchLabelExplanation({
         contentType: contentType ?? 'mermaid',
         diagramSource: diagramSource ?? '',
         visibleLabels: visibleLabels.slice(0, 30),
-        style: style === 'simple' ? 'simple' : 'brief'
+        style: style === 'gibberish' ? 'gibberish' : style === 'simple' ? 'simple' : 'brief',
+        ...(style === 'simple'
+          ? { simpleLevel: Math.min(6, Math.max(1, Number(simpleLevel) || 1)) }
+          : {})
       }),
       signal: controller.signal
     });
