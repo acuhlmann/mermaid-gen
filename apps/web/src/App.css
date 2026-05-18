@@ -3047,6 +3047,13 @@
   z-index: 25;
 }
 
+/* While the level-up info panel is open, lift the entire brand stack above
+   other floating chrome (streak HUD at 8500, boot sequence at 9000) so the
+   popover paints on top of all content rather than being covered by them. */
+.brand-control.is-info-panel-open {
+  z-index: 9100;
+}
+
 .brand-control-chip {
   display: inline-flex;
   flex-wrap: nowrap;
@@ -4303,6 +4310,13 @@
   gap: 0.5rem;
   margin-bottom: 0.4rem;
   flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.radial-explainer-popover.is-dragging .radial-explainer-head {
+  cursor: grabbing;
 }
 
 .radial-explainer-eyebrow {
@@ -4513,6 +4527,13 @@
   gap: 0.45rem;
   padding: 0.05rem 0.2rem 0.4rem;
   flex-shrink: 0;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.radial-stakeholders-popover.is-dragging .radial-stakeholders-head {
+  cursor: grabbing;
 }
 
 .radial-stakeholders-eyebrow {
@@ -6684,7 +6705,7 @@ button {
   margin-top: 0.45rem;
   max-width: min(22rem, calc(100vw - 2rem));
   width: max-content;
-  z-index: 30;
+  z-index: 9101;
 }
 
 .levelup-info-panel {
