@@ -2338,6 +2338,7 @@ Hard requirements:
       return;
     }
 
+    setInsightsOpen(true);
     tryAgentSound(playSubmitThunk);
     setGoMadStreak(0);
     const focusNode = focusPayload(selectedNode);
@@ -2397,6 +2398,7 @@ Hard requirements:
     const radialDescriptor =
       slopPromptSource === 'radial' ? radialMenuSession?.descriptor ?? null : null;
     closeSlopPrompt();
+    setInsightsOpen(true);
     if (radialDescriptor) {
       closeRadialMenu();
     }
@@ -3867,7 +3869,7 @@ ${requirementsBlock}`;
               onMicLostPointerCapture={() => stopVoiceInput()}
             />
           ) : null}
-          {!hasDiagramText ? (
+          {!hasDiagramText && !insightsOpen ? (
             <form className="prompt-control" onSubmit={runIntentChange}>
               <label className="sr-only" htmlFor="diagram-change-prompt">
                 Your Topic
@@ -3926,7 +3928,7 @@ ${requirementsBlock}`;
                 </button>
                 <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
                   <ButtonIcon>{'>'}</ButtonIcon>
-                  <span className="button-label">Go</span>
+                  <span className="button-label">Do it</span>
                 </button>
               </div>
             </form>

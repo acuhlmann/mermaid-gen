@@ -126,6 +126,7 @@ export default function RadialActionMenu({
   const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   const [explainStyle, setExplainStyle] = useState('brief');
+  const [explainSimpleRefresh, setExplainSimpleRefresh] = useState(0);
   const [explanation, setExplanation] = useState({ status: 'idle', text: '', error: '' });
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
@@ -263,7 +264,7 @@ export default function RadialActionMenu({
       alive = false;
       controller.abort();
     };
-  }, [contentType, descriptor, diagramSource, explainerOpen, explainStyle, sessionId]);
+  }, [contentType, descriptor, diagramSource, explainerOpen, explainStyle, explainSimpleRefresh, sessionId]);
 
   useLayoutEffect(() => {
     const el = chipRef.current;
@@ -396,7 +397,7 @@ export default function RadialActionMenu({
   return (
     <div
       ref={wrapperRef}
-      className={`radial-action-menu${popoverMode ? ' is-popover' : ''}`}
+      className={`radial-action-menu${popoverMode ? ' is-popover' : ''}${slopPrompt ? ' is-slop-prompt' : ''}`}
       role="menu"
       aria-label="Diagram selection actions"
     >
@@ -534,8 +535,11 @@ export default function RadialActionMenu({
             <button
               type="button"
               className={`radial-explainer-followup is-simple${explainStyle === 'simple' ? ' is-active' : ''}`}
-              onClick={() => setExplainStyle('simple')}
-              disabled={explainStyle === 'simple' && explanation.status !== 'error'}
+              onClick={() => {
+                if (explainStyle === 'simple') setExplainSimpleRefresh((n) => n + 1);
+                else setExplainStyle('simple');
+              }}
+              disabled={explanation.status === 'loading'}
               aria-pressed={explainStyle === 'simple'}
               title="Rephrase in plain language for the back row"
             >

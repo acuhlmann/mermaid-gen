@@ -271,11 +271,10 @@ describe('App simplified controls', () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
     const input = await screen.findByPlaceholderText('Your Topic');
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
 
@@ -383,11 +382,10 @@ describe('App simplified controls', () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
     const input = await screen.findByPlaceholderText('Your Topic');
     fireEvent.change(input, { target: { value: 'Tighten wording' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
     await waitFor(() => expect(globalThis.AudioContext).toHaveBeenCalled());
   });
@@ -469,11 +467,10 @@ describe('App simplified controls', () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
 
     const input = await screen.findByPlaceholderText('Your Topic');
     fireEvent.change(input, { target: { value: 'Long request' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Go' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
 

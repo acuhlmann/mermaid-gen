@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useEffect, useRef, useState } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RadialActionMenu from '../src/components/RadialActionMenu.jsx';
 
 const MOCK_ANCHOR = {
@@ -277,6 +277,18 @@ describe('radial menu popover survives the hover-close grace period', () => {
 describe('explainer popover follow-ups (Wise Architect)', () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => '',
+        json: async () => ({ explanation: 'Test gloss for Alpha.' })
+      })
+    );
   });
 
   const PRIMARY_ACTIONS = [
@@ -344,7 +356,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
     expect(onDrillDeeper).toHaveBeenCalledWith(MOCK_DESCRIPTOR);
   });
 
-  it('marks Dumb it Down as pressed once selected', () => {
+  it('marks Dumb it Down as pressed once selected', async () => {
     render(
       <RadialActionMenu
         descriptor={MOCK_DESCRIPTOR}
@@ -356,9 +368,9 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
       />
     );
     fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
-    const dumbBtn = screen.getByRole('button', { name: /Dumb it Down/ });
+    const dumbBtn = await screen.findByRole('button', { name: /Dumb it Down/ });
     expect(dumbBtn.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(dumbBtn);
-    expect(dumbBtn.getAttribute('aria-pressed')).toBe('true');
+    await waitFor(() => expect(dumbBtn.getAttribute('aria-pressed')).toBe('true'));
   });
 });
