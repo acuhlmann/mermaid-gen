@@ -76,7 +76,7 @@ export default function StakeholdersMascot({
   }, [expanded]);
 
   const stageMeta = stagePersona ? getVariantPersona(stagePersona) : null;
-  const mascotEmoji = expanded ? '🏛️' : (stageMeta?.avatarEmoji ?? '🏛️');
+  const mascotEmoji = expanded ? '👥' : (stageMeta?.avatarEmoji ?? '👥');
   const mascotName = expanded ? 'The Stakeholders' : (stageMeta?.name ?? 'The Stakeholders');
   const mascotClass = [
     'overlay-button',
@@ -119,7 +119,7 @@ export default function StakeholdersMascot({
         <span className="stakeholders-mascot-emoji" aria-hidden="true">{mascotEmoji}</span>
         <span className="button-label">{expanded ? 'Stakeholders' : (stageMeta ? stageMeta.name.split(' ').pop() : 'Stakeholders')}</span>
         <span className="slop-action-role stakeholders-mascot-role">
-          <span className="slop-action-role-emoji" aria-hidden="true">🏛️</span>
+          <span className="slop-action-role-emoji" aria-hidden="true">👥</span>
           {expanded ? 'Pick a persona' : 'Stakeholders'}
         </span>
       </button>

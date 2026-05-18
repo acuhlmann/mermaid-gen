@@ -32,6 +32,17 @@ const SYSTEM_PROMPT = [
   '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
 ].join('\n');
 
+const SIMPLE_SYSTEM_PROMPT = [
+  'You are a friendly architecture-diagram explainer. Imagine the reader is brand new — no jargon, no acronyms.',
+  'The user clicked one element on a diagram and asked you to "dumb it down".',
+  'RULES:',
+  '- Explain the CONTENT (the actual text on the label) in the simplest possible terms.',
+  '- Use a real-world analogy if it helps ("like a mailbox", "like a waiter").',
+  '- Plain text only. No markdown, no quotes, no preambles like "This means".',
+  '- Max 25 words. One sentence. Avoid acronyms — expand them or skip them.',
+  '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
+].join('\n');
+
 function resolveExplainerModelId(env, backend) {
   if (backend === 'vertex') {
     return resolveVertexModelId(env, 'fast') || DEFAULT_VERTEX_MODEL_FAST;
@@ -66,8 +77,13 @@ export function createLabelExplainerChatModel(env = process.env) {
   return model;
 }
 
-export function buildLabelExplainerSystemPrompt() {
-  return SYSTEM_PROMPT;
+/**
+ * @param {'brief'|'simple'} [style]
+ *   'brief'  (default) — one-sentence glossary entry, normal tone.
+ *   'simple' — ELI5 plain-language rephrase for the "Dumb it Down" follow-up.
+ */
+export function buildLabelExplainerSystemPrompt(style = 'brief') {
+  return style === 'simple' ? SIMPLE_SYSTEM_PROMPT : SYSTEM_PROMPT;
 }
 
 export function buildLabelExplainerUserPrompt({
@@ -76,7 +92,8 @@ export function buildLabelExplainerUserPrompt({
   label,
   contentType,
   diagramSource,
-  visibleLabels
+  visibleLabels,
+  style = 'brief'
 }) {
   const target = String(partName || label || '').slice(0, 240);
   const lines = [];
@@ -101,7 +118,11 @@ export function buildLabelExplainerUserPrompt({
     lines.push('```');
   }
   lines.push('');
-  lines.push(`Reply with ONE short plain-text sentence (max 30 words) explaining what "${target}" means in this diagram.`);
+  if (style === 'simple') {
+    lines.push(`Reply with ONE short plain-language sentence (max 25 words, beginner-friendly) explaining what "${target}" means in this diagram.`);
+  } else {
+    lines.push(`Reply with ONE short plain-text sentence (max 30 words) explaining what "${target}" means in this diagram.`);
+  }
   return lines.join('\n');
 }
 
@@ -139,8 +160,9 @@ export function sanitizeLabelExplanation(raw) {
 export async function explainLabelOnce({ env = process.env, payload }) {
   const model = createLabelExplainerChatModel(env);
   if (!model) return '';
-  const system = buildLabelExplainerSystemPrompt();
-  const user = buildLabelExplainerUserPrompt(payload);
+  const style = payload?.style === 'simple' ? 'simple' : 'brief';
+  const system = buildLabelExplainerSystemPrompt(style);
+  const user = buildLabelExplainerUserPrompt({ ...payload, style });
   const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
   const raw = extractTextContent(reply?.content ?? reply);
   return sanitizeLabelExplanation(raw);

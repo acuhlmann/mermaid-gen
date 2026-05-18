@@ -3448,7 +3448,7 @@ ${requirementsBlock}`;
       {
         id: 'stakeholders',
         label: 'Stakeholders',
-        icon: <span className="action-persona-icon is-stakeholders" aria-hidden="true">🏛️</span>,
+        icon: <span className="action-persona-icon is-stakeholders" aria-hidden="true">👥</span>,
         variant: 'stakeholders',
         group: 'primary',
         behavior: 'expandStakeholders',
@@ -3643,6 +3643,14 @@ ${requirementsBlock}`;
           ) : null
         }
         onActionPick={handleRadialAction}
+        onDrillDeeper={(descriptor) => {
+          if (!descriptor) return;
+          setSelectedNode(descriptor);
+          closeRadialMenu();
+          setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'explain' }));
+          tryAgentSound(playExplainBoot);
+          runAnalyze('explain', { focusTarget: descriptor });
+        }}
         onHoverHold={cancelMenuClose}
         onHoverRelease={scheduleMenuClose}
         onBackdropPointerDown={() => {

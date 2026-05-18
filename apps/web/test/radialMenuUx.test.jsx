@@ -268,3 +268,97 @@ describe('radial menu popover survives the hover-close grace period', () => {
     expect(onHoverRelease).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The "?" answer is voiced by the Wise Architect and offers two follow-ups:
+ * "Dumb it Down" rephrases inline; "Drill Deeper" hands off to the Thinking
+ * panel via onDrillDeeper. These are core to the help-button UX rework.
+ */
+describe('explainer popover follow-ups (Wise Architect)', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const PRIMARY_ACTIONS = [
+    {
+      id: 'definition',
+      label: 'What is this?',
+      icon: '?',
+      variant: 'definition',
+      group: 'primary',
+      behavior: 'showExplanation',
+      persona: 'Quick Reference'
+    },
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' }
+  ];
+
+  it('attributes the answer to the Wise Architect in the popover head', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
+    expect(dialog.querySelector('.radial-explainer-attribution')?.textContent).toMatch(/Wise Architect/);
+    expect(dialog.querySelector('.radial-explainer-eyebrow')?.getAttribute('aria-label')).toBe('The Wise Architect');
+  });
+
+  it('renders Dumb it Down and Drill Deeper follow-up chips', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onDrillDeeper={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    expect(screen.getByRole('button', { name: /Dumb it Down/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Drill Deeper/ })).toBeTruthy();
+  });
+
+  it('hands the descriptor to onDrillDeeper when Drill Deeper is clicked', () => {
+    const onDrillDeeper = vi.fn();
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onDrillDeeper={onDrillDeeper}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('button', { name: /Drill Deeper/ }));
+    expect(onDrillDeeper).toHaveBeenCalledWith(MOCK_DESCRIPTOR);
+  });
+
+  it('marks Dumb it Down as pressed once selected', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    const dumbBtn = screen.getByRole('button', { name: /Dumb it Down/ });
+    expect(dumbBtn.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(dumbBtn);
+    expect(dumbBtn.getAttribute('aria-pressed')).toBe('true');
+  });
+});

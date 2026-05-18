@@ -3,6 +3,10 @@ import { partKindLabel } from '../utils/partKindLabel.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { chipBoundingClearancePx, resolveArcGeometry } from '../utils/radialMenuLayout.js';
 import { fetchLabelExplanation } from '../utils/fetchLabelExplanation.js';
+import { getVariantPersona } from '../utils/slopitectCopy.js';
+
+const WISE_ARCHITECT_EMOJI = getVariantPersona('explain').avatarEmoji || '🧙';
+const STAKEHOLDERS_EMOJI = '👥';
 
 const ARC_RADIUS_DESKTOP_PX = 82;
 const ARC_RADIUS_MOBILE_PX = 62;
@@ -107,6 +111,7 @@ export default function RadialActionMenu({
   sessionId = '',
   onSlopPromptClose,
   onActionPick,
+  onDrillDeeper,
   onHoverHold,
   onHoverRelease,
   onBackdropPointerDown,
@@ -114,10 +119,13 @@ export default function RadialActionMenu({
 }) {
   const wrapperRef = useRef(null);
   const chipRef = useRef(null);
+  const popoverRef = useRef(null);
   const [chipSize, setChipSize] = useState(null);
+  const [popoverWidth, setPopoverWidth] = useState(0);
   const [viewportTick, setViewportTick] = useState(0);
   const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  const [explainStyle, setExplainStyle] = useState('brief');
   const [explanation, setExplanation] = useState({ status: 'idle', text: '', error: '' });
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
@@ -189,6 +197,28 @@ export default function RadialActionMenu({
     setChipSize(null);
   }, [descriptor?.id, chipName, chipTypeLabel]);
 
+  // Measure the rendered popover so popoverPlacement can clamp horizontally
+  // against the visual viewport. Without this, popovers anchored near a
+  // screen edge get clipped off-screen on mobile.
+  useLayoutEffect(() => {
+    if (!popoverMode) {
+      setPopoverWidth(0);
+      return undefined;
+    }
+    const el = popoverRef.current;
+    if (!el) return undefined;
+    function measure() {
+      const rect = el.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      setPopoverWidth((prev) => (Math.abs(prev - rect.width) < 0.5 ? prev : rect.width));
+    }
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [popoverMode, explainerOpen, stakeholdersExpanded, explanation.status, viewportTick]);
+
   // The parent re-mounts this component with `key={descriptor.id}` whenever the
   // selected element changes, so popover state (explainer / stakeholders) starts
   // fresh per selection — no manual reset needed here.
@@ -205,6 +235,7 @@ export default function RadialActionMenu({
       contentType,
       diagramSource,
       sessionId,
+      style: explainStyle,
       signal: controller.signal
     })
       .then((text) => {
@@ -232,7 +263,7 @@ export default function RadialActionMenu({
       alive = false;
       controller.abort();
     };
-  }, [contentType, descriptor, diagramSource, explainerOpen, sessionId]);
+  }, [contentType, descriptor, diagramSource, explainerOpen, explainStyle, sessionId]);
 
   useLayoutEffect(() => {
     const el = chipRef.current;
@@ -340,19 +371,26 @@ export default function RadialActionMenu({
   // Place popovers anchored to the selected node's bottom edge so they don't
   // cover the element the user just clicked. If there isn't enough room below
   // (mobile: the bottom chrome eats the lower part of the viewport), flip the
-  // popover above the node so it stays fully reachable.
+  // popover above the node so it stays fully reachable. Horizontally we clamp
+  // so the popover never bleeds past the visual viewport — important on mobile
+  // where a node clicked near a screen edge would otherwise cut off the panel.
   const popoverPlacement = (() => {
     const vv = readViewportBounds();
     const bottomReserve = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
     const usableBottom = vv.bottom - bottomReserve - VIEWPORT_MARGIN_PX;
     const gap = narrowLayout ? 10 : 14;
-    const estimatedHeight = stakeholdersExpanded ? 280 : 140;
+    const estimatedHeight = stakeholdersExpanded ? 280 : 200;
     const belowTop = Math.max(layout.nodeBottom, layout.centerY) + gap;
-    if (belowTop + estimatedHeight <= usableBottom) {
-      return { top: belowTop, transform: 'translate(-50%, 0)' };
-    }
-    const aboveTop = Math.min(layout.nodeTop, layout.centerY) - gap;
-    return { top: aboveTop, transform: 'translate(-50%, -100%)' };
+    const fitsBelow = belowTop + estimatedHeight <= usableBottom;
+    const top = fitsBelow ? belowTop : Math.min(layout.nodeTop, layout.centerY) - gap;
+    const transformY = fitsBelow ? '0' : '-100%';
+    const halfWidth = (popoverWidth || 280) / 2;
+    const minLeft = vv.left + VIEWPORT_MARGIN_PX + halfWidth;
+    const maxLeft = vv.right - VIEWPORT_MARGIN_PX - halfWidth;
+    const clampedLeft = maxLeft >= minLeft
+      ? Math.max(minLeft, Math.min(maxLeft, layout.centerX))
+      : (vv.left + vv.right) / 2;
+    return { left: clampedLeft, top, transform: `translate(-50%, ${transformY})` };
   })();
 
   return (
@@ -442,11 +480,12 @@ export default function RadialActionMenu({
       ) : null}
       {explainerOpen && !slopPrompt ? (
         <div
+          ref={popoverRef}
           className="radial-explainer-popover"
           role="dialog"
           aria-label={`What does ${explainTarget || 'this'} mean?`}
           style={{
-            left: layout.centerX,
+            left: popoverPlacement.left,
             top: popoverPlacement.top,
             transform: popoverPlacement.transform
           }}
@@ -454,9 +493,17 @@ export default function RadialActionMenu({
           onPointerEnter={onHoverHold}
         >
           <div className="radial-explainer-head">
-            <span className="radial-explainer-eyebrow" aria-hidden="true">?</span>
+            <span
+              className="radial-explainer-eyebrow"
+              role="img"
+              aria-label="The Wise Architect"
+              title="The Wise Architect"
+            >
+              {WISE_ARCHITECT_EMOJI}
+            </span>
             <span className="radial-explainer-heading">
-              {explainTarget ? <>What is <strong>“{explainTarget}”</strong>?</> : 'What is this?'}
+              <span className="radial-explainer-attribution">The Wise Architect on</span>
+              {explainTarget ? <strong>“{explainTarget}”</strong> : <strong>this element</strong>}
             </span>
             <button
               type="button"
@@ -472,7 +519,9 @@ export default function RadialActionMenu({
               <span className="radial-explainer-dot" aria-hidden="true" />
               <span className="radial-explainer-dot" aria-hidden="true" />
               <span className="radial-explainer-dot" aria-hidden="true" />
-              <span className="sr-only">Asking the architect…</span>
+              <span className="sr-only">
+                {explainStyle === 'simple' ? 'Dumbing it down…' : 'Consulting the Wise Architect…'}
+              </span>
             </p>
           ) : explanation.status === 'error' ? (
             <p className="radial-explainer-body is-error" role="status">
@@ -481,15 +530,41 @@ export default function RadialActionMenu({
           ) : explanation.status === 'ready' ? (
             <p className="radial-explainer-body">{explanation.text}</p>
           ) : null}
+          <div className="radial-explainer-followups" role="group" aria-label="Rephrase options">
+            <button
+              type="button"
+              className={`radial-explainer-followup is-simple${explainStyle === 'simple' ? ' is-active' : ''}`}
+              onClick={() => setExplainStyle('simple')}
+              disabled={explainStyle === 'simple' && explanation.status !== 'error'}
+              aria-pressed={explainStyle === 'simple'}
+              title="Rephrase in plain language for the back row"
+            >
+              <span className="radial-explainer-followup-emoji" aria-hidden="true">🍼</span>
+              <span className="radial-explainer-followup-label">Dumb it Down</span>
+            </button>
+            <button
+              type="button"
+              className="radial-explainer-followup is-detail"
+              onClick={() => {
+                onDrillDeeper?.(descriptor);
+              }}
+              disabled={typeof onDrillDeeper !== 'function'}
+              title="Spin up a full architecture deep-dive in the Thinking panel"
+            >
+              <span className="radial-explainer-followup-emoji" aria-hidden="true">🔍</span>
+              <span className="radial-explainer-followup-label">Drill Deeper</span>
+            </button>
+          </div>
         </div>
       ) : null}
       {stakeholdersExpanded && !slopPrompt ? (
         <div
+          ref={popoverRef}
           className="radial-stakeholders-popover"
           role="dialog"
           aria-label="Stakeholders for this element"
           style={{
-            left: layout.centerX,
+            left: popoverPlacement.left,
             top: popoverPlacement.top,
             transform: popoverPlacement.transform
           }}
@@ -497,7 +572,7 @@ export default function RadialActionMenu({
           onPointerEnter={onHoverHold}
         >
           <div className="radial-stakeholders-head">
-            <span className="radial-stakeholders-eyebrow" aria-hidden="true">🏛️</span>
+            <span className="radial-stakeholders-eyebrow" aria-hidden="true">{STAKEHOLDERS_EMOJI}</span>
             <span className="radial-stakeholders-heading">
               {chipName ? <>Stakeholders · <strong>{chipName}</strong></> : 'Stakeholders'}
             </span>

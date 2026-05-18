@@ -74,3 +74,32 @@ test('sanitizer clamps overly long answers', () => {
   assert.ok(out.length <= 281, `expected clamped length, got ${out.length}`);
   assert.ok(out.endsWith('…'), 'expected ellipsis');
 });
+
+test('simple-style system prompt drops jargon and trims word budget', () => {
+  const sys = buildLabelExplainerSystemPrompt('simple');
+  assert.match(sys, /dumb it down/i);
+  assert.match(sys, /no jargon|no acronyms/i);
+  assert.match(sys, /Max 25 words/);
+});
+
+test('simple-style user prompt asks for plain-language reply', () => {
+  const user = buildLabelExplainerUserPrompt({
+    partKind: 'label',
+    partName: 'OAuth',
+    contentType: 'mermaid',
+    style: 'simple'
+  });
+  assert.match(user, /plain-language/);
+  assert.match(user, /max 25 words/i);
+});
+
+test('brief style remains the default when no style is passed', () => {
+  const sys = buildLabelExplainerSystemPrompt();
+  assert.match(sys, /Max 30 words/);
+  const user = buildLabelExplainerUserPrompt({
+    partKind: 'label',
+    partName: 'OAuth',
+    contentType: 'mermaid'
+  });
+  assert.match(user, /max 30 words/i);
+});
