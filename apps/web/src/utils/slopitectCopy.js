@@ -58,7 +58,7 @@ export const VARIANT_PERSONAS = {
     name: 'The Wise Architect',
     title: 'Principal Tech Evangelist',
     tagline: 'Co-Design story time — gather round.',
-    avatarEmoji: '📜',
+    avatarEmoji: '🧙',
     entryLine: 'Picture, if you will…',
     exitLine: 'Architecture explained 📜',
     accentColorVar: '#0d9488',
@@ -69,7 +69,7 @@ export const VARIANT_PERSONAS = {
     name: 'The VP',
     title: 'SVP of Synergy & Co-Design',
     tagline: 'Synergy and Co-Design — boiled down for the board.',
-    avatarEmoji: '🎩',
+    avatarEmoji: '👔',
     entryLine: 'Co-Designing the north star…',
     exitLine: 'Synergy Co-Designed ✅',
     accentColorVar: '#1e3a8a',
@@ -471,12 +471,12 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
   },
   explain: {
     id: 'archivedStoryteller',
-    title: '📜 ARCHIVED STORYTELLER',
+    title: '🧙 ARCHIVED STORYTELLER',
     subtitle: '10 explanations canonised in the architecture lore.'
   },
   exec: {
     id: 'serialAligner',
-    title: '🎩 SERIAL CO-DESIGNER',
+    title: '👔 SERIAL CO-DESIGNER',
     subtitle: '10 synergy Co-Designs shipped. The board approves.'
   }
 };
@@ -549,7 +549,7 @@ export const CONSOLE_STAMP_LINES = [
 
 export const PROMPT_EASTER_EGGS = [
   { match: /\bblockchain\b/i, toast: '🔗 Slopitect approves.' },
-  { match: /\bco[- ]?design/i, toast: '🎩 Synergy and Co-Design detected. The VP nods.' },
+  { match: /\bco[- ]?design/i, toast: '👔 Synergy and Co-Design detected. The VP nods.' },
   { match: /\bsynergy\b/i, toast: '🤝 Synergy detected. +1 Co-Design alignment.' },
   { match: /\bmicroservice/i, toast: '🛎️ One microservice added to the slop.' },
   { match: /\bkubernetes\b|\bk8s\b/i, toast: '☸️ The container has been deployed to your soul.' },

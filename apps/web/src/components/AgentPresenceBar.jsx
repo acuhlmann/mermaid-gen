@@ -52,8 +52,14 @@ export default function AgentPresenceBar({ presence, onInvite }) {
         </span>
       ) : null}
       {typeof onInvite === 'function' ? (
-        <button type="button" className="overlay-button compact-button agent-invite-button" onClick={onInvite}>
-          <span aria-hidden="true">＋</span> Invite agent
+        <button
+          type="button"
+          className="overlay-button compact-button agent-invite-button"
+          onClick={onInvite}
+          title="Invite an external agent into the Co-Design session"
+        >
+          <span className="agent-invite-emoji" aria-hidden="true">🤝</span>
+          <span className="agent-invite-label">Invite agent</span>
         </button>
       ) : null}
     </div>
