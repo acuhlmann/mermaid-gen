@@ -3147,6 +3147,11 @@
   align-items: flex-end;
   gap: 0.75rem;
   pointer-events: none;
+  /* Sit above .brand-control (z-index: 25) so the stakeholders speech bubble
+     — which pops up from the dock at the bottom — can render over the top-left
+     logo on short screens where the two regions overlap. Modals still win
+     (they're z-index >= 200). */
+  z-index: 26;
 }
 
 .bottom-chrome .prompt-stack,
@@ -8097,9 +8102,13 @@ body.slopitect-rainbow-tint::before {
   width: 100%;
   padding: 0.72rem 0.8rem 0.78rem;
   border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid var(--control-border);
-  box-shadow: var(--control-shadow);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)),
+    radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.18), transparent 55%);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow:
+    0 16px 40px rgba(15, 23, 42, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.6) inset;
   animation: slop-prompt-reveal 240ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
 }
 
@@ -8224,7 +8233,7 @@ body.slopitect-rainbow-tint::before {
 
 @media (max-width: 1024px) {
   .app-shell.is-insights-open.has-slop-prompt-chrome:not(.is-editor-open) {
-    --mobile-bottom-chrome-est: 13.75rem;
+    --mobile-bottom-chrome-est: 12.5rem;
   }
 
   .slop-prompt-panel.is-narrow {
@@ -8233,6 +8242,37 @@ body.slopitect-rainbow-tint::before {
 
   .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-head {
     display: none;
+  }
+}
+
+/* ── Slop prompt — narrow-screen tuning for the chrome variant ──────── */
+@media (max-width: 540px) {
+  .slop-prompt-panel--chrome.is-narrow {
+    padding: 0.5rem 0.6rem 0.55rem;
+    border-radius: 0.85rem;
+    gap: 0.4rem;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-input {
+    padding: 0.5rem 0.62rem;
+    font-size: 0.88rem;
+    border-radius: 0.6rem;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-actions {
+    gap: 0.35rem;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-actions .overlay-button {
+    min-height: 2.15rem;
+    padding: 0.42rem 0.78rem;
+    font-size: 0.8rem;
+    gap: 0.3rem;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-actions .overlay-button .button-label {
+    font-size: 0.78rem;
+    letter-spacing: 0;
   }
 }
 

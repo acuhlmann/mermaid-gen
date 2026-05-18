@@ -153,6 +153,14 @@ export default function RadialActionMenu({
 
   const popoverMode = explainerOpen || stakeholdersExpanded;
 
+  // When the arc-buttons toggle into popover mode, the buttons unmount and
+  // their `onPointerLeave` fires a `scheduleMenuClose` (450ms timer) in the
+  // parent. The popover is a modal — it should stay until the user explicitly
+  // closes it — so cancel that pending close as soon as we enter popoverMode.
+  useEffect(() => {
+    if (popoverMode) onHoverHold?.();
+  }, [popoverMode, onHoverHold]);
+
   const visibleActions = useMemo(() => {
     if (!Array.isArray(actions)) return [];
     const cleaned = actions.filter((action) => action && !action.hidden);
@@ -364,7 +372,7 @@ export default function RadialActionMenu({
         }}
         onPointerDown={handleBackdropPointerDown}
         onPointerEnter={onHoverHold}
-        onPointerLeave={onHoverRelease}
+        onPointerLeave={popoverMode ? undefined : onHoverRelease}
         aria-hidden="true"
         data-testid="radial-hit-area"
       />
@@ -444,7 +452,6 @@ export default function RadialActionMenu({
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
-          onPointerLeave={onHoverRelease}
         >
           <div className="radial-explainer-head">
             <span className="radial-explainer-eyebrow" aria-hidden="true">?</span>
@@ -488,7 +495,6 @@ export default function RadialActionMenu({
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
-          onPointerLeave={onHoverRelease}
         >
           <div className="radial-stakeholders-head">
             <span className="radial-stakeholders-eyebrow" aria-hidden="true">🏛️</span>

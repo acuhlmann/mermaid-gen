@@ -173,3 +173,98 @@ describe('radial menu click-to-open UX', () => {
     expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe('');
   });
 });
+
+/**
+ * Once a primary button promotes the menu into "popover mode", any pending
+ * 450ms hover-close timer must be cancelled, and neither the popover nor the
+ * hit area should be allowed to schedule a fresh one — the popover is modal
+ * and only closes via X / Escape / backdrop. Regression for the user-reported
+ * "menu only shows briefly until it disappears".
+ */
+describe('radial menu popover survives the hover-close grace period', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const PRIMARY_ACTIONS = [
+    {
+      id: 'definition',
+      label: 'What is this?',
+      icon: '?',
+      variant: 'definition',
+      group: 'primary',
+      behavior: 'showExplanation',
+      persona: 'Quick Reference'
+    },
+    {
+      id: 'stakeholders',
+      label: 'Stakeholders',
+      icon: 'S',
+      variant: 'stakeholders',
+      group: 'primary',
+      behavior: 'expandStakeholders',
+      persona: 'Stakeholders'
+    },
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' }
+  ];
+
+  function renderMenuWithSpies() {
+    const onHoverHold = vi.fn();
+    const onHoverRelease = vi.fn();
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onHoverHold={onHoverHold}
+        onHoverRelease={onHoverRelease}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    return { onHoverHold, onHoverRelease };
+  }
+
+  it('cancels any pending hover-close timer when the explainer opens', () => {
+    const { onHoverHold } = renderMenuWithSpies();
+    onHoverHold.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    expect(screen.getByRole('dialog', { name: /What does .* mean\?/i })).toBeTruthy();
+    // The component must defensively cancel any close timer that the
+    // outgoing arc-button's pointerLeave may have scheduled.
+    expect(onHoverHold).toHaveBeenCalled();
+  });
+
+  it('cancels any pending hover-close timer when the stakeholders popover opens', () => {
+    const { onHoverHold } = renderMenuWithSpies();
+    onHoverHold.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Stakeholders (Stakeholders)' }));
+    expect(screen.getByRole('dialog', { name: /Stakeholders for this element/i })).toBeTruthy();
+    expect(onHoverHold).toHaveBeenCalled();
+  });
+
+  it('does not schedule a close from the explainer popover on pointer leave', () => {
+    const { onHoverRelease } = renderMenuWithSpies();
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    onHoverRelease.mockClear();
+    fireEvent.pointerLeave(screen.getByRole('dialog', { name: /What does .* mean\?/i }));
+    expect(onHoverRelease).not.toHaveBeenCalled();
+  });
+
+  it('does not schedule a close from the stakeholders popover on pointer leave', () => {
+    const { onHoverRelease } = renderMenuWithSpies();
+    fireEvent.click(screen.getByRole('button', { name: 'Stakeholders (Stakeholders)' }));
+    onHoverRelease.mockClear();
+    fireEvent.pointerLeave(screen.getByRole('dialog', { name: /Stakeholders for this element/i }));
+    expect(onHoverRelease).not.toHaveBeenCalled();
+  });
+
+  it('does not schedule a close from the hit area while in popover mode', () => {
+    const { onHoverRelease } = renderMenuWithSpies();
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    onHoverRelease.mockClear();
+    fireEvent.pointerLeave(screen.getByTestId('radial-hit-area'));
+    expect(onHoverRelease).not.toHaveBeenCalled();
+  });
+});
