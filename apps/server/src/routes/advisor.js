@@ -37,7 +37,8 @@ const ExplainLabelSchema = z.object({
   label: z.string().max(240).optional(),
   contentType: z.enum(['mermaid', 'infographic']).default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
-  visibleLabels: z.array(z.string().max(200)).max(60).default([])
+  visibleLabels: z.array(z.string().max(200)).max(60).default([]),
+  style: z.enum(['brief', 'simple']).default('brief')
 });
 
 function safeErrorMessage(error) {

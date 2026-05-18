@@ -90,7 +90,7 @@ export const PROMPT_ACTION_COPY = {
 export const STAKEHOLDERS_MUTE_COPY = {
   stakeholdersTag: 'Stakeholders',
   watchingEmoji: '👀',
-  stakeholdersEmoji: '🏛️'
+  stakeholdersEmoji: '👥'
 };
 
 /**

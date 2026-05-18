@@ -14,6 +14,8 @@ const EXPLAIN_TIMEOUT_MS = 12_000;
  * @param {string} [args.contentType]  'mermaid' | 'infographic'.
  * @param {string} [args.diagramSource]  Current diagram source (for context).
  * @param {string} [args.sessionId]    Session header value.
+ * @param {'brief'|'simple'} [args.style]  'brief' (default glossary) or 'simple'
+ *   (ELI5 rephrase for the "Dumb it Down" follow-up chip).
  * @param {AbortSignal} [args.signal]  Caller cancellation signal.
  * @returns {Promise<string>} The explanation, or an empty string if none came back.
  */
@@ -22,6 +24,7 @@ export async function fetchLabelExplanation({
   contentType,
   diagramSource,
   sessionId,
+  style = 'brief',
   signal
 }) {
   if (!descriptor) throw new Error('No descriptor');
@@ -55,7 +58,8 @@ export async function fetchLabelExplanation({
         label: descriptor.label ?? undefined,
         contentType: contentType ?? 'mermaid',
         diagramSource: diagramSource ?? '',
-        visibleLabels: visibleLabels.slice(0, 30)
+        visibleLabels: visibleLabels.slice(0, 30),
+        style: style === 'simple' ? 'simple' : 'brief'
       }),
       signal: controller.signal
     });
