@@ -12,6 +12,7 @@ import {
   isAdvisorPersona,
   parseAdvisorReply
 } from '../agents/advisorPrompts.js';
+import { explainLabelOnce } from '../agents/labelExplainer.js';
 
 const FocusDescriptorSchema = z.object({
   id: z.string().max(200),
@@ -28,6 +29,15 @@ const AdvisorSuggestSchema = z.object({
   focusNodeId: z.string().max(200).optional(),
   focusNode: FocusDescriptorSchema.optional(),
   lastSuggestions: z.array(z.string().max(400)).max(8).default([])
+});
+
+const ExplainLabelSchema = z.object({
+  partKind: z.string().max(40).optional(),
+  partName: z.string().max(240),
+  label: z.string().max(240).optional(),
+  contentType: z.enum(['mermaid', 'infographic']).default('mermaid'),
+  diagramSource: z.string().max(20_000).default(''),
+  visibleLabels: z.array(z.string().max(200)).max(60).default([])
 });
 
 function safeErrorMessage(error) {
@@ -93,6 +103,35 @@ export function createAdvisorRouter() {
         kind: parsedReply.kind
       });
     } catch (error) {
+      res.status(502).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  router.post('/explain', async (req, res) => {
+    const parsed = ExplainLabelSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid explain payload', details: parsed.error.flatten() });
+      return;
+    }
+    const payload = parsed.data;
+    const target = (payload.partName || payload.label || '').trim();
+    if (!target) {
+      res.status(400).json({ error: 'Missing label to explain' });
+      return;
+    }
+
+    try {
+      const explanation = await explainLabelOnce({ payload });
+      if (!explanation) {
+        res.status(200).json({ explanation: null });
+        return;
+      }
+      res.status(200).json({ explanation });
+    } catch (error) {
+      if (error?.name === 'LlmNotConfiguredError') {
+        res.status(503).json({ error: safeErrorMessage(error) });
+        return;
+      }
       res.status(502).json({ error: safeErrorMessage(error) });
     }
   });

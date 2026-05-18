@@ -3448,7 +3448,7 @@ ${requirementsBlock}`;
       {
         id: 'stakeholders',
         label: 'Stakeholders',
-        icon: <span className="action-persona-icon is-stakeholders" aria-hidden="true">👥</span>,
+        icon: <span className="action-persona-icon is-stakeholders" aria-hidden="true">🏛️</span>,
         variant: 'stakeholders',
         group: 'primary',
         behavior: 'expandStakeholders',
@@ -3613,6 +3613,9 @@ ${requirementsBlock}`;
         anchor={radialMenuSession?.anchor ?? null}
         actions={radialActions}
         busy={busy}
+        diagramSource={state.diagramSource}
+        contentType={contentMode}
+        sessionId={activeSessionId}
         slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
         onSlopPromptClose={closeSlopPrompt}
         slopPrompt={
@@ -3935,39 +3938,6 @@ ${requirementsBlock}`;
                   Stop request
                 </button>
               ) : null}
-            </div>
-          ) : null}
-
-          {!hasDiagramText ? (
-            <div
-              className={`prompt-actions prompt-actions--idle${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
-            >
-              <div className="button-group">
-                <StakeholdersMascot
-                  personas={[
-                    { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
-                    { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
-                    { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
-                    { variant: 'exec', onClick: () => runTransform('exec', { useDiagramFocus: true }) },
-                    { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
-                    { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
-                  ]}
-                  activeAdvisorVariant={advisor.activePersona}
-                  thinkingPersona={advisor.thinkingPersona}
-                  busy={true}
-                  bubbleProps={advisor.suggestion ? {
-                    persona: advisor.activePersona,
-                    suggestion: advisor.suggestion,
-                    kind: advisor.suggestionKind,
-                    isPinned: advisor.isPinned,
-                    onGo: advisor.accept,
-                    onDismiss: advisor.dismiss,
-                    onTogglePin: advisor.togglePin,
-                    onPauseTimer: advisor.pauseTimer,
-                    onResumeTimer: advisor.resumeTimer
-                  } : null}
-                />
-              </div>
             </div>
           ) : null}
 

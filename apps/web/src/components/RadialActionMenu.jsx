@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { partKindLabel } from '../utils/partKindLabel.js';
-import { describeDescriptor } from '../utils/partKindExplanation.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { chipBoundingClearancePx, resolveArcGeometry } from '../utils/radialMenuLayout.js';
+import { fetchLabelExplanation } from '../utils/fetchLabelExplanation.js';
 
 const ARC_RADIUS_DESKTOP_PX = 82;
 const ARC_RADIUS_MOBILE_PX = 62;
@@ -102,6 +102,9 @@ export default function RadialActionMenu({
   busy = false,
   slopPrompt = null,
   slopPromptOpen = false,
+  diagramSource = '',
+  contentType = 'mermaid',
+  sessionId = '',
   onSlopPromptClose,
   onActionPick,
   onHoverHold,
@@ -115,6 +118,7 @@ export default function RadialActionMenu({
   const [viewportTick, setViewportTick] = useState(0);
   const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
+  const [explanation, setExplanation] = useState({ status: 'idle', text: '', error: '' });
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -147,38 +151,84 @@ export default function RadialActionMenu({
     };
   }, [descriptor]);
 
+  const popoverMode = explainerOpen || stakeholdersExpanded;
+
   const visibleActions = useMemo(() => {
     if (!Array.isArray(actions)) return [];
     const cleaned = actions.filter((action) => action && !action.hidden);
     const hasPrimaryGroup = cleaned.some((action) => action.group === 'primary');
     if (!hasPrimaryGroup) return cleaned;
-    return cleaned.filter((action) => {
-      const group = action.group || 'persona';
-      if (group === 'primary') {
-        // The stakeholders aggregator transforms into the persona ring once
-        // expanded, so hide it while expanded. The explainer (?) stays put.
-        if (action.behavior === 'expandStakeholders' && stakeholdersExpanded) return false;
-        return true;
-      }
-      return stakeholdersExpanded;
-    });
-  }, [actions, stakeholdersExpanded]);
+    // In the new design, opening either popover hides the chip + arc entirely
+    // (the popover replaces the menu), so we only ever render the primary
+    // group's two entries here.
+    return cleaned.filter((action) => (action.group || 'persona') === 'primary');
+  }, [actions]);
+
+  const personaActions = useMemo(() => {
+    if (!Array.isArray(actions)) return [];
+    return actions.filter(
+      (action) => action && !action.hidden && (action.group || 'persona') !== 'primary'
+    );
+  }, [actions]);
 
   const chipTypeLabel = descriptor ? partKindLabel(descriptor.partKind) : '';
   const chipName = descriptor ? descriptor.partName || descriptor.label || descriptor.id || '' : '';
+  const explainTarget =
+    (descriptor && (descriptor.clickedLabel || descriptor.partName || descriptor.label || descriptor.id)) ||
+    '';
 
   useEffect(() => {
     setChipSize(null);
   }, [descriptor?.id, chipName, chipTypeLabel]);
 
-  const explanation = useMemo(() => describeDescriptor(descriptor), [descriptor]);
+  // The parent re-mounts this component with `key={descriptor.id}` whenever the
+  // selected element changes, so popover state (explainer / stakeholders) starts
+  // fresh per selection — no manual reset needed here.
 
-  const closeExplainer = useCallback(() => setExplainerOpen(false), []);
-  const collapseStakeholders = useCallback(() => setStakeholdersExpanded(false), []);
+  // When the explainer opens (or the focused part changes while it's open),
+  // kick off a fresh fast-agent fetch. Cancel any in-flight call.
+  useEffect(() => {
+    if (!explainerOpen || !descriptor) return undefined;
+    const controller = new AbortController();
+    let alive = true;
+    setExplanation({ status: 'loading', text: '', error: '' });
+    fetchLabelExplanation({
+      descriptor,
+      contentType,
+      diagramSource,
+      sessionId,
+      signal: controller.signal
+    })
+      .then((text) => {
+        if (!alive) return;
+        if (text) {
+          setExplanation({ status: 'ready', text, error: '' });
+        } else {
+          setExplanation({
+            status: 'error',
+            text: '',
+            error: 'No explanation came back — try again in a moment.'
+          });
+        }
+      })
+      .catch((err) => {
+        if (!alive) return;
+        if (err?.name === 'AbortError') return;
+        setExplanation({
+          status: 'error',
+          text: '',
+          error: err?.message || 'Could not fetch explanation.'
+        });
+      });
+    return () => {
+      alive = false;
+      controller.abort();
+    };
+  }, [contentType, descriptor, diagramSource, explainerOpen, sessionId]);
 
   useLayoutEffect(() => {
     const el = chipRef.current;
-    if (!el || !descriptor) return undefined;
+    if (!el || !descriptor || popoverMode) return undefined;
     function measure() {
       const rect = el.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
@@ -198,7 +248,7 @@ export default function RadialActionMenu({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [descriptor, chipName, chipTypeLabel, narrowLayout]);
+  }, [descriptor, chipName, chipTypeLabel, narrowLayout, popoverMode]);
 
   const effectiveChipSize = useMemo(
     () => chipSize ?? estimateChipSize(chipName, chipTypeLabel),
@@ -226,9 +276,13 @@ export default function RadialActionMenu({
     const side = pickArcSide(anchor, vv);
     const positions = computeButtonPositions(side, visibleActions.length, arcRadiusPx, arcSpreadDeg);
     const hoverDiskDiameter = 2 * (arcRadiusPx + buttonHalfPx + HOVER_DISK_EXTRA_PX);
+    const nodeBottom = typeof anchor.nodeBottom === 'number' ? anchor.nodeBottom : centerY;
+    const nodeTop = typeof anchor.nodeTop === 'number' ? anchor.nodeTop : centerY;
     return {
       centerX,
       centerY,
+      nodeTop,
+      nodeBottom,
       side,
       hoverDiskDiameter,
       chipHalfHeight: effectiveChipSize.height / 2,
@@ -251,21 +305,14 @@ export default function RadialActionMenu({
         onSlopPromptClose();
         return;
       }
-      if (explainerOpen) {
-        event.preventDefault();
-        closeExplainer();
-        return;
-      }
-      if (stakeholdersExpanded) {
-        event.preventDefault();
-        collapseStakeholders();
-        return;
-      }
+      // Escape always closes the whole menu — the parent unmounts us when
+      // descriptor goes away, which clears any popover state.
+      event.preventDefault();
       if (typeof onClose === 'function') onClose();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [closeExplainer, collapseStakeholders, explainerOpen, onClose, onSlopPromptClose, slopPromptOpen, stakeholdersExpanded]);
+  }, [onClose, onSlopPromptClose, slopPromptOpen]);
 
   if (!descriptor || !anchor || !layout) return null;
 
@@ -282,10 +329,28 @@ export default function RadialActionMenu({
     transform: 'translate(-50%, -50%)'
   };
 
+  // Place popovers anchored to the selected node's bottom edge so they don't
+  // cover the element the user just clicked. If there isn't enough room below
+  // (mobile: the bottom chrome eats the lower part of the viewport), flip the
+  // popover above the node so it stays fully reachable.
+  const popoverPlacement = (() => {
+    const vv = readViewportBounds();
+    const bottomReserve = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
+    const usableBottom = vv.bottom - bottomReserve - VIEWPORT_MARGIN_PX;
+    const gap = narrowLayout ? 10 : 14;
+    const estimatedHeight = stakeholdersExpanded ? 280 : 140;
+    const belowTop = Math.max(layout.nodeBottom, layout.centerY) + gap;
+    if (belowTop + estimatedHeight <= usableBottom) {
+      return { top: belowTop, transform: 'translate(-50%, 0)' };
+    }
+    const aboveTop = Math.min(layout.nodeTop, layout.centerY) - gap;
+    return { top: aboveTop, transform: 'translate(-50%, -100%)' };
+  })();
+
   return (
     <div
       ref={wrapperRef}
-      className="radial-action-menu"
+      className={`radial-action-menu${popoverMode ? ' is-popover' : ''}`}
       role="menu"
       aria-label="Diagram selection actions"
     >
@@ -303,77 +368,79 @@ export default function RadialActionMenu({
         aria-hidden="true"
         data-testid="radial-hit-area"
       />
-      {layout.positions.map((pos, index) => {
-        const action = visibleActions[index];
-        if (!action) return null;
-        const personaShort = action.persona ? action.persona.replace(/^The\s+/i, '') : '';
-        const title = action.personaTitle
-          ? `${action.label} — ${action.personaTitle}`
-          : personaShort
-            ? `${action.label} — ${personaShort}`
-            : action.label;
-        const behavior = action.behavior;
-        const isExpander = behavior === 'expandStakeholders';
-        const isExplainer = behavior === 'showExplanation';
-        const isToggledOn = (isExplainer && explainerOpen) || (isExpander && stakeholdersExpanded);
-        const handleClick = () => {
-          if (isExplainer) {
-            setExplainerOpen((open) => !open);
-            return;
-          }
-          if (isExpander) {
-            setStakeholdersExpanded(true);
-            setExplainerOpen(false);
-            return;
-          }
-          onActionPick?.(action, descriptor);
-        };
-        const className = `radial-action-button ${action.variant ? `is-${action.variant}` : ''}${
-          isToggledOn ? ' is-toggled' : ''
-        }`.trim();
-        return (
-          <button
-            key={action.id}
-            type="button"
-            className={className}
-            style={{ left: pos.x, top: pos.y }}
-            disabled={busy && !(isExplainer || isExpander) || action.disabled}
-            onClick={handleClick}
-            onPointerEnter={onHoverHold}
-            onPointerLeave={onHoverRelease}
-            aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}
-            aria-pressed={isExplainer || isExpander ? isToggledOn : undefined}
-            aria-expanded={isExpander ? stakeholdersExpanded : undefined}
-            title={title}
-            data-persona={personaShort || undefined}
-            data-action-id={action.id}
-          >
-            <span className="radial-action-button-icon" aria-hidden="true">
-              {action.icon}
-            </span>
-          </button>
-        );
-      })}
-      <div
-        ref={chipRef}
-        className="radial-action-chip"
-        style={chipStyle}
-        onPointerDown={handleBackdropPointerDown}
-        onPointerEnter={onHoverHold}
-        onPointerLeave={onHoverRelease}
-      >
-        <span className="radial-action-chip-type">{chipTypeLabel}</span>
-        {chipName ? <span className="radial-action-chip-name">{chipName}</span> : null}
-      </div>
+      {!popoverMode
+        ? layout.positions.map((pos, index) => {
+            const action = visibleActions[index];
+            if (!action) return null;
+            const personaShort = action.persona ? action.persona.replace(/^The\s+/i, '') : '';
+            const title = action.personaTitle
+              ? `${action.label} — ${action.personaTitle}`
+              : personaShort
+                ? `${action.label} — ${personaShort}`
+                : action.label;
+            const behavior = action.behavior;
+            const isExpander = behavior === 'expandStakeholders';
+            const isExplainer = behavior === 'showExplanation';
+            const handleClick = () => {
+              if (isExplainer) {
+                setStakeholdersExpanded(false);
+                setExplainerOpen(true);
+                return;
+              }
+              if (isExpander) {
+                setExplainerOpen(false);
+                setStakeholdersExpanded(true);
+                return;
+              }
+              onActionPick?.(action, descriptor);
+            };
+            const className = `radial-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim();
+            return (
+              <button
+                key={action.id}
+                type="button"
+                className={className}
+                style={{ left: pos.x, top: pos.y }}
+                disabled={(busy && !(isExplainer || isExpander)) || action.disabled}
+                onClick={handleClick}
+                onPointerEnter={onHoverHold}
+                onPointerLeave={onHoverRelease}
+                aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}
+                aria-pressed={isExplainer || isExpander ? false : undefined}
+                aria-expanded={isExpander ? false : undefined}
+                title={title}
+                data-persona={personaShort || undefined}
+                data-action-id={action.id}
+              >
+                <span className="radial-action-button-icon" aria-hidden="true">
+                  {action.icon}
+                </span>
+              </button>
+            );
+          })
+        : null}
+      {!popoverMode ? (
+        <div
+          ref={chipRef}
+          className="radial-action-chip"
+          style={chipStyle}
+          onPointerDown={handleBackdropPointerDown}
+          onPointerEnter={onHoverHold}
+          onPointerLeave={onHoverRelease}
+        >
+          <span className="radial-action-chip-type">{chipTypeLabel}</span>
+          {chipName ? <span className="radial-action-chip-name">{chipName}</span> : null}
+        </div>
+      ) : null}
       {explainerOpen && !slopPrompt ? (
         <div
           className="radial-explainer-popover"
           role="dialog"
-          aria-label={`What is ${explanation.heading}?`}
+          aria-label={`What does ${explainTarget || 'this'} mean?`}
           style={{
             left: layout.centerX,
-            top: layout.centerY + layout.chipHalfHeight + (narrowLayout ? 14 : 18),
-            transform: 'translate(-50%, 0)'
+            top: popoverPlacement.top,
+            transform: popoverPlacement.transform
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
@@ -381,23 +448,95 @@ export default function RadialActionMenu({
         >
           <div className="radial-explainer-head">
             <span className="radial-explainer-eyebrow" aria-hidden="true">?</span>
-            <span className="radial-explainer-heading">What is a {explanation.heading}?</span>
+            <span className="radial-explainer-heading">
+              {explainTarget ? <>What is <strong>“{explainTarget}”</strong>?</> : 'What is this?'}
+            </span>
             <button
               type="button"
               className="radial-explainer-close"
-              onClick={closeExplainer}
+              onClick={() => onClose?.()}
               aria-label="Close explanation"
             >
               ×
             </button>
           </div>
-          <p className="radial-explainer-body">{explanation.body}</p>
-          {chipName ? (
-            <p className="radial-explainer-target">
-              <span className="radial-explainer-target-label">In this diagram:</span>{' '}
-              <strong>{chipName}</strong>
+          {explanation.status === 'loading' ? (
+            <p className="radial-explainer-body is-loading" aria-live="polite">
+              <span className="radial-explainer-dot" aria-hidden="true" />
+              <span className="radial-explainer-dot" aria-hidden="true" />
+              <span className="radial-explainer-dot" aria-hidden="true" />
+              <span className="sr-only">Asking the architect…</span>
             </p>
+          ) : explanation.status === 'error' ? (
+            <p className="radial-explainer-body is-error" role="status">
+              {explanation.error}
+            </p>
+          ) : explanation.status === 'ready' ? (
+            <p className="radial-explainer-body">{explanation.text}</p>
           ) : null}
+        </div>
+      ) : null}
+      {stakeholdersExpanded && !slopPrompt ? (
+        <div
+          className="radial-stakeholders-popover"
+          role="dialog"
+          aria-label="Stakeholders for this element"
+          style={{
+            left: layout.centerX,
+            top: popoverPlacement.top,
+            transform: popoverPlacement.transform
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={onHoverHold}
+          onPointerLeave={onHoverRelease}
+        >
+          <div className="radial-stakeholders-head">
+            <span className="radial-stakeholders-eyebrow" aria-hidden="true">🏛️</span>
+            <span className="radial-stakeholders-heading">
+              {chipName ? <>Stakeholders · <strong>{chipName}</strong></> : 'Stakeholders'}
+            </span>
+            <button
+              type="button"
+              className="radial-stakeholders-close"
+              onClick={() => onClose?.()}
+              aria-label="Close stakeholders"
+            >
+              ×
+            </button>
+          </div>
+          <div className="radial-stakeholders-list" role="menu">
+            {personaActions.map((action) => {
+              const personaShort = action.persona ? action.persona.replace(/^The\s+/i, '') : '';
+              const title = action.personaTitle
+                ? `${action.label} — ${action.personaTitle}`
+                : action.label;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  className={`radial-stakeholders-row slop-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim()}
+                  disabled={busy || action.disabled}
+                  onClick={() => onActionPick?.(action, descriptor)}
+                  aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}
+                  title={title}
+                  data-action-id={action.id}
+                >
+                  <span className="radial-stakeholders-row-icon" aria-hidden="true">
+                    {action.icon}
+                  </span>
+                  <span className="radial-stakeholders-row-text">
+                    <span className="radial-stakeholders-row-name">{personaShort || action.label}</span>
+                    {action.personaTitle ? (
+                      <span className="radial-stakeholders-row-title">
+                        {action.personaTitle.replace(/^[^·]*·\s*/, '')}
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="radial-stakeholders-row-chip" aria-hidden="true">{action.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       ) : null}
       {slopPrompt ? (
