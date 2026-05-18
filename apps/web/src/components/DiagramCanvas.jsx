@@ -293,7 +293,11 @@ export default function DiagramCanvas({
       if (!pendingViewportFitRef.current) return;
       if (!root.querySelector('svg')) return;
       pendingViewportFitRef.current = false;
-      applyViewportFit(true);
+      queueMicrotask(() => {
+        requestAnimationFrame(() => {
+          applyViewportFit(true);
+        });
+      });
     };
     tryFit();
     const observer = new MutationObserver(tryFit);

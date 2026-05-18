@@ -9,6 +9,14 @@ function normalizeInfographicSvgRoot(container) {
   if (svg) normalizeRootSvgElement(svg);
 }
 
+/** AntV adjusts `viewBox` in a microtask after mount; normalizing too early pins stale sizes and clips labels/edges. */
+function scheduleNormalizeInfographicSvgRoot(container) {
+  queueMicrotask(() => {
+    normalizeInfographicSvgRoot(container);
+    requestAnimationFrame(() => normalizeInfographicSvgRoot(container));
+  });
+}
+
 function InfographicRendererImpl(
   { diagramSource, selectedNode = null, streamingPreview = false },
   ref
@@ -51,7 +59,7 @@ function InfographicRendererImpl(
           });
         }
         instanceRef.current.render(dsl);
-        normalizeInfographicSvgRoot(containerRef.current);
+        scheduleNormalizeInfographicSvgRoot(containerRef.current);
         lastSourceRef.current = dsl;
         setRenderError('');
       } catch {
@@ -122,7 +130,7 @@ function InfographicRendererImpl(
         editable: false
       });
       inst.render(dsl);
-      normalizeInfographicSvgRoot(containerRef.current);
+      scheduleNormalizeInfographicSvgRoot(containerRef.current);
       instanceRef.current = inst;
       lastSourceRef.current = dsl;
       setRenderError('');
