@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { partKindLabel } from '../utils/partKindLabel.js';
+import { describeDescriptor } from '../utils/partKindExplanation.js';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { chipBoundingClearancePx, resolveArcGeometry } from '../utils/radialMenuLayout.js';
 
@@ -112,6 +113,8 @@ export default function RadialActionMenu({
   const chipRef = useRef(null);
   const [chipSize, setChipSize] = useState(null);
   const [viewportTick, setViewportTick] = useState(0);
+  const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
+  const [explainerOpen, setExplainerOpen] = useState(false);
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -144,10 +147,22 @@ export default function RadialActionMenu({
     };
   }, [descriptor]);
 
-  const visibleActions = useMemo(
-    () => (Array.isArray(actions) ? actions.filter((action) => action && !action.hidden) : []),
-    [actions]
-  );
+  const visibleActions = useMemo(() => {
+    if (!Array.isArray(actions)) return [];
+    const cleaned = actions.filter((action) => action && !action.hidden);
+    const hasPrimaryGroup = cleaned.some((action) => action.group === 'primary');
+    if (!hasPrimaryGroup) return cleaned;
+    return cleaned.filter((action) => {
+      const group = action.group || 'persona';
+      if (group === 'primary') {
+        // The stakeholders aggregator transforms into the persona ring once
+        // expanded, so hide it while expanded. The explainer (?) stays put.
+        if (action.behavior === 'expandStakeholders' && stakeholdersExpanded) return false;
+        return true;
+      }
+      return stakeholdersExpanded;
+    });
+  }, [actions, stakeholdersExpanded]);
 
   const chipTypeLabel = descriptor ? partKindLabel(descriptor.partKind) : '';
   const chipName = descriptor ? descriptor.partName || descriptor.label || descriptor.id || '' : '';
@@ -155,6 +170,11 @@ export default function RadialActionMenu({
   useEffect(() => {
     setChipSize(null);
   }, [descriptor?.id, chipName, chipTypeLabel]);
+
+  const explanation = useMemo(() => describeDescriptor(descriptor), [descriptor]);
+
+  const closeExplainer = useCallback(() => setExplainerOpen(false), []);
+  const collapseStakeholders = useCallback(() => setStakeholdersExpanded(false), []);
 
   useLayoutEffect(() => {
     const el = chipRef.current;
@@ -231,11 +251,21 @@ export default function RadialActionMenu({
         onSlopPromptClose();
         return;
       }
+      if (explainerOpen) {
+        event.preventDefault();
+        closeExplainer();
+        return;
+      }
+      if (stakeholdersExpanded) {
+        event.preventDefault();
+        collapseStakeholders();
+        return;
+      }
       if (typeof onClose === 'function') onClose();
     }
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose, onSlopPromptClose, slopPromptOpen]);
+  }, [closeExplainer, collapseStakeholders, explainerOpen, onClose, onSlopPromptClose, slopPromptOpen, stakeholdersExpanded]);
 
   if (!descriptor || !anchor || !layout) return null;
 
@@ -282,17 +312,38 @@ export default function RadialActionMenu({
           : personaShort
             ? `${action.label} — ${personaShort}`
             : action.label;
+        const behavior = action.behavior;
+        const isExpander = behavior === 'expandStakeholders';
+        const isExplainer = behavior === 'showExplanation';
+        const isToggledOn = (isExplainer && explainerOpen) || (isExpander && stakeholdersExpanded);
+        const handleClick = () => {
+          if (isExplainer) {
+            setExplainerOpen((open) => !open);
+            return;
+          }
+          if (isExpander) {
+            setStakeholdersExpanded(true);
+            setExplainerOpen(false);
+            return;
+          }
+          onActionPick?.(action, descriptor);
+        };
+        const className = `radial-action-button ${action.variant ? `is-${action.variant}` : ''}${
+          isToggledOn ? ' is-toggled' : ''
+        }`.trim();
         return (
           <button
             key={action.id}
             type="button"
-            className={`radial-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim()}
+            className={className}
             style={{ left: pos.x, top: pos.y }}
-            disabled={busy || action.disabled}
-            onClick={() => onActionPick?.(action, descriptor)}
+            disabled={busy && !(isExplainer || isExpander) || action.disabled}
+            onClick={handleClick}
             onPointerEnter={onHoverHold}
             onPointerLeave={onHoverRelease}
             aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}
+            aria-pressed={isExplainer || isExpander ? isToggledOn : undefined}
+            aria-expanded={isExpander ? stakeholdersExpanded : undefined}
             title={title}
             data-persona={personaShort || undefined}
             data-action-id={action.id}
@@ -314,6 +365,41 @@ export default function RadialActionMenu({
         <span className="radial-action-chip-type">{chipTypeLabel}</span>
         {chipName ? <span className="radial-action-chip-name">{chipName}</span> : null}
       </div>
+      {explainerOpen && !slopPrompt ? (
+        <div
+          className="radial-explainer-popover"
+          role="dialog"
+          aria-label={`What is ${explanation.heading}?`}
+          style={{
+            left: layout.centerX,
+            top: layout.centerY + layout.chipHalfHeight + (narrowLayout ? 14 : 18),
+            transform: 'translate(-50%, 0)'
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={onHoverHold}
+          onPointerLeave={onHoverRelease}
+        >
+          <div className="radial-explainer-head">
+            <span className="radial-explainer-eyebrow" aria-hidden="true">?</span>
+            <span className="radial-explainer-heading">What is a {explanation.heading}?</span>
+            <button
+              type="button"
+              className="radial-explainer-close"
+              onClick={closeExplainer}
+              aria-label="Close explanation"
+            >
+              ×
+            </button>
+          </div>
+          <p className="radial-explainer-body">{explanation.body}</p>
+          {chipName ? (
+            <p className="radial-explainer-target">
+              <span className="radial-explainer-target-label">In this diagram:</span>{' '}
+              <strong>{chipName}</strong>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       {slopPrompt ? (
         <div
           className="radial-slop-prompt-tray"

@@ -95,7 +95,8 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                     href={invite.cursorInstallUrlWithPairing}
                     className="overlay-button invite-install-button invite-install-cursor"
                   >
-                    Connect now (Cursor)
+                    <span className="invite-install-button-prefix">Connect</span>
+                    <span className="invite-install-button-target">Cursor</span>
                   </a>
                 ) : null}
                 {invite.vscodeInstallUrlWithPairing ? (
@@ -103,7 +104,8 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                     href={invite.vscodeInstallUrlWithPairing}
                     className="overlay-button invite-install-button invite-install-vscode"
                   >
-                    Connect now (VS Code)
+                    <span className="invite-install-button-prefix">Connect</span>
+                    <span className="invite-install-button-target">VS Code</span>
                   </a>
                 ) : null}
                 {invite.claudeCodeCommandWithPairing ? (
@@ -112,7 +114,14 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                     className="overlay-button invite-install-button invite-install-secondary"
                     onClick={() => copy('cli-pair', invite.claudeCodeCommandWithPairing)}
                   >
-                    {copied === 'cli-pair' ? 'Copied Claude command' : 'Copy Claude Code (connect now)'}
+                    {copied === 'cli-pair' ? (
+                      <span className="invite-install-button-target">Copied!</span>
+                    ) : (
+                      <>
+                        <span className="invite-install-button-prefix">Copy</span>
+                        <span className="invite-install-button-target">Claude CLI</span>
+                      </>
+                    )}
                   </button>
                 ) : null}
               </div>

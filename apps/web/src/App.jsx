@@ -3413,7 +3413,7 @@ ${requirementsBlock}`;
     const runOpts = { focusTarget: descriptor };
     const variantForBoot =
       action.id === 'refine' || action.id === 'innovate' || action.id === 'goMad' ||
-      action.id === 'critique' || action.id === 'explain'
+      action.id === 'critique' || action.id === 'explain' || action.id === 'exec'
         ? action.id
         : null;
     if (variantForBoot) {
@@ -3427,6 +3427,7 @@ ${requirementsBlock}`;
     if (action.id === 'refine') runTransform('refine', runOpts);
     else if (action.id === 'innovate') runTransform('innovate', runOpts);
     else if (action.id === 'goMad') runTransform('goMad', runOpts);
+    else if (action.id === 'exec') runTransform('exec', runOpts);
     else if (action.id === 'critique') runAnalyze('critique', runOpts);
     else if (action.id === 'explain') runAnalyze('explain', runOpts);
     else if (action.id === 'fix') handleFixFromCritique('all');
@@ -3434,6 +3435,26 @@ ${requirementsBlock}`;
 
   const radialActions = useMemo(() => {
     const list = [
+      {
+        id: 'definition',
+        label: 'What is this?',
+        icon: <span className="action-persona-icon is-definition" aria-hidden="true">?</span>,
+        variant: 'definition',
+        group: 'primary',
+        behavior: 'showExplanation',
+        persona: 'Quick Reference',
+        personaTitle: 'Quick Reference · What does this element mean?'
+      },
+      {
+        id: 'stakeholders',
+        label: 'Stakeholders',
+        icon: <span className="action-persona-icon is-stakeholders" aria-hidden="true">👥</span>,
+        variant: 'stakeholders',
+        group: 'primary',
+        behavior: 'expandStakeholders',
+        persona: 'Stakeholders',
+        personaTitle: 'Stakeholders · Tap to summon the roundtable'
+      },
       {
         id: 'prompt',
         label: PROMPT_ACTION_COPY.label,
@@ -3469,6 +3490,15 @@ ${requirementsBlock}`;
         persona: actionPersonaName('goMad'),
         personaEmoji: actionPersonaEmoji('goMad'),
         personaTitle: actionPersonaTitle('goMad')
+      },
+      {
+        id: 'exec',
+        label: 'Co-Design',
+        icon: <ActionPersonaIcon variant="exec" />,
+        variant: 'exec',
+        persona: actionPersonaName('exec'),
+        personaEmoji: actionPersonaEmoji('exec'),
+        personaTitle: actionPersonaTitle('exec')
       },
       {
         id: 'critique',
