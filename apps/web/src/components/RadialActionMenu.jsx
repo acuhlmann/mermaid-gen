@@ -120,8 +120,12 @@ export default function RadialActionMenu({
   const wrapperRef = useRef(null);
   const chipRef = useRef(null);
   const popoverRef = useRef(null);
+  const dragStateRef = useRef(null);
   const [chipSize, setChipSize] = useState(null);
   const [popoverWidth, setPopoverWidth] = useState(0);
+  const [popoverHeight, setPopoverHeight] = useState(0);
+  const [dragPos, setDragPos] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [viewportTick, setViewportTick] = useState(0);
   const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
@@ -198,20 +202,24 @@ export default function RadialActionMenu({
     setChipSize(null);
   }, [descriptor?.id, chipName, chipTypeLabel]);
 
-  // Measure the rendered popover so popoverPlacement can clamp horizontally
-  // against the visual viewport. Without this, popovers anchored near a
-  // screen edge get clipped off-screen on mobile.
+  // Measure the rendered popover so popoverPlacement can clamp against the
+  // visual viewport in both axes. Without the height measurement, a tall
+  // explanation (or many stakeholders) could overflow the bottom of the
+  // viewport even after our above/below flip, leaving the user unable to
+  // read the popover.
   useLayoutEffect(() => {
     if (!popoverMode) {
       setPopoverWidth(0);
+      setPopoverHeight(0);
       return undefined;
     }
     const el = popoverRef.current;
     if (!el) return undefined;
     function measure() {
       const rect = el.getBoundingClientRect();
-      if (rect.width <= 0) return;
+      if (rect.width <= 0 || rect.height <= 0) return;
       setPopoverWidth((prev) => (Math.abs(prev - rect.width) < 0.5 ? prev : rect.width));
+      setPopoverHeight((prev) => (Math.abs(prev - rect.height) < 0.5 ? prev : rect.height));
     }
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
@@ -369,30 +377,120 @@ export default function RadialActionMenu({
     transform: 'translate(-50%, -50%)'
   };
 
-  // Place popovers anchored to the selected node's bottom edge so they don't
-  // cover the element the user just clicked. If there isn't enough room below
-  // (mobile: the bottom chrome eats the lower part of the viewport), flip the
-  // popover above the node so it stays fully reachable. Horizontally we clamp
-  // so the popover never bleeds past the visual viewport — important on mobile
-  // where a node clicked near a screen edge would otherwise cut off the panel.
+  // Place popovers anchored to the selected node so they don't cover the
+  // element the user just clicked. Prefer below the node, then above, and if
+  // neither fits (small viewport + tall popover) center inside the visible
+  // viewport so the user can always read it. Horizontally we always clamp
+  // to the visual viewport — important on mobile where a node clicked near
+  // a screen edge would otherwise cut off the panel.
+  //
+  // The popover is rendered with `transform: translate(-50%, 0)` so `top`
+  // here is the popover's top edge. This keeps the drag math (which uses
+  // absolute pixel coords) consistent with the anchored placement math.
   const popoverPlacement = (() => {
     const vv = readViewportBounds();
     const bottomReserve = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
+    const usableTop = vv.top + VIEWPORT_MARGIN_PX;
     const usableBottom = vv.bottom - bottomReserve - VIEWPORT_MARGIN_PX;
+    const usableHeight = Math.max(0, usableBottom - usableTop);
     const gap = narrowLayout ? 10 : 14;
-    const estimatedHeight = stakeholdersExpanded ? 280 : 200;
-    const belowTop = Math.max(layout.nodeBottom, layout.centerY) + gap;
-    const fitsBelow = belowTop + estimatedHeight <= usableBottom;
-    const top = fitsBelow ? belowTop : Math.min(layout.nodeTop, layout.centerY) - gap;
-    const transformY = fitsBelow ? '0' : '-100%';
+    // Use measured height when available; on first paint fall back to a
+    // generous estimate. Once measured, the actual rendered size drives
+    // placement so a long Wise Architect explanation can't silently overflow.
+    const estimatedHeight = popoverHeight || (stakeholdersExpanded ? 280 : 220);
+    const popHeight = Math.min(estimatedHeight, usableHeight);
+    const nodeBottom = Math.max(layout.nodeBottom, layout.centerY);
+    const nodeTop = Math.min(layout.nodeTop, layout.centerY);
+    const belowTop = nodeBottom + gap;
+    const aboveTop = nodeTop - gap - popHeight;
+
+    let top;
+    if (belowTop + popHeight <= usableBottom) {
+      top = belowTop;
+    } else if (aboveTop >= usableTop) {
+      top = aboveTop;
+    } else {
+      // Neither side fits the popover within the visible viewport. Center it
+      // vertically so the user can still read the content; they can drag it
+      // closer to the original anchor if they want.
+      top = usableTop + Math.max(0, (usableHeight - popHeight) / 2);
+    }
+
     const halfWidth = (popoverWidth || 280) / 2;
     const minLeft = vv.left + VIEWPORT_MARGIN_PX + halfWidth;
     const maxLeft = vv.right - VIEWPORT_MARGIN_PX - halfWidth;
     const clampedLeft = maxLeft >= minLeft
       ? Math.max(minLeft, Math.min(maxLeft, layout.centerX))
       : (vv.left + vv.right) / 2;
-    return { left: clampedLeft, top, transform: `translate(-50%, ${transformY})` };
+    return { left: clampedLeft, top, transform: 'translate(-50%, 0)' };
   })();
+
+  // When the user drags, store absolute pixel coords for the popover's
+  // top-left corner. Render-time re-clamping below keeps the dragged popover
+  // visible if the viewport shrinks (e.g. mobile keyboard opens).
+  const draggedPlacement = (() => {
+    if (!dragPos) return null;
+    const vv = readViewportBounds();
+    const bottomReserve = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
+    const width = popoverWidth || 280;
+    const height = popoverHeight || (stakeholdersExpanded ? 280 : 220);
+    const minLeft = vv.left + VIEWPORT_MARGIN_PX;
+    const minTop = vv.top + VIEWPORT_MARGIN_PX;
+    const maxLeft = Math.max(minLeft, vv.right - VIEWPORT_MARGIN_PX - width);
+    const maxTop = Math.max(minTop, vv.bottom - bottomReserve - VIEWPORT_MARGIN_PX - height);
+    const left = Math.max(minLeft, Math.min(maxLeft, dragPos.left));
+    const top = Math.max(minTop, Math.min(maxTop, dragPos.top));
+    return { left, top, transform: 'none' };
+  })();
+
+  const popoverStyle = draggedPlacement ?? popoverPlacement;
+
+  function handleDragPointerDown(event) {
+    // Don't start a drag from interactive children (close button, follow-up
+    // chips, stakeholder rows) — those should keep their normal click semantics.
+    if (event.target.closest('button, a, input, textarea, select')) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const el = popoverRef.current;
+    if (!el) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const rect = el.getBoundingClientRect();
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top
+    };
+    setIsDragging(true);
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is best-effort; drag still works via the document
+      // listeners attached during the drag.
+    }
+  }
+
+  function handleDragPointerMove(event) {
+    const state = dragStateRef.current;
+    if (!state || event.pointerId !== state.pointerId) return;
+    const left = event.clientX - state.offsetX;
+    const top = event.clientY - state.offsetY;
+    setDragPos({ left, top });
+  }
+
+  function endDrag(event) {
+    const state = dragStateRef.current;
+    if (!state) return;
+    if (event && event.pointerId !== state.pointerId) return;
+    dragStateRef.current = null;
+    setIsDragging(false);
+    if (event) {
+      try {
+        event.currentTarget?.releasePointerCapture?.(event.pointerId);
+      } catch {
+        /* ignore */
+      }
+    }
+  }
 
   return (
     <div
@@ -482,18 +580,25 @@ export default function RadialActionMenu({
       {explainerOpen && !slopPrompt ? (
         <div
           ref={popoverRef}
-          className="radial-explainer-popover"
+          className={`radial-explainer-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}`}
           role="dialog"
           aria-label={`What does ${explainTarget || 'this'} mean?`}
           style={{
-            left: popoverPlacement.left,
-            top: popoverPlacement.top,
-            transform: popoverPlacement.transform
+            left: popoverStyle.left,
+            top: popoverStyle.top,
+            transform: popoverStyle.transform
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
         >
-          <div className="radial-explainer-head">
+          <div
+            className="radial-explainer-head"
+            onPointerDown={handleDragPointerDown}
+            onPointerMove={handleDragPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            title="Drag to reposition"
+          >
             <span
               className="radial-explainer-eyebrow"
               role="img"
@@ -564,18 +669,25 @@ export default function RadialActionMenu({
       {stakeholdersExpanded && !slopPrompt ? (
         <div
           ref={popoverRef}
-          className="radial-stakeholders-popover"
+          className={`radial-stakeholders-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}`}
           role="dialog"
           aria-label="Stakeholders for this element"
           style={{
-            left: popoverPlacement.left,
-            top: popoverPlacement.top,
-            transform: popoverPlacement.transform
+            left: popoverStyle.left,
+            top: popoverStyle.top,
+            transform: popoverStyle.transform
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
         >
-          <div className="radial-stakeholders-head">
+          <div
+            className="radial-stakeholders-head"
+            onPointerDown={handleDragPointerDown}
+            onPointerMove={handleDragPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            title="Drag to reposition"
+          >
             <span className="radial-stakeholders-eyebrow" aria-hidden="true">{STAKEHOLDERS_EMOJI}</span>
             <span className="radial-stakeholders-heading">
               {chipName ? <>Stakeholders · <strong>{chipName}</strong></> : 'Stakeholders'}

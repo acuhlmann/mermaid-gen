@@ -374,3 +374,142 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
     await waitFor(() => expect(dumbBtn.getAttribute('aria-pressed')).toBe('true'));
   });
 });
+
+/**
+ * Popovers exposed via the radial menu can sit outside the viewport on small
+ * screens when the anchor node is near an edge. To keep them readable in
+ * those cases the head doubles as a drag handle: the user can grab it and
+ * reposition the popover. Pointer down on the head must not propagate to the
+ * backdrop close handler.
+ */
+describe('radial popover drag handle', () => {
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: true,
+        text: async () => '',
+        json: async () => ({ explanation: 'Test gloss.' })
+      })
+    );
+  });
+
+  const PRIMARY_ACTIONS = [
+    {
+      id: 'definition',
+      label: 'What is this?',
+      icon: '?',
+      variant: 'definition',
+      group: 'primary',
+      behavior: 'showExplanation',
+      persona: 'Quick Reference'
+    },
+    {
+      id: 'stakeholders',
+      label: 'Stakeholders',
+      icon: 'S',
+      variant: 'stakeholders',
+      group: 'primary',
+      behavior: 'expandStakeholders',
+      persona: 'Stakeholders'
+    },
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' }
+  ];
+
+  it('exposes the explainer head as a drag handle', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
+    const head = dialog.querySelector('.radial-explainer-head');
+    expect(head).toBeTruthy();
+    expect(head.getAttribute('title')).toMatch(/drag/i);
+  });
+
+  it('exposes the stakeholders head as a drag handle', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Stakeholders (Stakeholders)' }));
+    const dialog = screen.getByRole('dialog', { name: /Stakeholders for this element/i });
+    const head = dialog.querySelector('.radial-stakeholders-head');
+    expect(head).toBeTruthy();
+    expect(head.getAttribute('title')).toMatch(/drag/i);
+  });
+
+  it('repositions the popover when the user drags the head', () => {
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
+    const head = dialog.querySelector('.radial-explainer-head');
+    // Anchored placement uses the centered-on-anchor transform.
+    expect(dialog.style.transform).toMatch(/translate/);
+
+    // Simulate a drag from the head: pointerDown captures the initial offset,
+    // pointerMove updates the absolute position, pointerUp ends the drag.
+    fireEvent.pointerDown(head, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+    fireEvent.pointerMove(head, { pointerId: 1, clientX: 200, clientY: 160 });
+    fireEvent.pointerUp(head, { pointerId: 1 });
+
+    // After dragging, placement switches from "anchored + transform" to
+    // "absolute top-left + no transform" so the position the user set sticks.
+    expect(dialog.classList.contains('is-repositioned')).toBe(true);
+    expect(dialog.style.transform).toBe('none');
+  });
+
+  it('does not start a drag from the close button inside the head', () => {
+    const onClose = vi.fn();
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={PRIMARY_ACTIONS}
+        onActionPick={vi.fn()}
+        onBackdropPointerDown={vi.fn()}
+        onClose={onClose}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    const closeBtn = screen.getByRole('button', { name: /Close explanation/i });
+    fireEvent.pointerDown(closeBtn, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
+    fireEvent.pointerMove(closeBtn, { pointerId: 1, clientX: 200, clientY: 160 });
+    fireEvent.pointerUp(closeBtn, { pointerId: 1 });
+    const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
+    // Drag should not have engaged — popover stays in its computed placement.
+    expect(dialog.classList.contains('is-repositioned')).toBe(false);
+    expect(dialog.classList.contains('is-dragging')).toBe(false);
+
+    // Clicking the close button still works.
+    fireEvent.click(closeBtn);
+    expect(onClose).toHaveBeenCalled();
+  });
+});
