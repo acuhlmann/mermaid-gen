@@ -59,14 +59,22 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
     <div className="invite-overlay" role="dialog" aria-modal="true" aria-labelledby="invite-title">
       <div className="invite-card">
         <header className="invite-header">
-          <h2 id="invite-title">Invite an external agent</h2>
-          <button type="button" className="overlay-button compact-button" onClick={onClose} aria-label="Close">
+          <div className="invite-header-titlebar">
+            <span className="invite-header-emoji" aria-hidden="true">🤝</span>
+            <div className="invite-header-text">
+              <h2 id="invite-title">Onboard an external agent</h2>
+              <p className="invite-header-subtitle">Bring another LLM into the Co-Design roundtable.</p>
+            </div>
+          </div>
+          <button type="button" className="overlay-button compact-button invite-close-button" onClick={onClose} aria-label="Close">
             Close
           </button>
         </header>
         <p className="invite-explainer">
-          Use <strong>Connect now</strong> or scan the QR code to bind this room in one step. Handshake approval in
-          the app is still required. For a long-lived MCP config, use the stable URL under Advanced.
+          External agents join over <strong>MCP</strong> — they can see the diagram, propose changes, and weigh in
+          alongside the Stakeholders. <strong>Scan the QR</strong> or hit <strong>Connect now</strong> to pair an
+          IDE-side agent in one tap; you’ll still approve the handshake before anyone touches the slop. For a
+          long-lived setup, use the stable URL under Advanced.
         </p>
         {loading ? <p>Loading invite…</p> : null}
         {error ? <p className="invite-error">{error}</p> : null}
