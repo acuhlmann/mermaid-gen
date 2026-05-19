@@ -124,7 +124,7 @@ describe('radial menu click-to-open UX', () => {
     expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
     // Labels are no longer rendered in the radial menu — accessibility still
     // surfaces the action name (with persona) via `aria-label`.
-    const refineBtn = screen.getByRole('button', { name: 'Refine (Polisher)' });
+    const refineBtn = screen.getByRole('menuitem', { name: 'Refine (Polisher)' });
     expect(refineBtn).toBeTruthy();
     expect(refineBtn.getAttribute('data-persona')).toBe('Polisher');
     // No persona / label chip rendered inside the button anymore.
@@ -229,7 +229,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
   it('cancels any pending hover-close timer when the explainer opens', () => {
     const { onHoverHold } = renderMenuWithSpies();
     onHoverHold.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     expect(screen.getByRole('dialog', { name: /What does .* mean\?/i })).toBeTruthy();
     // The component must defensively cancel any close timer that the
     // outgoing arc-button's pointerLeave may have scheduled.
@@ -239,14 +239,14 @@ describe('radial menu popover survives the hover-close grace period', () => {
   it('cancels any pending hover-close timer when the stakeholders popover opens', () => {
     const { onHoverHold } = renderMenuWithSpies();
     onHoverHold.mockClear();
-    fireEvent.click(screen.getByRole('button', { name: 'Stakeholders (Stakeholders)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Stakeholders (Stakeholders)' }));
     expect(screen.getByRole('dialog', { name: /Stakeholders for this element/i })).toBeTruthy();
     expect(onHoverHold).toHaveBeenCalled();
   });
 
   it('does not schedule a close from the explainer popover on pointer leave', () => {
     const { onHoverRelease } = renderMenuWithSpies();
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     onHoverRelease.mockClear();
     fireEvent.pointerLeave(screen.getByRole('dialog', { name: /What does .* mean\?/i }));
     expect(onHoverRelease).not.toHaveBeenCalled();
@@ -254,7 +254,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
 
   it('does not schedule a close from the stakeholders popover on pointer leave', () => {
     const { onHoverRelease } = renderMenuWithSpies();
-    fireEvent.click(screen.getByRole('button', { name: 'Stakeholders (Stakeholders)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Stakeholders (Stakeholders)' }));
     onHoverRelease.mockClear();
     fireEvent.pointerLeave(screen.getByRole('dialog', { name: /Stakeholders for this element/i }));
     expect(onHoverRelease).not.toHaveBeenCalled();
@@ -262,7 +262,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
 
   it('does not schedule a close from the hit area while in popover mode', () => {
     const { onHoverRelease } = renderMenuWithSpies();
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     onHoverRelease.mockClear();
     fireEvent.pointerLeave(screen.getByTestId('radial-hit-area'));
     expect(onHoverRelease).not.toHaveBeenCalled();
@@ -315,7 +315,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
     expect(dialog.querySelector('.radial-explainer-attribution')?.textContent).toMatch(/Wise Architect/);
     expect(dialog.querySelector('.radial-explainer-eyebrow')?.getAttribute('aria-label')).toBe('The Wise Architect');
@@ -333,7 +333,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     expect(screen.getByRole('button', { name: /Dumb it Down/ })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Drill Deeper/ })).toBeTruthy();
   });
@@ -351,7 +351,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     fireEvent.click(screen.getByRole('button', { name: /Drill Deeper/ }));
     expect(onDrillDeeper).toHaveBeenCalledWith(MOCK_DESCRIPTOR);
   });
@@ -367,7 +367,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     const dumbBtn = await screen.findByRole('button', { name: /Dumb it Down/ });
     expect(dumbBtn.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(dumbBtn);
@@ -391,7 +391,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     const firstBody = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(firstBody.style).toBe('brief');
@@ -427,7 +427,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
         onClose={onClose}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
 
     const dumbPath = [/Dumb it Down/i, /Even dumber/i, /Kid mode/i, /Little kid mode/i, /Baby talk/i, /Toddler mode/i, /Babble mode/i];
@@ -507,7 +507,7 @@ describe('radial popover drag handle', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
     const head = dialog.querySelector('.radial-explainer-head');
     expect(head).toBeTruthy();
@@ -525,7 +525,7 @@ describe('radial popover drag handle', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Stakeholders (Stakeholders)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Stakeholders (Stakeholders)' }));
     const dialog = screen.getByRole('dialog', { name: /Stakeholders for this element/i });
     const head = dialog.querySelector('.radial-stakeholders-head');
     expect(head).toBeTruthy();
@@ -543,7 +543,7 @@ describe('radial popover drag handle', () => {
         onClose={vi.fn()}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
     const head = dialog.querySelector('.radial-explainer-head');
     // Anchored placement uses the centered-on-anchor transform.
@@ -573,7 +573,7 @@ describe('radial popover drag handle', () => {
         onClose={onClose}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'What is this? (Quick Reference)' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     const closeBtn = screen.getByRole('button', { name: /Close explanation/i });
     fireEvent.pointerDown(closeBtn, { pointerId: 1, clientX: 0, clientY: 0, button: 0 });
     fireEvent.pointerMove(closeBtn, { pointerId: 1, clientX: 200, clientY: 160 });

@@ -430,6 +430,44 @@ export default function RadialActionMenu({
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose, onSlopPromptClose, slopPromptOpen]);
 
+  // Roving tabindex across visibleActions. Tab into the menu lands on the active
+  // index; arrow keys cycle within. Reset to 0 when the descriptor changes.
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const buttonRefs = useRef([]);
+  useEffect(() => {
+    setFocusedIndex(0);
+  }, [descriptor?.id, popoverMode]);
+  useEffect(() => {
+    if (popoverMode || !visibleActions.length) return;
+    const safe = Math.min(focusedIndex, visibleActions.length - 1);
+    const el = buttonRefs.current[safe];
+    if (el && document.activeElement && el !== document.activeElement) {
+      // Only steal focus if we're already inside the menu — never yank focus
+      // away from inputs or the canvas when the menu just rendered.
+      const active = document.activeElement;
+      const insideMenu = buttonRefs.current.some((b) => b === active);
+      if (insideMenu) el.focus();
+    }
+  }, [focusedIndex, popoverMode, visibleActions.length]);
+  function handleArcKeyDown(event) {
+    if (popoverMode) return;
+    if (!visibleActions.length) return;
+    const last = visibleActions.length - 1;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      setFocusedIndex((i) => (i >= last ? 0 : i + 1));
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      setFocusedIndex((i) => (i <= 0 ? last : i - 1));
+    } else if (event.key === 'Home') {
+      event.preventDefault();
+      setFocusedIndex(0);
+    } else if (event.key === 'End') {
+      event.preventDefault();
+      setFocusedIndex(last);
+    }
+  }
+
   if (!descriptor || !anchor || !layout) return null;
 
   function handleBackdropPointerDown(event) {
@@ -566,6 +604,7 @@ export default function RadialActionMenu({
       className={`radial-action-menu${popoverMode ? ' is-popover' : ''}${slopPrompt ? ' is-slop-prompt' : ''}`}
       role="menu"
       aria-label="Diagram selection actions"
+      onKeyDown={handleArcKeyDown}
     >
       <div
         className="radial-action-hit-area"
@@ -611,11 +650,15 @@ export default function RadialActionMenu({
             return (
               <button
                 key={action.id}
+                ref={(el) => { buttonRefs.current[index] = el; }}
                 type="button"
+                role="menuitem"
+                tabIndex={index === Math.min(focusedIndex, visibleActions.length - 1) ? 0 : -1}
                 className={className}
                 style={{ left: pos.x, top: pos.y }}
                 disabled={(busy && !(isExplainer || isExpander)) || action.disabled}
                 onClick={handleClick}
+                onFocus={() => setFocusedIndex(index)}
                 onPointerEnter={onHoverHold}
                 onPointerLeave={onHoverRelease}
                 aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}

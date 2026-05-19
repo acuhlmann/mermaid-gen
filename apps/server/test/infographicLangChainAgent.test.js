@@ -286,7 +286,10 @@ test('stable agent fallback runs the next attempt with the fallback agent when f
       return { messages: [{ role: 'assistant', content: 'I shall ponder.' }] };
     }
   };
-  // The "stable" agent — calls the tool on its first invocation.
+  // The "stable" agent — calls the tool on its first invocation. The DSL must satisfy the
+  // goMad transform policy (tier ≥ 3 requires a template family switch — see
+  // packages/shared/src/infographicTransformPolicy.js), otherwise applyDiagramSource is
+  // silently rejected and the assertion below would see the seed value.
   const stableAgent = {
     async invoke({ messages }) {
       calls += 1;
@@ -294,7 +297,7 @@ test('stable agent fallback runs the next attempt with the fallback agent when f
       await stateStore.applyDiagramSource({
         contentType: 'infographic',
         diagramSource:
-          'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label A',
+          'infographic compare-swot\n  data\n    items\n      - label A',
         reason: 'stable agent fallback'
       });
       return { messages: [{ role: 'assistant', content: 'Patched by stable.' }] };

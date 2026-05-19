@@ -1222,8 +1222,8 @@ export default function DiagramCanvas({
 
   const aria =
     contentType === 'infographic'
-      ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select.'
-      : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select.';
+      ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
+      : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
   const streamingLabel = contentType === 'infographic' ? 'Updating infographic…' : 'Updating diagram…';
   const zoomLayerStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
@@ -1247,6 +1247,8 @@ export default function DiagramCanvas({
             if (event.pointerType === 'mouse') scheduleHoverClose();
           }}
           aria-label={aria}
+          role="application"
+          tabIndex={0}
           data-run-variant={runFx?.streaming && runFx?.variant ? runFx.variant : undefined}
           data-run-intensity={runFx?.streaming ? runFx.intensity || 'normal' : undefined}
         >

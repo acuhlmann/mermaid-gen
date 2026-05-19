@@ -90,7 +90,9 @@ import {
 import ActionBootSequence from './components/ActionBootSequence.jsx';
 import StreakHud from './components/StreakHud.jsx';
 import ErrorToast from './components/ErrorToast.jsx';
+import HotkeyOverlay from './components/HotkeyOverlay.jsx';
 import { pushError } from './state/errorToastStore.js';
+import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
 import SlopitectCompanion from './components/SlopitectCompanion.jsx';
 import LiveRunHud from './components/LiveRunHud.jsx';
 import XpProgressBar from './components/XpProgressBar.jsx';
@@ -778,6 +780,7 @@ function ArchiSlop() {
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
   const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
   const [selectedNode, setSelectedNode] = useState(null);
+  const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
   /** Pinned radial menu; survives diagram hover leave until menu grace expires or explicit close. */
@@ -3476,6 +3479,13 @@ ${requirementsBlock}`;
     else if (action.id === 'fix') handleFixFromCritique('all');
   };
 
+  useDiagramHotkeys({
+    enabled: Boolean(radialMenuVisible && selectedNode && !busy),
+    descriptor: selectedNode,
+    onAction: handleRadialAction,
+    onToggleHelp: () => setHotkeyOverlayOpen((v) => !v)
+  });
+
   const radialActions = useMemo(() => {
     const list = [
       {
@@ -3708,6 +3718,7 @@ ${requirementsBlock}`;
 
       <ActionBootSequence trigger={bootSeq.trigger} variant={bootSeq.variant} />
       <ErrorToast />
+      <HotkeyOverlay open={hotkeyOverlayOpen} onClose={() => setHotkeyOverlayOpen(false)} />
       <StreakHud
         toasts={streakHudToasts}
         achievement={streakHudAchievement}
