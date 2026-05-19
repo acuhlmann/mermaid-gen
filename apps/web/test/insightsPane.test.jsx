@@ -49,9 +49,12 @@ describe('InsightsPane', () => {
             status: 'running',
             statusText: 'Working on your request...',
             content: '',
-            technicalActions: []
+            technicalActions: [],
+            phases: [{ id: 'invoke', label: 'Generate' }],
+            startedAt: Date.now() - 65_000
           }
         ]}
+        streakByVariant={{ refine: 3 }}
         celebratingEntryId={null}
       />
     );
@@ -60,6 +63,10 @@ describe('InsightsPane', () => {
     const entryPersona = screen.getByTestId('insights-entry-persona');
     expect(within(entryPersona).getByText('The Polisher')).toBeTruthy();
     expect(within(entryPersona).getByText('Engineer')).toBeTruthy();
+    const liveMeta = screen.getByTestId('insights-pane-live-meta');
+    expect(within(liveMeta).getByText('Refine')).toBeTruthy();
+    expect(within(liveMeta).getByText('🔥 ×3')).toBeTruthy();
+    expect(within(liveMeta).getByText('Phase 1')).toBeTruthy();
   });
 
   it('shows the diagram mode, brain, and start time on each run entry', () => {
@@ -113,6 +120,8 @@ describe('InsightsPane', () => {
 
     expect(screen.getByText('Done')).toBeTruthy();
     expect(screen.getByText('Thinking')).toBeTruthy();
+    expect(screen.queryByTestId('insights-pane-persona')).toBeNull();
+    expect(screen.queryByTestId('insights-tagline')).toBeNull();
   });
 
   it('shows Restore when entry has an after-snapshot and invokes handler', () => {

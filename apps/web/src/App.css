@@ -8,8 +8,26 @@
   --accent-dark: #1d4ed8;
   --danger: #b91c1c;
   --app-vvh: 100dvh;
+
+  /* Modal / overlay shared tokens. */
+  --modal-backdrop: rgba(20, 14, 36, 0.55);
+  --modal-backdrop-strong: rgba(20, 14, 36, 0.65);
+  --modal-card-bg: #ffffff;
+  --modal-card-radius: 18px;
+  --modal-card-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+
+  /* Z-index scale. Names the existing layering; does not change order. */
+  --z-brand: 25;
+  --z-bottom-chrome: 26;
+  --z-editor: 28;
+  --z-radial: 29;
+  --z-radial-popover: 120;
+  --z-modal: 220;
+  --z-modal-strong: 250;
   /* Ephemeral persona / ceremony animations (boot headline, streak banners, run mascots). */
   --z-ceremony-overlay: 10100;
+  --z-toast: 2147483000;
+  --z-error-boundary: 2147483600;
 }
 
 .app-shell {
@@ -35,6 +53,7 @@
 }
 
 .diagram-main-column {
+  position: relative;
   min-width: 0;
   min-height: 0;
   display: grid;
@@ -54,22 +73,22 @@
 }
 
 /* Code editor open: keep diagram shell (and Monaco column) above the fixed brand
-   chip (z-index: 25). Bump radial base layer so the menu stays usable; popover
+   chip (var(--z-brand)). Bump radial base layer so the menu stays usable; popover
    variants keep their higher z-index. Edit / Done corner controls stay on top. */
 .app-shell.is-editor-open .diagram-canvas {
-  z-index: 28;
+  z-index: var(--z-editor);
 }
 
 .app-shell.is-editor-open .radial-action-menu {
-  z-index: 29;
+  z-index: var(--z-radial);
 }
 
 .app-shell.is-editor-open .radial-action-menu.is-popover,
 .app-shell.is-editor-open .radial-action-menu.is-slop-prompt {
-  z-index: 120;
+  z-index: var(--z-radial-popover);
 }
 
-.app-shell.is-editor-open .edit-control,
+.app-shell.is-editor-open .top-corner-controls,
 .app-shell.is-editor-open .editor-done-bar {
   z-index: 35;
 }
@@ -504,16 +523,11 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding-top: 4.75rem;
+  padding-top: 1rem;
   background: rgba(253, 251, 255, 0.96);
   border-left: 1px solid rgba(15, 23, 42, 0.1);
   box-shadow: -12px 0 36px rgba(15, 23, 42, 0.08);
   animation: insights-pane-slide-in 260ms cubic-bezier(0.22, 0.61, 0.36, 1) both;
-}
-
-/* Code button sits top-right; when hidden, reclaim that clearance. */
-.app-shell:not(.has-edit-control) .insights-pane {
-  padding-top: 1rem;
 }
 
 .insights-pane.is-closing {
@@ -551,11 +565,113 @@
 
 .insights-pane-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 0.85rem 0.45rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.55rem;
+  padding: 0.75rem 0.85rem 0.55rem;
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  flex-shrink: 0;
+}
+
+.insights-pane-header-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.38rem;
+  min-width: 0;
+}
+
+.insights-pane-header-meta .insights-entry-persona.is-size-pane {
+  margin: 0;
+}
+
+.insights-pane-live-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.insights-pane-live-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(15, 23, 42, 0.82);
+}
+
+.insights-pane-live-chip.is-action {
+  text-transform: uppercase;
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.insights-pane-live-chip.is-phase {
+  max-width: 100%;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.insights-pane-live-chip.is-step {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.75;
+}
+
+.insights-pane-live-chip.is-clock {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+.insights-pane-live-chip.is-streak {
+  background: rgba(255, 195, 0, 0.16);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #b45309;
+}
+
+.insights-pane-live-meta.is-variant-refine .insights-pane-live-chip.is-action {
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.28);
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.insights-pane-live-meta.is-variant-innovate .insights-pane-live-chip.is-action {
+  color: #7c3aed;
+  border-color: rgba(168, 85, 247, 0.28);
+  background: rgba(168, 85, 247, 0.1);
+}
+
+.insights-pane-live-meta.is-variant-go-mad .insights-pane-live-chip.is-action {
+  color: #db2777;
+  border-color: rgba(236, 72, 153, 0.35);
+  background: rgba(236, 72, 153, 0.12);
+}
+
+.insights-pane-live-meta.is-variant-critique .insights-pane-live-chip.is-action {
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.28);
+  background: rgba(185, 28, 28, 0.08);
+}
+
+.insights-pane-live-meta.is-variant-explain .insights-pane-live-chip.is-action {
+  color: #0f766e;
+  border-color: rgba(13, 148, 136, 0.28);
+  background: rgba(13, 148, 136, 0.1);
+}
+
+.insights-pane-live-meta.is-variant-exec .insights-pane-live-chip.is-action {
+  color: #1e3a8a;
+  border-color: rgba(30, 58, 138, 0.28);
+  background: rgba(30, 58, 138, 0.1);
 }
 
 .insights-pane-header.is-live {
@@ -3174,9 +3290,29 @@
   }
 }
 
-.edit-control {
+.top-corner-controls {
   top: 1rem;
   right: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.42rem;
+  z-index: 26;
+}
+
+.code-toggle-button.is-open {
+  border-color: rgba(37, 99, 235, 0.45);
+  background: linear-gradient(135deg, rgba(239, 246, 255, 0.98), rgba(255, 255, 255, 0.92));
+}
+
+@media (min-width: 1025px) {
+  .app-shell.is-insights-open:not(.is-editor-open) .top-corner-controls {
+    right: calc(max(260px, 30vw) + 1rem);
+  }
+
+  .app-shell.is-insights-open.is-editor-open .top-corner-controls {
+    right: calc(max(260px, 30vw) + max(320px, 38vw) + 1rem);
+  }
 }
 
 .bottom-chrome {
@@ -3188,11 +3324,11 @@
   align-items: flex-end;
   gap: 0.75rem;
   pointer-events: none;
-  /* Sit above .brand-control (z-index: 25) so the stakeholders speech bubble
+  /* Sit above .brand-control (var(--z-brand)) so the stakeholders speech bubble
      — which pops up from the dock at the bottom — can render over the top-left
      logo on short screens where the two regions overlap. Modals still win
-     (they're z-index >= 200). */
-  z-index: 26;
+     (they're var(--z-modal) and higher). */
+  z-index: var(--z-bottom-chrome);
 }
 
 .bottom-chrome .prompt-stack,
@@ -3668,7 +3804,8 @@
   color: var(--accent-dark);
 }
 
-.thinking-toggle-button {
+.thinking-toggle-button,
+.code-toggle-button {
   flex-shrink: 0;
 }
 
@@ -4997,12 +5134,20 @@ button {
     bottom: calc(0.75rem + env(safe-area-inset-bottom));
     z-index: 26;
     pointer-events: auto;
+    width: auto;
+    min-width: 0;
+    padding-inline: 0.62rem;
   }
 
-  /* Stack above the Hide button so both stay reachable bottom-right. */
   .insights-stop-stream-btn {
     position: fixed;
+    right: 0.75rem;
     bottom: calc(0.75rem + 2.85rem + env(safe-area-inset-bottom));
+    z-index: 26;
+  }
+
+  .app-shell.is-insights-open .top-corner-controls {
+    z-index: 49;
   }
 
   .brand-control {
@@ -5015,16 +5160,12 @@ button {
     font-size: 0.86rem;
   }
 
-  .edit-control {
-    top: 0.75rem;
-    right: 0.75rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 0.4rem;
+  .top-corner-controls {
+    top: calc(0.75rem + env(safe-area-inset-top));
+    right: calc(0.75rem + env(safe-area-inset-right));
   }
 
-  .app-shell.is-editor-open .edit-control {
+  .app-shell.is-editor-open .top-corner-controls {
     display: none;
   }
 
@@ -5232,7 +5373,7 @@ button {
    Code button starts overlapping it. Drop the Code button to a second row below
    the brand, still right-aligned. */
 @media (max-width: 640px) {
-  .app-shell:not(.is-editor-open) .edit-control {
+  .app-shell:not(.is-editor-open) .top-corner-controls {
     top: calc(env(safe-area-inset-top) + 4.4rem);
     right: max(0.75rem, env(safe-area-inset-right));
   }
@@ -6012,6 +6153,49 @@ button {
  *  All hype animations gate on @media (prefers-reduced-motion: no-preference).
  *  ────────────────────────────────────────────────────────────────────── */
 
+/* ── Run ceremony anchoring (viewport vs canvas vs Thinking pane) ── */
+.run-ceremony-layer.is-anchor-canvas,
+.run-ceremony-layer.is-anchor-insights {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+  z-index: var(--z-ceremony-overlay);
+}
+
+.run-ceremony-layer.is-anchor-insights {
+  /* Above scrollable body; dismiss / stop controls stay fixed above the pane. */
+  z-index: 12;
+}
+
+.run-ceremony-layer.is-anchor-canvas .streak-hud-root,
+.run-ceremony-layer.is-anchor-insights .streak-hud-root {
+  position: absolute;
+  inset: 0;
+}
+
+.run-ceremony-layer.is-anchor-canvas .boot-sequence-overlay,
+.run-ceremony-layer.is-anchor-insights .boot-sequence-overlay,
+.run-ceremony-layer.is-anchor-canvas .slopitect-companion,
+.run-ceremony-layer.is-anchor-insights .slopitect-companion,
+.run-ceremony-layer.is-anchor-canvas .live-run-hud,
+.run-ceremony-layer.is-anchor-insights .live-run-hud {
+  position: absolute;
+}
+
+.run-ceremony-layer.is-anchor-canvas .streak-hud-toast-column,
+.run-ceremony-layer.is-anchor-canvas .streak-hud-achievement,
+.run-ceremony-layer.is-anchor-canvas .streak-hud-level-up,
+.run-ceremony-layer.is-anchor-insights .streak-hud-toast-column,
+.run-ceremony-layer.is-anchor-insights .streak-hud-achievement,
+.run-ceremony-layer.is-anchor-insights .streak-hud-level-up {
+  max-width: min(26rem, calc(100% - 2rem));
+}
+
+.insights-pane:has(.run-ceremony-layer) {
+  position: relative;
+}
+
 /* ── ActionBootSequence overlay ─────────────────────────────── */
 .boot-sequence-overlay {
   position: fixed;
@@ -6262,7 +6446,7 @@ button {
   box-shadow: 0 1px 6px rgba(40, 30, 60, 0.06);
 }
 .insights-entry-persona.is-size-pane {
-  margin: 0.35rem 0 0.15rem;
+  margin: 0;
   padding: 0.42rem 0.55rem;
 }
 .insights-entry-persona.is-size-note {
@@ -6353,7 +6537,8 @@ button {
   text-transform: uppercase;
   color: rgba(40, 30, 60, 0.55);
   font-weight: 600;
-  margin-top: 2px;
+  margin: 0;
+  line-height: 1.35;
 }
 .insights-pane.is-variant-go-mad .insights-pane-tagline {
   color: #ec4899;
@@ -8815,128 +9000,42 @@ body.slopitect-rainbow-tint::before {
   }
 }
 
-/* Legacy prompt modal styles (unused) ───────────────────────────────── */
-.prompt-modal-overlay {
+/* ── Shared modal overlay + card base ────────────────────────────────
+ * Targets the legacy class names of every modal in the app, so no JSX
+ * needs to change. Per-modal blocks below override width, padding,
+ * z-index, and any decorative accents. */
+.clear-confirm-overlay,
+.hotkey-overlay,
+.app-error-boundary-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(20, 14, 36, 0.55);
+  background: var(--modal-backdrop);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 220;
   padding: 16px;
   backdrop-filter: blur(2px);
 }
 
-.prompt-modal-card {
-  background: #fff;
-  border-radius: 18px;
-  padding: 20px 22px 18px;
-  width: min(520px, 94vw);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+.clear-confirm-card,
+.hotkey-overlay-card,
+.app-error-boundary-card {
+  background: var(--modal-card-bg);
+  border-radius: var(--modal-card-radius);
+  box-shadow: var(--modal-card-shadow);
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.prompt-modal-header {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.prompt-modal-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 0.62rem;
-  background: linear-gradient(135deg, #38bdf8, #14b8a6);
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(20, 184, 166, 0.32);
-}
-
-.prompt-modal-eyebrow svg {
-  display: block;
-  width: 18px;
-  height: 18px;
-}
-
-.prompt-modal-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  color: #1a1235;
-}
-
-.prompt-modal-close {
-  appearance: none;
-  border: none;
-  background: transparent;
-  font-size: 1.4rem;
-  line-height: 1;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.2rem 0.45rem;
-  border-radius: 0.6rem;
-  transition: background 160ms ease, color 160ms ease;
-}
-
-.prompt-modal-close:hover,
-.prompt-modal-close:focus-visible {
-  background: rgba(15, 23, 42, 0.08);
-  color: #0f172a;
-  outline: none;
-}
-
-.prompt-modal-input {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid var(--control-border);
-  border-radius: 999px;
-  padding: 0.78rem 1rem;
-  background: var(--control-bg);
-  color: var(--text);
-  font: inherit;
-  outline: none;
-}
-
-.prompt-modal-input:focus {
-  border-color: rgba(20, 184, 166, 0.55);
-  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.16);
-}
-
-.prompt-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.45rem;
+  gap: 12px;
 }
 
 /* ── Clear/demolish confirmation ─────────────────────────────────────── */
 .clear-confirm-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 14, 36, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 220;
-  padding: 16px;
-  backdrop-filter: blur(2px);
+  z-index: var(--z-modal);
 }
 
 .clear-confirm-card {
-  background: #fff;
-  border-radius: 18px;
   padding: 22px 24px 20px;
   width: min(440px, 94vw);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
   position: relative;
   overflow: hidden;
 }
@@ -9607,26 +9706,12 @@ body.slopitect-rainbow-tint::before {
 
 /* ── Hotkey overlay ──────────────────────────────────────────────── */
 .hotkey-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 14, 36, 0.55);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 250;
-  padding: 16px;
-  backdrop-filter: blur(2px);
+  z-index: var(--z-modal-strong);
 }
 .hotkey-overlay-card {
-  background: #fff;
-  border-radius: 16px;
   padding: 20px 24px 24px;
   max-width: 480px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 .hotkey-overlay-header {
   display: flex;
@@ -9642,22 +9727,26 @@ body.slopitect-rainbow-tint::before {
   appearance: none;
   border: 0;
   background: transparent;
-  color: #444;
+  color: var(--muted);
   cursor: pointer;
   font-size: 22px;
   line-height: 1;
   padding: 2px 8px;
   border-radius: 6px;
+  transition: background 160ms ease, color 160ms ease;
 }
-.hotkey-overlay-close:hover { background: rgba(0, 0, 0, 0.06); }
+.hotkey-overlay-close:hover {
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--text);
+}
 .hotkey-overlay-close:focus-visible {
-  outline: 2px solid #2563eb;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .hotkey-overlay-hint {
   margin: 0;
   font-size: 13px;
-  color: #555;
+  color: var(--muted);
 }
 .hotkey-overlay-list {
   list-style: none;
@@ -9681,58 +9770,45 @@ body.slopitect-rainbow-tint::before {
   padding: 2px 6px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
-  background: #f3f4f6;
-  border: 1px solid #d1d5db;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--control-border);
   border-bottom-width: 2px;
   border-radius: 5px;
   text-align: center;
-  color: #1f2937;
+  color: var(--text);
 }
 .hotkey-overlay-label {
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text);
   display: flex;
   align-items: center;
 }
 
 /* ── App-level error boundary fallback ───────────────────────────── */
 .app-error-boundary-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(20, 14, 36, 0.65);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2147483600;
-  padding: 16px;
-  backdrop-filter: blur(2px);
+  background: var(--modal-backdrop-strong);
+  z-index: var(--z-error-boundary);
 }
 .app-error-boundary-card {
-  background: #fff;
-  border-radius: 16px;
   padding: 24px;
   max-width: 520px;
   width: 100%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 .app-error-boundary-title {
   font-size: 18px;
   margin: 0;
-  color: #7f1d1d;
+  color: var(--danger);
 }
 .app-error-boundary-explainer {
   font-size: 14px;
-  color: #333;
+  color: var(--text);
   margin: 0;
 }
 .app-error-boundary-message {
   font-size: 13px;
-  color: #7f1d1d;
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 6%, white);
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, white);
   border-radius: 8px;
   padding: 8px 10px;
   margin: 0;
@@ -9747,25 +9823,26 @@ body.slopitect-rainbow-tint::before {
 .app-error-boundary-reload {
   appearance: none;
   border: 0;
-  background: #2563eb;
+  background: var(--accent);
   color: #fff;
   font-weight: 600;
   font-size: 14px;
   padding: 8px 16px;
   border-radius: 8px;
   cursor: pointer;
+  transition: background 160ms ease;
 }
-.app-error-boundary-reload:hover { background: #1d4ed8; }
+.app-error-boundary-reload:hover { background: var(--accent-dark); }
 .app-error-boundary-reload:focus-visible {
-  outline: 2px solid #1e3a8a;
+  outline: 2px solid var(--accent-dark);
   outline-offset: 2px;
 }
 .app-error-boundary-details {
   font-size: 12px;
-  color: #555;
+  color: var(--muted);
 }
 .app-error-boundary-stack {
-  background: #f5f5f5;
+  background: rgba(15, 23, 42, 0.04);
   border-radius: 6px;
   padding: 8px;
   max-height: 220px;
@@ -9781,7 +9858,7 @@ body.slopitect-rainbow-tint::before {
   position: fixed;
   left: 24px;
   bottom: 24px;
-  z-index: 2147483000;
+  z-index: var(--z-toast);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -9795,10 +9872,10 @@ body.slopitect-rainbow-tint::before {
   gap: 12px;
   padding: 10px 12px 10px 14px;
   border-radius: 10px;
-  background: #fef2f2;
-  color: #7f1d1d;
-  border: 1px solid #fca5a5;
-  box-shadow: 0 8px 22px rgba(127, 29, 29, 0.18);
+  background: color-mix(in srgb, var(--danger) 6%, white);
+  color: var(--danger);
+  border: 1px solid color-mix(in srgb, var(--danger) 28%, white);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--danger) 18%, transparent);
   font-size: 14px;
   line-height: 1.35;
 }
@@ -9811,16 +9888,17 @@ body.slopitect-rainbow-tint::before {
   appearance: none;
   border: 0;
   background: transparent;
-  color: #7f1d1d;
+  color: var(--danger);
   cursor: pointer;
   font-size: 18px;
   line-height: 1;
   padding: 2px 6px;
   border-radius: 6px;
+  transition: background 160ms ease;
 }
-.error-toast-dismiss:hover { background: rgba(127, 29, 29, 0.08); }
+.error-toast-dismiss:hover { background: color-mix(in srgb, var(--danger) 10%, transparent); }
 .error-toast-dismiss:focus-visible {
-  outline: 2px solid #b91c1c;
+  outline: 2px solid var(--danger);
   outline-offset: 2px;
 }
 

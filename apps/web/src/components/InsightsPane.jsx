@@ -7,7 +7,6 @@ import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
 import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
-import SlopitectStatusBoard from './SlopitectStatusBoard.jsx';
 import { getVariantPersona, phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
 
 const SLOPITECT_VARIANT_CLASS = {
@@ -20,6 +19,15 @@ const SLOPITECT_VARIANT_CLASS = {
 };
 
 const TIP_ROTATION_MS = 7000;
+
+const VARIANT_ACTION_LABELS = {
+  refine: 'Refine',
+  innovate: 'Innovate',
+  goMad: 'Go Mad',
+  critique: 'Critique',
+  explain: 'Explain',
+  exec: 'Exec'
+};
 
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
@@ -141,6 +149,53 @@ function isAccentuatedInsightVariant(variant) {
 function personaBannerClass(variant) {
   const mapped = SLOPITECT_VARIANT_CLASS[variant];
   return mapped ? `insights-entry-persona ${mapped}` : 'insights-entry-persona';
+}
+
+/** Live-run chips in the pane header (replaces top-right LiveRunHud when Thinking is open). */
+function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0 }) {
+  const now = useElapsedNow(true);
+  const started = Number.isFinite(startedAt) ? startedAt : null;
+  const elapsedLabel = started != null ? formatElapsedDuration(now - started) : '';
+  const latestPhase = Array.isArray(phases) && phases.length > 0 ? phases[phases.length - 1] : null;
+  const ceremonyLabel =
+    latestPhase?.id != null
+      ? phaseCeremonyLabel(variant, latestPhase.id, latestPhase.label)
+      : null;
+  const actionLabel = VARIANT_ACTION_LABELS[variant] || null;
+  const phaseStep = phases?.length ? phases.length : 0;
+
+  if (!actionLabel && !ceremonyLabel && !elapsedLabel && streak < 2) return null;
+
+  return (
+    <div
+      className={`insights-pane-live-meta ${SLOPITECT_VARIANT_CLASS[variant] || ''}`.trim()}
+      role="status"
+      aria-live="polite"
+      data-testid="insights-pane-live-meta"
+    >
+      {actionLabel ? (
+        <span className="insights-pane-live-chip is-action">{actionLabel}</span>
+      ) : null}
+      {ceremonyLabel ? (
+        <span className="insights-pane-live-chip is-phase" title={ceremonyLabel}>
+          {ceremonyLabel}
+        </span>
+      ) : null}
+      {phaseStep > 0 ? (
+        <span className="insights-pane-live-chip is-step" aria-hidden={!phaseStep}>
+          Phase {phaseStep}
+        </span>
+      ) : null}
+      {elapsedLabel ? (
+        <span className="insights-pane-live-chip is-clock">{elapsedLabel}</span>
+      ) : null}
+      {streak >= 2 ? (
+        <span className="insights-pane-live-chip is-streak" title={`${actionLabel || variant} streak`}>
+          🔥 ×{streak}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 /** Who is driving this run — emoji, name, and role title. */
@@ -795,7 +850,9 @@ function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast, pha
 }
 
 export default function InsightsPane({
+  ceremonySlot = null,
   entries,
+  streakByVariant = null,
   celebratingEntryId,
   streamDebugEnabled = false,
   critiqueActionableUi = null,
@@ -830,12 +887,16 @@ export default function InsightsPane({
       onRestoreDiagramSnapshot
     };
   }
+  const liveEntry = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running') ?? null;
   const activeVariant = (() => {
-    const liveEntry = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running' && e.variant);
-    if (liveEntry) return liveEntry.variant;
+    if (liveEntry?.variant) return liveEntry.variant;
     const latestWithVariant = [...entries].reverse().find((e) => e.variant);
     return latestWithVariant?.variant ?? null;
   })();
+  const liveStreak =
+    activeVariant && streakByVariant && typeof streakByVariant === 'object'
+      ? streakByVariant[activeVariant] ?? 0
+      : 0;
   const slopitectVariantClass =
     activeVariant && SLOPITECT_VARIANT_CLASS[activeVariant] ? SLOPITECT_VARIANT_CLASS[activeVariant] : '';
   const slopitectTagline = activeVariant ? VARIANT_TAGLINES[activeVariant] : null;
@@ -865,6 +926,7 @@ export default function InsightsPane({
       aria-label="Thoughts and analysis"
       data-variant={activeVariant || undefined}
     >
+      {ceremonySlot}
       <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
         <div className="insights-pane-title-row">
           <span className="insights-pane-title">Thinking</span>
@@ -875,11 +937,21 @@ export default function InsightsPane({
             </span>
           ) : null}
         </div>
-        {activeVariant ? <InsightEntryPersonaBanner variant={activeVariant} size="pane" /> : null}
-        {slopitectTagline ? (
-          <span className="insights-pane-tagline" data-testid="insights-tagline">
-            {slopitectTagline}
-          </span>
+        {hasLiveAgent && liveEntry?.variant ? (
+          <div className="insights-pane-header-meta">
+            <InsightEntryPersonaBanner variant={liveEntry.variant} size="pane" />
+            <InsightsPaneLiveRunMeta
+              variant={liveEntry.variant}
+              phases={liveEntry.phases}
+              startedAt={liveEntry.startedAt}
+              streak={liveStreak}
+            />
+            {slopitectTagline ? (
+              <span className="insights-pane-tagline" data-testid="insights-tagline">
+                {slopitectTagline}
+              </span>
+            ) : null}
+          </div>
         ) : null}
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
@@ -1146,10 +1218,6 @@ export default function InsightsPane({
                       ) : null}
                     </div>
                   </div>
-                ) : null}
-
-                {isRunning && entry.phases?.length ? (
-                  <SlopitectStatusBoard variant={variant} phases={entry.phases} />
                 ) : null}
 
                 {entry.phases?.length ? (

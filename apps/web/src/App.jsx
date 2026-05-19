@@ -87,14 +87,11 @@ import {
   playToolStartChime,
   playXpPickup
 } from './utils/agentChimes.js';
-import ActionBootSequence from './components/ActionBootSequence.jsx';
-import StreakHud from './components/StreakHud.jsx';
+import RunCeremonyOverlays from './components/RunCeremonyOverlays.jsx';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
 import { pushError } from './state/errorToastStore.js';
 import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
-import SlopitectCompanion from './components/SlopitectCompanion.jsx';
-import LiveRunHud from './components/LiveRunHud.jsx';
 import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
@@ -3587,9 +3584,32 @@ ${requirementsBlock}`;
   }, [canFixFromCritique, goMadStreak, latestCritique?.text]);
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(insightsOpen, 240);
+  const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');
+  const liveVariant = liveStreamingEntry?.variant ?? null;
+  const ceremonyAnchor =
+    insightsMounted && insightsOpen
+      ? narrowLayout
+        ? 'insights'
+        : 'canvas'
+      : 'viewport';
+  const ceremonyOverlays = (
+    <RunCeremonyOverlays
+      anchor={ceremonyAnchor}
+      bootSeq={bootSeq}
+      toasts={streakHudToasts}
+      achievement={streakHudAchievement}
+      levelUp={streakHudLevelUp}
+      liveVariant={liveVariant}
+      liveStreaming={Boolean(liveStreamingEntry)}
+      showLiveRunHud={Boolean(liveStreamingEntry) && !insightsOpen}
+      liveStreak={gamification?.streakByVariant?.[liveVariant] ?? 0}
+    />
+  );
   const insightsSlot = insightsMounted ? (
     <InsightsPane
+      ceremonySlot={ceremonyAnchor === 'insights' ? ceremonyOverlays : null}
       entries={insightsEntries}
+      streakByVariant={gamification?.streakByVariant}
       celebratingEntryId={celebratingEntryId}
       streamDebugEnabled={streamDebugEnabled}
       critiqueActionableUi={critiqueActionableUi}
@@ -3614,9 +3634,6 @@ ${requirementsBlock}`;
     />
   ) : null;
 
-  // Pick a variant for shell-level FX during an active stream.
-  const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');
-  const liveVariant = liveStreamingEntry?.variant ?? null;
   return (
     <main
       className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasDiagramText || editorOpen ? ' has-edit-control' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
@@ -3640,6 +3657,7 @@ ${requirementsBlock}`;
         editorOpen={editorOpen}
         insightsOpen={insightsMounted && Boolean(insightsSlot)}
         insightsSlot={insightsSlot}
+        ceremonySlot={ceremonyAnchor === 'canvas' ? ceremonyOverlays : null}
         selectedNode={selectedNode}
         hoverDescriptor={hoverDescriptor}
         onSelectedNodeChange={handleSelectedNodeChange}
@@ -3716,25 +3734,9 @@ ${requirementsBlock}`;
         onClose={closeRadialMenu}
       />
 
-      <ActionBootSequence trigger={bootSeq.trigger} variant={bootSeq.variant} />
+      {ceremonyAnchor === 'viewport' ? ceremonyOverlays : null}
       <ErrorToast />
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={() => setHotkeyOverlayOpen(false)} />
-      <StreakHud
-        toasts={streakHudToasts}
-        achievement={streakHudAchievement}
-        levelUp={streakHudLevelUp}
-      />
-      <SlopitectCompanion
-        key={`companion-${bootSeq.trigger}`}
-        variant={liveVariant}
-        streaming={Boolean(liveStreamingEntry)}
-      />
-      <LiveRunHud
-        key={`live-${bootSeq.trigger}`}
-        variant={liveVariant}
-        streaming={Boolean(liveStreamingEntry)}
-        streak={gamification?.streakByVariant?.[liveVariant] ?? 0}
-      />
 
       <div
         className={`corner-control brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
@@ -3880,10 +3882,17 @@ ${requirementsBlock}`;
       />
 
       {hasDiagramText || editorOpen ? (
-        <div className="corner-control edit-control">
-          <button type="button" className="overlay-button" onClick={() => setEditorOpen((current) => !current)}>
+        <div className="corner-control top-corner-controls" aria-label="Code editor">
+          <button
+            type="button"
+            className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
+            onClick={() => setEditorOpen((current) => !current)}
+            aria-expanded={editorOpen}
+            aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
+            title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
+          >
             <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
-            {editorOpen ? 'Close' : 'Code'}
+            <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
           </button>
         </div>
       ) : null}

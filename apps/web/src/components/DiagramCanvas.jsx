@@ -151,6 +151,7 @@ export default function DiagramCanvas({
   editorOpen = false,
   insightsOpen = false,
   insightsSlot = null,
+  ceremonySlot = null,
   selectedNode = null,
   hoverDescriptor = null,
   onSelectedNodeChange,
@@ -1236,6 +1237,7 @@ export default function DiagramCanvas({
   return (
     <section className={shellClass}>
       <div className="diagram-main-column">
+        {ceremonySlot}
         <div
           ref={diagramSurfaceRef}
           className={`diagram-output ${isPanning ? 'is-panning' : ''} ${agentThinking ? 'is-agent-thinking' : ''}`}
