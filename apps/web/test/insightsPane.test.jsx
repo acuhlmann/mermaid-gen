@@ -38,6 +38,30 @@ describe('InsightsPane', () => {
     expect(screen.getByText('Live')).toBeTruthy();
   });
 
+  it('shows persona attribution for variant runs', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-persona',
+            title: 'Refine - diagram',
+            variant: 'refine',
+            status: 'running',
+            statusText: 'Working on your request...',
+            content: '',
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByTestId('insights-pane-persona')).toBeTruthy();
+    const entryPersona = screen.getByTestId('insights-entry-persona');
+    expect(within(entryPersona).getByText('The Polisher')).toBeTruthy();
+    expect(within(entryPersona).getByText('Engineer')).toBeTruthy();
+  });
+
   it('shows the diagram mode, brain, and start time on each run entry', () => {
     const fixedTime = new Date('2024-04-05T09:07:00').getTime();
     render(
@@ -46,6 +70,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-meta',
             title: 'Refine - diagram',
+            variant: 'refine',
             status: 'running',
             statusText: 'Working on your request...',
             content: '',
@@ -75,6 +100,7 @@ describe('InsightsPane', () => {
           {
             id: 'entry-1',
             title: 'Refine - diagram',
+            variant: 'refine',
             status: 'done',
             statusText: 'Done',
             content: 'Applied.',

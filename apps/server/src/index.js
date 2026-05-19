@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
+import { buildProductionContentSecurityPolicy } from './security/productionCsp.js';
 import cors from 'cors';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -81,17 +82,7 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   if (process.env.NODE_ENV === 'production') {
-    res.setHeader(
-      'Content-Security-Policy',
-      [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-        "img-src 'self' data: https:",
-        "connect-src 'self' https: wss:",
-        "font-src 'self' data:"
-      ].join('; ')
-    );
+    res.setHeader('Content-Security-Policy', buildProductionContentSecurityPolicy());
   }
   next();
 });

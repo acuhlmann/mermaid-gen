@@ -1,3 +1,4 @@
+import './setupMonaco.js';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import '@copilotkit/react-core/v2/styles.css';

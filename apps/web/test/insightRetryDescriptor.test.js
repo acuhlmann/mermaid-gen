@@ -32,6 +32,22 @@ describe('insightRetryDescriptor', () => {
     ).toBeNull();
   });
 
+  it('builds transform descriptor for Co-Design (exec)', () => {
+    const d = buildInsightRetryDescriptor({
+      operation: 'transform',
+      variant: 'exec',
+      modelProfile: 'fast',
+      payload: { mode: 'exec' }
+    });
+    expect(d).toEqual(
+      expect.objectContaining({
+        operation: 'transform',
+        variant: 'exec',
+        mode: 'exec'
+      })
+    );
+  });
+
   it('detects retry UI eligibility', () => {
     const entry = {
       status: 'failed',

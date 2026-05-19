@@ -141,6 +141,7 @@ import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
 import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
+import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import { MOBILE_MEDIA_QUERY, COMPACT_BRAND_MEDIA_QUERY } from './utils/layoutBreakpoints.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 
@@ -2865,16 +2866,17 @@ ${requirementsBlock}`;
     pause: advisorPause,
     initialMuted: readAdvisorMuted(),
     onAccept: (text, persona) => {
-      const transformPersonas = new Set(['refine', 'innovate', 'goMad', 'exec']);
-      if (transformPersonas.has(persona) && (stateRef.current?.diagramSource ?? '').trim()) {
+      const hasDiagram = Boolean((stateRef.current?.diagramSource ?? '').trim());
+      const operation = resolveAdvisorAcceptOperation(persona, hasDiagram);
+      if (operation === 'transform') {
         void runTransform(persona, { advisorPrompt: text, variantOverride: persona });
         return;
       }
-      const intentPersonas = new Set(['critique', 'explain']);
-      void submitIntentWithPrompt(text, {
-        variantOverride: persona,
-        ...(intentPersonas.has(persona) ? { transformPersona: persona } : {})
-      });
+      if (operation === 'analyze') {
+        void runAnalyze(persona);
+        return;
+      }
+      void submitIntentWithPrompt(text, { variantOverride: persona });
     }
   });
 
@@ -3801,6 +3803,7 @@ ${requirementsBlock}`;
             />
             </div>
           ) : null}
+        </div>
         {xpInfoPanelOpen && gamification?.level ? (
           <div
             id="levelup-info-panel"
@@ -3825,7 +3828,6 @@ ${requirementsBlock}`;
             />
           </div>
         ) : null}
-        </div>
         {slopitectTip ? (
           <div
             className="slopitect-tip-chip"

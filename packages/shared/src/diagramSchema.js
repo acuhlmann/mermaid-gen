@@ -145,6 +145,23 @@ export const DiagramAnalyzeSchema = z.object({
   modelProfile: ModelProfileSchema.optional()
 });
 
+/**
+ * Strips invalid `transformPersona` values from intent stream payloads so a UI bug
+ * cannot turn into HTTP 400 before the agent runs.
+ * @param {unknown} payload
+ * @returns {typeof payload}
+ */
+export function sanitizeAgentStreamPayload(payload) {
+  if (!payload || typeof payload !== 'object' || payload.operation !== 'intent') {
+    return payload;
+  }
+  if (payload.transformPersona == null) return payload;
+  const parsed = TransformPersonaSchema.safeParse(payload.transformPersona);
+  if (parsed.success) return payload;
+  const { transformPersona: _removed, ...rest } = payload;
+  return rest;
+}
+
 export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
   z
     .object({

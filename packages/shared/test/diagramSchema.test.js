@@ -7,6 +7,7 @@ import {
   AgentProposalSchema,
   AgentReactionSchema,
   AgentStreamPayloadSchema,
+  sanitizeAgentStreamPayload,
   ContentTypeSchema,
   DEFAULT_DIAGRAM_STYLE,
   DiagramAnalyzeSchema,
@@ -461,4 +462,31 @@ test('AgentInsightSchema defaults variant to note', () => {
     createdAt: new Date().toISOString()
   });
   assert.equal(result.variant, 'note');
+});
+
+test('sanitizeAgentStreamPayload drops invalid transformPersona on intent', () => {
+  const payload = {
+    operation: 'intent',
+    prompt: 'hello',
+    revisionId: 0,
+    diagramSource: '',
+    settings: {},
+    transformPersona: 'critique'
+  };
+  const sanitized = sanitizeAgentStreamPayload(payload);
+  assert.equal(sanitized.transformPersona, undefined);
+  assert.equal(sanitized.prompt, 'hello');
+});
+
+test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
+  const payload = {
+    operation: 'intent',
+    prompt: 'hello',
+    revisionId: 0,
+    diagramSource: '',
+    settings: {},
+    transformPersona: 'refine'
+  };
+  const sanitized = sanitizeAgentStreamPayload(payload);
+  assert.equal(sanitized.transformPersona, 'refine');
 });

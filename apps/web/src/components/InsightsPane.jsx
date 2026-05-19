@@ -8,14 +8,15 @@ import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
 import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
 import SlopitectStatusBoard from './SlopitectStatusBoard.jsx';
-import { phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
+import { getVariantPersona, phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
 
 const SLOPITECT_VARIANT_CLASS = {
   refine: 'is-variant-refine',
   innovate: 'is-variant-innovate',
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',
-  explain: 'is-variant-explain'
+  explain: 'is-variant-explain',
+  exec: 'is-variant-exec'
 };
 
 const TIP_ROTATION_MS = 7000;
@@ -132,7 +133,35 @@ function isAccentuatedInsightVariant(variant) {
     variant === 'explain' ||
     variant === 'refine' ||
     variant === 'innovate' ||
-    variant === 'goMad'
+    variant === 'goMad' ||
+    variant === 'exec'
+  );
+}
+
+function personaBannerClass(variant) {
+  const mapped = SLOPITECT_VARIANT_CLASS[variant];
+  return mapped ? `insights-entry-persona ${mapped}` : 'insights-entry-persona';
+}
+
+/** Who is driving this run — emoji, name, and role title. */
+function InsightEntryPersonaBanner({ variant, size = 'entry' }) {
+  if (!variant || variant === 'general') return null;
+  const persona = getVariantPersona(variant);
+  if (!persona?.name) return null;
+  return (
+    <div
+      className={`${personaBannerClass(variant)} is-size-${size}`}
+      data-testid={size === 'pane' ? 'insights-pane-persona' : 'insights-entry-persona'}
+      aria-label={`${persona.name}, ${persona.title}`}
+    >
+      <span className="insights-entry-persona-emoji" aria-hidden="true">
+        {persona.avatarEmoji || '🏗️'}
+      </span>
+      <span className="insights-entry-persona-text">
+        <span className="insights-entry-persona-name">{persona.name}</span>
+        <span className="insights-entry-persona-title">{persona.title}</span>
+      </span>
+    </div>
   );
 }
 
@@ -716,7 +745,8 @@ function hidePhaseIds(variant, streamDebugEnabled) {
     variant === 'explain' ||
     variant === 'refine' ||
     variant === 'innovate' ||
-    variant === 'goMad'
+    variant === 'goMad' ||
+    variant === 'exec'
   );
 }
 
@@ -845,6 +875,7 @@ export default function InsightsPane({
             </span>
           ) : null}
         </div>
+        {activeVariant ? <InsightEntryPersonaBanner variant={activeVariant} size="pane" /> : null}
         {slopitectTagline ? (
           <span className="insights-pane-tagline" data-testid="insights-tagline">
             {slopitectTagline}
@@ -888,14 +919,25 @@ export default function InsightsPane({
                   className={`insights-entry insights-entry-attributed-note insights-entry-variant-${noteVariant}`}
                 >
                   <header className="insights-entry-note-head">
-                    <AgentBadge origin={entry.origin} size="sm" />
-                    <span className="insights-entry-note-variant">
-                      {noteVariant === 'critique'
-                        ? 'Critique'
-                        : noteVariant === 'suggestion'
-                          ? 'Suggestion'
-                          : 'Note'}
-                    </span>
+                    {noteAccentuate ? (
+                      <InsightEntryPersonaBanner variant={noteVariant} size="note" />
+                    ) : (
+                      <>
+                        <AgentBadge origin={entry.origin} size="sm" />
+                        <span className="insights-entry-note-variant">
+                          {noteVariant === 'critique'
+                            ? 'Critique'
+                            : noteVariant === 'suggestion'
+                              ? 'Suggestion'
+                              : 'Note'}
+                        </span>
+                      </>
+                    )}
+                    {entry.origin?.agentName ? (
+                      <span className="insights-entry-note-agent" title={entry.origin.agentName}>
+                        via {entry.origin.agentName}
+                      </span>
+                    ) : null}
                   </header>
                   <div
                     className={`insights-entry-note-body insights-rich-content ${
@@ -1046,6 +1088,7 @@ export default function InsightsPane({
                   .filter(Boolean)
                   .join(' ')}
               >
+                <InsightEntryPersonaBanner variant={variant} />
                 <div className="insights-entry-top">
                   <h3 className="insights-entry-title">
                     <span className="insights-entry-icon" aria-hidden="true">

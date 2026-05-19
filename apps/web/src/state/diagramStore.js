@@ -6,7 +6,8 @@ import {
   LEGACY_STREAM_TYPE_A2UI,
   agUiDraftSourcePath,
   createInitialDiagramState,
-  createInitialSessionState
+  createInitialSessionState,
+  sanitizeAgentStreamPayload
 } from '@archislop/shared';
 import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
 
@@ -681,6 +682,7 @@ export function createAgUiTranslator() {
  * so this only fires on truly hung streams.
  */
 export async function streamDiagramAgent(payload, onEvent, options = {}) {
+  const wirePayload = sanitizeAgentStreamPayload(payload);
   const { signal: callerSignal, sessionId } = options;
   if (callerSignal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');
@@ -721,7 +723,7 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
       url: `${API_BASE_URL}/api/copilotkit/agent-stream?protocol=agui`,
       headers: createSessionHeaders(sessionId)
     },
-    payload
+    wirePayload
   );
 
   agent.subscribe({

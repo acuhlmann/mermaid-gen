@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { renderMarkdown } from '@a2ui/markdown-it';
 import { MessageProcessor } from '@a2ui/web_core/v0_9';
-import { A2uiSurface, basicCatalog } from '@a2ui/react/v0_9';
+import { A2uiSurface, basicCatalog, MarkdownContext } from '@a2ui/react/v0_9';
 import '@a2ui/react/styles';
 import { A2UI_CRITIQUE_SURFACE_ID } from '@archislop/shared';
 
@@ -23,6 +24,7 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
   callbacksRef.current = { onFixAll, onFixSelected, busy };
 
   const rootRef = useRef(null);
+  const unavailableReportedRef = useRef(false);
 
   const processorRef = useRef(null);
   if (!processorRef.current) {
@@ -69,7 +71,10 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
-      onUnavailable?.();
+      if (!unavailableReportedRef.current) {
+        unavailableReportedRef.current = true;
+        onUnavailable?.();
+      }
       return () => {
         subA.unsubscribe();
         subB.unsubscribe();
@@ -83,7 +88,10 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
     }
     sync();
     if (p.model.surfacesMap.size === 0) {
-      onUnavailable?.();
+      if (!unavailableReportedRef.current) {
+        unavailableReportedRef.current = true;
+        onUnavailable?.();
+      }
     }
 
     return () => {
@@ -110,18 +118,20 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
   }
 
   return (
-    <section
-      className="insights-a2ui-block insights-prose-section insights-tone-actionable"
-      aria-label="Actionable improvements"
-    >
-      <div
-        ref={rootRef}
-        className={`insights-a2ui-surface-root a2ui-surface${busy ? ' is-busy' : ''}`}
+    <MarkdownContext.Provider value={renderMarkdown}>
+      <section
+        className="insights-a2ui-block insights-prose-section insights-tone-actionable"
+        aria-label="Actionable improvements"
       >
-        {surfaces.map((surface) => (
-          <A2uiSurface key={surface.id} surface={surface} />
-        ))}
-      </div>
-    </section>
+        <div
+          ref={rootRef}
+          className={`insights-a2ui-surface-root a2ui-surface${busy ? ' is-busy' : ''}`}
+        >
+          {surfaces.map((surface) => (
+            <A2uiSurface key={surface.id} surface={surface} />
+          ))}
+        </div>
+      </section>
+    </MarkdownContext.Provider>
   );
 }
