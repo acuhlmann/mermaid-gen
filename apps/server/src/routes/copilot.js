@@ -572,7 +572,16 @@ export function createCopilotRouter({
       res.flushHeaders();
     }
 
-    const rawEmit = (evt) => writeSseData(res, evt);
+    const abortController = new AbortController();
+    const cleanup = () => {
+      abortController.abort();
+    };
+    req.on('aborted', cleanup);
+    res.on('close', cleanup);
+
+    const rawEmit = (evt) => {
+      if (!res.destroyed) writeSseData(res, evt);
+    };
 
     // AG-UI is the only wire shape for this route: first-paint RUN_STARTED +
     // STEP_STARTED, then createAgentStreamEmitter maps agent events into AG-UI.
@@ -588,13 +597,20 @@ export function createCopilotRouter({
     });
 
     try {
-      await agentService.runAgentStream(payload.operation, { ...payload, _revisionBefore: revisionBefore }, emit);
+      await agentService.runAgentStream(
+        payload.operation,
+        { ...payload, _revisionBefore: revisionBefore, abortSignal: abortController.signal },
+        emit
+      );
     } catch (error) {
       const message = safeErrorMessage(error);
       rawEmit(runError({ message }));
+    } finally {
+      req.off?.('aborted', cleanup);
+      res.off?.('close', cleanup);
     }
 
-    res.end();
+    if (!res.destroyed) res.end();
     return undefined;
   });
 

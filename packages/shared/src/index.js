@@ -1,6 +1,7 @@
 export * from './agUiWireConstants.js';
 export * from './agUiEventTypes.js';
 export * from './agentStreamEmitter.js';
+export * from './agentRunBudget.js';
 export * from './diagramSchema.js';
 export * from './mermaidStyle.js';
 export * from './mermaidSanitizer.js';

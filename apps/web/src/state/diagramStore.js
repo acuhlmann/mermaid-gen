@@ -5,8 +5,10 @@ import {
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
   agUiDraftSourcePath,
+  buildAgentRunBudgetExceededMessage,
   createInitialDiagramState,
   createInitialSessionState,
+  resolveAgentRunBudgetMs,
   sanitizeAgentStreamPayload
 } from '@archislop/shared';
 import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
@@ -26,6 +28,7 @@ const MAX_SESSION_ID_LENGTH = 128;
 const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
 /** Max gap between SSE events before we treat the stream as hung and abort. Resets on every event. */
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 60_000;
+const AGENT_STREAM_MAX_DURATION_GRACE_MS = 5_000;
 
 let inMemorySessionId = null;
 
@@ -690,7 +693,11 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
 
   const abortController = new AbortController();
   let idleTimedOut = false;
+  let maxDurationTimedOut = false;
   let idleTimer = null;
+  let maxDurationTimer = null;
+  const runBudgetMs = resolveAgentRunBudgetMs(wirePayload.modelProfile);
+  const maxDurationMs = runBudgetMs + AGENT_STREAM_MAX_DURATION_GRACE_MS;
   const armIdleTimer = () => {
     if (idleTimer != null) clearTimeout(idleTimer);
     idleTimer = setTimeout(() => {
@@ -704,6 +711,18 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
       idleTimer = null;
     }
   };
+  const armMaxDurationTimer = () => {
+    maxDurationTimer = setTimeout(() => {
+      maxDurationTimedOut = true;
+      abortController.abort();
+    }, maxDurationMs);
+  };
+  const clearMaxDurationTimer = () => {
+    if (maxDurationTimer != null) {
+      clearTimeout(maxDurationTimer);
+      maxDurationTimer = null;
+    }
+  };
 
   let onCallerAbort = null;
   if (callerSignal) {
@@ -711,6 +730,7 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
     callerSignal.addEventListener('abort', onCallerAbort);
   }
   armIdleTimer();
+  armMaxDurationTimer();
 
   const isAbortError = (err) =>
     err?.name === 'AbortError' ||
@@ -745,6 +765,7 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
     runError = err;
   } finally {
     clearIdleTimer();
+    clearMaxDurationTimer();
     if (callerSignal && onCallerAbort) {
       callerSignal.removeEventListener('abort', onCallerAbort);
     }
@@ -752,6 +773,9 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
 
   if (idleTimedOut) {
     throw new Error('Agent stream stalled (no events received). Please try again.');
+  }
+  if (maxDurationTimedOut) {
+    throw new Error(buildAgentRunBudgetExceededMessage(wirePayload.modelProfile, runBudgetMs));
   }
   if (callerSignal?.aborted) {
     throw new DOMException('Aborted', 'AbortError');

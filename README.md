@@ -409,7 +409,9 @@ All are optional — the defaults make every layer of the validation/repair ladd
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `MERMAID_METRICS` | unset | When `1`/`true`, emits one structured JSON line per agent turn (mode, model, duration, validator outcome, repair attempts, sanitizer hits, error class) to stdout. |
-| `MERMAID_REPAIR_MAX_ATTEMPTS` | `2` | Bounded retry budget for the full-agent syntax-repair fallback (the last rung in the Mermaid ladder). |
+| `MERMAID_AGENT_RUN_BUDGET_MS_FAST` / `MERMAID_AGENT_RUN_BUDGET_MS_QUALITY` | `75000` / `105000` | Absolute stream run budget for Fast and Quality. Quality still gets the first creative pass, but repair work is bounded and uses the stable fast path. |
+| `MERMAID_REPAIR_MAX_ATTEMPTS` | Fast `2`, Quality `1` | Bounded retry budget for the full-agent syntax-repair fallback (the last rung in the Mermaid ladder). `MERMAID_REPAIR_MAX_ATTEMPTS_FAST` / `MERMAID_REPAIR_MAX_ATTEMPTS_QUALITY` can tune by profile. |
+| `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS` | Fast `2`, Quality `1` | Same full-agent fallback cap for Infographic mode. `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_FAST` / `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_QUALITY` can tune by profile. |
 | `MERMAID_REPAIR_MODEL` | (fast tier) | Override the model id used by the single-shot syntax fixer (Mermaid and Infographic fixers). |
 | `MERMAID_REPAIR_BACKEND` | (auto) | Pin the syntax fixer to `vertex` or `openrouter` independently of the intent backend. |
 | `MERMAID_STREAM_HEARTBEAT_MS` | `6000` | SSE heartbeat when an `agent-stream` has no events (clamped 1s–60s). |

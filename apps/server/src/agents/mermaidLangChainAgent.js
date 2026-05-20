@@ -11,7 +11,13 @@ import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
-import { inferMermaidTopKeyword, isMermaidTransformConstraintError } from '@archislop/shared';
+import {
+  buildAgentRunBudgetExceededMessage,
+  inferMermaidTopKeyword,
+  isMermaidTransformConstraintError,
+  resolveAgentRepairMaxAttempts,
+  resolveAgentRunBudgetMs
+} from '@archislop/shared';
 import {
   createLlmChatModel,
   createOpenRouterModel,
@@ -791,8 +797,11 @@ function resolveStreamHeartbeatMs(env) {
   return Math.min(60_000, n);
 }
 
-async function streamReactAgentEvents(agent, inputMessages, emit, env) {
-  const runnableConfig = getAgentRunnableConfig(env);
+async function streamReactAgentEvents(agent, inputMessages, emit, env, abortSignal) {
+  const runnableConfig = {
+    ...getAgentRunnableConfig(env),
+    ...(abortSignal ? { signal: abortSignal } : {})
+  };
   let latestMessages = [];
 
   // Heartbeat keeps the SSE consumer alive when the model is internally working but not yet
@@ -837,13 +846,16 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env) {
  * Falls back to `agent.invoke` if the stream yielded no messages (and emits `invoke_fallback`
  * telemetry so we can measure how often the silent fallback fires).
  */
-async function runAgentTurn(agent, inputMessages, emit, env) {
-  const runnableConfig = getAgentRunnableConfig(env);
+async function runAgentTurn(agent, inputMessages, emit, env, abortSignal) {
+  const runnableConfig = {
+    ...getAgentRunnableConfig(env),
+    ...(abortSignal ? { signal: abortSignal } : {})
+  };
   if (typeof emit !== 'function') {
     return agent.invoke({ messages: inputMessages }, runnableConfig);
   }
 
-  const streamed = await streamReactAgentEvents(agent, inputMessages, emit, env);
+  const streamed = await streamReactAgentEvents(agent, inputMessages, emit, env, abortSignal);
   if (streamed.messages?.length) {
     return streamed;
   }
@@ -880,13 +892,10 @@ function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource
   });
 }
 
-/** Default full-agent repair attempts that run after the deterministic sanitizer + single-shot fixer. */
-const DEFAULT_REPAIR_ATTEMPTS = 2;
-
 async function invokeWithRepair(
   agent,
   messages,
-  { requirePatch = false, emit, mode, profile, modelLabel, stableAgent, peerContext } = {},
+  { requirePatch = false, emit, mode, profile, modelLabel, stableAgent, peerContext, abortSignal } = {},
   stateStore,
   env
 ) {
@@ -909,6 +918,8 @@ async function invokeWithRepair(
   ];
 
   const turnStarted = Date.now();
+  const runProfile = normalizeModelProfile(profile);
+  const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
   let repairAttempts = 0;
   /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
   const finishTurn = (sample) => {
@@ -916,7 +927,7 @@ async function invokeWithRepair(
       {
         mode: mode ?? 'unknown',
         model: modelLabel ?? null,
-        profile: profile ?? null,
+        profile: runProfile,
         durationMs: Date.now() - turnStarted,
         accepted: sample.accepted,
         validator: sample.validator ?? null,
@@ -928,13 +939,44 @@ async function invokeWithRepair(
     );
   };
 
+  const stopReason = () => {
+    if (abortSignal?.aborted) {
+      return {
+        code: 'run_aborted',
+        message: 'Agent run was stopped before completion.',
+        errorClass: 'run-aborted'
+      };
+    }
+    if (Date.now() - turnStarted >= runBudgetMs) {
+      return {
+        code: 'run_budget_exceeded',
+        message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
+        errorClass: 'budget-exceeded'
+      };
+    }
+    return null;
+  };
+
+  const finishStoppedRun = (reason, raw = null) => {
+    if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
+      emit({ type: 'error', code: reason.code, message: reason.message });
+    }
+    finishTurn({ accepted: false, errorClass: reason.errorClass });
+    return { message: reason.message, raw };
+  };
+
+  const initialStop = stopReason();
+  if (initialStop) {
+    return finishStoppedRun(initialStop);
+  }
+
   if (typeof emit === 'function') {
     emit({ type: 'phase', id: 'agent_run', label: 'Planning and executing tools…' });
   }
 
   let firstResult;
   try {
-    firstResult = await runAgentTurn(agent, baseMessages, emit, env);
+    firstResult = await runAgentTurn(agent, baseMessages, emit, env, abortSignal);
   } catch (error) {
     finishTurn({ accepted: false, errorClass: 'invoke-error' });
     return formatAgentInvokeFailure(error, env);
@@ -962,6 +1004,8 @@ async function invokeWithRepair(
     const retryAgent = stableAgent ?? agent;
     const usingStable = retryAgent !== agent;
     try {
+      const retryStop = stopReason();
+      if (retryStop) return finishStoppedRun(retryStop, firstResult);
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'patch_retry', label: 'Retrying diagram patch…' });
         emit({
@@ -975,7 +1019,8 @@ async function invokeWithRepair(
         retryAgent,
         [...baseMessages, buildPatchRequiredInstruction({ messages })],
         emit,
-        env
+        env,
+        abortSignal
       );
       if (stateStore.getSlot('mermaid').revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
@@ -1019,6 +1064,8 @@ async function invokeWithRepair(
   // for safety) and short-circuit the agent loop.
   if (brokenSource && isSyntaxFixerAvailable(env)) {
     try {
+      const fixerStop = stopReason();
+      if (fixerStop) return finishStoppedRun(fixerStop, firstResult);
       repairAttempts += 1;
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'syntax_fixer', label: 'Mermaid syntax fixer…' });
@@ -1058,25 +1105,22 @@ async function invokeWithRepair(
     }
   }
 
-  const parsedRepairAttempts = Number.parseInt(
-    process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? String(DEFAULT_REPAIR_ATTEMPTS),
-    10
-  );
-  const maxRepairAttempts = Number.isFinite(parsedRepairAttempts)
-    ? Math.max(0, parsedRepairAttempts)
-    : DEFAULT_REPAIR_ATTEMPTS;
+  const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'mermaid');
+  const repairAgent = stableAgent ?? agent;
 
   const repairHistory = [];
   for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
     repairAttempts += 1;
     let retryResult;
     try {
+      const repairStop = stopReason();
+      if (repairStop) return finishStoppedRun(repairStop, latestResult);
       if (typeof emit === 'function') {
-        emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt})…` });
-        emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt})…` });
+        emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt} of ${maxRepairAttempts})…` });
+        emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})…` });
       }
       retryResult = await runAgentTurn(
-        agent,
+        repairAgent,
         [
           ...baseMessages,
           buildSyntaxRepairInstruction({
@@ -1087,7 +1131,8 @@ async function invokeWithRepair(
           })
         ],
         emit,
-        env
+        env,
+        abortSignal
       );
     } catch (error) {
       finishTurn({ accepted: false, errorClass: 'invoke-error' });
@@ -1231,7 +1276,7 @@ export function createMermaidLangChainAgent({
       );
     },
 
-    async applyIntent({ prompt, settings, focusNode, modelProfile, emit, peerContext }) {
+    async applyIntent({ prompt, settings, focusNode, modelProfile, emit, peerContext, abortSignal }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const focusScope = buildFocusScopeInstructions(focusNode);
 
@@ -1259,13 +1304,14 @@ ${prompt}${focusScope}`;
           profile: normalizeModelProfile(modelProfile),
           modelLabel: resolveModelLabel(modelProfile),
           stableAgent: getDefaultAgent('fast'),
-          peerContext
+          peerContext,
+          abortSignal
         },
         emit
       );
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth }) {
+    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth, abortSignal }) {
       const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
       return withTransformContext(
         stateStore,
@@ -1296,7 +1342,8 @@ ${prompt}${focusScope}`;
               // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
               // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
               // agent for the patch_retry turn so we're not just rolling the same dice twice.
-              stableAgent: getDefaultAgent('fast')
+              stableAgent: getDefaultAgent('fast'),
+              abortSignal
             },
             emit
           );
@@ -1483,7 +1530,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           focusNode: payload.focusNode,
           modelProfile,
           emit,
-          peerContext: payload.peerContext
+          peerContext: payload.peerContext,
+          abortSignal: payload.abortSignal
         });
       } else {
         agentResult = await agent.applyTransformIntent({
@@ -1491,7 +1539,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           focusNode: payload.focusNode,
           modelProfile,
           emit,
-          goMadDepth: payload.goMadDepth
+          goMadDepth: payload.goMadDepth,
+          abortSignal: payload.abortSignal
         });
       }
 

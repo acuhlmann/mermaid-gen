@@ -473,6 +473,60 @@ test('transform patch_retry uses the stable fast agent, not the hot transform ag
   assert.match(result.message, /stable fallback/i);
 });
 
+test('transform syntax repair uses the stable fast agent after a quality failure', async () => {
+  const stateStore = createDiagramStateStore();
+  let hotCalls = 0;
+  let stableCalls = 0;
+
+  const hotAgent = {
+    async invoke() {
+      hotCalls += 1;
+      return {
+        messages: [
+          { role: 'assistant', content: '' },
+          {
+            role: 'tool',
+            content: JSON.stringify({
+              accepted: false,
+              error: 'Mermaid parser rejected source: Parse error on line 2.'
+            })
+          }
+        ]
+      };
+    }
+  };
+  const stableAgent = {
+    async invoke() {
+      stableCalls += 1;
+      await stateStore.applyDiagramSource({
+        contentType: 'mermaid',
+        diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
+        reason: 'stable syntax repair'
+      });
+      return { messages: [{ role: 'assistant', content: 'Applied via stable syntax repair.' }] };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    env: { OPENROUTER_API_KEY: 'test-key', MERMAID_REPAIR_MAX_ATTEMPTS: '1' },
+    chatModelFactory: (_e, options) => ({
+      __profile: typeof options.temperature === 'number' && options.temperature > 0.5 ? 'hot' : 'stable'
+    }),
+    createAgentImpl: (opts) => (opts.model?.__profile === 'hot' ? hotAgent : stableAgent)
+  });
+
+  const result = await service.applyTransformIntent({
+    mode: 'innovate',
+    modelProfile: 'quality'
+  });
+
+  assert.equal(hotCalls, 1, 'quality transform agent should run only for the first creative turn');
+  assert.equal(stableCalls, 1, 'stable fast agent should handle the syntax repair turn');
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
+  assert.match(result.message, /stable syntax repair/i);
+});
+
 test('transform retries once when the model returns prose without applying a patch', async () => {
   const stateStore = createDiagramStateStore();
   let callCount = 0;

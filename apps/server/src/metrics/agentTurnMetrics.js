@@ -79,5 +79,6 @@ export function classifyAgentTurnError(error) {
   if (text.includes('parser rejected')) return 'parser-rejected';
   if (text.includes('validation failed')) return 'validation-failed';
   if (text.includes('did not apply') || text.includes('no patch')) return 'no-patch';
+  if (text.includes('time limit') || text.includes('budget exceeded')) return 'budget-exceeded';
   return 'other';
 }

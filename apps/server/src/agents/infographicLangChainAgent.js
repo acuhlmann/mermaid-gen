@@ -35,7 +35,12 @@ import {
   buildInfographicFocusScopeInstructions,
   buildInfographicAnalyzeFocusInstructions
 } from './infographicFocusInstructions.js';
-import { refineInfographicDsl } from '@archislop/shared';
+import {
+  buildAgentRunBudgetExceededMessage,
+  refineInfographicDsl,
+  resolveAgentRepairMaxAttempts,
+  resolveAgentRunBudgetMs
+} from '@archislop/shared';
 import {
   buildInfographicTransformUserContent,
   INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS
@@ -69,8 +74,6 @@ const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not a
 
 const INFOGRAPHIC_TRANSFORM_PERSONAS = new Set(['refine', 'innovate', 'goMad', 'exec']);
 
-const DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS = 2;
-
 async function withInfographicTransformContext(stateStore, context, fn) {
   stateStore.setTransformContext(context);
   try {
@@ -78,15 +81,6 @@ async function withInfographicTransformContext(stateStore, context, fn) {
   } finally {
     stateStore.clearTransformContext();
   }
-}
-
-function resolveInfographicRepairAttempts(env) {
-  const raw = env?.INFOGRAPHIC_REPAIR_MAX_ATTEMPTS;
-  if (raw == null || raw === '') return DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS;
-  const n = Number.parseInt(String(raw), 10);
-  if (!Number.isFinite(n) || n < 0) return DEFAULT_INFOGRAPHIC_REPAIR_ATTEMPTS;
-  // Bound at 6 so a misconfigured env doesn't burn the whole quota on a single bad prompt.
-  return Math.min(6, n);
 }
 
 /** Best-effort extraction of the user's request text from the message bag that drives a turn. */
@@ -229,8 +223,11 @@ async function emitTokens(stream, emit) {
 }
 
 async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
-  const { requirePatch = false, emit, stableAgent = null } = opts ?? {};
-  const maxRepairAttempts = resolveInfographicRepairAttempts(env);
+  const { requirePatch = false, emit, stableAgent = null, profile, abortSignal } = opts ?? {};
+  const runProfile = normalizeModelProfile(profile);
+  const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'infographic');
+  const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
+  const turnStarted = Date.now();
   const beforeRevision = stateStore.getSlot('infographic').revisionId;
   const originalRequest = extractOriginalRequest(userMessages);
 
@@ -243,15 +240,49 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   let syntaxFixerTried = false;
   let stableAgentTried = false;
 
+  const stopReason = () => {
+    if (abortSignal?.aborted) {
+      return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
+    }
+    if (Date.now() - turnStarted >= runBudgetMs) {
+      return {
+        code: 'run_budget_exceeded',
+        message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
+      };
+    }
+    return null;
+  };
+
+  const finishStoppedRun = (reason) => {
+    lastError = reason.message;
+    if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
+      emit({ type: 'error', code: reason.code, message: reason.message });
+    }
+    return {
+      message: lastError,
+      raw: lastResult,
+      metadata: { agent: 'infographic', error: lastError, code: reason.code }
+    };
+  };
+
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
+    const stop = stopReason();
+    if (stop) return finishStoppedRun(stop);
     if (typeof emit === 'function') {
-      emit({ type: 'phase', id: attempt === 0 ? 'invoke' : `repair_${attempt}`, label: attempt === 0 ? 'Generating infographic…' : 'Repairing infographic…' });
+      emit({
+        type: 'phase',
+        id: attempt === 0 ? 'invoke' : `repair_${attempt}`,
+        label: attempt === 0 ? 'Generating infographic…' : `Repairing infographic (attempt ${attempt} of ${maxRepairAttempts})…`
+      });
     }
 
     let result;
     try {
       if (typeof currentAgent.streamEvents === 'function' && typeof emit === 'function') {
-        const stream = await currentAgent.streamEvents({ messages }, { version: 'v2' });
+        const stream = await currentAgent.streamEvents(
+          { messages },
+          { version: 'v2', ...(abortSignal ? { signal: abortSignal } : {}) }
+        );
         // Per tool_call_id buffers so we can lazily decode the partial
         // diagramSource argument as the model streams it. The patch tool's
         // schema is a single string field, so a streaming prefix is a valid
@@ -298,7 +329,10 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         // the legacy shape so the post-loop revision/repair logic still works.
         result = latestMessages.length > 0 ? { messages: latestMessages } : null;
       } else {
-        result = await currentAgent.invoke({ messages });
+        result = await currentAgent.invoke(
+          { messages },
+          abortSignal ? { signal: abortSignal } : undefined
+        );
       }
     } catch (error) {
       lastError = redactSecrets(error instanceof Error ? error.message : String(error));
@@ -363,6 +397,8 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       // a cheap fast model and skips tool plumbing entirely — when it works, we apply the
       // patch directly and short-circuit the rest of the loop.
       if (!syntaxFixerTried && lastBrokenSource && isInfographicSyntaxFixerAvailable(env)) {
+        const fixerStop = stopReason();
+        if (fixerStop) return finishStoppedRun(fixerStop);
         syntaxFixerTried = true;
         if (typeof emit === 'function') {
           emit({ type: 'phase', id: 'syntax_fixer', label: 'Infographic syntax fixer…' });
@@ -618,7 +654,7 @@ export function createInfographicLangChainAgent({
   }
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, transformPersona }) {
+    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, transformPersona, abortSignal }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
       const agent = getDefaultAgent(modelProfile);
@@ -626,7 +662,7 @@ export function createInfographicLangChainAgent({
         peerContext?.contentType === 'mermaid' && typeof peerContext.diagramSource === 'string'
           ? peerContext.diagramSource
           : '';
-      const stableAgent = getStableIntentAgent(modelProfile);
+      const stableAgent = getStableIntentAgent('fast');
       const personaMode =
         typeof transformPersona === 'string' && INFOGRAPHIC_TRANSFORM_PERSONAS.has(transformPersona)
           ? transformPersona
@@ -646,7 +682,7 @@ export function createInfographicLangChainAgent({
               })
             }
           ],
-          { requirePatch: true, emit, stableAgent },
+          { requirePatch: true, emit, stableAgent, profile: normalizeModelProfile(modelProfile), abortSignal },
           stateStore,
           env
         );
@@ -666,7 +702,8 @@ export function createInfographicLangChainAgent({
       modelProfile,
       emit,
       goMadDepth,
-      advisorPrompt
+      advisorPrompt,
+      abortSignal
     }) {
       const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
       return withInfographicTransformContext(
@@ -688,7 +725,7 @@ export function createInfographicLangChainAgent({
 
           const focusScope = buildFocusScopeInstructions(focusNode);
           const agent = getTransformAgent(mode, modelProfile, goMadDepth);
-          const stableAgent = getDefaultAgent(modelProfile);
+          const stableAgent = getStableIntentAgent('fast');
           const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
           const languageInstruction = buildLanguageInstruction(originalRequest, slot.diagramSource);
           const body = `${buildInfographicTransformUserContent({
@@ -702,7 +739,7 @@ export function createInfographicLangChainAgent({
           return invokeWithRepair(
             agent,
             [{ role: 'user', content: body }],
-            { requirePatch: true, emit, stableAgent },
+            { requirePatch: true, emit, stableAgent, profile: normalizeModelProfile(modelProfile), abortSignal },
             stateStore,
             env
           );
@@ -806,7 +843,8 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
           modelProfile,
           emit,
           peerContext: payload.peerContext,
-          transformPersona: payload.transformPersona
+          transformPersona: payload.transformPersona,
+          abortSignal: payload.abortSignal
         });
       } else {
         agentResult = await agent.applyTransformIntent({
@@ -815,7 +853,8 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
           modelProfile,
           emit,
           goMadDepth: payload.goMadDepth,
-          advisorPrompt: payload.advisorPrompt
+          advisorPrompt: payload.advisorPrompt,
+          abortSignal: payload.abortSignal
         });
       }
 

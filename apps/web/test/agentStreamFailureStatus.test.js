@@ -26,4 +26,13 @@ describe('resolveAgentStreamFailureStatus', () => {
     });
     expect(r.failureClass).toBe('stale_revision');
   });
+
+  it('classifies run budget errors as timeout', () => {
+    const r = resolveAgentStreamFailureStatus({
+      code: 'run_budget_exceeded',
+      message: 'Agent run exceeded the Quality time limit (105s). Try Fast, a smaller diagram, or retry.'
+    });
+    expect(r.failureClass).toBe('timeout');
+    expect(r.statusText).toMatch(/timed out/i);
+  });
 });

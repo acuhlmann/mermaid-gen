@@ -1,4 +1,4 @@
-/** @typedef {'syntax_exhausted' | 'no_patch' | 'stale_revision' | 'network' | 'generic'} AgentStreamFailureClass */
+/** @typedef {'syntax_exhausted' | 'no_patch' | 'stale_revision' | 'timeout' | 'network' | 'generic'} AgentStreamFailureClass */
 
 /**
  * @param {string} message
@@ -31,6 +31,18 @@ export function resolveAgentStreamFailureStatus({ code, message }) {
     return {
       failureClass: 'stale_revision',
       statusText: 'Diagram changed elsewhere — refresh and retry.',
+      detail: null
+    };
+  }
+
+  if (
+    code === 'run_budget_exceeded' ||
+    lower.includes('time limit') ||
+    lower.includes('budget exceeded')
+  ) {
+    return {
+      failureClass: 'timeout',
+      statusText: 'Run timed out — try Fast or retry.',
       detail: null
     };
   }
