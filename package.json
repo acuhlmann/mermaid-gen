@@ -15,13 +15,19 @@
     "dev": "concurrently -n server,web \"npm:dev -w apps/server\" \"npm:dev -w apps/web\"",
     "build": "npm run build -w packages/shared && npm run build -w apps/server && npm run build -w apps/web",
     "test": "npm run test -w packages/shared && npm run test -w apps/server && npm run test -w apps/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run test",
     "deploy:cloud-run": "bash scripts/deploy-cloud-run.sh",
     "deploy:cloud-run:hackathon": "bash scripts/deploy-hackathon-cloud-run.sh",
     "secret:openrouter:cloud-run": "bash scripts/push-openrouter-secret-cloud-run.sh",
     "secret:invite-token:cloud-run": "bash scripts/push-invite-token-secret-cloud-run.sh"
   },
   "devDependencies": {
-    "concurrently": "^9.2.1"
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2"
   },
   "dependencies": {
     "@langchain/core": "^1.1.46",

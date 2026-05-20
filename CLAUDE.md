@@ -1,0 +1,113 @@
+# CLAUDE.md — agent quick-reference for `archislop`
+
+This file is for coding agents (Claude Code, Cursor, Copilot) opening a session in this repo. Humans should start at [`README.md`](README.md); operators at [`AGENTS.md`](AGENTS.md). For a concept→file index see [`STRUCTURE.md`](STRUCTURE.md); for terminology see [`GLOSSARY.md`](GLOSSARY.md); for common task templates see [`docs/recipes/`](docs/recipes/).
+
+> The product name is **archislop**. The directory and GitHub repo are still named `mermaid-gen` for legacy reasons. Treat `archislop` as canonical and don't rename anything unless asked.
+
+## Repo layout in 10 lines
+
+```
+apps/web         React 19 + Vite UI (Monaco editor, Mermaid + AntV Infographic canvases)
+apps/server      Express runtime: copilot routes, MCP server, LangChain agents
+packages/shared  Zod schemas, sanitizers, AG-UI/A2UI event types — leaf of the dep graph
+docs/            Architecture docs, ADRs (docs/decisions), recipes (docs/recipes), deploy
+scripts/         Bash deploy + GCP secret push scripts
+.github/         CI workflow + deploy workflow
+.claude/         Local Claude Code config (settings.local.json) and skills
+.cursor/         Cursor plans and skills
+```
+
+## The three architectural axes (don't conflate them)
+
+| Axis                                      | Path                                 | Who uses it                                                     | Doc                                                                            |
+| ----------------------------------------- | ------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Built-in agents (REST + AG-UI SSE)**    | `/api/copilotkit/*`                  | Web UI Go/Refine/Innovate/Go Mad/Critique/Explain/Fix/Style     | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     |
+| **Collaboration (session-events SSE)**    | `GET /api/copilotkit/session-events` | Handshakes, proposals, presence, reactions, attributed insights | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) |
+| **External agents (MCP Streamable HTTP)** | `GET/POST /mcp`                      | Cursor, Claude Desktop, VS Code Copilot                         | same                                                                           |
+
+A **fourth** orthogonal layer is **MCP Apps** (interactive HTML at `ui://archislop/*.html`) opened by MCP tools — see [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) for the full Gen UI map.
+
+## Dual-slot session state model
+
+Every session carries **two independent diagram slots**: a `mermaid` slot (Mermaid text) and an `infographic` slot (AntV DSL), plus an `activeContentType` pointer. Every HTTP request and SSE payload carries `contentType`, which the `DiagramAgentDispatcher` uses to route to the Mermaid or Infographic agent service. Switching modes does **not** mutate the other slot's revision history. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
+
+## Validation ladder
+
+**Mermaid** (4 layers, in cost order):
+
+1. Heuristic prefix check (instant) — `apps/server/src/tools/mermaidDiffTool.js`.
+2. Deterministic sanitizer rescue (~1–10 ms) — `packages/shared/src/mermaidSanitizer.js`. Composable fixers for quotes, header typos, init JSON, etc.
+3. Single-shot syntax fixer (1 LLM call, low temp, fast model) — `apps/server/src/agents/mermaidSyntaxFixer.js` with rule packs in `apps/server/src/prompts/mermaidSyntaxGuard.js`.
+4. Full-agent syntax-repair turns (bounded by `MERMAID_REPAIR_MAX_ATTEMPTS`).
+
+**Infographic** (2 layers + repair): textual lint + `parseSyntax`, then single-shot fixer, then agent repair. See `apps/server/src/tools/infographicDslTool.js` and `packages/shared/src/infographicSanitizer.js`.
+
+## Canonical commands
+
+| Goal                                   | Command                                                  |
+| -------------------------------------- | -------------------------------------------------------- |
+| Run web + server together              | `npm run dev`                                            |
+| Run all tests                          | `npm test`                                               |
+| **Verify a change end-to-end**         | `npm run check` (typecheck + test)                       |
+| Format the diff you're about to commit | `npm run format`                                         |
+| Build all workspaces                   | `npm run build`                                          |
+| Health probe                           | `curl http://localhost:4000/api/health`                  |
+| Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>` |
+
+`npm run check` does **not** include `lint` (24 pre-existing errors in `apps/web`) or `format:check` (codebase isn't fully prettier-formatted yet). Both will join `check` after the TypeScript migration / global format pass — see [`/home/alex-uhlmann/.claude/plans/suggest-ideas-how-to-humble-truffle.md`](file:///home/alex-uhlmann/.claude/plans/suggest-ideas-how-to-humble-truffle.md) Phases 7–8.
+
+## Don't-touch list
+
+- `.agents/` — generated CopilotKit skill files, git-ignored. Refresh with `npm run setup:skills`.
+- `.env`, `.env.*` — never commit; ask the user if they need a new variable.
+- `scripts/deploy-*.sh` and `scripts/push-*-secret-cloud-run.sh` — production deploy / Secret Manager scripts. Don't run unless asked.
+- `apps/server/src/mcp/apps/*.js` (HTML strings) — these are paired with `session-events` bridges; if you change the HTML, also update the matching event handler and re-run the App's smoke flow.
+- `apps/server/bench-results/` — bench snapshots; don't hand-edit, regenerate via the bench script.
+- `package-lock.json`, `skills-lock.json` — never hand-edit.
+
+## File-size budgets (work in progress)
+
+Files above ~800 LOC are slated for splits in Phase 5 of the improvement plan. If you need to make a change in one of these, prefer extracting the slice you touch into a sibling module rather than growing the monolith:
+
+- `apps/web/src/App.jsx` (4273 LOC), `apps/server/src/mcp/mcpServer.js` (1615), `apps/server/src/agents/mermaidLangChainAgent.js` (1562), `apps/web/src/components/InsightsPane.jsx` (1500), `apps/web/src/components/DiagramCanvas.jsx` (1376), `apps/web/src/components/RadialActionMenu.jsx` (901), `apps/server/src/agents/infographicLangChainAgent.js` (875), `apps/server/src/routes/copilot.js` (862), `apps/web/src/state/diagramStore.js` (795).
+
+## When you touch wire contracts
+
+If you change an HTTP route, AG-UI event, MCP tool, or schema, update **all four** of:
+
+1. The producing code (route / agent / tool).
+2. The consumer (web client store, MCP client, or App HTML bridge).
+3. The Zod schema in `packages/shared/src/diagramSchema.js` if shape changes.
+4. The corresponding section of [`README.md`](README.md) or the relevant `docs/architecture-*.md`.
+
+See [`docs/recipes/`](docs/recipes/) for templates of recurring changes (new MCP tool, new rule pack, new intent variant, new stream event).
+
+## LLM backend resolution
+
+Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is in `apps/server/src/agents/llmProvider.js` via `LLM_PROVIDER` (`auto` default). Local `auto` prefers DeepSeek if `DEEPSEEK_API_KEY` is set, else OpenRouter, else Vertex ADC. Cloud Run `auto` prefers Vertex unless `OPENROUTER_PREFERRED=1`. The web client only ever sends `modelProfile: "fast" | "quality"`; the server resolves slugs. Full table: [`docs/llm-config.md`](docs/llm-config.md).
+
+## Where to put new code
+
+| You're adding…                   | Put it in…                                                              |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| A shared Zod schema or type      | `packages/shared/src/` (leaf — no server/web imports)                   |
+| A pure utility used by both apps | `packages/shared/src/`                                                  |
+| A new HTTP route                 | `apps/server/src/routes/`                                               |
+| A new MCP tool                   | `apps/server/src/mcp/` (and `apps/server/src/mcp/apps/` if it needs UI) |
+| A new LangChain agent / tool     | `apps/server/src/agents/`                                               |
+| New diagram-type rule pack       | `apps/server/src/prompts/`                                              |
+| A new React component            | `apps/web/src/components/`                                              |
+| A new web utility                | `apps/web/src/utils/`                                                   |
+| A new web state slice            | `apps/web/src/state/`                                                   |
+| A new React hook                 | `apps/web/src/hooks/`                                                   |
+
+## Pointers
+
+- Architecture maps: [`README.md`](README.md), [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)
+- Operator manual: [`AGENTS.md`](AGENTS.md)
+- Concept→file index: [`STRUCTURE.md`](STRUCTURE.md)
+- Terms: [`GLOSSARY.md`](GLOSSARY.md)
+- Recurring tasks: [`docs/recipes/`](docs/recipes/)
+- Past decisions: [`docs/decisions/`](docs/decisions/)
+- LLM config: [`docs/llm-config.md`](docs/llm-config.md)
+- Deploy: [`docs/deploy/gcp.md`](docs/deploy/gcp.md)

@@ -1,0 +1,15 @@
+node_modules
+.agents
+dist
+build
+coverage
+apps/web/dist
+apps/web/dist-main
+apps/web/dist-hackathon
+apps/server/bench-results
+package-lock.json
+skills-lock.json
+*.min.js
+*.min.css
+.env
+.env.*

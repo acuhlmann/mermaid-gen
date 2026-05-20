@@ -1,0 +1,14 @@
+# Architecture Decision Records
+
+Short prose records of non-obvious past decisions. Read these before re-litigating something that looks weird — there is usually a reason.
+
+| #                                             | Title                                                        |
+| --------------------------------------------- | ------------------------------------------------------------ |
+| [0001](0001-dual-slot-mermaid-infographic.md) | Dual-slot session state (Mermaid + Infographic)              |
+| [0002](0002-shared-mermaid-sanitizer.md)      | Single shared Mermaid sanitizer (server-side file is a shim) |
+| [0003](0003-no-state-store-in-shared.md)      | No state store in `packages/shared`                          |
+| [0004](0004-commonjs-root-esm-workspaces.md)  | CommonJS root, ESM workspaces                                |
+
+## Format
+
+One Markdown file per decision, numbered. Sections: **Status / Context / Decision / Consequences / Alternatives considered / Where this lives in code**. Keep them under one page. If a decision is reversed, add a new ADR that supersedes it — don't edit history.
