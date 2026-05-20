@@ -1,7 +1,8 @@
-import { buildDiagramDiffSummary, buildWebCanvasUrl } from './diagramDiffSummary.js';
+import { enrichProposalForReview } from '@archislop/shared';
+import { buildWebCanvasUrl } from './diagramDiffSummary.js';
 
 /**
- * Build proposal-review MCP App payload (same shape as propose_diagram_edit success).
+ * Build proposal-review MCP App payload (same shape as enriched web proposal cards).
  * @param {{ stateStore: import('../state/diagramStateStore.js').ReturnType<typeof import('../state/diagramStateStore.js').createDiagramStateStore>, proposalStore: import('../state/agentProposalStore.js').ReturnType<typeof import('../state/agentProposalStore.js').createAgentProposalStore> }} services
  * @param {string} sessionId
  * @param {string} proposalId
@@ -12,17 +13,11 @@ export function buildProposalReviewPayload(services, sessionId, proposalId) {
 
   const slot = services.stateStore.getSlot(proposal.contentType);
   const currentDiagramSource = slot.diagramSource ?? '';
-  const proposedSource = proposal.diagramSource ?? '';
-  const diffSummary = buildDiagramDiffSummary(currentDiagramSource, proposedSource, {
-    contentType: proposal.contentType
-  });
 
-  return {
-    ...proposal,
-    sessionId,
+  return enrichProposalForReview({
+    proposal,
     currentDiagramSource,
-    diffSummary,
-    graphDiff: diffSummary.graphDiff ?? proposal.metadata?.graphDiff,
+    sessionId,
     webCanvasUrl: buildWebCanvasUrl(sessionId)
-  };
+  });
 }

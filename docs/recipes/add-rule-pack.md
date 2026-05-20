@@ -32,4 +32,4 @@ Use when a specific diagram type (e.g. a new Mermaid `quadrantChart` or a new An
 
 - Rule packs are appended to prompts — keep them short (the fixer is fast-model + low-temp; less wins).
 - A bad rule will _hurt_ repair quality. Validate with the bench before merging.
-- The deterministic sanitizer in `packages/shared/src/mermaidSanitizer.js` is the first line of defense; if your rule is purely mechanical (smart quotes, etc.), prefer adding a sanitizer pass there.
+- The deterministic sanitizer in `packages/shared/src/mermaidSanitizer.ts` is the first line of defense; if your rule is purely mechanical (smart quotes, etc.), prefer adding a sanitizer pass there.

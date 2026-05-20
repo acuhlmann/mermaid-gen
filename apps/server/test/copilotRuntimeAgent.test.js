@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCopilotAgentEvents } from '../src/agents/copilotRuntimeAgent.js';
+import { createCopilotAgentEvents } from '../src/agents/copilotAgentEvents.js';
 
 test('Copilot runtime agent streams the LangChain agent response', async () => {
   const events = [];

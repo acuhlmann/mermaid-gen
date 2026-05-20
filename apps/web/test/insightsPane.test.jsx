@@ -339,6 +339,32 @@ flowchart TB
     expect(screen.getByRole('button', { name: 'Restore' }).disabled).toBe(true);
   });
 
+  it('shows Plan lane for diagram intent beats', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-plan',
+            title: 'Refine',
+            variant: 'refine',
+            status: 'running',
+            statusText: 'Polishing the diagram…',
+            content: '',
+            technicalActions: [],
+            phases: [{ id: 'agent_run', label: 'Tools' }],
+            planBeats: [
+              { text: 'Scoping the update to node Auth.', source: 'server', at: 1 },
+              { text: 'Adding a session boundary before the API tier.', source: 'agent', at: 2 }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+    expect(screen.getByRole('region', { name: 'Diagram intent' })).toBeTruthy();
+    expect(screen.getByText('Adding a session boundary before the API tier.')).toBeTruthy();
+  });
+
   it('shows agent phases, patch summary, and optional stream debug', () => {
     render(
       <InsightsPane
@@ -568,6 +594,37 @@ flowchart TB
     expect(container.querySelector('.insights-prose-section.insights-tone-explain-flows')).toBeTruthy();
     expect(container.querySelector('.insights-prose-section.insights-tone-explain-entities')).toBeTruthy();
     expect(container.querySelector('.insights-prose-section.insights-tone-explain-takeaways')).toBeTruthy();
+  });
+
+  it('renders server-built explain_sections artifact panel when present', () => {
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-exp-artifact',
+            title: 'Explain — diagram',
+            variant: 'explain',
+            status: 'done',
+            content: '## Explanation\n\nFallback prose.',
+            explainSections: {
+              contentType: 'mermaid',
+              preamble: 'Lead-in from server.',
+              sections: [
+                { id: 'explanation', heading: 'Explanation', body: 'Overview from artifact.' },
+                { id: 'takeaways', heading: 'Takeaways', body: 'Remember artifact.' }
+              ]
+            },
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(container.querySelector('[data-testid="explain-sections-panel"]')).toBeTruthy();
+    expect(screen.getByText(/Lead-in from server/i)).toBeTruthy();
+    expect(screen.getByText(/Overview from artifact/i)).toBeTruthy();
+    expect(screen.queryByText(/Fallback prose/i)).toBeNull();
   });
 
   it('collapses technical actions behind Tool trace for explain variant', () => {

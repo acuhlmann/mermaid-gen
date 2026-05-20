@@ -17,17 +17,24 @@
     "test": "npm run test -w packages/shared && npm run test -w apps/server && npm run test -w apps/web",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
+    "typecheck:strict": "npm run typecheck:strict -w apps/server",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check": "npm run typecheck && npm run test",
+    "check:fast": "npm run typecheck -w packages/shared && npm run test -w packages/shared",
+    "check:full": "npm run typecheck && npm run test && npm run build",
+    "check:wire": "node scripts/verify-doc-paths.mjs && npm run test:wire -w packages/shared && npm run test:wire -w apps/server && npm run test:wire -w apps/web",
+    "verify:doc-paths": "node scripts/verify-doc-paths.mjs",
     "deploy:cloud-run": "bash scripts/deploy-cloud-run.sh",
     "deploy:cloud-run:hackathon": "bash scripts/deploy-hackathon-cloud-run.sh",
     "secret:openrouter:cloud-run": "bash scripts/push-openrouter-secret-cloud-run.sh",
     "secret:invite-token:cloud-run": "bash scripts/push-invite-token-secret-cloud-run.sh"
   },
   "devDependencies": {
+    "@types/node": "^25.9.1",
     "concurrently": "^9.2.1",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "typescript": "^6.0.3"
   },
   "dependencies": {
     "@langchain/core": "^1.1.46",

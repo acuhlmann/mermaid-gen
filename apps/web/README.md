@@ -1,6 +1,6 @@
 # Web App Notes
 
-UI package for ArchiSlop (`apps/web`). Human-facing overview: [root README](../../README.md).
+UI package for ArchiSlop (`apps/web`). Human-facing overview: [root README](../../README.md), [Product & web UI](../../docs/guide/product.md).
 
 ## Key UX
 

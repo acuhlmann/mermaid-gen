@@ -5,6 +5,14 @@ node_modules/
 .env.local
 .DS_Store
 apps/web/dist/
+apps/web/dist-main/
+apps/web/dist-hackathon/
 coverage/
+dist/
+**/dist/
+.tsbuildinfo
+.tsbuildinfo.*
+**/.tsbuildinfo
+**/.tsbuildinfo.*
 .vscode/launch.json
 .vscode/*.local.json

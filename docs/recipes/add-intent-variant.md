@@ -13,7 +13,7 @@ Pick by asking "does the user type the prompt?" — yes = intent; "does the serv
 ## Steps (transform path — the most common case)
 
 1. **Name the mode.** Use a short camelCase identifier like `simplify` or `pitch`. This will land in `TransformModeSchema` and many switch statements.
-2. **Schema.** Add the literal to `packages/shared/src/diagramSchema.js` (`TransformModeSchema`) so the server and web both validate it.
+2. **Schema.** Add the literal to `packages/shared/src/diagramSchema.ts` (`TransformModeSchema`) so the server and web both validate it.
 3. **User-message builder.** Add a branch in `buildTransformUserContent` (search for `'refine'` / `'innovate'` / `'goMad'`). Compose a clear instruction including the current diagram, the desired flavor, and a numeric budget (nodes / edges).
 4. **Sampling profile.** Add caps in `TRANSFORM_MODEL_LIMITS` (and `goMadTransformModelOptions(depth)` if it has a "depth" notion). Pick a starting `temperature` — Refine is ~0.42, Innovate ~0.82.
 5. **Web wiring.**
@@ -21,7 +21,7 @@ Pick by asking "does the user type the prompt?" — yes = intent; "does the serv
    - Add a copy entry in `apps/web/src/utils/slopitectCopy.js` (Slopitect persona reactions).
    - If the mode has audio cues, add to `apps/web/src/utils/agentChimes.js`.
 6. **Tests.** Cover the new branch in `apps/server/test/mermaidLangChainAgent.test.js` and (if you added a web button) `apps/web/test/App.test.jsx`.
-7. **Update `README.md`** under _User-facing modes: character vs implementation_ with a row for your new mode.
+7. **Update [`docs/guide/agents.md`](../guide/agents.md)** under _User-facing modes_ with a row for your new mode.
 
 ## Steps (intent path)
 
@@ -29,14 +29,14 @@ Most of the same, but skip the `buildTransformUserContent` step — the user's p
 
 ## Files you'll touch (transform-path checklist)
 
-- `packages/shared/src/diagramSchema.js` — `TransformModeSchema`.
-- `packages/shared/src/mermaidTransformPolicy.js` / `infographicTransformPolicy.js` — node/edge caps if needed.
+- `packages/shared/src/diagramSchema.ts` — `TransformModeSchema`.
+- `packages/shared/src/mermaidTransformPolicy.ts` / `infographicTransformPolicy.ts` — node/edge caps if needed.
 - `apps/server/src/agents/{mermaid,infographic}LangChainAgent.js` — user-message builder, sampling.
 - `apps/server/src/routes/copilot.js` — usually no change; the route already takes `mode`.
 - `apps/web/src/App.jsx` / `apps/web/src/components/RadialActionMenu.jsx` — UI.
 - `apps/web/src/utils/{slopitectCopy,agentChimes}.js` — feedback.
 - `apps/server/test/*`, `apps/web/test/*` — tests.
-- `README.md` — table.
+- `docs/guide/agents.md` — user-facing modes table.
 
 ## Don't forget
 

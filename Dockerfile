@@ -46,4 +46,4 @@ COPY --from=builder /app/apps/web/dist-hackathon ./apps/web/dist-hackathon
 
 EXPOSE 8080
 
-CMD ["node", "apps/server/src/index.js"]
+CMD ["node", "apps/server/dist/index.js"]

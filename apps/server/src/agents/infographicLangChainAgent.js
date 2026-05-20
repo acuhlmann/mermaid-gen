@@ -17,7 +17,7 @@ import {
   resolveLlmBackend,
   resolveModelId
 } from './llmProvider.js';
-import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
+import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
 import {
   buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
   buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
@@ -64,8 +64,9 @@ function buildAnalyzeFocusInstructions(focusNode, kind) {
   }
   return buildMermaidAnalyzeFocusInstructions(focusNode, kind);
 }
-import { extractJsonStringPrefix } from './partialJsonString.js';
 import { repairInfographicWithFixer, isInfographicSyntaxFixerAvailable } from './infographicSyntaxFixer.js';
+import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 
 const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an infographic patch.
 - You MUST call apply_infographic_patch now once with complete, valid AntV Infographic DSL, then briefly summarize in prose only.
@@ -223,7 +224,16 @@ async function emitTokens(stream, emit) {
 }
 
 async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
-  const { requirePatch = false, emit, stableAgent = null, profile, abortSignal } = opts ?? {};
+  const {
+    requirePatch = false,
+    emit,
+    stableAgent = null,
+    profile,
+    abortSignal,
+    mode = null,
+    focusNode = null,
+    peerContext = null
+  } = opts ?? {};
   const runProfile = normalizeModelProfile(profile);
   const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'infographic');
   const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
@@ -265,10 +275,29 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     };
   };
 
+  if (typeof emit === 'function' && requirePatch) {
+    emitServerMutationPlanBeats({
+      emit,
+      stateStore,
+      mode,
+      messages: userMessages,
+      focusNode,
+      peerContext,
+      contentType: 'infographic'
+    });
+  }
+
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
     const stop = stopReason();
     if (stop) return finishStoppedRun(stop);
     if (typeof emit === 'function') {
+      if (attempt > 0) {
+        emitPlanBeat(
+          emit,
+          `Previous infographic patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
+          'server'
+        );
+      }
       emit({
         type: 'phase',
         id: attempt === 0 ? 'invoke' : `repair_${attempt}`,
@@ -283,11 +312,12 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
           { messages },
           { version: 'v2', ...(abortSignal ? { signal: abortSignal } : {}) }
         );
-        // Per tool_call_id buffers so we can lazily decode the partial
-        // diagramSource argument as the model streams it. The patch tool's
-        // schema is a single string field, so a streaming prefix is a valid
-        // draft for the InfographicRenderer to render incrementally.
-        const toolCallBuffers = new Map();
+        const patchTelemetry = createPatchToolStreamTracker({
+          emit,
+          patchToolName: 'apply_infographic_patch',
+          contentType: 'infographic',
+          emitDraftPreview: true
+        });
         let latestMessages = [];
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
@@ -296,33 +326,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
 
           if (ev?.event === 'on_chat_model_stream') {
             const chunks = ev.data?.chunk?.tool_call_chunks;
-            if (Array.isArray(chunks) && chunks.length > 0) {
-              for (const tcc of chunks) {
-                const bufferKey = tcc.id || `idx_${tcc.index ?? 0}`;
-                let entry = toolCallBuffers.get(bufferKey);
-                if (!entry) {
-                  entry = { name: '', argsBuffer: '', lastEmitted: 0 };
-                  toolCallBuffers.set(bufferKey, entry);
-                }
-                if (tcc.name) entry.name = tcc.name;
-                if (typeof tcc.args === 'string' && tcc.args) {
-                  entry.argsBuffer += tcc.args;
-                }
-                if (entry.name === 'apply_infographic_patch' && entry.argsBuffer) {
-                  const accumulated = extractJsonStringPrefix(entry.argsBuffer, 'diagramSource');
-                  if (accumulated.length > entry.lastEmitted) {
-                    const delta = accumulated.slice(entry.lastEmitted);
-                    entry.lastEmitted = accumulated.length;
-                    emit({
-                      type: 'draftPreview',
-                      contentType: 'infographic',
-                      delta,
-                      accumulated
-                    });
-                  }
-                }
-              }
-            }
+            patchTelemetry.processToolCallChunks(chunks);
           }
         }
         // streamEvents doesn't return a single envelope object; reconstruct
@@ -401,6 +405,11 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         if (fixerStop) return finishStoppedRun(fixerStop);
         syntaxFixerTried = true;
         if (typeof emit === 'function') {
+          emitPlanBeat(
+            emit,
+            'Infographic DSL failed validation — running a quick syntax pass before retrying.',
+            'server'
+          );
           emit({ type: 'phase', id: 'syntax_fixer', label: 'Infographic syntax fixer…' });
         }
         const fixerOutcome = await repairInfographicWithFixer({
@@ -448,6 +457,11 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         stableAgentTried = true;
         currentAgent = stableAgent;
         if (typeof emit === 'function') {
+          emitPlanBeat(
+            emit,
+            'No infographic patch landed — retrying with a steadier model to apply your change.',
+            'server'
+          );
           emit({ type: 'status', text: 'Retrying with stable model: diagram patch required…' });
         }
       }
@@ -682,7 +696,19 @@ export function createInfographicLangChainAgent({
               })
             }
           ],
-          { requirePatch: true, emit, stableAgent, profile: normalizeModelProfile(modelProfile), abortSignal },
+          {
+            requirePatch: true,
+            emit,
+            stableAgent,
+            profile: normalizeModelProfile(modelProfile),
+            abortSignal,
+            mode: personaMode ?? 'go',
+            focusNode,
+            peerContext:
+              peerMermaid.length > 0
+                ? { contentType: 'mermaid', diagramSource: peerMermaid }
+                : peerContext ?? null
+          },
           stateStore,
           env
         );
@@ -739,7 +765,15 @@ export function createInfographicLangChainAgent({
           return invokeWithRepair(
             agent,
             [{ role: 'user', content: body }],
-            { requirePatch: true, emit, stableAgent, profile: normalizeModelProfile(modelProfile), abortSignal },
+            {
+              requirePatch: true,
+              emit,
+              stableAgent,
+              profile: normalizeModelProfile(modelProfile),
+              abortSignal,
+              mode,
+              focusNode
+            },
             stateStore,
             env
           );
@@ -830,7 +864,11 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
           modelProfile,
           emit
         });
-        emitCritiqueA2uiBeforeFinal(emit, { kind: payload.kind, analyzeText: result.message });
+        emitAnalyzeStreamArtifactsBeforeFinal(emit, {
+          kind: payload.kind,
+          analyzeText: result.message,
+          contentType: payload.contentType
+        });
         emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
         return result;
       }

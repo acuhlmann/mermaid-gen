@@ -1,0 +1,417 @@
+import {
+  LEGACY_STREAM_TYPE_A2UI,
+  resolveCritiqueAnalyzeFinalText,
+  type A2uiV09Message,
+  type DiagramState,
+  type LegacyErrorEvent,
+  type LegacyFinalEvent,
+  type LegacyStatusEvent,
+  type LegacyStreamEvent,
+  type LegacyTokenEvent,
+  type LegacyToolEndEvent,
+  type LegacyToolStartEvent
+} from '@archislop/shared';
+import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
+
+const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
+const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
+
+function normalizeInsightTextForDedup(text: string | undefined): string {
+  return (text ?? '').replace(/\s+/g, ' ').trim();
+}
+
+function shouldAppendFinalInsightEcho(streamedText: string, finalMessage: string | undefined): boolean {
+  const msg = (finalMessage ?? '').trim();
+  if (!msg) return false;
+  const stream = (streamedText ?? '').trim();
+  if (!stream) return true;
+
+  const nMsg = normalizeInsightTextForDedup(msg);
+  const nStream = normalizeInsightTextForDedup(stream);
+  if (!nMsg) return false;
+  if (nStream === nMsg) return false;
+  const minSuffixLen = 64;
+  if (nMsg.length >= minSuffixLen && nStream.endsWith(nMsg)) return false;
+  return true;
+}
+
+export type InsightStreamAccumulator = { text: string };
+
+export type InsightEventContext = {
+  sectionId: string;
+  operation?: string;
+  variant?: string;
+  diagramUndoBaseline?: unknown;
+  patchInsightEntry: (id: string, fn: (entry: Record<string, unknown>) => Record<string, unknown>) => void;
+  appendToInsight: (id: string, text: string) => void;
+  setInsightStatus: (id: string, text: string) => void;
+  appendTechnicalAction: (id: string, name: string, status: string) => void;
+  lastTokenSoundAtRef: { current: number };
+  goMadTokenTickIndexRef: { current: number };
+  lastDraftTickAtRef: { current: number };
+  tryAgentSound: (fn: ((audioCtx: AudioContext) => void) | (() => void)) => void;
+  playGoMadTokenTick?: (audioCtx: AudioContext, idx: number) => void;
+  playTokenTickChime?: () => void;
+  playToolStartChime?: () => void;
+  playToolEndChime?: () => void;
+  playDraftTick?: () => void;
+  playFailureChime?: () => void;
+  playPhaseChangePluck?: () => void;
+  playRefineTokenTick?: () => void;
+  playInnovateTokenTick?: (audioCtx: AudioContext, idx: number) => void;
+  playCritiqueTokenTick?: () => void;
+  playExplainTokenTick?: () => void;
+  playRefinePolishLoop?: () => void;
+  playInnovateSynthLoop?: () => void;
+  playGoMadKlaxonLoop?: () => void;
+  playGoMadAirhornBlast?: () => void;
+  playCritiqueScribbleLoop?: () => void;
+  playCritiquePenStab?: () => void;
+  playExplainPageFlipLoop?: () => void;
+  setLiveDraftSource: (source: string) => void;
+  setLiveDraftContentType: (ct: string | null) => void;
+  setGoMadStreak?: (fn: (s: number) => number) => void;
+  sessionTopicRef?: { current: string | null };
+  crossModeSyncRef?: { current: Record<string, unknown> };
+  modeSwitchSync?: boolean;
+  modeSwitchPeerRevisionId?: number | null;
+  animateAcceptedSource: (state: unknown, onDone?: () => void, opts?: { denseSteps?: boolean }) => void;
+  pendingAutoDiagramHighlightRef: { current: { entryId: string; revisionId: number } | null };
+  pendingAutoDiagramHighlightTimeoutRef: { current: ReturnType<typeof setTimeout> | null };
+  triggerCompletionDelight: (sectionId: string, variant: string | undefined) => void;
+  onFinal?: (args: { evt: LegacyStreamEvent; finalText: string; sectionId: string }) => void;
+  onA2uiMessages?: (messages: A2uiV09Message[], sectionId: string) => void;
+};
+
+/** Reduces post-translator legacy stream events into insights/draft/sound updates. */
+export function applyAgentStreamInsightEvent(
+  streamAcc: InsightStreamAccumulator,
+  ctx: InsightEventContext,
+  evt: LegacyStreamEvent | null | undefined
+): void {
+  if (!evt || typeof evt !== 'object') return;
+
+  const {
+    sectionId,
+    operation,
+    variant,
+    diagramUndoBaseline,
+    patchInsightEntry,
+    appendToInsight,
+    setInsightStatus,
+    appendTechnicalAction,
+    lastTokenSoundAtRef,
+    goMadTokenTickIndexRef,
+    lastDraftTickAtRef,
+    tryAgentSound,
+    playGoMadTokenTick,
+    playTokenTickChime,
+    playToolStartChime,
+    playToolEndChime,
+    playDraftTick,
+    playFailureChime,
+    playPhaseChangePluck,
+    playRefineTokenTick,
+    playInnovateTokenTick,
+    playCritiqueTokenTick,
+    playExplainTokenTick,
+    playRefinePolishLoop,
+    playInnovateSynthLoop,
+    playGoMadKlaxonLoop,
+    playGoMadAirhornBlast,
+    playCritiqueScribbleLoop,
+    playCritiquePenStab,
+    playExplainPageFlipLoop,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    setGoMadStreak,
+    sessionTopicRef,
+    crossModeSyncRef,
+    modeSwitchSync,
+    modeSwitchPeerRevisionId,
+    animateAcceptedSource,
+    pendingAutoDiagramHighlightRef,
+    pendingAutoDiagramHighlightTimeoutRef,
+    triggerCompletionDelight,
+    onFinal
+  } = ctx;
+
+  if (evt.type === 'phase' && 'id' in evt && evt.id && 'label' in evt && evt.label) {
+    patchInsightEntry(sectionId, (entry) => {
+      const previous = Array.isArray(entry.phases) ? entry.phases : [];
+      return {
+        ...entry,
+        phases: [...previous, { id: evt.id, label: evt.label }],
+        lastPhaseChangedAt: Date.now()
+      };
+    });
+    if (typeof playPhaseChangePluck === 'function') {
+      tryAgentSound(playPhaseChangePluck);
+    }
+    if (variant === 'critique' && typeof playCritiquePenStab === 'function') {
+      tryAgentSound(playCritiquePenStab);
+    } else if (variant === 'goMad') {
+      if (Math.random() < 0.18 && typeof playGoMadAirhornBlast === 'function') {
+        tryAgentSound(playGoMadAirhornBlast);
+      } else if (typeof playGoMadKlaxonLoop === 'function') {
+        tryAgentSound(playGoMadKlaxonLoop);
+      }
+    } else if (variant === 'innovate' && typeof playInnovateSynthLoop === 'function') {
+      if (Math.random() < 0.5) tryAgentSound(playInnovateSynthLoop);
+    } else if (variant === 'refine' && typeof playRefinePolishLoop === 'function') {
+      if (Math.random() < 0.45) tryAgentSound(playRefinePolishLoop);
+    } else if (variant === 'explain' && typeof playExplainPageFlipLoop === 'function') {
+      if (Math.random() < 0.45) tryAgentSound(playExplainPageFlipLoop);
+    } else if (variant === 'critique' && typeof playCritiqueScribbleLoop === 'function') {
+      if (Math.random() < 0.4) tryAgentSound(playCritiqueScribbleLoop);
+    }
+  } else if (evt.type === 'artifact' && evt.kind === 'patch_summary') {
+    patchInsightEntry(sectionId, (entry) => ({
+      ...entry,
+      artifacts: [
+        ...(Array.isArray(entry.artifacts) ? entry.artifacts : []),
+        {
+          kind: evt.kind,
+          revisionId: evt.revisionId,
+          linesAdded: evt.linesAdded,
+          linesRemoved: evt.linesRemoved
+        }
+      ]
+    }));
+  } else if (evt.type === 'artifact' && evt.kind === 'explain_sections') {
+    const sections = Array.isArray(evt.sections) ? evt.sections : [];
+    if (sections.length > 0) {
+      patchInsightEntry(sectionId, (entry) => ({
+        ...entry,
+        explainSections: {
+          contentType: evt.contentType === 'infographic' ? 'infographic' : 'mermaid',
+          preamble: typeof evt.preamble === 'string' ? evt.preamble : '',
+          sections
+        }
+      }));
+    }
+  } else if (evt.type === 'artifact' && evt.kind === 'style_edits') {
+    const edits = Array.isArray(evt.edits) ? evt.edits : [];
+    if (edits.length > 0) {
+      patchInsightEntry(sectionId, (entry) => ({
+        ...entry,
+        styleEdits: edits
+      }));
+    }
+  } else if (evt.type === LEGACY_STREAM_TYPE_A2UI && Array.isArray(evt.messages) && evt.messages.length > 0) {
+    const surfaceId =
+      evt.messages[0]?.createSurface?.surfaceId ?? evt.messages[0]?.updateComponents?.surfaceId;
+    const isStyleEditsSurface = surfaceId === 'style-edits';
+    patchInsightEntry(sectionId, (entry) => ({
+      ...entry,
+      ...(isStyleEditsSurface
+        ? { styleEditsA2uiMessages: evt.messages }
+        : { a2uiMessages: evt.messages })
+    }));
+    if (typeof ctx.onA2uiMessages === 'function') {
+      ctx.onA2uiMessages(evt.messages, sectionId);
+    }
+  } else if (evt.type === 'token') {
+    const tokenEvt = evt as LegacyTokenEvent;
+    if (!tokenEvt.text) return;
+    streamAcc.text += tokenEvt.text;
+    appendToInsight(sectionId, tokenEvt.text);
+    const now = Date.now();
+    const reduceMotion =
+      typeof globalThis.matchMedia === 'function' &&
+      globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const goMadDense = variant === 'goMad' && !reduceMotion;
+    const minGapMs = goMadDense ? 140 : 210;
+    if (now - lastTokenSoundAtRef.current >= minGapMs) {
+      lastTokenSoundAtRef.current = now;
+      if (goMadDense && playGoMadTokenTick) {
+        const idx = goMadTokenTickIndexRef.current;
+        goMadTokenTickIndexRef.current = idx + 1;
+        tryAgentSound((audioCtx) => playGoMadTokenTick(audioCtx, idx));
+      } else if (variant === 'refine' && typeof playRefineTokenTick === 'function') {
+        tryAgentSound(playRefineTokenTick);
+      } else if (variant === 'innovate' && playInnovateTokenTick) {
+        const idx = goMadTokenTickIndexRef.current;
+        goMadTokenTickIndexRef.current = idx + 1;
+        tryAgentSound((audioCtx) => playInnovateTokenTick(audioCtx, idx));
+      } else if (variant === 'critique' && typeof playCritiqueTokenTick === 'function') {
+        tryAgentSound(playCritiqueTokenTick);
+      } else if (variant === 'explain' && typeof playExplainTokenTick === 'function') {
+        tryAgentSound(playExplainTokenTick);
+      } else if (typeof playTokenTickChime === 'function') {
+        tryAgentSound(playTokenTickChime);
+      }
+    }
+  } else if (evt.type === 'status') {
+    const statusEvt = evt as LegacyStatusEvent;
+    if (!statusEvt.text) return;
+    setInsightStatus(sectionId, statusEvt.text);
+  } else if (evt.type === 'plan_beat' && evt.text) {
+    const text = String(evt.text).trim();
+    const source = evt.source === 'agent' ? 'agent' : 'server';
+    if (!text) return;
+    patchInsightEntry(sectionId, (entry) => {
+      const beats = Array.isArray(entry.planBeats)
+        ? ([...(entry.planBeats as { text: string; source: string; at: number }[])] as {
+            text: string;
+            source: string;
+            at: number;
+          }[])
+        : [];
+      const last = beats.length > 0 ? beats[beats.length - 1] : null;
+      if (source === 'agent' && last?.source === 'agent') {
+        beats[beats.length - 1] = { text, source, at: Date.now() };
+      } else if (!beats.some((b) => b.text === text)) {
+        beats.push({ text, source, at: Date.now() });
+      }
+      return { ...entry, planBeats: beats };
+    });
+    const statusPreview = text.length > 200 ? `${text.slice(0, 197)}…` : text;
+    setInsightStatus(sectionId, statusPreview);
+  } else if (evt.type === 'tool_start') {
+    const toolEvt = evt as LegacyToolStartEvent;
+    if (!toolEvt.name) return;
+    appendTechnicalAction(sectionId, toolEvt.name, 'running');
+    if (typeof playToolStartChime === 'function') tryAgentSound(playToolStartChime);
+  } else if (evt.type === 'tool_end') {
+    const toolEvt = evt as LegacyToolEndEvent;
+    if (!toolEvt.name) return;
+    appendTechnicalAction(sectionId, toolEvt.name, 'done');
+    if (typeof playToolEndChime === 'function') tryAgentSound(playToolEndChime);
+  } else if (evt.type === 'draftPreview') {
+    if (evt.contentType === 'infographic' && typeof evt.source === 'string' && evt.source) {
+      setLiveDraftSource(evt.source);
+      setLiveDraftContentType('infographic');
+      const tickNow = Date.now();
+      if (tickNow - lastDraftTickAtRef.current >= 110) {
+        lastDraftTickAtRef.current = tickNow;
+        if (typeof playDraftTick === 'function') tryAgentSound(playDraftTick);
+      }
+    }
+  } else if (evt.type === 'error') {
+    const errEvt = evt as LegacyErrorEvent;
+    if (!errEvt.message) return;
+    appendToInsight(sectionId, `\n\n**Error:** ${errEvt.message}\n\n`);
+    if (errEvt.code !== 'no_mutation_revision' && typeof playFailureChime === 'function') {
+      tryAgentSound(playFailureChime);
+    }
+    setLiveDraftSource('');
+    setLiveDraftContentType(null);
+    const failure = resolveAgentStreamFailureStatus({
+      operation,
+      code: errEvt.code,
+      message: errEvt.message
+    });
+    patchInsightEntry(sectionId, (entry) => ({
+      ...entry,
+      status: 'failed',
+      statusText: failure.statusText,
+      failureClass: failure.failureClass,
+      failureDetail: failure.detail,
+      completedAt: Date.now()
+    }));
+  } else if (evt.type === 'final') {
+    const finalEvt = evt as LegacyFinalEvent;
+    const finalState = finalEvt.state as DiagramState | undefined;
+    setLiveDraftSource('');
+    setLiveDraftContentType(null);
+    const mutationBlocked =
+      (operation === 'transform' || operation === 'intent') && finalEvt.revisionChanged === false;
+    if (variant === 'goMad' && finalEvt.revisionChanged && setGoMadStreak) {
+      setGoMadStreak((s) => s + 1);
+    }
+    if (finalEvt.revisionChanged && finalState?.lastUserPrompt && sessionTopicRef) {
+      sessionTopicRef.current = finalState.lastUserPrompt;
+    }
+    if (finalEvt.revisionChanged && finalState && crossModeSyncRef) {
+      if (modeSwitchSync && modeSwitchPeerRevisionId != null) {
+        const contentType = finalState.contentType === 'infographic' ? 'infographic' : 'mermaid';
+        const peerMode = contentType === 'mermaid' ? 'infographic' : 'mermaid';
+        crossModeSyncRef.current = {
+          ...crossModeSyncRef.current,
+          [contentType]: {
+            peerMode,
+            peerRevisionId: modeSwitchPeerRevisionId,
+            targetRevisionId: finalState.revisionId ?? 0
+          }
+        };
+      } else if (!modeSwitchSync) {
+        crossModeSyncRef.current = { mermaid: null, infographic: null };
+      }
+    }
+    if (finalEvt.revisionChanged && finalState) {
+      const shouldAutoHighlight =
+        Boolean(diagramUndoBaseline) && AUTO_DIAGRAM_HIGHLIGHT_VARIANTS.has(variant ?? '');
+      animateAcceptedSource(
+        finalState,
+        shouldAutoHighlight
+          ? () => {
+              pendingAutoDiagramHighlightRef.current = {
+                entryId: sectionId,
+                revisionId: finalState.revisionId
+              };
+              if (typeof globalThis.window !== 'undefined') {
+                if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
+                  globalThis.window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
+                }
+                pendingAutoDiagramHighlightTimeoutRef.current = globalThis.window.setTimeout(() => {
+                  pendingAutoDiagramHighlightTimeoutRef.current = null;
+                  const stillPending = pendingAutoDiagramHighlightRef.current;
+                  if (!stillPending || stillPending.entryId !== sectionId) return;
+                  pendingAutoDiagramHighlightRef.current = null;
+                }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS);
+              }
+            }
+          : undefined,
+        { denseSteps: variant === 'goMad' }
+      );
+    }
+    if (finalEvt.message && operation !== 'analyze' && shouldAppendFinalInsightEcho(streamAcc.text, finalEvt.message)) {
+      appendToInsight(sectionId, `\n\n— _${finalEvt.message}_`);
+    }
+    const failureStatus = mutationBlocked
+      ? resolveAgentStreamFailureStatus({
+          operation,
+          code: 'no_mutation_revision',
+          message: finalEvt.message
+        })
+      : null;
+    patchInsightEntry(sectionId, (entry) => ({
+      ...entry,
+      status: mutationBlocked ? 'failed' : 'done',
+      statusText: mutationBlocked && failureStatus ? failureStatus.statusText : 'Done',
+      ...(mutationBlocked && failureStatus
+        ? {
+            failureClass: failureStatus.failureClass,
+            failureDetail: failureStatus.detail
+          }
+        : {}),
+      completedAt: Date.now(),
+      ...(finalEvt.revisionChanged && finalState && entry.diagramUndoBaseline
+        ? {
+            diagramRevisionApplied: true,
+            diagramAfterSource:
+              typeof finalState.diagramSource === 'string' ? finalState.diagramSource : null,
+            diagramAfterContentType: finalState.contentType ?? null,
+            diagramAfterRevisionId: finalState.revisionId ?? null
+          }
+        : {})
+    }));
+    if (!mutationBlocked) {
+      triggerCompletionDelight(sectionId, variant);
+    } else if (typeof playFailureChime === 'function') {
+      tryAgentSound(playFailureChime);
+    }
+    if (typeof onFinal === 'function') {
+      const finalText =
+        operation === 'analyze' && variant === 'critique'
+          ? resolveCritiqueAnalyzeFinalText(streamAcc.text, finalEvt.analyzeText)
+          : streamAcc.text.trim() ||
+            (typeof finalEvt.analyzeText === 'string' ? finalEvt.analyzeText.trim() : '');
+      if (operation === 'analyze' && variant === 'critique' && finalText) {
+        patchInsightEntry(sectionId, (entry) => ({ ...entry, content: finalText }));
+      }
+      onFinal({ evt: finalEvt, finalText, sectionId });
+    }
+  }
+}

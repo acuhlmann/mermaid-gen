@@ -65,11 +65,22 @@ Full AG-UI contract: [`architecture-ag-ui.md`](architecture-ag-ui.md).
 
 When an external agent calls `drop_insight` with `variant: critique`, then `open_critique_review`, the host can render the same actionable sections in an MCP App iframe. Humans use `request_critique_fix` (`APP_ONLY_UI`) to queue items; the web client receives `critique_fix_request` on session-events and can run **Fix** like the native checklist.
 
+## Explain sections (non-A2UI artifact)
+
+Explain analyze runs emit AG-UI `CUSTOM` artifact `explain_sections` (server-parsed `##` headings) before `RUN_FINISHED`. The web Thinking pane renders [`ExplainSectionsPanel.jsx`](../apps/web/src/components/ExplainSectionsPanel.jsx) when the insight entry carries `explainSections` (see `packages/shared/src/explainSections.ts`).
+
+## Style edits (artifact + optional A2UI)
+
+Style, critique, and intent streams may include numbered lines such as icon replacements (`Replace ::icon(fa fa-fire) with 🔥`) or color shifts (`#4b3b00` → `#3a2a00`). The server parses these deterministically into AG-UI `CUSTOM` artifact `style_edits` (`packages/shared/src/styleEdits.ts`) before `RUN_FINISHED`. The web Thinking pane renders [`StyleEditsPanel.jsx`](../apps/web/src/components/StyleEditsPanel.jsx) (swatches, ramps, icon rows) and optionally [`StyleEditsA2uiSurface.jsx`](../apps/web/src/components/StyleEditsA2uiSurface.jsx) when `buildStyleEditsA2uiMessages` emits a second `CUSTOM` `a2ui` payload (`surfaceId: style-edits`, action `archislop_applyStyleEdits` → intent).
+
+Streaming prose also passes through [`thinkingProseEnrich.jsx`](../apps/web/src/utils/thinkingProseEnrich.jsx) so partial tokens show inline swatches and chips without waiting for the artifact.
+
 ## Extending Gen UI safely
 
 | Approach | Fits ArchiSlop? | Notes |
 | --- | --- | --- |
 | More server-built A2UI from Markdown | Yes | Same trust model — new catalogs/actions must map to known routes (e.g. intent only). |
+| Server-built `CUSTOM` artifacts (e.g. `explain_sections`) | Yes | Parsed markdown → structured UI without model-authored JSON. |
 | Model-authored A2UI JSON | Discouraged | Bypasses allowlist; use Markdown + builder instead. |
 | AG-UI `CUSTOM` artifacts (non-A2UI) | Possible | Add a `name` in `agUiWireConstants.js` + reducer in `applyAgentStreamInsightEvent.js`. |
 | MCP App for new human workflows | Yes | New `ui://` bundle + `registerAppResource` + tool with `UI_META`. |

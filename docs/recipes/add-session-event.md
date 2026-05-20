@@ -7,20 +7,20 @@ Note: `session-events` is **not AG-UI**. It's a separate SSE feed at `GET /api/c
 ## Steps
 
 1. **Name the event.** Use kebab-case, descriptive: `proposal.created`, `presence.focus`, `insight.attributed`. Group by the entity it concerns.
-2. **Define the payload** in a Zod schema near the bus (`apps/server/src/state/sessionEventBus.js`). Match the shape of existing events — `{ type, ts, actor, data }` is the convention.
+2. **Define the payload** in a Zod schema near the bus (`apps/server/src/state/sessionEventBus.ts`). Match the shape of existing events — `{ type, ts, actor, data }` is the convention.
 3. **Publish from the producer.** Wherever the state change happens (a route handler, an MCP tool handler, an agent service), get `sessionEventBus` from the session services and call `publish(...)`. The bus deduplicates and persists to the per-session ring buffer that backs the long-poll fallback.
 4. **Subscribe on web** via `apps/web/src/state/sessionEventsClient.js`. Add a handler branch and dispatch into the store. The SSE stream is already wired to the store; the new branch just routes to the right reducer.
-5. **Subscribe on MCP Apps** if the App should auto-refresh on this event. The shared `session-events.html` bridge wraps the same feed for inside-App use.
+5. **Subscribe on MCP Apps** if the App should auto-refresh on this event. MCP App bundles use the session-event bridge in `apps/server/src/mcp/apps/mcpAppSessionBridge.js` (see an existing App HTML bundle as a template).
 6. **Handle long-poll fallback.** Hosts that can't keep an SSE open use `GET /api/copilotkit/session-events?after=<lastEventId>`. The ring buffer already supports this; just make sure your event is emitted via the bus (not a side channel).
-7. **Tests.** `apps/server/test/sessionServices.test.js` (or a focused new test file) for the bus publish; `apps/web/test/sessionEventsClient.test.js` for the client handler.
+7. **Tests.** `apps/server/test/sessionEventBus.test.js` and `apps/server/test/sessionServices.test.js` for the bus publish; extend an existing web test if the client handler changes visible UI.
 8. **Document.** Add a row in [`docs/architecture-external-agents.md`](../architecture-external-agents.md) under _session-events_.
 
 ## Files you'll touch
 
-- `apps/server/src/state/sessionEventBus.js` — schema + publish helper.
+- `apps/server/src/state/sessionEventBus.ts` — schema + publish helper.
 - Producer (route, MCP tool, or agent file) — call to `publish`.
 - `apps/web/src/state/sessionEventsClient.js` — handler.
-- `apps/server/src/mcp/apps/session-events.html` style bundles — if the App needs to react.
+- `apps/server/src/mcp/apps/mcpAppSessionBridge.js` and a sibling `*AppHtml.js` bundle — if the App needs to react.
 - Tests + `docs/architecture-external-agents.md`.
 
 ## Don't forget

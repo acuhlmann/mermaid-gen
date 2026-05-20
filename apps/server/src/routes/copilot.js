@@ -30,7 +30,7 @@ import {
   runStarted,
   runError,
   stepStarted
-} from '../agents/agUiEvents.js';
+} from '@archislop/shared';
 import {
   apiLlmRateLimitIfNeeded,
   createApiRateLimitMiddleware

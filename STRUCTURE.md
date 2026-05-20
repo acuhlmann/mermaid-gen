@@ -18,8 +18,9 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Mermaid diagram-type rule packs                        | `apps/server/src/prompts/mermaidSyntaxGuard.js`       |
 | Infographic rule packs                                 | `apps/server/src/prompts/infographicSyntaxGuard.js`   |
 | Advisor prompts (Slopitect persona)                    | `apps/server/src/agents/advisorPrompts.js`            |
-| Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.js`        |
-| AG-UI event normalization (server side)                | `apps/server/src/agents/agUiEvents.js`                |
+| Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.ts`        |
+| Analyze finalize (critique / explain / style emits)    | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts` |
+| AG-UI stream emitter + wire types (shared)             | `packages/shared/src/agentStreamEmitter.ts`, `agUiEventTypes.ts` |
 | LangGraph ReAct config knobs                           | `apps/server/src/agents/agentGraphConfig.js`          |
 | LLM backend selection (Vertex / OpenRouter / DeepSeek) | `apps/server/src/agents/llmProvider.js`               |
 | CopilotKit runtime wrapper                             | `apps/server/src/agents/copilotRuntimeAgent.js`       |
@@ -27,8 +28,8 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Mermaid validate + sanitizer rescue tool               | `apps/server/src/tools/mermaidDiffTool.js`            |
 | Infographic validate + sanitizer rescue tool           | `apps/server/src/tools/infographicDslTool.js`         |
 | Session services registry                              | `apps/server/src/state/sessionServices.js`            |
-| Per-session diagram store (dual slot)                  | `apps/server/src/state/diagramStateStore.js`          |
-| Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.js`            |
+| Per-session diagram store (dual slot)                  | `apps/server/src/state/diagramStateStore.ts`          |
+| Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.ts`            |
 | Pairing code store factory (in-memory / Redis)         | `apps/server/src/state/pairingCodeStoreFactory.js`    |
 | Agent token store                                      | `apps/server/src/state/agentTokenStore.js`            |
 | MCP server + tool registration                         | `apps/server/src/mcp/mcpServer.js`                    |
@@ -36,7 +37,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | MCP rate limiting                                      | `apps/server/src/mcp/mcpRateLimit.js`                 |
 | Production CSP                                         | `apps/server/src/security/productionCsp.js`           |
 | Invite token HMAC                                      | `apps/server/src/utils/inviteToken.js`                |
-| Mermaid run-budget shared timer                        | `packages/shared/src/agentRunBudget.js`               |
+| Mermaid run-budget shared timer                        | `packages/shared/src/agentRunBudget.ts`               |
 | Agent turn metrics emitter                             | `apps/server/src/metrics/agentTurnMetrics.js`         |
 
 ## Web
@@ -56,7 +57,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Embedded diagram preview in insights              | `apps/web/src/components/InsightsEmbeddedDiagram.jsx`                                                                 |
 | Web store (intent / stream / sync / cache)        | `apps/web/src/state/diagramStore.js`                                                                                  |
 | Session-events SSE client                         | `apps/web/src/state/sessionEventsClient.js`                                                                           |
-| AG-UI stream → insight mapper                     | `apps/web/src/state/applyAgentStreamInsightEvent.js`                                                                  |
+| AG-UI stream → insight mapper                     | `apps/web/src/state/applyAgentStreamInsightEvent.ts`, `agUiTranslator.ts`                                             |
 | Run gamification store (XP, streaks)              | `apps/web/src/state/runGamificationStore.js`                                                                          |
 | Mermaid render init / preview / source-locate     | `apps/web/src/utils/mermaidRenderInit.js`, `renderMermaidPreview.js`, `mermaidSourceLocate.js`                        |
 | Infographic hit-testing                           | `apps/web/src/utils/infographicHitTest.js`                                                                            |
@@ -70,21 +71,23 @@ Look up a concept here before grepping. Paths are repo-relative.
 
 | Concept                                                         | File(s)                                                                |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| All Zod schemas (`SessionDiagramStateSchema`, `PatchSchema`, …) | `packages/shared/src/diagramSchema.js`                                 |
-| Mermaid deterministic sanitizer                                 | `packages/shared/src/mermaidSanitizer.js`                              |
-| Infographic deterministic sanitizer                             | `packages/shared/src/infographicSanitizer.js`                          |
-| AG-UI wire constants + event types                              | `packages/shared/src/agUiWireConstants.js`, `agUiEventTypes.js`        |
-| AG-UI stream emitter (server-side helper)                       | `packages/shared/src/agentStreamEmitter.js`                            |
-| A2UI critique message builder                                   | `packages/shared/src/critiqueA2uiMessages.js`, `critiqueActionable.js` |
-| Mermaid graph metrics (node/edge counts)                        | `packages/shared/src/mermaidGraphMetrics.js`                           |
-| Mermaid style helpers (`%%init%%`, classDef)                    | `packages/shared/src/mermaidStyle.js`                                  |
-| Mermaid transform policy (caps per mode)                        | `packages/shared/src/mermaidTransformPolicy.js`                        |
-| Infographic transform policy                                    | `packages/shared/src/infographicTransformPolicy.js`                    |
-| Infographic diff (for proposal preview)                         | `packages/shared/src/infographicDiff.js`                               |
-| Infographic refine pre-pass                                     | `packages/shared/src/infographicRefinePrepass.js`                      |
-| SVG sanitizer                                                   | `packages/shared/src/sanitizeSvg.js`                                   |
-| Label "explain dumb" levels                                     | `packages/shared/src/labelExplainDumbLevels.js`                        |
-| Run budget timer                                                | `packages/shared/src/agentRunBudget.js`                                |
+| All Zod schemas (`SessionDiagramStateSchema`, `PatchSchema`, …) | `packages/shared/src/diagramSchema.ts`                                 |
+| Mermaid deterministic sanitizer                                 | `packages/shared/src/mermaidSanitizer.ts`                              |
+| Infographic deterministic sanitizer                             | `packages/shared/src/infographicSanitizer.ts`                          |
+| AG-UI wire constants + event types                              | `packages/shared/src/agUiWireConstants.ts`, `agUiEventTypes.ts`        |
+| AG-UI stream emitter (server-side helper)                       | `packages/shared/src/agentStreamEmitter.ts`                            |
+| Legacy stream event union (client semantic layer)               | `packages/shared/src/legacyStreamEvents.ts`                            |
+| A2UI critique message builder                                   | `packages/shared/src/critiqueA2uiMessages.ts`, `critiqueActionable.ts` |
+| Explain / style Gen UI payloads                                 | `packages/shared/src/explainSections.ts`, `styleEdits.ts`              |
+| Mermaid graph metrics (node/edge counts)                        | `packages/shared/src/mermaidGraphMetrics.ts`                           |
+| Mermaid style helpers (`%%init%%`, classDef)                    | `packages/shared/src/mermaidStyle.ts`                                  |
+| Mermaid transform policy (caps per mode)                        | `packages/shared/src/mermaidTransformPolicy.ts`                        |
+| Infographic transform policy                                    | `packages/shared/src/infographicTransformPolicy.ts`                    |
+| Infographic diff (for proposal preview)                         | `packages/shared/src/infographicDiff.ts`                               |
+| Infographic refine pre-pass                                     | `packages/shared/src/infographicRefinePrepass.ts`                      |
+| SVG sanitizer                                                   | `packages/shared/src/sanitizeSvg.ts`                                   |
+| Label "explain dumb" levels                                     | `packages/shared/src/labelExplainDumbLevels.ts`                        |
+| Run budget timer                                                | `packages/shared/src/agentRunBudget.ts`                                |
 
 ## Tests
 
@@ -92,8 +95,17 @@ Look up a concept here before grepping. Paths are repo-relative.
 | --------------------- | --------------------------------------------------------------------------------- |
 | Server tests          | `apps/server/test/*.test.js` (run via `node --test`)                              |
 | Web tests             | `apps/web/test/*.test.{js,jsx}` (run via Vitest)                                  |
-| Shared tests          | `packages/shared/test/*.test.js` (run via `node --test`)                          |
+| Shared tests          | `packages/shared/test/*.test.ts` (run via `node --test`)                          |
 | Mermaid offline bench | `apps/server/scripts/benchMermaid.js` (snapshots in `apps/server/bench-results/`) |
+
+## Human guides (`docs/guide/`)
+
+| Concept                              | File                            |
+| ------------------------------------ | ------------------------------- |
+| Guide index                          | `docs/guide/README.md`          |
+| Quick start, product, system overview  | `docs/guide/quick-start.md`, `product.md`, `system-overview.md` |
+| Agents, validation, MCP quick start  | `docs/guide/agents.md`, `validation.md`, `external-agents.md` |
+| Config, API routes, development      | `docs/guide/configuration.md`, `api-endpoints.md`, `development.md` |
 
 ## Architecture docs (read before changing wire contracts)
 

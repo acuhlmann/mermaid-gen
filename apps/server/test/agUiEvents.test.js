@@ -36,7 +36,7 @@ import {
   toolCallEnd,
   toolCallStart,
   AGUI_EVENT_TYPE
-} from '../src/agents/agUiEvents.js';
+} from '@archislop/shared';
 
 test('AGUI_EVENT_TYPE values match @ag-ui/core EventType enum', () => {
   for (const [k, v] of Object.entries(AGUI_EVENT_TYPE)) {

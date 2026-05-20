@@ -23,6 +23,12 @@
       "type": "shell",
       "command": "npm run build",
       "problemMatcher": []
+    },
+    {
+      "label": "build:server",
+      "type": "shell",
+      "command": "npm run build -w apps/server",
+      "problemMatcher": ["$tsc"]
     }
   ]
 }

@@ -1,6 +1,6 @@
 # CLAUDE.md — agent quick-reference for `archislop`
 
-This file is for coding agents (Claude Code, Cursor, Copilot) opening a session in this repo. Humans should start at [`README.md`](README.md); operators at [`AGENTS.md`](AGENTS.md). For a concept→file index see [`STRUCTURE.md`](STRUCTURE.md); for terminology see [`GLOSSARY.md`](GLOSSARY.md); for common task templates see [`docs/recipes/`](docs/recipes/).
+This file is for coding agents (Claude Code, Cursor, Copilot) opening a session in this repo. Humans should start at [`README.md`](README.md) and [`docs/guide/README.md`](docs/guide/README.md); operators at [`AGENTS.md`](AGENTS.md). For a concept→file index see [`STRUCTURE.md`](STRUCTURE.md); for terminology see [`GLOSSARY.md`](GLOSSARY.md); for common task templates see [`docs/recipes/`](docs/recipes/).
 
 > The product name is **archislop**. The directory and GitHub repo are still named `mermaid-gen` for legacy reasons. Treat `archislop` as canonical and don't rename anything unless asked.
 
@@ -49,6 +49,10 @@ Every session carries **two independent diagram slots**: a `mermaid` slot (Merma
 | Run web + server together              | `npm run dev`                                            |
 | Run all tests                          | `npm test`                                               |
 | **Verify a change end-to-end**         | `npm run check` (typecheck + test)                       |
+| Shared-only / schema touch             | `npm run check:fast`                                     |
+| Before PR (matches CI)                 | `npm run check:full` (typecheck + test + build)          |
+| Wire contracts + doc paths             | `npm run check:wire`                                     |
+| Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) |
 | Format the diff you're about to commit | `npm run format`                                         |
 | Build all workspaces                   | `npm run build`                                          |
 | Health probe                           | `curl http://localhost:4000/api/health`                  |
@@ -78,7 +82,7 @@ If you change an HTTP route, AG-UI event, MCP tool, or schema, update **all four
 1. The producing code (route / agent / tool).
 2. The consumer (web client store, MCP client, or App HTML bridge).
 3. The Zod schema in `packages/shared/src/diagramSchema.js` if shape changes.
-4. The corresponding section of [`README.md`](README.md) or the relevant `docs/architecture-*.md`.
+4. The corresponding guide under [`docs/guide/`](docs/guide/) or the relevant `docs/architecture-*.md` (hub: [`README.md`](README.md)).
 
 See [`docs/recipes/`](docs/recipes/) for templates of recurring changes (new MCP tool, new rule pack, new intent variant, new stream event).
 
@@ -103,7 +107,7 @@ Three backends: **DeepSeek**, **OpenRouter**, **Vertex** (Gemini). Selection is 
 
 ## Pointers
 
-- Architecture maps: [`README.md`](README.md), [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)
+- Architecture maps: [`docs/guide/system-overview.md`](docs/guide/system-overview.md), [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)
 - Operator manual: [`AGENTS.md`](AGENTS.md)
 - Concept→file index: [`STRUCTURE.md`](STRUCTURE.md)
 - Terms: [`GLOSSARY.md`](GLOSSARY.md)

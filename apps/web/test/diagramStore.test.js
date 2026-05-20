@@ -11,7 +11,9 @@ import {
   isPeerSlotAhead,
   isSlotCustomized,
   isSlotInSyncForTopic,
+  needsModeSwitchPeerSync,
   peerRequiresModeSwitchTranslation,
+  resolveModeSwitchCandidate,
   shouldAutoSubmitModeSwitchIntent,
   slotLastTopic,
   streamDiagramAgent,
@@ -506,7 +508,37 @@ describe('mode switch peer context', () => {
     expect(peer).toEqual({ contentType: 'mermaid', diagramSource: customMermaid.diagramSource });
   });
 
-  it('buildIntentPeerContext omits peer when peer lastUserPrompt does not match candidate topic', () => {
+  it('buildIntentPeerContext includes peer when peer has no lastUserPrompt but candidate is set', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 1,
+      diagramSource: 'flowchart TD\n  X --> Y',
+      lastUserPrompt: null
+    };
+    const i = createInitialDiagramState('infographic');
+    const session = { mermaid: customMermaid, infographic: i };
+    const peer = buildIntentPeerContext('infographic', session, 'Solar system');
+    expect(peer).toEqual({ contentType: 'mermaid', diagramSource: customMermaid.diagramSource });
+  });
+
+  it('buildIntentPeerContext includes peer when target slot is still empty', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  A --> B',
+      lastUserPrompt: 'Old topic'
+    };
+    const i = createInitialDiagramState('infographic');
+    const session = { mermaid: customMermaid, infographic: i };
+    expect(buildIntentPeerContext('infographic', session, 'Different topic')).toEqual({
+      contentType: 'mermaid',
+      diagramSource: customMermaid.diagramSource
+    });
+  });
+
+  it('buildIntentPeerContext omits peer when both slots are customized and topics conflict', () => {
     const m = createInitialDiagramState('mermaid');
     const customMermaid = {
       ...m,
@@ -515,7 +547,13 @@ describe('mode switch peer context', () => {
       lastUserPrompt: 'Old topic'
     };
     const i = createInitialDiagramState('infographic');
-    const session = { mermaid: customMermaid, infographic: i };
+    const customInfographic = {
+      ...i,
+      revisionId: 2,
+      diagramSource: 'infographic list\n  items\n    - Other',
+      lastUserPrompt: 'Other topic'
+    };
+    const session = { mermaid: customMermaid, infographic: customInfographic };
     expect(buildIntentPeerContext('infographic', session, 'Solar system')).toBeUndefined();
   });
 
@@ -670,6 +708,75 @@ describe('mode switch peer context', () => {
         syncMarkers
       })
     ).toBe(false);
+  });
+
+  it('resolveModeSwitchCandidate uses conversion fallback when peer has diagram but no topic', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 3,
+      diagramSource: 'flowchart TD\n  X --> Y',
+      lastUserPrompt: null,
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const session = { mermaid: customMermaid, infographic: i };
+    const candidate = resolveModeSwitchCandidate({
+      contentMode: 'infographic',
+      session,
+      sessionTopic: null,
+      promptAtSwitch: ''
+    });
+    expect(candidate).toContain('Mermaid');
+  });
+
+  it('needsModeSwitchPeerSync is true when target slot is empty and peer is customized', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  A --> B',
+      lastUserPrompt: null
+    };
+    const session = {
+      mermaid: customMermaid,
+      infographic: createInitialDiagramState('infographic')
+    };
+    expect(
+      needsModeSwitchPeerSync({
+        contentMode: 'infographic',
+        session,
+        candidate: 'Convert the current Mermaid architecture diagram into an equivalent infographic.',
+        syncMarkers: { mermaid: null, infographic: null }
+      })
+    ).toBe(true);
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent runs when needsPeerSync and candidate from fallback', () => {
+    expect(
+      shouldAutoSubmitModeSwitchIntent({
+        candidate: 'Convert the current Mermaid architecture diagram into an equivalent infographic.',
+        textareaDirty: false,
+        newSlotInSync: false,
+        peerRequiresTranslation: false,
+        needsPeerSync: true
+      })
+    ).toBe(true);
+  });
+
+  it('isPeerSlotAhead is true when peer customized and target empty even without topic', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  A --> B',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+    const session = {
+      mermaid: customMermaid,
+      infographic: createInitialDiagramState('infographic')
+    };
+    expect(isPeerSlotAhead({ contentMode: 'infographic', session, candidate: null })).toBe(true);
   });
 
   it('peerRequiresModeSwitchTranslation runs when peer revision advanced past sync marker', () => {

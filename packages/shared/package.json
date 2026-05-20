@@ -2,22 +2,46 @@
   "name": "@archislop/shared",
   "version": "1.0.0",
   "description": "",
-  "main": "src/index.js",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
-    "./infographicDiff.js": "./src/infographicDiff.js",
-    "./sanitizeSvg.js": "./src/sanitizeSvg.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./infographicDiff.js": {
+      "types": "./dist/infographicDiff.d.ts",
+      "import": "./dist/infographicDiff.js",
+      "default": "./dist/infographicDiff.js"
+    },
+    "./sanitizeSvg.js": {
+      "types": "./dist/sanitizeSvg.d.ts",
+      "import": "./dist/sanitizeSvg.js",
+      "default": "./dist/sanitizeSvg.js"
+    }
   },
   "scripts": {
-    "test": "node --test",
-    "build": "node -e \"console.log('shared build: no-op')\""
+    "test": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/*.test.ts",
+    "test:wire": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/wireRoundTrip.test.ts",
+    "typecheck": "tsc --noEmit -p .",
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "files": [
+    "dist",
+    "src"
+  ],
   "dependencies": {
     "@antv/infographic": "^0.2.19",
+    "@antv/layout": "2.0.0",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.22.3"
   }
 }

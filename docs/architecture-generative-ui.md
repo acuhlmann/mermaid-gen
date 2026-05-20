@@ -67,7 +67,7 @@ Full contract: [`architecture-ag-ui.md`](architecture-ag-ui.md).
 
 Implementation spine: `createAgentStreamEmitter` (`packages/shared`) → `diagramStore.js` + `applyAgentStreamInsightEvent.js`.
 
-**Extension ideas (not implemented):** more `CUSTOM` artifact kinds (e.g. structured critique without A2UI), infographic-specific A2UI templates, or CopilotKit frontend tools for focus picking — today focus is React + canvas clicks.
+**Implemented extensions:** `CUSTOM` artifact `explain_sections` (server-parsed Explain ## headings → structured Thinking pane); `CUSTOM` artifact `style_edits` (numbered style/critique lines → visual tweak cards); client-side **prose micro-viz** in [`thinkingProseEnrich.jsx`](../apps/web/src/utils/thinkingProseEnrich.jsx) (hex swatches, color ramps, icon replace rows, theme variable pills); shared `enrichProposalForReview` (web proposal cards + MCP `proposal-review` diff parity). **Still open:** infographic-specific A2UI templates, CopilotKit frontend tools for focus picking — today focus is React + canvas clicks.
 
 ## A2UI (critique checklists only)
 
@@ -156,7 +156,7 @@ Apps are registered in [`registerMcpApps.js`](../apps/server/src/mcp/registerMcp
 
 These are gaps worth knowing when extending the project — not bugs.
 
-1. **Unify human approval UX** — Today: React cards (web) + MCP Apps (host) + REST. A single A2UI or AG-UI surface for proposals in the web app could reduce duplication with `proposal-review.html`.
+1. **Unify human approval UX further** — Web proposal cards and MCP `proposal-review` now share `enrichProposalForReview` / `buildDiagramDiffSummary` from `@archislop/shared`; full A2UI proposal surface in the web app remains optional.
 2. **Infographic MCP preview** — Canvas and proposal Apps render Mermaid well; infographic slots show DSL text, not AntV output, in iframes.
 3. **Richer AG-UI artifacts** — Only critique uses A2UI; explain/transform could emit structured sections (still server-built) without new transports.
 4. **MCP App actions in Cursor** — Hybrid **web-companion** is the current answer; upstream host support for `visibility: ['app']` tool calls from iframes may improve over time.

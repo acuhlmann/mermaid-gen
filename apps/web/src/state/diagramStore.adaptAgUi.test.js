@@ -121,6 +121,21 @@ describe('createAgUiTranslator', () => {
     expect(out).toEqual({ type: 'status', text: 'Still working…' });
   });
 
+  it('CUSTOM(plan_beat) becomes legacy plan_beat', () => {
+    const [out] = runThrough([
+      {
+        type: 'CUSTOM',
+        name: 'plan_beat',
+        value: { text: 'Adding a cache layer to cut read latency.', source: 'agent' }
+      }
+    ]);
+    expect(out).toEqual({
+      type: 'plan_beat',
+      text: 'Adding a cache layer to cut read latency.',
+      source: 'agent'
+    });
+  });
+
   it('CUSTOM(a2ui) becomes legacy a2ui with messages', () => {
     const msgs = [{ version: 'v0.9', createSurface: { surfaceId: 's', catalogId: 'c' } }];
     const [out] = runThrough([{ type: 'CUSTOM', name: 'a2ui', value: { messages: msgs } }]);

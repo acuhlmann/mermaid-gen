@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": [
+    "src/routes/copilotRouteTypes.ts",
+    "src/agents/partialJsonString.ts",
+    "src/agents/streamPatchToolTelemetry.ts",
+    "src/agents/planBeatMessages.ts"
+  ]
+}

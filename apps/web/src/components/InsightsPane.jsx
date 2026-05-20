@@ -2,12 +2,27 @@ import { Fragment, useEffect, useRef, useState } from 'react';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
+import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
+import ExplainSectionsPanel from './ExplainSectionsPanel';
+import PlanBeatCard from './PlanBeatCard';
+import PatchSummaryViz from './PatchSummaryViz';
+import TechnicalActionStepper from './TechnicalActionStepper.jsx';
+import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
+import StyleEditsA2uiSurface from './StyleEditsA2uiSurface';
 import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
 import { getVariantPersona, phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
+import {
+  accentContentLaneClass,
+  accentSectionTitleClass,
+  accentSectionTitleIconWrapClass,
+  contentUpdatesTitle,
+  hidePhaseIds,
+  statusLabel
+} from './insightsPaneEntryUi.js';
 
 const SLOPITECT_VARIANT_CLASS = {
   refine: 'is-variant-refine',
@@ -365,33 +380,9 @@ function EntryRunMeta({ entry }) {
   );
 }
 
-function parseInline(text) {
-  const fragments = [];
-  let rest = text;
-  let keyIndex = 0;
-  const tokenPattern = /(\*\*[^*]+\*\*|_[^_]+_|`[^`]+`)/;
-  while (rest.length > 0) {
-    const match = rest.match(tokenPattern);
-    if (!match || match.index == null) {
-      fragments.push(rest);
-      break;
-    }
-    if (match.index > 0) fragments.push(rest.slice(0, match.index));
-    const token = match[0];
-    if (token.startsWith('**')) {
-      fragments.push(<strong key={`s-${keyIndex++}`}>{token.slice(2, -2)}</strong>);
-    } else if (token.startsWith('_')) {
-      fragments.push(<em key={`e-${keyIndex++}`}>{token.slice(1, -1)}</em>);
-    } else if (token.startsWith('`')) {
-      fragments.push(
-        <code key={`c-${keyIndex++}`} className="insights-inline-code">
-          {token.slice(1, -1)}
-        </code>
-      );
-    }
-    rest = rest.slice(match.index + token.length);
-  }
-  return fragments;
+/** Inline prose with generative micro-viz (hex swatches, ramps, icons, theme vars). */
+function parseInline(text, keyPrefix = 'inl') {
+  return enrichInline(text, keyPrefix);
 }
 
 /** Merge lone bullet markers with the following non-empty line (streaming artifacts). */
@@ -527,12 +518,19 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
     }
     const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (olMatch) {
+      const stepBody = olMatch[2];
+      const stepClass = [
+        'insights-content-ordered',
+        isVisualStepLine(stepBody) ? 'insights-step-card' : ''
+      ]
+        .filter(Boolean)
+        .join(' ');
       out.push(
-        <p key={`${keyPrefix}-ol-${index}`} className="insights-content-ordered">
+        <p key={`${keyPrefix}-ol-${index}`} className={stepClass}>
           <span className="insights-ordered-marker" aria-hidden="true">
             {olMatch[1]}.
           </span>
-          {parseInline(olMatch[2])}
+          <span className="insights-step-card-body">{parseInline(stepBody, `${keyPrefix}-ol-${index}`)}</span>
         </p>
       );
       return;
@@ -777,58 +775,6 @@ function renderRichContent(content, { accentuateSections, idPrefix = 'ins', vari
   });
 }
 
-function statusLabel(entry) {
-  if (entry.status === 'failed') return 'Issue';
-  if (entry.status === 'cancelled') return 'Stopped';
-  if (entry.status === 'done') return 'Done';
-  return 'Working';
-}
-
-function contentUpdatesTitle(variant) {
-  if (variant === 'critique') return 'Analysis';
-  if (variant === 'explain') return 'Explanation';
-  if (variant === 'refine') return 'Refinement';
-  if (variant === 'innovate') return 'Innovation';
-  if (variant === 'goMad') return 'Mad mode';
-  return 'Content updates';
-}
-
-function hidePhaseIds(variant, streamDebugEnabled) {
-  if (streamDebugEnabled) return false;
-  return (
-    variant === 'critique' ||
-    variant === 'explain' ||
-    variant === 'refine' ||
-    variant === 'innovate' ||
-    variant === 'goMad' ||
-    variant === 'exec'
-  );
-}
-
-function accentContentLaneClass(variant) {
-  if (variant === 'explain') return 'is-explain-content-lane';
-  if (variant === 'refine') return 'is-refine-content-lane';
-  if (variant === 'innovate') return 'is-innovate-content-lane';
-  if (variant === 'goMad') return 'is-gomad-content-lane';
-  return '';
-}
-
-function accentSectionTitleClass(variant) {
-  if (variant === 'explain') return 'insights-section-title-explain';
-  if (variant === 'refine') return 'insights-section-title-refine';
-  if (variant === 'innovate') return 'insights-section-title-innovate';
-  if (variant === 'goMad') return 'insights-section-title-gomad';
-  return '';
-}
-
-function accentSectionTitleIconWrapClass(variant) {
-  if (variant === 'explain') return 'insights-section-title-explain-icon';
-  if (variant === 'refine') return 'insights-section-title-refine-icon';
-  if (variant === 'innovate') return 'insights-section-title-innovate-icon';
-  if (variant === 'goMad') return 'insights-section-title-gomad-icon';
-  return '';
-}
-
 function AccentSectionTitleIcon({ variant }) {
   if (variant === 'explain') return <IconExplain />;
   if (variant === 'refine') return <IconRefine />;
@@ -873,6 +819,8 @@ export default function InsightsPane({
   onAcceptProposal,
   onRejectProposal,
   agentReactions = [],
+  onApplyStyleEdits,
+  styleEditsApplyBusy = false,
   closing = false
 }) {
   const bodyRef = useRef(null);
@@ -1078,9 +1026,34 @@ export default function InsightsPane({
             // mid-prose previews to avoid showing the same diagram twice in the same entry.
             const suppressEmbedded = !isRunning && hasAfterPreview;
             const showEmbeddedRestore = rawStatus === 'done' && !suppressEmbedded;
+            const hasStyleEdits =
+              Array.isArray(entry.styleEdits) && entry.styleEdits.length > 0 && !isRunning;
+            const displayContent = hasStyleEdits
+              ? stripStyleEditLinesFromContent(entry.content ?? '', entry.styleEdits)
+              : entry.content;
 
             let analysisBody = null;
-            if (entry.content) {
+            const explainStructured =
+              variant === 'explain' &&
+              entry.explainSections?.sections?.length > 0 &&
+              !isRunning;
+            if (explainStructured) {
+              const renderExplainChunk = (text) =>
+                renderEmbeddedAwareRich(
+                  text,
+                  { accentuateSections, idPrefix: `${entry.id}-explain`, variant },
+                  buildEmbedOpts(
+                    { idPrefix: `${entry.id}-explain`, streamingPreview: false, suppressEmbedded },
+                    { showEmbeddedRestore }
+                  )
+                );
+              analysisBody = (
+                <ExplainSectionsPanel
+                  explainSections={entry.explainSections}
+                  renderBody={renderExplainChunk}
+                />
+              );
+            } else if (displayContent) {
               if (matchesLatestActionable && critiqueActionableUi.items.length > 0) {
                 const { prefix, suffix } = critiqueActionableUi;
                 analysisBody = (
@@ -1130,7 +1103,7 @@ export default function InsightsPane({
                 );
               } else {
                 analysisBody = renderEmbeddedAwareRich(
-                  entry.content,
+                  displayContent,
                   {
                     accentuateSections,
                     idPrefix: entry.id,
@@ -1193,6 +1166,22 @@ export default function InsightsPane({
                       </span>
                     ) : null}
                   </p>
+                ) : null}
+
+                {entry.planBeats?.length ? (
+                  <section className="insights-section is-plan-lane" aria-label="Diagram intent">
+                    <h4 className="insights-section-title">Plan</h4>
+                    <ul className="insights-plan-list insights-plan-list-cards">
+                      {entry.planBeats.map((beat, idx) => (
+                        <PlanBeatCard
+                          key={`${entry.id}-plan-${idx}-${beat.at ?? idx}`}
+                          beat={beat}
+                          variant={variant}
+                          index={idx}
+                        />
+                      ))}
+                    </ul>
+                  </section>
                 ) : null}
 
                 {canRetryInsightEntry(entry) ? (
@@ -1278,17 +1267,28 @@ export default function InsightsPane({
                       {entry.artifacts
                         .filter((a) => a.kind === 'patch_summary')
                         .map((a, idx) => (
-                          <li key={`${entry.id}-patch-${a.revisionId}-${idx}`} className="insights-patch-summary">
-                            <span>
-                              Revision <strong>{a.revisionId}</strong>
-                            </span>
-                            <span className="insights-patch-stats">
-                              +{a.linesAdded ?? 0} / −{a.linesRemoved ?? 0} lines
-                            </span>
-                          </li>
+                          <PatchSummaryViz
+                            key={`${entry.id}-patch-${a.revisionId}-${idx}`}
+                            revisionId={a.revisionId}
+                            linesAdded={a.linesAdded}
+                            linesRemoved={a.linesRemoved}
+                          />
                         ))}
                     </ul>
                   </section>
+                ) : null}
+
+                {hasStyleEdits ? (
+                  <>
+                    <StyleEditsPanel styleEdits={entry.styleEdits} />
+                    {entry.styleEditsA2uiMessages?.length > 0 && onApplyStyleEdits ? (
+                      <StyleEditsA2uiSurface
+                        messages={entry.styleEditsA2uiMessages}
+                        busy={styleEditsApplyBusy}
+                        onApply={() => onApplyStyleEdits(entry)}
+                      />
+                    ) : null}
+                  </>
                 ) : null}
 
                 <section className={`insights-section ${accentContentLaneClass(variant)}`}>
@@ -1306,7 +1306,7 @@ export default function InsightsPane({
                       contentUpdatesTitle(variant)
                     )}
                   </h4>
-                  {entry.content ? (
+                  {displayContent || explainStructured ? (
                     <div className="insights-entry-rich-text-wrap">
                       <div
                         className={[
@@ -1322,10 +1322,11 @@ export default function InsightsPane({
                       >
                         {analysisBody}
                       </div>
-                      {isRunning && entry.content.trim() ? (
+                      {isRunning && (entry.content ?? '').trim() ? (
                         <span
                           className={[
                             'insights-stream-caret',
+                            'is-shimmer',
                             variant === 'goMad' ? 'is-gomad-caret' : '',
                             variant === 'refine' ? 'is-refine-caret' : '',
                             variant === 'innovate' ? 'is-innovate-caret' : '',
@@ -1346,38 +1347,12 @@ export default function InsightsPane({
                 {collapseTech ? (
                   <details className="insights-tech-details">
                     <summary className="insights-tech-summary">Tool trace</summary>
-                    <div className="insights-tech-details-inner">
-                      <ul className="insights-tech-list">
-                        {entry.technicalActions.map((action) => (
-                          <li key={action.id} className={`insights-tech-item is-${action.status}`}>
-                            <span className="insights-tech-icon" aria-hidden="true">
-                              {action.status === 'done' ? '✓' : '…'}
-                            </span>
-                            <span>{action.label}</span>
-                            <code>{action.name}</code>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    <TechnicalActionStepper actions={entry.technicalActions} collapsed />
                   </details>
                 ) : (
                   <section className="insights-section is-tech">
                     <h4 className="insights-section-title">Technical actions</h4>
-                    {entry.technicalActions?.length ? (
-                      <ul className="insights-tech-list">
-                        {entry.technicalActions.map((action) => (
-                          <li key={action.id} className={`insights-tech-item is-${action.status}`}>
-                            <span className="insights-tech-icon" aria-hidden="true">
-                              {action.status === 'done' ? '✓' : '…'}
-                            </span>
-                            <span>{action.label}</span>
-                            <code>{action.name}</code>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="insights-tech-empty">No technical actions yet.</p>
-                    )}
+                    <TechnicalActionStepper actions={entry.technicalActions} />
                   </section>
                 )}
 

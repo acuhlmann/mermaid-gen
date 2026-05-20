@@ -10,7 +10,10 @@ import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
-import { emitCritiqueA2uiBeforeFinal } from './critiqueA2uiStream.js';
+import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
+import { emitStyleEditsBeforeFinal } from './styleEditsStream.js';
+import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import {
   buildAgentRunBudgetExceededMessage,
   inferMermaidTopKeyword,
@@ -55,250 +58,36 @@ const INTENT_PROFILE_DEFAULTS = {
   persona: 'creative architect'
 };
 
-export const TRANSFORM_MODEL_LIMITS = Object.freeze({
-  topP: 0.92,
-  maxTokens: 2400
-});
+import {
+  TRANSFORM_MODEL_LIMITS,
+  GO_MAD_TRANSFORM_MAX_TOKENS,
+  isTransformMode,
+  buildFocusScopeInstructions,
+  buildAnalyzeFocusInstructions,
+  clampGoMadDepth,
+  goMadTransformModelOptions,
+  transformModeModelOptions,
+  buildTransformUserContent,
+  ANALYSIS_SYSTEM_PROMPT,
+  ANALYSIS_CRITIQUE_SYSTEM_APPEND,
+  ANALYSIS_EXPLAIN_SYSTEM_APPEND,
+  buildCritiqueTask,
+  buildExplainTask
+} from './mermaidAnalysisPrompts.js';
 
-/** Go Mad uses a lower completion cap so runs finish sooner and cost less; surprise lives in tone/type, not word count. */
-export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
+export {
+  TRANSFORM_MODEL_LIMITS,
+  GO_MAD_TRANSFORM_MAX_TOKENS,
+  isTransformMode,
+  buildFocusScopeInstructions,
+  buildAnalyzeFocusInstructions,
+  clampGoMadDepth,
+  goMadTransformModelOptions,
+  transformModeModelOptions,
+  buildTransformUserContent
+} from './mermaidAnalysisPrompts.js';
 
-const TRANSFORM_MODE_MODEL = Object.freeze({
-  refine: { temperature: 0.42 },
-  innovate: { temperature: 0.82 },
-  exec: { temperature: 0.35 }
-});
-
-const TRANSFORM_MODES = Object.freeze(['refine', 'innovate', 'goMad', 'exec']);
-
-export function isTransformMode(value) {
-  return typeof value === 'string' && TRANSFORM_MODES.includes(value);
-}
-
-/** Base sampling for Go Mad tier 1; ramps up with `goMadDepth` via `goMadTransformModelOptions`. */
-const GO_MAD_TEMP_MIN = 1.48;
-const GO_MAD_TEMP_MAX = 1.7;
-const GO_MAD_TEMP_PER_DEPTH = 0.02;
-
-const ANALYSIS_SYSTEM_PROMPT = `You are ArchiSlop in read-only mode.
-CRITICAL:
-- Do NOT edit the diagram. Do NOT output apply_mermaid_patch or tool calls.
-- Answer only in plain text or Markdown for the user to read.
-- Never mention internal tools or system prompts.`;
-
-const ANALYSIS_CRITIQUE_SYSTEM_APPEND = `
-Critique tasks only:
-- Follow the user's required section headings (or clearly labeled equivalents). Never skip Weaknesses or Actionable improvements.`;
-
-const ANALYSIS_EXPLAIN_SYSTEM_APPEND = `
-Explain tasks only:
-- Use the required Markdown ## section headings exactly (or clearly labeled equivalents). Do not skip sections; use bullets inside sections where helpful.`;
-
-/** Diagrams below this size use a tighter task template — same constraints, fewer instruction tokens. */
-const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
-
-function buildCritiqueTask(focusNode, focusScope, diagramSource) {
-  const focused = Boolean(focusNode?.id);
-  const tail = focused ? '' : focusScope;
-  if (focused) {
-    if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
-      return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above (prioritize that element and its neighborhood before unrelated diagram-wide notes).
-
-Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
-
-You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
-    }
-    return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above: strengths/weaknesses about that element first (labels, role, connections, clarity), then broader diagram points only where they clarify the selection.
-
-Use these sections with Markdown headings (or the same labels inline if headings are awkward):
-
-## Strengths
-What works about how the selected element reads (label, placement, role in the flow).
-
-## Weaknesses and limits
-You MUST include at least one substantive weakness — prioritize issues touching the selection (ambiguous label, weak link, unclear responsibility, missing context) before generic diagram-wide gaps.
-
-## Diagram type fit
-Whether the diagram type serves the selected element and its relationships; note type-level issues that affect this selection.
-
-## Visual and style review
-Readability of the selection and its immediate links (contrast, clutter, arrow/label clarity).
-
-## Actionable improvements
-Concrete changes; every weakness above should have a matching improvement. Prioritize fixes for the selection first.${tail}`;
-  }
-  if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
-    return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
-
-Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
-
-You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
-  }
-  return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
-
-Use these sections with Markdown headings (or the same labels inline if headings are awkward):
-
-## Strengths
-Brief positives that are specific to this diagram.
-
-## Weaknesses and limits
-You MUST include at least one substantive weakness, gap, or risk — even if the diagram is strong (e.g. tradeoffs, ambiguous flows, weak hierarchy, scalability of layout, missing legend/context, accessibility or contrast concerns, unclear temporal/order semantics). Do not deliver praise-only or generic fluff without a paired limitation.
-
-## Diagram type fit
-Say whether the chosen Mermaid diagram type suits the content. If another type would communicate better, name it and why — without rewriting the diagram.
-
-## Visual and style review
-Comment on readability and presentation: clutter, balance, link directions, shapes, grouping, and any %%init%% / theme / classDef / styling choices if present (including contrast and visual hierarchy).
-
-## Actionable improvements
-A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${tail}`;
-}
-
-function buildExplainTask(focusNode, focusScope, diagramSource) {
-  const focused = Boolean(focusNode?.id);
-  const tail = focused ? '' : focusScope;
-  if (focused) {
-    if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
-      return `Explain in read-only prose — do not rewrite Mermaid. The user selected one part of the diagram (see Selection focus above). Interpret label and wording meaning in context, not only topology. Spend most of each section on that selection; at most one short paragraph across the whole answer may summarize how it sits in the wider diagram.
-
-Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${tail}`;
-    }
-    return `Explain in read-only prose — do not rewrite Mermaid. The user selected one part of the diagram (see Selection focus above). Interpret label and wording meaning in context, not only topology. Spend most of each section on that selection; at most one short paragraph across the whole answer may summarize how it sits in the wider diagram.
-
-Use these sections with Markdown ## headings (or clearly labeled equivalents):
-
-## Explanation
-What this selection means — start with the visible label text and its intent in context.
-
-## Main flows
-How information, control, or dependencies attach to this selection (incoming/outgoing links and what they imply).
-
-## Key entities
-How this selection relates to adjacent nodes, subgraphs, or edges; mention elsewhere only as needed to understand the selection.
-
-## Takeaways
-What matters about this selection specifically.${tail}`;
-  }
-  if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
-    return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
-
-Use these Markdown ## sections (or clearly labeled equivalents): Explanation, Main flows, Key entities, Takeaways.${tail}`;
-  }
-  return `Explain what this diagram communicates to someone unfamiliar with it. Stay descriptive — do not rewrite the diagram.
-
-Use these sections with Markdown ## headings (or clearly labeled equivalents):
-
-## Explanation
-A short overview for someone new to the diagram.
-
-## Main flows
-How information, process steps, or relationships move through the diagram.
-
-## Key entities
-Important nodes, subgraphs, or groups and what role each plays.
-
-## Takeaways
-Concise conclusions — what to remember or how to read the diagram.${tail}`;
-}
-
-function isEdgeFocus(focusNode) {
-  return focusNode?.selectionKind === 'edge' && Boolean(focusNode.edgeFrom?.trim()) && Boolean(focusNode.edgeTo?.trim());
-}
-
-/**
- * Instructions appended to mutation prompts (intent / transform).
- */
-export function buildFocusScopeInstructions(focusNode) {
-  if (!focusNode?.id) return '';
-  if (isEdgeFocus(focusNode)) {
-    const label = focusNode.label ? ` (edge label: "${focusNode.label}")` : '';
-    const clicked =
-      focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
-        ? ` Tapped label fragment: "${focusNode.clickedLabel}".`
-        : '';
-    return `\n\nFocus scope: Prefer edits centered on the edge from "${focusNode.edgeFrom}" to "${focusNode.edgeTo}"${label}${clicked} (edge id "${focusNode.id}"). Adjust endpoints, labels on this link, or local routing only as needed for valid Mermaid; minimize unrelated changes elsewhere.`;
-  }
-  const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
-  const clicked =
-    focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
-      ? ` Tapped label fragment: "${focusNode.clickedLabel}".`
-      : '';
-  const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
-  return `\n\nFocus scope: Prefer changes centered on diagram ${role} id "${focusNode.id}"${label}${clicked}. Minimize edits elsewhere except where required for valid Mermaid syntax or connectivity.`;
-}
-
-/**
- * Instructions appended to analyze (explain / critique) prompts — read-only, selection-first wording.
- */
-export function buildAnalyzeFocusInstructions(focusNode, kind) {
-  if (!focusNode?.id) return '';
-  const edgeLabel = focusNode.label ? ` Visible edge label text: "${focusNode.label}".` : '';
-  const edgeClicked =
-    focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
-      ? ` User tapped this edge label fragment: "${focusNode.clickedLabel}". Interpret that wording in context.`
-      : '';
-  const link = `"${focusNode.edgeFrom}" → "${focusNode.edgeTo}"`;
-
-  if (isEdgeFocus(focusNode)) {
-    if (kind === 'explain') {
-      return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} Lead with this relationship in ## Explanation, ## Main flows, and ## Key entities — what it means, what moves or depends along it, and how the two endpoints relate. Interpret label text literally in context. Use ## Takeaways for conclusions specific to this link. Mention the wider diagram only briefly as supporting context; avoid a generic whole-diagram essay that ignores this edge.`;
-    }
-    return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Strengths and ## Diagram type fit but tie them to how well this selected relationship reads in context.`;
-  }
-
-  const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
-  const clicked =
-    focusNode.clickedLabel && focusNode.clickedLabel !== focusNode.label
-      ? ` The user tapped directly on this label fragment: "${focusNode.clickedLabel}". Interpret that specific wording/meaning in the diagram context, not only the aggregate title.`
-      : '';
-  const role = focusNode.selectionKind === 'cluster' ? 'subgraph/cluster' : 'node';
-
-  if (kind === 'explain') {
-    return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Explanation, ## Main flows, and ## Key entities, foreground this ${role}: its role, connections, and how labels read in context. ## Takeaways should emphasize what matters about this selection. Mention other parts only as supporting context; do not center the whole response on unrelated nodes or edges.`;
-  }
-  return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Strengths and ## Diagram type fit but reference how this selection reads in context.`;
-}
-
-/** @param {unknown} raw */
-export function clampGoMadDepth(raw) {
-  if (raw == null || typeof raw !== 'number' || !Number.isFinite(raw)) return 1;
-  return Math.min(12, Math.max(1, Math.trunc(raw)));
-}
-
-/**
- * Sampling for Go Mad transforms; hotter at deeper escalation tiers.
- * @param {unknown} depthRaw
- */
-export function goMadTransformModelOptions(depthRaw) {
-  const d = clampGoMadDepth(depthRaw);
-  const span = GO_MAD_TEMP_MAX - GO_MAD_TEMP_MIN;
-  const temperature = GO_MAD_TEMP_MIN + Math.min(span, (d - 1) * GO_MAD_TEMP_PER_DEPTH);
-  const topP =
-    d <= 2 ? 0.94 : d <= 5 ? 0.95 : d <= 8 ? 0.96 : Math.min(0.97, TRANSFORM_MODEL_LIMITS.topP + 0.06);
-  return {
-    temperature,
-    topP,
-    maxTokens: GO_MAD_TRANSFORM_MAX_TOKENS
-  };
-}
-
-/**
- * @param {string} mode
- * @param {unknown} [goMadDepth] tier when mode is goMad (defaults to 1)
- */
-export function transformModeModelOptions(mode, goMadDepth) {
-  const key = isTransformMode(mode) ? mode : 'refine';
-  if (key === 'goMad') {
-    return goMadTransformModelOptions(goMadDepth ?? 1);
-  }
-  return {
-    temperature: TRANSFORM_MODE_MODEL[key].temperature,
-    topP: TRANSFORM_MODEL_LIMITS.topP,
-    maxTokens: TRANSFORM_MODEL_LIMITS.maxTokens
-  };
-}
-
-export { inferMermaidTopKeyword };
+export { inferMermaidTopKeyword } from '@archislop/shared';
 
 async function withTransformContext(stateStore, context, fn) {
   stateStore.setTransformContext(context);
@@ -307,81 +96,6 @@ async function withTransformContext(stateStore, context, fn) {
   } finally {
     stateStore.clearTransformContext();
   }
-}
-
-function buildGoMadEscalationInstructions(depth, diagramSource) {
-  if (depth < 2) return '';
-  const currentKeyword = inferMermaidTopKeyword(diagramSource);
-  const tierHint =
-    depth >= 5
-      ? `- Tier ${depth}: peak chaos — one coherent geek joke; valid Mermaid.\n`
-      : `- Tier ${depth}: noticeably wilder than tier ${depth - 1}; no relabel-only laziness.\n`;
-
-  const deepVisual =
-    depth >= 4
-      ? `- Visual overload: ≥3 of %%init%% theming, classDef/class, linkStyle, styled subgraph titles.\n`
-      : `- Visual overload: ≥2 mechanisms (init vars, classDef/class, subgraph, linkStyle).\n`;
-
-  const ultraTypes =
-    depth >= 6
-      ? `- "Wrong-tool" energy when it parses: quadrantChart, pie/radar, gitGraph, journey, timeline, etc.\n`
-      : '';
-
-  return `
-GO MAD escalation (tier ${depth}):
-${tierHint}- Primary declaration MUST NOT stay "${currentKeyword}" — different diagram species (not rename-only).
-- Prefer uncommon families when they parse (gitGraph, journey, timeline, quadrantChart, pie, mindmap, block-beta, sankey-beta, requirement, C4*, sequence/state/er/zenUML).
-${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short labels, still readable contrast.
-`;
-}
-
-/**
- * User message body for transform operations (exported for tests).
- * @param {{ mode: string, diagramSource: string, focusScope: string, goMadDepth?: number }} args
- */
-export function buildTransformUserContent({ mode, diagramSource, focusScope, goMadDepth: rawDepth }) {
-  const policy =
-    mode === 'refine'
-      ? `Transform mode: REFINE — polish and lightly extend the diagram.
-- Same diagram type unless a trivial tweak requires otherwise.
-- Improve labels, grouping, and clarity; add a modest amount of structure.
-- Budget: roughly up to 4 new nodes and 6 edges; keep it readable.`
-      : mode === 'innovate'
-        ? `Transform mode: INNOVATE — apply noticeable, fresh changes while staying on-topic.
-- You may restructure layout meaningfully and surprise users with insightful additions most wouldn't think of.
-- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the idea better; change type only when that shift is clearly justified. Otherwise keep the current type and innovate within it.
-- Larger edits OK; still coherent and valid Mermaid.
-- Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
-        : mode === 'exec'
-          ? `Transform mode: EXEC — ruthless executive simplification. The VP wants the board-deck version — Synergy and Co-Design.
-- Keep the SAME diagram type — never switch types. The VP doesn't care about your craft.
-- Subtractive only: NEVER introduce new concepts, nodes, or edges that weren't already implied. Merge or drop near-duplicates, collapse intermediaries, kill stragglers.
-- Target shape: roughly 4–8 nodes total and 5–10 edges. If the input is already small, still tighten labels; don't pad.
-- Merge or remove subgraphs where one (or none) tells the same story; aim for ≤1 subgraph.
-- Keep classDef / linkStyle / %%init%% theme styling intact — preserve brand colors, just trim the noise.
-- Labels: shorten to executive-summary phrasing — verbs and nouns, no parentheticals, no "(optional)" / "(async)" asides.
-- Voice for any prose you emit after the patch: synergy and Co-Design jargon ("Synergy and Co-Design", "Co-Designed", "aligned", "boiled down", "the MVP slice"). Short.`
-          : `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
-- Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
-- Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
-- Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
-- Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
-- Weird > safe.${buildGoMadEscalationInstructions(
-            mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
-            diagramSource
-          )}`;
-
-  return `${policy}
-
-Hard requirements:
-- The current diagram is provided in the system "Current diagram context" message — use it directly. Do not call get_diagram_state unless a patch failed and you need fresh state.
-- Apply exactly one successful transformative update: call apply_mermaid_patch once with complete Mermaid source, then answer in prose only (no further tool calls after acceptance).
-- Do not return only text; apply the patch.
-- Keep node IDs simple ASCII identifiers where possible; keep labels concise.
-${focusScope}
-
-Output goal:
-Apply one transformative update via apply_mermaid_patch matching the mode above.`;
 }
 
 const SYSTEM_PROMPT = `You are ArchiSlop, an agent that helps edit Mermaid diagrams.
@@ -741,6 +455,7 @@ export function emitIntentTransformStreamResult({
   }
 
   if (typeof emit === 'function') {
+    emitStyleEditsBeforeFinal(emit, { message: agentResult?.message ?? '' });
     emit({
       type: 'final',
       revisionChanged,
@@ -803,6 +518,15 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env, abortSign
     ...(abortSignal ? { signal: abortSignal } : {})
   };
   let latestMessages = [];
+  const patchTelemetry =
+    typeof emit === 'function'
+      ? createPatchToolStreamTracker({
+          emit,
+          patchToolName: 'apply_mermaid_patch',
+          contentType: 'mermaid',
+          emitDraftPreview: false
+        })
+      : null;
 
   // Heartbeat keeps the SSE consumer alive when the model is internally working but not yet
   // emitting normalized events (tokens, tool starts, tool ends). Without this, a slow first
@@ -827,6 +551,13 @@ async function streamReactAgentEvents(agent, inputMessages, emit, env, abortSign
       if (normalized) {
         emit(normalized);
         lastActivity = Date.now();
+      }
+      if (patchTelemetry && ev?.event === 'on_chat_model_stream') {
+        const chunks = ev.data?.chunk?.tool_call_chunks;
+        if (Array.isArray(chunks) && chunks.length > 0) {
+          patchTelemetry.processToolCallChunks(chunks);
+          lastActivity = Date.now();
+        }
       }
     }
   } catch (error) {
@@ -895,7 +626,17 @@ function emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource
 async function invokeWithRepair(
   agent,
   messages,
-  { requirePatch = false, emit, mode, profile, modelLabel, stableAgent, peerContext, abortSignal } = {},
+  {
+    requirePatch = false,
+    emit,
+    mode,
+    profile,
+    modelLabel,
+    stableAgent,
+    peerContext,
+    abortSignal,
+    focusNode = null
+  } = {},
   stateStore,
   env
 ) {
@@ -971,6 +712,15 @@ async function invokeWithRepair(
   }
 
   if (typeof emit === 'function') {
+    emitServerMutationPlanBeats({
+      emit,
+      stateStore,
+      mode,
+      messages,
+      focusNode,
+      peerContext,
+      contentType: 'mermaid'
+    });
     emit({ type: 'phase', id: 'agent_run', label: 'Planning and executing tools…' });
   }
 
@@ -1007,6 +757,13 @@ async function invokeWithRepair(
       const retryStop = stopReason();
       if (retryStop) return finishStoppedRun(retryStop, firstResult);
       if (typeof emit === 'function') {
+        emitPlanBeat(
+          emit,
+          usingStable
+            ? 'First pass did not land a patch — retrying with a steadier model to apply your diagram change.'
+            : 'First pass did not land a patch — retrying to apply your diagram change.',
+          'server'
+        );
         emit({ type: 'phase', id: 'patch_retry', label: 'Retrying diagram patch…' });
         emit({
           type: 'status',
@@ -1068,6 +825,11 @@ async function invokeWithRepair(
       if (fixerStop) return finishStoppedRun(fixerStop, firstResult);
       repairAttempts += 1;
       if (typeof emit === 'function') {
+        emitPlanBeat(
+          emit,
+          'Previous patch failed validation — running a quick syntax pass before asking the agent again.',
+          'server'
+        );
         emit({ type: 'phase', id: 'syntax_fixer', label: 'Mermaid syntax fixer…' });
       }
       const fixerOutcome = await repairMermaidWithFixer({
@@ -1116,6 +878,11 @@ async function invokeWithRepair(
       const repairStop = stopReason();
       if (repairStop) return finishStoppedRun(repairStop, latestResult);
       if (typeof emit === 'function') {
+        emitPlanBeat(
+          emit,
+          `Repairing invalid Mermaid while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
+          'server'
+        );
         emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt} of ${maxRepairAttempts})…` });
         emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})…` });
       }
@@ -1257,7 +1024,13 @@ export function createMermaidLangChainAgent({
   }
 
   async function invokeMutation(agent, userMessages, opts, emit) {
-    return invokeWithRepair(agent, userMessages, { ...opts, emit }, stateStore, env);
+    return invokeWithRepair(
+      agent,
+      userMessages,
+      { ...opts, emit },
+      stateStore,
+      env
+    );
   }
 
   return {
@@ -1305,7 +1078,8 @@ ${prompt}${focusScope}`;
           modelLabel: resolveModelLabel(modelProfile),
           stableAgent: getDefaultAgent('fast'),
           peerContext,
-          abortSignal
+          abortSignal,
+          focusNode
         },
         emit
       );
@@ -1343,7 +1117,8 @@ ${prompt}${focusScope}`;
               // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
               // agent for the patch_retry turn so we're not just rolling the same dice twice.
               stableAgent: getDefaultAgent('fast'),
-              abortSignal
+              abortSignal,
+              focusNode
             },
             emit
           );
@@ -1517,7 +1292,11 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
           modelProfile,
           emit
         });
-        emitCritiqueA2uiBeforeFinal(emit, { kind: payload.kind, analyzeText: result.message });
+        emitAnalyzeStreamArtifactsBeforeFinal(emit, {
+          kind: payload.kind,
+          analyzeText: result.message,
+          contentType: payload.contentType
+        });
         emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
         return result;
       }

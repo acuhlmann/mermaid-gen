@@ -26,22 +26,24 @@ import {
   fallbackState,
   fetchSessionDiagramState,
   isSlotInSyncForTopic,
+  needsModeSwitchPeerSync,
   normalizeSessionId,
   peerRequiresModeSwitchTranslation,
+  resolveModeSwitchCandidate,
   isDiagramCacheSubstantial,
   isServerSessionPristine,
   mintFreshServerSession,
   readDiagramCache,
   SESSION_NOT_FOUND_CODE,
   shouldAutoSubmitModeSwitchIntent,
-  slotLastTopic,
   streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
   submitDiagramRenderRepair,
   writeDiagramCache
 } from './state/diagramStore.js';
-import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent.js';
+import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent';
+import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import './App.css';
 import {
   playAchievementFanfare,
@@ -132,7 +134,7 @@ function canvasConfettiAvailable() {
 import {
   createInitialDiagramState,
   diffInfographicSources,
-  LEGACY_STREAM_TYPE_A2UI,
+  enrichProposalForReview,
   splitCritiqueActionableSections
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
@@ -141,7 +143,7 @@ import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
-import { MOBILE_MEDIA_QUERY, COMPACT_BRAND_MEDIA_QUERY } from './utils/layoutBreakpoints.js';
+import { useCompactBrandLayout, useNarrowLayout } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 
 const TOOL_LABELS = {
@@ -204,6 +206,16 @@ function proposalToInsightEntry(proposal) {
     proposal,
     proposalStatus: 'pending'
   };
+}
+
+function enrichProposalForInsight(proposal, session, sessionId) {
+  const contentType = proposal.contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const currentDiagramSource = session?.[contentType]?.diagramSource ?? '';
+  return enrichProposalForReview({
+    proposal,
+    currentDiagramSource,
+    sessionId
+  });
 }
 
 function attributedInsightToInsightEntry(insight) {
@@ -657,51 +669,6 @@ function useSyncVisualViewportHeight() {
   }, []);
 }
 
-function useNarrowLayout() {
-  const [narrowLayout, setNarrowLayout] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(MOBILE_MEDIA_QUERY).matches
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const sync = () => setNarrowLayout(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-
-  return narrowLayout;
-}
-
-/**
- * True when the viewport is narrow enough that the brand chip cannot fit the
- * XP/level bar inline alongside the prestige badge — so the bar should drop
- * into the collapsible row below.
- */
-function useCompactBrandLayout() {
-  const [compact, setCompact] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(COMPACT_BRAND_MEDIA_QUERY).matches
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia(COMPACT_BRAND_MEDIA_QUERY);
-    const sync = () => setCompact(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-
-  return compact;
-}
-
 function ArchiSlop() {
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
@@ -756,7 +723,6 @@ function ArchiSlop() {
   });
   const [critiqueActionableSelected, setCritiqueActionableSelected] = useState([]);
   /** A2UI v0.9 messages from the latest critique stream (`CUSTOM a2ui`), when present. */
-  const [latestCritiqueA2uiMessages, setLatestCritiqueA2uiMessages] = useState(null);
   /** Successful consecutive Go Mad transforms; resets after Refine/Innovate/Intent/Clear/fix-from-critique. */
   const [goMadStreak, setGoMadStreak] = useState(0);
   /** Slopitect gamification state (persisted) + transient emissions queue for StreakHud. */
@@ -1140,13 +1106,29 @@ function ArchiSlop() {
           // Re-hydrate any proposals that arrived before this client connected.
           const proposals = Array.isArray(payload?.pendingProposals) ? payload.pendingProposals : [];
           if (proposals.length > 0) {
-            setInsightsEntries((prev) => {
-              const existingIds = new Set(prev.map((e) => e.id));
-              const additions = proposals
-                .filter((p) => !existingIds.has(p.proposalId))
-                .map((p) => proposalToInsightEntry(p));
-              return additions.length > 0 ? [...prev, ...additions] : prev;
-            });
+            fetchSessionDiagramState({ sessionId: activeSessionId })
+              .then((session) => {
+                setInsightsEntries((prev) => {
+                  const existingIds = new Set(prev.map((e) => e.id));
+                  const additions = proposals
+                    .filter((p) => !existingIds.has(p.proposalId))
+                    .map((p) =>
+                      proposalToInsightEntry(
+                        enrichProposalForInsight(p, session, activeSessionId)
+                      )
+                    );
+                  return additions.length > 0 ? [...prev, ...additions] : prev;
+                });
+              })
+              .catch(() => {
+                setInsightsEntries((prev) => {
+                  const existingIds = new Set(prev.map((e) => e.id));
+                  const additions = proposals
+                    .filter((p) => !existingIds.has(p.proposalId))
+                    .map((p) => proposalToInsightEntry(p));
+                  return additions.length > 0 ? [...prev, ...additions] : prev;
+                });
+              });
           }
           return;
         }
@@ -1174,10 +1156,24 @@ function ArchiSlop() {
         }
 
         if (type === 'proposal_received' && payload?.proposalId) {
-          setInsightsEntries((prev) => {
-            if (prev.some((e) => e.id === payload.proposalId)) return prev;
-            return [...prev, proposalToInsightEntry(payload)];
-          });
+          fetchSessionDiagramState({ sessionId: activeSessionId })
+            .then((session) => {
+              setInsightsEntries((prev) => {
+                if (prev.some((e) => e.id === payload.proposalId)) return prev;
+                return [
+                  ...prev,
+                  proposalToInsightEntry(
+                    enrichProposalForInsight(payload, session, activeSessionId)
+                  )
+                ];
+              });
+            })
+            .catch(() => {
+              setInsightsEntries((prev) => {
+                if (prev.some((e) => e.id === payload.proposalId)) return prev;
+                return [...prev, proposalToInsightEntry(payload)];
+              });
+            });
           return;
         }
 
@@ -1337,32 +1333,27 @@ function ArchiSlop() {
 
         const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
         const otherSlot = session?.[otherMode];
-        // "There should only be one topic at a time" — pick the slot whose `updatedAt` is most
-        // recent so the topic the user most recently asked about always wins on a mode switch,
-        // even if the destination slot has stale content from a different topic.
-        const dataTopic = slotLastTopic(data);
-        const otherTopic = slotLastTopic(otherSlot);
-        const dataUpdatedAt = data?.updatedAt ?? '';
-        const otherUpdatedAt = otherSlot?.updatedAt ?? '';
-        let candidate = null;
-        if (dataTopic && otherTopic) {
-          candidate = otherUpdatedAt > dataUpdatedAt ? otherTopic : dataTopic;
-        } else {
-          candidate = dataTopic ?? otherTopic ?? sessionTopicRef.current ?? null;
-        }
+        const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
+        let candidate = resolveModeSwitchCandidate({
+          contentMode,
+          session,
+          sessionTopic: sessionTopicRef.current,
+          promptAtSwitch: trimmedAtSwitch
+        });
 
         if (candidate) {
           sessionTopicRef.current = candidate;
         }
 
-        const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
-        if (!candidate && trimmedAtSwitch) {
-          candidate = trimmedAtSwitch;
-        }
-
         const newSlotInSync = isSlotInSyncForTopic(data, candidate);
         const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
         const peerRequiresTranslation = peerRequiresModeSwitchTranslation({
+          contentMode,
+          session,
+          candidate,
+          syncMarkers: crossModeSyncRef.current
+        });
+        const needsPeerSync = needsModeSwitchPeerSync({
           contentMode,
           session,
           candidate,
@@ -1385,7 +1376,8 @@ function ArchiSlop() {
             candidate,
             textareaDirty,
             newSlotInSync,
-            peerRequiresTranslation
+            peerRequiresTranslation,
+            needsPeerSync
           })
         ) {
           const peerRevisionAtSubmit = otherSlot?.revisionId ?? 0;
@@ -1427,7 +1419,6 @@ function ArchiSlop() {
         if (err?.code === SESSION_NOT_FOUND_CODE) {
           setInsightsEntries([]);
           setLatestCritique(null);
-          setLatestCritiqueA2uiMessages(null);
           setCritiqueActionableSelected([]);
           setPrompt('');
           promptRef.current = '';
@@ -1835,6 +1826,7 @@ function ArchiSlop() {
         status: 'running',
         technicalActions: [],
         phases: [],
+        planBeats: [],
         artifacts: [],
         streamDebugLog: [],
         startedAt: Date.now(),
@@ -1986,62 +1978,57 @@ function ArchiSlop() {
       const streamAcc = { text: '' };
       const abortCtrl = new AbortController();
       streamAgentAbortRef.current = abortCtrl;
-      const streamCtx = {
+      const streamCtx = buildAgentStreamInsightContext(
         sectionId,
         operation,
         variant,
         diagramUndoBaseline,
-        patchInsightEntry,
-        appendToInsight,
-        setInsightStatus,
-        appendTechnicalAction,
-        lastTokenSoundAtRef,
-        goMadTokenTickIndexRef,
-        lastDraftTickAtRef,
-        tryAgentSound,
-        playGoMadTokenTick,
-        playTokenTickChime,
-        playToolStartChime,
-        playToolEndChime,
-        playDraftTick,
-        playFailureChime,
-        playPhaseChangePluck,
-        playRefineTokenTick,
-        playInnovateTokenTick,
-        playCritiqueTokenTick,
-        playExplainTokenTick,
-        playRefinePolishLoop,
-        playInnovateSynthLoop,
-        playGoMadKlaxonLoop,
-        playGoMadAirhornBlast,
-        playCritiqueScribbleLoop,
-        playCritiquePenStab,
-        playExplainPageFlipLoop,
-        setLiveDraftSource,
-        setLiveDraftContentType,
-        setGoMadStreak,
-        sessionTopicRef,
-        crossModeSyncRef,
-        modeSwitchSync,
-        modeSwitchPeerRevisionId,
-        animateAcceptedSource,
-        pendingAutoDiagramHighlightRef,
-        pendingAutoDiagramHighlightTimeoutRef,
-        triggerCompletionDelight,
-        onFinal
-      };
+        {
+          patchInsightEntry,
+          appendToInsight,
+          setInsightStatus,
+          appendTechnicalAction,
+          lastTokenSoundAtRef,
+          goMadTokenTickIndexRef,
+          lastDraftTickAtRef,
+          tryAgentSound,
+          playGoMadTokenTick,
+          playTokenTickChime,
+          playToolStartChime,
+          playToolEndChime,
+          playDraftTick,
+          playFailureChime,
+          playPhaseChangePluck,
+          playRefineTokenTick,
+          playInnovateTokenTick,
+          playCritiqueTokenTick,
+          playExplainTokenTick,
+          playRefinePolishLoop,
+          playInnovateSynthLoop,
+          playGoMadKlaxonLoop,
+          playGoMadAirhornBlast,
+          playCritiqueScribbleLoop,
+          playCritiquePenStab,
+          playExplainPageFlipLoop,
+          setLiveDraftSource,
+          setLiveDraftContentType,
+          setGoMadStreak,
+          sessionTopicRef,
+          crossModeSyncRef,
+          modeSwitchSync,
+          modeSwitchPeerRevisionId,
+          animateAcceptedSource,
+          pendingAutoDiagramHighlightRef,
+          pendingAutoDiagramHighlightTimeoutRef,
+          triggerCompletionDelight,
+          onFinal
+        }
+      );
       try {
         await streamDiagramAgent(
           payload,
           (evt) => {
             appendStreamDebugLog(sectionId, evt);
-            if (
-              evt?.type === LEGACY_STREAM_TYPE_A2UI &&
-              Array.isArray(evt.messages) &&
-              evt.messages.length > 0
-            ) {
-              setLatestCritiqueA2uiMessages(evt.messages);
-            }
             applyAgentStreamInsightEvent(streamAcc, streamCtx, evt);
           },
           { signal: abortCtrl.signal, sessionId: activeSessionId }
@@ -3394,9 +3381,12 @@ ${requirementsBlock}`;
       return null;
     }
     const items = critiqueActionableSplit.items;
+    const critiqueEntry = latestCritique.insightEntryId
+      ? insightsEntries.find((e) => e.id === latestCritique.insightEntryId)
+      : null;
     const streamMessages =
-      Array.isArray(latestCritiqueA2uiMessages) && latestCritiqueA2uiMessages.length > 0
-        ? latestCritiqueA2uiMessages
+      Array.isArray(critiqueEntry?.a2uiMessages) && critiqueEntry.a2uiMessages.length > 0
+        ? critiqueEntry.a2uiMessages
         : null;
     return {
       critiqueText: latestCritique.text,
@@ -3416,7 +3406,30 @@ ${requirementsBlock}`;
       },
       onFixAll: () => handleFixFromCritique('all')
     };
-  }, [busy, critiqueActionableSplit, handleFixFromCritique, latestCritique?.text, latestCritiqueA2uiMessages]);
+  }, [busy, critiqueActionableSplit, handleFixFromCritique, insightsEntries, latestCritique?.insightEntryId, latestCritique?.text]);
+
+  const handleApplyStyleEdits = useCallback(
+    (entry) => {
+      const edits = entry?.styleEdits;
+      if (!Array.isArray(edits) || edits.length === 0) return;
+      const lines = edits.map((e, i) => {
+        const step = e.id ?? String(i + 1);
+        if (e.kind === 'icon_replace') {
+          return `${step}. Replace icon ${e.from} with ${e.to}`;
+        }
+        if (e.kind === 'color_shift') {
+          const varPart = e.variable ? `${e.variable} ` : '';
+          const toPart = e.to ? `from ${e.from} to ${e.to}` : `use ${e.from}`;
+          return `${step}. Adjust ${varPart}${toPart}`;
+        }
+        return `${step}. ${e.text}`;
+      });
+      submitIntentWithPrompt(`Apply these style tweaks to the diagram:\n${lines.join('\n')}`, {
+        variantOverride: 'refine'
+      });
+    },
+    [submitIntentWithPrompt]
+  );
 
   const status = useMemo(() => {
     if (loading && activeRequest === 'intent') return 'Applying diagram change.';
@@ -3630,6 +3643,8 @@ ${requirementsBlock}`;
       onAcceptProposal={handleAcceptProposal}
       onRejectProposal={handleRejectProposal}
       agentReactions={agentReactions}
+      onApplyStyleEdits={handleApplyStyleEdits}
+      styleEditsApplyBusy={loading}
       closing={insightsClosing}
     />
   ) : null;

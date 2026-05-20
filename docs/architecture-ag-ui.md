@@ -47,6 +47,7 @@ The route opens and closes the run; agents must not emit `RUN_STARTED`.
 | --- | --- | --- |
 | `emit.phase(id, label)` | `{ type:'phase', id, label }` | `STEP_STARTED` / `STEP_FINISHED` |
 | `emit.status(text)` | `{ type:'status', text }` | `CUSTOM(status)` |
+| `emit.planBeat(text, source?)` | `{ type:'plan_beat', text, source }` | `CUSTOM(plan_beat)` |
 | `emit.token(text)` | `{ type:'token', text }` | `TEXT_MESSAGE_*` |
 | `emit.a2ui(messages)` | `{ type:'a2ui', messages }` | `CUSTOM(a2ui)` |
 | `emit.patchSummary(...)` | `{ type:'artifact', kind:'patch_summary' }` | `STATE_DELTA` |
@@ -65,8 +66,9 @@ From [`packages/shared/src/agUiWireConstants.js`](../packages/shared/src/agUiWir
 | `name` | `value` | Web legacy |
 | --- | --- | --- |
 | `status` | `{ text }` | `{ type:'status', text }` |
+| `plan_beat` | `{ text, source?: 'server' \| 'agent' }` | `{ type:'plan_beat', text, source }` — diagram **why** (Thinking pane Plan lane) |
 | `a2ui` | `{ messages }` | `{ type:'a2ui', messages }` |
-| `artifact` | opaque artifact object | passthrough |
+| `artifact` | opaque artifact object | passthrough (`patch_summary` → legacy artifact; `explain_sections` → insight `explainSections`) |
 | `legacy` | unknown | dropped |
 
 Critique checklists use `CUSTOM` + `name: "a2ui"` — details in [`architecture-a2ui.md`](architecture-a2ui.md).
@@ -97,6 +99,7 @@ All `/api/copilotkit/*` routes use this resolver. The web client persists a UUID
 | Stream data | AG-UI mechanism | Web consumer |
 | --- | --- | --- |
 | Status line | `CUSTOM(status)` | Insights status chip |
+| Diagram intent (why) | `CUSTOM(plan_beat)` | Thinking pane **Plan** list (+ latest beat in status strip) |
 | Streaming prose | `TEXT_MESSAGE_*` | Critique / explain text |
 | Tool progress | `TOOL_CALL_*` | Phase labels in Thinking pane |
 | Live diagram while patching | `STATE_DELTA` `/mermaid|infographic/draftSource` | Draft preview on canvas |

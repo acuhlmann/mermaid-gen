@@ -68,6 +68,29 @@ export default function AgentProposalCard({
         <span className="agent-proposal-time">{formatRelative(proposal.createdAt)}</span>
       </header>
       {proposal.reason ? <p className="agent-proposal-reason">{proposal.reason}</p> : null}
+      {proposal.diffSummary ? (
+        <p className="agent-proposal-diff-stats" data-testid="proposal-diff-stats">
+          {proposal.diffSummary.linesAdded > 0 || proposal.diffSummary.linesRemoved > 0 ? (
+            <>
+              <span className="agent-proposal-diff-add">+{proposal.diffSummary.linesAdded}</span>
+              <span className="agent-proposal-diff-del">−{proposal.diffSummary.linesRemoved}</span>
+              <span className="agent-proposal-diff-changed"> lines</span>
+            </>
+          ) : null}
+          {proposal.diffSummary.graphDiff?.nodesAdded?.length ? (
+            <span className="agent-proposal-diff-nodes">
+              {' '}
+              nodes +{proposal.diffSummary.graphDiff.nodesAdded.length}
+            </span>
+          ) : null}
+          {proposal.diffSummary.graphDiff?.nodesRemoved?.length ? (
+            <span className="agent-proposal-diff-nodes">
+              {' '}
+              nodes −{proposal.diffSummary.graphDiff.nodesRemoved.length}
+            </span>
+          ) : null}
+        </p>
+      ) : null}
       {diagramSource ? (
         <div className="agent-proposal-preview-wrap">
           <div className="agent-proposal-preview">

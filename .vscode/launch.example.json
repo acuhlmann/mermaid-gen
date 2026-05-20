@@ -2,27 +2,45 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Server: Debug (Node)",
+      "name": "Archislop: Dev (server + web → browser)",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "command": "npm run dev",
+      "envFile": "${workspaceFolder}/.env",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s"
+      }
+    },
+    {
+      "name": "Server: Debug (Node + tsx)",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/apps/server",
       "program": "${workspaceFolder}/apps/server/src/index.js",
+      "runtimeArgs": ["--import", "tsx"],
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "resolveSourceMapLocations": [
+        "${workspaceFolder}/apps/server/**",
+        "!**/node_modules/**"
+      ]
     },
     {
       "name": "Web: Dev (Vite)",
       "type": "node-terminal",
       "request": "launch",
       "cwd": "${workspaceFolder}",
-      "command": "npm run dev -w apps/web"
-    }
-  ],
-  "compounds": [
-    {
-      "name": "Full Stack: Server + Web",
-      "configurations": ["Server: Debug (Node)", "Web: Dev (Vite)"]
+      "command": "npm run dev -w apps/web",
+      "envFile": "${workspaceFolder}/.env",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Local:\\s+(https?://\\S+)",
+        "uriFormat": "%s"
+      }
     }
   ]
 }

@@ -40,8 +40,21 @@ Each backend takes the UI's `modelProfile` and resolves to a slug. For each, the
 | ------------------------ | -------------------------------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
 | `fast` env precedence    | `VERTEX_MODEL_FAST` → `VERTEX_MODEL` → built-in    | `OPENROUTER_MODEL_FAST` → `OPENROUTER_MODEL` → built-in    | `DEEPSEEK_MODEL_FAST` → `DEEPSEEK_MODEL` → built-in    |
 | `quality` env precedence | `VERTEX_MODEL_QUALITY` → `VERTEX_MODEL` → built-in | `OPENROUTER_MODEL_QUALITY` → `OPENROUTER_MODEL` → built-in | `DEEPSEEK_MODEL_QUALITY` → `DEEPSEEK_MODEL` → built-in |
-| Fast built-in            | `gemini-2.0-flash-001`                             | `google/gemini-2.5-flash-lite`                             | `deepseek-v4-flash`                                    |
-| Quality built-in         | `gemini-1.5-pro-002`                               | `qwen/qwen3-235b-a22b`                                     | `deepseek-v4-pro`                                      |
+| Fast built-in            | `gemini-2.5-flash`                                 | `google/gemini-2.5-flash-lite`                             | `deepseek-v4-flash`                                    |
+| Quality built-in         | `gemini-2.5-pro`                                   | `qwen/qwen3-235b-a22b`                                     | `deepseek-v4-pro`                                      |
+
+### Vertex model availability (project-specific)
+
+Built-in Vertex defaults use the latest **GA models confirmed on `mermaidgen` / `us-central1`** via `generateContent` smoke tests. As of May 2026, `gemini-3.5-flash`, `gemini-3.1-flash-lite`, and `gemini-3.1-pro-preview` return **404 NOT_FOUND** on this project (likely rollout/allowlist — not an IAM issue; `gemini-2.5-flash` and `gemini-2.5-pro` succeed with the same credentials).
+
+When Google enables Gemini 3.x on your project, override without code changes:
+
+```env
+VERTEX_MODEL_FAST=gemini-3.5-flash
+VERTEX_MODEL_QUALITY=gemini-3.1-pro-preview
+```
+
+Optional cost saver for the syntax fixer only (single-shot, no tool loop): `MERMAID_REPAIR_MODEL=gemini-2.5-flash-lite` or `gemini-3.1-flash-lite` when that ID becomes available.
 
 ## Syntax fixer (separate from intent model)
 

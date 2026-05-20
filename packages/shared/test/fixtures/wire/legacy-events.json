@@ -1,0 +1,47 @@
+{
+  "plan_beat_server": {
+    "type": "plan_beat",
+    "text": "Adding an API gateway between the client and services.",
+    "source": "server"
+  },
+  "plan_beat_agent": {
+    "type": "plan_beat",
+    "text": "Tightening edge labels on the auth subgraph.",
+    "source": "agent"
+  },
+  "patch_summary": {
+    "type": "artifact",
+    "kind": "patch_summary",
+    "revisionId": 3,
+    "linesAdded": 4,
+    "linesRemoved": 1
+  },
+  "explain_sections": {
+    "type": "artifact",
+    "kind": "explain_sections",
+    "contentType": "mermaid",
+    "preamble": "Short intro.",
+    "sections": [
+      { "id": "explanation", "heading": "Explanation", "body": "Overview text." },
+      { "id": "takeaways", "heading": "Takeaways", "body": "Remember to validate inputs." }
+    ]
+  },
+  "style_edits": {
+    "type": "artifact",
+    "kind": "style_edits",
+    "edits": [
+      { "kind": "icon_replace", "id": "5", "from": "fa fa-fire", "to": "🔥" }
+    ]
+  },
+  "a2ui_critique_minimal": {
+    "type": "a2ui",
+    "messages": [
+      {
+        "createSurface": {
+          "surfaceId": "critique-actionables",
+          "catalogId": "https://a2ui.org/specification/v0_9/basic_catalog.json"
+        }
+      }
+    ]
+  }
+}

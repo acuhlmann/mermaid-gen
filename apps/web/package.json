@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p .",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:wire": "vitest run test/wireAgUiTranslator.test.js"
   },
   "dependencies": {
     "@a2ui/markdown-it": "^0.0.4",

@@ -2,9 +2,13 @@ import { ChatOpenRouter } from '@langchain/openrouter';
 import { ChatOpenAI } from '@langchain/openai';
 import { ChatVertexAI } from '@langchain/google-vertexai';
 
-/** Default Vertex model ids when VERTEX_MODEL_FAST / VERTEX_MODEL_QUALITY are unset (override per region in console). */
-export const DEFAULT_VERTEX_MODEL_FAST = 'gemini-2.0-flash-001';
-export const DEFAULT_VERTEX_MODEL_QUALITY = 'gemini-1.5-pro-002';
+/**
+ * Default Vertex model ids when VERTEX_MODEL_FAST / VERTEX_MODEL_QUALITY are unset.
+ * Target when GA on your project/region: Fast=gemini-3.5-flash, Quality=gemini-3.1-pro-preview.
+ * Verified on mermaidgen/us-central1 (May 2026): 3.x returns NOT_FOUND; 2.5 tier is available.
+ */
+export const DEFAULT_VERTEX_MODEL_FAST = 'gemini-2.5-flash';
+export const DEFAULT_VERTEX_MODEL_QUALITY = 'gemini-2.5-pro';
 
 /** Default DeepSeek API model ids (OpenAI-compatible https://api.deepseek.com). */
 export const DEFAULT_DEEPSEEK_MODEL_FAST = 'deepseek-v4-flash';

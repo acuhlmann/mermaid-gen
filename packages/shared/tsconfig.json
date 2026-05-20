@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "tsBuildInfoFile": "./.tsbuildinfo",
+
+    // Ratchet: run `npm run typecheck:strict -w apps/server` for strict TS islands.
+    // Full shared strict is gated on Phase 6 annotation pass (see TODO in repo plans).
+    "strict": false,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true
+  },
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["node_modules", "dist"]
+}
+

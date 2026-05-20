@@ -96,6 +96,7 @@ async function waitForControlsReady(buttonName = 'Refine') {
 
 describe('App simplified controls', () => {
   beforeEach(() => {
+    vi.useRealTimers();
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
     const oscillator = {
@@ -577,6 +578,8 @@ describe('App simplified controls', () => {
       removeEventListener: vi.fn(),
       dispatchEvent: vi.fn()
     }));
+    syncClientDiagramStateMock.mockImplementation(async () => ({ ...updatedState }));
+
     let finishStream;
     streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
       if (payload.operation !== 'transform') return;
@@ -606,8 +609,13 @@ describe('App simplified controls', () => {
         finishStream();
       });
 
-      await screen.findByText('Done');
-      await waitFor(() => expect(document.querySelector('.app-shell')?.className).not.toContain('is-insights-open'));
+      await waitFor(
+        () => {
+          expect(document.querySelector('.insights-entry.is-running')).toBeNull();
+          expect(document.querySelector('.app-shell')?.className).not.toContain('is-insights-open');
+        },
+        { timeout: 5000 }
+      );
     } finally {
       globalThis.matchMedia = previousMatchMedia;
     }
@@ -731,6 +739,53 @@ describe('App simplified controls', () => {
     expect(intentCalls).toHaveLength(0);
 
     globalThis.matchMedia = previousMatchMedia;
+  });
+
+  it('auto-submits intent with peerContext when switching to infographic after Refine without lastUserPrompt', async () => {
+    const mermaidFromRefine = {
+      ...initialState,
+      revisionId: 3,
+      diagramSource: 'flowchart TD\n  API --> DB',
+      lastUserPrompt: null,
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: mermaidFromRefine,
+      infographic: createInitialDiagramState('infographic')
+    });
+
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent' && payload.contentType === 'infographic') {
+        expect(payload.peerContext?.contentType).toBe('mermaid');
+        expect(payload.peerContext?.diagramSource).toContain('API');
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: {
+            ...createInitialDiagramState('infographic'),
+            revisionId: 1,
+            diagramSource: 'infographic list\n  items\n    - API',
+            lastUserPrompt: payload.prompt
+          },
+          message: 'Applied.'
+        });
+      }
+    });
+
+    render(<App />);
+    await waitForControlsReady();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Infographic' }));
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (c) => c[0]?.operation === 'intent' && c[0]?.contentType === 'infographic'
+      );
+      expect(intentCalls).toHaveLength(1);
+      expect(intentCalls[0][0].peerContext?.contentType).toBe('mermaid');
+    });
   });
 
   it('auto-submits intent with peerContext when switching to diagram and infographic is ahead', async () => {

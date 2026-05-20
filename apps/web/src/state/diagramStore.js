@@ -1,10 +1,4 @@
 import {
-  AGUI_CUSTOM_NAME_A2UI,
-  AGUI_CUSTOM_NAME_ARTIFACT,
-  AGUI_CUSTOM_NAME_STATUS,
-  AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
-  LEGACY_STREAM_TYPE_A2UI,
-  agUiDraftSourcePath,
   buildAgentRunBudgetExceededMessage,
   createInitialDiagramState,
   createInitialSessionState,
@@ -12,6 +6,8 @@ import {
   sanitizeAgentStreamPayload
 } from '@archislop/shared';
 import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
+import { createAgUiTranslator } from './agUiTranslator.js';
+export { createAgUiTranslator } from './agUiTranslator.js';
 
 const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
 /** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, defaults to the local server. */
@@ -273,6 +269,14 @@ export function slotLastTopic(slot) {
   return typeof p === 'string' && p.trim() ? p.trim() : null;
 }
 
+/** Fallback intent prompt when switching modes with peer content but no stored topic. */
+export function defaultModeSwitchPrompt(contentMode) {
+  if (contentMode === 'infographic') {
+    return 'Convert the current Mermaid architecture diagram into an equivalent infographic.';
+  }
+  return 'Convert the current infographic into an equivalent Mermaid architecture diagram.';
+}
+
 /** True when the slot has agent or user edits beyond the default seed canvas. */
 export function isSlotCustomized(slot) {
   if (!slot || typeof slot.diagramSource !== 'string') return false;
@@ -291,17 +295,18 @@ export function isSlotCustomized(slot) {
  */
 export function isPeerSlotAhead({ contentMode, session, candidate }) {
   if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
-  if (!candidate) return false;
-  const cand = String(candidate).trim();
-  if (!cand) return false;
   const target = session[contentMode];
   const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
   const peer = session[otherMode];
   if (!isSlotCustomized(peer)) return false;
+  const cand = candidate != null ? String(candidate).trim() : '';
   const peerTopic = slotLastTopic(peer);
-  if (peerTopic && peerTopic !== cand) return false;
+  if (peerTopic && cand && peerTopic !== cand) return false;
   const targetUpdated = target?.updatedAt ?? '';
   const peerUpdated = peer?.updatedAt ?? '';
+  if (!cand) {
+    return isSlotCustomized(target) ? peerUpdated > targetUpdated : true;
+  }
   return peerUpdated > targetUpdated;
 }
 
@@ -357,16 +362,68 @@ export function buildIntentPeerContext(contentMode, session, candidate = null) {
   if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return undefined;
   const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
   const peer = session[otherMode];
+  const target = session[contentMode];
   if (!peer || typeof peer.diagramSource !== 'string') return undefined;
   const trimmed = peer.diagramSource.trim();
   if (!trimmed) return undefined;
   if (!isSlotCustomized(peer)) return undefined;
+  if (!isSlotCustomized(target)) {
+    return { contentType: otherMode, diagramSource: peer.diagramSource };
+  }
   const cand = candidate != null ? String(candidate).trim() : '';
   if (cand) {
     const peerPrompt = typeof peer.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
-    if (peerPrompt !== cand) return undefined;
+    if (peerPrompt && peerPrompt !== cand) return undefined;
   }
   return { contentType: otherMode, diagramSource: peer.diagramSource };
+}
+
+/**
+ * Topic string for mode-switch auto-intent: slot prompts, session carry-over, textarea, or
+ * a conversion fallback when the peer slot has diagram work but no recorded topic.
+ */
+export function resolveModeSwitchCandidate({
+  contentMode,
+  session,
+  sessionTopic = null,
+  promptAtSwitch = ''
+}) {
+  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return null;
+  const data = session[contentMode];
+  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+  const otherSlot = session[otherMode];
+  const dataTopic = slotLastTopic(data);
+  const otherTopic = slotLastTopic(otherSlot);
+  const dataUpdatedAt = data?.updatedAt ?? '';
+  const otherUpdatedAt = otherSlot?.updatedAt ?? '';
+  let candidate = null;
+  if (dataTopic && otherTopic) {
+    candidate = otherUpdatedAt > dataUpdatedAt ? otherTopic : dataTopic;
+  } else {
+    candidate = dataTopic ?? otherTopic ?? sessionTopic ?? null;
+  }
+  const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
+  if (!candidate && trimmedAtSwitch) {
+    candidate = trimmedAtSwitch;
+  }
+  if (!candidate && isSlotCustomized(otherSlot) && !isSlotCustomized(data)) {
+    candidate = slotLastTopic(otherSlot) ?? defaultModeSwitchPrompt(contentMode);
+  }
+  return candidate;
+}
+
+/** True when switching into this mode should translate content from the sibling slot. */
+export function needsModeSwitchPeerSync({ contentMode, session, candidate, syncMarkers }) {
+  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
+  const target = session[contentMode];
+  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
+  const peer = session[otherMode];
+  if (!isSlotCustomized(peer)) return false;
+  if (!isSlotCustomized(target)) return true;
+  if (peerRequiresModeSwitchTranslation({ contentMode, session, candidate, syncMarkers })) {
+    return true;
+  }
+  return Boolean(candidate) && !isSlotInSyncForTopic(target, candidate);
 }
 
 /**
@@ -380,9 +437,12 @@ export function shouldAutoSubmitModeSwitchIntent({
   candidate,
   textareaDirty,
   newSlotInSync,
-  peerRequiresTranslation = false
+  peerRequiresTranslation = false,
+  needsPeerSync = false
 }) {
-  if (!candidate || textareaDirty) return false;
+  if (textareaDirty) return false;
+  if (needsPeerSync && candidate) return true;
+  if (!candidate) return false;
   if (peerRequiresTranslation) return true;
   return !newSlotInSync;
 }
@@ -543,136 +603,6 @@ export async function submitDiagramAnalyze({
   }
 
   return payload;
-}
-
-/**
- * Translates an AG-UI wire event back into the legacy internal event shape that
- * `applyAgentStreamInsightEvent` + the insights pipeline consume. State across
- * an SSE run (cached state snapshot) is held by the closure returned here.
- *
- * When adding a new AG-UI event: map it here, add server mapping in
- * `createAgUiEmit` (apps/server), then handle the legacy shape in
- * `applyAgentStreamInsightEvent` (web).
- *
- * Mapping summary:
- *   STEP_STARTED                                 -> { type:'phase', id, label }
- *   TEXT_MESSAGE_CONTENT                         -> { type:'token', text }
- *   STATE_DELTA(/lastPatchSummary)               -> { type:'artifact', kind:'patch_summary' }
- *   STATE_DELTA(/<contentType>/draftSource)      -> { type:'draftPreview', contentType, source }
- *   STATE_SNAPSHOT                               -> cached, attached to RUN_FINISHED
- *   RUN_FINISHED                                 -> { type:'final', state, message, ... }
- *   RUN_ERROR                                    -> { type:'error', message }
- *   CUSTOM(status)                               -> { type:'status', text }
- *   CUSTOM(a2ui)                                 -> { type:'a2ui', messages }
- *   TOOL_CALL_START/END                          -> { type:'tool_start' | 'tool_end', name }
- *
- * Legacy event shapes pass through unchanged for forward-compat tests and proxies.
- */
-export function createAgUiTranslator() {
-  let lastSnapshot = null;
-  return function translate(evt) {
-    if (!evt || typeof evt !== 'object') return null;
-    switch (evt.type) {
-      case 'RUN_STARTED':
-        // Surface so the UI can show "starting" affordances; carries no
-        // user-visible text but the optimistic chip path needs the trigger.
-        return { type: 'phase', id: 'run_started', label: 'Starting…' };
-      case 'STEP_STARTED': {
-        const raw = String(evt.stepName ?? 'step');
-        const sep = raw.indexOf('\x1f');
-        if (sep >= 0) {
-          const id = raw.slice(0, sep) || 'step';
-          const label = raw.slice(sep + 1) || id;
-          return { type: 'phase', id, label };
-        }
-        return { type: 'phase', id: raw, label: raw };
-      }
-      case 'STEP_FINISHED':
-        return null; // no legacy equivalent; the next STEP_STARTED overwrites
-      case 'TEXT_MESSAGE_START':
-      case 'TEXT_MESSAGE_END':
-        return null;
-      case 'TEXT_MESSAGE_CONTENT': {
-        const text = typeof evt.delta === 'string' ? evt.delta : '';
-        if (!text) return null;
-        return { type: 'token', text };
-      }
-      case 'TOOL_CALL_START':
-        return { type: 'tool_start', name: String(evt.toolCallName ?? 'tool') };
-      case 'TOOL_CALL_END':
-        return { type: 'tool_end', name: '' };
-      case 'TOOL_CALL_ARGS':
-        return null; // not surfaced legacy-side
-      case 'STATE_SNAPSHOT':
-        lastSnapshot = evt.snapshot ?? null;
-        return null;
-      case 'STATE_DELTA': {
-        const ops = Array.isArray(evt.delta) ? evt.delta : [];
-        // Live infographic/mermaid draft preview rides on /<contentType>/draftSource.
-        // Surface as the legacy draftPreview event the App.jsx switch already
-        // consumes, so the React state plumbing doesn't need to know the wire
-        // moved from CUSTOM to STATE_DELTA.
-        const draftOp = ops.find((op) => {
-          if (typeof op?.path !== 'string') return false;
-          return op.path === agUiDraftSourcePath('mermaid') || op.path === agUiDraftSourcePath('infographic');
-        });
-        if (draftOp) {
-          const ct = draftOp.path.split('/')[1];
-          if (draftOp.op === 'remove') {
-            return { type: 'draftPreview', contentType: ct, source: '', delta: '' };
-          }
-          const v = typeof draftOp.value === 'string' ? draftOp.value : '';
-          return { type: 'draftPreview', contentType: ct, source: v, delta: '' };
-        }
-        // Convert the route's synthetic JSON Patch back into a patch_summary
-        // artifact so existing UI sparklines/insight chips keep working.
-        const summaryOp = ops.find((op) => op?.path === AGUI_STATE_PATH_LAST_PATCH_SUMMARY);
-        if (summaryOp?.value) {
-          const v = summaryOp.value;
-          return {
-            type: 'artifact',
-            kind: 'patch_summary',
-            revisionId: v.revisionId ?? 0,
-            linesAdded: v.linesAdded ?? 0,
-            linesRemoved: v.linesRemoved ?? 0
-          };
-        }
-        return null;
-      }
-      case 'RUN_FINISHED': {
-        const result = evt.result ?? {};
-        const out = {
-          type: 'final',
-          revisionChanged: Boolean(result.revisionChanged),
-          ...(typeof result.message === 'string' ? { message: result.message } : {}),
-          ...(typeof result.analyzeText === 'string' ? { analyzeText: result.analyzeText } : {}),
-          ...(lastSnapshot ? { state: lastSnapshot } : {})
-        };
-        lastSnapshot = null;
-        return out;
-      }
-      case 'RUN_ERROR':
-        return {
-          type: 'error',
-          message: String(evt.message ?? 'Unknown error'),
-          ...(evt.code ? { code: String(evt.code) } : {})
-        };
-      case 'CUSTOM': {
-        if (evt.name === AGUI_CUSTOM_NAME_STATUS) {
-          const text = evt.value?.text ?? '';
-          return { type: 'status', text };
-        }
-        if (evt.name === AGUI_CUSTOM_NAME_A2UI && Array.isArray(evt.value?.messages)) {
-          return { type: LEGACY_STREAM_TYPE_A2UI, messages: evt.value.messages };
-        }
-        if (evt.name === AGUI_CUSTOM_NAME_ARTIFACT) return evt.value ?? null;
-        return null;
-      }
-      default:
-        // Legacy event shape — pass through unchanged.
-        return evt;
-    }
-  };
 }
 
 /**

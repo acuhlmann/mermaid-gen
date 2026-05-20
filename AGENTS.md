@@ -13,7 +13,7 @@ This file is a quick operator manual for coding agents working in this repositor
 
 ## First things to check
 
-1. Read `README.md` in the repo root for current setup flow.
+1. Read `README.md` (hub) and [`docs/guide/quick-start.md`](docs/guide/quick-start.md) for setup flow.
 2. Confirm environment exists: `.env` (copy from `.env.example` if missing).
 3. Prefer workspace scripts from root unless debugging one package.
 
@@ -25,6 +25,17 @@ This file is a quick operator manual for coding agents working in this repositor
 - Run web + server together: `npm run dev`
 - Run all tests: `npm test`
 - Build all packages: `npm run build`
+- **Verify after edits** (pick the smallest loop that fits):
+  - `npm run check:fast` — shared package only (schemas, sanitizers, wire constants)
+  - `npm run check` — typecheck + test all workspaces (default)
+  - `npm run check:full` — same as CI: typecheck + test + build
+  - `npm run check:wire` — doc path verify + wire round-trip tests (shared, server, web)
+  - `npm run typecheck:strict` — strict TS on server wire-route modules (`copilotRouteTypes`, stream helpers)
+  - `npm run verify:doc-paths` — recipes/STRUCTURE links point at real files
+- **Workspace-scoped** (faster when you know the blast radius):
+  - `npm run typecheck -w apps/server && npm run test -w apps/server`
+  - `npm run typecheck -w apps/web && npm run test -w apps/web`
+  - `npm run typecheck -w packages/shared && npm run test -w packages/shared`
 
 Package-specific commands:
 - Server dev: `npm run dev -w apps/server`
@@ -66,7 +77,7 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - Mermaid validation helper: `apps/server/src/tools/mermaidDiffTool.js`
 - Shared exports/schemas: `packages/shared/src/`
 - Web app entry/UI: `apps/web/src/`
-- Session event bus: `apps/server/src/state/sessionEventBus.js`; web client: `apps/web/src/state/sessionEventsClient.js`
+- Session event bus: `apps/server/src/state/sessionEventBus.ts`; web client: `apps/web/src/state/sessionEventsClient.js`
 
 ## Architecture docs (read before changing wire contracts)
 
@@ -76,7 +87,9 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events |
 | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) | AG-UI SSE for built-in `agent-stream` |
 | [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) | A2UI critique `CUSTOM` on AG-UI streams |
-| [`README.md`](README.md) | Human-facing overview, setup, endpoints |
+| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) | **Impact map** — if you change X, also change Y (wire contracts) |
+| [`README.md`](README.md) | Human-facing hub (links to guides below) |
+| [`docs/guide/README.md`](docs/guide/README.md) | Split human guides: setup, agents, MCP, API, config |
 
 ## CopilotKit skill note
 
@@ -95,15 +108,19 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 - Before large edits, inspect both app and shared package contracts to avoid drift.
 - Keep changes scoped to the relevant workspace whenever possible.
-- After edits, run the smallest meaningful test first, then `npm test` if needed.
+- After edits, run the smallest meaningful check first (`check:fast` / workspace-scoped test), then `npm run check` or `npm run check:full` before opening a PR.
+- **Source vs build output:** edit `apps/*/src/` and `packages/shared/src/` only. `dist/` and `.tsbuildinfo` are gitignored build artifacts — never patch them.
+- **TypeScript coverage:** `packages/shared` is fully typechecked (strict). Most `apps/server` and `apps/web` files are still `.js`/`.jsx` with `checkJs: false`; only migrated `.ts`/`.tsx` modules get full type errors until those files are converted.
 - If touching API contracts or schema, update both producer and consumer in the same change.
 - Prefer small, reviewable commits with clear why-focused messages.
 
 ## Documentation upkeep
 
-- **Keep `README.md` current** whenever you ship architectural changes, new agents/skills, new modes, new routes, renamed top-level concepts, or other changes notable enough that a new contributor or operator would need to know. Smaller bug fixes and internal refactors don't need a README touch.
-- The README is the **human-facing** doc — write for a reader, not a parser. Prefer prose, bulleted lists, and **diagrams** (Mermaid blocks are great here) over walls of config. A picture of the request flow or the agent topology beats a paragraph describing it.
-- When in doubt, update the README in the same commit/PR as the code change so docs and behavior stay in lockstep. If a diagram in the README becomes inaccurate after your change, redraw it; don't leave a stale one.
+- **Keep human docs current** when you ship architectural changes, new agents/skills, new modes, new routes, or renamed top-level concepts. Smaller bug fixes and internal refactors usually don't need doc touches.
+- **Hub:** [`README.md`](README.md) — short intro, quick start bullets, doc index (no heavy Mermaid blocks; GitHub preview hangs on large diagrams).
+- **Guides:** [`docs/guide/`](docs/guide/) — detailed prose and diagrams on focused pages (agents, validation, MCP Apps table, endpoints, config). Update the relevant guide file; add a README index row if you add a new guide.
+- Write for readers, not parsers. Prefer prose and focused Mermaid diagrams over walls of config.
+- When in doubt, update docs in the same commit/PR as the code change so behavior and docs stay in lockstep.
 
 ## Safety and hygiene
 
