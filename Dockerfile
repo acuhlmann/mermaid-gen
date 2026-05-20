@@ -4,9 +4,13 @@ FROM node:22-bookworm AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/
 COPY apps/server/package.json apps/server/
 COPY packages/shared/package.json packages/shared/
+COPY packages/shared/tsconfig.json packages/shared/
+COPY packages/shared/tsconfig.build.json packages/shared/
+COPY packages/shared/src packages/shared/src/
 
 RUN npm ci
 
