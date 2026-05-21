@@ -1314,6 +1314,7 @@ function ArchiSlop() {
     fetchSessionDiagramState({ sessionId: activeSessionId })
       .then((session) => {
         if (cancelled) return;
+        freshlyMintedSessionIdsRef.current.delete(activeSessionId);
         const staleLocalCache = readDiagramCache(activeSessionId);
         if (
           sessionIdFromUrlRef.current &&
@@ -1459,11 +1460,14 @@ function ArchiSlop() {
             }
           }
           if (cancelled) return;
-          freshlyMintedSessionIdsRef.current.delete(targetId);
           if (targetId !== activeSessionId) {
+            // Keep targetId in freshlyMintedSessionIdsRef so the next hydration cycle
+            // treats it as client-minted and primes the server if it lands on a different
+            // Cloud Run instance. The .then() path cleans it up after a successful fetch.
             window.history.replaceState({}, '', `${sessionPathFor(targetId)}`);
             setActiveSessionId(targetId);
           } else {
+            freshlyMintedSessionIdsRef.current.delete(targetId);
             const fresh = createInitialDiagramState('mermaid');
             stateRef.current = fresh;
             setState(fresh);
