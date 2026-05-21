@@ -19,7 +19,6 @@ import {
   rejectProposal as rejectProposalApi,
   joinRoomByPairingCode
 } from './state/sessionEventsClient.js';
-import { partKindLabel } from './utils/partKindLabel.js';
 import {
   buildIntentPeerContext,
   createSessionId,
@@ -113,28 +112,29 @@ import {
   getVariantPersona
 } from './utils/slopitectCopy.js';
 import confetti from 'canvas-confetti';
-
-// canvas-confetti uses HTMLCanvasElement.getContext('2d') and trips on jsdom
-// (which returns null). Gate so test runs don't see async confetti errors.
-let _confettiSupportCache = null;
-function canvasConfettiAvailable() {
-  if (_confettiSupportCache !== null) return _confettiSupportCache;
-  if (typeof document === 'undefined') {
-    _confettiSupportCache = false;
-    return false;
-  }
-  try {
-    const c = document.createElement('canvas');
-    _confettiSupportCache = Boolean(c.getContext?.('2d'));
-  } catch {
-    _confettiSupportCache = false;
-  }
-  return _confettiSupportCache;
-}
+import { canvasConfettiAvailable } from './utils/appConfetti.js';
+import { formatToolLabel } from './utils/appToolLabels.js';
+import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
+import {
+  proposalToInsightEntry,
+  enrichProposalForInsight,
+  attributedInsightToInsightEntry,
+  focusPayload,
+  goMadShapeLabel,
+  selectionActionTitle,
+  topicFromDescriptor
+} from './utils/appInsightHelpers.js';
+import {
+  MODEL_PROFILE_STORAGE_KEY,
+  CONTENT_MODE_STORAGE_KEY,
+  sessionPathFor,
+  ensureUrlBackedSession,
+  readStoredModelProfile,
+  readStoredContentMode
+} from './utils/appSessionLocation.js';
 import {
   createInitialDiagramState,
   diffInfographicSources,
-  enrichProposalForReview,
   splitCritiqueActionableSections
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
@@ -146,241 +146,9 @@ import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import { useCompactBrandLayout, useNarrowLayout } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 
-const TOOL_LABELS = {
-  get_diagram_state: 'Read diagram snapshot',
-  apply_mermaid_patch: 'Apply diagram update'
-};
-
-function formatToolLabel(name, repeatCount = 1) {
-  if (!name) return 'Tool action';
-  const base = TOOL_LABELS[name] ?? name.replaceAll('_', ' ');
-  if (name === 'apply_mermaid_patch' && repeatCount > 1) {
-    const shown = Math.min(repeatCount, 3);
-    return `${base} (×${shown})`;
-  }
-  return base;
-}
-
-const STREAM_DEBUG_LS_KEY = 'archislop-stream-debug';
-
 const RADIAL_MENU_CLOSE_GRACE_MS = 450;
 /** Auto-show diagram diff highlights after the final SVG for an agent-applied revision is on screen. */
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
-
-function readStreamDebugEnabled() {
-  if (typeof window === 'undefined') return false;
-  try {
-    if (window.localStorage?.getItem(STREAM_DEBUG_LS_KEY) === '1') return true;
-    const q = new URLSearchParams(window.location.search);
-    return q.get('streamDebug') === '1';
-  } catch {
-    return false;
-  }
-}
-
-function snapshotStreamEventForDebug(evt) {
-  if (!evt || typeof evt !== 'object') return evt;
-  if (evt.type === 'token' && typeof evt.text === 'string') {
-    const t = evt.text;
-    return { ...evt, text: t.length > 160 ? `${t.slice(0, 160)}…` : t };
-  }
-  if (evt.type === 'final' && evt.state && typeof evt.state === 'object') {
-    return {
-      ...evt,
-      state: { revisionId: evt.state.revisionId, diagramSource: '[omitted]' }
-    };
-  }
-  return evt;
-}
-
-function proposalToInsightEntry(proposal) {
-  return {
-    id: proposal.proposalId,
-    kind: 'proposal',
-    variant: 'general',
-    status: 'running',
-    statusText: 'Awaiting your decision.',
-    createdAt: proposal.createdAt ?? new Date().toISOString(),
-    proposal,
-    proposalStatus: 'pending'
-  };
-}
-
-function enrichProposalForInsight(proposal, session, sessionId) {
-  const contentType = proposal.contentType === 'infographic' ? 'infographic' : 'mermaid';
-  const currentDiagramSource = session?.[contentType]?.diagramSource ?? '';
-  return enrichProposalForReview({
-    proposal,
-    currentDiagramSource,
-    sessionId
-  });
-}
-
-function attributedInsightToInsightEntry(insight) {
-  return {
-    id: insight.insightId,
-    kind: 'attributed-note',
-    variant: insight.variant === 'critique' ? 'critique' : 'general',
-    status: 'done',
-    statusText: 'Note',
-    createdAt: insight.createdAt ?? new Date().toISOString(),
-    content: insight.text ?? '',
-    origin: insight.origin ?? null
-  };
-}
-
-function focusPayload(node) {
-  if (!node?.id) return undefined;
-  if (node.kind === 'edge' && node.edgeFrom && node.edgeTo) {
-    return {
-      id: node.id,
-      label: node.label,
-      selectionKind: 'edge',
-      edgeFrom: node.edgeFrom,
-      edgeTo: node.edgeTo,
-      ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
-    };
-  }
-  if (node.kind === 'infographic-item') {
-    return {
-      id: node.id,
-      label: node.label,
-      selectionKind: 'infographic-item',
-      ...(node.indexes ? { indexes: node.indexes } : {}),
-      ...(node.elementType ? { elementType: node.elementType } : {}),
-      ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
-    };
-  }
-  return {
-    id: node.id,
-    label: node.label,
-    ...(node.kind === 'cluster' ? { selectionKind: 'cluster' } : { selectionKind: 'node' }),
-    ...(node.dataId ? { dataId: node.dataId } : {}),
-    ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
-  };
-}
-
-/** Works with diagram canvas selection (`kind`) or API focus payloads (`selectionKind`). */
-/** Button label for repeated Go Mad (streak = completed Go Mad count since last reset). */
-function goMadShapeLabel(streak) {
-  if (streak <= 0) return 'Go Mad';
-  if (streak === 1) return 'Go Madder';
-  if (streak === 2) return 'Go Maddest';
-  return 'Max madness';
-}
-
-function selectionActionTitle(selectionLike, verbLabel) {
-  if (!selectionLike) return `${verbLabel} — diagram`;
-  if (selectionLike.partKind && selectionLike.partName) {
-    return `${verbLabel} · ${partKindLabel(selectionLike.partKind)} · ${selectionLike.partName}`;
-  }
-  const edgeLike =
-    selectionLike.kind === 'edge' ||
-    (selectionLike.selectionKind === 'edge' && selectionLike.edgeFrom && selectionLike.edgeTo);
-  if (edgeLike) {
-    return `${verbLabel} — edge ${selectionLike.edgeFrom} → ${selectionLike.edgeTo}`;
-  }
-  const infographicLike =
-    selectionLike.kind === 'infographic-item' || selectionLike.selectionKind === 'infographic-item';
-  if (infographicLike) {
-    const labelText = selectionLike.label || selectionLike.clickedLabel || selectionLike.id;
-    const elementType = selectionLike.elementType || '';
-    const noun =
-      elementType === 'title' ? 'title'
-      : elementType === 'desc' ? 'description'
-      : elementType === 'item-desc' ? 'item desc'
-      : elementType === 'item-value' ? 'item value'
-      : elementType === 'item-icon' || elementType === 'item-icon-group' ? 'item icon'
-      : 'item';
-    return `${verbLabel} — ${noun} “${labelText}”`;
-  }
-  const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';
-  if (clusterLike) {
-    return `${verbLabel} — subgraph “${selectionLike.label || selectionLike.id}”`;
-  }
-  return `${verbLabel} — node “${selectionLike.label || selectionLike.id}”`;
-}
-
-function topicFromDescriptor(descriptor) {
-  if (!descriptor) return null;
-  if (descriptor.partKind && descriptor.partName) {
-    return { partKind: descriptor.partKind, partName: descriptor.partName };
-  }
-  return null;
-}
-
-const MODEL_PROFILE_STORAGE_KEY = 'archislop:model-profile';
-const CONTENT_MODE_STORAGE_KEY = 'archislop:content-mode';
-const SESSION_ROUTE_SEGMENT = 'sessions';
-
-function decodePathSegment(value) {
-  try {
-    return decodeURIComponent(value);
-  } catch {
-    return value;
-  }
-}
-
-function normalizeBasePath(baseUrl) {
-  const raw = typeof baseUrl === 'string' ? baseUrl.trim() : '';
-  if (!raw || raw === '/') return '';
-  return `/${raw.replace(/^\/+|\/+$/g, '')}`;
-}
-
-function relativePathname(pathname) {
-  const basePath = normalizeBasePath(import.meta.env.BASE_URL);
-  const normalizedPath = pathname || '/';
-  if (basePath && (normalizedPath === basePath || normalizedPath.startsWith(`${basePath}/`))) {
-    return normalizedPath.slice(basePath.length) || '/';
-  }
-  return normalizedPath;
-}
-
-function readSessionIdFromLocation(locationLike = typeof window !== 'undefined' ? window.location : null) {
-  if (!locationLike) return null;
-  const segments = relativePathname(locationLike.pathname)
-    .split('/')
-    .filter(Boolean);
-  if (segments[0] !== SESSION_ROUTE_SEGMENT) return null;
-  return normalizeSessionId(decodePathSegment(segments[1] ?? ''));
-}
-
-function sessionPathFor(sessionId) {
-  const basePath = normalizeBasePath(import.meta.env.BASE_URL);
-  return `${basePath}/${SESSION_ROUTE_SEGMENT}/${encodeURIComponent(sessionId)}`;
-}
-
-/**
- * @returns {{sessionId: string, fromUrl: boolean}} `fromUrl` is true when the URL already had
- *   a session id we adopted; false when we minted a brand-new id (so the server hasn't seen it yet).
- */
-function ensureUrlBackedSession() {
-  const fallbackSessionId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
-  if (typeof window === 'undefined') return { sessionId: fallbackSessionId, fromUrl: false };
-
-  const urlSessionId = readSessionIdFromLocation(window.location);
-  const sessionId = urlSessionId ?? fallbackSessionId;
-  const fromUrl = Boolean(urlSessionId);
-  const nextPath = sessionPathFor(sessionId);
-  if (window.location.pathname !== nextPath) {
-    window.history.replaceState({}, '', `${nextPath}${window.location.search}${window.location.hash}`);
-  }
-  return { sessionId, fromUrl };
-}
-
-/** Default UI tier is Fast unless the user chose Quality and we persisted it. */
-function readStoredModelProfile() {
-  if (typeof window === 'undefined') return 'fast';
-  const raw = window.localStorage.getItem(MODEL_PROFILE_STORAGE_KEY);
-  return raw === 'quality' ? 'quality' : 'fast';
-}
-
-/** Default content mode is Diagram (Mermaid). Infographic is opt-in and persisted. */
-function readStoredContentMode() {
-  if (typeof window === 'undefined') return 'mermaid';
-  const raw = window.localStorage.getItem(CONTENT_MODE_STORAGE_KEY);
-  return raw === 'infographic' ? 'infographic' : 'mermaid';
-}
 
 const SpeechRecognitionCtor = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
 
