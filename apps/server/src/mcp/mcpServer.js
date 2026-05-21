@@ -12,10 +12,18 @@ import { buildCanvasPreviewPayload } from './mcpCanvasPayload.js';
 import { publishAttributedInsight } from './mcpInsightPublish.js';
 import { buildProposalReviewPayload } from './mcpProposalReviewPayload.js';
 import { sanitizeSessionId } from '../state/sessionServices.js';
-import { normalizePairingCode } from '../state/pairingCodeStore.js';
 import { resolvePublicBaseUrl } from '../utils/publicBaseUrl.js';
 import { verifyInviteToken } from '../utils/inviteToken.js';
 import { buildSessionBootstrap } from './mcpSessionBootstrap.js';
+import {
+  humanOnlyMcpToolBlocked,
+  jsonResult,
+  originFromMcpEntry,
+  pairingFailureMessage,
+  requireRegisteredAgent,
+  safeError,
+  textResult
+} from './mcpHelpers.js';
 import {
   APP_ONLY_UI,
   MCP_APP_URI_CANVAS_PREVIEW,
@@ -36,81 +44,6 @@ import {
 } from './registerMcpApps.js';
 
 import { createMcpSessionRegistry } from './mcpSessionRegistry.js';
-
-function originFromMcpEntry(entry) {
-  return {
-    kind: 'external-agent',
-    agentId: entry.agentId,
-    agentName: entry.agentName,
-    color: entry.color,
-    emoji: entry.emoji ?? undefined
-  };
-}
-
-function requireRegisteredAgent(entry, agentTokenStore) {
-  if (!entry || !entry.agentId) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: 'You must call `register_agent({ name, emoji?, color? })` first and have the user approve the handshake in the ArchiSlop UI before using any other tool.'
-        }
-      ],
-      isError: true
-    };
-  }
-  if (
-    agentTokenStore &&
-    entry.appSessionId &&
-    entry.mcpSessionId &&
-    !agentTokenStore.verifyMcpBinding(entry.appSessionId, entry.agentId, entry.mcpSessionId)
-  ) {
-    return safeError(
-      'This agent identity is bound to a different MCP connection. Call register_agent again after reconnecting.'
-    );
-  }
-  return null;
-}
-
-function pairingFailureMessage(result, rawCode) {
-  const code = normalizePairingCode(rawCode) ?? rawCode;
-  if (result.reason === 'expired') {
-    return `Pairing code "${code}" expired. Copy a fresh code from Invite agent in the web UI.`;
-  }
-  if (result.reason === 'exhausted') {
-    return `Pairing code "${code}" was already used. Copy a fresh code from Invite agent.`;
-  }
-  if (result.reason === 'invalid') {
-    return 'Invalid pairing code format (expected 6 characters).';
-  }
-  return `Unknown pairing code "${code}". Copy a fresh code from Invite agent.`;
-}
-
-function textResult(text) {
-  return { content: [{ type: 'text', text }] };
-}
-
-function jsonResult(obj) {
-  return {
-    content: [
-      {
-        type: 'text',
-        text: typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2)
-      }
-    ]
-  };
-}
-
-function safeError(message) {
-  return { content: [{ type: 'text', text: message }], isError: true };
-}
-
-const HUMAN_ONLY_MCP_TOOL_MESSAGE =
-  'This action is only available from the ArchiSlop web UI. Approve agents and accept or reject diagram proposals in the browser, not via MCP tools.';
-
-function humanOnlyMcpToolBlocked() {
-  return safeError(HUMAN_ONLY_MCP_TOOL_MESSAGE);
-}
 
 function buildMcpServer({
   mcpRegistry,

@@ -73,7 +73,7 @@ Every session carries **two independent diagram slots**: a `mermaid` slot (Merma
 
 Files above ~800 LOC are slated for splits in Phase 5 of the improvement plan. If you need to make a change in one of these, prefer extracting the slice you touch into a sibling module rather than growing the monolith:
 
-- `apps/web/src/App.jsx` (4273 LOC), `apps/server/src/mcp/mcpServer.js` (1615), `apps/server/src/agents/mermaidLangChainAgent.js` (1562), `apps/web/src/components/InsightsPane.jsx` (1500), `apps/web/src/components/DiagramCanvas.jsx` (1376), `apps/web/src/components/RadialActionMenu.jsx` (901), `apps/server/src/agents/infographicLangChainAgent.js` (875), `apps/server/src/routes/copilot.js` (862), `apps/web/src/state/diagramStore.js` (795).
+- `apps/web/src/App.jsx` (~4280 LOC), `apps/server/src/mcp/mcpServer.js` (~1480; helpers split into `mcpHelpers.js`), `apps/server/src/agents/mermaidLangChainAgent.js` (~1350), `apps/web/src/components/InsightsPane.jsx` (~1500), `apps/web/src/components/DiagramCanvas.jsx` (~1376), `apps/web/src/components/RadialActionMenu.jsx` (~900), `apps/server/src/agents/infographicLangChainAgent.js` (~875), `apps/server/src/routes/copilot.js` (~862), `apps/web/src/state/diagramStore.js` (~795). Future per-tool splits in `mcpServer.js` should follow the same pattern: extract closure helpers into a sibling module and add a `register{ToolName}(server, ctx)` file under `apps/server/src/mcp/tools/`.
 
 ## When you touch wire contracts
 
