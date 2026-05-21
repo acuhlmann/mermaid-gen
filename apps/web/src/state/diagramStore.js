@@ -396,7 +396,7 @@ export function resolveModeSwitchCandidate({
   const otherTopic = slotLastTopic(otherSlot);
   const dataUpdatedAt = data?.updatedAt ?? '';
   const otherUpdatedAt = otherSlot?.updatedAt ?? '';
-  let candidate = null;
+  let candidate;
   if (dataTopic && otherTopic) {
     candidate = otherUpdatedAt > dataUpdatedAt ? otherTopic : dataTopic;
   } else {

@@ -58,7 +58,7 @@ Every session carries **two independent diagram slots**: a `mermaid` slot (Merma
 | Health probe                           | `curl http://localhost:4000/api/health`                  |
 | Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>` |
 
-`npm run check` does **not** include `lint` (24 pre-existing errors in `apps/web`) or `format:check` (codebase isn't fully prettier-formatted yet). Both will join `check` after the TypeScript migration / global format pass — see [`/home/alex-uhlmann/.claude/plans/suggest-ideas-how-to-humble-truffle.md`](file:///home/alex-uhlmann/.claude/plans/suggest-ideas-how-to-humble-truffle.md) Phases 7–8.
+`npm run check` includes `lint` (apps/web only — currently 0 errors, ~36 React 19 hooks-rule warnings tracked as a separate refactor pass) but **not** `format:check` (codebase isn't fully prettier-formatted yet — global `prettier --write .` lands separately). A `.husky/pre-push` hook runs `verify:doc-paths` + `check:fast` for fast local feedback.
 
 ## Don't-touch list
 

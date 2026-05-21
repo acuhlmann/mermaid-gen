@@ -143,8 +143,7 @@ export function parseSubgraphHeaderId(line) {
  * @param {string} token
  * @returns {SourceRange}
  */
-function rangeForToken(lines, lineIndex, startCol, token) {
-  const line = lines[lineIndex];
+function rangeForToken(_lines, lineIndex, startCol, token) {
   return {
     startLineNumber: lineIndex + 1,
     startColumn: startCol + 1,

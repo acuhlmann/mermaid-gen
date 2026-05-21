@@ -431,9 +431,8 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
 
     const dumbPath = [/Dumb it Down/i, /Even dumber/i, /Kid mode/i, /Little kid mode/i, /Baby talk/i, /Toddler mode/i, /Babble mode/i];
-    let btn = await screen.findByRole('button', { name: dumbPath[0] });
     for (let i = 0; i < dumbPath.length; i += 1) {
-      btn = await screen.findByRole('button', { name: dumbPath[i] });
+      const btn = await screen.findByRole('button', { name: dumbPath[i] });
       fireEvent.click(btn);
       await waitFor(() => fetchMock.mock.calls.length >= i + 2);
     }

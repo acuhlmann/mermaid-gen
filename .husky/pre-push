@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+# Fast pre-push gate: shared typecheck/test + doc-path verification.
+# Catches the cheap stuff (~30s) before CI does. Skip with `git push --no-verify`.
+set -e
+
+echo "→ verify doc paths"
+npm run verify:doc-paths
+
+echo "→ check:fast (shared typecheck + test)"
+npm run check:fast

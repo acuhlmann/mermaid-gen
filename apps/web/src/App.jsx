@@ -166,8 +166,6 @@ const STREAM_DEBUG_LS_KEY = 'archislop-stream-debug';
 const RADIAL_MENU_CLOSE_GRACE_MS = 450;
 /** Auto-show diagram diff highlights after the final SVG for an agent-applied revision is on screen. */
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
-/** Avoid keeping a stale render handshake armed forever if the SVG never confirms. */
-const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
 
 function readStreamDebugEnabled() {
   if (typeof window === 'undefined') return false;
@@ -303,11 +301,6 @@ function selectionActionTitle(selectionLike, verbLabel) {
   return `${verbLabel} — node “${selectionLike.label || selectionLike.id}”`;
 }
 
-function descriptorKey(descriptor) {
-  if (!descriptor) return null;
-  return `${descriptor.kind || 'node'}|${descriptor.id || ''}|${descriptor.partKind || ''}|${descriptor.partName || ''}`;
-}
-
 function topicFromDescriptor(descriptor) {
   if (!descriptor) return null;
   if (descriptor.partKind && descriptor.partName) {
@@ -419,10 +412,6 @@ function actionPersonaEmoji(variant) {
 function actionPersonaTitle(variant) {
   const persona = getVariantPersona(variant);
   return `${persona.name} · ${persona.title}`;
-}
-
-function actionButtonClass(variant, extra = '') {
-  return `overlay-button compact-button slop-action-button is-${actionCssVariant(variant)} ${extra}`.trim();
 }
 
 function ActionPersonaIcon({ variant, fallback = '🏗️' }) {

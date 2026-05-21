@@ -28,7 +28,7 @@ const TOKEN_DENYLIST = new Set([
 const LINKISH_RE = /-->|---|===|~~~|-\.-|\.->|<-->|--o|--x|<-\.|->>|&/;
 
 /** Leading vertex definition: ID followed by shape opener ([ ({ etc.). Allows hyphens (e.g. api-gateway). */
-const VERTEX_DEFINE_RE = /^\s*([A-Za-z][A-Za-z0-9_-]*)\s*[\[(\{<>]/;
+const VERTEX_DEFINE_RE = /^\s*([A-Za-z][A-Za-z0-9_-]*)\s*[[({<>]/;
 
 function normalizeLine(s) {
   return s.trim().replace(/\s+/g, ' ');
