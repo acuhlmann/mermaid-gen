@@ -3,7 +3,6 @@ import DiagramCanvas from './components/DiagramCanvas.jsx';
 import InsightsPane from './components/InsightsPane.jsx';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
 import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
-import AgentPresenceBar from './components/AgentPresenceBar.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
@@ -149,12 +148,12 @@ import {
   ButtonIcon,
   ArchiSlopMarkIcon,
   PromptIcon,
-  BrainIcon,
   MicIcon,
-  MicActiveIcon,
-  SettingsGearIcon
+  MicActiveIcon
 } from './components/AppIcons.jsx';
 import { ActionPersonaIcon, ActionPersonaRole } from './components/ActionPersonaBits.jsx';
+import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
+import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import {
   actionPersonaName,
   actionPersonaEmoji,
@@ -166,150 +165,6 @@ const RADIAL_MENU_CLOSE_GRACE_MS = 450;
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
 
 const SpeechRecognitionCtor = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
-
-function AiCornerControlsInner({
-  contentMode,
-  onSelectContentMode,
-  modelProfile,
-  onSelectModelProfile,
-  modeSwitchDisabled,
-  pendingHandshake,
-  externalAgentPresence,
-  onInviteAgent,
-  agentThinkingChrome,
-  insightsOpen,
-  onToggleInsights,
-  includeThinkingToggle = true
-}) {
-  const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
-  const [settingsOpen, setSettingsOpen] = useState(startExpanded);
-  // A pending handshake forces the panel open so the user can see what's waiting.
-  const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
-  return (
-    <>
-      <button
-        type="button"
-        className={`overlay-button ai-corner-settings-toggle${effectiveOpen ? ' is-open' : ''}${pendingHandshake ? ' has-pending' : ''}`}
-        onClick={() => setSettingsOpen((v) => !v)}
-        aria-expanded={effectiveOpen}
-        aria-controls="ai-corner-settings-panel"
-        aria-label={effectiveOpen ? 'Hide settings' : 'Show settings'}
-        title={effectiveOpen ? 'Hide settings' : 'Settings · invite agent, mode, brain'}
-      >
-        <ButtonIcon>
-          <SettingsGearIcon />
-        </ButtonIcon>
-        <span className="button-label">Settings</span>
-      </button>
-      <div
-        id="ai-corner-settings-panel"
-        className={`ai-corner-settings-panel${effectiveOpen ? ' is-open' : ''}`}
-        role="region"
-        aria-label="Session settings"
-        hidden={!effectiveOpen}
-      >
-        <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
-          <span className="model-profile-label">Invite agent</span>
-          <div className="agent-collab-segment">
-            {pendingHandshake ? (
-              <span className="agent-handshake-waiting" role="status">
-                Waiting for handshake: {pendingHandshake.proposedName ?? 'External agent'}
-              </span>
-            ) : null}
-            <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
-          </div>
-        </div>
-        <div className="model-profile-toggle" role="group" aria-label="Content mode">
-          <span className="model-profile-label">Mode</span>
-          <div className="model-profile-segment">
-            <button
-              type="button"
-              className={`model-profile-option ${contentMode === 'mermaid' ? 'is-selected' : ''}`}
-              aria-pressed={contentMode === 'mermaid'}
-              disabled={modeSwitchDisabled}
-              onClick={() => onSelectContentMode('mermaid')}
-            >
-              Diagram
-            </button>
-            <button
-              type="button"
-              className={`model-profile-option ${contentMode === 'infographic' ? 'is-selected' : ''}`}
-              aria-pressed={contentMode === 'infographic'}
-              disabled={modeSwitchDisabled}
-              onClick={() => onSelectContentMode('infographic')}
-            >
-              Infographic
-            </button>
-          </div>
-        </div>
-        <div className="model-profile-toggle" role="group" aria-label="AI brain">
-          <span className="model-profile-label model-profile-label--brain">
-            <span className="model-profile-label-icon" aria-hidden="true">
-              <BrainIcon />
-            </span>
-            Brain
-          </span>
-          <div className="model-profile-segment">
-            <button
-              type="button"
-              className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
-              aria-pressed={modelProfile === 'fast'}
-              onClick={() => onSelectModelProfile('fast')}
-            >
-              Fast
-            </button>
-            <button
-              type="button"
-              className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
-              aria-pressed={modelProfile === 'quality'}
-              onClick={() => onSelectModelProfile('quality')}
-            >
-              Quality
-            </button>
-          </div>
-        </div>
-      </div>
-      {includeThinkingToggle ? (
-        <button
-          type="button"
-          className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
-          onClick={onToggleInsights}
-          aria-label={insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
-        >
-          <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-          Thinking
-        </button>
-      ) : null}
-    </>
-  );
-}
-
-function useSyncVisualViewportHeight() {
-  useEffect(() => {
-    const root = document.documentElement;
-
-    function applyHeight() {
-      const vv = window.visualViewport;
-      const h = vv ? vv.height : window.innerHeight;
-      root.style.setProperty('--app-vvh', `${Math.round(h)}px`);
-    }
-
-    applyHeight();
-
-    const vv = window.visualViewport;
-    if (vv) {
-      vv.addEventListener('resize', applyHeight);
-      vv.addEventListener('scroll', applyHeight);
-      return () => {
-        vv.removeEventListener('resize', applyHeight);
-        vv.removeEventListener('scroll', applyHeight);
-      };
-    }
-
-    window.addEventListener('resize', applyHeight);
-    return () => window.removeEventListener('resize', applyHeight);
-  }, []);
-}
 
 function ArchiSlop() {
   const initialSessionIdRef = useRef(null);
