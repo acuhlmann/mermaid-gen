@@ -19,7 +19,8 @@ import {
   inferMermaidTopKeyword,
   isMermaidTransformConstraintError,
   resolveAgentRepairMaxAttempts,
-  resolveAgentRunBudgetMs
+  resolveAgentRunBudgetMs,
+  ToolApplyResultSchema
 } from '@archislop/shared';
 import {
   createLlmChatModel,
@@ -197,13 +198,15 @@ function extractToolFailureError(result) {
   for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
     const content = extractTextContent(messages[idx]?.content).trim();
     if (!content) continue;
+    let raw;
     try {
-      const parsed = JSON.parse(content);
-      if (parsed?.accepted === false && typeof parsed?.error === 'string') {
-        return parsed.error;
-      }
+      raw = JSON.parse(content);
     } catch {
-      // Ignore non-JSON messages.
+      continue;
+    }
+    const parsed = ToolApplyResultSchema.safeParse(raw);
+    if (parsed.success && !parsed.data.accepted) {
+      return parsed.data.error;
     }
   }
   return null;

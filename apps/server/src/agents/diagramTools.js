@@ -1,5 +1,15 @@
 import { tool } from 'langchain';
 import { z } from 'zod';
+import { ToolApplyResultSchema } from '@archislop/shared';
+
+/**
+ * Validate the state-store envelope before stringifying so a future shape drift
+ * fails loudly with a Zod error at the tool boundary instead of leaking confusing
+ * JSON to the LLM (and through to the agent's error-extraction path).
+ */
+function encodeApplyResult(result) {
+  return JSON.stringify(ToolApplyResultSchema.parse(result));
+}
 
 export function createDiagramTools({ stateStore }) {
   const getDiagramState = tool(
@@ -27,7 +37,7 @@ export function createDiagramTools({ stateStore }) {
         reason: reason || 'LangChain agent update'
       });
 
-      return JSON.stringify(result);
+      return encodeApplyResult(result);
     },
     {
       name: 'apply_mermaid_patch',
@@ -71,7 +81,7 @@ export function createInfographicTools({ stateStore }) {
         reason: reason || 'LangChain agent update'
       });
 
-      return JSON.stringify(result);
+      return encodeApplyResult(result);
     },
     {
       name: 'apply_infographic_patch',

@@ -383,3 +383,33 @@ export type AgentHandshakeRequest = z.infer<typeof AgentHandshakeRequestSchema>;
 export type AgentPresence = z.infer<typeof AgentPresenceSchema>;
 export type AgentReaction = z.infer<typeof AgentReactionSchema>;
 export type AgentInsight = z.infer<typeof AgentInsightSchema>;
+
+/**
+ * Envelope that LLM-tool handlers (`apply_mermaid_patch`, `apply_infographic_patch`)
+ * stringify and return to the agent. Validating with this schema before serializing
+ * (in `diagramTools.js`) catches drift between the state store's return shape and
+ * what the agent / repair flow expects. Validating again on the consumer side
+ * (`mermaidLangChainAgent.extractToolFailureError`) replaces ad-hoc JSON sniffing.
+ *
+ * The schema is intentionally permissive on success-side extras (`state`, `patch`,
+ * `metadata`): we want to lock the `accepted` discriminator and the `error` text,
+ * not freeze every nested field today.
+ */
+export const ToolApplyResultSchema = z.discriminatedUnion('accepted', [
+  z
+    .object({
+      accepted: z.literal(true),
+      state: z
+        .object({
+          revisionId: z.number().int().nonnegative()
+        })
+        .passthrough()
+    })
+    .passthrough(),
+  z.object({
+    accepted: z.literal(false),
+    error: z.string().min(1)
+  })
+]);
+
+export type ToolApplyResult = z.infer<typeof ToolApplyResultSchema>;

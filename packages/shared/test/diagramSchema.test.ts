@@ -17,6 +17,7 @@ import {
   FocusNodeSchema,
   OriginSchema,
   SessionDiagramStateSchema,
+  ToolApplyResultSchema,
   applyMermaidStyleDirective,
   applyPatch,
   createInitialDiagramState,
@@ -495,4 +496,51 @@ test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
   };
   const sanitized = sanitizeAgentStreamPayload(payload);
   assert.equal(sanitized.transformPersona, 'refine');
+});
+
+
+test('ToolApplyResultSchema accepts a success envelope with state.revisionId', () => {
+  const parsed = ToolApplyResultSchema.safeParse({
+    accepted: true,
+    state: { revisionId: 4, diagramSource: 'graph TD', updatedAt: '2024-01-01' },
+    patch: { diagramSource: 'graph TD', reason: 'agent update' }
+  });
+  assert.equal(parsed.success, true);
+  if (parsed.success && parsed.data.accepted) {
+    assert.equal(parsed.data.state.revisionId, 4);
+  }
+});
+
+test('ToolApplyResultSchema accepts a failure envelope with error string', () => {
+  const parsed = ToolApplyResultSchema.safeParse({
+    accepted: false,
+    error: 'Mermaid syntax error: unexpected EOF'
+  });
+  assert.equal(parsed.success, true);
+  if (parsed.success && !parsed.data.accepted) {
+    assert.equal(parsed.data.error, 'Mermaid syntax error: unexpected EOF');
+  }
+});
+
+test('ToolApplyResultSchema rejects success envelope missing revisionId', () => {
+  const parsed = ToolApplyResultSchema.safeParse({
+    accepted: true,
+    state: { diagramSource: 'graph TD' }
+  });
+  assert.equal(parsed.success, false);
+});
+
+test('ToolApplyResultSchema rejects failure envelope with empty error', () => {
+  const parsed = ToolApplyResultSchema.safeParse({
+    accepted: false,
+    error: ''
+  });
+  assert.equal(parsed.success, false);
+});
+
+test('ToolApplyResultSchema rejects envelope without accepted discriminator', () => {
+  const parsed = ToolApplyResultSchema.safeParse({
+    state: { revisionId: 1 }
+  });
+  assert.equal(parsed.success, false);
 });
