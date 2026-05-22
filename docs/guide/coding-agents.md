@@ -1,0 +1,59 @@
+# Coding agents
+
+Operator guide for Claude Code, Cursor, Copilot, and other agents editing **archislop**. Humans doing feature work can use [Development](development.md); this page optimizes **feedback loops** and **wire-contract safety**.
+
+## Read order (first session)
+
+1. [`GLOSSARY.md`](../../GLOSSARY.md) — vocabulary (slot, AG-UI vs session-events, etc.)
+2. [`STRUCTURE.md`](../../STRUCTURE.md) — concept → file index
+3. [`docs/agent-blast-radius.md`](../agent-blast-radius.md) — what else must change when you touch a contract
+4. [`docs/recipes/`](../recipes/) — step-by-step for MCP tools, stream events, schemas
+5. [`AGENTS.md`](../../AGENTS.md) — commands and key paths
+
+## Architecture axes (do not conflate)
+
+| Axis | Transport | Doc |
+| --- | --- | --- |
+| Built-in agents | REST + AG-UI SSE on `/api/copilotkit/*` | [`architecture-ag-ui.md`](../architecture-ag-ui.md) |
+| Collaboration | `GET /api/copilotkit/session-events` | [`architecture-external-agents.md`](../architecture-external-agents.md) |
+| External agents | MCP `GET/POST /mcp` | same |
+| MCP Apps (Gen UI HTML) | `ui://archislop/*.html` | [`architecture-generative-ui.md`](../architecture-generative-ui.md) |
+
+## Verification commands
+
+| When you changed… | Run |
+| --- | --- |
+| Not sure / many areas | `npm run check:affected` (diff-scoped) |
+| `packages/shared` only | `npm run check:fast` |
+| Default local gate | `npm run check` (boundaries, typecheck, lint, test, **wire**) |
+| **Before opening a PR** (matches CI) | `npm run check:full` |
+| AG-UI / session-events / MCP / `diagramSchema` | `npm run check:wire` (also included in `check`) |
+| Mermaid sanitizer or rule packs | `npm run check:fast` + `node apps/server/scripts/benchMermaid.js --tag <label>` |
+| Server wire modules (strict islands) | `npm run typecheck:strict -w apps/server` |
+
+After editing `packages/shared`, run `npm run build -w packages/shared` before server/web typecheck if consumers report stale types from `dist/`.
+
+## PR checklist (copy before submit)
+
+- [ ] Ran `npm run check:affected` or the smallest row from the table above
+- [ ] Ran `npm run check:full` if the change touches build, routes, or multiple workspaces
+- [ ] Updated producer **and** consumer for any wire/schema change ([blast-radius](../agent-blast-radius.md))
+- [ ] Updated `docs/guide/`, architecture doc, or recipe if behavior or routes changed
+- [ ] Did not hand-edit `package-lock.json` or `skills-lock.json`
+- [ ] Did not commit `.env` or secrets
+
+## File-size budgets
+
+Prefer extracting helpers into sibling modules instead of growing hub files. See [`docs/decisions/0005-monolith-splits.md`](../decisions/0005-monolith-splits.md) and the table in [`CLAUDE.md`](../../CLAUDE.md).
+
+## TypeScript ratchet
+
+Most app code is still `.js`/`.jsx` with `strict: false`. Shared schemas are TypeScript; full `strict` on `packages/shared` is in progress ([ADR-0006](../decisions/0006-typescript-migration.md)). When you touch a high-churn `.js` file, consider converting it or adding JSDoc types that reference `z.infer<typeof …>` from `@archislop/shared`.
+
+Priority conversion targets: `apps/server/src/routes/copilot.js`, `apps/web/src/state/diagramStore.js`.
+
+## Related
+
+- [`AGENTS.md`](../../AGENTS.md) — full operator manual
+- [`CLAUDE.md`](../../CLAUDE.md) — short agent quick-reference
+- [`change-diagram-schema.md`](../recipes/change-diagram-schema.md) — schema change playbook

@@ -13,9 +13,10 @@ This file is a quick operator manual for coding agents working in this repositor
 
 ## First things to check
 
-1. Read `README.md` (hub) and [`docs/guide/quick-start.md`](docs/guide/quick-start.md) for setup flow.
-2. Confirm environment exists: `.env` (copy from `.env.example` if missing).
-3. Prefer workspace scripts from root unless debugging one package.
+1. Read [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) (agent read order, verification table, PR checklist).
+2. Read `README.md` (hub) and [`docs/guide/quick-start.md`](docs/guide/quick-start.md) for setup flow.
+3. Confirm environment exists: `.env` (copy from `.env.example` if missing).
+4. Prefer workspace scripts from root unless debugging one package.
 
 ## Useful commands
 

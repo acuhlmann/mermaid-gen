@@ -14,6 +14,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 | [Configuration](configuration.md) | Environment variables, LLM backends, reliability tuning |
 | [API endpoints](api-endpoints.md) | REST and SSE route reference |
 | [Development](development.md) | Stack layout, tests, VS Code launch configs |
+| [Coding agents](coding-agents.md) | Agent read order, verification table, PR checklist |
 
 ## Integrator & operator docs (elsewhere)
 
