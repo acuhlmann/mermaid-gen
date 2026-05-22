@@ -43,9 +43,9 @@ test('analysis system prompt does not allow mutation', () => {
   assert.match(INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT, /read-only/i);
 });
 
-test('critique task requires the canonical section headers', () => {
+test('critique task requires the canonical section headers (Strengths is optional / last)', () => {
+  // Weaknesses, Template fit, Visual, Actionable are mandatory; Strengths is optional / last.
   for (const heading of [
-    '## Strengths',
     '## Weaknesses and limits',
     '## Template fit',
     '## Visual and information density',
@@ -53,6 +53,9 @@ test('critique task requires the canonical section headers', () => {
   ]) {
     assert.ok(INFOGRAPHIC_CRITIQUE_TASK.includes(heading), `expected ${heading}`);
   }
+  // Auditor voice: skews negative, no forced affirmation.
+  assert.match(INFOGRAPHIC_CRITIQUE_TASK, /Audit voice/i);
+  assert.match(INFOGRAPHIC_CRITIQUE_TASK, /AT LEAST 2/);
 });
 
 test('explain task requires the canonical section headers', () => {

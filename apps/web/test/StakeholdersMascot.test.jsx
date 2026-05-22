@@ -18,18 +18,18 @@ describe('StakeholdersMascot', () => {
   it('lists all stakeholder names in the roster when expanded (test mode)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     expect(screen.getByRole('menu', { name: 'Stakeholder personas' })).toBeTruthy();
-    expect(screen.getByText('The Polisher')).toBeTruthy();
-    expect(screen.getByText('The Disruptor')).toBeTruthy();
+    expect(screen.getByText('THE Engineer')).toBeTruthy();
+    expect(screen.getByText('Chief Innovation Officer')).toBeTruthy();
     expect(screen.getByText('THE SLOPITECT')).toBeTruthy();
     expect(screen.getByText('The VP')).toBeTruthy();
     expect(screen.getByText('The Auditor')).toBeTruthy();
     expect(screen.getByText('The Wise Architect')).toBeTruthy();
   });
 
-  it('exposes Engineer in the Polisher row tooltip', () => {
+  it('exposes Engineer in the refine row tooltip', () => {
     const { container } = render(<StakeholdersMascot personas={TEST_PERSONAS} />);
-    const polisherRow = screen.getByText('The Polisher').closest('.stakeholders-roster-row');
-    expect(polisherRow?.getAttribute('title')).toMatch(/Engineer/);
+    const engineerRow = screen.getByText('THE Engineer').closest('.stakeholders-roster-row');
+    expect(engineerRow?.getAttribute('title')).toMatch(/Engineer/);
     expect(container.querySelector('.stakeholders-roster')).toBeTruthy();
   });
 
@@ -39,7 +39,7 @@ describe('StakeholdersMascot', () => {
       p.variant === 'refine' ? { ...p, onClick: onRefine } : p
     );
     render(<StakeholdersMascot personas={personas} />);
-    fireEvent.click(screen.getByText('The Polisher'));
+    fireEvent.click(screen.getByText('THE Engineer'));
     expect(onRefine).toHaveBeenCalledTimes(1);
   });
 });

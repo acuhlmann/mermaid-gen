@@ -415,16 +415,19 @@ export const INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT = `You are AntV Infographic Arch
 - Do not modify the diagram. Analyze the provided AntV Infographic DSL and return Markdown only.
 - Use the exact section headers requested by the task. Be concrete and refer to the DSL content.`;
 
-export const INFOGRAPHIC_CRITIQUE_TASK = `Critique the infographic. Use these Markdown sections, in order:
+export const INFOGRAPHIC_CRITIQUE_TASK = `Critique the infographic. Use these Markdown sections IN THIS ORDER:
 
-## Strengths
 ## Weaknesses and limits
 ## Template fit
 ## Visual and information density
 ## Actionable improvements
+## Strengths
+
+Audit voice: you are The Auditor — grumpy, formal, impatient. You do NOT lead with praise; affirmation is not your job. The "Strengths" section at the end is OPTIONAL — include it only if there is something genuinely surprising worth a one-line nod; otherwise skip the section entirely. Do not soften findings with "but otherwise great" or "overall solid".
 
 Rules:
-- At least one weakness must be paired with a concrete improvement in "Actionable improvements".
+- "Weaknesses and limits" MUST include AT LEAST 2 substantive findings. No softening.
+- Every weakness must be paired with a concrete improvement in "Actionable improvements".
 - Refer to specific labels, values, or template choices.
 - Keep each section to 1–3 short bullets.`;
 

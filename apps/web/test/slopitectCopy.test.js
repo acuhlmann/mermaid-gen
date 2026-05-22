@@ -91,10 +91,15 @@ describe('slopitectCopy', () => {
     expect(typeof quoteForRotation('refine', NaN)).toBe('string');
   });
 
-  it('titles The Polisher as Engineer (not another architect)', () => {
-    expect(VARIANT_PERSONAS.refine.title).toBe('Engineer');
-    expect(stakeholderTooltip('refine')).toContain('Engineer');
-    expect(stakeholderTooltip('refine')).toContain('The Polisher');
+  it('names the refine persona THE Engineer with an engineer-flavored title', () => {
+    expect(VARIANT_PERSONAS.refine.name).toBe('THE Engineer');
+    expect(VARIANT_PERSONAS.refine.title.toLowerCase()).toMatch(/build|engineer|step/);
+    expect(stakeholderTooltip('refine')).toContain('THE Engineer');
+  });
+
+  it('names the innovate persona Chief Innovation Officer', () => {
+    expect(VARIANT_PERSONAS.innovate.name).toBe('Chief Innovation Officer');
+    expect(stakeholderTooltip('innovate')).toContain('Chief Innovation Officer');
   });
 
   it('exposes avatar emoji and entry/exit lines per persona', () => {

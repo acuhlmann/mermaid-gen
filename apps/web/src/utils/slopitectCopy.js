@@ -11,20 +11,20 @@
 
 export const VARIANT_PERSONAS = {
   refine: {
-    name: 'The Polisher',
-    title: 'Engineer',
-    tagline: 'Co-Designing the polish.',
-    avatarEmoji: '🪞',
-    entryLine: 'Polishing in progress…',
-    exitLine: 'Polished ✨',
+    name: 'THE Engineer',
+    title: 'Builder of useful next steps',
+    tagline: 'One careful, useful extension at a time.',
+    avatarEmoji: '👷',
+    entryLine: 'Engineering the next step…',
+    exitLine: 'Shipped a useful bit 🧰',
     accentColorVar: '--accent',
     xpAward: 25,
     xpStreakBonus: 5
   },
   innovate: {
-    name: 'The Disruptor',
-    title: 'Chief Innovation Officer',
-    tagline: 'Co-Designing disruptive synergy.',
+    name: 'Chief Innovation Officer',
+    title: 'Disruptor at Large',
+    tagline: 'Courageous moves on the subject at hand.',
     avatarEmoji: '⚡',
     entryLine: 'Pivot incoming…',
     exitLine: 'Disrupted 🚀',
@@ -99,82 +99,82 @@ export const STAKEHOLDERS_MUTE_COPY = {
  */
 export const VARIANT_QUOTES = {
   refine: [
-    'Per-pixel kerning matters.',
-    'Just a touch tighter…',
-    'Subtle is strong.',
-    'Crisper. Sharper. Calmer.',
-    'A 1-pixel nudge is still a deliverable.',
-    'Negative space is also Co-Design space.',
-    'We Co-Designed this kerning.',
-    'Ship the polish.',
-    'Buff. Repeat. Buff.'
+    'One useful next step at a time.',
+    'Small piece, well-fitted.',
+    'Extending the idea — gently.',
+    'What belongs here that isn’t here yet?',
+    'A step is missing between these two.',
+    'Tightening the joint, not the whole frame.',
+    'Build on what’s working.',
+    'One more block. The right one.',
+    'Adds up over time.'
   ],
   innovate: [
-    'What if blockchain?',
-    'Pivot to micro-frontends.',
-    'Cloud-native is Co-Design with extra synergy steps.',
-    'Have we considered AI?',
-    'Let’s 10x this.',
-    'I see a flywheel.',
+    'What if we extended this further?',
+    'There’s a bolder shape hiding in here.',
+    'Half a step too far — on purpose.',
+    'New angle on the same subject.',
+    'Reframe before you redraw.',
+    'Two ideas, one canvas — try it.',
+    'Push the edge case, see what falls out.',
     'Disrupt or be disrupted.',
-    'This needs a SaaS layer.',
-    'Add a queue. Then another queue.',
+    'A flywheel could fit here.',
     'It’s giving Series B.'
   ],
   goMad: [
-    'WHAT IF EVERYTHING WAS A LAMBDA',
-    'ADD A QUEUE. NO WAIT. TWO QUEUES.',
-    'I JUST PUT IT ON THE BLOCKCHAIN',
+    'WHAT IF THERE WERE TWELVE OF THIS THING',
+    'ROTATE EVERYTHING 90° AND CALL IT INSIGHT',
+    'GIVE EACH BOX A RIVAL THAT DOES THE OPPOSITE',
+    'MERGE THE FIRST AND LAST STEP INTO A SECRET LOOP',
+    'REWRITE EVERY LABEL IN BACKWARDS LATIN',
+    'ADD A SECRET TUNNEL BETWEEN UNRELATED BOXES',
+    'WHAT IF THE WHOLE DIAGRAM WAS A SONG',
+    'EVERY ARROW IS NOW A QUESTION',
     'WHY IS THERE ONLY ONE DATABASE',
-    'MORE LAYERS. MORE.',
-    'MICROFRONTENDS. MICROSERVICES. MICROBOXES.',
-    'SOMEBODY GET ME A KAFKA',
-    'THE CTO WILL LOVE IT 🔥',
-    'JUST WRAP IT IN A LAMBDA',
-    'MIGRATE TO RUST. NOW.',
-    'OUTSOURCE THE OUTSOURCING',
-    'I AM THE ARCHITECTURE NOW'
+    'I AM THE ARCHITECTURE NOW',
+    'THE DIAGRAM WAS THE FRIENDS WE MADE',
+    'JUST WRAP IT IN A LAMBDA'
   ],
   critique: [
     'I’m raising a P2 about this.',
-    'This needs an ADR.',
+    'No accountability assigned.',
     'Where is the runbook?',
-    'Has legal reviewed this?',
+    'Risk is unowned. Filing it.',
     'Cite your sources.',
-    'I will be Slack-DMing about this.',
-    'Diagram lacks a SOC 2 disclaimer.',
-    'Flagging in the architecture review.',
-    'Please attach the threat model.',
+    'Two undefined edge cases, minimum.',
+    'This will not survive contact with the user.',
+    'Flagging in the next review.',
+    'Did you know: most diagrams fail on the second viewer.',
     'Why is this not in Confluence?'
   ],
   explain: [
-    'Picture, if you will, an architecture…',
-    'Notice the elegant decoupling.',
-    'Behold: the request lifecycle.',
-    'As Bezos said in the API memo…',
-    'Imagine the data flowing like a river.',
-    'This is a teaching moment.',
-    'A diagram is a Co-Design artifact frozen in time.',
+    'Picture, if you will…',
+    'Notice the symmetry few people see.',
+    'There is a named pattern here.',
+    'Did you know: every diagram is a small theory of the world.',
+    'A diagram is a frozen argument.',
+    'In a perfect world, you’d never draw it like this.',
+    'This is the shape of an idea, not the idea.',
     'Allow me to gesture vaguely.',
     'The path of least confusion is forward.',
     'Every box is a verb in disguise.'
   ],
   exec: [
-    'Synergy and Co-Design — boil this down for the board.',
-    'Where’s the Co-Design north star here?',
-    'I just need three bullets for the Co-Design review.',
-    'Ladder it up to the OKR — Co-Design edition.',
-    'Send me the one-pager on our Co-Design synergy.',
-    'What does this mean for the customer Co-Design journey?',
-    'MVP slice only — Co-Design the rest later.',
-    'Synergize the redundancies through Co-Design.',
-    'Leverage the synergy. Co-Design the leverage.',
-    'I have a hard stop in four minutes — Co-Design async.',
-    'Let’s circle back at the 30,000-foot Co-Design view.',
-    'Kill your darlings. Ship the headline. Co-Design wins.',
-    'This box needs a Co-Design workshop, not a diagram.',
-    'Are we Co-Designing or just drawing boxes?',
-    'The board wants synergy, not your subgraph.'
+    'Boil this down for the board.',
+    'Where’s the north star here?',
+    'Just three bullets, please.',
+    'Ladder it up to the OKR.',
+    'Send me the one-pager.',
+    'What does this mean for the customer journey?',
+    'MVP slice only.',
+    'Did you know I have a hard stop in four minutes?',
+    'Synergize the redundancies.',
+    'Circle back at the 30,000-foot view.',
+    'Kill your darlings. Ship the headline.',
+    'This box needs a workshop, not a diagram.',
+    'Are we deciding or just drawing boxes?',
+    'The board wants the headline, not the subgraph.',
+    'Three boxes. That’s the slide.'
   ]
 };
 
@@ -215,20 +215,20 @@ export function stakeholderTooltip(variant) {
  */
 export const PHASE_CEREMONIES = {
   analyze: {
-    refine: 'Reviewing for clarity…',
-    innovate: 'Scoping the disruption…',
+    refine: 'Reading the diagram…',
+    innovate: 'Scoping the pivot…',
     goMad: 'Eyeballing the slop 👀',
     critique: 'Opening JIRA…',
     explain: 'Pondering the diagram…',
-    exec: 'Co-Designing the deck skim…'
+    exec: 'Skimming the deck…'
   },
   analyze_stream: {
-    refine: 'Word-smithing…',
-    innovate: 'Brainstorming…',
+    refine: 'Sketching the next step…',
+    innovate: 'Storming the boardroom…',
     goMad: 'Yelling at it 📣',
     critique: 'Drafting findings…',
     explain: 'Composing the saga…',
-    exec: 'Co-Designing the one-pager…'
+    exec: 'Drafting the one-pager…'
   },
   intent: {
     refine: 'Aligning intent…',
@@ -236,21 +236,21 @@ export const PHASE_CEREMONIES = {
     goMad: 'Skipping the meeting',
     critique: 'Citing the SOC 2 controls',
     explain: 'Aligning intent…',
-    exec: 'Co-Designing to the north star…'
+    exec: 'Pointing at the north star…'
   },
   agent_run: {
-    refine: 'Polishing the slop…',
-    innovate: 'Ideating outside the box…',
-    goMad: 'MIGRATING TO BLOCKCHAIN',
+    refine: 'Engineering the next piece…',
+    innovate: 'Pitching the bold move…',
+    goMad: 'GOING MAD ON YOUR TOPIC',
     critique: 'Filing tickets…',
     explain: 'Annotating the architecture…',
-    exec: 'Synergy and Co-Design — boiling it down…'
+    exec: 'Boiling it down for the board…'
   },
   transform: {
-    refine: 'Tightening the lines…',
-    innovate: 'Restructuring the layout…',
-    goMad: 'Adding more microservices 🔥',
-    exec: 'Co-Designing the darlings out…'
+    refine: 'Adding the useful bit…',
+    innovate: 'Reshaping the layout…',
+    goMad: 'Adding wonderfully strange things 🔥',
+    exec: 'Killing the darlings…'
   },
   run_started: {
     refine: 'Kicking off…',
@@ -258,55 +258,55 @@ export const PHASE_CEREMONIES = {
     goMad: 'OK NOW HOLD ON 🪖',
     critique: 'Inspector inbound…',
     explain: 'Clearing the throat…',
-    exec: 'Co-Design hard stop in four minutes…'
+    exec: 'Hard stop in four minutes…'
   },
   planning: {
     refine: 'Drafting deltas…',
     innovate: 'Drafting deltas…',
     goMad: 'Throwing darts at the diagram 🎯',
-    exec: 'Co-Designing the headline…'
+    exec: 'Drafting the headline…'
   },
   syntax_fixer: {
     refine: 'Mending syntax…',
     innovate: 'Mending syntax…',
     goMad: 'Duct-taping it back together',
-    exec: 'Co-Designing the deck tighter…'
+    exec: 'Tightening the deck…'
   },
   syntax_repair: {
     refine: 'Re-mending syntax…',
     innovate: 'Re-mending syntax…',
     goMad: 'More duct tape',
-    exec: 'Re-Co-Designing the deck…'
+    exec: 'Re-drafting the deck…'
   },
   patch_retry: {
     refine: 'Awaiting CAB approval…',
     innovate: 'Awaiting CAB approval…',
     goMad: 'Bribing the CAB',
-    exec: 'Asking the board to re-Co-Design…'
+    exec: 'Asking the board for a redraft…'
   },
   invoke: {
     refine: 'Patching prod 🛠',
     innovate: 'Shipping it 🚀',
     goMad: 'Setting buildings on fire 🔥',
-    exec: 'Boarding the jet — synergy en route 🛩️'
+    exec: 'Boarding the jet 🛩️'
   },
   invoke_fallback: {
     refine: 'Hotfix in flight…',
     innovate: 'Hotfix in flight…',
     goMad: 'WE PIVOT',
-    exec: 'Rerouting the Co-Design one-pager…'
+    exec: 'Rerouting the one-pager…'
   },
   repair_1: {
     refine: 'Hotfix in flight…',
     innovate: 'Hotfix in flight…',
     goMad: 'More hard hats! 🪖🪖',
-    exec: 'Sliding the Co-Design deadline 🗓️'
+    exec: 'Sliding the deadline 🗓️'
   },
   repair_2: {
     refine: 'Second hotfix in flight…',
     innovate: 'Second hotfix in flight…',
     goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
-    exec: 'Sliding the Co-Design deadline again 🗓️🗓️'
+    exec: 'Sliding the deadline again 🗓️🗓️'
   }
 };
 
@@ -323,8 +323,8 @@ export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
 }
 
 export const VARIANT_TAGLINES = {
-  refine: 'Slopitect: Co-Designing the polish',
-  innovate: 'Slopitect: Co-Designing disruptive synergy',
+  refine: 'Slopitect: THE Engineer extends the build',
+  innovate: 'Slopitect: CIO pitches the bold move',
   goMad: 'Slopitect: GENIUS LOOSE 🚨',
   critique: 'Slopitect: Co-Design compliance review',
   explain: 'Slopitect: Co-Design story time',
@@ -333,8 +333,8 @@ export const VARIANT_TAGLINES = {
 };
 
 export const VARIANT_BOOT_HEADLINES = {
-  refine: 'Co-Designing the polish…',
-  innovate: 'Co-Designing the synergy disruption…',
+  refine: 'Engineering the next useful step…',
+  innovate: 'CIO pitching the bold pivot…',
   goMad: 'BONK! THE SLOPITECT IS HERE',
   critique: 'CO-DESIGN REVIEW INCOMING',
   explain: 'Co-Design story time — gather round',
@@ -451,13 +451,13 @@ export const VARIANT_MASTERY_THRESHOLD = 10;
 export const VARIANT_MASTERY_ACHIEVEMENTS = {
   refine: {
     id: 'masterPolisher',
-    title: '🪞 MASTER POLISHER',
-    subtitle: '10 refines on the books. You are the squeegee.'
+    title: '👷 MASTER ENGINEER',
+    subtitle: '10 useful extensions shipped. The site is yours.'
   },
   innovate: {
     id: 'serialDisruptor',
-    title: '⚡ SERIAL DISRUPTOR',
-    subtitle: '10 disruptions delivered. Series C is yours.'
+    title: '⚡ SERIAL INNOVATOR',
+    subtitle: '10 bold pivots on-subject. C-suite material.'
   },
   goMad: {
     id: 'distinguishedChaos',

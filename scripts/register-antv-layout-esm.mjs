@@ -1,6 +1,6 @@
 /**
- * Register before `node --test` when using tsx so @antv/infographic can import
- * { DagreLayout } from '@antv/layout'. Import this module AFTER tsx on the CLI.
+ * Register before `node --import tsx` (tests) so @antv/infographic can import
+ * { DagreLayout } from '@antv/layout'. CLI: `--import register-antv-layout-esm.mjs --import tsx`
  */
 import { register } from 'node:module';
 

@@ -19,36 +19,39 @@ const GO_MAD_EXOTIC_TEMPLATES = [
 ];
 
 export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
-  refine: `Transform mode: REFINE — polish and lightly extend the infographic (The Polisher).
+  refine: `Transform mode: REFINE — THE Engineer incrementally extends the infographic with the next useful piece.
 - KEEP the exact same \`infographic <template>\` line and the same main data field (\`lists\`, \`sequences\`, \`compares\`, \`values\`, \`nodes\`, \`items\`, or \`root\`).
-- Improve labels, desc, icons, and title/desc clarity; fix awkward phrasing.
-- You may add at most 2 new items that clearly belong in the same story.
+- Add ONE useful item that obviously belongs (or, if the story is complete, tighten ONE label / desc / icon that improves clarity). Stay on whatever the infographic's actual subject is — recipes, biology, planning, software, etc.
+- You may add at most 2 new items total; prefer 1 if 1 is enough.
 - Do NOT switch template families or reinvent the layout.
 - Palette/theme: keep unless a one-line contrast fix is needed.`,
-  innovate: `Transform mode: INNOVATE — bold but on-topic (The Disruptor).
-- Prefer reshaping items inside the CURRENT template and data field first (reorder, split/merge items, sharper labels, better icons).
-- Switch template only when it clearly communicates the idea better — not for variety alone.
-- You may add up to 4 new items if they add insight.
-- Stay coherent: same core message, fresher structure or visual metaphor.`,
+  innovate: `Transform mode: INNOVATE — Chief Innovation Officer extends the idea courageously, on the visible subject.
+- Stay ON THE SUBJECT of the visible labels. Do NOT default to enterprise/SaaS/cloud vocabulary unless the infographic is actually about that.
+- Prefer bold reshaping inside the CURRENT template and data field (reorder, split/merge items, sharper labels, better icons, fresher framing).
+- Switch template only when it clearly communicates the idea better for THIS subject — not for variety alone.
+- You may add up to 4 new items if they add insight. Occasionally lean a little too far on purpose — a courageous extension is better than a safe one.
+- Same core message, fresher structure or visual metaphor.`,
   exec: `Transform mode: EXEC — the VP wants the board-deck version. Synergy and Co-Design. Subtractive only.
 - KEEP the current template; do not switch families. The VP doesn't care about template variety.
-- Cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes.
+- MOST RUNS: cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes.
+- ABOUT 1 IN 5 RUNS goes deliberately too far: collapse to 2 items ("Plan / Ship", "Before / After"). When you do that, the prose summary owns it ("Two items. That's the slide.").
 - Shorten every label to executive-summary phrasing: verbs and nouns, no parentheticals, no asides.
 - Keep \`theme\` / \`palette\` untouched if present — preserve brand colors.
 - Output valid AntV Infographic DSL; one apply_infographic_patch call, then a one-sentence "Synergy and Co-Design — boiled down" summary.`,
-  goMad: `Transform mode: GO MAD — THE SLOPITECT (tier 1–2: same template, louder; tier 3+: template roulette).
+  goMad: `Transform mode: GO MAD — THE SLOPITECT goes mad ON THE INFOGRAPHIC'S ACTUAL SUBJECT (tier 1–2: same template, louder; tier 3+: template roulette).
+- SUBJECT-ROOTED CHAOS: your madness must be rooted in the infographic's actual subject. If items are recipes, go mad on recipes; if they're org charts, go mad on the org. Defaulting to "blockchain / Kubernetes / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode.
 - Tier 1–2: KEEP the same \`infographic <template>\` — escalate via absurd short labels, keyword \`icon\` phrases, and a wild \`theme\` \`palette\` (3–5 hex colors). No template switch yet.
 - Tier 3+: switch to a different template FAMILY (list → sequence → compare → chart → hierarchy → relation). Prefer exotic supported templates when they parse.
 - Speed first: ONE punchy preamble sentence (max ~18 words) then call apply_infographic_patch immediately.
-- Loud labels: short, geek-coded riffs (RFC vibes, fake folklore) — still readable.
-- Compact spectacle: 3–7 items. Weird > safe.`
+- Loud labels: short, on-subject riffs — still readable.
+- Compact spectacle: 3–7 items. Weird > safe — but weird IN-SUBJECT, not weird-by-default.`
 };
 
 /** Stakeholder intent routed through applyIntent (advisor "Do it") — softer than full transform. */
 export const INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS = {
-  refine: `Persona: REFINE (Polisher). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if essential.`,
-  innovate: `Persona: INNOVATE (Disruptor). Stay on-topic; prefer bold reshaping within the current template before switching. At most one template change if clearly justified.`,
-  goMad: `Persona: GO MAD (Slopitect). Same template unless the request screams for chaos; wild labels/icons/palette. Valid DSL only.`,
+  refine: `Persona: REFINE (THE Engineer). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs.`,
+  innovate: `Persona: INNOVATE (Chief Innovation Officer). Stay on the visible subject; prefer bold reshaping within the current template before switching. At most one template change if clearly justified for THIS subject.`,
+  goMad: `Persona: GO MAD (Slopitect). Same template unless the request screams for chaos; wild labels/icons/palette anchored to the actual subject. Valid DSL only.`,
   exec: `Persona: EXEC (VP). Subtractive only — shorten labels, merge/drop items, keep template. Target 3–5 items.`,
   critique: `Persona: CRITIQUE (Auditor). Apply only what the user asked; do not expand item count.`,
   explain: `Persona: EXPLAIN (Wise Architect). Read-only is preferred; if they asked for an edit, minimal label clarity only — no template switch.`

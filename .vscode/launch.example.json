@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Archislop: Dev (server + web → browser)",
+      "name": "Archislop: Dev (server + web)",
       "type": "node-terminal",
       "request": "launch",
       "cwd": "${workspaceFolder}",
@@ -15,12 +15,20 @@
       }
     },
     {
-      "name": "Server: Debug (Node + tsx)",
+      "name": "Server: Dev (compiled dist + watch)",
+      "type": "node-terminal",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "command": "npm run dev -w apps/server",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "Server: Debug (compiled dist)",
       "type": "node",
       "request": "launch",
       "cwd": "${workspaceFolder}/apps/server",
-      "program": "${workspaceFolder}/apps/server/src/index.js",
-      "runtimeArgs": ["--import", "tsx"],
+      "program": "${workspaceFolder}/apps/server/dist/index.js",
+      "preLaunchTask": "build:server",
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
@@ -41,6 +49,13 @@
         "pattern": "Local:\\s+(https?://\\S+)",
         "uriFormat": "%s"
       }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Archislop: Server + Web (two terminals)",
+      "configurations": ["Server: Dev (compiled dist + watch)", "Web: Dev (Vite)"],
+      "stopAll": true
     }
   ]
 }

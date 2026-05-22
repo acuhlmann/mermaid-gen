@@ -288,34 +288,29 @@ export function tokenizeThinkingProse(text, keyBase = 'tp') {
   }
 
   let earliest = null;
-  let matchKind = null;
 
   ICON_SYNTAX_RE.lastIndex = 0;
   const iconM = ICON_SYNTAX_RE.exec(text);
   if (iconM) {
     earliest = { index: iconM.index, len: iconM[0].length, kind: 'icon', data: iconM[1] };
-    matchKind = 'icon';
   }
 
   DIAGRAM_TYPE_RE.lastIndex = 0;
   const dtM = DIAGRAM_TYPE_RE.exec(text);
   if (dtM && (!earliest || dtM.index < earliest.index)) {
     earliest = { index: dtM.index, len: dtM[0].length, kind: 'diagram', data: dtM };
-    matchKind = 'diagram';
   }
 
   THEME_VAR_RE.lastIndex = 0;
   const tvM = THEME_VAR_RE.exec(text);
   if (tvM && (!earliest || tvM.index < earliest.index)) {
     earliest = { index: tvM.index, len: tvM[0].length, kind: 'themeVar', data: tvM[1] };
-    matchKind = 'themeVar';
   }
 
   HEX_RE.lastIndex = 0;
   const hexM = HEX_RE.exec(text);
   if (hexM && (!earliest || hexM.index < earliest.index)) {
     earliest = { index: hexM.index, len: hexM[0].length, kind: 'hex', data: hexM[0] };
-    matchKind = 'hex';
   }
 
   for (const word of text.split(/\b/)) {
@@ -346,10 +341,12 @@ export function tokenizeThinkingProse(text, keyBase = 'tp') {
   const after = text.slice(earliest.index + earliest.len);
   const mid = [];
 
-  if (matchKind === 'icon') {
+  if (earliest.kind === 'icon') {
     mid.push(<IconChip key={`${keyBase}-ic`} faClasses={earliest.data} keyPrefix={`${keyBase}-ic`} />);
-  } else if (matchKind === 'diagram') {
-    const [, typeRaw, dir] = earliest.data;
+  } else if (earliest.kind === 'diagram') {
+    const match = earliest.data;
+    const typeRaw = Array.isArray(match) ? match[1] : '';
+    const dir = Array.isArray(match) ? match[2] : undefined;
     mid.push(
       <DiagramTypeBadge
         key={`${keyBase}-dt`}
@@ -358,11 +355,11 @@ export function tokenizeThinkingProse(text, keyBase = 'tp') {
         keyPrefix={`${keyBase}-dt`}
       />
     );
-  } else if (matchKind === 'themeVar') {
+  } else if (earliest.kind === 'themeVar') {
     mid.push(<ThemeVarPill key={`${keyBase}-tv`} name={earliest.data} keyPrefix={`${keyBase}-tv`} />);
-  } else if (matchKind === 'hex') {
+  } else if (earliest.kind === 'hex') {
     mid.push(<ColorSwatch key={`${keyBase}-hx`} hex={earliest.data} keyPrefix={`${keyBase}-hx`} />);
-  } else if (matchKind === 'enum') {
+  } else if (earliest.kind === 'enum') {
     mid.push(
       <StyleEnumPill
         key={`${keyBase}-en`}

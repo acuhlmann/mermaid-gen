@@ -93,4 +93,10 @@ describe('tokenizeThinkingProse', () => {
     const parts = tokenizeThinkingProse('hello #ff0000 world');
     expect(parts.some((p) => typeof p === 'string')).toBe(true);
   });
+
+  it('prefers earlier theme enum over later diagram type without throwing', () => {
+    expect(() => enrichInline('Switch to default flowchart TB')).not.toThrow();
+    const { container } = render(<span>{enrichInline('Switch to default flowchart TB')}</span>);
+    expect(container.querySelector('[data-testid="thinking-style-enum"]')).toBeTruthy();
+  });
 });

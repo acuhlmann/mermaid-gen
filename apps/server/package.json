@@ -8,8 +8,8 @@
     "test:wire": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/wireEmitterRoundTrip.test.js",
     "typecheck": "tsc --noEmit -p .",
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
-    "dev": "tsx watch src/index.js",
-    "dev:watch": "tsx watch src/index.js",
+    "dev": "npm run build && concurrently -k -n tsc,server \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/index.js\"",
+    "dev:watch": "npm run dev",
     "start": "node dist/index.js",
     "build": "tsc -p tsconfig.build.json"
   },

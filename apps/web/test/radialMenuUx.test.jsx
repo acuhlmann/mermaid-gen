@@ -29,7 +29,7 @@ const OTHER_DESCRIPTOR = {
 };
 
 const MOCK_ACTIONS = [
-  { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' },
+  { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' },
   { id: 'explain', label: 'Explain', icon: 'i', variant: 'explain', persona: 'The Wise Architect' }
 ];
 
@@ -124,11 +124,11 @@ describe('radial menu click-to-open UX', () => {
     expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
     // Labels are no longer rendered in the radial menu — accessibility still
     // surfaces the action name (with persona) via `aria-label`.
-    const refineBtn = screen.getByRole('menuitem', { name: 'Refine (Polisher)' });
+    const refineBtn = screen.getByRole('menuitem', { name: 'Refine (Engineer)' });
     expect(refineBtn).toBeTruthy();
-    expect(refineBtn.getAttribute('data-persona')).toBe('Polisher');
+    expect(refineBtn.getAttribute('data-persona')).toBe('Engineer');
     // No persona / label chip rendered inside the button anymore.
-    expect(screen.queryByText('Polisher', { selector: '.radial-action-button-persona' })).toBeNull();
+    expect(screen.queryByText('Engineer', { selector: '.radial-action-button-persona' })).toBeNull();
   });
 
   it('closes the menu when the same part is clicked again', () => {
@@ -205,7 +205,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
       behavior: 'expandStakeholders',
       persona: 'Stakeholders'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' }
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
   ];
 
   function renderMenuWithSpies() {
@@ -301,7 +301,7 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
       behavior: 'showExplanation',
       persona: 'Quick Reference'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' }
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
   ];
 
   it('attributes the answer to the Wise Architect in the popover head', () => {
@@ -492,7 +492,7 @@ describe('radial popover drag handle', () => {
       behavior: 'expandStakeholders',
       persona: 'Stakeholders'
     },
-    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'The Polisher' }
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
   ];
 
   it('exposes the explainer head as a drag handle', () => {

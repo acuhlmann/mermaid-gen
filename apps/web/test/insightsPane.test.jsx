@@ -61,8 +61,8 @@ describe('InsightsPane', () => {
 
     expect(screen.getByTestId('insights-pane-persona')).toBeTruthy();
     const entryPersona = screen.getByTestId('insights-entry-persona');
-    expect(within(entryPersona).getByText('The Polisher')).toBeTruthy();
-    expect(within(entryPersona).getByText('Engineer')).toBeTruthy();
+    expect(within(entryPersona).getByText('THE Engineer')).toBeTruthy();
+    expect(within(entryPersona).getByText(/Builder of useful next steps/)).toBeTruthy();
     const liveMeta = screen.getByTestId('insights-pane-live-meta');
     expect(within(liveMeta).getByText('Refine')).toBeTruthy();
     expect(within(liveMeta).getByText('🔥 ×3')).toBeTruthy();

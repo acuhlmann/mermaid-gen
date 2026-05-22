@@ -6,6 +6,8 @@ export function actionCssVariant(variant) {
 }
 
 const ACTION_PERSONA_SHORT_NAMES = {
+  refine: 'Engineer',
+  innovate: 'Innovator',
   explain: 'Architect'
 };
 

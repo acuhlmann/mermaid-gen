@@ -33,6 +33,16 @@ test('parseAdvisorReply coerces explain persona to comment regardless of model o
   assert.equal(reply.kind, 'comment');
 });
 
+test('parseAdvisorReply coerces refine persona to suggestion regardless of model output', () => {
+  // THE Engineer is action-only — even if the model emits kind:"comment", the bubble
+  // must always offer a Do-it button so the user gets a concrete next step.
+  const reply = parseAdvisorReply(
+    '{"suggestion": "Add a Cool-down step.", "kind": "comment"}',
+    { persona: 'refine' }
+  );
+  assert.equal(reply.kind, 'suggestion');
+});
+
 test('parseAdvisorReply unknown kind falls back to suggestion', () => {
   const reply = parseAdvisorReply('{"suggestion": "X.", "kind": "shouting"}');
   assert.equal(reply.kind, 'suggestion');

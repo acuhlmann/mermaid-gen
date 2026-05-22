@@ -46,23 +46,25 @@ const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
 export function buildCritiqueTask(focusNode, focusScope, diagramSource) {
   const focused = Boolean(focusNode?.id);
   const tail = focused ? '' : focusScope;
+  const auditTone = `Audit voice: you are The Auditor — grumpy, formal, impatient. You do NOT lead with praise; affirmation is not your job. If the diagram has strengths, omit "Strengths" entirely unless there is something genuinely surprising worth a one-line nod. Make every negative point land; do not soften with "but otherwise great" or "overall solid".`;
   if (focused) {
     if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
       return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above (prioritize that element and its neighborhood before unrelated diagram-wide notes).
 
-Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
+${auditTone}
 
-You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
+Use these Markdown ## sections IN THIS ORDER (or clearly labeled equivalents): Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements. Strengths is OPTIONAL — include only if there's something genuinely surprising worth a one-line nod; otherwise skip the section entirely.
+
+You MUST include AT LEAST 2 substantive weaknesses in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
     }
-    return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above: strengths/weaknesses about that element first (labels, role, connections, clarity), then broader diagram points only where they clarify the selection.
+    return `Critique in read-only prose — do not rewrite or output Mermaid. Center every section on the diagram selection described in Selection focus above: weaknesses about that element first (labels, role, connections, clarity), then broader diagram points only where they clarify the selection.
 
-Use these sections with Markdown headings (or the same labels inline if headings are awkward):
+${auditTone}
 
-## Strengths
-What works about how the selected element reads (label, placement, role in the flow).
+Use these sections with Markdown headings IN THIS ORDER (or the same labels inline if headings are awkward):
 
 ## Weaknesses and limits
-You MUST include at least one substantive weakness — prioritize issues touching the selection (ambiguous label, weak link, unclear responsibility, missing context) before generic diagram-wide gaps.
+You MUST include AT LEAST 2 substantive weaknesses — prioritize issues touching the selection (ambiguous label, weak link, unclear responsibility, missing context, undefined error path, unowned accountability) before generic diagram-wide gaps. No softening; make each finding land.
 
 ## Diagram type fit
 Whether the diagram type serves the selected element and its relationships; note type-level issues that affect this selection.
@@ -71,24 +73,28 @@ Whether the diagram type serves the selected element and its relationships; note
 Readability of the selection and its immediate links (contrast, clutter, arrow/label clarity).
 
 ## Actionable improvements
-Concrete changes; every weakness above should have a matching improvement. Prioritize fixes for the selection first.${tail}`;
+Concrete changes; every weakness above should have a matching improvement. Prioritize fixes for the selection first.
+
+## Strengths (OPTIONAL)
+Skip this section unless there's something genuinely surprising worth noting — the user does not need to be told their diagram is fine.${tail}`;
   }
   if ((diagramSource?.length ?? 0) <= COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD) {
     return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
 
-Use these Markdown ## sections (or clearly labeled equivalents): Strengths, Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements.
+${auditTone}
 
-You MUST include at least one substantive weakness in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
+Use these Markdown ## sections IN THIS ORDER (or clearly labeled equivalents): Weaknesses and limits, Diagram type fit, Visual and style review, Actionable improvements. Strengths is OPTIONAL — include only if there's something genuinely surprising worth a one-line nod; otherwise skip the section entirely.
+
+You MUST include AT LEAST 2 substantive weaknesses in "Weaknesses and limits" — even if the diagram is strong — and every weakness must have a matching item in "Actionable improvements".${tail}`;
   }
   return `Critique this diagram in read-only prose — do not rewrite or output Mermaid.
 
-Use these sections with Markdown headings (or the same labels inline if headings are awkward):
+${auditTone}
 
-## Strengths
-Brief positives that are specific to this diagram.
+Use these sections with Markdown headings IN THIS ORDER (or the same labels inline if headings are awkward):
 
 ## Weaknesses and limits
-You MUST include at least one substantive weakness, gap, or risk — even if the diagram is strong (e.g. tradeoffs, ambiguous flows, weak hierarchy, scalability of layout, missing legend/context, accessibility or contrast concerns, unclear temporal/order semantics). Do not deliver praise-only or generic fluff without a paired limitation.
+You MUST include AT LEAST 2 substantive weaknesses, gaps, or risks — even if the diagram is strong (e.g. tradeoffs, ambiguous flows, weak hierarchy, scalability of layout, missing legend/context, accessibility or contrast concerns, unclear temporal/order semantics, unowned accountability, no defined exit/error path). Do not deliver praise-only or generic fluff. No softening — make each finding land.
 
 ## Diagram type fit
 Say whether the chosen Mermaid diagram type suits the content. If another type would communicate better, name it and why — without rewriting the diagram.
@@ -97,7 +103,10 @@ Say whether the chosen Mermaid diagram type suits the content. If another type w
 Comment on readability and presentation: clutter, balance, link directions, shapes, grouping, and any %%init%% / theme / classDef / styling choices if present (including contrast and visual hierarchy).
 
 ## Actionable improvements
-A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.${tail}`;
+A bullet list of concrete changes the user could apply later (labels, structure, type change, styling, accessibility). Every weakness above should have at least one matching or related improvement suggestion here.
+
+## Strengths (OPTIONAL)
+Skip this section unless there's something genuinely surprising worth noting — the user does not need to be told their diagram is fine.${tail}`;
 }
 
 export function buildExplainTask(focusNode, focusScope, diagramSource) {
@@ -189,7 +198,7 @@ export function buildAnalyzeFocusInstructions(focusNode, kind) {
     if (kind === 'explain') {
       return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} Lead with this relationship in ## Explanation, ## Main flows, and ## Key entities — what it means, what moves or depends along it, and how the two endpoints relate. Interpret label text literally in context. Use ## Takeaways for conclusions specific to this link. Mention the wider diagram only briefly as supporting context; avoid a generic whole-diagram essay that ignores this edge.`;
     }
-    return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Strengths and ## Diagram type fit but tie them to how well this selected relationship reads in context.`;
+    return `\n\nSelection focus (edge): The user selected the directed link ${link}.${edgeLabel}${edgeClicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize this link and its endpoints (arrow clarity, label usefulness, direction, redundancy, missing guards). Address diagram-wide topics only after covering this edge. Keep ## Diagram type fit tied to how well this selected relationship reads. The ## Strengths section is optional — include only if there is something genuinely surprising about this link.`;
   }
 
   const label = focusNode.label ? ` (visible label: "${focusNode.label}")` : '';
@@ -202,7 +211,7 @@ export function buildAnalyzeFocusInstructions(focusNode, kind) {
   if (kind === 'explain') {
     return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Explanation, ## Main flows, and ## Key entities, foreground this ${role}: its role, connections, and how labels read in context. ## Takeaways should emphasize what matters about this selection. Mention other parts only as supporting context; do not center the whole response on unrelated nodes or edges.`;
   }
-  return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Strengths and ## Diagram type fit but reference how this selection reads in context.`;
+  return `\n\nSelection focus (${role}): The user selected ${role} id "${focusNode.id}"${label}.${clicked} In ## Weaknesses and limits, ## Visual and style review, and ## Actionable improvements, prioritize issues touching this ${role} and its immediate neighborhood before broader diagram-wide commentary. Keep ## Diagram type fit referenced to how this selection reads. The ## Strengths section is optional — include only if there is something genuinely surprising about this ${role}.`;
 }
 
 /** @param {unknown} raw */
@@ -277,31 +286,34 @@ ${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short l
 export function buildTransformUserContent({ mode, diagramSource, focusScope, goMadDepth: rawDepth }) {
   const policy =
     mode === 'refine'
-      ? `Transform mode: REFINE — polish and lightly extend the diagram.
-- Same diagram type unless a trivial tweak requires otherwise.
-- Improve labels, grouping, and clarity; add a modest amount of structure.
-- Budget: roughly up to 4 new nodes and 6 edges; keep it readable.`
+      ? `Transform mode: REFINE — THE Engineer incrementally extends the diagram with the next useful piece.
+- Keep the SAME diagram type. Build on what is there; do NOT restructure, rename in bulk, or invent a new top-level shape.
+- Add ONE small useful extension or slight modification that obviously belongs: the missing step in the flow, a parent grouping the user implied, a named relationship that was hanging unlabeled, splitting a single too-broad node into two specific ones.
+- Subject-anchored: speak in whatever the diagram's actual subject is (recipe, org chart, biology, planning, software). Do NOT default to enterprise/cloud vocabulary unless the diagram is already enterprise/cloud — read the labels first.
+- Budget: prefer 1–3 new nodes and 2–5 new edges. If the diagram already says enough, tighten ONE label instead. Keep it readable; small wins compound.`
       : mode === 'innovate'
-        ? `Transform mode: INNOVATE — apply noticeable, fresh changes while staying on-topic.
-- You may restructure layout meaningfully and surprise users with insightful additions most wouldn't think of.
-- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the idea better; change type only when that shift is clearly justified. Otherwise keep the current type and innovate within it.
-- Larger edits OK; still coherent and valid Mermaid.
+        ? `Transform mode: INNOVATE — Chief Innovation Officer extends the idea courageously, on the visible subject.
+- Stay ON THE SUBJECT of the visible labels. Do NOT default to enterprise/SaaS/cloud vocabulary unless the diagram is enterprise/SaaS/cloud — read the labels first and speak in their world.
+- Add a fresh structural angle the user likely hasn't considered yet: split a node into two with different temperaments, fold two layers into a stronger one, introduce a feedback loop, add a parallel track, reframe a step as a phase.
+- It is OK to lean a bit too far on purpose — a courageous extension that surprises is better than a safe one that doesn't. Sometimes the diagram benefits from being bolder than the user asked.
+- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the new angle better; change type only when that shift clearly serves the subject. Otherwise innovate within the current type.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
         : mode === 'exec'
-          ? `Transform mode: EXEC — ruthless executive simplification. The VP wants the board-deck version — Synergy and Co-Design.
+          ? `Transform mode: EXEC — The VP wants the board-deck version. Subtractive only.
 - Keep the SAME diagram type — never switch types. The VP doesn't care about your craft.
 - Subtractive only: NEVER introduce new concepts, nodes, or edges that weren't already implied. Merge or drop near-duplicates, collapse intermediaries, kill stragglers.
-- Target shape: roughly 4–8 nodes total and 5–10 edges. If the input is already small, still tighten labels; don't pad.
+- MOST RUNS land at 4–8 nodes and 5–10 edges. ABOUT 1 IN 5 RUNS goes deliberately too far — collapse to 2–3 boxes (the slide-ready version: "Plan / Do / Review", "Discovery / Build / Ship"). When you do that, your prose summary after the patch should own it ("Boiled to three. The board reads three.").
 - Merge or remove subgraphs where one (or none) tells the same story; aim for ≤1 subgraph.
 - Keep classDef / linkStyle / %%init%% theme styling intact — preserve brand colors, just trim the noise.
-- Labels: shorten to executive-summary phrasing — verbs and nouns, no parentheticals, no "(optional)" / "(async)" asides.
-- Voice for any prose you emit after the patch: synergy and Co-Design jargon ("Synergy and Co-Design", "Co-Designed", "aligned", "boiled down", "the MVP slice"). Short.`
-          : `Transform mode: GO MAD — surprise and meme energy; loosely anchored to the idea (reinterpret ruthlessly).
+- Labels: shorten to executive-summary phrasing — verbs and nouns, no parentheticals, no "(optional)" / "(async)" asides. Adapt jargon to the diagram's subject (recipe → "menu items"; org → "functions"; software → "services").
+- Voice for any prose you emit after the patch: exec/Co-Design jargon ("Synergy and Co-Design", "Co-Designed", "aligned", "boiled down", "the MVP slice", "the headline"). Short.`
+          : `Transform mode: GO MAD — THE SLOPITECT goes mad ON THE DIAGRAM'S ACTUAL SUBJECT.
 - Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
+- SUBJECT-ROOTED CHAOS: your madness must be rooted in the diagram's actual subject. If the labels are recipes, go mad on recipes; if they're org charts, go mad on the org; if they're biology, go mad in biology terms. Defaulting to "blockchain / Kubernetes / lambdas / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode — earn the chaos from the actual visible labels.
 - Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
 - Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
-- Weird > safe.${buildGoMadEscalationInstructions(
+- Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildGoMadEscalationInstructions(
             mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
             diagramSource
           )}`;
