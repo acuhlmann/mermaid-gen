@@ -8,6 +8,13 @@
     "apps/server",
     "packages/shared"
   ],
+  "overrides": {
+    "@a2ui/web_core": "0.10.0",
+    "@ag-ui/client": "0.0.53",
+    "@ag-ui/core": "0.0.53",
+    "@ag-ui/encoder": "0.0.53",
+    "@ag-ui/proto": "0.0.53"
+  },
   "scripts": {
     "setup": "npm install && npm run setup:skills && npm run setup:gcloud",
     "setup:gcloud": "bash scripts/setup-gcloud.sh",

@@ -38,7 +38,7 @@
   ],
   "dependencies": {
     "@antv/infographic": "^0.2.19",
-    "@antv/layout": "2.0.0",
+    "@antv/layout": "^2.0.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
