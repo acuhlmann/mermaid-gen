@@ -62,9 +62,12 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 | Scope | Command |
 | ----- | ------- |
+| Diff-scoped (agents) | `npm run check:affected` |
 | Shared only | `npm run check:fast` |
-| Default | `npm run check` |
+| Default (includes wire tests) | `npm run check` |
 | Before PR / CI parity | `npm run check:full` |
-| Wire + doc paths | `npm run check:wire` |
+| Wire + doc paths only | `npm run check:wire` |
 | Doc links only | `npm run verify:doc-paths` |
 | Server strict TS islands | `npm run typecheck:strict -w apps/server` |
+
+See [`docs/guide/coding-agents.md`](guide/coding-agents.md) for the full agent verification table and PR checklist.

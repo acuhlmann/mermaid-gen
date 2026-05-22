@@ -48,10 +48,11 @@ Every session carries **two independent diagram slots**: a `mermaid` slot (Merma
 | -------------------------------------- | -------------------------------------------------------- |
 | Run web + server together              | `npm run dev`                                            |
 | Run all tests                          | `npm test`                                               |
-| **Verify a change end-to-end**         | `npm run check` (typecheck + test)                       |
+| **Verify (diff-scoped, agents)**       | `npm run check:affected`                                 |
+| **Verify a change end-to-end**         | `npm run check` (typecheck + test + wire)                |
 | Shared-only / schema touch             | `npm run check:fast`                                     |
-| Before PR (matches CI)                 | `npm run check:full` (typecheck + test + build)          |
-| Wire contracts + doc paths             | `npm run check:wire`                                     |
+| Before PR (matches CI)                 | `npm run check:full` (`check` + build)                   |
+| Wire + doc paths only                  | `npm run check:wire`                                     |
 | Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) |
 | Format the diff you're about to commit | `npm run format`                                         |
 | Build all workspaces                   | `npm run build`                                          |
