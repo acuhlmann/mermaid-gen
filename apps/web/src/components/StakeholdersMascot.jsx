@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useEphemeralAnchorStyle } from '../hooks/useEphemeralAnchorStyle.js';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
@@ -97,6 +99,26 @@ export default function StakeholdersMascot({
     ? (accentVar.startsWith('--') ? `var(${accentVar})` : accentVar)
     : 'var(--accent)';
   const style = { '--stakeholders-accent': accentStyle };
+  const showEphemeral = Boolean(thinkingPersona || bubbleProps);
+  const ephemeralStyle = useEphemeralAnchorStyle(wrapperRef, {
+    gapRem: 0.55,
+    active: showEphemeral
+  });
+  const ephemeralPortalTarget =
+    typeof document !== 'undefined' ? document.querySelector('.app-shell') : null;
+  const ephemeralPopup = thinkingPersona ? (
+    <AdvisorThinkingIndicator
+      persona={thinkingPersona}
+      className="is-ephemeral-portal"
+      style={ephemeralStyle}
+    />
+  ) : bubbleProps ? (
+    <AdvisorSpeechBubble {...bubbleProps} className="is-ephemeral-portal" style={ephemeralStyle} />
+  ) : null;
+  const ephemeralLayer =
+    ephemeralPopup && ephemeralPortalTarget
+      ? createPortal(ephemeralPopup, ephemeralPortalTarget)
+      : ephemeralPopup;
 
   return (
     <div
@@ -104,9 +126,7 @@ export default function StakeholdersMascot({
       ref={wrapperRef}
       style={style}
     >
-      {thinkingPersona
-        ? <AdvisorThinkingIndicator persona={thinkingPersona} />
-        : (bubbleProps ? <AdvisorSpeechBubble {...bubbleProps} /> : null)}
+      {ephemeralLayer}
       <button
         type="button"
         className={mascotClass}

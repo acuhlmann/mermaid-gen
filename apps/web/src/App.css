@@ -4097,25 +4097,9 @@
       0 8px 18px color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 22%, transparent);
   }
 
-  /* Speech bubble / thinking chip: float above the action bar without shifting buttons.
-     Size to content (with a cap) so short suggestions don't span an awkward full bar. */
-  .prompt-actions--mobile .advisor-speech-bubble,
-  .prompt-actions--mobile .advisor-thinking-indicator {
-    position: absolute;
-    left: 0;
-    right: auto;
-    bottom: calc(100% + 0.35rem);
-    width: max-content;
-    min-width: 0;
-    max-width: 100%;
-    margin: 0;
-    flex: none;
-    order: unset;
-    z-index: 40;
-  }
-
-  .prompt-actions--mobile .advisor-speech-bubble::after,
-  .prompt-actions--mobile .advisor-thinking-indicator::after {
+  /* Speech bubble / thinking chip: portaled to .app-shell (see is-ephemeral-portal). */
+  .prompt-actions--mobile .advisor-speech-bubble.is-ephemeral-portal::after,
+  .prompt-actions--mobile .advisor-thinking-indicator.is-ephemeral-portal::after {
     left: 2.6rem;
     bottom: -7px;
   }
@@ -6646,18 +6630,41 @@ button {
  *  ────────────────────────────────────────────────────────────────────── */
 
 /* ── Run ceremony anchoring (viewport vs canvas vs Thinking pane) ── */
+.run-ceremony-layer.is-anchor-viewport,
 .run-ceremony-layer.is-anchor-canvas,
 .run-ceremony-layer.is-anchor-insights {
-  position: absolute;
+  position: fixed;
   inset: 0;
   pointer-events: none;
   overflow: visible;
   z-index: var(--z-ceremony-overlay);
 }
 
-.run-ceremony-layer.is-anchor-insights {
-  /* Above scrollable body; dismiss / stop controls stay fixed above the pane. */
-  z-index: 12;
+/* Desktop split view: keep top-right ceremony chrome on the diagram column. */
+@media (min-width: 1025px) {
+  .app-shell.is-insights-open:not(.is-editor-open) .run-ceremony-layer[data-ceremony-anchor='canvas'] .boot-sequence-overlay {
+    padding-right: calc(max(260px, 30vw) + 1rem);
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open) .run-ceremony-layer[data-ceremony-anchor='canvas'] .slopitect-companion,
+  .app-shell.is-insights-open:not(.is-editor-open) .run-ceremony-layer[data-ceremony-anchor='canvas'] .live-run-hud,
+  .app-shell.is-insights-open:not(.is-editor-open) .run-ceremony-layer[data-ceremony-anchor='canvas'] .streak-hud-toast-column,
+  .app-shell.is-insights-open:not(.is-editor-open) .run-ceremony-layer[data-ceremony-anchor='canvas'] .streak-hud-achievement,
+  .app-shell.is-insights-open:not(.is-editor-open) .run-ceremony-layer[data-ceremony-anchor='canvas'] .streak-hud-level-up {
+    right: calc(max(260px, 30vw) + 1rem);
+  }
+
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] .boot-sequence-overlay {
+    padding-right: calc(max(260px, 30vw) + max(320px, 38vw) + 1rem);
+  }
+
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] .slopitect-companion,
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] .live-run-hud,
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] .streak-hud-toast-column,
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] .streak-hud-achievement,
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] .streak-hud-level-up {
+    right: calc(max(260px, 30vw) + max(320px, 38vw) + 1rem);
+  }
 }
 
 .run-ceremony-layer.is-anchor-canvas .streak-hud-root,
@@ -9837,6 +9844,18 @@ body.slopitect-rainbow-tint::before {
 @keyframes stakeholders-roster-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Portaled above corner chrome (Close, insights dismiss, editor Done). */
+.advisor-thinking-indicator.is-ephemeral-portal,
+.advisor-speech-bubble.is-ephemeral-portal {
+  position: fixed;
+  z-index: var(--z-ceremony-overlay);
+  margin: 0;
+}
+
+.advisor-speech-bubble.is-ephemeral-portal {
+  pointer-events: auto;
 }
 
 .advisor-speech-bubble {

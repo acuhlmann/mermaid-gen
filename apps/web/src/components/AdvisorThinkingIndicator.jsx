@@ -21,7 +21,7 @@ const THINKING_VERB = {
  * in flight. Anchored above the stakeholders mascot, same coordinate system as
  * AdvisorSpeechBubble — they are mutually exclusive (StakeholdersMascot picks one).
  */
-export default function AdvisorThinkingIndicator({ persona }) {
+export default function AdvisorThinkingIndicator({ persona, className = '', style: styleProp = null }) {
   if (!persona) return null;
   const meta = getVariantPersona(persona);
   const personaClass = PERSONA_CLASS[persona] || '';
@@ -30,11 +30,11 @@ export default function AdvisorThinkingIndicator({ persona }) {
   const verb = THINKING_VERB[persona] ?? 'is thinking';
   return (
     <div
-      className={`advisor-thinking-indicator ${personaClass}`}
+      className={['advisor-thinking-indicator', personaClass, className].filter(Boolean).join(' ')}
       role="status"
       aria-live="polite"
       aria-label={`${meta.name} ${verb}`}
-      style={{ '--advisor-accent': accentStyle }}
+      style={{ '--advisor-accent': accentStyle, ...styleProp }}
       data-testid="advisor-thinking-indicator"
     >
       <span className="advisor-thinking-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>

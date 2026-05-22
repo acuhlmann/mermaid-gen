@@ -33,7 +33,9 @@ export default function AdvisorSpeechBubble({
   onDismiss,
   onTogglePin,
   onPauseTimer,
-  onResumeTimer
+  onResumeTimer,
+  className = '',
+  style: styleProp = null
 }) {
   if (!persona || !suggestion) return null;
   const meta = getVariantPersona(persona);
@@ -51,10 +53,18 @@ export default function AdvisorSpeechBubble({
 
   return (
     <div
-      className={`advisor-speech-bubble ${personaClass} ${isPinned ? 'is-pinned' : ''} ${isComment ? 'is-comment' : 'is-suggestion'}`}
+      className={[
+        'advisor-speech-bubble',
+        personaClass,
+        isPinned ? 'is-pinned' : '',
+        isComment ? 'is-comment' : 'is-suggestion',
+        className
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="status"
       aria-live="polite"
-      style={style}
+      style={{ ...style, ...styleProp }}
       data-testid="advisor-speech-bubble"
       data-kind={isComment ? 'comment' : 'suggestion'}
       onClick={handleBubbleClick}

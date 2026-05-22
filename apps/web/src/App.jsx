@@ -3121,7 +3121,7 @@ ${requirementsBlock}`;
   );
   const insightsSlot = insightsMounted ? (
     <InsightsPane
-      ceremonySlot={ceremonyAnchor === 'insights' ? ceremonyOverlays : null}
+      ceremonySlot={null}
       entries={insightsEntries}
       streakByVariant={gamification?.streakByVariant}
       celebratingEntryId={celebratingEntryId}
@@ -3173,7 +3173,7 @@ ${requirementsBlock}`;
         editorOpen={editorOpen}
         insightsOpen={insightsMounted && Boolean(insightsSlot)}
         insightsSlot={insightsSlot}
-        ceremonySlot={ceremonyAnchor === 'canvas' ? ceremonyOverlays : null}
+        ceremonySlot={null}
         selectedNode={selectedNode}
         hoverDescriptor={hoverDescriptor}
         onSelectedNodeChange={handleSelectedNodeChange}
@@ -3250,7 +3250,7 @@ ${requirementsBlock}`;
         onClose={closeRadialMenu}
       />
 
-      {ceremonyAnchor === 'viewport' ? ceremonyOverlays : null}
+      {ceremonyOverlays}
       <ErrorToast />
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={() => setHotkeyOverlayOpen(false)} />
 
