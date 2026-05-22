@@ -216,7 +216,7 @@ test('applyTransformIntent routes through the dispatcher pattern (mode-specific 
     typeof userMsg?.content === 'string'
       ? userMsg.content
       : (userMsg?.kwargs?.content ?? '').toString();
-  assert.match(text, /INNOVATE|Disruptor/);
+  assert.match(text, /INNOVATE|Chief Innovation Officer/);
 });
 
 test('repair instruction includes the original user request', async () => {
