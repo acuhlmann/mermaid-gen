@@ -8,16 +8,16 @@ import {
 
 test('resolveAgentRunBudgetMs keeps separate fast and quality defaults', () => {
   assert.equal(resolveAgentRunBudgetMs('fast'), 75_000);
-  assert.equal(resolveAgentRunBudgetMs('quality'), 105_000);
+  assert.equal(resolveAgentRunBudgetMs('quality'), 150_000);
   assert.equal(resolveAgentRunBudgetMs('unknown'), 75_000);
 });
 
 test('resolveAgentRunBudgetMs gives Go Mad extra headroom for the patch_retry turn', () => {
   assert.equal(resolveAgentRunBudgetMs('fast', {}, 'goMad'), 105_000);
-  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'goMad'), 150_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'goMad'), 180_000);
   // Other modes are unaffected by the mode argument.
-  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'refine'), 105_000);
-  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'innovate'), 105_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'refine'), 150_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'innovate'), 150_000);
 });
 
 test('resolveAgentRunBudgetMs supports profile env overrides with clamps', () => {
@@ -35,9 +35,9 @@ test('resolveAgentRunBudgetMs supports profile env overrides with clamps', () =>
   );
 });
 
-test('resolveAgentRepairMaxAttempts defaults quality lower than fast', () => {
+test('resolveAgentRepairMaxAttempts defaults match across profiles', () => {
   assert.equal(resolveAgentRepairMaxAttempts('fast'), 2);
-  assert.equal(resolveAgentRepairMaxAttempts('quality'), 1);
+  assert.equal(resolveAgentRepairMaxAttempts('quality'), 2);
 });
 
 test('resolveAgentRepairMaxAttempts supports Mermaid and Infographic envs', () => {
@@ -56,5 +56,5 @@ test('resolveAgentRepairMaxAttempts supports Mermaid and Infographic envs', () =
 });
 
 test('buildAgentRunBudgetExceededMessage includes tier and seconds', () => {
-  assert.match(buildAgentRunBudgetExceededMessage('quality', 105_000), /Quality time limit \(105s\)/);
+  assert.match(buildAgentRunBudgetExceededMessage('quality', 150_000), /Quality time limit \(150s\)/);
 });
