@@ -12,6 +12,14 @@ test('resolveAgentRunBudgetMs keeps separate fast and quality defaults', () => {
   assert.equal(resolveAgentRunBudgetMs('unknown'), 75_000);
 });
 
+test('resolveAgentRunBudgetMs gives Go Mad extra headroom for the patch_retry turn', () => {
+  assert.equal(resolveAgentRunBudgetMs('fast', {}, 'goMad'), 105_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'goMad'), 150_000);
+  // Other modes are unaffected by the mode argument.
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'refine'), 105_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'innovate'), 105_000);
+});
+
 test('resolveAgentRunBudgetMs supports profile env overrides with clamps', () => {
   assert.equal(
     resolveAgentRunBudgetMs('quality', { MERMAID_AGENT_RUN_BUDGET_MS_QUALITY: '120000' }),

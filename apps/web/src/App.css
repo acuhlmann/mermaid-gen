@@ -4097,9 +4097,25 @@
       0 8px 18px color-mix(in srgb, var(--stakeholders-accent, var(--accent)) 22%, transparent);
   }
 
-  /* Speech bubble / thinking chip: portaled to .app-shell (see is-ephemeral-portal). */
-  .prompt-actions--mobile .advisor-speech-bubble.is-ephemeral-portal::after,
-  .prompt-actions--mobile .advisor-thinking-indicator.is-ephemeral-portal::after {
+  /* Speech bubble / thinking chip: float above the action bar without shifting buttons.
+     Size to content (with a cap) so short suggestions don't span an awkward full bar. */
+  .prompt-actions--mobile .advisor-speech-bubble,
+  .prompt-actions--mobile .advisor-thinking-indicator {
+    position: absolute;
+    left: 0;
+    right: auto;
+    bottom: calc(100% + 0.35rem);
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    flex: none;
+    order: unset;
+    z-index: 40;
+  }
+
+  .prompt-actions--mobile .advisor-speech-bubble::after,
+  .prompt-actions--mobile .advisor-thinking-indicator::after {
     left: 2.6rem;
     bottom: -7px;
   }
@@ -9844,18 +9860,6 @@ body.slopitect-rainbow-tint::before {
 @keyframes stakeholders-roster-in {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* Portaled above corner chrome (Close, insights dismiss, editor Done). */
-.advisor-thinking-indicator.is-ephemeral-portal,
-.advisor-speech-bubble.is-ephemeral-portal {
-  position: fixed;
-  z-index: var(--z-ceremony-overlay);
-  margin: 0;
-}
-
-.advisor-speech-bubble.is-ephemeral-portal {
-  pointer-events: auto;
 }
 
 .advisor-speech-bubble {

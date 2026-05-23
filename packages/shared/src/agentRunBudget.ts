@@ -1,5 +1,10 @@
 export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST = 75_000;
 export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY = 105_000;
+// Go Mad runs at hot temperatures and frequently needs a patch_retry turn after
+// the first hot pass produces prose-without-patch; give it extra headroom so the
+// fallback turn doesn't get cut off mid-stream ("BodyStreamBuffer aborted").
+export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD = 105_000;
+export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD = 150_000;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_FAST = 2;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_QUALITY = 1;
 
@@ -27,10 +32,16 @@ function readProfileEnv(env, baseName, profile) {
   return parseInteger(env?.[baseName]);
 }
 
-export function resolveAgentRunBudgetMs(profile = 'fast', env = {}) {
+export function resolveAgentRunBudgetMs(profile = 'fast', env = {}, mode = null) {
   const p = normalizeAgentModelProfile(profile);
-  const fallback =
-    p === 'quality' ? DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY : DEFAULT_AGENT_RUN_BUDGET_MS_FAST;
+  const isGoMad = mode === 'goMad';
+  const fallback = isGoMad
+    ? p === 'quality'
+      ? DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD
+      : DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD
+    : p === 'quality'
+      ? DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY
+      : DEFAULT_AGENT_RUN_BUDGET_MS_FAST;
   const configured = readProfileEnv(env, 'MERMAID_AGENT_RUN_BUDGET_MS', p);
   return clampInteger(configured ?? fallback, BUDGET_CLAMP);
 }
