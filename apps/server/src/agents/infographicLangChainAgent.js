@@ -13,22 +13,25 @@ import {
   LlmNotConfiguredError,
   isLlmConfigured,
   createLlmChatModel,
-  createOpenRouterModel,
   resolveLlmBackend,
   resolveModelId
 } from './llmProvider.js';
 import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
 import {
+  captureMessagesFromStreamEvent,
+  extractFinalMessage,
+  extractLastAttemptedToolSource,
+  extractToolFailureError,
+  normalizeAgentStreamEvent,
+  toLangChainMessages
+} from './_lib/diagramAgentHelpers.js';
+import {
   buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
   buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
-  captureMessagesFromStreamEvent,
   clampGoMadDepth,
   emitIntentTransformStreamResult,
-  extractFinalMessage,
   goMadTransformModelOptions,
-  normalizeAgentStreamEvent,
   normalizeModelProfile,
-  toLangChainMessages,
   transformModeModelOptions
 } from './mermaidLangChainAgent.js';
 import {
@@ -366,7 +369,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     }
 
     // Patch was required but not produced. Build a repair turn.
-    let failureError = extractToolFailureMessage(result);
+    let failureError = extractToolFailureError(result);
 
     // Prose-in-body recovery: models sometimes stream DSL as plain assistant text (zero tool
     // calls). Try the same apply path the tool uses; on failure, fall through so the syntax
@@ -394,7 +397,8 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
 
     if (failureError) {
       lastError = failureError;
-      lastBrokenSource = extractLastAttemptedDsl(result) || lastBrokenSource;
+      lastBrokenSource =
+        extractLastAttemptedToolSource(result, 'apply_infographic_patch') || lastBrokenSource;
 
       // (a) Tool-less single-shot syntax fixer: runs ONCE before the next full agent retry.
       // Mirrors the Mermaid pattern (mermaidLangChainAgent.js around line 949). The fixer is
@@ -493,29 +497,6 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   };
 }
 
-function extractToolFailureMessage(result) {
-  // Scan every message's content for a JSON-stringified `{accepted:false, error}` payload —
-  // the apply_infographic_patch tool always serializes its result to JSON. We deliberately
-  // don't gate on `tool_call_id` because LangChain v1 stream events sometimes deliver
-  // tool messages without that field exposed where we'd look (it can land on the class
-  // instance, on `kwargs`, on `lc_kwargs`, or be stripped during serialization). The
-  // content-shape check is robust to all of those.
-  const messages = result?.messages ?? [];
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const text = extractTextContent(messages[i]?.content ?? messages[i]?.kwargs?.content ?? '').trim();
-    if (!text) continue;
-    try {
-      const parsed = JSON.parse(text);
-      if (parsed && parsed.accepted === false && typeof parsed.error === 'string') {
-        return parsed.error;
-      }
-    } catch {
-      // Not JSON — keep walking back.
-    }
-  }
-  return null;
-}
-
 function summarizeAttempts(result) {
   const messages = result?.messages ?? [];
   let toolCalls = 0;
@@ -545,34 +526,6 @@ function summarizeAttempts(result) {
     toolResults,
     lastAssistantSnippet
   };
-}
-
-function extractLastAttemptedDsl(result) {
-  const messages = result?.messages ?? [];
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    const toolCalls = m?.tool_calls ?? m?.kwargs?.tool_calls ?? [];
-    for (const call of toolCalls) {
-      const name = call?.name ?? call?.function?.name;
-      if (name !== 'apply_infographic_patch') continue;
-      const args =
-        call?.args ?? (typeof call?.function?.arguments === 'string'
-          ? safeParseJson(call.function.arguments)
-          : call?.function?.arguments) ?? {};
-      if (typeof args.diagramSource === 'string' && args.diagramSource.trim()) {
-        return args.diagramSource;
-      }
-    }
-  }
-  return null;
-}
-
-function safeParseJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
 }
 
 export function createInfographicLangChainAgent({
