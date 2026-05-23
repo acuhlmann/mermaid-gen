@@ -69,6 +69,7 @@ export function useAdvisorOrchestrator(params) {
   const [suggestionKind, setSuggestionKind] = useState('suggestion');
   const [highlightIds, setHighlightIds] = useState([]);
   const [error, setError] = useState(null);
+  const [isDumbingDown, setIsDumbingDown] = useState(false);
 
   const paramsRef = useRef(params);
   const mutedRef = useRef(initialMuted);
@@ -417,6 +418,76 @@ export function useAdvisorOrchestrator(params) {
     });
   }, []);
 
+  /**
+   * Re-fetch the Wise Architect's current observation, rephrased in plain English.
+   * Only meaningful for `activePersona === 'explain'`; bails out otherwise. While
+   * the request is in flight the bubble is pinned so the timer doesn't dismiss it
+   * out from under the user; the result replaces the bubble text in place.
+   */
+  const dumbDown = useCallback(async () => {
+    const persona = activePersona;
+    const previous = suggestion;
+    if (persona !== 'explain' || !previous) return;
+    if (isDumbingDown) return;
+
+    setIsDumbingDown(true);
+    // Pin while we fetch so the auto-dismiss can't snatch the bubble mid-request.
+    if (!pinnedRef.current) {
+      setIsPinned(true);
+      pinnedRef.current = true;
+      pauseTimerRef.current?.();
+      cancelPendingRef.current?.();
+    }
+
+    try {
+      const params = paramsRef.current;
+      const sessionId = params.getSessionId?.() ?? '';
+      const contentType = params.getContentType?.() ?? 'mermaid';
+      const diagramSource = params.getDiagramSource?.() ?? '';
+      const focusDescriptor = params.getFocusDescriptor?.() ?? null;
+      const svgRoot = params.getSvgRoot?.() ?? null;
+      const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
+      const { labels } =
+        contentType === 'infographic'
+          ? getVisibleInfographicLabels(host)
+          : getVisibleDiagramLabels(host);
+
+      const headers = { 'content-type': 'application/json' };
+      if (sessionId) headers[SESSION_HEADER] = sessionId;
+      const response = await fetch(`${API_BASE_URL}/api/advisor/suggest`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          persona,
+          contentType,
+          diagramSource,
+          visibleLabels: labels,
+          ...(focusDescriptor?.id ? { focusNode: focusDescriptor } : {}),
+          mode: 'dumb',
+          previousSuggestion: previous
+        })
+      });
+      if (!response.ok) {
+        setError(`advisor ${response.status}`);
+        return;
+      }
+      const payload = await response.json();
+      const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
+      if (!text) return;
+      const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
+      setSuggestion(text);
+      setSuggestionKind('comment');
+      if (replyIds.length > 0) setHighlightIds(replyIds);
+      setError(null);
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        setError(err?.message || 'advisor error');
+      }
+    } finally {
+      setIsDumbingDown(false);
+    }
+  }, [activePersona, suggestion, isDumbingDown]);
+
   const togglePin = useCallback(() => {
     setIsPinned((prev) => {
       const next = !prev;
@@ -447,12 +518,14 @@ export function useAdvisorOrchestrator(params) {
     highlightIds,
     isMuted,
     isPinned,
+    isDumbingDown,
     error,
     toggleMute,
     togglePin,
     pauseTimer,
     resumeTimer,
     dismiss,
-    accept
+    accept,
+    dumbDown
   };
 }
