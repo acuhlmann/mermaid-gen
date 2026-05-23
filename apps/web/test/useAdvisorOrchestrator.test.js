@@ -200,6 +200,42 @@ describe('useAdvisorOrchestrator', () => {
     expect(fetchMock.mock.calls.length).toBeGreaterThan(callsAfterFirst);
   });
 
+  it('clears thinkingPersona and reschedules when the 12s safety timeout aborts the request', async () => {
+    // Reproduces the Wise Architect "stuck thinking…" bug: when the slow-side
+    // architect call exceeds SUGGEST_TIMEOUT_MS the AbortError used to silently
+    // return, leaving the thinking indicator pinned and the loop dead.
+    mockPersonaPick('explain');
+    let abortListener;
+    fetchMock.mockImplementation((_url, init) => {
+      return new Promise((_resolve, reject) => {
+        abortListener = () => {
+          const err = new Error('aborted');
+          err.name = 'AbortError';
+          reject(err);
+        };
+        init?.signal?.addEventListener?.('abort', abortListener);
+      });
+    });
+
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    // First tick fires and sets thinkingPersona while the fetch hangs.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('explain');
+    expect(result.current.suggestion).toBeNull();
+
+    // Push past the 12s in-tick safety timeout — controller.abort() fires.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12_500);
+      await Promise.resolve();
+    });
+
+    expect(result.current.thinkingPersona).toBeNull();
+  });
+
   it('keeps a pinned suggestion when canvas focus changes', async () => {
     const { result, rerender } = renderHook(
       ({ focusKey, focusSource }) =>

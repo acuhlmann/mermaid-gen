@@ -241,7 +241,19 @@ export function useAdvisorOrchestrator(params) {
       } catch (err) {
         clearTimeout(timeoutId);
         if (err?.name === 'AbortError') {
-          // Aborted by a fresh tick — the new tick will set its own thinkingPersona.
+          // Two possible abort sources: (1) a fresh tick called cancelInFlight()
+          // and incremented `generation`, in which case it will set its own
+          // thinkingPersona — bail silently; (2) our own 12s safety setTimeout
+          // fired because the LLM call hung (more common for the Wise Architect,
+          // whose prompt is the most verbose). In case (2) `gen === generation`
+          // and the loop is otherwise dead — we must clear thinking + reschedule
+          // so the bubble doesn't get stuck in the "is musing…" state forever.
+          if (gen === generation) {
+            setThinkingPersona(null);
+            failureUntil = Date.now() + FAILURE_BACKOFF_MS;
+            setError('advisor timeout');
+            scheduleNext(GAP_MS);
+          }
           return;
         }
         if (gen === generation) setThinkingPersona(null);
