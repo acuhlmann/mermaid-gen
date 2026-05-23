@@ -22,6 +22,10 @@ const PERSONA_CLASS = {
  * `kind`: 'suggestion' shows the Do-it button (default — actionable). 'comment' hides
  * it — the persona is just weighing in, not proposing a change.
  *
+ * The Wise Architect (persona='explain') is always 'comment' — never gets Do-it — but
+ * gets two ivory-tower-friendly actions instead: "Dumb it Down" (rephrase plainly)
+ * and "Drill deeper" (open the full Thinking-pane dissertation).
+ *
  * Purely presentational; all timing/state lives in `useAdvisorOrchestrator`.
  */
 export default function AdvisorSpeechBubble({
@@ -29,11 +33,14 @@ export default function AdvisorSpeechBubble({
   suggestion,
   kind = 'suggestion',
   isPinned = false,
+  isDumbingDown = false,
   onGo,
   onDismiss,
   onTogglePin,
   onPauseTimer,
-  onResumeTimer
+  onResumeTimer,
+  onDumbDown,
+  onDrillDeeper
 }) {
   if (!persona || !suggestion) return null;
   const meta = getVariantPersona(persona);
@@ -42,6 +49,8 @@ export default function AdvisorSpeechBubble({
   const accentStyle = accent.startsWith('--') ? `var(${accent})` : accent;
   const style = { '--advisor-accent': accentStyle };
   const isComment = kind === 'comment';
+  const isArchitect = persona === 'explain';
+  const showArchitectActions = isArchitect && (onDumbDown || onDrillDeeper);
 
   const handleBubbleClick = (event) => {
     // Ignore clicks that originated on Do-it/Dismiss buttons — their handlers run separately.
@@ -81,6 +90,30 @@ export default function AdvisorSpeechBubble({
             Do it
           </button>
         )}
+        {showArchitectActions && onDumbDown ? (
+          <button
+            type="button"
+            className="advisor-speech-btn advisor-speech-btn--dumb"
+            onClick={(event) => { event.stopPropagation(); onDumbDown?.(); }}
+            disabled={isDumbingDown}
+            aria-label="Dumb it down — rephrase in plain English"
+            title="Translate the architect's musing into plain English"
+          >
+            {isDumbingDown ? 'Dumbing…' : 'Dumb it Down'}
+          </button>
+        ) : null}
+        {showArchitectActions && onDrillDeeper ? (
+          <button
+            type="button"
+            className="advisor-speech-btn advisor-speech-btn--drill"
+            onClick={(event) => { event.stopPropagation(); onDrillDeeper?.(); }}
+            disabled={isDumbingDown}
+            aria-label="Drill deeper — open the full architecture dissertation"
+            title="Open the full architecture deep-dive in the Thinking panel"
+          >
+            Drill Deeper
+          </button>
+        ) : null}
         <button
           type="button"
           className="advisor-speech-btn advisor-speech-btn--dismiss"

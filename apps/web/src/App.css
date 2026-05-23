@@ -10118,6 +10118,33 @@ body.slopitect-rainbow-tint::before {
   border-color: rgba(15, 23, 42, 0.45);
 }
 
+/* Wise Architect auxiliary actions — ghosty pills tinted with the teal accent.
+   These appear only for persona='explain' (architect never gets the primary Do-it). */
+.advisor-speech-btn--dumb,
+.advisor-speech-btn--drill {
+  padding: 0.28rem 0.62rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 70%, #0f172a);
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 10%, white);
+  border-color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 50%, transparent);
+}
+
+.advisor-speech-btn--dumb:hover:not(:disabled),
+.advisor-speech-btn--dumb:focus-visible:not(:disabled),
+.advisor-speech-btn--drill:hover:not(:disabled),
+.advisor-speech-btn--drill:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--advisor-accent, var(--accent)) 22%, white);
+  border-color: color-mix(in srgb, var(--advisor-accent, var(--accent)) 72%, transparent);
+}
+
+.advisor-speech-btn--dumb:disabled,
+.advisor-speech-btn--drill:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 @media (max-width: 540px) {
   .advisor-speech-bubble {
     width: max-content;
@@ -10145,11 +10172,18 @@ body.slopitect-rainbow-tint::before {
   .advisor-speech-text {
     font-size: 0.85rem;
   }
-  .advisor-speech-btn--go {
-    padding: 0.28rem 0.62rem;
-    font-size: 0.72rem;
+  .advisor-speech-btn--go,
+  .advisor-speech-btn--dumb,
+  .advisor-speech-btn--drill {
+    padding: 0.24rem 0.5rem;
+    font-size: 0.68rem;
   }
 
+  .advisor-speech-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.28rem;
+  }
 }
 
 @keyframes advisor-bubble-in {

@@ -3569,11 +3569,17 @@ ${requirementsBlock}`;
                     suggestion: advisor.suggestion,
                     kind: advisor.suggestionKind,
                     isPinned: advisor.isPinned,
+                    isDumbingDown: advisor.isDumbingDown,
                     onGo: advisor.accept,
                     onDismiss: advisor.dismiss,
                     onTogglePin: advisor.togglePin,
                     onPauseTimer: advisor.pauseTimer,
-                    onResumeTimer: advisor.resumeTimer
+                    onResumeTimer: advisor.resumeTimer,
+                    onDumbDown: advisor.dumbDown,
+                    onDrillDeeper: () => {
+                      advisor.dismiss();
+                      runAnalyze('explain', { useDiagramFocus: true });
+                    }
                   } : null}
                 />
                 <button
@@ -3676,11 +3682,17 @@ ${requirementsBlock}`;
                     suggestion: advisor.suggestion,
                     kind: advisor.suggestionKind,
                     isPinned: advisor.isPinned,
+                    isDumbingDown: advisor.isDumbingDown,
                     onGo: advisor.accept,
                     onDismiss: advisor.dismiss,
                     onTogglePin: advisor.togglePin,
                     onPauseTimer: advisor.pauseTimer,
-                    onResumeTimer: advisor.resumeTimer
+                    onResumeTimer: advisor.resumeTimer,
+                    onDumbDown: advisor.dumbDown,
+                    onDrillDeeper: () => {
+                      advisor.dismiss();
+                      runAnalyze('explain', { useDiagramFocus: true });
+                    }
                   } : null}
                 />
                 <button

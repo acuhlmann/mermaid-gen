@@ -34,7 +34,11 @@ const AdvisorSuggestSchema = z.object({
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   focusNodeId: z.string().max(200).optional(),
   focusNode: FocusDescriptorSchema.optional(),
-  lastSuggestions: z.array(z.string().max(400)).max(8).default([])
+  lastSuggestions: z.array(z.string().max(400)).max(8).default([]),
+  // "dumb" rephrases the architect's previous bubble in plain English. Only honored
+  // when persona === 'explain' (other personas ignore the flag at prompt-build time).
+  mode: z.enum(['dumb']).optional(),
+  previousSuggestion: z.string().max(400).optional()
 });
 
 const ExplainLabelSchema = z.object({
@@ -87,13 +91,17 @@ export function createAdvisorRouter() {
       return;
     }
 
-    const system = buildAdvisorSystemPrompt(payload.persona, payload.contentType);
+    const system = buildAdvisorSystemPrompt(payload.persona, payload.contentType, {
+      mode: payload.mode
+    });
     const user = buildAdvisorUserPrompt({
       contentType: payload.contentType,
       diagramSource: trimmedSource,
       visibleLabels: payload.visibleLabels,
       focusNode: payload.focusNode ?? (payload.focusNodeId ? { id: payload.focusNodeId } : null),
-      lastSuggestions: payload.lastSuggestions
+      lastSuggestions: payload.lastSuggestions,
+      previousSuggestion: payload.previousSuggestion,
+      mode: payload.mode
     });
 
     try {
