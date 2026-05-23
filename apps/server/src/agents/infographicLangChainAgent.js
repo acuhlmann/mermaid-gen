@@ -10,13 +10,10 @@ import {
   buildInfographicRepairInstruction
 } from '../prompts/infographicSyntaxGuard.js';
 import {
-  LlmNotConfiguredError,
-  isLlmConfigured,
   createLlmChatModel,
   resolveLlmBackend,
   resolveModelId
 } from './llmProvider.js';
-import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
 import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
@@ -26,13 +23,13 @@ import {
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
+import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
   buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
   buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
   clampGoMadDepth
 } from './mermaidAnalysisPrompts.js';
 import { normalizeModelProfile } from './llmProvider.js';
-import { emitIntentTransformStreamResult } from './_lib/diagramAgentStreamResult.js';
 import {
   buildInfographicFocusScopeInstructions,
   buildInfographicAnalyzeFocusInstructions
@@ -718,95 +715,21 @@ export function createInfographicLangChainAgent({
 
 /**
  * Lazy wrapper that defers agent construction until the first call.
- * Returns an object satisfying the shared {@link import('@archislop/shared').DiagramAgentService}
- * contract. Does not implement `invoke` or `applyStyleIntent` — those are mermaid-only.
+ * Satisfies {@link import('@archislop/shared').DiagramAgentService}.
+ * Does not implement `invoke` or `applyStyleIntent` — those are mermaid-only.
  */
 export function createLazyInfographicAgentService({ stateStore, env = process.env }) {
-  let agentService;
-
-  function getAgentService() {
-    if (!isLlmConfigured(env)) {
-      throw new LlmNotConfiguredError();
-    }
-    agentService ??= createInfographicLangChainAgent({ stateStore, env });
-    return agentService;
-  }
-
-  return {
-    async applyIntent(input) {
-      return getAgentService().applyIntent(input);
+  return createLazyAgentService({
+    contentType: 'infographic',
+    stateStore,
+    env,
+    buildService: () => createInfographicLangChainAgent({ stateStore, env }),
+    streamLabels: {
+      analyze: 'Analyzing infographic…',
+      intent: 'Applying your request…',
+      transform: 'Transforming infographic…'
     },
-    async applyTransformIntent(input) {
-      return getAgentService().applyTransformIntent(input);
-    },
-    async applyAnalyzeIntent(input) {
-      return getAgentService().applyAnalyzeIntent(input);
-    },
-    async runAgentStream(operation, payload, emit) {
-      const agent = getAgentService();
-      const modelProfile = payload.modelProfile;
-
-      if (typeof emit === 'function') {
-        if (operation === 'analyze') {
-          emit({ type: 'phase', id: 'analyze', label: 'Analyzing infographic…' });
-        } else if (operation === 'intent') {
-          emit({ type: 'phase', id: 'intent', label: 'Applying your request…' });
-        } else {
-          emit({ type: 'phase', id: 'transform', label: 'Transforming infographic…' });
-        }
-      }
-
-      if (operation === 'analyze') {
-        const result = await agent.applyAnalyzeIntent({
-          kind: payload.kind,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit
-        });
-        emitAnalyzeStreamArtifactsBeforeFinal(emit, {
-          kind: payload.kind,
-          analyzeText: result.message,
-          contentType: payload.contentType
-        });
-        emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
-        return result;
-      }
-
-      let agentResult;
-      if (operation === 'intent') {
-        agentResult = await agent.applyIntent({
-          prompt: payload.prompt,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          peerContext: payload.peerContext,
-          transformPersona: payload.transformPersona,
-          abortSignal: payload.abortSignal
-        });
-      } else {
-        agentResult = await agent.applyTransformIntent({
-          mode: payload.mode,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          goMadDepth: payload.goMadDepth,
-          advisorPrompt: payload.advisorPrompt,
-          abortSignal: payload.abortSignal
-        });
-      }
-
-      const before = payload._revisionBefore;
-      emitIntentTransformStreamResult({
-        emit,
-        operation,
-        revisionBefore: before,
-        stateStore,
-        agentResult,
-        prompt: payload.prompt,
-        contentType: 'infographic'
-      });
-
-      return agentResult;
-    }
-  };
+    intentExtraFields: ['transformPersona'],
+    transformExtraFields: ['advisorPrompt']
+  });
 }

@@ -10,7 +10,6 @@ import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
-import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import {
   captureMessagesFromStreamEvent,
@@ -26,6 +25,7 @@ import {
   runInvokeWithStreamingKeepalive
 } from './_lib/diagramAgentStreaming.js';
 import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
+import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 
 export {
   captureMessagesFromStreamEvent,
@@ -903,111 +903,23 @@ ${prompt}${focusScope}`;
 
 /**
  * Lazy wrapper that defers agent construction until the first call.
- * Returns an object satisfying the shared {@link import('@archislop/shared').DiagramAgentService}
- * contract (with `invoke` and `applyStyleIntent` — both mermaid-only optional methods).
+ * Satisfies {@link import('@archislop/shared').DiagramAgentService} with
+ * `invoke` and `applyStyleIntent` — both mermaid-only optional methods.
  */
 export function createLazyMermaidAgentService({ stateStore, env = process.env }) {
-  let agentService;
-
-  function getAgentService() {
-    if (!isLlmConfigured(env)) {
-      throw new LlmNotConfiguredError();
-    }
-
-    agentService ??= createMermaidLangChainAgent({
-      stateStore,
-      env
-    });
-
-    return agentService;
-  }
-
-  return {
-    async invoke(input) {
-      return getAgentService().invoke(input);
+  return createLazyAgentService({
+    contentType: 'mermaid',
+    stateStore,
+    env,
+    buildService: () => createMermaidLangChainAgent({ stateStore, env }),
+    streamLabels: {
+      analyze: 'Analyzing diagram…',
+      intent: 'Applying your request…',
+      transform: 'Transforming diagram…'
     },
-
-    async applyIntent(input) {
-      return getAgentService().applyIntent(input);
-    },
-
-    async applyTransformIntent(input) {
-      return getAgentService().applyTransformIntent(input);
-    },
-
-    async applyAnalyzeIntent(input) {
-      return getAgentService().applyAnalyzeIntent(input);
-    },
-
-    async applyStyleIntent(input) {
-      return getAgentService().applyStyleIntent(input);
-    },
-
-    async runAgentStream(operation, payload, emit) {
-      const agent = getAgentService();
-      const modelProfile = payload.modelProfile;
-
-      if (typeof emit === 'function') {
-        if (operation === 'analyze') {
-          emit({ type: 'phase', id: 'analyze', label: 'Analyzing diagram…' });
-        } else if (operation === 'intent') {
-          emit({ type: 'phase', id: 'intent', label: 'Applying your request…' });
-        } else {
-          emit({ type: 'phase', id: 'transform', label: 'Transforming diagram…' });
-        }
-      }
-
-      if (operation === 'analyze') {
-        const result = await agent.applyAnalyzeIntent({
-          kind: payload.kind,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit
-        });
-        emitAnalyzeStreamArtifactsBeforeFinal(emit, {
-          kind: payload.kind,
-          analyzeText: result.message,
-          contentType: payload.contentType
-        });
-        emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
-        return result;
-      }
-
-      let agentResult;
-      if (operation === 'intent') {
-        agentResult = await agent.applyIntent({
-          prompt: payload.prompt,
-          settings: payload.settings ?? {},
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          peerContext: payload.peerContext,
-          abortSignal: payload.abortSignal
-        });
-      } else {
-        agentResult = await agent.applyTransformIntent({
-          mode: payload.mode,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          goMadDepth: payload.goMadDepth,
-          abortSignal: payload.abortSignal
-        });
-      }
-
-      const before = payload._revisionBefore;
-      emitIntentTransformStreamResult({
-        emit,
-        operation,
-        revisionBefore: before,
-        stateStore,
-        agentResult,
-        prompt: payload.prompt
-      });
-
-      return agentResult;
-    }
-  };
+    supportsInvoke: true,
+    supportsStyleIntent: true
+  });
 }
 
 export { INTENT_PROFILE_DEFAULTS };
