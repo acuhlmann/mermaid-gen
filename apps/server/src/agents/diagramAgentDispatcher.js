@@ -2,8 +2,15 @@ import { createLazyMermaidAgentService } from './mermaidLangChainAgent.js';
 import { createLazyInfographicAgentService } from './infographicLangChainAgent.js';
 
 /**
+ * @typedef {import('@archislop/shared').DiagramAgentService} DiagramAgentService
+ */
+
+/**
  * Routes diagram-agent calls to the Mermaid or Infographic service based on `contentType`.
- * Each contained service is lazy: the underlying agent is instantiated only on first use.
+ * Each contained service satisfies the shared `DiagramAgentService` contract and is
+ * lazy: the underlying agent is instantiated only on first use.
+ *
+ * @param {{ stateStore: unknown, env?: NodeJS.ProcessEnv }} args
  */
 export function createDiagramAgentDispatcher({ stateStore, env = process.env } = {}) {
   const mermaidService = createLazyMermaidAgentService({ stateStore, env });

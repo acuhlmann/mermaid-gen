@@ -999,6 +999,11 @@ ${prompt}${focusScope}`;
   };
 }
 
+/**
+ * Lazy wrapper that defers agent construction until the first call.
+ * Returns an object satisfying the shared {@link import('@archislop/shared').DiagramAgentService}
+ * contract (with `invoke` and `applyStyleIntent` — both mermaid-only optional methods).
+ */
 export function createLazyMermaidAgentService({ stateStore, env = process.env }) {
   let agentService;
 

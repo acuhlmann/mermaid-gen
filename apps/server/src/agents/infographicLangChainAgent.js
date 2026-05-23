@@ -775,6 +775,11 @@ export function createInfographicLangChainAgent({
   };
 }
 
+/**
+ * Lazy wrapper that defers agent construction until the first call.
+ * Returns an object satisfying the shared {@link import('@archislop/shared').DiagramAgentService}
+ * contract. Does not implement `invoke` or `applyStyleIntent` — those are mermaid-only.
+ */
 export function createLazyInfographicAgentService({ stateStore, env = process.env }) {
   let agentService;
 
