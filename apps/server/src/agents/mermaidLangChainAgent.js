@@ -11,7 +11,6 @@ import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
-import { emitStyleEditsBeforeFinal } from './styleEditsStream.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import {
   captureMessagesFromStreamEvent,
@@ -26,6 +25,7 @@ import {
   runAgentTurn,
   runInvokeWithStreamingKeepalive
 } from './_lib/diagramAgentStreaming.js';
+import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
 
 export {
   captureMessagesFromStreamEvent,
@@ -300,52 +300,12 @@ function formatAgentInvokeFailure(error, env = process.env) {
   };
 }
 
-/** User-visible SSE when a mutation stream ends without a diagram revision bump. */
-export const STREAM_ERROR_NO_MUTATION_REVISION =
-  'The diagram was not updated—no valid patch was applied. You can retry or switch model tier (Fast vs Quality).';
+import {
+  STREAM_ERROR_NO_MUTATION_REVISION,
+  emitIntentTransformStreamResult
+} from './_lib/diagramAgentStreamResult.js';
 
-/**
- * Emits `final` (and optionally `error` when no patch landed) for intent/transform agent streams.
- * @param {{ emit: (e: unknown) => void, operation: string, revisionBefore: unknown, stateStore: { getState: () => { revisionId: number } }, agentResult: { message?: string } | null | undefined }} args
- */
-export function emitIntentTransformStreamResult({
-  emit,
-  operation,
-  revisionBefore,
-  stateStore,
-  agentResult,
-  prompt,
-  contentType = 'mermaid'
-}) {
-  const slotKey = contentType === 'infographic' ? 'infographic' : 'mermaid';
-  let afterState = stateStore.getSlot(slotKey);
-  const revisionChanged =
-    typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
-
-  // Record the topic on a successful intent so mode-switch can carry it across.
-  if (revisionChanged && operation === 'intent' && typeof prompt === 'string') {
-    afterState = stateStore.setLastUserPrompt({ contentType: slotKey, prompt });
-    stateStore.mirrorLastUserPromptToSibling({ contentType: slotKey, prompt });
-  }
-
-  if (typeof emit === 'function' && !revisionChanged && (operation === 'intent' || operation === 'transform')) {
-    emit({
-      type: 'error',
-      code: 'no_mutation_revision',
-      message: STREAM_ERROR_NO_MUTATION_REVISION
-    });
-  }
-
-  if (typeof emit === 'function') {
-    emitStyleEditsBeforeFinal(emit, { message: agentResult?.message ?? '' });
-    emit({
-      type: 'final',
-      revisionChanged,
-      message: agentResult?.message ?? '',
-      state: revisionChanged ? afterState : undefined
-    });
-  }
-}
+export { STREAM_ERROR_NO_MUTATION_REVISION, emitIntentTransformStreamResult };
 
 /** Above this combined line count the O(M*N) LCS diff gets noticeable; we still emit the artifact but skip the per-line tally. */
 const PATCH_SUMMARY_DIFF_MAX_LINES = 800;
@@ -708,85 +668,27 @@ export function createMermaidLangChainAgent({
   chatModelFactory = defaultChatModelFactory
 }) {
   const tools = createDiagramTools({ stateStore });
-  const agentMiddleware = createDiagramAgentMiddleware(env);
-  const agentExtras = agentMiddleware.length > 0 ? { middleware: agentMiddleware } : {};
-  const agentCache = new Map();
-  /** Cached analysis chat models per (backend, modelId, kind). Analysis runs are stateless; the model is safe to reuse. */
-  const analysisModelCache = new Map();
-
-  function getAnalysisModel(backend, modelId, kind) {
-    const key = `analysis:${backend}:${modelId}:${kind}`;
-    if (!analysisModelCache.has(key)) {
-      analysisModelCache.set(
-        key,
-        chatModelFactory(env, {
-          model: modelId,
-          temperature: kind === 'critique' ? 0.52 : 0.42,
-          maxTokens: 1800,
-          maxOutputTokens: 1800
-        })
-      );
-    }
-    return analysisModelCache.get(key);
-  }
-
-  function chatModelFor(profile, extraOptions = {}) {
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, profile, backend);
-    return chatModelFactory(env, { model: modelId, ...extraOptions });
-  }
+  const cache = createDiagramAgentCache({
+    env,
+    systemPrompt: SYSTEM_PROMPT,
+    tools,
+    chatModelFactory,
+    createAgentImpl,
+    middleware: createDiagramAgentMiddleware(env)
+  });
 
   /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
-  function getDefaultAgent(profile = 'fast') {
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const key = `default:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: chatModelFor(p),
-          tools,
-          systemPrompt: SYSTEM_PROMPT,
-          ...agentExtras
-        })
-      );
-    }
-    return agentCache.get(key);
-  }
+  const getDefaultAgent = cache.getDefaultAgent;
 
   /** Shape buttons Refine / Innovate / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const m = isTransformMode(mode) ? mode : 'refine';
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
-    const key =
-      m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      const tm = chatModelFor(p, transformModeModelOptions(m, madDepth ?? 1));
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: tm,
-          tools,
-          systemPrompt: SYSTEM_PROMPT,
-          ...agentExtras
-        })
-      );
-    }
-    return agentCache.get(key);
+    const safeMode = isTransformMode(mode) ? mode : 'refine';
+    return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 
-  function resolveModelLabel(profile) {
-    const backend = resolveLlmBackend(env);
-    if (!backend) return null;
-    const p = normalizeModelProfile(profile);
-    const modelId = resolveModelId(env, p, backend);
-    return `${backend}:${modelId}`;
-  }
+  const getAnalysisModel = cache.getAnalysisModel;
+  const chatModelFor = cache.chatModelFor;
+  const resolveModelLabel = cache.resolveModelLabel;
 
   async function invokeMutation(agent, userMessages, opts, emit) {
     return invokeWithRepair(

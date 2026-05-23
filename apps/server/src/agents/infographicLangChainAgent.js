@@ -25,15 +25,14 @@ import {
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
+import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
 import {
-  buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
   buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
-  clampGoMadDepth,
-  emitIntentTransformStreamResult,
-  goMadTransformModelOptions,
-  normalizeModelProfile,
-  transformModeModelOptions
-} from './mermaidLangChainAgent.js';
+  buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
+  clampGoMadDepth
+} from './mermaidAnalysisPrompts.js';
+import { normalizeModelProfile } from './llmProvider.js';
+import { emitIntentTransformStreamResult } from './_lib/diagramAgentStreamResult.js';
 import {
   buildInfographicFocusScopeInstructions,
   buildInfographicAnalyzeFocusInstructions
@@ -535,90 +534,32 @@ export function createInfographicLangChainAgent({
   chatModelFactory = defaultChatModelFactory
 }) {
   const tools = createInfographicTools({ stateStore });
-  const agentCache = new Map();
-  const analysisModelCache = new Map();
+  const cache = createDiagramAgentCache({
+    env,
+    systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT,
+    tools,
+    chatModelFactory,
+    createAgentImpl
+  });
 
-  function chatModelFor(profile, extraOptions = {}) {
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, profile, backend);
-    return chatModelFactory(env, { model: modelId, ...extraOptions });
-  }
-
-  function getDefaultAgent(profile = 'fast') {
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const key = `default:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: chatModelFor(p),
-          tools,
-          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
-        })
-      );
-    }
-    return agentCache.get(key);
-  }
+  const getDefaultAgent = cache.getDefaultAgent;
 
   /** Same tools/prompt as the default intent agent, but low temperature for prose-only retries. */
   function getStableIntentAgent(profile = 'fast') {
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const key = `intent-stable:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: chatModelFor(p, { temperature: 0.06 }),
-          tools,
-          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
-        })
-      );
-    }
-    return agentCache.get(key);
+    return cache.getCustomAgent({
+      keyPrefix: 'intent-stable',
+      profile,
+      modelOptions: { temperature: 0.06 }
+    });
   }
 
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const m =
+    const safeMode =
       mode === 'refine' || mode === 'innovate' || mode === 'goMad' || mode === 'exec' ? mode : 'refine';
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
-    const key =
-      m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      const tm = chatModelFor(p, transformModeModelOptions(m, madDepth ?? 1));
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: tm,
-          tools,
-          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
-        })
-      );
-    }
-    return agentCache.get(key);
+    return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 
-  function getAnalysisModel(backend, modelId, kind) {
-    const key = `analysis:${backend}:${modelId}:${kind}`;
-    if (!analysisModelCache.has(key)) {
-      analysisModelCache.set(
-        key,
-        chatModelFactory(env, {
-          model: modelId,
-          temperature: kind === 'critique' ? 0.52 : 0.42,
-          maxTokens: 1800,
-          maxOutputTokens: 1800
-        })
-      );
-    }
-    return analysisModelCache.get(key);
-  }
+  const getAnalysisModel = cache.getAnalysisModel;
 
   return {
     async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, transformPersona, abortSignal }) {
