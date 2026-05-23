@@ -663,7 +663,7 @@ async function invokeWithRepair(
 
   const turnStarted = Date.now();
   const runProfile = normalizeModelProfile(profile);
-  const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
+  const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
   let repairAttempts = 0;
   /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
   const finishTurn = (sample) => {
