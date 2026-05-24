@@ -132,6 +132,9 @@ function main() {
 
   if (flags.shared) {
     run('npm', ['run', 'check:fast'], 'check:fast (packages/shared)');
+    // tsconfig.build.json differs from tsconfig.json (e.g. types: []),
+    // so typecheck alone can miss errors that fail the CI build.
+    run('npm', ['run', 'build', '-w', 'packages/shared'], 'build (packages/shared)');
     ran = true;
   }
 
