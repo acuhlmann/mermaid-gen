@@ -4,6 +4,7 @@ export * from './legacyStreamEvents.js';
 export * from './agentStreamEmitter.js';
 export * from './agentRunBudget.js';
 export * from './diagramSchema.js';
+export * from './diagramAgentService.js';
 export * from './mermaidStyle.js';
 export * from './mermaidSanitizer.js';
 export * from './critiqueActionable.js';

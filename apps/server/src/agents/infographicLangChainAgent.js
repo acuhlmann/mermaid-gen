@@ -10,27 +10,26 @@ import {
   buildInfographicRepairInstruction
 } from '../prompts/infographicSyntaxGuard.js';
 import {
-  LlmNotConfiguredError,
-  isLlmConfigured,
   createLlmChatModel,
-  createOpenRouterModel,
   resolveLlmBackend,
   resolveModelId
 } from './llmProvider.js';
-import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
 import {
-  buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
-  buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
   captureMessagesFromStreamEvent,
-  clampGoMadDepth,
-  emitIntentTransformStreamResult,
   extractFinalMessage,
-  goMadTransformModelOptions,
+  extractLastAttemptedToolSource,
+  extractToolFailureError,
   normalizeAgentStreamEvent,
-  normalizeModelProfile,
-  toLangChainMessages,
-  transformModeModelOptions
-} from './mermaidLangChainAgent.js';
+  toLangChainMessages
+} from './_lib/diagramAgentHelpers.js';
+import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
+import { createLazyAgentService } from './_lib/createLazyAgentService.js';
+import {
+  buildAnalyzeFocusInstructions as buildMermaidAnalyzeFocusInstructions,
+  buildFocusScopeInstructions as buildMermaidFocusScopeInstructions,
+  clampGoMadDepth
+} from './mermaidAnalysisPrompts.js';
+import { normalizeModelProfile } from './llmProvider.js';
 import {
   buildInfographicFocusScopeInstructions,
   buildInfographicAnalyzeFocusInstructions
@@ -366,7 +365,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     }
 
     // Patch was required but not produced. Build a repair turn.
-    let failureError = extractToolFailureMessage(result);
+    let failureError = extractToolFailureError(result);
 
     // Prose-in-body recovery: models sometimes stream DSL as plain assistant text (zero tool
     // calls). Try the same apply path the tool uses; on failure, fall through so the syntax
@@ -394,7 +393,8 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
 
     if (failureError) {
       lastError = failureError;
-      lastBrokenSource = extractLastAttemptedDsl(result) || lastBrokenSource;
+      lastBrokenSource =
+        extractLastAttemptedToolSource(result, 'apply_infographic_patch') || lastBrokenSource;
 
       // (a) Tool-less single-shot syntax fixer: runs ONCE before the next full agent retry.
       // Mirrors the Mermaid pattern (mermaidLangChainAgent.js around line 949). The fixer is
@@ -493,29 +493,6 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   };
 }
 
-function extractToolFailureMessage(result) {
-  // Scan every message's content for a JSON-stringified `{accepted:false, error}` payload —
-  // the apply_infographic_patch tool always serializes its result to JSON. We deliberately
-  // don't gate on `tool_call_id` because LangChain v1 stream events sometimes deliver
-  // tool messages without that field exposed where we'd look (it can land on the class
-  // instance, on `kwargs`, on `lc_kwargs`, or be stripped during serialization). The
-  // content-shape check is robust to all of those.
-  const messages = result?.messages ?? [];
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const text = extractTextContent(messages[i]?.content ?? messages[i]?.kwargs?.content ?? '').trim();
-    if (!text) continue;
-    try {
-      const parsed = JSON.parse(text);
-      if (parsed && parsed.accepted === false && typeof parsed.error === 'string') {
-        return parsed.error;
-      }
-    } catch {
-      // Not JSON — keep walking back.
-    }
-  }
-  return null;
-}
-
 function summarizeAttempts(result) {
   const messages = result?.messages ?? [];
   let toolCalls = 0;
@@ -547,34 +524,6 @@ function summarizeAttempts(result) {
   };
 }
 
-function extractLastAttemptedDsl(result) {
-  const messages = result?.messages ?? [];
-  for (let i = messages.length - 1; i >= 0; i -= 1) {
-    const m = messages[i];
-    const toolCalls = m?.tool_calls ?? m?.kwargs?.tool_calls ?? [];
-    for (const call of toolCalls) {
-      const name = call?.name ?? call?.function?.name;
-      if (name !== 'apply_infographic_patch') continue;
-      const args =
-        call?.args ?? (typeof call?.function?.arguments === 'string'
-          ? safeParseJson(call.function.arguments)
-          : call?.function?.arguments) ?? {};
-      if (typeof args.diagramSource === 'string' && args.diagramSource.trim()) {
-        return args.diagramSource;
-      }
-    }
-  }
-  return null;
-}
-
-function safeParseJson(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
 export function createInfographicLangChainAgent({
   stateStore,
   env = process.env,
@@ -582,90 +531,32 @@ export function createInfographicLangChainAgent({
   chatModelFactory = defaultChatModelFactory
 }) {
   const tools = createInfographicTools({ stateStore });
-  const agentCache = new Map();
-  const analysisModelCache = new Map();
+  const cache = createDiagramAgentCache({
+    env,
+    systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT,
+    tools,
+    chatModelFactory,
+    createAgentImpl
+  });
 
-  function chatModelFor(profile, extraOptions = {}) {
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, profile, backend);
-    return chatModelFactory(env, { model: modelId, ...extraOptions });
-  }
-
-  function getDefaultAgent(profile = 'fast') {
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const key = `default:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: chatModelFor(p),
-          tools,
-          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
-        })
-      );
-    }
-    return agentCache.get(key);
-  }
+  const getDefaultAgent = cache.getDefaultAgent;
 
   /** Same tools/prompt as the default intent agent, but low temperature for prose-only retries. */
   function getStableIntentAgent(profile = 'fast') {
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const key = `intent-stable:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: chatModelFor(p, { temperature: 0.06 }),
-          tools,
-          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
-        })
-      );
-    }
-    return agentCache.get(key);
+    return cache.getCustomAgent({
+      keyPrefix: 'intent-stable',
+      profile,
+      modelOptions: { temperature: 0.06 }
+    });
   }
 
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const m =
+    const safeMode =
       mode === 'refine' || mode === 'innovate' || mode === 'goMad' || mode === 'exec' ? mode : 'refine';
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
-    const key =
-      m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      const tm = chatModelFor(p, transformModeModelOptions(m, madDepth ?? 1));
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: tm,
-          tools,
-          systemPrompt: INFOGRAPHIC_SYSTEM_PROMPT
-        })
-      );
-    }
-    return agentCache.get(key);
+    return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 
-  function getAnalysisModel(backend, modelId, kind) {
-    const key = `analysis:${backend}:${modelId}:${kind}`;
-    if (!analysisModelCache.has(key)) {
-      analysisModelCache.set(
-        key,
-        chatModelFactory(env, {
-          model: modelId,
-          temperature: kind === 'critique' ? 0.52 : 0.42,
-          maxTokens: 1800,
-          maxOutputTokens: 1800
-        })
-      );
-    }
-    return analysisModelCache.get(key);
-  }
+  const getAnalysisModel = cache.getAnalysisModel;
 
   return {
     async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, transformPersona, abortSignal }) {
@@ -822,92 +713,23 @@ export function createInfographicLangChainAgent({
   };
 }
 
+/**
+ * Lazy wrapper that defers agent construction until the first call.
+ * Satisfies {@link import('@archislop/shared').DiagramAgentService}.
+ * Does not implement `invoke` or `applyStyleIntent` — those are mermaid-only.
+ */
 export function createLazyInfographicAgentService({ stateStore, env = process.env }) {
-  let agentService;
-
-  function getAgentService() {
-    if (!isLlmConfigured(env)) {
-      throw new LlmNotConfiguredError();
-    }
-    agentService ??= createInfographicLangChainAgent({ stateStore, env });
-    return agentService;
-  }
-
-  return {
-    async applyIntent(input) {
-      return getAgentService().applyIntent(input);
+  return createLazyAgentService({
+    contentType: 'infographic',
+    stateStore,
+    env,
+    buildService: () => createInfographicLangChainAgent({ stateStore, env }),
+    streamLabels: {
+      analyze: 'Analyzing infographic…',
+      intent: 'Applying your request…',
+      transform: 'Transforming infographic…'
     },
-    async applyTransformIntent(input) {
-      return getAgentService().applyTransformIntent(input);
-    },
-    async applyAnalyzeIntent(input) {
-      return getAgentService().applyAnalyzeIntent(input);
-    },
-    async runAgentStream(operation, payload, emit) {
-      const agent = getAgentService();
-      const modelProfile = payload.modelProfile;
-
-      if (typeof emit === 'function') {
-        if (operation === 'analyze') {
-          emit({ type: 'phase', id: 'analyze', label: 'Analyzing infographic…' });
-        } else if (operation === 'intent') {
-          emit({ type: 'phase', id: 'intent', label: 'Applying your request…' });
-        } else {
-          emit({ type: 'phase', id: 'transform', label: 'Transforming infographic…' });
-        }
-      }
-
-      if (operation === 'analyze') {
-        const result = await agent.applyAnalyzeIntent({
-          kind: payload.kind,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit
-        });
-        emitAnalyzeStreamArtifactsBeforeFinal(emit, {
-          kind: payload.kind,
-          analyzeText: result.message,
-          contentType: payload.contentType
-        });
-        emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
-        return result;
-      }
-
-      let agentResult;
-      if (operation === 'intent') {
-        agentResult = await agent.applyIntent({
-          prompt: payload.prompt,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          peerContext: payload.peerContext,
-          transformPersona: payload.transformPersona,
-          abortSignal: payload.abortSignal
-        });
-      } else {
-        agentResult = await agent.applyTransformIntent({
-          mode: payload.mode,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          goMadDepth: payload.goMadDepth,
-          advisorPrompt: payload.advisorPrompt,
-          abortSignal: payload.abortSignal
-        });
-      }
-
-      const before = payload._revisionBefore;
-      emitIntentTransformStreamResult({
-        emit,
-        operation,
-        revisionBefore: before,
-        stateStore,
-        agentResult,
-        prompt: payload.prompt,
-        contentType: 'infographic'
-      });
-
-      return agentResult;
-    }
-  };
+    intentExtraFields: ['transformPersona'],
+    transformExtraFields: ['advisorPrompt']
+  });
 }

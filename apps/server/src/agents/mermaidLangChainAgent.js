@@ -4,23 +4,48 @@ import { createDiagramTools } from './diagramTools.js';
 import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { computeLineDiffStats } from '../utils/patchLineStats.js';
-import { createDiagramAgentMiddleware, getAgentRunnableConfig } from './agentGraphConfig.js';
+import { createDiagramAgentMiddleware } from './agentGraphConfig.js';
 import { recordAgentTurn, classifyAgentTurnError } from '../metrics/agentTurnMetrics.js';
 import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
-import { emitAnalyzeStreamArtifactsBeforeFinal } from './agentStreamAnalyzeFinalize.js';
-import { emitStyleEditsBeforeFinal } from './styleEditsStream.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
+import {
+  captureMessagesFromStreamEvent,
+  extractFinalMessage,
+  extractLastAttemptedToolSource,
+  extractToolFailureError,
+  normalizeAgentStreamEvent,
+  toLangChainMessages
+} from './_lib/diagramAgentHelpers.js';
+import {
+  resolveInvokeKeepaliveIntervalMs,
+  runAgentTurn,
+  runInvokeWithStreamingKeepalive
+} from './_lib/diagramAgentStreaming.js';
+import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
+import { createLazyAgentService } from './_lib/createLazyAgentService.js';
+
+export {
+  captureMessagesFromStreamEvent,
+  extractFinalMessage,
+  normalizeAgentStreamEvent,
+  resolveInvokeKeepaliveIntervalMs,
+  runInvokeWithStreamingKeepalive,
+  toLangChainMessages
+};
+
+/** Mermaid-specialized lookup of the last patch source attempted in this run. */
+export function extractLastAttemptedMermaidSource(result) {
+  return extractLastAttemptedToolSource(result, 'apply_mermaid_patch');
+}
 import {
   buildAgentRunBudgetExceededMessage,
   inferMermaidTopKeyword,
   isMermaidTransformConstraintError,
   resolveAgentRepairMaxAttempts,
-  resolveAgentRunBudgetMs,
-  ToolApplyResultSchema
+  resolveAgentRunBudgetMs
 } from '@archislop/shared';
 import {
   createLlmChatModel,
@@ -112,46 +137,11 @@ When the user asks for a diagram change:
 
 When the user asks a general question, answer concisely.`;
 
-const INTERNAL_TOOL_NAME_PATTERN = /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch)\b/;
-const REPAIR_ERROR_PATTERN = /not valid mermaid|validation failed|parser rejected|missing known diagram type/i;
+const REPAIR_ERROR_PATTERN =
+  /not valid mermaid|validation failed|parser rejected|missing known diagram type/i;
 
 function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
-}
-
-function normalizeMessageContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) {
-    return content
-      .map((part) => {
-        if (typeof part === 'string') return part;
-        if (part?.type === 'text') return part.text;
-        return '';
-      })
-      .filter(Boolean)
-      .join('\n');
-  }
-  return content == null ? '' : String(content);
-}
-
-export function toLangChainMessages(messages) {
-  return messages
-    .map((message) => {
-      const content = normalizeMessageContent(message.content);
-      if (!content) return null;
-
-      if (message.role === 'assistant') {
-        if (INTERNAL_TOOL_NAME_PATTERN.test(content)) return null;
-        return { role: 'assistant', content };
-      }
-
-      if (message.role === 'system') {
-        return { role: 'system', content };
-      }
-
-      return { role: 'user', content };
-    })
-    .filter(Boolean);
 }
 
 function createCurrentDiagramContextMessage(stateStore) {
@@ -182,110 +172,6 @@ Peer Infographic DSL:
 ${peerDiagramSource}
 \`\`\``
   };
-}
-
-export function extractFinalMessage(result) {
-  const messages = result?.messages ?? [];
-  const lastAssistant = messages
-    .toReversed()
-    .find((message) => message?._getType?.() === 'ai' || message?.role === 'assistant' || message?.type === 'ai');
-
-  return extractTextContent(lastAssistant?.content).trim() || 'Done.';
-}
-
-function extractToolFailureError(result) {
-  const messages = result?.messages ?? [];
-  for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
-    const content = extractTextContent(messages[idx]?.content).trim();
-    if (!content) continue;
-    let raw;
-    try {
-      raw = JSON.parse(content);
-    } catch {
-      continue;
-    }
-    const parsed = ToolApplyResultSchema.safeParse(raw);
-    if (parsed.success && !parsed.data.accepted) {
-      return parsed.data.error;
-    }
-  }
-  return null;
-}
-
-/**
- * Pulls the most recent `apply_mermaid_patch` input from an agent result so the syntax fixer
- * (and the enriched repair instruction) can show the LLM exactly what it tried before.
- * Walks the message history backwards looking for assistant tool-call args.
- */
-export function extractLastAttemptedMermaidSource(result) {
-  const messages = result?.messages ?? [];
-  for (let idx = messages.length - 1; idx >= 0; idx -= 1) {
-    const msg = messages[idx];
-    const calls =
-      (Array.isArray(msg?.tool_calls) && msg.tool_calls) ||
-      (Array.isArray(msg?.toolCalls) && msg.toolCalls) ||
-      (Array.isArray(msg?.kwargs?.tool_calls) && msg.kwargs.tool_calls) ||
-      [];
-    for (let j = calls.length - 1; j >= 0; j -= 1) {
-      const c = calls[j];
-      const name = c?.name ?? c?.function?.name ?? '';
-      if (name !== 'apply_mermaid_patch') continue;
-      const argsRaw = c?.args ?? c?.arguments ?? c?.function?.arguments;
-      if (argsRaw == null) continue;
-      let args = argsRaw;
-      if (typeof argsRaw === 'string') {
-        try {
-          args = JSON.parse(argsRaw);
-        } catch {
-          continue;
-        }
-      }
-      if (args && typeof args.diagramSource === 'string' && args.diagramSource.trim()) {
-        return args.diagramSource;
-      }
-    }
-  }
-  return null;
-}
-
-export function normalizeAgentStreamEvent(event) {
-  const ev = event?.event ?? '';
-  const data = event?.data ?? {};
-
-  if (/stream/i.test(ev) && data.chunk !== undefined) {
-    const text = tokenFromLangChainChunk(data.chunk);
-    if (text) return { type: 'token', text };
-  }
-
-  if (ev.includes('tool_start') || ev === 'on_tool_start') {
-    const name =
-      data.name ??
-      data.toolName ??
-      (data.input && typeof data.input === 'object' ? data.input.name : undefined) ??
-      event?.name ??
-      '';
-    return { type: 'tool_start', name: String(name) };
-  }
-  if (ev.includes('tool_end') || ev === 'on_tool_end') {
-    const name =
-      data.name ??
-      data.toolName ??
-      (data.output && typeof data.output === 'object' ? data.output.name : undefined) ??
-      event?.name ??
-      '';
-    return { type: 'tool_end', name: String(name) };
-  }
-
-  return null;
-}
-
-function tokenFromLangChainChunk(chunk) {
-  if (!chunk) return '';
-  if (typeof chunk.content === 'string') return chunk.content;
-  if (Array.isArray(chunk.content)) {
-    return chunk.content.map((p) => (typeof p === 'string' ? p : p?.text ?? '')).join('');
-  }
-  return '';
 }
 
 export function shouldAttemptSyntaxRepair(errorMessage) {
@@ -414,191 +300,12 @@ function formatAgentInvokeFailure(error, env = process.env) {
   };
 }
 
-export function captureMessagesFromStreamEvent(event, prev) {
-  const data = event?.data ?? {};
-  const msgs = data.output?.messages;
-  if (Array.isArray(msgs) && msgs.length > 0) return msgs;
-  return prev;
-}
+import {
+  STREAM_ERROR_NO_MUTATION_REVISION,
+  emitIntentTransformStreamResult
+} from './_lib/diagramAgentStreamResult.js';
 
-/** User-visible SSE when a mutation stream ends without a diagram revision bump. */
-export const STREAM_ERROR_NO_MUTATION_REVISION =
-  'The diagram was not updated—no valid patch was applied. You can retry or switch model tier (Fast vs Quality).';
-
-/**
- * Emits `final` (and optionally `error` when no patch landed) for intent/transform agent streams.
- * @param {{ emit: (e: unknown) => void, operation: string, revisionBefore: unknown, stateStore: { getState: () => { revisionId: number } }, agentResult: { message?: string } | null | undefined }} args
- */
-export function emitIntentTransformStreamResult({
-  emit,
-  operation,
-  revisionBefore,
-  stateStore,
-  agentResult,
-  prompt,
-  contentType = 'mermaid'
-}) {
-  const slotKey = contentType === 'infographic' ? 'infographic' : 'mermaid';
-  let afterState = stateStore.getSlot(slotKey);
-  const revisionChanged =
-    typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
-
-  // Record the topic on a successful intent so mode-switch can carry it across.
-  if (revisionChanged && operation === 'intent' && typeof prompt === 'string') {
-    afterState = stateStore.setLastUserPrompt({ contentType: slotKey, prompt });
-    stateStore.mirrorLastUserPromptToSibling({ contentType: slotKey, prompt });
-  }
-
-  if (typeof emit === 'function' && !revisionChanged && (operation === 'intent' || operation === 'transform')) {
-    emit({
-      type: 'error',
-      code: 'no_mutation_revision',
-      message: STREAM_ERROR_NO_MUTATION_REVISION
-    });
-  }
-
-  if (typeof emit === 'function') {
-    emitStyleEditsBeforeFinal(emit, { message: agentResult?.message ?? '' });
-    emit({
-      type: 'final',
-      revisionChanged,
-      message: agentResult?.message ?? '',
-      state: revisionChanged ? afterState : undefined
-    });
-  }
-}
-
-/** Interval between SSE status pings while `agent.invoke` runs (keeps client idle watchdog fed). */
-const DEFAULT_INVOKE_KEEPALIVE_MS = 18_000;
-
-/**
- * @param {NodeJS.ProcessEnv} [env]
- * @returns {number}
- */
-export function resolveInvokeKeepaliveIntervalMs(env = process.env) {
-  const raw = env.MERMAID_INVOKE_KEEPALIVE_MS;
-  if (raw === undefined || raw === '') return DEFAULT_INVOKE_KEEPALIVE_MS;
-  const n = Number.parseInt(String(raw), 10);
-  if (!Number.isFinite(n) || n < 500) return DEFAULT_INVOKE_KEEPALIVE_MS;
-  return Math.min(120_000, n);
-}
-
-/**
- * Wraps a blocking `agent.invoke` with periodic `status` events so SSE consumers do not hit idle timeouts.
- * @param {(e: { type: string, text?: string }) => void} emit
- * @param {NodeJS.ProcessEnv} env
- * @param {() => Promise<unknown>} invokeAsync
- */
-export async function runInvokeWithStreamingKeepalive(emit, env, invokeAsync) {
-  if (typeof emit !== 'function') {
-    return invokeAsync();
-  }
-  const intervalMs = resolveInvokeKeepaliveIntervalMs(env);
-  const id = setInterval(() => {
-    emit({ type: 'status', text: 'Still working…' });
-  }, intervalMs);
-  try {
-    return await invokeAsync();
-  } finally {
-    clearInterval(id);
-  }
-}
-
-/** Lower bound on stream heartbeat cadence (ms) so the client watchdog never trips on a silent model. */
-const STREAM_HEARTBEAT_MS = 6_000;
-
-function resolveStreamHeartbeatMs(env) {
-  const raw = env?.MERMAID_STREAM_HEARTBEAT_MS;
-  if (raw == null || raw === '') return STREAM_HEARTBEAT_MS;
-  const n = Number.parseInt(String(raw), 10);
-  if (!Number.isFinite(n) || n < 1000) return STREAM_HEARTBEAT_MS;
-  return Math.min(60_000, n);
-}
-
-async function streamReactAgentEvents(agent, inputMessages, emit, env, abortSignal) {
-  const runnableConfig = {
-    ...getAgentRunnableConfig(env),
-    ...(abortSignal ? { signal: abortSignal } : {})
-  };
-  let latestMessages = [];
-  const patchTelemetry =
-    typeof emit === 'function'
-      ? createPatchToolStreamTracker({
-          emit,
-          patchToolName: 'apply_mermaid_patch',
-          contentType: 'mermaid',
-          emitDraftPreview: false
-        })
-      : null;
-
-  // Heartbeat keeps the SSE consumer alive when the model is internally working but not yet
-  // emitting normalized events (tokens, tool starts, tool ends). Without this, a slow first
-  // token (or a stuck repair turn) looks like a stall to the client watchdog. Resets on any
-  // emitted event so a healthy stream costs nothing.
-  let lastActivity = Date.now();
-  const intervalMs = resolveStreamHeartbeatMs(env);
-  const heartbeat = typeof emit === 'function'
-    ? setInterval(() => {
-        if (Date.now() - lastActivity >= intervalMs) {
-          emit({ type: 'status', text: 'Thinking…' });
-          lastActivity = Date.now();
-        }
-      }, intervalMs)
-    : null;
-
-  try {
-    const stream = await agent.streamEvents({ messages: inputMessages }, { version: 'v2', ...runnableConfig });
-    for await (const ev of stream) {
-      latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
-      const normalized = normalizeAgentStreamEvent(ev);
-      if (normalized) {
-        emit(normalized);
-        lastActivity = Date.now();
-      }
-      if (patchTelemetry && ev?.event === 'on_chat_model_stream') {
-        const chunks = ev.data?.chunk?.tool_call_chunks;
-        if (Array.isArray(chunks) && chunks.length > 0) {
-          patchTelemetry.processToolCallChunks(chunks);
-          lastActivity = Date.now();
-        }
-      }
-    }
-  } catch (error) {
-    emit({
-      type: 'error',
-      message: redactSecrets(error instanceof Error ? error.message : String(error))
-    });
-  } finally {
-    if (heartbeat) clearInterval(heartbeat);
-  }
-  return { messages: latestMessages };
-}
-
-/**
- * Runs one agent turn against `inputMessages`.
- * When `emit` is provided, prefers streamed events so tokens flow to the UI during retries.
- * Falls back to `agent.invoke` if the stream yielded no messages (and emits `invoke_fallback`
- * telemetry so we can measure how often the silent fallback fires).
- */
-async function runAgentTurn(agent, inputMessages, emit, env, abortSignal) {
-  const runnableConfig = {
-    ...getAgentRunnableConfig(env),
-    ...(abortSignal ? { signal: abortSignal } : {})
-  };
-  if (typeof emit !== 'function') {
-    return agent.invoke({ messages: inputMessages }, runnableConfig);
-  }
-
-  const streamed = await streamReactAgentEvents(agent, inputMessages, emit, env, abortSignal);
-  if (streamed.messages?.length) {
-    return streamed;
-  }
-
-  emit({ type: 'phase', id: 'invoke_fallback', label: 'Finalizing response…' });
-  return runInvokeWithStreamingKeepalive(emit, env, () =>
-    agent.invoke({ messages: inputMessages }, runnableConfig)
-  );
-}
+export { STREAM_ERROR_NO_MUTATION_REVISION, emitIntentTransformStreamResult };
 
 /** Above this combined line count the O(M*N) LCS diff gets noticeable; we still emit the artifact but skip the per-line tally. */
 const PATCH_SUMMARY_DIFF_MAX_LINES = 800;
@@ -729,7 +436,16 @@ async function invokeWithRepair(
 
   let firstResult;
   try {
-    firstResult = await runAgentTurn(agent, baseMessages, emit, env, abortSignal);
+    firstResult = await runAgentTurn({
+      agent,
+      inputMessages: baseMessages,
+      emit,
+      env,
+      abortSignal,
+      patchToolName: 'apply_mermaid_patch',
+      contentType: 'mermaid',
+      emitDraftPreview: false
+    });
   } catch (error) {
     finishTurn({ accepted: false, errorClass: 'invoke-error' });
     return formatAgentInvokeFailure(error, env);
@@ -775,13 +491,16 @@ async function invokeWithRepair(
             : 'Retrying: diagram patch required…'
         });
       }
-      const patchRetryResult = await runAgentTurn(
-        retryAgent,
-        [...baseMessages, buildPatchRequiredInstruction({ messages })],
+      const patchRetryResult = await runAgentTurn({
+        agent: retryAgent,
+        inputMessages: [...baseMessages, buildPatchRequiredInstruction({ messages })],
         emit,
         env,
-        abortSignal
-      );
+        abortSignal,
+        patchToolName: 'apply_mermaid_patch',
+        contentType: 'mermaid',
+        emitDraftPreview: false
+      });
       if (stateStore.getSlot('mermaid').revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
         finishTurn({ accepted: true, validator: usingStable ? 'patch-retry-stable' : 'patch-retry' });
@@ -889,9 +608,9 @@ async function invokeWithRepair(
         emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt} of ${maxRepairAttempts})…` });
         emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})…` });
       }
-      retryResult = await runAgentTurn(
-        repairAgent,
-        [
+      retryResult = await runAgentTurn({
+        agent: repairAgent,
+        inputMessages: [
           ...baseMessages,
           buildSyntaxRepairInstruction({
             messages,
@@ -902,8 +621,11 @@ async function invokeWithRepair(
         ],
         emit,
         env,
-        abortSignal
-      );
+        abortSignal,
+        patchToolName: 'apply_mermaid_patch',
+        contentType: 'mermaid',
+        emitDraftPreview: false
+      });
     } catch (error) {
       finishTurn({ accepted: false, errorClass: 'invoke-error' });
       return formatAgentInvokeFailure(error, env);
@@ -946,85 +668,27 @@ export function createMermaidLangChainAgent({
   chatModelFactory = defaultChatModelFactory
 }) {
   const tools = createDiagramTools({ stateStore });
-  const agentMiddleware = createDiagramAgentMiddleware(env);
-  const agentExtras = agentMiddleware.length > 0 ? { middleware: agentMiddleware } : {};
-  const agentCache = new Map();
-  /** Cached analysis chat models per (backend, modelId, kind). Analysis runs are stateless; the model is safe to reuse. */
-  const analysisModelCache = new Map();
-
-  function getAnalysisModel(backend, modelId, kind) {
-    const key = `analysis:${backend}:${modelId}:${kind}`;
-    if (!analysisModelCache.has(key)) {
-      analysisModelCache.set(
-        key,
-        chatModelFactory(env, {
-          model: modelId,
-          temperature: kind === 'critique' ? 0.52 : 0.42,
-          maxTokens: 1800,
-          maxOutputTokens: 1800
-        })
-      );
-    }
-    return analysisModelCache.get(key);
-  }
-
-  function chatModelFor(profile, extraOptions = {}) {
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, profile, backend);
-    return chatModelFactory(env, { model: modelId, ...extraOptions });
-  }
+  const cache = createDiagramAgentCache({
+    env,
+    systemPrompt: SYSTEM_PROMPT,
+    tools,
+    chatModelFactory,
+    createAgentImpl,
+    middleware: createDiagramAgentMiddleware(env)
+  });
 
   /** Prompt-bar Go (`applyIntent`) and generic `invoke` — does not use transform/Go Mad sampling. */
-  function getDefaultAgent(profile = 'fast') {
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const key = `default:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: chatModelFor(p),
-          tools,
-          systemPrompt: SYSTEM_PROMPT,
-          ...agentExtras
-        })
-      );
-    }
-    return agentCache.get(key);
-  }
+  const getDefaultAgent = cache.getDefaultAgent;
 
   /** Shape buttons Refine / Innovate / Go Mad / Align — hotter tiers apply only to Go Mad via `goMadTransformModelOptions`. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
-    const m = isTransformMode(mode) ? mode : 'refine';
-    const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
-    const modelId = resolveModelId(env, p, backend);
-    const madDepth = m === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
-    const key =
-      m === 'goMad' ? `transform:${m}:${backend}:${modelId}:d${madDepth}` : `transform:${m}:${backend}:${modelId}`;
-    if (!agentCache.has(key)) {
-      const tm = chatModelFor(p, transformModeModelOptions(m, madDepth ?? 1));
-      agentCache.set(
-        key,
-        createAgentImpl({
-          model: tm,
-          tools,
-          systemPrompt: SYSTEM_PROMPT,
-          ...agentExtras
-        })
-      );
-    }
-    return agentCache.get(key);
+    const safeMode = isTransformMode(mode) ? mode : 'refine';
+    return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 
-  function resolveModelLabel(profile) {
-    const backend = resolveLlmBackend(env);
-    if (!backend) return null;
-    const p = normalizeModelProfile(profile);
-    const modelId = resolveModelId(env, p, backend);
-    return `${backend}:${modelId}`;
-  }
+  const getAnalysisModel = cache.getAnalysisModel;
+  const chatModelFor = cache.chatModelFor;
+  const resolveModelLabel = cache.resolveModelLabel;
 
   async function invokeMutation(agent, userMessages, opts, emit) {
     return invokeWithRepair(
@@ -1237,108 +901,25 @@ ${prompt}${focusScope}`;
   };
 }
 
+/**
+ * Lazy wrapper that defers agent construction until the first call.
+ * Satisfies {@link import('@archislop/shared').DiagramAgentService} with
+ * `invoke` and `applyStyleIntent` — both mermaid-only optional methods.
+ */
 export function createLazyMermaidAgentService({ stateStore, env = process.env }) {
-  let agentService;
-
-  function getAgentService() {
-    if (!isLlmConfigured(env)) {
-      throw new LlmNotConfiguredError();
-    }
-
-    agentService ??= createMermaidLangChainAgent({
-      stateStore,
-      env
-    });
-
-    return agentService;
-  }
-
-  return {
-    async invoke(input) {
-      return getAgentService().invoke(input);
+  return createLazyAgentService({
+    contentType: 'mermaid',
+    stateStore,
+    env,
+    buildService: () => createMermaidLangChainAgent({ stateStore, env }),
+    streamLabels: {
+      analyze: 'Analyzing diagram…',
+      intent: 'Applying your request…',
+      transform: 'Transforming diagram…'
     },
-
-    async applyIntent(input) {
-      return getAgentService().applyIntent(input);
-    },
-
-    async applyTransformIntent(input) {
-      return getAgentService().applyTransformIntent(input);
-    },
-
-    async applyAnalyzeIntent(input) {
-      return getAgentService().applyAnalyzeIntent(input);
-    },
-
-    async applyStyleIntent(input) {
-      return getAgentService().applyStyleIntent(input);
-    },
-
-    async runAgentStream(operation, payload, emit) {
-      const agent = getAgentService();
-      const modelProfile = payload.modelProfile;
-
-      if (typeof emit === 'function') {
-        if (operation === 'analyze') {
-          emit({ type: 'phase', id: 'analyze', label: 'Analyzing diagram…' });
-        } else if (operation === 'intent') {
-          emit({ type: 'phase', id: 'intent', label: 'Applying your request…' });
-        } else {
-          emit({ type: 'phase', id: 'transform', label: 'Transforming diagram…' });
-        }
-      }
-
-      if (operation === 'analyze') {
-        const result = await agent.applyAnalyzeIntent({
-          kind: payload.kind,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit
-        });
-        emitAnalyzeStreamArtifactsBeforeFinal(emit, {
-          kind: payload.kind,
-          analyzeText: result.message,
-          contentType: payload.contentType
-        });
-        emit({ type: 'final', revisionChanged: false, analyzeText: result.message });
-        return result;
-      }
-
-      let agentResult;
-      if (operation === 'intent') {
-        agentResult = await agent.applyIntent({
-          prompt: payload.prompt,
-          settings: payload.settings ?? {},
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          peerContext: payload.peerContext,
-          abortSignal: payload.abortSignal
-        });
-      } else {
-        agentResult = await agent.applyTransformIntent({
-          mode: payload.mode,
-          focusNode: payload.focusNode,
-          modelProfile,
-          emit,
-          goMadDepth: payload.goMadDepth,
-          abortSignal: payload.abortSignal
-        });
-      }
-
-      const before = payload._revisionBefore;
-      emitIntentTransformStreamResult({
-        emit,
-        operation,
-        revisionBefore: before,
-        stateStore,
-        agentResult,
-        prompt: payload.prompt
-      });
-
-      return agentResult;
-    }
-  };
+    supportsInvoke: true,
+    supportsStyleIntent: true
+  });
 }
 
 export { INTENT_PROFILE_DEFAULTS };
