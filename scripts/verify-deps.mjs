@@ -72,7 +72,23 @@ export function resolveReactWebCore(root) {
 }
 
 /**
- * Walk npm ls --json tree and collect { version, invalid } for a package name.
+ * Root hoisted version recorded in package-lock.json (what npm ci installs).
+ * @param {string} root
+ * @param {string} pkg
+ */
+export function readLockfileHoistedVersion(root, pkg) {
+  const lockPath = path.join(root, 'package-lock.json');
+  if (!fs.existsSync(lockPath)) return null;
+  try {
+    const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+    const entry = lock.packages?.[`node_modules/${pkg}`];
+    return typeof entry?.version === 'string' ? entry.version : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * @param {unknown} node
  * @param {string} pkgName
  * @returns {{ version: string, invalid?: string }[]}
@@ -130,6 +146,17 @@ export function verifyDeps(root, overrides) {
   const webCore = resolveWorkspacePackage(root, WEB_WORKSPACE, '@a2ui/web_core');
   const reactCore = resolveReactWebCore(root);
   const expectedCore = overrides['@a2ui/web_core'];
+  const lockHoistedCore = readLockfileHoistedVersion(root, '@a2ui/web_core');
+
+  if (expectedCore && lockHoistedCore && lockHoistedCore !== expectedCore) {
+    errors.push(
+      [
+        `verify:deps: package-lock.json hoists @a2ui/web_core@${lockHoistedCore} but overrides pin ${expectedCore}.`,
+        `  npm ci installs the lockfile version — regenerate before pushing:`,
+        `  Fix: rm -rf node_modules apps/*/node_modules packages/*/node_modules && npm install && npm run verify:deps && commit package-lock.json`
+      ].join('\n')
+    );
+  }
 
   if (webCore && reactCore && webCore !== reactCore) {
     errors.push(
@@ -152,15 +179,21 @@ export function verifyDeps(root, overrides) {
   if (ls.stdout) {
     try {
       const tree = JSON.parse(ls.stdout);
+      /** @type {Set<string>} */
+      const seenInvalid = new Set();
       for (const hit of collectPackageInstances(tree, '@a2ui/web_core')) {
-        if (hit.invalid) {
-          errors.push(
-            [
-              `verify:deps: npm ls marks @a2ui/web_core@${hit.version} as invalid (${hit.invalid}).`,
-              `  Fix: ${fixInstallCommand('@a2ui/web_core', expectedCore ?? '0.10.0')}`
-            ].join('\n')
-          );
-        }
+        if (!hit.invalid) continue;
+        // Overrides intentionally violate peer ranges (e.g. markdown-it wants ^0.9.2).
+        // npm ls marks the pinned version invalid — that is expected, not a split install.
+        if (expectedCore && hit.version === expectedCore) continue;
+
+        const message = [
+          `verify:deps: npm ls marks @a2ui/web_core@${hit.version} as invalid (${hit.invalid}).`,
+          `  Fix: ${fixInstallCommand('@a2ui/web_core', expectedCore ?? hit.version)}`
+        ].join('\n');
+        if (seenInvalid.has(message)) continue;
+        seenInvalid.add(message);
+        errors.push(message);
       }
     } catch {
       // npm ls may emit partial JSON on some failures; physical path checks above are primary.

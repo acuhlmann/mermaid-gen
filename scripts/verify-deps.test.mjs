@@ -67,6 +67,33 @@ test('verifyDeps flags mismatched web vs react import paths', () => {
   assert.ok(Array.isArray(errors));
 });
 
+test('verifyDeps ignores npm ls invalid markers on the override-pinned version', () => {
+  const tree = {
+    dependencies: {
+      web: {
+        dependencies: {
+          '@a2ui/markdown-it': {
+            dependencies: {
+              '@a2ui/web_core': {
+                version: '0.10.0',
+                invalid: '^0.9.2 from node_modules/@a2ui/markdown-it'
+              }
+            }
+          },
+          '@a2ui/web_core': {
+            version: '0.10.0',
+            invalid: '^0.9.2 from apps/web'
+          }
+        }
+      }
+    }
+  };
+
+  const hits = collectPackageInstances(tree, '@a2ui/web_core');
+  assert.equal(hits.length, 2);
+  assert.ok(hits.every((hit) => hit.version === '0.10.0'));
+});
+
 test('readInstalledVersion returns null for missing paths', () => {
   assert.equal(readInstalledVersion(ROOT, 'node_modules/__missing__/package.json'), null);
 });
