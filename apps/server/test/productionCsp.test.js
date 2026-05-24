@@ -4,6 +4,7 @@ import { buildProductionContentSecurityPolicy } from '../src/security/production
 
 test('production CSP allows bundled Monaco workers and editor styles', () => {
   const policy = buildProductionContentSecurityPolicy();
+  assert.match(policy, /script-src[^;]*blob:/);
   assert.match(policy, /worker-src[^;]*'self'/);
   assert.match(policy, /worker-src[^;]*blob:/);
   assert.match(policy, /style-src-elem/);

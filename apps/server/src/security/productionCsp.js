@@ -8,7 +8,8 @@
 export function buildProductionContentSecurityPolicy() {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://esm.sh",
+    // blob: required for importScripts(blob:…) inside workers (troika-three-text labels, some Monaco paths).
+    "script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://esm.sh",
     // Monaco and other editors create module workers from blob: URLs unless configured otherwise.
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
