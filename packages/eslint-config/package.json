@@ -1,0 +1,32 @@
+{
+  "name": "@archislop/eslint-config",
+  "version": "1.0.0",
+  "description": "Shared ESLint flat-config + agent-guidance formatter for archislop workspaces.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./backend": "./backend.js",
+    "./frontend": "./frontend.js",
+    "./formatter": "./formatter.cjs"
+  },
+  "files": [
+    "index.js",
+    "backend.js",
+    "frontend.js",
+    "formatter.cjs",
+    "guidance.js",
+    "legacy-monoliths.js"
+  ],
+  "dependencies": {
+    "@eslint/js": "^10.0.1",
+    "@factory/eslint-plugin": "^0.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.30.0",
+    "@typescript-eslint/parser": "^8.30.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.6.0"
+  },
+  "peerDependencies": {
+    "eslint": "^10.0.0"
+  }
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
+import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
 const COLLAPSE_AFTER_MS = 6000;
 
@@ -38,9 +39,12 @@ export default function StakeholdersMascot({
   activeAdvisorVariant = null,
   thinkingPersona = null,
   busy = false,
-  bubbleProps = null
+  bubbleProps = null,
+  onSelectVariant = null,
+  castDisabled = false
 }) {
-  const stagePersona = thinkingPersona ?? activeAdvisorVariant;
+  const stagePersona =
+    thinkingPersona || (activeAdvisorVariant && bubbleProps ? activeAdvisorVariant : null);
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
   const wrapperRef = useRef(null);
@@ -75,6 +79,7 @@ export default function StakeholdersMascot({
     };
   }, [expanded]);
 
+  const castVariants = personas.map((p) => p.variant).filter(Boolean);
   const stageMeta = stagePersona ? getVariantPersona(stagePersona) : null;
   const mascotEmoji = expanded ? '👥' : (stageMeta?.avatarEmoji ?? '👥');
   const mascotName = expanded ? 'The Stakeholders' : (stageMeta?.name ?? 'The Stakeholders');
@@ -105,8 +110,15 @@ export default function StakeholdersMascot({
       style={style}
     >
       {thinkingPersona
-        ? <AdvisorThinkingIndicator persona={thinkingPersona} />
-        : (bubbleProps ? <AdvisorSpeechBubble {...bubbleProps} /> : null)}
+        ? (
+          <AdvisorThinkingIndicator
+            persona={thinkingPersona}
+            castVariants={castVariants}
+            onSelectVariant={onSelectVariant}
+            castDisabled={castDisabled}
+          />
+        )
+        : (bubbleProps ? <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} /> : null)}
       <button
         type="button"
         className={mascotClass}

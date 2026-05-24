@@ -6,7 +6,8 @@
   "workspaces": [
     "apps/web",
     "apps/server",
-    "packages/shared"
+    "packages/shared",
+    "packages/eslint-config"
   ],
   "overrides": {
     "@a2ui/web_core": "0.10.0",
@@ -22,7 +23,7 @@
     "dev": "concurrently -n server,web \"npm:dev -w apps/server\" \"npm:dev -w apps/web\"",
     "build": "npm run build -w packages/shared && npm run build -w apps/server && npm run build -w apps/web",
     "test": "npm run test -w packages/shared && npm run test -w apps/server && npm run test -w apps/web",
-    "lint": "npm run lint --workspaces --if-present",
+    "lint": "npm run lint -w packages/shared && npm run lint -w apps/server && npm run lint -w apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "typecheck:strict": "npm run typecheck:strict -w apps/server",
     "format": "prettier --write .",
@@ -33,7 +34,10 @@
     "check:full": "npm run check && npm run build",
     "check:wire": "node scripts/verify-doc-paths.mjs && npm run test:wire -w packages/shared && npm run test:wire -w apps/server && npm run test:wire -w apps/web",
     "verify:doc-paths": "node scripts/verify-doc-paths.mjs",
-    "verify:boundaries": "node scripts/verify-boundaries.mjs",
+    "verify:boundaries": "depcruise --config .dependency-cruiser.cjs --no-progress --output-type err-long apps packages",
+    "verify:boundaries:graph": "depcruise --config .dependency-cruiser.cjs --no-progress --output-type dot apps packages | dot -Tsvg -o docs/architecture/dep-graph.svg",
+    "verify:modularity": "node -e \"console.log('Run /modularity:review in a Claude Code session, or read .cursor/skills/modularity/review/SKILL.md in Cursor. See docs/agents/modularity.md.')\"",
+    "sync:modularity": "node scripts/sync-modularity-skill.mjs",
     "deploy:cloud-run": "bash scripts/deploy-cloud-run.sh",
     "deploy:cloud-run:hackathon": "bash scripts/deploy-hackathon-cloud-run.sh",
     "secret:openrouter:cloud-run": "bash scripts/push-openrouter-secret-cloud-run.sh",
@@ -43,6 +47,7 @@
   "devDependencies": {
     "@types/node": "^25.9.1",
     "concurrently": "^9.2.1",
+    "dependency-cruiser": "^17.4.2",
     "husky": "^9.1.7",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3"

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "lint": "eslint .",
+    "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
     "preview": "vite preview",
     "test": "vitest run",
@@ -33,6 +33,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@archislop/eslint-config": "^1.0.0",
     "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

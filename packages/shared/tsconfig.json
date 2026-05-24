@@ -10,7 +10,7 @@
     "tsBuildInfoFile": "./.tsbuildinfo",
 
     // Ratchet: run `npm run typecheck:strict -w apps/server` for strict TS islands.
-    // Full shared strict is gated on Phase 6 annotation pass (see TODO in repo plans).
+    // Full shared strict is gated on the TS ratchet in docs/decisions/0006-typescript-migration.md.
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,

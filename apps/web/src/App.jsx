@@ -142,6 +142,10 @@ import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
+import {
+  buildAdvisorIntentPrompt,
+  resolveAdvisorFocusNode
+} from './utils/advisorActionContext.js';
 import { useCompactBrandLayout, useNarrowLayout } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 import {
@@ -149,7 +153,9 @@ import {
   ArchiSlopMarkIcon,
   PromptIcon,
   MicIcon,
-  MicActiveIcon
+  MicActiveIcon,
+  CodeEditorIcon,
+  CodeCloseIcon
 } from './components/AppIcons.jsx';
 import { ActionPersonaIcon, ActionPersonaRole } from './components/ActionPersonaBits.jsx';
 import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
@@ -1854,7 +1860,15 @@ Hard requirements:
     setInsightsOpen(true);
     tryAgentSound(playSubmitThunk);
     setGoMadStreak(0);
-    const focusNode = focusPayload(selectedNode);
+    const focusNode = resolveAdvisorFocusNode({
+      advisorFocusDescriptor: options.advisorFocusDescriptor,
+      focusTarget: options.focusTarget,
+      selectedNode
+    });
+    const titleSelection =
+      options.focusTarget ??
+      (options.advisorFocusDescriptor?.id ? options.advisorFocusDescriptor : null) ??
+      selectedNode;
     setLoading(true);
     setActiveRequest('intent');
     setError('');
@@ -1880,10 +1894,10 @@ Hard requirements:
           ...(options.peerContext ? { peerContext: options.peerContext } : {}),
           ...(options.transformPersona ? { transformPersona: options.transformPersona } : {})
         },
-        title: goIntentInsightTitle(trimmed, selectedNode),
+        title: goIntentInsightTitle(trimmed, titleSelection),
         variant: options.variantOverride ?? 'intent',
         diagramUndoBaseline: { ...syncedState },
-        topic: topicFromDescriptor(selectedNode),
+        topic: topicFromDescriptor(titleSelection),
         modeSwitchSync: Boolean(options.modeSwitchSync),
         modeSwitchPeerRevisionId:
           options.modeSwitchPeerRevisionId != null ? options.modeSwitchPeerRevisionId : null
@@ -2130,8 +2144,18 @@ Hard requirements:
 
     const focusOverride = options.focusTarget ?? null;
     const baseFocus = focusOverride || selectedNode;
-    const focusNode = useDiagramFocus ? undefined : focusPayload(baseFocus);
-    const titleSelection = useDiagramFocus ? null : baseFocus;
+    const focusNode = useDiagramFocus
+      ? undefined
+      : resolveAdvisorFocusNode({
+          advisorFocusDescriptor: options.advisorFocusDescriptor,
+          focusTarget: focusOverride,
+          selectedNode: baseFocus
+        });
+    const titleSelection = useDiagramFocus
+      ? null
+      : options.advisorFocusDescriptor?.id
+        ? options.advisorFocusDescriptor
+        : baseFocus;
     const advisorPrompt =
       typeof options.advisorPrompt === 'string' ? options.advisorPrompt.trim().slice(0, 400) : '';
     setLoading(true);
@@ -2178,8 +2202,20 @@ Hard requirements:
 
     const focusOverride = options.focusTarget ?? null;
     const baseFocus = focusOverride || selectedNode;
-    const focusNode = useDiagramFocus ? undefined : focusPayload(baseFocus);
-    const titleSelection = useDiagramFocus ? null : baseFocus;
+    const focusNode = useDiagramFocus
+      ? undefined
+      : resolveAdvisorFocusNode({
+          advisorFocusDescriptor: options.advisorFocusDescriptor,
+          focusTarget: focusOverride,
+          selectedNode: baseFocus
+        });
+    const titleSelection = useDiagramFocus
+      ? null
+      : options.advisorFocusDescriptor?.id
+        ? options.advisorFocusDescriptor
+        : baseFocus;
+    const advisorPrompt =
+      typeof options.advisorPrompt === 'string' ? options.advisorPrompt.trim().slice(0, 400) : '';
     setLoading(true);
     setActiveRequest(`analyze:${kind}`);
     setError('');
@@ -2196,7 +2232,8 @@ Hard requirements:
           diagramSource: syncedState.diagramSource,
           contentType: contentMode,
           focusNode,
-          modelProfile
+          modelProfile,
+          ...(advisorPrompt ? { advisorPrompt } : {})
         },
         title: selectionActionTitle(titleSelection, labels[kind]),
         variant: kind,
@@ -2356,17 +2393,58 @@ ${requirementsBlock}`;
     onAccept: (text, persona) => {
       const hasDiagram = Boolean((stateRef.current?.diagramSource ?? '').trim());
       const operation = resolveAdvisorAcceptOperation(persona, hasDiagram);
+      const advisorCtx = {
+        advisorPrompt: text,
+        advisorFocusDescriptor
+      };
       if (operation === 'transform') {
-        void runTransform(persona, { advisorPrompt: text, variantOverride: persona });
+        void runTransform(persona, { ...advisorCtx, variantOverride: persona });
         return;
       }
       if (operation === 'analyze') {
-        void runAnalyze(persona);
+        void runAnalyze(persona, advisorCtx);
         return;
       }
-      void submitIntentWithPrompt(text, { variantOverride: persona });
+      void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {
+        variantOverride: persona,
+        transformPersona: persona,
+        ...advisorCtx
+      });
     }
   });
+
+  const advisorBubbleProps = useMemo(() => {
+    if (!advisor.suggestion) return null;
+    return {
+      persona: advisor.activePersona,
+      suggestion: advisor.suggestion,
+      kind: advisor.suggestionKind,
+      isPinned: advisor.isPinned,
+      isDumbingDown: advisor.isDumbingDown,
+      onGo: advisor.accept,
+      onDismiss: advisor.dismiss,
+      onTogglePin: advisor.togglePin,
+      onPauseTimer: advisor.pauseTimer,
+      onResumeTimer: advisor.resumeTimer,
+      onDumbDown: advisor.dumbDown,
+      onDrillDeeper: () => {
+        const suggestion = advisor.suggestion;
+        advisor.dismiss();
+        void runAnalyze('explain', {
+          advisorPrompt: suggestion ?? '',
+          advisorFocusDescriptor
+        });
+      },
+      showHistoryNav: advisor.showHistoryNav,
+      canGoBack: advisor.canGoBack,
+      canPromptNext: advisor.canPromptNext,
+      historyPositionLabel: advisor.historyPositionLabel,
+      onHistoryBack: advisor.goBack,
+      onPromptNext: () => advisor.promptNext(),
+      onSelectVariant: (variant) => advisor.promptNext({ persona: variant }),
+      castDisabled: false
+    };
+  }, [advisor, advisorFocusDescriptor]);
 
   const advisorPinFocusIds = useMemo(() => {
     if (!advisor.isPinned || !(advisor.highlightIds?.length > 0)) return null;
@@ -3024,6 +3102,7 @@ ${requirementsBlock}`;
         label: PROMPT_ACTION_COPY.label,
         icon: <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>,
         variant: 'prompt',
+        group: 'primary',
         persona: PROMPT_ACTION_COPY.roleTag,
         personaEmoji: PROMPT_ACTION_COPY.roleEmoji,
         personaTitle: PROMPT_ACTION_COPY.title
@@ -3407,7 +3486,7 @@ ${requirementsBlock}`;
             aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
             title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
           >
-            <ButtonIcon>{editorOpen ? 'x' : '</>'}</ButtonIcon>
+            <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
             <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
           </button>
         </div>
@@ -3564,23 +3643,9 @@ ${requirementsBlock}`;
                   activeAdvisorVariant={advisor.activePersona}
                   thinkingPersona={advisor.thinkingPersona}
                   busy={busy}
-                  bubbleProps={advisor.suggestion ? {
-                    persona: advisor.activePersona,
-                    suggestion: advisor.suggestion,
-                    kind: advisor.suggestionKind,
-                    isPinned: advisor.isPinned,
-                    isDumbingDown: advisor.isDumbingDown,
-                    onGo: advisor.accept,
-                    onDismiss: advisor.dismiss,
-                    onTogglePin: advisor.togglePin,
-                    onPauseTimer: advisor.pauseTimer,
-                    onResumeTimer: advisor.resumeTimer,
-                    onDumbDown: advisor.dumbDown,
-                    onDrillDeeper: () => {
-                      advisor.dismiss();
-                      runAnalyze('explain', { useDiagramFocus: true });
-                    }
-                  } : null}
+                  bubbleProps={advisorBubbleProps}
+                  onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
+                  castDisabled={busy || Boolean(advisor.thinkingPersona)}
                 />
                 <button
                   type="button"
@@ -3677,23 +3742,9 @@ ${requirementsBlock}`;
                   activeAdvisorVariant={advisor.activePersona}
                   thinkingPersona={advisor.thinkingPersona}
                   busy={busy}
-                  bubbleProps={advisor.suggestion ? {
-                    persona: advisor.activePersona,
-                    suggestion: advisor.suggestion,
-                    kind: advisor.suggestionKind,
-                    isPinned: advisor.isPinned,
-                    isDumbingDown: advisor.isDumbingDown,
-                    onGo: advisor.accept,
-                    onDismiss: advisor.dismiss,
-                    onTogglePin: advisor.togglePin,
-                    onPauseTimer: advisor.pauseTimer,
-                    onResumeTimer: advisor.resumeTimer,
-                    onDumbDown: advisor.dumbDown,
-                    onDrillDeeper: () => {
-                      advisor.dismiss();
-                      runAnalyze('explain', { useDiagramFocus: true });
-                    }
-                  } : null}
+                  bubbleProps={advisorBubbleProps}
+                  onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
+                  castDisabled={busy || Boolean(advisor.thinkingPersona)}
                 />
                 <button
                   type="button"

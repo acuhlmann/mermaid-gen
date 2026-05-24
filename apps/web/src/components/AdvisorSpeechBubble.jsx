@@ -1,4 +1,5 @@
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
 const PERSONA_CLASS = {
   refine: 'is-refine',
@@ -9,27 +10,33 @@ const PERSONA_CLASS = {
   exec: 'is-exec'
 };
 
+function IconChevronLeft() {
+  return (
+    <svg className="advisor-speech-nav-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+    </svg>
+  );
+}
+
+function IconPromptNext() {
+  return (
+    <svg className="advisor-speech-nav-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M4 4h2v16H4V4zm13.17 2.59-1.41 1.41L16.17 11H8v2h8.17l-2.41 2.59 1.41 1.41L21 12l-3.83-5.41z"
+      />
+    </svg>
+  );
+}
+
 /**
  * Floating speech bubble that surfaces a proactive suggestion from the active
  * stakeholders persona. Anchored above the dock mascot so the tail points down toward
  * the avatar without overlapping it.
- *
- * Interaction:
- * - Hover the bubble → orchestrator pauses the auto-dismiss timer.
- * - Mouse leaves the bubble → timer resumes (unless pinned).
- * - Click the bubble body (not Do it/×) → toggle pin: bubble stays until Do it or ×.
- *
- * `kind`: 'suggestion' shows the Do-it button (default — actionable). 'comment' hides
- * it — the persona is just weighing in, not proposing a change.
- *
- * The Wise Architect (persona='explain') is always 'comment' — never gets Do-it — but
- * gets two ivory-tower-friendly actions instead: "Dumb it Down" (rephrase plainly)
- * and "Drill deeper" (open the full Thinking-pane dissertation).
- *
- * Purely presentational; all timing/state lives in `useAdvisorOrchestrator`.
  */
 export default function AdvisorSpeechBubble({
   persona,
+  castVariants = null,
   suggestion,
   kind = 'suggestion',
   isPinned = false,
@@ -40,7 +47,15 @@ export default function AdvisorSpeechBubble({
   onPauseTimer,
   onResumeTimer,
   onDumbDown,
-  onDrillDeeper
+  onDrillDeeper,
+  onSelectVariant,
+  castDisabled = false,
+  showHistoryNav = false,
+  canGoBack = false,
+  canPromptNext = true,
+  historyPositionLabel = '',
+  onHistoryBack,
+  onPromptNext
 }) {
   if (!persona || !suggestion) return null;
   const meta = getVariantPersona(persona);
@@ -53,8 +68,9 @@ export default function AdvisorSpeechBubble({
   const showArchitectActions = isArchitect && (onDumbDown || onDrillDeeper);
 
   const handleBubbleClick = (event) => {
-    // Ignore clicks that originated on Do-it/Dismiss buttons — their handlers run separately.
-    if (event.target?.closest?.('.advisor-speech-btn')) return;
+    if (event.target?.closest?.('.advisor-speech-btn, .advisor-speech-history-nav, .stakeholder-cast-avatar-btn')) {
+      return;
+    }
     onTogglePin?.();
   };
 
@@ -71,57 +87,113 @@ export default function AdvisorSpeechBubble({
       onPointerLeave={onResumeTimer}
       title={isPinned ? 'Pinned — click to unpin' : 'Click to pin this comment'}
     >
-      <span className="advisor-speech-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>
-      <div className="advisor-speech-body">
-        <span className="advisor-speech-persona">
-          {meta.name}
-          {isPinned ? <span className="advisor-speech-pin" aria-label="Pinned">📌</span> : null}
-        </span>
-        <span className="advisor-speech-text">{suggestion}</span>
-      </div>
-      <div className="advisor-speech-actions">
-        {isComment ? null : (
-          <button
-            type="button"
-            className="advisor-speech-btn advisor-speech-btn--go"
-            onClick={(event) => { event.stopPropagation(); onGo?.(); }}
-            aria-label={`Apply suggestion from ${meta.name}`}
+      <StakeholderCastStrip
+        variants={castVariants ?? []}
+        activeVariant={persona}
+        className="advisor-speech-cast"
+        onSelectVariant={onSelectVariant}
+        disabled={castDisabled}
+      />
+      <div className="advisor-speech-main">
+        <span className="advisor-speech-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>
+        <div className="advisor-speech-body">
+          <div className="advisor-speech-head">
+            <span className="advisor-speech-persona">
+              {meta.name}
+              {isPinned ? <span className="advisor-speech-pin" aria-label="Pinned">📌</span> : null}
+            </span>
+          </div>
+          <span className="advisor-speech-text">{suggestion}</span>
+        </div>
+        <div className="advisor-speech-footer">
+          <nav
+            className="advisor-speech-history-nav"
+            aria-label="Stakeholder suggestion navigation"
+            onClick={(event) => event.stopPropagation()}
           >
-            Do it
-          </button>
-        )}
-        {showArchitectActions && onDumbDown ? (
-          <button
-            type="button"
-            className="advisor-speech-btn advisor-speech-btn--dumb"
-            onClick={(event) => { event.stopPropagation(); onDumbDown?.(); }}
-            disabled={isDumbingDown}
-            aria-label="Dumb it down — rephrase in plain English"
-            title="Translate the architect's musing into plain English"
-          >
-            {isDumbingDown ? 'Dumbing…' : 'Dumb it Down'}
-          </button>
-        ) : null}
-        {showArchitectActions && onDrillDeeper ? (
-          <button
-            type="button"
-            className="advisor-speech-btn advisor-speech-btn--drill"
-            onClick={(event) => { event.stopPropagation(); onDrillDeeper?.(); }}
-            disabled={isDumbingDown}
-            aria-label="Drill deeper — open the full architecture dissertation"
-            title="Open the full architecture deep-dive in the Thinking panel"
-          >
-            Drill Deeper
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="advisor-speech-btn advisor-speech-btn--dismiss"
-          onClick={(event) => { event.stopPropagation(); onDismiss?.(); }}
-          aria-label={isComment ? 'Dismiss comment' : 'Dismiss suggestion'}
-        >
-          ×
-        </button>
+            {showHistoryNav ? (
+              <>
+                <button
+                  type="button"
+                  className="advisor-speech-history-btn"
+                  disabled={!canGoBack}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onHistoryBack?.();
+                  }}
+                  aria-label={
+                    canGoBack
+                      ? `Older suggestion (${historyPositionLabel})`
+                      : 'Oldest suggestion'
+                  }
+                  title={canGoBack ? 'Older suggestion' : 'Oldest suggestion'}
+                >
+                  <IconChevronLeft />
+                </button>
+                <span className="advisor-speech-history-pos" aria-hidden="true">
+                  {historyPositionLabel}
+                </span>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="advisor-speech-history-btn advisor-speech-history-btn--next"
+              disabled={!canPromptNext}
+              onClick={(event) => {
+                event.stopPropagation();
+                onPromptNext?.();
+              }}
+              aria-label="Next stakeholder comment"
+              title="Next stakeholder comment"
+            >
+              <IconPromptNext />
+            </button>
+          </nav>
+          <div className="advisor-speech-actions">
+            {isComment ? null : (
+              <button
+                type="button"
+                className="advisor-speech-btn advisor-speech-btn--go"
+                onClick={(event) => { event.stopPropagation(); onGo?.(); }}
+                aria-label={`Apply suggestion from ${meta.name}`}
+              >
+                Do it
+              </button>
+            )}
+            {showArchitectActions && onDumbDown ? (
+              <button
+                type="button"
+                className="advisor-speech-btn advisor-speech-btn--dumb"
+                onClick={(event) => { event.stopPropagation(); onDumbDown?.(); }}
+                disabled={isDumbingDown}
+                aria-label="Dumb it down — rephrase in plain English"
+                title="Translate the architect's musing into plain English"
+              >
+                {isDumbingDown ? 'Dumbing…' : 'Dumb it Down'}
+              </button>
+            ) : null}
+            {showArchitectActions && onDrillDeeper ? (
+              <button
+                type="button"
+                className="advisor-speech-btn advisor-speech-btn--drill"
+                onClick={(event) => { event.stopPropagation(); onDrillDeeper?.(); }}
+                disabled={isDumbingDown}
+                aria-label="Drill deeper — open the full architecture dissertation"
+                title="Open the full architecture deep-dive in the Thinking panel"
+              >
+                Drill Deeper
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="advisor-speech-btn advisor-speech-btn--dismiss"
+              onClick={(event) => { event.stopPropagation(); onDismiss?.(); }}
+              aria-label={isComment ? 'Dismiss comment' : 'Dismiss suggestion'}
+            >
+              ×
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

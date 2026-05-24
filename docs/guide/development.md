@@ -9,7 +9,7 @@
 ## Tests
 
 - `npm test` — full workspace test suite.
-- `node apps/server/scripts/benchMermaid.js --tag <label>` — offline bench that replays a fixed corpus through `validateAndPreparePatch` and reports sanitizer-rescue rate, validator breakdown, and latency percentiles. Snapshots land in `apps/server/bench-results/<tag>-<iso>.json`; exits non-zero on regressions.
+- `node apps/server/scripts/benchMermaid.js --tag <label>` — offline bench that replays a fixed corpus through `validateAndPreparePatch` and reports sanitizer-rescue rate, validator breakdown, and latency percentiles. Snapshots land in `apps/server/bench-results/<tag>-<iso>.json` (committed baselines for regression comparison; regenerate with the script, do not hand-edit); exits non-zero on regressions.
 
 ## VS Code run configs
 

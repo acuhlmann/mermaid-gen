@@ -39,6 +39,8 @@ function gitLines(args) {
     .filter(Boolean);
 }
 
+const LINTABLE_RE = /\.(js|jsx|ts|tsx|mjs|cjs)$/;
+
 /** @param {string[]} files */
 function classify(files) {
   const flags = {
@@ -47,12 +49,22 @@ function classify(files) {
     web: false,
     wire: false,
     docs: false,
-    root: false
+    root: false,
+    deps: false,
+    // Per-workspace lint trigger: only when a lintable file actually changed
+    // in that workspace's src tree. Avoids running ESLint for pure doc edits
+    // inside a workspace.
+    lintShared: false,
+    lintServer: false,
+    lintWeb: false
   };
   for (const f of files) {
     if (f.startsWith('packages/shared/')) flags.shared = true;
     if (f.startsWith('apps/server/')) flags.server = true;
     if (f.startsWith('apps/web/')) flags.web = true;
+    if (f.startsWith('packages/shared/src/') && LINTABLE_RE.test(f)) flags.lintShared = true;
+    if (f.startsWith('apps/server/src/') && LINTABLE_RE.test(f)) flags.lintServer = true;
+    if (f.startsWith('apps/web/src/') && LINTABLE_RE.test(f)) flags.lintWeb = true;
     if (
       f.startsWith('packages/shared/src/') &&
       /agUi|legacyStream|agentStreamEmitter|diagramSchema|wire/i.test(f)
@@ -77,11 +89,20 @@ function classify(files) {
     ) {
       flags.docs = true;
     }
+    // Anything that could change the dependency graph or the boundary config
+    // re-runs the graph check.
+    if (
+      f === '.dependency-cruiser.cjs' ||
+      f === 'package.json' ||
+      f === 'package-lock.json'
+    ) {
+      flags.deps = true;
+    }
     if (
       f === 'package.json' ||
       f.startsWith('scripts/') ||
       f.startsWith('.github/') ||
-      f.endsWith('tsconfig') ||
+      f === 'tsconfig.base.json' ||
       f.includes('tsconfig.')
     ) {
       flags.root = true;
@@ -130,23 +151,37 @@ function main() {
     ran = true;
   }
 
+  if (flags.deps) {
+    run('npm', ['run', 'verify:boundaries'], 'verify:boundaries (graph rules)');
+    ran = true;
+  }
+
   if (flags.shared) {
     run('npm', ['run', 'check:fast'], 'check:fast (packages/shared)');
     // tsconfig.build.json differs from tsconfig.json (e.g. types: []),
     // so typecheck alone can miss errors that fail the CI build.
     run('npm', ['run', 'build', '-w', 'packages/shared'], 'build (packages/shared)');
+    if (flags.lintShared) {
+      run('npm', ['run', 'lint', '-w', 'packages/shared'], 'lint (packages/shared)');
+    }
     ran = true;
   }
 
   if (flags.server) {
     run('npm', ['run', 'typecheck', '-w', 'apps/server'], 'typecheck (apps/server)');
     run('npm', ['run', 'test', '-w', 'apps/server'], 'test (apps/server)');
+    if (flags.lintServer) {
+      run('npm', ['run', 'lint', '-w', 'apps/server'], 'lint (apps/server)');
+    }
     ran = true;
   }
 
   if (flags.web) {
     run('npm', ['run', 'typecheck', '-w', 'apps/web'], 'typecheck (apps/web)');
     run('npm', ['run', 'test', '-w', 'apps/web'], 'test (apps/web)');
+    if (flags.lintWeb) {
+      run('npm', ['run', 'lint', '-w', 'apps/web'], 'lint (apps/web)');
+    }
     ran = true;
   }
 
@@ -155,7 +190,7 @@ function main() {
     ran = true;
   }
 
-  if (!flags.shared && !flags.server && !flags.web && !flags.wire && !flags.docs) {
+  if (!flags.shared && !flags.server && !flags.web && !flags.wire && !flags.docs && !flags.deps) {
     console.log('check-affected: no workspace match; running verify:boundaries');
     run('npm', ['run', 'verify:boundaries'], 'verify:boundaries');
     ran = true;

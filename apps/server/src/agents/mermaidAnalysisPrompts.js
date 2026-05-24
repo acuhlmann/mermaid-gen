@@ -280,10 +280,26 @@ ${ultraTypes}${deepVisual}- Geek nonsense (RFC vibes, fake folklore) — short l
 }
 
 /**
- * User message body for transform operations (exported for tests).
- * @param {{ mode: string, diagramSource: string, focusScope: string, goMadDepth?: number }} args
+ * Scoped stakeholder suggestion block for transform/analyze (exported for tests).
+ * @param {string | null | undefined} advisorPrompt
  */
-export function buildTransformUserContent({ mode, diagramSource, focusScope, goMadDepth: rawDepth }) {
+export function buildAdvisorSuggestionBlock(advisorPrompt) {
+  const trimmed = typeof advisorPrompt === 'string' ? advisorPrompt.trim().slice(0, 400) : '';
+  if (!trimmed) return '';
+  return `\n\nStakeholder suggestion to honor (scoped — change only what it targets; do not rewrite the whole diagram unless the suggestion explicitly requires it):\n"${trimmed}"\n`;
+}
+
+/**
+ * User message body for transform operations (exported for tests).
+ * @param {{ mode: string, diagramSource: string, focusScope: string, goMadDepth?: number, advisorPrompt?: string | null }} args
+ */
+export function buildTransformUserContent({
+  mode,
+  diagramSource,
+  focusScope,
+  goMadDepth: rawDepth,
+  advisorPrompt
+}) {
   const policy =
     mode === 'refine'
       ? `Transform mode: REFINE — THE Engineer incrementally extends the diagram with the next useful piece.
@@ -318,6 +334,8 @@ export function buildTransformUserContent({ mode, diagramSource, focusScope, goM
             diagramSource
           )}`;
 
+  const stakeholderBlock = buildAdvisorSuggestionBlock(advisorPrompt);
+
   return `${policy}
 
 Hard requirements:
@@ -325,7 +343,7 @@ Hard requirements:
 - Apply exactly one successful transformative update: call apply_mermaid_patch once with complete Mermaid source, then answer in prose only (no further tool calls after acceptance).
 - Do not return only text; apply the patch.
 - Keep node IDs simple ASCII identifiers where possible; keep labels concise.
-${focusScope}
+${focusScope}${stakeholderBlock}
 
 Output goal:
 Apply one transformative update via apply_mermaid_patch matching the mode above.`;

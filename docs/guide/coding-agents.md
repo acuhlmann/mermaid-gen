@@ -50,7 +50,11 @@ Prefer extracting helpers into sibling modules instead of growing hub files. See
 
 Most app code is still `.js`/`.jsx` with `strict: false`. Shared schemas are TypeScript; full `strict` on `packages/shared` is in progress ([ADR-0006](../decisions/0006-typescript-migration.md)). When you touch a high-churn `.js` file, consider converting it or adding JSDoc types that reference `z.infer<typeof …>` from `@archislop/shared`.
 
-Priority conversion targets: `apps/server/src/routes/copilot.js`, `apps/web/src/state/diagramStore.js`.
+Priority conversion targets: `apps/web/src/state/diagramStore.js` (server wire boundary `copilot.ts` is done).
+
+## Project skills (Mermaid, etc.)
+
+Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`](../../.claude/skills/mermaid) symlinks to the same tree for Claude Code. CopilotKit skills: `npm run setup:skills` → gitignored `.agents/`.
 
 ## Related
 

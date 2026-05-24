@@ -20,22 +20,26 @@ function assertContentType(contentType: string): asserts contentType is ContentT
   }
 }
 
+
+export type DiagramStateStore = ReturnType<typeof createDiagramStateStore>;
+
 export function createDiagramStateStore(
   initialSession: SessionDiagramState = createInitialSessionState() as SessionDiagramState
 ) {
   let session = initialSession;
   let transformContext: { mode: string; goMadDepth?: number } | null = null;
 
-  function getSlot(contentType: ContentType): DiagramState {
-    assertContentType(contentType);
-    return session[contentType];
-  }
-
-  function replaceSlot(contentType, nextSlot) {
+  function replaceSlot(contentType: ContentType, nextSlot: DiagramState) {
     session = { ...session, [contentType]: nextSlot };
   }
 
-  async function syncMermaidSlot({ diagramSource, styleConfig }) {
+  async function syncMermaidSlot({
+    diagramSource,
+    styleConfig
+  }: {
+    diagramSource: string;
+    styleConfig?: NonNullable<DiagramState['styleConfig']>;
+  }) {
     const slot = session.mermaid;
     const candidate = diagramSource?.trim();
     if (!candidate) {
@@ -92,7 +96,12 @@ export function createDiagramStateStore(
     return { accepted: true, state: next };
   }
 
-  async function syncInfographicSlot({ diagramSource }) {
+  function getSlot(contentType: ContentType): DiagramState {
+    assertContentType(contentType);
+    return session[contentType];
+  }
+
+  async function syncInfographicSlot({ diagramSource }: { diagramSource: string }) {
     const slot = session.infographic;
     const candidate = diagramSource ?? '';
     if (!candidate.trim()) {
@@ -125,7 +134,7 @@ export function createDiagramStateStore(
     const next = {
       ...slot,
       revisionId: slot.revisionId + 1,
-      diagramSource: prepared.patch.diagramSource,
+      diagramSource: prepared.patch!.diagramSource,
       styleConfig: null,
       updatedAt: new Date().toISOString()
     };
@@ -133,7 +142,15 @@ export function createDiagramStateStore(
     return { accepted: true, state: next };
   }
 
-  async function applyToMermaidSlot({ diagramSource, reason, origin }) {
+  async function applyToMermaidSlot({
+    diagramSource,
+    reason,
+    origin
+  }: {
+    diagramSource: string;
+    reason: string;
+    origin?: DiagramState['history'][number]['origin'];
+  }) {
     const slot = session.mermaid;
     const ctx = transformContext;
     const prepared = await validateAndPreparePatch({
@@ -142,7 +159,7 @@ export function createDiagramStateStore(
       reason,
       transformMode: ctx?.mode ?? null,
       goMadDepth: ctx?.goMadDepth ?? null
-    });
+    } as Parameters<typeof validateAndPreparePatch>[0]);
 
     if (!prepared.accepted) {
       return prepared;
@@ -154,7 +171,7 @@ export function createDiagramStateStore(
     if (!applied.accepted) {
       return applied;
     }
-    replaceSlot('mermaid', applied.state);
+    replaceSlot('mermaid', applied.state!);
 
     return {
       accepted: true,
@@ -164,7 +181,15 @@ export function createDiagramStateStore(
     };
   }
 
-  async function applyToInfographicSlot({ diagramSource, reason, origin }) {
+  async function applyToInfographicSlot({
+    diagramSource,
+    reason,
+    origin
+  }: {
+    diagramSource: string;
+    reason: string;
+    origin?: DiagramState['history'][number]['origin'];
+  }) {
     const slot = session.infographic;
     const ctx = transformContext;
     const prepared = await validateAndPrepareInfographicPatch({
@@ -173,7 +198,7 @@ export function createDiagramStateStore(
       reason,
       transformMode: ctx?.mode ?? null,
       goMadDepth: ctx?.goMadDepth ?? null
-    });
+    } as Parameters<typeof validateAndPrepareInfographicPatch>[0]);
     if (!prepared.accepted) {
       return prepared;
     }
@@ -184,7 +209,7 @@ export function createDiagramStateStore(
     if (!applied.accepted) {
       return applied;
     }
-    replaceSlot('infographic', applied.state);
+    replaceSlot('infographic', applied.state!);
 
     return {
       accepted: true,
@@ -214,7 +239,7 @@ export function createDiagramStateStore(
       return session.activeContentType;
     },
 
-    setActiveContentType(contentType) {
+    setActiveContentType(contentType: ContentType) {
       assertContentType(contentType);
       if (session.activeContentType === contentType) {
         return session[contentType];
@@ -223,11 +248,11 @@ export function createDiagramStateStore(
       return session[contentType];
     },
 
-    getSlot(contentType) {
+    getSlot(contentType: ContentType) {
       return getSlot(contentType);
     },
 
-    setTransformContext(context) {
+    setTransformContext(context: { mode: string; goMadDepth?: number } | null) {
       transformContext = context ?? null;
     },
 
@@ -240,7 +265,7 @@ export function createDiagramStateStore(
     },
 
     /** @deprecated use setTransformContext */
-    setInfographicTransformContext(context) {
+    setInfographicTransformContext(context: { mode: string; goMadDepth?: number } | null) {
       transformContext = context ?? null;
     },
 
@@ -249,7 +274,15 @@ export function createDiagramStateStore(
       transformContext = null;
     },
 
-    async syncClientDiagramSource({ contentType, diagramSource, styleConfig }) {
+    async syncClientDiagramSource({
+      contentType,
+      diagramSource,
+      styleConfig
+    }: {
+      contentType: ContentType;
+      diagramSource: string;
+      styleConfig?: NonNullable<DiagramState['styleConfig']>;
+    }) {
       assertContentType(contentType);
       if (contentType === 'mermaid') {
         return syncMermaidSlot({ diagramSource, styleConfig });
@@ -257,7 +290,17 @@ export function createDiagramStateStore(
       return syncInfographicSlot({ diagramSource });
     },
 
-    async applyDiagramSource({ contentType, diagramSource, reason, origin }) {
+    async applyDiagramSource({
+      contentType,
+      diagramSource,
+      reason,
+      origin
+    }: {
+      contentType: ContentType;
+      diagramSource: string;
+      reason: string;
+      origin?: DiagramState['history'][number]['origin'];
+    }) {
       assertContentType(contentType);
       if (contentType === 'mermaid') {
         return applyToMermaidSlot({ diagramSource, reason, origin });
@@ -270,7 +313,7 @@ export function createDiagramStateStore(
      * the topic across. Blank/whitespace inputs are ignored (we don't want to clobber
      * a real topic with an empty submit).
      */
-    setLastUserPrompt({ contentType, prompt }) {
+    setLastUserPrompt({ contentType, prompt }: { contentType: ContentType; prompt: string }) {
       assertContentType(contentType);
       const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
       if (!trimmed) return session[contentType];
@@ -287,7 +330,7 @@ export function createDiagramStateStore(
      * Copy `lastUserPrompt` to the sibling slot (metadata only) so mode-switch topic carry-over
      * and peer-context matching work before the user visits the other mode.
      */
-    mirrorLastUserPromptToSibling({ contentType, prompt }) {
+    mirrorLastUserPromptToSibling({ contentType, prompt }: { contentType: ContentType; prompt: string }) {
       assertContentType(contentType);
       const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
       if (!trimmed) return session[contentType];

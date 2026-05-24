@@ -100,3 +100,31 @@ flowchart LR
 ```
 
 Default session id is `default` when nothing is sent; the web client generates and persists a UUID in `localStorage` (`diagramStore.js`).
+
+## Offline bench
+
+Replay a fixed corpus through `validateAndPreparePatch` (no LLM):
+
+```bash
+node apps/server/scripts/benchMermaid.js --tag <label>
+```
+
+Snapshots land in `apps/server/bench-results/` (committed baselines for regression comparison; regenerate with the script — do not hand-edit). See [Development](development.md).
+
+## Future work (optional)
+
+Phases 0–4 of the Mermaid reliability ladder are shipped (sanitizer in [`packages/shared/src/mermaidSanitizer.ts`](../../packages/shared/src/mermaidSanitizer.ts), validator reorder, syntax fixer, repair defaults — see [ADR-0002](../decisions/0002-shared-mermaid-sanitizer.md)). Remaining ideas, gated on measurement:
+
+### bench-with-llm
+
+Extend the bench (or add a sibling script) to drive `applyIntent` / `applyTransformIntent` across modes and model profiles on a fixed prompt corpus with real API keys. Use results to decide whether to trim `GO_MAD_TEMP_MAX` and whether the JSON intermediate below is worth building.
+
+### JSON-graph intermediate (Go Mad only)
+
+If Go Mad accept rate stays below target after the shipped ladder, introduce a structured intermediate for high-temperature modes only:
+
+- Extend [`packages/shared/src/diagramSchema.ts`](../../packages/shared/src/diagramSchema.ts) with a discriminated union for diagram types Go Mad uses (mindmap, timeline, gitGraph, quadrantChart, pie, sankey-beta, block-beta, C4*, flowchart, sequenceDiagram, stateDiagram-v2).
+- Add `compileDiagramJsonToMermaid` in `packages/shared` — deterministic JSON → Mermaid (quoting, IDs, labels in code).
+- Add `apply_diagram_json` tool parallel to `apply_mermaid_patch`; Go Mad uses it; other modes keep direct Mermaid patches.
+
+Skip this if real-LLM bench shows Go Mad ≥ ~90% accept rate after Phases 0–4.

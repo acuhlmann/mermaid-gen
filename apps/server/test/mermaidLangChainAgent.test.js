@@ -125,6 +125,18 @@ test('buildTransformUserContent emits exec policy that is subtractive only', () 
   assert.doesNotMatch(text, /GO MAD escalation/);
 });
 
+test('buildTransformUserContent threads advisorPrompt for scoped stakeholder accept', () => {
+  const text = buildTransformUserContent({
+    mode: 'refine',
+    diagramSource: 'flowchart TD\n  A --> B',
+    focusScope: '',
+    advisorPrompt: 'Rename Cache to Redis'
+  });
+  assert.match(text, /Stakeholder suggestion to honor/i);
+  assert.match(text, /Rename Cache to Redis/);
+  assert.match(text, /do not rewrite the whole diagram/i);
+});
+
 test('applyTransformIntent uses hotter transform model for goMad', async () => {
   const modelOptions = [];
 

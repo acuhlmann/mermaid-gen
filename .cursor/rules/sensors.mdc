@@ -1,0 +1,40 @@
+---
+description: Coding-agent sensors stack — ESLint formatter, dependency-cruiser, modularity skill.
+globs:
+  - apps/**
+  - packages/**
+  - scripts/**
+alwaysApply: true
+---
+
+# Sensors for coding agents
+
+This repo follows Martin Fowler's "Sensors for Coding Agents" approach: every architectural rule emits agent-readable self-correction guidance.
+
+## Before editing
+
+Read [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md). Both are kept in sync for Claude Code and Cursor.
+
+## After editing
+
+Run `npm run check:affected`. It runs only the sensors relevant to your diff.
+
+## Reading sensor output
+
+- **ESLint**: messages come through a custom formatter at `packages/eslint-config/formatter.cjs`. A trailing "Agent guidance" section quotes the canonical fix per rule id. Read it before suppressing or raising a threshold.
+- **dependency-cruiser**: `npm run verify:boundaries`. Each rule in `.dependency-cruiser.cjs` has a `comment` that doubles as the fix.
+- **Modularity** (semantic, not automated): read [`docs/agents/modularity.md`](../../docs/agents/modularity.md). Cursor users consult [`.cursor/skills/modularity/review/SKILL.md`](../skills/modularity/review/SKILL.md) and apply the Balanced Coupling Model by hand.
+
+## Suppressing a warning
+
+The right move when a rule is wrong for your case. Format:
+
+```
+// eslint-disable-next-line <rule-id> -- (reason: <one-line why>)
+```
+
+The `-- (reason: ...)` syntax is enforced by reviewers; an unexplained disable is treated as an unresolved warning. For threshold rules on specific files, raise the threshold in a file-scoped `/* eslint <rule>: [...] */` block with the same reason syntax.
+
+## Wire-change templates
+
+When you touch an HTTP route, AG-UI event, MCP tool, or schema, see [`docs/recipes/`](../../docs/recipes/).

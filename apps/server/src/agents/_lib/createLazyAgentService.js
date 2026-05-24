@@ -28,6 +28,7 @@ import { emitIntentTransformStreamResult } from './diagramAgentStreamResult.js';
  *   streamLabels: { analyze: string, intent: string, transform: string },
  *   intentExtraFields?: string[],
  *   transformExtraFields?: string[],
+ *   analyzeExtraFields?: string[],
  *   supportsInvoke?: boolean,
  *   supportsStyleIntent?: boolean
  * }} config
@@ -40,6 +41,7 @@ export function createLazyAgentService({
   streamLabels,
   intentExtraFields = [],
   transformExtraFields = [],
+  analyzeExtraFields = [],
   supportsInvoke = false,
   supportsStyleIntent = false
 }) {
@@ -90,7 +92,8 @@ export function createLazyAgentService({
           kind: payload.kind,
           focusNode: payload.focusNode,
           modelProfile,
-          emit
+          emit,
+          ...pickExtras(payload, analyzeExtraFields)
         });
         emitAnalyzeStreamArtifactsBeforeFinal(emit, {
           kind: payload.kind,

@@ -159,9 +159,14 @@ User request:
 ${prompt}${focusScope}${languageInstruction}`;
 }
 
-function buildAnalysisUserContent({ task, focusScope, currentDsl }) {
+function buildAnalysisUserContent({ task, focusScope, currentDsl, advisorPrompt }) {
   const prefix = focusScope ? `${focusScope.trim()}\n\n` : '';
-  return `${prefix}${task}
+  const trimmed =
+    typeof advisorPrompt === 'string' ? advisorPrompt.trim().slice(0, 400) : '';
+  const stakeholderBlock = trimmed
+    ? `\n\nStakeholder suggestion to honor (scoped — foreground this in the analysis; do not treat it as a request to rewrite the whole diagram unless the suggestion explicitly requires it):\n"${trimmed}"\n`
+    : '';
+  return `${prefix}${task}${stakeholderBlock}
 
 \`\`\`
 ${currentDsl}
@@ -672,7 +677,7 @@ export function createInfographicLangChainAgent({
       );
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
       const task = kind === 'critique' ? INFOGRAPHIC_CRITIQUE_TASK : INFOGRAPHIC_EXPLAIN_TASK;
@@ -684,7 +689,14 @@ export function createInfographicLangChainAgent({
 
       const messages = [
         new SystemMessage(INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT),
-        new HumanMessage(buildAnalysisUserContent({ task, focusScope, currentDsl: slot.diagramSource }))
+        new HumanMessage(
+          buildAnalysisUserContent({
+            task,
+            focusScope,
+            currentDsl: slot.diagramSource,
+            advisorPrompt
+          })
+        )
       ];
 
       if (typeof emit === 'function') {
@@ -730,6 +742,7 @@ export function createLazyInfographicAgentService({ stateStore, env = process.en
       transform: 'Transforming infographic…'
     },
     intentExtraFields: ['transformPersona'],
-    transformExtraFields: ['advisorPrompt']
+    transformExtraFields: ['advisorPrompt'],
+    analyzeExtraFields: ['advisorPrompt']
   });
 }

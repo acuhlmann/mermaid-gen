@@ -68,6 +68,8 @@ export interface ApplyAnalyzeIntentInput {
   focusNode?: FocusNode | null;
   modelProfile?: ModelProfile;
   emit?: AgentStreamEmit;
+  /** Stakeholder suggestion text — scoped analysis, not a whole-diagram pass. */
+  advisorPrompt?: string | null;
 }
 
 export interface ApplyStyleIntentInput {
@@ -94,6 +96,7 @@ export interface DiagramAgentStreamPayload {
   goMadDepth?: GoMadDepth;
   kind?: DiagramAnalyze['kind'];
   transformPersona?: TransformPersona | null;
+  /** Transform or analyze — stakeholder bubble text for scoped work. */
   advisorPrompt?: string | null;
   abortSignal?: AbortSignal;
   /** Server-side checkpoint of revisionId before the run started. */

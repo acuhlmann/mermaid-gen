@@ -28,11 +28,14 @@ This file is a quick operator manual for coding agents working in this repositor
 - Build all packages: `npm run build`
 - **Verify after edits** (pick the smallest loop that fits):
   - `npm run check:fast` — shared package only (schemas, sanitizers, wire constants)
-  - `npm run check` — typecheck + test all workspaces (default)
+  - `npm run check` — typecheck + lint + test all workspaces (default)
   - `npm run check:full` — same as CI: typecheck + test + build
   - `npm run check:wire` — doc path verify + wire round-trip tests (shared, server, web)
   - `npm run typecheck:strict` — strict TS on server wire-route modules (`copilotRouteTypes`, stream helpers)
   - `npm run verify:doc-paths` — recipes/STRUCTURE links point at real files
+  - `npm run verify:boundaries` — dependency-cruiser graph rules (cycles + workspace + intra-server layers); each rule's `comment` is the agent-readable fix
+  - `npm run lint` — all three workspaces, formatter appends per-rule "Agent guidance" footer with the canonical fix and suppression syntax (`packages/eslint-config/formatter.cjs`)
+  - `npm run verify:modularity` — reminder of how to run a semantic modularity review (Claude `/modularity:review` or Cursor `.cursor/skills/modularity/review/SKILL.md`); see [`docs/agents/modularity.md`](docs/agents/modularity.md)
 - **Workspace-scoped** (faster when you know the blast radius):
   - `npm run typecheck -w apps/server && npm run test -w apps/server`
   - `npm run typecheck -w apps/web && npm run test -w apps/web`
@@ -73,7 +76,7 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 ## Key code locations
 
 - Server entrypoint: `apps/server/src/index.js` (mounts `/api/copilotkit`, `/mcp`, CopilotKit handler)
-- Copilot + collaboration routes: `apps/server/src/routes/copilot.js` (intent/transform/analyze, invite, session-events, handshakes, proposals)
+- Copilot + collaboration routes: `apps/server/src/routes/copilot.ts` (intent/transform/analyze, invite, session-events, handshakes, proposals)
 - MCP server + tools: `apps/server/src/mcp/mcpServer.js`; MCP App HTML: `apps/server/src/mcp/apps/`
 - Mermaid validation helper: `apps/server/src/tools/mermaidDiffTool.js`
 - Shared exports/schemas: `packages/shared/src/`
@@ -135,7 +138,8 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 - **Starting dev servers**: `npm run dev` launches both the Express server (on the port defined by `PORT` in `.env`, default 4000) and Vite dev server (port 5173) via `concurrently`. Use `curl http://localhost:$PORT/api/health` to verify the server is up. The health response includes `llmConfigured` (true when any LLM backend resolves: DeepSeek key, OpenRouter key, and/or Vertex project + region per `LLM_PROVIDER`; see `resolveLlmBackend` in `apps/server/src/agents/llmProvider.js`) and `runtimeReady`. Local `auto` prefers **DeepSeek** when `DEEPSEEK_API_KEY` is set; Cloud Run `auto` prefers **Vertex** (Gemini).
 - **No database or Docker required** for local dev: diagram and collaboration state are in-memory per server process. Optional **`REDIS_URL`** shares pairing codes across Cloud Run instances (see `.env.example`); diagram slots are not Redis-backed yet.
 - **Tests**: `npm test` runs all workspaces sequentially (shared → server → web). Server tests use Node's built-in test runner; web tests use Vitest. All tests should pass without any API key (300+ cases across workspaces).
-- **Lint**: Only `apps/web` has an ESLint config (`npm run lint -w apps/web`). There are pre-existing lint errors in the codebase (24 errors, 2 warnings as of initial setup).
+- **Lint**: All three workspaces lint via the shared config in `packages/eslint-config/` (`npm run lint` from root, or `npm run lint -w <workspace>`). The custom formatter appends per-rule "Agent guidance" with the canonical fix and suppression syntax — read it before suppressing or raising a threshold. ADR-0005 monolith files are pre-suppressed via `packages/eslint-config/legacy-monoliths.js`. See [`docs/agents/sensors.md`](docs/agents/sensors.md) and ADR-0007.
+- **Cursor parity**: `.cursor/rules/sensors.mdc` is loaded in every Cursor session and points at the same sensor stack as CLAUDE.md. The vladikk/modularity skill is mirrored at `.cursor/skills/modularity/` so Cursor agents can apply the Balanced Coupling Model without the Claude Code plugin. Refresh with `npm run sync:modularity`.
 - **Build**: `npm run build` builds shared → server → web. The web build produces a Vite bundle with a chunk-size warning that can be ignored.
 - **AI features require a configured LLM backend** (typically `OPENROUTER_API_KEY` for local dev, or Vertex on GCP). If none resolves, `llmConfigured` is false and intent/transform/analyze/stream routes return 503. The app still loads and renders diagrams, but AI generation will not work.
 - **GCP access (`gcloud`)**: `npm run setup` / `npm run setup:gcloud` installs the SDK to `~/google-cloud-sdk` when absent. If `GOOGLE_APPLICATION_CREDENTIALS` or `GCP_MERMAID_GEN` points at a service-account JSON file, the script runs `gcloud auth activate-service-account`; it then sets project `mermaidgen` and region `us-central1` when that project is readable. Once authenticated, useful inspection commands include:

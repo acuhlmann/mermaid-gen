@@ -24,6 +24,7 @@
   "scripts": {
     "test": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/*.test.ts",
     "test:wire": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/wireRoundTrip.test.ts",
+    "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
     "build": "tsc -p tsconfig.build.json",
     "prepare": "npm run build"
@@ -42,6 +43,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@archislop/eslint-config": "^1.0.0",
+    "eslint": "^10.4.0",
     "tsx": "^4.22.3"
   }
 }

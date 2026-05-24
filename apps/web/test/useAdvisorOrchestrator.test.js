@@ -3,6 +3,7 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ADVISOR_IDLE_PAUSE_MS,
+  pushProposalHistory,
   useAdvisorOrchestrator
 } from '../src/hooks/useAdvisorOrchestrator.js';
 import { ADVISOR_MUTED_STORAGE_KEY } from '../src/utils/advisorMuteStorage.js';
@@ -234,6 +235,161 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     expect(result.current.thinkingPersona).toBeNull();
+  });
+
+  it('goBack and goForward walk proposal history without losing accept handlers', async () => {
+    let call = 0;
+    fetchMock.mockImplementation(() => {
+      call += 1;
+      const suggestions = ['First tip.', 'Second tip.', 'Third tip.'];
+      const text = suggestions[call - 1] ?? 'Third tip.';
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          persona: 'refine',
+          suggestion: text,
+          highlightIds: ['A']
+        })
+      });
+    });
+
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+    const expected = ['First tip.', 'Second tip.', 'Third tip.'];
+
+    for (let i = 0; i < 3; i += 1) {
+      if (i > 0) {
+        act(() => {
+          result.current.dismiss();
+        });
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+          await Promise.resolve();
+        });
+      } else {
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+          await Promise.resolve();
+        });
+      }
+      expect(result.current.suggestion).toBe(expected[i]);
+    }
+
+    expect(result.current.suggestion).toBe('Third tip.');
+    expect(result.current.showHistoryNav).toBe(true);
+    expect(result.current.canGoForward).toBe(false);
+
+    act(() => {
+      result.current.goBack();
+    });
+    expect(result.current.suggestion).toBe('Second tip.');
+    expect(result.current.canGoForward).toBe(true);
+    expect(result.current.canGoBack).toBe(true);
+
+    act(() => {
+      result.current.goBack();
+      result.current.goBack();
+    });
+    expect(result.current.suggestion).toBe('First tip.');
+    expect(result.current.canGoBack).toBe(false);
+    expect(result.current.canGoForward).toBe(true);
+
+    act(() => {
+      result.current.goForward();
+    });
+    expect(result.current.suggestion).toBe('Second tip.');
+  });
+
+  it('promptNext triggers a new fetch and clears activePersona on dismiss', async () => {
+    mockPersonaPick('refine');
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toBeTruthy();
+    expect(result.current.activePersona).toBe('refine');
+
+    act(() => {
+      result.current.dismiss();
+    });
+    expect(result.current.suggestion).toBeNull();
+    expect(result.current.activePersona).toBeNull();
+
+    mockPersonaPick('critique');
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        persona: 'critique',
+        suggestion: 'Audit the edges.',
+        highlightIds: ['A']
+      })
+    });
+
+    act(() => {
+      result.current.promptNext();
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(fetchMock).toHaveBeenCalled();
+    const lastBody = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(lastBody.persona).toBe('critique');
+    expect(result.current.suggestion).toBe('Audit the edges.');
+    expect(result.current.activePersona).toBe('critique');
+  });
+
+  it('promptNext with persona forces that stakeholder in the request body', async () => {
+    mockPersonaPick('refine');
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    fetchMock.mockClear();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        persona: 'exec',
+        suggestion: 'Board-ready summary.',
+        highlightIds: []
+      })
+    });
+
+    act(() => {
+      result.current.promptNext({ persona: 'exec' });
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.persona).toBe('exec');
+  });
+
+  it('pushProposalHistory keeps index when browsing and a new suggestion arrives', () => {
+    const entry = (text) => ({
+      persona: 'refine',
+      suggestion: text,
+      suggestionKind: 'suggestion',
+      highlightIds: []
+    });
+    const base = {
+      entries: [entry('a'), entry('b')],
+      index: 0
+    };
+    const next = pushProposalHistory(base, entry('c'), { atLiveEnd: false });
+    expect(next.entries.map((e) => e.suggestion)).toEqual(['a', 'c']);
+    expect(next.index).toBe(0);
   });
 
   it('keeps a pinned suggestion when canvas focus changes', async () => {

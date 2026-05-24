@@ -145,7 +145,9 @@ export const DiagramAnalyzeSchema = z.object({
   contentType: ContentTypeSchema.default('mermaid'),
   kind: z.enum(['critique', 'explain']),
   focusNode: FocusNodeSchema.optional(),
-  modelProfile: ModelProfileSchema.optional()
+  modelProfile: ModelProfileSchema.optional(),
+  /** Stakeholder bubble text when analyze is triggered from advisor accept or Drill Deeper. */
+  advisorPrompt: z.string().max(400).optional()
 });
 
 /**
@@ -207,7 +209,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     contentType: ContentTypeSchema.default('mermaid'),
     kind: z.enum(['critique', 'explain']),
     focusNode: FocusNodeSchema.optional(),
-    modelProfile: ModelProfileSchema.optional()
+    modelProfile: ModelProfileSchema.optional(),
+    advisorPrompt: z.string().max(400).optional()
   })
 ]);
 

@@ -33,9 +33,11 @@ file by file:
 
 Priority list (by edit churn × LOC):
 
-1. `apps/server/src/routes/copilot.js` (862 LOC) — request validation already
-   uses Zod; converting to `.ts` makes the inferred types flow through to
-   route handlers.
+1. ✅ `apps/server/src/routes/copilot.ts` (862 LOC, was `.js`) — converted; handlers
+   typed via `copilotRouteTypes.ts` + `CopilotAgentService`; included in
+   `apps/server/tsconfig.strict.json` with `diagramStateStore.ts` and
+   `sessionEventBus.ts`. Factory ESLint rules gated on `**/*.{ts,tsx}` are enabled
+   via `packages/eslint-config/factoryPluginCompat.js`.
 2. `apps/server/src/agents/mermaidLangChainAgent.js` (1 350 LOC) — once
    `ToolApplyResultSchema` (ADR-0005's sibling work) is wired everywhere,
    the agent boundary is fully typed.
@@ -57,7 +59,8 @@ them anyway. They're stable, low-churn, and JSDoc-annotated where it matters.
 + `noImplicitAny: true` once the top 10 files in each workspace are typed
 (`.ts`/`.tsx` or `checkJs` + JSDoc). The `tsconfig.strict.json` islands in
 `apps/server` already prove the strict path works for the most contract-sensitive
-modules (`copilotRouteTypes`, stream helpers).
+modules (`copilot.ts`, `copilotRouteTypes.ts`, `diagramStateStore.ts`,
+`sessionEventBus.ts`, stream helpers). Run `npm run typecheck:strict -w apps/server`.
 
 ## Consequences
 

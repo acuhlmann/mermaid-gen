@@ -1,4 +1,5 @@
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
 const PERSONA_CLASS = {
   refine: 'is-refine',
@@ -21,7 +22,12 @@ const THINKING_VERB = {
  * in flight. Anchored above the stakeholders mascot, same coordinate system as
  * AdvisorSpeechBubble — they are mutually exclusive (StakeholdersMascot picks one).
  */
-export default function AdvisorThinkingIndicator({ persona }) {
+export default function AdvisorThinkingIndicator({
+  persona,
+  castVariants = null,
+  onSelectVariant = null,
+  castDisabled = false
+}) {
   if (!persona) return null;
   const meta = getVariantPersona(persona);
   const personaClass = PERSONA_CLASS[persona] || '';
@@ -37,16 +43,26 @@ export default function AdvisorThinkingIndicator({ persona }) {
       style={{ '--advisor-accent': accentStyle }}
       data-testid="advisor-thinking-indicator"
     >
-      <span className="advisor-thinking-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>
-      <span className="advisor-thinking-text">
-        <span className="advisor-thinking-persona">{meta.name}</span>
-        <span className="advisor-thinking-verb">{verb}</span>
-        <span className="advisor-thinking-dots" aria-hidden="true">
-          <span />
-          <span />
-          <span />
+      <StakeholderCastStrip
+        variants={castVariants ?? []}
+        activeVariant={persona}
+        className="advisor-thinking-cast"
+        compact
+        onSelectVariant={onSelectVariant}
+        disabled={castDisabled}
+      />
+      <div className="advisor-thinking-main">
+        <span className="advisor-thinking-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>
+        <span className="advisor-thinking-text">
+          <span className="advisor-thinking-persona">{meta.name}</span>
+          <span className="advisor-thinking-verb">{verb}</span>
+          <span className="advisor-thinking-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
         </span>
-      </span>
+      </div>
     </div>
   );
 }

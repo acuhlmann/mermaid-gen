@@ -7,7 +7,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Concept                                                | File(s)                                               |
 | ------------------------------------------------------ | ----------------------------------------------------- |
 | Server entrypoint, app wiring                          | `apps/server/src/index.js`                            |
-| Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.js`                   |
+| Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.ts`                   |
 | Advisor companion routes                               | `apps/server/src/routes/advisor.js`                   |
 | Diagram repair route (debug)                           | `apps/server/src/routes/diagramRepair.js`             |
 | Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`    |

@@ -94,6 +94,7 @@ import {
   goMadTransformModelOptions,
   transformModeModelOptions,
   buildTransformUserContent,
+  buildAdvisorSuggestionBlock,
   ANALYSIS_SYSTEM_PROMPT,
   ANALYSIS_CRITIQUE_SYSTEM_APPEND,
   ANALYSIS_EXPLAIN_SYSTEM_APPEND,
@@ -752,7 +753,15 @@ ${prompt}${focusScope}`;
       );
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth, abortSignal }) {
+    async applyTransformIntent({
+      mode,
+      focusNode,
+      modelProfile,
+      emit,
+      goMadDepth,
+      abortSignal,
+      advisorPrompt
+    }) {
       const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
       return withTransformContext(
         stateStore,
@@ -771,7 +780,8 @@ ${prompt}${focusScope}`;
                   mode,
                   diagramSource: currentState.diagramSource,
                   focusScope,
-                  goMadDepth
+                  goMadDepth,
+                  advisorPrompt
                 })
               }
             ],
@@ -816,13 +826,15 @@ ${prompt}${focusScope}`;
       );
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
       const state = stateStore.getSlot('mermaid');
       const focusScope = buildAnalyzeFocusInstructions(focusNode, kind);
+      const stakeholderBlock = buildAdvisorSuggestionBlock(advisorPrompt);
       const task =
         kind === 'critique'
           ? buildCritiqueTask(focusNode, focusScope, state.diagramSource)
           : buildExplainTask(focusNode, focusScope, state.diagramSource);
+      const scopedTask = stakeholderBlock ? `${task}${stakeholderBlock}` : task;
       const humanPrefix = focusNode?.id ? `${focusScope.trim()}\n\n` : '';
       const diagramBlock = `\`\`\`mermaid\n${state.diagramSource}\n\`\`\``;
 
@@ -837,7 +849,7 @@ ${prompt}${focusScope}`;
           : `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_EXPLAIN_SYSTEM_APPEND}`;
       const messages = [
         new SystemMessage(analysisSystem),
-        new HumanMessage(`${humanPrefix}${task}\n\n${diagramBlock}`)
+        new HumanMessage(`${humanPrefix}${scopedTask}\n\n${diagramBlock}`)
       ];
 
       if (typeof emit === 'function') {
@@ -917,6 +929,8 @@ export function createLazyMermaidAgentService({ stateStore, env = process.env })
       intent: 'Applying your request…',
       transform: 'Transforming diagram…'
     },
+    transformExtraFields: ['advisorPrompt'],
+    analyzeExtraFields: ['advisorPrompt'],
     supportsInvoke: true,
     supportsStyleIntent: true
   });

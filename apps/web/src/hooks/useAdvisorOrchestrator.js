@@ -13,6 +13,8 @@ const FAILURE_BACKOFF_MS = 30_000;
 const DISMISS_BACKOFF_THRESHOLD = 3;
 const DISMISS_BACKOFF_MS = 60_000;
 const LAST_SUGGESTIONS_CAP = 5;
+/** Max proactive suggestions kept for back/forward navigation in the dock bubble. */
+export const PROPOSAL_HISTORY_CAP = 15;
 const SUGGEST_TIMEOUT_MS = 12_000;
 const HOVER_FOCUS_DEBOUNCE_MS = 600;
 const SELECT_FOCUS_DEBOUNCE_MS = 60;
@@ -25,6 +27,45 @@ function pickNextPersona(previous) {
 
 function isHidden() {
   return typeof document !== 'undefined' && document.hidden === true;
+}
+
+/** @typedef {{ persona: string, suggestion: string, suggestionKind: string, highlightIds: string[] }} ProposalHistoryEntry */
+
+/**
+ * @param {{ entries: ProposalHistoryEntry[], index: number }} prev
+ * @param {ProposalHistoryEntry} entry
+ * @param {{ atLiveEnd: boolean }} opts
+ */
+export function pushProposalHistory(prev, entry, opts) {
+  const { atLiveEnd } = opts;
+  let { entries, index } = prev;
+  if (entries.length === 0) {
+    entries = [entry];
+    return { entries, index: 0 };
+  }
+  if (atLiveEnd) {
+    entries = [...entries, entry];
+  } else {
+    entries = [...entries.slice(0, index + 1), entry];
+  }
+  if (entries.length > PROPOSAL_HISTORY_CAP) {
+    const overflow = entries.length - PROPOSAL_HISTORY_CAP;
+    entries = entries.slice(overflow);
+    index = Math.max(0, index - overflow);
+  }
+  if (atLiveEnd) {
+    index = entries.length - 1;
+  }
+  return { entries, index };
+}
+
+/** @param {ProposalHistoryEntry[]} entries */
+export function lastSuggestionTexts(entries) {
+  return entries
+    .map((e) => e.suggestion)
+    .filter(Boolean)
+    .slice(-LAST_SUGGESTIONS_CAP)
+    .reverse();
 }
 
 /**
@@ -70,8 +111,12 @@ export function useAdvisorOrchestrator(params) {
   const [highlightIds, setHighlightIds] = useState([]);
   const [error, setError] = useState(null);
   const [isDumbingDown, setIsDumbingDown] = useState(false);
+  const [proposalHistory, setProposalHistory] = useState(
+    /** @type {{ entries: ProposalHistoryEntry[], index: number }} */ ({ entries: [], index: -1 })
+  );
 
   const paramsRef = useRef(params);
+  const proposalHistoryRef = useRef(proposalHistory);
   const mutedRef = useRef(initialMuted);
   const pauseRef = useRef(pause);
   const pinnedRef = useRef(false);
@@ -85,8 +130,50 @@ export function useAdvisorOrchestrator(params) {
   const cancelPendingRef = useRef(() => {});
   const pauseTimerRef = useRef(() => {});
   const resumeTimerRef = useRef(() => {});
+  const setProposalHistoryRef = useRef(setProposalHistory);
+  const forcedPersonaRef = useRef(/** @type {string | null} */ (null));
+  const promptNextRef = useRef(/** @type {(opts?: { persona?: string }) => void} */ (() => {}));
+  const clearAdvisorSurfaceRef = useRef(
+    /** @type {(opts?: { clearPersona?: boolean }) => void} */ (() => {})
+  );
+
+  const clearAdvisorSurface = useCallback(({ clearPersona = true } = {}) => {
+    setSuggestion(null);
+    setSuggestionKind('suggestion');
+    setHighlightIds([]);
+    if (clearPersona) setActivePersona(null);
+    setThinkingPersona(null);
+  }, []);
+
+  useEffect(() => {
+    clearAdvisorSurfaceRef.current = clearAdvisorSurface;
+  }, [clearAdvisorSurface]);
+
+  const applyHistoryEntry = useCallback((entry) => {
+    if (!entry) return;
+    setActivePersona(entry.persona);
+    setSuggestion(entry.suggestion);
+    setSuggestionKind(entry.suggestionKind);
+    setHighlightIds(entry.highlightIds ?? []);
+    setThinkingPersona(null);
+  }, []);
+
+  const syncDismissTimerForHistory = useCallback((index, entriesLen) => {
+    if (index < entriesLen - 1) {
+      pauseTimerRef.current?.();
+    } else if (!pinnedRef.current) {
+      resumeTimerRef.current?.();
+    }
+  }, []);
+
+  useEffect(() => {
+    setProposalHistoryRef.current = setProposalHistory;
+  });
 
   useEffect(() => { paramsRef.current = params; });
+  useEffect(() => {
+    proposalHistoryRef.current = proposalHistory;
+  }, [proposalHistory]);
   useEffect(() => { mutedRef.current = isMuted; }, [isMuted]);
   useEffect(() => { pauseRef.current = pause; }, [pause]);
   useEffect(() => { pinnedRef.current = isPinned; }, [isPinned]);
@@ -100,7 +187,6 @@ export function useAdvisorOrchestrator(params) {
     let dismissBackoffUntil = 0;
     let dismissStreak = 0;
     let previousPersona = null;
-    const lastSuggestions = [];
     let alive = true;
 
     const clearPhaseTimer = () => {
@@ -124,9 +210,7 @@ export function useAdvisorOrchestrator(params) {
       idlePausedRef.current = true;
       clearPhaseTimer();
       cancelInFlight();
-      setSuggestion(null);
-      setHighlightIds([]);
-      setThinkingPersona(null);
+      clearAdvisorSurfaceRef.current?.({ clearPersona: true });
     };
 
     const shouldPauseNow = () => {
@@ -148,15 +232,25 @@ export function useAdvisorOrchestrator(params) {
       phaseTimer = setTimeout(() => {
         phaseTimer = null;
         if (pinnedRef.current) return; // pinned during the countdown — leave bubble up
-        setSuggestion(null);
-        setHighlightIds([]);
+        clearAdvisorSurfaceRef.current?.({ clearPersona: true });
         scheduleNext(GAP_MS);
       }, SHOW_MS);
     }
 
+    /** @param {number} gen */
+    const abandonTick = (gen) => {
+      if (!alive) {
+        setThinkingPersona(null);
+        return true;
+      }
+      if (gen !== generation) return true;
+      return false;
+    };
+
     const tick = async () => {
       const gen = ++generation;
-      const persona = pickNextPersona(previousPersona);
+      const persona = forcedPersonaRef.current ?? pickNextPersona(previousPersona);
+      forcedPersonaRef.current = null;
       const svgRoot = paramsRef.current.getSvgRoot?.() ?? null;
       const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
       const contentType = paramsRef.current.getContentType?.() ?? 'mermaid';
@@ -188,21 +282,21 @@ export function useAdvisorOrchestrator(params) {
             diagramSource,
             visibleLabels: labels,
             ...(focusDescriptor?.id ? { focusNode: focusDescriptor } : {}),
-            lastSuggestions: lastSuggestions.slice()
+            lastSuggestions: lastSuggestionTexts(proposalHistoryRef.current.entries)
           }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
-        if (!alive || gen !== generation) return;
+        if (abandonTick(gen)) return;
         if (!response.ok) {
-          if (gen === generation) setThinkingPersona(null);
+          setThinkingPersona(null);
           failureUntil = Date.now() + FAILURE_BACKOFF_MS;
           setError(`advisor ${response.status}`);
           scheduleNext(GAP_MS);
           return;
         }
         const payload = await response.json();
-        if (!alive || gen !== generation) return;
+        if (abandonTick(gen)) return;
         const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
         const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
         const rawKind = typeof payload?.kind === 'string' ? payload.kind.toLowerCase() : '';
@@ -213,6 +307,7 @@ export function useAdvisorOrchestrator(params) {
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinkingPersona(null);
+          setActivePersona(null);
           scheduleNext(GAP_MS);
           return;
         }
@@ -221,22 +316,34 @@ export function useAdvisorOrchestrator(params) {
           setThinkingPersona(null);
           return;
         }
-        lastSuggestions.unshift(text);
-        if (lastSuggestions.length > LAST_SUGGESTIONS_CAP) {
-          lastSuggestions.length = LAST_SUGGESTIONS_CAP;
-        }
+        const highlight =
+          replyIds.length > 0 ? replyIds : focusId ? [focusId] : visibleIds.slice(0, 4);
+        const historyEntry = {
+          persona,
+          suggestion: text,
+          suggestionKind: kind,
+          highlightIds: highlight
+        };
+        const hist = proposalHistoryRef.current;
+        const atLiveEnd =
+          hist.entries.length === 0 || hist.index === hist.entries.length - 1;
+        const nextHistory = pushProposalHistory(hist, historyEntry, { atLiveEnd });
+        proposalHistoryRef.current = nextHistory;
+        setProposalHistoryRef.current?.(nextHistory);
         previousPersona = persona;
+        setError(null);
+        setThinkingPersona(null);
+        if (!atLiveEnd) {
+          // User is browsing older proposals — queue the new one without swapping the bubble.
+          return;
+        }
         // New suggestion clears any prior pin — each persona gets a fresh window.
         setIsPinned(false);
         pinnedRef.current = false;
         setActivePersona(persona);
         setSuggestion(text);
         setSuggestionKind(kind);
-        const highlight =
-          replyIds.length > 0 ? replyIds : focusId ? [focusId] : visibleIds.slice(0, 4);
         setHighlightIds(highlight);
-        setError(null);
-        setThinkingPersona(null);
         startDismissTimer();
       } catch (err) {
         clearTimeout(timeoutId);
@@ -306,14 +413,30 @@ export function useAdvisorOrchestrator(params) {
       startDismissTimer();
     };
 
+    promptNextRef.current = ({ persona: forced } = {}) => {
+      cancelInFlight();
+      clearPhaseTimer();
+      setIsPinned(false);
+      pinnedRef.current = false;
+      clearAdvisorSurfaceRef.current?.({ clearPersona: true });
+      setProposalHistory((prev) => {
+        if (prev.entries.length === 0) return prev;
+        const index = prev.entries.length - 1;
+        const next = { ...prev, index };
+        proposalHistoryRef.current = next;
+        return next;
+      });
+      forcedPersonaRef.current = forced ?? null;
+      scheduleNext(0);
+    };
+
     scheduleNext(GAP_MS);
 
     const handleVisibility = () => {
       if (shouldPauseNow()) {
         clearPhaseTimer();
         cancelInFlight();
-        setSuggestion(null);
-        setHighlightIds([]);
+        clearAdvisorSurfaceRef.current?.({ clearPersona: true });
       } else if (phaseTimer == null && !abortController) {
         scheduleNext(GAP_MS);
       }
@@ -360,10 +483,8 @@ export function useAdvisorOrchestrator(params) {
   useEffect(() => {
     const id = setTimeout(() => {
       if (mutedRef.current || pauseRef.current) {
-        setSuggestion(null);
-        setHighlightIds([]);
+        clearAdvisorSurface({ clearPersona: true });
         setIsPinned(false);
-        setThinkingPersona(null);
         pinnedRef.current = false;
         cancelLoopRef.current?.({ resetStreak: false });
       } else {
@@ -383,24 +504,20 @@ export function useAdvisorOrchestrator(params) {
     const debounce = focusSource === 'hover' ? HOVER_FOCUS_DEBOUNCE_MS : SELECT_FOCUS_DEBOUNCE_MS;
     const id = setTimeout(() => {
       if (pinnedRef.current) return; // canvas focus must not rotate a pinned comment
-      setSuggestion(null);
-      setHighlightIds([]);
+      clearAdvisorSurface({ clearPersona: true });
       setIsPinned(false);
       pinnedRef.current = false;
       scheduleNextRef.current?.(0);
     }, debounce);
     return () => clearTimeout(id);
-  }, [focusKey, focusSource]);
+  }, [focusKey, focusSource, clearAdvisorSurface]);
 
   const dismiss = useCallback(() => {
-    setSuggestion(null);
-    setSuggestionKind('suggestion');
-    setHighlightIds([]);
+    clearAdvisorSurface({ clearPersona: true });
     setIsPinned(false);
-    setThinkingPersona(null);
     pinnedRef.current = false;
     cancelLoopRef.current?.({ userDismissed: true });
-  }, []);
+  }, [clearAdvisorSurface]);
 
   const accept = useCallback(() => {
     if (!suggestion || !activePersona) return;
@@ -409,18 +526,19 @@ export function useAdvisorOrchestrator(params) {
     if (suggestionKind === 'comment') return;
     const text = suggestion;
     const persona = activePersona;
-    setSuggestion(null);
-    setSuggestionKind('suggestion');
-    setHighlightIds([]);
+    clearAdvisorSurface({ clearPersona: true });
     setIsPinned(false);
-    setThinkingPersona(null);
     pinnedRef.current = false;
     try {
       onAcceptRef.current?.(text, persona);
     } finally {
       cancelLoopRef.current?.({ resetStreak: true });
     }
-  }, [suggestion, suggestionKind, activePersona]);
+  }, [suggestion, suggestionKind, activePersona, clearAdvisorSurface]);
+
+  const promptNext = useCallback((opts) => {
+    promptNextRef.current?.(opts);
+  }, []);
 
   const toggleMute = useCallback(() => {
     setIsMuted((m) => {
@@ -490,6 +608,22 @@ export function useAdvisorOrchestrator(params) {
       setSuggestion(text);
       setSuggestionKind('comment');
       if (replyIds.length > 0) setHighlightIds(replyIds);
+      setProposalHistory((prev) => {
+        if (prev.index < 0 || !prev.entries[prev.index]) return prev;
+        const entries = prev.entries.map((e, i) =>
+          i === prev.index
+            ? {
+                ...e,
+                suggestion: text,
+                suggestionKind: 'comment',
+                highlightIds: replyIds.length > 0 ? replyIds : e.highlightIds
+              }
+            : e
+        );
+        const next = { ...prev, entries };
+        proposalHistoryRef.current = next;
+        return next;
+      });
       setError(null);
     } catch (err) {
       if (err?.name !== 'AbortError') {
@@ -522,6 +656,45 @@ export function useAdvisorOrchestrator(params) {
     resumeTimerRef.current?.();
   }, []);
 
+  const canGoBack = proposalHistory.index > 0;
+  const canGoForward =
+    proposalHistory.index >= 0 &&
+    proposalHistory.index < proposalHistory.entries.length - 1;
+  const showHistoryNav = proposalHistory.entries.length > 1;
+  const historyPositionLabel =
+    proposalHistory.entries.length > 0
+      ? `${proposalHistory.index + 1} of ${proposalHistory.entries.length}`
+      : '';
+
+  const goBack = useCallback(() => {
+    setProposalHistory((prev) => {
+      if (prev.index <= 0) return prev;
+      const index = prev.index - 1;
+      applyHistoryEntry(prev.entries[index]);
+      const next = { ...prev, index };
+      proposalHistoryRef.current = next;
+      syncDismissTimerForHistory(index, prev.entries.length);
+      return next;
+    });
+  }, [applyHistoryEntry, syncDismissTimerForHistory]);
+
+  /** @deprecated UI uses promptNext; kept for tests that walk queued history. */
+  const goForward = useCallback(() => {
+    setProposalHistory((prev) => {
+      if (prev.index < 0 || prev.index >= prev.entries.length - 1) return prev;
+      const index = prev.index + 1;
+      applyHistoryEntry(prev.entries[index]);
+      const next = { ...prev, index };
+      proposalHistoryRef.current = next;
+      syncDismissTimerForHistory(index, prev.entries.length);
+      return next;
+    });
+  }, [applyHistoryEntry, syncDismissTimerForHistory]);
+
+  const diagramHasText = Boolean((paramsRef.current.getDiagramSource?.() ?? '').trim());
+  const canPromptNext =
+    !thinkingPersona && !pause && !isMuted && diagramHasText;
+
   return {
     activePersona,
     thinkingPersona,
@@ -538,6 +711,14 @@ export function useAdvisorOrchestrator(params) {
     resumeTimer,
     dismiss,
     accept,
-    dumbDown
+    dumbDown,
+    canGoBack,
+    canGoForward,
+    showHistoryNav,
+    historyPositionLabel,
+    goBack,
+    goForward,
+    promptNext,
+    canPromptNext
   };
 }

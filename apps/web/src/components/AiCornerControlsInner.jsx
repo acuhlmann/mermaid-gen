@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
-import { ButtonIcon, SettingsGearIcon, BrainIcon } from './AppIcons.jsx';
+import {
+  ButtonIcon,
+  SettingsGearIcon,
+  BrainIcon,
+  ThinkingPanelIcon,
+  ThinkingPanelCloseIcon
+} from './AppIcons.jsx';
 
 /**
  * Top-right cluster of the shell: gear-toggled settings panel (Invite agent,
@@ -115,9 +121,12 @@ export function AiCornerControlsInner({
           className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}`}
           onClick={onToggleInsights}
           aria-label={insightsOpen ? 'Hide Thinking' : 'Show Thinking'}
+          title={insightsOpen ? 'Hide Thinking panel' : 'Show Thinking panel'}
         >
-          <ButtonIcon>{insightsOpen ? '-' : '+'}</ButtonIcon>
-          Thinking
+          <ButtonIcon>
+            {insightsOpen ? <ThinkingPanelCloseIcon /> : <ThinkingPanelIcon />}
+          </ButtonIcon>
+          <span className="button-label">Thinking</span>
         </button>
       ) : null}
     </>

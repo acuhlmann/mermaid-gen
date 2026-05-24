@@ -8,6 +8,9 @@
   },
   "include": [
     "src/routes/copilotRouteTypes.ts",
+    "src/routes/copilot.ts",
+    "src/state/diagramStateStore.ts",
+    "src/state/sessionEventBus.ts",
     "src/agents/partialJsonString.ts",
     "src/agents/streamPatchToolTelemetry.ts",
     "src/agents/planBeatMessages.ts"

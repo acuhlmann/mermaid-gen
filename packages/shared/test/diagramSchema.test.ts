@@ -315,6 +315,17 @@ test('FocusNodeSchema requires edgeFrom and edgeTo when selectionKind is edge', 
   assert.equal(ok.data.edgeFrom, 'A');
 });
 
+test('analyze payload accepts advisorPrompt for scoped stakeholder actions', () => {
+  const parsed = DiagramAnalyzeSchema.safeParse({
+    revisionId: 0,
+    diagramSource: 'flowchart LR\n  A --> B',
+    kind: 'explain',
+    advisorPrompt: 'The cache box is doing too much work.'
+  });
+  assert.equal(parsed.success, true);
+  assert.equal(parsed.data?.advisorPrompt, 'The cache box is doing too much work.');
+});
+
 test('analyze payload accepts extended focusNode for edges', () => {
   const parsed = DiagramAnalyzeSchema.safeParse({
     revisionId: 0,

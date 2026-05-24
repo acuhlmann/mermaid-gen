@@ -88,3 +88,79 @@ export function SettingsGearIcon() {
     </svg>
   );
 }
+
+/** Insights / Thinking pane — prose panel with a sparkle (agent deep-dive). */
+export function ThinkingPanelIcon() {
+  return (
+    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M6 4.75h9.2c.97 0 1.75.78 1.75 1.75v10.5c0 .97-.78 1.75-1.75 1.75H6A1.75 1.75 0 0 1 4.25 17V6.5C4.25 5.53 5.03 4.75 6 4.75z"
+        opacity="0.18"
+      />
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+        d="M6 5.25h8.7c.69 0 1.25.56 1.25 1.25v9.5c0 .69-.56 1.25-1.25 1.25H6A1.25 1.25 0 0 1 4.75 15V6.5c0-.69.56-1.25 1.25-1.25z"
+      />
+      <path
+        stroke="currentColor"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        d="M7.6 9.1h6.8M7.6 12h5.4M7.6 14.9h3.6"
+      />
+      <path
+        fill="currentColor"
+        d="m16.85 6.1.55 1.25 1.35.2-.98.95.23 1.35-1.15-.6-1.15.6.23-1.35-.98-.95 1.35-.2.55-1.25z"
+      />
+    </svg>
+  );
+}
+
+/** Collapse the Thinking pane (chevron tucks the side panel away). */
+export function ThinkingPanelCloseIcon() {
+  return (
+    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.25 7.5 13.5 12l-5.25 4.5M15.75 5.25v13.5"
+      />
+    </svg>
+  );
+}
+
+/** Monaco / diagram source editor. */
+export function CodeEditorIcon() {
+  return (
+    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8.25 8.25 5 12l3.25 3.75M15.75 8.25 19 12l-3.25 3.75M13.6 7.2l-3.2 9.6"
+      />
+    </svg>
+  );
+}
+
+export function CodeCloseIcon() {
+  return (
+    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.85"
+        strokeLinecap="round"
+        d="M7.5 7.5 16.5 16.5M16.5 7.5 7.5 16.5"
+      />
+    </svg>
+  );
+}

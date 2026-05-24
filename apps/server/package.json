@@ -6,6 +6,7 @@
   "scripts": {
     "test": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test",
     "test:wire": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/wireEmitterRoundTrip.test.js",
+    "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
     "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "dev": "npm run build && concurrently -k -n tsc,server \"tsc -p tsconfig.build.json --watch --preserveWatchOutput\" \"node --watch dist/index.js\"",
@@ -39,8 +40,11 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@archislop/eslint-config": "^1.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/qrcode": "^1.5.6",
+    "eslint": "^10.4.0",
     "tsx": "^4.22.3"
   }
 }

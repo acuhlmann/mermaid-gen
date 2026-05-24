@@ -59,7 +59,7 @@ Every session carries **two independent diagram slots**: a `mermaid` slot (Merma
 | Health probe                           | `curl http://localhost:4000/api/health`                  |
 | Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>` |
 
-`npm run check` includes `lint` (apps/web only — currently 0 errors, ~36 React 19 hooks-rule warnings tracked as a separate refactor pass) but **not** `format:check` (codebase isn't fully prettier-formatted yet — global `prettier --write .` lands separately). A `.husky/pre-push` hook runs `verify:doc-paths` + `check:fast` for fast local feedback.
+`npm run check` includes `lint` for all three workspaces. Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. `npm run check` excludes `format:check` (codebase isn't fully prettier-formatted yet — global `prettier --write .` lands separately). A `.husky/pre-push` hook runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
 
 ## Don't-touch list
 
@@ -72,9 +72,9 @@ Every session carries **two independent diagram slots**: a `mermaid` slot (Merma
 
 ## File-size budgets (work in progress)
 
-Files above ~800 LOC are slated for splits in Phase 5 of the improvement plan. If you need to make a change in one of these, prefer extracting the slice you touch into a sibling module rather than growing the monolith:
+Files above ~800 LOC are slated for splits per [ADR-0005](docs/decisions/0005-monolith-splits.md). If you need to make a change in one of these, prefer extracting the slice you touch into a sibling module rather than growing the monolith:
 
-- `apps/web/src/App.jsx` (~3790 LOC; module-scope helpers, icons, action-persona bits, `AiCornerControlsInner`, and `useSyncVisualViewportHeight` have been extracted — see [`docs/decisions/0005-monolith-splits.md`](docs/decisions/0005-monolith-splits.md)), `apps/server/src/mcp/mcpServer.js` (~1480; helpers split into `mcpHelpers.js`), `apps/server/src/agents/mermaidLangChainAgent.js` (~1350), `apps/web/src/components/InsightsPane.jsx` (~1500), `apps/web/src/components/DiagramCanvas.jsx` (~1376), `apps/web/src/components/RadialActionMenu.jsx` (~900), `apps/server/src/agents/infographicLangChainAgent.js` (~875), `apps/server/src/routes/copilot.js` (~862), `apps/web/src/state/diagramStore.js` (~795). Future per-tool splits in `mcpServer.js` should follow the same pattern: extract closure helpers into a sibling module and add a `register{ToolName}(server, ctx)` file under `apps/server/src/mcp/tools/`.
+- `apps/web/src/App.jsx` (~3790 LOC; module-scope helpers, icons, action-persona bits, `AiCornerControlsInner`, and `useSyncVisualViewportHeight` have been extracted — see [`docs/decisions/0005-monolith-splits.md`](docs/decisions/0005-monolith-splits.md)), `apps/server/src/mcp/mcpServer.js` (~1480; helpers split into `mcpHelpers.js`), `apps/server/src/agents/mermaidLangChainAgent.js` (~1350), `apps/web/src/components/InsightsPane.jsx` (~1500), `apps/web/src/components/DiagramCanvas.jsx` (~1376), `apps/web/src/components/RadialActionMenu.jsx` (~900), `apps/server/src/agents/infographicLangChainAgent.js` (~875), `apps/server/src/routes/copilot.ts` (~862), `apps/web/src/state/diagramStore.js` (~795). Future per-tool splits in `mcpServer.js` should follow the same pattern: extract closure helpers into a sibling module and add a `register{ToolName}(server, ctx)` file under `apps/server/src/mcp/tools/`.
 
 ## When you touch wire contracts
 
@@ -119,6 +119,14 @@ Five canonical triage roles map 1:1 to GitHub label names (`needs-triage`, `need
 ### Domain docs
 
 Single-context monorepo: read `GLOSSARY.md`, `STRUCTURE.md`, and ADRs under `docs/decisions/` (optional `CONTEXT.md` when present). See [`docs/agents/domain.md`](docs/agents/domain.md).
+
+### Sensors (lint, dep-cruiser, formatter footer)
+
+Every static check hands you the canonical fix in its output. ESLint warnings carry an "Agent guidance" footer; dependency-cruiser rules carry it in the `comment` field. Suppress with `// eslint-disable-next-line <rule> -- (reason: ...)`. See [`docs/agents/sensors.md`](docs/agents/sensors.md) and ADR-0007.
+
+### Modularity reviews
+
+For semantic coupling analysis (not automatable), run `/modularity:review` in Claude Code (install once: `/plugin marketplace add vladikk/modularity`). Cursor reads the mirrored skill under `.cursor/skills/modularity/`. See [`docs/agents/modularity.md`](docs/agents/modularity.md).
 
 ## Pointers
 
