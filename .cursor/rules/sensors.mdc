@@ -21,6 +21,7 @@ Run `npm run check:affected`. It runs only the sensors relevant to your diff.
 
 ## Reading sensor output
 
+- **verify:deps**: `npm run verify:deps`. Catches duplicate npm installs of override-pinned packages (notably `@a2ui/web_core` hoisted vs nested under `@a2ui/react`). After touching `@a2ui/*` or lockfiles, run this plus `npm run typecheck -w apps/web`.
 - **ESLint**: messages come through a custom formatter at `packages/eslint-config/formatter.cjs`. A trailing "Agent guidance" section quotes the canonical fix per rule id. Read it before suppressing or raising a threshold.
 - **dependency-cruiser**: `npm run verify:boundaries`. Each rule in `.dependency-cruiser.cjs` has a `comment` that doubles as the fix.
 - **Modularity** (semantic, not automated): read [`docs/agents/modularity.md`](../../docs/agents/modularity.md). Cursor users consult [`.cursor/skills/modularity/review/SKILL.md`](../skills/modularity/review/SKILL.md) and apply the Balanced Coupling Model by hand.

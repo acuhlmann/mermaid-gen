@@ -152,7 +152,9 @@ function main() {
   }
 
   if (flags.deps) {
+    run('npm', ['run', 'verify:deps'], 'verify:deps (override + singleton pins)');
     run('npm', ['run', 'verify:boundaries'], 'verify:boundaries (graph rules)');
+    run('npm', ['run', 'typecheck', '-w', 'apps/web'], 'typecheck (apps/web — A2UI imports)');
     ran = true;
   }
 

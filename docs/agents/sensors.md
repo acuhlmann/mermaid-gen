@@ -6,6 +6,7 @@ archislop follows Martin Fowler's ["Sensors for Coding Agents"](https://martinfo
 
 | Sensor | Command | What it catches | Where guidance lives |
 | --- | --- | --- | --- |
+| Dependency dedupe | `npm run verify:deps` | Duplicate npm installs of override-pinned packages (e.g. `@a2ui/web_core` hoisted vs nested under `@a2ui/react`) that cause TypeScript "separate declarations" errors | Error message prints `npm install …` fix |
 | TypeScript | `npm run typecheck` (per workspace) | Type errors | tsc output is canonical |
 | ESLint + custom formatter | `npm run lint` (all three workspaces) | Threshold rules (`max-lines`, `max-lines-per-function`, `max-params`, `complexity`), Factory plugin rules, React 19 hooks | Per-rule footer block at end of lint output |
 | dependency-cruiser | `npm run verify:boundaries` | Workspace + layer boundary violations, cycles, orphans | `comment` field of each rule in `.dependency-cruiser.cjs` |
@@ -14,6 +15,24 @@ archislop follows Martin Fowler's ["Sensors for Coding Agents"](https://martinfo
 | Modularity (semantic, manual) | `/modularity:review` (Claude) or [`.cursor/skills/modularity/review/SKILL.md`](../../.cursor/skills/modularity/review/SKILL.md) (Cursor) | Coupling imbalances, distributed-monolith risks, hub modules | [`docs/agents/modularity.md`](modularity.md) |
 
 The smallest meaningful loop is `npm run check:affected` — it inspects your diff and runs only the sensors that apply.
+
+After touching `@a2ui/*`, `package.json`, or `package-lock.json`, also run `npm run verify:deps` and `npm run typecheck -w apps/web` — duplicate `@a2ui/web_core` installs fail TypeScript only when a `.tsx` file imports from both `@a2ui/web_core` and `@a2ui/react`.
+
+## How to read verify:deps output
+
+On failure the script prints the mismatched install paths and a one-line `npm install` fix. No separate guidance file — the error *is* the fix.
+
+Example:
+
+```
+verify:deps: @a2ui/web_core versions used by apps/web imports are mismatched:
+    apps/web import path → 0.9.2
+    @a2ui/react nested import path → 0.10.0
+  TypeScript treats these as incompatible types when imported from @a2ui/web_core and @a2ui/react in the same file.
+  Fix: npm install @a2ui/web_core@0.10.0 -w apps/web && npm run verify:deps && commit package-lock.json
+```
+
+Singleton checks are configured in `scripts/verify-deps.mjs`; override pins live in root `package.json` `overrides`.
 
 ## How to read ESLint output
 
