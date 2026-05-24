@@ -46,6 +46,10 @@ function focusPlanBeat(focusNode: FocusNode | null | undefined): string | null {
     const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
     return `Scoping the update to the selected infographic element${label}.`;
   }
+  if (focusNode.selectionKind === 'metaphor-item') {
+    const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
+    return `Scoping the update to the selected metaphor item${label}.`;
+  }
   const role = focusNode.selectionKind === 'cluster' ? 'subgraph' : 'node';
   const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
   return `Scoping the update to ${role} ${focusNode.id}${label}.`;
@@ -90,12 +94,22 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
 }
 
 function peerContextPlanBeat(peerContext: IntentPeerContext | null | undefined): string | null {
-  if (peerContext?.contentType !== 'infographic' || typeof peerContext.diagramSource !== 'string') {
+  if (!peerContext?.contentType || typeof peerContext.diagramSource !== 'string') {
     return null;
   }
-  const lines = peerContext.diagramSource.split('\n').filter((l) => l.trim()).length;
-  if (lines < 2) return 'Using the infographic slot as context for this Mermaid update.';
-  return 'Cross-checking the infographic view so the Mermaid update stays aligned.';
+  const peerType = peerContext.contentType;
+  if (peerType === 'infographic') {
+    const lines = peerContext.diagramSource.split('\n').filter((l) => l.trim()).length;
+    if (lines < 2) return 'Using the infographic slot as context for this Mermaid update.';
+    return 'Cross-checking the infographic view so the Mermaid update stays aligned.';
+  }
+  if (peerType === 'mermaid') {
+    return 'Using the Mermaid diagram as subject context for this view.';
+  }
+  if (peerType === 'metaphor3d') {
+    return 'Using the 3D metaphor as subject context — surfacing a fresh spatial insight.';
+  }
+  return null;
 }
 
 /** Emit early server-authored plan beats (diagram why, not tool how). */

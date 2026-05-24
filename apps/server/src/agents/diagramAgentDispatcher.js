@@ -1,12 +1,13 @@
 import { createLazyMermaidAgentService } from './mermaidLangChainAgent.js';
 import { createLazyInfographicAgentService } from './infographicLangChainAgent.js';
+import { createLazyMetaphorAgentService } from './metaphorLangChainAgent.js';
 
 /**
  * @typedef {import('@archislop/shared').DiagramAgentService} DiagramAgentService
  */
 
 /**
- * Routes diagram-agent calls to the Mermaid or Infographic service based on `contentType`.
+ * Routes diagram-agent calls to the per-content-type service based on `contentType`.
  * Each contained service satisfies the shared `DiagramAgentService` contract and is
  * lazy: the underlying agent is instantiated only on first use.
  *
@@ -15,9 +16,11 @@ import { createLazyInfographicAgentService } from './infographicLangChainAgent.j
 export function createDiagramAgentDispatcher({ stateStore, env = process.env } = {}) {
   const mermaidService = createLazyMermaidAgentService({ stateStore, env });
   const infographicService = createLazyInfographicAgentService({ stateStore, env });
+  const metaphorService = createLazyMetaphorAgentService({ stateStore, env });
 
   function agentFor(contentType) {
     if (contentType === 'infographic') return infographicService;
+    if (contentType === 'metaphor3d') return metaphorService;
     return mermaidService;
   }
 
@@ -46,7 +49,8 @@ export function createDiagramAgentDispatcher({ stateStore, env = process.env } =
     /** Test/debug accessor — returns the underlying service so individual tests can target one. */
     _services: {
       mermaid: mermaidService,
-      infographic: infographicService
+      infographic: infographicService,
+      metaphor3d: metaphorService
     }
   };
 }

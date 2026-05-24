@@ -140,6 +140,66 @@
   box-sizing: border-box;
 }
 
+/* 3D metaphor canvas owns its own pan/zoom via OrbitControls — fill the whole
+   viewport so the scene sits centered and isn't clipped by SVG-only padding. */
+.diagram-viewport.is-metaphor3d {
+  padding: 0;
+  height: 100%;
+}
+
+.diagram-output.is-metaphor3d {
+  cursor: auto;
+}
+
+.metaphor-canvas-controls {
+  position: absolute;
+  left: 0.85rem;
+  bottom: 0.85rem;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  pointer-events: auto;
+}
+
+.metaphor-scene-title {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 4;
+  max-width: min(420px, 60%);
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #f1f5f9;
+  background: color-mix(in srgb, #0f172a 75%, transparent);
+  pointer-events: none;
+}
+
+.metaphor-camera-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.metaphor-camera-btn {
+  border: 1px solid rgba(226, 232, 240, 0.35);
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+  cursor: pointer;
+}
+
+.metaphor-camera-btn[aria-pressed='true'] {
+  border-color: rgba(88, 204, 2, 0.85);
+  color: #bbf7d0;
+}
+
 .diagram-zoom-layer {
   position: absolute;
   left: 0;
@@ -6022,6 +6082,30 @@ button {
   to { background-position: -60% 0; }
 }
 
+/* --- Streaming metaphor preview shimmer (token-by-token draft) --- */
+.metaphor-output.is-streaming-preview {
+  position: relative;
+  isolation: isolate;
+}
+
+.metaphor-output.is-streaming-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(28, 176, 246, 0) 35%,
+    rgba(28, 176, 246, 0.16) 50%,
+    rgba(88, 204, 2, 0.18) 65%,
+    rgba(88, 204, 2, 0) 78%
+  );
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  mix-blend-mode: screen;
+  animation: infographic-streaming-shimmer 1.4s linear infinite;
+}
+
 /* --- Breathing pulse on the prompt-bar submit button while idle --- */
 .prompt-control button[type='submit']:not(:disabled),
 .prompt-control .prompt-submit-button:not(:disabled) {
@@ -6056,6 +6140,7 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
   .infographic-output.is-streaming-preview::after { animation: none; opacity: 0; }
+  .metaphor-output.is-streaming-preview::after { animation: none; opacity: 0; }
   .prompt-control button[type='submit']:not(:disabled),
   .prompt-control .prompt-submit-button:not(:disabled) { animation: none; }
   .diagram-viewport.is-mode-switching { animation: none; }

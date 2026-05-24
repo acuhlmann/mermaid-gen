@@ -181,7 +181,8 @@ export async function mintFreshServerSession() {
   const targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
   await Promise.all([
     syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
-    syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId })
+    syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
+    syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId })
   ]);
   return targetId;
 }
@@ -228,7 +229,7 @@ export async function fetchDiagramState({ contentType, sessionId } = {}) {
 export const SESSION_NOT_FOUND_CODE = 'SESSION_NOT_FOUND';
 
 /**
- * Coerce GET /session-state JSON into a full dual-slot shape (stale proxies, redeploys, or
+ * Coerce GET /session-state JSON into a full multi-slot shape (stale proxies, redeploys, or
  * partial payloads should not brick the client).
  */
 export function normalizeFetchedSessionDiagram(payload) {
@@ -236,10 +237,16 @@ export function normalizeFetchedSessionDiagram(payload) {
   if (!payload || typeof payload !== 'object') return base;
   const m = payload.mermaid;
   const i = payload.infographic;
+  const p = payload.metaphor3d;
+  const activeFromPayload =
+    payload.activeContentType === 'infographic' || payload.activeContentType === 'metaphor3d'
+      ? payload.activeContentType
+      : base.activeContentType;
   return {
-    activeContentType: payload.activeContentType === 'infographic' ? 'infographic' : base.activeContentType,
+    activeContentType: activeFromPayload,
     mermaid: m && typeof m === 'object' && typeof m.diagramSource === 'string' ? m : base.mermaid,
-    infographic: i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic
+    infographic: i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic,
+    metaphor3d: p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d
   };
 }
 
@@ -269,10 +276,53 @@ export function slotLastTopic(slot) {
   return typeof p === 'string' && p.trim() ? p.trim() : null;
 }
 
+export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d'];
+
+export function createEmptyCrossModeSyncMarkers() {
+  return { mermaid: null, infographic: null, metaphor3d: null };
+}
+
+export function siblingContentModes(contentMode) {
+  if (!CONTENT_MODES.includes(contentMode)) return [];
+  return CONTENT_MODES.filter((mode) => mode !== contentMode);
+}
+
+/**
+ * Among sibling slots, pick the peer whose content should drive a mode-switch conversion.
+ * Prefers the most recently updated customized slot that matches the carried topic.
+ */
+export function pickPrimaryPeerMode({ contentMode, session, candidate }) {
+  if (!session || !CONTENT_MODES.includes(contentMode)) return null;
+  const cand = candidate != null ? String(candidate).trim() : '';
+  let bestMode = null;
+  let bestUpdatedAt = '';
+  for (const mode of siblingContentModes(contentMode)) {
+    const slot = session[mode];
+    if (!isSlotCustomized(slot)) continue;
+    const peerTopic = slotLastTopic(slot);
+    if (cand && peerTopic && peerTopic !== cand) continue;
+    const updatedAt = slot?.updatedAt ?? '';
+    if (!bestMode || updatedAt > bestUpdatedAt) {
+      bestMode = mode;
+      bestUpdatedAt = updatedAt;
+    }
+  }
+  return bestMode;
+}
+
 /** Fallback intent prompt when switching modes with peer content but no stored topic. */
-export function defaultModeSwitchPrompt(contentMode) {
+export function defaultModeSwitchPrompt(contentMode, peerMode = null) {
   if (contentMode === 'infographic') {
+    if (peerMode === 'metaphor3d') {
+      return 'Convert the current 3D metaphor into an equivalent infographic.';
+    }
     return 'Convert the current Mermaid architecture diagram into an equivalent infographic.';
+  }
+  if (contentMode === 'metaphor3d') {
+    return 'Re-imagine the current diagram as a 3D spatial metaphor that surfaces new insights.';
+  }
+  if (peerMode === 'metaphor3d') {
+    return 'Convert the current 3D metaphor into an equivalent Mermaid architecture diagram.';
   }
   return 'Convert the current infographic into an equivalent Mermaid architecture diagram.';
 }
@@ -281,7 +331,10 @@ export function defaultModeSwitchPrompt(contentMode) {
 export function isSlotCustomized(slot) {
   if (!slot || typeof slot.diagramSource !== 'string') return false;
   if ((slot.revisionId ?? 0) > 0) return true;
-  const contentType = slot.contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const contentType =
+    slot.contentType === 'infographic' || slot.contentType === 'metaphor3d'
+      ? slot.contentType
+      : 'mermaid';
   const trimmed = slot.diagramSource.trim();
   if (!trimmed) return false;
   const initial = createInitialDiagramState(contentType);
@@ -294,10 +347,11 @@ export function isSlotCustomized(slot) {
  * press Go to translate peer edits.
  */
 export function isPeerSlotAhead({ contentMode, session, candidate }) {
-  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
+  if (!session || !CONTENT_MODES.includes(contentMode)) return false;
   const target = session[contentMode];
-  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-  const peer = session[otherMode];
+  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate });
+  if (!peerMode) return false;
+  const peer = session[peerMode];
   if (!isSlotCustomized(peer)) return false;
   const cand = candidate != null ? String(candidate).trim() : '';
   const peerTopic = slotLastTopic(peer);
@@ -325,20 +379,21 @@ export function peerRequiresModeSwitchTranslation({ contentMode, session, candid
   if (!isPeerSlotAhead({ contentMode, session, candidate })) return false;
 
   const target = session[contentMode];
-  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-  const peer = session[otherMode];
-  if (!target || !peer) return false;
+  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate });
+  if (!target || !peerMode) return false;
+  const peer = session[peerMode];
+  if (!peer) return false;
 
   const markerOnTarget = syncMarkers?.[contentMode];
   if (
-    markerOnTarget?.peerMode === otherMode &&
+    markerOnTarget?.peerMode === peerMode &&
     markerOnTarget.peerRevisionId === (peer.revisionId ?? 0) &&
     markerOnTarget.targetRevisionId === (target.revisionId ?? 0)
   ) {
     return false;
   }
 
-  const markerOnPeer = syncMarkers?.[otherMode];
+  const markerOnPeer = syncMarkers?.[peerMode];
   if (
     markerOnPeer?.peerMode === contentMode &&
     markerOnPeer.peerRevisionId === (target.revisionId ?? 0) &&
@@ -359,23 +414,28 @@ export function peerRequiresModeSwitchTranslation({ contentMode, session, candid
  * @param {string | null | undefined} candidate - topic string from mode-switch carry-over
  */
 export function buildIntentPeerContext(contentMode, session, candidate = null) {
-  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return undefined;
-  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-  const peer = session[otherMode];
+  if (!session || !CONTENT_MODES.includes(contentMode)) return undefined;
   const target = session[contentMode];
+  const peerMode = pickPrimaryPeerMode({
+    contentMode,
+    session,
+    candidate: isSlotCustomized(target) ? candidate : null
+  });
+  if (!peerMode) return undefined;
+  const peer = session[peerMode];
   if (!peer || typeof peer.diagramSource !== 'string') return undefined;
   const trimmed = peer.diagramSource.trim();
   if (!trimmed) return undefined;
   if (!isSlotCustomized(peer)) return undefined;
   if (!isSlotCustomized(target)) {
-    return { contentType: otherMode, diagramSource: peer.diagramSource };
+    return { contentType: peerMode, diagramSource: peer.diagramSource };
   }
   const cand = candidate != null ? String(candidate).trim() : '';
   if (cand) {
     const peerPrompt = typeof peer.lastUserPrompt === 'string' ? peer.lastUserPrompt.trim() : '';
     if (peerPrompt && peerPrompt !== cand) return undefined;
   }
-  return { contentType: otherMode, diagramSource: peer.diagramSource };
+  return { contentType: peerMode, diagramSource: peer.diagramSource };
 }
 
 /**
@@ -388,36 +448,46 @@ export function resolveModeSwitchCandidate({
   sessionTopic = null,
   promptAtSwitch = ''
 }) {
-  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return null;
+  if (!session || !CONTENT_MODES.includes(contentMode)) return null;
   const data = session[contentMode];
-  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-  const otherSlot = session[otherMode];
-  const dataTopic = slotLastTopic(data);
-  const otherTopic = slotLastTopic(otherSlot);
-  const dataUpdatedAt = data?.updatedAt ?? '';
-  const otherUpdatedAt = otherSlot?.updatedAt ?? '';
+  const slots = [
+    { mode: contentMode, slot: data },
+    ...siblingContentModes(contentMode).map((mode) => ({ mode, slot: session[mode] }))
+  ];
+  const withTopics = slots
+    .map(({ mode, slot }) => ({
+      mode,
+      topic: slotLastTopic(slot),
+      updatedAt: slot?.updatedAt ?? ''
+    }))
+    .filter((entry) => entry.topic);
   let candidate;
-  if (dataTopic && otherTopic) {
-    candidate = otherUpdatedAt > dataUpdatedAt ? otherTopic : dataTopic;
+  if (withTopics.length >= 2) {
+    candidate = withTopics.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b)).topic;
+  } else if (withTopics.length === 1) {
+    candidate = withTopics[0].topic;
   } else {
-    candidate = dataTopic ?? otherTopic ?? sessionTopic ?? null;
+    candidate = sessionTopic ?? null;
   }
   const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
   if (!candidate && trimmedAtSwitch) {
     candidate = trimmedAtSwitch;
   }
-  if (!candidate && isSlotCustomized(otherSlot) && !isSlotCustomized(data)) {
-    candidate = slotLastTopic(otherSlot) ?? defaultModeSwitchPrompt(contentMode);
+  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate });
+  const peerSlot = peerMode ? session[peerMode] : null;
+  if (!candidate && peerSlot && isSlotCustomized(peerSlot) && !isSlotCustomized(data)) {
+    candidate = slotLastTopic(peerSlot) ?? defaultModeSwitchPrompt(contentMode, peerMode);
   }
   return candidate;
 }
 
 /** True when switching into this mode should translate content from the sibling slot. */
 export function needsModeSwitchPeerSync({ contentMode, session, candidate, syncMarkers }) {
-  if (!session || (contentMode !== 'mermaid' && contentMode !== 'infographic')) return false;
+  if (!session || !CONTENT_MODES.includes(contentMode)) return false;
   const target = session[contentMode];
-  const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-  const peer = session[otherMode];
+  const peerMode = pickPrimaryPeerMode({ contentMode, session, candidate });
+  if (!peerMode) return false;
+  const peer = session[peerMode];
   if (!isSlotCustomized(peer)) return false;
   if (!isSlotCustomized(target)) return true;
   if (peerRequiresModeSwitchTranslation({ contentMode, session, candidate, syncMarkers })) {

@@ -10,9 +10,10 @@ import {
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 import { validateAndPrepareInfographicPatch } from '../tools/infographicDslTool.js';
+import { validateAndPrepareMetaphorPatch } from '../tools/metaphorDslTool.js';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
-const VALID_CONTENT_TYPES = new Set(['mermaid', 'infographic']);
+const VALID_CONTENT_TYPES = new Set(['mermaid', 'infographic', 'metaphor3d']);
 
 function assertContentType(contentType: string): asserts contentType is ContentType {
   if (!VALID_CONTENT_TYPES.has(contentType)) {
@@ -219,6 +220,82 @@ export function createDiagramStateStore(
     };
   }
 
+  async function syncMetaphorSlot({ diagramSource }: { diagramSource: string }) {
+    const slot = session.metaphor3d;
+    const candidate = diagramSource ?? '';
+    if (!candidate.trim()) {
+      if (slot.diagramSource === '') {
+        return { accepted: true, state: slot };
+      }
+      const next = {
+        ...slot,
+        revisionId: slot.revisionId + 1,
+        diagramSource: '',
+        updatedAt: new Date().toISOString()
+      };
+      replaceSlot('metaphor3d', next);
+      return { accepted: true, state: next };
+    }
+
+    if (candidate === slot.diagramSource) {
+      return { accepted: true, state: slot };
+    }
+
+    const prepared = await validateAndPrepareMetaphorPatch({
+      currentState: slot,
+      proposedDiagramSource: candidate,
+      reason: 'client sync'
+    });
+    if (!prepared.accepted) {
+      return prepared;
+    }
+
+    const next = {
+      ...slot,
+      revisionId: slot.revisionId + 1,
+      diagramSource: prepared.patch!.diagramSource,
+      styleConfig: null,
+      updatedAt: new Date().toISOString()
+    };
+    replaceSlot('metaphor3d', next);
+    return { accepted: true, state: next };
+  }
+
+  async function applyToMetaphorSlot({
+    diagramSource,
+    reason,
+    origin
+  }: {
+    diagramSource: string;
+    reason: string;
+    origin?: DiagramState['history'][number]['origin'];
+  }) {
+    const slot = session.metaphor3d;
+    const prepared = await validateAndPrepareMetaphorPatch({
+      currentState: slot,
+      proposedDiagramSource: diagramSource,
+      reason
+    });
+    if (!prepared.accepted) {
+      return prepared;
+    }
+    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+
+    const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
+    const applied = applyPatch(slot, patchWithOrigin);
+    if (!applied.accepted) {
+      return applied;
+    }
+    replaceSlot('metaphor3d', applied.state!);
+
+    return {
+      accepted: true,
+      patch: patchWithOrigin,
+      state: applied.state,
+      metadata: ok.metadata
+    };
+  }
+
   return {
     /** Whole session (both slots + active pointer). */
     getSessionState() {
@@ -287,6 +364,9 @@ export function createDiagramStateStore(
       if (contentType === 'mermaid') {
         return syncMermaidSlot({ diagramSource, styleConfig });
       }
+      if (contentType === 'metaphor3d') {
+        return syncMetaphorSlot({ diagramSource });
+      }
       return syncInfographicSlot({ diagramSource });
     },
 
@@ -304,6 +384,9 @@ export function createDiagramStateStore(
       assertContentType(contentType);
       if (contentType === 'mermaid') {
         return applyToMermaidSlot({ diagramSource, reason, origin });
+      }
+      if (contentType === 'metaphor3d') {
+        return applyToMetaphorSlot({ diagramSource, reason, origin });
       }
       return applyToInfographicSlot({ diagramSource, reason, origin });
     },
@@ -327,17 +410,20 @@ export function createDiagramStateStore(
     },
 
     /**
-     * Copy `lastUserPrompt` to the sibling slot (metadata only) so mode-switch topic carry-over
-     * and peer-context matching work before the user visits the other mode.
+     * Copy `lastUserPrompt` to every sibling slot (metadata only) so mode-switch topic carry-over
+     * and peer-context matching work before the user visits another mode.
      */
     mirrorLastUserPromptToSibling({ contentType, prompt }: { contentType: ContentType; prompt: string }) {
       assertContentType(contentType);
       const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
       if (!trimmed) return session[contentType];
       const value = trimmed.slice(0, 4000);
-      const sibling = contentType === 'mermaid' ? 'infographic' : 'mermaid';
-      const siblingSlot = session[sibling];
-      replaceSlot(sibling, { ...siblingSlot, lastUserPrompt: value });
+      const allSlots = ['mermaid', 'infographic', 'metaphor3d'] as const;
+      for (const slotKey of allSlots) {
+        if (slotKey === contentType) continue;
+        const siblingSlot = session[slotKey];
+        replaceSlot(slotKey, { ...siblingSlot, lastUserPrompt: value });
+      }
       return session[contentType];
     }
   };

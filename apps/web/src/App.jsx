@@ -20,6 +20,7 @@ import {
 } from './state/sessionEventsClient.js';
 import {
   buildIntentPeerContext,
+  createEmptyCrossModeSyncMarkers,
   createSessionId,
   fallbackState,
   fetchSessionDiagramState,
@@ -27,6 +28,7 @@ import {
   needsModeSwitchPeerSync,
   normalizeSessionId,
   peerRequiresModeSwitchTranslation,
+  pickPrimaryPeerMode,
   resolveModeSwitchCandidate,
   isDiagramCacheSubstantial,
   isServerSessionPristine,
@@ -321,7 +323,7 @@ function ArchiSlop() {
    * Per target mode: revision ids of the last successful peer→target mode-switch translation.
    * Prevents ping-pong re-translation when toggling Diagram/Infographic without new edits.
    */
-  const crossModeSyncRef = useRef({ mermaid: null, infographic: null });
+  const crossModeSyncRef = useRef(createEmptyCrossModeSyncMarkers());
 
   /**
    * One-shot flag set by handleRestoreToEntry when restoring across modes. The hydrate effect
@@ -835,8 +837,6 @@ function ArchiSlop() {
         stateRef.current = data;
         setState(data);
 
-        const otherMode = contentMode === 'mermaid' ? 'infographic' : 'mermaid';
-        const otherSlot = session?.[otherMode];
         const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
         let candidate = resolveModeSwitchCandidate({
           contentMode,
@@ -848,6 +848,9 @@ function ArchiSlop() {
         if (candidate) {
           sessionTopicRef.current = candidate;
         }
+
+        const primaryPeerMode = pickPrimaryPeerMode({ contentMode, session, candidate });
+        const peerSlot = primaryPeerMode ? session?.[primaryPeerMode] : null;
 
         const newSlotInSync = isSlotInSyncForTopic(data, candidate);
         const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
@@ -884,7 +887,7 @@ function ArchiSlop() {
             needsPeerSync
           })
         ) {
-          const peerRevisionAtSubmit = otherSlot?.revisionId ?? 0;
+          const peerRevisionAtSubmit = peerSlot?.revisionId ?? 0;
           // Defer to a microtask so React has committed the state update before the auto
           // submit kicks off; pass the override anyway so revisionId is correct regardless.
           Promise.resolve().then(async () => {
@@ -910,7 +913,8 @@ function ArchiSlop() {
                 peerContext,
                 skipLoadingGuard: true,
                 modeSwitchSync: true,
-                modeSwitchPeerRevisionId: peerRevisionAtSubmit
+                modeSwitchPeerRevisionId: peerRevisionAtSubmit,
+                modeSwitchPeerMode: primaryPeerMode
               });
             } catch (err) {
               if (!cancelled) setError(err.message);
@@ -930,7 +934,7 @@ function ArchiSlop() {
           setLiveDraftContentType(null);
           setGoMadStreak(0);
           sessionTopicRef.current = null;
-          crossModeSyncRef.current = { mermaid: null, infographic: null };
+          crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
           cacheRef.current = null;
           sessionIdFromUrlRef.current = false;
           clearGamificationStorage(window.localStorage);
@@ -956,7 +960,8 @@ function ArchiSlop() {
             try {
               await Promise.all([
                 syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId })
+                syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
+                syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId })
               ]);
             } catch {
               // best-effort — if priming sync fails the next user action will create the session
@@ -1453,7 +1458,8 @@ function ArchiSlop() {
       diagramUndoBaseline,
       topic,
       modeSwitchSync = false,
-      modeSwitchPeerRevisionId = null
+      modeSwitchPeerRevisionId = null,
+      modeSwitchPeerMode = null
     }) => {
       setInsightsOpen(true);
       const retryDescriptor = buildInsightRetryDescriptor({
@@ -1464,6 +1470,7 @@ function ArchiSlop() {
         modelProfile: payload.modelProfile ?? modelProfile,
         modeSwitchSync,
         modeSwitchPeerRevisionId,
+        modeSwitchPeerMode,
         focusNode: payload.focusNode
       });
       const sectionId = appendInsightEntry(title, variant, {
@@ -1524,6 +1531,7 @@ function ArchiSlop() {
           crossModeSyncRef,
           modeSwitchSync,
           modeSwitchPeerRevisionId,
+          modeSwitchPeerMode,
           animateAcceptedSource,
           pendingAutoDiagramHighlightRef,
           pendingAutoDiagramHighlightTimeoutRef,
@@ -1633,7 +1641,8 @@ function ArchiSlop() {
             diagramUndoBaseline: { ...syncedState },
             topic: desc.topic,
             modeSwitchSync: desc.modeSwitchSync,
-            modeSwitchPeerRevisionId: desc.modeSwitchPeerRevisionId
+            modeSwitchPeerRevisionId: desc.modeSwitchPeerRevisionId,
+            modeSwitchPeerMode: desc.modeSwitchPeerMode
           });
         } else {
           await runStreamingAgent({
@@ -1900,7 +1909,8 @@ Hard requirements:
         topic: topicFromDescriptor(titleSelection),
         modeSwitchSync: Boolean(options.modeSwitchSync),
         modeSwitchPeerRevisionId:
-          options.modeSwitchPeerRevisionId != null ? options.modeSwitchPeerRevisionId : null
+          options.modeSwitchPeerRevisionId != null ? options.modeSwitchPeerRevisionId : null,
+        modeSwitchPeerMode: options.modeSwitchPeerMode ?? null
       });
       // Retain the prompt so the user can see and refine the current topic. Mode-switch
       // carry-over relies on this too — the textarea is the visible source of truth for
@@ -2523,7 +2533,7 @@ ${requirementsBlock}`;
     setInsightsEntries([]);
     setCritiqueActionableSelected([]);
     sessionTopicRef.current = null;
-    crossModeSyncRef.current = { mermaid: null, infographic: null };
+    crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
     if (diagramAutoHighlightTimerRef.current != null) {
       window.clearTimeout(diagramAutoHighlightTimerRef.current);
       diagramAutoHighlightTimerRef.current = null;
@@ -2548,7 +2558,8 @@ ${requirementsBlock}`;
       freshlyMintedSessionIdsRef.current.add(nid);
       await Promise.all([
         syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: nid }),
-        syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: nid })
+        syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: nid }),
+        syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: nid })
       ]);
       freshlyMintedSessionIdsRef.current.delete(nid);
       const fresh = createInitialDiagramState(contentMode);
@@ -2576,7 +2587,7 @@ ${requirementsBlock}`;
   const applyDiagramSnapshotToCanvas = useCallback(
     async ({ diagramSource, contentType, styleConfig }) => {
       if (typeof diagramSource !== 'string' || !diagramSource.trim()) return;
-      if (contentType !== 'mermaid' && contentType !== 'infographic') return;
+      if (contentType !== 'mermaid' && contentType !== 'infographic' && contentType !== 'metaphor3d') return;
 
       const needsModeSwitch = contentType !== contentMode;
 
@@ -2625,7 +2636,11 @@ ${requirementsBlock}`;
       const targetSource = entry?.diagramAfterSource;
       const targetContentType = entry?.diagramAfterContentType;
       if (typeof targetSource !== 'string' || !targetSource.trim()) return;
-      if (targetContentType !== 'mermaid' && targetContentType !== 'infographic') return;
+      if (
+        targetContentType !== 'mermaid' &&
+        targetContentType !== 'infographic' &&
+        targetContentType !== 'metaphor3d'
+      ) return;
 
       const baseline = entry?.diagramUndoBaseline;
       await applyDiagramSnapshotToCanvas({

@@ -1,4 +1,4 @@
-import { enrichProposalForReview } from '@archislop/shared';
+import { enrichProposalForReview, normalizeContentType } from '@archislop/shared';
 import { partKindLabel } from './partKindLabel.js';
 
 /** Build an insight-pane entry from a freshly-received proposal. */
@@ -17,7 +17,7 @@ export function proposalToInsightEntry(proposal) {
 
 /** Enrich a proposal with the current diagram source so the review surface can diff it. */
 export function enrichProposalForInsight(proposal, session, sessionId) {
-  const contentType = proposal.contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const contentType = normalizeContentType(proposal.contentType);
   const currentDiagramSource = session?.[contentType]?.diagramSource ?? '';
   return enrichProposalForReview({
     proposal,
@@ -63,6 +63,13 @@ export function focusPayload(node) {
       ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
     };
   }
+  if (node.kind === 'metaphor-item') {
+    return {
+      id: node.id,
+      label: node.label,
+      selectionKind: 'metaphor-item'
+    };
+  }
   return {
     id: node.id,
     label: node.label,
@@ -105,6 +112,12 @@ export function selectionActionTitle(selectionLike, verbLabel) {
       : elementType === 'item-icon' || elementType === 'item-icon-group' ? 'item icon'
       : 'item';
     return `${verbLabel} — ${noun} “${labelText}”`;
+  }
+  const metaphorLike =
+    selectionLike.kind === 'metaphor-item' || selectionLike.selectionKind === 'metaphor-item';
+  if (metaphorLike) {
+    const labelText = selectionLike.label || selectionLike.id;
+    return `${verbLabel} — item “${labelText}”`;
   }
   const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';
   if (clusterLike) {

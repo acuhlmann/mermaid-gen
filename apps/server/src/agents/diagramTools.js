@@ -99,3 +99,52 @@ export function createInfographicTools({ stateStore }) {
 
   return [getInfographicDsl, applyInfographicPatch];
 }
+
+export function createMetaphorTools({ stateStore }) {
+  const getMetaphorDsl = tool(
+    async () => {
+      const state = stateStore.getSlot('metaphor3d');
+      return JSON.stringify({
+        revisionId: state.revisionId,
+        diagramSource: state.diagramSource,
+        updatedAt: state.updatedAt
+      });
+    },
+    {
+      name: 'get_metaphor_dsl',
+      description: 'Read the current 3D metaphor DSL (city/layercake/galaxy), including revision id and source.',
+      schema: z.object({})
+    }
+  );
+
+  const applyMetaphorPatch = tool(
+    async ({ diagramSource, reason }) => {
+      const result = await stateStore.applyDiagramSource({
+        contentType: 'metaphor3d',
+        diagramSource,
+        reason: reason || 'LangChain agent update'
+      });
+
+      return encodeApplyResult(result);
+    },
+    {
+      name: 'apply_metaphor_patch',
+      description:
+        'Validate and apply a complete 3D metaphor DSL update. The DSL is a JSON object: ' +
+        '{"metaphor":"city|layercake|galaxy","scene":{"theme":"whiteboard|noir|arcade","camera":"orbit|isometric"},"items":[...]}. ' +
+        'For city: items are {id, label, height (1-100), footprint (1-20), district?}. ' +
+        'For layercake: items are {id, label, thickness (1-10), components?: string[]}. ' +
+        'For galaxy: items are {id, label, magnitude (1-20), cluster?}. ' +
+        'Item ids must be stable lowercase-kebab strings (e.g. auth-service). Returns {accepted, revisionId} or {accepted: false, error}.',
+      schema: z.object({
+        diagramSource: z
+          .string()
+          .min(1)
+          .describe('The full replacement metaphor DSL as a JSON string.'),
+        reason: z.string().min(1).describe('Short reason for this metaphor update.')
+      })
+    }
+  );
+
+  return [getMetaphorDsl, applyMetaphorPatch];
+}

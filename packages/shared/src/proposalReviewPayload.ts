@@ -1,4 +1,5 @@
 import { buildDiagramDiffSummary } from './diagramDiffSummary.js';
+import { normalizeContentType } from './diagramSchema.js';
 
 export type ProposalReviewInput = {
   proposal: Record<string, unknown>;
@@ -16,8 +17,7 @@ export function enrichProposalForReview({
   sessionId,
   webCanvasUrl
 }: ProposalReviewInput): Record<string, unknown> {
-  const contentType =
-    proposal.contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const contentType = normalizeContentType(proposal.contentType);
   const proposedSource =
     typeof proposal.diagramSource === 'string' ? proposal.diagramSource : '';
   const current = currentDiagramSource ?? '';

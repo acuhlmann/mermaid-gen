@@ -111,7 +111,8 @@ export function customEvent({ name, value }) {
 }
 
 function patchSummaryToJsonPatch(evt, contentType) {
-  const slot = contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const slot =
+    contentType === 'infographic' || contentType === 'metaphor3d' ? contentType : 'mermaid';
   return [
     { op: 'replace', path: agUiRevisionPath(slot), value: evt.revisionId },
     {

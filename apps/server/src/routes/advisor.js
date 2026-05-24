@@ -29,7 +29,7 @@ const FocusDescriptorSchema = z.object({
 
 const AdvisorSuggestSchema = z.object({
   persona: z.string().refine(isAdvisorPersona, { message: 'unknown persona' }),
-  contentType: z.enum(['mermaid', 'infographic']).default('mermaid'),
+  contentType: z.enum(['mermaid', 'infographic', 'metaphor3d']).default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   focusNodeId: z.string().max(200).optional(),
@@ -45,7 +45,7 @@ const ExplainLabelSchema = z.object({
   partKind: z.string().max(40).optional(),
   partName: z.string().max(240),
   label: z.string().max(240).optional(),
-  contentType: z.enum(['mermaid', 'infographic']).default('mermaid'),
+  contentType: z.enum(['mermaid', 'infographic', 'metaphor3d']).default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   style: z.enum(['brief', 'simple', 'gibberish']).default('brief'),

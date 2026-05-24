@@ -69,9 +69,10 @@ export function readStoredModelProfile() {
   return raw === 'quality' ? 'quality' : 'fast';
 }
 
-/** Default content mode is Diagram (Mermaid). Infographic is opt-in and persisted. */
+/** Default content mode is Diagram (Mermaid). Other modes are opt-in and persisted. */
 export function readStoredContentMode() {
   if (typeof window === 'undefined') return 'mermaid';
   const raw = window.localStorage.getItem(CONTENT_MODE_STORAGE_KEY);
-  return raw === 'infographic' ? 'infographic' : 'mermaid';
+  if (raw === 'infographic' || raw === 'metaphor3d') return raw;
+  return 'mermaid';
 }

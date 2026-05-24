@@ -22,6 +22,8 @@
     "@copilotkit/react-core": "^1.57.4",
     "@copilotkit/runtime-client-gql": "^1.57.4",
     "@monaco-editor/react": "^4.7.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "canvas-confetti": "^1.9.4",
     "mermaid": "^11.15.0",
     "monaco-editor": "^0.55.1",
@@ -30,6 +32,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "source-map-js": "^1.2.1",
+    "three": "^0.184.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -39,6 +42,7 @@
     "@testing-library/react": "^16.3.2",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
+    "@types/three": "^0.184.1",
     "@vitejs/plugin-react": "^6.0.2",
     "eslint": "^10.4.0",
     "eslint-plugin-react-hooks": "^7.1.1",

@@ -18,16 +18,18 @@ export const LEGACY_STREAM_TYPE_PLAN_BEAT = 'plan_beat';
 export const AGUI_STATE_PATH_LAST_PATCH_SUMMARY = '/lastPatchSummary';
 export const AGUI_STATE_PATH_MERMAID_REVISION = '/mermaid/revisionId';
 export const AGUI_STATE_PATH_INFOGRAPHIC_REVISION = '/infographic/revisionId';
+export const AGUI_STATE_PATH_METAPHOR3D_REVISION = '/metaphor3d/revisionId';
 
 export function agUiDraftSourcePath(contentType) {
-  const slot = contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const slot =
+    contentType === 'infographic' || contentType === 'metaphor3d' ? contentType : 'mermaid';
   return `/${slot}/draftSource`;
 }
 
 export function agUiRevisionPath(contentType) {
-  return contentType === 'infographic'
-    ? AGUI_STATE_PATH_INFOGRAPHIC_REVISION
-    : AGUI_STATE_PATH_MERMAID_REVISION;
+  if (contentType === 'infographic') return AGUI_STATE_PATH_INFOGRAPHIC_REVISION;
+  if (contentType === 'metaphor3d') return AGUI_STATE_PATH_METAPHOR3D_REVISION;
+  return AGUI_STATE_PATH_MERMAID_REVISION;
 }
 
 /**

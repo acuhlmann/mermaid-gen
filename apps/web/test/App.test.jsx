@@ -830,4 +830,51 @@ describe('App simplified controls', () => {
       ).toBe(true);
     });
   });
+
+  it('auto-submits intent with peerContext when switching to Metaphor 3D from mermaid', async () => {
+    const mermaidWithTopic = {
+      ...initialState,
+      revisionId: 3,
+      diagramSource: 'flowchart TD\n  API --> DB',
+      lastUserPrompt: 'Order pipeline',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: mermaidWithTopic,
+      infographic: createInitialDiagramState('infographic'),
+      metaphor3d: createInitialDiagramState('metaphor3d')
+    });
+
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent' && payload.contentType === 'metaphor3d') {
+        expect(payload.peerContext?.contentType).toBe('mermaid');
+        expect(payload.peerContext?.diagramSource).toContain('API');
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: {
+            ...createInitialDiagramState('metaphor3d'),
+            revisionId: 1,
+            diagramSource: '{"metaphor":"city","scene":{"theme":"whiteboard","camera":"orbit"},"items":[]}',
+            lastUserPrompt: payload.prompt
+          },
+          message: 'Applied.'
+        });
+      }
+    });
+
+    render(<App />);
+    await waitForControlsReady();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Metaphor 3D' }));
+
+    await waitFor(() => {
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (c) => c[0]?.operation === 'intent' && c[0]?.contentType === 'metaphor3d'
+      );
+      expect(intentCalls).toHaveLength(1);
+    });
+  });
 });

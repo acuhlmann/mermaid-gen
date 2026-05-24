@@ -33,6 +33,12 @@ export function selectionFocusFragment(selectionLike) {
                 : 'item';
     return `${noun} “${labelText}”`;
   }
+  const metaphorLike =
+    selectionLike.kind === 'metaphor-item' || selectionLike.selectionKind === 'metaphor-item';
+  if (metaphorLike) {
+    const labelText = selectionLike.label || selectionLike.id;
+    return `item “${labelText}”`;
+  }
   const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';
   if (clusterLike) {
     return `subgraph “${selectionLike.label || selectionLike.id}”`;

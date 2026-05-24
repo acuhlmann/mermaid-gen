@@ -1,4 +1,5 @@
 import { emitStyleEditsBeforeFinal } from '../styleEditsStream.js';
+import { normalizeContentType } from '@archislop/shared';
 
 /** User-visible SSE when a mutation stream ends without a diagram revision bump. */
 export const STREAM_ERROR_NO_MUTATION_REVISION =
@@ -30,7 +31,7 @@ export function emitIntentTransformStreamResult({
   prompt,
   contentType = 'mermaid'
 }) {
-  const slotKey = contentType === 'infographic' ? 'infographic' : 'mermaid';
+  const slotKey = normalizeContentType(contentType);
   let afterState = stateStore.getSlot(slotKey);
   const revisionChanged =
     typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;

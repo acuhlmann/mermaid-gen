@@ -810,4 +810,69 @@ describe('mode switch peer context', () => {
       })
     ).toBe(true);
   });
+
+  it('resolveModeSwitchCandidate picks topic when switching to metaphor3d from mermaid', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 3,
+      diagramSource: 'flowchart TD\n  X --> Y',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const session = {
+      mermaid: customMermaid,
+      infographic: createInitialDiagramState('infographic'),
+      metaphor3d: createInitialDiagramState('metaphor3d')
+    };
+    const candidate = resolveModeSwitchCandidate({
+      contentMode: 'metaphor3d',
+      session,
+      sessionTopic: null,
+      promptAtSwitch: ''
+    });
+    expect(candidate).toBe('Solar system');
+  });
+
+  it('buildIntentPeerContext returns mermaid peer when switching to metaphor3d', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  API --> DB',
+      lastUserPrompt: 'Order pipeline',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const session = {
+      mermaid: customMermaid,
+      infographic: createInitialDiagramState('infographic'),
+      metaphor3d: createInitialDiagramState('metaphor3d')
+    };
+    const peer = buildIntentPeerContext('metaphor3d', session, 'Order pipeline');
+    expect(peer?.contentType).toBe('mermaid');
+    expect(peer?.diagramSource).toContain('API');
+  });
+
+  it('needsModeSwitchPeerSync is true when metaphor3d slot is empty and mermaid is customized', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  A --> B',
+      lastUserPrompt: 'Solar system'
+    };
+    const session = {
+      mermaid: customMermaid,
+      infographic: createInitialDiagramState('infographic'),
+      metaphor3d: createInitialDiagramState('metaphor3d')
+    };
+    expect(
+      needsModeSwitchPeerSync({
+        contentMode: 'metaphor3d',
+        session,
+        candidate: 'Solar system',
+        syncMarkers: { mermaid: null, infographic: null, metaphor3d: null }
+      })
+    ).toBe(true);
+  });
 });

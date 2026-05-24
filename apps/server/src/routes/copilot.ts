@@ -791,10 +791,12 @@ export function createCopilotRouter({
     const { sessionId, stateStore, proposalStore } = resolveServices(req);
     const mermaidRevision = stateStore.getSlot('mermaid').revisionId;
     const infographicRevision = stateStore.getSlot('infographic').revisionId;
+    const metaphor3dRevision = stateStore.getSlot('metaphor3d').revisionId;
     const pending = proposalStore.listPending({
       currentRevisionByContentType: {
         mermaid: mermaidRevision,
-        infographic: infographicRevision
+        infographic: infographicRevision,
+        metaphor3d: metaphor3dRevision
       }
     });
     res.setHeader(SESSION_HEADER, sessionId);
@@ -974,10 +976,12 @@ export function createCopilotRouter({
     // without an extra round-trip to /presence + /proposals.
     const mermaidRevision = stateStore.getSlot('mermaid').revisionId;
     const infographicRevision = stateStore.getSlot('infographic').revisionId;
+    const metaphor3dRevision = stateStore.getSlot('metaphor3d').revisionId;
     const pending = proposalStore.listPending({
       currentRevisionByContentType: {
         mermaid: mermaidRevision,
-        infographic: infographicRevision
+        infographic: infographicRevision,
+        metaphor3d: metaphor3dRevision
       }
     });
     const { latestSeq } = eventBus.getSessionMeta(sessionId);

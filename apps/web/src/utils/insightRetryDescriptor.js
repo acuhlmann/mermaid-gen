@@ -14,6 +14,7 @@ export function buildInsightRetryDescriptor({
   modelProfile,
   modeSwitchSync,
   modeSwitchPeerRevisionId,
+  modeSwitchPeerMode,
   focusNode
 }) {
   if (!RETRYABLE_OPERATIONS.has(operation) || !RETRYABLE_VARIANTS.has(variant)) {
@@ -27,7 +28,8 @@ export function buildInsightRetryDescriptor({
     focusNode: focusNode ?? payload?.focusNode ?? null,
     modeSwitchSync: Boolean(modeSwitchSync),
     modeSwitchPeerRevisionId:
-      modeSwitchPeerRevisionId != null ? modeSwitchPeerRevisionId : null
+      modeSwitchPeerRevisionId != null ? modeSwitchPeerRevisionId : null,
+    modeSwitchPeerMode: modeSwitchPeerMode ?? null
   };
   if (operation === 'intent') {
     if (typeof payload?.prompt !== 'string' || !payload.prompt.trim()) return null;

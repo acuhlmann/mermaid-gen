@@ -12,7 +12,12 @@ export function emitExplainSectionsBeforeFinal(
   if (input?.kind !== 'explain') return;
   const text = input.analyzeText;
   if (typeof text !== 'string' || !text.trim()) return;
+  // Explain artifacts require per-content-type heading tables (mermaid, infographic).
+  // Metaphor mode falls through as plain prose for now.
   const contentType = input.contentType === 'infographic' ? 'infographic' : 'mermaid';
+  if (input.contentType && input.contentType !== 'mermaid' && input.contentType !== 'infographic') {
+    return;
+  }
   const artifact = buildExplainSectionsArtifact(text, contentType);
   if (!artifact) return;
   emit(artifact);

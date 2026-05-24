@@ -86,6 +86,15 @@ export function AiCornerControlsInner({
             >
               Infographic
             </button>
+            <button
+              type="button"
+              className={`model-profile-option ${contentMode === 'metaphor3d' ? 'is-selected' : ''}`}
+              aria-pressed={contentMode === 'metaphor3d'}
+              disabled={modeSwitchDisabled}
+              onClick={() => onSelectContentMode('metaphor3d')}
+            >
+              Metaphor 3D
+            </button>
           </div>
         </div>
         <div className="model-profile-toggle" role="group" aria-label="AI brain">

@@ -19,6 +19,7 @@ import {
   INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES
 } from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
+import MetaphorRenderer from './MetaphorRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
 import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighlightIds.js';
@@ -171,6 +172,7 @@ export default function DiagramCanvas({
   const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
+  const [metaphorCameraMode, setMetaphorCameraMode] = useState('orbit');
   const requestRef = useRef(0);
   const debounceRef = useRef(null);
   const revisionBootRef = useRef(true);
@@ -710,8 +712,6 @@ export default function DiagramCanvas({
     }
   }
 
-  const displayedRenderError = streamingPreview ? '' : renderError;
-
   function handleEditorChange(value) {
     // Monaco can fire `onChange` synchronously while React commits a new `value`. During streaming,
     // touching editor state here nests updates under the parent's commit and triggers max-depth errors.
@@ -725,6 +725,12 @@ export default function DiagramCanvas({
       onManualEdit(nextValue);
     }
   }
+
+  function toggleMetaphorCameraMode() {
+    setMetaphorCameraMode((mode) => (mode === 'isometric' ? 'orbit' : 'isometric'));
+  }
+
+  const displayedRenderError = streamingPreview ? '' : renderError;
 
   const zoomAtPoint = useCallback((pointX, pointY, scaleFactor) => {
     setViewport((current) => {
@@ -746,6 +752,7 @@ export default function DiagramCanvas({
 
   const handleWheel = useCallback(
     (event) => {
+      if (contentType === 'metaphor3d') return;
       event.preventDefault();
       const rect = event.currentTarget.getBoundingClientRect();
       const pointerX = event.clientX - rect.left;
@@ -753,7 +760,7 @@ export default function DiagramCanvas({
       const zoomFactor = Math.exp(-event.deltaY * 0.0015);
       zoomAtPoint(pointerX, pointerY, zoomFactor);
     },
-    [zoomAtPoint]
+    [contentType, zoomAtPoint]
   );
 
   useEffect(() => {
@@ -948,6 +955,7 @@ export default function DiagramCanvas({
   }
 
   function handlePointerDown(event) {
+    if (contentType === 'metaphor3d') return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
@@ -1046,6 +1054,7 @@ export default function DiagramCanvas({
   }
 
   function handlePointerMove(event) {
+    if (contentType === 'metaphor3d') return;
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
       if (!tap.passiveNativeText) {
@@ -1222,10 +1231,17 @@ export default function DiagramCanvas({
     .join(' ');
 
   const aria =
+    contentType === 'metaphor3d'
+      ? 'Metaphor 3D renderer. Drag to orbit. Scroll or pinch to zoom.'
+      : contentType === 'infographic'
+        ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
+        : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
+  const streamingLabel =
     contentType === 'infographic'
-      ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
-      : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
-  const streamingLabel = contentType === 'infographic' ? 'Updating infographic…' : 'Updating diagram…';
+      ? 'Updating infographic…'
+      : contentType === 'metaphor3d'
+        ? 'Updating metaphor scene…'
+        : 'Updating diagram…';
   const zoomLayerStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
   };
@@ -1240,7 +1256,7 @@ export default function DiagramCanvas({
         {ceremonySlot}
         <div
           ref={diagramSurfaceRef}
-          className={`diagram-output ${isPanning ? 'is-panning' : ''} ${agentThinking ? 'is-agent-thinking' : ''}`}
+          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
@@ -1289,22 +1305,53 @@ export default function DiagramCanvas({
               </button>
             </div>
           ) : null}
+          {contentType === 'metaphor3d' ? (
+            <div
+              className="metaphor-canvas-controls"
+              aria-label="Metaphor view controls"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="metaphor-camera-btn"
+                aria-pressed={metaphorCameraMode === 'isometric'}
+                disabled={streamingPreview}
+                title={
+                  metaphorCameraMode === 'isometric'
+                    ? 'Switch to orbit camera'
+                    : 'Snap to isometric view'
+                }
+                onClick={toggleMetaphorCameraMode}
+              >
+                {metaphorCameraMode === 'isometric' ? 'Orbit' : 'Iso'}
+              </button>
+            </div>
+          ) : null}
           <div
             ref={viewportRef}
-            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}`}
+            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}`}
           >
-            <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>
-              {contentType === 'infographic' ? (
-                <InfographicRenderer
-                  key={`infographic-${rendererRefreshKey}`}
-                  diagramSource={editorSource}
-                  selectedNode={selectedNode}
-                  streamingPreview={streamingPreview}
-                />
-              ) : (
-                <div dangerouslySetInnerHTML={{ __html: svgMarkup }} />
-              )}
-            </div>
+            {contentType === 'metaphor3d' ? (
+              <MetaphorRenderer
+                key={`metaphor3d-${rendererRefreshKey}`}
+                diagramSource={editorSource}
+                streamingPreview={streamingPreview}
+                cameraMode={metaphorCameraMode}
+              />
+            ) : (
+              <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>
+                {contentType === 'infographic' ? (
+                  <InfographicRenderer
+                    key={`infographic-${rendererRefreshKey}`}
+                    diagramSource={editorSource}
+                    selectedNode={selectedNode}
+                    streamingPreview={streamingPreview}
+                  />
+                ) : (
+                  <div dangerouslySetInnerHTML={{ __html: svgMarkup }} />
+                )}
+              </div>
+            )}
           </div>
           <DiagramRunFx
             variant={runFx?.variant}
@@ -1319,7 +1366,13 @@ export default function DiagramCanvas({
       {editorMounted ? (
         <aside
           className={`diagram-editor-panel ${editorClosing ? 'is-closing' : ''}`.trim()}
-          aria-label={contentType === 'mermaid' ? 'Mermaid code editor' : 'Infographic DSL editor'}
+          aria-label={
+            contentType === 'mermaid'
+              ? 'Mermaid code editor'
+              : contentType === 'metaphor3d'
+                ? 'Metaphor DSL editor'
+                : 'Infographic DSL editor'
+          }
         >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
@@ -1333,7 +1386,11 @@ export default function DiagramCanvas({
             <div className="mobile-code-editor-wrap">
               <div className="mobile-code-editor-toolbar">
                 <span className="mobile-code-editor-title">
-                  {contentType === 'mermaid' ? 'Mermaid code' : 'Infographic DSL'}
+                  {contentType === 'mermaid'
+                    ? 'Mermaid code'
+                    : contentType === 'metaphor3d'
+                      ? 'Metaphor DSL'
+                      : 'Infographic DSL'}
                 </span>
                 <div className="mobile-code-editor-actions">
                   {onEditorClose ? (
@@ -1352,14 +1409,26 @@ export default function DiagramCanvas({
                 autoCapitalize="off"
                 autoCorrect="off"
                 inputMode="text"
-                aria-label={contentType === 'mermaid' ? 'Mermaid code editor' : 'Infographic DSL editor'}
+                aria-label={
+                  contentType === 'mermaid'
+                    ? 'Mermaid code editor'
+                    : contentType === 'metaphor3d'
+                      ? 'Metaphor DSL editor'
+                      : 'Infographic DSL editor'
+                }
               />
             </div>
           ) : (
             <div className="diagram-monaco-wrap">
               <Editor
                 height="100%"
-                language={contentType === 'mermaid' ? 'mermaid' : 'infographic'}
+                language={
+                  contentType === 'mermaid'
+                    ? 'mermaid'
+                    : contentType === 'metaphor3d'
+                      ? 'json'
+                      : 'infographic'
+                }
                 theme="vs-dark"
                 value={editorSource}
                 beforeMount={handleEditorBeforeMount}

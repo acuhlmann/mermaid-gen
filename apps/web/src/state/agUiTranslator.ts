@@ -55,7 +55,11 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
         const ops = Array.isArray(evt.delta) ? evt.delta : [];
         const draftOp = ops.find((op: { path?: string }) => {
           if (typeof op?.path !== 'string') return false;
-          return op.path === agUiDraftSourcePath('mermaid') || op.path === agUiDraftSourcePath('infographic');
+          return (
+            op.path === agUiDraftSourcePath('mermaid') ||
+            op.path === agUiDraftSourcePath('infographic') ||
+            op.path === agUiDraftSourcePath('metaphor3d')
+          );
         });
         if (draftOp) {
           const ct = String(draftOp.path).split('/')[1];

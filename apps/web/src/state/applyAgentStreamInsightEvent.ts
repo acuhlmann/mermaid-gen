@@ -1,5 +1,6 @@
 import {
   LEGACY_STREAM_TYPE_A2UI,
+  normalizeContentType,
   resolveCritiqueAnalyzeFinalText,
   type A2uiV09Message,
   type DiagramState,
@@ -75,6 +76,7 @@ export type InsightEventContext = {
   crossModeSyncRef?: { current: Record<string, unknown> };
   modeSwitchSync?: boolean;
   modeSwitchPeerRevisionId?: number | null;
+  modeSwitchPeerMode?: string | null;
   animateAcceptedSource: (state: unknown, onDone?: () => void, opts?: { denseSteps?: boolean }) => void;
   pendingAutoDiagramHighlightRef: { current: { entryId: string; revisionId: number } | null };
   pendingAutoDiagramHighlightTimeoutRef: { current: ReturnType<typeof setTimeout> | null };
@@ -129,6 +131,7 @@ export function applyAgentStreamInsightEvent(
     crossModeSyncRef,
     modeSwitchSync,
     modeSwitchPeerRevisionId,
+    modeSwitchPeerMode,
     animateAcceptedSource,
     pendingAutoDiagramHighlightRef,
     pendingAutoDiagramHighlightTimeoutRef,
@@ -184,7 +187,7 @@ export function applyAgentStreamInsightEvent(
       patchInsightEntry(sectionId, (entry) => ({
         ...entry,
         explainSections: {
-          contentType: evt.contentType === 'infographic' ? 'infographic' : 'mermaid',
+          contentType: normalizeContentType(evt.contentType),
           preamble: typeof evt.preamble === 'string' ? evt.preamble : '',
           sections
         }
@@ -279,9 +282,18 @@ export function applyAgentStreamInsightEvent(
     appendTechnicalAction(sectionId, toolEvt.name, 'done');
     if (typeof playToolEndChime === 'function') tryAgentSound(playToolEndChime);
   } else if (evt.type === 'draftPreview') {
-    if (evt.contentType === 'infographic' && typeof evt.source === 'string' && evt.source) {
-      setLiveDraftSource(evt.source);
-      setLiveDraftContentType('infographic');
+    const draftSource =
+      typeof evt.source === 'string' && evt.source
+        ? evt.source
+        : typeof evt.accumulated === 'string'
+          ? evt.accumulated
+          : '';
+    if (
+      (evt.contentType === 'infographic' || evt.contentType === 'metaphor3d') &&
+      draftSource
+    ) {
+      setLiveDraftSource(draftSource);
+      setLiveDraftContentType(evt.contentType);
       const tickNow = Date.now();
       if (tickNow - lastDraftTickAtRef.current >= 110) {
         lastDraftTickAtRef.current = tickNow;
@@ -324,19 +336,18 @@ export function applyAgentStreamInsightEvent(
       sessionTopicRef.current = finalState.lastUserPrompt;
     }
     if (finalEvt.revisionChanged && finalState && crossModeSyncRef) {
-      if (modeSwitchSync && modeSwitchPeerRevisionId != null) {
-        const contentType = finalState.contentType === 'infographic' ? 'infographic' : 'mermaid';
-        const peerMode = contentType === 'mermaid' ? 'infographic' : 'mermaid';
+      if (modeSwitchSync && modeSwitchPeerRevisionId != null && modeSwitchPeerMode) {
+        const contentType = normalizeContentType(finalState.contentType);
         crossModeSyncRef.current = {
           ...crossModeSyncRef.current,
           [contentType]: {
-            peerMode,
+            peerMode: modeSwitchPeerMode,
             peerRevisionId: modeSwitchPeerRevisionId,
             targetRevisionId: finalState.revisionId ?? 0
           }
         };
       } else if (!modeSwitchSync) {
-        crossModeSyncRef.current = { mermaid: null, infographic: null };
+        crossModeSyncRef.current = { mermaid: null, infographic: null, metaphor3d: null };
       }
     }
     if (finalEvt.revisionChanged && finalState) {
