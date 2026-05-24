@@ -3,6 +3,9 @@
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    // Mirror tsconfig.build.json so typecheck catches what the build catches.
+    // Tests still get Node globals via `types: ["node"]`.
+    "lib": ["ES2022", "DOM"],
     "types": ["node"],
     "tsBuildInfoFile": "./.tsbuildinfo",
 
