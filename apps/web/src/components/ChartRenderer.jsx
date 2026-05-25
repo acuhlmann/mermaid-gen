@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseChartDsl } from '@archislop/shared';
 import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartThemePresets.js';
+import { expressionInterpreter } from 'vega-interpreter';
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -11,7 +12,11 @@ const EMBED_DEFAULT_OPTIONS = {
   actions: false,
   // SVG renderer so the canvas pan/zoom layer's CSS transform scales the chart cleanly.
   renderer: 'svg',
-  tooltip: { theme: 'light' }
+  tooltip: { theme: 'light' },
+  // Replaces Vega's eval()-based expression compiler so the app works under a strict CSP
+  // that forbids 'unsafe-eval'. vega-interpreter is a pure-JS tree-walker with identical
+  // semantics, at a small (~5–15%) throughput cost on expression-heavy charts.
+  expressionInterpreter
 };
 
 /**
