@@ -831,7 +831,7 @@ describe('App simplified controls', () => {
     });
   });
 
-  it('auto-submits intent with peerContext when switching to Metaphor 3D from mermaid', async () => {
+  it('auto-submits intent with peerContext when switching to 3D from mermaid', async () => {
     const mermaidWithTopic = {
       ...initialState,
       revisionId: 3,
@@ -868,7 +868,7 @@ describe('App simplified controls', () => {
     render(<App />);
     await waitForControlsReady();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Metaphor 3D' }));
+    fireEvent.click(screen.getByRole('button', { name: '3D' }));
 
     await waitFor(() => {
       const intentCalls = streamDiagramAgentMock.mock.calls.filter(

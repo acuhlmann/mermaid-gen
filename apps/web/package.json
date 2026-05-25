@@ -33,6 +33,7 @@
     "react-dom": "^19.2.6",
     "source-map-js": "^1.2.1",
     "three": "^0.184.0",
+    "vega-embed": "^7.1.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {

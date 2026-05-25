@@ -792,7 +792,6 @@ function MetaphorRendererImpl(
   const dslCamera = dsl?.scene?.camera ?? 'orbit';
   const cameraMode = cameraModeProp ?? localCameraMode ?? dslCamera;
   const useOrbit = cameraMode !== 'isometric';
-  const sceneTitle = dsl?.scene?.title?.trim() ?? '';
 
   useEffect(() => {
     if (cameraModeProp == null && dsl?.scene?.camera) {
@@ -806,11 +805,6 @@ function MetaphorRendererImpl(
       className={`metaphor-output${streamingPreview ? ' is-streaming-preview' : ''}`}
       style={{ position: 'absolute', inset: 0 }}
     >
-      {sceneTitle ? (
-        <div className="metaphor-scene-title" role="doc-subtitle">
-          {sceneTitle}
-        </div>
-      ) : null}
       {renderError ? <p className="diagram-error">{renderError}</p> : null}
       {dsl ? (
         <Canvas

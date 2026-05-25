@@ -109,6 +109,9 @@ function peerContextPlanBeat(peerContext: IntentPeerContext | null | undefined):
   if (peerType === 'metaphor3d') {
     return 'Using the 3D metaphor as subject context — surfacing a fresh spatial insight.';
   }
+  if (peerType === 'chart') {
+    return 'Using the chart as subject context — pulling the data story into this view.';
+  }
   return null;
 }
 

@@ -17,7 +17,7 @@ import { extractTextContent } from '../../utils/extractTextContent.js';
  * agnostic on purpose — every diagram type's tool names are listed here.
  */
 const INTERNAL_TOOL_NAME_PATTERN =
-  /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch)\b/;
+  /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch|get_metaphor_dsl|apply_metaphor_patch|get_chart_dsl|apply_chart_patch)\b/;
 
 function normalizeMessageContent(content) {
   if (typeof content === 'string') return content;

@@ -37,6 +37,7 @@
     "qrcode": "^1.5.4",
     "redis": "^5.12.1",
     "reflect-metadata": "^0.2.2",
+    "vega-lite": "^6.4.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {

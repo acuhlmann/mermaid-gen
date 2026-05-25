@@ -149,10 +149,15 @@ export function wipeClientCachesAfterLostServerSession() {
   clearAllArchislopAppStorage();
 }
 
-/** True when both slots are still the default empty seed (server restart / new room). */
+/** True when every slot is still the default empty seed (server restart / new room). */
 export function isServerSessionPristine(session) {
   if (!session || typeof session !== 'object') return true;
-  return isSlotPristine(session.mermaid) && isSlotPristine(session.infographic);
+  return (
+    isSlotPristine(session.mermaid) &&
+    isSlotPristine(session.infographic) &&
+    isSlotPristine(session.metaphor3d) &&
+    isSlotPristine(session.chart)
+  );
 }
 
 function isSlotPristine(slot) {
@@ -182,7 +187,8 @@ export async function mintFreshServerSession() {
   await Promise.all([
     syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
     syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
-    syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId })
+    syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId }),
+    syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId })
   ]);
   return targetId;
 }
@@ -238,15 +244,19 @@ export function normalizeFetchedSessionDiagram(payload) {
   const m = payload.mermaid;
   const i = payload.infographic;
   const p = payload.metaphor3d;
+  const c = payload.chart;
   const activeFromPayload =
-    payload.activeContentType === 'infographic' || payload.activeContentType === 'metaphor3d'
+    payload.activeContentType === 'infographic' ||
+    payload.activeContentType === 'metaphor3d' ||
+    payload.activeContentType === 'chart'
       ? payload.activeContentType
       : base.activeContentType;
   return {
     activeContentType: activeFromPayload,
     mermaid: m && typeof m === 'object' && typeof m.diagramSource === 'string' ? m : base.mermaid,
     infographic: i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic,
-    metaphor3d: p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d
+    metaphor3d: p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d,
+    chart: c && typeof c === 'object' && typeof c.diagramSource === 'string' ? c : base.chart
   };
 }
 
@@ -276,10 +286,10 @@ export function slotLastTopic(slot) {
   return typeof p === 'string' && p.trim() ? p.trim() : null;
 }
 
-export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d'];
+export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart'];
 
 export function createEmptyCrossModeSyncMarkers() {
-  return { mermaid: null, infographic: null, metaphor3d: null };
+  return { mermaid: null, infographic: null, metaphor3d: null, chart: null };
 }
 
 export function siblingContentModes(contentMode) {
@@ -321,8 +331,14 @@ export function defaultModeSwitchPrompt(contentMode, peerMode = null) {
   if (contentMode === 'metaphor3d') {
     return 'Re-imagine the current diagram as a 3D spatial metaphor that surfaces new insights.';
   }
+  if (contentMode === 'chart') {
+    return 'Turn the current diagram into a Vega-Lite chart that surfaces the underlying data story.';
+  }
   if (peerMode === 'metaphor3d') {
     return 'Convert the current 3D metaphor into an equivalent Mermaid architecture diagram.';
+  }
+  if (peerMode === 'chart') {
+    return 'Convert the current chart into an equivalent Mermaid architecture diagram.';
   }
   return 'Convert the current infographic into an equivalent Mermaid architecture diagram.';
 }
@@ -332,7 +348,9 @@ export function isSlotCustomized(slot) {
   if (!slot || typeof slot.diagramSource !== 'string') return false;
   if ((slot.revisionId ?? 0) > 0) return true;
   const contentType =
-    slot.contentType === 'infographic' || slot.contentType === 'metaphor3d'
+    slot.contentType === 'infographic' ||
+    slot.contentType === 'metaphor3d' ||
+    slot.contentType === 'chart'
       ? slot.contentType
       : 'mermaid';
   const trimmed = slot.diagramSource.trim();

@@ -97,13 +97,17 @@ test('createInitialSessionState builds independent slots for each content type',
   assert.equal(parsed.mermaid.contentType, 'mermaid');
   assert.equal(parsed.infographic.contentType, 'infographic');
   assert.equal(parsed.metaphor3d.contentType, 'metaphor3d');
+  assert.equal(parsed.chart.contentType, 'chart');
   assert.equal(parsed.mermaid.revisionId, 0);
   assert.equal(parsed.infographic.revisionId, 0);
   assert.equal(parsed.metaphor3d.revisionId, 0);
+  assert.equal(parsed.chart.revisionId, 0);
   assert.equal(parsed.mermaid.diagramSource, '');
   assert.equal(parsed.infographic.diagramSource, '');
   assert.equal(parsed.metaphor3d.diagramSource, '');
+  assert.equal(parsed.chart.diagramSource, '');
   assert.equal(parsed.metaphor3d.styleConfig, null);
+  assert.equal(parsed.chart.styleConfig, null);
 });
 
 test('parseMermaidStyleConfig reads supported init fields', () => {
@@ -221,10 +225,12 @@ test('intent payloads accept contentType=infographic', () => {
   assert.equal(parsed.data.contentType, 'infographic');
 });
 
-test('ContentTypeSchema rejects unknown values', () => {
+test('ContentTypeSchema accepts known slots and rejects unknown', () => {
   assert.equal(ContentTypeSchema.safeParse('mermaid').success, true);
   assert.equal(ContentTypeSchema.safeParse('infographic').success, true);
-  assert.equal(ContentTypeSchema.safeParse('chart').success, false);
+  assert.equal(ContentTypeSchema.safeParse('metaphor3d').success, true);
+  assert.equal(ContentTypeSchema.safeParse('chart').success, true);
+  assert.equal(ContentTypeSchema.safeParse('zigzag').success, false);
 });
 
 test('modelProfile is optional and accepts fast or quality', () => {

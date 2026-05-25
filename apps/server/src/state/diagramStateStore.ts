@@ -11,9 +11,10 @@ import { redactSecrets } from '../utils/redactSecrets.js';
 import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 import { validateAndPrepareInfographicPatch } from '../tools/infographicDslTool.js';
 import { validateAndPrepareMetaphorPatch } from '../tools/metaphorDslTool.js';
+import { validateAndPrepareChartPatch } from '../tools/chartDslTool.js';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
-const VALID_CONTENT_TYPES = new Set(['mermaid', 'infographic', 'metaphor3d']);
+const VALID_CONTENT_TYPES = new Set(['mermaid', 'infographic', 'metaphor3d', 'chart']);
 
 function assertContentType(contentType: string): asserts contentType is ContentType {
   if (!VALID_CONTENT_TYPES.has(contentType)) {
@@ -296,6 +297,82 @@ export function createDiagramStateStore(
     };
   }
 
+  async function syncChartSlot({ diagramSource }: { diagramSource: string }) {
+    const slot = session.chart;
+    const candidate = diagramSource ?? '';
+    if (!candidate.trim()) {
+      if (slot.diagramSource === '') {
+        return { accepted: true, state: slot };
+      }
+      const next = {
+        ...slot,
+        revisionId: slot.revisionId + 1,
+        diagramSource: '',
+        updatedAt: new Date().toISOString()
+      };
+      replaceSlot('chart', next);
+      return { accepted: true, state: next };
+    }
+
+    if (candidate === slot.diagramSource) {
+      return { accepted: true, state: slot };
+    }
+
+    const prepared = await validateAndPrepareChartPatch({
+      currentState: slot,
+      proposedDiagramSource: candidate,
+      reason: 'client sync'
+    });
+    if (!prepared.accepted) {
+      return prepared;
+    }
+
+    const next = {
+      ...slot,
+      revisionId: slot.revisionId + 1,
+      diagramSource: prepared.patch!.diagramSource,
+      styleConfig: null,
+      updatedAt: new Date().toISOString()
+    };
+    replaceSlot('chart', next);
+    return { accepted: true, state: next };
+  }
+
+  async function applyToChartSlot({
+    diagramSource,
+    reason,
+    origin
+  }: {
+    diagramSource: string;
+    reason: string;
+    origin?: DiagramState['history'][number]['origin'];
+  }) {
+    const slot = session.chart;
+    const prepared = await validateAndPrepareChartPatch({
+      currentState: slot,
+      proposedDiagramSource: diagramSource,
+      reason
+    });
+    if (!prepared.accepted) {
+      return prepared;
+    }
+    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+
+    const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
+    const applied = applyPatch(slot, patchWithOrigin);
+    if (!applied.accepted) {
+      return applied;
+    }
+    replaceSlot('chart', applied.state!);
+
+    return {
+      accepted: true,
+      patch: patchWithOrigin,
+      state: applied.state,
+      metadata: ok.metadata
+    };
+  }
+
   return {
     /** Whole session (both slots + active pointer). */
     getSessionState() {
@@ -367,6 +444,9 @@ export function createDiagramStateStore(
       if (contentType === 'metaphor3d') {
         return syncMetaphorSlot({ diagramSource });
       }
+      if (contentType === 'chart') {
+        return syncChartSlot({ diagramSource });
+      }
       return syncInfographicSlot({ diagramSource });
     },
 
@@ -387,6 +467,9 @@ export function createDiagramStateStore(
       }
       if (contentType === 'metaphor3d') {
         return applyToMetaphorSlot({ diagramSource, reason, origin });
+      }
+      if (contentType === 'chart') {
+        return applyToChartSlot({ diagramSource, reason, origin });
       }
       return applyToInfographicSlot({ diagramSource, reason, origin });
     },

@@ -19,16 +19,22 @@ export const AGUI_STATE_PATH_LAST_PATCH_SUMMARY = '/lastPatchSummary';
 export const AGUI_STATE_PATH_MERMAID_REVISION = '/mermaid/revisionId';
 export const AGUI_STATE_PATH_INFOGRAPHIC_REVISION = '/infographic/revisionId';
 export const AGUI_STATE_PATH_METAPHOR3D_REVISION = '/metaphor3d/revisionId';
+export const AGUI_STATE_PATH_CHART_REVISION = '/chart/revisionId';
 
 export function agUiDraftSourcePath(contentType) {
   const slot =
-    contentType === 'infographic' || contentType === 'metaphor3d' ? contentType : 'mermaid';
+    contentType === 'infographic' ||
+    contentType === 'metaphor3d' ||
+    contentType === 'chart'
+      ? contentType
+      : 'mermaid';
   return `/${slot}/draftSource`;
 }
 
 export function agUiRevisionPath(contentType) {
   if (contentType === 'infographic') return AGUI_STATE_PATH_INFOGRAPHIC_REVISION;
   if (contentType === 'metaphor3d') return AGUI_STATE_PATH_METAPHOR3D_REVISION;
+  if (contentType === 'chart') return AGUI_STATE_PATH_CHART_REVISION;
   return AGUI_STATE_PATH_MERMAID_REVISION;
 }
 

@@ -58,7 +58,8 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
           return (
             op.path === agUiDraftSourcePath('mermaid') ||
             op.path === agUiDraftSourcePath('infographic') ||
-            op.path === agUiDraftSourcePath('metaphor3d')
+            op.path === agUiDraftSourcePath('metaphor3d') ||
+            op.path === agUiDraftSourcePath('chart')
           );
         });
         if (draftOp) {

@@ -93,7 +93,16 @@ export function AiCornerControlsInner({
               disabled={modeSwitchDisabled}
               onClick={() => onSelectContentMode('metaphor3d')}
             >
-              Metaphor 3D
+              3D
+            </button>
+            <button
+              type="button"
+              className={`model-profile-option ${contentMode === 'chart' ? 'is-selected' : ''}`}
+              aria-pressed={contentMode === 'chart'}
+              disabled={modeSwitchDisabled}
+              onClick={() => onSelectContentMode('chart')}
+            >
+              Chart
             </button>
           </div>
         </div>

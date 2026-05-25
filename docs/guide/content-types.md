@@ -30,6 +30,6 @@ Scene-level options (apply to every kind):
 
 - `scene.theme`: `whiteboard` (default) · `noir` · `arcade` · `blueprint`
 - `scene.camera`: `orbit` (default, user controls) · `isometric` (fixed) · `cinematic` (auto-rotate, controls off)
-- `scene.title`: optional caption rendered above the canvas.
+- `scene.title`: optional metadata in the DSL (not shown on the canvas; avoids overlapping the brand chip).
 
 Validation lives in `packages/shared/src/metaphorSchema.ts` and `metaphorSanitizer.ts`. Rendering lives in `apps/web/src/components/MetaphorRenderer.jsx`, with per-metaphor layout helpers under `apps/web/src/utils/metaphorLayouts/`. See also [Agents](agents.md) and [Validation & repair](validation.md) for how each slot is validated.

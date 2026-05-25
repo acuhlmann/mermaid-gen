@@ -20,6 +20,7 @@ import {
 } from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
+import ChartRenderer from './ChartRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
 import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighlightIds.js';
@@ -78,6 +79,47 @@ function StreamingWaveIcon() {
       />
     </svg>
   );
+}
+
+function FullscreenEnterIcon() {
+  return (
+    <svg className="diagram-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M4 9V4h5M4 4l6 6M20 9V4h-5M20 4l-6 6M4 15v5h5M4 20l6-6M20 15v5h-5M20 20l-6-6"
+      />
+    </svg>
+  );
+}
+
+function FullscreenExitIcon() {
+  return (
+    <svg className="diagram-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9 4H4v5M4 4l6 6M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6M15 20h5v-5M20 20l-6-6"
+      />
+    </svg>
+  );
+}
+
+function getActiveFullscreenElement() {
+  if (typeof document === 'undefined') return null;
+  return document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
+}
+
+function isFullscreenApiAvailable() {
+  if (typeof document === 'undefined') return false;
+  const proto = Element.prototype;
+  return Boolean(proto.requestFullscreen || proto.webkitRequestFullscreen);
 }
 
 function nodeTitleFromElement(nodeEl) {
@@ -209,6 +251,42 @@ export default function DiagramCanvas({
     typeof window.matchMedia === 'function' &&
     window.matchMedia(MOBILE_MEDIA_QUERY).matches
   );
+  const fullscreenSupported = useMemo(() => isFullscreenApiAvailable(), []);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    if (!fullscreenSupported) return undefined;
+    const syncFullscreen = () => {
+      const active = getActiveFullscreenElement();
+      setIsFullscreen(active === diagramSurfaceRef.current);
+    };
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    document.addEventListener('webkitfullscreenchange', syncFullscreen);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreen);
+      document.removeEventListener('webkitfullscreenchange', syncFullscreen);
+    };
+  }, [fullscreenSupported]);
+
+  const toggleFullscreen = useCallback(async () => {
+    const surface = diagramSurfaceRef.current;
+    if (!surface || !fullscreenSupported) return;
+    try {
+      if (getActiveFullscreenElement() === surface) {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      } else if (surface.requestFullscreen) {
+        await surface.requestFullscreen();
+      } else if (surface.webkitRequestFullscreen) {
+        surface.webkitRequestFullscreen();
+      }
+    } catch {
+      // Gesture denied or platform unsupported — fullscreenchange still syncs when applicable.
+    }
+  }, [fullscreenSupported]);
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
@@ -287,9 +365,10 @@ export default function DiagramCanvas({
     applyViewportFit(true);
   }, [applyViewportFit, contentType, editorSource, revisionId, streamingPreview, svgMarkup]);
 
-  // Infographic SVG is rendered asynchronously; refit when it lands in the DOM.
+  // Infographic + chart SVGs are rendered asynchronously; refit when they land in the DOM.
   useEffect(() => {
-    if (contentType !== 'infographic' || streamingPreview) return undefined;
+    if ((contentType !== 'infographic' && contentType !== 'chart') || streamingPreview)
+      return undefined;
     const root = viewportRef.current;
     if (!root) return undefined;
     const tryFit = () => {
@@ -1232,23 +1311,29 @@ export default function DiagramCanvas({
 
   const aria =
     contentType === 'metaphor3d'
-      ? 'Metaphor 3D renderer. Drag to orbit. Scroll or pinch to zoom.'
-      : contentType === 'infographic'
-        ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
-        : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
+      ? '3D renderer. Drag to orbit. Scroll or pinch to zoom.'
+      : contentType === 'chart'
+        ? 'Vega-Lite chart renderer. Hover marks for tooltip details.'
+        : contentType === 'infographic'
+          ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
+          : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
   const streamingLabel =
     contentType === 'infographic'
       ? 'Updating infographic…'
       : contentType === 'metaphor3d'
-        ? 'Updating metaphor scene…'
-        : 'Updating diagram…';
+        ? 'Updating 3D scene…'
+        : contentType === 'chart'
+          ? 'Updating chart…'
+          : 'Updating diagram…';
   const zoomLayerStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
   };
 
   const showZoomControls =
     !streamingPreview &&
-    ((contentType === 'mermaid' && Boolean(svgMarkup)) || contentType === 'infographic');
+    ((contentType === 'mermaid' && Boolean(svgMarkup)) ||
+      contentType === 'infographic' ||
+      contentType === 'chart');
 
   return (
     <section className={shellClass}>
@@ -1256,7 +1341,7 @@ export default function DiagramCanvas({
         {ceremonySlot}
         <div
           ref={diagramSurfaceRef}
-          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
+          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
@@ -1279,6 +1364,27 @@ export default function DiagramCanvas({
             </p>
           ) : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
+          {fullscreenSupported ? (
+            <div
+              className="diagram-fullscreen-control"
+              aria-label="Diagram fullscreen"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <button
+                type="button"
+                className="diagram-fullscreen-btn"
+                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+                aria-pressed={isFullscreen}
+                disabled={streamingPreview}
+                onClick={() => {
+                  void toggleFullscreen();
+                }}
+              >
+                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
+              </button>
+            </div>
+          ) : null}
           {showZoomControls ? (
             <div
               className="diagram-zoom-controls"
@@ -1308,7 +1414,7 @@ export default function DiagramCanvas({
           {contentType === 'metaphor3d' ? (
             <div
               className="metaphor-canvas-controls"
-              aria-label="Metaphor view controls"
+              aria-label="3D view controls"
               onPointerDown={(event) => event.stopPropagation()}
             >
               <button
@@ -1318,18 +1424,23 @@ export default function DiagramCanvas({
                 disabled={streamingPreview}
                 title={
                   metaphorCameraMode === 'isometric'
+                    ? 'Switch to orbit camera (drag to rotate)'
+                    : 'Snap to isometric 3D view'
+                }
+                aria-label={
+                  metaphorCameraMode === 'isometric'
                     ? 'Switch to orbit camera'
                     : 'Snap to isometric view'
                 }
                 onClick={toggleMetaphorCameraMode}
               >
-                {metaphorCameraMode === 'isometric' ? 'Orbit' : 'Iso'}
+                {metaphorCameraMode === 'isometric' ? 'Orbit' : '3D view'}
               </button>
             </div>
           ) : null}
           <div
             ref={viewportRef}
-            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}`}
+            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}`}
           >
             {contentType === 'metaphor3d' ? (
               <MetaphorRenderer
@@ -1346,6 +1457,11 @@ export default function DiagramCanvas({
                     diagramSource={editorSource}
                     selectedNode={selectedNode}
                     streamingPreview={streamingPreview}
+                  />
+                ) : contentType === 'chart' ? (
+                  <ChartRenderer
+                    key={`chart-${rendererRefreshKey}`}
+                    diagramSource={editorSource}
                   />
                 ) : (
                   <div dangerouslySetInnerHTML={{ __html: svgMarkup }} />
@@ -1370,8 +1486,10 @@ export default function DiagramCanvas({
             contentType === 'mermaid'
               ? 'Mermaid code editor'
               : contentType === 'metaphor3d'
-                ? 'Metaphor DSL editor'
-                : 'Infographic DSL editor'
+                ? '3D DSL editor'
+                : contentType === 'chart'
+                  ? 'Chart DSL editor'
+                  : 'Infographic DSL editor'
           }
         >
           {streamingPreview ? (
@@ -1389,8 +1507,10 @@ export default function DiagramCanvas({
                   {contentType === 'mermaid'
                     ? 'Mermaid code'
                     : contentType === 'metaphor3d'
-                      ? 'Metaphor DSL'
-                      : 'Infographic DSL'}
+                      ? '3D DSL'
+                      : contentType === 'chart'
+                        ? 'Chart DSL'
+                        : 'Infographic DSL'}
                 </span>
                 <div className="mobile-code-editor-actions">
                   {onEditorClose ? (
@@ -1413,8 +1533,10 @@ export default function DiagramCanvas({
                   contentType === 'mermaid'
                     ? 'Mermaid code editor'
                     : contentType === 'metaphor3d'
-                      ? 'Metaphor DSL editor'
-                      : 'Infographic DSL editor'
+                      ? '3D DSL editor'
+                      : contentType === 'chart'
+                        ? 'Chart DSL editor'
+                        : 'Infographic DSL editor'
                 }
               />
             </div>
@@ -1427,7 +1549,9 @@ export default function DiagramCanvas({
                     ? 'mermaid'
                     : contentType === 'metaphor3d'
                       ? 'json'
-                      : 'infographic'
+                      : contentType === 'chart'
+                        ? 'json'
+                        : 'infographic'
                 }
                 theme="vs-dark"
                 value={editorSource}

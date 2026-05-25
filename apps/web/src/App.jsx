@@ -961,7 +961,8 @@ function ArchiSlop() {
               await Promise.all([
                 syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
                 syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId })
+                syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId }),
+                syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId })
               ]);
             } catch {
               // best-effort — if priming sync fails the next user action will create the session
@@ -2559,7 +2560,8 @@ ${requirementsBlock}`;
       await Promise.all([
         syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: nid }),
         syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: nid }),
-        syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: nid })
+        syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: nid }),
+        syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: nid })
       ]);
       freshlyMintedSessionIdsRef.current.delete(nid);
       const fresh = createInitialDiagramState(contentMode);
@@ -2587,7 +2589,13 @@ ${requirementsBlock}`;
   const applyDiagramSnapshotToCanvas = useCallback(
     async ({ diagramSource, contentType, styleConfig }) => {
       if (typeof diagramSource !== 'string' || !diagramSource.trim()) return;
-      if (contentType !== 'mermaid' && contentType !== 'infographic' && contentType !== 'metaphor3d') return;
+      if (
+        contentType !== 'mermaid' &&
+        contentType !== 'infographic' &&
+        contentType !== 'metaphor3d' &&
+        contentType !== 'chart'
+      )
+        return;
 
       const needsModeSwitch = contentType !== contentMode;
 
@@ -2639,7 +2647,8 @@ ${requirementsBlock}`;
       if (
         targetContentType !== 'mermaid' &&
         targetContentType !== 'infographic' &&
-        targetContentType !== 'metaphor3d'
+        targetContentType !== 'metaphor3d' &&
+        targetContentType !== 'chart'
       ) return;
 
       const baseline = entry?.diagramUndoBaseline;
