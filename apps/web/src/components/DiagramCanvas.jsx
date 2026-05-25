@@ -20,11 +20,13 @@ import {
 } from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
+import MetaphorSceneOverlay from './MetaphorSceneOverlay.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
 import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighlightIds.js';
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
+import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
 
 const TAP_MOVE_THRESHOLD_PX = 14;
@@ -42,8 +44,16 @@ const INFOGRAPHIC_PART_KINDS = {
 
 function extractErrorMessage(error) {
   if (!error) return 'Unknown Mermaid error';
-  if (typeof error === 'string') return error;
-  if (error.message) return error.message;
+  if (typeof error === 'string') {
+    return isMermaidInfrastructureError(error)
+      ? 'Dev server module cache is stale — reload the page (or restart `npm run dev`).'
+      : error;
+  }
+  if (error.message) {
+    return isMermaidInfrastructureError(error)
+      ? 'Dev server module cache is stale — reload the page (or restart `npm run dev`).'
+      : error.message;
+  }
   return 'Mermaid render failed';
 }
 
@@ -79,47 +89,6 @@ function StreamingWaveIcon() {
       />
     </svg>
   );
-}
-
-function FullscreenEnterIcon() {
-  return (
-    <svg className="diagram-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M4 9V4h5M4 4l6 6M20 9V4h-5M20 4l-6 6M4 15v5h5M4 20l6-6M20 15v5h-5M20 20l-6-6"
-      />
-    </svg>
-  );
-}
-
-function FullscreenExitIcon() {
-  return (
-    <svg className="diagram-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
-      <path
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M9 4H4v5M4 4l6 6M15 4h5v5M20 4l-6 6M9 20H4v-5M4 20l6-6M15 20h5v-5M20 20l-6-6"
-      />
-    </svg>
-  );
-}
-
-function getActiveFullscreenElement() {
-  if (typeof document === 'undefined') return null;
-  return document.fullscreenElement ?? document.webkitFullscreenElement ?? null;
-}
-
-function isFullscreenApiAvailable() {
-  if (typeof document === 'undefined') return false;
-  const proto = Element.prototype;
-  return Boolean(proto.requestFullscreen || proto.webkitRequestFullscreen);
 }
 
 function nodeTitleFromElement(nodeEl) {
@@ -208,13 +177,15 @@ export default function DiagramCanvas({
   /** When set, pan/zoom the canvas to frame these advisor highlight ids (e.g. on pin). */
   advisorPinFocusIds = null,
   /** Incremented by App on each mode switch so the infographic renderer fully remounts. */
-  rendererRefreshKey = 0
+  rendererRefreshKey = 0,
+  /** Ref to `.diagram-output` for fullscreen (button lives in App top-corner controls). */
+  diagramSurfaceRef = null
 }) {
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
   const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
-  const [metaphorCameraMode, setMetaphorCameraMode] = useState('orbit');
+  const metaphorCameraMode = 'orbit';
   const requestRef = useRef(0);
   const debounceRef = useRef(null);
   const revisionBootRef = useRef(true);
@@ -231,7 +202,7 @@ export default function DiagramCanvas({
   const viewportRef = useRef(null);
   const zoomLayerRef = useRef(null);
   const pendingViewportFitRef = useRef(true);
-  const diagramSurfaceRef = useRef(null);
+  const diagramSurfaceRefLocal = useRef(null);
   const lastToolbarAnchorReportRef = useRef(null);
   const tapCandidateRef = useRef(null);
   const backgroundTapRef = useRef(null);
@@ -251,42 +222,15 @@ export default function DiagramCanvas({
     typeof window.matchMedia === 'function' &&
     window.matchMedia(MOBILE_MEDIA_QUERY).matches
   );
-  const fullscreenSupported = useMemo(() => isFullscreenApiAvailable(), []);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  useEffect(() => {
-    if (!fullscreenSupported) return undefined;
-    const syncFullscreen = () => {
-      const active = getActiveFullscreenElement();
-      setIsFullscreen(active === diagramSurfaceRef.current);
-    };
-    document.addEventListener('fullscreenchange', syncFullscreen);
-    document.addEventListener('webkitfullscreenchange', syncFullscreen);
-    return () => {
-      document.removeEventListener('fullscreenchange', syncFullscreen);
-      document.removeEventListener('webkitfullscreenchange', syncFullscreen);
-    };
-  }, [fullscreenSupported]);
-
-  const toggleFullscreen = useCallback(async () => {
-    const surface = diagramSurfaceRef.current;
-    if (!surface || !fullscreenSupported) return;
-    try {
-      if (getActiveFullscreenElement() === surface) {
-        if (document.exitFullscreen) {
-          await document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      } else if (surface.requestFullscreen) {
-        await surface.requestFullscreen();
-      } else if (surface.webkitRequestFullscreen) {
-        surface.webkitRequestFullscreen();
+  const bindDiagramSurfaceRef = useCallback(
+    (node) => {
+      diagramSurfaceRefLocal.current = node;
+      if (diagramSurfaceRef) {
+        diagramSurfaceRef.current = node;
       }
-    } catch {
-      // Gesture denied or platform unsupported — fullscreenchange still syncs when applicable.
-    }
-  }, [fullscreenSupported]);
+    },
+    [diagramSurfaceRef]
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
@@ -805,10 +749,6 @@ export default function DiagramCanvas({
     }
   }
 
-  function toggleMetaphorCameraMode() {
-    setMetaphorCameraMode((mode) => (mode === 'isometric' ? 'orbit' : 'isometric'));
-  }
-
   const displayedRenderError = streamingPreview ? '' : renderError;
 
   const zoomAtPoint = useCallback((pointX, pointY, scaleFactor) => {
@@ -843,7 +783,7 @@ export default function DiagramCanvas({
   );
 
   useEffect(() => {
-    const el = diagramSurfaceRef.current;
+    const el = diagramSurfaceRefLocal.current;
     if (!el) return;
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
@@ -1329,18 +1269,12 @@ export default function DiagramCanvas({
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
   };
 
-  const showZoomControls =
-    !streamingPreview &&
-    ((contentType === 'mermaid' && Boolean(svgMarkup)) ||
-      contentType === 'infographic' ||
-      contentType === 'chart');
-
   return (
     <section className={shellClass}>
       <div className="diagram-main-column">
         {ceremonySlot}
         <div
-          ref={diagramSurfaceRef}
+          ref={bindDiagramSurfaceRef}
           className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
@@ -1364,91 +1298,23 @@ export default function DiagramCanvas({
             </p>
           ) : null}
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
-          {fullscreenSupported ? (
-            <div
-              className="diagram-fullscreen-control"
-              aria-label="Diagram fullscreen"
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="diagram-fullscreen-btn"
-                title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-                aria-pressed={isFullscreen}
-                disabled={streamingPreview}
-                onClick={() => {
-                  void toggleFullscreen();
-                }}
-              >
-                {isFullscreen ? <FullscreenExitIcon /> : <FullscreenEnterIcon />}
-              </button>
-            </div>
-          ) : null}
-          {showZoomControls ? (
-            <div
-              className="diagram-zoom-controls"
-              aria-label="Diagram zoom"
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="diagram-zoom-btn"
-                title="Fit diagram in view"
-                aria-label="Fit diagram in view"
-                onClick={() => applyViewportFit(true)}
-              >
-                Fit
-              </button>
-              <button
-                type="button"
-                className="diagram-zoom-btn"
-                title="Reset zoom to 100%"
-                aria-label="Reset zoom to 100 percent"
-                onClick={() => applyViewportFit(false)}
-              >
-                100%
-              </button>
-            </div>
-          ) : null}
-          {contentType === 'metaphor3d' ? (
-            <div
-              className="metaphor-canvas-controls"
-              aria-label="3D view controls"
-              onPointerDown={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                className="metaphor-camera-btn"
-                aria-pressed={metaphorCameraMode === 'isometric'}
-                disabled={streamingPreview}
-                title={
-                  metaphorCameraMode === 'isometric'
-                    ? 'Switch to orbit camera (drag to rotate)'
-                    : 'Snap to isometric 3D view'
-                }
-                aria-label={
-                  metaphorCameraMode === 'isometric'
-                    ? 'Switch to orbit camera'
-                    : 'Snap to isometric view'
-                }
-                onClick={toggleMetaphorCameraMode}
-              >
-                {metaphorCameraMode === 'isometric' ? 'Orbit' : '3D view'}
-              </button>
-            </div>
-          ) : null}
           <div
             ref={viewportRef}
             className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}`}
           >
             {contentType === 'metaphor3d' ? (
-              <MetaphorRenderer
-                key={`metaphor3d-${rendererRefreshKey}`}
-                diagramSource={editorSource}
-                streamingPreview={streamingPreview}
-                cameraMode={metaphorCameraMode}
-              />
+              <>
+                <MetaphorRenderer
+                  key={`metaphor3d-${rendererRefreshKey}`}
+                  diagramSource={editorSource}
+                  streamingPreview={streamingPreview}
+                  cameraMode={metaphorCameraMode}
+                />
+                <MetaphorSceneOverlay
+                  diagramSource={editorSource}
+                  streamingPreview={streamingPreview}
+                />
+              </>
             ) : (
               <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>
                 {contentType === 'infographic' ? (

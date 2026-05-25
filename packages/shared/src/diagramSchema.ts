@@ -238,7 +238,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
   })
 ]);
 
-/** Style intents are Mermaid-only. The route handler should reject contentType !== 'mermaid'. */
+/** Style intents are supported by Mermaid and Chart slots. The route handler should reject
+ *  contentType not in ('mermaid', 'chart'). */
 export const StyleIntentSchema = DiagramIntentSchema.extend({
   stylePrompt: z.string().min(1).optional()
 });

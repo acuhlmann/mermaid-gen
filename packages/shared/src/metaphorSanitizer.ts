@@ -4,6 +4,7 @@ import {
   CITY_MAX_ITEMS,
   GALAXY_MAX_ITEMS,
   LAYERCAKE_MAX_ITEMS,
+  METAPHOR_GLYPH_KINDS,
   METAPHOR_KINDS,
   METAPHOR_MAX_LINKS,
   MetaphorDslSchema,
@@ -34,6 +35,7 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
 
 const LIGHTING_SET = new Set<string>(CITY_LIGHTING);
 const CONDITION_SET = new Set<string>(CITY_CONDITION);
+const GLYPH_SET = new Set<string>(METAPHOR_GLYPH_KINDS);
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -186,6 +188,78 @@ function rescueNumericRanges(
         }
       }
     }
+  }
+}
+
+function rescueGlyphField(
+  working: Record<string, unknown>,
+  applied: string[]
+): void {
+  if (!Array.isArray(working.items)) return;
+  for (const item of working.items as unknown[]) {
+    if (!isObject(item)) continue;
+    if (!('glyph' in item)) continue;
+    if (typeof item.glyph !== 'string') {
+      delete item.glyph;
+      applied.push('drop-invalid-glyph');
+      continue;
+    }
+    const lower = item.glyph.trim().toLowerCase();
+    if (GLYPH_SET.has(lower)) {
+      if (item.glyph !== lower) {
+        item.glyph = lower;
+        applied.push('normalize-glyph-case');
+      }
+    } else {
+      delete item.glyph;
+      applied.push('drop-invalid-glyph');
+    }
+  }
+}
+
+function rescueSceneLegend(
+  working: Record<string, unknown>,
+  applied: string[]
+): void {
+  if (!isObject(working.scene)) return;
+  const legend = working.scene.legend;
+  if (legend === undefined) return;
+  if (!isObject(legend)) {
+    delete working.scene.legend;
+    applied.push('drop-invalid-legend');
+    return;
+  }
+  const allowed: ReadonlyArray<string> = [
+    'height',
+    'footprint',
+    'district',
+    'magnitude',
+    'cluster',
+    'thickness',
+    'weight',
+    'elevation',
+    'intensity'
+  ];
+  const kept: Record<string, string> = {};
+  let droppedUnknown = false;
+  for (const [key, value] of Object.entries(legend)) {
+    if (!allowed.includes(key)) {
+      droppedUnknown = true;
+      continue;
+    }
+    if (typeof value !== 'string') {
+      droppedUnknown = true;
+      continue;
+    }
+    kept[key] = value;
+  }
+  if (droppedUnknown) {
+    applied.push('drop-invalid-legend-axis');
+  }
+  if (Object.keys(kept).length === 0) {
+    delete working.scene.legend;
+  } else {
+    working.scene.legend = kept;
   }
 }
 
@@ -395,6 +469,8 @@ export function sanitizeMetaphorDsl(
   rescueItemPositions(working, applied);
   rescueNumericRanges(working, applied);
   rescueCityEnumCase(working, applied);
+  rescueGlyphField(working, applied);
+  rescueSceneLegend(working, applied);
   rescueTreeStructure(working, applied);
   rescueGalaxyBinary(working, applied);
   rescueLinksField(working, applied, allowStructureRewrite);

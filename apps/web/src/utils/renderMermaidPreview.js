@@ -1,5 +1,9 @@
 import { prepareMermaidForRender, sanitizeMermaid, sanitizeSvgMarkup } from '@archislop/shared';
 import mermaid from 'mermaid';
+import {
+  isMermaidInfrastructureError,
+  reloadOnceForStaleViteMermaidDeps
+} from './mermaidRenderErrors.js';
 import { ARCHISLOP_MERMAID_PREVIEW_INIT } from './mermaidRenderInit.js';
 
 /** @deprecated Use ARCHISLOP_MERMAID_PREVIEW_INIT */
@@ -26,6 +30,9 @@ export async function renderMermaidSvg(diagramId, source, mermaidInit) {
     const { svg } = await mermaid.render(diagramId, dsl);
     return { svg: sanitizeSvgMarkup(svg), sanitizerApplied: [] };
   } catch (firstError) {
+    if (isMermaidInfrastructureError(firstError) && reloadOnceForStaleViteMermaidDeps()) {
+      return new Promise(() => {});
+    }
     const parseError =
       firstError instanceof Error ? firstError.message : typeof firstError === 'string' ? firstError : '';
     const { sanitized, applied } = sanitizeMermaid(dsl, { parseError });

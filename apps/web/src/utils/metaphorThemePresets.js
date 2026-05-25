@@ -25,7 +25,16 @@ export const METAPHOR_THEME_PRESETS = {
     treeLeafColor: '#4ade80',
     terrainBaseColor: '#86efac',
     binaryGlowColor: '#fef08a',
-    nebulaPalette: ['#c084fc', '#60a5fa', '#fb7185']
+    nebulaPalette: ['#c084fc', '#60a5fa', '#fb7185'],
+    windowColor: '#fef3c7',
+    windowEmissiveColor: '#fef3c7',
+    spireColor: '#94a3b8',
+    districtGridColor: '#cbd5e1',
+    crackColor: '#1f2937',
+    slabTrimColor: '#fbbf24',
+    waterColor: '#7dd3fc',
+    treeAccentColor: '#f43f5e',
+    nebulaDustColor: '#fde68a'
   },
   noir: {
     background: '#0b0f19',
@@ -51,7 +60,16 @@ export const METAPHOR_THEME_PRESETS = {
     treeLeafColor: '#94a3b8',
     terrainBaseColor: '#1e293b',
     binaryGlowColor: '#cbd5e1',
-    nebulaPalette: ['#475569', '#334155', '#1e293b']
+    nebulaPalette: ['#475569', '#334155', '#1e293b'],
+    windowColor: '#fbbf24',
+    windowEmissiveColor: '#fde047',
+    spireColor: '#cbd5e1',
+    districtGridColor: '#1e293b',
+    crackColor: '#020617',
+    slabTrimColor: '#64748b',
+    waterColor: '#1e3a8a',
+    treeAccentColor: '#94a3b8',
+    nebulaDustColor: '#cbd5e1'
   },
   arcade: {
     background: '#1a0533',
@@ -77,7 +95,16 @@ export const METAPHOR_THEME_PRESETS = {
     treeLeafColor: '#06d6a0',
     terrainBaseColor: '#9d4edd',
     binaryGlowColor: '#4cc9f0',
-    nebulaPalette: ['#ff6bcb', '#4cc9f0', '#ffd166']
+    nebulaPalette: ['#ff6bcb', '#4cc9f0', '#ffd166'],
+    windowColor: '#fef08a',
+    windowEmissiveColor: '#fef08a',
+    spireColor: '#c77dff',
+    districtGridColor: '#5a189a',
+    crackColor: '#240046',
+    slabTrimColor: '#ffd166',
+    waterColor: '#4cc9f0',
+    treeAccentColor: '#ff6bcb',
+    nebulaDustColor: '#ffd166'
   },
   blueprint: {
     background: '#0a1e3a',
@@ -103,7 +130,16 @@ export const METAPHOR_THEME_PRESETS = {
     treeLeafColor: '#e0f2fe',
     terrainBaseColor: '#1e40af',
     binaryGlowColor: '#f0f9ff',
-    nebulaPalette: ['#1d4ed8', '#2563eb', '#3b82f6']
+    nebulaPalette: ['#1d4ed8', '#2563eb', '#3b82f6'],
+    windowColor: '#e0f2fe',
+    windowEmissiveColor: '#bae6fd',
+    spireColor: '#dbeafe',
+    districtGridColor: '#1d4ed8',
+    crackColor: '#0a1e3a',
+    slabTrimColor: '#bae6fd',
+    waterColor: '#38bdf8',
+    treeAccentColor: '#f0f9ff',
+    nebulaDustColor: '#bae6fd'
   }
 };
 

@@ -133,6 +133,7 @@ async function refresh() {
   }
   document.getElementById("refresh-note").textContent =
     "Revisions: mermaid " + snap.revisions?.mermaid + ", infographic " + snap.revisions?.infographic +
+    ", 3D " + (snap.revisions?.metaphor3d ?? 0) + ", chart " + (snap.revisions?.chart ?? 0) +
     " · refreshed " + new Date().toLocaleTimeString();
 }
 

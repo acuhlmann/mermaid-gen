@@ -6,6 +6,7 @@
  * analyze flows (see apps/web/src/utils/slopitectCopy.js — keep voices aligned).
  */
 
+import { getLabelExplainDumbLevel } from '@archislop/shared';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -43,15 +44,50 @@ INFOGRAPHIC MODE (when Diagram type is infographic):
 - Do NOT suggest switching infographic template families unless the persona is Slopitect (goMad) or CIO (innovate) and the suggestion explicitly calls for a layout pivot.
 `.trim();
 
-const DUMB_DOWN_OVERRIDE = `
-DUMB-IT-DOWN OVERRIDE (this beats every other rule above for this turn):
-- The user just clicked "Dumb it Down" on your previous observation.
-- Rephrase the SAME idea for a non-specialist coworker over coffee — same subject, same target label, plainer words.
-- BANNED: named laws/principles/patterns/theories (no Conway's Law, no Maillard, no saga/choreography, no second-system effect, no Brooks's Law, no eponyms). BANNED: Latin, Greek, foreign-language flexes. BANNED: the words "pattern", "principle", "paradigm", "axiom", "topology", "ontology", "epistemology".
-- Still kind: "comment". Still MAX 110 characters. Still reference at least one visible label by name.
-- Keep a hint of the warm, slightly-too-pleased-with-itself architect voice — but the WORDS must be everyday English a smart non-expert nods at.
-- Do NOT repeat the previous observation verbatim — translate it.
+const ADVISOR_DUMB_GIBBERISH_OVERRIDE = `
+DUMB-IT-DOWN OVERRIDE — BABBLE MODE (this beats every other rule above for this turn):
+- The user has dumbed down your observation until real words failed.
+- Output kind: "comment". "suggestion": ONLY nonsense baby babble — syllables (goo ga, bwah, nya), raspberries, squeals.
+- NO real English words except maybe mangling 1–2 letters from a visible label into babble.
+- MAX 80 characters. Still put any label mangling in highlightIds if you can.
+- Wholesome and silly, never offensive. End with !!! if excited.
 `.trim();
+
+/**
+ * Level-aware dumb-down instructions — mirrors labelExplainDumbLevels used by the
+ * radial "?" explainer so each click targets a younger audience.
+ *
+ * @param {{ simpleLevel?: number, style?: 'gibberish' }} [opts]
+ */
+export function buildAdvisorDumbDownOverride(opts = {}) {
+  if (opts.style === 'gibberish') return ADVISOR_DUMB_GIBBERISH_OVERRIDE;
+  const level = Math.min(6, Math.max(1, Number(opts.simpleLevel) || 1));
+  const meta = getLabelExplainDumbLevel(level);
+  const audience = meta?.audience ?? 'a beginner';
+  const voice = meta?.voice ?? 'a friendly explainer';
+  const maxWords = meta?.maxWords ?? 25;
+  const extra =
+    level >= 5
+      ? '- Wholesome silliness is welcome (onomatopoeia, toy analogies) but stay on-topic about the visible label.'
+      : level >= 3
+        ? '- Prefer concrete everyday analogies over technical metaphors.'
+        : '- Use a real-world analogy if it helps ("like a mailbox", "like a waiter").';
+  return [
+    'DUMB-IT-DOWN OVERRIDE (this beats every other rule above for this turn):',
+    `- The user just clicked "Dumb it Down" again — rephrase your previous observation for ${audience}.`,
+    `- Voice: ${voice}. Each click should feel easier than the last.`,
+    '- Same subject and target label as before — do NOT pivot to a different node.',
+    '- BANNED: named laws/principles/patterns/theories, eponyms, Latin/Greek flexes.',
+    level <= 2
+      ? '- BANNED at this level: the words "pattern", "principle", "paradigm", "axiom", "topology", "ontology", "epistemology".'
+      : '- No jargon — if a big word slips in, replace it with something a kid would say.',
+    extra,
+    '- Still kind: "comment". Still reference at least one visible label by name.',
+    `- MAX ${maxWords} words in "suggestion" (one short fragment, not a lecture).`,
+    '- Do NOT repeat the previous observation verbatim — translate it simpler.',
+    '- Keep a hint of the warm architect personality — but the WORDS must match this audience.'
+  ].join('\n');
+}
 
 export const ADVISOR_PERSONAS = {
   refine: {
@@ -148,7 +184,12 @@ export function buildAdvisorSystemPrompt(persona, contentType = 'mermaid', opts 
   // Dumb-it-down only makes sense for the Wise Architect — every other persona
   // either already speaks plainly or has its own loud voice that should not flatten.
   const dumbDown =
-    opts.mode === 'dumb' && persona === 'explain' ? `\n\n${DUMB_DOWN_OVERRIDE}` : '';
+    opts.mode === 'dumb' && persona === 'explain'
+      ? `\n\n${buildAdvisorDumbDownOverride({
+          simpleLevel: opts.simpleLevel,
+          style: opts.style
+        })}`
+      : '';
   return `${spec.persona}\n\n${COMMON_RULES}${infographic}${dumbDown}`;
 }
 
@@ -159,7 +200,9 @@ export function buildAdvisorUserPrompt({
   focusNode,
   lastSuggestions,
   previousSuggestion,
-  mode
+  mode,
+  simpleLevel,
+  style
 }) {
   const recent = Array.isArray(lastSuggestions) && lastSuggestions.length > 0
     ? lastSuggestions.slice(0, 5).map((s) => `- ${String(s).slice(0, 200)}`).join('\n')
@@ -216,12 +259,26 @@ export function buildAdvisorUserPrompt({
 
   const previous =
     mode === 'dumb' && typeof previousSuggestion === 'string' && previousSuggestion.trim()
-      ? [
-          '',
-          '🪄 YOUR PREVIOUS OBSERVATION (translate this, do NOT repeat it):',
-          `  "${previousSuggestion.trim().slice(0, 240)}"`,
-          '  Rephrase for a coworker over coffee. Plain English only.'
-        ].join('\n')
+      ? (() => {
+          const prev = previousSuggestion.trim().slice(0, 240);
+          if (style === 'gibberish') {
+            return [
+              '',
+              '🪄 YOUR PREVIOUS OBSERVATION (react with baby babble only — no real words):',
+              `  "${prev}"`
+            ].join('\n');
+          }
+          const level = Math.min(6, Math.max(1, Number(simpleLevel) || 1));
+          const meta = getLabelExplainDumbLevel(level);
+          const audience = meta?.audience ?? 'a beginner';
+          const maxWords = meta?.maxWords ?? 25;
+          return [
+            '',
+            '🪄 YOUR PREVIOUS OBSERVATION (translate this, do NOT repeat it):',
+            `  "${prev}"`,
+            `  Rephrase for ${audience}. Max ${maxWords} words. Plain language only.`
+          ].join('\n');
+        })()
       : '';
 
   return [

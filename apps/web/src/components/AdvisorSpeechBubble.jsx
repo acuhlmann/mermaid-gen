@@ -1,3 +1,10 @@
+import {
+  getLabelExplainDumbLevel,
+  isLabelExplainGiveUpLevel,
+  labelExplainDumbAudienceBadge,
+  labelExplainDumbChipLabel,
+  labelExplainDumbLoadingText
+} from '@archislop/shared';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
@@ -41,6 +48,7 @@ export default function AdvisorSpeechBubble({
   kind = 'suggestion',
   isPinned = false,
   isDumbingDown = false,
+  architectDumbLevel = 0,
   onGo,
   onDismiss,
   onTogglePin,
@@ -66,6 +74,16 @@ export default function AdvisorSpeechBubble({
   const isComment = kind === 'comment';
   const isArchitect = persona === 'explain';
   const showArchitectActions = isArchitect && (onDumbDown || onDrillDeeper);
+  const dumbChipLabel = labelExplainDumbChipLabel(architectDumbLevel);
+  const dumbLoadingLabel = labelExplainDumbLoadingText(architectDumbLevel);
+  const dumbAudienceBadge =
+    architectDumbLevel > 0 ? labelExplainDumbAudienceBadge(architectDumbLevel) : '';
+  const dumbChipEmoji = isLabelExplainGiveUpLevel(architectDumbLevel)
+    ? '🏳️'
+    : architectDumbLevel > 0
+      ? getLabelExplainDumbLevel(architectDumbLevel)?.emoji ?? '🍼'
+      : getLabelExplainDumbLevel(1)?.emoji ?? '🍼';
+  const isGibberishAnswer = architectDumbLevel === 7;
 
   const handleBubbleClick = (event) => {
     if (event.target?.closest?.('.advisor-speech-btn, .advisor-speech-history-nav, .stakeholder-cast-avatar-btn')) {
@@ -103,7 +121,16 @@ export default function AdvisorSpeechBubble({
               {isPinned ? <span className="advisor-speech-pin" aria-label="Pinned">📌</span> : null}
             </span>
           </div>
-          <span className="advisor-speech-text">{suggestion}</span>
+          {dumbAudienceBadge ? (
+            <p className="advisor-speech-dumb-audience" aria-live="polite">
+              {dumbAudienceBadge}
+            </p>
+          ) : null}
+          <span
+            className={`advisor-speech-text${isGibberishAnswer ? ' is-gibberish' : ''}`}
+          >
+            {suggestion}
+          </span>
         </div>
         <div className="advisor-speech-footer">
           <nav
@@ -163,13 +190,29 @@ export default function AdvisorSpeechBubble({
             {showArchitectActions && onDumbDown ? (
               <button
                 type="button"
-                className="advisor-speech-btn advisor-speech-btn--dumb"
+                className={`advisor-speech-btn advisor-speech-btn--dumb${architectDumbLevel > 0 ? ' is-active' : ''}${isLabelExplainGiveUpLevel(architectDumbLevel) ? ' is-give-up' : ''}`}
                 onClick={(event) => { event.stopPropagation(); onDumbDown?.(); }}
                 disabled={isDumbingDown}
-                aria-label="Dumb it down — rephrase in plain English"
-                title="Translate the architect's musing into plain English"
+                aria-pressed={architectDumbLevel > 0}
+                aria-label={
+                  isLabelExplainGiveUpLevel(architectDumbLevel)
+                    ? 'I give up — dismiss this observation'
+                    : `${dumbChipLabel} — rephrase for a simpler audience`
+                }
+                title={
+                  isLabelExplainGiveUpLevel(architectDumbLevel)
+                    ? 'Decommission this observation (OUT OF SCOPE)'
+                    : architectDumbLevel <= 0
+                      ? 'Rephrase in plain language — click again for even simpler'
+                      : 'Make it even simpler for a younger audience'
+                }
               >
-                {isDumbingDown ? 'Dumbing…' : 'Dumb it Down'}
+                <span className="advisor-speech-dumb-emoji" aria-hidden="true">
+                  {dumbChipEmoji}
+                </span>
+                <span className="advisor-speech-dumb-label">
+                  {isDumbingDown ? dumbLoadingLabel : dumbChipLabel}
+                </span>
               </button>
             ) : null}
             {showArchitectActions && onDrillDeeper ? (

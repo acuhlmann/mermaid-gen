@@ -80,6 +80,20 @@ describe('AdvisorSpeechBubble', () => {
     expect(screen.getByTestId('advisor-speech-bubble').getAttribute('data-kind')).toBe('comment');
   });
 
+  it('shows progressive Dumb it Down label for the Wise Architect', () => {
+    render(
+      <AdvisorSpeechBubble
+        persona="explain"
+        suggestion="Conway's Law in miniature."
+        kind="comment"
+        architectDumbLevel={2}
+        onDumbDown={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('button', { name: /Kid mode/i })).toBeTruthy();
+    expect(screen.getByText(/curious 16-year-old/i)).toBeTruthy();
+  });
+
   it('shows cast strip when multiple stakeholders are in the cast', () => {
     render(
       <AdvisorSpeechBubble

@@ -433,16 +433,16 @@ export async function handleStyleIntent({
   }
 
   const intent = parsedIntent.data;
-  if (intent.contentType !== 'mermaid') {
+  if (intent.contentType !== 'mermaid' && intent.contentType !== 'chart') {
     return {
       status: 400,
       body: {
-        error: 'Style intent is only supported for Mermaid diagrams.'
+        error: 'Style intent is only supported for Mermaid diagrams and Vega-Lite charts.'
       }
     };
   }
 
-  const state = stateStore.getSlot('mermaid');
+  const state = stateStore.getSlot(intent.contentType);
   if (intent.revisionId !== state.revisionId) {
     return {
       status: 409,
@@ -456,9 +456,10 @@ export async function handleStyleIntent({
   try {
     const agentResult = await agentService.applyStyleIntent({
       prompt: intent.stylePrompt || intent.prompt,
-      settings: intent.settings
+      settings: intent.settings,
+      contentType: intent.contentType
     });
-    const nextState = stateStore.getSlot('mermaid');
+    const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
 
     if (nextState.revisionId === state.revisionId || !patch) {
@@ -481,7 +482,7 @@ export async function handleStyleIntent({
         metadata: {
           llm: true,
           agent: 'style',
-          contentType: 'mermaid'
+          contentType: intent.contentType
         }
       }
     };

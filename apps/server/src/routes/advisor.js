@@ -1,5 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
+import { fallbackLabelGibberish } from '@archislop/shared';
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
@@ -38,7 +39,10 @@ const AdvisorSuggestSchema = z.object({
   // "dumb" rephrases the architect's previous bubble in plain English. Only honored
   // when persona === 'explain' (other personas ignore the flag at prompt-build time).
   mode: z.enum(['dumb']).optional(),
-  previousSuggestion: z.string().max(400).optional()
+  previousSuggestion: z.string().max(400).optional(),
+  // Progressive simplification (1–6) — same ladder as the radial "?" explainer.
+  simpleLevel: z.number().int().min(1).max(6).optional(),
+  style: z.enum(['gibberish']).optional()
 });
 
 const ExplainLabelSchema = z.object({
@@ -92,7 +96,9 @@ export function createAdvisorRouter() {
     }
 
     const system = buildAdvisorSystemPrompt(payload.persona, payload.contentType, {
-      mode: payload.mode
+      mode: payload.mode,
+      simpleLevel: payload.simpleLevel,
+      style: payload.style
     });
     const user = buildAdvisorUserPrompt({
       contentType: payload.contentType,
@@ -101,13 +107,33 @@ export function createAdvisorRouter() {
       focusNode: payload.focusNode ?? (payload.focusNodeId ? { id: payload.focusNodeId } : null),
       lastSuggestions: payload.lastSuggestions,
       previousSuggestion: payload.previousSuggestion,
-      mode: payload.mode
+      mode: payload.mode,
+      simpleLevel: payload.simpleLevel,
+      style: payload.style
     });
 
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const raw = extractTextContent(reply?.content ?? reply);
-      const parsedReply = parseAdvisorReply(raw, { persona: payload.persona });
+      let parsedReply = parseAdvisorReply(raw, { persona: payload.persona });
+      if (
+        !parsedReply &&
+        payload.mode === 'dumb' &&
+        payload.style === 'gibberish' &&
+        payload.persona === 'explain'
+      ) {
+        const seed =
+          payload.focusNode?.label ||
+          payload.focusNode?.clickedLabel ||
+          payload.visibleLabels?.[0] ||
+          payload.previousSuggestion ||
+          '';
+        parsedReply = {
+          suggestion: fallbackLabelGibberish(seed),
+          highlightIds: [],
+          kind: 'comment'
+        };
+      }
       if (!parsedReply) {
         res.status(200).json({ persona: payload.persona, suggestion: null, highlightIds: [], kind: 'comment' });
         return;

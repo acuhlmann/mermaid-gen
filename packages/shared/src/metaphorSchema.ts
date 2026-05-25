@@ -9,6 +9,54 @@ export const MetaphorThemeSchema = z.enum(METAPHOR_THEMES).default('whiteboard')
 export const METAPHOR_CAMERAS = ['orbit', 'isometric', 'cinematic'] as const;
 export const MetaphorCameraSchema = z.enum(METAPHOR_CAMERAS).default('orbit');
 
+export const METAPHOR_GLYPH_KINDS = [
+  'database',
+  'cache',
+  'queue',
+  'filestore',
+  'datalake',
+  'service',
+  'compute',
+  'container',
+  'function',
+  'model',
+  'gateway',
+  'network',
+  'cdn',
+  'loadbalancer',
+  'security',
+  'identity',
+  'firewall',
+  'user',
+  'team',
+  'agent',
+  'event',
+  'channel',
+  'signal',
+  'document',
+  'money',
+  'time',
+  'decision',
+  'metric',
+  'anchor',
+  'target'
+] as const;
+export const MetaphorGlyphSchema = z.enum(METAPHOR_GLYPH_KINDS);
+
+export const MetaphorLegendSchema = z
+  .object({
+    height: z.string().max(80).optional(),
+    footprint: z.string().max(80).optional(),
+    district: z.string().max(80).optional(),
+    magnitude: z.string().max(80).optional(),
+    cluster: z.string().max(80).optional(),
+    thickness: z.string().max(80).optional(),
+    weight: z.string().max(80).optional(),
+    elevation: z.string().max(80).optional(),
+    intensity: z.string().max(80).optional()
+  })
+  .strict();
+
 export const MetaphorPositionSchema = z.tuple([
   z.number().min(-30).max(30),
   z.number().min(-30).max(30),
@@ -31,6 +79,8 @@ export const MetaphorSceneSchema = z
     theme: MetaphorThemeSchema,
     camera: MetaphorCameraSchema,
     title: z.string().max(160).optional(),
+    subtitle: z.string().max(200).optional(),
+    legend: MetaphorLegendSchema.optional(),
     nebula: z.array(MetaphorNebulaSchema).max(8).optional(),
     surface: MetaphorSurfaceSchema.optional()
   })
@@ -51,7 +101,8 @@ const MetaphorItemBase = z.object({
     .max(64)
     .regex(/^[a-z0-9][a-z0-9-_]*$/i, 'id must be alphanumeric with dashes/underscores'),
   label: z.string().min(1).max(120),
-  position: MetaphorPositionSchema.optional()
+  position: MetaphorPositionSchema.optional(),
+  glyph: MetaphorGlyphSchema.optional()
 });
 
 const MetaphorLinksField = z.array(MetaphorLinkSchema).max(METAPHOR_MAX_LINKS).default([]);
@@ -142,6 +193,8 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
 export type MetaphorKind = z.infer<typeof MetaphorKindSchema>;
 export type MetaphorTheme = z.infer<typeof MetaphorThemeSchema>;
 export type MetaphorCamera = z.infer<typeof MetaphorCameraSchema>;
+export type MetaphorGlyph = z.infer<typeof MetaphorGlyphSchema>;
+export type MetaphorLegend = z.infer<typeof MetaphorLegendSchema>;
 export type MetaphorScene = z.infer<typeof MetaphorSceneSchema>;
 export type MetaphorPosition = z.infer<typeof MetaphorPositionSchema>;
 export type MetaphorNebula = z.infer<typeof MetaphorNebulaSchema>;

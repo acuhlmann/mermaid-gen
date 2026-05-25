@@ -75,6 +75,10 @@ export interface ApplyAnalyzeIntentInput {
 export interface ApplyStyleIntentInput {
   prompt: string;
   settings?: Partial<IntentSettings>;
+  /** Set by the route/dispatcher so per-slot agents can disambiguate. Optional for legacy callers. */
+  contentType?: ContentType;
+  modelProfile?: ModelProfile;
+  emit?: AgentStreamEmit;
 }
 
 export type AgentStreamOperation = 'intent' | 'transform' | 'analyze';
@@ -127,7 +131,7 @@ export interface DiagramAgentService {
   /** Critique / Explain. Read-only — never mutates a slot. */
   applyAnalyzeIntent(input: ApplyAnalyzeIntentInput): Promise<AgentResult>;
 
-  /** Mermaid-only. Style-config update via apply_mermaid_patch. */
+  /** Mermaid and Chart only. Style-config update via apply_mermaid_patch or apply_chart_patch. */
   applyStyleIntent?(input: ApplyStyleIntentInput): Promise<AgentResult>;
 
   /**

@@ -28,8 +28,12 @@ export function createDiagramAgentDispatcher({ stateStore, env = process.env } =
   }
 
   return {
-    /** Mermaid-only style intent. Routes that allow Style must reject contentType !== 'mermaid'. */
+    /** Style intent — supported by mermaid and chart. Routes that allow Style must reject contentType
+     *  not in ('mermaid', 'chart'). */
     async applyStyleIntent(input) {
+      if (input?.contentType === 'chart') {
+        return chartService.applyStyleIntent(input);
+      }
       return mermaidService.applyStyleIntent(input);
     },
 

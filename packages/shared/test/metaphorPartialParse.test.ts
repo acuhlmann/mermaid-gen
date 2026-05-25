@@ -73,3 +73,13 @@ test('parsePartialMetaphorDsl accepts tree and terrain kinds', () => {
   assert.equal(terrain!.scene?.theme, 'blueprint');
   assert.equal(terrain!.scene?.camera, 'cinematic');
 });
+
+test('parsePartialMetaphorDsl surfaces item.glyph on completed items during streaming', () => {
+  const raw =
+    '{"metaphor":"city","items":[{"id":"a","label":"A","glyph":"database"},{"id":"b","label":"B","glyph":"queue"},{"id":"c","label":"Gam';
+  const partial = parsePartialMetaphorDsl(raw);
+  assert.ok(partial);
+  assert.equal(partial!.items.length, 2);
+  assert.equal((partial!.items[0] as { glyph?: string }).glyph, 'database');
+  assert.equal((partial!.items[1] as { glyph?: string }).glyph, 'queue');
+});

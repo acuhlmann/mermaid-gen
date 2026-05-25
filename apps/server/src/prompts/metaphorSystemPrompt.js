@@ -16,13 +16,19 @@ Available metaphors (pick the one that fits the subject best, or honor the user'
 
 DSL shape (emit via apply_metaphor_patch):
 
-City (with districts + links):
+City (with districts + links + topic glyphs + scene legend):
 {
   "metaphor": "city",
-  "scene": { "theme": "whiteboard" | "noir" | "arcade" | "blueprint", "camera": "orbit" | "isometric" | "cinematic", "title": "..." },
+  "scene": {
+    "theme": "whiteboard" | "noir" | "arcade" | "blueprint",
+    "camera": "orbit" | "isometric" | "cinematic",
+    "title": "Payment platform",
+    "subtitle": "Production stack, Aug 2026",
+    "legend": { "height": "monthly transaction volume", "footprint": "team size", "district": "team" }
+  },
   "items": [
-    { "id": "auth-service", "label": "Auth Service", "height": 12, "footprint": 3, "district": "platform", "lighting": "lit", "condition": "new" },
-    { "id": "postgres", "label": "Postgres", "height": 8, "footprint": 4, "district": "data", "lighting": "dim", "condition": "aging" }
+    { "id": "auth-service", "label": "Auth Service", "height": 12, "footprint": 3, "district": "platform", "lighting": "lit", "condition": "new", "glyph": "identity" },
+    { "id": "postgres", "label": "Postgres", "height": 8, "footprint": 4, "district": "data", "lighting": "dim", "condition": "aging", "glyph": "database" }
   ],
   "links": [
     { "from": "auth-service", "to": "postgres", "label": "stores sessions" }
@@ -99,5 +105,39 @@ Rules:
 - Optional terrain scene field: \`surface: { metric, baseline }\` — give the metric a name so the legend is clear.
 - The \`cinematic\` camera auto-rotates slowly with controls disabled — choose it when you want the diagram to feel like a presentation. \`orbit\` is the default with user controls; \`isometric\` is fixed.
 - The \`blueprint\` theme renders as white linework on deep navy — choose it for technical/architectural framings.
+
+Topic glyphs (optional per-item icon — works on every metaphor):
+
+Each item may set \`glyph\` to one of these exact lowercase kinds. A small procedural 3D icon then renders on top of the building / next to the star / on the leaf / in place of the terrain pin's flag — making the scene visually carry the topic rather than abstract geometry.
+
+- Storage: \`database\`, \`cache\`, \`queue\`, \`filestore\`, \`datalake\`
+- Compute: \`service\`, \`compute\`, \`container\`, \`function\`, \`model\`
+- Network: \`gateway\`, \`network\`, \`cdn\`, \`loadbalancer\`
+- Security: \`security\`, \`identity\`, \`firewall\`
+- People: \`user\`, \`team\`, \`agent\`
+- Comms/data: \`event\`, \`channel\`, \`signal\`, \`document\`
+- Misc: \`money\`, \`time\`, \`decision\`, \`metric\`, \`anchor\`, \`target\`
+
+Rules:
+- Pick a glyph for each item whose real-world kind is recognisable. Skip the glyph when the item is abstract (e.g. "Q3 goal", "open question").
+- Do not invent glyph names. Unknown kinds are dropped silently.
+- Prefer the most specific glyph: a vector store is \`database\`, not \`filestore\`; a Kafka topic is \`channel\` or \`event\`; an oncall human is \`user\`, an LLM agent is \`agent\`.
+- For galaxy scenes with many items, only the top-magnitude items show their glyph (density guard) — set magnitudes proportionally so the headline items surface visually.
+
+Scene narrative (required when axes have meaning):
+
+For every metaphor, set \`scene.title\` and \`scene.legend.<axis>\` for every axis you actually used. The legend renders as an HTML overlay above the 3D canvas (NOT inside the scene) so viewers immediately know what the spatial encodings mean for this specific topic.
+
+Axes per metaphor:
+- City: \`height\`, \`footprint\`, and (when grouping) \`district\`.
+- Layercake: \`thickness\`.
+- Galaxy: \`magnitude\`, and (when grouping) \`cluster\`.
+- Tree: \`weight\`.
+- Terrain: \`elevation\` + \`intensity\` (also keep \`scene.surface.metric\` populated).
+
+Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "throughput (RPS)", "headcount". Not full sentences.
+
+Set \`scene.subtitle\` for one-line context (date, environment, scope) when the title alone is not enough.
+
 - Always call apply_metaphor_patch with the full DSL JSON; do not return prose only.
 `;

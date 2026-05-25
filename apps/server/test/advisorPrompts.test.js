@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ADVISOR_PERSONAS,
+  buildAdvisorDumbDownOverride,
   buildAdvisorSystemPrompt,
   buildAdvisorUserPrompt,
   parseAdvisorReply
@@ -78,10 +79,23 @@ test('buildAdvisorUserPrompt embeds previous suggestion in dumb mode', () => {
     visibleLabels: ['A', 'B'],
     lastSuggestions: [],
     mode: 'dumb',
+    simpleLevel: 1,
     previousSuggestion: 'Notice the saga shape — choreography, not orchestration.'
   });
   assert.match(user, /YOUR PREVIOUS OBSERVATION/);
   assert.match(user, /choreography, not orchestration/);
+  assert.match(user, /grown-up who wants zero jargon/);
+
+  const kidUser = buildAdvisorUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart LR\n  A-->B',
+    visibleLabels: ['A', 'B'],
+    lastSuggestions: [],
+    mode: 'dumb',
+    simpleLevel: 3,
+    previousSuggestion: 'Gateway is like a door for requests.'
+  });
+  assert.match(kidUser, /smart 10-year-old/);
 
   // Without mode='dumb' the previous-suggestion block is omitted even if passed.
   const userNoMode = buildAdvisorUserPrompt({
@@ -92,4 +106,16 @@ test('buildAdvisorUserPrompt embeds previous suggestion in dumb mode', () => {
     previousSuggestion: 'Notice the saga shape — choreography, not orchestration.'
   });
   assert.doesNotMatch(userNoMode, /YOUR PREVIOUS OBSERVATION/);
+});
+
+test('buildAdvisorDumbDownOverride steps through audience levels', () => {
+  const level1 = buildAdvisorDumbDownOverride({ simpleLevel: 1 });
+  assert.match(level1, /grown-up who wants zero jargon/);
+
+  const level4 = buildAdvisorDumbDownOverride({ simpleLevel: 4 });
+  assert.match(level4, /5-year-old/);
+
+  const babble = buildAdvisorDumbDownOverride({ style: 'gibberish' });
+  assert.match(babble, /BABBLE MODE/);
+  assert.doesNotMatch(babble, /grown-up/);
 });

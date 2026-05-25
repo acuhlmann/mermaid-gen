@@ -78,7 +78,7 @@ function renderSteps(data) {
     {
       id: "canvas",
       label: "Preview canvas",
-      detail: "Mermaid rev <code class='rev'>" + esc(rev.mermaid) + "</code> · Infographic rev <code class='rev'>" + esc(rev.infographic) + "</code>",
+      detail: "Mermaid rev <code class='rev'>" + esc(rev.mermaid) + "</code> · Infographic rev <code class='rev'>" + esc(rev.infographic) + "</code> · 3D rev <code class='rev'>" + esc(rev.metaphor3d ?? 0) + "</code> · Chart rev <code class='rev'>" + esc(rev.chart ?? 0) + "</code>",
       done: registered,
       active: registered,
     },

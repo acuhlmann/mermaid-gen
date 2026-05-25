@@ -1,5 +1,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
+import DiagramFullscreenButton from './components/DiagramFullscreenButton.jsx';
+import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import InsightsPane from './components/InsightsPane.jsx';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
 import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
@@ -42,6 +44,7 @@ import {
   submitDiagramRenderRepair,
   writeDiagramCache
 } from './state/diagramStore.js';
+import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
 import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import './App.css';
@@ -1744,6 +1747,7 @@ Hard requirements:
 
       if (!autoFixAlwaysOnRef.current) return;
       if (!nextError) return;
+      if (isMermaidInfrastructureError(nextError)) return;
       if (autoFixAttemptedRef.current) return;
       if (lastAutoFixSourceRef.current === source) return;
       if (loadingRef.current || streamingPreviewRef.current) return;
@@ -2432,6 +2436,7 @@ ${requirementsBlock}`;
       kind: advisor.suggestionKind,
       isPinned: advisor.isPinned,
       isDumbingDown: advisor.isDumbingDown,
+      architectDumbLevel: advisor.architectDumbLevel,
       onGo: advisor.accept,
       onDismiss: advisor.dismiss,
       onTogglePin: advisor.togglePin,
@@ -2967,6 +2972,8 @@ ${requirementsBlock}`;
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
   );
+  const diagramSurfaceRef = useRef(null);
+  const { fullscreenSupported, isFullscreen, toggleFullscreen } = useDiagramFullscreen(diagramSurfaceRef);
   const hasDiagramText = Boolean(state.diagramSource?.trim());
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
@@ -3295,6 +3302,7 @@ ${requirementsBlock}`;
               : 'normal'
         }}
         advisorPinFocusIds={advisorPinFocusIds}
+        diagramSurfaceRef={diagramSurfaceRef}
       />
 
       <RadialActionMenu
@@ -3500,19 +3508,28 @@ ${requirementsBlock}`;
         onCancel={() => setClearConfirmOpen(false)}
       />
 
-      {hasDiagramText || editorOpen ? (
-        <div className="corner-control top-corner-controls" aria-label="Code editor">
-          <button
-            type="button"
-            className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
-            onClick={() => setEditorOpen((current) => !current)}
-            aria-expanded={editorOpen}
-            aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
-            title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
-          >
-            <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
-            <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
-          </button>
+      {fullscreenSupported || hasDiagramText || editorOpen ? (
+        <div className="corner-control top-corner-controls" aria-label="Diagram surface controls">
+          {fullscreenSupported ? (
+            <DiagramFullscreenButton
+              isFullscreen={isFullscreen}
+              disabled={streamingPreview}
+              onToggle={toggleFullscreen}
+            />
+          ) : null}
+          {hasDiagramText || editorOpen ? (
+            <button
+              type="button"
+              className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
+              onClick={() => setEditorOpen((current) => !current)}
+              aria-expanded={editorOpen}
+              aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
+              title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
+            >
+              <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
+              <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
+            </button>
+          ) : null}
         </div>
       ) : null}
 

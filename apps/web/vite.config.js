@@ -29,6 +29,8 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['source-map-js', 'path-browserify', '@antv/infographic']
+    // Mermaid lazy-loads diagram chunks; pre-bundle the core entry so Vite does not serve
+    // stale split chunks (504 Outdated Optimize Dep) after dependency changes.
+    include: ['source-map-js', 'path-browserify', '@antv/infographic', 'mermaid']
   }
 })

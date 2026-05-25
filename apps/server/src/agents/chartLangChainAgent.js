@@ -126,6 +126,34 @@ function buildAnalyzeUserContent({ kind, currentDsl }) {
   return [task, `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``].join('\n\n');
 }
 
+/** Style intent for chart — bounded vocabulary (theme swap, color scheme, axis gridlines,
+ *  legend position). The agent must keep data and encodings intact. */
+function buildStyleUserContent({ prompt, currentDsl }) {
+  return [
+    'Apply a visual styling update to the current chart.',
+    '',
+    'Bounded scope — change only these things:',
+    '- "theme" (whiteboard | noir | arcade | blueprint) on the wrapper',
+    '- spec.config.range.category (color scheme array)',
+    '- spec.config.axis (gridlines, label/title color, tick density)',
+    '- spec.config.legend (position, label/title color)',
+    '- spec.config.title (font size, weight, color)',
+    '- spec.config.background',
+    '- spec.config.font',
+    '',
+    'Hard requirements:',
+    '- Preserve spec.data, spec.mark, spec.encoding, spec.transform exactly as-is unless the user explicitly asks to change them.',
+    '- Keep "$schema" pointing at vega-lite/v5.',
+    '- Output the FULL wrapper JSON via apply_chart_patch — partial updates are not supported.',
+    '',
+    `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``,
+    '',
+    `User style request:\n${prompt}`,
+    '',
+    'Call apply_chart_patch with the full JSON wrapper.'
+  ].join('\n');
+}
+
 export function createChartLangChainAgent({
   stateStore,
   env = process.env,
@@ -429,6 +457,31 @@ export function createChartLangChainAgent({
       });
     },
 
+    async applyStyleIntent({ prompt, modelProfile, emit }) {
+      const slot = stateStore.getSlot('chart');
+      if (!slot.diagramSource?.trim()) {
+        return { message: 'Nothing to style — generate a chart first.', raw: null };
+      }
+      const profile = normalizeModelProfile(modelProfile);
+      const userMessages = [
+        {
+          role: 'user',
+          content: buildStyleUserContent({ prompt, currentDsl: slot.diagramSource })
+        }
+      ];
+
+      if (typeof emit === 'function') {
+        emit({ type: 'phase', id: 'chart_style', label: 'Restyling chart…' });
+      }
+
+      return invokeWithRepair(userMessages, {
+        requirePatch: true,
+        emit,
+        profile,
+        mode: 'style'
+      });
+    },
+
     async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
@@ -474,6 +527,7 @@ export function createLazyChartAgentService({ stateStore, env = process.env }) {
       analyze: 'Analyzing chart…',
       intent: 'Composing chart…',
       transform: 'Transforming chart…'
-    }
+    },
+    supportsStyleIntent: true
   });
 }

@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  fallbackLabelGibberish,
+  isLabelExplainGiveUpLevel,
+  LABEL_EXPLAIN_GIBBERISH_LEVEL,
+  MAX_LABEL_EXPLAIN_DUMB_LEVEL
+} from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramStore.js';
 import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getVisibleDiagramLabels } from '../utils/visibleDiagramLabels.js';
@@ -111,6 +117,8 @@ export function useAdvisorOrchestrator(params) {
   const [highlightIds, setHighlightIds] = useState([]);
   const [error, setError] = useState(null);
   const [isDumbingDown, setIsDumbingDown] = useState(false);
+  /** 0 = ivory-tower brief; 1–6 = younger audiences; 7 = babble / give-up. */
+  const [architectDumbLevel, setArchitectDumbLevel] = useState(0);
   const [proposalHistory, setProposalHistory] = useState(
     /** @type {{ entries: ProposalHistoryEntry[], index: number }} */ ({ entries: [], index: -1 })
   );
@@ -141,6 +149,7 @@ export function useAdvisorOrchestrator(params) {
     setSuggestion(null);
     setSuggestionKind('suggestion');
     setHighlightIds([]);
+    setArchitectDumbLevel(0);
     if (clearPersona) setActivePersona(null);
     setThinkingPersona(null);
   }, []);
@@ -155,6 +164,7 @@ export function useAdvisorOrchestrator(params) {
     setSuggestion(entry.suggestion);
     setSuggestionKind(entry.suggestionKind);
     setHighlightIds(entry.highlightIds ?? []);
+    setArchitectDumbLevel(0);
     setThinkingPersona(null);
   }, []);
 
@@ -341,6 +351,7 @@ export function useAdvisorOrchestrator(params) {
         setIsPinned(false);
         pinnedRef.current = false;
         setActivePersona(persona);
+        setArchitectDumbLevel(0);
         setSuggestion(text);
         setSuggestionKind(kind);
         setHighlightIds(highlight);
@@ -549,10 +560,9 @@ export function useAdvisorOrchestrator(params) {
   }, []);
 
   /**
-   * Re-fetch the Wise Architect's current observation, rephrased in plain English.
-   * Only meaningful for `activePersona === 'explain'`; bails out otherwise. While
-   * the request is in flight the bubble is pinned so the timer doesn't dismiss it
-   * out from under the user; the result replaces the bubble text in place.
+   * Re-fetch the Wise Architect's current observation at the next dumb-down level.
+   * Same progressive ladder as the radial "?" explainer (levels 1–6, then babble,
+   * then "I give up" dismisses). Only meaningful for `activePersona === 'explain'`.
    */
   const dumbDown = useCallback(async () => {
     const persona = activePersona;
@@ -560,6 +570,20 @@ export function useAdvisorOrchestrator(params) {
     if (persona !== 'explain' || !previous) return;
     if (isDumbingDown) return;
 
+    if (isLabelExplainGiveUpLevel(architectDumbLevel)) {
+      dismiss();
+      return;
+    }
+
+    const nextLevel =
+      architectDumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
+        ? LABEL_EXPLAIN_GIBBERISH_LEVEL
+        : architectDumbLevel <= 0
+          ? 1
+          : architectDumbLevel + 1;
+    const isGibberish = nextLevel === LABEL_EXPLAIN_GIBBERISH_LEVEL;
+
+    setArchitectDumbLevel(nextLevel);
     setIsDumbingDown(true);
     // Pin while we fetch so the auto-dismiss can't snatch the bubble mid-request.
     if (!pinnedRef.current) {
@@ -594,16 +618,28 @@ export function useAdvisorOrchestrator(params) {
           visibleLabels: labels,
           ...(focusDescriptor?.id ? { focusNode: focusDescriptor } : {}),
           mode: 'dumb',
-          previousSuggestion: previous
+          previousSuggestion: previous,
+          ...(isGibberish
+            ? { style: 'gibberish' }
+            : { simpleLevel: nextLevel })
         })
       });
       if (!response.ok) {
         setError(`advisor ${response.status}`);
+        setArchitectDumbLevel(architectDumbLevel);
         return;
       }
       const payload = await response.json();
-      const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
-      if (!text) return;
+      let text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
+      if (!text && isGibberish) {
+        text = fallbackLabelGibberish(
+          focusDescriptor?.label || labels?.[0] || previous
+        );
+      }
+      if (!text) {
+        setArchitectDumbLevel(architectDumbLevel);
+        return;
+      }
       const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
       setSuggestion(text);
       setSuggestionKind('comment');
@@ -626,13 +662,14 @@ export function useAdvisorOrchestrator(params) {
       });
       setError(null);
     } catch (err) {
+      setArchitectDumbLevel(architectDumbLevel);
       if (err?.name !== 'AbortError') {
         setError(err?.message || 'advisor error');
       }
     } finally {
       setIsDumbingDown(false);
     }
-  }, [activePersona, suggestion, isDumbingDown]);
+  }, [activePersona, suggestion, isDumbingDown, architectDumbLevel, dismiss]);
 
   const togglePin = useCallback(() => {
     setIsPinned((prev) => {
@@ -704,6 +741,7 @@ export function useAdvisorOrchestrator(params) {
     isMuted,
     isPinned,
     isDumbingDown,
+    architectDumbLevel,
     error,
     toggleMute,
     togglePin,

@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import {
   CITY_MAX_ITEMS,
   GalaxyMetaphorSchema,
+  METAPHOR_GLYPH_KINDS,
   MetaphorDslSchema,
+  MetaphorLegendSchema,
   sanitizeMetaphorDsl
 } from '../src/index.js';
 
@@ -324,5 +326,105 @@ test('Galaxy scene parses nebula clouds and new blueprint theme/cinematic camera
     assert.equal(dsl.scene.theme, 'blueprint');
     assert.equal(dsl.scene.camera, 'cinematic');
     assert.equal(dsl.scene.nebula?.length, 1);
+  }
+});
+
+test('MetaphorDslSchema round-trips item.glyph and scene.subtitle/legend', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'city',
+    scene: {
+      title: 'Payment platform',
+      subtitle: 'Production stack, Aug 2026',
+      legend: { height: 'monthly transaction volume', district: 'team' }
+    },
+    items: [
+      { id: 'checkout', label: 'Checkout', height: 18, footprint: 3, glyph: 'service' },
+      { id: 'postgres', label: 'Postgres', height: 10, footprint: 4, glyph: 'database' }
+    ]
+  });
+  if (dsl.metaphor === 'city') {
+    assert.equal(dsl.scene.subtitle, 'Production stack, Aug 2026');
+    assert.equal(dsl.scene.legend?.height, 'monthly transaction volume');
+    assert.equal(dsl.scene.legend?.district, 'team');
+    assert.equal(dsl.items[0].glyph, 'service');
+    assert.equal(dsl.items[1].glyph, 'database');
+  }
+});
+
+test('MetaphorLegendSchema rejects unknown axis keys (strict)', () => {
+  const ok = MetaphorLegendSchema.safeParse({ height: 'x' });
+  assert.equal(ok.success, true);
+  const bad = MetaphorLegendSchema.safeParse({ height: 'x', bogus: 'y' });
+  assert.equal(bad.success, false);
+});
+
+test('MetaphorDslSchema rejects unknown glyph value', () => {
+  const result = MetaphorDslSchema.safeParse({
+    metaphor: 'city',
+    scene: {},
+    items: [{ id: 'a', label: 'A', glyph: 'imaginary-thing' }]
+  });
+  assert.equal(result.success, false);
+});
+
+test('sanitizeMetaphorDsl drops unknown item glyph and records drop-invalid-glyph', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [
+      { id: 'a', label: 'A', glyph: 'imaginary-thing' },
+      { id: 'b', label: 'B', glyph: 'database' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.equal(result.dsl.items[0].glyph, undefined);
+    assert.equal(result.dsl.items[1].glyph, 'database');
+  }
+  assert.ok(result.applied.includes('drop-invalid-glyph'));
+});
+
+test('sanitizeMetaphorDsl normalizes mixed-case glyph values', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [{ id: 'a', label: 'A', glyph: 'DataBase' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.equal(result.dsl.items[0].glyph, 'database');
+  }
+  assert.ok(result.applied.includes('normalize-glyph-case'));
+});
+
+test('sanitizeMetaphorDsl drops unknown legend axes without rejecting the DSL', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    scene: {
+      title: 'X',
+      legend: { height: 'h', mystery: 'y', district: 'd' }
+    },
+    items: [{ id: 'a', label: 'A' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.equal(result.dsl.scene.legend?.height, 'h');
+    assert.equal(result.dsl.scene.legend?.district, 'd');
+    assert.equal(
+      (result.dsl.scene.legend as Record<string, unknown>).mystery,
+      undefined
+    );
+  }
+  assert.ok(result.applied.includes('drop-invalid-legend-axis'));
+});
+
+test('METAPHOR_GLYPH_KINDS contains a stable, deduplicated list', () => {
+  const set = new Set(METAPHOR_GLYPH_KINDS);
+  assert.equal(set.size, METAPHOR_GLYPH_KINDS.length, 'glyph kinds must be unique');
+  assert.ok(METAPHOR_GLYPH_KINDS.length >= 20, 'expected at least 20 curated glyph kinds');
+  for (const k of METAPHOR_GLYPH_KINDS) {
+    assert.equal(typeof k, 'string');
+    assert.match(k, /^[a-z][a-z0-9-]*$/);
   }
 });

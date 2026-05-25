@@ -17,6 +17,7 @@ import {
   FocusNodeSchema,
   OriginSchema,
   SessionDiagramStateSchema,
+  StyleIntentSchema,
   ToolApplyResultSchema,
   applyMermaidStyleDirective,
   applyPatch,
@@ -231,6 +232,20 @@ test('ContentTypeSchema accepts known slots and rejects unknown', () => {
   assert.equal(ContentTypeSchema.safeParse('metaphor3d').success, true);
   assert.equal(ContentTypeSchema.safeParse('chart').success, true);
   assert.equal(ContentTypeSchema.safeParse('zigzag').success, false);
+});
+
+test('StyleIntentSchema accepts contentType "chart" (PR2 — Style is no longer mermaid-only)', () => {
+  const result = StyleIntentSchema.safeParse({
+    prompt: 'use the noir theme',
+    stylePrompt: 'use the noir theme',
+    revisionId: 0,
+    diagramSource: '{"archislopVersion":1,"theme":"whiteboard","spec":{"mark":"bar"}}',
+    contentType: 'chart',
+    settings: {}
+  });
+  assert.equal(result.success, true);
+  if (!result.success) return;
+  assert.equal(result.data.contentType, 'chart');
 });
 
 test('modelProfile is optional and accepts fast or quality', () => {
