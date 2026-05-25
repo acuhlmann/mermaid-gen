@@ -57,3 +57,19 @@ test('parsePartialMetaphorDsl returns null for empty input', () => {
   assert.equal(parsePartialMetaphorDsl(''), null);
   assert.equal(parsePartialMetaphorDsl('   '), null);
 });
+
+test('parsePartialMetaphorDsl accepts tree and terrain kinds', () => {
+  const tree = parsePartialMetaphorDsl(
+    '{"metaphor":"tree","items":[{"id":"root","label":"Root","weight":4}'
+  );
+  assert.ok(tree);
+  assert.equal(tree!.metaphor, 'tree');
+
+  const terrain = parsePartialMetaphorDsl(
+    '{"metaphor":"terrain","scene":{"theme":"blueprint","camera":"cinematic"},"items":[{"id":"a","label":"A","elevation":5}'
+  );
+  assert.ok(terrain);
+  assert.equal(terrain!.metaphor, 'terrain');
+  assert.equal(terrain!.scene?.theme, 'blueprint');
+  assert.equal(terrain!.scene?.camera, 'cinematic');
+});

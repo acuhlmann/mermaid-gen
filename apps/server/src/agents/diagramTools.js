@@ -112,7 +112,8 @@ export function createMetaphorTools({ stateStore }) {
     },
     {
       name: 'get_metaphor_dsl',
-      description: 'Read the current 3D metaphor DSL (city/layercake/galaxy), including revision id and source.',
+      description:
+        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain), including revision id and source.',
       schema: z.object({})
     }
   );
@@ -131,10 +132,12 @@ export function createMetaphorTools({ stateStore }) {
       name: 'apply_metaphor_patch',
       description:
         'Validate and apply a complete 3D metaphor DSL update. The DSL is a JSON object: ' +
-        '{"metaphor":"city|layercake|galaxy","scene":{"theme":"whiteboard|noir|arcade","camera":"orbit|isometric"},"items":[...]}. ' +
-        'For city: items are {id, label, height (1-100), footprint (1-20), district?}. ' +
-        'For layercake: items are {id, label, thickness (1-10), components?: string[]}. ' +
-        'For galaxy: items are {id, label, magnitude (1-20), cluster?}. ' +
+        '{"metaphor":"city|layercake|galaxy|tree|terrain","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
+        'For city: items are {id, label, height (1-100), footprint (1-20), district?, lighting?, condition?}. ' +
+        'For layercake: items are {id, label, thickness (1-10), components?: string[], cracks?, tilt?}. ' +
+        'For galaxy: items are {id, label, magnitude (1-20), cluster?, binary?}. ' +
+        'For tree: items are {id, label, parent?, weight? (1-20), kind?}. Items without parent are roots. ' +
+        'For terrain: items are {id, label, elevation (-10..20), intensity (0.1..10)}; optional scene.surface={metric,baseline}. ' +
         'Item ids must be stable lowercase-kebab strings (e.g. auth-service). Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
         diagramSource: z

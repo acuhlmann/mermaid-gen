@@ -141,6 +141,188 @@ test('GalaxyMetaphorSchema accepts cluster grouping', () => {
 });
 
 test('MetaphorDslSchema rejects invalid metaphor discriminator', () => {
-  const result = MetaphorDslSchema.safeParse({ metaphor: 'tree', items: [] });
+  const result = MetaphorDslSchema.safeParse({ metaphor: 'unknown-shape', items: [] });
   assert.equal(result.success, false);
+});
+
+test('MetaphorDslSchema parses a tree DSL with parents', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'tree',
+    scene: {},
+    items: [
+      { id: 'ceo', label: 'CEO', weight: 8 },
+      { id: 'cto', label: 'CTO', parent: 'ceo', weight: 5 },
+      { id: 'lead', label: 'Lead', parent: 'cto', weight: 3 }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'tree');
+  if (dsl.metaphor === 'tree') {
+    assert.equal(dsl.items.length, 3);
+    assert.equal(dsl.items[1].parent, 'ceo');
+  }
+});
+
+test('sanitizeMetaphorDsl breaks tree cycles', () => {
+  const input = JSON.stringify({
+    metaphor: 'tree',
+    items: [
+      { id: 'a', label: 'A', parent: 'b' },
+      { id: 'b', label: 'B', parent: 'a' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'tree') {
+    const withParents = result.dsl.items.filter((it) => typeof it.parent === 'string');
+    assert.ok(withParents.length < 2, 'cycle should have been broken');
+  }
+  assert.ok(result.applied.includes('break-tree-cycle'));
+});
+
+test('sanitizeMetaphorDsl clears orphan tree parents to root', () => {
+  const input = JSON.stringify({
+    metaphor: 'tree',
+    items: [
+      { id: 'root', label: 'Root' },
+      { id: 'child', label: 'Child', parent: 'nope' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'tree') {
+    const child = result.dsl.items.find((it) => it.id === 'child');
+    assert.equal(child?.parent, undefined);
+  }
+  assert.ok(result.applied.includes('orphan-parent-to-root'));
+});
+
+test('sanitizeMetaphorDsl breaks tree self-parent', () => {
+  const input = JSON.stringify({
+    metaphor: 'tree',
+    items: [{ id: 'self', label: 'Self', parent: 'self' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  assert.ok(result.applied.includes('break-tree-self-parent'));
+});
+
+test('MetaphorDslSchema parses a terrain DSL with surface metadata', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'terrain',
+    scene: { surface: { metric: 'risk', baseline: 0 } },
+    items: [
+      { id: 'payments', label: 'Payments', elevation: 14, intensity: 4 },
+      { id: 'search', label: 'Search', elevation: 2, intensity: 3 }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'terrain');
+  if (dsl.metaphor === 'terrain') {
+    assert.equal(dsl.scene.surface?.metric, 'risk');
+    assert.equal(dsl.items[0].elevation, 14);
+  }
+});
+
+test('sanitizeMetaphorDsl clamps terrain elevation and intensity', () => {
+  const input = JSON.stringify({
+    metaphor: 'terrain',
+    items: [
+      { id: 'high', label: 'High', elevation: 50, intensity: 20 },
+      { id: 'low', label: 'Low', elevation: -30, intensity: 0.01 }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'terrain') {
+    assert.equal(result.dsl.items[0].elevation, 20);
+    assert.equal(result.dsl.items[0].intensity, 10);
+    assert.equal(result.dsl.items[1].elevation, -10);
+    assert.equal(result.dsl.items[1].intensity, 0.1);
+  }
+  assert.ok(result.applied.includes('clamp-elevation'));
+  assert.ok(result.applied.includes('clamp-intensity'));
+});
+
+test('CityItemSchema accepts new lighting and condition fields', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'city',
+    scene: {},
+    items: [
+      { id: 'svc', label: 'Svc', height: 5, footprint: 2, lighting: 'lit', condition: 'aging' }
+    ]
+  });
+  if (dsl.metaphor === 'city') {
+    assert.equal(dsl.items[0].lighting, 'lit');
+    assert.equal(dsl.items[0].condition, 'aging');
+  }
+});
+
+test('sanitizeMetaphorDsl normalizes city lighting/condition case and drops invalid values', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [
+      { id: 'a', label: 'A', lighting: 'LIT', condition: 'Aging' },
+      { id: 'b', label: 'B', lighting: 'glowing', condition: 'haunted' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.equal(result.dsl.items[0].lighting, 'lit');
+    assert.equal(result.dsl.items[0].condition, 'aging');
+    assert.equal(result.dsl.items[1].lighting, undefined);
+    assert.equal(result.dsl.items[1].condition, undefined);
+  }
+  assert.ok(result.applied.includes('normalize-lighting-case'));
+  assert.ok(result.applied.includes('drop-invalid-lighting'));
+});
+
+test('LayercakeSchema accepts cracks and tilt; sanitizer clamps out-of-range values', () => {
+  const input = JSON.stringify({
+    metaphor: 'layercake',
+    items: [{ id: 'l1', label: 'L1', thickness: 1, cracks: 2, tilt: 30 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'layercake') {
+    assert.equal(result.dsl.items[0].cracks, 1);
+    assert.equal(result.dsl.items[0].tilt, 15);
+  }
+  assert.ok(result.applied.includes('clamp-cracks'));
+  assert.ok(result.applied.includes('clamp-tilt'));
+});
+
+test('Galaxy binary field is dropped when referencing missing or self', () => {
+  const input = JSON.stringify({
+    metaphor: 'galaxy',
+    items: [
+      { id: 'sun', label: 'Sun', magnitude: 4, binary: 'sun' },
+      { id: 'moon', label: 'Moon', magnitude: 3, binary: 'ghost' },
+      { id: 'pair', label: 'Pair', magnitude: 3, binary: 'sun' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'galaxy') {
+    assert.equal(result.dsl.items[0].binary, undefined);
+    assert.equal(result.dsl.items[1].binary, undefined);
+    assert.equal(result.dsl.items[2].binary, 'sun');
+  }
+  assert.ok(result.applied.includes('drop-orphan-binary'));
+});
+
+test('Galaxy scene parses nebula clouds and new blueprint theme/cinematic camera', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'galaxy',
+    scene: {
+      theme: 'blueprint',
+      camera: 'cinematic',
+      nebula: [{ center: [0, 0, 0], radius: 5, color: '#ff00ff' }]
+    },
+    items: [{ id: 's', label: 'S', magnitude: 3 }]
+  });
+  if (dsl.metaphor === 'galaxy') {
+    assert.equal(dsl.scene.theme, 'blueprint');
+    assert.equal(dsl.scene.camera, 'cinematic');
+    assert.equal(dsl.scene.nebula?.length, 1);
+  }
 });

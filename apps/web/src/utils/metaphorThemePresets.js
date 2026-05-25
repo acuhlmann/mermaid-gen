@@ -19,7 +19,13 @@ export const METAPHOR_THEME_PRESETS = {
     linkColor: '#64748b',
     linkOpacity: 0.75,
     accentGlow: 0.35,
-    componentChipColor: '#fde68a'
+    componentChipColor: '#fde68a',
+    treeTrunkColor: '#8b5a2b',
+    treeBranchColor: '#a47148',
+    treeLeafColor: '#4ade80',
+    terrainBaseColor: '#86efac',
+    binaryGlowColor: '#fef08a',
+    nebulaPalette: ['#c084fc', '#60a5fa', '#fb7185']
   },
   noir: {
     background: '#0b0f19',
@@ -39,7 +45,13 @@ export const METAPHOR_THEME_PRESETS = {
     linkColor: '#94a3b8',
     linkOpacity: 0.6,
     accentGlow: 0.5,
-    componentChipColor: '#64748b'
+    componentChipColor: '#64748b',
+    treeTrunkColor: '#1f2937',
+    treeBranchColor: '#334155',
+    treeLeafColor: '#94a3b8',
+    terrainBaseColor: '#1e293b',
+    binaryGlowColor: '#cbd5e1',
+    nebulaPalette: ['#475569', '#334155', '#1e293b']
   },
   arcade: {
     background: '#1a0533',
@@ -59,7 +71,39 @@ export const METAPHOR_THEME_PRESETS = {
     linkColor: '#c77dff',
     linkOpacity: 0.85,
     accentGlow: 0.65,
-    componentChipColor: '#ffd166'
+    componentChipColor: '#ffd166',
+    treeTrunkColor: '#7b2cbf',
+    treeBranchColor: '#c77dff',
+    treeLeafColor: '#06d6a0',
+    terrainBaseColor: '#9d4edd',
+    binaryGlowColor: '#4cc9f0',
+    nebulaPalette: ['#ff6bcb', '#4cc9f0', '#ffd166']
+  },
+  blueprint: {
+    background: '#0a1e3a',
+    ambientIntensity: 0.55,
+    hemisphere: ['#1e3a8a', '#0a1e3a', 0.55],
+    directional: { position: [10, 18, 8], intensity: 0.9 },
+    environment: null,
+    buildingColor: '#bfdbfe',
+    buildingRoofColor: '#dbeafe',
+    slabColor: '#e0f2fe',
+    starColor: '#f0f9ff',
+    groundColor: '#0a1e3a',
+    labelColor: '#f0f9ff',
+    labelOutline: '#0a1e3a',
+    districtPalette: ['#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6'],
+    clusterPalette: ['#e0f2fe', '#bae6fd', '#7dd3fc', '#38bdf8'],
+    linkColor: '#bae6fd',
+    linkOpacity: 0.9,
+    accentGlow: 0.55,
+    componentChipColor: '#dbeafe',
+    treeTrunkColor: '#bfdbfe',
+    treeBranchColor: '#bae6fd',
+    treeLeafColor: '#e0f2fe',
+    terrainBaseColor: '#1e40af',
+    binaryGlowColor: '#f0f9ff',
+    nebulaPalette: ['#1d4ed8', '#2563eb', '#3b82f6']
   }
 };
 
@@ -75,5 +119,10 @@ export function resolveDistrictColor(theme, index) {
 
 export function resolveClusterColor(theme, index) {
   const palette = theme.clusterPalette ?? [theme.starColor];
+  return palette[index % palette.length];
+}
+
+export function resolveNebulaColor(theme, index) {
+  const palette = theme.nebulaPalette ?? theme.clusterPalette ?? [theme.starColor];
   return palette[index % palette.length];
 }
