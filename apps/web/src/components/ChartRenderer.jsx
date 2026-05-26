@@ -13,10 +13,12 @@ const EMBED_DEFAULT_OPTIONS = {
   // SVG renderer so the canvas pan/zoom layer's CSS transform scales the chart cleanly.
   renderer: 'svg',
   tooltip: { theme: 'light' },
-  // Replaces Vega's eval()-based expression compiler so the app works under a strict CSP
-  // that forbids 'unsafe-eval'. vega-interpreter is a pure-JS tree-walker with identical
-  // semantics, at a small (~5–15%) throughput cost on expression-heavy charts.
-  expressionInterpreter
+  // CSP: production blocks 'unsafe-eval', but Vega's default expression compiler uses
+  // `new Function`. `ast: true` makes vega.parse emit ASTs instead of compiled functions,
+  // and `expr: expressionInterpreter` walks those ASTs at runtime. Both are required —
+  // passing the interpreter without `ast: true` is a no-op (vega-embed gates it on `ast`).
+  ast: true,
+  expr: expressionInterpreter
 };
 
 /**
