@@ -20,7 +20,6 @@ import {
 } from '../utils/infographicHitTest.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
-import MetaphorSceneOverlay from './MetaphorSceneOverlay.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
@@ -1309,10 +1308,6 @@ export default function DiagramCanvas({
                   diagramSource={editorSource}
                   streamingPreview={streamingPreview}
                   cameraMode={metaphorCameraMode}
-                />
-                <MetaphorSceneOverlay
-                  diagramSource={editorSource}
-                  streamingPreview={streamingPreview}
                 />
               </>
             ) : (

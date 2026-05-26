@@ -376,6 +376,58 @@ describe('useAdvisorOrchestrator', () => {
     expect(body.persona).toBe('exec');
   });
 
+  it('promptNext during an in-flight fetch does not trigger failure backoff (Wise Architect cast switch)', async () => {
+    mockPersonaPick('refine');
+    let resolveFirst;
+    const firstHang = new Promise((resolve) => {
+      resolveFirst = resolve;
+    });
+    fetchMock
+      .mockImplementationOnce((_url, init) => {
+        init?.signal?.addEventListener?.('abort', () => {
+          const err = new Error('aborted');
+          err.name = 'AbortError';
+          resolveFirst({ ok: false, aborted: true, err });
+        });
+        return firstHang.then((result) => {
+          if (result?.aborted) throw result.err;
+          return result;
+        });
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          persona: 'explain',
+          suggestion: 'Picture, if you will, a saga from Order to Payment.',
+          highlightIds: ['Order'],
+          kind: 'comment'
+        })
+      });
+
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    act(() => {
+      result.current.promptNext({ persona: 'explain' });
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.thinkingPersona).toBeNull();
+    expect(result.current.activePersona).toBe('explain');
+    expect(result.current.suggestion).toMatch(/saga/i);
+    expect(result.current.suggestionKind).toBe('comment');
+  });
+
   it('pushProposalHistory keeps index when browsing and a new suggestion arrives', () => {
     const entry = (text) => ({
       persona: 'refine',

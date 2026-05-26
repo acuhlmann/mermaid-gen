@@ -135,6 +135,11 @@ export default function RadialActionMenu({
   const [chipSize, setChipSize] = useState(null);
   const [popoverWidth, setPopoverWidth] = useState(0);
   const [popoverHeight, setPopoverHeight] = useState(0);
+  // Until the popover is measured at least once, placement math uses an
+  // estimated height that may not match the actual rendered box. Hide the
+  // popover during this first paint to avoid a one-frame flash where the
+  // popover briefly sits offscreen before re-rendering with the real height.
+  const [popoverMeasured, setPopoverMeasured] = useState(false);
   const [dragPos, setDragPos] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [viewportTick, setViewportTick] = useState(0);
@@ -224,6 +229,7 @@ export default function RadialActionMenu({
     if (!popoverMode) {
       setPopoverWidth(0);
       setPopoverHeight(0);
+      setPopoverMeasured(false);
       return undefined;
     }
     const el = popoverRef.current;
@@ -233,6 +239,7 @@ export default function RadialActionMenu({
       if (rect.width <= 0 || rect.height <= 0) return;
       setPopoverWidth((prev) => (Math.abs(prev - rect.width) < 0.5 ? prev : rect.width));
       setPopoverHeight((prev) => (Math.abs(prev - rect.height) < 0.5 ? prev : rect.height));
+      setPopoverMeasured(true);
     }
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
@@ -697,7 +704,9 @@ export default function RadialActionMenu({
           style={{
             left: popoverStyle.left,
             top: popoverStyle.top,
-            transform: popoverStyle.transform
+            transform: popoverStyle.transform,
+            opacity: popoverMeasured || dragPos ? 1 : 0,
+            pointerEvents: popoverMeasured || dragPos ? undefined : 'none'
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
@@ -820,7 +829,9 @@ export default function RadialActionMenu({
           style={{
             left: popoverStyle.left,
             top: popoverStyle.top,
-            transform: popoverStyle.transform
+            transform: popoverStyle.transform,
+            opacity: popoverMeasured || dragPos ? 1 : 0,
+            pointerEvents: popoverMeasured || dragPos ? undefined : 'none'
           }}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}

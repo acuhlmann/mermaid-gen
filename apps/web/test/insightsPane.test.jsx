@@ -85,16 +85,42 @@ describe('InsightsPane', () => {
             contentType: 'infographic',
             modelProfile: 'quality',
             startedAt: fixedTime
+          },
+          {
+            id: 'entry-meta-3d',
+            title: 'Go — 3D',
+            variant: 'goMad',
+            status: 'running',
+            statusText: 'Working…',
+            content: '',
+            technicalActions: [],
+            contentType: 'metaphor3d',
+            modelProfile: 'fast',
+            startedAt: fixedTime
+          },
+          {
+            id: 'entry-meta-chart',
+            title: 'Go — chart',
+            variant: 'goMad',
+            status: 'running',
+            statusText: 'Working…',
+            content: '',
+            technicalActions: [],
+            contentType: 'chart',
+            modelProfile: 'fast',
+            startedAt: fixedTime
           }
         ]}
         celebratingEntryId={null}
       />
     );
 
-    const meta = screen.getByLabelText('Run details');
-    expect(within(meta).getByText('Infographic')).toBeTruthy();
-    expect(within(meta).getByText('Quality')).toBeTruthy();
-    const timeEl = meta.querySelector('time');
+    const metas = screen.getAllByLabelText('Run details');
+    expect(within(metas[0]).getByText('Infographic')).toBeTruthy();
+    expect(within(metas[0]).getByText('Quality')).toBeTruthy();
+    expect(within(metas[1]).getByText('3D')).toBeTruthy();
+    expect(within(metas[2]).getByText('Chart')).toBeTruthy();
+    const timeEl = metas[0].querySelector('time');
     expect(timeEl).toBeTruthy();
     expect(timeEl.dateTime).toBe(new Date(fixedTime).toISOString());
     expect(timeEl.textContent.trim().length).toBeGreaterThan(0);

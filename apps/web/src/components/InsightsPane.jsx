@@ -24,6 +24,7 @@ import {
   statusLabel
 } from './insightsPaneEntryUi.js';
 import { ThinkingPanelIcon } from './AppIcons.jsx';
+import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
 
 const SLOPITECT_VARIANT_CLASS = {
   refine: 'is-variant-refine',
@@ -297,7 +298,9 @@ function EntryStatusIcon({ status, variant }) {
 
 const CONTENT_TYPE_META = {
   mermaid: { label: 'Mermaid', emoji: '🧜‍♀️' },
-  infographic: { label: 'Infographic', emoji: '📊' }
+  infographic: { label: 'Infographic', Icon: AntVModeIcon },
+  metaphor3d: { label: '3D', Icon: ThreeJsModeIcon },
+  chart: { label: 'Chart', Icon: VegaLiteModeIcon }
 };
 
 const MODEL_PROFILE_META = {
@@ -345,7 +348,7 @@ function EntryRunMeta({ entry }) {
       {contentMeta ? (
         <span className="insights-entry-meta-chip is-mode" title={`${contentMeta.label} mode`}>
           <span className="insights-entry-meta-emoji" aria-hidden="true">
-            {contentMeta.emoji}
+            {contentMeta.Icon ? <contentMeta.Icon /> : contentMeta.emoji}
           </span>
           <span>{contentMeta.label}</span>
         </span>

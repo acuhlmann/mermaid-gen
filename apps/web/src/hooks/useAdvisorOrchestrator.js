@@ -198,6 +198,8 @@ export function useAdvisorOrchestrator(params) {
     let dismissStreak = 0;
     let previousPersona = null;
     let alive = true;
+    /** @type {'timeout' | 'superseded' | null} */
+    let lastAbortReason = null;
 
     const clearPhaseTimer = () => {
       if (phaseTimer != null) {
@@ -206,8 +208,10 @@ export function useAdvisorOrchestrator(params) {
       }
     };
 
-    const cancelInFlight = () => {
+    /** @param {'timeout' | 'superseded'} [reason] */
+    const cancelInFlight = (reason = 'superseded') => {
       if (abortController) {
+        lastAbortReason = reason;
         abortController.abort();
         abortController = null;
       }
@@ -272,10 +276,11 @@ export function useAdvisorOrchestrator(params) {
       const sessionId = paramsRef.current.getSessionId?.() ?? '';
       const focusDescriptor = paramsRef.current.getFocusDescriptor?.() ?? null;
 
-      cancelInFlight();
+      cancelInFlight('superseded');
       const controller = new AbortController();
       abortController = controller;
-      const timeoutId = setTimeout(() => controller.abort(), SUGGEST_TIMEOUT_MS);
+      lastAbortReason = null;
+      const timeoutId = setTimeout(() => cancelInFlight('timeout'), SUGGEST_TIMEOUT_MS);
       // Visually announce who is about to speak — the UI shows "<persona> is
       // thinking…" until the fetch resolves and the real bubble takes over.
       setThinkingPersona(persona);
@@ -359,14 +364,11 @@ export function useAdvisorOrchestrator(params) {
       } catch (err) {
         clearTimeout(timeoutId);
         if (err?.name === 'AbortError') {
-          // Two possible abort sources: (1) a fresh tick called cancelInFlight()
-          // and incremented `generation`, in which case it will set its own
-          // thinkingPersona — bail silently; (2) our own 12s safety setTimeout
-          // fired because the LLM call hung (more common for the Wise Architect,
-          // whose prompt is the most verbose). In case (2) `gen === generation`
-          // and the loop is otherwise dead — we must clear thinking + reschedule
-          // so the bubble doesn't get stuck in the "is musing…" state forever.
-          if (gen === generation) {
+          // Superseded aborts (persona switch, focus change, new tick) must not
+          // trigger the failure backoff — only the 12s safety timeout should.
+          const reason = lastAbortReason;
+          lastAbortReason = null;
+          if (reason === 'timeout' && gen === generation) {
             setThinkingPersona(null);
             failureUntil = Date.now() + FAILURE_BACKOFF_MS;
             setError('advisor timeout');

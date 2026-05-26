@@ -164,6 +164,8 @@ import {
 } from './components/AppIcons.jsx';
 import { ActionPersonaIcon, ActionPersonaRole } from './components/ActionPersonaBits.jsx';
 import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
+import { TopShell } from './components/TopShell.jsx';
+import { BottomRow } from './components/BottomRow.jsx';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import {
   actionPersonaName,
@@ -3365,8 +3367,9 @@ ${requirementsBlock}`;
       <ErrorToast />
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={() => setHotkeyOverlayOpen(false)} />
 
+      <TopShell>
       <div
-        className={`corner-control brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
+        className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
         aria-label="ArchiSlop"
         onClick={handleBrandClick}
       >
@@ -3487,29 +3490,8 @@ ${requirementsBlock}`;
         ) : null}
       </div>
 
-      <AgentHandshakeDialog
-        request={pendingHandshake}
-        onApprove={handleApproveHandshake}
-        onDeny={handleDenyHandshake}
-      />
-
-      <InviteAgentDialog
-        sessionId={activeSessionId}
-        open={inviteDialogOpen}
-        onClose={() => setInviteDialogOpen(false)}
-      />
-
-      <ClearConfirmDialog
-        key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
-        open={clearConfirmOpen}
-        onConfirm={() => {
-          void performClearDiagram();
-        }}
-        onCancel={() => setClearConfirmOpen(false)}
-      />
-
       {fullscreenSupported || hasDiagramText || editorOpen ? (
-        <div className="corner-control top-corner-controls" aria-label="Diagram surface controls">
+        <div className="top-corner-controls" aria-label="Diagram surface controls">
           {fullscreenSupported ? (
             <DiagramFullscreenButton
               isFullscreen={isFullscreen}
@@ -3532,6 +3514,28 @@ ${requirementsBlock}`;
           ) : null}
         </div>
       ) : null}
+      </TopShell>
+
+      <AgentHandshakeDialog
+        request={pendingHandshake}
+        onApprove={handleApproveHandshake}
+        onDeny={handleDenyHandshake}
+      />
+
+      <InviteAgentDialog
+        sessionId={activeSessionId}
+        open={inviteDialogOpen}
+        onClose={() => setInviteDialogOpen(false)}
+      />
+
+      <ClearConfirmDialog
+        key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
+        open={clearConfirmOpen}
+        onConfirm={() => {
+          void performClearDiagram();
+        }}
+        onCancel={() => setClearConfirmOpen(false)}
+      />
 
       {editorOpen ? (
         <div className="corner-control editor-done-bar">
@@ -3541,11 +3545,26 @@ ${requirementsBlock}`;
         </div>
       ) : null}
 
-      <div className="corner-control bottom-chrome">
-        <div
-          className={`prompt-stack${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-expanded' : ''}`}
-        >
-          {hasDiagramText && slopPromptExpanded && slopPromptSource === 'chrome' ? (
+      <BottomRow
+        narrowLayout={narrowLayout}
+        statusRow={status ? (
+          <div className="overlay-status-row">
+            <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
+              {status}
+            </p>
+            {streamingAgentStoppable && !insightsOpen ? (
+              <button
+                type="button"
+                className="overlay-button compact-button overlay-status-stop"
+                onClick={stopStreamingAgentRequest}
+              >
+                Stop request
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+        promptPopover={hasDiagramText && slopPromptExpanded && slopPromptSource === 'chrome' ? (
+          <div className="bottom-row-popover bottom-row-popover--prompt">
             <SlopNextPrompt
               layout="chrome"
               prompt={slopNextPrompt}
@@ -3566,8 +3585,10 @@ ${requirementsBlock}`;
               onMicPointerUp={handleMicPointerUp}
               onMicLostPointerCapture={() => stopVoiceInput()}
             />
-          ) : null}
-          {!hasDiagramText && !insightsOpen ? (
+          </div>
+        ) : null}
+        actions={
+          !hasDiagramText && !insightsOpen ? (
             <form className="prompt-control" onSubmit={runIntentChange}>
               <label className="sr-only" htmlFor="diagram-change-prompt">
                 Your Topic
@@ -3630,26 +3651,7 @@ ${requirementsBlock}`;
                 </button>
               </div>
             </form>
-          ) : null}
-
-          {status ? (
-            <div className="overlay-status-row">
-              <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
-                {status}
-              </p>
-              {streamingAgentStoppable && !insightsOpen ? (
-                <button
-                  type="button"
-                  className="overlay-button compact-button overlay-status-stop"
-                  onClick={stopStreamingAgentRequest}
-                >
-                  Stop request
-                </button>
-              ) : null}
-            </div>
-          ) : null}
-
-          {hasDiagramText && !narrowLayout ? (
+          ) : hasDiagramText && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
               <div className="button-group">
                 <button
@@ -3748,9 +3750,7 @@ ${requirementsBlock}`;
                 </button>
               </div>
             </div>
-          ) : null}
-
-          {hasDiagramText && narrowLayout ? (
+          ) : hasDiagramText && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
                 <button
@@ -3843,45 +3843,24 @@ ${requirementsBlock}`;
                 </button>
               </div>
             </div>
-          ) : null}
-        </div>
-
-        {!narrowLayout ? (
-          <div className="ai-corner-controls ai-corner-controls--desktop" aria-label="AI model and thinking">
-            <AiCornerControlsInner
-              contentMode={contentMode}
-              onSelectContentMode={handleSelectContentMode}
-              modelProfile={modelProfile}
-              onSelectModelProfile={setModelProfile}
-              modeSwitchDisabled={loading || streamingPreview}
-              pendingHandshake={pendingHandshake}
-              externalAgentPresence={externalAgentPresence}
-              onInviteAgent={() => setInviteDialogOpen(true)}
-              agentThinkingChrome={agentThinkingChrome}
-              insightsOpen={insightsOpen}
-              onToggleInsights={() => setInsightsOpen((v) => !v)}
-            />
-          </div>
-        ) : null}
-
-        {narrowLayout ? (
-          <div className="ai-corner-controls ai-corner-controls--mobile" aria-label="AI model and thinking">
-            <AiCornerControlsInner
-              contentMode={contentMode}
-              onSelectContentMode={handleSelectContentMode}
-              modelProfile={modelProfile}
-              onSelectModelProfile={setModelProfile}
-              modeSwitchDisabled={loading || streamingPreview}
-              pendingHandshake={pendingHandshake}
-              externalAgentPresence={externalAgentPresence}
-              onInviteAgent={() => setInviteDialogOpen(true)}
-              agentThinkingChrome={agentThinkingChrome}
-              insightsOpen={insightsOpen}
-              onToggleInsights={() => setInsightsOpen((v) => !v)}
-            />
-          </div>
-        ) : null}
-      </div>
+          ) : null
+        }
+        aiControls={
+          <AiCornerControlsInner
+            contentMode={contentMode}
+            onSelectContentMode={handleSelectContentMode}
+            modelProfile={modelProfile}
+            onSelectModelProfile={setModelProfile}
+            modeSwitchDisabled={loading || streamingPreview}
+            pendingHandshake={pendingHandshake}
+            externalAgentPresence={externalAgentPresence}
+            onInviteAgent={() => setInviteDialogOpen(true)}
+            agentThinkingChrome={agentThinkingChrome}
+            insightsOpen={insightsOpen}
+            onToggleInsights={() => setInsightsOpen((v) => !v)}
+          />
+        }
+      />
     </main>
   );
 }
