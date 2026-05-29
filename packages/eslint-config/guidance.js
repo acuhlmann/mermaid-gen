@@ -51,8 +51,31 @@ export const GUIDANCE = {
     'Dead code drifts. Either delete or prefix with `_` if intentional.',
     'For caught errors, `catch (_err)` signals "intentionally unused".',
   ].join('\n  '),
+  '@typescript-eslint/no-explicit-any': [
+    '`any` disables the type-checking that makes TS files readable for agents.',
+    'Prefer a precise type, `unknown` + a narrowing guard, or a Zod-inferred type from packages/shared.',
+    'Suppress only at a genuine external boundary with a reason:',
+    '  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- (reason: ...)',
+  ].join('\n  '),
+  '@typescript-eslint/ban-ts-comment': [
+    '`@ts-ignore`/`@ts-expect-error` hide real type errors from the next agent.',
+    'Fix the underlying type, or use `@ts-expect-error -- (reason: ...)` so it self-removes when the error goes away.',
+  ].join('\n  '),
+  '@typescript-eslint/no-empty-object-type': [
+    'An empty `{}` type means "any non-nullish value", which is rarely intended.',
+    'Use `object`, `Record<string, unknown>`, `unknown`, or a named interface with real fields.',
+  ].join('\n  '),
   'no-unused-vars': [
     'Dead code drifts. Either delete or prefix with `_` if intentional.',
     'For caught errors, `catch (_err)` signals "intentionally unused".',
+  ].join('\n  '),
+  '@typescript-eslint/no-floating-promises': [
+    'This promise is never awaited or handled — its errors vanish and ordering races.',
+    '`await` it, prefix with `void` to deliberately ignore, or add `.catch(...)`.',
+    'Type-aware rules are scoped to packages/shared/src (node:test `test(...)` calls are intentionally floating).',
+  ].join('\n  '),
+  '@typescript-eslint/no-base-to-string': [
+    '`String(x)` / `` `${x}` `` on this value yields "[object Object]" — its toString is the default.',
+    'Stringify a specific field, `JSON.stringify(x)`, or narrow to a primitive first.',
   ].join('\n  '),
 };

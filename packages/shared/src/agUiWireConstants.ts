@@ -21,7 +21,7 @@ export const AGUI_STATE_PATH_INFOGRAPHIC_REVISION = '/infographic/revisionId';
 export const AGUI_STATE_PATH_METAPHOR3D_REVISION = '/metaphor3d/revisionId';
 export const AGUI_STATE_PATH_CHART_REVISION = '/chart/revisionId';
 
-export function agUiDraftSourcePath(contentType) {
+export function agUiDraftSourcePath(contentType: string | null | undefined) {
   const slot =
     contentType === 'infographic' ||
     contentType === 'metaphor3d' ||
@@ -31,7 +31,7 @@ export function agUiDraftSourcePath(contentType) {
   return `/${slot}/draftSource`;
 }
 
-export function agUiRevisionPath(contentType) {
+export function agUiRevisionPath(contentType: string | null | undefined) {
   if (contentType === 'infographic') return AGUI_STATE_PATH_INFOGRAPHIC_REVISION;
   if (contentType === 'metaphor3d') return AGUI_STATE_PATH_METAPHOR3D_REVISION;
   if (contentType === 'chart') return AGUI_STATE_PATH_CHART_REVISION;
@@ -44,7 +44,7 @@ export function agUiRevisionPath(contentType) {
  * @param {unknown[]} messages
  * @returns {{ type: typeof LEGACY_STREAM_TYPE_A2UI, messages: unknown[] }}
  */
-export function createLegacyA2uiStreamEvent(messages) {
+export function createLegacyA2uiStreamEvent(messages: unknown[]) {
   return { type: LEGACY_STREAM_TYPE_A2UI, messages };
 }
 
@@ -53,7 +53,13 @@ export function createLegacyA2uiStreamEvent(messages) {
  *
  * @param {{ text: string, source?: 'server' | 'agent' }} payload
  */
-export function createLegacyPlanBeatStreamEvent({ text, source = 'server' }) {
+export function createLegacyPlanBeatStreamEvent({
+  text,
+  source = 'server'
+}: {
+  text?: string | null;
+  source?: 'server' | 'agent';
+}) {
   return {
     type: LEGACY_STREAM_TYPE_PLAN_BEAT,
     text: String(text ?? ''),

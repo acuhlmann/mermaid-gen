@@ -4,7 +4,7 @@ import { createAgentStreamEmitter } from '../src/agentStreamEmitter.js';
 import { AGUI_CUSTOM_NAME_A2UI, AGUI_CUSTOM_NAME_PLAN_BEAT } from '../src/agUiWireConstants.js';
 
 test('createAgentStreamEmitter emit.planBeat maps to CUSTOM plan_beat', () => {
-  const captured = [];
+  const captured: Array<Record<string, unknown>> = [];
   const emit = createAgentStreamEmitter({
     rawEmit: (e) => captured.push(e),
     threadId: 'thr_test',
@@ -15,12 +15,12 @@ test('createAgentStreamEmitter emit.planBeat maps to CUSTOM plan_beat', () => {
   assert.equal(captured.length, 1);
   assert.equal(captured[0].type, 'CUSTOM');
   assert.equal(captured[0].name, AGUI_CUSTOM_NAME_PLAN_BEAT);
-  assert.equal(captured[0].value.text, 'Adding an auth boundary for the login flow.');
-  assert.equal(captured[0].value.source, 'agent');
+  assert.equal((captured[0].value as Record<string, unknown>).text, 'Adding an auth boundary for the login flow.');
+  assert.equal((captured[0].value as Record<string, unknown>).source, 'agent');
 });
 
 test('createAgentStreamEmitter emit.a2ui maps to CUSTOM a2ui', () => {
-  const captured = [];
+  const captured: Array<Record<string, unknown>> = [];
   const emit = createAgentStreamEmitter({
     rawEmit: (e) => captured.push(e),
     threadId: 'thr_test',
@@ -32,11 +32,11 @@ test('createAgentStreamEmitter emit.a2ui maps to CUSTOM a2ui', () => {
   assert.equal(captured.length, 1);
   assert.equal(captured[0].type, 'CUSTOM');
   assert.equal(captured[0].name, AGUI_CUSTOM_NAME_A2UI);
-  assert.deepEqual(captured[0].value.messages, messages);
+  assert.deepEqual((captured[0].value as Record<string, unknown>).messages, messages);
 });
 
 test('createAgentStreamEmitter passes through AG-UI wire events', () => {
-  const captured = [];
+  const captured: Array<Record<string, unknown>> = [];
   const emit = createAgentStreamEmitter({
     rawEmit: (e) => captured.push(e),
     threadId: 'thr_test',
@@ -52,7 +52,7 @@ test('createAgentStreamEmitter suppresses events after legacy error → final pa
   // Mirrors the transform/Go Mad failure path: emit `error` (which sends RUN_ERROR), then
   // still emit `final`. The legacy `final` handler tries to send STATE_DELTA / STATE_SNAPSHOT /
   // RUN_FINISHED — all of which the AG-UI client verifier rejects after RUN_ERROR.
-  const captured = [];
+  const captured: Array<Record<string, unknown>> = [];
   const emit = createAgentStreamEmitter({
     rawEmit: (e) => captured.push(e),
     threadId: 'thr_test',

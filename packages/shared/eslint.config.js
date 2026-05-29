@@ -1,5 +1,35 @@
 import { baseConfig } from '@archislop/eslint-config';
+import tsPlugin from '@typescript-eslint/eslint-plugin';
 
 // packages/shared is fully TypeScript and strict; uses the tighter base
 // thresholds and Node globals.
-export default baseConfig({ env: 'node', tighten: true, workspaceDir: 'packages/shared' });
+//
+// It's also the one workspace that can afford *type-aware* linting (100% TS,
+// strict, small), so layer @typescript-eslint's type-checked-only rules
+// (no-floating-promises, no-misused-promises, no-unsafe-*, …) on top of the
+// base `recommended` set. Softened to warn per the ADR-0007 warm-up policy.
+// Type-aware rules stay off in apps/server + apps/web (legacy .js corpus) — see
+// packages/eslint-config/index.js and docs/decisions/0006-typescript-migration.md.
+const typeCheckedOnly = tsPlugin.configs['recommended-type-checked-only']?.rules ?? {};
+const typeCheckedWarn = Object.fromEntries(
+  Object.entries(typeCheckedOnly).map(([id, value]) => {
+    if (value === 'error' || value === 2) return [id, 'warn'];
+    if (Array.isArray(value) && (value[0] === 'error' || value[0] === 2)) {
+      return [id, ['warn', ...value.slice(1)]];
+    }
+    return [id, value];
+  })
+);
+
+export default [
+  ...baseConfig({ env: 'node', tighten: true, workspaceDir: 'packages/shared' }),
+  {
+    // Type-aware rules on src only — `test/**` uses node:test's floating
+    // `test(...)` calls, which would flood no-floating-promises with noise.
+    files: ['src/**/*.ts'],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname }
+    },
+    rules: typeCheckedWarn
+  }
+];

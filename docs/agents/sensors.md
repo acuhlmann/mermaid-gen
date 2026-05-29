@@ -7,8 +7,9 @@ archislop follows Martin Fowler's ["Sensors for Coding Agents"](https://martinfo
 | Sensor | Command | What it catches | Where guidance lives |
 | --- | --- | --- | --- |
 | Dependency dedupe | `npm run verify:deps` | Duplicate npm installs of override-pinned packages (e.g. `@a2ui/web_core` hoisted vs nested under `@a2ui/react`) that cause TypeScript "separate declarations" errors | Error message prints `npm install …` fix |
-| TypeScript | `npm run typecheck` (per workspace) | Type errors | tsc output is canonical |
-| ESLint + custom formatter | `npm run lint` (all three workspaces) | Threshold rules (`max-lines`, `max-lines-per-function`, `max-params`, `complexity`), Factory plugin rules, React 19 hooks | Per-rule footer block at end of lint output |
+| TypeScript (loose) | `npm run typecheck` (per workspace) | Type errors at each workspace's baseline strictness | tsc output is canonical |
+| TypeScript (strict islands) | `npm run typecheck:strict` (both apps; part of `npm run check`) | Full-strict errors on the files listed in each app's `tsconfig.strict.json`; a regression fails CI | tsc output is canonical; see [ADR-0006](../decisions/0006-typescript-migration.md) |
+| ESLint + custom formatter | `npm run lint` (all three workspaces) | Threshold rules (`max-lines`, `max-lines-per-function`, `max-params`, `complexity`), Factory plugin rules, `@typescript-eslint` `recommended` (warn) on `.ts`/`.tsx`, React 19 hooks | Per-rule footer block at end of lint output |
 | dependency-cruiser | `npm run verify:boundaries` | Workspace + layer boundary violations, cycles, orphans | `comment` field of each rule in `.dependency-cruiser.cjs` |
 | Doc-path check | `npm run verify:doc-paths` | Broken file references in `STRUCTURE.md`, `CLAUDE.md`, recipes | Error message names the missing path |
 | Wire round-trip tests | `npm run check:wire` | Contract drift between producer + consumer for AG-UI / MCP / Zod schemas | Failing test + the recipe under [`docs/recipes/`](../recipes/) |

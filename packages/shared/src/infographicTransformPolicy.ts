@@ -3,12 +3,12 @@ import { parseInfographicTree } from './infographicDiff.js';
 const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'exec']);
 
 /** @param {string | null | undefined} template */
-export function templateFamilyFromTemplate(template) {
+export function templateFamilyFromTemplate(template: string | null | undefined) {
   return (template || '').split('-')[0] || '';
 }
 
-/** @param {Array<{ children?: unknown[] }>} items */
-function countTreeItems(items) {
+type TreeCountNode = { children?: TreeCountNode[] };
+function countTreeItems(items: TreeCountNode[] | undefined): number {
   let n = 0;
   for (const item of items ?? []) {
     n += 1;
@@ -28,7 +28,12 @@ function countTreeItems(items) {
  * }} opts
  * @returns {{ ok: true } | { ok: false, error: string }}
  */
-export function validateInfographicTransformConstraint(opts) {
+export function validateInfographicTransformConstraint(opts: {
+  transformMode?: string | null;
+  goMadDepth?: number | null;
+  beforeSource?: string;
+  afterSource?: string;
+}): { ok: true } | { ok: false; error: string } {
   const mode = opts.transformMode;
   if (!mode || !TRANSFORM_MODES.has(mode)) return { ok: true };
 

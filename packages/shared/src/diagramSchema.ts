@@ -180,14 +180,14 @@ export const DiagramAnalyzeSchema = z.object({
  * @param {unknown} payload
  * @returns {typeof payload}
  */
-export function sanitizeAgentStreamPayload(payload) {
-  if (!payload || typeof payload !== 'object' || payload.operation !== 'intent') {
-    return payload;
-  }
-  if (payload.transformPersona == null) return payload;
-  const parsed = TransformPersonaSchema.safeParse(payload.transformPersona);
+export function sanitizeAgentStreamPayload(payload: unknown) {
+  if (!payload || typeof payload !== 'object') return payload;
+  const obj = payload as Record<string, unknown>;
+  if (obj.operation !== 'intent') return payload;
+  if (obj.transformPersona == null) return payload;
+  const parsed = TransformPersonaSchema.safeParse(obj.transformPersona);
   if (parsed.success) return payload;
-  const { transformPersona: _removed, ...rest } = payload;
+  const { transformPersona: _removed, ...rest } = obj;
   return rest;
 }
 
@@ -244,7 +244,7 @@ export const StyleIntentSchema = DiagramIntentSchema.extend({
   stylePrompt: z.string().min(1).optional()
 });
 
-export function createInitialDiagramState(contentType = 'mermaid') {
+export function createInitialDiagramState(contentType = 'mermaid'): DiagramState {
   const now = new Date().toISOString();
 
   if (contentType === 'infographic') {
@@ -304,7 +304,10 @@ export function createInitialSessionState() {
   };
 }
 
-export function applyPatch(state, patch) {
+export function applyPatch(
+  state: DiagramState,
+  patch: Record<string, unknown>
+): { accepted: false; error: string } | { accepted: true; state: DiagramState } {
   const parsedPatch = DiagramPatchSchema.parse(patch);
 
   if (parsedPatch.previousRevisionId !== state.revisionId) {
@@ -337,7 +340,7 @@ export function applyPatch(state, patch) {
   };
 }
 
-export function deriveStyleConfigFromSource(mermaidSource) {
+export function deriveStyleConfigFromSource(mermaidSource: string | null | undefined) {
   return parseMermaidStyleConfig(mermaidSource);
 }
 

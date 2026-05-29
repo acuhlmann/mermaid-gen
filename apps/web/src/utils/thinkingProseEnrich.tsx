@@ -3,6 +3,7 @@
  * Model keeps writing markdown; the host interprets tokens — no model-authored UI JSON.
  */
 
+import type { ReactNode } from 'react';
 import { DEFAULT_THEME_VARIABLES } from '@archislop/shared';
 
 const THEME_VAR_KEYS = Object.keys(DEFAULT_THEME_VARIABLES);
@@ -58,8 +59,7 @@ const DIAGRAM_TYPE_LABELS = new Set([
   'sankey'
 ]);
 
-/** @param {string} hex */
-export function normalizeHex(hex) {
+export function normalizeHex(hex: string | null | undefined): string | null {
   const h = String(hex ?? '').replace(/^#/, '').trim();
   if (!h) return null;
   if (/^[0-9a-fA-F]{3}$/.test(h)) {
@@ -71,14 +71,14 @@ export function normalizeHex(hex) {
 }
 
 /** Relative luminance 0–1 for contrast hint. */
-function hexLuminance(hex) {
+function hexLuminance(hex: string | null | undefined): number {
   const n = normalizeHex(hex);
   if (!n) return 0.5;
   const raw = n.slice(1);
   const r = parseInt(raw.slice(0, 2), 16) / 255;
   const g = parseInt(raw.slice(2, 4), 16) / 255;
   const b = parseInt(raw.slice(4, 6), 16) / 255;
-  const lin = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const lin = (c: number): number => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
   return 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
 }
 
@@ -87,7 +87,7 @@ export function ColorSwatch({
   label,
   keyPrefix = 'sw'
 }: {
-  hex: string;
+  hex?: string;
   label?: string;
   keyPrefix?: string;
 }) {
@@ -110,7 +110,15 @@ export function ColorSwatch({
   );
 }
 
-export function ColorRamp({ fromHex, toHex, keyPrefix = 'ramp' }) {
+export function ColorRamp({
+  fromHex,
+  toHex,
+  keyPrefix = 'ramp'
+}: {
+  fromHex?: string;
+  toHex?: string;
+  keyPrefix?: string;
+}) {
   const from = normalizeHex(fromHex) ?? fromHex;
   const to = normalizeHex(toHex) ?? toHex;
   return (
@@ -129,9 +137,9 @@ export function ColorRamp({ fromHex, toHex, keyPrefix = 'ramp' }) {
   );
 }
 
-export function ThemeVarPill({ name, keyPrefix = 'tv' }) {
-  const defaultHex =
-    typeof DEFAULT_THEME_VARIABLES[name] === 'string' ? DEFAULT_THEME_VARIABLES[name] : null;
+export function ThemeVarPill({ name, keyPrefix = 'tv' }: { name: string; keyPrefix?: string }) {
+  const lookup = (DEFAULT_THEME_VARIABLES as Record<string, string>)[name];
+  const defaultHex = typeof lookup === 'string' ? lookup : null;
   return (
     <span className="insights-theme-var-pill" data-testid="thinking-theme-var" title={name}>
       <span className="insights-theme-var-label">{name}</span>
@@ -140,7 +148,7 @@ export function ThemeVarPill({ name, keyPrefix = 'tv' }) {
   );
 }
 
-export function IconChip({ faClasses, keyPrefix = 'ic' }) {
+export function IconChip({ faClasses, keyPrefix = 'ic' }: { faClasses?: string; keyPrefix?: string }) {
   const parts = String(faClasses ?? '')
     .trim()
     .split(/\s+/)
@@ -155,7 +163,15 @@ export function IconChip({ faClasses, keyPrefix = 'ic' }) {
   );
 }
 
-export function IconReplaceRow({ fromFa, toEmoji, keyPrefix = 'ir' }) {
+export function IconReplaceRow({
+  fromFa,
+  toEmoji,
+  keyPrefix = 'ir'
+}: {
+  fromFa?: string;
+  toEmoji?: string;
+  keyPrefix?: string;
+}) {
   return (
     <span className="insights-icon-replace" data-testid="thinking-icon-replace">
       <IconChip faClasses={fromFa} keyPrefix={`${keyPrefix}-from`} />
@@ -187,7 +203,15 @@ export function DiagramTypeBadge({
   );
 }
 
-export function StyleEnumPill({ value, kind = 'theme', keyPrefix = 'se' }) {
+export function StyleEnumPill({
+  value,
+  kind = 'theme',
+  keyPrefix = 'se'
+}: {
+  value: string;
+  kind?: string;
+  keyPrefix?: string;
+}) {
   return (
     <span className={`insights-style-enum-pill is-${kind}`} data-testid="thinking-style-enum">
       {value}
@@ -195,7 +219,15 @@ export function StyleEnumPill({ value, kind = 'theme', keyPrefix = 'se' }) {
   );
 }
 
-export function PatchLinesBar({ added = 0, removed = 0, keyPrefix = 'pb' }) {
+export function PatchLinesBar({
+  added = 0,
+  removed = 0,
+  keyPrefix = 'pb'
+}: {
+  added?: number;
+  removed?: number;
+  keyPrefix?: string;
+}) {
   const a = Math.max(0, Number(added) || 0);
   const r = Math.max(0, Number(removed) || 0);
   const total = a + r || 1;
@@ -233,13 +265,17 @@ const DIAGRAM_TYPE_RE =
 
 const PATCH_LINES_RE = /\+\s*(\d+)\s*\/\s*[−-]\s*(\d+)\s*lines?/i;
 
+type EarliestToken =
+  | { index: number; len: number; kind: 'icon'; data: string }
+  | { index: number; len: number; kind: 'diagram'; data: RegExpExecArray }
+  | { index: number; len: number; kind: 'themeVar'; data: string }
+  | { index: number; len: number; kind: 'hex'; data: string }
+  | { index: number; len: number; kind: 'enum'; data: { value: string; enumKind: string } };
+
 /**
  * Tokenize a prose segment for rich inline rendering (longest-match priority).
- * @param {string} text
- * @param {string} keyBase
- * @returns {Array<string | import('react').ReactNode>}
  */
-export function tokenizeThinkingProse(text, keyBase = 'tp') {
+export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[] {
   if (!text) return [];
   const ramp = text.match(COLOR_RAMP_RE);
   if (ramp) {
@@ -287,30 +323,30 @@ export function tokenizeThinkingProse(text, keyBase = 'tp') {
     ];
   }
 
-  let earliest = null;
+  let earliest: EarliestToken | null = null;
 
   ICON_SYNTAX_RE.lastIndex = 0;
   const iconM = ICON_SYNTAX_RE.exec(text);
   if (iconM) {
-    earliest = { index: iconM.index, len: iconM[0].length, kind: 'icon', data: iconM[1] };
+    earliest = { index: iconM.index, len: (iconM[0] ?? '').length, kind: 'icon', data: iconM[1] ?? '' };
   }
 
   DIAGRAM_TYPE_RE.lastIndex = 0;
   const dtM = DIAGRAM_TYPE_RE.exec(text);
   if (dtM && (!earliest || dtM.index < earliest.index)) {
-    earliest = { index: dtM.index, len: dtM[0].length, kind: 'diagram', data: dtM };
+    earliest = { index: dtM.index, len: (dtM[0] ?? '').length, kind: 'diagram', data: dtM };
   }
 
   THEME_VAR_RE.lastIndex = 0;
   const tvM = THEME_VAR_RE.exec(text);
   if (tvM && (!earliest || tvM.index < earliest.index)) {
-    earliest = { index: tvM.index, len: tvM[0].length, kind: 'themeVar', data: tvM[1] };
+    earliest = { index: tvM.index, len: (tvM[0] ?? '').length, kind: 'themeVar', data: tvM[1] ?? '' };
   }
 
   HEX_RE.lastIndex = 0;
   const hexM = HEX_RE.exec(text);
   if (hexM && (!earliest || hexM.index < earliest.index)) {
-    earliest = { index: hexM.index, len: hexM[0].length, kind: 'hex', data: hexM[0] };
+    earliest = { index: hexM.index, len: (hexM[0] ?? '').length, kind: 'hex', data: hexM[0] ?? '' };
   }
 
   for (const word of text.split(/\b/)) {
@@ -339,14 +375,14 @@ export function tokenizeThinkingProse(text, keyBase = 'tp') {
 
   const before = text.slice(0, earliest.index);
   const after = text.slice(earliest.index + earliest.len);
-  const mid = [];
+  const mid: ReactNode[] = [];
 
   if (earliest.kind === 'icon') {
     mid.push(<IconChip key={`${keyBase}-ic`} faClasses={earliest.data} keyPrefix={`${keyBase}-ic`} />);
   } else if (earliest.kind === 'diagram') {
     const match = earliest.data;
-    const typeRaw = Array.isArray(match) ? match[1] : '';
-    const dir = Array.isArray(match) ? match[2] : undefined;
+    const typeRaw = match[1] ?? '';
+    const dir = match[2];
     mid.push(
       <DiagramTypeBadge
         key={`${keyBase}-dt`}
@@ -373,12 +409,8 @@ export function tokenizeThinkingProse(text, keyBase = 'tp') {
   return [...tokenizeThinkingProse(before, `${keyBase}-l`), ...mid, ...tokenizeThinkingProse(after, `${keyBase}-r`)];
 }
 
-/**
- * @param {string} text
- * @param {string} keyBase
- */
-function tokenizeMarkdownInline(text, keyBase) {
-  const fragments = [];
+function tokenizeMarkdownInline(text: string, keyBase: string): ReactNode[] {
+  const fragments: ReactNode[] = [];
   let rest = text;
   let keyIndex = 0;
   while (rest.length > 0) {
@@ -391,7 +423,7 @@ function tokenizeMarkdownInline(text, keyBase) {
       const chunk = rest.slice(0, match.index);
       fragments.push(...splitPlainWithEnums(chunk, `${keyBase}-p${keyIndex}`));
     }
-    const token = match[0];
+    const token = match[0] ?? '';
     if (token.startsWith('**')) {
       fragments.push(
         <strong key={`${keyBase}-s-${keyIndex}`}>{enrichInline(token.slice(2, -2), `${keyBase}-s${keyIndex}`)}</strong>
@@ -419,15 +451,16 @@ function tokenizeMarkdownInline(text, keyBase) {
   return fragments.length ? fragments : text ? [text] : [];
 }
 
-function splitPlainWithEnums(chunk, keyBase) {
+function splitPlainWithEnums(chunk: string, keyBase: string): ReactNode[] {
   if (!chunk) return [];
-  const out = [];
+  const out: ReactNode[] = [];
   let cursor = 0;
   const re = /\b([a-zA-Z][\w-]*)\b/g;
-  let m;
+  let m: RegExpExecArray | null;
   while ((m = re.exec(chunk)) !== null) {
     const w = m[1];
-    let enumKind = null;
+    if (w === undefined) continue;
+    let enumKind: string | null = null;
     if (MERMAID_THEME_LABELS.has(w)) enumKind = 'theme';
     else if (MERMAID_LOOK_LABELS.has(w)) enumKind = 'look';
     else if (MERMAID_CURVE_LABELS.has(w)) enumKind = 'curve';
@@ -449,19 +482,16 @@ function splitPlainWithEnums(chunk, keyBase) {
 
 /**
  * Drop-in replacement for InsightsPane parseInline — adds generative micro-viz.
- * @param {string} text
- * @param {string} [keyPrefix]
  */
-export function enrichInline(text, keyPrefix = 'inl') {
+export function enrichInline(text: string | null | undefined, keyPrefix = 'inl'): ReactNode[] {
   if (typeof text !== 'string' || !text) return [];
   return tokenizeThinkingProse(text, keyPrefix);
 }
 
 /**
  * Detect replace/icon lines for step-card wrapper (ordered list enhancement).
- * @param {string} line
  */
-export function isVisualStepLine(line) {
+export function isVisualStepLine(line: string): boolean {
   return (
     ICON_REPLACE_RE.test(line) ||
     COLOR_RAMP_RE.test(line) ||

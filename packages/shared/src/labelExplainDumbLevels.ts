@@ -86,7 +86,7 @@ const GIBBERISH_META = {
 /**
  * @param {number} level 1–7
  */
-export function getLabelExplainDumbLevel(level) {
+export function getLabelExplainDumbLevel(level: number) {
   const n = Number(level);
   if (!Number.isFinite(n) || n < 1) return null;
   if (n === LABEL_EXPLAIN_GIBBERISH_LEVEL) return GIBBERISH_META;
@@ -94,11 +94,11 @@ export function getLabelExplainDumbLevel(level) {
   return LABEL_EXPLAIN_DUMB_LEVELS[n - 1] ?? null;
 }
 
-export function isLabelExplainGibberishLevel(dumbLevel) {
+export function isLabelExplainGibberishLevel(dumbLevel: number) {
   return Number(dumbLevel) === LABEL_EXPLAIN_GIBBERISH_LEVEL;
 }
 
-export function isLabelExplainGiveUpLevel(dumbLevel) {
+export function isLabelExplainGiveUpLevel(dumbLevel: number) {
   return Number(dumbLevel) >= LABEL_EXPLAIN_GIBBERISH_LEVEL;
 }
 
@@ -106,7 +106,7 @@ export function isLabelExplainGiveUpLevel(dumbLevel) {
  * Label for the follow-up chip: first click vs next step vs give-up.
  * @param {number} dumbLevel 0 = brief default; 1–7 = active dumb level
  */
-export function labelExplainDumbChipLabel(dumbLevel) {
+export function labelExplainDumbChipLabel(dumbLevel: number) {
   if (isLabelExplainGiveUpLevel(dumbLevel)) return LABEL_EXPLAIN_GIVE_UP_LABEL;
   if (dumbLevel <= 0) return LABEL_EXPLAIN_DUMB_LEVELS[0].chipLabel;
   const meta = getLabelExplainDumbLevel(dumbLevel);
@@ -118,7 +118,7 @@ export function labelExplainDumbChipLabel(dumbLevel) {
 /**
  * @param {number} dumbLevel 0 = brief; 1–7 = dumb
  */
-export function labelExplainDumbLoadingText(dumbLevel) {
+export function labelExplainDumbLoadingText(dumbLevel: number) {
   if (dumbLevel <= 0) return 'Consulting the Wise Architect…';
   return getLabelExplainDumbLevel(dumbLevel)?.loadingText ?? 'Dumbing it down…';
 }
@@ -127,7 +127,7 @@ export function labelExplainDumbLoadingText(dumbLevel) {
  * Short badge copy shown above the answer while in dumb mode.
  * @param {number} dumbLevel 1–7
  */
-export function labelExplainDumbAudienceBadge(dumbLevel) {
+export function labelExplainDumbAudienceBadge(dumbLevel: number) {
   const meta = getLabelExplainDumbLevel(dumbLevel);
   if (!meta) return '';
   return `For ${meta.audience}`;

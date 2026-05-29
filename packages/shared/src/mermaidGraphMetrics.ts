@@ -25,7 +25,7 @@ const MERMAID_RESERVED = new Set([
 ]);
 
 /** @param {string} source */
-export function inferMermaidTopKeyword(source) {
+export function inferMermaidTopKeyword(source: string) {
   const text = typeof source === 'string' ? source : '';
   for (const line of text.split(/\r?\n/)) {
     const t = line.trim();
@@ -37,7 +37,7 @@ export function inferMermaidTopKeyword(source) {
 }
 
 /** @param {string} source */
-export function extractMermaidNodeIds(source) {
+export function extractMermaidNodeIds(source: string) {
   const ids = new Set();
   if (!source) return ids;
   const patterns = [
@@ -61,7 +61,7 @@ export function extractMermaidNodeIds(source) {
 }
 
 /** @param {string} source @returns {{ from: string, to: string }[]} */
-export function extractMermaidEdges(source) {
+export function extractMermaidEdges(source: string) {
   if (!source) return [];
   const edges = [];
   const seen = new Set();
@@ -80,7 +80,7 @@ export function extractMermaidEdges(source) {
 }
 
 /** @param {string} source */
-export function countMermaidGraphElements(source) {
+export function countMermaidGraphElements(source: string) {
   return {
     nodes: extractMermaidNodeIds(source).size,
     edges: extractMermaidEdges(source).length

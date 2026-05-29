@@ -11,9 +11,11 @@
 
     // Ratchet: run `npm run typecheck:strict -w apps/server` for strict TS islands.
     // Full shared strict is gated on the TS ratchet in docs/decisions/0006-typescript-migration.md.
-    "strict": false,
-    "noImplicitAny": false,
-    "strictNullChecks": false,
+    "strict": true,
+    // Final ratchet increment, deferred: base sets noUncheckedIndexedAccess:true,
+    // but adopting it on shared is ~156 array/regex index guards across the
+    // sanitizers/diff/metrics (+ tests) — the most aggressive strict-family flag,
+    // lowest marginal value on already-tested code. See docs/decisions/0006-typescript-migration.md.
     "noUncheckedIndexedAccess": false,
     "noImplicitOverride": true
   },

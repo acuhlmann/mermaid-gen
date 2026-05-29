@@ -12,5 +12,6 @@ Step-by-step playbooks for recurring changes. Each recipe names the files to tou
 | [change-diagram-schema.md](change-diagram-schema.md)   | Changing Zod session/diagram/patch shapes in `packages/shared`                                 |
 | [add-eslint-rule.md](add-eslint-rule.md)               | Adding a new ESLint rule with agent-readable guidance                                          |
 | [add-dep-cruiser-layer.md](add-dep-cruiser-layer.md)   | Adding a new dependency-cruiser layer/boundary rule                                            |
+| [convert-js-leaf-to-ts.md](convert-js-leaf-to-ts.md)   | Converting a small `.js` module to `.ts` and adding it to a strict island (ADR-0006 ratchet)   |
 
 If a recipe is missing for something you find yourself doing twice, write one — the format is loose: 5–10 numbered steps, each naming the file and what changes.

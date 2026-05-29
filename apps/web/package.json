@@ -8,6 +8,7 @@
     "build": "vite build",
     "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
+    "typecheck:strict": "tsc --noEmit -p tsconfig.strict.json",
     "preview": "vite preview",
     "test": "vitest run",
     "test:wire": "vitest run test/wireAgUiTranslator.test.js"

@@ -1,4 +1,4 @@
-const CANONICAL_TYPES = {
+const CANONICAL_TYPES: Record<string, string> = {
   flowchart: 'flowchart',
   graph: 'flowchart',
   sequencediagram: 'sequenceDiagram',
@@ -27,13 +27,10 @@ const CANONICAL_TYPES = {
 };
 
 /**
- * Canonical Mermaid diagram type from the first non-blank, non-comment line of the source.
- * Returns `null` if no known type appears.
- *
- * @param {string | null | undefined} source
- * @returns {string | null}
+ * Canonical Mermaid diagram type from the first non-blank, non-comment line of
+ * the source. Returns `null` if no known type appears.
  */
-export function inferDiagramType(source) {
+export function inferDiagramType(source: string | null | undefined): string | null {
   if (typeof source !== 'string') return null;
   const text = source.trim();
   if (!text) return null;
@@ -46,8 +43,7 @@ export function inferDiagramType(source) {
     const token = t.split(/[\s:]+/)[0] ?? '';
     if (!token) continue;
     const key = token.toLowerCase().replace(/[`'":]+$/, '');
-    if (key in CANONICAL_TYPES) return CANONICAL_TYPES[key];
-    return null;
+    return CANONICAL_TYPES[key] ?? null;
   }
   return null;
 }

@@ -78,13 +78,15 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       },
     },
     {
-      // TypeScript files: use @typescript-eslint/parser. We register the
-      // typescript-eslint plugin so existing disable directives like
-      // `// eslint-disable @typescript-eslint/no-explicit-any` resolve, but
-      // we don't enable any of its rules — that's a per-workspace decision
-      // gated on adequate .ts coverage. Type-aware rules would also require
-      // `project: true` and would slow lint significantly on the legacy
-      // .js corpus.
+      // TypeScript files: use @typescript-eslint/parser + the plugin's
+      // `recommended` (non-type-aware) rule set, softened to warn per the
+      // ADR-0007 warm-up policy. These rules fire only on .ts/.tsx, so they
+      // reward the ADR-0006 ratchet: every .js→.ts conversion gains this
+      // guidance on top of the Factory rules. Type-aware rules
+      // (recommended-type-checked: no-floating-promises, no-unsafe-*, …) stay
+      // off here — they require `parserOptions.project` and would slow lint on
+      // the legacy .js corpus; enable them per-workspace alongside the
+      // strict-mode flip (docs/decisions/0006-typescript-migration.md).
       files: ['**/*.{ts,tsx}'],
       languageOptions: {
         parser: tsParser,
@@ -96,8 +98,11 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       plugins: { '@typescript-eslint': tsPlugin },
       rules: {
         ...rules,
+        // typescript-eslint recommended (non-type-aware), all softened to warn.
+        ...softenToWarn({ rules: tsPlugin.configs.recommended.rules }).rules,
         // Built-in no-unused-vars triggers false positives on TS type
-        // signatures; use the typescript-eslint variant instead.
+        // signatures; use the typescript-eslint variant instead. Re-stated
+        // after the recommended spread so the `^_` ignore pattern wins.
         'no-unused-vars': 'off',
         '@typescript-eslint/no-unused-vars': [
           'warn',

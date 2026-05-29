@@ -13,6 +13,16 @@
     "src/state/sessionEventBus.ts",
     "src/agents/partialJsonString.ts",
     "src/agents/streamPatchToolTelemetry.ts",
-    "src/agents/planBeatMessages.ts"
+    "src/agents/planBeatMessages.ts",
+    // Existing .ts modules promoted into the strict island.
+    "src/agents/agentStreamAnalyzeFinalize.ts",
+    "src/agents/critiqueA2uiStream.ts",
+    "src/agents/explainSectionsStream.ts",
+    "src/agents/styleEditsStream.ts",
+    "src/mcp/diagramDiffSummary.ts",
+    // Leaves converted from .js (ADR-0006 ratchet step); imported by islands above.
+    "src/agents/inferDiagramType.ts",
+    "src/utils/redactSecrets.ts",
+    "src/utils/publicBaseUrl.ts"
   ]
 }

@@ -4,26 +4,36 @@
 
 const TOP_FIELDS = new Set(['lists', 'sequences', 'compares', 'items', 'nodes', 'root', 'values']);
 
-function indentOf(line) {
+type InfographicNode = {
+  indexPath: string;
+  label: string | null;
+  desc: string | null;
+  value: string | null;
+  icon: string | null;
+  illus: string | null;
+  children: InfographicNode[];
+};
+
+function indentOf(line: string) {
   let i = 0;
   while (i < line.length && line[i] === ' ') i += 1;
   return i;
 }
 
-function parseInlineKv(line) {
+function parseInlineKv(line: string) {
   const m = /^(label|desc|value|icon|illus|category)\s+(.*)$/i.exec(line.trim());
   if (!m) return null;
   return { key: m[1].toLowerCase(), value: m[2].trim() };
 }
 
-function readTemplate(text) {
+function readTemplate(text: string) {
   const firstNonEmpty = text.split('\n').find((l) => l.trim());
   if (!firstNonEmpty) return null;
   const m = /^\s*infographic\s+([a-z0-9][a-z0-9-]*)\s*$/i.exec(firstNonEmpty);
   return m ? m[1].toLowerCase() : null;
 }
 
-export function parseInfographicTree(text) {
+export function parseInfographicTree(text: string) {
   if (typeof text !== 'string' || !text.trim()) {
     return { template: null, topField: null, items: [] };
   }
@@ -57,7 +67,7 @@ export function parseInfographicTree(text) {
   }
   if (!topField) return { template, topField: null, items: [] };
 
-  function parseSiblings(start, itemIndent, parentPath) {
+  function parseSiblings(start: number, itemIndent: number, parentPath: string) {
     const out = [];
     let i = start;
     let nextChildIdx = 0;
@@ -74,7 +84,7 @@ export function parseInfographicTree(text) {
         if (!stripped.startsWith('- ')) break;
         const indexPath = parentPath === '' ? `${nextChildIdx}` : `${parentPath},${nextChildIdx}`;
         nextChildIdx += 1;
-        const node = {
+        const node: InfographicNode = {
           indexPath,
           label: null,
           desc: null,
@@ -160,7 +170,7 @@ export function parseInfographicTree(text) {
   return { template, topField, items };
 }
 
-function flattenByIndexPath(items, into = new Map()) {
+function flattenByIndexPath(items: InfographicNode[], into: Map<string, InfographicNode> = new Map()) {
   for (const item of items) {
     into.set(item.indexPath, item);
     if (item.children?.length) flattenByIndexPath(item.children, into);
@@ -168,13 +178,16 @@ function flattenByIndexPath(items, into = new Map()) {
   return into;
 }
 
-function itemFingerprint(item) {
+function itemFingerprint(item: InfographicNode) {
   return [item.label ?? '', item.desc ?? '', item.value ?? '', item.icon ?? '', item.illus ?? '']
     .map((s) => String(s).trim().toLowerCase())
     .join('||');
 }
 
-export function diffInfographicSources(previousSource, nextSource) {
+export function diffInfographicSources(
+  previousSource: string | null | undefined,
+  nextSource: string | null | undefined
+) {
   const before = parseInfographicTree(previousSource ?? '');
   const after = parseInfographicTree(nextSource ?? '');
   const templateChanged = Boolean(before.template && after.template && before.template !== after.template);
@@ -195,7 +208,7 @@ export function diffInfographicSources(previousSource, nextSource) {
       modified.push(id);
       continue;
     }
-    if (itemFingerprint(beforeMap.get(id)) !== itemFingerprint(item)) {
+    if (itemFingerprint(beforeMap.get(id)!) !== itemFingerprint(item)) {
       modified.push(id);
     }
   }
@@ -203,7 +216,7 @@ export function diffInfographicSources(previousSource, nextSource) {
     if (!afterMap.has(id)) removed.push(id);
   }
 
-  const sort = (arr) => arr.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const sort = (arr: string[]) => arr.sort((a: string, b: string) => a.localeCompare(b, undefined, { numeric: true }));
   return {
     addedIds: sort(added),
     modifiedIds: sort(modified),
@@ -212,16 +225,19 @@ export function diffInfographicSources(previousSource, nextSource) {
   };
 }
 
-export function applyInfographicHighlight(rootEl, diff) {
+export function applyInfographicHighlight(
+  rootEl: Element | null | undefined,
+  diff: { addedIds?: string[]; modifiedIds?: string[] } | null | undefined
+) {
   if (!rootEl?.querySelectorAll) return;
-  rootEl.querySelectorAll('[data-diff-state]').forEach((el) => {
+  rootEl.querySelectorAll('[data-diff-state]').forEach((el: Element) => {
     el.removeAttribute('data-diff-state');
   });
   if (!diff) return;
   const added = new Set(diff.addedIds ?? []);
   const modified = new Set(diff.modifiedIds ?? []);
   if (added.size === 0 && modified.size === 0) return;
-  rootEl.querySelectorAll('[data-indexes]').forEach((el) => {
+  rootEl.querySelectorAll('[data-indexes]').forEach((el: Element) => {
     const indexes = el.getAttribute('data-indexes') ?? '';
     if (added.has(indexes)) {
       el.setAttribute('data-diff-state', 'added');

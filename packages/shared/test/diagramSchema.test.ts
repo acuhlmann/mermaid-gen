@@ -37,10 +37,11 @@ test('applyPatch accepts valid patch and increments revision', () => {
     reason: 'test patch'
   });
 
-  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('expected accepted');
   assert.equal(result.state.revisionId, 1);
   assert.match(result.state.diagramSource, /A --> B/);
   assert.equal(result.state.contentType, 'mermaid');
+  if (!result.state.styleConfig) throw new Error('expected styleConfig');
   assert.equal(result.state.styleConfig.theme, 'base');
   assert.equal(result.state.styleConfig.look, 'neo');
   assert.equal(result.state.styleConfig.flowchart.curve, 'rounded');
@@ -55,7 +56,7 @@ test('applyPatch rejects stale revisions', () => {
     reason: 'stale patch'
   });
 
-  assert.equal(result.accepted, false);
+  if (result.accepted) throw new Error('expected rejected');
   assert.match(result.error, /Revision mismatch/);
 });
 
@@ -69,7 +70,7 @@ test('applyPatch rejects contentType mismatch between slot and patch', () => {
     reason: 'wrong slot'
   });
 
-  assert.equal(result.accepted, false);
+  if (result.accepted) throw new Error('expected rejected');
   assert.match(result.error, /Content type mismatch/);
 });
 
@@ -116,7 +117,7 @@ test('parseMermaidStyleConfig reads supported init fields', () => {
     '%%{init: {"theme":"dark","look":"neo","themeVariables":{"primaryColor":"#123456"},"flowchart":{"curve":"linear"}}}%%\nflowchart TD\n  A --> B'
   );
 
-  assert.equal(result.accepted, true);
+  if (!result.accepted) throw new Error('expected accepted');
   assert.equal(result.styleConfig.theme, 'dark');
   assert.equal(result.styleConfig.look, 'neo');
   assert.equal(result.styleConfig.themeVariables.primaryColor, '#123456');
@@ -151,9 +152,9 @@ test('parseMermaidStyleConfig rejects invalid JSON and unsupported values', () =
   const invalidJson = parseMermaidStyleConfig('%%{init: {"theme": } }%%\nflowchart TD\n  A --> B');
   const invalidTheme = parseMermaidStyleConfig('%%{init: {"theme":"unsupported"}}%%\nflowchart TD\n  A --> B');
 
-  assert.equal(invalidJson.accepted, false);
+  if (invalidJson.accepted) throw new Error('expected rejected');
   assert.match(invalidJson.error, /Invalid Mermaid init JSON/);
-  assert.equal(invalidTheme.accepted, false);
+  if (invalidTheme.accepted) throw new Error('expected rejected');
   assert.match(invalidTheme.error, /Invalid Mermaid style config/);
 });
 
@@ -429,6 +430,7 @@ test('DiagramPatchSchema accepts optional origin', () => {
       color: '#f97316'
     }
   });
+  if (!patch.origin) throw new Error('expected origin');
   assert.equal(patch.origin.agentName, 'Cursor');
 });
 
@@ -516,7 +518,7 @@ test('sanitizeAgentStreamPayload drops invalid transformPersona on intent', () =
     settings: {},
     transformPersona: 'critique'
   };
-  const sanitized = sanitizeAgentStreamPayload(payload);
+  const sanitized = sanitizeAgentStreamPayload(payload) as Record<string, unknown>;
   assert.equal(sanitized.transformPersona, undefined);
   assert.equal(sanitized.prompt, 'hello');
 });
@@ -530,7 +532,7 @@ test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
     settings: {},
     transformPersona: 'refine'
   };
-  const sanitized = sanitizeAgentStreamPayload(payload);
+  const sanitized = sanitizeAgentStreamPayload(payload) as Record<string, unknown>;
   assert.equal(sanitized.transformPersona, 'refine');
 });
 

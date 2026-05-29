@@ -22,7 +22,7 @@ const GENERIC_RELATION_LABELS = new Set([
   'includes'
 ]);
 
-function leadingIndent(line) {
+function leadingIndent(line: string) {
   const m = line.match(/^(\s*)/);
   return m ? m[1].length : 0;
 }
@@ -30,7 +30,7 @@ function leadingIndent(line) {
 /**
  * Drops unknown keys under a root-level `theme` block.
  */
-export function stripInvalidThemeKeys(text) {
+export function stripInvalidThemeKeys(text: string) {
   const lines = text.split('\n');
   const out = [];
   let stripped = false;
@@ -79,7 +79,7 @@ export function stripInvalidThemeKeys(text) {
 /**
  * Collapse repeated palette colors (models often echo the same hex 6×).
  */
-export function dedupeThemePalette(text) {
+export function dedupeThemePalette(text: string) {
   const lines = text.split('\n');
   let changed = false;
   const out = lines.map((line) => {
@@ -106,7 +106,7 @@ export function dedupeThemePalette(text) {
   };
 }
 
-function isGenericRelationLabel(label) {
+function isGenericRelationLabel(label: unknown) {
   const norm = String(label ?? '')
     .trim()
     .toLowerCase()
@@ -114,7 +114,15 @@ function isGenericRelationLabel(label) {
   return GENERIC_RELATION_LABELS.has(norm);
 }
 
-function resolveNode(nodes, ref) {
+type InfographicSyntaxNode = {
+  id?: string;
+  label?: string;
+  icon?: string;
+  desc?: string;
+  [key: string]: unknown;
+};
+
+function resolveNode(nodes: InfographicSyntaxNode[], ref: unknown) {
   const key = String(ref ?? '').trim();
   if (!key) return null;
   for (const node of nodes) {
@@ -123,7 +131,7 @@ function resolveNode(nodes, ref) {
   return null;
 }
 
-function formatHierarchyItem(node, indent) {
+function formatHierarchyItem(node: InfographicSyntaxNode, indent: string) {
   const lines = [`${indent}- label ${node.label ?? ''}`];
   if (node.icon) lines.push(`${indent}  icon ${node.icon}`);
   if (node.desc) lines.push(`${indent}  desc ${node.desc}`);
@@ -134,7 +142,7 @@ function formatHierarchyItem(node, indent) {
  * Hub-and-spoke "overview" graphs parse on relation-* but layout poorly (dagre TB + circle
  * nodes + redundant edge labels). Rewrite to a hierarchy tree when edges are generic.
  */
-export function convertHubRelationToHierarchy(text) {
+export function convertHubRelationToHierarchy(text: string): { text: string; applied: string[] } {
   let parsed;
   try {
     parsed = parseSyntax(text);
@@ -147,7 +155,11 @@ export function convertHubRelationToHierarchy(text) {
   if (!/^relation-/.test(template)) return { text, applied: [] };
 
   const data = parsed?.options?.data ?? {};
-  const relations = Array.isArray(data.relations) ? data.relations : [];
+  const relations: Array<{ from?: string; to?: string; label?: string }> = Array.isArray(
+    data.relations
+  )
+    ? data.relations
+    : [];
   const nodes = Array.isArray(data.nodes) ? data.nodes : [];
   if (relations.length < 3 || nodes.length < 3) return { text, applied: [] };
 
@@ -174,6 +186,7 @@ export function convertHubRelationToHierarchy(text) {
   if (hub.desc) lines.push(`    desc ${hub.desc}`);
   lines.push('    children');
   for (const child of children) {
+    if (!child) continue;
     lines.push(formatHierarchyItem(child, '      '));
   }
 
@@ -197,7 +210,7 @@ export function convertHubRelationToHierarchy(text) {
  * @param {{ allowStructureRewrite?: boolean }} [options]
  * @returns {{ text: string, applied: string[] }}
  */
-export function sanitizeInfographicDsl(raw, options: { allowStructureRewrite?: boolean } = {}) {
+export function sanitizeInfographicDsl(raw: unknown, options: { allowStructureRewrite?: boolean } = {}) {
   const { allowStructureRewrite = true } = options;
   const applied = [];
   let text = String(raw ?? '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');

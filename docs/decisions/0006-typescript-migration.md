@@ -4,9 +4,12 @@
 
 ## Context
 
-The repo has a partial JS→TS migration: 189 `.js`, 51 `.jsx`, 58 `.ts`, 7 `.tsx`.
-`packages/shared` is fully TypeScript with `strict: true`; `apps/server` and
-`apps/web` extend the strict base but override `strict: false` and `checkJs: false`.
+The repo has a partial JS→TS migration. `packages/shared` is fully TypeScript;
+`apps/server` and `apps/web` are mostly `.js`/`.jsx`. All three extend the strict
+base (`tsconfig.base.json`) but each currently overrides `strict: false` and
+`checkJs: false` — **including `packages/shared`**, despite being 100% TS. (An
+earlier draft of this ADR claimed shared was already `strict: true`; that was
+aspirational, not true — see the strict-mode gate below for the real sizing.)
 
 Concrete consequences for coding agents:
 
@@ -57,10 +60,83 @@ them anyway. They're stable, low-churn, and JSDoc-annotated where it matters.
 
 `apps/server/tsconfig.json` and `apps/web/tsconfig.json` flip `strict: true`
 + `noImplicitAny: true` once the top 10 files in each workspace are typed
-(`.ts`/`.tsx` or `checkJs` + JSDoc). The `tsconfig.strict.json` islands in
-`apps/server` already prove the strict path works for the most contract-sensitive
-modules (`copilot.ts`, `copilotRouteTypes.ts`, `diagramStateStore.ts`,
-`sessionEventBus.ts`, stream helpers). Run `npm run typecheck:strict -w apps/server`.
+(`.ts`/`.tsx` or `checkJs` + JSDoc). Until then we grow **strict islands**:
+`tsconfig.strict.json` per app lists the files checked under full strict
+(`strict` + `noImplicitAny` + `strictNullChecks` + `noUncheckedIndexedAccess`).
+Adding a `.ts`/`.tsx` file to an island's `include` array opts it in. Both
+islands are wired into `npm run check` via the root `typecheck:strict` script,
+so an island regression now fails CI — the ratchet is enforced, not advisory.
+Run `npm run typecheck:strict` (both apps) or `-w apps/server` / `-w apps/web`.
+
+### `packages/shared` → strict is sized, not free
+
+A naive `tsc --strict` probe reported shared as clean, but that was a
+measurement error: an *explicit* `"noImplicitAny": false` in a tsconfig
+overrides the `--strict` meta-flag default, so the CLI probe wasn't actually
+strict. Measured properly against `packages/shared/tsconfig.json`, flipping
+shared to the strict base surfaces **363 errors** across ~34 files:
+
+| Lever | Added errors |
+| --- | --- |
+| `noImplicitAny` (TS70xx — add annotations) | 204 |
+| `+ strictNullChecks` (TS18048/2345) | +34 |
+| `+ noUncheckedIndexedAccess` (TS2532 — null guards in sanitizers/diff) | +125 |
+| **Total (`strict` + `noUncheckedIndexedAccess`)** | **363** (233 src / 130 test) |
+
+Done in staged levers (see the 2026-05-29 log): `noImplicitAny` (204) then
+`strictNullChecks` (+34) landed, and `packages/shared` now compiles at
+**`strict: true`** — the standard strict bar. The one base flag still deferred is
+`noUncheckedIndexedAccess` (~156 src/test array-index guards once strictNullChecks
+is on): the most aggressive strict-family flag (not implied by `strict: true`),
+lowest marginal value on already-tested sanitizer/diff code — so shared overrides
+it `false` with a written reason while the server/web strict islands keep it.
+`tsconfig.build.json` now sets `noEmitOnError: true` so a failed build can't
+pollute `dist/.d.ts`.
+
+## Progress log
+
+### 2026-05-29 — ratchet step (config + lint + leaf conversions)
+
+- **Strict islands grown.** `apps/server/tsconfig.strict.json` went from 7 to 15
+  files: promoted the existing `.ts` modules `agentStreamAnalyzeFinalize`,
+  `critiqueA2uiStream`, `explainSectionsStream`, `styleEditsStream`,
+  `mcp/diagramDiffSummary`, plus the three converted leaves below.
+- **New web strict island.** `apps/web/tsconfig.strict.json` (8 files) — the web
+  app's first strict config; `typecheck:strict` script added to `apps/web`.
+- **CI enforcement.** Root `typecheck:strict` fans out to both apps and is now
+  part of `npm run check`.
+- **Leaf conversions (the recurring ratchet step).** Converted three pure,
+  island-imported leaves from `.js` to `.ts` — `utils/redactSecrets`,
+  `agents/inferDiagramType`, `utils/publicBaseUrl` — moving their existing JSDoc
+  into real signatures. These had been resolving to `any` inside the strict
+  islands; typing `publicBaseUrl` surfaced a latent mistype in `copilot.ts` that
+  was previously masked. Pattern recipe: [`docs/recipes/convert-js-leaf-to-ts.md`](../recipes/convert-js-leaf-to-ts.md).
+- **`@typescript-eslint` `recommended` enabled (warn).** Non-type-aware rules
+  (`no-explicit-any`, `ban-ts-comment`, …) now fire on every `.ts`/`.tsx` file,
+  softened to warn per ADR-0007. This is the "Factory works better with TS"
+  multiplier: each `.js`→`.ts` conversion now gains both Factory and ts-eslint
+  guidance. Type-aware rules stay deferred (need `parserOptions.project`).
+- **`packages/shared` → `strict: true`.** Flipped the contract leaf to full
+  `strict` in staged levers — `noImplicitAny` (204 fixes across 19 files) then
+  `strictNullChecks` (4 src fixes + discriminated-union return types on
+  `applyPatch` / `parseMermaidStyleConfig` / the transform validators + test
+  narrowing). The widened-discriminant return types were a latent bug (callers
+  couldn't narrow `{ accepted }`/`{ ok }`); the explicit annotations fix it for all
+  consumers. All 147 shared tests green; server/web loose + both strict islands
+  unaffected. `tsconfig.build.json` gains `noEmitOnError: true`.
+- **`recommended-type-checked` on `packages/shared/src` (warn).** Type-aware rules
+  (`no-floating-promises`, `no-base-to-string`, `no-unsafe-*`, …) now lint shared's
+  src via `projectService` — the one workspace strict + fully-TS enough to afford
+  it. Scoped to `src/` (node:test's floating `test(...)` would flood tests).
+- **Deferred:** `noUncheckedIndexedAccess` on shared (~156 guards, sized above);
+  type-aware lint on the apps (legacy `.js` corpus).
+
+The web island now covers **all 12** of the web app's TypeScript files. Typing the
+`utils/thinkingProseEnrich.tsx` hub (tokenizer discriminated-union + regex-group
+`?? ''` coercions, plus *permissive optional* component props so there was no
+consumer cascade) pulled in its importers
+`components/{StyleEditsPanel,PlanBeatCard,PatchSummaryViz}.tsx` cleanly; behavior is
+guarded by `apps/web/test/thinkingProseEnrich.test.jsx` (14 tests, green).
 
 ## Consequences
 

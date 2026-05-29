@@ -43,7 +43,7 @@ const SPECIAL_LABEL_CHARS_RE = /[():/?&<>]|[^\x00-\x7F]/;
 const FLOWCHART_FAMILY_RE = /^(\s*)(flowchart|graph)\b/m;
 const TRAILING_SEMICOLON_LINE_RE = /;[ \t]*$/gm;
 
-function escapeRegex(s) {
+function escapeRegex(s: string) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
@@ -70,7 +70,7 @@ const HEADER_PREFIX_REGEXES = Object.freeze(
   }))
 );
 
-const SMART_QUOTE_MAP = {
+const SMART_QUOTE_MAP: Record<string, string> = {
   '“': '"',
   '”': '"',
   '„': '"',
@@ -87,13 +87,13 @@ const SMART_QUOTE_MAP = {
 
 const SMART_QUOTE_RE = new RegExp(`[${Object.keys(SMART_QUOTE_MAP).join('')}]`, 'g');
 
-function normalizeSmartQuotes(source) {
+function normalizeSmartQuotes(source: string) {
   if (!SMART_QUOTE_RE.test(source)) return null;
-  return source.replace(SMART_QUOTE_RE, (ch) => SMART_QUOTE_MAP[ch] ?? ch);
+  return source.replace(SMART_QUOTE_RE, (ch: string) => SMART_QUOTE_MAP[ch] ?? ch);
 }
 
 /** Replace `flow chart` and case-variant prefixes; promote v2 syntax to `stateDiagram-v2`. */
-function normalizeDiagramHeader(source) {
+function normalizeDiagramHeader(source: string) {
   const lines = source.split('\n');
   let headerIdx = -1;
 
@@ -136,7 +136,7 @@ function normalizeDiagramHeader(source) {
  * Rename reserved-word node IDs (`end`, `class`, …) consistently across declarations and edges.
  * Only attempts in flowchart-family diagrams since other diagram types have different ID grammars.
  */
-function escapeReservedNodeIds(source) {
+function escapeReservedNodeIds(source: string) {
   if (!FLOWCHART_FAMILY_RE.test(source)) return null;
 
   const candidates = new Set<string>();
@@ -169,10 +169,10 @@ function escapeReservedNodeIds(source) {
 }
 
 /** Wrap node and edge labels containing problematic characters in double quotes. Idempotent. */
-function quoteLabelsWithSpecials(source) {
+function quoteLabelsWithSpecials(source: string) {
   let changed = false;
   // Node labels in [] — skip subroutine shapes `id[[…]]` so we don't break them.
-  let updated = source.replace(/(\w[\w-]*)\[(?!\[)([^\]\n]+)\](?!\])/g, (whole, id, label) => {
+  let updated = source.replace(/(\w[\w-]*)\[(?!\[)([^\]\n]+)\](?!\])/g, (whole: string, id: string, label: string) => {
     const inner = label.trim();
     if (inner.length === 0) return whole;
     if (/^".*"$/.test(inner)) return whole;
@@ -183,7 +183,7 @@ function quoteLabelsWithSpecials(source) {
     return `${id}["${inner}"]`;
   });
   // Node labels in () — skip circle shapes `id((…))` so we don't break them.
-  updated = updated.replace(/(\w[\w-]*)\((?!\()([^)\n]+)\)(?!\))/g, (whole, id, label) => {
+  updated = updated.replace(/(\w[\w-]*)\((?!\()([^)\n]+)\)(?!\))/g, (whole: string, id: string, label: string) => {
     const inner = label.trim();
     if (inner.length === 0) return whole;
     if (/^".*"$/.test(inner)) return whole;
@@ -194,7 +194,7 @@ function quoteLabelsWithSpecials(source) {
     return `${id}("${inner}")`;
   });
   // Edge pipe-labels: `A -->|label with ()| B` — quote the pipe contents when needed.
-  updated = updated.replace(/\|([^|\n]+)\|/g, (whole, inner) => {
+  updated = updated.replace(/\|([^|\n]+)\|/g, (whole: string, inner: string) => {
     const t = inner.trim();
     if (!t) return whole;
     if (/^".*"$/.test(t)) return whole;
@@ -207,11 +207,11 @@ function quoteLabelsWithSpecials(source) {
 }
 
 /** Escape and wrap bracket / paren node labels that contain raw `"`, newlines, or backslashes. */
-function quoteBracketLabelsWithEmbeddedQuotes(source) {
+function quoteBracketLabelsWithEmbeddedQuotes(source: string) {
   if (!FLOWCHART_FAMILY_RE.test(source)) return null;
   let changed = false;
 
-  function esc(inner) {
+  function esc(inner: string) {
     return inner
       .replace(/\\/g, '\\\\')
       .replace(/"/g, '\\"')
@@ -220,7 +220,7 @@ function quoteBracketLabelsWithEmbeddedQuotes(source) {
       .replace(/\r/g, '\\n');
   }
 
-  let updated = source.replace(/(\w[\w-]*)\[([^\]\n]+)\]/g, (whole, id, label) => {
+  let updated = source.replace(/(\w[\w-]*)\[([^\]\n]+)\]/g, (whole: string, id: string, label: string) => {
     const inner = label.trim();
     if (inner.length === 0) return whole;
     if (/^".*"$/.test(inner)) return whole;
@@ -228,7 +228,7 @@ function quoteBracketLabelsWithEmbeddedQuotes(source) {
     changed = true;
     return `${id}["${esc(inner)}"]`;
   });
-  updated = updated.replace(/(\w[\w-]*)\(([^)\n]+)\)/g, (whole, id, label) => {
+  updated = updated.replace(/(\w[\w-]*)\(([^)\n]+)\)/g, (whole: string, id: string, label: string) => {
     const inner = label.trim();
     if (inner.length === 0) return whole;
     if (/^".*"$/.test(inner)) return whole;
@@ -246,7 +246,7 @@ function quoteBracketLabelsWithEmbeddedQuotes(source) {
  */
 const STYLE_LINE_PROPERTY_RE = /\b(fill|stroke|stroke-width|color|stroke-dasharray)\s*:/i;
 
-function expandCommaSeparatedStyleLines(source) {
+function expandCommaSeparatedStyleLines(source: string) {
   if (!FLOWCHART_FAMILY_RE.test(source)) return null;
 
   const lines = source.split('\n');
@@ -297,7 +297,7 @@ function expandCommaSeparatedStyleLines(source) {
 }
 
 /** Strip trailing semicolons outside flowchart/graph (other diagram types reject them). */
-function stripInvalidSemicolons(source) {
+function stripInvalidSemicolons(source: string) {
   if (FLOWCHART_FAMILY_RE.test(source)) return null;
   if (!/;\s*$/m.test(source)) return null;
   const updated = source.replace(TRAILING_SEMICOLON_LINE_RE, '');
@@ -305,7 +305,7 @@ function stripInvalidSemicolons(source) {
 }
 
 /** Append missing `end` keywords when subgraph nesting is unambiguous (single tail gap). */
-function closeUnbalancedSubgraphs(source) {
+function closeUnbalancedSubgraphs(source: string) {
   const lines = source.split('\n');
   let depth = 0;
   for (const line of lines) {
@@ -322,7 +322,7 @@ function closeUnbalancedSubgraphs(source) {
  * (single quotes → double quotes; trailing commas). Drop the directive only when it cannot be
  * recovered — that's strictly better than letting the parser reject the whole diagram.
  */
-function repairInitDirective(source) {
+function repairInitDirective(source: string) {
   const initRe = /%%\{\s*init\s*:\s*([\s\S]*?)\s*\}%%/;
   const match = source.match(initRe);
   if (!match) return null;
@@ -384,13 +384,16 @@ const FIXERS: Array<{ name: string; fn: Fixer }> = [
  * @param {string} source
  * @returns {string}
  */
-export function prepareMermaidForRender(source) {
+export function prepareMermaidForRender(source: string): string {
   if (typeof source !== 'string' || source.trim() === '') return source;
   const expanded = expandCommaSeparatedStyleLines(source);
   return expanded ?? source;
 }
 
-export function sanitizeMermaid(source, ctx = {}) {
+export function sanitizeMermaid(
+  source: string,
+  ctx: { parseError?: string | null } = {}
+): { sanitized: string; applied: string[] } {
   if (typeof source !== 'string' || source.trim() === '') {
     return { sanitized: source, applied: [] };
   }

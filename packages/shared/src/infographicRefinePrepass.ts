@@ -6,13 +6,13 @@
 const SMART_QUOTE_REGEX = /[‘’“”]/g;
 const KV_LINE = /^(\s*)(?:-\s+)?(label|desc|value)(\s+)(.*)$/i;
 
-function normalizeQuotes(text) {
+function normalizeQuotes(text: string) {
   return text
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"');
 }
 
-function polishReaderText(raw) {
+function polishReaderText(raw: unknown) {
   let t = normalizeQuotes(String(raw ?? ''));
   t = t.replace(/\s+/g, ' ').trim();
   t = t.replace(/\s+([,.;:!?])/g, '$1');
@@ -29,8 +29,8 @@ function polishReaderText(raw) {
  * @param {string} source
  * @returns {{ dsl: string, applied: string[] }}
  */
-export function refineInfographicDsl(source) {
-  const applied = [];
+export function refineInfographicDsl(source: string | null | undefined) {
+  const applied: string[] = [];
   if (typeof source !== 'string' || !source.trim()) {
     return { dsl: source ?? '', applied };
   }

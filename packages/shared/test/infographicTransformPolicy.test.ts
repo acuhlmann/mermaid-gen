@@ -21,7 +21,7 @@ test('refine rejects template change', () => {
     beforeSource: BASE,
     afterSource: after
   });
-  assert.equal(result.ok, false);
+  if (result.ok) throw new Error('expected not ok');
   assert.match(result.error, /keep template/i);
 });
 
@@ -48,7 +48,7 @@ test('exec rejects extra items', () => {
     beforeSource: BASE,
     afterSource: after
   });
-  assert.equal(result.ok, false);
+  if (result.ok) throw new Error('expected not ok');
 });
 
 test('goMad tier 2 keeps template', () => {
@@ -69,6 +69,6 @@ test('goMad tier 3 requires family change', () => {
     beforeSource: BASE,
     afterSource: BASE.replace('Step 1', 'RFC 9001')
   });
-  assert.equal(result.ok, false);
+  if (result.ok) throw new Error('expected not ok');
   assert.match(result.error, /switch template family/i);
 });

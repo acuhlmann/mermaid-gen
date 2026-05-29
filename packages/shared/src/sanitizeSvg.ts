@@ -2,7 +2,7 @@
  * @param {string} viewBoxValue
  * @returns {{ width: number, height: number } | null}
  */
-export function parseViewBoxPixelSize(viewBoxValue) {
+export function parseViewBoxPixelSize(viewBoxValue: string) {
   if (typeof viewBoxValue !== 'string' || !viewBoxValue.trim()) return null;
   const parts = viewBoxValue
     .trim()
@@ -25,7 +25,7 @@ export function parseViewBoxPixelSize(viewBoxValue) {
  * @param {number} [padding]
  * @returns {boolean}
  */
-export function expandRootSvgViewBoxToContent(svgEl, padding = 20) {
+export function expandRootSvgViewBoxToContent(svgEl: SVGGraphicsElement | null | undefined, padding = 20) {
   if (!svgEl || typeof svgEl.getBBox !== 'function') return false;
   let bbox;
   try {
@@ -46,7 +46,7 @@ export function expandRootSvgViewBoxToContent(svgEl, padding = 20) {
   return true;
 }
 
-export function normalizeRootSvgElement(svgEl) {
+export function normalizeRootSvgElement(svgEl: SVGSVGElement | null | undefined) {
   if (!svgEl) return false;
   expandRootSvgViewBoxToContent(svgEl);
   const vb = svgEl.viewBox?.baseVal;
@@ -67,7 +67,7 @@ export function normalizeRootSvgElement(svgEl) {
  * @param {string} svg
  * @returns {string}
  */
-export function normalizeMermaidRootSvgSize(svg) {
+export function normalizeMermaidRootSvgSize(svg: string) {
   const openMatch = svg.match(/<svg\b([^>]*)>/i);
   if (!openMatch) return svg;
 
@@ -94,7 +94,7 @@ export function normalizeMermaidRootSvgSize(svg) {
  * @param {string} svg
  * @returns {string}
  */
-export function sanitizeSvgMarkup(svg) {
+export function sanitizeSvgMarkup(svg: string) {
   if (typeof svg !== 'string' || !svg) return '';
   let out = svg;
   out = out.replace(/<script[\s\S]*?<\/script>/gi, '');

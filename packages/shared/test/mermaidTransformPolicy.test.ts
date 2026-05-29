@@ -20,7 +20,7 @@ test('exec rejects added nodes', () => {
     beforeSource: BUSY_FLOW,
     afterSource: after
   });
-  assert.equal(result.ok, false);
+  if (result.ok) throw new Error('expected not ok');
   assert.match(result.error, /subtractive only/i);
 });
 
@@ -31,7 +31,7 @@ test('exec rejects relabel-only on large diagrams', () => {
     beforeSource: BUSY_FLOW,
     afterSource: after
   });
-  assert.equal(result.ok, false);
+  if (result.ok) throw new Error('expected not ok');
   assert.match(result.error, /remove nodes or edges/i);
 });
 

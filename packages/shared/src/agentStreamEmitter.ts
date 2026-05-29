@@ -13,21 +13,32 @@ import {
   agUiRevisionPath
 } from './agUiWireConstants.js';
 
-function nowMs() {
+/** A loosely-typed AG-UI wire event: a discriminating `type` plus arbitrary fields. */
+type AgUiEvent = { type: string; timestamp?: number; [key: string]: unknown };
+
+function nowMs(): number {
   return Date.now();
 }
 
-function withMeta(evt) {
+function withMeta(evt: AgUiEvent): AgUiEvent {
   if (evt.timestamp == null) evt.timestamp = nowMs();
   return evt;
 }
 
-function randomId(prefix) {
+function randomId(prefix: string): string {
   const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}_${uuid}`;
 }
 
-export function runStarted({ threadId, runId, parentRunId }) {
+export function runStarted({
+  threadId,
+  runId,
+  parentRunId
+}: {
+  threadId: string;
+  runId: string;
+  parentRunId?: string;
+}) {
   return withMeta({
     type: AGUI_EVENT_TYPE.RUN_STARTED,
     threadId,
@@ -36,7 +47,15 @@ export function runStarted({ threadId, runId, parentRunId }) {
   });
 }
 
-export function runFinished({ threadId, runId, result }) {
+export function runFinished({
+  threadId,
+  runId,
+  result
+}: {
+  threadId: string;
+  runId: string;
+  result?: unknown;
+}) {
   return withMeta({
     type: AGUI_EVENT_TYPE.RUN_FINISHED,
     threadId,
@@ -45,7 +64,7 @@ export function runFinished({ threadId, runId, result }) {
   });
 }
 
-export function runError({ message, code }) {
+export function runError({ message, code }: { message?: unknown; code?: unknown }) {
   return withMeta({
     type: AGUI_EVENT_TYPE.RUN_ERROR,
     message: String(message ?? ''),
@@ -53,23 +72,23 @@ export function runError({ message, code }) {
   });
 }
 
-export function stepStarted({ stepName }) {
+export function stepStarted({ stepName }: { stepName: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.STEP_STARTED, stepName: String(stepName) });
 }
 
-export function stepFinished({ stepName }) {
+export function stepFinished({ stepName }: { stepName: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.STEP_FINISHED, stepName: String(stepName) });
 }
 
-export function textMessageStart({ messageId, role = 'assistant' }) {
+export function textMessageStart({ messageId, role = 'assistant' }: { messageId: string; role?: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.TEXT_MESSAGE_START, messageId, role });
 }
 
-export function textMessageContent({ messageId, delta }) {
+export function textMessageContent({ messageId, delta }: { messageId: string; delta: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.TEXT_MESSAGE_CONTENT, messageId, delta });
 }
 
-export function textMessageEnd({ messageId }) {
+export function textMessageEnd({ messageId }: { messageId: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.TEXT_MESSAGE_END, messageId });
 }
 
@@ -90,27 +109,27 @@ export function toolCallStart({
   });
 }
 
-export function toolCallArgs({ toolCallId, delta }) {
+export function toolCallArgs({ toolCallId, delta }: { toolCallId: string; delta: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.TOOL_CALL_ARGS, toolCallId, delta });
 }
 
-export function toolCallEnd({ toolCallId }) {
+export function toolCallEnd({ toolCallId }: { toolCallId: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.TOOL_CALL_END, toolCallId });
 }
 
-export function stateSnapshot({ snapshot }) {
+export function stateSnapshot({ snapshot }: { snapshot: unknown }) {
   return withMeta({ type: AGUI_EVENT_TYPE.STATE_SNAPSHOT, snapshot });
 }
 
-export function stateDelta({ delta }) {
+export function stateDelta({ delta }: { delta: unknown }) {
   return withMeta({ type: AGUI_EVENT_TYPE.STATE_DELTA, delta });
 }
 
-export function customEvent({ name, value }) {
+export function customEvent({ name, value }: { name: string; value: unknown }) {
   return withMeta({ type: AGUI_EVENT_TYPE.CUSTOM, name, value });
 }
 
-function patchSummaryToJsonPatch(evt, contentType) {
+function patchSummaryToJsonPatch(evt: Record<string, unknown>, contentType: string | undefined) {
   const slot =
     contentType === 'infographic' ||
     contentType === 'metaphor3d' ||
@@ -144,15 +163,21 @@ export function createAgentStreamEmitter({
   runId,
   contentType,
   initialStep = null
+}: {
+  rawEmit: (evt: AgUiEvent) => void;
+  threadId: string;
+  runId: string;
+  contentType?: string;
+  initialStep?: string | null;
 }) {
-  let activeMessageId = null;
-  let activeStep = initialStep || null;
-  let activeToolCallId = null;
+  let activeMessageId: string | null = null;
+  let activeStep: string | null = initialStep || null;
+  let activeToolCallId: string | null = null;
   // AG-UI verifier rejects every event after RUN_ERROR (and after RUN_FINISHED). Track the
   // terminal state here so duplicate cleanup paths — e.g. transform turns that emit `error`
   // when no patch landed and then still emit `final` — silently no-op instead of producing
   // "Cannot send event type 'STATE_DELTA': The run has already errored" on the client.
-  let terminalState = null;
+  let terminalState: 'error' | 'finished' | null = null;
 
   function endActiveMessage() {
     if (activeMessageId) {
@@ -168,7 +193,7 @@ export function createAgentStreamEmitter({
     }
   }
 
-  function emitAgUi(evt) {
+  function emitAgUi(evt: AgUiEvent) {
     return rawEmit(withMeta(evt));
   }
 
@@ -229,7 +254,7 @@ export function createAgentStreamEmitter({
         return rawEmit(toolCallEnd({ toolCallId: id }));
       }
       case 'draftPreview': {
-        const ct = evt.contentType || contentType || 'infographic';
+        const ct = (typeof evt.contentType === 'string' && evt.contentType) || contentType || 'infographic';
         const value = typeof evt.accumulated === 'string' ? evt.accumulated : '';
         return rawEmit(stateDelta({ delta: [{ op: 'replace', path: agUiDraftSourcePath(ct), value }] }));
       }
@@ -277,20 +302,27 @@ export function createAgentStreamEmitter({
     return emitLegacy(evt as LegacyStreamEvent);
   }
 
-  emit.phase = (id, label) => emit({ type: 'phase', id, label });
-  emit.status = (text) => emit({ type: 'status', text });
-  emit.planBeat = (text, source = 'server') =>
+  emit.phase = (id: string, label: string) => emit({ type: 'phase', id, label });
+  emit.status = (text: string) => emit({ type: 'status', text });
+  emit.planBeat = (text: string, source = 'server') =>
     emit({ type: LEGACY_STREAM_TYPE_PLAN_BEAT, text, source });
-  emit.token = (text) => emit({ type: 'token', text });
-  emit.a2ui = (messages) => emit({ type: LEGACY_STREAM_TYPE_A2UI, messages });
-  emit.patchSummary = ({ revisionId, linesAdded = 0, linesRemoved = 0 }) =>
-    emit({ type: 'artifact', kind: 'patch_summary', revisionId, linesAdded, linesRemoved });
-  emit.toolStart = (name, id) => emit({ type: 'tool_start', name, id });
-  emit.toolEnd = (name, id) => emit({ type: 'tool_end', name, id });
-  emit.draftPreview = (draftContentType, accumulated) =>
+  emit.token = (text: string) => emit({ type: 'token', text });
+  emit.a2ui = (messages: unknown) => emit({ type: LEGACY_STREAM_TYPE_A2UI, messages });
+  emit.patchSummary = ({
+    revisionId,
+    linesAdded = 0,
+    linesRemoved = 0
+  }: {
+    revisionId?: unknown;
+    linesAdded?: number;
+    linesRemoved?: number;
+  }) => emit({ type: 'artifact', kind: 'patch_summary', revisionId, linesAdded, linesRemoved });
+  emit.toolStart = (name: string, id?: string) => emit({ type: 'tool_start', name, id });
+  emit.toolEnd = (name: string, id?: string) => emit({ type: 'tool_end', name, id });
+  emit.draftPreview = (draftContentType: string, accumulated: string) =>
     emit({ type: 'draftPreview', contentType: draftContentType, accumulated });
-  emit.error = (message, code) => emit({ type: 'error', message, code });
-  emit.final = (payload) => emit({ type: 'final', ...payload });
+  emit.error = (message?: unknown, code?: unknown) => emit({ type: 'error', message, code });
+  emit.final = (payload: Record<string, unknown>) => emit({ type: 'final', ...payload });
 
   return emit;
 }

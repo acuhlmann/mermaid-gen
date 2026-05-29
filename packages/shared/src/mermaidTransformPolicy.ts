@@ -8,7 +8,7 @@ const EXEC_MAX_EDGES = 10;
 /**
  * @param {string | null | undefined} message
  */
-export function isMermaidTransformConstraintError(message) {
+export function isMermaidTransformConstraintError(message: string | null | undefined) {
   if (!message || typeof message !== 'string') return false;
   return /executive simplify|subtractive only|may add at most|must keep (?:diagram type|template)|go mad tier/i.test(
     message
@@ -26,7 +26,12 @@ export function isMermaidTransformConstraintError(message) {
  * }} opts
  * @returns {{ ok: true } | { ok: false, error: string }}
  */
-export function validateMermaidTransformConstraint(opts) {
+export function validateMermaidTransformConstraint(opts: {
+  transformMode?: string | null;
+  goMadDepth?: number | null;
+  beforeSource?: string;
+  afterSource?: string;
+}): { ok: true } | { ok: false; error: string } {
   const mode = opts.transformMode;
   if (!mode || !TRANSFORM_MODES.has(mode)) return { ok: true };
 

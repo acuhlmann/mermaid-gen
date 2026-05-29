@@ -11,28 +11,36 @@ export const DEFAULT_AGENT_REPAIR_ATTEMPTS_QUALITY = 2;
 const BUDGET_CLAMP = Object.freeze({ min: 30_000, max: 180_000 });
 const REPAIR_ATTEMPTS_CLAMP = Object.freeze({ min: 0, max: 6 });
 
-export function normalizeAgentModelProfile(profile) {
+export function normalizeAgentModelProfile(profile?: string) {
   return profile === 'quality' ? 'quality' : 'fast';
 }
 
-function parseInteger(value) {
+function parseInteger(value: unknown) {
   if (value == null || value === '') return null;
   const n = Number.parseInt(String(value), 10);
   return Number.isFinite(n) ? n : null;
 }
 
-function clampInteger(value, bounds) {
+function clampInteger(value: number, bounds: { min: number; max: number }) {
   return Math.min(bounds.max, Math.max(bounds.min, value));
 }
 
-function readProfileEnv(env, baseName, profile) {
+function readProfileEnv(
+  env: Record<string, string | undefined> | undefined,
+  baseName: string,
+  profile: string
+) {
   const suffix = profile === 'quality' ? 'QUALITY' : 'FAST';
   const profileValue = parseInteger(env?.[`${baseName}_${suffix}`]);
   if (profileValue != null) return profileValue;
   return parseInteger(env?.[baseName]);
 }
 
-export function resolveAgentRunBudgetMs(profile = 'fast', env = {}, mode = null) {
+export function resolveAgentRunBudgetMs(
+  profile = 'fast',
+  env: Record<string, string | undefined> = {},
+  mode: string | null = null
+) {
   const p = normalizeAgentModelProfile(profile);
   const isGoMad = mode === 'goMad';
   const fallback = isGoMad

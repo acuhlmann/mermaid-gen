@@ -3,7 +3,7 @@
  * returned to clients, streamed over SSE, or logged. Third-party SDK errors can
  * occasionally echo Authorization headers or key-like blobs.
  */
-export function redactSecrets(input) {
+export function redactSecrets(input: string): string {
   if (input == null) return input;
   const text = typeof input === 'string' ? input : String(input);
   return (

@@ -10,7 +10,10 @@
  * @param {string | undefined} analyzeText
  * @returns {string}
  */
-export function resolveCritiqueAnalyzeFinalText(streamedText, analyzeText) {
+export function resolveCritiqueAnalyzeFinalText(
+  streamedText: string | null | undefined,
+  analyzeText: string | null | undefined
+) {
   const stream = (streamedText ?? '').trim();
   const canonical = typeof analyzeText === 'string' ? analyzeText.trim() : '';
   if (canonical && (!stream || canonical.length > stream.length)) {
@@ -20,11 +23,11 @@ export function resolveCritiqueAnalyzeFinalText(streamedText, analyzeText) {
 }
 
 /** Normalize critique markdown for stable entry ↔ latestCritique matching. */
-export function normalizeCritiqueMarkdownForMatch(text) {
+export function normalizeCritiqueMarkdownForMatch(text: string | null | undefined) {
   return (text ?? '').replace(/\r\n/g, '\n').replace(/\s+/g, ' ').trim();
 }
 
-export function splitCritiqueActionableSections(markdown) {
+export function splitCritiqueActionableSections(markdown: string | null | undefined) {
   if (markdown == null || typeof markdown !== 'string') {
     return { prefix: '', items: [], suffix: '', hasSection: false, headingText: '' };
   }

@@ -1,15 +1,12 @@
+import type { Request } from 'express';
+
 /**
  * Public origin for MCP invite URLs and deeplinks (must match what external agents can reach).
  * Prefer PUBLIC_BASE_URL in production so invites stay correct behind proxies and load balancers.
+ *
+ * Returns an origin without trailing slash (e.g. https://mermaid-gen-main-….run.app).
  */
-
-const DEFAULT_LOCAL = 'http://localhost:4000';
-
-/**
- * @param {import('express').Request | null | undefined} [req]
- * @returns {string} Origin without trailing slash (e.g. https://mermaid-gen-main-….run.app)
- */
-export function resolvePublicBaseUrl(req) {
+export function resolvePublicBaseUrl(req?: Request | null): string {
   const fromEnv = process.env.PUBLIC_BASE_URL?.trim();
   if (fromEnv) {
     return fromEnv.replace(/\/+$/, '');
@@ -30,11 +27,7 @@ export function resolvePublicBaseUrl(req) {
   return `http://localhost:${port}`;
 }
 
-/**
- * @param {import('express').Request | null | undefined} [req]
- * @param {string} [path]
- */
-export function resolvePublicUrl(req, path = '') {
+export function resolvePublicUrl(req?: Request | null, path = ''): string {
   const base = resolvePublicBaseUrl(req);
   if (!path) return base;
   return `${base}${path.startsWith('/') ? path : `/${path}`}`;

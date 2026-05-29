@@ -22,7 +22,7 @@ const ACTION_FIX_SELECTED = 'archislop_fixSelected';
  * @param {string} critiqueMarkdown
  * @returns {object[]}
  */
-export function buildCritiqueActionableA2uiMessages(critiqueMarkdown) {
+export function buildCritiqueActionableA2uiMessages(critiqueMarkdown: string | null | undefined) {
   const split = splitCritiqueActionableSections(critiqueMarkdown);
   if (!split.hasSection || split.items.length === 0) return [];
 

@@ -2,6 +2,10 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "noEmit": false,
+    // Never emit on type errors: shared's dist/.d.ts is the contract every
+    // consumer typechecks against, so a half-emitted strict-failed build would
+    // silently break downstream typecheck until a clean rebuild.
+    "noEmitOnError": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,

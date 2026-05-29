@@ -79,15 +79,15 @@ export const DEFAULT_DIAGRAM_STYLE = Object.freeze(DiagramStyleSchema.parse({}))
 
 const INIT_DIRECTIVE_PATTERN = /^\s*%%\{\s*(?:init|initialize)\s*:\s*([\s\S]*?)\s*\}%%\s*/;
 
-function formatZodError(error) {
+function formatZodError(error: z.ZodError) {
   return error.issues.map((issue) => `${issue.path.join('.') || 'styleConfig'}: ${issue.message}`).join('; ');
 }
 
-export function normalizeDiagramStyleConfig(styleConfig = {}) {
+export function normalizeDiagramStyleConfig(styleConfig: unknown = {}) {
   return DiagramStyleSchema.parse(styleConfig ?? {});
 }
 
-export function extractMermaidInitDirective(mermaidSource) {
+export function extractMermaidInitDirective(mermaidSource: string | null | undefined) {
   const source = mermaidSource ?? '';
   const match = source.match(INIT_DIRECTIVE_PATTERN);
 
@@ -108,7 +108,9 @@ export function extractMermaidInitDirective(mermaidSource) {
   };
 }
 
-export function parseMermaidStyleConfig(mermaidSource) {
+export function parseMermaidStyleConfig(
+  mermaidSource: string | null | undefined
+): { accepted: true; styleConfig: z.infer<typeof DiagramStyleSchema> } | { accepted: false; error: string } {
   const directive = extractMermaidInitDirective(mermaidSource);
   if (!directive.hasDirective) {
     return {
@@ -165,7 +167,13 @@ export function styleConfigToMermaidConfig(styleConfig = DEFAULT_DIAGRAM_STYLE) 
   return mermaidConfig;
 }
 
-export function applyMermaidStyleDirective({ mermaidSource, styleConfig }) {
+export function applyMermaidStyleDirective({
+  mermaidSource,
+  styleConfig
+}: {
+  mermaidSource: string | null | undefined;
+  styleConfig?: unknown;
+}) {
   const normalized = normalizeDiagramStyleConfig(styleConfig);
   const directive = buildMermaidInitDirective(normalized);
   const current = extractMermaidInitDirective(mermaidSource);
@@ -176,6 +184,6 @@ export function applyMermaidStyleDirective({ mermaidSource, styleConfig }) {
   };
 }
 
-export function stripMermaidInitDirective(mermaidSource) {
+export function stripMermaidInitDirective(mermaidSource: string | null | undefined) {
   return extractMermaidInitDirective(mermaidSource).body.trimStart();
 }

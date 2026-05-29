@@ -19,9 +19,8 @@ export const AGUI_EVENT_TYPE = Object.freeze({
   STEP_FINISHED: 'STEP_FINISHED'
 });
 
-const AGUI_EVENT_TYPE_SET = new Set(Object.values(AGUI_EVENT_TYPE));
+const AGUI_EVENT_TYPE_SET = new Set<string>(Object.values(AGUI_EVENT_TYPE));
 
-/** @param {unknown} evt */
-export function isAgUiWireEvent(evt) {
-  return Boolean(evt && typeof evt === 'object' && AGUI_EVENT_TYPE_SET.has(/** @type {{ type?: string }} */ (evt).type));
+export function isAgUiWireEvent(evt: unknown) {
+  return Boolean(evt && typeof evt === 'object' && AGUI_EVENT_TYPE_SET.has((evt as { type?: string }).type ?? ''));
 }

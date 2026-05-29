@@ -12,7 +12,7 @@ test('buildCritiqueActionableA2uiMessages returns empty array when no actionable
 
 test('buildCritiqueActionableA2uiMessages returns createSurface, updateComponents, updateDataModel', () => {
   const md = `## Summary\n\nOk.\n\n## Actionable improvements\n\n- Fix A\n- Fix B\n`;
-  const msgs = buildCritiqueActionableA2uiMessages(md);
+  const msgs = buildCritiqueActionableA2uiMessages(md) as Array<Record<string, any>>;
   assert.equal(msgs.length, 3);
   assert.equal(msgs[0].version, 'v0.9');
   assert.equal(msgs[0].createSurface.surfaceId, A2UI_CRITIQUE_SURFACE_ID);
