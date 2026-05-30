@@ -26,7 +26,12 @@ const baseRef =
 
 function run(cmd, args, label) {
   console.log(`\n→ ${label}`);
-  const out = spawnSync(cmd, args, { cwd: repoRoot, stdio: 'inherit', shell: false });
+  // Windows resolves npm via npm.cmd; spawn without shell yields ENOENT in husky pre-push.
+  const out = spawnSync(cmd, args, {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
+  });
   if (out.status !== 0) process.exit(out.status ?? 1);
 }
 
