@@ -10,7 +10,16 @@ import {
 } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Billboard, Bounds, Center, Text, Environment, Line } from '@react-three/drei';
+import {
+  OrbitControls,
+  Billboard,
+  Bounds,
+  Center,
+  Text,
+  Environment,
+  Line,
+  ContactShadows
+} from '@react-three/drei';
 import {
   parsePartialMetaphorDsl,
   partialToRenderableMetaphorDsl,
@@ -18,6 +27,7 @@ import {
 } from '@archislop/shared';
 import {
   resolveMetaphorThemePreset,
+  resolveMetaphorPostfx,
   resolveDistrictColor,
   resolveClusterColor,
   resolveNebulaColor
@@ -32,6 +42,14 @@ import {
 import { treeRadialLayout } from '../utils/metaphorLayouts/treeRadialLayout.js';
 import { terrainHeightmap, heightColor } from '../utils/metaphorLayouts/terrainHeightmap.js';
 import { Glyph } from './metaphorGlyphs/index.jsx';
+import {
+  MetaphorTitleOverlay,
+  MetaphorLegendOverlay,
+  MetaphorCameraToggle,
+  MetaphorHoverTooltip
+} from './MetaphorOverlays.jsx';
+import { MetaphorEffects } from './MetaphorEffects.jsx';
+import { MetaphorHoverContext, useMetaphorHover, createMetaphorHoverStore } from './metaphorHover.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -98,6 +116,53 @@ function ItemLabel({ text, position, fontSize = 0.55, color = '#0f172a', outline
         {text}
       </Text>
     </Billboard>
+  );
+}
+
+/** Soft grounded contact shadow — used by the flat-ground scenes (city, tree). */
+function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
+  const sfx = theme.postfx ?? {};
+  return (
+    <ContactShadows
+      position={[0, y, 0]}
+      scale={scale ?? sfx.shadowScale ?? 44}
+      opacity={sfx.shadowOpacity ?? 0.35}
+      blur={sfx.shadowBlur ?? 2.6}
+      color={sfx.shadowColor ?? '#0a0f1e'}
+      far={50}
+      resolution={512}
+    />
+  );
+}
+
+/**
+ * Wraps a per-item group with pointer handlers that drive the hover tooltip.
+ * Writes only to the external hover store (no scene re-render) and stops event
+ * propagation so it coexists with OrbitControls (drag still rotates the view).
+ * No-ops when hover is disabled (store is null during streaming).
+ */
+function HoverableItem({ item, metaphor, children }) {
+  const store = useMetaphorHover();
+  const update = (event) => {
+    if (!store) return;
+    event.stopPropagation();
+    store.set({ item, metaphor, x: event.clientX, y: event.clientY });
+  };
+  const handleOver = (event) => {
+    if (!store) return;
+    update(event);
+    if (typeof document !== 'undefined') document.body.style.cursor = 'pointer';
+  };
+  const handleOut = (event) => {
+    if (!store) return;
+    event.stopPropagation();
+    store.set(null);
+    if (typeof document !== 'undefined') document.body.style.cursor = '';
+  };
+  return (
+    <group onPointerOver={handleOver} onPointerMove={update} onPointerOut={handleOut}>
+      {children}
+    </group>
   );
 }
 
@@ -703,6 +768,50 @@ function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
   );
 }
 
+/** Sample a polyline (array of [x,y,z] points) at t in [0,1], piecewise-linear. */
+function samplePolyline(points, t) {
+  const segments = points.length - 1;
+  const clamped = t <= 0 ? 0 : t >= 1 ? 0.999999 : t;
+  const ft = clamped * segments;
+  const i = Math.floor(ft);
+  const f = ft - i;
+  const a = points[i];
+  const b = points[i + 1];
+  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+}
+
+/** A glowing dot that travels from→to along a link, conveying flow direction. */
+function LinkFlowPulse({ points, color, seed }) {
+  const ref = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  useFrame(() => {
+    if (!ref.current) return;
+    const t = animated ? (getTime() * 0.16 + seed) % 1 : seed;
+    const p = samplePolyline(points, t);
+    ref.current.position.set(p[0], p[1], p[2]);
+  });
+  return (
+    <mesh ref={ref}>
+      <sphereGeometry args={[0.13, 10, 10]} />
+      <meshBasicMaterial color={color} toneMapped={false} transparent opacity={0.92} />
+    </mesh>
+  );
+}
+
+/** Map a link's semantic `kind` to its line colour, pulse colour, and whether a
+ *  travelling flow pulse animates. Undefined kind keeps the default (line + pulse). */
+function resolveLinkAppearance(kind, theme) {
+  const baseColor = theme.linkColor ?? '#64748b';
+  const glow = theme.binaryGlowColor ?? baseColor;
+  if (kind === 'flow') return { lineColor: glow, pulseColor: glow, showPulse: true };
+  if (kind === 'ownership') {
+    const accent = theme.treeAccentColor ?? glow;
+    return { lineColor: accent, pulseColor: accent, showPulse: false };
+  }
+  if (kind === 'dependency') return { lineColor: baseColor, pulseColor: glow, showPulse: false };
+  return { lineColor: baseColor, pulseColor: glow, showPulse: true };
+}
+
 function MetaphorLinks({ links, anchors, theme }) {
   if (!links?.length) return null;
 
@@ -721,15 +830,23 @@ function MetaphorLinks({ links, anchors, theme }) {
           (from[2] + to[2]) / 2
         ];
 
+        const appearance = resolveLinkAppearance(link.kind, theme);
         return (
           <group key={`${link.from}-${link.to}-${idx}`}>
             <Line
               points={points}
-              color={theme.linkColor ?? '#64748b'}
+              color={appearance.lineColor}
               lineWidth={1}
               transparent
               opacity={theme.linkOpacity ?? 0.75}
             />
+            {appearance.showPulse ? (
+              <LinkFlowPulse
+                points={points}
+                color={appearance.pulseColor}
+                seed={idHash2(`${link.from}-${link.to}`, 'flow')}
+              />
+            ) : null}
             {link.label ? (
               <ItemLabel
                 text={link.label}
@@ -776,13 +893,14 @@ function CityScene({ dsl, theme }) {
         const height = item.height ?? 4;
         const accentGlow = height >= heightThreshold ? 1 : 0;
         return (
-          <CityBuilding
-            key={item.id}
-            item={item}
-            theme={theme}
-            position={position}
-            accentGlow={accentGlow}
-          />
+          <HoverableItem key={item.id} item={item} metaphor="city">
+            <CityBuilding
+              item={item}
+              theme={theme}
+              position={position}
+              accentGlow={accentGlow}
+            />
+          </HoverableItem>
         );
       })}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
@@ -797,6 +915,7 @@ function CityScene({ dsl, theme }) {
           opacity={0.18}
         />
       </mesh>
+      <MetaphorGroundShadow theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -821,13 +940,9 @@ function LayercakeScene({ dsl, theme }) {
       {dsl.items.map((item) => {
         const yOffset = yOffsets.get(item.id) ?? 0;
         return (
-          <LayerSlab
-            key={item.id}
-            item={item}
-            theme={theme}
-            yOffset={yOffset}
-            showCutaway={showCutaway}
-          />
+          <HoverableItem key={item.id} item={item} metaphor="layercake">
+            <LayerSlab item={item} theme={theme} yOffset={yOffset} showCutaway={showCutaway} />
+          </HoverableItem>
         );
       })}
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
@@ -1025,14 +1140,15 @@ function GalaxyScene({ dsl, theme }) {
         const clusterIndex = clusterIndexByName.get(clusterName) ?? 0;
         const showGlyph = (item.magnitude ?? 5) >= magnitudeMedian;
         return (
-          <GalaxyStar
-            key={item.id}
-            item={item}
-            theme={theme}
-            position={position}
-            clusterIndex={clusterIndex}
-            showGlyph={showGlyph}
-          />
+          <HoverableItem key={item.id} item={item} metaphor="galaxy">
+            <GalaxyStar
+              item={item}
+              theme={theme}
+              position={position}
+              clusterIndex={clusterIndex}
+              showGlyph={showGlyph}
+            />
+          </HoverableItem>
         );
       })}
       {binaryPairs.map((pair) => (
@@ -1233,34 +1349,37 @@ function TreeScene({ dsl, theme }) {
             ? [position[0], position[1] + 0.1, position[2]]
             : [position[0] + 0.7, position[1] + 1.1, position[2]];
         return (
-          <group key={item.id}>
-            {info.kind === 'leaf' ? (
-              <TreeLeafCluster
-                position={position}
-                theme={theme}
-                id={item.id}
-                weight={info.weight}
+          <HoverableItem key={item.id} item={item} metaphor="tree">
+            <group>
+              {info.kind === 'leaf' ? (
+                <TreeLeafCluster
+                  position={position}
+                  theme={theme}
+                  id={item.id}
+                  weight={info.weight}
+                />
+              ) : null}
+              {item.glyph ? (
+                <group position={glyphPos} scale={glyphScale}>
+                  <Glyph kind={item.glyph} theme={theme} />
+                </group>
+              ) : null}
+              <ItemLabel
+                text={item.label}
+                position={labelPos}
+                fontSize={info.kind === 'leaf' ? 0.42 : 0.55}
+                color={theme.labelColor}
+                outlineColor={theme.labelOutline}
               />
-            ) : null}
-            {item.glyph ? (
-              <group position={glyphPos} scale={glyphScale}>
-                <Glyph kind={item.glyph} theme={theme} />
-              </group>
-            ) : null}
-            <ItemLabel
-              text={item.label}
-              position={labelPos}
-              fontSize={info.kind === 'leaf' ? 0.42 : 0.55}
-              color={theme.labelColor}
-              outlineColor={theme.labelOutline}
-            />
-          </group>
+            </group>
+          </HoverableItem>
         );
       })}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
         <planeGeometry args={[80, 80]} />
         <meshStandardMaterial color={theme.groundColor} />
       </mesh>
+      <MetaphorGroundShadow theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -1432,15 +1551,16 @@ function TerrainScene({ dsl, theme }) {
         const position = heightmap.itemPositions.get(item.id);
         if (!position) return null;
         return (
-          <TerrainPin
-            key={item.id}
-            idSeed={item.id}
-            position={position}
-            label={item.label}
-            elevation={item.elevation ?? 3}
-            theme={theme}
-            glyph={item.glyph}
-          />
+          <HoverableItem key={item.id} item={item} metaphor="terrain">
+            <TerrainPin
+              idSeed={item.id}
+              position={position}
+              label={item.label}
+              elevation={item.elevation ?? 3}
+              theme={theme}
+              glyph={item.glyph}
+            />
+          </HoverableItem>
         );
       })}
       {metricLabel ? (
@@ -1480,6 +1600,40 @@ function CameraRig({ cameraMode }) {
 
 const CINEMATIC_AUTO_ROTATE_SPEED = 0.45;
 
+/**
+ * One-shot cinematic reveal: a brief auto-rotate that eases to rest the first
+ * time a scene appears. Skipped for cinematic mode (already auto-rotating),
+ * reduced-motion, isometric (no controls), and streaming. Only toggles
+ * OrbitControls.autoRotate(Speed), so it never fights Bounds or blocks dragging.
+ */
+function MetaphorIntro({ cameraMode, streamingPreview }) {
+  const controls = useThree((state) => state.controls);
+  const elapsedRef = useRef(0);
+  const doneRef = useRef(false);
+  const reducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  useFrame((_, delta) => {
+    if (doneRef.current || !controls) return;
+    if (streamingPreview || cameraMode === 'cinematic' || reducedMotion) {
+      doneRef.current = true;
+      return;
+    }
+    const DURATION = 1.4;
+    elapsedRef.current += delta;
+    const t = Math.min(1, elapsedRef.current / DURATION);
+    const ease = (1 - t) * (1 - t);
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 3.2 * ease;
+    if (t >= 1) {
+      controls.autoRotate = false;
+      doneRef.current = true;
+    }
+  });
+  return null;
+}
+
 function resolveDslFromSource(diagramSource, streamingPreview) {
   const raw = (diagramSource ?? '').trim();
   if (!raw) return { dsl: null, renderError: '' };
@@ -1518,6 +1672,9 @@ function MetaphorRendererImpl(
   const lastStreamingRenderRef = useRef(0);
   const [streamDsl, setStreamDsl] = useState(null);
   const [localCameraMode, setLocalCameraMode] = useState(null);
+  const hoverStoreRef = useRef(null);
+  if (hoverStoreRef.current === null) hoverStoreRef.current = createMetaphorHoverStore();
+  const hoverStore = hoverStoreRef.current;
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
 
@@ -1571,6 +1728,7 @@ function MetaphorRendererImpl(
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
   const theme = resolveMetaphorThemePreset(themeId);
+  const postfx = resolveMetaphorPostfx(theme);
   const dslCamera = dsl?.scene?.camera ?? 'orbit';
   const cameraMode = cameraModeProp ?? localCameraMode ?? dslCamera;
   const useOrbit = cameraMode !== 'isometric';
@@ -1603,11 +1761,13 @@ function MetaphorRendererImpl(
           {theme.environment ? <Environment preset={theme.environment} /> : null}
           <CameraRig cameraMode={cameraMode} />
           <MetaphorClockProvider enabled={!streamingPreview}>
-            <Bounds fit clip observe margin={1.25}>
-              <Center disableY>
-                <MetaphorScene dsl={dsl} theme={theme} />
-              </Center>
-            </Bounds>
+            <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
+              <Bounds fit clip observe margin={1.25}>
+                <Center disableY>
+                  <MetaphorScene dsl={dsl} theme={theme} />
+                </Center>
+              </Bounds>
+            </MetaphorHoverContext.Provider>
           </MetaphorClockProvider>
           {useOrbit ? (
             <OrbitControls
@@ -1620,7 +1780,17 @@ function MetaphorRendererImpl(
               enablePan={cameraMode !== 'cinematic'}
             />
           ) : null}
+          <MetaphorIntro cameraMode={cameraMode} streamingPreview={streamingPreview} />
+          {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
         </Canvas>
+      ) : null}
+      {dsl && !streamingPreview ? (
+        <>
+          <MetaphorTitleOverlay scene={dsl.scene} />
+          <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
+          <MetaphorCameraToggle value={cameraMode} onChange={setLocalCameraMode} />
+          <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />
+        </>
       ) : null}
     </div>
   );

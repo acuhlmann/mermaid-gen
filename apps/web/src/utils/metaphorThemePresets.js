@@ -34,7 +34,20 @@ export const METAPHOR_THEME_PRESETS = {
     slabTrimColor: '#fbbf24',
     waterColor: '#7dd3fc',
     treeAccentColor: '#f43f5e',
-    nebulaDustColor: '#fde68a'
+    nebulaDustColor: '#fde68a',
+    // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field.
+    postfx: {
+      enabled: true,
+      bloomStrength: 0.32,
+      bloomRadius: 0.35,
+      bloomThreshold: 0.92,
+      vignette: 0.26,
+      samples: 4,
+      shadowOpacity: 0.26,
+      shadowBlur: 2.8,
+      shadowColor: '#334155',
+      shadowScale: 46
+    }
   },
   noir: {
     background: '#0b0f19',
@@ -69,7 +82,20 @@ export const METAPHOR_THEME_PRESETS = {
     slabTrimColor: '#64748b',
     waterColor: '#1e3a8a',
     treeAccentColor: '#94a3b8',
-    nebulaDustColor: '#cbd5e1'
+    nebulaDustColor: '#cbd5e1',
+    // Dramatic: heavy bloom on the lit windows/stars, deep vignette, dark shadow.
+    postfx: {
+      enabled: true,
+      bloomStrength: 0.95,
+      bloomRadius: 0.5,
+      bloomThreshold: 0.62,
+      vignette: 0.62,
+      samples: 4,
+      shadowOpacity: 0.5,
+      shadowBlur: 2.4,
+      shadowColor: '#01040c',
+      shadowScale: 44
+    }
   },
   arcade: {
     background: '#1a0533',
@@ -104,7 +130,20 @@ export const METAPHOR_THEME_PRESETS = {
     slabTrimColor: '#ffd166',
     waterColor: '#4cc9f0',
     treeAccentColor: '#ff6bcb',
-    nebulaDustColor: '#ffd166'
+    nebulaDustColor: '#ffd166',
+    // Neon arcade: strongest bloom + saturation for a synthwave glow.
+    postfx: {
+      enabled: true,
+      bloomStrength: 1.15,
+      bloomRadius: 0.55,
+      bloomThreshold: 0.55,
+      vignette: 0.5,
+      samples: 4,
+      shadowOpacity: 0.42,
+      shadowBlur: 2.6,
+      shadowColor: '#1a0533',
+      shadowScale: 44
+    }
   },
   blueprint: {
     background: '#0a1e3a',
@@ -139,12 +178,44 @@ export const METAPHOR_THEME_PRESETS = {
     slabTrimColor: '#bae6fd',
     waterColor: '#38bdf8',
     treeAccentColor: '#f0f9ff',
-    nebulaDustColor: '#bae6fd'
+    nebulaDustColor: '#bae6fd',
+    // Technical/crisp: modest bloom on the linework, light vignette, no DoF.
+    postfx: {
+      enabled: true,
+      bloomStrength: 0.5,
+      bloomRadius: 0.4,
+      bloomThreshold: 0.78,
+      vignette: 0.34,
+      samples: 4,
+      shadowOpacity: 0.34,
+      shadowBlur: 2.7,
+      shadowColor: '#020a1a',
+      shadowScale: 46
+    }
   }
 };
 
 export function resolveMetaphorThemePreset(theme) {
   return METAPHOR_THEME_PRESETS[theme] ?? METAPHOR_THEME_PRESETS.whiteboard;
+}
+
+/** Safe defaults so the post-processing composer never reads undefined params. */
+export const DEFAULT_POSTFX = {
+  enabled: true,
+  bloomStrength: 0.5,
+  bloomRadius: 0.4,
+  bloomThreshold: 0.85,
+  vignette: 0.4,
+  samples: 4,
+  shadowOpacity: 0.35,
+  shadowBlur: 2.6,
+  shadowColor: '#0a0f1e',
+  shadowScale: 44
+};
+
+/** Merge a theme's `postfx` block over the defaults (theme may omit any key). */
+export function resolveMetaphorPostfx(theme) {
+  return { ...DEFAULT_POSTFX, ...(theme?.postfx ?? {}) };
 }
 
 export function resolveDistrictColor(theme, index) {

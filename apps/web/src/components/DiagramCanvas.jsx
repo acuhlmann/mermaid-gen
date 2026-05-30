@@ -184,7 +184,9 @@ export default function DiagramCanvas({
   const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
-  const metaphorCameraMode = 'orbit';
+  // null → let MetaphorRenderer honor the DSL's scene.camera (orbit/isometric/
+  // cinematic) and its in-canvas camera toggle, instead of forcing orbit.
+  const metaphorCameraMode = null;
   const requestRef = useRef(0);
   const debounceRef = useRef(null);
   const revisionBootRef = useRef(true);
