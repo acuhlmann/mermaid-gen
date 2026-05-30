@@ -428,3 +428,63 @@ test('METAPHOR_GLYPH_KINDS contains a stable, deduplicated list', () => {
     assert.match(k, /^[a-z][a-z0-9-]*$/);
   }
 });
+
+test('sanitizeMetaphorDsl round-trips link.kind and normalizes its case', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [
+      { id: 'a', label: 'A', height: 5, footprint: 2 },
+      { id: 'b', label: 'B', height: 5, footprint: 2 }
+    ],
+    links: [{ from: 'a', to: 'b', kind: 'Flow' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.equal(result.dsl.links[0]?.kind, 'flow');
+  }
+  assert.ok(result.applied.includes('normalize-link-kind'));
+});
+
+test('sanitizeMetaphorDsl drops an invalid link.kind without rejecting the DSL', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [
+      { id: 'a', label: 'A', height: 5, footprint: 2 },
+      { id: 'b', label: 'B', height: 5, footprint: 2 }
+    ],
+    links: [{ from: 'a', to: 'b', kind: 'sideways' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'city') {
+    assert.equal(result.dsl.links[0]?.kind, undefined);
+  }
+  assert.ok(result.applied.includes('drop-invalid-link-kind'));
+});
+
+test('sanitizeMetaphorDsl clamps an over-long item.note to 140 chars', () => {
+  const input = JSON.stringify({
+    metaphor: 'galaxy',
+    items: [{ id: 'a', label: 'A', magnitude: 5, note: 'x'.repeat(200) }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'galaxy') {
+    assert.equal(result.dsl.items[0]?.note?.length, 140);
+  }
+  assert.ok(result.applied.includes('clamp-note'));
+});
+
+test('sanitizeMetaphorDsl drops a non-string item.note', () => {
+  const input = JSON.stringify({
+    metaphor: 'galaxy',
+    items: [{ id: 'a', label: 'A', magnitude: 5, note: 42 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'galaxy') {
+    assert.equal(result.dsl.items[0]?.note, undefined);
+  }
+  assert.ok(result.applied.includes('drop-invalid-note'));
+});

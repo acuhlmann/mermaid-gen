@@ -6,6 +6,7 @@ import {
   LAYERCAKE_MAX_ITEMS,
   METAPHOR_GLYPH_KINDS,
   METAPHOR_KINDS,
+  METAPHOR_LINK_KINDS,
   METAPHOR_MAX_LINKS,
   MetaphorDslSchema,
   TERRAIN_MAX_ITEMS,
@@ -36,6 +37,8 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
 const LIGHTING_SET = new Set<string>(CITY_LIGHTING);
 const CONDITION_SET = new Set<string>(CITY_CONDITION);
 const GLYPH_SET = new Set<string>(METAPHOR_GLYPH_KINDS);
+const LINK_KIND_SET = new Set<string>(METAPHOR_LINK_KINDS);
+const NOTE_MAX_LENGTH = 140;
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -213,6 +216,29 @@ function rescueGlyphField(
     } else {
       delete item.glyph;
       applied.push('drop-invalid-glyph');
+    }
+  }
+}
+
+function rescueItemNotes(
+  working: Record<string, unknown>,
+  applied: string[]
+): void {
+  if (!Array.isArray(working.items)) return;
+  for (const item of working.items as unknown[]) {
+    if (!isObject(item)) continue;
+    if (!('note' in item)) continue;
+    if (typeof item.note !== 'string' || !item.note.trim()) {
+      delete item.note;
+      applied.push('drop-invalid-note');
+      continue;
+    }
+    const trimmed = item.note.trim();
+    if (trimmed.length > NOTE_MAX_LENGTH) {
+      item.note = trimmed.slice(0, NOTE_MAX_LENGTH);
+      applied.push('clamp-note');
+    } else if (item.note !== trimmed) {
+      item.note = trimmed;
     }
   }
 }
@@ -431,6 +457,29 @@ function rescueLinksField(
   working.links = filtered;
 }
 
+function rescueLinkKinds(
+  working: Record<string, unknown>,
+  applied: string[]
+): void {
+  if (!Array.isArray(working.links)) return;
+  for (const link of working.links as unknown[]) {
+    if (!isObject(link)) continue;
+    if (!('kind' in link)) continue;
+    if (typeof link.kind === 'string') {
+      const lower = link.kind.trim().toLowerCase();
+      if (LINK_KIND_SET.has(lower)) {
+        if (link.kind !== lower) {
+          link.kind = lower;
+          applied.push('normalize-link-kind');
+        }
+        continue;
+      }
+    }
+    delete link.kind;
+    applied.push('drop-invalid-link-kind');
+  }
+}
+
 export function sanitizeMetaphorDsl(
   source: string,
   options: SanitizeMetaphorOptions = {}
@@ -470,10 +519,12 @@ export function sanitizeMetaphorDsl(
   rescueNumericRanges(working, applied);
   rescueCityEnumCase(working, applied);
   rescueGlyphField(working, applied);
+  rescueItemNotes(working, applied);
   rescueSceneLegend(working, applied);
   rescueTreeStructure(working, applied);
   rescueGalaxyBinary(working, applied);
   rescueLinksField(working, applied, allowStructureRewrite);
+  rescueLinkKinds(working, applied);
 
   const result = MetaphorDslSchema.safeParse(working);
   if (!result.success) {

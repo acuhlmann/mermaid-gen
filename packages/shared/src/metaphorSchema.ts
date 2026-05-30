@@ -86,10 +86,15 @@ export const MetaphorSceneSchema = z
   })
   .default(() => ({}) as never);
 
+export const METAPHOR_LINK_KINDS = ['flow', 'dependency', 'ownership'] as const;
+export const MetaphorLinkKindSchema = z.enum(METAPHOR_LINK_KINDS);
+
 export const MetaphorLinkSchema = z.object({
   from: z.string().min(1).max(64),
   to: z.string().min(1).max(64),
-  label: z.string().max(80).optional()
+  label: z.string().max(80).optional(),
+  // Semantic edge type — drives link colour and whether a flow pulse animates.
+  kind: MetaphorLinkKindSchema.optional()
 });
 
 export const METAPHOR_MAX_LINKS = 80;
@@ -102,7 +107,9 @@ const MetaphorItemBase = z.object({
     .regex(/^[a-z0-9][a-z0-9-_]*$/i, 'id must be alphanumeric with dashes/underscores'),
   label: z.string().min(1).max(120),
   position: MetaphorPositionSchema.optional(),
-  glyph: MetaphorGlyphSchema.optional()
+  glyph: MetaphorGlyphSchema.optional(),
+  // Optional one-line annotation shown in the hover tooltip.
+  note: z.string().max(140).optional()
 });
 
 const MetaphorLinksField = z.array(MetaphorLinkSchema).max(METAPHOR_MAX_LINKS).default([]);
@@ -199,6 +206,7 @@ export type MetaphorScene = z.infer<typeof MetaphorSceneSchema>;
 export type MetaphorPosition = z.infer<typeof MetaphorPositionSchema>;
 export type MetaphorNebula = z.infer<typeof MetaphorNebulaSchema>;
 export type MetaphorSurface = z.infer<typeof MetaphorSurfaceSchema>;
+export type MetaphorLinkKind = z.infer<typeof MetaphorLinkKindSchema>;
 export type MetaphorLink = z.infer<typeof MetaphorLinkSchema>;
 export type CityItem = z.infer<typeof CityItemSchema>;
 export type LayerItem = z.infer<typeof LayerItemSchema>;
