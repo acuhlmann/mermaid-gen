@@ -1,4 +1,4 @@
-import { createSessionId, normalizeSessionId } from '../state/diagramStore.js';
+import { createSessionId, normalizeSessionId } from '../state/diagramSession.js';
 
 export const MODEL_PROFILE_STORAGE_KEY = 'archislop:model-profile';
 export const CONTENT_MODE_STORAGE_KEY = 'archislop:content-mode';

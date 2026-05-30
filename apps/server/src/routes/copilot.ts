@@ -23,7 +23,11 @@ import {
   StyleIntentSchema
 } from '@archislop/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
-import { SESSION_HEADER, resolveSessionIdFromRequest } from '../state/sessionServices.js';
+import {
+  SESSION_HEADER,
+  resolveSessionIdFromRequest,
+  type SessionServices
+} from '../state/sessionServices.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { resolvePublicBaseUrl } from '../utils/publicBaseUrl.js';
 import { signInviteToken } from '../utils/inviteToken.js';
@@ -35,7 +39,7 @@ import {
 } from '../mcp/mcpInviteLinks.js';
 import { approveHandshake, denyHandshake } from '../mcp/mcpCollaborationActions.js';
 import { buildWebCanvasUrl } from '../mcp/diagramDiffSummary.js';
-import { normalizePairingCode } from '../state/pairingCodeStore.js';
+import { normalizePairingCode, type PairingCodeStore } from '../state/pairingCodeStore.js';
 import {
   createAgentStreamEmitter,
   newRunIds,
@@ -115,57 +119,25 @@ type SyncHandlerDeps = {
   stateStore: DiagramStateStore;
 };
 
-type CopilotSessionServices = {
-  sessionId: string;
-  stateStore: DiagramStateStore;
+type CopilotSessionServices = Pick<
+  SessionServices,
+  'sessionId' | 'stateStore' | 'proposalStore' | 'handshakeStore' | 'presenceStore' | 'eventBus'
+> & {
   agentService: CopilotAgentService;
-  proposalStore: {
-    listPending(opts: {
-      currentRevisionByContentType: Record<ContentType, number>;
-    }): unknown[];
-    get(proposalId: string): {
-      proposalId: string;
-      status: string;
-      contentType: ContentType;
-      baseRevisionId: number;
-      diagramSource: string;
-      reason: string;
-      origin?: import('@archislop/shared').DiagramState['history'][number]['origin'];
-    } | null;
-    markStale(proposalId: string): void;
-    markAccepted(proposalId: string): void;
-    markRejected(proposalId: string): void;
-  };
-  handshakeStore: {
-    listPendingRequests(): unknown[];
-  };
-  presenceStore: {
-    list(): unknown[];
-  };
-  eventBus: {
-    publish(sessionId: string, event: Record<string, unknown>): SessionEventEnvelope;
-    getSessionMeta(sessionId: string): { latestSeq: number };
-    parseSinceSeq(value: unknown): number;
-    getHistory(sessionId: string, opts: { sinceSeq?: number }): SessionEventEnvelope[];
-    subscribe(sessionId: string, listener: (envelope: SessionEventEnvelope) => void): () => void;
-  };
 };
 
 export type CreateCopilotRouterOptions = {
   resolveServices: (req: Request) => CopilotSessionServices;
   sessionExists?: (sessionId: string) => boolean;
-  pairingCodeStore: {
-    refreshForInvite?(sessionId: string): string | Promise<string>;
-    getOrCreateCode(sessionId: string): string;
-    regenerate(sessionId: string): string | Promise<string>;
-    resolveDetailed(pairingCode: string): Promise<{
-      ok: boolean;
-      reason?: string;
-      sessionId?: string;
-    }>;
-  };
+  pairingCodeStore: PairingCodeStore;
   agentTokenStore?: {
-    verify(token: string): { sessionId: string } | null;
+    verify(token: string): { sessionId: string; agentId?: string } | null;
+    issue?(opts: {
+      sessionId: string;
+      agentId: string;
+      mcpSessionId: string | null;
+    }): string | null;
+    bindMcpSession?(sessionId: string, agentId: string, mcpSessionId: string): void;
   };
   sessionRegistry: {
     getSessionServices(sessionId: string): unknown;
@@ -931,12 +903,13 @@ export function createCopilotRouter({
   });
 
   router.post('/join-room', joinRateLimit, async (req, res) => {
-    const pairingCode = normalizePairingCode(req.body?.pairingCode ?? req.body?.room ?? '');
+    const joinBody = req.body as { pairingCode?: unknown; room?: unknown } | undefined;
+    const pairingCode = normalizePairingCode(joinBody?.pairingCode ?? joinBody?.room ?? '');
     if (!pairingCode) {
       return res.status(400).json({ error: 'pairingCode required (6 characters).' });
     }
-    const resolved = await Promise.resolve(pairingCodeStore.resolveDetailed(pairingCode));
-    if (!resolved.ok || !resolved.sessionId) {
+    const resolved = pairingCodeStore.resolveDetailed(pairingCode);
+    if (resolved.ok === false) {
       const status = resolved.reason === 'expired' ? 410 : 404;
       return res.status(status).json({ error: resolved.reason, pairingCode });
     }

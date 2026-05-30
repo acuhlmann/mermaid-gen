@@ -1,3 +1,4 @@
+import type { NextFunction, Request, Response } from 'express';
 import { createIpRateLimiter } from '../utils/ipRateLimit.js';
 
 const JOIN_WINDOW_MS = Number(process.env.API_JOIN_RATE_LIMIT_WINDOW_MS) || 60_000;
@@ -10,14 +11,13 @@ const llmLimiter = createIpRateLimiter({ windowMs: LLM_WINDOW_MS, maxHits: LLM_M
 
 const LLM_PATHS = new Set(['/intent', '/transform', '/analyze', '/agent-stream', '/style']);
 
-function rateLimitResponse(res) {
+function rateLimitResponse(res: Response): void {
   res.status(429).json({ error: 'Too many requests. Try again later.' });
 }
 
-/** @param {'join' | 'llm'} kind */
-export function createApiRateLimitMiddleware(kind) {
+export function createApiRateLimitMiddleware(kind: 'join' | 'llm') {
   const limiter = kind === 'join' ? joinLimiter : llmLimiter;
-  return (req, res, next) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (limiter.isLimited(req)) {
       rateLimitResponse(res);
       return;
@@ -27,7 +27,7 @@ export function createApiRateLimitMiddleware(kind) {
   };
 }
 
-export function apiLlmRateLimitIfNeeded(req, res, next) {
+export function apiLlmRateLimitIfNeeded(req: Request, res: Response, next: NextFunction): void {
   const suffix = req.path?.replace(/\/$/, '') ?? '';
   if (!LLM_PATHS.has(suffix)) {
     next();

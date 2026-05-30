@@ -22,6 +22,9 @@
     "src/state/agUiTranslator.ts",
     "src/state/applyAgentStreamInsightEvent.ts",
     "src/utils/agentStreamFailureStatus.ts",
-    "src/utils/thinkingProseEnrich.tsx"
+    "src/utils/thinkingProseEnrich.tsx",
+    "src/state/diagramWireTypes.ts",
+    "src/state/diagramSession.ts",
+    "src/state/copilotStreamHttpAgent.ts"
   ]
 }

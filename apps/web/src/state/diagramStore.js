@@ -7,60 +7,35 @@ import {
 } from '@archislop/shared';
 import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
 import { createAgUiTranslator } from './agUiTranslator.js';
-export { createAgUiTranslator } from './agUiTranslator.js';
+import {
+  API_BASE_URL,
+  SESSION_HEADER,
+  clearBrowserBackupSessionId,
+  clearInMemoryBrowserSessionId,
+  createSessionId,
+  getOrCreateBrowserSessionId,
+  normalizeSessionId
+} from './diagramSession.js';
 
-const rawApiBase = (import.meta.env.VITE_API_BASE_URL ?? '').trim();
-/** In production, leave `VITE_API_BASE_URL` unset for same-origin `/api/...` (Cloud Run). In dev, defaults to the local server. */
-export const API_BASE_URL = rawApiBase
-  ? rawApiBase.replace(/\/+$/, '')
-  : import.meta.env.DEV
-    ? 'http://localhost:4000'
-    : '';
-export const SESSION_HEADER = 'x-session-id';
-const BROWSER_SESSION_STORAGE_KEY = 'archislop:session-id';
+export { createAgUiTranslator } from './agUiTranslator.js';
+export {
+  API_BASE_URL,
+  SESSION_HEADER,
+  createSessionId,
+  normalizeSessionId,
+  getOrCreateBrowserSessionId,
+  clearBrowserBackupSessionId
+} from './diagramSession.js';
+
 const DIAGRAM_CACHE_STORAGE_KEY = 'archislop:diagram-cache-v2';
 const AGENT_REQUEST_TIMEOUT_MS = 60_000;
-const MAX_SESSION_ID_LENGTH = 128;
-const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
 /** Max gap between SSE events before we treat the stream as hung and abort. Resets on every event. */
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 60_000;
 const AGENT_STREAM_MAX_DURATION_GRACE_MS = 5_000;
 
-let inMemorySessionId = null;
-
 function throwApiPayloadError(payload, fallback) {
   const text = [payload?.error, payload?.message, payload?.details].filter(Boolean).join('\n').trim();
   throw new Error(text || fallback);
-}
-
-export function createSessionId() {
-  if (globalThis.crypto?.randomUUID) {
-    return globalThis.crypto.randomUUID();
-  }
-
-  return `session-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-export function normalizeSessionId(value) {
-  const candidate = typeof value === 'string' ? value.trim() : '';
-  if (!candidate) return null;
-
-  const normalized = candidate.replace(SESSION_ID_ALLOWED_CHARS, '-').slice(0, MAX_SESSION_ID_LENGTH);
-  return normalized || null;
-}
-
-export function getOrCreateBrowserSessionId() {
-  if (typeof window === 'undefined') {
-    inMemorySessionId ??= createSessionId();
-    return inMemorySessionId;
-  }
-
-  const existing = window.localStorage.getItem(BROWSER_SESSION_STORAGE_KEY);
-  if (existing) return existing;
-
-  const next = createSessionId();
-  window.localStorage.setItem(BROWSER_SESSION_STORAGE_KEY, next);
-  return next;
 }
 
 function getDiagramCacheKey(sessionId) {
@@ -131,21 +106,12 @@ export function clearAllArchislopAppStorage() {
   }
 }
 
-export function clearBrowserBackupSessionId() {
-  if (typeof window === 'undefined') return;
-  try {
-    window.localStorage.removeItem(BROWSER_SESSION_STORAGE_KEY);
-  } catch {
-    // Ignore.
-  }
-}
-
 /**
  * After the server reports the session is gone (404/410), drop all client-side session payloads
  * so a new room id does not resurrect stale diagrams, insights, or backup session headers.
  */
 export function wipeClientCachesAfterLostServerSession() {
-  inMemorySessionId = null;
+  clearInMemoryBrowserSessionId();
   clearAllArchislopAppStorage();
 }
 

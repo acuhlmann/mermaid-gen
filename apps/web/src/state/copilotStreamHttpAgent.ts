@@ -1,4 +1,7 @@
 import { HttpAgent } from '@ag-ui/client';
+import type { AgentStreamPayloadBody } from './diagramWireTypes.js';
+
+type HttpAgentConfig = ConstructorParameters<typeof HttpAgent>[0];
 
 /**
  * HttpAgent wired up for archislop's POST /api/copilotkit/agent-stream endpoint.
@@ -8,12 +11,14 @@ import { HttpAgent } from '@ag-ui/client';
  * benefit from HttpAgent's SSE decode + AG-UI event validation pipeline.
  */
 export class CopilotStreamHttpAgent extends HttpAgent {
-  constructor(config, streamPayload) {
+  private readonly _streamPayload: AgentStreamPayloadBody;
+
+  constructor(config: HttpAgentConfig, streamPayload: AgentStreamPayloadBody) {
     super(config);
     this._streamPayload = streamPayload;
   }
 
-  requestInit(_input) {
+  override requestInit(_input: unknown) {
     return {
       method: 'POST',
       headers: {

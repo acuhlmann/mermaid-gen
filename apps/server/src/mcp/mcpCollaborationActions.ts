@@ -1,12 +1,82 @@
+import type { ContentType } from '@archislop/shared';
 import { buildWebCanvasUrl } from './diagramDiffSummary.js';
 import { buildProposalReviewPayload } from './mcpProposalReviewPayload.js';
+import type { DiagramStateStore } from '../state/diagramStateStore.js';
+import type { SessionEventBus } from '../state/sessionEventBus.js';
+
+type ActionResult = {
+  ok: boolean;
+  status: number;
+  body: Record<string, unknown>;
+};
+
+type ProposalRecord = {
+  proposalId: string;
+  status: string;
+  contentType: ContentType;
+  baseRevisionId: number;
+  diagramSource: string;
+  reason: string;
+  origin?: unknown;
+};
+
+type ProposalStore = {
+  get(proposalId: string): ProposalRecord | null;
+  markStale(proposalId: string): void;
+  markAccepted(proposalId: string): void;
+  markRejected(proposalId: string): void;
+  listPending(opts: {
+    currentRevisionByContentType: Partial<Record<ContentType, number>>;
+  }): ProposalRecord[];
+};
+
+type HandshakeStore = {
+  approveRequest(requestId: string): {
+    agentId: string;
+    agentName: string;
+    color: string;
+    emoji: string;
+  } | null;
+  denyRequest(requestId: string): boolean;
+};
+
+type PresenceStore = {
+  upsert(agent: {
+    agentId: string;
+    agentName: string;
+    color: string;
+    emoji: string;
+    focus: null;
+  }): void;
+  list(): unknown[];
+};
+
+type AgentTokenStore = {
+  issue?(opts: {
+    sessionId: string;
+    agentId: string;
+    mcpSessionId: string | null;
+  }): string | null;
+  bindMcpSession?(sessionId: string, agentId: string, mcpSessionId: string): void;
+};
 
 /**
  * Shared accept/reject/approve/deny logic for external-agent collaboration.
  * Used by REST routes and MCP tools (including MCP Apps iframe actions).
  */
-
-export async function acceptProposal({ sessionId, proposalStore, stateStore, eventBus, proposalId }) {
+export async function acceptProposal({
+  sessionId,
+  proposalStore,
+  stateStore,
+  eventBus,
+  proposalId
+}: {
+  sessionId: string;
+  proposalStore: ProposalStore;
+  stateStore: DiagramStateStore;
+  eventBus: SessionEventBus;
+  proposalId: string;
+}): Promise<ActionResult> {
   const proposal = proposalStore.get(proposalId);
   if (!proposal) return { ok: false, status: 404, body: { error: 'Proposal not found.' } };
   if (proposal.status !== 'pending') {
@@ -25,10 +95,12 @@ export async function acceptProposal({ sessionId, proposalStore, stateStore, eve
     contentType: proposal.contentType,
     diagramSource: proposal.diagramSource,
     reason: proposal.reason,
-    origin: proposal.origin
+    origin: proposal.origin as Parameters<DiagramStateStore['applyDiagramSource']>[0]['origin']
   });
-  if (!applied.accepted) {
-    return { ok: false, status: 422, body: { error: applied.error } };
+  if (!applied.accepted || !('state' in applied) || !('patch' in applied)) {
+    const message =
+      'error' in applied && applied.error != null ? String(applied.error) : 'Patch rejected.';
+    return { ok: false, status: 422, body: { error: message } };
   }
   proposalStore.markAccepted(proposal.proposalId);
   eventBus.publish(sessionId, {
@@ -46,7 +118,17 @@ export async function acceptProposal({ sessionId, proposalStore, stateStore, eve
   };
 }
 
-export function rejectProposal({ sessionId, proposalStore, eventBus, proposalId }) {
+export function rejectProposal({
+  sessionId,
+  proposalStore,
+  eventBus,
+  proposalId
+}: {
+  sessionId: string;
+  proposalStore: ProposalStore;
+  eventBus: SessionEventBus;
+  proposalId: string;
+}): ActionResult {
   const proposal = proposalStore.get(proposalId);
   if (!proposal) return { ok: false, status: 404, body: { error: 'Proposal not found.' } };
   if (proposal.status !== 'pending') {
@@ -68,7 +150,15 @@ export function approveHandshake({
   requestId,
   agentTokenStore,
   mcpSessionId
-}) {
+}: {
+  sessionId: string;
+  handshakeStore: HandshakeStore;
+  presenceStore: PresenceStore;
+  eventBus: SessionEventBus;
+  requestId: string;
+  agentTokenStore?: AgentTokenStore;
+  mcpSessionId?: string | null;
+}): ActionResult {
   const agent = handshakeStore.approveRequest(requestId);
   if (!agent) return { ok: false, status: 404, body: { error: 'Unknown or already resolved handshake.' } };
   presenceStore.upsert({
@@ -86,14 +176,14 @@ export function approveHandshake({
     type: 'presence_update',
     payload: presenceStore.list()
   });
-  let agentToken = null;
-  if (agentTokenStore) {
+  let agentToken: string | null = null;
+  if (agentTokenStore?.issue) {
     agentToken = agentTokenStore.issue({
       sessionId,
       agentId: agent.agentId,
       mcpSessionId: mcpSessionId ?? null
     });
-    if (mcpSessionId) {
+    if (mcpSessionId && agentTokenStore.bindMcpSession) {
       agentTokenStore.bindMcpSession(sessionId, agent.agentId, mcpSessionId);
     }
   }
@@ -104,7 +194,17 @@ export function approveHandshake({
   };
 }
 
-export function denyHandshake({ sessionId, handshakeStore, eventBus, requestId }) {
+export function denyHandshake({
+  sessionId,
+  handshakeStore,
+  eventBus,
+  requestId
+}: {
+  sessionId: string;
+  handshakeStore: HandshakeStore;
+  eventBus: SessionEventBus;
+  requestId: string;
+}): ActionResult {
   const ok = handshakeStore.denyRequest(requestId);
   if (!ok) return { ok: false, status: 404, body: { error: 'Unknown or already resolved handshake.' } };
   eventBus.publish(sessionId, {
@@ -115,8 +215,16 @@ export function denyHandshake({ sessionId, handshakeStore, eventBus, requestId }
 }
 
 export function getSessionCollaborationSnapshot(
-  { stateStore, presenceStore, proposalStore },
-  sessionId
+  {
+    stateStore,
+    presenceStore,
+    proposalStore
+  }: {
+    stateStore: DiagramStateStore;
+    presenceStore: PresenceStore;
+    proposalStore: ProposalStore;
+  },
+  sessionId: string | undefined
 ) {
   const mermaidRevision = stateStore.getSlot('mermaid').revisionId;
   const infographicRevision = stateStore.getSlot('infographic').revisionId;

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from './diagramStore.js';
+import { API_BASE_URL } from './diagramSession.js';
 
 const SESSION_HEADER = 'x-session-id';
 

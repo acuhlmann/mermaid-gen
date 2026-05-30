@@ -48,9 +48,9 @@ Prefer extracting helpers into sibling modules instead of growing hub files. See
 
 ## TypeScript ratchet
 
-Most app code is still `.js`/`.jsx` with `strict: false`. Shared schemas are TypeScript; full `strict` on `packages/shared` is in progress ([ADR-0006](../decisions/0006-typescript-migration.md)). When you touch a high-churn `.js` file, consider converting it or adding JSDoc types that reference `z.infer<typeof …>` from `@archislop/shared`.
+Most app code is still `.js`/`.jsx` with `strict: false`. `packages/shared` is `strict: true`; app **strict islands** are listed in each workspace's `tsconfig.strict.json` and checked by `npm run typecheck:strict`. Edits inside an island also get **type-aware ESLint** (`no-unsafe-*`, `no-floating-promises`, …) via [`packages/eslint-config/typeCheckedIsland.js`](../../packages/eslint-config/typeCheckedIsland.js). See [ADR-0006](../decisions/0006-typescript-migration.md) and [`docs/recipes/convert-js-leaf-to-ts.md`](../recipes/convert-js-leaf-to-ts.md).
 
-Priority conversion targets: `apps/web/src/state/diagramStore.js` (server wire boundary `copilot.ts` is done).
+When you touch a high-churn `.js` file, convert it (leaf recipe) or add JSDoc referencing `z.infer<typeof …>` from `@archislop/shared`. Next monolith targets: `diagramStore.js` state machine (wire/session modules are already `.ts`), `mermaidLangChainAgent.js` (gated on `ToolApplyResultSchema`), `mcpServer.js` (per-tool split).
 
 ## Project skills (Mermaid, etc.)
 

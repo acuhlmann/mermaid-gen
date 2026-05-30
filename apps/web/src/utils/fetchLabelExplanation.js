@@ -1,4 +1,4 @@
-import { API_BASE_URL, SESSION_HEADER } from '../state/diagramStore.js';
+import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getVisibleDiagramLabels } from './visibleDiagramLabels.js';
 
 const EXPLAIN_TIMEOUT_MS = 12_000;

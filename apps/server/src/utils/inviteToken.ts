@@ -4,7 +4,7 @@ const DEFAULT_INVITE_TOKEN_TTL_MS = Number(process.env.INVITE_TOKEN_TTL_MS) || 6
 
 export const DEV_INVITE_TOKEN_SECRET = 'archislop-dev-invite-secret-change-in-production';
 
-function inviteSecret() {
+function inviteSecret(): string {
   return (
     process.env.INVITE_TOKEN_SECRET ??
     process.env.ARCHISLOP_INVITE_SECRET ??
@@ -12,10 +12,8 @@ function inviteSecret() {
   );
 }
 
-/**
- * Refuse to start in production when invite tokens would be forgeable.
- */
-export function assertProductionInviteSecret() {
+/** Refuse to start in production when invite tokens would be forgeable. */
+export function assertProductionInviteSecret(): void {
   if (process.env.NODE_ENV !== 'production') return;
   const secret = inviteSecret();
   if (secret === DEV_INVITE_TOKEN_SECRET) {
@@ -25,10 +23,15 @@ export function assertProductionInviteSecret() {
   }
 }
 
-/**
- * @param {{ sessionId: string, ttlMs?: number, singleUse?: boolean }} payload
- */
-export function signInviteToken({ sessionId, ttlMs = DEFAULT_INVITE_TOKEN_TTL_MS, singleUse = false }) {
+export function signInviteToken({
+  sessionId,
+  ttlMs = DEFAULT_INVITE_TOKEN_TTL_MS,
+  singleUse = false
+}: {
+  sessionId: string;
+  ttlMs?: number;
+  singleUse?: boolean;
+}): string {
   const body = {
     sessionId,
     exp: Date.now() + ttlMs,
@@ -40,11 +43,9 @@ export function signInviteToken({ sessionId, ttlMs = DEFAULT_INVITE_TOKEN_TTL_MS
   return `${encoded}.${sig}`;
 }
 
-/**
- * @param {string} token
- * @returns {{ sessionId: string, singleUse: boolean } | null}
- */
-export function verifyInviteToken(token) {
+export function verifyInviteToken(
+  token: string
+): { sessionId: string; singleUse: boolean } | null {
   if (typeof token !== 'string' || !token.includes('.')) return null;
   const dot = token.lastIndexOf('.');
   const encoded = token.slice(0, dot);
@@ -57,9 +58,13 @@ export function verifyInviteToken(token) {
   } catch {
     return null;
   }
-  let body;
+  let body: { sessionId?: string; exp?: number; su?: number };
   try {
-    body = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8'));
+    body = JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as {
+      sessionId?: string;
+      exp?: number;
+      su?: number;
+    };
   } catch {
     return null;
   }

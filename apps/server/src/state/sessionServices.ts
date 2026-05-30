@@ -1,26 +1,38 @@
+import type { Request } from 'express';
 import { createDiagramAgentDispatcher } from '../agents/diagramAgentDispatcher.js';
-import { createDiagramStateStore } from './diagramStateStore.js';
+import { createDiagramStateStore, type DiagramStateStore } from './diagramStateStore.js';
 import { createAgentHandshakeStore } from './agentHandshakeStore.js';
 import { createAgentPresenceStore } from './agentPresenceStore.js';
 import { createAgentProposalStore } from './agentProposalStore.js';
 import { createInsightStore } from './insightStore.js';
-import { createSessionEventBus } from './sessionEventBus.js';
+import { createSessionEventBus, type SessionEventBus } from './sessionEventBus.js';
 
-const SESSION_HEADER = 'x-session-id';
-const SESSION_QUERY_KEYS = ['sessionId', 'threadId'];
-const DEFAULT_SESSION_ID = 'default';
+export const SESSION_HEADER = 'x-session-id';
+const SESSION_QUERY_KEYS = ['sessionId', 'threadId'] as const;
+export const DEFAULT_SESSION_ID = 'default';
 const MAX_SESSION_ID_LENGTH = 128;
 const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
 
-function sanitizeSessionId(value) {
+export function sanitizeSessionId(value: unknown): string | null {
   const candidate = typeof value === 'string' ? value.trim() : '';
   if (!candidate) return null;
   const normalized = candidate.replace(SESSION_ID_ALLOWED_CHARS, '-').slice(0, MAX_SESSION_ID_LENGTH);
   return normalized || null;
 }
 
-export function resolveSessionIdFromRequest(requestLike) {
-  const headerId = sanitizeSessionId(requestLike?.headers?.[SESSION_HEADER] ?? requestLike?.get?.(SESSION_HEADER));
+type RequestLike = {
+  headers?: Record<string, string | string[] | undefined>;
+  query?: Record<string, unknown>;
+  get?: (name: string) => string | undefined;
+};
+
+export function resolveSessionIdFromRequest(requestLike: RequestLike | Request): string {
+  const headerRaw =
+    requestLike?.headers?.[SESSION_HEADER] ??
+    (typeof requestLike?.get === 'function' ? requestLike.get(SESSION_HEADER) : undefined);
+  const headerId = sanitizeSessionId(
+    Array.isArray(headerRaw) ? headerRaw[0] : headerRaw
+  );
   if (headerId) return headerId;
 
   for (const key of SESSION_QUERY_KEYS) {
@@ -31,17 +43,30 @@ export function resolveSessionIdFromRequest(requestLike) {
   return DEFAULT_SESSION_ID;
 }
 
-export function resolveSessionIdFromCopilotInput(input = {}) {
+export function resolveSessionIdFromCopilotInput(input: { threadId?: unknown } = {}): string {
   const threadId = sanitizeSessionId(input.threadId);
   if (threadId) return threadId;
   return DEFAULT_SESSION_ID;
 }
 
-export function createSessionServicesRegistry({ env = process.env } = {}) {
-  const sessions = new Map();
+export type SessionServices = {
+  sessionId: string;
+  stateStore: DiagramStateStore;
+  agentService: ReturnType<typeof createDiagramAgentDispatcher>;
+  handshakeStore: ReturnType<typeof createAgentHandshakeStore>;
+  presenceStore: ReturnType<typeof createAgentPresenceStore>;
+  proposalStore: ReturnType<typeof createAgentProposalStore>;
+  insightStore: ReturnType<typeof createInsightStore>;
+  eventBus: SessionEventBus;
+};
+
+export type SessionServicesRegistry = ReturnType<typeof createSessionServicesRegistry>;
+
+export function createSessionServicesRegistry({ env = process.env }: { env?: NodeJS.ProcessEnv } = {}) {
+  const sessions = new Map<string, SessionServices>();
   const eventBus = createSessionEventBus();
 
-  function getSessionServices(sessionId) {
+  function getSessionServices(sessionId: unknown): SessionServices {
     const resolvedSessionId = sanitizeSessionId(sessionId) ?? DEFAULT_SESSION_ID;
     if (!sessions.has(resolvedSessionId)) {
       const stateStore = createDiagramStateStore();
@@ -62,10 +87,10 @@ export function createSessionServicesRegistry({ env = process.env } = {}) {
       });
     }
 
-    return sessions.get(resolvedSessionId);
+    return sessions.get(resolvedSessionId)!;
   }
 
-  function hasSession(sessionId) {
+  function hasSession(sessionId: unknown): boolean {
     const resolvedSessionId = sanitizeSessionId(sessionId);
     if (!resolvedSessionId) return false;
     return sessions.has(resolvedSessionId);
@@ -75,13 +100,11 @@ export function createSessionServicesRegistry({ env = process.env } = {}) {
     getSessionServices,
     hasSession,
     eventBus,
-    getSessionServicesForRequest(req) {
+    getSessionServicesForRequest(req: RequestLike | Request) {
       return getSessionServices(resolveSessionIdFromRequest(req));
     },
-    getSessionServicesForCopilotInput(input) {
+    getSessionServicesForCopilotInput(input: { threadId?: unknown }) {
       return getSessionServices(resolveSessionIdFromCopilotInput(input));
     }
   };
 }
-
-export { DEFAULT_SESSION_ID, SESSION_HEADER, sanitizeSessionId };

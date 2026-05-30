@@ -11,40 +11,51 @@ const CODE_LENGTH = 6;
 const DEFAULT_PAIRING_TTL_MS = Number(process.env.PAIRING_CODE_TTL_MS) || 60 * 60 * 1000;
 const INVITE_REFRESH_TTL_MS = Number(process.env.PAIRING_INVITE_TTL_MS) || 30 * 60 * 1000;
 
-function randomCode() {
+type PairingEntry = {
+  sessionId: string;
+  expiresAt: number;
+  maxUses: number | null;
+  usedCount: number;
+};
+
+export type PairingResolveReason = 'invalid' | 'unknown' | 'expired' | 'exhausted';
+
+export type PairingResolveResult =
+  | { ok: true; sessionId: string }
+  | { ok: false; reason: PairingResolveReason };
+
+export type PairingCodeStore = ReturnType<typeof createPairingCodeStore>;
+
+function randomCode(): string {
   let out = '';
   for (let i = 0; i < CODE_LENGTH; i += 1) {
-    out += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)];
+    out += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)] ?? '';
   }
   return out;
 }
 
-/** @param {string} raw */
-export function normalizePairingCode(raw) {
+export function normalizePairingCode(raw: unknown): string | null {
   const candidate = typeof raw === 'string' ? raw.trim().toUpperCase() : '';
   if (!candidate || candidate.length !== CODE_LENGTH) return null;
   if (!/^[A-Z0-9]+$/.test(candidate)) return null;
   return candidate;
 }
 
-/**
- * @typedef {'invalid' | 'unknown' | 'expired' | 'exhausted'} PairingResolveReason
- */
-
-/**
- * @param {{ defaultTtlMs?: number, inviteTtlMs?: number }} [options]
- */
 export function createPairingCodeStore({
   defaultTtlMs = DEFAULT_PAIRING_TTL_MS,
   inviteTtlMs = INVITE_REFRESH_TTL_MS
+}: {
+  defaultTtlMs?: number;
+  inviteTtlMs?: number;
 } = {}) {
-  /** @type {Map<string, { sessionId: string, expiresAt: number, maxUses: number | null, usedCount: number }>} */
-  const codeToEntry = new Map();
-  /** @type {Map<string, string>} */
-  const sessionIdToCode = new Map();
+  const codeToEntry = new Map<string, PairingEntry>();
+  const sessionIdToCode = new Map<string, string>();
 
-  function allocateCode(sessionId, { ttlMs = defaultTtlMs, maxUses = null } = {}) {
-    let code;
+  function allocateCode(
+    sessionId: string,
+    { ttlMs = defaultTtlMs, maxUses = null }: { ttlMs?: number; maxUses?: number | null } = {}
+  ): string {
+    let code: string;
     let attempts = 0;
     do {
       code = randomCode();
@@ -58,7 +69,10 @@ export function createPairingCodeStore({
     return code;
   }
 
-  function getOrCreateCode(sessionId, options = {}) {
+  function getOrCreateCode(
+    sessionId: string,
+    options: { ttlMs?: number; maxUses?: number | null } = {}
+  ): string {
     const sid = typeof sessionId === 'string' ? sessionId.trim() : '';
     if (!sid) throw new Error('sessionId required');
     const existing = sessionIdToCode.get(sid);
@@ -75,16 +89,14 @@ export function createPairingCodeStore({
     return allocateCode(sid, options);
   }
 
-  function refreshForInvite(sessionId) {
+  function refreshForInvite(sessionId: string): string {
     return getOrCreateCode(sessionId, { ttlMs: inviteTtlMs });
   }
 
-  /**
-   * @param {string} code
-   * @param {{ consumeUse?: boolean }} [options]
-   * @returns {{ ok: true, sessionId: string } | { ok: false, reason: PairingResolveReason }}
-   */
-  function resolveDetailed(code, { consumeUse = false } = {}) {
+  function resolveDetailed(
+    code: string,
+    { consumeUse = false }: { consumeUse?: boolean } = {}
+  ): PairingResolveResult {
     const normalized = normalizePairingCode(code);
     if (!normalized) return { ok: false, reason: 'invalid' };
     const entry = codeToEntry.get(normalized);
@@ -97,22 +109,32 @@ export function createPairingCodeStore({
     return { ok: true, sessionId: entry.sessionId };
   }
 
-  /** @param {string} code */
-  function resolve(code) {
+  function resolve(code: string): string | null {
     const result = resolveDetailed(code);
     return result.ok ? result.sessionId : null;
   }
 
-  function regenerate(sessionId, options = {}) {
+  function regenerate(
+    sessionId: string,
+    options: { ttlMs?: number; maxUses?: number | null } = {}
+  ): string {
     const sid = typeof sessionId === 'string' ? sessionId.trim() : '';
     if (!sid) throw new Error('sessionId required');
     const old = sessionIdToCode.get(sid);
     if (old) codeToEntry.delete(old);
     sessionIdToCode.delete(sid);
-    return allocateCode(sid, { ttlMs: options.ttlMs ?? inviteTtlMs, maxUses: options.maxUses ?? null });
+    return allocateCode(sid, {
+      ttlMs: options.ttlMs ?? inviteTtlMs,
+      maxUses: options.maxUses ?? null
+    });
   }
 
-  function getMeta(code) {
+  function getMeta(code: string): {
+    sessionId: string;
+    expiresAt: string;
+    maxUses: number | null;
+    usedCount: number;
+  } | null {
     const normalized = normalizePairingCode(code);
     if (!normalized) return null;
     const entry = codeToEntry.get(normalized);

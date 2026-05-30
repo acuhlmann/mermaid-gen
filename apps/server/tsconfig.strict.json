@@ -23,6 +23,12 @@
     // Leaves converted from .js (ADR-0006 ratchet step); imported by islands above.
     "src/agents/inferDiagramType.ts",
     "src/utils/redactSecrets.ts",
-    "src/utils/publicBaseUrl.ts"
+    "src/utils/publicBaseUrl.ts",
+    "src/mcp/mcpInviteLinks.ts",
+    "src/middleware/apiRateLimit.ts",
+    "src/utils/inviteToken.ts",
+    "src/mcp/mcpCollaborationActions.ts",
+    "src/state/sessionServices.ts",
+    "src/state/pairingCodeStore.ts"
   ]
 }

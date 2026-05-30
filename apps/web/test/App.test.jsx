@@ -64,6 +64,15 @@ vi.mock('../src/components/DiagramCanvas.jsx', () => ({
   }
 }));
 
+vi.mock('../src/state/diagramSession.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    createSessionId: () => 'generated-session',
+    getOrCreateBrowserSessionId: () => 'test-session'
+  };
+});
+
 vi.mock('../src/state/diagramStore.js', async (importOriginal) => {
   const actual = await importOriginal();
   return {

@@ -46,8 +46,9 @@ Priority list (by edit churn × LOC):
    the agent boundary is fully typed.
 3. `apps/server/src/mcp/mcpServer.js` (1 484 LOC) — wait for the per-tool
    split (ADR-0005) so each tool can convert independently.
-4. `apps/web/src/state/diagramStore.js` (795 LOC) — wire boundary on the
-   web side; consumers fan out.
+4. `apps/web/src/state/diagramStore.js` (795 LOC) — wire/session peeled to
+   `diagramSession.ts` + `diagramWireTypes.ts` + `copilotStreamHttpAgent.ts`; state
+   machine remains `.js` until ADR-0005 split.
 5. `apps/web/src/App.jsx` (3 789 LOC) — convert as it's split (ADR-0005);
    don't try to do both at once.
 6. `apps/web/src/components/DiagramCanvas.jsx` (1 376 LOC).
@@ -129,7 +130,7 @@ pollute `dist/.d.ts`.
   src via `projectService` — the one workspace strict + fully-TS enough to afford
   it. Scoped to `src/` (node:test's floating `test(...)` would flood tests).
 - **Deferred:** `noUncheckedIndexedAccess` on shared (~156 guards, sized above);
-  type-aware lint on the apps (legacy `.js` corpus).
+  type-aware lint on the apps' loose `.js` corpus (strict islands only — see below).
 
 The web island now covers **all 12** of the web app's TypeScript files. Typing the
 `utils/thinkingProseEnrich.tsx` hub (tokenizer discriminated-union + regex-group
@@ -137,6 +138,26 @@ The web island now covers **all 12** of the web app's TypeScript files. Typing t
 consumer cascade) pulled in its importers
 `components/{StyleEditsPanel,PlanBeatCard,PatchSummaryViz}.tsx` cleanly; behavior is
 guarded by `apps/web/test/thinkingProseEnrich.test.jsx` (14 tests, green).
+
+### 2026-05-30 — agent-friendly ratchet (type-aware lint + wire boundaries)
+
+- **Type-aware ESLint on strict islands.** `packages/eslint-config/typeCheckedIsland.js`
+  exports `strictIslandTypeCheckedConfig` and `SERVER_STRICT_ISLAND_FILES` (keep in
+  sync with `apps/server/tsconfig.strict.json`). `apps/server` and `apps/web`
+  eslint configs layer `recommended-type-checked-only` (warn) via `projectService` on
+  island paths only — same pattern as `packages/shared/eslint.config.js`, without
+  scanning the legacy `.js` corpus.
+- **Server wire leaves (6 modules).** Converted island-imported `.js` → `.ts`:
+  `mcp/mcpInviteLinks`, `middleware/apiRateLimit`, `utils/inviteToken`,
+  `mcp/mcpCollaborationActions`, `state/sessionServices`, `state/pairingCodeStore`.
+  Strict island grew to **22** server files. `copilot.ts` uses `PairingCodeStore` and
+  `SessionServices` types at the HTTP/MCP edge.
+- **Web wire boundary (no `diagramStore.js` monolith).** New strict-island modules:
+  `state/diagramWireTypes.ts` (Zod-inferred bodies, mirrors `copilotRouteTypes.ts`),
+  `state/diagramSession.ts` (API base URL, session header, browser session id),
+  `state/copilotStreamHttpAgent.ts`. `diagramStore.js` re-exports session helpers for
+  compatibility; `sessionEventsClient`, hooks, and utils import from `diagramSession.ts`
+  directly. Web strict island: **15** files.
 
 ## Consequences
 

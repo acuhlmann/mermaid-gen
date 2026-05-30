@@ -19,6 +19,8 @@ type SessionHistory = {
 
 export type SessionEventListener = (envelope: SessionEventEnvelope) => void;
 
+export type SessionEventBus = ReturnType<typeof createSessionEventBus>;
+
 export function createSessionEventBus({ maxHistoryPerSession = DEFAULT_MAX_HISTORY } = {}) {
   const listenersBySession = new Map<string, Set<SessionEventListener>>();
   const historyBySession = new Map<string, SessionHistory>();

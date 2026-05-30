@@ -5,7 +5,7 @@ import {
   LABEL_EXPLAIN_GIBBERISH_LEVEL,
   MAX_LABEL_EXPLAIN_DUMB_LEVEL
 } from '@archislop/shared';
-import { API_BASE_URL, SESSION_HEADER } from '../state/diagramStore.js';
+import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getVisibleDiagramLabels } from '../utils/visibleDiagramLabels.js';
 import { getVisibleInfographicLabels } from '../utils/visibleInfographicLabels.js';
