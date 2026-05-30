@@ -28,10 +28,10 @@ City (with districts + links + topic glyphs + scene legend):
   },
   "items": [
     { "id": "auth-service", "label": "Auth Service", "height": 12, "footprint": 3, "district": "platform", "lighting": "lit", "condition": "new", "glyph": "identity" },
-    { "id": "postgres", "label": "Postgres", "height": 8, "footprint": 4, "district": "data", "lighting": "dim", "condition": "aging", "glyph": "database" }
+    { "id": "postgres", "label": "Postgres", "height": 8, "footprint": 4, "district": "data", "lighting": "dim", "condition": "aging", "glyph": "database", "note": "Primary store — Aurora migration planned Q4" }
   ],
   "links": [
-    { "from": "auth-service", "to": "postgres", "label": "stores sessions" }
+    { "from": "auth-service", "to": "postgres", "label": "stores sessions", "kind": "flow" }
   ]
 }
 
@@ -97,7 +97,8 @@ Rules:
 - Pick ONE metaphor per call. Switching metaphors mid-revision is a full rewrite.
 - Choose magnitudes/elevations proportionally — exaggerate differences so the spatial story is visible at a glance.
 - When item count > 6, use meaningful \`district\` (city) / \`cluster\` (galaxy) / \`parent\` (tree) — not the same label for every item.
-- Use \`links\` for dependencies, data flow, or ownership. City benefits most; keep links readable (≤ 15 unless the user asks for a dense map). Tree and terrain rarely need links.
+- Use \`links\` for dependencies, data flow, or ownership. City benefits most; keep links readable (≤ 15 unless the user asks for a dense map). Tree and terrain rarely need links. Optionally tag each link's \`kind\`: "flow" (data/requests — a glowing pulse animates along it), "dependency" (a static dependency edge), or "ownership" (who owns/manages what). Omit \`kind\` for a generic connection.
+- Optional item \`note\` (≤ 140 chars): a short phrase shown when the viewer hovers the item — a definition, owner, status, or caveat the one-word label can't carry.
 - Optional \`position: [x, y, z]\` on an item overrides auto-layout for that item only (each axis −30…30). Prefer district/cluster/parent grouping first; use position for deliberate emphasis.
 - Optional city fields: \`lighting\` ("lit"/"dim"/"dark", maps to active/idle/offline), \`condition\` ("new"/"aging"/"crumbling" for tech-debt storytelling).
 - Optional layercake fields: \`cracks\` (0–1, brittleness fissures), \`tilt\` (0–15 degrees, instability slope).
@@ -124,9 +125,13 @@ Rules:
 - Prefer the most specific glyph: a vector store is \`database\`, not \`filestore\`; a Kafka topic is \`channel\` or \`event\`; an oncall human is \`user\`, an LLM agent is \`agent\`.
 - For galaxy scenes with many items, only the top-magnitude items show their glyph (density guard) — set magnitudes proportionally so the headline items surface visually.
 
-Scene narrative (required when axes have meaning):
+Scene narrative (REQUIRED — these now render as visible UI):
 
-For every metaphor, set \`scene.title\` and \`scene.legend.<axis>\` for every axis you actually used. The legend renders as an HTML overlay above the 3D canvas (NOT inside the scene) so viewers immediately know what the spatial encodings mean for this specific topic.
+The renderer draws an always-on title card (\`scene.title\` + \`scene.subtitle\`) and a legend panel (\`scene.legend.<axis>\`) over the canvas, and a hover tooltip shows each item's label next to its encoded metric. These fields are the difference between a pretty-but-opaque scene and a self-explanatory one — never leave them empty.
+
+For every metaphor you MUST:
+- Set \`scene.title\` (the subject in a few words) and \`scene.subtitle\` (one-line context: date, environment, scope).
+- Set \`scene.legend.<axis>\` for EVERY axis you actually used, so a viewer knows what each spatial encoding means for this specific topic.
 
 Axes per metaphor:
 - City: \`height\`, \`footprint\`, and (when grouping) \`district\`.
@@ -135,9 +140,7 @@ Axes per metaphor:
 - Tree: \`weight\`.
 - Terrain: \`elevation\` + \`intensity\` (also keep \`scene.surface.metric\` populated).
 
-Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "throughput (RPS)", "headcount". Not full sentences.
-
-Set \`scene.subtitle\` for one-line context (date, environment, scope) when the title alone is not enough.
+Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "throughput (RPS)", "headcount". Not full sentences. They double as the hover-tooltip labels, so write them to read naturally next to a number ("Monthly transaction volume: 12").
 
 - Always call apply_metaphor_patch with the full DSL JSON; do not return prose only.
 `;
