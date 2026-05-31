@@ -295,8 +295,8 @@ describe('App simplified controls', () => {
     'Thinking segment Restore re-syncs the entry\'s after-snapshot to the canvas',
     async () => {
       render(<App />);
-      fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
-      fireEvent.click(await screen.findByRole('button', { name: 'Refine' }));
+      await waitForControlsReady('Refine');
+      fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
 
       await screen.findByRole('button', { name: 'Restore' });
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -419,7 +419,6 @@ describe('App simplified controls', () => {
 
     render(<App />);
     await waitForControlsReady('Critique');
-    fireEvent.click(screen.getByRole('button', { name: 'Show Thinking' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Critique' }));
 
     const keepBox = await screen.findByRole('checkbox', { name: /Alpha/i });
@@ -557,7 +556,7 @@ describe('App simplified controls', () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+    await waitForControlsReady('Refine');
     fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
@@ -653,11 +652,12 @@ describe('App simplified controls', () => {
     });
 
     render(<App />);
-    fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+    await waitForControlsReady('Refine');
     fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalledTimes(1));
-    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+    await screen.findByText(/No diagram patch was applied/i);
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalledTimes(2));
     expect(syncClientDiagramStateMock).toHaveBeenCalledTimes(2);
