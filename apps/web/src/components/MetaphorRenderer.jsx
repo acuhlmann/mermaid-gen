@@ -45,7 +45,7 @@ import { Glyph } from './metaphorGlyphs/index.jsx';
 import {
   MetaphorTitleOverlay,
   MetaphorLegendOverlay,
-  MetaphorCameraToggle,
+  MetaphorKindSwitcher,
   MetaphorHoverTooltip
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
@@ -53,7 +53,6 @@ import { MetaphorHoverContext, useMetaphorHover, createMetaphorHoverStore } from
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
-const ISOMETRIC_CAMERA = { position: [22, 22, 22], fov: 35 };
 const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
 const CUTAWAY_THETA = (330 / 360) * Math.PI * 2;
@@ -109,9 +108,9 @@ function ItemLabel({ text, position, fontSize = 0.55, color = '#0f172a', outline
         anchorX="center"
         anchorY="middle"
         maxWidth={fontSize * 16}
-        outlineWidth={fontSize * 0.08}
+        outlineWidth={fontSize * 0.14}
         outlineColor={outlineColor}
-        outlineOpacity={0.95}
+        outlineOpacity={1}
       >
         {text}
       </Text>
@@ -166,7 +165,7 @@ function HoverableItem({ item, metaphor, children }) {
   );
 }
 
-const LIGHTING_BOOST = { lit: 0.55, dim: 0.18, dark: 0 };
+const LIGHTING_BOOST = { lit: 0.2, dim: 0.08, dark: 0 };
 const CONDITION_TILT = { new: 0, aging: 0.06, crumbling: 0.16 };
 const LIGHTING_WINDOW_PROB = { lit: 0.55, dim: 0.25, dark: 0.05 };
 const ROOF_STYLES = ['flat', 'gable', 'hipped', 'spire'];
@@ -217,7 +216,7 @@ function BuildingWindows({ footprint, height, lighting, idSeed, theme }) {
   const windowColor = theme.windowColor ?? '#fef3c7';
   const emissiveColor = theme.windowEmissiveColor ?? windowColor;
   const isDark = lighting === 'dark';
-  const baseEmissive = isDark ? 0.25 : 0.95;
+  const baseEmissive = isDark ? 0.16 : 0.6;
 
   return (
     <group>
@@ -339,7 +338,7 @@ function CityBuilding({ item, position, theme, accentGlow }) {
   const height = Math.max(0.5, item.height ?? 4);
   const footprint = Math.max(0.5, item.footprint ?? 2);
   const roofHeight = Math.max(0.18, height * 0.1);
-  const accentEmissive = accentGlow ? theme.accentGlow * accentGlow : 0;
+  const accentEmissive = accentGlow ? theme.accentGlow * accentGlow * 0.5 : 0;
   const lightingBoost = LIGHTING_BOOST[item.lighting] ?? 0;
   const emissiveIntensity = accentEmissive + lightingBoost;
   const wallOpacity = item.lighting === 'dark' ? 0.88 : 1;
@@ -566,56 +565,95 @@ function SlabSideRidges({ radius, thickness, theme }) {
   );
 }
 
-function LayerSlab({ item, yOffset, theme, showCutaway }) {
-  const thickness = Math.max(0.2, item.thickness ?? 1);
-  const radius = layercakeSlabRadius(item);
-  const components = layercakeComponentPositions(radius, item.components ?? []);
-  const thetaLength = showCutaway ? CUTAWAY_THETA : Math.PI * 2;
-  const tiltRad = ((item.tilt ?? 0) * Math.PI) / 180;
-  const cracks = typeof item.cracks === 'number' ? item.cracks : 0;
-  const slabColor = theme.slabColor;
-  const trimColor = theme.slabTrimColor ?? slabColor;
-  const bevelThickness = Math.min(0.08, thickness * 0.18);
-  const bodyThickness = Math.max(0.05, thickness - bevelThickness * 2);
-  const showRidges = cracks > 0 && idHash(item.id) > 0.5;
-  const slabCenterY = yOffset + thickness / 2;
+/** HSL nudge of a base colour (hex or THREE.Color) → a fresh THREE.Color. */
+function shiftColor(input, { lightness = 0, satScale = 1, hueShift = 0 } = {}) {
+  const c = new THREE.Color(input);
+  const hsl = { h: 0, s: 0, l: 0 };
+  c.getHSL(hsl);
+  c.setHSL(
+    (hsl.h + hueShift + 1) % 1,
+    THREE.MathUtils.clamp(hsl.s * satScale, 0, 1),
+    THREE.MathUtils.clamp(hsl.l + lightness, 0, 1)
+  );
+  return c;
+}
 
+/**
+ * Per-layer body tint so a stack reads as distinct, appetizing layers instead of
+ * one monochrome column: a gentle vertical ramp (richer/darker at the base,
+ * lighter toward the top) with a faint hue drift.
+ */
+function layerSlabShade(baseHex, index, total) {
+  const tNorm = total > 1 ? index / (total - 1) : 0.5;
+  return shiftColor(baseHex, {
+    lightness: -0.1 + tNorm * 0.22,
+    satScale: 1.06 - tNorm * 0.12,
+    hueShift: (tNorm - 0.5) * 0.03
+  });
+}
+
+/**
+ * Slab label that orbits to whichever side faces the camera, so it's always on
+ * the near rim and never occluded by the cake as the user rotates the view.
+ * Billboarded so the glyph-free text stays upright and screen-facing.
+ */
+function CameraFacingLabel({ centerY, radius, text, fontSize, color, outlineColor }) {
+  const ref = useRef(null);
+  useFrame((state) => {
+    if (!ref.current) return;
+    const { x, z } = state.camera.position;
+    const angle = Math.atan2(z, x);
+    const r = radius + 1;
+    ref.current.position.set(Math.cos(angle) * r, centerY, Math.sin(angle) * r);
+  });
+  if (!text) return null;
   return (
-    <group rotation={[0, 0, tiltRad]}>
-      <mesh position={[0, yOffset + bevelThickness / 2, 0]}>
-        <cylinderGeometry
-          args={[radius * 0.96, radius * 0.98, bevelThickness, 32, 1, false, 0, thetaLength]}
+    <group ref={ref}>
+      <ItemLabel text={text} position={[0, 0, 0]} fontSize={fontSize} color={color} outlineColor={outlineColor} />
+    </group>
+  );
+}
+
+/**
+ * The two flat radial walls that close the cutaway wedge so each slab reads as a
+ * solid cake slice (a visible cross-section) instead of a hollow shell you can
+ * see straight through. DoubleSide so the slice face shows from either approach.
+ */
+function CutawayFaces({ radius, thickness, color, thetaLength }) {
+  return (
+    <group>
+      {[0, thetaLength].map((theta, i) => (
+        <mesh
+          key={`cut-${i}`}
+          position={[Math.sin(theta) * radius * 0.5, 0, Math.cos(theta) * radius * 0.5]}
+          rotation={[0, theta - Math.PI / 2, 0]}
+        >
+          <planeGeometry args={[radius, thickness]} />
+          <meshStandardMaterial color={color} roughness={0.6} metalness={0} side={THREE.DoubleSide} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Crack pits, surface streaks, and side ridges for an aging/crumbling slab. */
+function SlabDecorations({ idSeed, radius, thickness, yOffset, slabCenterY, cracks, theme }) {
+  if (!(cracks > 0)) return null;
+  const showRidges = idHash(idSeed) > 0.5;
+  return (
+    <group>
+      <group position={[0, slabCenterY, 0]}>
+        <CrackDecals
+          radius={radius - 0.01}
+          thickness={thickness}
+          cracks={cracks}
+          theme={theme}
+          idSeed={idSeed}
         />
-        <meshStandardMaterial color={trimColor} />
-      </mesh>
-      <mesh position={[0, yOffset + bevelThickness + bodyThickness / 2, 0]}>
-        <cylinderGeometry args={[radius, radius, bodyThickness, 32, 1, false, 0, thetaLength]} />
-        <meshStandardMaterial color={slabColor} />
-      </mesh>
-      <mesh position={[0, yOffset + thickness - bevelThickness / 2, 0]}>
-        <cylinderGeometry
-          args={[radius * 0.98, radius * 0.96, bevelThickness, 32, 1, false, 0, thetaLength]}
-        />
-        <meshStandardMaterial color={trimColor} />
-      </mesh>
-      <mesh position={[0, yOffset + thickness + 0.005, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <torusGeometry args={[radius * 0.99, 0.04, 8, 48, thetaLength]} />
-        <meshStandardMaterial color={trimColor} emissive={trimColor} emissiveIntensity={0.18} />
-      </mesh>
-      {cracks > 0 ? (
-        <group position={[0, slabCenterY, 0]}>
-          <CrackDecals
-            radius={radius - 0.01}
-            thickness={thickness}
-            cracks={cracks}
-            theme={theme}
-            idSeed={item.id}
-          />
-        </group>
-      ) : null}
+      </group>
       {cracks > 0.5 ? (
         <group position={[0, yOffset + thickness + 0.01, 0]}>
-          <CrackStreaks radius={radius} cracks={cracks} theme={theme} idSeed={item.id} />
+          <CrackStreaks radius={radius} cracks={cracks} theme={theme} idSeed={idSeed} />
         </group>
       ) : null}
       {showRidges ? (
@@ -623,30 +661,105 @@ function LayerSlab({ item, yOffset, theme, showCutaway }) {
           <SlabSideRidges radius={radius - 0.02} thickness={thickness} theme={theme} />
         </group>
       ) : null}
-      <ItemLabel
+    </group>
+  );
+}
+
+function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1 }) {
+  const thickness = Math.max(0.2, item.thickness ?? 1);
+  const radius = layercakeSlabRadius(item);
+  const components = layercakeComponentPositions(radius, item.components ?? []);
+  const thetaLength = showCutaway ? CUTAWAY_THETA : Math.PI * 2;
+  const tiltRad = ((item.tilt ?? 0) * Math.PI) / 180;
+  const cracks = typeof item.cracks === 'number' ? item.cracks : 0;
+  const bodyColor = useMemo(
+    () => layerSlabShade(theme.slabColor, index, total),
+    [theme.slabColor, index, total]
+  );
+  // Lighter "cream filling" bands between layers, and a lighter cross-section
+  // for the cutaway slice so it looks like the inside of the cake.
+  const bevelColor = useMemo(() => shiftColor(bodyColor, { lightness: 0.16, satScale: 0.82 }), [bodyColor]);
+  const cutColor = useMemo(() => shiftColor(bodyColor, { lightness: 0.1, satScale: 0.88 }), [bodyColor]);
+  const rimColor = theme.slabTrimColor ?? theme.slabColor;
+  const bevelThickness = Math.min(0.08, thickness * 0.18);
+  const bodyThickness = Math.max(0.05, thickness - bevelThickness * 2);
+  const slabCenterY = yOffset + thickness / 2;
+  const slabSide = showCutaway ? THREE.DoubleSide : THREE.FrontSide;
+
+  return (
+    <group>
+      {/* Tilt pivots about the slab's own centre, so the stack stays vertically
+          aligned (a leaning layer, not a leaning tower). */}
+      <group position={[0, slabCenterY, 0]} rotation={[0, 0, tiltRad]}>
+        <group position={[0, -slabCenterY, 0]}>
+          <mesh position={[0, yOffset + bevelThickness / 2, 0]}>
+            <cylinderGeometry
+              args={[radius * 0.96, radius * 0.98, bevelThickness, 48, 1, false, 0, thetaLength]}
+            />
+            <meshStandardMaterial color={bevelColor} roughness={0.4} metalness={0} side={slabSide} />
+          </mesh>
+          <mesh position={[0, yOffset + bevelThickness + bodyThickness / 2, 0]}>
+            <cylinderGeometry args={[radius, radius, bodyThickness, 48, 1, false, 0, thetaLength]} />
+            <meshStandardMaterial
+              color={bodyColor}
+              emissive={bodyColor}
+              emissiveIntensity={0.05}
+              roughness={0.45}
+              metalness={0}
+              side={slabSide}
+            />
+          </mesh>
+          <mesh position={[0, yOffset + thickness - bevelThickness / 2, 0]}>
+            <cylinderGeometry
+              args={[radius * 0.98, radius * 0.96, bevelThickness, 48, 1, false, 0, thetaLength]}
+            />
+            <meshStandardMaterial color={bevelColor} roughness={0.4} metalness={0} side={slabSide} />
+          </mesh>
+          <mesh position={[0, yOffset + thickness + 0.005, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[radius * 0.99, 0.045, 10, 64, thetaLength]} />
+            <meshStandardMaterial color={rimColor} emissive={rimColor} emissiveIntensity={0.3} roughness={0.28} />
+          </mesh>
+          {showCutaway ? (
+            <group position={[0, slabCenterY, 0]}>
+              <CutawayFaces radius={radius} thickness={thickness} color={cutColor} thetaLength={thetaLength} />
+            </group>
+          ) : null}
+          <SlabDecorations
+            idSeed={item.id}
+            radius={radius}
+            thickness={thickness}
+            yOffset={yOffset}
+            slabCenterY={slabCenterY}
+            cracks={cracks}
+            theme={theme}
+          />
+          {item.glyph ? (
+            <group
+              position={[0, yOffset + thickness + 0.4, 0]}
+              scale={Math.max(0.7, Math.min(1.4, thickness * 0.9))}
+            >
+              <Glyph kind={item.glyph} theme={theme} />
+            </group>
+          ) : null}
+          {components.map((chip) => (
+            <ComponentChip
+              key={`${item.id}-${chip.label}`}
+              label={chip.label}
+              position={chip.position}
+              yBase={yOffset + thickness / 2}
+              theme={theme}
+            />
+          ))}
+        </group>
+      </group>
+      <CameraFacingLabel
+        centerY={slabCenterY}
+        radius={radius}
         text={item.label}
-        position={[radius + 0.6, slabCenterY, 0]}
         fontSize={Math.max(0.55, Math.min(0.95, thickness * 0.55))}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
       />
-      {item.glyph ? (
-        <group
-          position={[0, yOffset + thickness + 0.4, 0]}
-          scale={Math.max(0.7, Math.min(1.4, thickness * 0.9))}
-        >
-          <Glyph kind={item.glyph} theme={theme} />
-        </group>
-      ) : null}
-      {components.map((chip) => (
-        <ComponentChip
-          key={`${item.id}-${chip.label}`}
-          label={chip.label}
-          position={chip.position}
-          yBase={yOffset + thickness / 2}
-          theme={theme}
-        />
-      ))}
     </group>
   );
 }
@@ -863,8 +976,99 @@ function MetaphorLinks({ links, anchors, theme }) {
   );
 }
 
+/**
+ * Vertical-gradient sky for the city scene — replaces the flat canvas
+ * background with a calmer, deeper backdrop so the floating labels read against
+ * it instead of fighting the lit windows and bloom. Rendered as a big
+ * back-faced sphere *outside* `<Bounds>` so it never enlarges the framed
+ * footprint, and `depthWrite={false}` keeps it behind the city.
+ */
+function CitySky({ theme }) {
+  const material = useMemo(() => {
+    const top = new THREE.Color(theme.skyTopColor ?? theme.background ?? '#0b1020');
+    const horizon = new THREE.Color(theme.skyHorizonColor ?? theme.background ?? '#1b2436');
+    return new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      depthWrite: false,
+      uniforms: {
+        topColor: { value: top },
+        horizonColor: { value: horizon },
+        offset: { value: 0.08 },
+        exponent: { value: 0.85 }
+      },
+      vertexShader: `
+        varying vec3 vWorldPosition;
+        void main() {
+          vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 topColor;
+        uniform vec3 horizonColor;
+        uniform float offset;
+        uniform float exponent;
+        varying vec3 vWorldPosition;
+        void main() {
+          float h = normalize(vWorldPosition).y;
+          float t = pow(clamp((h + offset) / (1.0 + offset), 0.0, 1.0), exponent);
+          gl_FragColor = vec4(mix(horizonColor, topColor, t), 1.0);
+        }
+      `
+    });
+  }, [theme.skyTopColor, theme.skyHorizonColor, theme.background]);
+
+  useEffect(() => () => material.dispose(), [material]);
+
+  return (
+    <mesh material={material} scale={220} renderOrder={-1} frustumCulled={false}>
+      <sphereGeometry args={[1, 32, 16]} />
+    </mesh>
+  );
+}
+
+/**
+ * Circular foundation the city stands on, sized to the layout footprint and
+ * centred at the origin (where the layout is recentred). A dark base disc, a
+ * slightly lifted + lighter plinth, a bright accent rim at the plinth edge, and
+ * one faint concentric ring — so the buildings read as standing on a deliberate
+ * platform rather than drifting on an open floor.
+ */
+function CityFooting({ theme, radius }) {
+  const baseColor = theme.groundColor ?? '#1a1a2e';
+  const plinthColor = useMemo(
+    () => `#${new THREE.Color(baseColor).lerp(new THREE.Color('#ffffff'), 0.1).getHexString()}`,
+    [baseColor]
+  );
+  const rimColor =
+    theme.binaryGlowColor ?? theme.starColor ?? theme.districtGridColor ?? '#94a3b8';
+  const gridColor = theme.districtGridColor ?? theme.labelColor ?? '#cbd5e1';
+  const plinthR = radius * 0.94;
+  return (
+    <group>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.06, 0]}>
+        <circleGeometry args={[radius, 96]} />
+        <meshStandardMaterial color={baseColor} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.03, 0]}>
+        <circleGeometry args={[plinthR, 96]} />
+        <meshStandardMaterial color={plinthColor} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+        <ringGeometry args={[Math.max(0.1, plinthR - 0.22), plinthR, 96]} />
+        <meshBasicMaterial color={rimColor} transparent opacity={0.4} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
+        <ringGeometry args={[plinthR * 0.58, plinthR * 0.58 + 0.08, 96]} />
+        <meshBasicMaterial color={gridColor} transparent opacity={0.14} />
+      </mesh>
+    </group>
+  );
+}
+
 function CityScene({ dsl, theme }) {
   const layout = useMemo(() => cityDistrictLayout(dsl.items), [dsl.items]);
+  const footingRadius = Math.max(6, (layout.bounds?.radius ?? 0) * 1.18 + 2.5);
   const heightThreshold = useMemo(() => {
     const heights = dsl.items.map((i) => i.height ?? 4).sort((a, b) => b - a);
     const topCount = Math.max(1, Math.ceil(heights.length * 0.2));
@@ -903,19 +1107,8 @@ function CityScene({ dsl, theme }) {
           </HoverableItem>
         );
       })}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color={theme.groundColor} />
-      </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
-        <ringGeometry args={[18, 24, 48]} />
-        <meshStandardMaterial
-          color={theme.districtGridColor ?? theme.groundColor}
-          transparent
-          opacity={0.18}
-        />
-      </mesh>
-      <MetaphorGroundShadow theme={theme} />
+      <CityFooting theme={theme} radius={footingRadius} />
+      <MetaphorGroundShadow theme={theme} scale={footingRadius * 2.1} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -937,11 +1130,18 @@ function LayercakeScene({ dsl, theme }) {
 
   return (
     <group>
-      {dsl.items.map((item) => {
+      {dsl.items.map((item, index) => {
         const yOffset = yOffsets.get(item.id) ?? 0;
         return (
           <HoverableItem key={item.id} item={item} metaphor="layercake">
-            <LayerSlab item={item} theme={theme} yOffset={yOffset} showCutaway={showCutaway} />
+            <LayerSlab
+              item={item}
+              theme={theme}
+              yOffset={yOffset}
+              showCutaway={showCutaway}
+              index={index}
+              total={dsl.items.length}
+            />
           </HoverableItem>
         );
       })}
@@ -1586,27 +1786,13 @@ function MetaphorScene({ dsl, theme }) {
   return null;
 }
 
-function CameraRig({ cameraMode }) {
-  const { camera } = useThree();
-  useEffect(() => {
-    const preset = cameraMode === 'isometric' ? ISOMETRIC_CAMERA : ORBIT_CAMERA;
-    camera.position.set(...preset.position);
-    camera.fov = preset.fov;
-    camera.lookAt(0, 0, 0);
-    camera.updateProjectionMatrix();
-  }, [camera, cameraMode]);
-  return null;
-}
-
-const CINEMATIC_AUTO_ROTATE_SPEED = 0.45;
-
 /**
- * One-shot cinematic reveal: a brief auto-rotate that eases to rest the first
- * time a scene appears. Skipped for cinematic mode (already auto-rotating),
- * reduced-motion, isometric (no controls), and streaming. Only toggles
- * OrbitControls.autoRotate(Speed), so it never fights Bounds or blocks dragging.
+ * One-shot reveal: a brief auto-rotate that eases to rest the first time a scene
+ * appears, then hands control back to the user. Skipped for reduced-motion and
+ * streaming. Only toggles OrbitControls.autoRotate(Speed), so it never fights
+ * Bounds or blocks dragging — a drag during the intro takes over immediately.
  */
-function MetaphorIntro({ cameraMode, streamingPreview }) {
+function MetaphorIntro({ streamingPreview }) {
   const controls = useThree((state) => state.controls);
   const elapsedRef = useRef(0);
   const doneRef = useRef(false);
@@ -1616,7 +1802,7 @@ function MetaphorIntro({ cameraMode, streamingPreview }) {
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   useFrame((_, delta) => {
     if (doneRef.current || !controls) return;
-    if (streamingPreview || cameraMode === 'cinematic' || reducedMotion) {
+    if (streamingPreview || reducedMotion) {
       doneRef.current = true;
       return;
     }
@@ -1661,7 +1847,13 @@ function resolveDslFromSource(diagramSource, streamingPreview) {
 }
 
 function MetaphorRendererImpl(
-  { diagramSource, streamingPreview = false, cameraMode: cameraModeProp = null },
+  {
+    diagramSource,
+    streamingPreview = false,
+    isFullscreen = false,
+    onMetaphorKindChange = null,
+    metaphorKindSwitchDisabled = false
+  },
   ref
 ) {
   const containerRef = useRef(null);
@@ -1671,7 +1863,6 @@ function MetaphorRendererImpl(
   const streamingTimeoutRef = useRef(0);
   const lastStreamingRenderRef = useRef(0);
   const [streamDsl, setStreamDsl] = useState(null);
-  const [localCameraMode, setLocalCameraMode] = useState(null);
   const hoverStoreRef = useRef(null);
   if (hoverStoreRef.current === null) hoverStoreRef.current = createMetaphorHoverStore();
   const hoverStore = hoverStoreRef.current;
@@ -1729,15 +1920,6 @@ function MetaphorRendererImpl(
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
   const theme = resolveMetaphorThemePreset(themeId);
   const postfx = resolveMetaphorPostfx(theme);
-  const dslCamera = dsl?.scene?.camera ?? 'orbit';
-  const cameraMode = cameraModeProp ?? localCameraMode ?? dslCamera;
-  const useOrbit = cameraMode !== 'isometric';
-
-  useEffect(() => {
-    if (cameraModeProp == null && dsl?.scene?.camera) {
-      setLocalCameraMode(null);
-    }
-  }, [cameraModeProp, dsl?.scene?.camera]);
 
   return (
     <div
@@ -1747,10 +1929,7 @@ function MetaphorRendererImpl(
     >
       {renderError ? <p className="diagram-error">{renderError}</p> : null}
       {dsl ? (
-        <Canvas
-          camera={useOrbit ? ORBIT_CAMERA : ISOMETRIC_CAMERA}
-          style={{ width: '100%', height: '100%' }}
-        >
+        <Canvas camera={ORBIT_CAMERA} style={{ width: '100%', height: '100%' }}>
           <color attach="background" args={[theme.background]} />
           <ambientLight intensity={theme.ambientIntensity} />
           <hemisphereLight args={theme.hemisphere} />
@@ -1759,7 +1938,7 @@ function MetaphorRendererImpl(
             intensity={theme.directional.intensity}
           />
           {theme.environment ? <Environment preset={theme.environment} /> : null}
-          <CameraRig cameraMode={cameraMode} />
+          {dsl.metaphor === 'city' ? <CitySky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <Bounds fit clip observe margin={1.25}>
@@ -1769,26 +1948,27 @@ function MetaphorRendererImpl(
               </Bounds>
             </MetaphorHoverContext.Provider>
           </MetaphorClockProvider>
-          {useOrbit ? (
-            <OrbitControls
-              enableDamping
-              makeDefault
-              autoRotate={cameraMode === 'cinematic'}
-              autoRotateSpeed={CINEMATIC_AUTO_ROTATE_SPEED}
-              enableRotate={cameraMode !== 'cinematic'}
-              enableZoom={cameraMode !== 'cinematic'}
-              enablePan={cameraMode !== 'cinematic'}
-            />
-          ) : null}
-          <MetaphorIntro cameraMode={cameraMode} streamingPreview={streamingPreview} />
+          <OrbitControls enableDamping makeDefault />
+          <MetaphorIntro streamingPreview={streamingPreview} />
           {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
         </Canvas>
       ) : null}
       {dsl && !streamingPreview ? (
         <>
-          <MetaphorTitleOverlay scene={dsl.scene} />
-          <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
-          <MetaphorCameraToggle value={cameraMode} onChange={setLocalCameraMode} />
+          {/* Title (top-left) + legend (bottom-left) collide with the app's logo
+              and corner controls in the inline view, so surface them only in
+              fullscreen — where that chrome isn't painted. */}
+          {isFullscreen ? (
+            <>
+              <MetaphorKindSwitcher
+                metaphor={dsl.metaphor}
+                disabled={metaphorKindSwitchDisabled || !onMetaphorKindChange}
+                onSelectKind={onMetaphorKindChange}
+              />
+              <MetaphorTitleOverlay scene={dsl.scene} />
+              <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
+            </>
+          ) : null}
           <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />
         </>
       ) : null}

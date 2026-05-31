@@ -27,6 +27,7 @@ import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighli
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
+import { switchMetaphorKind } from '../utils/switchMetaphorKind.js';
 
 const TAP_MOVE_THRESHOLD_PX = 14;
 /** Debounce before clearing diagram hover when the pointer leaves a node hit area. */
@@ -178,15 +179,14 @@ export default function DiagramCanvas({
   /** Incremented by App on each mode switch so the infographic renderer fully remounts. */
   rendererRefreshKey = 0,
   /** Ref to `.diagram-output` for fullscreen (button lives in App top-corner controls). */
-  diagramSurfaceRef = null
+  diagramSurfaceRef = null,
+  /** True while the surface is in native fullscreen — gates the metaphor3d title/legend overlays. */
+  isFullscreen = false
 }) {
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
   const [editorSource, setEditorSource] = useState(diagramSource);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
-  // null → let MetaphorRenderer honor the DSL's scene.camera (orbit/isometric/
-  // cinematic) and its in-canvas camera toggle, instead of forcing orbit.
-  const metaphorCameraMode = null;
   const requestRef = useRef(0);
   const debounceRef = useRef(null);
   const revisionBootRef = useRef(true);
@@ -750,6 +750,19 @@ export default function DiagramCanvas({
     }
   }
 
+  const handleMetaphorKindChange = useCallback(
+    (nextKind) => {
+      if (streamingPreview || contentType !== 'metaphor3d') return;
+      const result = switchMetaphorKind(editorSource, nextKind);
+      if (!result.ok) return;
+      const nextValue = result.text;
+      setEditorSource((prev) => (prev === nextValue ? prev : nextValue));
+      lastAppliedSourceRef.current = nextValue;
+      onManualEdit?.(nextValue);
+    },
+    [contentType, editorSource, onManualEdit, streamingPreview]
+  );
+
   const displayedRenderError = streamingPreview ? '' : renderError;
 
   const zoomAtPoint = useCallback((pointX, pointY, scaleFactor) => {
@@ -1309,7 +1322,9 @@ export default function DiagramCanvas({
                   key={`metaphor3d-${rendererRefreshKey}`}
                   diagramSource={editorSource}
                   streamingPreview={streamingPreview}
-                  cameraMode={metaphorCameraMode}
+                  isFullscreen={isFullscreen}
+                  onMetaphorKindChange={handleMetaphorKindChange}
+                  metaphorKindSwitchDisabled={streamingPreview}
                 />
               </>
             ) : (

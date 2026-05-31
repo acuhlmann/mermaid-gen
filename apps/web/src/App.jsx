@@ -1,6 +1,7 @@
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import DiagramFullscreenButton from './components/DiagramFullscreenButton.jsx';
+import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx';
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import InsightsPane from './components/InsightsPane.jsx';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
@@ -2377,13 +2378,20 @@ ${requirementsBlock}`;
     setClearConfirmOpen(true);
   }
 
+  const diagramSurfaceRef = useRef(null);
+  const { fullscreenSupported, isFullscreen, toggleFullscreen } = useDiagramFullscreen(diagramSurfaceRef);
+
   const advisorPause =
     loading ||
     streamingPreview ||
     voiceListening ||
     slopPromptExpanded ||
     clearConfirmOpen ||
-    editorOpen;
+    editorOpen ||
+    // Fullscreen hides the advisor bubble + cast chrome entirely, so pause the
+    // proactive loop — otherwise stakeholders keep pulsing nodes (and chiming)
+    // over the bare canvas with no visible way to mute them.
+    isFullscreen;
 
   // Focus priority: an explicit click (selectedNode) is a strong signal — comment
   // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce
@@ -2974,8 +2982,6 @@ ${requirementsBlock}`;
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
   );
-  const diagramSurfaceRef = useRef(null);
-  const { fullscreenSupported, isFullscreen, toggleFullscreen } = useDiagramFullscreen(diagramSurfaceRef);
   const hasDiagramText = Boolean(state.diagramSource?.trim());
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
@@ -3305,8 +3311,14 @@ ${requirementsBlock}`;
         }}
         advisorPinFocusIds={advisorPinFocusIds}
         diagramSurfaceRef={diagramSurfaceRef}
+        isFullscreen={isFullscreen}
       />
 
+      <DiagramFullscreenOverlay
+        isFullscreen={isFullscreen}
+        host={diagramSurfaceRef.current}
+        onExit={toggleFullscreen}
+      >
       <RadialActionMenu
         key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
         descriptor={radialMenuSession?.descriptor ?? null}
@@ -3362,6 +3374,7 @@ ${requirementsBlock}`;
         }}
         onClose={closeRadialMenu}
       />
+      </DiagramFullscreenOverlay>
 
       {ceremonyOverlays}
       <ErrorToast />

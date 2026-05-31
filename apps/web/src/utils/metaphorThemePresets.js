@@ -3,6 +3,8 @@
 export const METAPHOR_THEME_PRESETS = {
   whiteboard: {
     background: '#f8fafc',
+    skyTopColor: '#d4e0f0',
+    skyHorizonColor: '#e9eff7',
     ambientIntensity: 0.65,
     hemisphere: ['#e0e7ff', '#1f2937', 0.45],
     directional: { position: [12, 16, 8], intensity: 0.85 },
@@ -38,10 +40,10 @@ export const METAPHOR_THEME_PRESETS = {
     // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field.
     postfx: {
       enabled: true,
-      bloomStrength: 0.32,
+      bloomStrength: 0.18,
       bloomRadius: 0.35,
-      bloomThreshold: 0.92,
-      vignette: 0.26,
+      bloomThreshold: 0.95,
+      vignette: 0.18,
       samples: 4,
       shadowOpacity: 0.26,
       shadowBlur: 2.8,
@@ -51,6 +53,8 @@ export const METAPHOR_THEME_PRESETS = {
   },
   noir: {
     background: '#0b0f19',
+    skyTopColor: '#04060c',
+    skyHorizonColor: '#1a2433',
     ambientIntensity: 0.35,
     hemisphere: ['#1e293b', '#020617', 0.55],
     directional: { position: [8, 20, 6], intensity: 0.95 },
@@ -86,10 +90,10 @@ export const METAPHOR_THEME_PRESETS = {
     // Dramatic: heavy bloom on the lit windows/stars, deep vignette, dark shadow.
     postfx: {
       enabled: true,
-      bloomStrength: 0.95,
+      bloomStrength: 0.42,
       bloomRadius: 0.5,
-      bloomThreshold: 0.62,
-      vignette: 0.62,
+      bloomThreshold: 0.78,
+      vignette: 0.4,
       samples: 4,
       shadowOpacity: 0.5,
       shadowBlur: 2.4,
@@ -99,6 +103,8 @@ export const METAPHOR_THEME_PRESETS = {
   },
   arcade: {
     background: '#1a0533',
+    skyTopColor: '#0c0220',
+    skyHorizonColor: '#37105e',
     ambientIntensity: 0.5,
     hemisphere: ['#ff6b6b', '#2d1b69', 0.6],
     directional: { position: [14, 18, 10], intensity: 1.1 },
@@ -134,10 +140,10 @@ export const METAPHOR_THEME_PRESETS = {
     // Neon arcade: strongest bloom + saturation for a synthwave glow.
     postfx: {
       enabled: true,
-      bloomStrength: 1.15,
+      bloomStrength: 0.5,
       bloomRadius: 0.55,
-      bloomThreshold: 0.55,
-      vignette: 0.5,
+      bloomThreshold: 0.72,
+      vignette: 0.34,
       samples: 4,
       shadowOpacity: 0.42,
       shadowBlur: 2.6,
@@ -147,6 +153,8 @@ export const METAPHOR_THEME_PRESETS = {
   },
   blueprint: {
     background: '#0a1e3a',
+    skyTopColor: '#05122a',
+    skyHorizonColor: '#123a63',
     ambientIntensity: 0.55,
     hemisphere: ['#1e3a8a', '#0a1e3a', 0.55],
     directional: { position: [10, 18, 8], intensity: 0.9 },
@@ -182,10 +190,10 @@ export const METAPHOR_THEME_PRESETS = {
     // Technical/crisp: modest bloom on the linework, light vignette, no DoF.
     postfx: {
       enabled: true,
-      bloomStrength: 0.5,
+      bloomStrength: 0.28,
       bloomRadius: 0.4,
-      bloomThreshold: 0.78,
-      vignette: 0.34,
+      bloomThreshold: 0.86,
+      vignette: 0.24,
       samples: 4,
       shadowOpacity: 0.34,
       shadowBlur: 2.7,
@@ -202,10 +210,10 @@ export function resolveMetaphorThemePreset(theme) {
 /** Safe defaults so the post-processing composer never reads undefined params. */
 export const DEFAULT_POSTFX = {
   enabled: true,
-  bloomStrength: 0.5,
+  bloomStrength: 0.28,
   bloomRadius: 0.4,
-  bloomThreshold: 0.85,
-  vignette: 0.4,
+  bloomThreshold: 0.9,
+  vignette: 0.26,
   samples: 4,
   shadowOpacity: 0.35,
   shadowBlur: 2.6,

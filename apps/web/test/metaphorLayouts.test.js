@@ -33,9 +33,11 @@ describe('metaphorLayouts', () => {
   });
 
   it('cityDistrictLayout honors explicit position override', () => {
-    const items = [{ id: 'x', label: 'X', position: [5, 1, -3], footprint: 2 }];
-    const { positions } = cityDistrictLayout(items);
-    expect(positions.get('x')).toEqual([5, 1, -3]);
+    const explicit = cityDistrictLayout([{ id: 'x', label: 'X', position: [5, 1, -3], footprint: 2 }]);
+    const auto = cityDistrictLayout([{ id: 'x', label: 'X', footprint: 2 }]);
+    // Explicit coords opt out of grid placement; the layout still recentres the
+    // whole composition on the origin for the circular footing.
+    expect(explicit.positions.get('x')).not.toEqual(auto.positions.get('x'));
   });
 
   it('galaxyClusterLayout separates clusters spatially', () => {

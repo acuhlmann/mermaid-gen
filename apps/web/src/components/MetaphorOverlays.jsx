@@ -10,12 +10,7 @@
 
 import { useSyncExternalStore } from 'react';
 import { legendAxesFor, formatItemMetric } from '../utils/metaphorLegendAxes.js';
-
-const CAMERA_MODES = [
-  { value: 'orbit', label: 'Orbit', hint: 'Drag to rotate, scroll to zoom' },
-  { value: 'isometric', label: 'Isometric', hint: 'Fixed isometric view' },
-  { value: 'cinematic', label: 'Cinematic', hint: 'Auto-rotating presentation view' }
-];
+import { METAPHOR_KINDS, METAPHOR_KIND_LABELS } from '../utils/switchMetaphorKind.js';
 
 /** Top-left card: the scene's title and one-line subtitle. */
 export function MetaphorTitleOverlay({ scene }) {
@@ -53,37 +48,42 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
 }
 
 /**
- * Bottom-right segmented control to switch camera mode (orbit / isometric /
- * cinematic). Mirrors the app's `model-profile-option` button pattern.
- */
-export function MetaphorCameraToggle({ value, onChange }) {
-  return (
-    <div
-      className="metaphor-overlay metaphor-camera-toggle"
-      role="group"
-      aria-label="Camera mode"
-    >
-      {CAMERA_MODES.map((mode) => (
-        <button
-          key={mode.value}
-          type="button"
-          className={`metaphor-camera-option ${value === mode.value ? 'is-selected' : ''}`}
-          aria-pressed={value === mode.value}
-          title={mode.hint}
-          onClick={() => onChange?.(mode.value)}
-        >
-          {mode.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-/**
  * Cursor-following tooltip showing the hovered item's label + its encoded
  * metrics (in the author's legend words). Subscribes to the external hover store
  * so only this small element re-renders on hover — never the 3D scene.
  */
+/**
+ * Fullscreen-only segmented control for switching the spatial metaphor kind
+ * (city, layer cake, galaxy, tree, terrain) without leaving the canvas.
+ */
+export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind }) {
+  if (!metaphor) return null;
+  return (
+    <div
+      className="metaphor-overlay metaphor-kind-switcher"
+      role="group"
+      aria-label="Metaphor type"
+    >
+      <span className="metaphor-kind-switcher-label">View as</span>
+      <div className="metaphor-kind-switcher-segment">
+        {METAPHOR_KINDS.map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            className={`metaphor-kind-switcher-option${metaphor === kind ? ' is-selected' : ''}`}
+            aria-pressed={metaphor === kind}
+            disabled={disabled || metaphor === kind}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => onSelectKind?.(kind)}
+          >
+            {METAPHOR_KIND_LABELS[kind] ?? kind}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function MetaphorHoverTooltip({ store, legend }) {
   const hovered = useSyncExternalStore(store.subscribe, store.get, store.get);
   if (!hovered?.item) return null;

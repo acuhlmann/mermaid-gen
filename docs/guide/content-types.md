@@ -29,9 +29,9 @@ The `metaphor3d` slot stores a JSON DSL with a `metaphor` discriminator picking 
 Scene-level options (apply to every kind):
 
 - `scene.theme`: `whiteboard` (default) · `noir` · `arcade` · `blueprint`. Each theme also tunes the post-processing (bloom, vignette) and contact-shadow mood — see `metaphorThemePresets.js` `postfx`.
-- `scene.camera`: `orbit` (default, user controls) · `isometric` (fixed) · `cinematic` (auto-rotate, controls off). Honored by the renderer and switchable in-canvas via the camera toggle.
-- `scene.title` / `scene.subtitle`: rendered as a title card overlaid on the canvas.
-- `scene.legend.<axis>`: short phrases naming each encoding axis (`height` = "team size", `elevation` = "risk score"); drawn as an always-on legend panel and reused as the hover-tooltip metric labels.
+- `scene.camera`: still accepted by the schema, but the renderer now always uses user-controlled **orbit** navigation (drag to rotate, scroll to zoom). The fixed/auto-rotate modes and the in-canvas camera toggle were removed — the viewer always drives the camera.
+- `scene.title` / `scene.subtitle`: rendered as a title card overlaid on the canvas, **shown only in fullscreen** (in the inline view it would collide with the app's logo).
+- `scene.legend.<axis>`: short phrases naming each encoding axis (`height` = "team size", `elevation` = "risk score"); drawn as a legend panel **in fullscreen** (the inline view would collide with the corner controls) and reused as the hover-tooltip metric labels.
 
 Per-item and per-link extras:
 

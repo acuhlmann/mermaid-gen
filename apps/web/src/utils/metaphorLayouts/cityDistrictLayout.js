@@ -20,7 +20,14 @@ function patchSpan(count, maxFootprint, gap = 1.2) {
 
 /**
  * Layout city items grouped by district on the XZ plane.
- * @returns {{ positions: Map<string, [number, number, number]>, districts: Array<{ name: string, center: [number, number, number], size: [number, number] }> }}
+ *
+ * Districts are packed into a grid growing along +X/+Z, then the whole
+ * composition is recentred so its footprint midpoint sits at the world origin —
+ * that's what lets the circular footing (drawn at the origin) frame the city
+ * instead of the city drifting to one edge of it. `bounds.radius` is the
+ * half-diagonal of the recentred footprint, used to size that footing.
+ *
+ * @returns {{ positions: Map<string, [number, number, number]>, districts: Array<{ name: string, center: [number, number, number], size: [number, number] }>, bounds: { width: number, depth: number, radius: number } }}
  */
 export function cityDistrictLayout(items) {
   /** @type {Map<string, typeof items>} */
@@ -85,5 +92,41 @@ export function cityDistrictLayout(items) {
     patchIndex += 1;
   }
 
-  return { positions, districts };
+  // Recentre the whole composition on the world origin. Footprint bounds come
+  // from the district patches (they bound their buildings) plus any explicitly
+  // positioned items, which opt out of the grid and could sit outside a patch.
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minZ = Infinity;
+  let maxZ = -Infinity;
+  for (const d of districts) {
+    minX = Math.min(minX, d.center[0] - d.size[0] / 2);
+    maxX = Math.max(maxX, d.center[0] + d.size[0] / 2);
+    minZ = Math.min(minZ, d.center[2] - d.size[1] / 2);
+    maxZ = Math.max(maxZ, d.center[2] + d.size[1] / 2);
+  }
+  for (const [x, , z] of positions.values()) {
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z);
+    maxZ = Math.max(maxZ, z);
+  }
+  if (!Number.isFinite(minX)) {
+    minX = maxX = minZ = maxZ = 0;
+  }
+
+  const offsetX = (minX + maxX) / 2;
+  const offsetZ = (minZ + maxZ) / 2;
+  for (const [id, pos] of positions) {
+    positions.set(id, [pos[0] - offsetX, pos[1], pos[2] - offsetZ]);
+  }
+  for (const d of districts) {
+    d.center = [d.center[0] - offsetX, d.center[1], d.center[2] - offsetZ];
+  }
+
+  const width = Math.max(0, maxX - minX);
+  const depth = Math.max(0, maxZ - minZ);
+  const radius = Math.hypot(width, depth) / 2;
+
+  return { positions, districts, bounds: { width, depth, radius } };
 }
