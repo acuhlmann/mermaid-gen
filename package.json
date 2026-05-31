@@ -2,6 +2,7 @@
   "name": "archislop",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "npm@11.12.1",
   "type": "commonjs",
   "workspaces": [
     "apps/web",

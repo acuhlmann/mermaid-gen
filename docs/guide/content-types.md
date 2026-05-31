@@ -5,14 +5,16 @@ flowchart LR
   Toggle["Mode toggle\n(UI)"] -->|"contentType: mermaid"| MS["Mermaid slot\ndiagramSource = Mermaid text"]
   Toggle -->|"contentType: infographic"| IS["Infographic slot\ndiagramSource = AntV DSL"]
   Toggle -->|"contentType: metaphor3d"| ME["Metaphor3D slot\ndiagramSource = Metaphor DSL JSON"]
+  Toggle -->|"contentType: chart"| CS["Chart slot\ndiagramSource = Vega-Lite DSL"]
   MS --> MR["Mermaid.js renderer\n(SVG via JSDOM)"]
   IS --> IR["@antv/infographic renderer\n(InfographicRenderer.jsx)"]
   ME --> R3F["React Three Fiber renderer\n(MetaphorRenderer.jsx)"]
+  CS --> VR["Vega-Embed renderer\n(ChartRenderer.jsx)"]
 ```
 
-Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, or Metaphor3D service transparently; routes and stream events are otherwise identical from the client's perspective.
+Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, or Chart service transparently; routes and stream events are otherwise identical from the client's perspective.
 
-The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`.
+The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Mermaid, Infographic, and Metaphor3D** are persisted across page reloads; **Chart** mode is session-only (reverts to Mermaid on reload).
 
 ## metaphor3d kinds
 
@@ -39,3 +41,16 @@ Per-item and per-link extras:
 - Link `kind`: `flow` (a glowing pulse animates along the edge) · `dependency` · `ownership` — sets the edge colour and whether it animates.
 
 Validation lives in `packages/shared/src/metaphorSchema.ts` and `metaphorSanitizer.ts`. Rendering lives in `apps/web/src/components/MetaphorRenderer.jsx`, with per-metaphor layout helpers under `apps/web/src/utils/metaphorLayouts/`. See also [Agents](agents.md) and [Validation & repair](validation.md) for how each slot is validated.
+
+**In-fullscreen kind switching** — while the canvas is in native fullscreen, a kind-switcher pill in the overlay lets the viewer change the spatial metaphor (e.g. city → terrain) without leaving fullscreen. The transition re-maps item magnitudes and groupings to the new encoding axes via `switchMetaphorKind.js`. The exit button (×) is also available in-fullscreen because the native browser fullscreen toggle disappears once the overlay surface takes over (`DiagramFullscreenOverlay.jsx`).
+
+## chart
+
+The `chart` slot stores a Vega-Lite-compatible DSL. The agent writes valid Vega-Lite JSON with a `chart <type>` header processed by `parseChartDsl` in `packages/shared`. The renderer (`apps/web/src/components/ChartRenderer.jsx`) lazy-loads `vega-embed` and uses `vega-interpreter` to satisfy the CSP `unsafe-eval` restriction.
+
+- Validation: `validateAndPrepareChartPatch` in `apps/server/src/tools/chartDslTool.js`.
+- Agent service: `ChartAgentService` (`apps/server/src/agents/chartLangChainAgent.js`).
+- **Style** edits are also supported for the chart slot (same `/api/copilotkit/style` route as Mermaid).
+- Chart mode is **not persisted** in `localStorage`; a page reload returns to Mermaid.
+
+See also [Agents](agents.md) and [Validation & repair](validation.md).

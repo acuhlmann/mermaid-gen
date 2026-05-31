@@ -1,6 +1,6 @@
 # Agents
 
-Orchestration is **not** a separate workflow engine. It is **two LangChain agents per content type** (plus a read-only analysis path) over shared session state, wrapped in repair logic when patches fail validation.
+Orchestration is **not** a separate workflow engine. It is **one or two LangChain agents per content type** (intent + optional transform, plus a shared read-only analysis path) over shared session state, wrapped in repair logic when patches fail validation. Four content types are dispatched: `mermaid`, `infographic`, `metaphor3d`, and `chart`.
 
 ## Dispatcher and agent services
 
@@ -9,10 +9,16 @@ flowchart TB
   Route["Route handler\n(intent / transform / analyze / agent-stream)"] -->|"contentType"| D["DiagramAgentDispatcher\ndiagramAgentDispatcher.js"]
   D -->|"contentType=mermaid"| MAS["MermaidAgentService\nmermaidLangChainAgent.js"]
   D -->|"contentType=infographic"| IAS["InfographicAgentService\ninfographicLangChainAgent.js"]
+  D -->|"contentType=metaphor3d"| MES["MetaphorAgentService\nmetaphorLangChainAgent.js"]
+  D -->|"contentType=chart"| CAS["ChartAgentService\nchartLangChainAgent.js"]
   MAS --> MT["Mermaid tools\napply_mermaid_patch\nget_diagram_state"]
   IAS --> IT["Infographic tools\napply_infographic_patch\nget_diagram_state"]
+  MES --> MET["Metaphor tools\napply_metaphor_patch\nget_diagram_state"]
+  CAS --> CT["Chart tools\napply_chart_patch\nget_diagram_state"]
   MT --> MV["validateAndPreparePatch\n(Mermaid 4-layer ladder)"]
   IT --> IV["validateAndPrepareInfographicPatch\n(2-layer: sanitizer + parseSyntax)"]
+  MET --> MEV["validateAndPrepareMetaphorPatch\n(schema + sanitizer + syntax fixer)"]
+  CT --> CV["validateAndPrepareChartPatch\n(DSL parse + schema)"]
 ```
 
 ## Roles: intent vs transform vs analysis
@@ -54,13 +60,13 @@ Agents are created in `createMermaidLangChainAgent` / `createInfographicLangChai
 | **Fix** | Turns the last critique into an actual edit (whole critique, or only checked "actionable" bullets in the insights pane). | Still **`operation: intent`**: `App.jsx` builds a long "apply these improvements / this critique" prompt and calls the same route as Go. Resets Go Mad streak. Clears stored critique after success. |
 | **Syntax auto-fix** (automatic) | When the editor shows a parse error, a debounced run asks the model to repair syntax. Mermaid-only; infographic uses the same `intent` path with a repair prompt. | Also **`operation: intent`** with a fixed repair prompt (`runAutoFix` in `App.jsx`). |
 
-**Style** (`POST /api/copilotkit/style`) is another mutation: same tools, but the user message is style-only (`%%{init: ...}%%`, `classDef`, etc.). Mermaid-only; the route rejects `contentType !== 'mermaid'`.
+**Style** (`POST /api/copilotkit/style`) is another mutation: same tools, but the user message is style-only (`%%{init: ...}%%`, `classDef`, Vega theme, etc.). Supported by **Mermaid and Chart**; the route rejects other content types.
 
 Validation and repair ladders: [Validation & repair](validation.md).
 
 ## Interaction flow
 
-1. User picks **Mode** (Diagram or Infographic) in the toolbar; the UI persists the choice and includes `contentType` in every subsequent request.
+1. User picks **Mode** (Diagram, Infographic, 3D, or Chart) from the AI corner controls; the UI persists the choice (except Chart) and includes `contentType` in every subsequent request.
 2. User edits source or loads state; client syncs via `GET`/`POST /api/copilotkit/state` with `contentType`.
 3. **Go**, **Fix from critique**, and **syntax auto-fix** all use the **intent** operation: `POST /api/copilotkit/agent-stream` with `operation: intent`, or `POST /api/copilotkit/intent` without streaming. The active `contentType` is forwarded.
 4. **Refine / Innovate / Go Mad** use `agent-stream` or `POST /api/copilotkit/transform` with `mode` and optional `goMadDepth`.

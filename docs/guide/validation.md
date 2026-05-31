@@ -73,18 +73,49 @@ flowchart TB
 - **Layer 2** uses AntV `parseSyntax` for per-template structure.
 - On failure, a **single-shot syntax fixer** (fast model, no tools) may apply corrected DSL once, then up to **two** full-agent repair turns with family-specific rule packs (list/sequence, chart, hierarchy, compare, relation).
 
-## Session state: dual-slot model
+## Metaphor3D validation pipeline
+
+Metaphor3D uses the same **validate → single-shot fixer → agent repair** shape:
 
 ```mermaid
 flowchart TB
-  Session["Session activeContentType mermaid or infographic"]
-  Session --> MS["mermaid slot revisionId diagramSource styleConfig history"]
-  Session --> IS["infographic slot revisionId diagramSource history"]
-  MS -->|applyPatch| MV["Mermaid validator"]
-  IS -->|applyPatch| IV["Infographic validator"]
+  Raw["Proposed Metaphor DSL JSON"] --> S["Sanitizer\n(metaphorSanitizer.ts)"]
+  S --> SC["Schema check\n(metaphorSchema.ts)"]
+  SC -->|valid| P["Patch accepted"]
+  SC -->|invalid| F["Single-shot syntax fixer\n(metaphorSyntaxFixer.js)"]
+  F -->|accepted| P
+  F -->|fail| A["Agent repair up to N attempts"]
 ```
 
-The two slots are fully independent — switching modes does not touch the other slot's revision history. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
+- **Sanitizer** (`packages/shared/src/metaphorSanitizer.ts`) strips code fences, normalises JSON, and coerces obvious type mismatches.
+- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union (city / layercake / galaxy / tree / terrain) and all item/link/scene fields.
+- **Single-shot syntax fixer** (`apps/server/src/agents/metaphorSyntaxFixer.js`) — one LLM call with the schema error and broken DSL; references `metaphorSyntaxGuard.js`.
+- **Agent repair turns** — bounded by `METAPHOR_REPAIR_MAX_ATTEMPTS` env var.
+
+## Chart validation pipeline
+
+Chart validation runs through `validateAndPrepareChartPatch` (`apps/server/src/tools/chartDslTool.js`):
+
+1. **DSL parse** — `parseChartDsl` (shared package) strips the `chart <type>` header and parses JSON.
+2. **Vega-Lite schema check** — validates the extracted spec.
+3. **Repair** — same single-shot fixer + agent repair pattern as the other slots.
+
+## Session state: four-slot model
+
+```mermaid
+flowchart TB
+  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart"]
+  Session --> MS["mermaid slot\nrevisionId · diagramSource · styleConfig · history"]
+  Session --> IS["infographic slot\nrevisionId · diagramSource · history"]
+  Session --> MES["metaphor3d slot\nrevisionId · diagramSource · history"]
+  Session --> CS["chart slot\nrevisionId · diagramSource · history"]
+  MS -->|applyPatch| MV["Mermaid validator"]
+  IS -->|applyPatch| IV["Infographic validator"]
+  MES -->|applyPatch| MEV["Metaphor3D validator"]
+  CS -->|applyPatch| CV["Chart validator"]
+```
+
+All four slots are fully independent — switching modes does not touch the other slots' revision histories. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
 
 ## Session alignment (REST vs CopilotKit)
 

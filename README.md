@@ -1,12 +1,12 @@
 # ArchiSlop
 
-Single-repo JavaScript prototype for **collaborative diagram editing**: humans in the browser, built-in LangChain agents, and **external agents over MCP** in the same session. Two canvas modes: **Mermaid** (flowcharts, sequences, etc.) and **Infographic** (AntV template-based layouts). The active mode is toggled from the UI and persisted across sessions.
+Single-repo JavaScript prototype for **collaborative diagram editing**: humans in the browser, built-in LangChain agents, and **external agents over MCP** in the same session. Four canvas modes: **Mermaid** (flowcharts, sequences, etc.), **Infographic** (AntV template-based layouts), **Metaphor3D** (immersive spatial stories: city, layer-cake, galaxy, tree, terrain), and **Chart** (Vega-Lite charts). The active mode is toggled from the UI; Mermaid, Infographic, and Metaphor3D are persisted across sessions.
 
 ## Quick start
 
 1. `npm run setup` then `cp .env.example .env` and set at least `OPENROUTER_API_KEY` (or Vertex vars) for AI features.
 2. `npm run dev` — API on `http://localhost:4000`, UI on `http://localhost:5173` (`VITE_API_BASE_URL` → API).
-3. Open the UI, use **Go** in the prompt bar; toggle **Diagram** vs **Infographic** in the toolbar.
+3. Open the UI, use **Go** in the prompt bar; switch modes (**Diagram**, **Infographic**, **3D**, **Chart**) from the AI corner controls.
 4. `curl http://localhost:4000/api/health` — `llmConfigured: true` when AI routes are ready.
 
 Step-by-step setup, env vars, and MCP pairing: **[`docs/guide/`](docs/guide/)**.

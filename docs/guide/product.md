@@ -4,9 +4,9 @@
 
 - One always-visible user prompt captures the human's drawing intent; **Go** applies it via the **intent** path (default LangChain agent + diagram tools), grounded in the user's own wording.
 - **Refine**, **Innovate**, and **Go Mad** reuse the same tools but run under a **transform** agent with mode-specific prompts and sampling (hotter for bolder modes).
-- **Critique** / **Explain** run read-only analysis into an insights pane; **Fix** turns critique into a diagram edit by reusing the **intent** path (the web app sends a long structured prompt as if it were a user request); **Show Thinking** streams agent telemetry into the same pane (SSE).
+- **Critique** / **Explain** run read-only analysis into an insights pane; **Fix** turns critique into a diagram edit by reusing the **intent** path (the web app sends a long structured prompt as if it were a user request); **Show Thinking** streams agent telemetry into the same pane (SSE). **Show Thinking** button and icon are hidden until the first thinking event occurs in the session.
 - Optional focus on a diagram node or edge narrows transforms, explanations, and critique-driven fixes to that subgraph.
-- Switching between **Diagram** and **Infographic** modes preserves both canvases independently; the active content type is forwarded in every agent call so the right agent and validator handles the request.
+- Switching between **Diagram**, **Infographic**, **3D**, and **Chart** modes preserves all canvases independently; the active content type is forwarded in every agent call so the right agent and validator handles the request.
 
 ## Web UI (what you see)
 
@@ -20,5 +20,6 @@
 | **Handshakes & proposals** | Dialog when an MCP guest requests join; proposal cards when a guest submits an edit (accept / reject / request changes). |
 | **Invite agent** | Pairing code, QR, **Add to Cursor** / **Install in VS Code** deeplinks, rotate code. |
 | **Slopitect** (cosmetic) | Companion avatar, run HUD, streaks, and session achievements — feedback on agent runs, not a separate backend. |
+| **Metaphor3D fullscreen** | Native-fullscreen canvas for the 3D slot. An in-canvas pill lets the viewer switch spatial metaphor kinds (city → terrain → galaxy …) without leaving fullscreen; a × exit button is always visible. The proactive Advisor loop is paused while fullscreen is active so it doesn’t pulse nodes over a bare canvas. |
 
 Built-in agents never bypass validation; external agents never auto-apply (proposals only).

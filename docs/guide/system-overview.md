@@ -1,6 +1,6 @@
 # System overview
 
-The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **two independent slots** — Mermaid source and AntV Infographic DSL — plus an `activeContentType` pointer.
+The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **four independent slots** — Mermaid source, AntV Infographic DSL, Metaphor3D DSL JSON, and Vega-Lite Chart DSL — plus an `activeContentType` pointer.
 
 Three **parallel channels** serve different participants (guest-agent detail: [`docs/architecture-external-agents.md`](../architecture-external-agents.md)):
 
@@ -22,10 +22,12 @@ flowchart TB
     MCP["/mcp Streamable HTTP\n+ MCP Apps"]
     CK["CopilotKit runtime\n(AG-UI fallback)"]
     Reg["Session registry"]
-    SS[("Dual-slot state\n+ proposals · presence")]
+    SS[("Four-slot state\n+ proposals · presence")]
     Dispatcher["DiagramAgentDispatcher"]
     MA[Mermaid agents]
     IA[Infographic agents]
+    MEA[Metaphor3D agents]
+    CA[Chart agents]
     Router --- Reg
     SE --- Reg
     MCP --- Reg
@@ -34,6 +36,8 @@ flowchart TB
     Reg --> Dispatcher
     Dispatcher --> MA
     Dispatcher --> IA
+    Dispatcher --> MEA
+    Dispatcher --> CA
   end
 
   subgraph guests ["External agents"]
@@ -46,7 +50,7 @@ flowchart TB
   Collab <-->|"collaboration only"| SE
   Cursor <-->|"MCP tools · never auto-patch"| MCP
   Store -.->|"optional"| CK
-  MA & IA <-->|"LangChain + tools"| LLM
+  MA & IA & MEA & CA <-->|"LangChain + tools"| LLM
   MCP -.->|"handshake · proposal events"| SE
 ```
 
@@ -89,4 +93,6 @@ ArchiSlop uses **three UI strategies** on purpose — full map: [`docs/architect
 - **`contentType`** is forwarded on every mutation — dispatcher, slot selection, and `applyPatch` enforce slot boundaries.
 - **Validation (Mermaid)**: in-process `mermaid.parse` (JSDOM) + sanitizer rescue in `validateAndPreparePatch`.
 - **Validation (Infographic)**: local `parseSyntax` only.
+- **Validation (Metaphor3D)**: JSON schema + sanitizer + syntax fixer; same repair ladder shape as Mermaid.
+- **Validation (Chart)**: `parseChartDsl` (shared package) + Vega schema check.
 - **External edits**: validated at proposal time; applied only after human accept (same validators as built-in tools).
