@@ -3858,6 +3858,7 @@ ${requirementsBlock}`;
             agentThinkingChrome={agentThinkingChrome}
             insightsOpen={insightsOpen}
             onToggleInsights={() => setInsightsOpen((v) => !v)}
+            includeThinkingToggle={insightsEntries.length > 0}
           />
         }
       />
