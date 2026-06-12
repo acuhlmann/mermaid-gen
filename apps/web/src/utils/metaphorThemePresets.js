@@ -37,6 +37,10 @@ export const METAPHOR_THEME_PRESETS = {
     waterColor: '#7dd3fc',
     treeAccentColor: '#f43f5e',
     nebulaDustColor: '#fde68a',
+    treeMeadowColor: '#a8d39a',
+    treeSoilColor: '#7a5a3a',
+    spaceTopColor: '#0b1026',
+    spaceHorizonColor: '#1d2a4d',
     // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field.
     postfx: {
       enabled: true,
@@ -87,6 +91,10 @@ export const METAPHOR_THEME_PRESETS = {
     waterColor: '#1e3a8a',
     treeAccentColor: '#94a3b8',
     nebulaDustColor: '#cbd5e1',
+    treeMeadowColor: '#0d1726',
+    treeSoilColor: '#070d18',
+    spaceTopColor: '#01030a',
+    spaceHorizonColor: '#0b1626',
     // Dramatic: heavy bloom on the lit windows/stars, deep vignette, dark shadow.
     postfx: {
       enabled: true,
@@ -137,6 +145,10 @@ export const METAPHOR_THEME_PRESETS = {
     waterColor: '#4cc9f0',
     treeAccentColor: '#ff6bcb',
     nebulaDustColor: '#ffd166',
+    treeMeadowColor: '#2d0a53',
+    treeSoilColor: '#1c0336',
+    spaceTopColor: '#0a0118',
+    spaceHorizonColor: '#31085e',
     // Neon arcade: strongest bloom + saturation for a synthwave glow.
     postfx: {
       enabled: true,
@@ -187,6 +199,10 @@ export const METAPHOR_THEME_PRESETS = {
     waterColor: '#38bdf8',
     treeAccentColor: '#f0f9ff',
     nebulaDustColor: '#bae6fd',
+    treeMeadowColor: '#11315e',
+    treeSoilColor: '#0a2348',
+    spaceTopColor: '#030b1c',
+    spaceHorizonColor: '#0e2f5e',
     // Technical/crisp: modest bloom on the linework, light vignette, no DoF.
     postfx: {
       enabled: true,

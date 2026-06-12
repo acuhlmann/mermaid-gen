@@ -1,16 +1,26 @@
+import { hash01Salted } from '../seededHash.js';
+
 const LEVEL_HEIGHT = 2.6;
 const BASE_RADIUS = 3.2;
 const RADIUS_DEPTH_FACTOR = 1.4;
 const ROOT_SPACING = 12;
+// Roots sit at trunk-top height so the renderer can draw a visible trunk below
+// them (at y=0 the trunk segment would have zero length and never render).
+const TRUNK_HEIGHT = 2.3;
+const EXPLICIT_KINDS = new Set(['trunk', 'branch', 'leaf']);
 
 /**
  * Layout tree items by radial branching from each root.
- * Items reference parents by id; orphans/cycles must have been cleared by the sanitizer.
+ * Items reference parents by id; orphans/cycles must have been cleared by the
+ * sanitizer. Roots are lifted to TRUNK_HEIGHT; children fan out inside their
+ * parent's angular wedge with small deterministic (id-hashed) angle/radius/
+ * height jitter so the crown reads organic rather than mechanical.
  *
  * @returns {{
  *   positions: Map<string, [number, number, number]>,
  *   nodeInfo: Map<string, { kind: 'trunk'|'branch'|'leaf', depth: number, parentId: string | null, weight: number }>,
- *   roots: string[]
+ *   roots: string[],
+ *   bounds: { radius: number }
  * }}
  */
 export function treeRadialLayout(items) {
@@ -40,7 +50,10 @@ export function treeRadialLayout(items) {
   function place(node, position, depth, parentId, startAngle, endAngle) {
     positions.set(node.id, position);
     const children = childrenOf.get(node.id) ?? [];
-    const kind = depth === 0 ? 'trunk' : children.length === 0 ? 'leaf' : 'branch';
+    const derivedKind = depth === 0 ? 'trunk' : children.length === 0 ? 'leaf' : 'branch';
+    // Honor an author-declared kind (drives foliage/labels); fall back to the
+    // structural one.
+    const kind = EXPLICIT_KINDS.has(node.kind) ? node.kind : derivedKind;
     const weight = typeof node.weight === 'number' && Number.isFinite(node.weight) ? node.weight : 3;
     nodeInfo.set(node.id, { kind, depth, parentId, weight });
 
@@ -52,11 +65,16 @@ export function treeRadialLayout(items) {
     const childY = position[1] + LEVEL_HEIGHT;
 
     children.forEach((child, idx) => {
-      const center = startAngle + (idx + 0.5) * childWedge;
+      const center =
+        startAngle +
+        (idx + 0.5) * childWedge +
+        (hash01Salted(child.id, 'tree-angle') - 0.5) * childWedge * 0.3;
+      const radius = childRadius * (0.86 + hash01Salted(child.id, 'tree-radius') * 0.28);
+      const liftedY = childY + (hash01Salted(child.id, 'tree-lift') - 0.5) * 0.6;
       const autoPos = [
-        position[0] + Math.cos(center) * childRadius,
-        childY,
-        position[2] + Math.sin(center) * childRadius
+        position[0] + Math.cos(center) * radius,
+        liftedY,
+        position[2] + Math.sin(center) * radius
       ];
       const childPos =
         Array.isArray(child.position) && child.position.length === 3
@@ -75,7 +93,7 @@ export function treeRadialLayout(items) {
 
   roots.forEach((root, rootIdx) => {
     const rootX = rootCount === 1 ? 0 : (rootIdx - (rootCount - 1) / 2) * ROOT_SPACING;
-    const autoPos = [rootX, 0, 0];
+    const autoPos = [rootX, TRUNK_HEIGHT, 0];
     const rootPos =
       Array.isArray(root.position) && root.position.length === 3
         ? [root.position[0], root.position[1], root.position[2]]
@@ -83,5 +101,15 @@ export function treeRadialLayout(items) {
     place(root, rootPos, 0, null, -Math.PI, Math.PI);
   });
 
-  return { positions, nodeInfo, roots: roots.map((r) => r.id) };
+  let boundsRadius = 0;
+  for (const pos of positions.values()) {
+    boundsRadius = Math.max(boundsRadius, Math.hypot(pos[0], pos[2]));
+  }
+
+  return {
+    positions,
+    nodeInfo,
+    roots: roots.map((r) => r.id),
+    bounds: { radius: boundsRadius }
+  };
 }

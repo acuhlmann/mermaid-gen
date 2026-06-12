@@ -6,6 +6,7 @@ import {
   layercakeSlabRadius,
   layercakeStackLayout
 } from '../src/utils/metaphorLayouts/layercakeComponentsLayout.js';
+import { treeRadialLayout } from '../src/utils/metaphorLayouts/treeRadialLayout.js';
 import { gridPosition } from '../src/utils/metaphorLayouts/gridPosition.js';
 
 describe('metaphorLayouts', () => {
@@ -50,6 +51,52 @@ describe('metaphorLayouts', () => {
     const p1 = positions.get('s1');
     const p2 = positions.get('s2');
     expect(Math.hypot(p1[0] - p2[0], p1[2] - p2[2])).toBeGreaterThan(5);
+  });
+
+  it('galaxyClusterLayout keeps stars inside their cluster disc', () => {
+    const items = Array.from({ length: 12 }, (_, i) => ({
+      id: `s${i}`,
+      label: `S${i}`,
+      cluster: i < 6 ? 'alpha' : 'beta'
+    }));
+    const { positions, clusters } = galaxyClusterLayout(items);
+    expect(clusters.map((c) => c.count)).toEqual([6, 6]);
+    for (const cluster of clusters) {
+      expect(cluster.radius).toBeGreaterThan(0);
+    }
+    items.forEach((item, i) => {
+      const cluster = clusters[i < 6 ? 0 : 1];
+      const pos = positions.get(item.id);
+      const horizontal = Math.hypot(pos[0] - cluster.center[0], pos[2] - cluster.center[2]);
+      expect(horizontal).toBeLessThanOrEqual(cluster.radius + 0.001);
+    });
+  });
+
+  it('treeRadialLayout lifts roots to trunk height and stacks children above', () => {
+    const items = [
+      { id: 'root', label: 'Root' },
+      { id: 'a', label: 'A', parent: 'root' },
+      { id: 'b', label: 'B', parent: 'root' }
+    ];
+    const { positions, nodeInfo, roots, bounds } = treeRadialLayout(items);
+    expect(roots).toEqual(['root']);
+    const rootPos = positions.get('root');
+    // Roots sit at trunk-top height so the renderer can draw a visible trunk.
+    expect(rootPos[1]).toBeGreaterThan(0.5);
+    expect(positions.get('a')[1]).toBeGreaterThan(rootPos[1] + 1);
+    expect(nodeInfo.get('root').kind).toBe('trunk');
+    expect(nodeInfo.get('a').kind).toBe('leaf');
+    expect(bounds.radius).toBeGreaterThan(0);
+  });
+
+  it('treeRadialLayout honors explicit position and author kind overrides', () => {
+    const items = [
+      { id: 'root', label: 'Root', position: [2, 4, -1] },
+      { id: 'a', label: 'A', parent: 'root', kind: 'branch' }
+    ];
+    const { positions, nodeInfo } = treeRadialLayout(items);
+    expect(positions.get('root')).toEqual([2, 4, -1]);
+    expect(nodeInfo.get('a').kind).toBe('branch');
   });
 
   it('layercakeStackLayout accumulates Y offsets', () => {

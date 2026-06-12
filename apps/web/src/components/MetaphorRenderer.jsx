@@ -1,7 +1,5 @@
 import {
-  createContext,
   forwardRef,
-  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -10,16 +8,7 @@ import {
 } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import {
-  OrbitControls,
-  Billboard,
-  Bounds,
-  Center,
-  Text,
-  Environment,
-  Line,
-  ContactShadows
-} from '@react-three/drei';
+import { OrbitControls, Billboard, Bounds, Center, Environment, Line } from '@react-three/drei';
 import {
   parsePartialMetaphorDsl,
   partialToRenderableMetaphorDsl,
@@ -28,18 +17,14 @@ import {
 import {
   resolveMetaphorThemePreset,
   resolveMetaphorPostfx,
-  resolveDistrictColor,
-  resolveClusterColor,
-  resolveNebulaColor
+  resolveDistrictColor
 } from '../utils/metaphorThemePresets.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
-import { galaxyClusterLayout } from '../utils/metaphorLayouts/galaxyClusterLayout.js';
 import {
   layercakeComponentPositions,
   layercakeSlabRadius,
   layercakeStackLayout
 } from '../utils/metaphorLayouts/layercakeComponentsLayout.js';
-import { treeRadialLayout } from '../utils/metaphorLayouts/treeRadialLayout.js';
 import { terrainHeightmap, heightColor } from '../utils/metaphorLayouts/terrainHeightmap.js';
 import { Glyph } from './metaphorGlyphs/index.jsx';
 import {
@@ -49,7 +34,18 @@ import {
   MetaphorHoverTooltip
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
-import { MetaphorHoverContext, useMetaphorHover, createMetaphorHoverStore } from './metaphorHover.js';
+import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
+import { MetaphorClockContext, useMetaphorClock } from './metaphorScenes/metaphorClock.js';
+import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
+import {
+  GradientSkySphere,
+  HoverableItem,
+  ItemLabel,
+  MetaphorGroundShadow,
+  MetaphorLinks
+} from './metaphorScenes/MetaphorSceneChrome.jsx';
+import { TreeScene } from './metaphorScenes/TreeScene.jsx';
+import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -57,27 +53,7 @@ const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
 const CUTAWAY_THETA = (330 / 360) * Math.PI * 2;
 
-function truncateLabel(text, maxLen = 14) {
-  if (!text || text.length <= maxLen) return text;
-  return `${text.slice(0, maxLen - 1)}…`;
-}
-
-function idHash(id) {
-  const str = String(id ?? '');
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i += 1) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ((h >>> 0) % 1_000_000) / 1_000_000;
-}
-
-function idHash2(id, salt) {
-  return idHash(`${salt}::${id}`);
-}
-
-const MetaphorClockContext = createContext({ getTime: () => 0, animated: false });
-
+/** Advances the shared scene clock; gated off (frozen at 0) during streaming. */
 function MetaphorClockProvider({ enabled, children }) {
   const timeRef = useRef(0);
   useFrame((_, delta) => {
@@ -92,77 +68,6 @@ function MetaphorClockProvider({ enabled, children }) {
     [enabled]
   );
   return <MetaphorClockContext.Provider value={value}>{children}</MetaphorClockContext.Provider>;
-}
-
-function useMetaphorClock() {
-  return useContext(MetaphorClockContext);
-}
-
-function ItemLabel({ text, position, fontSize = 0.55, color = '#0f172a', outlineColor = '#ffffff' }) {
-  if (!text) return null;
-  return (
-    <Billboard position={position}>
-      <Text
-        fontSize={fontSize}
-        color={color}
-        anchorX="center"
-        anchorY="middle"
-        maxWidth={fontSize * 16}
-        outlineWidth={fontSize * 0.14}
-        outlineColor={outlineColor}
-        outlineOpacity={1}
-      >
-        {text}
-      </Text>
-    </Billboard>
-  );
-}
-
-/** Soft grounded contact shadow — used by the flat-ground scenes (city, tree). */
-function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
-  const sfx = theme.postfx ?? {};
-  return (
-    <ContactShadows
-      position={[0, y, 0]}
-      scale={scale ?? sfx.shadowScale ?? 44}
-      opacity={sfx.shadowOpacity ?? 0.35}
-      blur={sfx.shadowBlur ?? 2.6}
-      color={sfx.shadowColor ?? '#0a0f1e'}
-      far={50}
-      resolution={512}
-    />
-  );
-}
-
-/**
- * Wraps a per-item group with pointer handlers that drive the hover tooltip.
- * Writes only to the external hover store (no scene re-render) and stops event
- * propagation so it coexists with OrbitControls (drag still rotates the view).
- * No-ops when hover is disabled (store is null during streaming).
- */
-function HoverableItem({ item, metaphor, children }) {
-  const store = useMetaphorHover();
-  const update = (event) => {
-    if (!store) return;
-    event.stopPropagation();
-    store.set({ item, metaphor, x: event.clientX, y: event.clientY });
-  };
-  const handleOver = (event) => {
-    if (!store) return;
-    update(event);
-    if (typeof document !== 'undefined') document.body.style.cursor = 'pointer';
-  };
-  const handleOut = (event) => {
-    if (!store) return;
-    event.stopPropagation();
-    store.set(null);
-    if (typeof document !== 'undefined') document.body.style.cursor = '';
-  };
-  return (
-    <group onPointerOver={handleOver} onPointerMove={update} onPointerOut={handleOut}>
-      {children}
-    </group>
-  );
 }
 
 const LIGHTING_BOOST = { lit: 0.2, dim: 0.08, dark: 0 };
@@ -565,19 +470,6 @@ function SlabSideRidges({ radius, thickness, theme }) {
   );
 }
 
-/** HSL nudge of a base colour (hex or THREE.Color) → a fresh THREE.Color. */
-function shiftColor(input, { lightness = 0, satScale = 1, hueShift = 0 } = {}) {
-  const c = new THREE.Color(input);
-  const hsl = { h: 0, s: 0, l: 0 };
-  c.getHSL(hsl);
-  c.setHSL(
-    (hsl.h + hueShift + 1) % 1,
-    THREE.MathUtils.clamp(hsl.s * satScale, 0, 1),
-    THREE.MathUtils.clamp(hsl.l + lightness, 0, 1)
-  );
-  return c;
-}
-
 /**
  * Per-layer body tint so a stack reads as distinct, appetizing layers instead of
  * one monochrome column: a gentle vertical ramp (richer/darker at the base,
@@ -764,266 +656,17 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1 }) 
   );
 }
 
-function StarTwinkle({ children, id, baseIntensity, magnitude }) {
-  const groupRef = useRef(null);
-  const matRef = useRef(null);
-  const { getTime, animated } = useMetaphorClock();
-  const phase = useMemo(() => idHash(id) * Math.PI * 2, [id]);
-  useFrame(() => {
-    if (!animated) return;
-    const t = getTime();
-    const pulse = 0.7 + 0.3 * Math.sin(t * 2 + phase);
-    if (groupRef.current) {
-      const s = 1 + 0.06 * Math.sin(t * 2.7 + phase * 1.3);
-      groupRef.current.scale.set(s, s, s);
-    }
-    if (matRef.current) {
-      matRef.current.emissiveIntensity = baseIntensity * pulse;
-    }
-  });
-  return (
-    <group ref={groupRef}>
-      {typeof children === 'function' ? children({ matRef }) : children}
-    </group>
-  );
-}
-
-function DiffractionSpikes({ size, color }) {
-  const length = Math.max(0.6, size * 4.5);
-  const width = Math.max(0.05, size * 0.35);
-  return (
-    <Billboard>
-      <mesh>
-        <planeGeometry args={[length, width]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.55}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
-        />
-      </mesh>
-      <mesh rotation={[0, 0, Math.PI / 2]}>
-        <planeGeometry args={[length, width]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.55}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
-        />
-      </mesh>
-    </Billboard>
-  );
-}
-
-function StarHaloBillboard({ size, color }) {
-  return (
-    <Billboard>
-      <mesh>
-        <planeGeometry args={[size * 5, size * 5]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={0.18}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
-        />
-      </mesh>
-    </Billboard>
-  );
-}
-
-function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
-  const magnitude = Math.max(0.3, (item.magnitude ?? 5) * 0.15);
-  const starColor = resolveClusterColor(theme, clusterIndex);
-  const baseIntensity = 0.8 + magnitude * 0.12;
-
-  return (
-    <group position={position}>
-      <StarHaloBillboard size={magnitude} color={starColor} />
-      <DiffractionSpikes size={magnitude} color={starColor} />
-      <StarTwinkle id={item.id} baseIntensity={baseIntensity} magnitude={magnitude}>
-        {({ matRef }) => (
-          <mesh>
-            <sphereGeometry args={[magnitude, 16, 16]} />
-            <meshStandardMaterial
-              ref={matRef}
-              emissive={starColor}
-              emissiveIntensity={baseIntensity}
-              color={starColor}
-              toneMapped={false}
-            />
-          </mesh>
-        )}
-      </StarTwinkle>
-      {item.glyph && showGlyph ? (
-        <Billboard>
-          <group
-            position={[magnitude + 0.9, 0, 0]}
-            scale={Math.max(0.55, Math.min(1.3, magnitude * 0.9))}
-          >
-            <Glyph kind={item.glyph} theme={theme} />
-          </group>
-        </Billboard>
-      ) : null}
-      <ItemLabel
-        text={item.label}
-        position={[0, magnitude + 0.7, 0]}
-        fontSize={0.45}
-        color={theme.labelColor}
-        outlineColor={theme.labelOutline}
-      />
-    </group>
-  );
-}
-
-/** Sample a polyline (array of [x,y,z] points) at t in [0,1], piecewise-linear. */
-function samplePolyline(points, t) {
-  const segments = points.length - 1;
-  const clamped = t <= 0 ? 0 : t >= 1 ? 0.999999 : t;
-  const ft = clamped * segments;
-  const i = Math.floor(ft);
-  const f = ft - i;
-  const a = points[i];
-  const b = points[i + 1];
-  return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
-}
-
-/** A glowing dot that travels from→to along a link, conveying flow direction. */
-function LinkFlowPulse({ points, color, seed }) {
-  const ref = useRef(null);
-  const { getTime, animated } = useMetaphorClock();
-  useFrame(() => {
-    if (!ref.current) return;
-    const t = animated ? (getTime() * 0.16 + seed) % 1 : seed;
-    const p = samplePolyline(points, t);
-    ref.current.position.set(p[0], p[1], p[2]);
-  });
-  return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[0.13, 10, 10]} />
-      <meshBasicMaterial color={color} toneMapped={false} transparent opacity={0.92} />
-    </mesh>
-  );
-}
-
-/** Map a link's semantic `kind` to its line colour, pulse colour, and whether a
- *  travelling flow pulse animates. Undefined kind keeps the default (line + pulse). */
-function resolveLinkAppearance(kind, theme) {
-  const baseColor = theme.linkColor ?? '#64748b';
-  const glow = theme.binaryGlowColor ?? baseColor;
-  if (kind === 'flow') return { lineColor: glow, pulseColor: glow, showPulse: true };
-  if (kind === 'ownership') {
-    const accent = theme.treeAccentColor ?? glow;
-    return { lineColor: accent, pulseColor: accent, showPulse: false };
-  }
-  if (kind === 'dependency') return { lineColor: baseColor, pulseColor: glow, showPulse: false };
-  return { lineColor: baseColor, pulseColor: glow, showPulse: true };
-}
-
-function MetaphorLinks({ links, anchors, theme }) {
-  if (!links?.length) return null;
-
-  return (
-    <group>
-      {links.map((link, idx) => {
-        const from = anchors.get(link.from);
-        const to = anchors.get(link.to);
-        if (!from || !to) return null;
-
-        const midY = Math.max(from[1], to[1]) + 1.5;
-        const points = [from, [from[0], midY, from[2]], [to[0], midY, to[2]], to];
-        const midpoint = [
-          (from[0] + to[0]) / 2,
-          midY + 0.3,
-          (from[2] + to[2]) / 2
-        ];
-
-        const appearance = resolveLinkAppearance(link.kind, theme);
-        return (
-          <group key={`${link.from}-${link.to}-${idx}`}>
-            <Line
-              points={points}
-              color={appearance.lineColor}
-              lineWidth={1}
-              transparent
-              opacity={theme.linkOpacity ?? 0.75}
-            />
-            {appearance.showPulse ? (
-              <LinkFlowPulse
-                points={points}
-                color={appearance.pulseColor}
-                seed={idHash2(`${link.from}-${link.to}`, 'flow')}
-              />
-            ) : null}
-            {link.label ? (
-              <ItemLabel
-                text={link.label}
-                position={midpoint}
-                fontSize={0.35}
-                color={theme.labelColor}
-                outlineColor={theme.labelOutline}
-              />
-            ) : null}
-          </group>
-        );
-      })}
-    </group>
-  );
-}
-
 /**
- * Vertical-gradient sky for the city scene — replaces the flat canvas
- * background with a calmer, deeper backdrop so the floating labels read against
- * it instead of fighting the lit windows and bloom. Rendered as a big
- * back-faced sphere *outside* `<Bounds>` so it never enlarges the framed
- * footprint, and `depthWrite={false}` keeps it behind the city.
+ * City sky — calm vertical gradient behind the skyline so the floating labels
+ * read against it instead of fighting the lit windows and bloom (see
+ * GradientSkySphere for why it renders outside <Bounds>).
  */
 function CitySky({ theme }) {
-  const material = useMemo(() => {
-    const top = new THREE.Color(theme.skyTopColor ?? theme.background ?? '#0b1020');
-    const horizon = new THREE.Color(theme.skyHorizonColor ?? theme.background ?? '#1b2436');
-    return new THREE.ShaderMaterial({
-      side: THREE.BackSide,
-      depthWrite: false,
-      uniforms: {
-        topColor: { value: top },
-        horizonColor: { value: horizon },
-        offset: { value: 0.08 },
-        exponent: { value: 0.85 }
-      },
-      vertexShader: `
-        varying vec3 vWorldPosition;
-        void main() {
-          vWorldPosition = (modelMatrix * vec4(position, 1.0)).xyz;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform vec3 topColor;
-        uniform vec3 horizonColor;
-        uniform float offset;
-        uniform float exponent;
-        varying vec3 vWorldPosition;
-        void main() {
-          float h = normalize(vWorldPosition).y;
-          float t = pow(clamp((h + offset) / (1.0 + offset), 0.0, 1.0), exponent);
-          gl_FragColor = vec4(mix(horizonColor, topColor, t), 1.0);
-        }
-      `
-    });
-  }, [theme.skyTopColor, theme.skyHorizonColor, theme.background]);
-
-  useEffect(() => () => material.dispose(), [material]);
-
   return (
-    <mesh material={material} scale={220} renderOrder={-1} frustumCulled={false}>
-      <sphereGeometry args={[1, 32, 16]} />
-    </mesh>
+    <GradientSkySphere
+      topColor={theme.skyTopColor ?? theme.background ?? '#0b1020'}
+      horizonColor={theme.skyHorizonColor ?? theme.background ?? '#1b2436'}
+    />
   );
 }
 
@@ -1145,441 +788,6 @@ function LayercakeScene({ dsl, theme }) {
           </HoverableItem>
         );
       })}
-      <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
-    </group>
-  );
-}
-
-function NebulaCloud({ cloud, theme, index }) {
-  const color = cloud.color ?? resolveNebulaColor(theme, index);
-  const radius = Math.max(1, cloud.radius ?? 6);
-  const idSeed = `nebula-${index}`;
-  const layers = useMemo(() => {
-    const offsets = [
-      { scale: 1.0, opacity: 0.14, offset: [0, 0, 0] },
-      {
-        scale: 0.72,
-        opacity: 0.18,
-        offset: [
-          (idHash2(idSeed, 'ox1') - 0.5) * radius * 0.4,
-          (idHash2(idSeed, 'oy1') - 0.5) * radius * 0.3,
-          (idHash2(idSeed, 'oz1') - 0.5) * radius * 0.4
-        ]
-      },
-      {
-        scale: 0.42,
-        opacity: 0.24,
-        offset: [
-          (idHash2(idSeed, 'ox2') - 0.5) * radius * 0.6,
-          (idHash2(idSeed, 'oy2') - 0.5) * radius * 0.5,
-          (idHash2(idSeed, 'oz2') - 0.5) * radius * 0.6
-        ]
-      }
-    ];
-    return offsets;
-  }, [idSeed, radius]);
-  return (
-    <group position={cloud.center}>
-      {layers.map((layer, i) => (
-        <mesh key={`neb-${i}`} position={layer.offset}>
-          <sphereGeometry args={[radius * layer.scale, 24, 24]} />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={layer.opacity}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            toneMapped={false}
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function BinaryConnector({ from, to, theme }) {
-  const matRef = useRef(null);
-  const { getTime, animated } = useMetaphorClock();
-  const seed = useMemo(() => idHash(`${from?.join('|')}->${to?.join('|')}`), [from, to]);
-  useFrame(() => {
-    if (!animated || !matRef.current) return;
-    const t = getTime();
-    matRef.current.opacity = 0.7 + 0.15 * Math.sin(t * 2.5 + seed * Math.PI * 2);
-  });
-  return (
-    <Line
-      points={[from, to]}
-      color={theme.binaryGlowColor ?? theme.starColor}
-      lineWidth={2.5}
-      transparent
-      opacity={0.85}
-      ref={(line) => {
-        if (line && line.material) {
-          matRef.current = Array.isArray(line.material) ? line.material[0] : line.material;
-        }
-      }}
-    />
-  );
-}
-
-function SpiralArmDust({ cluster, theme }) {
-  const motes = useMemo(() => {
-    const seed = idHash(`spiral-${cluster.name ?? 'main'}`);
-    const armCount = 2;
-    const motesPerArm = 20;
-    const out = [];
-    for (let arm = 0; arm < armCount; arm += 1) {
-      const armOffset = (arm / armCount) * Math.PI * 2;
-      for (let i = 0; i < motesPerArm; i += 1) {
-        const t = (i + 1) / motesPerArm;
-        const radius = 3 + t * 14;
-        const angle = armOffset + seed * Math.PI * 2 + t * Math.PI * 2.2;
-        const jitterX = (idHash2(cluster.name ?? 'main', `jx${arm}${i}`) - 0.5) * 1.4;
-        const jitterY = (idHash2(cluster.name ?? 'main', `jy${arm}${i}`) - 0.5) * 1.4;
-        const jitterZ = (idHash2(cluster.name ?? 'main', `jz${arm}${i}`) - 0.5) * 1.4;
-        out.push({
-          position: [
-            Math.cos(angle) * radius + jitterX,
-            jitterY * 0.6,
-            Math.sin(angle) * radius + jitterZ
-          ],
-          size: 0.5 + idHash2(cluster.name ?? 'main', `s${arm}${i}`) * 0.6
-        });
-      }
-    }
-    return out;
-  }, [cluster.name]);
-  const dustColor = theme.nebulaDustColor ?? resolveNebulaColor(theme, 0);
-  return (
-    <group>
-      {motes.map((m, i) => (
-        <Billboard key={`mote-${i}`} position={m.position}>
-          <mesh>
-            <planeGeometry args={[m.size, m.size]} />
-            <meshBasicMaterial
-              color={dustColor}
-              transparent
-              opacity={0.35}
-              depthWrite={false}
-              blending={THREE.AdditiveBlending}
-              toneMapped={false}
-            />
-          </mesh>
-        </Billboard>
-      ))}
-    </group>
-  );
-}
-
-function GalaxyScene({ dsl, theme }) {
-  const layout = useMemo(() => galaxyClusterLayout(dsl.items), [dsl.items]);
-  const clusterIndexByName = useMemo(() => {
-    const map = new Map();
-    layout.clusters.forEach((c) => map.set(c.name, c.index));
-    return map;
-  }, [layout.clusters]);
-
-  const anchors = useMemo(() => {
-    const map = new Map();
-    for (const item of dsl.items) {
-      const pos = layout.positions.get(item.id);
-      if (!pos) continue;
-      map.set(item.id, [...pos]);
-    }
-    return map;
-  }, [dsl.items, layout.positions]);
-
-  const binaryPairs = useMemo(() => {
-    const pairs = [];
-    const seen = new Set();
-    for (const item of dsl.items) {
-      if (typeof item.binary !== 'string') continue;
-      const a = item.id;
-      const b = item.binary;
-      const key = a < b ? `${a}|${b}` : `${b}|${a}`;
-      if (seen.has(key)) continue;
-      const fromPos = anchors.get(a);
-      const toPos = anchors.get(b);
-      if (!fromPos || !toPos) continue;
-      seen.add(key);
-      pairs.push({ key, from: fromPos, to: toPos });
-    }
-    return pairs;
-  }, [dsl.items, anchors]);
-
-  const nebula = Array.isArray(dsl.scene?.nebula) ? dsl.scene.nebula : [];
-
-  const magnitudeMedian = useMemo(() => {
-    const mags = dsl.items.map((it) => it.magnitude ?? 5).sort((a, b) => a - b);
-    if (!mags.length) return 0;
-    const mid = Math.floor(mags.length / 2);
-    return mags.length % 2 === 0 ? (mags[mid - 1] + mags[mid]) / 2 : mags[mid];
-  }, [dsl.items]);
-
-  const largestCluster = useMemo(() => {
-    if (!layout.clusters?.length) return null;
-    let best = null;
-    for (const c of layout.clusters) {
-      const size = c.size ?? c.count ?? c.items?.length ?? 0;
-      if (!best || size > (best.size ?? best.count ?? best.items?.length ?? 0)) best = c;
-    }
-    return best;
-  }, [layout.clusters]);
-
-  return (
-    <group>
-      {nebula.map((cloud, idx) => (
-        <NebulaCloud key={`nebula-${idx}`} cloud={cloud} theme={theme} index={idx} />
-      ))}
-      {largestCluster ? <SpiralArmDust cluster={largestCluster} theme={theme} /> : null}
-      {dsl.items.map((item) => {
-        const position = layout.positions.get(item.id);
-        if (!position) return null;
-        const clusterName =
-          typeof item.cluster === 'string' && item.cluster.trim() ? item.cluster.trim() : 'main';
-        const clusterIndex = clusterIndexByName.get(clusterName) ?? 0;
-        const showGlyph = (item.magnitude ?? 5) >= magnitudeMedian;
-        return (
-          <HoverableItem key={item.id} item={item} metaphor="galaxy">
-            <GalaxyStar
-              item={item}
-              theme={theme}
-              position={position}
-              clusterIndex={clusterIndex}
-              showGlyph={showGlyph}
-            />
-          </HoverableItem>
-        );
-      })}
-      {binaryPairs.map((pair) => (
-        <BinaryConnector key={pair.key} from={pair.from} to={pair.to} theme={theme} />
-      ))}
-      <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
-    </group>
-  );
-}
-
-function TreeBranchSegment({ id, from, to, thicknessTop, thicknessBottom, color }) {
-  const geometry = useMemo(() => {
-    const fromVec = new THREE.Vector3(from[0], from[1], from[2]);
-    const toVec = new THREE.Vector3(to[0], to[1], to[2]);
-    const length = fromVec.distanceTo(toVec);
-    if (length < 0.0001) return null;
-    const lift = 0.3 + 0.2 * idHash(id);
-    const mid = fromVec.clone().add(toVec).multiplyScalar(0.5);
-    mid.y += lift;
-    const curve = new THREE.QuadraticBezierCurve3(fromVec, mid, toVec);
-    const tubeRadius = (thicknessTop + thicknessBottom) / 2;
-    return new THREE.TubeGeometry(curve, 8, tubeRadius, 6, false);
-  }, [from, to, thicknessTop, thicknessBottom, id]);
-  if (!geometry) return null;
-  return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial color={color} />
-    </mesh>
-  );
-}
-
-function TreeLeafCluster({ position, theme, id, weight }) {
-  const leafColor = theme.treeLeafColor ?? '#4ade80';
-  const accentColor = theme.treeAccentColor ?? '#f43f5e';
-  const templateSeed = idHash(id ?? 'leaf');
-  const fruitSeed = idHash2(id ?? 'leaf', 'fruit');
-  const scale = 0.8 + Math.min(weight ?? 3, 8) * 0.05;
-  let blobs;
-  if (templateSeed < 0.34) {
-    blobs = [
-      { pos: [0, 0, 0], r: 0.7 },
-      { pos: [0.45, 0.1, 0.2], r: 0.45 },
-      { pos: [-0.4, -0.05, -0.25], r: 0.4 }
-    ];
-  } else if (templateSeed < 0.67) {
-    blobs = [{ pos: [0, 0, 0], r: 0.85 }];
-  } else {
-    blobs = [
-      { pos: [0, 0.1, 0], r: 0.55 },
-      { pos: [0.45, 0.05, 0.1], r: 0.42 },
-      { pos: [-0.45, -0.05, -0.1], r: 0.42 },
-      { pos: [0.1, 0.25, -0.4], r: 0.4 },
-      { pos: [-0.05, -0.2, 0.45], r: 0.38 }
-    ];
-  }
-  const fruits = useMemo(() => {
-    if (fruitSeed < 0.8) return [];
-    const out = [];
-    const count = 2 + Math.floor(idHash2(id ?? 'leaf', 'fruit-count') * 2);
-    for (let i = 0; i < count; i += 1) {
-      out.push({
-        pos: [
-          (idHash2(id ?? 'leaf', `fx${i}`) - 0.5) * 1.1,
-          (idHash2(id ?? 'leaf', `fy${i}`) - 0.5) * 0.7,
-          (idHash2(id ?? 'leaf', `fz${i}`) - 0.5) * 1.1
-        ]
-      });
-    }
-    return out;
-  }, [id, fruitSeed]);
-  return (
-    <group position={position} scale={scale}>
-      {blobs.map((b, i) => (
-        <mesh key={`leaf-${i}`} position={b.pos}>
-          <icosahedronGeometry args={[b.r, 0]} />
-          <meshStandardMaterial color={leafColor} />
-        </mesh>
-      ))}
-      {fruits.map((f, i) => (
-        <mesh key={`fruit-${i}`} position={f.pos}>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.25} />
-        </mesh>
-      ))}
-    </group>
-  );
-}
-
-function TreeScene({ dsl, theme }) {
-  const layout = useMemo(() => treeRadialLayout(dsl.items), [dsl.items]);
-
-  const anchors = useMemo(() => {
-    const map = new Map();
-    for (const item of dsl.items) {
-      const pos = layout.positions.get(item.id);
-      if (!pos) continue;
-      map.set(item.id, [pos[0], pos[1] + 0.6, pos[2]]);
-    }
-    return map;
-  }, [dsl.items, layout.positions]);
-
-  const branches = useMemo(() => {
-    const segments = [];
-    for (const item of dsl.items) {
-      const info = layout.nodeInfo.get(item.id);
-      const position = layout.positions.get(item.id);
-      if (!info || !position) continue;
-      const parentId = info.parentId;
-      let fromPosition;
-      if (parentId === null) {
-        fromPosition = [position[0], 0, position[2]];
-      } else {
-        fromPosition = layout.positions.get(parentId);
-        if (!fromPosition) continue;
-      }
-      const thicknessBottom = 0.18 + Math.min(info.weight, 12) * 0.06;
-      const thicknessTop = info.kind === 'leaf' ? thicknessBottom * 0.45 : thicknessBottom * 0.75;
-      segments.push({
-        key: item.id,
-        from: fromPosition,
-        to: position,
-        thicknessTop,
-        thicknessBottom,
-        color:
-          info.kind === 'trunk'
-            ? theme.treeTrunkColor ?? '#8b5a2b'
-            : theme.treeBranchColor ?? '#a47148'
-      });
-    }
-    return segments;
-  }, [dsl.items, layout, theme.treeTrunkColor, theme.treeBranchColor]);
-
-  const trunkRoots = useMemo(() => {
-    const out = [];
-    for (const item of dsl.items) {
-      const info = layout.nodeInfo.get(item.id);
-      const position = layout.positions.get(item.id);
-      if (!info || !position || info.parentId !== null) continue;
-      const radius = 0.4 + Math.min(info.weight, 12) * 0.07;
-      out.push({ id: item.id, position, radius });
-    }
-    return out;
-  }, [dsl.items, layout]);
-
-  const grassTufts = useMemo(() => {
-    if (!trunkRoots.length) return [];
-    const out = [];
-    for (const root of trunkRoots) {
-      const count = 6;
-      for (let i = 0; i < count; i += 1) {
-        const angle = idHash2(root.id, `gt-a${i}`) * Math.PI * 2;
-        const dist = root.radius + 0.3 + idHash2(root.id, `gt-d${i}`) * 1.2;
-        out.push({
-          position: [
-            root.position[0] + Math.cos(angle) * dist,
-            0.05,
-            root.position[2] + Math.sin(angle) * dist
-          ]
-        });
-      }
-    }
-    return out;
-  }, [trunkRoots]);
-
-  return (
-    <group>
-      {branches.map((seg) => (
-        <TreeBranchSegment
-          key={seg.key}
-          id={seg.key}
-          from={seg.from}
-          to={seg.to}
-          thicknessTop={seg.thicknessTop}
-          thicknessBottom={seg.thicknessBottom}
-          color={seg.color}
-        />
-      ))}
-      {trunkRoots.map((root) => (
-        <mesh key={`flare-${root.id}`} position={[root.position[0], 0.04, root.position[2]]}>
-          <cylinderGeometry args={[root.radius, root.radius * 0.55, 0.18, 12]} />
-          <meshStandardMaterial color={theme.treeTrunkColor ?? '#8b5a2b'} />
-        </mesh>
-      ))}
-      {grassTufts.map((tuft, i) => (
-        <mesh key={`tuft-${i}`} position={tuft.position}>
-          <coneGeometry args={[0.08, 0.22, 5]} />
-          <meshStandardMaterial color={theme.treeLeafColor ?? '#4ade80'} />
-        </mesh>
-      ))}
-      {dsl.items.map((item) => {
-        const position = layout.positions.get(item.id);
-        const info = layout.nodeInfo.get(item.id);
-        if (!position || !info) return null;
-        const labelPos = [position[0], position[1] + 1.1, position[2]];
-        const glyphScale = info.kind === 'leaf' ? 0.55 + Math.min(info.weight, 8) * 0.04 : 0.75;
-        const glyphPos =
-          info.kind === 'leaf'
-            ? [position[0], position[1] + 0.1, position[2]]
-            : [position[0] + 0.7, position[1] + 1.1, position[2]];
-        return (
-          <HoverableItem key={item.id} item={item} metaphor="tree">
-            <group>
-              {info.kind === 'leaf' ? (
-                <TreeLeafCluster
-                  position={position}
-                  theme={theme}
-                  id={item.id}
-                  weight={info.weight}
-                />
-              ) : null}
-              {item.glyph ? (
-                <group position={glyphPos} scale={glyphScale}>
-                  <Glyph kind={item.glyph} theme={theme} />
-                </group>
-              ) : null}
-              <ItemLabel
-                text={item.label}
-                position={labelPos}
-                fontSize={info.kind === 'leaf' ? 0.42 : 0.55}
-                color={theme.labelColor}
-                outlineColor={theme.labelOutline}
-              />
-            </group>
-          </HoverableItem>
-        );
-      })}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <planeGeometry args={[80, 80]} />
-        <meshStandardMaterial color={theme.groundColor} />
-      </mesh>
-      <MetaphorGroundShadow theme={theme} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -1939,6 +1147,9 @@ function MetaphorRendererImpl(
           />
           {theme.environment ? <Environment preset={theme.environment} /> : null}
           {dsl.metaphor === 'city' ? <CitySky theme={theme} /> : null}
+          {dsl.metaphor === 'galaxy' ? (
+            <GalaxySky theme={theme} animated={!streamingPreview} />
+          ) : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <Bounds fit clip observe margin={1.25}>
