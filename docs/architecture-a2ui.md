@@ -1,6 +1,6 @@
 # A2UI payloads on the critique stream
 
-> **See also:** [`architecture-generative-ui.md`](architecture-generative-ui.md) — why A2UI is limited to critique and how MCP **critique-map** parallels it. For where A2UI sits on the abstraction spectrum (vs. content DSLs and freeform HTML), see the [visual tour](architecture-generative-ui-visual.html).
+> **See also:** [`architecture-generative-ui.md`](architecture-generative-ui.md) — why A2UI is limited to critique and how MCP **critique-map** parallels it. For where A2UI sits on the abstraction spectrum (vs. content DSLs and freeform HTML), see the [visual tour](https://acuhlmann.github.io/mermaid-gen/architecture-generative-ui-visual.html).
 
 For **Critique** runs that include an `## Actionable …` section, ArchiSlop renders an interactive checklist in the web **Thinking** pane. The wire format is **A2UI v0.9** carried inside **AG-UI** `CUSTOM` events — not a separate transport.
 
