@@ -278,8 +278,7 @@ export function applyAgentStreamInsightEvent(
     if (typeof playToolStartChime === 'function') tryAgentSound(playToolStartChime);
   } else if (evt.type === 'tool_end') {
     const toolEvt = evt as LegacyToolEndEvent;
-    if (!toolEvt.name) return;
-    appendTechnicalAction(sectionId, toolEvt.name, 'done');
+    appendTechnicalAction(sectionId, toolEvt.name ?? '', 'done');
     if (typeof playToolEndChime === 'function') tryAgentSound(playToolEndChime);
   } else if (evt.type === 'draftPreview') {
     const draftSource =

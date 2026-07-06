@@ -18,6 +18,8 @@ type AgUiWireEvent = { type: string; [key: string]: unknown };
  */
 export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) => LegacyStreamEvent | null {
   let lastSnapshot: unknown = null;
+  /** AG-UI TOOL_CALL_END carries only toolCallId — resolve name from the matching start. */
+  const toolCallNamesById = new Map<string, string>();
   return function translate(evt): LegacyStreamEvent | null {
     if (!evt || typeof evt !== 'object') return null;
     switch (evt.type) {
@@ -42,10 +44,18 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
         if (!text) return null;
         return { type: 'token', text };
       }
-      case 'TOOL_CALL_START':
-        return { type: 'tool_start', name: String(evt.toolCallName ?? 'tool') };
-      case 'TOOL_CALL_END':
-        return { type: 'tool_end', name: '' };
+      case 'TOOL_CALL_START': {
+        const toolCallId = String(evt.toolCallId ?? '');
+        const toolCallName = String(evt.toolCallName ?? 'tool');
+        if (toolCallId) toolCallNamesById.set(toolCallId, toolCallName);
+        return { type: 'tool_start', name: toolCallName, ...(toolCallId ? { id: toolCallId } : {}) };
+      }
+      case 'TOOL_CALL_END': {
+        const toolCallId = String(evt.toolCallId ?? '');
+        const toolCallName = toolCallId ? (toolCallNamesById.get(toolCallId) ?? '') : '';
+        if (toolCallId) toolCallNamesById.delete(toolCallId);
+        return { type: 'tool_end', name: toolCallName, ...(toolCallId ? { id: toolCallId } : {}) };
+      }
       case 'TOOL_CALL_ARGS':
         return null;
       case 'STATE_SNAPSHOT':

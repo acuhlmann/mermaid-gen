@@ -147,8 +147,8 @@ describe('createAgUiTranslator', () => {
       { type: 'TOOL_CALL_START', toolCallId: 't1', toolCallName: 'apply_infographic_patch' },
       { type: 'TOOL_CALL_END', toolCallId: 't1' }
     ]);
-    expect(out[0]).toEqual({ type: 'tool_start', name: 'apply_infographic_patch' });
-    expect(out[1]).toEqual({ type: 'tool_end', name: '' });
+    expect(out[0]).toEqual({ type: 'tool_start', name: 'apply_infographic_patch', id: 't1' });
+    expect(out[1]).toEqual({ type: 'tool_end', name: 'apply_infographic_patch', id: 't1' });
   });
 
   it('passes legacy events through unchanged (mixed-protocol streams)', () => {

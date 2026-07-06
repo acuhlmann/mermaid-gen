@@ -1406,7 +1406,10 @@ function ArchiSlop() {
       patchInsightEntry(id, (entry) => {
         const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
         if (status === 'done') {
-          const actionIndex = [...current].reverse().findIndex((action) => action.name === name && action.status === 'running');
+          const actionIndex = [...current].reverse().findIndex((action) => {
+            if (!name) return action.status === 'running';
+            return action.name === name && action.status === 'running';
+          });
           if (actionIndex >= 0) {
             const realIndex = current.length - 1 - actionIndex;
             const nextActions = current.map((action, idx) => (idx === realIndex ? { ...action, status: 'done' } : action));
