@@ -3,7 +3,12 @@ import { createAgent } from 'langchain';
 import { createChartTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { CHART_SYSTEM_PROMPT } from '../prompts/chartSystemPrompt.js';
-import { buildChartRepairInstruction } from '../prompts/chartSyntaxGuard.js';
+import {
+  buildChartRepairInstruction,
+  CHART_ANALYSIS_SYSTEM_PROMPT,
+  CHART_CRITIQUE_TASK,
+  CHART_EXPLAIN_TASK
+} from '../prompts/chartSyntaxGuard.js';
 import {
   createLlmChatModel,
   normalizeModelProfile,
@@ -118,12 +123,11 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   ].join('\n\n');
 }
 
-function buildAnalyzeUserContent({ kind, currentDsl }) {
-  const task =
-    kind === 'critique'
-      ? 'Critique this chart in 3-5 short paragraphs. Call out: does the mark choice fit the data? Is the encoding readable? Are there accessibility / color / scale issues? Does the chart actually answer a question?'
-      : 'Explain this chart in 3-5 short paragraphs. Describe what data the chart shows, what insights the encoding surfaces, and what each mark/axis means.';
-  return [task, `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``].join('\n\n');
+function buildAnalyzeUserContent({ kind, currentDsl, focusScope }) {
+  const task = kind === 'critique' ? CHART_CRITIQUE_TASK : CHART_EXPLAIN_TASK;
+  return [task, focusScope, `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 /** Style intent for chart — bounded vocabulary (theme swap, color scheme, axis gridlines,
@@ -489,10 +493,10 @@ export function createChartLangChainAgent({
       }
       const profile = normalizeModelProfile(modelProfile);
       const model = buildAnalysisModel(profile);
+      const focusScope = ''; // chart selection focus not wired yet
       const messages = [
-        new HumanMessage(
-          `${CHART_SYSTEM_PROMPT}\n\n${buildAnalyzeUserContent({ kind, currentDsl: slot.diagramSource })}`
-        )
+        new SystemMessage(CHART_ANALYSIS_SYSTEM_PROMPT),
+        new HumanMessage(buildAnalyzeUserContent({ kind, currentDsl: slot.diagramSource, focusScope }))
       ];
 
       if (typeof emit === 'function') {

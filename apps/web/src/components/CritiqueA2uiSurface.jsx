@@ -125,7 +125,7 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
       >
         <div
           ref={rootRef}
-          className={`insights-a2ui-surface-root a2ui-surface${busy ? ' is-busy' : ''}`}
+          className={`insights-a2ui-surface-root a2ui-surface a2ui-light${busy ? ' is-busy' : ''}`}
         >
           {surfaces.map((surface) => (
             <A2uiSurface key={surface.id} surface={surface} />

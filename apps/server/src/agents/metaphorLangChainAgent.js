@@ -3,7 +3,13 @@ import { createAgent } from 'langchain';
 import { createMetaphorTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { METAPHOR_SYSTEM_PROMPT } from '../prompts/metaphorSystemPrompt.js';
-import { buildMetaphorRepairInstruction } from '../prompts/metaphorSyntaxGuard.js';
+import {
+  buildMetaphorRepairInstruction,
+  METAPHOR_ANALYSIS_SYSTEM_PROMPT,
+  METAPHOR_CRITIQUE_TASK,
+  METAPHOR_EXPLAIN_TASK
+} from '../prompts/metaphorSyntaxGuard.js';
+import { buildMetaphorAnalyzeFocusInstructions } from './metaphorFocusInstructions.js';
 import {
   createLlmChatModel,
   normalizeModelProfile,
@@ -118,12 +124,11 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   ].join('\n\n');
 }
 
-function buildAnalyzeUserContent({ kind, currentDsl }) {
-  const task =
-    kind === 'critique'
-      ? 'Critique this metaphor view in 3-5 short paragraphs. Call out: does the spatial story land? Are magnitudes meaningful? Is the metaphor the right fit?'
-      : 'Explain this metaphor view in 3-5 short paragraphs. Describe what the user is seeing, what insights emerge from the spatial arrangement, and what each section means.';
-  return [task, `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``].join('\n\n');
+function buildAnalyzeUserContent({ kind, currentDsl, focusScope }) {
+  const task = kind === 'critique' ? METAPHOR_CRITIQUE_TASK : METAPHOR_EXPLAIN_TASK;
+  return [task, focusScope, `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export function createMetaphorLangChainAgent({
@@ -436,11 +441,10 @@ export function createMetaphorLangChainAgent({
       }
       const profile = normalizeModelProfile(modelProfile);
       const model = buildAnalysisModel(profile);
-      // Analysis model has no tools; we send the system prompt inline so it isn't lost.
+      const focusScope = buildMetaphorAnalyzeFocusInstructions(focusNode, kind);
       const messages = [
-        new HumanMessage(
-          `${METAPHOR_SYSTEM_PROMPT}\n\n${buildAnalyzeUserContent({ kind, currentDsl: slot.diagramSource })}`
-        )
+        new SystemMessage(METAPHOR_ANALYSIS_SYSTEM_PROMPT),
+        new HumanMessage(buildAnalyzeUserContent({ kind, currentDsl: slot.diagramSource, focusScope }))
       ];
 
       if (typeof emit === 'function') {
