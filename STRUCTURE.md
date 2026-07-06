@@ -28,7 +28,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Mermaid validate + sanitizer rescue tool               | `apps/server/src/tools/mermaidDiffTool.js`            |
 | Infographic validate + sanitizer rescue tool           | `apps/server/src/tools/infographicDslTool.js`         |
 | Session services registry                              | `apps/server/src/state/sessionServices.js`            |
-| Per-session diagram store (four slots)                 | `apps/server/src/state/diagramStateStore.ts`          |
+| Per-session diagram store (five slots)                 | `apps/server/src/state/diagramStateStore.ts`          |
 | Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.ts`            |
 | Pairing code store factory (in-memory / Redis)         | `apps/server/src/state/pairingCodeStoreFactory.js`    |
 | Agent token store                                      | `apps/server/src/state/agentTokenStore.js`            |
@@ -46,7 +46,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Web entry                                         | `apps/web/src/main.jsx`                                                                                               |
 | Root app component                                | `apps/web/src/App.jsx`                                                                                                |
-| Mermaid / Infographic / Metaphor3D / Chart renderer | `apps/web/src/components/DiagramCanvas.jsx`, `apps/web/src/components/InfographicRenderer.jsx`, `apps/web/src/components/MetaphorRenderer.jsx`, `apps/web/src/components/ChartRenderer.jsx` |
+| Mermaid / Infographic / Metaphor3D / Chart / Anything renderer | `apps/web/src/components/DiagramCanvas.jsx`, `apps/web/src/components/InfographicRenderer.jsx`, `apps/web/src/components/MetaphorRenderer.jsx`, `apps/web/src/components/ChartRenderer.jsx`, `apps/web/src/components/AnythingRenderer.jsx` |
 | Insights / Thinking pane                          | `apps/web/src/components/InsightsPane.jsx`                                                                            |
 | Radial action menu (mobile)                       | `apps/web/src/components/RadialActionMenu.jsx`                                                                        |
 | Critique checklist (A2UI surface)                 | `apps/web/src/components/CritiqueA2uiSurface.jsx`, `apps/web/src/components/CritiqueActionableChecklist.jsx`          |

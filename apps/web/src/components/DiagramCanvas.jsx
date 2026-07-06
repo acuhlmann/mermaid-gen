@@ -21,6 +21,7 @@ import {
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
+import AnythingRenderer from './AnythingRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
 import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighlightIds.js';
@@ -785,7 +786,7 @@ export default function DiagramCanvas({
 
   const handleWheel = useCallback(
     (event) => {
-      if (contentType === 'metaphor3d') return;
+      if (contentType === 'metaphor3d' || contentType === 'anything') return;
       event.preventDefault();
       const rect = event.currentTarget.getBoundingClientRect();
       const pointerX = event.clientX - rect.left;
@@ -988,7 +989,7 @@ export default function DiagramCanvas({
   }
 
   function handlePointerDown(event) {
-    if (contentType === 'metaphor3d') return;
+    if (contentType === 'metaphor3d' || contentType === 'anything') return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
@@ -1087,7 +1088,7 @@ export default function DiagramCanvas({
   }
 
   function handlePointerMove(event) {
-    if (contentType === 'metaphor3d') return;
+    if (contentType === 'metaphor3d' || contentType === 'anything') return;
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
       if (!tap.passiveNativeText) {
@@ -1268,9 +1269,11 @@ export default function DiagramCanvas({
       ? '3D renderer. Drag to orbit. Scroll or pinch to zoom.'
       : contentType === 'chart'
         ? 'Vega-Lite chart renderer. Hover marks for tooltip details.'
-        : contentType === 'infographic'
-          ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
-          : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
+        : contentType === 'anything'
+          ? 'Sandboxed page renderer. Interact with the page directly.'
+          : contentType === 'infographic'
+            ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
+            : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
   const streamingLabel =
     contentType === 'infographic'
       ? 'Updating infographic…'
@@ -1278,7 +1281,9 @@ export default function DiagramCanvas({
         ? 'Updating 3D scene…'
         : contentType === 'chart'
           ? 'Updating chart…'
-          : 'Updating diagram…';
+          : contentType === 'anything'
+            ? 'Updating page…'
+            : 'Updating diagram…';
   const zoomLayerStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
   };
@@ -1289,7 +1294,7 @@ export default function DiagramCanvas({
         {ceremonySlot}
         <div
           ref={bindDiagramSurfaceRef}
-          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
+          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
@@ -1314,7 +1319,7 @@ export default function DiagramCanvas({
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
           <div
             ref={viewportRef}
-            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}`}
+            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}`}
           >
             {contentType === 'metaphor3d' ? (
               <>
@@ -1327,6 +1332,14 @@ export default function DiagramCanvas({
                   metaphorKindSwitchDisabled={streamingPreview}
                 />
               </>
+            ) : contentType === 'anything' ? (
+              // The sandboxed iframe owns its own scrolling/interaction — no
+              // pan/zoom transform layer (which would also swallow pointer events).
+              <AnythingRenderer
+                key={`anything-${rendererRefreshKey}`}
+                diagramSource={editorSource}
+                streamingPreview={streamingPreview}
+              />
             ) : (
               <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>
                 {contentType === 'infographic' ? (
@@ -1367,7 +1380,9 @@ export default function DiagramCanvas({
                 ? '3D DSL editor'
                 : contentType === 'chart'
                   ? 'Chart DSL editor'
-                  : 'Infographic DSL editor'
+                  : contentType === 'anything'
+                    ? 'HTML editor'
+                    : 'Infographic DSL editor'
           }
         >
           {streamingPreview ? (
@@ -1388,7 +1403,9 @@ export default function DiagramCanvas({
                       ? '3D DSL'
                       : contentType === 'chart'
                         ? 'Chart DSL'
-                        : 'Infographic DSL'}
+                        : contentType === 'anything'
+                          ? 'HTML'
+                          : 'Infographic DSL'}
                 </span>
                 <div className="mobile-code-editor-actions">
                   {onEditorClose ? (
@@ -1414,7 +1431,9 @@ export default function DiagramCanvas({
                       ? '3D DSL editor'
                       : contentType === 'chart'
                         ? 'Chart DSL editor'
-                        : 'Infographic DSL editor'
+                        : contentType === 'anything'
+                          ? 'HTML editor'
+                          : 'Infographic DSL editor'
                 }
               />
             </div>
@@ -1429,7 +1448,9 @@ export default function DiagramCanvas({
                       ? 'json'
                       : contentType === 'chart'
                         ? 'json'
-                        : 'infographic'
+                        : contentType === 'anything'
+                          ? 'html'
+                          : 'infographic'
                 }
                 theme="vs-dark"
                 value={editorSource}

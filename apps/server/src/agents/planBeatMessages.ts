@@ -112,6 +112,9 @@ function peerContextPlanBeat(peerContext: IntentPeerContext | null | undefined):
   if (peerType === 'chart') {
     return 'Using the chart as subject context — pulling the data story into this view.';
   }
+  if (peerType === 'anything') {
+    return 'Using the freeform page as subject context for this view.';
+  }
   return null;
 }
 

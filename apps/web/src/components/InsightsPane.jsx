@@ -300,7 +300,8 @@ const CONTENT_TYPE_META = {
   mermaid: { label: 'Mermaid', emoji: '🧜‍♀️' },
   infographic: { label: 'Infographic', Icon: AntVModeIcon },
   metaphor3d: { label: '3D', Icon: ThreeJsModeIcon },
-  chart: { label: 'Chart', Icon: VegaLiteModeIcon }
+  chart: { label: 'Chart', Icon: VegaLiteModeIcon },
+  anything: { label: 'Anything', emoji: '🪄' }
 };
 
 const MODEL_PROFILE_META = {

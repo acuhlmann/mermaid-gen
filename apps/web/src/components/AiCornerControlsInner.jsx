@@ -109,6 +109,15 @@ export function AiCornerControlsInner({
               >
                 Chart
               </button>
+              <button
+                type="button"
+                className={`model-profile-option ${contentMode === 'anything' ? 'is-selected' : ''}`}
+                aria-pressed={contentMode === 'anything'}
+                disabled={modeSwitchDisabled}
+                onClick={() => onSelectContentMode('anything')}
+              >
+                Anything
+              </button>
             </div>
           </div>
           <div className="model-profile-toggle" role="group" aria-label="AI brain">

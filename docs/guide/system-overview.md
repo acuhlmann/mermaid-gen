@@ -1,6 +1,6 @@
 # System overview
 
-The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **four independent slots** — Mermaid source, AntV Infographic DSL, Metaphor3D DSL JSON, and Vega-Lite Chart DSL — plus an `activeContentType` pointer.
+The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **five independent slots** — Mermaid source, AntV Infographic DSL, Metaphor3D DSL JSON, Vega-Lite Chart DSL, and freeform Anything HTML — plus an `activeContentType` pointer.
 
 Three **parallel channels** serve different participants (guest-agent detail: [`docs/architecture-external-agents.md`](../architecture-external-agents.md)):
 

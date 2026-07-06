@@ -968,7 +968,8 @@ function ArchiSlop() {
                 syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
                 syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
                 syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId })
+                syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId }),
+                syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: targetId })
               ]);
             } catch {
               // best-effort — if priming sync fails the next user action will create the session
@@ -2576,7 +2577,8 @@ ${requirementsBlock}`;
         syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: nid }),
         syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: nid }),
         syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: nid }),
-        syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: nid })
+        syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: nid }),
+        syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: nid })
       ]);
       freshlyMintedSessionIdsRef.current.delete(nid);
       const fresh = createInitialDiagramState(contentMode);
@@ -2608,7 +2610,8 @@ ${requirementsBlock}`;
         contentType !== 'mermaid' &&
         contentType !== 'infographic' &&
         contentType !== 'metaphor3d' &&
-        contentType !== 'chart'
+        contentType !== 'chart' &&
+        contentType !== 'anything'
       )
         return;
 
@@ -2663,7 +2666,8 @@ ${requirementsBlock}`;
         targetContentType !== 'mermaid' &&
         targetContentType !== 'infographic' &&
         targetContentType !== 'metaphor3d' &&
-        targetContentType !== 'chart'
+        targetContentType !== 'chart' &&
+        targetContentType !== 'anything'
       ) return;
 
       const baseline = entry?.diagramUndoBaseline;

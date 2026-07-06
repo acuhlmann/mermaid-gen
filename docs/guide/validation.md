@@ -100,22 +100,31 @@ Chart validation runs through `validateAndPrepareChartPatch` (`apps/server/src/t
 2. **Vega-Lite schema check** — validates the extracted spec.
 3. **Repair** — same single-shot fixer + agent repair pattern as the other slots.
 
-## Session state: four-slot model
+## Anything validation pipeline
+
+Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server/src/tools/anythingHtmlTool.js`):
+
+1. **Shape check** — `parseAnythingHtml` (shared package): string, code-fence strip, size cap, contains at least one HTML tag.
+2. **Repair** — agent repair turns only (bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`); there is no single-shot fixer and deliberately **no HTML sanitizer**. Safety is enforced at render time: the web client renders the slot exclusively inside an `allow-scripts`-only sandboxed iframe (`AnythingRenderer.jsx`) — see [Content types](content-types.md#anything).
+
+## Session state: five-slot model
 
 ```mermaid
 flowchart TB
-  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart"]
+  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart · anything"]
   Session --> MS["mermaid slot\nrevisionId · diagramSource · styleConfig · history"]
   Session --> IS["infographic slot\nrevisionId · diagramSource · history"]
   Session --> MES["metaphor3d slot\nrevisionId · diagramSource · history"]
   Session --> CS["chart slot\nrevisionId · diagramSource · history"]
+  Session --> AS["anything slot\nrevisionId · diagramSource · history"]
   MS -->|applyPatch| MV["Mermaid validator"]
   IS -->|applyPatch| IV["Infographic validator"]
   MES -->|applyPatch| MEV["Metaphor3D validator"]
   CS -->|applyPatch| CV["Chart validator"]
+  AS -->|applyPatch| AV["Anything validator"]
 ```
 
-All four slots are fully independent — switching modes does not touch the other slots' revision histories. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
+All five slots are fully independent — switching modes does not touch the other slots' revision histories. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
 
 ## Session alignment (REST vs CopilotKit)
 
