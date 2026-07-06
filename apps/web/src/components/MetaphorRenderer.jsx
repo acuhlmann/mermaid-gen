@@ -471,16 +471,21 @@ function SlabSideRidges({ radius, thickness, theme }) {
 }
 
 /**
- * Per-layer body tint so a stack reads as distinct, appetizing layers instead of
- * one monochrome column: a gentle vertical ramp (richer/darker at the base,
- * lighter toward the top) with a faint hue drift.
+ * Per-layer body colour so the stack reads as distinct, appetizing layers
+ * instead of one monochrome column: each layer takes a hue from the theme's
+ * cluster palette (blended over the base sponge colour to stay cohesive), with
+ * a gentle vertical lightness ramp — richer at the base, lighter at the top.
  */
-function layerSlabShade(baseHex, index, total) {
+function layerSlabShade(theme, index, total) {
+  const palette = theme.clusterPalette ?? [];
+  const base = new THREE.Color(theme.slabColor);
+  if (palette.length > 0) {
+    base.lerp(new THREE.Color(palette[index % palette.length]), 0.55);
+  }
   const tNorm = total > 1 ? index / (total - 1) : 0.5;
-  return shiftColor(baseHex, {
-    lightness: -0.1 + tNorm * 0.22,
-    satScale: 1.06 - tNorm * 0.12,
-    hueShift: (tNorm - 0.5) * 0.03
+  return shiftColor(base, {
+    lightness: -0.06 + tNorm * 0.14,
+    satScale: 1.05 - tNorm * 0.08
   });
 }
 
@@ -557,7 +562,107 @@ function SlabDecorations({ idSeed, radius, thickness, yOffset, slabCenterY, crac
   );
 }
 
-function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1 }) {
+/**
+ * Classic cake stand under the stack — plate with a glowing rim, flared stem,
+ * and a foot — so the cake sits on a deliberate pedestal instead of floating
+ * in a void. Porcelain tone is derived from the theme's trim colour.
+ */
+function CakeStand({ radius, theme }) {
+  const porcelain = useMemo(
+    () => shiftColor(theme.slabTrimColor ?? theme.slabColor, { lightness: 0.18, satScale: 0.5 }),
+    [theme.slabTrimColor, theme.slabColor]
+  );
+  const rimColor = theme.slabTrimColor ?? theme.slabColor;
+  return (
+    <group>
+      <mesh position={[0, -0.09, 0]}>
+        <cylinderGeometry args={[radius, radius * 0.96, 0.18, 64]} />
+        <meshStandardMaterial color={porcelain} roughness={0.3} metalness={0.25} />
+      </mesh>
+      <mesh position={[0, -0.04, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[radius * 0.995, 0.05, 10, 72]} />
+        <meshStandardMaterial
+          color={rimColor}
+          emissive={rimColor}
+          emissiveIntensity={0.25}
+          roughness={0.3}
+          metalness={0.2}
+        />
+      </mesh>
+      <mesh position={[0, -0.62, 0]}>
+        <cylinderGeometry args={[0.55, 0.85, 0.88, 24]} />
+        <meshStandardMaterial color={porcelain} roughness={0.35} metalness={0.25} />
+      </mesh>
+      <mesh position={[0, -1.13, 0]}>
+        <cylinderGeometry args={[radius * 0.42, radius * 0.46, 0.14, 48]} />
+        <meshStandardMaterial color={porcelain} roughness={0.35} metalness={0.25} />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Piped frosting dollops around the top layer's rim, plus a glossy cherry at
+ * the centre when the glyph slot is free. Dollops skip the cutaway gap so no
+ * frosting floats over the missing slice.
+ */
+function CakeTopping({ radius, topY, thetaLength, bodyColor, theme, showCherry }) {
+  const cream = useMemo(
+    () => shiftColor(bodyColor, { lightness: 0.24, satScale: 0.6 }),
+    [bodyColor]
+  );
+  const cherryColor = theme.treeAccentColor ?? '#e63946';
+  const dollops = useMemo(() => {
+    const count = Math.max(10, Math.min(18, Math.round(radius * 2.4)));
+    const fullCircle = Math.abs(thetaLength - Math.PI * 2) < 1e-6;
+    const margin = 0.16;
+    const out = [];
+    for (let i = 0; i < count; i += 1) {
+      const theta = fullCircle
+        ? (i / count) * Math.PI * 2
+        : margin + (i / (count - 1)) * (thetaLength - margin * 2);
+      const r = radius - 0.35;
+      // Cylinder theta convention: x = r·sin(θ), z = r·cos(θ).
+      out.push([Math.sin(theta) * r, Math.cos(theta) * r]);
+    }
+    return out;
+  }, [radius, thetaLength]);
+  return (
+    <group>
+      {dollops.map(([x, z], i) => (
+        <group key={`dollop-${i}`} position={[x, topY + 0.08, z]}>
+          <mesh scale={[1, 0.72, 1]}>
+            <sphereGeometry args={[0.19, 12, 10]} />
+            <meshStandardMaterial color={cream} roughness={0.35} />
+          </mesh>
+          <mesh position={[0, 0.13, 0]}>
+            <sphereGeometry args={[0.1, 10, 8]} />
+            <meshStandardMaterial color={cream} roughness={0.35} />
+          </mesh>
+        </group>
+      ))}
+      {showCherry ? (
+        <group position={[0, topY, 0]}>
+          <mesh position={[0, 0.26, 0]}>
+            <sphereGeometry args={[0.28, 16, 14]} />
+            <meshStandardMaterial
+              color={cherryColor}
+              emissive={cherryColor}
+              emissiveIntensity={0.25}
+              roughness={0.2}
+            />
+          </mesh>
+          <mesh position={[0, 0.62, 0]} rotation={[0, 0, 0.28]}>
+            <cylinderGeometry args={[0.025, 0.035, 0.4, 6]} />
+            <meshStandardMaterial color='#6b4423' roughness={0.8} />
+          </mesh>
+        </group>
+      ) : null}
+    </group>
+  );
+}
+
+function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, isTop = false }) {
   const thickness = Math.max(0.2, item.thickness ?? 1);
   const radius = layercakeSlabRadius(item);
   const components = layercakeComponentPositions(radius, item.components ?? []);
@@ -565,8 +670,8 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1 }) 
   const tiltRad = ((item.tilt ?? 0) * Math.PI) / 180;
   const cracks = typeof item.cracks === 'number' ? item.cracks : 0;
   const bodyColor = useMemo(
-    () => layerSlabShade(theme.slabColor, index, total),
-    [theme.slabColor, index, total]
+    () => layerSlabShade(theme, index, total),
+    [theme, index, total]
   );
   // Lighter "cream filling" bands between layers, and a lighter cross-section
   // for the cutaway slice so it looks like the inside of the cake.
@@ -625,6 +730,16 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1 }) 
             cracks={cracks}
             theme={theme}
           />
+          {isTop ? (
+            <CakeTopping
+              radius={radius}
+              topY={yOffset + thickness}
+              thetaLength={thetaLength}
+              bodyColor={bodyColor}
+              theme={theme}
+              showCherry={!item.glyph}
+            />
+          ) : null}
           {item.glyph ? (
             <group
               position={[0, yOffset + thickness + 0.4, 0]}
@@ -771,8 +886,14 @@ function LayercakeScene({ dsl, theme }) {
     return map;
   }, [dsl.items, yOffsets]);
 
+  const maxRadius = useMemo(
+    () => dsl.items.reduce((max, item) => Math.max(max, layercakeSlabRadius(item)), 4),
+    [dsl.items]
+  );
+
   return (
     <group>
+      <CakeStand radius={maxRadius + 1.1} theme={theme} />
       {dsl.items.map((item, index) => {
         const yOffset = yOffsets.get(item.id) ?? 0;
         return (
@@ -784,10 +905,13 @@ function LayercakeScene({ dsl, theme }) {
               showCutaway={showCutaway}
               index={index}
               total={dsl.items.length}
+              isTop={index === dsl.items.length - 1}
             />
           </HoverableItem>
         );
       })}
+      {/* Shadow plane sits just below the stand's foot (foot bottom is y=-1.2). */}
+      <MetaphorGroundShadow theme={theme} y={-1.21} scale={(maxRadius + 3) * 2.6} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
   );
@@ -1146,7 +1270,11 @@ function MetaphorRendererImpl(
             intensity={theme.directional.intensity}
           />
           {theme.environment ? <Environment preset={theme.environment} /> : null}
-          {dsl.metaphor === 'city' ? <CitySky theme={theme} /> : null}
+          {/* Layercake shares the city's calm gradient backdrop so the cake
+              doesn't float against a flat void. */}
+          {dsl.metaphor === 'city' || dsl.metaphor === 'layercake' ? (
+            <CitySky theme={theme} />
+          ) : null}
           {dsl.metaphor === 'galaxy' ? (
             <GalaxySky theme={theme} animated={!streamingPreview} />
           ) : null}

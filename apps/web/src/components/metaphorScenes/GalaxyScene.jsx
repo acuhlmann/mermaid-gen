@@ -1,13 +1,14 @@
 /**
  * Galaxy metaphor scene — each cluster is a small spiral galaxy: a phyllotaxis
- * star disc around a glowing core, wrapped in two tilted dust arms, with the
- * cluster name floating beneath. Stars twinkle with round halo sprites and
- * diffraction spikes (brightest stars gain a second diagonal pair). GalaxySky
+ * star disc around a glowing core, wrapped in two tilted dust arms and filled
+ * with a fine additive stardust point cloud, with the cluster name floating
+ * beneath. Stars twinkle with round halo sprites and diffraction spikes
+ * (brightest stars gain a second diagonal pair). GalaxySky
  * (rendered outside <Bounds> by MetaphorRenderer) supplies the deep-space
  * gradient backdrop and a distant starfield. Extracted from
  * MetaphorRenderer.jsx per the ADR-0005 sibling-module pattern.
  */
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, Line, Stars } from '@react-three/drei';
@@ -98,7 +99,11 @@ function DiffractionSpikes({ size, color, bright }) {
 }
 
 function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
-  const magnitude = Math.max(0.3, (item.magnitude ?? 5) * 0.15);
+  const rawMagnitude = THREE.MathUtils.clamp(item.magnitude ?? 5, 0, 10);
+  // Compressed radius curve: magnitude still ranks the suns, but the halo,
+  // spikes, and emissive brightness carry most of the signal so top stars read
+  // as brilliant suns rather than planet-sized balls.
+  const starRadius = 0.24 + Math.sqrt(rawMagnitude) * 0.16;
   const spectralSpread = theme.galaxySpectralSpread ?? 0.35;
   // Cluster colour carries the grouping; per-star spectral hue drift keeps the
   // cluster reading as many individual suns instead of clones.
@@ -111,16 +116,16 @@ function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
       hueShift: hueDrift
     });
   }, [theme, clusterIndex, item.id, spectralSpread]);
-  const baseIntensity = 0.95 + magnitude * 0.14;
+  const baseIntensity = 0.9 + rawMagnitude * 0.07;
 
   return (
     <group position={position}>
-      <GlowSprite size={magnitude * 5.2} color={starColor} opacity={0.36} />
-      <DiffractionSpikes size={magnitude} color={starColor} bright={magnitude >= 1.35} />
+      <GlowSprite size={starRadius * 5.4} color={starColor} opacity={0.34} />
+      <DiffractionSpikes size={starRadius} color={starColor} bright={rawMagnitude >= 7.5} />
       <StarTwinkle id={item.id} baseIntensity={baseIntensity}>
         {({ matRef }) => (
           <mesh>
-            <sphereGeometry args={[magnitude, 16, 16]} />
+            <sphereGeometry args={[starRadius, 16, 16]} />
             <meshStandardMaterial
               ref={matRef}
               emissive={starColor}
@@ -134,8 +139,8 @@ function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
       {item.glyph && showGlyph ? (
         <Billboard>
           <group
-            position={[magnitude + 0.9, 0, 0]}
-            scale={Math.max(0.55, Math.min(1.3, magnitude * 0.9))}
+            position={[starRadius + 0.9, 0, 0]}
+            scale={Math.max(0.5, Math.min(1.1, 0.4 + rawMagnitude * 0.07))}
           >
             <Glyph kind={item.glyph} theme={theme} />
           </group>
@@ -143,7 +148,7 @@ function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
       ) : null}
       <ItemLabel
         text={item.label}
-        position={[0, magnitude + 0.7, 0]}
+        position={[0, starRadius + 0.7, 0]}
         fontSize={0.45}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
@@ -152,16 +157,22 @@ function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
   );
 }
 
+/**
+ * Soft haze of overlapping radial-gradient sprites. Sprites (not spheres) on
+ * purpose: an additive sphere has a hard silhouette edge and reads as a giant
+ * balloon, while the sprite's gradient feathers to zero so the cloud stays a
+ * background colour wash behind the star discs.
+ */
 function NebulaCloud({ cloud, theme, index }) {
   const color = cloud.color ?? resolveNebulaColor(theme, index);
   const radius = Math.max(1, cloud.radius ?? 6);
   const idSeed = `nebula-${index}`;
   const layers = useMemo(() => {
     const offsets = [
-      { scale: 1.0, opacity: 0.2, offset: [0, 0, 0] },
+      { size: radius * 2.2, opacity: 0.14, offset: [0, 0, 0] },
       {
-        scale: 0.72,
-        opacity: 0.25,
+        size: radius * 1.45,
+        opacity: 0.18,
         offset: [
           (idHash2(idSeed, 'ox1') - 0.5) * radius * 0.4,
           (idHash2(idSeed, 'oy1') - 0.5) * radius * 0.3,
@@ -169,8 +180,8 @@ function NebulaCloud({ cloud, theme, index }) {
         ]
       },
       {
-        scale: 0.42,
-        opacity: 0.34,
+        size: radius * 0.9,
+        opacity: 0.24,
         offset: [
           (idHash2(idSeed, 'ox2') - 0.5) * radius * 0.6,
           (idHash2(idSeed, 'oy2') - 0.5) * radius * 0.5,
@@ -183,17 +194,9 @@ function NebulaCloud({ cloud, theme, index }) {
   return (
     <group position={cloud.center}>
       {layers.map((layer, i) => (
-        <mesh key={`neb-${i}`} position={layer.offset}>
-          <sphereGeometry args={[radius * layer.scale, 24, 24]} />
-          <meshBasicMaterial
-            color={color}
-            transparent
-            opacity={layer.opacity}
-            depthWrite={false}
-            blending={THREE.AdditiveBlending}
-            toneMapped={false}
-          />
-        </mesh>
+        <group key={`neb-${i}`} position={layer.offset}>
+          <GlowSprite size={layer.size} color={color} opacity={layer.opacity} />
+        </group>
       ))}
     </group>
   );
@@ -224,15 +227,83 @@ function BinaryConnector({ from, to, theme }) {
   );
 }
 
-/** Glowing galactic bulge at the cluster centre. */
+/** Glowing galactic bulge at the cluster centre — compact and bright, so the
+ *  core reads as a dense hub rather than a halo swallowing the whole disc. */
 function ClusterCore({ cluster, color }) {
   const radius = Math.max(1.6, cluster.radius ?? 2);
   const innerColor = useMemo(() => shiftColor(color, { lightness: 0.22, satScale: 0.85 }), [color]);
   return (
     <group position={cluster.center}>
-      <GlowSprite size={radius * 3.8} color={color} opacity={0.3} />
-      <GlowSprite size={radius * 1.65} color={innerColor} opacity={0.62} />
+      <GlowSprite size={radius * 2.3} color={color} opacity={0.24} />
+      <GlowSprite size={radius * 1.1} color={innerColor} opacity={0.55} />
     </group>
+  );
+}
+
+/** Per-cluster disc tilt shared by the arms and stardust so they stay coplanar. */
+function clusterTilt(name) {
+  return [(idHash2(name, 'tilt-x') - 0.5) * 0.4, 0, (idHash2(name, 'tilt-z') - 0.5) * 0.4];
+}
+
+/**
+ * Fine additive stardust filling each cluster's spiral disc — hundreds of tiny
+ * points fading from a warm core white out to the cluster hue (with occasional
+ * dust-coloured grains) — so a cluster reads as a milky galaxy disc instead of
+ * a handful of isolated suns.
+ */
+function ClusterStardust({ cluster, theme, color }) {
+  const name = cluster.name ?? 'main';
+  const spread = Math.max(1.6, cluster.radius ?? 2);
+  const map = getRadialSpriteTexture();
+  const geometry = useMemo(() => {
+    const count = Math.min(900, 380 + (cluster.count ?? 0) * 40);
+    const positions = new Float32Array(count * 3);
+    const colors = new Float32Array(count * 3);
+    const coreColor = new THREE.Color('#fff3d6');
+    const armColor = new THREE.Color(color);
+    const dustColor = new THREE.Color(theme.nebulaDustColor ?? color);
+    // Same spin seed as ClusterArms so the dust grains trace the same arms.
+    const spin = idHash(`spiral-${name}`) * Math.PI * 2;
+    const tint = new THREE.Color();
+    const maxRadius = spread * 1.5;
+    for (let i = 0; i < count; i += 1) {
+      const radial = Math.pow(idHash2(name, `sd-t${i}`), 0.72) * maxRadius;
+      const along = radial / maxRadius; // 0 = core → 1 = rim
+      const angle =
+        (i % 2) * Math.PI +
+        spin +
+        along * Math.PI * 2.1 +
+        (idHash2(name, `sd-j${i}`) - 0.5) * (0.35 + along * 1.6);
+      positions[i * 3] = Math.cos(angle) * radial;
+      positions[i * 3 + 1] = (idHash2(name, `sd-y${i}`) - 0.5) * (1.5 - along);
+      positions[i * 3 + 2] = Math.sin(angle) * radial;
+      const isDust = idHash2(name, `sd-c${i}`) > 0.82;
+      tint.copy(coreColor).lerp(isDust ? dustColor : armColor, Math.min(1, 0.25 + along * 0.9));
+      colors[i * 3] = tint.r;
+      colors[i * 3 + 1] = tint.g;
+      colors[i * 3 + 2] = tint.b;
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    return geom;
+  }, [name, spread, color, theme.nebulaDustColor, cluster.count]);
+  useEffect(() => () => geometry.dispose(), [geometry]);
+  const tilt = useMemo(() => clusterTilt(name), [name]);
+  return (
+    <points geometry={geometry} position={cluster.center} rotation={tilt}>
+      <pointsMaterial
+        map={map ?? undefined}
+        size={0.14}
+        sizeAttenuation
+        vertexColors
+        transparent
+        opacity={0.9}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </points>
   );
 }
 
@@ -267,10 +338,7 @@ function ClusterArms({ cluster, theme, color }) {
     return out;
   }, [name, spread, cluster.count]);
   const dustColor = theme.nebulaDustColor ?? resolveNebulaColor(theme, 0);
-  const tilt = useMemo(
-    () => [(idHash2(name, 'tilt-x') - 0.5) * 0.4, 0, (idHash2(name, 'tilt-z') - 0.5) * 0.4],
-    [name]
-  );
+  const tilt = useMemo(() => clusterTilt(name), [name]);
   return (
     <group position={cluster.center} rotation={tilt}>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
@@ -388,6 +456,7 @@ export function GalaxyScene({ dsl, theme }) {
           <group key={`cluster-${cluster.name}`}>
             <ClusterCore cluster={cluster} color={color} />
             <ClusterArms cluster={cluster} theme={galaxyTheme} color={color} />
+            <ClusterStardust cluster={cluster} theme={galaxyTheme} color={color} />
             {showClusterLabels ? <ClusterLabel cluster={cluster} theme={theme} /> : null}
           </group>
         );

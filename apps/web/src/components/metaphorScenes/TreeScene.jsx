@@ -1,11 +1,13 @@
 /**
  * Tree metaphor scene — a stylized tree (or grove, one trunk per root): visible
- * tapered trunks with root flares rising from a soil mound, upward-sweeping
- * tapered branch limbs that lighten toward the tips, multi-tone low-poly
- * foliage with occasional fruit, and a circular meadow footing dressed with
- * grass tufts, rocks, and fallen fruit. Layout comes from treeRadialLayout
- * (roots are lifted to trunk height there). Extracted from MetaphorRenderer.jsx
- * per the ADR-0005 sibling-module pattern.
+ * tapered trunks with root flares rising from a soil mound, each capped by a
+ * full leafy crown so roots read as living trees (never felled stumps),
+ * upward-sweeping tapered branch limbs that lighten toward the tips, multi-tone
+ * low-poly foliage with occasional fruit, and a circular meadow footing dressed
+ * with grass-blade tufts, rocks, fallen fruit, and an ambient background forest
+ * of small trees and bushes. Layout comes from treeRadialLayout (roots are
+ * lifted to trunk height there). Extracted from MetaphorRenderer.jsx per the
+ * ADR-0005 sibling-module pattern.
  */
 import { useMemo } from 'react';
 import * as THREE from 'three';
@@ -172,23 +174,91 @@ function TreeLeafCluster({ position, theme, id, weight }) {
   );
 }
 
-/** Small inner-canopy tuft at branch joints so internal nodes aren't bare sticks. */
+/** World-scale of a trunk-top crown for a given weight (shared with label/glyph lift). */
+function trunkCrownScale(weight) {
+  return 1.5 + Math.min(weight ?? 3, 10) * 0.12;
+}
+
+/**
+ * Full leafy crown capping each trunk so a root reads as a living tree instead
+ * of a felled stump — a dome of overlapping foliage blobs with per-blob colour
+ * drift. Limbs to children emerge through it like boughs leaving a canopy.
+ */
+function TrunkCrown({ position, theme, id, weight }) {
+  const leafColor = theme.treeLeafColor ?? '#4ade80';
+  const scale = trunkCrownScale(weight);
+  const { blobs, colors } = useMemo(() => {
+    const seed = (salt) => idHash2(id ?? 'crown', salt);
+    const shapes = [{ pos: [0, 0.55, 0], r: 0.9 }];
+    const ringCount = 6;
+    for (let i = 0; i < ringCount; i += 1) {
+      const angle = ((i + seed('crown-spin')) / ringCount) * Math.PI * 2;
+      const dist = 0.55 + seed(`crown-d${i}`) * 0.25;
+      shapes.push({
+        pos: [
+          Math.cos(angle) * dist,
+          0.3 + (seed(`crown-y${i}`) - 0.3) * 0.5,
+          Math.sin(angle) * dist
+        ],
+        r: 0.5 + seed(`crown-r${i}`) * 0.22
+      });
+    }
+    const cols = shapes.map((_, i) =>
+      shiftColor(leafColor, {
+        lightness: (seed(`crown-l${i}`) - 0.45) * 0.14,
+        hueShift: (seed(`crown-h${i}`) - 0.5) * 0.05,
+        satScale: 0.92 + seed(`crown-s${i}`) * 0.16
+      })
+    );
+    return { blobs: shapes, colors: cols };
+  }, [id, leafColor]);
+  return (
+    <group position={[position[0], position[1] + 0.15, position[2]]} scale={scale}>
+      {blobs.map((b, i) => (
+        <mesh key={`crown-${i}`} position={b.pos}>
+          <icosahedronGeometry args={[b.r, 0]} />
+          <meshStandardMaterial
+            color={colors[i]}
+            emissive={colors[i]}
+            emissiveIntensity={0.05}
+            flatShading
+            roughness={0.85}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Leafy tuft cluster at branch joints so internal nodes read as boughs, not bare sticks. */
 function BranchFoliage({ position, theme, id, weight }) {
   const leafColor = theme.treeLeafColor ?? '#4ade80';
-  const color = useMemo(
-    () =>
+  const radius = 0.6 + Math.min(weight ?? 3, 8) * 0.05;
+  const { blobs, colors } = useMemo(() => {
+    const seed = (salt) => idHash2(id ?? 'branch', salt);
+    const shapes = [
+      { pos: [0, 0.32, 0], r: radius },
+      { pos: [0.4 + seed('bough-x') * 0.2, 0.18, 0.25], r: radius * 0.68 },
+      { pos: [-0.42, 0.22, -(0.15 + seed('bough-z') * 0.2)], r: radius * 0.62 }
+    ];
+    const cols = shapes.map((_, i) =>
       shiftColor(leafColor, {
-        lightness: -0.05 + (idHash2(id ?? 'branch', 'tuft') - 0.5) * 0.08,
+        lightness: -0.04 + (seed(`tuft-l${i}`) - 0.5) * 0.1,
+        hueShift: (seed(`tuft-h${i}`) - 0.5) * 0.04,
         satScale: 0.92
-      }),
-    [leafColor, id]
-  );
-  const radius = 0.62 + Math.min(weight ?? 3, 8) * 0.05;
+      })
+    );
+    return { blobs: shapes, colors: cols };
+  }, [leafColor, id, radius]);
   return (
-    <mesh position={[position[0], position[1] + 0.3, position[2]]}>
-      <icosahedronGeometry args={[radius, 0]} />
-      <meshStandardMaterial color={color} flatShading roughness={0.8} />
-    </mesh>
+    <group position={position}>
+      {blobs.map((b, i) => (
+        <mesh key={`bough-${i}`} position={b.pos}>
+          <icosahedronGeometry args={[b.r, 0]} />
+          <meshStandardMaterial color={colors[i]} flatShading roughness={0.8} />
+        </mesh>
+      ))}
+    </group>
   );
 }
 
@@ -268,7 +338,15 @@ function TreeMeadow({ theme, radius }) {
   );
 }
 
-/** Grass tufts, small rocks, and fallen fruit scattered around each trunk. */
+// [x-offset, z-tilt, height-scale] per blade — three thin leaning cones read as
+// a grass tuft; a single fat cone reads as a miniature conifer.
+const GRASS_BLADES = [
+  [-0.07, 0.24, 0.72],
+  [0, 0, 1],
+  [0.07, -0.22, 0.8]
+];
+
+/** Grass-blade tufts, small rocks, and fallen fruit scattered around each trunk. */
 function MeadowDetails({ roots, theme, radius }) {
   const leafColor = theme.treeLeafColor ?? '#4ade80';
   const accentColor = theme.treeAccentColor ?? '#f43f5e';
@@ -285,16 +363,17 @@ function MeadowDetails({ roots, theme, radius }) {
     const dropList = [];
     const maxSpread = radius * 0.78;
     for (const root of roots) {
-      for (let i = 0; i < 18; i += 1) {
+      for (let i = 0; i < 26; i += 1) {
         const angle = idHash2(root.id, `tuft-a${i}`) * Math.PI * 2;
         const dist = root.radius + 0.5 + idHash2(root.id, `tuft-d${i}`) * maxSpread;
         tuftList.push({
           position: [
             root.position[0] + Math.cos(angle) * dist,
-            0.08,
+            0.02,
             root.position[2] + Math.sin(angle) * dist
           ],
-          height: 0.28 + idHash2(root.id, `tuft-h${i}`) * 0.38,
+          height: 0.3 + idHash2(root.id, `tuft-h${i}`) * 0.35,
+          spin: idHash2(root.id, `tuft-s${i}`) * Math.PI,
           colorIndex: Math.floor(idHash2(root.id, `tuft-c${i}`) * tuftPalette.length)
         });
       }
@@ -333,10 +412,18 @@ function MeadowDetails({ roots, theme, radius }) {
   return (
     <group>
       {tufts.map((tuft, i) => (
-        <mesh key={`tuft-${i}`} position={tuft.position}>
-          <coneGeometry args={[0.13, tuft.height, 5]} />
-          <meshStandardMaterial color={tuftColors[tuft.colorIndex]} flatShading />
-        </mesh>
+        <group key={`tuft-${i}`} position={tuft.position} rotation={[0, tuft.spin, 0]}>
+          {GRASS_BLADES.map(([offset, tilt, heightScale], b) => (
+            <mesh
+              key={`blade-${b}`}
+              position={[offset, (tuft.height * heightScale) / 2, 0]}
+              rotation={[0, 0, tilt]}
+            >
+              <coneGeometry args={[0.04, tuft.height * heightScale, 4]} />
+              <meshStandardMaterial color={tuftColors[tuft.colorIndex]} flatShading />
+            </mesh>
+          ))}
+        </group>
       ))}
       {rocks.map((rock, i) => (
         <mesh key={`rock-${i}`} position={rock.position} scale={[1, 0.7, 1]}>
@@ -352,6 +439,132 @@ function MeadowDetails({ roots, theme, radius }) {
       ))}
     </group>
   );
+}
+
+/**
+ * Decorative background forest on the outer meadow ring — small varied trees
+ * (broadleaf + conifer) and bushes in shifted greens, kept clear of the real
+ * content trunks. Purely ambient: no labels, no hover. Sized well below the
+ * content trees so the topics stay the tallest things in the clearing.
+ */
+function AmbientForest({ roots, theme, radius }) {
+  const leafColor = theme.treeLeafColor ?? '#4ade80';
+  const trunkColor = theme.treeBranchColor ?? '#8b5a2b';
+  const plants = useMemo(() => {
+    const count = Math.max(14, Math.min(30, Math.round(radius * 2.4)));
+    const out = [];
+    for (let i = 0; i < count; i += 1) {
+      const angle = ((i + idHash2('ambient-forest', `a${i}`)) / count) * Math.PI * 2;
+      const dist = radius * (0.56 + idHash2('ambient-forest', `d${i}`) * 0.36);
+      const x = Math.cos(angle) * dist;
+      const z = Math.sin(angle) * dist;
+      const tooClose = roots.some(
+        (root) => Math.hypot(root.position[0] - x, root.position[2] - z) < root.radius + 2.6
+      );
+      if (tooClose) continue;
+      const kindSeed = idHash2('ambient-forest', `k${i}`);
+      out.push({
+        x,
+        z,
+        scale: 0.55 + idHash2('ambient-forest', `s${i}`) * 0.7,
+        kind: kindSeed < 0.22 ? 'bush' : kindSeed < 0.56 ? 'conifer' : 'broadleaf',
+        spin: idHash2('ambient-forest', `r${i}`) * Math.PI * 2,
+        color: shiftColor(leafColor, {
+          lightness: (idHash2('ambient-forest', `l${i}`) - 0.5) * 0.14,
+          hueShift: (idHash2('ambient-forest', `h${i}`) - 0.5) * 0.06,
+          satScale: 0.9 + idHash2('ambient-forest', `c${i}`) * 0.2
+        })
+      });
+    }
+    return out;
+  }, [roots, radius, leafColor]);
+  return (
+    <group>
+      {plants.map((plant, i) => (
+        <group
+          key={`plant-${i}`}
+          position={[plant.x, 0, plant.z]}
+          scale={plant.scale}
+          rotation={[0, plant.spin, 0]}
+        >
+          {plant.kind === 'bush' ? (
+            <>
+              <mesh position={[0, 0.32, 0]}>
+                <icosahedronGeometry args={[0.5, 0]} />
+                <meshStandardMaterial color={plant.color} flatShading roughness={0.85} />
+              </mesh>
+              <mesh position={[0.35, 0.22, 0.1]}>
+                <icosahedronGeometry args={[0.32, 0]} />
+                <meshStandardMaterial color={plant.color} flatShading roughness={0.85} />
+              </mesh>
+            </>
+          ) : null}
+          {plant.kind === 'conifer' ? (
+            <>
+              <mesh position={[0, 0.3, 0]}>
+                <cylinderGeometry args={[0.09, 0.13, 0.6, 6]} />
+                <meshStandardMaterial color={trunkColor} roughness={0.9} />
+              </mesh>
+              <mesh position={[0, 1.05, 0]}>
+                <coneGeometry args={[0.62, 1.15, 7]} />
+                <meshStandardMaterial color={plant.color} flatShading roughness={0.85} />
+              </mesh>
+              <mesh position={[0, 1.75, 0]}>
+                <coneGeometry args={[0.42, 0.85, 7]} />
+                <meshStandardMaterial color={plant.color} flatShading roughness={0.85} />
+              </mesh>
+            </>
+          ) : null}
+          {plant.kind === 'broadleaf' ? (
+            <>
+              <mesh position={[0, 0.55, 0]}>
+                <cylinderGeometry args={[0.1, 0.15, 1.1, 6]} />
+                <meshStandardMaterial color={trunkColor} roughness={0.9} />
+              </mesh>
+              <mesh position={[0, 1.4, 0]}>
+                <icosahedronGeometry args={[0.72, 0]} />
+                <meshStandardMaterial color={plant.color} flatShading roughness={0.85} />
+              </mesh>
+              <mesh position={[0.3, 1.8, 0.15]}>
+                <icosahedronGeometry args={[0.45, 0]} />
+                <meshStandardMaterial color={plant.color} flatShading roughness={0.85} />
+              </mesh>
+            </>
+          ) : null}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Label/glyph placement per node kind, lifted clear of the foliage: leaf items
+ * clear their canopy, trunks clear the crown, branches sit above their bough.
+ */
+function itemOverlayPlacement(kind, position, weight, hasGlyph) {
+  if (kind === 'leaf') {
+    const canopyTop = leafClusterScale(weight) * 0.7;
+    return {
+      labelPos: [position[0], position[1] + canopyTop + (hasGlyph ? 1.5 : 0.85), position[2]],
+      glyphPos: [position[0], position[1] + canopyTop + 0.6, position[2]],
+      glyphScale: 0.55 + Math.min(weight, 8) * 0.04
+    };
+  }
+  if (kind === 'trunk') {
+    const crownTop = 0.15 + trunkCrownScale(weight) * 1.5;
+    // Extra lift keeps the trunk label above the depth-1 branch labels, which
+    // hover near crown height.
+    return {
+      labelPos: [position[0], position[1] + crownTop + (hasGlyph ? 2.0 : 1.3), position[2]],
+      glyphPos: [position[0], position[1] + crownTop + 0.65, position[2]],
+      glyphScale: 0.8
+    };
+  }
+  return {
+    labelPos: [position[0], position[1] + 1.5, position[2]],
+    glyphPos: [position[0] + 0.8, position[1] + 1.35, position[2]],
+    glyphScale: 0.7
+  };
 }
 
 export function TreeScene({ dsl, theme }) {
@@ -432,23 +645,19 @@ export function TreeScene({ dsl, theme }) {
         />
       ))}
       <MeadowDetails roots={trunkRoots} theme={treeTheme} radius={meadowRadius} />
+      <AmbientForest roots={trunkRoots} theme={treeTheme} radius={meadowRadius} />
       {dsl.items.map((item) => {
         const position = layout.positions.get(item.id);
         const info = layout.nodeInfo.get(item.id);
         if (!position || !info) return null;
         const isLeaf = info.kind === 'leaf';
-        // Leaf glyphs ride above the canopy (instead of buried inside it), with
-        // the label lifted further so the two never overlap.
-        const canopyTop = isLeaf ? leafClusterScale(info.weight) * 0.7 : 0;
-        const labelPos = [
-          position[0],
-          position[1] + (isLeaf ? canopyTop + (item.glyph ? 1.5 : 0.85) : 1.1),
-          position[2]
-        ];
-        const glyphScale = isLeaf ? 0.55 + Math.min(info.weight, 8) * 0.04 : 0.75;
-        const glyphPos = isLeaf
-          ? [position[0], position[1] + canopyTop + 0.6, position[2]]
-          : [position[0] + 0.7, position[1] + 1.1, position[2]];
+        const isTrunk = info.kind === 'trunk';
+        const { labelPos, glyphPos, glyphScale } = itemOverlayPlacement(
+          info.kind,
+          position,
+          info.weight,
+          Boolean(item.glyph)
+        );
         return (
           <HoverableItem key={item.id} item={item} metaphor="tree">
             <group>
@@ -459,6 +668,9 @@ export function TreeScene({ dsl, theme }) {
                   id={item.id}
                   weight={info.weight}
                 />
+              ) : null}
+              {isTrunk ? (
+                <TrunkCrown position={position} theme={treeTheme} id={item.id} weight={info.weight} />
               ) : null}
               {info.kind === 'branch' ? (
                 <BranchFoliage position={position} theme={treeTheme} id={item.id} weight={info.weight} />
