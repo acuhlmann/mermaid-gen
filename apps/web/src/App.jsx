@@ -2314,21 +2314,40 @@ Hard requirements:
         critiqueBlock = `${critiqueBlock.slice(0, FIX_PROMPT_MAX_CRITIQUE_CHARS).trimEnd()}\n…`;
       }
 
+      const contentLabelByMode = {
+        mermaid: 'Mermaid diagram',
+        infographic: 'infographic',
+        metaphor3d: '3D metaphor view',
+        chart: 'Vega-Lite chart'
+      };
+      const contentLabel = contentLabelByMode[contentMode] ?? 'diagram';
+      const outputHintByMode = {
+        mermaid:
+          'Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.\n- Keep Mermaid syntax valid and deliver the entire diagram source in one go.',
+        infographic:
+          'Output one full valid AntV Infographic DSL in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.',
+        metaphor3d:
+          'Output one full valid metaphor JSON DSL in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.',
+        chart:
+          'Output one full valid chart JSON wrapper (Vega-Lite spec inside) in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.'
+      };
+      const outputHint =
+        outputHintByMode[contentMode] ??
+        'Output one full valid diagram update in a single apply step, then briefly summarize.';
+
       const intro = useActionableBullets
-        ? 'Improve the current Mermaid diagram by applying ONLY the following improvements. Do not implement other critique suggestions.'
-        : 'Improve the current Mermaid diagram based on this critique. Apply concrete fixes as a single complete diagram update.';
+        ? `Improve the current ${contentLabel} by applying ONLY the following improvements. Do not implement other critique suggestions.`
+        : `Improve the current ${contentLabel} based on this critique. Apply concrete fixes as a single complete update.`;
       const critiqueLabel = useActionableBullets ? 'Improvements to apply:' : 'Critique:';
       const requirementsBlock = useActionableBullets
         ? `- Implement only the improvements listed above.
-- Preserve the original intent and main flow.
+- Preserve the original intent and main story.
 - Prioritize readability and clarity within that scope.
-- Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.
-- Keep Mermaid syntax valid and deliver the entire diagram source in one go.`
-        : `- Preserve the original intent and main flow.
-- Address the critique fully: topology and labels, and also any diagram-type or visual/style points raised (e.g. adopt a suggested diagram type when appropriate, improve contrast, simplify clutter, adjust classDef/theme/init styling).
+- ${outputHint}`
+        : `- Preserve the original intent and main story.
+- Address the critique fully, including structure, labels, and any visual/style points raised.
 - Prioritize readability and clarity improvements first.
-- Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.
-- Keep Mermaid syntax valid and deliver the entire diagram source in one go.`;
+- ${outputHint}`;
 
       const fixPrompt = `${intro}
 
@@ -2370,7 +2389,7 @@ ${requirementsBlock}`;
         setActiveRequest(null);
       }
     },
-    [critiqueActionableSelected, latestCritique, modelProfile, runStreamingAgent, syncDiagramOrThrow]
+    [contentMode, critiqueActionableSelected, latestCritique, modelProfile, runStreamingAgent, syncDiagramOrThrow]
   );
 
   function handleClearDiagram() {
