@@ -6,15 +6,17 @@ flowchart LR
   Toggle -->|"contentType: infographic"| IS["Infographic slot\ndiagramSource = AntV DSL"]
   Toggle -->|"contentType: metaphor3d"| ME["Metaphor3D slot\ndiagramSource = Metaphor DSL JSON"]
   Toggle -->|"contentType: chart"| CS["Chart slot\ndiagramSource = Vega-Lite DSL"]
+  Toggle -->|"contentType: anything"| AS["Anything slot\ndiagramSource = freeform HTML/CSS/JS"]
   MS --> MR["Mermaid.js renderer\n(SVG via JSDOM)"]
   IS --> IR["@antv/infographic renderer\n(InfographicRenderer.jsx)"]
   ME --> R3F["React Three Fiber renderer\n(MetaphorRenderer.jsx)"]
   CS --> VR["Vega-Embed renderer\n(ChartRenderer.jsx)"]
+  AS --> AR["Sandboxed iframe renderer\n(AnythingRenderer.jsx)"]
 ```
 
-Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, or Chart service transparently; routes and stream events are otherwise identical from the client's perspective.
+Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, or Anything service transparently; routes and stream events are otherwise identical from the client's perspective.
 
-The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Mermaid, Infographic, and Metaphor3D** are persisted across page reloads; **Chart** mode is session-only (reverts to Mermaid on reload).
+The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Mermaid, Infographic, and Metaphor3D** are persisted across page reloads; **Chart** and **Anything** modes are session-only (revert to Mermaid on reload).
 
 ## metaphor3d kinds
 
@@ -52,5 +54,22 @@ The `chart` slot stores a Vega-Lite-compatible DSL. The agent writes valid Vega-
 - Agent service: `ChartAgentService` (`apps/server/src/agents/chartLangChainAgent.js`).
 - **Style** edits are also supported for the chart slot (same `/api/copilotkit/style` route as Mermaid).
 - Chart mode is **not persisted** in `localStorage`; a page reload returns to Mermaid.
+
+## anything
+
+The `anything` slot stores a **freeform, self-contained HTML document** (inline CSS + JS) emitted by the agent — the escape hatch for interactive widgets, mini-games, simulations, and bespoke visuals that don't fit the structured modes.
+
+**The iframe sandbox is the security boundary.** The document is untrusted LLM output, so the renderer (`apps/web/src/components/AnythingRenderer.jsx`) never mounts it into the host DOM. It renders via `<iframe srcDoc … sandbox={ANYTHING_IFRAME_SANDBOX}>` where the sandbox is exactly `allow-scripts` (constant in `packages/shared/src/anythingSchema.ts`):
+
+- **No `allow-same-origin`** — scripts run in an opaque origin with zero access to the app's DOM, cookies, or storage. Never add this token; combined with `allow-scripts` it would let injected HTML take over the app origin.
+- No top navigation, popups, forms, downloads, or permission grants (`allow` attribute is absent); `referrerPolicy="no-referrer"`.
+- The agent prompt (`apps/server/src/prompts/anythingSystemPrompt.js`) teaches the same contract: everything inline, no network, no storage.
+
+Server-side validation is deterministic-only (`parseAnythingHtml`: string, size cap, markup-shaped) — there is no DSL to parse and no sanitizer, because safety comes from the sandbox, not from rewriting the document.
+
+- Validation: `validateAndPrepareAnythingPatch` in `apps/server/src/tools/anythingHtmlTool.js`.
+- Agent service: `apps/server/src/agents/anythingLangChainAgent.js` (intent/transform/analyze; no Style support).
+- The canvas disables pan/zoom in this mode — the iframe owns scrolling and interaction (same treatment as `metaphor3d`).
+- Anything mode is **not persisted** in `localStorage`; a page reload returns to Mermaid.
 
 See also [Agents](agents.md) and [Validation & repair](validation.md).

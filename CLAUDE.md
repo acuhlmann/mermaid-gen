@@ -29,7 +29,7 @@ A **fourth** orthogonal layer is **MCP Apps** (interactive HTML at `ui://archisl
 
 ## Multi-slot session state model
 
-Every session carries **four independent diagram slots** — `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (Zod-structured JSON for a Three.js scene), and `chart` (archislop wrapper around a Vega-Lite spec) — plus an `activeContentType` pointer. Every HTTP request and SSE payload carries `contentType`, which the `DiagramAgentDispatcher` uses to route to the per-slot agent service. Switching modes does **not** mutate the other slot's revision history. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
+Every session carries **five independent diagram slots** — `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (Zod-structured JSON for a Three.js scene), `chart` (archislop wrapper around a Vega-Lite spec), and `anything` (freeform self-contained HTML/CSS/JS, rendered only inside a sandboxed iframe) — plus an `activeContentType` pointer. Every HTTP request and SSE payload carries `contentType`, which the `DiagramAgentDispatcher` uses to route to the per-slot agent service. Switching modes does **not** mutate the other slot's revision history. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
 
 **Chart vs infographic.** Both can present chart-like visuals (infographic's AntV layouts include charts). The boundary: `chart` is for *data-driven exploration* (the agent fabricates or transcribes `spec.data.values` and picks marks/encodings); `infographic` is for *narrative composition* (titles, hero numbers, KPI tiles, multi-block storytelling). Route data-viz verbs (bar chart, scatter, trend, compare, aggregate) to `chart`; route narrative verbs (summary, infographic, KPI tile) to `infographic`. The `inferDiagramType` boundary is intentionally strict — when in doubt, prefer `infographic` for layout-first asks and `chart` for "show me the numbers" asks.
 
@@ -45,6 +45,8 @@ Every session carries **four independent diagram slots** — `mermaid` (Mermaid 
 **Infographic** (2 layers + repair): textual lint + `parseSyntax`, then single-shot fixer, then agent repair. See `apps/server/src/tools/infographicDslTool.js` and `packages/shared/src/infographicSanitizer.js`.
 
 **Chart** (3 deterministic + 2 LLM gates, no sanitizer pack on day 1): JSON.parse → Zod wrapper (`parseChartDsl` in `packages/shared/src/chartSchema.ts`) → `vega-lite/compile()` (`apps/server/src/tools/chartDslTool.js`) → single-shot LLM fix (`apps/server/src/agents/chartSyntaxFixer.js`) → agent repair turns (bounded by `CHART_REPAIR_MAX_ATTEMPTS`). The sanitizer layer is intentionally absent — `vega-lite/compile()` produces precise error messages, so the deterministic-fix layer hasn't earned its keep yet; add a rule pack only when bench data shows a class of recurring failures.
+
+**Anything** (deterministic shape check + agent repair, no sanitizer/fixer): `parseAnythingHtml` in `packages/shared/src/anythingSchema.ts` (string, size cap, markup-shaped) → agent repair turns (bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`). There is deliberately no HTML sanitizer — safety comes from the client rendering the slot exclusively in an `allow-scripts`-only sandboxed iframe (`AnythingRenderer.jsx`; never add `allow-same-origin`).
 
 ## Canonical commands
 

@@ -12,7 +12,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **Style path.** Mermaid-only mutation that only changes `%%{init: ...}%%` headers, `classDef`s, etc. Hits `POST /api/copilotkit/style`.
 
-**Dispatcher.** `DiagramAgentDispatcher` (`apps/server/src/agents/diagramAgentDispatcher.js`) — a thin router that takes `contentType` and returns the Mermaid, Infographic, Metaphor3D, or Chart agent service. Every route handler goes through it.
+**Dispatcher.** `DiagramAgentDispatcher` (`apps/server/src/agents/diagramAgentDispatcher.js`) — a thin router that takes `contentType` and returns the Mermaid, Infographic, Metaphor3D, Chart, or Anything agent service. Every route handler goes through it.
 
 **Fast / Quality.** UI-level model profile toggle. The web client sends `modelProfile: "fast" | "quality"`; the server resolves the actual model slug via `resolveModelId(env, profile, backend)` in `llmProvider.js`. Never trust client-supplied raw model ids.
 

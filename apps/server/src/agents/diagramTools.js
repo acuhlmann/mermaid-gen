@@ -150,6 +150,55 @@ export function createChartTools({ stateStore }) {
   return [getChartDsl, applyChartPatch];
 }
 
+export function createAnythingTools({ stateStore }) {
+  const getAnythingHtml = tool(
+    async () => {
+      const state = stateStore.getSlot('anything');
+      return JSON.stringify({
+        revisionId: state.revisionId,
+        diagramSource: state.diagramSource,
+        updatedAt: state.updatedAt
+      });
+    },
+    {
+      name: 'get_anything_html',
+      description:
+        'Read the current Anything-mode HTML document (freeform HTML/CSS/JS), including revision id and source.',
+      schema: z.object({})
+    }
+  );
+
+  const applyAnythingPatch = tool(
+    async ({ diagramSource, reason }) => {
+      const result = await stateStore.applyDiagramSource({
+        contentType: 'anything',
+        diagramSource,
+        reason: reason || 'LangChain agent update'
+      });
+
+      return encodeApplyResult(result);
+    },
+    {
+      name: 'apply_anything_patch',
+      description:
+        'Validate and apply a complete Anything-mode HTML document update. The source is a single ' +
+        'self-contained HTML document with all CSS in <style> tags and all JS in <script> tags. ' +
+        'It is rendered in a sandboxed iframe with NO network access, NO cookies/storage, and NO ' +
+        'access to the host page — every asset must be inline (data: URIs for images). ' +
+        'Returns {accepted, revisionId} or {accepted: false, error}.',
+      schema: z.object({
+        diagramSource: z
+          .string()
+          .min(1)
+          .describe('The full replacement HTML document as a string.'),
+        reason: z.string().min(1).describe('Short reason for this update.')
+      })
+    }
+  );
+
+  return [getAnythingHtml, applyAnythingPatch];
+}
+
 export function createMetaphorTools({ stateStore }) {
   const getMetaphorDsl = tool(
     async () => {

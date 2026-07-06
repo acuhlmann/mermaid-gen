@@ -156,6 +156,45 @@
   cursor: auto;
 }
 
+/* Anything mode: the sandboxed iframe owns scrolling + interaction — fill the
+   viewport, no pan/zoom padding, default cursor. */
+.diagram-viewport.is-anything {
+  padding: 0;
+  height: 100%;
+}
+
+.diagram-output.is-anything {
+  cursor: auto;
+}
+
+.anything-renderer-root {
+  position: absolute;
+  inset: 0;
+}
+
+.anything-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: #ffffff;
+}
+
+.anything-error-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  max-width: 42rem;
+}
+
+.anything-error-detail {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
 .diagram-zoom-layer {
   position: absolute;
   left: 0;

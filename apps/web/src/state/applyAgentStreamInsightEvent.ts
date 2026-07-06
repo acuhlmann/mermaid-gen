@@ -291,7 +291,8 @@ export function applyAgentStreamInsightEvent(
     if (
       (evt.contentType === 'infographic' ||
         evt.contentType === 'metaphor3d' ||
-        evt.contentType === 'chart') &&
+        evt.contentType === 'chart' ||
+        evt.contentType === 'anything') &&
       draftSource
     ) {
       setLiveDraftSource(draftSource);
@@ -349,7 +350,7 @@ export function applyAgentStreamInsightEvent(
           }
         };
       } else if (!modeSwitchSync) {
-        crossModeSyncRef.current = { mermaid: null, infographic: null, metaphor3d: null, chart: null };
+        crossModeSyncRef.current = { mermaid: null, infographic: null, metaphor3d: null, chart: null, anything: null };
       }
     }
     if (finalEvt.revisionChanged && finalState) {

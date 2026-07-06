@@ -65,7 +65,9 @@ export function resolveAgentRepairMaxAttempts(profile = 'fast', env = {}, conten
         ? 'METAPHOR_REPAIR_MAX_ATTEMPTS'
         : contentType === 'chart'
           ? 'CHART_REPAIR_MAX_ATTEMPTS'
-          : 'MERMAID_REPAIR_MAX_ATTEMPTS';
+          : contentType === 'anything'
+            ? 'ANYTHING_REPAIR_MAX_ATTEMPTS'
+            : 'MERMAID_REPAIR_MAX_ATTEMPTS';
   const configured = readProfileEnv(env, baseName, p);
   return clampInteger(configured ?? fallback, REPAIR_ATTEMPTS_CLAMP);
 }

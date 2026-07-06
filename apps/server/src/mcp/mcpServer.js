@@ -8,6 +8,7 @@ import { validateAndPreparePatch } from '../tools/mermaidDiffTool.js';
 import { validateAndPrepareInfographicPatch } from '../tools/infographicDslTool.js';
 import { validateAndPrepareMetaphorPatch } from '../tools/metaphorDslTool.js';
 import { validateAndPrepareChartPatch } from '../tools/chartDslTool.js';
+import { validateAndPrepareAnythingPatch } from '../tools/anythingHtmlTool.js';
 import { getSessionCollaborationSnapshot } from './mcpCollaborationActions.js';
 import { buildDiagramDiffSummary, buildWebCanvasUrl } from './diagramDiffSummary.js';
 import { buildCanvasPreviewPayload } from './mcpCanvasPayload.js';
@@ -117,14 +118,15 @@ function buildMcpServer({
   server.registerResource(
     'slot',
     new ResourceTemplate('archislop://session/{sessionId}/{contentType}', { list: undefined }),
-    { description: 'Diagram state for a specific slot (mermaid, infographic, metaphor3d, or chart).' },
+    { description: 'Diagram state for a specific slot (mermaid, infographic, metaphor3d, chart, or anything).' },
     async (uri, { sessionId, contentType }) => {
       assertResourceSessionAccess(sessionId);
       if (
         contentType !== 'mermaid' &&
         contentType !== 'infographic' &&
         contentType !== 'metaphor3d' &&
-        contentType !== 'chart'
+        contentType !== 'chart' &&
+        contentType !== 'anything'
       ) {
         throw new Error(`Unknown contentType: ${contentType}`);
       }
@@ -691,7 +693,7 @@ function buildMcpServer({
       description:
         'Opens the focus-picker MCP App: pick a diagram node to highlight on the shared canvas for humans and other agents.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']).optional()
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
       },
       ...UI_META(MCP_APP_URI_FOCUS_PICKER)
     },
@@ -716,7 +718,7 @@ function buildMcpServer({
       description:
         'Returns the current state of a slot (mermaid, infographic, metaphor3d, or chart). Use this before proposing edits so you can pass the right baseRevisionId.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']).optional()
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
       }
     },
     async ({ contentType }) => {
@@ -751,7 +753,7 @@ function buildMcpServer({
       description:
         'Opens the canvas-preview MCP App: live Mermaid render (or infographic DSL) for the current session, plus a link to open the full editor in ArchiSlop web.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']).optional()
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
       },
       ...UI_META(MCP_APP_URI_CANVAS_PREVIEW)
     },
@@ -772,7 +774,7 @@ function buildMcpServer({
       description:
         'Submit a complete replacement of the diagram source as a proposal. Opens the web-companion MCP App (read-only in Cursor; approve in ArchiSlop web). Also appears in InsightsPane. Returns proposalId; poll with `wait_for_resolution`.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']),
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
         diagramSource: z.string().min(1).max(200000),
         reason: z.string().min(1).max(2000),
         baseRevisionId: z.number().int().nonnegative()
@@ -810,6 +812,13 @@ function buildMcpServer({
         }
         if (contentType === 'chart') {
           return validateAndPrepareChartPatch({
+            currentState: slot,
+            proposedDiagramSource: diagramSource,
+            reason
+          });
+        }
+        if (contentType === 'anything') {
+          return validateAndPrepareAnythingPatch({
             currentState: slot,
             proposedDiagramSource: diagramSource,
             reason
@@ -1197,7 +1206,7 @@ function buildMcpServer({
         text: z.string().min(1).max(8000),
         variant: z.enum(['note', 'critique', 'suggestion']).default('critique'),
         insightId: z.string().optional(),
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']).optional()
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
       },
       ...UI_META(MCP_APP_URI_CRITIQUE_MAP)
     },
@@ -1224,7 +1233,7 @@ function buildMcpServer({
         'Human-only (MCP App): queue a fix request for selected actionable critique bullets. Surfaces in session events for the ArchiSlop web client.',
       inputSchema: {
         items: z.array(z.string().min(1)).min(1).max(40),
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']),
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
         critiqueInsightId: z.string().optional()
       },
       ...APP_ONLY_UI(MCP_APP_URI_CRITIQUE_MAP)
@@ -1239,7 +1248,7 @@ function buildMcpServer({
       description:
         'Tell the human user which node or region of the diagram has your attention. Renders as a colored focus indicator on the canvas. Pass `nodeId: null` to clear focus. Use open_focus_picker for a visual node list.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']),
+        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
         nodeId: z.string().max(120).optional(),
         label: z.string().max(240).optional()
       }
@@ -1274,7 +1283,7 @@ function buildMcpServer({
         target: z.discriminatedUnion('kind', [
           z.object({
             kind: z.literal('revision'),
-            contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']),
+            contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
             revisionId: z.number().int().nonnegative()
           }),
           z.object({
@@ -1283,7 +1292,7 @@ function buildMcpServer({
           }),
           z.object({
             kind: z.literal('node'),
-            contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']),
+            contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
             nodeId: z.string().min(1)
           })
         ]),

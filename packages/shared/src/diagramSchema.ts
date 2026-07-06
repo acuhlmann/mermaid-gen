@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { DEFAULT_DIAGRAM_STYLE, DiagramStyleSchema, parseMermaidStyleConfig } from './mermaidStyle.js';
 
-export const ContentTypeSchema = z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart']);
+export const ContentTypeSchema = z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']);
 
 /**
  * Coerce an unknown value to a known ContentType, defaulting to 'mermaid'. Use this in
@@ -10,10 +10,11 @@ export const ContentTypeSchema = z.enum(['mermaid', 'infographic', 'metaphor3d',
  */
 export function normalizeContentType(
   value: unknown
-): 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' {
+): 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything' {
   if (value === 'infographic') return 'infographic';
   if (value === 'metaphor3d') return 'metaphor3d';
   if (value === 'chart') return 'chart';
+  if (value === 'anything') return 'anything';
   return 'mermaid';
 }
 
@@ -62,7 +63,8 @@ export const SessionDiagramStateSchema = z.object({
   mermaid: DiagramStateSchema,
   infographic: DiagramStateSchema,
   metaphor3d: DiagramStateSchema,
-  chart: DiagramStateSchema
+  chart: DiagramStateSchema,
+  anything: DiagramStateSchema
 });
 
 export const FocusNodeSchema = z
@@ -247,36 +249,17 @@ export const StyleIntentSchema = DiagramIntentSchema.extend({
 export function createInitialDiagramState(contentType = 'mermaid'): DiagramState {
   const now = new Date().toISOString();
 
-  if (contentType === 'infographic') {
+  if (
+    contentType === 'infographic' ||
+    contentType === 'metaphor3d' ||
+    contentType === 'chart' ||
+    contentType === 'anything'
+  ) {
     return {
       revisionId: 0,
       diagramSource: '',
       styleConfig: null,
-      contentType: 'infographic',
-      updatedAt: now,
-      history: [],
-      lastUserPrompt: null
-    };
-  }
-
-  if (contentType === 'metaphor3d') {
-    return {
-      revisionId: 0,
-      diagramSource: '',
-      styleConfig: null,
-      contentType: 'metaphor3d',
-      updatedAt: now,
-      history: [],
-      lastUserPrompt: null
-    };
-  }
-
-  if (contentType === 'chart') {
-    return {
-      revisionId: 0,
-      diagramSource: '',
-      styleConfig: null,
-      contentType: 'chart',
+      contentType,
       updatedAt: now,
       history: [],
       lastUserPrompt: null
@@ -300,7 +283,8 @@ export function createInitialSessionState() {
     mermaid: createInitialDiagramState('mermaid'),
     infographic: createInitialDiagramState('infographic'),
     metaphor3d: createInitialDiagramState('metaphor3d'),
-    chart: createInitialDiagramState('chart')
+    chart: createInitialDiagramState('chart'),
+    anything: createInitialDiagramState('anything')
   };
 }
 

@@ -122,7 +122,8 @@ export function isServerSessionPristine(session) {
     isSlotPristine(session.mermaid) &&
     isSlotPristine(session.infographic) &&
     isSlotPristine(session.metaphor3d) &&
-    isSlotPristine(session.chart)
+    isSlotPristine(session.chart) &&
+    isSlotPristine(session.anything)
   );
 }
 
@@ -154,7 +155,8 @@ export async function mintFreshServerSession() {
     syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
     syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
     syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId }),
-    syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId })
+    syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId }),
+    syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: targetId })
   ]);
   return targetId;
 }
@@ -211,10 +213,12 @@ export function normalizeFetchedSessionDiagram(payload) {
   const i = payload.infographic;
   const p = payload.metaphor3d;
   const c = payload.chart;
+  const a = payload.anything;
   const activeFromPayload =
     payload.activeContentType === 'infographic' ||
     payload.activeContentType === 'metaphor3d' ||
-    payload.activeContentType === 'chart'
+    payload.activeContentType === 'chart' ||
+    payload.activeContentType === 'anything'
       ? payload.activeContentType
       : base.activeContentType;
   return {
@@ -222,7 +226,8 @@ export function normalizeFetchedSessionDiagram(payload) {
     mermaid: m && typeof m === 'object' && typeof m.diagramSource === 'string' ? m : base.mermaid,
     infographic: i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic,
     metaphor3d: p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d,
-    chart: c && typeof c === 'object' && typeof c.diagramSource === 'string' ? c : base.chart
+    chart: c && typeof c === 'object' && typeof c.diagramSource === 'string' ? c : base.chart,
+    anything: a && typeof a === 'object' && typeof a.diagramSource === 'string' ? a : base.anything
   };
 }
 
@@ -252,10 +257,10 @@ export function slotLastTopic(slot) {
   return typeof p === 'string' && p.trim() ? p.trim() : null;
 }
 
-export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart'];
+export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything'];
 
 export function createEmptyCrossModeSyncMarkers() {
-  return { mermaid: null, infographic: null, metaphor3d: null, chart: null };
+  return { mermaid: null, infographic: null, metaphor3d: null, chart: null, anything: null };
 }
 
 export function siblingContentModes(contentMode) {
@@ -300,11 +305,17 @@ export function defaultModeSwitchPrompt(contentMode, peerMode = null) {
   if (contentMode === 'chart') {
     return 'Turn the current diagram into a Vega-Lite chart that surfaces the underlying data story.';
   }
+  if (contentMode === 'anything') {
+    return 'Re-create the current diagram as an interactive freeform HTML page that brings the subject to life.';
+  }
   if (peerMode === 'metaphor3d') {
     return 'Convert the current 3D metaphor into an equivalent Mermaid architecture diagram.';
   }
   if (peerMode === 'chart') {
     return 'Convert the current chart into an equivalent Mermaid architecture diagram.';
+  }
+  if (peerMode === 'anything') {
+    return 'Convert the current freeform page into an equivalent Mermaid architecture diagram.';
   }
   return 'Convert the current infographic into an equivalent Mermaid architecture diagram.';
 }
@@ -316,7 +327,8 @@ export function isSlotCustomized(slot) {
   const contentType =
     slot.contentType === 'infographic' ||
     slot.contentType === 'metaphor3d' ||
-    slot.contentType === 'chart'
+    slot.contentType === 'chart' ||
+    slot.contentType === 'anything'
       ? slot.contentType
       : 'mermaid';
   const trimmed = slot.diagramSource.trim();
