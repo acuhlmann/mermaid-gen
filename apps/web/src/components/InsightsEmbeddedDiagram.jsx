@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import ChartRenderer from './ChartRenderer.jsx';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import {
@@ -16,7 +17,7 @@ function extractErrorMessage(error) {
 }
 
 /**
- * Small, non-interactive diagram preview for the thinking pane (Mermaid SVG or Infographic canvas).
+ * Small, non-interactive diagram preview for the thinking pane (Mermaid SVG, Infographic canvas, or Vega-Lite chart).
  */
 export default function InsightsEmbeddedDiagram({
   source,
@@ -137,6 +138,21 @@ export default function InsightsEmbeddedDiagram({
             selectedNode={null}
             streamingPreview={streamingPreview}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'chart') {
+    return (
+      <div
+        ref={outerRef}
+        className="insights-embedded-diagram insights-embedded-diagram--chart"
+        data-testid="insights-embedded-diagram"
+        aria-label="Chart preview (read-only)"
+      >
+        <div ref={svgHostRef} className="insights-embedded-diagram-inner">
+          <ChartRenderer diagramSource={source} compact />
         </div>
       </div>
     );

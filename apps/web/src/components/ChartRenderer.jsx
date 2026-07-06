@@ -7,6 +7,8 @@ import { expressionInterpreter } from 'vega-interpreter';
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
 const DEFAULT_CHART_WIDTH = 720;
 const DEFAULT_CHART_HEIGHT = 440;
+const COMPACT_CHART_WIDTH = 380;
+const COMPACT_CHART_HEIGHT = 260;
 
 const EMBED_DEFAULT_OPTIONS = {
   actions: false,
@@ -44,19 +46,21 @@ function ChartErrorState({ error }) {
 
 /** Inject reasonable default dimensions so the first render fills the viewport instead of
  *  rendering at vega's tiny defaults. We only set width/height when the spec hasn't already. */
-function withDefaultSize(spec) {
+function withDefaultSize(spec, compact = false) {
   if (!spec || typeof spec !== 'object') return spec;
   const hasWidth = spec.width != null;
   const hasHeight = spec.height != null;
   if (hasWidth && hasHeight) return spec;
+  const width = compact ? COMPACT_CHART_WIDTH : DEFAULT_CHART_WIDTH;
+  const height = compact ? COMPACT_CHART_HEIGHT : DEFAULT_CHART_HEIGHT;
   return {
     ...spec,
-    ...(hasWidth ? {} : { width: DEFAULT_CHART_WIDTH }),
-    ...(hasHeight ? {} : { height: DEFAULT_CHART_HEIGHT })
+    ...(hasWidth ? {} : { width }),
+    ...(hasHeight ? {} : { height })
   };
 }
 
-export default function ChartRenderer({ diagramSource }) {
+export default function ChartRenderer({ diagramSource, compact = false }) {
   const containerRef = useRef(null);
   const viewRef = useRef(null);
   const [renderError, setRenderError] = useState(null);
@@ -82,7 +86,7 @@ export default function ChartRenderer({ diagramSource }) {
     }
 
     let cancelled = false;
-    const themed = applyChartThemeToSpec(withDefaultSize(parsed.dsl.spec), parsed.dsl.theme);
+    const themed = applyChartThemeToSpec(withDefaultSize(parsed.dsl.spec, compact), parsed.dsl.theme);
     const preset = resolveChartThemePreset(parsed.dsl.theme);
     const options = {
       ...EMBED_DEFAULT_OPTIONS,
@@ -114,7 +118,7 @@ export default function ChartRenderer({ diagramSource }) {
     return () => {
       cancelled = true;
     };
-  }, [parsed]);
+  }, [compact, parsed]);
 
   useEffect(
     () => () => {

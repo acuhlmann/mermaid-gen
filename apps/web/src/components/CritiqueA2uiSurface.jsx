@@ -25,6 +25,8 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
 
   const rootRef = useRef(null);
   const unavailableReportedRef = useRef(false);
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
 
   const processorRef = useRef(null);
   if (!processorRef.current) {
@@ -73,7 +75,7 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
     if (!Array.isArray(messages) || messages.length === 0) {
       if (!unavailableReportedRef.current) {
         unavailableReportedRef.current = true;
-        onUnavailable?.();
+        onUnavailableRef.current?.();
       }
       return () => {
         subA.unsubscribe();
@@ -90,7 +92,7 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
     if (p.model.surfacesMap.size === 0) {
       if (!unavailableReportedRef.current) {
         unavailableReportedRef.current = true;
-        onUnavailable?.();
+        onUnavailableRef.current?.();
       }
     }
 
@@ -98,7 +100,7 @@ export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSel
       subA.unsubscribe();
       subB.unsubscribe();
     };
-  }, [messages, onUnavailable]);
+  }, [messages]);
 
   useEffect(() => {
     syncFixSelectedDisabled();

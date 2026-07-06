@@ -34,7 +34,29 @@ test('validateAndPrepareAnythingPatch accepts a full HTML document', async () =>
   assert.equal(result.patch.nextRevisionId, 4);
   assert.equal(result.patch.styleConfig, null);
   assert.match(result.patch.diagramSource, /<h1>Hello<\/h1>/);
-  assert.equal(result.metadata.validator, 'anything-html-shape');
+  assert.equal(result.metadata.validator, 'anything-html');
+});
+
+test('validateAndPrepareAnythingPatch rejects external URLs', async () => {
+  const bad = HELLO_DOC.replace('<h1>', '<img src="https://evil.com/x.png"><h1>');
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: bad,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /external URL/i);
+});
+
+test('validateAndPrepareAnythingPatch rejects JS syntax errors', async () => {
+  const bad = HELLO_DOC.replace("document.title = 'hi';", 'function {');
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: bad,
+    reason: 'test'
+  });
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /Script block/i);
 });
 
 test('validateAndPrepareAnythingPatch strips a fenced html block', async () => {

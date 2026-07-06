@@ -27,6 +27,9 @@
      but stays below the editor (28) overlay isn't a concern here since the
      popovers are inside .bottom-chrome which gets layered separately. */
   --z-bottom-popover: 31;
+  /* Level-up info panel + brand chrome when the XP popover is open — above bottom
+     dock (26) and bottom-row popovers (31), below modals and ceremony overlays. */
+  --z-brand-elevated: 9100;
   --z-radial-popover: 120;
   --z-modal: 220;
   --z-modal-strong: 250;
@@ -1589,6 +1592,74 @@
   background: rgba(15, 23, 42, 0.55);
 }
 
+/* Thinking pane markdown tables */
+.insights-markdown-table-wrap {
+  margin: 0.45rem 0 0.55rem;
+  overflow-x: auto;
+  border-radius: 0.62rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.04);
+}
+
+.insights-markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.insights-markdown-table th,
+.insights-markdown-table td {
+  padding: 0.42rem 0.55rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.insights-markdown-table th {
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  background: linear-gradient(180deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.03));
+  white-space: nowrap;
+}
+
+.insights-markdown-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.insights-markdown-table tbody tr:nth-child(even) td {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+.insights-markdown-table td.is-numeric {
+  font-variant-numeric: tabular-nums;
+  min-width: 5.5rem;
+}
+
+.insights-table-bar-cell {
+  position: relative;
+  display: block;
+  min-width: 4.5rem;
+}
+
+.insights-table-bar-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 0.22rem;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.22), rgba(99, 102, 241, 0.08));
+  pointer-events: none;
+}
+
+.insights-table-bar-label {
+  position: relative;
+  z-index: 1;
+  font-weight: 650;
+}
+
 .insights-color-ramp {
   display: inline-flex;
   align-items: center;
@@ -2498,6 +2569,21 @@
   min-height: 9rem;
 }
 
+.insights-embedded-diagram--chart .insights-embedded-diagram-inner,
+.insights-embedded-diagram--chart .chart-renderer-root,
+.insights-embedded-diagram--chart .chart-embed-container {
+  width: 100%;
+  height: 100%;
+  min-height: 9rem;
+}
+
+.insights-embedded-diagram--chart .chart-embed-container svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
 .insights-embedded-diagram .diagram-error {
   font-size: 0.72rem;
   line-height: 1.35;
@@ -3075,6 +3161,9 @@
 
 .insights-a2ui-surface-root.is-busy {
   opacity: 0.55;
+}
+
+.insights-a2ui-surface-root.is-busy button {
   pointer-events: none;
 }
 
@@ -3103,7 +3192,10 @@
   height: 1.05rem;
   margin: 0.18rem 0 0;
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
   cursor: pointer;
+  pointer-events: auto;
   border: 1.5px solid rgba(234, 88, 12, 0.42);
   border-radius: 0.3rem;
   background: rgba(255, 255, 255, 0.96);
@@ -3115,13 +3207,13 @@
 }
 
 .insights-a2ui-surface-root input[type='checkbox']:checked {
-  border-color: #ea580c;
-  background-color: #ea580c;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 6.2 5 8.7 9.5 3.8' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: 0.62rem 0.62rem;
-  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.14);
+  border-color: #ea580c !important;
+  background-color: #ea580c !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M2.5 6.2 5 8.7 9.5 3.8' stroke='white' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 0.62rem 0.62rem !important;
+  box-shadow: 0 0 0 2px rgba(234, 88, 12, 0.14) !important;
 }
 
 .insights-a2ui-surface-root input[type='checkbox']:focus-visible {
@@ -3882,7 +3974,7 @@
    (--z-ceremony-overlay). */
 .brand-control.is-info-panel-open {
   position: relative;
-  z-index: 9100;
+  z-index: 1;
 }
 
 .brand-control-chip {
@@ -4019,6 +4111,12 @@
 .top-shell > .top-corner-controls {
   flex: 0 0 auto;
   margin-left: auto;
+}
+
+/* Escape the default top-shell stacking context (z-index 25) so the level-up
+   panel renders above bottom-row chrome (z-index 26–31). */
+.top-shell:has(.brand-control.is-info-panel-open) {
+  z-index: var(--z-brand-elevated);
 }
 
 .code-toggle-button.is-open {
@@ -8325,7 +8423,7 @@ button {
   margin-top: 0.45rem;
   max-width: min(22rem, calc(100vw - 2rem));
   width: max-content;
-  z-index: 9101;
+  z-index: 2;
 }
 
 .levelup-info-panel {

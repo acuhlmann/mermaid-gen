@@ -10,8 +10,10 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 import { treeRadialLayout } from '../../utils/metaphorLayouts/treeRadialLayout.js';
+import { resolveTreeNatureTheme } from '../../utils/metaphorThemePresets.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
+  GradientSkySphere,
   HoverableItem,
   ItemLabel,
   MetaphorGroundShadow,
@@ -92,7 +94,7 @@ function TreeBranchSegment({ id, from, to, thicknessTop, thicknessBottom, color 
 
 /** World-scale of a leaf canopy for a given weight (shared with label/glyph lift). */
 function leafClusterScale(weight) {
-  return 1.05 + Math.min(weight ?? 3, 8) * 0.09;
+  return 1.35 + Math.min(weight ?? 3, 8) * 0.12;
 }
 
 function TreeLeafCluster({ position, theme, id, weight }) {
@@ -181,7 +183,7 @@ function BranchFoliage({ position, theme, id, weight }) {
       }),
     [leafColor, id]
   );
-  const radius = 0.5 + Math.min(weight ?? 3, 8) * 0.04;
+  const radius = 0.62 + Math.min(weight ?? 3, 8) * 0.05;
   return (
     <mesh position={[position[0], position[1] + 0.3, position[2]]}>
       <icosahedronGeometry args={[radius, 0]} />
@@ -283,7 +285,7 @@ function MeadowDetails({ roots, theme, radius }) {
     const dropList = [];
     const maxSpread = radius * 0.78;
     for (const root of roots) {
-      for (let i = 0; i < 12; i += 1) {
+      for (let i = 0; i < 18; i += 1) {
         const angle = idHash2(root.id, `tuft-a${i}`) * Math.PI * 2;
         const dist = root.radius + 0.5 + idHash2(root.id, `tuft-d${i}`) * maxSpread;
         tuftList.push({
@@ -292,7 +294,7 @@ function MeadowDetails({ roots, theme, radius }) {
             0.08,
             root.position[2] + Math.sin(angle) * dist
           ],
-          height: 0.22 + idHash2(root.id, `tuft-h${i}`) * 0.3,
+          height: 0.28 + idHash2(root.id, `tuft-h${i}`) * 0.38,
           colorIndex: Math.floor(idHash2(root.id, `tuft-c${i}`) * tuftPalette.length)
         });
       }
@@ -353,6 +355,7 @@ function MeadowDetails({ roots, theme, radius }) {
 }
 
 export function TreeScene({ dsl, theme }) {
+  const treeTheme = useMemo(() => resolveTreeNatureTheme(theme), [theme]);
   const layout = useMemo(() => treeRadialLayout(dsl.items), [dsl.items]);
 
   const anchors = useMemo(() => {
@@ -366,8 +369,8 @@ export function TreeScene({ dsl, theme }) {
   }, [dsl.items, layout.positions]);
 
   const branches = useMemo(() => {
-    const trunkColor = theme.treeTrunkColor ?? '#8b5a2b';
-    const branchColor = theme.treeBranchColor ?? '#a47148';
+    const trunkColor = treeTheme.treeTrunkColor ?? '#8b5a2b';
+    const branchColor = treeTheme.treeBranchColor ?? '#a47148';
     const segments = [];
     for (const item of dsl.items) {
       const info = layout.nodeInfo.get(item.id);
@@ -378,9 +381,9 @@ export function TreeScene({ dsl, theme }) {
       if (!fromPosition) continue;
       // Weight drives limb girth (the legend axis); depth thins limbs toward
       // the crown and lightens the bark so tips read younger than the bough.
-      const weightTerm = 0.15 + Math.min(info.weight, 12) * 0.05;
+      const weightTerm = 0.19 + Math.min(info.weight, 12) * 0.06;
       const depthScale = 1 / (1 + Math.max(0, info.depth - 1) * 0.22);
-      const thicknessBottom = Math.max(0.07, weightTerm * depthScale);
+      const thicknessBottom = Math.max(0.09, weightTerm * depthScale);
       const thicknessTop = info.kind === 'leaf' ? thicknessBottom * 0.38 : thicknessBottom * 0.66;
       segments.push({
         key: item.id,
@@ -395,7 +398,7 @@ export function TreeScene({ dsl, theme }) {
       });
     }
     return segments;
-  }, [dsl.items, layout, theme.treeTrunkColor, theme.treeBranchColor]);
+  }, [dsl.items, layout, treeTheme.treeTrunkColor, treeTheme.treeBranchColor]);
 
   const trunkRoots = useMemo(() => {
     const out = [];
@@ -403,7 +406,7 @@ export function TreeScene({ dsl, theme }) {
       const info = layout.nodeInfo.get(item.id);
       const position = layout.positions.get(item.id);
       if (!info || !position || info.parentId !== null) continue;
-      const radius = 0.42 + Math.min(info.weight, 12) * 0.07;
+      const radius = 0.55 + Math.min(info.weight, 12) * 0.09;
       out.push({ id: item.id, position, radius });
     }
     return out;
@@ -413,9 +416,9 @@ export function TreeScene({ dsl, theme }) {
 
   return (
     <group>
-      <TreeMeadow theme={theme} radius={meadowRadius} />
+      <TreeMeadow theme={treeTheme} radius={meadowRadius} />
       {trunkRoots.map((root) => (
-        <TreeTrunk key={`trunk-${root.id}`} root={root} theme={theme} />
+        <TreeTrunk key={`trunk-${root.id}`} root={root} theme={treeTheme} />
       ))}
       {branches.map((seg) => (
         <TreeBranchSegment
@@ -428,7 +431,7 @@ export function TreeScene({ dsl, theme }) {
           color={seg.color}
         />
       ))}
-      <MeadowDetails roots={trunkRoots} theme={theme} radius={meadowRadius} />
+      <MeadowDetails roots={trunkRoots} theme={treeTheme} radius={meadowRadius} />
       {dsl.items.map((item) => {
         const position = layout.positions.get(item.id);
         const info = layout.nodeInfo.get(item.id);
@@ -452,17 +455,17 @@ export function TreeScene({ dsl, theme }) {
               {isLeaf ? (
                 <TreeLeafCluster
                   position={position}
-                  theme={theme}
+                  theme={treeTheme}
                   id={item.id}
                   weight={info.weight}
                 />
               ) : null}
               {info.kind === 'branch' ? (
-                <BranchFoliage position={position} theme={theme} id={item.id} weight={info.weight} />
+                <BranchFoliage position={position} theme={treeTheme} id={item.id} weight={info.weight} />
               ) : null}
               {item.glyph ? (
                 <group position={glyphPos} scale={glyphScale}>
-                  <Glyph kind={item.glyph} theme={theme} />
+                  <Glyph kind={item.glyph} theme={treeTheme} />
                 </group>
               ) : null}
               <ItemLabel
@@ -478,8 +481,19 @@ export function TreeScene({ dsl, theme }) {
       })}
       {/* Kept inside the meadow disc so the blur tail never paints a dark halo
           on the backdrop around it. */}
-      <MetaphorGroundShadow theme={theme} scale={meadowRadius * 1.7} />
+      <MetaphorGroundShadow theme={treeTheme} scale={meadowRadius * 1.7} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
+  );
+}
+
+/** Soft daylight gradient backdrop for the tree metaphor (outside Bounds). */
+export function TreeSky({ theme }) {
+  const treeTheme = resolveTreeNatureTheme(theme);
+  return (
+    <GradientSkySphere
+      topColor={treeTheme.treeSkyTopColor ?? '#87ceeb'}
+      horizonColor={treeTheme.treeSkyHorizonColor ?? '#e8f4e8'}
+    />
   );
 }

@@ -5,6 +5,10 @@ import { redactSecrets } from '../utils/redactSecrets.js';
 import { ANYTHING_SYSTEM_PROMPT } from '../prompts/anythingSystemPrompt.js';
 import { buildAnythingRepairInstruction } from '../prompts/anythingSyntaxGuard.js';
 import {
+  isAnythingSyntaxFixerAvailable,
+  repairAnythingWithFixer
+} from './anythingSyntaxFixer.js';
+import {
   createLlmChatModel,
   normalizeModelProfile,
   resolveLlmBackend,
@@ -202,6 +206,7 @@ export function createAnythingLangChainAgent({
     let lastResult = null;
     let lastError = null;
     let lastBrokenSource = null;
+    let syntaxFixerTried = false;
     const agent = buildAgent(runProfile);
 
     const stopReason = () => {
@@ -314,6 +319,43 @@ export function createAnythingLangChainAgent({
         lastError = failureError;
         lastBrokenSource =
           extractLastAttemptedToolSource(result, 'apply_anything_patch') || lastBrokenSource;
+
+        if (!syntaxFixerTried && lastBrokenSource && isAnythingSyntaxFixerAvailable(env)) {
+          const fixerStop = stopReason();
+          if (fixerStop) return finishStoppedRun(fixerStop);
+          syntaxFixerTried = true;
+          if (typeof emit === 'function') {
+            emitPlanBeat(
+              emit,
+              'Page failed validation — running a quick syntax pass before retrying.',
+              'server'
+            );
+            emit({ type: 'phase', id: 'anything_syntax_fixer', label: 'Page syntax fixer…' });
+          }
+          const fixerOutcome = await repairAnythingWithFixer({
+            brokenSource: lastBrokenSource,
+            parseError: failureError,
+            originalRequest,
+            env
+          });
+          if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
+            const applied = await stateStore.applyDiagramSource({
+              contentType: 'anything',
+              diagramSource: fixerOutcome.diagramSource,
+              reason: 'syntax-fixer repair'
+            });
+            if (applied.accepted) {
+              return {
+                message: 'Page updated (repaired by syntax fixer).',
+                raw: result,
+                metadata: { agent: 'anything', validator: 'syntax-fixer' }
+              };
+            }
+            lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+          } else {
+            lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+          }
+        }
 
         messages = [
           ...messages,

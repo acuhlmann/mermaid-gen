@@ -35,6 +35,31 @@ describe('parseDiagramPatchToolCall', () => {
     });
     expect(parseDiagramPatchToolCall(j)?.kind).toBe('mermaid');
   });
+
+  it('parses apply_chart_patch', () => {
+    const j = JSON.stringify({
+      name: 'apply_chart_patch',
+      arguments: {
+        diagramSource: JSON.stringify({
+          archislopVersion: 1,
+          theme: 'blueprint',
+          spec: {
+            $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+            data: { values: [{ q: 'Q1', rev: 12 }] },
+            mark: 'bar',
+            encoding: {
+              x: { field: 'q', type: 'ordinal' },
+              y: { field: 'rev', type: 'quantitative' }
+            }
+          }
+        }),
+        reason: 'initial chart'
+      }
+    });
+    const p = parseDiagramPatchToolCall(j);
+    expect(p?.kind).toBe('chart');
+    expect(p?.source).toContain('"archislopVersion"');
+  });
 });
 
 describe('partitionDiagramToolJsonBlocks', () => {

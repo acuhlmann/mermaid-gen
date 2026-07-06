@@ -59,17 +59,21 @@ The `chart` slot stores a Vega-Lite-compatible DSL. The agent writes valid Vega-
 
 The `anything` slot stores a **freeform, self-contained HTML document** (inline CSS + JS) emitted by the agent — the escape hatch for interactive widgets, mini-games, simulations, and bespoke visuals that don't fit the structured modes.
 
-**The iframe sandbox is the security boundary.** The document is untrusted LLM output, so the renderer (`apps/web/src/components/AnythingRenderer.jsx`) never mounts it into the host DOM. It renders via `<iframe srcDoc … sandbox={ANYTHING_IFRAME_SANDBOX}>` where the sandbox is exactly `allow-scripts` (constant in `packages/shared/src/anythingSchema.ts`):
+**The iframe sandbox + CSP are the render-time security boundary.** The document is untrusted LLM output, so the renderer (`apps/web/src/components/AnythingRenderer.jsx`) never mounts it into the host DOM. It renders via `<iframe srcDoc … sandbox={ANYTHING_IFRAME_SANDBOX} csp={ANYTHING_IFRAME_CSP}>` (constants in `packages/shared/src/anythingSchema.ts`):
 
 - **No `allow-same-origin`** — scripts run in an opaque origin with zero access to the app's DOM, cookies, or storage. Never add this token; combined with `allow-scripts` it would let injected HTML take over the app origin.
+- **CSP enforced** — `ANYTHING_IFRAME_CSP` blocks outbound network (`connect-src 'none'`), external subresources, nested frames, and form submission. A matching `<meta http-equiv="Content-Security-Policy">` is injected into `srcDoc` as defense-in-depth.
 - No top navigation, popups, forms, downloads, or permission grants (`allow` attribute is absent); `referrerPolicy="no-referrer"`.
 - The agent prompt (`apps/server/src/prompts/anythingSystemPrompt.js`) teaches the same contract: everything inline, no network, no storage.
 
-Server-side validation is deterministic-only (`parseAnythingHtml`: string, size cap, markup-shaped) — there is no DSL to parse and no sanitizer, because safety comes from the sandbox, not from rewriting the document.
+Server-side validation is deterministic (`parseAnythingHtml` shape check, `lintAnythingPolicy` security rules, `lintAnythingQuality` structure/JS/CSS syntax) — there is **no HTML sanitizer** that strips scripts; safety at render time comes from sandbox + CSP, not from rewriting the document.
 
 - Validation: `validateAndPrepareAnythingPatch` in `apps/server/src/tools/anythingHtmlTool.js`.
+- Single-shot fixer: `apps/server/src/agents/anythingSyntaxFixer.js` (before full agent repair turns).
 - Agent service: `apps/server/src/agents/anythingLangChainAgent.js` (intent/transform/analyze; no Style support).
 - The canvas disables pan/zoom in this mode — the iframe owns scrolling and interaction (same treatment as `metaphor3d`).
-- Anything mode is **not persisted** in `localStorage`; a page reload returns to Mermaid.
+- Anything mode is **not persisted** in `localStorage` (diagram source is omitted from the client cache when active); a page reload returns to Mermaid.
+
+**MCP / external agents:** session state and MCP resources expose raw Anything HTML in JSON. Treat it as untrusted — never execute outside the same sandbox + CSP wrapper.
 
 See also [Agents](agents.md) and [Validation & repair](validation.md).

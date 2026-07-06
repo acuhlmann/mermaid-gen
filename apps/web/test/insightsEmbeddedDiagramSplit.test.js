@@ -58,6 +58,60 @@ We should simplify.`;
     expect(splitEmbeddedDiagramDsl(text)).toBeNull();
   });
 
+  it('splits prose then fenced chart JSON DSL', () => {
+    const chart = {
+      archislopVersion: 1,
+      theme: 'blueprint',
+      spec: {
+        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+        title: 'Blockchain Core Concepts: Significance',
+        data: {
+          values: [
+            { concept: 'Decentralization', score: 9 },
+            { concept: 'Immutability', score: 8 }
+          ]
+        },
+        mark: 'bar',
+        encoding: {
+          x: { field: 'concept', type: 'nominal' },
+          y: { field: 'score', type: 'quantitative' }
+        }
+      }
+    };
+    const text = `Building the chart now.
+
+\`\`\`json
+${JSON.stringify(chart, null, 2)}
+\`\`\``;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('chart');
+    expect(r.prose.trim()).toBe('Building the chart now.');
+    expect(r.dsl).toContain('"archislopVersion"');
+    expect(r.dsl).toContain('Blockchain Core Concepts');
+  });
+
+  it('splits bare chart JSON after prose', () => {
+    const chart = {
+      archislopVersion: 1,
+      theme: 'whiteboard',
+      spec: {
+        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+        data: { values: [{ q: 'Q1', rev: 12 }] },
+        mark: 'bar',
+        encoding: {
+          x: { field: 'q', type: 'ordinal' },
+          y: { field: 'rev', type: 'quantitative' }
+        }
+      }
+    };
+    const text = `Applied patch.\n\n${JSON.stringify(chart, null, 2)}`;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('chart');
+    expect(r.prose.trim()).toBe('Applied patch.');
+  });
+
   it('includes leading %%{init}%% directive in mermaid dsl', () => {
     const init = '%%{init: {"theme":"base","flowchart":{"curve":"rounded"}}}%%';
     const text = `${init}

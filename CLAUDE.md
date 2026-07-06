@@ -46,7 +46,7 @@ Every session carries **five independent diagram slots** — `mermaid` (Mermaid 
 
 **Chart** (3 deterministic + 2 LLM gates, no sanitizer pack on day 1): JSON.parse → Zod wrapper (`parseChartDsl` in `packages/shared/src/chartSchema.ts`) → `vega-lite/compile()` (`apps/server/src/tools/chartDslTool.js`) → single-shot LLM fix (`apps/server/src/agents/chartSyntaxFixer.js`) → agent repair turns (bounded by `CHART_REPAIR_MAX_ATTEMPTS`). The sanitizer layer is intentionally absent — `vega-lite/compile()` produces precise error messages, so the deterministic-fix layer hasn't earned its keep yet; add a rule pack only when bench data shows a class of recurring failures.
 
-**Anything** (deterministic shape check + agent repair, no sanitizer/fixer): `parseAnythingHtml` in `packages/shared/src/anythingSchema.ts` (string, size cap, markup-shaped) → agent repair turns (bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`). There is deliberately no HTML sanitizer — safety comes from the client rendering the slot exclusively in an `allow-scripts`-only sandboxed iframe (`AnythingRenderer.jsx`; never add `allow-same-origin`).
+**Anything** (shape + policy + quality lint + fixer + agent repair, no sanitizer): `parseAnythingHtml` → `lintAnythingPolicy` → `lintAnythingQuality` in `packages/shared` → single-shot `anythingSyntaxFixer.js` → agent repair turns (bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`). There is deliberately no HTML sanitizer — safety comes from the client rendering the slot in an `allow-scripts`-only sandboxed iframe with CSP (`AnythingRenderer.jsx`; never add `allow-same-origin`).
 
 ## Canonical commands
 

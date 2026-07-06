@@ -44,7 +44,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
-import { TreeScene } from './metaphorScenes/TreeScene.jsx';
+import { TreeScene, TreeSky } from './metaphorScenes/TreeScene.jsx';
 import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
@@ -1150,6 +1150,7 @@ function MetaphorRendererImpl(
           {dsl.metaphor === 'galaxy' ? (
             <GalaxySky theme={theme} animated={!streamingPreview} />
           ) : null}
+          {dsl.metaphor === 'tree' ? <TreeSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <Bounds fit clip observe margin={1.25}>

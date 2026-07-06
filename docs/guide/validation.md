@@ -104,8 +104,11 @@ Chart validation runs through `validateAndPrepareChartPatch` (`apps/server/src/t
 
 Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server/src/tools/anythingHtmlTool.js`):
 
-1. **Shape check** — `parseAnythingHtml` (shared package): string, code-fence strip, size cap, contains at least one HTML tag.
-2. **Repair** — agent repair turns only (bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`); there is no single-shot fixer and deliberately **no HTML sanitizer**. Safety is enforced at render time: the web client renders the slot exclusively inside an `allow-scripts`-only sandboxed iframe (`AnythingRenderer.jsx`) — see [Content types](content-types.md#anything).
+1. **Shape check** — `parseAnythingHtml` (shared): string, code-fence strip, size cap, contains at least one HTML tag.
+2. **Policy lint** — `lintAnythingPolicy` (shared): reject external URLs, parent escape, nested frames, `javascript:` URLs, and other sandbox-contract violations.
+3. **Quality lint** — `lintAnythingQuality` (shared): require `<html>/<head>/<body>`, balanced tags/CSS, valid inline JS (`acorn`).
+4. **Single-shot fixer** — `repairAnythingWithFixer` (`anythingSyntaxFixer.js`), one fast-model call before full agent repair.
+5. **Agent repair** — bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`. Deliberately **no HTML sanitizer** — safety at render time is the sandboxed iframe + CSP in `AnythingRenderer.jsx` — see [Content types](content-types.md#anything).
 
 ## Session state: five-slot model
 

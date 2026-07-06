@@ -20,6 +20,33 @@ export const ANYTHING_HTML_MAX_LENGTH = 200_000;
  */
 export const ANYTHING_IFRAME_SANDBOX = 'allow-scripts';
 
+/**
+ * Content-Security-Policy applied to the Anything iframe (via the iframe `csp`
+ * attribute and an injected meta tag in srcDoc). Blocks outbound network and
+ * external subresources while keeping inline scripts/styles working.
+ */
+export const ANYTHING_IFRAME_CSP =
+  "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'";
+
+/**
+ * Inject a CSP meta tag into an Anything HTML document before it is passed to
+ * iframe srcDoc. Does not mutate scripts or styles — containment only.
+ */
+export function wrapAnythingSrcDoc(html: string, csp: string = ANYTHING_IFRAME_CSP): string {
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
+  const headMatch = html.match(/<head(\s[^>]*)?>/i);
+  if (headMatch && headMatch.index != null) {
+    const insertAt = headMatch.index + headMatch[0].length;
+    return `${html.slice(0, insertAt)}${meta}${html.slice(insertAt)}`;
+  }
+  const htmlMatch = html.match(/<html(\s[^>]*)?>/i);
+  if (htmlMatch && htmlMatch.index != null) {
+    const insertAt = htmlMatch.index + htmlMatch[0].length;
+    return `${html.slice(0, insertAt)}<head>${meta}</head>${html.slice(insertAt)}`;
+  }
+  return `<!DOCTYPE html><html><head>${meta}</head><body>${html}</body></html>`;
+}
+
 export interface ParseAnythingHtmlSuccess {
   ok: true;
   /** Normalized document text (code fence stripped, trimmed). */

@@ -1,4 +1,24 @@
+import * as THREE from 'three';
+
 /** Visual presets for metaphor `scene.theme` — lighting/env only, not scene geometry. */
+
+/** Fixed nature palette — tree metaphor always reads as brown trunk + green canopy. */
+const TREE_NATURE_BASE = {
+  treeTrunkColor: '#6b4423',
+  treeBranchColor: '#8b5a2b',
+  treeLeafColor: '#2d6a4f',
+  treeMeadowColor: '#52b788',
+  treeSoilColor: '#5c4033',
+  treeAccentColor: '#e63946',
+  treeSkyTopColor: '#87ceeb',
+  treeSkyHorizonColor: '#e8f4e8'
+};
+
+function blendHexColors(base, tint, amount) {
+  const out = new THREE.Color(base);
+  out.lerp(new THREE.Color(tint), amount);
+  return `#${out.getHexString()}`;
+}
 
 export const METAPHOR_THEME_PRESETS = {
   whiteboard: {
@@ -40,7 +60,7 @@ export const METAPHOR_THEME_PRESETS = {
     treeMeadowColor: '#a8d39a',
     treeSoilColor: '#7a5a3a',
     spaceTopColor: '#0b1026',
-    spaceHorizonColor: '#1d2a4d',
+    spaceHorizonColor: '#2a1050',
     // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field.
     postfx: {
       enabled: true,
@@ -71,7 +91,7 @@ export const METAPHOR_THEME_PRESETS = {
     labelColor: '#f1f5f9',
     labelOutline: '#0f172a',
     districtPalette: ['#1e293b', '#334155', '#475569', '#64748b'],
-    clusterPalette: ['#e2e8f0', '#94a3b8', '#cbd5e1', '#f1f5f9'],
+    clusterPalette: ['#818cf8', '#22d3ee', '#f472b6', '#a3e635'],
     linkColor: '#94a3b8',
     linkOpacity: 0.6,
     accentGlow: 0.5,
@@ -81,7 +101,7 @@ export const METAPHOR_THEME_PRESETS = {
     treeLeafColor: '#94a3b8',
     terrainBaseColor: '#1e293b',
     binaryGlowColor: '#cbd5e1',
-    nebulaPalette: ['#475569', '#334155', '#1e293b'],
+    nebulaPalette: ['#6366f1', '#06b6d4', '#ec4899'],
     windowColor: '#fbbf24',
     windowEmissiveColor: '#fde047',
     spireColor: '#cbd5e1',
@@ -94,7 +114,7 @@ export const METAPHOR_THEME_PRESETS = {
     treeMeadowColor: '#0d1726',
     treeSoilColor: '#070d18',
     spaceTopColor: '#01030a',
-    spaceHorizonColor: '#0b1626',
+    spaceHorizonColor: '#1e1b4b',
     // Dramatic: heavy bloom on the lit windows/stars, deep vignette, dark shadow.
     postfx: {
       enabled: true,
@@ -179,7 +199,7 @@ export const METAPHOR_THEME_PRESETS = {
     labelColor: '#f0f9ff',
     labelOutline: '#0a1e3a',
     districtPalette: ['#1e3a8a', '#1d4ed8', '#2563eb', '#3b82f6'],
-    clusterPalette: ['#e0f2fe', '#bae6fd', '#7dd3fc', '#38bdf8'],
+    clusterPalette: ['#38bdf8', '#c084fc', '#fbbf24', '#34d399'],
     linkColor: '#bae6fd',
     linkOpacity: 0.9,
     accentGlow: 0.55,
@@ -189,7 +209,7 @@ export const METAPHOR_THEME_PRESETS = {
     treeLeafColor: '#e0f2fe',
     terrainBaseColor: '#1e40af',
     binaryGlowColor: '#f0f9ff',
-    nebulaPalette: ['#1d4ed8', '#2563eb', '#3b82f6'],
+    nebulaPalette: ['#2563eb', '#a855f7', '#f59e0b'],
     windowColor: '#e0f2fe',
     windowEmissiveColor: '#bae6fd',
     spireColor: '#dbeafe',
@@ -202,7 +222,7 @@ export const METAPHOR_THEME_PRESETS = {
     treeMeadowColor: '#11315e',
     treeSoilColor: '#0a2348',
     spaceTopColor: '#030b1c',
-    spaceHorizonColor: '#0e2f5e',
+    spaceHorizonColor: '#1e3a6e',
     // Technical/crisp: modest bloom on the linework, light vignette, no DoF.
     postfx: {
       enabled: true,
@@ -256,4 +276,36 @@ export function resolveClusterColor(theme, index) {
 export function resolveNebulaColor(theme, index) {
   const palette = theme.nebulaPalette ?? theme.clusterPalette ?? [theme.starColor];
   return palette[index % palette.length];
+}
+
+/**
+ * Nature-locked tree colours — trunks/branches/soil stay brown regardless of
+ * scene.theme; leaf and meadow pick up a ~10% tint from the active theme so
+ * arcade/noir still feel cohesive without purple trunks.
+ */
+export function resolveTreeNatureTheme(theme) {
+  const leafTint = theme?.treeLeafColor ?? theme?.starColor ?? TREE_NATURE_BASE.treeLeafColor;
+  const meadowTint = theme?.treeMeadowColor ?? theme?.groundColor ?? TREE_NATURE_BASE.treeMeadowColor;
+  const blend = 0.1;
+  return {
+    ...theme,
+    treeTrunkColor: TREE_NATURE_BASE.treeTrunkColor,
+    treeBranchColor: TREE_NATURE_BASE.treeBranchColor,
+    treeSoilColor: TREE_NATURE_BASE.treeSoilColor,
+    treeLeafColor: blendHexColors(TREE_NATURE_BASE.treeLeafColor, leafTint, blend),
+    treeMeadowColor: blendHexColors(TREE_NATURE_BASE.treeMeadowColor, meadowTint, blend),
+    treeAccentColor: TREE_NATURE_BASE.treeAccentColor,
+    treeSkyTopColor: TREE_NATURE_BASE.treeSkyTopColor,
+    treeSkyHorizonColor: TREE_NATURE_BASE.treeSkyHorizonColor
+  };
+}
+
+/** Galaxy-specific tuning layered on the resolved scene theme. */
+export function resolveGalaxyVividTheme(theme) {
+  return {
+    ...theme,
+    galaxySpectralSpread: theme?.galaxySpectralSpread ?? 0.35,
+    spaceTopColor: theme?.spaceTopColor ?? '#070b18',
+    spaceHorizonColor: theme?.spaceHorizonColor ?? '#2a1050'
+  };
 }

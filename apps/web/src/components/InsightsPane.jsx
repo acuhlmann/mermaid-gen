@@ -3,6 +3,7 @@ import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
+import { extractMarkdownTableBlock, ThinkingMarkdownTable } from '../utils/thinkingMarkdownTable';
 import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
@@ -507,13 +508,31 @@ function splitMarkdownSections(content) {
 function renderBodyLines(body, keyPrefix, useSectionTypography) {
   const lines = body.split('\n');
   const out = [];
+  let index = 0;
 
-  lines.forEach((line, index) => {
+  while (index < lines.length) {
+    const line = lines[index];
     const trimmed = line.trim();
     if (!trimmed) {
       out.push(<div key={`${keyPrefix}-gap-${index}`} className="insights-content-gap" />);
-      return;
+      index += 1;
+      continue;
     }
+
+    const tableBlock = extractMarkdownTableBlock(lines, index);
+    if (tableBlock) {
+      out.push(
+        <ThinkingMarkdownTable
+          key={`${keyPrefix}-tbl-${index}`}
+          headers={tableBlock.headers}
+          rows={tableBlock.rows}
+          keyPrefix={`${keyPrefix}-tbl-${index}`}
+        />
+      );
+      index = tableBlock.nextIndex;
+      continue;
+    }
+
     const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (olMatch) {
       const stepBody = olMatch[2];
@@ -531,7 +550,8 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
           <span className="insights-step-card-body">{parseInline(stepBody, `${keyPrefix}-ol-${index}`)}</span>
         </p>
       );
-      return;
+      index += 1;
+      continue;
     }
     if (trimmed.startsWith('### ')) {
       out.push(
@@ -539,7 +559,8 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
           {parseInline(trimmed.slice(4))}
         </h4>
       );
-      return;
+      index += 1;
+      continue;
     }
     if (trimmed.startsWith('# ') && !trimmed.startsWith('##')) {
       out.push(
@@ -547,7 +568,8 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
           {parseInline(trimmed.slice(2))}
         </h3>
       );
-      return;
+      index += 1;
+      continue;
     }
     const bullet =
       trimmed.startsWith('- ') ||
@@ -565,7 +587,8 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
           <span className="insights-bullet-text">{parseInline(inner)}</span>
         </p>
       );
-      return;
+      index += 1;
+      continue;
     }
     const paraClass = useSectionTypography ? 'insights-content-line insights-content-line-in-section' : 'insights-content-line';
     out.push(
@@ -573,7 +596,8 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
         {parseInline(line)}
       </p>
     );
-  });
+    index += 1;
+  }
 
   return out;
 }
@@ -590,6 +614,12 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   if (!extra) return '';
   openerUsedRef.current = true;
   return extra;
+}
+
+function resultingPreviewLabel(afterKind) {
+  if (afterKind === 'infographic') return 'Resulting infographic';
+  if (afterKind === 'chart') return 'Resulting chart';
+  return 'Resulting diagram';
 }
 
 function EmbeddedDiagramBlock({
@@ -1013,7 +1043,7 @@ export default function InsightsPane({
             const hasAfterPreview =
               entry.diagramRevisionApplied &&
               afterSource.trim().length > 0 &&
-              (afterKind === 'mermaid' || afterKind === 'infographic');
+              (afterKind === 'mermaid' || afterKind === 'infographic' || afterKind === 'chart');
             const afterDiff = hasAfterPreview ? entryDiagramDiffById?.[entry.id] ?? null : null;
             const afterRemovedIds = afterDiff?.removedIds ?? [];
             // Restore is a per-version bookmark: click to jump the canvas back to this entry's
@@ -1357,11 +1387,9 @@ export default function InsightsPane({
                 {hasAfterPreview ? (
                   <section
                     className="insights-section insights-entry-after-section"
-                    aria-label={afterKind === 'infographic' ? 'Resulting infographic' : 'Resulting diagram'}
+                    aria-label={resultingPreviewLabel(afterKind)}
                   >
-                    <h4 className="insights-section-title">
-                      {afterKind === 'infographic' ? 'Resulting infographic' : 'Resulting diagram'}
-                    </h4>
+                    <h4 className="insights-section-title">{resultingPreviewLabel(afterKind)}</h4>
                     {afterDiff &&
                     (afterDiff.addedIds.length || afterDiff.modifiedIds.length || afterDiff.removedIds.length) ? (
                       <p className="insights-after-section-meta" aria-label="Changes since previous version">

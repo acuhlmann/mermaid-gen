@@ -472,6 +472,7 @@ function ArchiSlop() {
   const SLOPITECT_TIP_TTL_MS = 7000;
   const tipSeqRef = useRef(0);
   const tipDismissTimerRef = useRef(null);
+  const slopitectTipRef = useRef(null);
   const showSlopitectTip = useCallback(() => {
     const tip = IDLE_TIPS[Math.floor(Math.random() * IDLE_TIPS.length)] || '';
     if (!tip) return;
@@ -500,6 +501,17 @@ function ArchiSlop() {
     }
     setSlopitectTip(null);
   }, []);
+
+  useEffect(() => {
+    if (!slopitectTip) return undefined;
+    const onDocPointer = (event) => {
+      if (slopitectTipRef.current?.contains(event.target)) return;
+      if (event.target?.closest?.('.brand-control')) return;
+      dismissSlopitectTip();
+    };
+    document.addEventListener('pointerdown', onDocPointer);
+    return () => document.removeEventListener('pointerdown', onDocPointer);
+  }, [slopitectTip, dismissSlopitectTip]);
 
   // Auto-show a Slopitect Tip™ roughly every other minute, with jitter so it
   // doesn't feel metronome-y. Range: ~60s–180s between tips.
@@ -1008,7 +1020,7 @@ function ArchiSlop() {
 
   useEffect(() => {
     writeDiagramCache({
-      diagramSource: state.diagramSource,
+      diagramSource: contentMode === 'anything' ? '' : state.diagramSource,
       contentMode,
       insightsEntries,
       latestCritique,
@@ -3037,7 +3049,7 @@ ${requirementsBlock}`;
       prefix: critiqueActionableSplit.prefix,
       suffix: critiqueActionableSplit.suffix,
       a2uiMessages: streamMessages,
-      busy,
+      busy: loading && activeRequest === 'fix',
       onFixSelected: (mask) => {
         if (Array.isArray(mask)) {
           handleFixFromCritique('selected', { checkValues: mask });
@@ -3047,7 +3059,7 @@ ${requirementsBlock}`;
       },
       onFixAll: () => handleFixFromCritique('all')
     };
-  }, [busy, critiqueActionableSplit, handleFixFromCritique, insightsEntries, latestCritique?.insightEntryId, latestCritique?.text]);
+  }, [activeRequest, critiqueActionableSplit, handleFixFromCritique, insightsEntries, latestCritique?.insightEntryId, latestCritique?.text, loading]);
 
   const handleApplyStyleEdits = useCallback(
     (entry) => {
@@ -3509,6 +3521,7 @@ ${requirementsBlock}`;
         ) : null}
         {slopitectTip ? (
           <div
+            ref={slopitectTipRef}
             className="slopitect-tip-chip"
             role="status"
             aria-live="polite"

@@ -846,4 +846,39 @@ flowchart TB
     expect(container.querySelector('.insights-a2ui-block')).toBeTruthy();
     expect(await screen.findByRole('checkbox', { name: /First improvement/i })).toBeTruthy();
   });
+
+  it('renders markdown tables in thinking content as UI tables', () => {
+    const content = `Planning a horizontal bar chart.
+
+| Category | Market Size |
+|---|---|
+| Enterprise Software | $320B |
+| Cloud Services | $290B |
+
+The chart uses the whiteboard theme.`;
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-table',
+            title: 'Go — chart',
+            variant: 'goMad',
+            status: 'running',
+            statusText: 'Working…',
+            content,
+            technicalActions: [],
+            contentType: 'chart'
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    const table = screen.getByTestId('thinking-markdown-table');
+    expect(within(table).getByText('Enterprise Software')).toBeTruthy();
+    expect(within(table).getByText('$320B')).toBeTruthy();
+    expect(screen.getByText('Planning a horizontal bar chart.')).toBeTruthy();
+    expect(screen.getByText('The chart uses the whiteboard theme.')).toBeTruthy();
+  });
 });

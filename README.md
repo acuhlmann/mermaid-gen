@@ -13,6 +13,8 @@ Step-by-step setup, env vars, and MCP pairing: **[`docs/guide/`](docs/guide/)**.
 
 ## Documentation
 
+> **Visual tour of the generative-UI stack:** [`docs/architecture-generative-ui-visual.html`](docs/architecture-generative-ui-visual.html) — one self-contained page of diagrams explaining how AG-UI (transport), A2UI and the content DSLs (payload abstraction spectrum), and MCP Apps (placement) fit together. Open it in a browser from a clone; GitHub previews only the source.
+
 Human guides (split for faster GitHub preview — diagrams live on focused pages):
 
 | Guide | Topics |
@@ -33,6 +35,7 @@ Integrator & operator references:
 
 | Doc | Audience |
 | --- | --- |
+| [`docs/architecture-generative-ui-visual.html`](docs/architecture-generative-ui-visual.html) | **Visual tour** — the Gen UI stack in diagrams (open in a browser) |
 | [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) | AG-UI, A2UI, MCP Apps map |
 | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | Guest agents, session-events |
 | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) | AG-UI SSE contract |

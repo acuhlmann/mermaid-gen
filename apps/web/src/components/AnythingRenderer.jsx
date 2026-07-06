@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
-import { ANYTHING_IFRAME_SANDBOX, parseAnythingHtml } from '@archislop/shared';
+import {
+  ANYTHING_IFRAME_CSP,
+  ANYTHING_IFRAME_SANDBOX,
+  parseAnythingHtml,
+  wrapAnythingSrcDoc
+} from '@archislop/shared';
 
 function AnythingErrorState({ error }) {
   return (
@@ -31,7 +36,7 @@ export default function AnythingRenderer({ diagramSource, streamingPreview = fal
     if (!diagramSource || !diagramSource.trim()) return { ok: false, empty: true };
     const result = parseAnythingHtml(diagramSource);
     if (!result.ok) return { ok: false, error: result.error };
-    return { ok: true, html: result.text };
+    return { ok: true, html: wrapAnythingSrcDoc(result.text) };
   }, [diagramSource]);
 
   if (!parsed.ok && parsed.empty) {
@@ -47,6 +52,7 @@ export default function AnythingRenderer({ diagramSource, streamingPreview = fal
         className="anything-frame"
         title="Anything canvas (sandboxed)"
         sandbox={ANYTHING_IFRAME_SANDBOX}
+        csp={ANYTHING_IFRAME_CSP}
         referrerPolicy="no-referrer"
         loading="lazy"
         srcDoc={parsed.html}

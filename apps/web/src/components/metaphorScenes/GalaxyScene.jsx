@@ -12,7 +12,11 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, Line, Stars } from '@react-three/drei';
 import { galaxyClusterLayout } from '../../utils/metaphorLayouts/galaxyClusterLayout.js';
-import { resolveClusterColor, resolveNebulaColor } from '../../utils/metaphorThemePresets.js';
+import {
+  resolveClusterColor,
+  resolveGalaxyVividTheme,
+  resolveNebulaColor
+} from '../../utils/metaphorThemePresets.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
   GradientSkySphere,
@@ -95,21 +99,23 @@ function DiffractionSpikes({ size, color, bright }) {
 
 function GalaxyStar({ item, position, theme, clusterIndex, showGlyph }) {
   const magnitude = Math.max(0.3, (item.magnitude ?? 5) * 0.15);
-  // Cluster colour carries the grouping; a slight per-star lightness drift
-  // keeps the cluster reading as many individual suns instead of clones.
-  const starColor = useMemo(
-    () =>
-      shiftColor(resolveClusterColor(theme, clusterIndex), {
-        lightness: (idHash2(item.id, 'star-tint') - 0.5) * 0.16,
-        satScale: 0.92 + idHash2(item.id, 'star-sat') * 0.16
-      }),
-    [theme, clusterIndex, item.id]
-  );
-  const baseIntensity = 0.8 + magnitude * 0.12;
+  const spectralSpread = theme.galaxySpectralSpread ?? 0.35;
+  // Cluster colour carries the grouping; per-star spectral hue drift keeps the
+  // cluster reading as many individual suns instead of clones.
+  const starColor = useMemo(() => {
+    const clusterBase = resolveClusterColor(theme, clusterIndex);
+    const hueDrift = (idHash2(item.id, 'star-hue') - 0.5) * spectralSpread;
+    return shiftColor(clusterBase, {
+      lightness: (idHash2(item.id, 'star-tint') - 0.5) * 0.16,
+      satScale: 0.95 + idHash2(item.id, 'star-sat') * 0.2,
+      hueShift: hueDrift
+    });
+  }, [theme, clusterIndex, item.id, spectralSpread]);
+  const baseIntensity = 0.95 + magnitude * 0.14;
 
   return (
     <group position={position}>
-      <GlowSprite size={magnitude * 4.6} color={starColor} opacity={0.3} />
+      <GlowSprite size={magnitude * 5.2} color={starColor} opacity={0.36} />
       <DiffractionSpikes size={magnitude} color={starColor} bright={magnitude >= 1.35} />
       <StarTwinkle id={item.id} baseIntensity={baseIntensity}>
         {({ matRef }) => (
@@ -152,10 +158,10 @@ function NebulaCloud({ cloud, theme, index }) {
   const idSeed = `nebula-${index}`;
   const layers = useMemo(() => {
     const offsets = [
-      { scale: 1.0, opacity: 0.14, offset: [0, 0, 0] },
+      { scale: 1.0, opacity: 0.2, offset: [0, 0, 0] },
       {
         scale: 0.72,
-        opacity: 0.18,
+        opacity: 0.25,
         offset: [
           (idHash2(idSeed, 'ox1') - 0.5) * radius * 0.4,
           (idHash2(idSeed, 'oy1') - 0.5) * radius * 0.3,
@@ -164,7 +170,7 @@ function NebulaCloud({ cloud, theme, index }) {
       },
       {
         scale: 0.42,
-        opacity: 0.24,
+        opacity: 0.34,
         offset: [
           (idHash2(idSeed, 'ox2') - 0.5) * radius * 0.6,
           (idHash2(idSeed, 'oy2') - 0.5) * radius * 0.5,
@@ -224,8 +230,8 @@ function ClusterCore({ cluster, color }) {
   const innerColor = useMemo(() => shiftColor(color, { lightness: 0.22, satScale: 0.85 }), [color]);
   return (
     <group position={cluster.center}>
-      <GlowSprite size={radius * 3.4} color={color} opacity={0.22} />
-      <GlowSprite size={radius * 1.5} color={innerColor} opacity={0.5} />
+      <GlowSprite size={radius * 3.8} color={color} opacity={0.3} />
+      <GlowSprite size={radius * 1.65} color={innerColor} opacity={0.62} />
     </group>
   );
 }
@@ -253,7 +259,7 @@ function ClusterArms({ cluster, theme, color }) {
             Math.sin(angle) * radius + (idHash2(name, `jz${arm}-${i}`) - 0.5) * 0.9
           ],
           size: 0.5 + idHash2(name, `s${arm}-${i}`) * 0.7 + (1 - t) * 0.4,
-          opacity: 0.34 * (1 - t * 0.55),
+          opacity: 0.48 * (1 - t * 0.55),
           dusty: (arm + i) % 2 === 0
         });
       }
@@ -272,7 +278,7 @@ function ClusterArms({ cluster, theme, color }) {
         <meshBasicMaterial
           color={color}
           transparent
-          opacity={0.07}
+          opacity={0.1}
           depthWrite={false}
           blending={THREE.AdditiveBlending}
           toneMapped={false}
@@ -305,7 +311,15 @@ function ClusterLabel({ cluster, theme }) {
   );
 }
 
+/** Procedural nebula when the DSL omits scene.nebula — keeps galaxies colourful by default. */
+const DEFAULT_NEBULA_CLOUDS = [
+  { center: [-8, 2, -6], radius: 9, colorIndex: 0 },
+  { center: [10, -1, 8], radius: 7, colorIndex: 1 },
+  { center: [0, 4, -12], radius: 6, colorIndex: 2 }
+];
+
 export function GalaxyScene({ dsl, theme }) {
+  const galaxyTheme = useMemo(() => resolveGalaxyVividTheme(theme), [theme]);
   const layout = useMemo(() => galaxyClusterLayout(dsl.items), [dsl.items]);
   const clusterIndexByName = useMemo(() => {
     const map = new Map();
@@ -341,7 +355,16 @@ export function GalaxyScene({ dsl, theme }) {
     return pairs;
   }, [dsl.items, anchors]);
 
-  const nebula = Array.isArray(dsl.scene?.nebula) ? dsl.scene.nebula : [];
+  const nebula = useMemo(() => {
+    if (Array.isArray(dsl.scene?.nebula) && dsl.scene.nebula.length > 0) {
+      return dsl.scene.nebula;
+    }
+    return DEFAULT_NEBULA_CLOUDS.map((cloud) => ({
+      center: cloud.center,
+      radius: cloud.radius,
+      color: resolveNebulaColor(galaxyTheme, cloud.colorIndex)
+    }));
+  }, [dsl.scene, galaxyTheme]);
 
   const magnitudeMedian = useMemo(() => {
     const mags = dsl.items.map((it) => it.magnitude ?? 5).sort((a, b) => a - b);
@@ -357,14 +380,14 @@ export function GalaxyScene({ dsl, theme }) {
   return (
     <group>
       {nebula.map((cloud, idx) => (
-        <NebulaCloud key={`nebula-${idx}`} cloud={cloud} theme={theme} index={idx} />
+        <NebulaCloud key={`nebula-${idx}`} cloud={cloud} theme={galaxyTheme} index={idx} />
       ))}
       {layout.clusters.map((cluster) => {
-        const color = resolveClusterColor(theme, cluster.index);
+        const color = resolveClusterColor(galaxyTheme, cluster.index);
         return (
           <group key={`cluster-${cluster.name}`}>
             <ClusterCore cluster={cluster} color={color} />
-            <ClusterArms cluster={cluster} theme={theme} color={color} />
+            <ClusterArms cluster={cluster} theme={galaxyTheme} color={color} />
             {showClusterLabels ? <ClusterLabel cluster={cluster} theme={theme} /> : null}
           </group>
         );
@@ -380,7 +403,7 @@ export function GalaxyScene({ dsl, theme }) {
           <HoverableItem key={item.id} item={item} metaphor="galaxy">
             <GalaxyStar
               item={item}
-              theme={theme}
+              theme={galaxyTheme}
               position={position}
               clusterIndex={clusterIndex}
               showGlyph={showGlyph}
@@ -389,7 +412,7 @@ export function GalaxyScene({ dsl, theme }) {
         );
       })}
       {binaryPairs.map((pair) => (
-        <BinaryConnector key={pair.key} from={pair.from} to={pair.to} theme={theme} />
+        <BinaryConnector key={pair.key} from={pair.from} to={pair.to} theme={galaxyTheme} />
       ))}
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
@@ -403,18 +426,19 @@ export function GalaxyScene({ dsl, theme }) {
  * during streaming, matching the scene clock.
  */
 export function GalaxySky({ theme, animated = true }) {
+  const galaxyTheme = resolveGalaxyVividTheme(theme);
   return (
     <group>
       <GradientSkySphere
-        topColor={theme.spaceTopColor ?? '#070b18'}
-        horizonColor={theme.spaceHorizonColor ?? '#131c33'}
+        topColor={galaxyTheme.spaceTopColor ?? '#070b18'}
+        horizonColor={galaxyTheme.spaceHorizonColor ?? '#2a1050'}
       />
       <Stars
         radius={130}
         depth={60}
         count={2400}
         factor={3}
-        saturation={0}
+        saturation={0.85}
         fade
         speed={animated ? 0.5 : 0}
       />

@@ -1,7 +1,13 @@
 /**
- * Detect Mermaid or Infographic DSL pasted after prose in agent "thinking" text
+ * Detect Mermaid, Infographic, or Chart DSL pasted after prose in agent "thinking" text
  * and split it so the UI can render a read-only preview instead of monospace paragraphs.
  */
+
+import { parseChartDsl } from '@archislop/shared';
+import { findBalancedBraceEnd } from './insightThinkingEnrich.js';
+
+const CHART_MARKER = '"archislopVersion"';
+const CHART_FENCE_START = /```(?:json)?\s*\n?/gi;
 
 const INFOGRAPHIC_FIRST_LINE = /^infographic\s+[a-z0-9][a-z0-9-]*\s*$/i;
 
@@ -63,12 +69,64 @@ export function mermaidDslStartIndex(lines, diagramLineIndex) {
   return startIndex;
 }
 
+function joinProseSegments(before, after) {
+  const head = (before ?? '').trimEnd();
+  const tail = (after ?? '').trim();
+  if (head && tail) return `${head}\n\n${tail}`;
+  return head || tail;
+}
+
+/** @param {string} candidate */
+function tryParseChartDsl(candidate) {
+  if (!candidate?.includes(CHART_MARKER)) return null;
+  const result = parseChartDsl(candidate);
+  return result.ok ? result.text : null;
+}
+
 /**
  * @param {string} text
- * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' } | null}
+ * @returns {{ prose: string, dsl: string, kind: 'chart' } | null}
+ */
+function splitEmbeddedChartDsl(text) {
+  CHART_FENCE_START.lastIndex = 0;
+  let fenceMatch;
+  while ((fenceMatch = CHART_FENCE_START.exec(text)) !== null) {
+    const contentStart = fenceMatch.index + fenceMatch[0].length;
+    const closeIdx = text.indexOf('```', contentStart);
+    const inner = (closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)).trim();
+    const dsl = tryParseChartDsl(inner);
+    if (!dsl) continue;
+    return {
+      prose: joinProseSegments(text.slice(0, fenceMatch.index), closeIdx >= 0 ? text.slice(closeIdx + 3) : ''),
+      dsl,
+      kind: 'chart'
+    };
+  }
+
+  const markerIdx = text.indexOf(CHART_MARKER);
+  if (markerIdx < 0) return null;
+  const open = text.lastIndexOf('{', markerIdx);
+  if (open < 0) return null;
+  const end = findBalancedBraceEnd(text, open);
+  if (end < 0) return null;
+  const dsl = tryParseChartDsl(text.slice(open, end));
+  if (!dsl) return null;
+  return {
+    prose: joinProseSegments(text.slice(0, open), text.slice(end)),
+    dsl,
+    kind: 'chart'
+  };
+}
+
+/**
+ * @param {string} text
+ * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' | 'chart' } | null}
  */
 export function splitEmbeddedDiagramDsl(text) {
   if (typeof text !== 'string' || !text.trim()) return null;
+
+  const chartSplit = splitEmbeddedChartDsl(text);
+  if (chartSplit) return chartSplit;
 
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {

@@ -20,6 +20,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 
 | Doc | Audience |
 | --- | --- |
+| [`docs/architecture-generative-ui-visual.html`](../architecture-generative-ui-visual.html) | **Visual tour** — the Gen UI stack in diagrams (open in a browser) |
 | [`docs/architecture-generative-ui.md`](../architecture-generative-ui.md) | AG-UI, A2UI, MCP Apps map |
 | [`docs/architecture-external-agents.md`](../architecture-external-agents.md) | Guest-agent flows, session-events, tool etiquette |
 | [`docs/architecture-ag-ui.md`](../architecture-ag-ui.md) | AG-UI SSE contract |

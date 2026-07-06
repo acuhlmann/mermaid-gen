@@ -1,14 +1,11 @@
-import { DiagramPatchSchema, parseAnythingHtml } from '@archislop/shared';
+import { DiagramPatchSchema, lintAnythingPolicy, lintAnythingQuality, parseAnythingHtml } from '@archislop/shared';
 
 /**
  * Validation for the `anything` slot (freeform HTML/CSS/JS).
  *
- * Deterministic checks only — there is no DSL to parse and browsers accept
- * almost any markup, so a strict parser here would reject documents that
- * render fine. Safety is enforced at render time: the web client renders this
- * slot exclusively inside a sandboxed iframe (see AnythingRenderer.jsx), so
- * the server intentionally does NOT try to sanitize scripts or styles out of
- * the document.
+ * Deterministic checks: shape, security policy, structure/JS/CSS quality.
+ * Safety at render time is enforced by the sandboxed iframe + CSP in
+ * AnythingRenderer.jsx — the server does not strip scripts or styles.
  */
 export async function validateAndPrepareAnythingPatch({
   currentState,
@@ -18,6 +15,16 @@ export async function validateAndPrepareAnythingPatch({
   const parsed = parseAnythingHtml(proposedDiagramSource);
   if (!parsed.ok) {
     return { accepted: false, error: parsed.error };
+  }
+
+  const policy = lintAnythingPolicy(parsed.text);
+  if (!policy.ok) {
+    return { accepted: false, error: policy.error, code: policy.code };
+  }
+
+  const quality = lintAnythingQuality(parsed.text);
+  if (!quality.ok) {
+    return { accepted: false, error: quality.error, code: quality.code };
   }
 
   const patch = DiagramPatchSchema.parse({
@@ -33,8 +40,9 @@ export async function validateAndPrepareAnythingPatch({
     accepted: true,
     patch,
     metadata: {
-      validator: 'anything-html-shape',
-      warnings: []
+      validator: 'anything-html',
+      warnings: quality.warnings,
+      quality: quality.quality
     }
   };
 }
@@ -44,5 +52,22 @@ export function validateAnythingStrict(source) {
   if (!parsed.ok) {
     return { valid: false, error: parsed.error, validator: 'anything-html-shape' };
   }
-  return { valid: true, diagramSource: parsed.text, validator: 'anything-html-shape' };
+
+  const policy = lintAnythingPolicy(parsed.text);
+  if (!policy.ok) {
+    return { valid: false, error: policy.error, validator: 'anything-html-policy', code: policy.code };
+  }
+
+  const quality = lintAnythingQuality(parsed.text);
+  if (!quality.ok) {
+    return { valid: false, error: quality.error, validator: 'anything-html-quality', code: quality.code };
+  }
+
+  return {
+    valid: true,
+    diagramSource: parsed.text,
+    validator: 'anything-html',
+    warnings: quality.warnings,
+    quality: quality.quality
+  };
 }

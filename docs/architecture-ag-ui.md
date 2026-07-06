@@ -1,6 +1,6 @@
 # AG-UI wire contract (built-in agent streams)
 
-> **See also:** [`architecture-generative-ui.md`](architecture-generative-ui.md) — how AG-UI relates to A2UI, MCP Apps, and session-events.
+> **See also:** [`architecture-generative-ui.md`](architecture-generative-ui.md) — how AG-UI relates to A2UI, MCP Apps, and session-events. For the same relationships in diagrams, see the [visual tour](architecture-generative-ui-visual.html).
 
 The **web UI’s built-in agents** (Go, Refine, Critique, Show Thinking, etc.) stream over **AG-UI** on Server-Sent Events. LangChain services emit through `createAgentStreamEmitter` in `@archislop/shared` (re-exported from `apps/server/src/agents/agUiEvents.js`). The client uses **`CopilotStreamHttpAgent`** (`apps/web/src/state/copilotStreamHttpAgent.js`), a thin subclass of `@ag-ui/client`’s `HttpAgent` that POSTs the existing `AgentStreamPayload` to `POST /api/copilotkit/agent-stream?protocol=agui` (not the SDK’s default `RunAgentInput` body). SSE frames are decoded and Zod-validated by the SDK; `createAgUiTranslator` (`apps/web/src/state/agUiTranslator.ts`) maps wire events to the legacy union; `applyAgentStreamInsightEvent.js` reduces them for the UI. Malformed SSE lines are dropped at parse time rather than passed through as raw JSON.
 

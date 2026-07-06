@@ -35,6 +35,14 @@ describe('AnythingRenderer', () => {
     expect(iframe.hasAttribute('allow')).toBe(false);
   });
 
+  it('applies iframe CSP and injects CSP meta into srcDoc', () => {
+    const { container } = render(<AnythingRenderer diagramSource={HELLO_DOC} />);
+    const iframe = container.querySelector('iframe.anything-frame');
+    expect(iframe.getAttribute('csp')).toMatch(/connect-src 'none'/);
+    expect(iframe.getAttribute('srcdoc')).toMatch(/Content-Security-Policy/);
+    expect(iframe.getAttribute('srcdoc')).toMatch(/connect-src 'none'/);
+  });
+
   it('renders nothing for empty source and an error state for non-markup', () => {
     const empty = render(<AnythingRenderer diagramSource="" />);
     expect(empty.container.querySelector('iframe')).toBeNull();

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { buildCritiqueActionableA2uiMessages } from '@archislop/shared';
 import CritiqueA2uiSurface from './CritiqueA2uiSurface.jsx';
 import CritiqueActionableChecklist from './CritiqueActionableChecklist.jsx';
@@ -17,6 +17,7 @@ export default function CritiqueActionablePanel({
   onFixSelected
 }) {
   const [a2uiUnavailable, setA2uiUnavailable] = useState(false);
+  const handleA2uiUnavailable = useCallback(() => setA2uiUnavailable(true), []);
   const messages = useMemo(() => {
     if (Array.isArray(a2uiMessages) && a2uiMessages.length > 0) return a2uiMessages;
     return buildCritiqueActionableA2uiMessages(critiqueText);
@@ -40,7 +41,7 @@ export default function CritiqueActionablePanel({
       busy={busy}
       onFixAll={onFixAll}
       onFixSelected={onFixSelected}
-      onUnavailable={() => setA2uiUnavailable(true)}
+      onUnavailable={handleA2uiUnavailable}
     />
   );
 }

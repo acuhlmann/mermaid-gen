@@ -59,7 +59,7 @@ export function stripInsightStreamDelimiters(text) {
 
 /**
  * @param {string} jsonSlice
- * @returns {{ kind: 'mermaid' | 'infographic', source: string, toolName: string, reason?: string } | null}
+ * @returns {{ kind: 'mermaid' | 'infographic' | 'chart', source: string, toolName: string, reason?: string } | null}
  */
 export function parseDiagramPatchToolCall(jsonSlice) {
   let obj;
@@ -75,6 +75,7 @@ export function parseDiagramPatchToolCall(jsonSlice) {
 
   const mermaidish = n.includes('mermaid') && n.includes('patch');
   const infographicish = n.includes('infographic') && n.includes('patch');
+  const chartish = n.includes('chart') && n.includes('patch');
 
   if (mermaidish) {
     const source = typeof args.diagramSource === 'string' ? args.diagramSource : '';
@@ -86,12 +87,17 @@ export function parseDiagramPatchToolCall(jsonSlice) {
     if (!source.trim()) return null;
     return { kind: 'infographic', source, toolName: rawName, reason };
   }
+  if (chartish) {
+    const source = typeof args.diagramSource === 'string' ? args.diagramSource : '';
+    if (!source.trim()) return null;
+    return { kind: 'chart', source, toolName: rawName, reason };
+  }
   return null;
 }
 
 /**
  * @param {string} text
- * @returns {Array<{ type: 'text', value: string } | { type: 'diagram_patch', kind: 'mermaid' | 'infographic', source: string, toolName: string, reason?: string }>}
+ * @returns {Array<{ type: 'text', value: string } | { type: 'diagram_patch', kind: 'mermaid' | 'infographic' | 'chart', source: string, toolName: string, reason?: string }>}
  */
 export function partitionDiagramToolJsonBlocks(text) {
   if (typeof text !== 'string' || !text) return [{ type: 'text', value: text ?? '' }];

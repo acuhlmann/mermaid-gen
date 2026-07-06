@@ -1,12 +1,12 @@
 import { hash01Salted } from '../seededHash.js';
 
-const LEVEL_HEIGHT = 2.6;
-const BASE_RADIUS = 3.2;
+const LEVEL_HEIGHT = 3.2;
+const BASE_RADIUS = 4.2;
 const RADIUS_DEPTH_FACTOR = 1.4;
-const ROOT_SPACING = 12;
+const ROOT_SPACING = 14;
 // Roots sit at trunk-top height so the renderer can draw a visible trunk below
 // them (at y=0 the trunk segment would have zero length and never render).
-const TRUNK_HEIGHT = 2.3;
+const TRUNK_HEIGHT = 3.0;
 const EXPLICIT_KINDS = new Set(['trunk', 'branch', 'leaf']);
 
 /**

@@ -6,6 +6,8 @@ export const ANYTHING_SELF_CHECK = `Self-check before calling apply_anything_pat
 - The output is one complete HTML document (doctype, <html>, <head>, <body>).
 - Every stylesheet and script is inline — zero external URLs (no CDN, no fonts, no remote images).
 - No fetch/XHR/WebSocket, no cookies/localStorage/sessionStorage/IndexedDB, no window.parent/top, no alert/confirm/prompt.
+- No nested iframes/objects/embeds, no javascript: URLs, no meta refresh, no base href.
+- Inline script blocks must be valid JavaScript; inline style blocks must have balanced braces.
 - Scripts run after the DOM exists (end of <body> or DOMContentLoaded).
 - The document stays under the size budget (~150KB).`;
 

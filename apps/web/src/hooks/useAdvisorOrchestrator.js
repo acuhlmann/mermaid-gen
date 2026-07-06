@@ -131,6 +131,11 @@ export function useAdvisorOrchestrator(params) {
   const onAcceptRef = useRef(onAccept);
   const lastActivityAtRef = useRef(Date.now());
   const idlePausedRef = useRef(false);
+  const focusKeyRef = useRef(focusKey);
+  const suggestionRef = useRef(suggestion);
+  const activePersonaRef = useRef(activePersona);
+  /** Focus key the live bubble was fetched for — used to skip stale focus restarts. */
+  const suggestionFocusKeyRef = useRef(/** @type {string | null} */ (null));
 
   // Imperative loop API, populated by the setup effect.
   const scheduleNextRef = useRef(() => {});
@@ -146,11 +151,17 @@ export function useAdvisorOrchestrator(params) {
   );
 
   const clearAdvisorSurface = useCallback(({ clearPersona = true } = {}) => {
+    pauseTimerRef.current?.();
     setSuggestion(null);
+    suggestionRef.current = null;
+    suggestionFocusKeyRef.current = null;
     setSuggestionKind('suggestion');
     setHighlightIds([]);
     setArchitectDumbLevel(0);
-    if (clearPersona) setActivePersona(null);
+    if (clearPersona) {
+      setActivePersona(null);
+      activePersonaRef.current = null;
+    }
     setThinkingPersona(null);
   }, []);
 
@@ -161,11 +172,14 @@ export function useAdvisorOrchestrator(params) {
   const applyHistoryEntry = useCallback((entry) => {
     if (!entry) return;
     setActivePersona(entry.persona);
+    activePersonaRef.current = entry.persona;
     setSuggestion(entry.suggestion);
+    suggestionRef.current = entry.suggestion;
     setSuggestionKind(entry.suggestionKind);
     setHighlightIds(entry.highlightIds ?? []);
     setArchitectDumbLevel(0);
     setThinkingPersona(null);
+    suggestionFocusKeyRef.current = null;
   }, []);
 
   const syncDismissTimerForHistory = useCallback((index, entriesLen) => {
@@ -188,6 +202,9 @@ export function useAdvisorOrchestrator(params) {
   useEffect(() => { pauseRef.current = pause; }, [pause]);
   useEffect(() => { pinnedRef.current = isPinned; }, [isPinned]);
   useEffect(() => { onAcceptRef.current = onAccept; }, [onAccept]);
+  useEffect(() => { focusKeyRef.current = focusKey; }, [focusKey]);
+  useEffect(() => { suggestionRef.current = suggestion; }, [suggestion]);
+  useEffect(() => { activePersonaRef.current = activePersona; }, [activePersona]);
 
   useEffect(() => {
     let phaseTimer = null;
@@ -262,6 +279,7 @@ export function useAdvisorOrchestrator(params) {
     };
 
     const tick = async () => {
+      clearPhaseTimer();
       const gen = ++generation;
       const persona = forcedPersonaRef.current ?? pickNextPersona(previousPersona);
       forcedPersonaRef.current = null;
@@ -350,14 +368,22 @@ export function useAdvisorOrchestrator(params) {
         setThinkingPersona(null);
         if (!atLiveEnd) {
           // User is browsing older proposals — queue the new one without swapping the bubble.
+          const currentEntry = nextHistory.entries[nextHistory.index];
+          if (currentEntry) {
+            applyHistoryEntry(currentEntry);
+            suggestionFocusKeyRef.current = focusKeyRef.current;
+          }
           return;
         }
         // New suggestion clears any prior pin — each persona gets a fresh window.
         setIsPinned(false);
         pinnedRef.current = false;
         setActivePersona(persona);
+        activePersonaRef.current = persona;
         setArchitectDumbLevel(0);
         setSuggestion(text);
+        suggestionRef.current = text;
+        suggestionFocusKeyRef.current = focusKeyRef.current;
         setSuggestionKind(kind);
         setHighlightIds(highlight);
         startDismissTimer();
@@ -515,8 +541,21 @@ export function useAdvisorOrchestrator(params) {
     if (!focusKey) return undefined;
     if (mutedRef.current || pauseRef.current) return undefined;
     const debounce = focusSource === 'hover' ? HOVER_FOCUS_DEBOUNCE_MS : SELECT_FOCUS_DEBOUNCE_MS;
+    const scheduledFocusKey = focusKey;
     const id = setTimeout(() => {
-      if (pinnedRef.current) return; // canvas focus must not rotate a pinned comment
+      if (pinnedRef.current) return;
+      // If the in-flight fetch already landed for this same focus while we were
+      // debouncing, do not wipe the bubble — a common regression path for the
+      // Wise Architect "is musing…" → vanished comment transition.
+      if (
+        scheduledFocusKey === focusKeyRef.current &&
+        scheduledFocusKey === suggestionFocusKeyRef.current &&
+        suggestionRef.current &&
+        activePersonaRef.current
+      ) {
+        return;
+      }
+      cancelPendingRef.current?.();
       clearAdvisorSurface({ clearPersona: true });
       setIsPinned(false);
       pinnedRef.current = false;

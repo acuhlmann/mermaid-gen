@@ -478,4 +478,61 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestion).toBe('Rename A — clearer.');
     expect(result.current.isPinned).toBe(true);
   });
+
+  it('does not wipe a bubble when focus debounce fires after fetch landed for the same focus', async () => {
+    mockPersonaPick('explain');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'explain',
+                suggestion: 'Picture, if you will, a bounded context.',
+                highlightIds: ['A'],
+                kind: 'comment'
+              })
+            });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey
+                ? { id: 'A', label: 'A', source: focusSource ?? 'selected' }
+                : null
+          })
+        ),
+      { initialProps: { focusKey: null, focusSource: null } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('explain');
+
+    rerender({ focusKey: 'selected:A', focusSource: 'selected' });
+
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toMatch(/bounded context/i);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toMatch(/bounded context/i);
+  });
 });

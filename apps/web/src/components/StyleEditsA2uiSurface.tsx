@@ -21,6 +21,8 @@ export default function StyleEditsA2uiSurface({
 
   const rootRef = useRef<HTMLDivElement>(null);
   const unavailableReportedRef = useRef(false);
+  const onUnavailableRef = useRef(onUnavailable);
+  onUnavailableRef.current = onUnavailable;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const processorRef = useRef<any>(null);
@@ -51,7 +53,7 @@ export default function StyleEditsA2uiSurface({
     if (!Array.isArray(messages) || messages.length === 0) {
       if (!unavailableReportedRef.current) {
         unavailableReportedRef.current = true;
-        onUnavailable?.();
+        onUnavailableRef.current?.();
       }
       return () => {
         subA.unsubscribe();
@@ -70,7 +72,7 @@ export default function StyleEditsA2uiSurface({
       subA.unsubscribe();
       subB.unsubscribe();
     };
-  }, [messages, onUnavailable]);
+  }, [messages]);
 
   useEffect(() => {
     const root = rootRef.current;

@@ -1,5 +1,7 @@
 # Generative UI and MCP surfaces
 
+> **Prefer pictures?** [`architecture-generative-ui-visual.html`](architecture-generative-ui-visual.html) is a self-contained visual tour of this map — the three axes (transport / payload / placement), the abstraction spectrum from fixed components to freeform HTML, and where MCP Apps fit. Open it in a browser from a clone; GitHub previews only the source.
+
 ArchiSlop uses **three different UI strategies** on purpose. They share session state but use different wires, trust boundaries, and hosts. This doc is the map; deep dives live in the linked files below.
 
 | Strategy | Wire | Primary host | Model authors UI? |

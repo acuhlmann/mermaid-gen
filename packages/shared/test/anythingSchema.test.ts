@@ -2,8 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ANYTHING_HTML_MAX_LENGTH,
+  ANYTHING_IFRAME_CSP,
   ANYTHING_IFRAME_SANDBOX,
-  parseAnythingHtml
+  parseAnythingHtml,
+  wrapAnythingSrcDoc
 } from '../src/anythingSchema.js';
 
 const HELLO_DOC = `<!DOCTYPE html>
@@ -50,9 +52,6 @@ test('parseAnythingHtml rejects documents over the size budget', () => {
 });
 
 test('ANYTHING_IFRAME_SANDBOX allows scripts but never same-origin', () => {
-  // The iframe sandbox is the security boundary for this mode. allow-same-origin
-  // combined with allow-scripts would let injected HTML reach the host app's
-  // origin (cookies, storage, DOM) — this constant must never gain it.
   const tokens = ANYTHING_IFRAME_SANDBOX.split(/\s+/);
   assert.ok(tokens.includes('allow-scripts'));
   assert.ok(!tokens.includes('allow-same-origin'));
@@ -60,4 +59,24 @@ test('ANYTHING_IFRAME_SANDBOX allows scripts but never same-origin', () => {
   assert.ok(!tokens.includes('allow-popups'));
   assert.ok(!tokens.includes('allow-downloads'));
   assert.ok(!tokens.includes('allow-forms'));
+});
+
+test('ANYTHING_IFRAME_CSP blocks network and external subresources', () => {
+  assert.match(ANYTHING_IFRAME_CSP, /connect-src 'none'/);
+  assert.match(ANYTHING_IFRAME_CSP, /default-src 'none'/);
+  assert.match(ANYTHING_IFRAME_CSP, /script-src 'unsafe-inline'/);
+});
+
+test('wrapAnythingSrcDoc injects CSP meta into head', () => {
+  const wrapped = wrapAnythingSrcDoc(HELLO_DOC);
+  assert.match(wrapped, /<meta http-equiv="Content-Security-Policy"/i);
+  assert.match(wrapped, /connect-src 'none'/);
+  assert.match(wrapped, /<h1>Hello<\/h1>/);
+});
+
+test('wrapAnythingSrcDoc wraps bare fragments', () => {
+  const wrapped = wrapAnythingSrcDoc('<p>fragment</p>');
+  assert.match(wrapped, /<html>/i);
+  assert.match(wrapped, /<meta http-equiv="Content-Security-Policy"/i);
+  assert.match(wrapped, /<p>fragment<\/p>/);
 });

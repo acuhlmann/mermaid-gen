@@ -42,4 +42,34 @@ describe('StakeholdersMascot', () => {
     fireEvent.click(screen.getByText('THE Engineer'));
     expect(onRefine).toHaveBeenCalledTimes(1);
   });
+
+  it('shows speech bubble after thinking completes for the Wise Architect', () => {
+    const bubbleProps = {
+      persona: 'explain',
+      suggestion: 'Consider the saga between Order and Payment.',
+      kind: 'comment',
+      onDismiss: vi.fn()
+    };
+    const { rerender } = render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        activeAdvisorVariant="explain"
+        thinkingPersona="explain"
+      />
+    );
+    expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
+    expect(screen.queryByTestId('advisor-speech-bubble')).toBeNull();
+
+    rerender(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        activeAdvisorVariant="explain"
+        thinkingPersona={null}
+        bubbleProps={bubbleProps}
+      />
+    );
+    expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
+    expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
+    expect(screen.getByText(/Consider the saga/i)).toBeTruthy();
+  });
 });
