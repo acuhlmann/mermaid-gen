@@ -444,6 +444,20 @@
   stroke-width: 2px !important;
 }
 
+.diagram-viewport.is-chart .is-diagram-hover,
+.diagram-viewport.is-chart .is-diagram-hover path,
+.diagram-viewport.is-chart .is-diagram-hover rect,
+.diagram-viewport.is-chart .is-diagram-hover circle {
+  filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 28%, transparent));
+}
+
+.diagram-viewport.is-chart .is-chart-selected,
+.diagram-viewport.is-chart .is-chart-selected path,
+.diagram-viewport.is-chart .is-chart-selected rect,
+.diagram-viewport.is-chart .is-chart-selected circle {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 45%, transparent));
+}
+
 @keyframes diagram-change-glow-added {
   0%,
   100% {

@@ -4,6 +4,10 @@ import embed from 'vega-embed';
 import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartThemePresets.js';
 import { expressionInterpreter } from 'vega-interpreter';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
+import {
+  buildChartDescriptorFromVegaItem,
+  isChartInteractiveDomNode
+} from '../utils/chartHitTest.js';
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -50,9 +54,16 @@ function withDefaultSize(spec, compact = false) {
   };
 }
 
-export default function ChartRenderer({ diagramSource, compact = false }) {
+export default function ChartRenderer({
+  diagramSource,
+  compact = false,
+  selectedNode = null,
+  onSelectedNodeChange = null
+}) {
   const containerRef = useRef(null);
   const viewRef = useRef(null);
+  const clickHandlerRef = useRef(null);
+  const lastSelectedElRef = useRef(null);
   const [renderError, setRenderError] = useState(null);
 
   const parsed = useMemo(() => {
@@ -94,6 +105,27 @@ export default function ChartRenderer({ diagramSource, compact = false }) {
           }
         }
         viewRef.current = result.view;
+
+        if (clickHandlerRef.current) {
+          try {
+            viewRef.current.removeEventListener('click', clickHandlerRef.current);
+          } catch {
+            // ignore
+          }
+        }
+        if (typeof onSelectedNodeChange === 'function') {
+          const handler = (event, item) => {
+            const descriptor = buildChartDescriptorFromVegaItem(
+              item,
+              event,
+              containerRef.current
+            );
+            onSelectedNodeChange(descriptor);
+          };
+          clickHandlerRef.current = handler;
+          viewRef.current.addEventListener('click', handler);
+        }
+
         setRenderError(null);
       })
       .catch((err) => {
@@ -109,8 +141,16 @@ export default function ChartRenderer({ diagramSource, compact = false }) {
 
     return () => {
       cancelled = true;
+      if (viewRef.current && clickHandlerRef.current) {
+        try {
+          viewRef.current.removeEventListener('click', clickHandlerRef.current);
+        } catch {
+          // ignore
+        }
+      }
+      clickHandlerRef.current = null;
     };
-  }, [compact, parsed]);
+  }, [compact, onSelectedNodeChange, parsed]);
 
   useEffect(
     () => () => {
@@ -122,9 +162,38 @@ export default function ChartRenderer({ diagramSource, compact = false }) {
         }
         viewRef.current = null;
       }
+      clickHandlerRef.current = null;
     },
     []
   );
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !parsed.ok) return undefined;
+    const onPointerDown = (event) => {
+      if (isChartInteractiveDomNode(event.target, container)) {
+        event.stopPropagation();
+      }
+    };
+    container.addEventListener('pointerdown', onPointerDown, true);
+    return () => container.removeEventListener('pointerdown', onPointerDown, true);
+  }, [parsed.ok]);
+
+  useEffect(() => {
+    if (lastSelectedElRef.current) {
+      lastSelectedElRef.current.classList?.remove('is-chart-selected');
+      lastSelectedElRef.current.style.outline = '';
+      lastSelectedElRef.current.style.outlineOffset = '';
+      lastSelectedElRef.current = null;
+    }
+    const el = selectedNode?.anchorEl || selectedNode?.domNode;
+    if (el && containerRef.current?.contains(el)) {
+      el.classList.add('is-chart-selected');
+      el.style.outline = '2px solid #58cc02';
+      el.style.outlineOffset = '2px';
+      lastSelectedElRef.current = el;
+    }
+  }, [selectedNode]);
 
   if (!parsed.ok && parsed.empty) {
     return null;
