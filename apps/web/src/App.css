@@ -10218,6 +10218,14 @@ body.slopitect-rainbow-tint::before {
   }
 
   .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-head {
+    display: flex;
+    justify-content: flex-end;
+    min-height: 0;
+    margin-bottom: -0.15rem;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-eyebrow,
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-title {
     display: none;
   }
 }
@@ -10250,6 +10258,15 @@ body.slopitect-rainbow-tint::before {
   .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-actions .overlay-button .button-label {
     font-size: 0.78rem;
     letter-spacing: 0;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-close {
+    font-size: 1.15rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  .slop-prompt-panel--chrome.is-narrow .slop-prompt-panel-actions .overlay-button.is-mic-toggle {
+    touch-action: manipulation;
   }
 }
 

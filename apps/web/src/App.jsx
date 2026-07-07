@@ -2164,12 +2164,18 @@ Hard requirements:
 
   // Mobile uses tap-to-toggle (touch taps are too brief for the hold-to-speak flow
   // to actually capture audio before pointerup stops it).
-  function handleMicToggleClick() {
+  function handleMicToggleClick(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
     if (voiceListening) {
       stopVoiceInput({ immediate: true });
-    } else {
-      startVoiceInput();
+      return;
+    }
+    startVoiceInput();
+    const active = document.activeElement;
+    if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) {
+      active.blur();
     }
   }
 
@@ -3671,7 +3677,13 @@ ${requirementsBlock}`;
                   className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
                   disabled={!voiceSupported || busy}
                   {...(narrowLayout
-                    ? { onClick: handleMicToggleClick }
+                    ? {
+                        onPointerUp: (event) => {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          handleMicToggleClick(event);
+                        }
+                      }
                     : {
                         onPointerDown: handleMicPointerDown,
                         onPointerUp: handleMicPointerUp,
