@@ -31,10 +31,56 @@ function fail(code: AnythingPolicyLintCode, error: string): AnythingPolicyLintFa
   return { ok: false, code, error };
 }
 
-/** Strip HTML comments and xmlns namespace URIs (not network loads). */
+function stripJsComments(source: string): string {
+  let out = '';
+  let quote: '"' | "'" | '`' | null = null;
+  let escaped = false;
+  for (let i = 0; i < source.length; i += 1) {
+    const ch = source[i] ?? '';
+    const next = source[i + 1] ?? '';
+    if (quote) {
+      out += ch;
+      if (escaped) {
+        escaped = false;
+      } else if (ch === '\\') {
+        escaped = true;
+      } else if (ch === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+      out += ch;
+      continue;
+    }
+    if (ch === '/' && next === '/') {
+      while (i < source.length && source[i] !== '\n') i += 1;
+      out += '\n';
+      continue;
+    }
+    if (ch === '/' && next === '*') {
+      i += 2;
+      while (i < source.length - 1 && !(source[i] === '*' && source[i + 1] === '/')) i += 1;
+      i += 1;
+      out += ' ';
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
+/** Strip comments and xmlns namespace URIs (not network loads). */
 function stripNonLoadContexts(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/(<script\b[^>]*>)([\s\S]*?)(<\/script>)/gi, (_m, open, body, close) => {
+      return `${open}${stripJsComments(String(body))}${close}`;
+    })
+    .replace(/(<style\b[^>]*>)([\s\S]*?)(<\/style>)/gi, (_m, open, body, close) => {
+      return `${open}${String(body).replace(/\/\*[\s\S]*?\*\//g, ' ')}${close}`;
+    })
     .replace(/\sxmlns\s*=\s*["']https?:\/\/[^"']*["']/gi, '');
 }
 

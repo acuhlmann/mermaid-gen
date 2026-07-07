@@ -44,6 +44,22 @@ INFOGRAPHIC MODE (when Diagram type is infographic):
 - Do NOT suggest switching infographic template families unless the persona is Slopitect (goMad) or CIO (innovate) and the suggestion explicitly calls for a layout pivot.
 `.trim();
 
+const CHART_ADVISOR_APPENDIX = `
+CHART MODE (when Diagram type is chart):
+- The canvas is a Vega-Lite chart wrapper: suggest changes to mark choice, encodings, fields, axes, legends, titles, ordering, or data-story framing.
+- Reference supplied field names, chart title, axis titles, or categorical values by name — not Mermaid node ids.
+- For highlightIds, use the referenced field/title/value text when no rendered mark id is supplied.
+- Engineer = clearer encoding or one missing comparison; CIO = bolder chart family or facet/layer pivot; VP = subtract clutter or merge categories; Auditor/Architect = comment on interpretation risk or data-viz pattern.
+`.trim();
+
+const ANYTHING_ADVISOR_APPENDIX = `
+ANYTHING MODE (when Diagram type is anything):
+- The canvas is a sandboxed self-contained HTML page, not a diagram grammar.
+- Reference visible headings, button text, labels, or interaction names supplied from the document source.
+- Suggestions may improve layout, affordances, accessibility copy, responsiveness, or interaction clarity, but must keep the page self-contained and within the sandbox contract.
+- Never suggest external scripts, external assets, storage, forms, popups, downloads, or parent-window access.
+`.trim();
+
 const ADVISOR_DUMB_GIBBERISH_OVERRIDE = `
 DUMB-IT-DOWN OVERRIDE — BABBLE MODE (this beats every other rule above for this turn):
 - The user has dumbed down your observation until real words failed.
@@ -179,8 +195,14 @@ export function isAdvisorPersona(value) {
 export function buildAdvisorSystemPrompt(persona, contentType = 'mermaid', opts = {}) {
   const spec = ADVISOR_PERSONAS[persona];
   if (!spec) return '';
-  const infographic =
-    contentType === 'infographic' ? `\n\n${INFOGRAPHIC_ADVISOR_APPENDIX}` : '';
+  const modeAppendix =
+    contentType === 'infographic'
+      ? `\n\n${INFOGRAPHIC_ADVISOR_APPENDIX}`
+      : contentType === 'chart'
+        ? `\n\n${CHART_ADVISOR_APPENDIX}`
+        : contentType === 'anything'
+          ? `\n\n${ANYTHING_ADVISOR_APPENDIX}`
+          : '';
   // Dumb-it-down only makes sense for the Wise Architect — every other persona
   // either already speaks plainly or has its own loud voice that should not flatten.
   const dumbDown =
@@ -190,7 +212,7 @@ export function buildAdvisorSystemPrompt(persona, contentType = 'mermaid', opts 
           style: opts.style
         })}`
       : '';
-  return `${spec.persona}\n\n${COMMON_RULES}${infographic}${dumbDown}`;
+  return `${spec.persona}\n\n${COMMON_RULES}${modeAppendix}${dumbDown}`;
 }
 
 export function buildAdvisorUserPrompt({
@@ -238,8 +260,12 @@ export function buildAdvisorUserPrompt({
         '',
         contentType === 'infographic'
           ? 'Your suggestion MUST be about this infographic item or title. Reference its label by name; put the item path or label in highlightIds.'
-          : 'Your suggestion MUST be specifically about this part. Reference its label by name.',
-        'Include its id (or data-index path for infographics) in highlightIds.',
+          : contentType === 'chart'
+            ? 'Your suggestion MUST be about this chart field, axis, title, or value. Reference it by name; put that name in highlightIds.'
+            : contentType === 'anything'
+              ? 'Your suggestion MUST be about this page heading, control, label, or interaction. Reference it by name; put that text in highlightIds.'
+              : 'Your suggestion MUST be specifically about this part. Reference its label by name.',
+        'Include its id, data-index path, field name, or label text in highlightIds.',
         ''
       ].join('\n')
     : null;

@@ -77,6 +77,13 @@ function extractInlineStyles(html: string): string[] {
   return styles;
 }
 
+function maskRawTextElementBodies(html: string): string {
+  return html.replace(
+    /(<(?:script|style)\b[^>]*>)([\s\S]*?)(<\/(?:script|style)>)/gi,
+    (_m, open, _body, close) => `${open}${close}`
+  );
+}
+
 function checkCssBalance(css: string, blockIndex: number): string | null {
   let depth = 0;
   let inString: '"' | "'" | null = null;
@@ -163,7 +170,7 @@ export function lintAnythingQuality(html: string): AnythingQualityLintResult {
     warnings.push('Missing <!DOCTYPE html> — prefer a full HTML5 document.');
   }
 
-  const unclosed = checkUnclosedTags(html);
+  const unclosed = checkUnclosedTags(maskRawTextElementBodies(html));
   if (unclosed) {
     return fail('unclosed_tag', unclosed, warnings);
   }

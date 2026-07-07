@@ -640,11 +640,28 @@ test('emitIntentTransformStreamResult emits coded error when mutation stream end
   assert.equal(events.length, 2);
   assert.equal(events[0].type, 'error');
   assert.equal(events[0].code, 'no_mutation_revision');
-  assert.equal(events[0].message, STREAM_ERROR_NO_MUTATION_REVISION);
+  assert.equal(events[0].message, 'I only wrote prose.');
   assert.equal(events[1].type, 'final');
   assert.equal(events[1].revisionChanged, false);
   assert.equal(events[1].message, 'I only wrote prose.');
   assert.equal(events[1].state, undefined);
+});
+
+test('emitIntentTransformStreamResult falls back to generic coded error without agent message', () => {
+  const stateStore = createDiagramStateStore();
+  const events = [];
+
+  emitIntentTransformStreamResult({
+    emit: (e) => events.push(e),
+    operation: 'intent',
+    revisionBefore: 0,
+    stateStore,
+    agentResult: {}
+  });
+
+  assert.equal(events[0].type, 'error');
+  assert.equal(events[0].code, 'no_mutation_revision');
+  assert.equal(events[0].message, STREAM_ERROR_NO_MUTATION_REVISION);
 });
 
 test('emitIntentTransformStreamResult uses infographic slot when contentType is infographic', async () => {

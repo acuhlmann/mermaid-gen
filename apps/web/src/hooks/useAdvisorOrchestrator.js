@@ -7,8 +7,7 @@ import {
 } from '@archislop/shared';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
-import { getVisibleDiagramLabels } from '../utils/visibleDiagramLabels.js';
-import { getVisibleInfographicLabels } from '../utils/visibleInfographicLabels.js';
+import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 
 const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
@@ -94,7 +93,7 @@ export function lastSuggestionTexts(entries) {
  *
  * @param {{
  *   getDiagramSource: () => string,
- *   getContentType: () => 'mermaid'|'infographic',
+ *   getContentType: () => 'mermaid'|'infographic'|'metaphor3d'|'chart'|'anything',
  *   getSessionId: () => string,
  *   getFocusDescriptor?: () => { id: string, label?: string, kind?: string, source?: 'selected'|'hover' } | null | undefined,
  *   focusKey?: string | null,
@@ -286,11 +285,12 @@ export function useAdvisorOrchestrator(params) {
       const svgRoot = paramsRef.current.getSvgRoot?.() ?? null;
       const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
       const contentType = paramsRef.current.getContentType?.() ?? 'mermaid';
-      const { labels, ids: visibleIds } =
-        contentType === 'infographic'
-          ? getVisibleInfographicLabels(host)
-          : getVisibleDiagramLabels(host);
       const diagramSource = paramsRef.current.getDiagramSource?.() ?? '';
+      const { labels, ids: visibleIds } = getAdvisorVisibleLabels({
+        contentType,
+        host,
+        diagramSource
+      });
       const sessionId = paramsRef.current.getSessionId?.() ?? '';
       const focusDescriptor = paramsRef.current.getFocusDescriptor?.() ?? null;
 
@@ -642,10 +642,11 @@ export function useAdvisorOrchestrator(params) {
       const focusDescriptor = params.getFocusDescriptor?.() ?? null;
       const svgRoot = params.getSvgRoot?.() ?? null;
       const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
-      const { labels } =
-        contentType === 'infographic'
-          ? getVisibleInfographicLabels(host)
-          : getVisibleDiagramLabels(host);
+      const { labels } = getAdvisorVisibleLabels({
+        contentType,
+        host,
+        diagramSource
+      });
 
       const headers = { 'content-type': 'application/json' };
       if (sessionId) headers[SESSION_HEADER] = sessionId;

@@ -26,6 +26,7 @@ import {
 } from './_lib/diagramAgentHelpers.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import { repairChartWithFixer, isChartSyntaxFixerAvailable } from './chartSyntaxFixer.js';
+import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import {
   buildAgentRunBudgetExceededMessage,
@@ -109,7 +110,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
   return parts.join('\n\n');
 }
 
-function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
+export function buildChartTransformUserContent({ mode, currentDsl, goMadDepth, advisorPrompt }) {
   const modeInstructions = {
     refine: 'Refine the current chart — improve mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
     innovate: 'Innovate on the current chart — try a different mark/encoding combination or reshape the data presentation. You may switch chart families.',
@@ -119,13 +120,19 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   return [
     modeInstructions[mode] ?? modeInstructions.refine,
     `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``,
+    buildAdvisorSuggestionBlock(advisorPrompt),
     'Call apply_chart_patch with the full JSON wrapper.'
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
 }
 
-function buildAnalyzeUserContent({ kind, currentDsl, focusScope }) {
+export function buildChartAnalyzeUserContent({ kind, currentDsl, focusScope, advisorPrompt }) {
   const task = kind === 'critique' ? CHART_CRITIQUE_TASK : CHART_EXPLAIN_TASK;
-  return [task, focusScope, `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
+  return [
+    task,
+    focusScope,
+    buildAdvisorSuggestionBlock(advisorPrompt),
+    `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``
+  ]
     .filter(Boolean)
     .join('\n\n');
 }
@@ -222,7 +229,7 @@ export function createChartLangChainAgent({
     } = opts ?? {};
     const runProfile = normalizeModelProfile(profile);
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'chart');
-    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
+    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
     const turnStarted = Date.now();
     const beforeRevision = stateStore.getSlot('chart').revisionId;
     const originalRequest = extractOriginalRequest(userMessages);
@@ -318,6 +325,11 @@ export function createChartLangChainAgent({
       }
 
       let failureError = extractToolFailureError(result);
+
+      if (!failureError && !result) {
+        failureError = 'Agent stream ended without a model response or tool result.';
+        lastError = failureError;
+      }
 
       if (!failureError) {
         const proseDsl = extractChartDslFromAssistantResult(result);
@@ -430,7 +442,15 @@ export function createChartLangChainAgent({
       });
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth, abortSignal }) {
+    async applyTransformIntent({
+      mode,
+      focusNode,
+      modelProfile,
+      emit,
+      goMadDepth,
+      abortSignal,
+      advisorPrompt
+    }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to transform — generate a chart first.', raw: null };
@@ -439,10 +459,11 @@ export function createChartLangChainAgent({
       const userMessages = [
         {
           role: 'user',
-          content: buildTransformUserContent({
+          content: buildChartTransformUserContent({
             mode,
             currentDsl: slot.diagramSource,
-            goMadDepth
+            goMadDepth,
+            advisorPrompt
           })
         }
       ];
@@ -486,7 +507,7 @@ export function createChartLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit }) {
+    async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to analyze — generate a chart first.', raw: null };
@@ -496,7 +517,14 @@ export function createChartLangChainAgent({
       const focusScope = ''; // chart selection focus not wired yet
       const messages = [
         new SystemMessage(CHART_ANALYSIS_SYSTEM_PROMPT),
-        new HumanMessage(buildAnalyzeUserContent({ kind, currentDsl: slot.diagramSource, focusScope }))
+        new HumanMessage(
+          buildChartAnalyzeUserContent({
+            kind,
+            currentDsl: slot.diagramSource,
+            focusScope,
+            advisorPrompt
+          })
+        )
       ];
 
       if (typeof emit === 'function') {
@@ -532,6 +560,8 @@ export function createLazyChartAgentService({ stateStore, env = process.env }) {
       intent: 'Composing chart…',
       transform: 'Transforming chart…'
     },
-    supportsStyleIntent: true
+    supportsStyleIntent: true,
+    transformExtraFields: ['advisorPrompt'],
+    analyzeExtraFields: ['advisorPrompt']
   });
 }

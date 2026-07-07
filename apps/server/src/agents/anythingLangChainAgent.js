@@ -24,6 +24,7 @@ import {
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
+import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import {
   buildAgentRunBudgetExceededMessage,
@@ -109,7 +110,7 @@ function buildIntentUserContent({ prompt, currentHtml, peerContext }) {
   return parts.join('\n\n');
 }
 
-function buildTransformUserContent({ mode, currentHtml, goMadDepth }) {
+export function buildAnythingTransformUserContent({ mode, currentHtml, goMadDepth, advisorPrompt }) {
   const modeInstructions = {
     refine:
       'Refine the current document — polish layout, typography, color, interaction feel, and copy. Keep the concept and structure.',
@@ -121,16 +122,21 @@ function buildTransformUserContent({ mode, currentHtml, goMadDepth }) {
   return [
     modeInstructions[mode] ?? modeInstructions.refine,
     `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``,
+    buildAdvisorSuggestionBlock(advisorPrompt),
     'Call apply_anything_patch with the full HTML document.'
-  ].join('\n\n');
+  ].filter(Boolean).join('\n\n');
 }
 
-function buildAnalyzeUserContent({ kind, currentHtml }) {
+export function buildAnythingAnalyzeUserContent({ kind, currentHtml, advisorPrompt }) {
   const task =
     kind === 'critique'
       ? 'Critique this HTML document in 3-5 short paragraphs. Call out: does the layout communicate the idea? Is the interaction discoverable? Any accessibility, contrast, or responsiveness issues? Does anything violate the sandbox contract (external URLs, storage, network)?'
       : 'Explain this HTML document in 3-5 short paragraphs. Describe what the page shows, how the user interacts with it, and how the markup/CSS/JS pieces fit together.';
-  return [task, `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``].join('\n\n');
+  return [
+    task,
+    buildAdvisorSuggestionBlock(advisorPrompt),
+    `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``
+  ].filter(Boolean).join('\n\n');
 }
 
 export function createAnythingLangChainAgent({
@@ -197,7 +203,7 @@ export function createAnythingLangChainAgent({
     } = opts ?? {};
     const runProfile = normalizeModelProfile(profile);
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'anything');
-    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
+    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
     const turnStarted = Date.now();
     const beforeRevision = stateStore.getSlot('anything').revisionId;
     const originalRequest = extractOriginalRequest(userMessages);
@@ -293,6 +299,11 @@ export function createAnythingLangChainAgent({
       }
 
       let failureError = extractToolFailureError(result);
+
+      if (!failureError && !result) {
+        failureError = 'Agent stream ended without a model response or tool result.';
+        lastError = failureError;
+      }
 
       if (!failureError) {
         const proseHtml = extractHtmlFromAssistantResult(result);
@@ -405,7 +416,15 @@ export function createAnythingLangChainAgent({
       });
     },
 
-    async applyTransformIntent({ mode, focusNode, modelProfile, emit, goMadDepth, abortSignal }) {
+    async applyTransformIntent({
+      mode,
+      focusNode,
+      modelProfile,
+      emit,
+      goMadDepth,
+      abortSignal,
+      advisorPrompt
+    }) {
       const slot = stateStore.getSlot('anything');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to transform — generate a page first.', raw: null };
@@ -414,10 +433,11 @@ export function createAnythingLangChainAgent({
       const userMessages = [
         {
           role: 'user',
-          content: buildTransformUserContent({
+          content: buildAnythingTransformUserContent({
             mode,
             currentHtml: slot.diagramSource,
-            goMadDepth
+            goMadDepth,
+            advisorPrompt
           })
         }
       ];
@@ -436,7 +456,7 @@ export function createAnythingLangChainAgent({
       });
     },
 
-    async applyAnalyzeIntent({ kind, modelProfile, emit }) {
+    async applyAnalyzeIntent({ kind, modelProfile, emit, advisorPrompt }) {
       const slot = stateStore.getSlot('anything');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to analyze — generate a page first.', raw: null };
@@ -445,7 +465,11 @@ export function createAnythingLangChainAgent({
       const model = buildAnalysisModel(profile);
       const messages = [
         new HumanMessage(
-          `${ANYTHING_SYSTEM_PROMPT}\n\n${buildAnalyzeUserContent({ kind, currentHtml: slot.diagramSource })}`
+          `${ANYTHING_SYSTEM_PROMPT}\n\n${buildAnythingAnalyzeUserContent({
+            kind,
+            currentHtml: slot.diagramSource,
+            advisorPrompt
+          })}`
         )
       ];
 
@@ -481,6 +505,8 @@ export function createLazyAnythingAgentService({ stateStore, env = process.env }
       analyze: 'Analyzing page…',
       intent: 'Building page…',
       transform: 'Transforming page…'
-    }
+    },
+    transformExtraFields: ['advisorPrompt'],
+    analyzeExtraFields: ['advisorPrompt']
   });
 }

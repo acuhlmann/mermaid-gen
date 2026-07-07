@@ -1,5 +1,5 @@
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
-import { getVisibleDiagramLabels } from './visibleDiagramLabels.js';
+import { getAdvisorVisibleLabels } from './advisorVisibleLabels.js';
 
 const EXPLAIN_TIMEOUT_MS = 12_000;
 
@@ -11,7 +11,7 @@ const EXPLAIN_TIMEOUT_MS = 12_000;
  *
  * @param {object} args
  * @param {object} args.descriptor   Selection descriptor from the canvas.
- * @param {string} [args.contentType]  'mermaid' | 'infographic'.
+ * @param {string} [args.contentType]  Active content type.
  * @param {string} [args.diagramSource]  Current diagram source (for context).
  * @param {string} [args.sessionId]    Session header value.
  * @param {'brief'|'simple'|'gibberish'} [args.style]  'brief' (default glossary),
@@ -37,7 +37,11 @@ export async function fetchLabelExplanation({
 
   const visibleLabels =
     typeof document !== 'undefined'
-      ? getVisibleDiagramLabels(document.body).labels
+      ? getAdvisorVisibleLabels({
+          contentType: contentType ?? 'mermaid',
+          host: document.body,
+          diagramSource: diagramSource ?? ''
+        }).labels
       : [];
 
   const controller = new AbortController();
