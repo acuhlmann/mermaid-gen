@@ -44,6 +44,13 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
+import {
+  CakeSprinkles,
+  IcingDrips,
+  PenthouseGlowBand,
+  SpireBeacon,
+  TerrainClouds
+} from './metaphorScenes/MetaphorSceneDecorations.jsx';
 import { TreeScene, TreeSky } from './metaphorScenes/TreeScene.jsx';
 import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
 
@@ -280,8 +287,21 @@ function CityBuilding({ item, position, theme, accentGlow }) {
         condition={item.condition}
         theme={theme}
       />
-      {roofStyle !== 'spire' ? (
+      {roofStyle === 'spire' ? (
+        <SpireBeacon
+          position={[0, height + roofHeight + footprint + 0.12, 0]}
+          color={theme.treeAccentColor ?? '#f87171'}
+          seed={idHash(item.id)}
+        />
+      ) : (
         <RooftopFixtures id={item.id} footprint={footprint} height={height} theme={theme} />
+      )}
+      {accentGlow > 0 && item.lighting !== 'dark' ? (
+        <PenthouseGlowBand
+          footprint={footprint}
+          y={height - 0.32}
+          color={theme.windowEmissiveColor ?? theme.windowColor ?? '#fef3c7'}
+        />
       ) : null}
       {item.glyph ? (
         <group
@@ -677,6 +697,11 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, is
   // for the cutaway slice so it looks like the inside of the cake.
   const bevelColor = useMemo(() => shiftColor(bodyColor, { lightness: 0.16, satScale: 0.82 }), [bodyColor]);
   const cutColor = useMemo(() => shiftColor(bodyColor, { lightness: 0.1, satScale: 0.88 }), [bodyColor]);
+  // Matches CakeTopping's cream so the top layer's drips read as the same glaze.
+  const creamColor = useMemo(
+    () => shiftColor(bodyColor, { lightness: 0.24, satScale: 0.6 }),
+    [bodyColor]
+  );
   const rimColor = theme.slabTrimColor ?? theme.slabColor;
   const bevelThickness = Math.min(0.08, thickness * 0.18);
   const bodyThickness = Math.max(0.05, thickness - bevelThickness * 2);
@@ -731,14 +756,31 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, is
             theme={theme}
           />
           {isTop ? (
-            <CakeTopping
-              radius={radius}
-              topY={yOffset + thickness}
-              thetaLength={thetaLength}
-              bodyColor={bodyColor}
-              theme={theme}
-              showCherry={!item.glyph}
-            />
+            <>
+              <CakeTopping
+                radius={radius}
+                topY={yOffset + thickness}
+                thetaLength={thetaLength}
+                bodyColor={bodyColor}
+                theme={theme}
+                showCherry={!item.glyph}
+              />
+              {/* Same cream as the topping dollops so the drips read as one glaze. */}
+              <IcingDrips
+                radius={radius}
+                topY={yOffset + thickness}
+                thetaLength={thetaLength}
+                color={creamColor}
+                idSeed={item.id}
+              />
+              <CakeSprinkles
+                radius={radius}
+                topY={yOffset + thickness}
+                thetaLength={thetaLength}
+                palette={theme.clusterPalette}
+                idSeed={item.id}
+              />
+            </>
           ) : null}
           {item.glyph ? (
             <group
@@ -1079,6 +1121,10 @@ function TerrainScene({ dsl, theme }) {
       <TerrainSurface heightmap={heightmap} />
       {showWater ? <TerrainWaterPlane halfExtent={heightmap.halfExtent} theme={theme} /> : null}
       <TerrainContourRings heightmap={heightmap} theme={theme} />
+      <TerrainClouds
+        halfExtent={heightmap.halfExtent}
+        maxHeight={heightmap.bounds.maxHeight}
+      />
       {dsl.items.map((item) => {
         const position = heightmap.itemPositions.get(item.id);
         if (!position) return null;

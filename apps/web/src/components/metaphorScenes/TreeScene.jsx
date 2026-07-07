@@ -21,6 +21,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { MeadowFireflies, SkySunGlow, SwayGroup } from './MetaphorSceneDecorations.jsx';
 import { idHash, idHash2, shiftColor } from './sceneUtils.js';
 
 /**
@@ -152,24 +153,27 @@ function TreeLeafCluster({ position, theme, id, weight }) {
   }, [id, fruitSeed]);
   return (
     <group position={position} scale={scale}>
-      {blobs.map((b, i) => (
-        <mesh key={`leaf-${i}`} position={b.pos}>
-          <icosahedronGeometry args={[b.r, 0]} />
-          <meshStandardMaterial
-            color={blobColors[i]}
-            emissive={blobColors[i]}
-            emissiveIntensity={0.06}
-            flatShading
-            roughness={0.8}
-          />
-        </mesh>
-      ))}
-      {fruits.map((f, i) => (
-        <mesh key={`fruit-${i}`} position={f.pos}>
-          <sphereGeometry args={[0.1, 8, 8]} />
-          <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.25} />
-        </mesh>
-      ))}
+      {/* Gentle wind sway — pivots at the canopy centre so it reads as rustle. */}
+      <SwayGroup seed={templateSeed} amplitude={0.032} speed={0.55}>
+        {blobs.map((b, i) => (
+          <mesh key={`leaf-${i}`} position={b.pos}>
+            <icosahedronGeometry args={[b.r, 0]} />
+            <meshStandardMaterial
+              color={blobColors[i]}
+              emissive={blobColors[i]}
+              emissiveIntensity={0.06}
+              flatShading
+              roughness={0.8}
+            />
+          </mesh>
+        ))}
+        {fruits.map((f, i) => (
+          <mesh key={`fruit-${i}`} position={f.pos}>
+            <sphereGeometry args={[0.1, 8, 8]} />
+            <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.25} />
+          </mesh>
+        ))}
+      </SwayGroup>
     </group>
   );
 }
@@ -214,18 +218,20 @@ function TrunkCrown({ position, theme, id, weight }) {
   }, [id, leafColor]);
   return (
     <group position={[position[0], position[1] + 0.15, position[2]]} scale={scale}>
-      {blobs.map((b, i) => (
-        <mesh key={`crown-${i}`} position={b.pos}>
-          <icosahedronGeometry args={[b.r, 0]} />
-          <meshStandardMaterial
-            color={colors[i]}
-            emissive={colors[i]}
-            emissiveIntensity={0.05}
-            flatShading
-            roughness={0.85}
-          />
-        </mesh>
-      ))}
+      <SwayGroup seed={idHash(id ?? 'crown')} amplitude={0.024} speed={0.42}>
+        {blobs.map((b, i) => (
+          <mesh key={`crown-${i}`} position={b.pos}>
+            <icosahedronGeometry args={[b.r, 0]} />
+            <meshStandardMaterial
+              color={colors[i]}
+              emissive={colors[i]}
+              emissiveIntensity={0.05}
+              flatShading
+              roughness={0.85}
+            />
+          </mesh>
+        ))}
+      </SwayGroup>
     </group>
   );
 }
@@ -252,12 +258,14 @@ function BranchFoliage({ position, theme, id, weight }) {
   }, [leafColor, id, radius]);
   return (
     <group position={position}>
-      {blobs.map((b, i) => (
-        <mesh key={`bough-${i}`} position={b.pos}>
-          <icosahedronGeometry args={[b.r, 0]} />
-          <meshStandardMaterial color={colors[i]} flatShading roughness={0.8} />
-        </mesh>
-      ))}
+      <SwayGroup seed={idHash(id ?? 'branch')} amplitude={0.028} speed={0.5}>
+        {blobs.map((b, i) => (
+          <mesh key={`bough-${i}`} position={b.pos}>
+            <icosahedronGeometry args={[b.r, 0]} />
+            <meshStandardMaterial color={colors[i]} flatShading roughness={0.8} />
+          </mesh>
+        ))}
+      </SwayGroup>
     </group>
   );
 }
@@ -646,6 +654,8 @@ export function TreeScene({ dsl, theme }) {
       ))}
       <MeadowDetails roots={trunkRoots} theme={treeTheme} radius={meadowRadius} />
       <AmbientForest roots={trunkRoots} theme={treeTheme} radius={meadowRadius} />
+      {/* Warm blinking motes wandering over the clearing — pure ambience. */}
+      <MeadowFireflies radius={meadowRadius} count={Math.min(26, Math.round(meadowRadius * 2.4))} />
       {dsl.items.map((item) => {
         const position = layout.positions.get(item.id);
         const info = layout.nodeInfo.get(item.id);
@@ -699,13 +709,17 @@ export function TreeScene({ dsl, theme }) {
   );
 }
 
-/** Soft daylight gradient backdrop for the tree metaphor (outside Bounds). */
+/** Soft daylight gradient backdrop for the tree metaphor (outside Bounds),
+ *  with a warm sun glow placed toward the scenes' directional light. */
 export function TreeSky({ theme }) {
   const treeTheme = resolveTreeNatureTheme(theme);
   return (
-    <GradientSkySphere
-      topColor={treeTheme.treeSkyTopColor ?? '#87ceeb'}
-      horizonColor={treeTheme.treeSkyHorizonColor ?? '#e8f4e8'}
-    />
+    <group>
+      <GradientSkySphere
+        topColor={treeTheme.treeSkyTopColor ?? '#87ceeb'}
+        horizonColor={treeTheme.treeSkyHorizonColor ?? '#e8f4e8'}
+      />
+      <SkySunGlow />
+    </group>
   );
 }

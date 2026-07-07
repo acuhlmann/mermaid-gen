@@ -20,34 +20,15 @@ import {
 } from '../../utils/metaphorThemePresets.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
+  GlowSprite,
   GradientSkySphere,
   HoverableItem,
   ItemLabel,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
+import { ShootingStars, SpinningGroup } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { getRadialSpriteTexture, idHash, idHash2, shiftColor } from './sceneUtils.js';
-
-/** Billboarded additive glow using the soft radial sprite (round, not square). */
-function GlowSprite({ size, color, opacity }) {
-  const map = getRadialSpriteTexture();
-  return (
-    <Billboard>
-      <mesh>
-        <planeGeometry args={[size, size]} />
-        <meshBasicMaterial
-          map={map ?? undefined}
-          color={color}
-          transparent
-          opacity={opacity}
-          depthWrite={false}
-          blending={THREE.AdditiveBlending}
-          toneMapped={false}
-        />
-      </mesh>
-    </Billboard>
-  );
-}
 
 function StarTwinkle({ children, id, baseIntensity }) {
   const groupRef = useRef(null);
@@ -291,19 +272,25 @@ function ClusterStardust({ cluster, theme, color }) {
   useEffect(() => () => geometry.dispose(), [geometry]);
   const tilt = useMemo(() => clusterTilt(name), [name]);
   return (
-    <points geometry={geometry} position={cluster.center} rotation={tilt}>
-      <pointsMaterial
-        map={map ?? undefined}
-        size={0.14}
-        sizeAttenuation
-        vertexColors
-        transparent
-        opacity={0.9}
-        depthWrite={false}
-        blending={THREE.AdditiveBlending}
-        toneMapped={false}
-      />
-    </points>
+    <group position={cluster.center} rotation={tilt}>
+      {/* Slow disc spin: the dust drifts past the anchored suns for a living,
+          rotating-galaxy feel without moving the labelled items. */}
+      <SpinningGroup speed={0.05} phase={idHash(`spin-${name}`) * Math.PI * 2}>
+        <points geometry={geometry}>
+          <pointsMaterial
+            map={map ?? undefined}
+            size={0.14}
+            sizeAttenuation
+            vertexColors
+            transparent
+            opacity={0.9}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </points>
+      </SpinningGroup>
+    </group>
   );
 }
 
@@ -353,11 +340,14 @@ function ClusterArms({ cluster, theme, color }) {
           side={THREE.DoubleSide}
         />
       </mesh>
-      {motes.map((m, i) => (
-        <group key={`mote-${i}`} position={m.position}>
-          <GlowSprite size={m.size} color={m.dusty ? dustColor : color} opacity={m.opacity} />
-        </group>
-      ))}
+      {/* Arms spin slightly slower than the stardust for a depth parallax. */}
+      <SpinningGroup speed={0.032} phase={idHash(`arm-spin-${name}`) * Math.PI * 2}>
+        {motes.map((m, i) => (
+          <group key={`mote-${i}`} position={m.position}>
+            <GlowSprite size={m.size} color={m.dusty ? dustColor : color} opacity={m.opacity} />
+          </group>
+        ))}
+      </SpinningGroup>
     </group>
   );
 }
@@ -511,6 +501,7 @@ export function GalaxySky({ theme, animated = true }) {
         fade
         speed={animated ? 0.5 : 0}
       />
+      <ShootingStars animated={animated} color={galaxyTheme.starColor ?? '#f8fafc'} />
     </group>
   );
 }
