@@ -11,7 +11,33 @@ import { useFrame } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
 import { useMetaphorHover } from '../metaphorHover.js';
 import { useMetaphorClock } from './metaphorClock.js';
-import { idHash2, resolveLinkAppearance, samplePolyline } from './sceneUtils.js';
+import {
+  getRadialSpriteTexture,
+  idHash2,
+  resolveLinkAppearance,
+  samplePolyline
+} from './sceneUtils.js';
+
+/** Billboarded additive glow using the soft radial sprite (round, not square). */
+export function GlowSprite({ size, color, opacity }) {
+  const map = getRadialSpriteTexture();
+  return (
+    <Billboard>
+      <mesh>
+        <planeGeometry args={[size, size]} />
+        <meshBasicMaterial
+          map={map ?? undefined}
+          color={color}
+          transparent
+          opacity={opacity}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
+    </Billboard>
+  );
+}
 
 export function ItemLabel({ text, position, fontSize = 0.55, color = '#0f172a', outlineColor = '#ffffff' }) {
   if (!text) return null;
