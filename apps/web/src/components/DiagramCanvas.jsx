@@ -124,6 +124,30 @@ function hashStringStable(input) {
   return Math.abs(hash).toString(36);
 }
 
+function resolveEditorLanguage(contentType) {
+  if (contentType === 'mermaid') return 'mermaid';
+  if (contentType === 'metaphor3d') return 'json';
+  if (contentType === 'chart') return 'json';
+  if (contentType === 'anything') return 'html';
+  return 'infographic';
+}
+
+function resolveEditorPanelLabel(contentType) {
+  if (contentType === 'mermaid') return 'Mermaid code editor';
+  if (contentType === 'metaphor3d') return '3D DSL editor';
+  if (contentType === 'chart') return 'Chart DSL editor';
+  if (contentType === 'anything') return 'HTML editor';
+  return 'Infographic DSL editor';
+}
+
+function resolveEditorPanelShortTitle(contentType) {
+  if (contentType === 'mermaid') return 'Mermaid code';
+  if (contentType === 'metaphor3d') return '3D DSL';
+  if (contentType === 'chart') return 'Chart DSL';
+  if (contentType === 'anything') return 'HTML';
+  return 'Infographic DSL';
+}
+
 
 /** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
 function diagramDomAnchor(group) {
@@ -261,11 +285,34 @@ export default function DiagramCanvas({
       scrollBeyondLastLine: false,
       automaticLayout: true,
       readOnly: streamingPreview,
-      fontSize: narrowLayout ? 13 : 13,
+      fontSize: 13,
       lineNumbers: narrowLayout ? 'off' : 'on',
-      wrappingIndent: 'none'
+      wrappingIndent: 'none',
+      ...(narrowLayout
+        ? {
+            glyphMargin: false,
+            folding: false,
+            contextmenu: false,
+            quickSuggestions: false,
+            parameterHints: { enabled: false },
+            suggestOnTriggerCharacters: false,
+            scrollbar: {
+              vertical: 'auto',
+              horizontal: 'hidden',
+              useShadows: false
+            },
+            padding: { top: 8, bottom: 16 }
+          }
+        : {})
     }),
     [narrowLayout, streamingPreview]
+  );
+
+  const editorLanguage = useMemo(() => resolveEditorLanguage(contentType), [contentType]);
+  const editorPanelLabel = useMemo(() => resolveEditorPanelLabel(contentType), [contentType]);
+  const editorPanelShortTitle = useMemo(
+    () => resolveEditorPanelShortTitle(contentType),
+    [contentType]
   );
 
   const reportValidation = useCallback(
@@ -1373,17 +1420,7 @@ export default function DiagramCanvas({
       {editorMounted ? (
         <aside
           className={`diagram-editor-panel ${editorClosing ? 'is-closing' : ''}`.trim()}
-          aria-label={
-            contentType === 'mermaid'
-              ? 'Mermaid code editor'
-              : contentType === 'metaphor3d'
-                ? '3D DSL editor'
-                : contentType === 'chart'
-                  ? 'Chart DSL editor'
-                  : contentType === 'anything'
-                    ? 'HTML editor'
-                    : 'Infographic DSL editor'
-          }
+          aria-label={editorPanelLabel}
         >
           {streamingPreview ? (
             <p className="streaming-note" role="status">
@@ -1396,17 +1433,7 @@ export default function DiagramCanvas({
           {narrowLayout ? (
             <div className="mobile-code-editor-wrap">
               <div className="mobile-code-editor-toolbar">
-                <span className="mobile-code-editor-title">
-                  {contentType === 'mermaid'
-                    ? 'Mermaid code'
-                    : contentType === 'metaphor3d'
-                      ? '3D DSL'
-                      : contentType === 'chart'
-                        ? 'Chart DSL'
-                        : contentType === 'anything'
-                          ? 'HTML'
-                          : 'Infographic DSL'}
-                </span>
+                <span className="mobile-code-editor-title">{editorPanelShortTitle}</span>
                 <div className="mobile-code-editor-actions">
                   {onEditorClose ? (
                     <button type="button" className="overlay-button compact-button primary-button" onClick={onEditorClose}>
@@ -1415,43 +1442,24 @@ export default function DiagramCanvas({
                   ) : null}
                 </div>
               </div>
-              <textarea
-                className="mobile-code-editor"
-                value={editorSource}
-                onChange={(event) => handleEditorChange(event.target.value)}
-                readOnly={streamingPreview}
-                spellCheck={false}
-                autoCapitalize="off"
-                autoCorrect="off"
-                inputMode="text"
-                aria-label={
-                  contentType === 'mermaid'
-                    ? 'Mermaid code editor'
-                    : contentType === 'metaphor3d'
-                      ? '3D DSL editor'
-                      : contentType === 'chart'
-                        ? 'Chart DSL editor'
-                        : contentType === 'anything'
-                          ? 'HTML editor'
-                          : 'Infographic DSL editor'
-                }
-              />
+              <div className="diagram-monaco-wrap mobile-monaco-wrap">
+                <Editor
+                  height="100%"
+                  language={editorLanguage}
+                  theme="vs-dark"
+                  value={editorSource}
+                  beforeMount={handleEditorBeforeMount}
+                  onMount={handleEditorMount}
+                  onChange={handleEditorChange}
+                  options={monacoEditorOptions}
+                />
+              </div>
             </div>
           ) : (
             <div className="diagram-monaco-wrap">
               <Editor
                 height="100%"
-                language={
-                  contentType === 'mermaid'
-                    ? 'mermaid'
-                    : contentType === 'metaphor3d'
-                      ? 'json'
-                      : contentType === 'chart'
-                        ? 'json'
-                        : contentType === 'anything'
-                          ? 'html'
-                          : 'infographic'
-                }
+                language={editorLanguage}
                 theme="vs-dark"
                 value={editorSource}
                 beforeMount={handleEditorBeforeMount}

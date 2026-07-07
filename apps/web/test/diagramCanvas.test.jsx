@@ -35,7 +35,7 @@ vi.mock('../src/utils/registerMermaidMonacoOnce.js', () => ({
 }));
 
 vi.mock('@monaco-editor/react', () => ({
-  default: function EditorMock({ value, onChange, beforeMount, onMount }) {
+  default: function EditorMock({ value, onChange, beforeMount, onMount, language }) {
     useLayoutEffect(() => {
       const monaco = {
         Range: class Range {
@@ -58,6 +58,7 @@ vi.mock('@monaco-editor/react', () => ({
     return (
       <textarea
         aria-label="Mermaid DSL"
+        data-language={language}
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -378,5 +379,47 @@ describe('DiagramCanvas', () => {
     expect(editorHarness.revealRangeInCenter).toHaveBeenCalled();
     expect(editorHarness.setSelection).toHaveBeenCalled();
     expect(editorHarness.deltaDecorations).toHaveBeenCalled();
+  });
+
+  it('uses Monaco with mode-specific language on narrow layout', async () => {
+    const listeners = new Map();
+    window.matchMedia = vi.fn().mockImplementation((query) => ({
+      matches: query === '(max-width: 1024px)',
+      media: query,
+      addEventListener: (event, handler) => {
+        listeners.set(event, handler);
+      },
+      removeEventListener: (event, handler) => {
+        if (listeners.get(event) === handler) listeners.delete(event);
+      }
+    }));
+
+    const { rerender } = render(
+      <DiagramCanvas
+        diagramSource={'{"mark":"bar"}'}
+        contentType="chart"
+        revisionId={1}
+        editorOpen
+      />
+    );
+
+    await act(async () => {
+      vi.advanceTimersByTime(250);
+    });
+
+    expect(screen.getByLabelText('Mermaid DSL').getAttribute('data-language')).toBe('json');
+    expect(screen.getByText('Chart DSL')).toBeTruthy();
+
+    rerender(
+      <DiagramCanvas
+        diagramSource={'<div>hello</div>'}
+        contentType="anything"
+        revisionId={1}
+        editorOpen
+      />
+    );
+
+    expect(screen.getByLabelText('Mermaid DSL').getAttribute('data-language')).toBe('html');
+    expect(screen.getByText('HTML')).toBeTruthy();
   });
 });
