@@ -270,6 +270,102 @@ describe('radial menu popover survives the hover-close grace period', () => {
 });
 
 /**
+ * The radial "Weigh In" slop prompt is modal like the explainer/stakeholders
+ * popovers. Opening it must cancel any pending hover-close timer and must not
+ * schedule a fresh one when the virtual keyboard shrinks the viewport.
+ */
+describe('radial slop prompt survives the hover-close grace period', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const PRIMARY_WITH_PROMPT = [
+    {
+      id: 'prompt',
+      label: 'Weigh In',
+      icon: '💬',
+      variant: 'prompt',
+      group: 'primary',
+      persona: 'Just Say It'
+    },
+    {
+      id: 'definition',
+      label: 'What is this?',
+      icon: '?',
+      variant: 'definition',
+      group: 'primary',
+      behavior: 'showExplanation',
+      persona: 'Quick Reference'
+    },
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+  ];
+
+  function renderSlopPromptMenu(overrides = {}) {
+    const onHoverHold = vi.fn();
+    const onHoverRelease = vi.fn();
+    const props = {
+      descriptor: MOCK_DESCRIPTOR,
+      anchor: MOCK_ANCHOR,
+      actions: PRIMARY_WITH_PROMPT,
+      onActionPick: vi.fn(),
+      onHoverHold,
+      onHoverRelease,
+      onBackdropPointerDown: vi.fn(),
+      onClose: vi.fn(),
+      slopPromptOpen: false,
+      slopPrompt: null,
+      onSlopPromptClose: vi.fn(),
+      ...overrides
+    };
+    const view = render(<RadialActionMenu {...props} />);
+    return { ...view, onHoverHold, onHoverRelease, props };
+  }
+
+  it('cancels any pending hover-close timer when the slop prompt opens', () => {
+    const { rerender, onHoverHold, props } = renderSlopPromptMenu();
+    onHoverHold.mockClear();
+    rerender(
+      <RadialActionMenu
+        {...props}
+        slopPromptOpen
+        slopPrompt={<input data-testid="slop-prompt-input" aria-label="New prompt" />}
+      />
+    );
+    expect(onHoverHold).toHaveBeenCalled();
+    expect(screen.getByTestId('slop-prompt-input')).toBeTruthy();
+  });
+
+  it('does not schedule a close from the slop prompt tray on pointer leave', () => {
+    const { onHoverRelease, props } = renderSlopPromptMenu({
+      slopPromptOpen: true,
+      slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
+    });
+    onHoverRelease.mockClear();
+    fireEvent.pointerLeave(screen.getByTestId('slop-prompt-input'));
+    expect(onHoverRelease).not.toHaveBeenCalled();
+  });
+
+  it('does not schedule a close from the hit area while the slop prompt is open', () => {
+    const { onHoverRelease, props } = renderSlopPromptMenu({
+      slopPromptOpen: true,
+      slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
+    });
+    onHoverRelease.mockClear();
+    fireEvent.pointerLeave(screen.getByTestId('radial-hit-area'));
+    expect(onHoverRelease).not.toHaveBeenCalled();
+  });
+
+  it('hides arc buttons while the slop prompt is open', () => {
+    renderSlopPromptMenu({
+      slopPromptOpen: true,
+      slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
+    });
+    expect(screen.queryByRole('menuitem', { name: /Weigh In/ })).toBeNull();
+    expect(screen.getByTestId('slop-prompt-input')).toBeTruthy();
+  });
+});
+
+/**
  * The "?" answer is voiced by the Wise Architect and offers two follow-ups:
  * "Dumb it Down" rephrases inline; "Drill Deeper" hands off to the Thinking
  * panel via onDrillDeeper. These are core to the help-button UX rework.
