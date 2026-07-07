@@ -6844,19 +6844,17 @@ button {
 }
 
 .agent-invite-button {
-  font-size: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  justify-content: center;
+  min-height: 2rem;
+  min-width: 2rem;
+  padding: 0.28rem;
 }
 
 .agent-invite-emoji {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1;
-}
-
-.agent-invite-label {
-  letter-spacing: 0.01em;
 }
 
 .agent-handshake-overlay {
