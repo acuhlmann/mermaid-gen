@@ -1,14 +1,10 @@
 import type { ContentType, FocusNode, IntentPeerContext, LegacyPlanBeatEvent } from '@archislop/shared';
 import { inferDiagramType } from './inferDiagramType.js';
 
-const REQUEST_SNIPPET_MAX = 140;
-
-function trimSnippet(text: unknown, max = REQUEST_SNIPPET_MAX): string {
-  const t = String(text ?? '')
-    .replace(/\s+/g, ' ')
+function normalizeRequestText(text: unknown): string {
+  return String(text ?? '')
+    .replace(/\r\n?/g, '\n')
     .trim();
-  if (!t) return '';
-  return t.length <= max ? t : `${t.slice(0, max - 1)}…`;
 }
 
 function extractUserRequestFromMessages(messages: unknown[]): string {
@@ -26,11 +22,11 @@ function extractUserRequestFromMessages(messages: unknown[]): string {
       const raw = content.trim();
       const userRequestIdx = raw.lastIndexOf('User request:');
       if (userRequestIdx >= 0) {
-        return trimSnippet(raw.slice(userRequestIdx + 'User request:'.length));
+        return normalizeRequestText(raw.slice(userRequestIdx + 'User request:'.length));
       }
       if (raw.includes('Transform mode:')) continue;
       if (raw.includes('Repair instructions:') || raw.includes('Your previous patch failed')) continue;
-      return trimSnippet(raw);
+      return normalizeRequestText(raw);
     }
   }
   return '';

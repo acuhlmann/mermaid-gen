@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import AnythingRenderer from './AnythingRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
@@ -153,6 +154,21 @@ export default function InsightsEmbeddedDiagram({
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <ChartRenderer diagramSource={source} compact />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'anything') {
+    return (
+      <div
+        ref={outerRef}
+        className="insights-embedded-diagram insights-embedded-diagram--anything"
+        data-testid="insights-embedded-diagram"
+        aria-label="Page preview (read-only)"
+      >
+        <div ref={svgHostRef} className="insights-embedded-diagram-inner">
+          <AnythingRenderer diagramSource={source} streamingPreview={streamingPreview} />
         </div>
       </div>
     );

@@ -269,8 +269,7 @@ export function applyAgentStreamInsightEvent(
       }
       return { ...entry, planBeats: beats };
     });
-    const statusPreview = text.length > 200 ? `${text.slice(0, 197)}…` : text;
-    setInsightStatus(sectionId, statusPreview);
+    setInsightStatus(sectionId, text);
   } else if (evt.type === 'tool_start') {
     const toolEvt = evt as LegacyToolStartEvent;
     if (!toolEvt.name) return;

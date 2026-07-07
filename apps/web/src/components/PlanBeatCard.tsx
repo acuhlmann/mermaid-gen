@@ -2,7 +2,7 @@
  * Visual plan-beat card for the Thinking pane Plan lane.
  */
 
-import { enrichInline } from '../utils/thinkingProseEnrich';
+import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 
 const VARIANT_ICONS: Record<string, string> = {
   refine: '✨',
@@ -21,6 +21,31 @@ type PlanBeat = {
   source?: 'agent' | 'server';
 };
 
+function splitPlanSteps(text: string): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+
+  const lines = trimmed
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  if (lines.length > 1) {
+    return lines.map((line) => line.replace(/^[-•*]\s+/, '').replace(/^\d+\.\s+/, ''));
+  }
+
+  const numbered = trimmed.match(/(?:^|\s)\d+\.\s+[^]+?(?=(?:\s\d+\.\s+)|$)/g);
+  if (numbered && numbered.length > 1) {
+    return numbered.map((part) => part.trim().replace(/^\d+\.\s+/, ''));
+  }
+
+  if (trimmed.includes('; ')) {
+    const parts = trimmed.split(/;\s+/).map((part) => part.trim()).filter(Boolean);
+    if (parts.length > 1) return parts;
+  }
+
+  return [trimmed];
+}
+
 export default function PlanBeatCard({
   beat,
   variant = 'general',
@@ -35,10 +60,12 @@ export default function PlanBeatCard({
   if (!text) return null;
 
   const icon = VARIANT_ICONS[variant] ?? VARIANT_ICONS.general;
+  const steps = splitPlanSteps(text);
+  const multiStep = steps.length > 1;
 
   return (
     <li
-      className={`insights-plan-card is-${source}`}
+      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}`}
       data-testid="plan-beat-card"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
@@ -49,7 +76,30 @@ export default function PlanBeatCard({
         <span className={`insights-plan-card-badge is-${source}`}>
           {source === 'agent' ? 'Agent' : 'Plan'}
         </span>
-        <p className="insights-plan-card-text">{enrichInline(text, `plan-${index}`)}</p>
+        {multiStep ? (
+          <ol className="insights-plan-card-steps">
+            {steps.map((step, stepIndex) => (
+              <li
+                key={`plan-${index}-step-${stepIndex}`}
+                className={[
+                  'insights-plan-card-step',
+                  isVisualStepLine(step) ? 'insights-step-card' : ''
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                <span className="insights-plan-card-step-marker" aria-hidden="true">
+                  {stepIndex + 1}
+                </span>
+                <span className="insights-plan-card-step-text">
+                  {enrichInline(step, `plan-${index}-${stepIndex}`)}
+                </span>
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p className="insights-plan-card-text">{enrichInline(text, `plan-${index}`)}</p>
+        )}
       </div>
     </li>
   );

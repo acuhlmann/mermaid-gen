@@ -92,6 +92,12 @@ export function parseDiagramPatchToolCall(jsonSlice) {
     if (!source.trim()) return null;
     return { kind: 'chart', source, toolName: rawName, reason };
   }
+  const anythingish = n.includes('anything') && n.includes('patch');
+  if (anythingish) {
+    const source = typeof args.diagramSource === 'string' ? args.diagramSource : '';
+    if (!source.trim()) return null;
+    return { kind: 'anything', source, toolName: rawName, reason };
+  }
   return null;
 }
 
