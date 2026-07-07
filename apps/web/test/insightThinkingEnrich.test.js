@@ -60,6 +60,23 @@ describe('parseDiagramPatchToolCall', () => {
     expect(p?.kind).toBe('chart');
     expect(p?.source).toContain('"archislopVersion"');
   });
+
+  it('parses apply_metaphor_patch as metaphor3d', () => {
+    const j = JSON.stringify({
+      name: 'apply_metaphor_patch',
+      arguments: {
+        diagramSource: JSON.stringify({
+          metaphor: 'terrain',
+          scene: { theme: 'whiteboard', camera: 'cinematic', title: 'Mushroom Scores' },
+          items: [{ id: 'porcini', label: 'Porcini', elevation: 9, intensity: 4 }]
+        }),
+        reason: 'initial scene'
+      }
+    });
+    const p = parseDiagramPatchToolCall(j);
+    expect(p?.kind).toBe('metaphor3d');
+    expect(p?.source).toContain('"metaphor"');
+  });
 });
 
 describe('partitionDiagramToolJsonBlocks', () => {

@@ -1,14 +1,15 @@
 /**
- * Detect Mermaid, Infographic, Chart, or Anything HTML pasted after prose in agent
- * "thinking" text and split it so the UI can render a read-only preview instead of
- * monospace paragraphs.
+ * Detect Mermaid, Infographic, Chart, Metaphor 3D, or Anything HTML pasted after prose
+ * in agent "thinking" text and split it so the UI can render a read-only preview
+ * instead of monospace paragraphs.
  */
 
-import { parseAnythingHtml, parseChartDsl } from '@archislop/shared';
+import { parseAnythingHtml, parseChartDsl, sanitizeMetaphorDsl } from '@archislop/shared';
 import { findBalancedBraceEnd } from './insightThinkingEnrich.js';
 
 const CHART_MARKER = '"archislopVersion"';
-const CHART_FENCE_START = /```(?:json)?\s*\n?/gi;
+const METAPHOR_MARKER = '"metaphor"';
+const JSON_FENCE_START = /```(?:json)?\s*\n?/gi;
 const HTML_FENCE_START = /```(?:html)?\s*\n?/gi;
 
 const HTML_DOCUMENT_START =
@@ -96,39 +97,60 @@ function tryParseChartDsl(candidate) {
   return result.ok ? result.text : null;
 }
 
+/** @param {string} candidate */
+function tryParseMetaphorDsl(candidate) {
+  if (!candidate?.includes(METAPHOR_MARKER)) return null;
+  const result = sanitizeMetaphorDsl(candidate);
+  return result.dsl ? result.text : null;
+}
+
 /**
+ * Shared shape for the two JSON-object DSLs (chart, metaphor3d): find the DSL in a
+ * ```json fence first, then as a bare `{ … }` object located via its marker key.
+ *
  * @param {string} text
- * @returns {{ prose: string, dsl: string, kind: 'chart' } | null}
+ * @param {string} marker
+ * @param {(candidate: string) => string | null} tryParse
+ * @param {'chart' | 'metaphor3d'} kind
+ * @returns {{ prose: string, dsl: string, kind: 'chart' | 'metaphor3d' } | null}
  */
-function splitEmbeddedChartDsl(text) {
-  CHART_FENCE_START.lastIndex = 0;
+function splitEmbeddedJsonDsl(text, marker, tryParse, kind) {
+  JSON_FENCE_START.lastIndex = 0;
   let fenceMatch;
-  while ((fenceMatch = CHART_FENCE_START.exec(text)) !== null) {
+  while ((fenceMatch = JSON_FENCE_START.exec(text)) !== null) {
     const contentStart = fenceMatch.index + fenceMatch[0].length;
     const closeIdx = text.indexOf('```', contentStart);
     const inner = (closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)).trim();
-    const dsl = tryParseChartDsl(inner);
+    const dsl = tryParse(inner);
     if (!dsl) continue;
     return {
       prose: joinProseSegments(text.slice(0, fenceMatch.index), closeIdx >= 0 ? text.slice(closeIdx + 3) : ''),
       dsl,
-      kind: 'chart'
+      kind
     };
   }
 
-  const markerIdx = text.indexOf(CHART_MARKER);
+  const markerIdx = text.indexOf(marker);
   if (markerIdx < 0) return null;
   const open = text.lastIndexOf('{', markerIdx);
   if (open < 0) return null;
   const end = findBalancedBraceEnd(text, open);
   if (end < 0) return null;
-  const dsl = tryParseChartDsl(text.slice(open, end));
+  const dsl = tryParse(text.slice(open, end));
   if (!dsl) return null;
   return {
     prose: joinProseSegments(text.slice(0, open), text.slice(end)),
     dsl,
-    kind: 'chart'
+    kind
   };
+}
+
+function splitEmbeddedChartDsl(text) {
+  return splitEmbeddedJsonDsl(text, CHART_MARKER, tryParseChartDsl, 'chart');
+}
+
+function splitEmbeddedMetaphorDsl(text) {
+  return splitEmbeddedJsonDsl(text, METAPHOR_MARKER, tryParseMetaphorDsl, 'metaphor3d');
 }
 
 /**
@@ -169,7 +191,7 @@ function splitEmbeddedAnythingHtml(text) {
  * is shown separately (avoids duplicate raw ```json / ```html in the content lane).
  *
  * @param {string} text
- * @param {'mermaid' | 'infographic' | 'chart' | 'anything' | null} [kind]
+ * @param {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' | null} [kind]
  * @returns {string}
  */
 export function stripEmbeddedDslFromThinkingText(text, kind = null) {
@@ -188,21 +210,21 @@ export function stripEmbeddedDslFromThinkingText(text, kind = null) {
     }
   };
 
-  if (!kind || kind === 'chart') stripFence(CHART_FENCE_START);
+  if (!kind || kind === 'chart' || kind === 'metaphor3d') stripFence(JSON_FENCE_START);
   if (!kind || kind === 'anything') stripFence(HTML_FENCE_START);
 
-  if (!kind || kind === 'chart') {
-    const markerIdx = next.indexOf(CHART_MARKER);
-    if (markerIdx >= 0) {
-      const open = next.lastIndexOf('{', markerIdx);
-      if (open >= 0) {
-        const end = findBalancedBraceEnd(next, open);
-        if (end >= 0) {
-          next = joinProseSegments(next.slice(0, open), next.slice(end));
-        }
-      }
-    }
-  }
+  const stripBareJsonObject = (marker) => {
+    const markerIdx = next.indexOf(marker);
+    if (markerIdx < 0) return;
+    const open = next.lastIndexOf('{', markerIdx);
+    if (open < 0) return;
+    const end = findBalancedBraceEnd(next, open);
+    if (end < 0) return;
+    next = joinProseSegments(next.slice(0, open), next.slice(end));
+  };
+
+  if (!kind || kind === 'chart') stripBareJsonObject(CHART_MARKER);
+  if (!kind || kind === 'metaphor3d') stripBareJsonObject(METAPHOR_MARKER);
 
   if (!kind || kind === 'anything') {
     const lines = next.split('\n');
@@ -222,13 +244,16 @@ export function stripEmbeddedDslFromThinkingText(text, kind = null) {
 
 /**
  * @param {string} text
- * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' | 'chart' | 'anything' } | null}
+ * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' } | null}
  */
 export function splitEmbeddedDiagramDsl(text) {
   if (typeof text !== 'string' || !text.trim()) return null;
 
   const chartSplit = splitEmbeddedChartDsl(text);
   if (chartSplit) return chartSplit;
+
+  const metaphorSplit = splitEmbeddedMetaphorDsl(text);
+  if (metaphorSplit) return metaphorSplit;
 
   const anythingSplit = splitEmbeddedAnythingHtml(text);
   if (anythingSplit) return anythingSplit;
@@ -265,7 +290,7 @@ export function splitEmbeddedDiagramDsl(text) {
  * Thinking pane can render a read-only preview instead of raw JSON / Mermaid text.
  *
  * @param {string} text
- * @returns {{ kind: 'mermaid' | 'infographic' | 'chart' | 'anything', source: string, prose?: string } | null}
+ * @returns {{ kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything', source: string, prose?: string } | null}
  */
 export function tryExtractDiagramPreviewFromText(text) {
   if (typeof text !== 'string' || !text.trim()) return null;
@@ -284,6 +309,8 @@ export function tryExtractDiagramPreviewFromText(text) {
     const result = parseChartDsl(trimmed);
     if (result.ok) return { kind: 'chart', source: result.text };
   }
+  const metaphorDsl = tryParseMetaphorDsl(trimmed);
+  if (metaphorDsl) return { kind: 'metaphor3d', source: metaphorDsl };
 
   return null;
 }

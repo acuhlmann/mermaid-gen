@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import AnythingRenderer from './AnythingRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
 import InfographicRenderer from './InfographicRenderer.jsx';
+import MetaphorRenderer from './MetaphorRenderer.jsx';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import {
   applyEmbeddedDiagramFocus,
@@ -18,7 +19,32 @@ function extractErrorMessage(error) {
 }
 
 /**
- * Small, non-interactive diagram preview for the thinking pane (Mermaid SVG, Infographic canvas, or Vega-Lite chart).
+ * Mount-while-visible gate for the 3D metaphor preview. Browsers cap live WebGL
+ * contexts (~8–16 per page) and a long thinking pane can hold many previews, so the
+ * Three.js canvas only exists while its host is in (or near) the scroll viewport.
+ */
+function useNearViewport(hostRef) {
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return undefined;
+    if (typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return undefined;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => setInView(entries.some((e) => e.isIntersecting)),
+      { rootMargin: '160px' }
+    );
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [hostRef]);
+  return inView;
+}
+
+/**
+ * Small, non-interactive diagram preview for the thinking pane (Mermaid SVG, Infographic
+ * canvas, Vega-Lite chart, sandboxed Anything page, or Three.js metaphor scene).
  */
 export default function InsightsEmbeddedDiagram({
   source,
@@ -33,6 +59,7 @@ export default function InsightsEmbeddedDiagram({
   const svgHostRef = useRef(null);
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
+  const nearViewport = useNearViewport(outerRef);
 
   const applyPreviewFocus = useCallback(() => {
     if (streamingPreview) return;
@@ -154,6 +181,23 @@ export default function InsightsEmbeddedDiagram({
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <ChartRenderer diagramSource={source} compact />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'metaphor3d') {
+    return (
+      <div
+        ref={outerRef}
+        className="insights-embedded-diagram insights-embedded-diagram--metaphor3d"
+        data-testid="insights-embedded-diagram"
+        aria-label="3D metaphor preview (read-only)"
+      >
+        <div className="insights-embedded-diagram-inner">
+          {nearViewport ? (
+            <MetaphorRenderer diagramSource={source} streamingPreview={streamingPreview} />
+          ) : null}
         </div>
       </div>
     );

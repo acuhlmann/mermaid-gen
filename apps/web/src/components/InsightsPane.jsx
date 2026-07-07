@@ -638,6 +638,7 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
 function resultingPreviewLabel(afterKind) {
   if (afterKind === 'infographic') return 'Resulting infographic';
   if (afterKind === 'chart') return 'Resulting chart';
+  if (afterKind === 'metaphor3d') return 'Resulting 3D scene';
   if (afterKind === 'anything') return 'Resulting page';
   return 'Resulting diagram';
 }
@@ -1066,7 +1067,10 @@ export default function InsightsPane({
             const hasAfterPreview =
               entry.diagramRevisionApplied &&
               afterSource.trim().length > 0 &&
-              (afterKind === 'mermaid' || afterKind === 'infographic' || afterKind === 'chart');
+              (afterKind === 'mermaid' ||
+                afterKind === 'infographic' ||
+                afterKind === 'chart' ||
+                afterKind === 'metaphor3d');
             const afterDiff = hasAfterPreview ? entryDiagramDiffById?.[entry.id] ?? null : null;
             const afterRemovedIds = afterDiff?.removedIds ?? [];
             // Restore is a per-version bookmark: click to jump the canvas back to this entry's
@@ -1087,7 +1091,9 @@ export default function InsightsPane({
               entry.id === liveEntry?.id &&
               Boolean(liveDraftSource?.trim()) &&
               liveDraftContentType === activeContentType &&
-              (liveDraftContentType === 'chart' || liveDraftContentType === 'anything');
+              (liveDraftContentType === 'chart' ||
+                liveDraftContentType === 'metaphor3d' ||
+                liveDraftContentType === 'anything');
             if (showLiveDraftPreview && displayContent) {
               displayContent = stripEmbeddedDslFromThinkingText(displayContent, liveDraftContentType);
             }

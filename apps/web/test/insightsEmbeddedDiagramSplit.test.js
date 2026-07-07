@@ -114,6 +114,52 @@ ${JSON.stringify(chart, null, 2)}
     expect(r.prose.trim()).toBe('Applied patch.');
   });
 
+  it('splits prose then fenced metaphor 3D JSON DSL (untagged fence)', () => {
+    const metaphor = {
+      metaphor: 'terrain',
+      scene: { theme: 'whiteboard', camera: 'cinematic', title: 'Mushroom Scores' },
+      items: [
+        { id: 'porcini', label: 'Porcini', elevation: 9, intensity: 4 },
+        { id: 'morel', label: 'Morel', elevation: 7, intensity: 3 }
+      ],
+      links: []
+    };
+    const text = `Sculpting the terrain now.
+
+\`\`\`
+${JSON.stringify(metaphor, null, 2)}
+\`\`\``;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('metaphor3d');
+    expect(r.prose.trim()).toBe('Sculpting the terrain now.');
+    expect(r.dsl).toContain('"metaphor": "terrain"');
+    expect(r.dsl).toContain('Mushroom Scores');
+  });
+
+  it('splits bare metaphor 3D JSON after prose', () => {
+    const metaphor = {
+      metaphor: 'city',
+      scene: { theme: 'noir', camera: 'orbit' },
+      items: [
+        { id: 'auth-service', label: 'Auth Service', height: 12, footprint: 3 },
+        { id: 'billing', label: 'Billing', height: 8, footprint: 2 }
+      ],
+      links: [{ from: 'auth-service', to: 'billing' }]
+    };
+    const text = `Applied patch.\n\n${JSON.stringify(metaphor, null, 2)}`;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('metaphor3d');
+    expect(r.prose.trim()).toBe('Applied patch.');
+    expect(r.dsl).toContain('"metaphor": "city"');
+  });
+
+  it('returns null for prose mentioning "metaphor" without JSON', () => {
+    const text = 'The "metaphor" we chose is a terrain of scores.\nNothing to render.';
+    expect(splitEmbeddedDiagramDsl(text)).toBeNull();
+  });
+
   it('includes leading %%{init}%% directive in mermaid dsl', () => {
     const init = '%%{init: {"theme":"base","flowchart":{"curve":"rounded"}}}%%';
     const text = `${init}
@@ -182,6 +228,18 @@ describe('tryExtractDiagramPreviewFromText', () => {
   it('returns null for plain prose steps', () => {
     expect(tryExtractDiagramPreviewFromText('Add a session boundary before the API tier.')).toBeNull();
   });
+
+  it('returns metaphor3d preview metadata for bare metaphor JSON in a plan step', () => {
+    const metaphor = {
+      metaphor: 'galaxy',
+      scene: { theme: 'arcade', camera: 'orbit' },
+      items: [{ id: 'core', label: 'Core', magnitude: 8 }]
+    };
+    const preview = tryExtractDiagramPreviewFromText(JSON.stringify(metaphor));
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('metaphor3d');
+    expect(preview.source).toContain('"metaphor": "galaxy"');
+  });
 });
 
 describe('mermaidDslStartIndex', () => {
@@ -221,6 +279,28 @@ describe('stripEmbeddedDslFromThinkingText', () => {
     const text = `Drafting page.\n\n\`\`\`html\n${html}\n\`\`\``;
     const stripped = stripEmbeddedDslFromThinkingText(text, 'anything');
     expect(stripped).toBe('Drafting page.');
+  });
+
+  it('removes fenced metaphor JSON when a live draft preview is shown', () => {
+    const metaphor = {
+      metaphor: 'tree',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [{ id: 'root', label: 'Root', weight: 5 }]
+    };
+    const text = `Growing the tree.\n\n\`\`\`json\n${JSON.stringify(metaphor, null, 2)}\n\`\`\``;
+    const stripped = stripEmbeddedDslFromThinkingText(text, 'metaphor3d');
+    expect(stripped).toBe('Growing the tree.');
+  });
+
+  it('removes bare metaphor JSON when a live draft preview is shown', () => {
+    const metaphor = {
+      metaphor: 'layercake',
+      scene: { theme: 'blueprint', camera: 'isometric' },
+      items: [{ id: 'ui', label: 'UI', thickness: 2 }]
+    };
+    const text = `Stacking layers.\n\n${JSON.stringify(metaphor)}`;
+    const stripped = stripEmbeddedDslFromThinkingText(text, 'metaphor3d');
+    expect(stripped).toBe('Stacking layers.');
   });
 });
 

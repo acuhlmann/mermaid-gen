@@ -2682,6 +2682,16 @@
   margin: 0 auto;
 }
 
+/* The Three.js metaphor renderer fills an absolutely-positioned layer, so the
+   preview shell must be a fixed-height positioning context. */
+.insights-embedded-diagram--metaphor3d .insights-embedded-diagram-inner {
+  position: relative;
+  width: 100%;
+  height: 15rem;
+  min-height: 15rem;
+  padding: 0;
+}
+
 .insights-embedded-diagram .diagram-error {
   font-size: 0.72rem;
   line-height: 1.35;
