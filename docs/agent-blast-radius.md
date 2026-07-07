@@ -67,7 +67,7 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Default (includes wire tests) | `npm run check` |
 | Before PR / CI parity | `npm run check:full` |
 | Wire + doc paths only | `npm run check:wire` |
-| Doc links only | `npm run verify:doc-paths` |
+| Doc links only | `npm run verify:doc-paths` (scans `docs/guide/` and `docs/agents/` too) |
 | Server strict TS islands | `npm run typecheck:strict -w apps/server` |
 
 See [`docs/guide/coding-agents.md`](guide/coding-agents.md) for the full agent verification table and PR checklist.
