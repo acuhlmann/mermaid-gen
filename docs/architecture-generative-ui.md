@@ -36,7 +36,7 @@ flowchart TB
   end
 
   subgraph server ["apps/server"]
-    State[("Dual-slot diagram state\n+ proposals · handshakes")]
+    State[("Five-slot diagram state\n+ proposals · handshakes")]
   end
 
   SSE --> State

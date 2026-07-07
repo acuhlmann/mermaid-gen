@@ -63,7 +63,7 @@ they need access to outer-closure state.
 ### Other targets
 
 - ⏳ `InsightsPane.jsx`, `DiagramCanvas.jsx`, `mermaidLangChainAgent.js`,
-  `infographicLangChainAgent.js`, `copilot.js`, `diagramStore.js`,
+  `infographicLangChainAgent.js`, `copilot.ts`, `diagramStore.js`,
   `RadialActionMenu.jsx`. Same pattern: extract helpers first, then per-feature
   modules. No work scheduled yet.
 

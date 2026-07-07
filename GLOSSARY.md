@@ -10,7 +10,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **Analysis path.** Read-only chat model with no diagram tools. Powers **Critique** and **Explain**. Emits Markdown; never mutates a slot.
 
-**Style path.** Mermaid-only mutation that only changes `%%{init: ...}%%` headers, `classDef`s, etc. Hits `POST /api/copilotkit/style`.
+**Style path.** Mermaid- and Chart-only mutation that changes `%%{init: ...}%%` headers, `classDef`s, Vega theme, etc. Hits `POST /api/copilotkit/style`.
 
 **Dispatcher.** `DiagramAgentDispatcher` (`apps/server/src/agents/diagramAgentDispatcher.js`) — a thin router that takes `contentType` and returns the Mermaid, Infographic, Metaphor3D, Chart, or Anything agent service. Every route handler goes through it.
 
@@ -18,7 +18,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 ## State
 
-**Slot.** One of the two diagram canvases per session: `mermaid` (Mermaid text) or `infographic` (AntV DSL). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the other.
+**Slot.** One of the five independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (Vega-Lite wrapper), or `anything` (freeform HTML in a sandboxed iframe). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
 
 **`activeContentType`.** Session-level pointer at the currently-active [[slot]]. Defaults to `mermaid`; persisted in `localStorage` under `archislop:content-mode`.
 

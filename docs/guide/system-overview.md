@@ -22,12 +22,13 @@ flowchart TB
     MCP["/mcp Streamable HTTP\n+ MCP Apps"]
     CK["CopilotKit runtime\n(AG-UI fallback)"]
     Reg["Session registry"]
-    SS[("Four-slot state\n+ proposals · presence")]
+    SS[("Five-slot state\n+ proposals · presence")]
     Dispatcher["DiagramAgentDispatcher"]
     MA[Mermaid agents]
     IA[Infographic agents]
     MEA[Metaphor3D agents]
     CA[Chart agents]
+    AA[Anything agents]
     Router --- Reg
     SE --- Reg
     MCP --- Reg
@@ -38,6 +39,7 @@ flowchart TB
     Dispatcher --> IA
     Dispatcher --> MEA
     Dispatcher --> CA
+    Dispatcher --> AA
   end
 
   subgraph guests ["External agents"]
@@ -50,7 +52,7 @@ flowchart TB
   Collab <-->|"collaboration only"| SE
   Cursor <-->|"MCP tools · never auto-patch"| MCP
   Store -.->|"optional"| CK
-  MA & IA & MEA & CA <-->|"LangChain + tools"| LLM
+  MA & IA & MEA & CA & AA <-->|"LangChain + tools"| LLM
   MCP -.->|"handshake · proposal events"| SE
 ```
 
@@ -60,7 +62,7 @@ flowchart TB
 | **Collaboration** | `GET /api/copilotkit/session-events` | Handshakes, proposals, presence, focus, reactions, attributed insights |
 | **External agents** | `GET/POST /mcp` | Join room, register, propose edits, insights; MCP Apps for human approval UI |
 
-**Custom routes** (`apps/server/src/routes/copilot.js`) power the main UI.
+**Custom routes** (`apps/server/src/routes/copilot.ts`) power the main UI.
 
 **Critique checklist (A2UI)** — When **Critique** includes `## Actionable …`, the Thinking pane renders checkboxes via **A2UI v0.9** inside AG-UI `CUSTOM` events (`name: "a2ui"`). The model does not emit raw A2UI; the server builds messages from markdown. See [`docs/architecture-a2ui.md`](../architecture-a2ui.md).
 

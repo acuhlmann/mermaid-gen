@@ -10,6 +10,7 @@ Short prose records of non-obvious past decisions. Read these before re-litigati
 | [0004](0004-commonjs-root-esm-workspaces.md)  | CommonJS root, ESM workspaces                                |
 | [0005](0005-monolith-splits.md)               | Splitting monolithic files for agent-friendly editing        |
 | [0006](0006-typescript-migration.md)          | TypeScript migration as a sliding ratchet                    |
+| [0007](0007-sensors-for-coding-agents.md)   | Sensors for coding agents (lint guidance, dep-cruiser)       |
 
 ## Format
 

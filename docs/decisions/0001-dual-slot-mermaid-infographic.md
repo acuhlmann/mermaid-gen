@@ -1,6 +1,6 @@
 # ADR-0001: Dual-slot session state (Mermaid + Infographic)
 
-**Status:** Accepted (current behavior)
+**Status:** Accepted (historical — session state has since grown to **five slots**: Mermaid, Infographic, Metaphor3D, Chart, and Anything; see [`docs/guide/content-types.md`](../guide/content-types.md) and [`CLAUDE.md`](../../CLAUDE.md). The dual-slot *pattern* — independent `diagramSource` per `contentType` plus an `activeContentType` pointer — still applies.)
 
 ## Context
 

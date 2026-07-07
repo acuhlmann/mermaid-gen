@@ -13,6 +13,9 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`    |
 | Mermaid agent service                                  | `apps/server/src/agents/mermaidLangChainAgent.js`     |
 | Infographic agent service                              | `apps/server/src/agents/infographicLangChainAgent.js` |
+| Metaphor3D agent service                               | `apps/server/src/agents/metaphorLangChainAgent.js`    |
+| Chart agent service                                    | `apps/server/src/agents/chartLangChainAgent.js`       |
+| Anything agent service                                 | `apps/server/src/agents/anythingLangChainAgent.js`    |
 | Mermaid syntax fixer (single-shot, no tools)           | `apps/server/src/agents/mermaidSyntaxFixer.js`        |
 | Infographic syntax fixer                               | `apps/server/src/agents/infographicSyntaxFixer.js`    |
 | Mermaid diagram-type rule packs                        | `apps/server/src/prompts/mermaidSyntaxGuard.js`       |
@@ -27,6 +30,8 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Diagram tools registry (LangChain `Tool[]`)            | `apps/server/src/agents/diagramTools.js`              |
 | Mermaid validate + sanitizer rescue tool               | `apps/server/src/tools/mermaidDiffTool.js`            |
 | Infographic validate + sanitizer rescue tool           | `apps/server/src/tools/infographicDslTool.js`         |
+| Chart validate + Vega-Lite compile tool                | `apps/server/src/tools/chartDslTool.js`               |
+| Anything validate + policy/quality lint tool             | `apps/server/src/tools/anythingHtmlTool.js`           |
 | Session services registry                              | `apps/server/src/state/sessionServices.js`            |
 | Per-session diagram store (five slots)                 | `apps/server/src/state/diagramStateStore.ts`          |
 | Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.ts`            |
@@ -72,6 +77,9 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Concept                                                         | File(s)                                                                |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------- |
 | All Zod schemas (`SessionDiagramStateSchema`, `PatchSchema`, …) | `packages/shared/src/diagramSchema.ts`                                 |
+| Metaphor3D schema + sanitizer                           | `packages/shared/src/metaphorSchema.ts`, `metaphorSanitizer.ts`        |
+| Chart schema + DSL parser                               | `packages/shared/src/chartSchema.ts`                                   |
+| Anything schema + iframe sandbox constants              | `packages/shared/src/anythingSchema.ts`                                |
 | Mermaid deterministic sanitizer                                 | `packages/shared/src/mermaidSanitizer.ts`                              |
 | Infographic deterministic sanitizer                             | `packages/shared/src/infographicSanitizer.ts`                          |
 | AG-UI wire constants + event types                              | `packages/shared/src/agUiWireConstants.ts`, `agUiEventTypes.ts`        |
@@ -104,8 +112,10 @@ Look up a concept here before grepping. Paths are repo-relative.
 | ------------------------------------ | ------------------------------- |
 | Guide index                          | `docs/guide/README.md`          |
 | Quick start, product, system overview  | `docs/guide/quick-start.md`, `product.md`, `system-overview.md` |
+| Content types (five slots)           | `docs/guide/content-types.md`   |
 | Agents, validation, MCP quick start  | `docs/guide/agents.md`, `validation.md`, `external-agents.md` |
 | Config, API routes, development      | `docs/guide/configuration.md`, `api-endpoints.md`, `development.md` |
+| Coding agents (verification, PR)     | `docs/guide/coding-agents.md`   |
 
 ## Architecture docs (read before changing wire contracts)
 
@@ -119,6 +129,16 @@ Look up a concept here before grepping. Paths are repo-relative.
 | LLM backend resolution                            | `docs/llm-config.md`                   |
 | ADRs (past decisions)                             | `docs/decisions/`                      |
 | Task recipes                                      | `docs/recipes/`                        |
+
+## Agent operator docs (`docs/agents/`)
+
+| Concept              | File                          |
+| -------------------- | ----------------------------- |
+| Sensors (lint stack) | `docs/agents/sensors.md`      |
+| Modularity review    | `docs/agents/modularity.md`   |
+| Issue tracker        | `docs/agents/issue-tracker.md` |
+| Triage labels        | `docs/agents/triage-labels.md` |
+| Domain doc layout    | `docs/agents/domain.md`       |
 
 ## Build & deploy
 
