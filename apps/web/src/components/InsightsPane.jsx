@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
-import { splitEmbeddedDiagramDsl, stripEmbeddedDslFromThinkingText } from '../utils/insightsEmbeddedDiagramSplit.js';
+import { splitEmbeddedDiagramDsl, stripEmbeddedDslFromThinkingText, tryExtractDiagramPreviewFromText } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 import { extractMarkdownTableBlock, ThinkingMarkdownTable } from '../utils/thinkingMarkdownTable';
@@ -536,19 +536,38 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
     const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (olMatch) {
       const stepBody = olMatch[2];
+      const stepPreview = tryExtractDiagramPreviewFromText(stepBody);
       const stepClass = [
         'insights-content-ordered',
+        stepPreview ? 'is-diagram-preview' : '',
         isVisualStepLine(stepBody) ? 'insights-step-card' : ''
       ]
         .filter(Boolean)
         .join(' ');
       out.push(
-        <p key={`${keyPrefix}-ol-${index}`} className={stepClass}>
-          <span className="insights-ordered-marker" aria-hidden="true">
-            {olMatch[1]}.
-          </span>
-          <span className="insights-step-card-body">{parseInline(stepBody, `${keyPrefix}-ol-${index}`)}</span>
-        </p>
+        <div key={`${keyPrefix}-ol-${index}`} className={stepClass}>
+          <p className="insights-content-ordered-head">
+            <span className="insights-ordered-marker" aria-hidden="true">
+              {olMatch[1]}.
+            </span>
+            {stepPreview?.prose ? (
+              <span className="insights-step-card-body">
+                {parseInline(stepPreview.prose, `${keyPrefix}-ol-${index}-prose`)}
+              </span>
+            ) : !stepPreview ? (
+              <span className="insights-step-card-body">
+                {parseInline(stepBody, `${keyPrefix}-ol-${index}`)}
+              </span>
+            ) : null}
+          </p>
+          {stepPreview ? (
+            <EmbeddedDiagramBlock
+              idPrefix={`${keyPrefix}-ol-${index}-preview`}
+              source={stepPreview.source}
+              kind={stepPreview.kind}
+            />
+          ) : null}
+        </div>
       );
       index += 1;
       continue;

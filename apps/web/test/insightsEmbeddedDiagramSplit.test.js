@@ -3,7 +3,8 @@ import {
   classifyDiagramStartLine,
   mermaidDslStartIndex,
   splitEmbeddedDiagramDsl,
-  stripEmbeddedDslFromThinkingText
+  stripEmbeddedDslFromThinkingText,
+  tryExtractDiagramPreviewFromText
 } from '../src/utils/insightsEmbeddedDiagramSplit.js';
 
 describe('splitEmbeddedDiagramDsl', () => {
@@ -154,6 +155,32 @@ flowchart TB
     expect(r).not.toBeNull();
     expect(r.kind).toBe('anything');
     expect(r.prose.trim()).toBe('Applied patch.');
+  });
+});
+
+describe('tryExtractDiagramPreviewFromText', () => {
+  it('returns chart preview metadata for bare chart JSON in a plan step', () => {
+    const chart = {
+      archislopVersion: 1,
+      theme: 'blueprint',
+      spec: {
+        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+        data: { values: [{ year: 2018, adoptionrate: 10 }] },
+        mark: 'bar',
+        encoding: {
+          x: { field: 'year', type: 'ordinal' },
+          y: { field: 'adoptionrate', type: 'quantitative' }
+        }
+      }
+    };
+    const preview = tryExtractDiagramPreviewFromText(JSON.stringify(chart));
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('chart');
+    expect(preview.source).toContain('"archislopVersion"');
+  });
+
+  it('returns null for plain prose steps', () => {
+    expect(tryExtractDiagramPreviewFromText('Add a session boundary before the API tier.')).toBeNull();
   });
 });
 

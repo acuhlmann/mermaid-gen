@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { parseChartDsl } from '@archislop/shared';
+import embed from 'vega-embed';
 import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartThemePresets.js';
 import { expressionInterpreter } from 'vega-interpreter';
+import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -22,18 +24,6 @@ const EMBED_DEFAULT_OPTIONS = {
   ast: true,
   expr: expressionInterpreter
 };
-
-/**
- * Lazy-load vega-embed only when the chart slot is actually mounted.
- * Keeps Vega out of the bundle for users who never open this mode.
- */
-let vegaEmbedPromise = null;
-function loadVegaEmbed() {
-  if (!vegaEmbedPromise) {
-    vegaEmbedPromise = import('vega-embed').then((mod) => mod.default || mod);
-  }
-  return vegaEmbedPromise;
-}
 
 function ChartErrorState({ error }) {
   return (
@@ -93,11 +83,7 @@ export default function ChartRenderer({ diagramSource, compact = false }) {
       ...(preset.embedTheme ? { theme: preset.embedTheme } : {})
     };
 
-    loadVegaEmbed()
-      .then((embed) => {
-        if (cancelled || !containerRef.current) return null;
-        return embed(containerRef.current, themed, options);
-      })
+    embed(containerRef.current, themed, options)
       .then((result) => {
         if (cancelled || !result) return;
         if (viewRef.current) {
@@ -112,6 +98,12 @@ export default function ChartRenderer({ diagramSource, compact = false }) {
       })
       .catch((err) => {
         if (cancelled) return;
+        if (isMermaidInfrastructureError(err)) {
+          setRenderError(
+            'Chart runtime failed to load. Refresh the page and try again.'
+          );
+          return;
+        }
         setRenderError(err instanceof Error ? err.message : String(err));
       });
 

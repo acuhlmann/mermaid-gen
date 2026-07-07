@@ -1952,6 +1952,34 @@
   min-width: 0;
 }
 
+.insights-plan-card-step.is-diagram-preview,
+.insights-plan-card.has-diagram-preview {
+  align-items: stretch;
+}
+
+.insights-plan-card-step-preview,
+.insights-plan-card-preview {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.insights-plan-card-step-preview-prose {
+  margin: 0;
+}
+
+.insights-content-ordered.is-diagram-preview {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.insights-content-ordered-head {
+  margin: 0;
+  display: flex;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
 .insights-embedded-diagram--anything .insights-embedded-diagram-inner,
 .insights-embedded-diagram--anything .anything-renderer-root,
 .insights-embedded-diagram--anything .anything-frame {

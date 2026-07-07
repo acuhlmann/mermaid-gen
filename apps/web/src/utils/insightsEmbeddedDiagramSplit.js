@@ -259,3 +259,31 @@ export function splitEmbeddedDiagramDsl(text) {
   }
   return null;
 }
+
+/**
+ * Detect embeddable diagram DSL inside a single plan step or ordered-list line so the
+ * Thinking pane can render a read-only preview instead of raw JSON / Mermaid text.
+ *
+ * @param {string} text
+ * @returns {{ kind: 'mermaid' | 'infographic' | 'chart' | 'anything', source: string, prose?: string } | null}
+ */
+export function tryExtractDiagramPreviewFromText(text) {
+  if (typeof text !== 'string' || !text.trim()) return null;
+
+  const split = splitEmbeddedDiagramDsl(text);
+  if (split?.dsl) {
+    return {
+      kind: split.kind,
+      source: split.dsl,
+      ...(split.prose?.trim() ? { prose: split.prose.trim() } : {})
+    };
+  }
+
+  const trimmed = text.trim();
+  if (trimmed.includes(CHART_MARKER)) {
+    const result = parseChartDsl(trimmed);
+    if (result.ok) return { kind: 'chart', source: result.text };
+  }
+
+  return null;
+}
