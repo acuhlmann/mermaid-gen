@@ -63,7 +63,15 @@ export default function SlopNextPrompt({
   }
 
   const micProps = narrowLayout
-    ? { onClick: onMicToggleClick }
+    ? {
+        onPointerUp: (event) => {
+          // pointerup + preventDefault keeps the tap from being eaten by input blur
+          // on iOS when the virtual keyboard is open (click alone often does nothing).
+          event.preventDefault();
+          event.stopPropagation();
+          onMicToggleClick?.(event);
+        }
+      }
     : {
         onPointerDown: onMicPointerDown,
         onPointerUp: onMicPointerUp,
@@ -112,7 +120,7 @@ export default function SlopNextPrompt({
       <div className="slop-prompt-panel-actions">
         <button
           type="button"
-          className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+          className={`overlay-button is-mic-toggle ${voiceListening ? 'is-listening' : ''}`}
           disabled={!voiceSupported || busy}
           {...micProps}
           aria-label={
