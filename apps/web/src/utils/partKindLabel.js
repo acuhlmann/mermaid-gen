@@ -9,7 +9,10 @@ const PART_KIND_LABELS = {
   description: 'Description',
   value: 'Value',
   icon: 'Icon',
-  item: 'Item'
+  item: 'Item',
+  mark: 'Mark',
+  axis: 'Axis',
+  legend: 'Legend'
 };
 
 export function partKindLabel(partKind) {

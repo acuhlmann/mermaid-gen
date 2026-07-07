@@ -46,6 +46,10 @@ function focusPlanBeat(focusNode: FocusNode | null | undefined): string | null {
     const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
     return `Scoping the update to the selected metaphor item${label}.`;
   }
+  if (focusNode.selectionKind === 'chart-mark') {
+    const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
+    return `Scoping the update to the selected chart element${label}.`;
+  }
   const role = focusNode.selectionKind === 'cluster' ? 'subgraph' : 'node';
   const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
   return `Scoping the update to ${role} ${focusNode.id}${label}.`;

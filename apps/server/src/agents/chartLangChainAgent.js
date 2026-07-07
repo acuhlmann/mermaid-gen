@@ -33,6 +33,10 @@ import {
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
+import {
+  buildChartAnalyzeFocusInstructions,
+  buildChartFocusScopeInstructions
+} from './chartFocusInstructions.js';
 
 const CHART_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply a chart patch.
 - You MUST call apply_chart_patch now once with a complete, valid chart DSL JSON wrapper, then briefly summarize in prose only.
@@ -93,7 +97,7 @@ function extractOriginalRequest(userMessages) {
   return null;
 }
 
-function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
+function buildIntentUserContent({ prompt, currentDsl, peerContext, focusScope }) {
   const parts = [];
   parts.push(`User request: ${prompt.trim()}`);
   if (currentDsl?.trim()) {
@@ -106,11 +110,18 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
       `The user is converting from ${peerContext.contentType}. Use this as the subject context (do NOT translate 1:1 — surface the *data story* implied by the source):\n\n\`\`\`\n${peerContext.diagramSource}\n\`\`\``
     );
   }
+  if (focusScope?.trim()) parts.push(focusScope.trim());
   parts.push('Call apply_chart_patch with the full JSON wrapper.');
   return parts.join('\n\n');
 }
 
-export function buildChartTransformUserContent({ mode, currentDsl, goMadDepth, advisorPrompt }) {
+export function buildChartTransformUserContent({
+  mode,
+  currentDsl,
+  goMadDepth,
+  advisorPrompt,
+  focusScope
+}) {
   const modeInstructions = {
     refine: 'Refine the current chart — improve mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
     innovate: 'Innovate on the current chart — try a different mark/encoding combination or reshape the data presentation. You may switch chart families.',
@@ -119,10 +130,13 @@ export function buildChartTransformUserContent({ mode, currentDsl, goMadDepth, a
   };
   return [
     modeInstructions[mode] ?? modeInstructions.refine,
+    focusScope,
     `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``,
     buildAdvisorSuggestionBlock(advisorPrompt),
     'Call apply_chart_patch with the full JSON wrapper.'
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export function buildChartAnalyzeUserContent({ kind, currentDsl, focusScope, advisorPrompt }) {
@@ -420,13 +434,15 @@ export function createChartLangChainAgent({
     async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, abortSignal }) {
       const slot = stateStore.getSlot('chart');
       const profile = normalizeModelProfile(modelProfile);
+      const focusScope = buildChartFocusScopeInstructions(focusNode);
       const userMessages = [
         {
           role: 'user',
           content: buildIntentUserContent({
             prompt,
             currentDsl: slot.diagramSource,
-            peerContext
+            peerContext,
+            focusScope
           })
         }
       ];
@@ -456,6 +472,7 @@ export function createChartLangChainAgent({
         return { message: 'Nothing to transform — generate a chart first.', raw: null };
       }
       const profile = normalizeModelProfile(modelProfile);
+      const focusScope = buildChartFocusScopeInstructions(focusNode);
       const userMessages = [
         {
           role: 'user',
@@ -463,7 +480,8 @@ export function createChartLangChainAgent({
             mode,
             currentDsl: slot.diagramSource,
             goMadDepth,
-            advisorPrompt
+            advisorPrompt,
+            focusScope
           })
         }
       ];
@@ -514,7 +532,7 @@ export function createChartLangChainAgent({
       }
       const profile = normalizeModelProfile(modelProfile);
       const model = buildAnalysisModel(profile);
-      const focusScope = ''; // chart selection focus not wired yet
+      const focusScope = buildChartAnalyzeFocusInstructions(focusNode, kind);
       const messages = [
         new SystemMessage(CHART_ANALYSIS_SYSTEM_PROMPT),
         new HumanMessage(

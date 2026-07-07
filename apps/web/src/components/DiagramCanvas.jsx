@@ -18,6 +18,11 @@ import {
   findInfographicTapTarget,
   INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES
 } from '../utils/infographicHitTest.js';
+import {
+  buildChartDescriptorFromDomHit,
+  findChartTapTarget
+} from '../utils/chartHitTest.js';
+import { formatChartDslForEditor } from '../utils/formatChartDsl.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
@@ -148,6 +153,11 @@ function resolveEditorPanelShortTitle(contentType) {
   return 'Infographic DSL';
 }
 
+function formatEditorSource(source, contentType) {
+  if (contentType === 'chart') return formatChartDslForEditor(source);
+  return source ?? '';
+}
+
 
 /** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
 function diagramDomAnchor(group) {
@@ -209,7 +219,7 @@ export default function DiagramCanvas({
   isFullscreen = false
 }) {
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
-  const [editorSource, setEditorSource] = useState(diagramSource);
+  const [editorSource, setEditorSource] = useState(() => formatEditorSource(diagramSource, contentType));
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
   const requestRef = useRef(0);
@@ -334,9 +344,9 @@ export default function DiagramCanvas({
     }
 
     lastAppliedSourceRef.current = diagramSource;
-    setEditorSource(diagramSource);
+    setEditorSource(formatEditorSource(diagramSource, contentType));
     pendingViewportFitRef.current = true;
-  }, [diagramSource]);
+  }, [diagramSource, contentType]);
 
   useEffect(() => {
     pendingViewportFitRef.current = true;
@@ -694,6 +704,13 @@ export default function DiagramCanvas({
       }
       return;
     }
+    if (hoverDescriptor.kind === 'chart-mark') {
+      const candidate = hoverDescriptor.anchorEl || hoverDescriptor.domNode;
+      if (candidate && root.contains(candidate)) {
+        candidate.classList.add('is-diagram-hover');
+      }
+      return;
+    }
     const wrap = diagramSelectedWrap(root, hoverDescriptor.id);
     wrap?.classList?.add('is-diagram-hover');
   }, [svgMarkup, hoverDescriptor]);
@@ -723,6 +740,9 @@ export default function DiagramCanvas({
           el = null;
         }
       } else if (target.kind === 'infographic-item' || target.kind === 'infographic-region') {
+        const candidate = target.anchorEl || target.domNode;
+        el = candidate && root.contains(candidate) ? candidate : null;
+      } else if (target.kind === 'chart-mark') {
         const candidate = target.anchorEl || target.domNode;
         el = candidate && root.contains(candidate) ? candidate : null;
       } else {
@@ -857,6 +877,7 @@ export default function DiagramCanvas({
     let actorHit = null;
     let edgeHit = null;
     let infographicHit = null;
+    let chartHit = null;
     let textHitEl = null;
 
     if (contentType === 'mermaid') {
@@ -875,11 +896,24 @@ export default function DiagramCanvas({
       if (boundary && boundary.contains(target)) {
         infographicHit = findInfographicTapTarget(target, boundary);
       }
+    } else if (contentType === 'chart') {
+      const boundary = viewportRef.current;
+      if (boundary && boundary.contains(target)) {
+        chartHit = findChartTapTarget(target, boundary);
+      }
     }
-    return { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, textHitEl };
+    return { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, chartHit, textHitEl };
   }
 
-  function buildDescriptorFromHit({ nodeEl, clusterEl, actorHit, edgeHit, infographicHit, textHitEl }) {
+  function buildDescriptorFromHit({
+    nodeEl,
+    clusterEl,
+    actorHit,
+    edgeHit,
+    infographicHit,
+    chartHit,
+    textHitEl
+  }) {
     if (actorHit) {
       const container = actorHit.groupEl;
       const anchor = diagramDomAnchor(container);
@@ -974,6 +1008,9 @@ export default function DiagramCanvas({
         anchorEl: infographicHit.node
       };
     }
+    if (chartHit) {
+      return buildChartDescriptorFromDomHit(chartHit);
+    }
     return null;
   }
 
@@ -990,6 +1027,16 @@ export default function DiagramCanvas({
           clickedLabel: tap.clickedLabel,
           indexes: tap.indexes,
           elementType: tap.elementType
+        }
+      });
+    }
+    if (tap.kind === 'chart-mark') {
+      return buildDescriptorFromHit({
+        chartHit: {
+          node: tap.targetEl,
+          label: tap.label,
+          roleDesc: tap.roleDesc,
+          className: tap.className
         }
       });
     }
@@ -1043,7 +1090,7 @@ export default function DiagramCanvas({
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
 
-    const { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, textHitEl } =
+    const { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, chartHit, textHitEl } =
       resolveTargetUnder(event.target);
 
     const prevPointers = getPointers(pointersRef.current);
@@ -1109,11 +1156,22 @@ export default function DiagramCanvas({
         elementType: infographicHit.elementType,
         passiveNativeText: passiveInfographicText
       };
+    } else if (chartHit && prevPointers.length === 0) {
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        targetEl: chartHit.node,
+        kind: 'chart-mark',
+        label: chartHit.label,
+        roleDesc: chartHit.roleDesc,
+        className: chartHit.className
+      };
     } else {
       tapCandidateRef.current = null;
     }
 
-    const noTap = !nodeEl && !clusterEl && !actorHit && !edgeHit && !infographicHit;
+    const noTap = !nodeEl && !clusterEl && !actorHit && !edgeHit && !infographicHit && !chartHit;
     if (pointers.length === 1 && noTap && !passiveInfographicText) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
@@ -1283,6 +1341,9 @@ export default function DiagramCanvas({
         } else if (contentType === 'infographic') {
           const boundary = viewportRef.current;
           stillBackground = !(boundary && findInfographicTapTarget(event.target, boundary));
+        } else if (contentType === 'chart') {
+          const boundary = viewportRef.current;
+          stillBackground = !(boundary && findChartTapTarget(event.target, boundary));
         }
         if (stillBackground) {
           const movedBg = Math.hypot(event.clientX - bgTap.sx, event.clientY - bgTap.sy);
@@ -1315,7 +1376,7 @@ export default function DiagramCanvas({
     contentType === 'metaphor3d'
       ? '3D renderer. Drag to orbit. Scroll or pinch to zoom.'
       : contentType === 'chart'
-        ? 'Vega-Lite chart renderer. Hover marks for tooltip details.'
+        ? 'Vega-Lite chart renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap a mark, axis, legend, or title to select. Press question mark for keyboard shortcuts.'
         : contentType === 'anything'
           ? 'Sandboxed page renderer. Interact with the page directly.'
           : contentType === 'infographic'
@@ -1400,6 +1461,8 @@ export default function DiagramCanvas({
                   <ChartRenderer
                     key={`chart-${rendererRefreshKey}`}
                     diagramSource={editorSource}
+                    selectedNode={selectedNode}
+                    onSelectedNodeChange={onSelectedNodeChange}
                   />
                 ) : (
                   <div dangerouslySetInnerHTML={{ __html: svgMarkup }} />

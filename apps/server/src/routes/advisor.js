@@ -20,7 +20,7 @@ const FocusDescriptorSchema = z.object({
   label: z.string().max(200).optional(),
   kind: z.string().max(40).optional(),
   selectionKind: z
-    .enum(['node', 'cluster', 'edge', 'infographic-item', 'infographic-region'])
+    .enum(['node', 'cluster', 'edge', 'infographic-item', 'infographic-region', 'chart-mark'])
     .optional(),
   source: z.enum(['selected', 'hover']).optional(),
   indexes: z.string().max(64).optional(),

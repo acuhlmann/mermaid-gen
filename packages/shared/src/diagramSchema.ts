@@ -91,7 +91,9 @@ export const FocusNodeSchema = z
     /** AntV `data-indexes` path for an infographic item selection (e.g. "0", "1,2"). */
     indexes: z.string().max(64).optional(),
     /** AntV `data-element-type` for the clicked sub-element (e.g. "item-label", "item-value"). */
-    elementType: z.string().max(64).optional()
+    elementType: z.string().max(64).optional(),
+    /** Vega mark type when selectionKind is chart-mark (e.g. "bar", "line"). */
+    markType: z.string().max(64).optional()
   })
   .superRefine((val, ctx) => {
     if (val.selectionKind === 'edge') {

@@ -70,6 +70,17 @@ export function focusPayload(node) {
       selectionKind: 'metaphor-item'
     };
   }
+  if (node.kind === 'chart-mark') {
+    return {
+      id: node.id,
+      label: node.label,
+      selectionKind: 'chart-mark',
+      ...(node.indexes ? { indexes: node.indexes } : {}),
+      ...(node.elementType ? { elementType: node.elementType } : {}),
+      ...(node.markType ? { markType: node.markType } : {}),
+      ...(node.clickedLabel ? { clickedLabel: node.clickedLabel } : {})
+    };
+  }
   return {
     id: node.id,
     label: node.label,
@@ -118,6 +129,18 @@ export function selectionActionTitle(selectionLike, verbLabel) {
   if (metaphorLike) {
     const labelText = selectionLike.label || selectionLike.id;
     return `${verbLabel} — item “${labelText}”`;
+  }
+  const chartLike =
+    selectionLike.kind === 'chart-mark' || selectionLike.selectionKind === 'chart-mark';
+  if (chartLike) {
+    const labelText = selectionLike.label || selectionLike.clickedLabel || selectionLike.id;
+    const elementType = selectionLike.elementType || '';
+    const noun =
+      elementType === 'title' ? 'title'
+      : elementType === 'legend' || elementType === 'legend-label' ? 'legend'
+      : elementType.startsWith('axis') ? 'axis'
+      : 'mark';
+    return `${verbLabel} — ${noun} “${labelText}”`;
   }
   const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';
   if (clusterLike) {
