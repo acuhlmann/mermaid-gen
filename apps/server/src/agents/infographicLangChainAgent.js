@@ -9,11 +9,7 @@ import {
   INFOGRAPHIC_EXPLAIN_TASK,
   buildInfographicRepairInstruction
 } from '../prompts/infographicSyntaxGuard.js';
-import {
-  createLlmChatModel,
-  resolveLlmBackend,
-  resolveModelId
-} from './llmProvider.js';
+import { createLlmChatModel, resolveLlmBackend, resolveModelId } from './llmProvider.js';
 import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
@@ -35,11 +31,15 @@ import {
   buildInfographicAnalyzeFocusInstructions
 } from './infographicFocusInstructions.js';
 import {
+  appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
+  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
+  MIN_SYNTAX_FIXER_BUDGET_MS,
   refineInfographicDsl,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
+import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 import {
   buildInfographicTransformUserContent,
   INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS
@@ -63,7 +63,10 @@ function buildAnalyzeFocusInstructions(focusNode, kind) {
   }
   return buildMermaidAnalyzeFocusInstructions(focusNode, kind);
 }
-import { repairInfographicWithFixer, isInfographicSyntaxFixerAvailable } from './infographicSyntaxFixer.js';
+import {
+  repairInfographicWithFixer,
+  isInfographicSyntaxFixerAvailable
+} from './infographicSyntaxFixer.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 
@@ -88,7 +91,10 @@ function extractOriginalRequest(userMessages) {
   if (!Array.isArray(userMessages)) return null;
   for (const m of userMessages) {
     if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
-    const text = typeof m?.content === 'string' ? m.content : extractTextContent(m?.content ?? m?.kwargs?.content);
+    const text =
+      typeof m?.content === 'string'
+        ? m.content
+        : extractTextContent(m?.content ?? m?.kwargs?.content);
     if (text && text.trim()) return text.trim();
   }
   return null;
@@ -161,8 +167,7 @@ ${prompt}${focusScope}${languageInstruction}`;
 
 function buildAnalysisUserContent({ task, focusScope, currentDsl, advisorPrompt }) {
   const prefix = focusScope ? `${focusScope.trim()}\n\n` : '';
-  const trimmed =
-    typeof advisorPrompt === 'string' ? advisorPrompt.trim().slice(0, 400) : '';
+  const trimmed = typeof advisorPrompt === 'string' ? advisorPrompt.trim().slice(0, 400) : '';
   const stakeholderBlock = trimmed
     ? `\n\nStakeholder suggestion to honor (scoped — foreground this in the analysis; do not treat it as a request to rewrite the whole diagram unless the suggestion explicitly requires it):\n"${trimmed}"\n`
     : '';
@@ -240,8 +245,15 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   } = opts ?? {};
   const runProfile = normalizeModelProfile(profile);
   const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'infographic');
-  const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env);
+  const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
   const turnStarted = Date.now();
+  // Every model turn shares this deadline-capped signal so an in-flight call cannot
+  // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
+  const runSignal = createRunDeadlineSignal({
+    abortSignal,
+    budgetMs: runBudgetMs,
+    startedAt: turnStarted
+  });
   const beforeRevision = stateStore.getSlot('infographic').revisionId;
   const originalRequest = extractOriginalRequest(userMessages);
 
@@ -254,11 +266,15 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   let syntaxFixerTried = false;
   let stableAgentTried = false;
 
-  const stopReason = () => {
+  /**
+   * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
+   * starting work that cannot finish inside the budget only delays the failure.
+   */
+  const stopReason = (minRemainingMs = 0) => {
     if (abortSignal?.aborted) {
       return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
     }
-    if (Date.now() - turnStarted >= runBudgetMs) {
+    if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
       return {
         code: 'run_budget_exceeded',
         message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
@@ -268,14 +284,16 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   };
 
   const finishStoppedRun = (reason) => {
-    lastError = reason.message;
+    // Keep the last validator diagnostic in the failure message so the UI shows WHY the
+    // run ran out of time (what was invalid in the DSL), not just that it timed out.
+    const message = appendLastValidationError(reason.message, lastError);
     if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-      emit({ type: 'error', code: reason.code, message: reason.message });
+      emit({ type: 'error', code: reason.code, message });
     }
     return {
-      message: lastError,
+      message,
       raw: lastResult,
-      metadata: { agent: 'infographic', error: lastError, code: reason.code }
+      metadata: { agent: 'infographic', error: lastError ?? null, code: reason.code }
     };
   };
 
@@ -292,7 +310,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   }
 
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-    const stop = stopReason();
+    const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
     if (stop) return finishStoppedRun(stop);
     if (typeof emit === 'function') {
       if (attempt > 0) {
@@ -305,7 +323,10 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       emit({
         type: 'phase',
         id: attempt === 0 ? 'invoke' : `repair_${attempt}`,
-        label: attempt === 0 ? 'Generating infographic…' : `Repairing infographic (attempt ${attempt} of ${maxRepairAttempts})…`
+        label:
+          attempt === 0
+            ? 'Generating infographic…'
+            : `Repairing infographic (attempt ${attempt} of ${maxRepairAttempts})…`
       });
     }
 
@@ -314,7 +335,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       if (typeof currentAgent.streamEvents === 'function' && typeof emit === 'function') {
         const stream = await currentAgent.streamEvents(
           { messages },
-          { version: 'v2', ...(abortSignal ? { signal: abortSignal } : {}) }
+          { version: 'v2', signal: runSignal }
         );
         const patchTelemetry = createPatchToolStreamTracker({
           emit,
@@ -337,12 +358,14 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         // the legacy shape so the post-loop revision/repair logic still works.
         result = latestMessages.length > 0 ? { messages: latestMessages } : null;
       } else {
-        result = await currentAgent.invoke(
-          { messages },
-          abortSignal ? { signal: abortSignal } : undefined
-        );
+        result = await currentAgent.invoke({ messages }, { signal: runSignal });
       }
     } catch (error) {
+      // A deadline/user abort surfaces as a stream error — finish with the proper stop
+      // reason (which carries the last validator diagnostic) instead of the bare
+      // "aborted" message.
+      const abortStop = stopReason();
+      if (abortStop) return finishStoppedRun(abortStop);
       lastError = redactSecrets(error instanceof Error ? error.message : String(error));
       if (typeof emit === 'function') emit({ type: 'error', message: lastError });
       break;
@@ -406,7 +429,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       // a cheap fast model and skips tool plumbing entirely — when it works, we apply the
       // patch directly and short-circuit the rest of the loop.
       if (!syntaxFixerTried && lastBrokenSource && isInfographicSyntaxFixerAvailable(env)) {
-        const fixerStop = stopReason();
+        const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
         if (fixerStop) return finishStoppedRun(fixerStop);
         syntaxFixerTried = true;
         if (typeof emit === 'function') {
@@ -421,7 +444,8 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
           brokenSource: lastBrokenSource,
           parseError: failureError,
           originalRequest,
-          env
+          env,
+          abortSignal: runSignal
         });
         if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
           const applied = await stateStore.applyDiagramSource({
@@ -492,7 +516,9 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   }
 
   return {
-    message: lastError ? `Infographic update failed: ${lastError}` : 'Infographic update did not apply.',
+    message: lastError
+      ? `Infographic update failed: ${lastError}`
+      : 'Infographic update did not apply.',
     raw: lastResult,
     metadata: { agent: 'infographic', error: lastError ?? null }
   };
@@ -557,14 +583,24 @@ export function createInfographicLangChainAgent({
 
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const safeMode =
-      mode === 'refine' || mode === 'innovate' || mode === 'goMad' || mode === 'exec' ? mode : 'refine';
+      mode === 'refine' || mode === 'innovate' || mode === 'goMad' || mode === 'exec'
+        ? mode
+        : 'refine';
     return cache.getTransformAgent(safeMode, profile, goMadDepth);
   }
 
   const getAnalysisModel = cache.getAnalysisModel;
 
   return {
-    async applyIntent({ prompt, focusNode, modelProfile, emit, peerContext, transformPersona, abortSignal }) {
+    async applyIntent({
+      prompt,
+      focusNode,
+      modelProfile,
+      emit,
+      peerContext,
+      transformPersona,
+      abortSignal
+    }) {
       const slot = stateStore.getSlot('infographic');
       const focusScope = buildFocusScopeInstructions(focusNode);
       const agent = getDefaultAgent(modelProfile);
@@ -603,7 +639,7 @@ export function createInfographicLangChainAgent({
             peerContext:
               peerMermaid.length > 0
                 ? { contentType: 'mermaid', diagramSource: peerMermaid }
-                : peerContext ?? null
+                : (peerContext ?? null)
           },
           stateStore,
           env
@@ -628,53 +664,49 @@ export function createInfographicLangChainAgent({
       abortSignal
     }) {
       const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
-      return withInfographicTransformContext(
-        stateStore,
-        { mode, goMadDepth: depth },
-        async () => {
-          let slot = stateStore.getSlot('infographic');
-          if (mode === 'refine' && slot.diagramSource?.trim()) {
-            const prepass = refineInfographicDsl(slot.diagramSource);
-            if (prepass.applied.length > 0 && prepass.dsl !== slot.diagramSource) {
-              const prepApplied = await stateStore.applyDiagramSource({
-                contentType: 'infographic',
-                diagramSource: prepass.dsl,
-                reason: 'refine-prepass'
-              });
-              if (prepApplied.accepted) slot = prepApplied.state;
-            }
+      return withInfographicTransformContext(stateStore, { mode, goMadDepth: depth }, async () => {
+        let slot = stateStore.getSlot('infographic');
+        if (mode === 'refine' && slot.diagramSource?.trim()) {
+          const prepass = refineInfographicDsl(slot.diagramSource);
+          if (prepass.applied.length > 0 && prepass.dsl !== slot.diagramSource) {
+            const prepApplied = await stateStore.applyDiagramSource({
+              contentType: 'infographic',
+              diagramSource: prepass.dsl,
+              reason: 'refine-prepass'
+            });
+            if (prepApplied.accepted) slot = prepApplied.state;
           }
-
-          const focusScope = buildFocusScopeInstructions(focusNode);
-          const agent = getTransformAgent(mode, modelProfile, goMadDepth);
-          const stableAgent = getStableIntentAgent('fast');
-          const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
-          const languageInstruction = buildLanguageInstruction(originalRequest, slot.diagramSource);
-          const body = `${buildInfographicTransformUserContent({
-            mode,
-            focusScope,
-            currentDsl: slot.diagramSource,
-            goMadDepth,
-            advisorPrompt
-          })}${languageInstruction}`;
-
-          return invokeWithRepair(
-            agent,
-            [{ role: 'user', content: body }],
-            {
-              requirePatch: true,
-              emit,
-              stableAgent,
-              profile: normalizeModelProfile(modelProfile),
-              abortSignal,
-              mode,
-              focusNode
-            },
-            stateStore,
-            env
-          );
         }
-      );
+
+        const focusScope = buildFocusScopeInstructions(focusNode);
+        const agent = getTransformAgent(mode, modelProfile, goMadDepth);
+        const stableAgent = getStableIntentAgent('fast');
+        const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
+        const languageInstruction = buildLanguageInstruction(originalRequest, slot.diagramSource);
+        const body = `${buildInfographicTransformUserContent({
+          mode,
+          focusScope,
+          currentDsl: slot.diagramSource,
+          goMadDepth,
+          advisorPrompt
+        })}${languageInstruction}`;
+
+        return invokeWithRepair(
+          agent,
+          [{ role: 'user', content: body }],
+          {
+            requirePatch: true,
+            emit,
+            stableAgent,
+            profile: normalizeModelProfile(modelProfile),
+            abortSignal,
+            mode,
+            focusNode
+          },
+          stateStore,
+          env
+        );
+      });
     },
 
     async applyAnalyzeIntent({ kind, focusNode, modelProfile, emit, advisorPrompt }) {

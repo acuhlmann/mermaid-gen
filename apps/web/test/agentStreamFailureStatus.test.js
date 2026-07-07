@@ -48,9 +48,41 @@ describe('resolveAgentStreamFailureStatus', () => {
   it('classifies run budget errors as timeout', () => {
     const r = resolveAgentStreamFailureStatus({
       code: 'run_budget_exceeded',
-      message: 'Agent run exceeded the Quality time limit (105s). Try Fast, a smaller diagram, or retry.'
+      message:
+        'Agent run exceeded the Quality time limit (105s). Try Fast, a smaller diagram, or retry.'
     });
     expect(r.failureClass).toBe('timeout');
     expect(r.statusText).toMatch(/timed out/i);
+    expect(r.detail).toBeNull();
+  });
+
+  it('surfaces the last validation error on budget-exceeded runs', () => {
+    const r = resolveAgentStreamFailureStatus({
+      code: 'run_budget_exceeded',
+      message:
+        'Agent run exceeded the Fast time limit (75s). Try a smaller diagram or retry.\n' +
+        "Last validation error: Mermaid parser rejected source: Parse error on line 3:\nExpecting 'SQE', got 'PS'"
+    });
+    expect(r.failureClass).toBe('timeout');
+    expect(r.detail).toMatch(/Parse error on line 3/);
+  });
+
+  it('surfaces mermaid parser details from exhausted repair runs', () => {
+    const r = resolveAgentStreamFailureStatus({
+      code: 'no_mutation_revision',
+      message:
+        "Diagram update failed: Mermaid parser rejected source: Parse error on line 2:\nExpecting 'TAGEND', got 'SQS'"
+    });
+    expect(r.failureClass).toBe('syntax_exhausted');
+    expect(r.detail).toMatch(/Parse error on line 2/);
+  });
+
+  it('surfaces metaphor validation details from exhausted repair runs', () => {
+    const r = resolveAgentStreamFailureStatus({
+      code: 'no_mutation_revision',
+      message: 'Metaphor update failed: Metaphor DSL is not valid JSON: Unexpected token }'
+    });
+    expect(r.failureClass).toBe('syntax_exhausted');
+    expect(r.detail).toMatch(/not valid JSON/);
   });
 });

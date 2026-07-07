@@ -159,9 +159,13 @@ describe('submitDiagramTransform', () => {
         revisionId: 0,
         diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]'
       });
-      const assertion = expect(request).rejects.toThrow('Transform agent request timed out. Please try again.');
+      const assertion = expect(request).rejects.toThrow(
+        'Transform agent request timed out. Please try again.'
+      );
 
-      await vi.advanceTimersByTimeAsync(60_000);
+      // Timeout mirrors the server run budget for the mode/profile (Go Mad fast: 105s)
+      // plus the client grace window, instead of a flat 60s.
+      await vi.advanceTimersByTimeAsync(121_000);
       await assertion;
     } finally {
       globalThis.fetch = originalFetch;
@@ -606,9 +610,9 @@ describe('mode switch peer context', () => {
     };
     const session = { mermaid: staleMermaid, infographic: freshInfographic };
     // Switching TO mermaid: peer infographic is newer
-    expect(
-      isPeerSlotAhead({ contentMode: 'mermaid', session, candidate: 'Solar system' })
-    ).toBe(true);
+    expect(isPeerSlotAhead({ contentMode: 'mermaid', session, candidate: 'Solar system' })).toBe(
+      true
+    );
     // Switching TO infographic: peer mermaid is older
     expect(
       isPeerSlotAhead({ contentMode: 'infographic', session, candidate: 'Solar system' })
@@ -627,9 +631,9 @@ describe('mode switch peer context', () => {
         updatedAt: '2026-05-10T09:00:00.000Z'
       }
     };
-    expect(
-      isPeerSlotAhead({ contentMode: 'mermaid', session, candidate: 'Solar system' })
-    ).toBe(false);
+    expect(isPeerSlotAhead({ contentMode: 'mermaid', session, candidate: 'Solar system' })).toBe(
+      false
+    );
   });
 
   it('isSlotCustomized detects revision or non-default source', () => {
@@ -746,7 +750,8 @@ describe('mode switch peer context', () => {
       needsModeSwitchPeerSync({
         contentMode: 'infographic',
         session,
-        candidate: 'Convert the current Mermaid architecture diagram into an equivalent infographic.',
+        candidate:
+          'Convert the current Mermaid architecture diagram into an equivalent infographic.',
         syncMarkers: { mermaid: null, infographic: null }
       })
     ).toBe(true);
@@ -755,7 +760,8 @@ describe('mode switch peer context', () => {
   it('shouldAutoSubmitModeSwitchIntent runs when needsPeerSync and candidate from fallback', () => {
     expect(
       shouldAutoSubmitModeSwitchIntent({
-        candidate: 'Convert the current Mermaid architecture diagram into an equivalent infographic.',
+        candidate:
+          'Convert the current Mermaid architecture diagram into an equivalent infographic.',
         textareaDirty: false,
         newSlotInSync: false,
         peerRequiresTranslation: false,

@@ -30,14 +30,15 @@ function extractJsonFromResponse(text) {
 /**
  * Single-shot chart DSL repair using the fast syntax-fixer model.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
  */
 export async function repairChartWithFixer({
   brokenSource,
   parseError,
   originalRequest,
   env,
-  modelOverride
+  modelOverride,
+  abortSignal
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -47,8 +48,7 @@ export async function repairChartWithFixer({
     return { accepted: false, error: 'Syntax fixer model is not configured.' };
   }
 
-  const errorText =
-    (parseError ?? '').toString().trim() || 'Chart DSL did not pass validation.';
+  const errorText = (parseError ?? '').toString().trim() || 'Chart DSL did not pass validation.';
 
   const userContent = `${CHART_RULE_PACK}
 
@@ -66,7 +66,10 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
 
   let response;
   try {
-    response = await model.invoke([new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)]);
+    response = await model.invoke(
+      [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)],
+      abortSignal ? { signal: abortSignal } : undefined
+    );
   } catch (error) {
     return {
       accepted: false,

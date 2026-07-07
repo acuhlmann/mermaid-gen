@@ -38,14 +38,15 @@ function extractDslFromResponse(text) {
  * because both fixers want the same kind of model — a fast, cheap, deterministic-ish
  * model that's good at following narrow syntactic instructions.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
  */
 export async function repairInfographicWithFixer({
   brokenSource,
   parseError,
   originalRequest,
   env,
-  modelOverride
+  modelOverride,
+  abortSignal
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -57,7 +58,8 @@ export async function repairInfographicWithFixer({
 
   const templateName = inferInfographicTemplate(brokenSource);
   const rulePack = getInfographicRulePack(templateName);
-  const errorText = (parseError ?? '').toString().trim() || 'AntV Infographic parser rejected the source.';
+  const errorText =
+    (parseError ?? '').toString().trim() || 'AntV Infographic parser rejected the source.';
 
   const userContent = `${rulePack}
 Parser error:
@@ -72,7 +74,10 @@ Output the corrected DSL between a single \`\`\` fenced block. No prose.`;
 
   let response;
   try {
-    response = await model.invoke([new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)]);
+    response = await model.invoke(
+      [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)],
+      abortSignal ? { signal: abortSignal } : undefined
+    );
   } catch (error) {
     return {
       accepted: false,

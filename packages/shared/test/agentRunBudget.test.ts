@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
+  extractLastValidationError,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '../src/agentRunBudget.js';
@@ -46,7 +48,11 @@ test('resolveAgentRepairMaxAttempts supports Mermaid and Infographic envs', () =
     3
   );
   assert.equal(
-    resolveAgentRepairMaxAttempts('fast', { INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_FAST: '4' }, 'infographic'),
+    resolveAgentRepairMaxAttempts(
+      'fast',
+      { INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_FAST: '4' },
+      'infographic'
+    ),
     4
   );
   assert.equal(
@@ -56,5 +62,35 @@ test('resolveAgentRepairMaxAttempts supports Mermaid and Infographic envs', () =
 });
 
 test('buildAgentRunBudgetExceededMessage includes tier and seconds', () => {
-  assert.match(buildAgentRunBudgetExceededMessage('quality', 150_000), /Quality time limit \(150s\)/);
+  assert.match(
+    buildAgentRunBudgetExceededMessage('quality', 150_000),
+    /Quality time limit \(150s\)/
+  );
+});
+
+test('appendLastValidationError carries the validator diagnostic into failure messages', () => {
+  const message = appendLastValidationError(
+    'Agent run exceeded the Fast time limit (75s).',
+    "Mermaid parser rejected source: Parse error on line 2:\nExpecting 'SQE', got 'PS'"
+  );
+  assert.match(message, /Last validation error: Mermaid parser rejected source/);
+  assert.equal(
+    extractLastValidationError(message),
+    "Mermaid parser rejected source: Parse error on line 2:\nExpecting 'SQE', got 'PS'"
+  );
+});
+
+test('appendLastValidationError no-ops without a diagnostic and truncates long ones', () => {
+  assert.equal(appendLastValidationError('Budget exceeded.', null), 'Budget exceeded.');
+  assert.equal(appendLastValidationError('Budget exceeded.', '  '), 'Budget exceeded.');
+  assert.equal(appendLastValidationError('Same text.', 'Same text.'), 'Same text.');
+  const long = 'x'.repeat(2000);
+  const message = appendLastValidationError('Budget exceeded.', long);
+  assert.ok(message.length < 700);
+  assert.match(message, /…$/);
+});
+
+test('extractLastValidationError returns null without the marker', () => {
+  assert.equal(extractLastValidationError('Agent run exceeded the Fast time limit (75s).'), null);
+  assert.equal(extractLastValidationError(null), null);
 });

@@ -1,8 +1,12 @@
 import { JSDOM } from 'jsdom';
 
-const DIAGRAM_PREFIX_PATTERN = /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram-v2|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta)\b/m;
+const DIAGRAM_PREFIX_PATTERN =
+  /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram-v2|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta)\b/m;
 
-const DEFAULT_REPAIR_MAX_ATTEMPTS = Number.parseInt(process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1', 10);
+const DEFAULT_REPAIR_MAX_ATTEMPTS = Number.parseInt(
+  process.env.MERMAID_REPAIR_MAX_ATTEMPTS ?? '1',
+  10
+);
 
 let initialized = false;
 let mermaidApi = null;
@@ -67,14 +71,22 @@ export function looksLikeMermaid(source) {
 
 export function isSyntaxValidationError(error) {
   const text = String(error ?? '').toLowerCase();
-  return text.includes('mermaid') || text.includes('diagram') || text.includes('syntax') || text.includes('parse');
+  return (
+    text.includes('mermaid') ||
+    text.includes('diagram') ||
+    text.includes('syntax') ||
+    text.includes('parse')
+  );
 }
 
 async function validateWithLocalParser(source) {
   const started = Date.now();
   try {
     const mermaid = await ensureMermaidInitialized();
-    const parseResult = await mermaid.parse(source, { suppressErrors: true });
+    // No `suppressErrors` here on purpose: suppressed parses return `false` with zero
+    // diagnostic, which leaves both the user and the repair models guessing. The thrown
+    // error carries the real root cause ("Parse error on line N: … Expecting 'X', got 'Y'").
+    const parseResult = await mermaid.parse(source);
     if (parseResult === false) {
       return {
         valid: false,
@@ -120,7 +132,12 @@ export async function validateMermaidStrict(source) {
 /** Keep the most recent prior attempts to avoid bloating the repair prompt. */
 const PREVIOUS_ATTEMPTS_LIMIT = 2;
 
-export async function attemptRepair({ source, error, maxAttempts = DEFAULT_REPAIR_MAX_ATTEMPTS, repair }) {
+export async function attemptRepair({
+  source,
+  error,
+  maxAttempts = DEFAULT_REPAIR_MAX_ATTEMPTS,
+  repair
+}) {
   const retries = clampPositiveInt(maxAttempts, DEFAULT_REPAIR_MAX_ATTEMPTS);
   let currentSource = source;
   let currentError = sanitizeErrorMessage(error);

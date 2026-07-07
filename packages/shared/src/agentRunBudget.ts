@@ -8,6 +8,14 @@ export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD = 180_000;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_FAST = 2;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_QUALITY = 2;
 
+// Minimum remaining budget required to *start* another unit of repair work. A full agent
+// repair turn that begins with a few seconds left cannot finish inside the budget — it
+// burns the model call and then still fails, so the run "times out" instead of returning
+// the actual validation error. Failing fast with the last validator diagnostic is both
+// quicker and more informative.
+export const MIN_AGENT_REPAIR_TURN_BUDGET_MS = 12_000;
+export const MIN_SYNTAX_FIXER_BUDGET_MS = 4_000;
+
 const BUDGET_CLAMP = Object.freeze({ min: 30_000, max: 180_000 });
 const REPAIR_ATTEMPTS_CLAMP = Object.freeze({ min: 0, max: 6 });
 
@@ -72,10 +80,48 @@ export function resolveAgentRepairMaxAttempts(profile = 'fast', env = {}, conten
   return clampInteger(configured ?? fallback, REPAIR_ATTEMPTS_CLAMP);
 }
 
-export function buildAgentRunBudgetExceededMessage(profile = 'fast', budgetMs = resolveAgentRunBudgetMs(profile)) {
+export function buildAgentRunBudgetExceededMessage(
+  profile = 'fast',
+  budgetMs = resolveAgentRunBudgetMs(profile)
+) {
   const seconds = Math.round(budgetMs / 1000);
   const p = normalizeAgentModelProfile(profile);
   const label = p === 'quality' ? 'Quality' : 'Fast';
-  const suggestion = p === 'quality' ? 'Try Fast, a smaller diagram, or retry.' : 'Try a smaller diagram or retry.';
+  const suggestion =
+    p === 'quality' ? 'Try Fast, a smaller diagram, or retry.' : 'Try a smaller diagram or retry.';
   return `Agent run exceeded the ${label} time limit (${seconds}s). ${suggestion}`;
+}
+
+/** Marker line prefix used to carry the root-cause validator diagnostic inside failure
+ *  messages (e.g. budget-exceeded). The web client splits on this to render the detail. */
+export const LAST_VALIDATION_ERROR_MARKER = 'Last validation error:';
+
+const MAX_VALIDATION_DETAIL_LENGTH = 600;
+
+/**
+ * Append the most recent validator diagnostic to a run-failure message so the UI can show
+ * *why* the run failed (what was invalid in the DSL), not just that it timed out. No-ops
+ * when there is no diagnostic or it already equals the failure message.
+ */
+export function appendLastValidationError(message: string, lastError?: string | null): string {
+  const base = String(message ?? '').trim();
+  const detail = String(lastError ?? '').trim();
+  if (!detail || detail === base) return base;
+  const truncated =
+    detail.length > MAX_VALIDATION_DETAIL_LENGTH
+      ? `${detail.slice(0, MAX_VALIDATION_DETAIL_LENGTH - 1)}…`
+      : detail;
+  return `${base}\n${LAST_VALIDATION_ERROR_MARKER} ${truncated}`;
+}
+
+/**
+ * Extract the validator diagnostic previously embedded by {@link appendLastValidationError}.
+ * Returns null when the message carries no marker.
+ */
+export function extractLastValidationError(message?: string | null): string | null {
+  const text = String(message ?? '');
+  const idx = text.indexOf(LAST_VALIDATION_ERROR_MARKER);
+  if (idx === -1) return null;
+  const detail = text.slice(idx + LAST_VALIDATION_ERROR_MARKER.length).trim();
+  return detail || null;
 }

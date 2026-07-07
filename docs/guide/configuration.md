@@ -19,29 +19,29 @@
 
 All are optional — the defaults make every layer of the validation/repair ladder work out of the box. See [Validation & repair](validation.md) for what each layer does.
 
-| Variable | Default | What it does |
-| --- | --- | --- |
-| `MERMAID_METRICS` | unset | When `1`/`true`, emits one structured JSON line per agent turn (mode, model, duration, validator outcome, repair attempts, sanitizer hits, error class) to stdout. |
-| `MERMAID_AGENT_RUN_BUDGET_MS_FAST` / `MERMAID_AGENT_RUN_BUDGET_MS_QUALITY` | `75000` / `105000` | Absolute stream run budget for Fast and Quality. Quality still gets the first creative pass, but repair work is bounded and uses the stable fast path. |
-| `MERMAID_REPAIR_MAX_ATTEMPTS` | Fast `2`, Quality `1` | Bounded retry budget for the full-agent syntax-repair fallback (the last rung in the Mermaid ladder). `MERMAID_REPAIR_MAX_ATTEMPTS_FAST` / `MERMAID_REPAIR_MAX_ATTEMPTS_QUALITY` can tune by profile. |
-| `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS` | Fast `2`, Quality `1` | Same full-agent fallback cap for Infographic mode. `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_FAST` / `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_QUALITY` can tune by profile. |
-| `MERMAID_REPAIR_MODEL` | (fast tier) | Override the model id used by the single-shot syntax fixer (Mermaid and Infographic fixers). |
-| `MERMAID_REPAIR_BACKEND` | (auto) | Pin the syntax fixer to `vertex` or `openrouter` independently of the intent backend. |
-| `MERMAID_STREAM_HEARTBEAT_MS` | `6000` | SSE heartbeat when an `agent-stream` has no events (clamped 1s–60s). |
-| `MERMAID_AGENT_RECURSION_LIMIT` | `50` | LangGraph ReAct step budget per run (clamped 25–200). |
-| `MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN` | `6` | Cap tool invocations per run (`0` disables the cap). |
+| Variable                                                                   | Default                                          | What it does                                                                                                                                                                                                                                                                                                      |
+| -------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MERMAID_METRICS`                                                          | unset                                            | When `1`/`true`, emits one structured JSON line per agent turn (mode, model, duration, validator outcome, repair attempts, sanitizer hits, error class) to stdout.                                                                                                                                                |
+| `MERMAID_AGENT_RUN_BUDGET_MS_FAST` / `MERMAID_AGENT_RUN_BUDGET_MS_QUALITY` | `75000` / `150000` (Go Mad: `105000` / `180000`) | Absolute run budget for Fast and Quality (all modes). Enforced with a deadline `AbortSignal` — in-flight model turns abort at the budget, and repair work only starts when enough budget remains to finish it. On budget exhaustion the error carries the last validator diagnostic (`Last validation error: …`). |
+| `MERMAID_REPAIR_MAX_ATTEMPTS`                                              | Fast `2`, Quality `1`                            | Bounded retry budget for the full-agent syntax-repair fallback (the last rung in the Mermaid ladder). `MERMAID_REPAIR_MAX_ATTEMPTS_FAST` / `MERMAID_REPAIR_MAX_ATTEMPTS_QUALITY` can tune by profile.                                                                                                             |
+| `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS`                                          | Fast `2`, Quality `1`                            | Same full-agent fallback cap for Infographic mode. `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_FAST` / `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS_QUALITY` can tune by profile.                                                                                                                                                        |
+| `MERMAID_REPAIR_MODEL`                                                     | (fast tier)                                      | Override the model id used by the single-shot syntax fixer (Mermaid and Infographic fixers).                                                                                                                                                                                                                      |
+| `MERMAID_REPAIR_BACKEND`                                                   | (auto)                                           | Pin the syntax fixer to `vertex` or `openrouter` independently of the intent backend.                                                                                                                                                                                                                             |
+| `MERMAID_STREAM_HEARTBEAT_MS`                                              | `6000`                                           | SSE heartbeat when an `agent-stream` has no events (clamped 1s–60s).                                                                                                                                                                                                                                              |
+| `MERMAID_AGENT_RECURSION_LIMIT`                                            | `50`                                             | LangGraph ReAct step budget per run (clamped 25–200).                                                                                                                                                                                                                                                             |
+| `MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN`                                     | `6`                                              | Cap tool invocations per run (`0` disables the cap).                                                                                                                                                                                                                                                              |
 
 ## Collaboration and production
 
-| Variable | Default | What it does |
-| --- | --- | --- |
-| `PUBLIC_BASE_URL` | (derived) | Public origin for MCP invite URLs and deeplinks — **required on Cloud Run** (no trailing slash). |
-| `ARCHISLOP_WEB_URL` | (optional) | Vite app origin for `webCanvasUrl` in MCP tools when the UI is not same-host as the API (e.g. local dev: `http://localhost:5173`). |
-| `INVITE_TOKEN_SECRET` | dev placeholder | HMAC for signed `?token=` on `/mcp`; must be strong in production. |
-| `PAIRING_CODE_TTL_MS` / `PAIRING_INVITE_TTL_MS` | 60m / 30m | Pairing code lifetime; refreshed when **Invite agent** opens. |
-| `REDIS_URL` | unset | Share pairing codes across Cloud Run instances (diagram/session state stays in-process). |
-| `MCP_RATE_LIMIT_*` / `API_*_RATE_LIMIT_*` | see `.env.example` | Per-IP sliding windows on failed MCP joins, `join-room`, and LLM routes. |
-| `CORS_ALLOWED_ORIGINS` | unset | Extra allowed origins in production (`PUBLIC_BASE_URL` is always allowed). |
+| Variable                                        | Default            | What it does                                                                                                                       |
+| ----------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `PUBLIC_BASE_URL`                               | (derived)          | Public origin for MCP invite URLs and deeplinks — **required on Cloud Run** (no trailing slash).                                   |
+| `ARCHISLOP_WEB_URL`                             | (optional)         | Vite app origin for `webCanvasUrl` in MCP tools when the UI is not same-host as the API (e.g. local dev: `http://localhost:5173`). |
+| `INVITE_TOKEN_SECRET`                           | dev placeholder    | HMAC for signed `?token=` on `/mcp`; must be strong in production.                                                                 |
+| `PAIRING_CODE_TTL_MS` / `PAIRING_INVITE_TTL_MS` | 60m / 30m          | Pairing code lifetime; refreshed when **Invite agent** opens.                                                                      |
+| `REDIS_URL`                                     | unset              | Share pairing codes across Cloud Run instances (diagram/session state stays in-process).                                           |
+| `MCP_RATE_LIMIT_*` / `API_*_RATE_LIMIT_*`       | see `.env.example` | Per-IP sliding windows on failed MCP joins, `join-room`, and LLM routes.                                                           |
+| `CORS_ALLOWED_ORIGINS`                          | unset              | Extra allowed origins in production (`PUBLIC_BASE_URL` is always allowed).                                                         |
 
 Cloud Run operators: see [`docs/deploy/gcp.md`](../deploy/gcp.md) for `PUBLIC_BASE_URL`, `INVITE_TOKEN_SECRET` via Secret Manager, optional Redis, and `min-instances` guidance for MCP session stickiness.
 

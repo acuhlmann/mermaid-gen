@@ -29,14 +29,15 @@ function extractHtmlFromResponse(text) {
 /**
  * Single-shot Anything HTML repair using the fast syntax-fixer model.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
  */
 export async function repairAnythingWithFixer({
   brokenSource,
   parseError,
   originalRequest,
   env,
-  modelOverride
+  modelOverride,
+  abortSignal
 } = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
@@ -65,7 +66,10 @@ Output the corrected HTML between a single \`\`\`html fenced block. No prose.`;
 
   let response;
   try {
-    response = await model.invoke([new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)]);
+    response = await model.invoke(
+      [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)],
+      abortSignal ? { signal: abortSignal } : undefined
+    );
   } catch (error) {
     return {
       accepted: false,
