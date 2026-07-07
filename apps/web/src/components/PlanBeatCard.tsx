@@ -2,6 +2,8 @@
  * Visual plan-beat card for the Thinking pane Plan lane.
  */
 
+import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
+import { tryExtractDiagramPreviewFromText } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 
 const VARIANT_ICONS: Record<string, string> = {
@@ -46,6 +48,38 @@ function splitPlanSteps(text: string): string[] {
   return [trimmed];
 }
 
+function PlanStepBody({
+  step,
+  cardIndex,
+  stepIndex
+}: {
+  step: string;
+  cardIndex: number;
+  stepIndex: number;
+}) {
+  const preview = tryExtractDiagramPreviewFromText(step);
+  const keyBase = `plan-${cardIndex}-${stepIndex}`;
+
+  if (preview) {
+    return (
+      <div className="insights-plan-card-step-preview">
+        {preview.prose ? (
+          <p className="insights-plan-card-step-preview-prose">
+            {enrichInline(preview.prose, `${keyBase}-prose`)}
+          </p>
+        ) : null}
+        <InsightsEmbeddedDiagram
+          idPrefix={keyBase}
+          source={preview.source}
+          kind={preview.kind}
+        />
+      </div>
+    );
+  }
+
+  return <>{enrichInline(step, keyBase)}</>;
+}
+
 export default function PlanBeatCard({
   beat,
   variant = 'general',
@@ -62,10 +96,11 @@ export default function PlanBeatCard({
   const icon = VARIANT_ICONS[variant] ?? VARIANT_ICONS.general;
   const steps = splitPlanSteps(text);
   const multiStep = steps.length > 1;
+  const singlePreview = !multiStep ? tryExtractDiagramPreviewFromText(text) : null;
 
   return (
     <li
-      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}`}
+      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}${singlePreview ? ' has-diagram-preview' : ''}`}
       data-testid="plan-beat-card"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
@@ -78,25 +113,42 @@ export default function PlanBeatCard({
         </span>
         {multiStep ? (
           <ol className="insights-plan-card-steps">
-            {steps.map((step, stepIndex) => (
-              <li
-                key={`plan-${index}-step-${stepIndex}`}
-                className={[
-                  'insights-plan-card-step',
-                  isVisualStepLine(step) ? 'insights-step-card' : ''
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                <span className="insights-plan-card-step-marker" aria-hidden="true">
-                  {stepIndex + 1}
-                </span>
-                <span className="insights-plan-card-step-text">
-                  {enrichInline(step, `plan-${index}-${stepIndex}`)}
-                </span>
-              </li>
-            ))}
+            {steps.map((step, stepIndex) => {
+              const preview = tryExtractDiagramPreviewFromText(step);
+              return (
+                <li
+                  key={`plan-${index}-step-${stepIndex}`}
+                  className={[
+                    'insights-plan-card-step',
+                    preview ? 'is-diagram-preview' : '',
+                    isVisualStepLine(step) ? 'insights-step-card' : ''
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  <span className="insights-plan-card-step-marker" aria-hidden="true">
+                    {stepIndex + 1}
+                  </span>
+                  <span className="insights-plan-card-step-text">
+                    <PlanStepBody step={step} cardIndex={index} stepIndex={stepIndex} />
+                  </span>
+                </li>
+              );
+            })}
           </ol>
+        ) : singlePreview ? (
+          <div className="insights-plan-card-preview">
+            {singlePreview.prose ? (
+              <p className="insights-plan-card-text">
+                {enrichInline(singlePreview.prose, `plan-${index}-prose`)}
+              </p>
+            ) : null}
+            <InsightsEmbeddedDiagram
+              idPrefix={`plan-${index}`}
+              source={singlePreview.source}
+              kind={singlePreview.kind}
+            />
+          </div>
         ) : (
           <p className="insights-plan-card-text">{enrichInline(text, `plan-${index}`)}</p>
         )}
