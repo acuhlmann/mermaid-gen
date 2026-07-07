@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   classifyDiagramStartLine,
   mermaidDslStartIndex,
-  splitEmbeddedDiagramDsl
+  splitEmbeddedDiagramDsl,
+  stripEmbeddedDslFromThinkingText
 } from '../src/utils/insightsEmbeddedDiagramSplit.js';
 
 describe('splitEmbeddedDiagramDsl', () => {
@@ -126,6 +127,34 @@ flowchart TB
     expect(r.dsl).toContain('flowchart TB');
     expect(r.dsl).toContain('A --> B');
   });
+
+  it('splits prose then fenced anything HTML', () => {
+    const html = `<!DOCTYPE html>
+<html>
+<head><title>Photosynthesis</title></head>
+<body>
+  <h1>Photosynthesis</h1>
+  <p>Light reactions convert sunlight into chemical energy.</p>
+</body>
+</html>`;
+    const text = `Building the interactive page.\n\n\`\`\`html\n${html}\n\`\`\``;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('anything');
+    expect(r.prose.trim()).toBe('Building the interactive page.');
+    expect(r.dsl).toContain('<!DOCTYPE html>');
+    expect(r.dsl).toContain('Photosynthesis');
+  });
+
+  it('splits bare HTML document after prose', () => {
+    const html = `<!DOCTYPE html>
+<html><body><main><h1>Calculator</h1><button>Go</button></main></body></html>`;
+    const text = `Applied patch.\n\n${html}`;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('anything');
+    expect(r.prose.trim()).toBe('Applied patch.');
+  });
 });
 
 describe('mermaidDslStartIndex', () => {
@@ -137,6 +166,34 @@ describe('mermaidDslStartIndex', () => {
       '  A --> B'
     ];
     expect(mermaidDslStartIndex(lines, 2)).toBe(0);
+  });
+});
+
+describe('stripEmbeddedDslFromThinkingText', () => {
+  it('removes fenced chart JSON when a live draft preview is shown', () => {
+    const chart = {
+      archislopVersion: 1,
+      theme: 'blueprint',
+      spec: {
+        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+        data: { values: [{ q: 'Q1', rev: 12 }] },
+        mark: 'bar',
+        encoding: {
+          x: { field: 'q', type: 'ordinal' },
+          y: { field: 'rev', type: 'quantitative' }
+        }
+      }
+    };
+    const text = `Building the chart.\n\n\`\`\`json\n${JSON.stringify(chart, null, 2)}\n\`\`\``;
+    const stripped = stripEmbeddedDslFromThinkingText(text, 'chart');
+    expect(stripped).toBe('Building the chart.');
+  });
+
+  it('removes fenced html when a live draft preview is shown', () => {
+    const html = `<!DOCTYPE html><html><body><h1>Hello</h1><p>World</p></body></html>`;
+    const text = `Drafting page.\n\n\`\`\`html\n${html}\n\`\`\``;
+    const stripped = stripEmbeddedDslFromThinkingText(text, 'anything');
+    expect(stripped).toBe('Drafting page.');
   });
 });
 

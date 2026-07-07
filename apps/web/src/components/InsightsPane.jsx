@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
-import { splitEmbeddedDiagramDsl } from '../utils/insightsEmbeddedDiagramSplit.js';
+import { splitEmbeddedDiagramDsl, stripEmbeddedDslFromThinkingText } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 import { extractMarkdownTableBlock, ThinkingMarkdownTable } from '../utils/thinkingMarkdownTable';
@@ -619,6 +619,7 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
 function resultingPreviewLabel(afterKind) {
   if (afterKind === 'infographic') return 'Resulting infographic';
   if (afterKind === 'chart') return 'Resulting chart';
+  if (afterKind === 'anything') return 'Resulting page';
   return 'Resulting diagram';
 }
 
@@ -849,7 +850,10 @@ export default function InsightsPane({
   agentReactions = [],
   onApplyStyleEdits,
   styleEditsApplyBusy = false,
-  closing = false
+  closing = false,
+  liveDraftSource = '',
+  liveDraftContentType = null,
+  activeContentType = 'mermaid'
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
@@ -1056,9 +1060,18 @@ export default function InsightsPane({
             const showEmbeddedRestore = rawStatus === 'done' && !suppressEmbedded;
             const hasStyleEdits =
               Array.isArray(entry.styleEdits) && entry.styleEdits.length > 0 && !isRunning;
-            const displayContent = hasStyleEdits
+            let displayContent = hasStyleEdits
               ? stripStyleEditLinesFromContent(entry.content ?? '', entry.styleEdits)
               : entry.content;
+            const showLiveDraftPreview =
+              isRunning &&
+              entry.id === liveEntry?.id &&
+              Boolean(liveDraftSource?.trim()) &&
+              liveDraftContentType === activeContentType &&
+              (liveDraftContentType === 'chart' || liveDraftContentType === 'anything');
+            if (showLiveDraftPreview && displayContent) {
+              displayContent = stripEmbeddedDslFromThinkingText(displayContent, liveDraftContentType);
+            }
 
             let analysisBody = null;
             const explainStructured =
@@ -1334,7 +1347,7 @@ export default function InsightsPane({
                       contentUpdatesTitle(variant)
                     )}
                   </h4>
-                  {displayContent || explainStructured ? (
+                  {displayContent || explainStructured || showLiveDraftPreview ? (
                     <div className="insights-entry-rich-text-wrap">
                       <div
                         className={[
@@ -1348,6 +1361,14 @@ export default function InsightsPane({
                           .filter(Boolean)
                           .join(' ')}
                       >
+                        {showLiveDraftPreview ? (
+                          <EmbeddedDiagramBlock
+                            idPrefix={`${entry.id}-live-draft`}
+                            source={liveDraftSource}
+                            kind={liveDraftContentType}
+                            streamingPreview
+                          />
+                        ) : null}
                         {analysisBody}
                       </div>
                       {isRunning && (entry.content ?? '').trim() ? (

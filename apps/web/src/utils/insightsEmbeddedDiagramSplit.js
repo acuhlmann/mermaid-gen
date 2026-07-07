@@ -1,13 +1,18 @@
 /**
- * Detect Mermaid, Infographic, or Chart DSL pasted after prose in agent "thinking" text
- * and split it so the UI can render a read-only preview instead of monospace paragraphs.
+ * Detect Mermaid, Infographic, Chart, or Anything HTML pasted after prose in agent
+ * "thinking" text and split it so the UI can render a read-only preview instead of
+ * monospace paragraphs.
  */
 
-import { parseChartDsl } from '@archislop/shared';
+import { parseAnythingHtml, parseChartDsl } from '@archislop/shared';
 import { findBalancedBraceEnd } from './insightThinkingEnrich.js';
 
 const CHART_MARKER = '"archislopVersion"';
 const CHART_FENCE_START = /```(?:json)?\s*\n?/gi;
+const HTML_FENCE_START = /```(?:html)?\s*\n?/gi;
+
+const HTML_DOCUMENT_START =
+  /^(?:<!DOCTYPE\s+html|<html\b|<head\b|<body\b|<div\b|<section\b|<main\b|<canvas\b|<svg\b)/i;
 
 const INFOGRAPHIC_FIRST_LINE = /^infographic\s+[a-z0-9][a-z0-9-]*\s*$/i;
 
@@ -42,8 +47,16 @@ function isSubstantialDsl(dsl, kind) {
   if (!dsl || dsl.length < 28) return false;
   const lines = nonEmptyLineCount(dsl);
   if (kind === 'infographic') return lines >= 2;
+  if (kind === 'anything') return lines >= 2 || dsl.length >= 48;
   if (lines >= 2) return true;
   return dsl.length >= 48;
+}
+
+/** @param {string} candidate */
+function tryParseAnythingHtml(candidate) {
+  if (!candidate?.trim()) return null;
+  const result = parseAnythingHtml(candidate);
+  return result.ok ? result.text : null;
 }
 
 /**
@@ -120,13 +133,105 @@ function splitEmbeddedChartDsl(text) {
 
 /**
  * @param {string} text
- * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' | 'chart' } | null}
+ * @returns {{ prose: string, dsl: string, kind: 'anything' } | null}
+ */
+function splitEmbeddedAnythingHtml(text) {
+  HTML_FENCE_START.lastIndex = 0;
+  let fenceMatch;
+  while ((fenceMatch = HTML_FENCE_START.exec(text)) !== null) {
+    const contentStart = fenceMatch.index + fenceMatch[0].length;
+    const closeIdx = text.indexOf('```', contentStart);
+    const inner = (closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)).trim();
+    const dsl = tryParseAnythingHtml(inner);
+    if (!dsl || !isSubstantialDsl(dsl, 'anything')) continue;
+    return {
+      prose: joinProseSegments(text.slice(0, fenceMatch.index), closeIdx >= 0 ? text.slice(closeIdx + 3) : ''),
+      dsl,
+      kind: 'anything'
+    };
+  }
+
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || !HTML_DOCUMENT_START.test(trimmed)) continue;
+    const dsl = lines.slice(i).join('\n').trim();
+    if (!isSubstantialDsl(dsl, 'anything')) continue;
+    const parsed = tryParseAnythingHtml(dsl);
+    if (!parsed) continue;
+    return { prose: lines.slice(0, i).join('\n'), dsl: parsed, kind: 'anything' };
+  }
+  return null;
+}
+
+/**
+ * Remove embedded DSL / fenced code blocks from thinking text when a live draft preview
+ * is shown separately (avoids duplicate raw ```json / ```html in the content lane).
+ *
+ * @param {string} text
+ * @param {'mermaid' | 'infographic' | 'chart' | 'anything' | null} [kind]
+ * @returns {string}
+ */
+export function stripEmbeddedDslFromThinkingText(text, kind = null) {
+  if (typeof text !== 'string' || !text.trim()) return text ?? '';
+  let next = text;
+
+  const stripFence = (pattern) => {
+    pattern.lastIndex = 0;
+    let match;
+    while ((match = pattern.exec(next)) !== null) {
+      const contentStart = match.index + match[0].length;
+      const closeIdx = next.indexOf('```', contentStart);
+      const tail = closeIdx >= 0 ? next.slice(closeIdx + 3) : '';
+      next = joinProseSegments(next.slice(0, match.index), tail);
+      pattern.lastIndex = 0;
+    }
+  };
+
+  if (!kind || kind === 'chart') stripFence(CHART_FENCE_START);
+  if (!kind || kind === 'anything') stripFence(HTML_FENCE_START);
+
+  if (!kind || kind === 'chart') {
+    const markerIdx = next.indexOf(CHART_MARKER);
+    if (markerIdx >= 0) {
+      const open = next.lastIndexOf('{', markerIdx);
+      if (open >= 0) {
+        const end = findBalancedBraceEnd(next, open);
+        if (end >= 0) {
+          next = joinProseSegments(next.slice(0, open), next.slice(end));
+        }
+      }
+    }
+  }
+
+  if (!kind || kind === 'anything') {
+    const lines = next.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trim();
+      if (!trimmed || !HTML_DOCUMENT_START.test(trimmed)) continue;
+      const dsl = lines.slice(i).join('\n').trim();
+      if (tryParseAnythingHtml(dsl)) {
+        next = lines.slice(0, i).join('\n');
+        break;
+      }
+    }
+  }
+
+  return next.trim();
+}
+
+/**
+ * @param {string} text
+ * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' | 'chart' | 'anything' } | null}
  */
 export function splitEmbeddedDiagramDsl(text) {
   if (typeof text !== 'string' || !text.trim()) return null;
 
   const chartSplit = splitEmbeddedChartDsl(text);
   if (chartSplit) return chartSplit;
+
+  const anythingSplit = splitEmbeddedAnythingHtml(text);
+  if (anythingSplit) return anythingSplit;
 
   const lines = text.split('\n');
   for (let i = 0; i < lines.length; i++) {

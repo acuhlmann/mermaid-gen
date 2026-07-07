@@ -3303,6 +3303,9 @@ ${requirementsBlock}`;
       onApplyStyleEdits={handleApplyStyleEdits}
       styleEditsApplyBusy={loading}
       closing={insightsClosing}
+      liveDraftSource={liveDraftSource}
+      liveDraftContentType={liveDraftContentType}
+      activeContentType={contentMode}
     />
   ) : null;
 
