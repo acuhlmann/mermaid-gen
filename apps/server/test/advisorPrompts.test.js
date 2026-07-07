@@ -60,16 +60,32 @@ test('parseAdvisorReply tolerates malformed json and missing suggestion', () => 
   assert.equal(parseAdvisorReply('{"kind": "comment"}'), null);
 });
 
-test('buildAdvisorSystemPrompt adds dumb-down override only for explain persona', () => {
-  const architectDumb = buildAdvisorSystemPrompt('explain', 'mermaid', { mode: 'dumb' });
-  assert.match(architectDumb, /DUMB-IT-DOWN OVERRIDE/);
+test('buildAdvisorSystemPrompt swaps to explainer voice for explain dumb-down', () => {
+  const architectDumb = buildAdvisorSystemPrompt('explain', 'mermaid', { mode: 'dumb', simpleLevel: 1 });
+  assert.match(architectDumb, /grown-up who wants zero jargon/);
+  assert.match(architectDumb, /DUMB-DOWN TASK/);
+  assert.doesNotMatch(architectDumb, /Principal Tech Evangelist/);
+  assert.doesNotMatch(architectDumb, /named pattern, analogy, principle/);
 
   const architectNormal = buildAdvisorSystemPrompt('explain', 'mermaid');
-  assert.doesNotMatch(architectNormal, /DUMB-IT-DOWN OVERRIDE/);
+  assert.match(architectNormal, /Principal Tech Evangelist/);
+  assert.doesNotMatch(architectNormal, /DUMB-DOWN TASK/);
 
-  // The flag is a no-op for non-explain personas — they don't get the override even if asked.
   const execDumb = buildAdvisorSystemPrompt('exec', 'mermaid', { mode: 'dumb' });
-  assert.doesNotMatch(execDumb, /DUMB-IT-DOWN OVERRIDE/);
+  assert.doesNotMatch(execDumb, /DUMB-DOWN TASK/);
+});
+
+test('buildAdvisorSystemPrompt dumb-down reaches toddler and babble ladder', () => {
+  const toddler = buildAdvisorSystemPrompt('explain', 'mermaid', { mode: 'dumb', simpleLevel: 6 });
+  assert.match(toddler, /toddler/i);
+  assert.match(toddler, /Max 12 words/);
+
+  const babble = buildAdvisorSystemPrompt('explain', 'mermaid', {
+    mode: 'dumb',
+    style: 'gibberish'
+  });
+  assert.match(babble, /baby who cannot speak yet/i);
+  assert.match(babble, /BABBLE MODE/);
 });
 
 test('buildAdvisorSystemPrompt includes chart and anything mode appendices', () => {

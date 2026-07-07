@@ -7,6 +7,7 @@
  */
 
 import { getLabelExplainDumbLevel } from '@archislop/shared';
+import { buildLabelExplainerSystemPrompt } from './labelExplainer.js';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -68,6 +69,48 @@ DUMB-IT-DOWN OVERRIDE — BABBLE MODE (this beats every other rule above for thi
 - MAX 80 characters. Still put any label mangling in highlightIds if you can.
 - Wholesome and silly, never offensive. End with !!! if excited.
 `.trim();
+
+/** JSON envelope rules when dumb-down uses the radial explainer voice ladder. */
+const ADVISOR_DUMB_JSON_RULES = `
+ADVISOR OUTPUT (JSON — overrides any plain-text rule above for this channel):
+- Output STRICT JSON only — no prose, no backticks, no preamble.
+- Schema: {"suggestion": string, "highlightIds": string[], "kind": "comment"}.
+- Put your simplified rephrase in "suggestion" using the audience/voice/word limits above.
+- "highlightIds": 0–4 entries from the supplied node ids (keep the same focus as the previous observation when possible).
+- kind must always be "comment".
+`.trim();
+
+const ADVISOR_DUMB_REPHRASE_RULES = `
+DUMB-DOWN TASK (this beats ivory-tower architect rules — you are simplifying, not lecturing):
+- Rephrase the user's quoted PREVIOUS OBSERVATION — same topic and visible label, easier words each click.
+- Do NOT pivot to a different node. Do NOT repeat the previous text verbatim.
+- Do NOT introduce new named patterns, laws, principles, theories, or jargon.
+`.trim();
+
+/**
+ * System prompt for Wise Architect dumb-down — same voice ladder as the radial "?"
+ * explainer (labelExplainer), wrapped in advisor JSON output rules. The default
+ * ivory-tower persona fights simplification if left in the stack.
+ *
+ * @param {{ simpleLevel?: number, style?: 'gibberish' }} [opts]
+ */
+export function buildAdvisorDumbExplainSystemPrompt(opts = {}) {
+  const isGibberish = opts.style === 'gibberish';
+  const level = Math.min(6, Math.max(1, Number(opts.simpleLevel) || 1));
+  const voice = buildLabelExplainerSystemPrompt(
+    isGibberish ? 'gibberish' : 'simple',
+    level
+  );
+  const gibberish = isGibberish ? `\n\n${ADVISOR_DUMB_GIBBERISH_OVERRIDE}` : '';
+  const levelHint = isGibberish
+    ? ''
+    : (() => {
+        const meta = getLabelExplainDumbLevel(level);
+        const maxWords = meta?.maxWords ?? 25;
+        return `\n- MAX ${maxWords} words in "suggestion".`;
+      })();
+  return `${voice}\n\n${ADVISOR_DUMB_JSON_RULES}\n\n${ADVISOR_DUMB_REPHRASE_RULES}${levelHint}${gibberish}`;
+}
 
 /**
  * Level-aware dumb-down instructions — mirrors labelExplainDumbLevels used by the
@@ -203,16 +246,15 @@ export function buildAdvisorSystemPrompt(persona, contentType = 'mermaid', opts 
         : contentType === 'anything'
           ? `\n\n${ANYTHING_ADVISOR_APPENDIX}`
           : '';
-  // Dumb-it-down only makes sense for the Wise Architect — every other persona
-  // either already speaks plainly or has its own loud voice that should not flatten.
-  const dumbDown =
-    opts.mode === 'dumb' && persona === 'explain'
-      ? `\n\n${buildAdvisorDumbDownOverride({
-          simpleLevel: opts.simpleLevel,
-          style: opts.style
-        })}`
-      : '';
-  return `${spec.persona}\n\n${COMMON_RULES}${modeAppendix}${dumbDown}`;
+  // Dumb-it-down only makes sense for the Wise Architect — swap to the radial
+  // explainer voice ladder instead of appending an override on ivory-tower rules.
+  if (opts.mode === 'dumb' && persona === 'explain') {
+    return `${buildAdvisorDumbExplainSystemPrompt({
+      simpleLevel: opts.simpleLevel,
+      style: opts.style
+    })}${modeAppendix}`;
+  }
+  return `${spec.persona}\n\n${COMMON_RULES}${modeAppendix}`;
 }
 
 export function buildAdvisorUserPrompt({

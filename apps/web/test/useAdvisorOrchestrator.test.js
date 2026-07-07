@@ -591,4 +591,90 @@ describe('useAdvisorOrchestrator', () => {
 
     expect(result.current.suggestion).toMatch(/bounded context/i);
   });
+
+  it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
+    mockPersonaPick('explain');
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          persona: 'explain',
+          suggestion: "Notice Conway's Law — the diagram mirrors the team.",
+          highlightIds: ['Team'],
+          kind: 'comment'
+        })
+      })
+      .mockImplementation((_url, init) => {
+        const body = JSON.parse(init?.body ?? '{}');
+        if (body.style === 'gibberish') {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              persona: 'explain',
+              suggestion: 'goo ga team bwah nya!!!',
+              highlightIds: ['Team'],
+              kind: 'comment'
+            })
+          });
+        }
+        const level = body.simpleLevel ?? 1;
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            persona: 'explain',
+            suggestion: `Simplified level ${level} for the team.`,
+            highlightIds: ['Team'],
+            kind: 'comment'
+          })
+        });
+      });
+
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.activePersona).toBe('explain');
+    expect(result.current.architectDumbLevel).toBe(0);
+
+    await act(async () => {
+      await result.current.dumbDown();
+      await Promise.resolve();
+    });
+    let body = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(body.mode).toBe('dumb');
+    expect(body.simpleLevel).toBe(1);
+    expect(body.previousSuggestion).toMatch(/Conway/i);
+    expect(result.current.architectDumbLevel).toBe(1);
+    expect(result.current.suggestion).toBe('Simplified level 1 for the team.');
+
+    await act(async () => {
+      await result.current.dumbDown();
+      await Promise.resolve();
+    });
+    body = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(body.simpleLevel).toBe(2);
+    expect(result.current.architectDumbLevel).toBe(2);
+
+    for (let level = 3; level <= 6; level += 1) {
+      await act(async () => {
+        await result.current.dumbDown();
+        await Promise.resolve();
+      });
+      body = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+      expect(body.simpleLevel).toBe(level);
+      expect(result.current.architectDumbLevel).toBe(level);
+    }
+
+    await act(async () => {
+      await result.current.dumbDown();
+      await Promise.resolve();
+    });
+    body = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
+    expect(body.style).toBe('gibberish');
+    expect(body.simpleLevel).toBeUndefined();
+    expect(result.current.architectDumbLevel).toBe(7);
+    expect(result.current.suggestion).toMatch(/goo ga/i);
+  });
 });
