@@ -60,7 +60,6 @@ export function AiCornerControlsInner({
           hidden={!effectiveOpen}
         >
           <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
-            <span className="model-profile-label">Invite agent</span>
             <div className="agent-collab-segment">
               {pendingHandshake ? (
                 <span className="agent-handshake-waiting" role="status">
@@ -68,6 +67,32 @@ export function AiCornerControlsInner({
                 </span>
               ) : null}
               <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
+            </div>
+          </div>
+          <div className="model-profile-toggle" role="group" aria-label="AI brain">
+            <span className="model-profile-label model-profile-label--brain">
+              <span className="model-profile-label-icon" aria-hidden="true">
+                <BrainIcon />
+              </span>
+              Brain
+            </span>
+            <div className="model-profile-segment">
+              <button
+                type="button"
+                className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
+                aria-pressed={modelProfile === 'fast'}
+                onClick={() => onSelectModelProfile('fast')}
+              >
+                Fast
+              </button>
+              <button
+                type="button"
+                className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
+                aria-pressed={modelProfile === 'quality'}
+                onClick={() => onSelectModelProfile('quality')}
+              >
+                Quality
+              </button>
             </div>
           </div>
           <div className="model-profile-toggle" role="group" aria-label="Content mode">
@@ -117,32 +142,6 @@ export function AiCornerControlsInner({
                 onClick={() => onSelectContentMode('anything')}
               >
                 Anything
-              </button>
-            </div>
-          </div>
-          <div className="model-profile-toggle" role="group" aria-label="AI brain">
-            <span className="model-profile-label model-profile-label--brain">
-              <span className="model-profile-label-icon" aria-hidden="true">
-                <BrainIcon />
-              </span>
-              Brain
-            </span>
-            <div className="model-profile-segment">
-              <button
-                type="button"
-                className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
-                aria-pressed={modelProfile === 'fast'}
-                onClick={() => onSelectModelProfile('fast')}
-              >
-                Fast
-              </button>
-              <button
-                type="button"
-                className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
-                aria-pressed={modelProfile === 'quality'}
-                onClick={() => onSelectModelProfile('quality')}
-              >
-                Quality
               </button>
             </div>
           </div>
