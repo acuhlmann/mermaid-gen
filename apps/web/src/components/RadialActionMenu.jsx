@@ -183,14 +183,17 @@ export default function RadialActionMenu({
   }, [descriptor]);
 
   const popoverMode = explainerOpen || stakeholdersExpanded;
+  /** Modal trays (explainer, stakeholders, slop prompt) must not inherit the
+   * 450ms hover-close grace timer from the arc buttons they replace. */
+  const modalSurfaceOpen = popoverMode || slopPromptOpen;
 
-  // When the arc-buttons toggle into popover mode, the buttons unmount and
+  // When the arc-buttons toggle into a modal tray, the buttons unmount and
   // their `onPointerLeave` fires a `scheduleMenuClose` (450ms timer) in the
-  // parent. The popover is a modal — it should stay until the user explicitly
-  // closes it — so cancel that pending close as soon as we enter popoverMode.
+  // parent. The tray is modal — it should stay until the user explicitly
+  // closes it — so cancel that pending close as soon as we enter modal mode.
   useEffect(() => {
-    if (popoverMode) onHoverHold?.();
-  }, [popoverMode, onHoverHold]);
+    if (modalSurfaceOpen) onHoverHold?.();
+  }, [modalSurfaceOpen, onHoverHold]);
 
   const visibleActions = useMemo(() => {
     if (!Array.isArray(actions)) return [];
@@ -477,6 +480,41 @@ export default function RadialActionMenu({
 
   if (!descriptor || !anchor || !layout) return null;
 
+  const slopTrayStyle = (() => {
+    const gap = narrowLayout ? 14 : 18;
+    if (!slopPromptOpen) {
+      return {
+        left: layout.centerX,
+        top: layout.centerY + layout.chipHalfHeight + gap,
+        transform: 'translate(-50%, 0)'
+      };
+    }
+    // On small screens, anchor the prompt inside the visible viewport so the
+    // virtual keyboard cannot shove a node-anchored tray off-screen.
+    if (narrowLayout) {
+      const vv = readViewportBounds();
+      const width = Math.min(360, Math.max(280, vv.right - vv.left - VIEWPORT_MARGIN_PX * 2));
+      const halfWidth = width / 2;
+      const estimatedHeight = 168;
+      const usableTop = vv.top + VIEWPORT_MARGIN_PX;
+      const usableBottom = vv.bottom - MOBILE_BOTTOM_CHROME_RESERVE_PX - VIEWPORT_MARGIN_PX;
+      const top = Math.max(
+        usableTop,
+        Math.min(usableBottom - estimatedHeight, layout.centerY + layout.chipHalfHeight + gap)
+      );
+      const clampedLeft = Math.max(
+        vv.left + VIEWPORT_MARGIN_PX + halfWidth,
+        Math.min(vv.right - VIEWPORT_MARGIN_PX - halfWidth, layout.centerX)
+      );
+      return { left: clampedLeft, top, transform: 'translate(-50%, 0)' };
+    }
+    return {
+      left: layout.centerX,
+      top: layout.centerY + layout.chipHalfHeight + gap,
+      transform: 'translate(-50%, 0)'
+    };
+  })();
+
   function handleBackdropPointerDown(event) {
     if (event.button !== 0) return;
     event.preventDefault();
@@ -623,11 +661,11 @@ export default function RadialActionMenu({
         }}
         onPointerDown={handleBackdropPointerDown}
         onPointerEnter={onHoverHold}
-        onPointerLeave={popoverMode ? undefined : onHoverRelease}
+        onPointerLeave={modalSurfaceOpen ? undefined : onHoverRelease}
         aria-hidden="true"
         data-testid="radial-hit-area"
       />
-      {!popoverMode
+      {!modalSurfaceOpen
         ? layout.positions.map((pos, index) => {
             const action = visibleActions[index];
             if (!action) return null;
@@ -682,7 +720,7 @@ export default function RadialActionMenu({
             );
           })
         : null}
-      {!popoverMode ? (
+      {!modalSurfaceOpen ? (
         <div
           ref={chipRef}
           className="radial-action-chip"
@@ -895,14 +933,9 @@ export default function RadialActionMenu({
       {slopPrompt ? (
         <div
           className="radial-slop-prompt-tray"
-          style={{
-            left: layout.centerX,
-            top: layout.centerY + layout.chipHalfHeight + (narrowLayout ? 14 : 18),
-            transform: 'translate(-50%, 0)'
-          }}
+          style={slopTrayStyle}
           onPointerDown={(event) => event.stopPropagation()}
           onPointerEnter={onHoverHold}
-          onPointerLeave={onHoverRelease}
         >
           {slopPrompt}
         </div>

@@ -308,6 +308,7 @@ function ArchiSlop() {
   const voiceAccumulatedRef = useRef('');
   const micSessionRef = useRef(0);
   const slopPromptExpandedRef = useRef(false);
+  const slopPromptSourceRef = useRef(null);
   const lastTokenSoundAtRef = useRef(0);
   const goMadTokenTickIndexRef = useRef(0);
   const hoverCloseTimerRef = useRef(null);
@@ -357,6 +358,10 @@ function ArchiSlop() {
   useEffect(() => {
     slopPromptExpandedRef.current = slopPromptExpanded;
   }, [slopPromptExpanded]);
+
+  useEffect(() => {
+    slopPromptSourceRef.current = slopPromptSource;
+  }, [slopPromptSource]);
 
   const closeSlopPrompt = useCallback(() => {
     setSlopPromptExpanded(false);
@@ -2947,6 +2952,9 @@ ${requirementsBlock}`;
   }, [clearHoverCloseTimer]);
 
   const scheduleMenuClose = useCallback(() => {
+    if (slopPromptExpandedRef.current && slopPromptSourceRef.current === 'radial') {
+      return;
+    }
     clearHoverCloseTimer();
     hoverCloseTimerRef.current = window.setTimeout(() => {
       hoverCloseTimerRef.current = null;
