@@ -32,7 +32,7 @@ Most of the same, but skip the `buildTransformUserContent` step — the user's p
 - `packages/shared/src/diagramSchema.ts` — `TransformModeSchema`.
 - `packages/shared/src/mermaidTransformPolicy.ts` / `infographicTransformPolicy.ts` — node/edge caps if needed.
 - `apps/server/src/agents/{mermaid,infographic}LangChainAgent.js` — user-message builder, sampling.
-- `apps/server/src/routes/copilot.js` — usually no change; the route already takes `mode`.
+- `apps/server/src/routes/copilot.ts` — usually no change; the route already takes `mode`.
 - `apps/web/src/App.jsx` / `apps/web/src/components/RadialActionMenu.jsx` — UI.
 - `apps/web/src/utils/{slopitectCopy,agentChimes}.js` — feedback.
 - `apps/server/test/*`, `apps/web/test/*` — tests.

@@ -22,7 +22,7 @@ Run: `npm run check:wire`
 | Layer | Location |
 | ----- | -------- |
 | Bus schema + publish | [`apps/server/src/state/sessionEventBus.ts`](../apps/server/src/state/sessionEventBus.ts) |
-| Producer (route / MCP / tool) | Matching handler in [`copilot.js`](../apps/server/src/routes/copilot.js) or [`mcpServer.js`](../apps/server/src/mcp/mcpServer.js) |
+| Producer (route / MCP / tool) | Matching handler in [`copilot.ts`](../apps/server/src/routes/copilot.ts) or [`mcpServer.js`](../apps/server/src/mcp/mcpServer.js) |
 | Web client | [`apps/web/src/state/sessionEventsClient.js`](../apps/web/src/state/sessionEventsClient.js) |
 | MCP App bridge (if UI) | [`apps/server/src/mcp/apps/mcpAppSessionBridge.js`](../apps/server/src/mcp/apps/mcpAppSessionBridge.js) + App HTML bundle |
 | Tests | [`apps/server/test/sessionEventBus.test.js`](../apps/server/test/sessionEventBus.test.js) |
@@ -34,7 +34,7 @@ Run: `npm run check:wire`
 | ----- | -------- |
 | Schema | [`packages/shared/src/diagramSchema.ts`](../packages/shared/src/diagramSchema.ts) |
 | Inferred types | [`apps/server/src/routes/copilotRouteTypes.ts`](../apps/server/src/routes/copilotRouteTypes.ts) |
-| Route handler | [`apps/server/src/routes/copilot.js`](../apps/server/src/routes/copilot.js) |
+| Route handler | [`apps/server/src/routes/copilot.ts`](../apps/server/src/routes/copilot.ts) |
 | Web client | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js), [`App.jsx`](../apps/web/src/App.jsx) |
 | Tests | [`apps/server/test/copilotRoute.test.js`](../apps/server/test/copilotRoute.test.js), [`packages/shared/test/diagramSchema.test.ts`](../packages/shared/test/diagramSchema.test.ts) |
 

@@ -95,6 +95,16 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) | **Impact map** — if you change X, also change Y (wire contracts) |
 | [`README.md`](README.md) | Human-facing hub (links to guides below) |
 | [`docs/guide/README.md`](docs/guide/README.md) | Split human guides: setup, agents, MCP, API, config |
+| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) | Agent onboarding: read order, verification table, PR checklist |
+| [`docs/agents/sensors.md`](docs/agents/sensors.md) | Lint, dep-cruiser, verify:deps — how to read sensor output |
+
+## Documentation map
+
+| Audience | Start here |
+| --- | --- |
+| **Humans** (setup, product, API) | [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md) |
+| **Coding agents** (edits, wire contracts) | [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/) |
+| **Sensors** (lint / boundaries / deps) | [`docs/agents/sensors.md`](docs/agents/sensors.md) — canonical fix lives in the tool output |
 
 ## CopilotKit skill note
 

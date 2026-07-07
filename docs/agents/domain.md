@@ -5,7 +5,7 @@ How the engineering skills should consume this repo's domain documentation when 
 ## Before exploring, read these
 
 - **`CONTEXT.md`** at the repo root, if it exists — domain glossary and vocabulary for archislop.
-- **`GLOSSARY.md`** at the repo root — canonical terminology (product name **archislop**, dual-slot model, wire concepts).
+- **`GLOSSARY.md`** at the repo root — canonical terminology (product name **archislop**, five-slot model, wire concepts).
 - **`STRUCTURE.md`** at the repo root — concept→file index for navigation.
 - **`docs/decisions/`** — architecture decision records (ADRs). Read decisions that touch the area you're about to work in. This repo uses `docs/decisions/` (not `docs/adr/`).
 
@@ -34,4 +34,4 @@ When output names a domain concept (issue title, refactor proposal, hypothesis, 
 
 If your output contradicts an existing ADR under `docs/decisions/`, surface it explicitly rather than silently overriding:
 
-> _Contradicts [0001 dual-slot](docs/decisions/0001-dual-slot-mermaid-infographic.md) — but worth reopening because…_
+> _Contradicts [0001 dual-slot](docs/decisions/0001-dual-slot-mermaid-infographic.md) (historical — session state now has five slots) — but worth reopening because…_

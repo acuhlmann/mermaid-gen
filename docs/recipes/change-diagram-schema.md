@@ -21,5 +21,5 @@ See [`docs/agent-blast-radius.md`](../agent-blast-radius.md) — HTTP / Zod body
 
 ## Don't forget
 
-- Dual-slot model: many fields are per `contentType` (`mermaid` | `infographic`). Patches must target the correct slot.
+- Multi-slot model: fields are per `contentType` (`mermaid` | `infographic` | `metaphor3d` | `chart` | `anything`). Patches must target the correct slot.
 - External agents over MCP use the same session state; MCP tools may need updates in `apps/server/src/mcp/mcpServer.js` (or extracted tool modules).

@@ -60,4 +60,5 @@ Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`]
 
 - [`AGENTS.md`](../../AGENTS.md) — full operator manual
 - [`CLAUDE.md`](../../CLAUDE.md) — short agent quick-reference
+- [`docs/agents/sensors.md`](../agents/sensors.md) — lint, dep-cruiser, and formatter guidance
 - [`change-diagram-schema.md`](../recipes/change-diagram-schema.md) — schema change playbook

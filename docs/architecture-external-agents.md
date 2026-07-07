@@ -331,5 +331,5 @@ Set `ARCHISLOP_WEB_URL` (or `PUBLIC_BASE_URL`) so `webCanvasUrl` points at the V
 | MCP server + tools | [`apps/server/src/mcp/mcpServer.js`](../apps/server/src/mcp/mcpServer.js) |
 | Accept / reject / handshake | [`apps/server/src/mcp/mcpCollaborationActions.js`](../apps/server/src/mcp/mcpCollaborationActions.js) |
 | MCP App HTML | [`apps/server/src/mcp/apps/`](../apps/server/src/mcp/apps/) |
-| Invite + install links | [`apps/server/src/routes/copilot.js`](../apps/server/src/routes/copilot.js) (`/invite`) |
+| Invite + install links | [`apps/server/src/routes/copilot.ts`](../apps/server/src/routes/copilot.ts) (`/invite`) |
 | Stores | `agentHandshakeStore`, `agentProposalStore`, `agentPresenceStore`, `insightStore`, `pairingCodeStore` under `apps/server/src/state/` |
