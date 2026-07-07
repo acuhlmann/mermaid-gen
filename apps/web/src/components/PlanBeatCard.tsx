@@ -94,13 +94,17 @@ export default function PlanBeatCard({
   if (!text) return null;
 
   const icon = VARIANT_ICONS[variant] ?? VARIANT_ICONS.general;
-  const steps = splitPlanSteps(text);
+
+  // Detect an embedded diagram DSL across the whole beat before splitting it into
+  // steps: multi-line DSL (metaphor/chart JSON, HTML, Mermaid) would otherwise be
+  // shredded into one "step" per line and shown as raw code instead of a preview.
+  const wholePreview = tryExtractDiagramPreviewFromText(text);
+  const steps = wholePreview ? splitPlanSteps(wholePreview.prose ?? '') : splitPlanSteps(text);
   const multiStep = steps.length > 1;
-  const singlePreview = !multiStep ? tryExtractDiagramPreviewFromText(text) : null;
 
   return (
     <li
-      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}${singlePreview ? ' has-diagram-preview' : ''}`}
+      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}${wholePreview ? ' has-diagram-preview' : ''}`}
       data-testid="plan-beat-card"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
@@ -111,7 +115,43 @@ export default function PlanBeatCard({
         <span className={`insights-plan-card-badge is-${source}`}>
           {source === 'agent' ? 'Agent' : 'Plan'}
         </span>
-        {multiStep ? (
+        {wholePreview ? (
+          <div className="insights-plan-card-preview">
+            {steps.length > 0 ? (
+              multiStep ? (
+                <ol className="insights-plan-card-steps">
+                  {steps.map((step, stepIndex) => (
+                    <li
+                      key={`plan-${index}-step-${stepIndex}`}
+                      className={[
+                        'insights-plan-card-step',
+                        isVisualStepLine(step) ? 'insights-step-card' : ''
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <span className="insights-plan-card-step-marker" aria-hidden="true">
+                        {stepIndex + 1}
+                      </span>
+                      <span className="insights-plan-card-step-text">
+                        {enrichInline(step, `plan-${index}-${stepIndex}`)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <p className="insights-plan-card-text">
+                  {enrichInline(steps[0], `plan-${index}-prose`)}
+                </p>
+              )
+            ) : null}
+            <InsightsEmbeddedDiagram
+              idPrefix={`plan-${index}`}
+              source={wholePreview.source}
+              kind={wholePreview.kind}
+            />
+          </div>
+        ) : multiStep ? (
           <ol className="insights-plan-card-steps">
             {steps.map((step, stepIndex) => {
               const preview = tryExtractDiagramPreviewFromText(step);
@@ -136,19 +176,6 @@ export default function PlanBeatCard({
               );
             })}
           </ol>
-        ) : singlePreview ? (
-          <div className="insights-plan-card-preview">
-            {singlePreview.prose ? (
-              <p className="insights-plan-card-text">
-                {enrichInline(singlePreview.prose, `plan-${index}-prose`)}
-              </p>
-            ) : null}
-            <InsightsEmbeddedDiagram
-              idPrefix={`plan-${index}`}
-              source={singlePreview.source}
-              kind={singlePreview.kind}
-            />
-          </div>
         ) : (
           <p className="insights-plan-card-text">{enrichInline(text, `plan-${index}`)}</p>
         )}
