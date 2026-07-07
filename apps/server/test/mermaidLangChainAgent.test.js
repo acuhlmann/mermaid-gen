@@ -48,15 +48,23 @@ test('agent message conversion drops assistant replies that expose internal tool
 });
 
 test('transform mode picks increasing temperatures', () => {
-  assert.ok(transformModeModelOptions('refine').temperature < transformModeModelOptions('innovate').temperature);
-  assert.ok(transformModeModelOptions('innovate').temperature < transformModeModelOptions('goMad').temperature);
+  assert.ok(
+    transformModeModelOptions('refine').temperature <
+      transformModeModelOptions('innovate').temperature
+  );
+  assert.ok(
+    transformModeModelOptions('innovate').temperature <
+      transformModeModelOptions('goMad').temperature
+  );
   assert.ok(transformModeModelOptions('goMad').temperature > 1.45);
   assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
   assert.equal(transformModeModelOptions('goMad').maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
   assert.ok(GO_MAD_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
   // exec is the focused, subtractive mode — lower temperature than refine so the
   // VP doesn't get creative and start adding boxes.
-  assert.ok(transformModeModelOptions('exec').temperature < transformModeModelOptions('refine').temperature);
+  assert.ok(
+    transformModeModelOptions('exec').temperature < transformModeModelOptions('refine').temperature
+  );
   assert.equal(transformModeModelOptions('exec').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
 });
 
@@ -78,28 +86,56 @@ test('clampGoMadDepth coerces and clamps', () => {
 });
 
 test('inferMermaidTopKeyword skips init comments', () => {
-  assert.equal(inferMermaidTopKeyword('%%{init:{"theme":"dark"}}%%\nflowchart TD\n  A --> B'), 'flowchart');
+  assert.equal(
+    inferMermaidTopKeyword('%%{init:{"theme":"dark"}}%%\nflowchart TD\n  A --> B'),
+    'flowchart'
+  );
   assert.equal(inferMermaidTopKeyword('sequenceDiagram\n  Alice->>Bob: hi'), 'sequenceDiagram');
 });
 
 test('buildTransformUserContent adds escalation for goMad depth >= 2', () => {
   const src = 'flowchart TD\n  A --> B';
   const focus = '';
-  const shallow = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 1 });
+  const shallow = buildTransformUserContent({
+    mode: 'goMad',
+    diagramSource: src,
+    focusScope: focus,
+    goMadDepth: 1
+  });
   assert.doesNotMatch(shallow, /GO MAD escalation/);
 
-  const deep = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 2 });
+  const deep = buildTransformUserContent({
+    mode: 'goMad',
+    diagramSource: src,
+    focusScope: focus,
+    goMadDepth: 2
+  });
   assert.match(deep, /GO MAD escalation \(tier 2\)/);
   assert.match(deep, /MUST NOT stay "flowchart"/);
   assert.match(deep, /gitGraph/);
 
-  const tier5 = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 5 });
+  const tier5 = buildTransformUserContent({
+    mode: 'goMad',
+    diagramSource: src,
+    focusScope: focus,
+    goMadDepth: 5
+  });
   assert.match(tier5, /one coherent geek joke/i);
 
-  const tier6 = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 6 });
+  const tier6 = buildTransformUserContent({
+    mode: 'goMad',
+    diagramSource: src,
+    focusScope: focus,
+    goMadDepth: 6
+  });
   assert.match(tier6, /wrong-tool/i);
 
-  const tier4 = buildTransformUserContent({ mode: 'goMad', diagramSource: src, focusScope: focus, goMadDepth: 4 });
+  const tier4 = buildTransformUserContent({
+    mode: 'goMad',
+    diagramSource: src,
+    focusScope: focus,
+    goMadDepth: 4
+  });
   assert.match(tier4, /≥3|THREE/i);
 });
 
@@ -164,8 +200,16 @@ test('applyTransformIntent uses hotter transform model for goMad', async () => {
     goMadDepth: 3
   });
 
-  assert.ok(modelOptions.some((options) => options.temperature === goMadTransformModelOptions(3).temperature));
-  assert.ok(modelOptions.some((options) => options.temperature > transformModeModelOptions('goMad').temperature));
+  assert.ok(
+    modelOptions.some(
+      (options) => options.temperature === goMadTransformModelOptions(3).temperature
+    )
+  );
+  assert.ok(
+    modelOptions.some(
+      (options) => options.temperature > transformModeModelOptions('goMad').temperature
+    )
+  );
   assert.ok(modelOptions.some((options) => options.maxTokens === GO_MAD_TRANSFORM_MAX_TOKENS));
 });
 
@@ -175,14 +219,26 @@ test('resolveOpenRouterModelId maps profiles and env overrides', () => {
     OPENROUTER_MODEL: 'fallback-model'
   };
   assert.equal(resolveOpenRouterModelId(base, 'fast'), 'fallback-model');
-  assert.equal(resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_FAST: 'mini' }, 'fast'), 'mini');
+  assert.equal(
+    resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_FAST: 'mini' }, 'fast'),
+    'mini'
+  );
   assert.equal(resolveOpenRouterModelId(base, 'quality'), 'fallback-model');
   assert.equal(
-    resolveOpenRouterModelId({ ...base, OPENROUTER_MODEL_QUALITY: 'anthropic/claude-3.5-sonnet' }, 'quality'),
+    resolveOpenRouterModelId(
+      { ...base, OPENROUTER_MODEL_QUALITY: 'anthropic/claude-3.5-sonnet' },
+      'quality'
+    ),
     'anthropic/claude-3.5-sonnet'
   );
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'fast'), DEFAULT_OPENROUTER_MODEL_FAST);
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'quality'), DEFAULT_OPENROUTER_MODEL_QUALITY);
+  assert.equal(
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'fast'),
+    DEFAULT_OPENROUTER_MODEL_FAST
+  );
+  assert.equal(
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'quality'),
+    DEFAULT_OPENROUTER_MODEL_QUALITY
+  );
   assert.equal(
     resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k', K_SERVICE: 'my-service' }, 'fast'),
     DEFAULT_OPENROUTER_MODEL_FAST
@@ -299,7 +355,7 @@ test('applyIntent with requirePatch passes mutation system message before diagra
     async invoke(payload) {
       capturedMessages = payload.messages;
       await stateStore.applyDiagramSource({
-        contentType: "mermaid",
+        contentType: 'mermaid',
         diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
         reason: 'test patch'
       });
@@ -408,7 +464,7 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
       }
 
       await stateStore.applyDiagramSource({
-        contentType: "mermaid",
+        contentType: 'mermaid',
         diagramSource: 'flowchart TD\n  Start[Start] --> Gateway[Gateway]',
         reason: 'retry success'
       });
@@ -431,11 +487,43 @@ test('agent invoke performs bounded repair retry after syntax failure', async ()
     });
 
     assert.equal(callCount, 2);
-    assert.equal(stateStore.getSlot("mermaid").revisionId, 1);
+    assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
     assert.match(result.message, /gateway/i);
   } finally {
     process.env.MERMAID_REPAIR_MAX_ATTEMPTS = originalAttempts;
   }
+});
+
+test('exhausted repair loop reports the validator root cause, not model prose', async () => {
+  const stateStore = createDiagramStateStore();
+  const parserError =
+    "Mermaid parser rejected source: Parse error on line 7:\nExpecting 'TAGEND', got 'SQS'";
+  const fakeAgent = {
+    async invoke() {
+      return {
+        messages: [
+          { role: 'tool', content: JSON.stringify({ accepted: false, error: parserError }) },
+          { role: 'assistant', content: 'I tried my best, here is a summary of the diagram.' }
+        ]
+      };
+    }
+  };
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    env: { OPENROUTER_API_KEY: 'test-key', MERMAID_REPAIR_MAX_ATTEMPTS: '1' },
+    chatModelFactory: () => ({}),
+    createAgentImpl: () => fakeAgent
+  });
+
+  const result = await service.invoke({
+    messages: [{ role: 'user', content: 'add gateway' }]
+  });
+
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 0, 'no patch should have landed');
+  assert.match(result.message, /Diagram update failed:/);
+  assert.match(result.message, /Parse error on line 7/);
+  assert.equal(result.metadata?.error, parserError);
 });
 
 test('transform patch_retry uses the stable fast agent, not the hot transform agent', async () => {
@@ -458,7 +546,7 @@ test('transform patch_retry uses the stable fast agent, not the hot transform ag
     async invoke() {
       stableCalls += 1;
       await stateStore.applyDiagramSource({
-        contentType: "mermaid",
+        contentType: 'mermaid',
         diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
         reason: 'stable fallback patch'
       });
@@ -481,7 +569,7 @@ test('transform patch_retry uses the stable fast agent, not the hot transform ag
 
   assert.equal(hotCalls, 1, 'hot agent should run exactly once (first turn)');
   assert.equal(stableCalls, 1, 'stable agent should handle the patch_retry');
-  assert.equal(stateStore.getSlot("mermaid").revisionId, 1);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
   assert.match(result.message, /stable fallback/i);
 });
 
@@ -523,7 +611,8 @@ test('transform syntax repair uses the stable fast agent after a quality failure
     stateStore,
     env: { OPENROUTER_API_KEY: 'test-key', MERMAID_REPAIR_MAX_ATTEMPTS: '1' },
     chatModelFactory: (_e, options) => ({
-      __profile: typeof options.temperature === 'number' && options.temperature > 0.5 ? 'hot' : 'stable'
+      __profile:
+        typeof options.temperature === 'number' && options.temperature > 0.5 ? 'hot' : 'stable'
     }),
     createAgentImpl: (opts) => (opts.model?.__profile === 'hot' ? hotAgent : stableAgent)
   });
@@ -552,8 +641,9 @@ test('transform retries once when the model returns prose without applying a pat
       }
 
       await stateStore.applyDiagramSource({
-        contentType: "mermaid",
-        diagramSource: 'flowchart TD\n  Start[Start] --> Portal[Wild Portal]\n  Portal --> EndNode[End]',
+        contentType: 'mermaid',
+        diagramSource:
+          'flowchart TD\n  Start[Start] --> Portal[Wild Portal]\n  Portal --> EndNode[End]',
         reason: 'forced patch success'
       });
       return {
@@ -574,7 +664,7 @@ test('transform retries once when the model returns prose without applying a pat
   });
 
   assert.equal(callCount, 2);
-  assert.equal(stateStore.getSlot("mermaid").revisionId, 1);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
   assert.match(result.message, /valid wild extension/i);
 });
 
@@ -688,7 +778,7 @@ test('emitIntentTransformStreamResult uses infographic slot when contentType is 
 test('emitIntentTransformStreamResult emits only final when revision advances', async () => {
   const stateStore = createDiagramStateStore();
   await stateStore.applyDiagramSource({
-        contentType: "mermaid",
+    contentType: 'mermaid',
     diagramSource: 'flowchart TD\n  A[Start] --> B[End]',
     reason: 'test'
   });

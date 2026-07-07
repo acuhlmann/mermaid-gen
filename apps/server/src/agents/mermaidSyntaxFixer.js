@@ -43,9 +43,17 @@ function formatPreviousAttempts(previousAttempts) {
  * Returns `{ accepted: true, diagramSource }` when a corrected diagram passes
  * `validateMermaidStrict`, otherwise `{ accepted: false, error }`.
  *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
  */
-export async function repairMermaidWithFixer({ brokenSource, parseError, originalRequest, previousAttempts, env, modelOverride } = {}) {
+export async function repairMermaidWithFixer({
+  brokenSource,
+  parseError,
+  originalRequest,
+  previousAttempts,
+  env,
+  modelOverride,
+  abortSignal
+} = {}) {
   if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
     return { accepted: false, error: 'No broken source provided.' };
   }
@@ -72,7 +80,10 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
 
   let response;
   try {
-    response = await model.invoke([new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)]);
+    response = await model.invoke(
+      [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(userContent)],
+      abortSignal ? { signal: abortSignal } : undefined
+    );
   } catch (error) {
     return {
       accepted: false,

@@ -29,10 +29,14 @@ import { repairChartWithFixer, isChartSyntaxFixerAvailable } from './chartSyntax
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import {
+  appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
+  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
+  MIN_SYNTAX_FIXER_BUDGET_MS,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
+import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 import {
   buildChartAnalyzeFocusInstructions,
   buildChartFocusScopeInstructions
@@ -91,7 +95,9 @@ function extractOriginalRequest(userMessages) {
   for (const m of userMessages) {
     if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
     const text =
-      typeof m?.content === 'string' ? m.content : extractTextContent(m?.content ?? m?.kwargs?.content);
+      typeof m?.content === 'string'
+        ? m.content
+        : extractTextContent(m?.content ?? m?.kwargs?.content);
     if (text && text.trim()) return text.trim();
   }
   return null;
@@ -123,8 +129,10 @@ export function buildChartTransformUserContent({
   focusScope
 }) {
   const modeInstructions = {
-    refine: 'Refine the current chart — improve mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
-    innovate: 'Innovate on the current chart — try a different mark/encoding combination or reshape the data presentation. You may switch chart families.',
+    refine:
+      'Refine the current chart — improve mark choice, encoding clarity, color accessibility, and data ordering. Keep the same data and chart family unless a small swap clearly serves the story.',
+    innovate:
+      'Innovate on the current chart — try a different mark/encoding combination or reshape the data presentation. You may switch chart families.',
     goMad: `Go mad on this chart — push the data viz further (depth ${goMadDepth ?? 1}). Layered marks, faceted views, exaggerated encodings.`,
     exec: 'Execute the requested change tightly. No additions beyond the implied scope.'
   };
@@ -245,6 +253,13 @@ export function createChartLangChainAgent({
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'chart');
     const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
     const turnStarted = Date.now();
+    // Every model turn shares this deadline-capped signal so an in-flight call cannot
+    // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
+    const runSignal = createRunDeadlineSignal({
+      abortSignal,
+      budgetMs: runBudgetMs,
+      startedAt: turnStarted
+    });
     const beforeRevision = stateStore.getSlot('chart').revisionId;
     const originalRequest = extractOriginalRequest(userMessages);
 
@@ -255,11 +270,15 @@ export function createChartLangChainAgent({
     let syntaxFixerTried = false;
     const agent = buildAgent(runProfile);
 
-    const stopReason = () => {
+    /**
+     * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
+     * starting work that cannot finish inside the budget only delays the failure.
+     */
+    const stopReason = (minRemainingMs = 0) => {
       if (abortSignal?.aborted) {
         return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
       }
-      if (Date.now() - turnStarted >= runBudgetMs) {
+      if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
         return {
           code: 'run_budget_exceeded',
           message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
@@ -269,14 +288,16 @@ export function createChartLangChainAgent({
     };
 
     const finishStoppedRun = (reason) => {
-      lastError = reason.message;
+      // Keep the last validator diagnostic in the failure message so the UI shows WHY the
+      // run ran out of time (what was invalid in the DSL), not just that it timed out.
+      const message = appendLastValidationError(reason.message, lastError);
       if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-        emit({ type: 'error', code: reason.code, message: reason.message });
+        emit({ type: 'error', code: reason.code, message });
       }
       return {
-        message: lastError,
+        message,
         raw: lastResult,
-        metadata: { agent: 'chart', error: lastError, code: reason.code }
+        metadata: { agent: 'chart', error: lastError ?? null, code: reason.code }
       };
     };
 
@@ -293,7 +314,7 @@ export function createChartLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      const stop = stopReason();
+      const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
         if (attempt > 0) {
@@ -313,8 +334,13 @@ export function createChartLangChainAgent({
         });
       }
 
-      const result = await invokeAgentStream({ agent, messages, abortSignal, emit });
+      const result = await invokeAgentStream({ agent, messages, abortSignal: runSignal, emit });
       if (result?.error) {
+        // A deadline/user abort surfaces as a stream error — finish with the proper
+        // stop reason (which carries the last validator diagnostic) instead of the
+        // bare "aborted" message.
+        const abortStop = stopReason();
+        if (abortStop) return finishStoppedRun(abortStop);
         lastError = result.error;
         if (typeof emit === 'function') emit({ type: 'error', message: lastError });
         break;
@@ -372,7 +398,7 @@ export function createChartLangChainAgent({
           extractLastAttemptedToolSource(result, 'apply_chart_patch') || lastBrokenSource;
 
         if (!syntaxFixerTried && lastBrokenSource && isChartSyntaxFixerAvailable(env)) {
-          const fixerStop = stopReason();
+          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
           if (typeof emit === 'function') {
@@ -387,7 +413,8 @@ export function createChartLangChainAgent({
             brokenSource: lastBrokenSource,
             parseError: failureError,
             originalRequest,
-            env
+            env,
+            abortSignal: runSignal
           });
           if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
             const applied = await stateStore.applyDiagramSource({

@@ -29,18 +29,39 @@ export {
 
 const DIAGRAM_CACHE_STORAGE_KEY = 'archislop:diagram-cache-v2';
 const AGENT_REQUEST_TIMEOUT_MS = 60_000;
+
+/**
+ * Timeout for REST mutation requests (intent/transform) that run a full server-side agent
+ * loop. Must exceed the server's run budget for the profile — a flat 60s would abort Fast
+ * runs client-side at 60s while the server is allowed 75s, producing spurious
+ * "request timed out" failures with no root cause.
+ */
+function agentMutationTimeoutMs(modelProfile, mode = null) {
+  return resolveAgentRunBudgetMs(modelProfile, {}, mode) + AGENT_STREAM_MAX_DURATION_GRACE_MS;
+}
 /** Max gap between SSE events before we treat the stream as hung and abort. Resets on every event. */
 const AGENT_STREAM_IDLE_TIMEOUT_MS = 60_000;
-const AGENT_STREAM_MAX_DURATION_GRACE_MS = 5_000;
+/**
+ * Extra headroom past the server's run budget before the client force-aborts the stream.
+ * The server now enforces its own deadline (aborting in-flight model turns) and emits a
+ * `run_budget_exceeded` error that carries the last validator diagnostic — give it time
+ * to do that instead of racing it with a client-side abort that loses the root cause.
+ */
+const AGENT_STREAM_MAX_DURATION_GRACE_MS = 15_000;
 
 function throwApiPayloadError(payload, fallback) {
-  const text = [payload?.error, payload?.message, payload?.details].filter(Boolean).join('\n').trim();
+  const text = [payload?.error, payload?.message, payload?.details]
+    .filter(Boolean)
+    .join('\n')
+    .trim();
   throw new Error(text || fallback);
 }
 
 function getDiagramCacheKey(sessionId) {
   const normalizedSessionId = normalizeSessionId(sessionId);
-  return normalizedSessionId ? `${DIAGRAM_CACHE_STORAGE_KEY}:${normalizedSessionId}` : DIAGRAM_CACHE_STORAGE_KEY;
+  return normalizedSessionId
+    ? `${DIAGRAM_CACHE_STORAGE_KEY}:${normalizedSessionId}`
+    : DIAGRAM_CACHE_STORAGE_KEY;
 }
 
 export function readDiagramCache(sessionId) {
@@ -138,7 +159,8 @@ function isSlotPristine(slot) {
 export function isDiagramCacheSubstantial(cache) {
   if (!cache || typeof cache !== 'object') return false;
   if (Array.isArray(cache.insightsEntries) && cache.insightsEntries.length > 0) return true;
-  if (typeof cache.latestCritique?.text === 'string' && cache.latestCritique.text.trim()) return true;
+  if (typeof cache.latestCritique?.text === 'string' && cache.latestCritique.text.trim())
+    return true;
   const src = typeof cache.diagramSource === 'string' ? cache.diagramSource.trim() : '';
   if (!src) return false;
   const initial = createInitialDiagramState('mermaid');
@@ -224,8 +246,10 @@ export function normalizeFetchedSessionDiagram(payload) {
   return {
     activeContentType: activeFromPayload,
     mermaid: m && typeof m === 'object' && typeof m.diagramSource === 'string' ? m : base.mermaid,
-    infographic: i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic,
-    metaphor3d: p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d,
+    infographic:
+      i && typeof i === 'object' && typeof i.diagramSource === 'string' ? i : base.infographic,
+    metaphor3d:
+      p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d,
     chart: c && typeof c === 'object' && typeof c.diagramSource === 'string' ? c : base.chart,
     anything: a && typeof a === 'object' && typeof a.diagramSource === 'string' ? a : base.anything
   };
@@ -371,7 +395,12 @@ export function isSlotInSyncForTopic(slot, candidate) {
  *
  * @param {Record<string, { peerMode: string, peerRevisionId: number, targetRevisionId: number } | null> | null | undefined} syncMarkers
  */
-export function peerRequiresModeSwitchTranslation({ contentMode, session, candidate, syncMarkers }) {
+export function peerRequiresModeSwitchTranslation({
+  contentMode,
+  session,
+  candidate,
+  syncMarkers
+}) {
   if (!isPeerSlotAhead({ contentMode, session, candidate })) return false;
 
   const target = session[contentMode];
@@ -513,7 +542,12 @@ export function shouldAutoSubmitModeSwitchIntent({
   return !newSlotInSync;
 }
 
-export async function syncClientDiagramState({ contentType = 'mermaid', diagramSource, styleConfig, sessionId }) {
+export async function syncClientDiagramState({
+  contentType = 'mermaid',
+  diagramSource,
+  styleConfig,
+  sessionId
+}) {
   const response = await fetch(`${API_BASE_URL}/api/copilotkit/state`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
@@ -587,7 +621,7 @@ export async function submitDiagramIntent({
         ...(modelProfile != null ? { modelProfile } : {})
       })
     },
-    AGENT_REQUEST_TIMEOUT_MS,
+    agentMutationTimeoutMs(modelProfile),
     'Helper agent request timed out. Please try again.'
   );
 
@@ -624,7 +658,7 @@ export async function submitDiagramTransform({
         ...(typeof goMadDepth === 'number' && Number.isFinite(goMadDepth) ? { goMadDepth } : {})
       })
     },
-    AGENT_REQUEST_TIMEOUT_MS,
+    agentMutationTimeoutMs(modelProfile, mode),
     'Transform agent request timed out. Please try again.'
   );
 
@@ -692,7 +726,13 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
   let maxDurationTimedOut = false;
   let idleTimer = null;
   let maxDurationTimer = null;
-  const runBudgetMs = resolveAgentRunBudgetMs(wirePayload.modelProfile);
+  // Mirror the server's budget, including per-mode headroom (Go Mad runs get a longer
+  // server budget; without the mode here the client would abort those runs early).
+  const runBudgetMs = resolveAgentRunBudgetMs(
+    wirePayload.modelProfile,
+    {},
+    typeof wirePayload.mode === 'string' ? wirePayload.mode : null
+  );
   const maxDurationMs = runBudgetMs + AGENT_STREAM_MAX_DURATION_GRACE_MS;
   const armIdleTimer = () => {
     if (idleTimer != null) clearTimeout(idleTimer);
@@ -730,7 +770,9 @@ export async function streamDiagramAgent(payload, onEvent, options = {}) {
 
   const isAbortError = (err) =>
     err?.name === 'AbortError' ||
-    (typeof DOMException !== 'undefined' && err instanceof DOMException && err.name === 'AbortError');
+    (typeof DOMException !== 'undefined' &&
+      err instanceof DOMException &&
+      err.name === 'AbortError');
 
   const translate = createAgUiTranslator();
 

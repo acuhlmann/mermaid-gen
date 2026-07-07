@@ -119,6 +119,12 @@ export async function streamReactAgentEvents({
       }
     }
   } catch (error) {
+    // Abort (user stop or run-deadline) must propagate: emitting it here would send a
+    // terminal RUN_ERROR with a bare "aborted" message and the caller's follow-up
+    // budget-exceeded error (which carries the real validator diagnostic) would be dropped.
+    if (abortSignal?.aborted) {
+      throw error;
+    }
     emit({
       type: 'error',
       message: redactSecrets(error instanceof Error ? error.message : String(error))

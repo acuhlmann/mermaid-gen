@@ -41,12 +41,16 @@ export function extractLastAttemptedMermaidSource(result) {
   return extractLastAttemptedToolSource(result, 'apply_mermaid_patch');
 }
 import {
+  appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
   inferMermaidTopKeyword,
   isMermaidTransformConstraintError,
+  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
+  MIN_SYNTAX_FIXER_BUDGET_MS,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
+import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 import {
   createLlmChatModel,
   createOpenRouterModel,
@@ -189,7 +193,12 @@ export function shouldAttemptSyntaxRepair(errorMessage) {
   );
 }
 
-export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSource, previousAttempts }) {
+export function buildSyntaxRepairInstruction({
+  messages,
+  errorMessage,
+  brokenSource,
+  previousAttempts
+}) {
   const originalRequest = toLangChainMessages(messages)
     .filter((message) => message.role === 'user')
     .map((message) => message.content)
@@ -198,20 +207,23 @@ export function buildSyntaxRepairInstruction({ messages, errorMessage, brokenSou
 
   const diagramType = inferDiagramType(brokenSource ?? '');
   const rulePack = getRulePack(diagramType);
-  const typeHint = diagramType ? `Detected diagram type: ${diagramType}.` : 'Diagram type unknown — pick a fitting Mermaid type.';
+  const typeHint = diagramType
+    ? `Detected diagram type: ${diagramType}.`
+    : 'Diagram type unknown — pick a fitting Mermaid type.';
   const brokenBlock = brokenSource
     ? `\n\nBroken Mermaid source from your previous attempt:\n\`\`\`mermaid\n${brokenSource.trim()}\n\`\`\``
     : '';
-  const priorBlock = Array.isArray(previousAttempts) && previousAttempts.length > 0
-    ? `\n\nPrior failed attempts in this repair loop (don't repeat the same mistake — try a different fix):\n${previousAttempts
-        .slice(-2)
-        .map((entry, index) => {
-          const err = (entry?.error ?? '').toString().trim().slice(0, 300);
-          const src = (entry?.source ?? '').toString().trim();
-          return `Attempt ${index + 1} (error: ${err}):\n\`\`\`mermaid\n${src}\n\`\`\``;
-        })
-        .join('\n\n')}`
-    : '';
+  const priorBlock =
+    Array.isArray(previousAttempts) && previousAttempts.length > 0
+      ? `\n\nPrior failed attempts in this repair loop (don't repeat the same mistake — try a different fix):\n${previousAttempts
+          .slice(-2)
+          .map((entry, index) => {
+            const err = (entry?.error ?? '').toString().trim().slice(0, 300);
+            const src = (entry?.source ?? '').toString().trim();
+            return `Attempt ${index + 1} (error: ${err}):\n\`\`\`mermaid\n${src}\n\`\`\``;
+          })
+          .join('\n\n')}`
+      : '';
 
   return {
     role: 'user',
@@ -377,6 +389,13 @@ async function invokeWithRepair(
   const turnStarted = Date.now();
   const runProfile = normalizeModelProfile(profile);
   const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
+  // Every model turn shares this deadline-capped signal so an in-flight call cannot
+  // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
+  const runSignal = createRunDeadlineSignal({
+    abortSignal,
+    budgetMs: runBudgetMs,
+    startedAt: turnStarted
+  });
   let repairAttempts = 0;
   /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
   const finishTurn = (sample) => {
@@ -396,7 +415,11 @@ async function invokeWithRepair(
     );
   };
 
-  const stopReason = () => {
+  /**
+   * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
+   * starting a unit of work that cannot finish inside the budget only delays the failure.
+   */
+  const stopReason = (minRemainingMs = 0) => {
     if (abortSignal?.aborted) {
       return {
         code: 'run_aborted',
@@ -404,7 +427,7 @@ async function invokeWithRepair(
         errorClass: 'run-aborted'
       };
     }
-    if (Date.now() - turnStarted >= runBudgetMs) {
+    if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
       return {
         code: 'run_budget_exceeded',
         message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
@@ -414,12 +437,15 @@ async function invokeWithRepair(
     return null;
   };
 
-  const finishStoppedRun = (reason, raw = null) => {
+  const finishStoppedRun = (reason, raw = null, lastValidationError = null) => {
+    // Carry the last validator diagnostic into the failure message so the UI can show
+    // WHY the run ran out of time (what was invalid), not just that it timed out.
+    const message = appendLastValidationError(reason.message, lastValidationError);
     if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-      emit({ type: 'error', code: reason.code, message: reason.message });
+      emit({ type: 'error', code: reason.code, message });
     }
     finishTurn({ accepted: false, errorClass: reason.errorClass });
-    return { message: reason.message, raw };
+    return { message, raw, metadata: { error: lastValidationError ?? null, code: reason.code } };
   };
 
   const initialStop = stopReason();
@@ -447,12 +473,14 @@ async function invokeWithRepair(
       inputMessages: baseMessages,
       emit,
       env,
-      abortSignal,
+      abortSignal: runSignal,
       patchToolName: 'apply_mermaid_patch',
       contentType: 'mermaid',
       emitDraftPreview: false
     });
   } catch (error) {
+    const stop = stopReason();
+    if (stop) return finishStoppedRun(stop);
     finishTurn({ accepted: false, errorClass: 'invoke-error' });
     return formatAgentInvokeFailure(error, env);
   }
@@ -479,7 +507,7 @@ async function invokeWithRepair(
     const retryAgent = stableAgent ?? agent;
     const usingStable = retryAgent !== agent;
     try {
-      const retryStop = stopReason();
+      const retryStop = stopReason(MIN_AGENT_REPAIR_TURN_BUDGET_MS);
       if (retryStop) return finishStoppedRun(retryStop, firstResult);
       if (typeof emit === 'function') {
         emitPlanBeat(
@@ -502,14 +530,17 @@ async function invokeWithRepair(
         inputMessages: [...baseMessages, buildPatchRequiredInstruction({ messages })],
         emit,
         env,
-        abortSignal,
+        abortSignal: runSignal,
         patchToolName: 'apply_mermaid_patch',
         contentType: 'mermaid',
         emitDraftPreview: false
       });
       if (stateStore.getSlot('mermaid').revisionId !== beforeRevision) {
         emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
-        finishTurn({ accepted: true, validator: usingStable ? 'patch-retry-stable' : 'patch-retry' });
+        finishTurn({
+          accepted: true,
+          validator: usingStable ? 'patch-retry-stable' : 'patch-retry'
+        });
         return {
           message: extractFinalMessage(patchRetryResult),
           raw: patchRetryResult
@@ -521,6 +552,8 @@ async function invokeWithRepair(
         raw: patchRetryResult
       };
     } catch (error) {
+      const stop = stopReason();
+      if (stop) return finishStoppedRun(stop, firstResult);
       finishTurn({ accepted: false, errorClass: 'invoke-error' });
       return formatAgentInvokeFailure(error, env);
     }
@@ -529,8 +562,9 @@ async function invokeWithRepair(
   if (!shouldAttemptSyntaxRepair(firstError)) {
     finishTurn({ accepted: false, errorClass: classifyAgentTurnError(firstError) });
     return {
-      message: firstMessage,
-      raw: firstResult
+      message: firstError ? `Diagram update failed: ${firstError}` : firstMessage,
+      raw: firstResult,
+      metadata: { error: firstError ?? null }
     };
   }
 
@@ -549,8 +583,8 @@ async function invokeWithRepair(
   // for safety) and short-circuit the agent loop.
   if (brokenSource && isSyntaxFixerAvailable(env)) {
     try {
-      const fixerStop = stopReason();
-      if (fixerStop) return finishStoppedRun(fixerStop, firstResult);
+      const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
+      if (fixerStop) return finishStoppedRun(fixerStop, firstResult, latestError);
       repairAttempts += 1;
       if (typeof emit === 'function') {
         emitPlanBeat(
@@ -564,7 +598,8 @@ async function invokeWithRepair(
         brokenSource,
         parseError: latestError,
         originalRequest,
-        env
+        env,
+        abortSignal: runSignal
         // No previousAttempts on first fixer call — this is the first repair pass.
       });
       if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
@@ -579,7 +614,10 @@ async function invokeWithRepair(
           return {
             message: firstMessage || 'Done.',
             raw: firstResult,
-            metadata: { repairedBy: 'syntax-fixer', diagramType: fixerOutcome.metadata?.diagramType ?? null }
+            metadata: {
+              repairedBy: 'syntax-fixer',
+              diagramType: fixerOutcome.metadata?.diagramType ?? null
+            }
           };
         }
         // Fixer's source was valid in isolation but the state store rejected it (unlikely);
@@ -603,16 +641,23 @@ async function invokeWithRepair(
     repairAttempts += 1;
     let retryResult;
     try {
-      const repairStop = stopReason();
-      if (repairStop) return finishStoppedRun(repairStop, latestResult);
+      const repairStop = stopReason(MIN_AGENT_REPAIR_TURN_BUDGET_MS);
+      if (repairStop) return finishStoppedRun(repairStop, latestResult, latestError);
       if (typeof emit === 'function') {
         emitPlanBeat(
           emit,
           `Repairing invalid Mermaid while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
           'server'
         );
-        emit({ type: 'phase', id: 'syntax_repair', label: `Syntax repair (attempt ${attempt} of ${maxRepairAttempts})…` });
-        emit({ type: 'status', text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})…` });
+        emit({
+          type: 'phase',
+          id: 'syntax_repair',
+          label: `Syntax repair (attempt ${attempt} of ${maxRepairAttempts})…`
+        });
+        emit({
+          type: 'status',
+          text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})…`
+        });
       }
       retryResult = await runAgentTurn({
         agent: repairAgent,
@@ -627,12 +672,14 @@ async function invokeWithRepair(
         ],
         emit,
         env,
-        abortSignal,
+        abortSignal: runSignal,
         patchToolName: 'apply_mermaid_patch',
         contentType: 'mermaid',
         emitDraftPreview: false
       });
     } catch (error) {
+      const stop = stopReason();
+      if (stop) return finishStoppedRun(stop, latestResult, latestError);
       finishTurn({ accepted: false, errorClass: 'invoke-error' });
       return formatAgentInvokeFailure(error, env);
     }
@@ -650,6 +697,9 @@ async function invokeWithRepair(
 
     const retryError = extractToolFailureError(retryResult);
     if (!shouldAttemptSyntaxRepair(retryError)) {
+      // Keep the freshest diagnostic (e.g. a transform-constraint or stale-revision error)
+      // so the exhausted-run message below reports the real blocker.
+      if (retryError) latestError = retryError;
       break;
     }
     // Record this failed attempt before moving on so the next iteration's prompt
@@ -661,9 +711,14 @@ async function invokeWithRepair(
   }
 
   finishTurn({ accepted: false, errorClass: classifyAgentTurnError(latestError) });
+  // Repair attempts exhausted — return the validator's root cause instead of the model's
+  // prose so the UI (and chat reply) shows exactly what was invalid in the DSL.
   return {
-    message: extractFinalMessage(latestResult),
-    raw: latestResult
+    message: latestError
+      ? `Diagram update failed: ${latestError}`
+      : extractFinalMessage(latestResult),
+    raw: latestResult,
+    metadata: { error: latestError ?? null }
   };
 }
 
@@ -697,13 +752,7 @@ export function createMermaidLangChainAgent({
   const resolveModelLabel = cache.resolveModelLabel;
 
   async function invokeMutation(agent, userMessages, opts, emit) {
-    return invokeWithRepair(
-      agent,
-      userMessages,
-      { ...opts, emit },
-      stateStore,
-      env
-    );
+    return invokeWithRepair(agent, userMessages, { ...opts, emit }, stateStore, env);
   }
 
   return {
@@ -722,7 +771,15 @@ export function createMermaidLangChainAgent({
       );
     },
 
-    async applyIntent({ prompt, settings, focusNode, modelProfile, emit, peerContext, abortSignal }) {
+    async applyIntent({
+      prompt,
+      settings,
+      focusNode,
+      modelProfile,
+      emit,
+      peerContext,
+      abortSignal
+    }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const focusScope = buildFocusScopeInstructions(focusNode);
 
@@ -768,44 +825,40 @@ ${prompt}${focusScope}`;
       advisorPrompt
     }) {
       const depth = mode === 'goMad' ? clampGoMadDepth(goMadDepth ?? 1) : null;
-      return withTransformContext(
-        stateStore,
-        { mode, goMadDepth: depth },
-        async () => {
-          const currentState = stateStore.getSlot('mermaid');
-          const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
-          const focusScope = buildFocusScopeInstructions(focusNode);
+      return withTransformContext(stateStore, { mode, goMadDepth: depth }, async () => {
+        const currentState = stateStore.getSlot('mermaid');
+        const transformAgent = getTransformAgent(mode, modelProfile, goMadDepth);
+        const focusScope = buildFocusScopeInstructions(focusNode);
 
-          return invokeMutation(
-            transformAgent,
-            [
-              {
-                role: 'user',
-                content: buildTransformUserContent({
-                  mode,
-                  diagramSource: currentState.diagramSource,
-                  focusScope,
-                  goMadDepth,
-                  advisorPrompt
-                })
-              }
-            ],
+        return invokeMutation(
+          transformAgent,
+          [
             {
-              requirePatch: true,
-              mode,
-              profile: normalizeModelProfile(modelProfile),
-              modelLabel: resolveModelLabel(modelProfile),
-              // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
-              // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
-              // agent for the patch_retry turn so we're not just rolling the same dice twice.
-              stableAgent: getDefaultAgent('fast'),
-              abortSignal,
-              focusNode
-            },
-            emit
-          );
-        }
-      );
+              role: 'user',
+              content: buildTransformUserContent({
+                mode,
+                diagramSource: currentState.diagramSource,
+                focusScope,
+                goMadDepth,
+                advisorPrompt
+              })
+            }
+          ],
+          {
+            requirePatch: true,
+            mode,
+            profile: normalizeModelProfile(modelProfile),
+            modelLabel: resolveModelLabel(modelProfile),
+            // Hot Go Mad (and Innovate at temp 0.82) agents can produce prose-without-patch or
+            // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
+            // agent for the patch_retry turn so we're not just rolling the same dice twice.
+            stableAgent: getDefaultAgent('fast'),
+            abortSignal,
+            focusNode
+          },
+          emit
+        );
+      });
     },
 
     async applyStyleIntent({ prompt, settings }) {

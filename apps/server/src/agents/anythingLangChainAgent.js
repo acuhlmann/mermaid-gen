@@ -4,10 +4,7 @@ import { createAnythingTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { ANYTHING_SYSTEM_PROMPT } from '../prompts/anythingSystemPrompt.js';
 import { buildAnythingRepairInstruction } from '../prompts/anythingSyntaxGuard.js';
-import {
-  isAnythingSyntaxFixerAvailable,
-  repairAnythingWithFixer
-} from './anythingSyntaxFixer.js';
+import { isAnythingSyntaxFixerAvailable, repairAnythingWithFixer } from './anythingSyntaxFixer.js';
 import {
   createLlmChatModel,
   normalizeModelProfile,
@@ -27,10 +24,14 @@ import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import {
+  appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
+  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
+  MIN_SYNTAX_FIXER_BUDGET_MS,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
+import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 
 const ANYTHING_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an Anything-mode patch.
 - You MUST call apply_anything_patch now once with a complete, self-contained HTML document, then briefly summarize in prose only.
@@ -110,7 +111,12 @@ function buildIntentUserContent({ prompt, currentHtml, peerContext }) {
   return parts.join('\n\n');
 }
 
-export function buildAnythingTransformUserContent({ mode, currentHtml, goMadDepth, advisorPrompt }) {
+export function buildAnythingTransformUserContent({
+  mode,
+  currentHtml,
+  goMadDepth,
+  advisorPrompt
+}) {
   const modeInstructions = {
     refine:
       'Refine the current document — polish layout, typography, color, interaction feel, and copy. Keep the concept and structure.',
@@ -124,7 +130,9 @@ export function buildAnythingTransformUserContent({ mode, currentHtml, goMadDept
     `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``,
     buildAdvisorSuggestionBlock(advisorPrompt),
     'Call apply_anything_patch with the full HTML document.'
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export function buildAnythingAnalyzeUserContent({ kind, currentHtml, advisorPrompt }) {
@@ -136,7 +144,9 @@ export function buildAnythingAnalyzeUserContent({ kind, currentHtml, advisorProm
     task,
     buildAdvisorSuggestionBlock(advisorPrompt),
     `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``
-  ].filter(Boolean).join('\n\n');
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export function createAnythingLangChainAgent({
@@ -205,6 +215,13 @@ export function createAnythingLangChainAgent({
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'anything');
     const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
     const turnStarted = Date.now();
+    // Every model turn shares this deadline-capped signal so an in-flight call cannot
+    // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
+    const runSignal = createRunDeadlineSignal({
+      abortSignal,
+      budgetMs: runBudgetMs,
+      startedAt: turnStarted
+    });
     const beforeRevision = stateStore.getSlot('anything').revisionId;
     const originalRequest = extractOriginalRequest(userMessages);
 
@@ -215,11 +232,15 @@ export function createAnythingLangChainAgent({
     let syntaxFixerTried = false;
     const agent = buildAgent(runProfile);
 
-    const stopReason = () => {
+    /**
+     * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
+     * starting work that cannot finish inside the budget only delays the failure.
+     */
+    const stopReason = (minRemainingMs = 0) => {
       if (abortSignal?.aborted) {
         return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
       }
-      if (Date.now() - turnStarted >= runBudgetMs) {
+      if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
         return {
           code: 'run_budget_exceeded',
           message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
@@ -229,14 +250,16 @@ export function createAnythingLangChainAgent({
     };
 
     const finishStoppedRun = (reason) => {
-      lastError = reason.message;
+      // Keep the last validator diagnostic in the failure message so the UI shows WHY the
+      // run ran out of time (what was invalid in the page), not just that it timed out.
+      const message = appendLastValidationError(reason.message, lastError);
       if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-        emit({ type: 'error', code: reason.code, message: reason.message });
+        emit({ type: 'error', code: reason.code, message });
       }
       return {
-        message: lastError,
+        message,
         raw: lastResult,
-        metadata: { agent: 'anything', error: lastError, code: reason.code }
+        metadata: { agent: 'anything', error: lastError ?? null, code: reason.code }
       };
     };
 
@@ -253,7 +276,7 @@ export function createAnythingLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      const stop = stopReason();
+      const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
         if (attempt > 0) {
@@ -273,8 +296,13 @@ export function createAnythingLangChainAgent({
         });
       }
 
-      const result = await invokeAgentStream({ agent, messages, abortSignal, emit });
+      const result = await invokeAgentStream({ agent, messages, abortSignal: runSignal, emit });
       if (result?.error) {
+        // A deadline/user abort surfaces as a stream error — finish with the proper
+        // stop reason (which carries the last validator diagnostic) instead of the
+        // bare "aborted" message.
+        const abortStop = stopReason();
+        if (abortStop) return finishStoppedRun(abortStop);
         lastError = result.error;
         if (typeof emit === 'function') emit({ type: 'error', message: lastError });
         break;
@@ -332,7 +360,7 @@ export function createAnythingLangChainAgent({
           extractLastAttemptedToolSource(result, 'apply_anything_patch') || lastBrokenSource;
 
         if (!syntaxFixerTried && lastBrokenSource && isAnythingSyntaxFixerAvailable(env)) {
-          const fixerStop = stopReason();
+          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
           if (typeof emit === 'function') {
@@ -347,7 +375,8 @@ export function createAnythingLangChainAgent({
             brokenSource: lastBrokenSource,
             parseError: failureError,
             originalRequest,
-            env
+            env,
+            abortSignal: runSignal
           });
           if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
             const applied = await stateStore.applyDiagramSource({
