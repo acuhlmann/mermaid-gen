@@ -19,7 +19,7 @@ export const STREAM_ERROR_NO_MUTATION_REVISION =
  *   stateStore: { getSlot: (kind: string) => { revisionId: number }, setLastUserPrompt: (args: { contentType: string, prompt: string }) => unknown, mirrorLastUserPromptToSibling: (args: { contentType: string, prompt: string }) => unknown },
  *   agentResult: { message?: string } | null | undefined,
  *   prompt?: string,
- *   contentType?: 'mermaid' | 'infographic'
+ *   contentType?: 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything'
  * }} args
  */
 export function emitIntentTransformStreamResult({
@@ -33,6 +33,8 @@ export function emitIntentTransformStreamResult({
 }) {
   const slotKey = normalizeContentType(contentType);
   let afterState = stateStore.getSlot(slotKey);
+  const agentMessage =
+    typeof agentResult?.message === 'string' ? agentResult.message.trim() : '';
   const revisionChanged =
     typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
 
@@ -50,7 +52,7 @@ export function emitIntentTransformStreamResult({
     emit({
       type: 'error',
       code: 'no_mutation_revision',
-      message: STREAM_ERROR_NO_MUTATION_REVISION
+      message: agentMessage || STREAM_ERROR_NO_MUTATION_REVISION
     });
   }
 
@@ -59,7 +61,7 @@ export function emitIntentTransformStreamResult({
     emit({
       type: 'final',
       revisionChanged,
-      message: agentResult?.message ?? '',
+      message: agentMessage,
       state: revisionChanged ? afterState : undefined
     });
   }

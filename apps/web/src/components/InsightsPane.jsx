@@ -1199,13 +1199,17 @@ export default function InsightsPane({
                     aria-atomic="true"
                   >
                     <span className="insights-status-strip-pulse" aria-hidden="true" />
-                    <span className="insights-status-strip-label">Now</span>
-                    <span className="insights-status-strip-text">{entry.statusText}</span>
-                    {entry.failureDetail ? (
-                      <span className="insights-status-strip-detail" title={entry.failureDetail}>
-                        {entry.failureDetail}
-                      </span>
-                    ) : null}
+                    <span className="insights-status-strip-label">
+                      {rawStatus === 'failed' ? 'Issue' : 'Now'}
+                    </span>
+                    <span className="insights-status-strip-copy">
+                      <span className="insights-status-strip-text">{entry.statusText}</span>
+                      {entry.failureDetail ? (
+                        <span className="insights-status-strip-detail" title={entry.failureDetail}>
+                          {entry.failureDetail}
+                        </span>
+                      ) : null}
+                    </span>
                   </p>
                 ) : null}
 

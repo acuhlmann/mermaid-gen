@@ -72,6 +72,36 @@ test('buildAdvisorSystemPrompt adds dumb-down override only for explain persona'
   assert.doesNotMatch(execDumb, /DUMB-IT-DOWN OVERRIDE/);
 });
 
+test('buildAdvisorSystemPrompt includes chart and anything mode appendices', () => {
+  const chart = buildAdvisorSystemPrompt('refine', 'chart');
+  assert.match(chart, /Vega-Lite chart wrapper/);
+  assert.match(chart, /field names/);
+
+  const anything = buildAdvisorSystemPrompt('refine', 'anything');
+  assert.match(anything, /sandboxed self-contained HTML page/);
+  assert.match(anything, /Never suggest external scripts/);
+});
+
+test('buildAdvisorUserPrompt gives chart and anything focus instructions', () => {
+  const chart = buildAdvisorUserPrompt({
+    contentType: 'chart',
+    diagramSource: '{"archislopVersion":1,"theme":"whiteboard","spec":{"title":"Revenue"}}',
+    visibleLabels: ['Revenue', 'quarter'],
+    focusNode: { id: 'quarter', label: 'quarter', kind: 'field' },
+    lastSuggestions: []
+  });
+  assert.match(chart, /chart field, axis, title, or value/i);
+
+  const anything = buildAdvisorUserPrompt({
+    contentType: 'anything',
+    diagramSource: '<!doctype html><html><head></head><body><h1>Launch Plan</h1></body></html>',
+    visibleLabels: ['Launch Plan'],
+    focusNode: { id: 'Launch Plan', label: 'Launch Plan', kind: 'heading' },
+    lastSuggestions: []
+  });
+  assert.match(anything, /page heading, control, label, or interaction/i);
+});
+
 test('buildAdvisorUserPrompt embeds previous suggestion in dumb mode', () => {
   const user = buildAdvisorUserPrompt({
     contentType: 'mermaid',

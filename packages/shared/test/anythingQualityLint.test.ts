@@ -38,6 +38,14 @@ test('lintAnythingQuality rejects JS syntax errors', () => {
   assert.equal(result.code, 'script_syntax');
 });
 
+test('lintAnythingQuality ignores markup-like text inside scripts', () => {
+  const doc = VALID_DOC.replace(
+    "document.title = 'ok';",
+    "const snippet = '<section><p>preview</p></section>'; document.title = snippet;"
+  );
+  assert.equal(lintAnythingQuality(doc).ok, true);
+});
+
 test('lintAnythingQuality rejects unbalanced CSS braces', () => {
   const bad = VALID_DOC.replace('body { margin: 0; color: red; }', 'body { margin: 0; color: red;');
   const result = lintAnythingQuality(bad);

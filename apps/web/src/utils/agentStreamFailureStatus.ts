@@ -16,6 +16,13 @@ function extractFirstErrorLine(message: string): string | null {
   return lines[0] ?? null;
 }
 
+function stripFailurePrefix(message: string): string {
+  return message
+    .replace(/^infographic update failed:\s*/i, '')
+    .replace(/^chart update failed:\s*/i, '')
+    .replace(/^page update failed:\s*/i, '');
+}
+
 /** User-facing status for failed intent/transform agent streams. */
 export function resolveAgentStreamFailureStatus({
   code,
@@ -73,15 +80,26 @@ export function resolveAgentStreamFailureStatus({
     lower.includes('unknown top-level key') ||
     lower.includes('unknown key in object') ||
     lower.includes('infographic dsl') ||
+    lower.includes('chart dsl') ||
+    lower.includes('vega-lite') ||
+    lower.includes('anything html') ||
+    lower.includes('html validation') ||
+    lower.includes('page update failed') ||
+    lower.includes('chart update failed') ||
+    lower.includes('script block') ||
+    lower.includes('style block') ||
+    lower.includes('external url') ||
+    lower.includes('must not reference') ||
+    lower.includes('must not load') ||
     lower.includes('syntax fixer') ||
     (lower.includes('syntax') && lower.includes('failed'))
   ) {
     const detail =
-      extractFirstErrorLine(msg.replace(/^infographic update failed:\s*/i, '')) ??
+      extractFirstErrorLine(stripFailurePrefix(msg)) ??
       extractFirstErrorLine(msg);
     return {
       failureClass: 'syntax_exhausted',
-      statusText: "Couldn't fix diagram syntax.",
+      statusText: "Couldn't apply a valid result.",
       detail
     };
   }

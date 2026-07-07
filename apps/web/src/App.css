@@ -1169,11 +1169,17 @@
 
 .insights-status-strip-detail {
   display: block;
-  margin-top: 0.2rem;
+  margin-top: 0.28rem;
+  padding: 0.32rem 0.4rem;
+  border-radius: 0.42rem;
+  border: 1px solid rgba(185, 28, 28, 0.14);
+  background: rgba(255, 255, 255, 0.62);
   font-size: 0.72rem;
   line-height: 1.35;
   color: rgba(127, 29, 29, 0.82);
-  font-weight: 500;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .insights-entry-retry-row {
@@ -1474,6 +1480,11 @@
 }
 
 .insights-status-strip-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.insights-status-strip-copy {
   flex: 1;
   min-width: 0;
 }

@@ -376,6 +376,62 @@ describe('useAdvisorOrchestrator', () => {
     expect(body.persona).toBe('exec');
   });
 
+  it('includes chart labels in proactive advisor requests', async () => {
+    const chart = JSON.stringify({
+      archislopVersion: 1,
+      theme: 'whiteboard',
+      spec: {
+        title: 'Revenue by quarter',
+        data: { values: [{ quarter: 'Q1', revenue: 120 }] },
+        mark: 'bar',
+        encoding: {
+          x: { field: 'quarter', type: 'ordinal', title: 'Quarter' },
+          y: { field: 'revenue', type: 'quantitative', title: 'Revenue' }
+        }
+      }
+    });
+    renderHook(() =>
+      useAdvisorOrchestrator(
+        defaultParams({
+          getContentType: () => 'chart',
+          getDiagramSource: () => chart
+        })
+      )
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.contentType).toBe('chart');
+    expect(body.visibleLabels).toEqual(expect.arrayContaining(['Revenue by quarter', 'Quarter', 'Q1']));
+  });
+
+  it('includes Anything labels in proactive advisor requests', async () => {
+    const html = `<!doctype html><html><head></head><body>
+      <h1>Launch Plan</h1><button>Start simulation</button>
+    </body></html>`;
+    renderHook(() =>
+      useAdvisorOrchestrator(
+        defaultParams({
+          getContentType: () => 'anything',
+          getDiagramSource: () => html
+        })
+      )
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body.contentType).toBe('anything');
+    expect(body.visibleLabels).toEqual(expect.arrayContaining(['Launch Plan', 'Start simulation']));
+  });
+
   it('promptNext during an in-flight fetch does not trigger failure backoff (Wise Architect cast switch)', async () => {
     mockPersonaPick('refine');
     let resolveFirst;

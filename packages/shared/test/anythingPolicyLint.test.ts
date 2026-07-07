@@ -17,6 +17,22 @@ test('lintAnythingPolicy accepts SVG xmlns without treating it as a network load
   assert.equal(lintAnythingPolicy(svgDoc).ok, true);
 });
 
+test('lintAnythingPolicy accepts harmless comments with URL-shaped text', () => {
+  const doc = VALID_DOC.replace(
+    "document.title='x';",
+    "// https://example.com is only explanatory text\nconst label = 'offline';"
+  );
+  assert.equal(lintAnythingPolicy(doc).ok, true);
+});
+
+test('lintAnythingPolicy still rejects external URLs inside script strings', () => {
+  const bad = VALID_DOC.replace("document.title='x';", "const endpoint = 'https://evil.com/api';");
+  const result = lintAnythingPolicy(bad);
+  assert.equal(result.ok, false);
+  if (result.ok) return;
+  assert.equal(result.code, 'external_url');
+});
+
 test('lintAnythingPolicy rejects external image URLs', () => {
   const bad = VALID_DOC.replace('<h1>', '<img src="https://evil.com/x.png"><h1>');
   const result = lintAnythingPolicy(bad);
