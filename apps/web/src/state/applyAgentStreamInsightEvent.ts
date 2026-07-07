@@ -13,6 +13,7 @@ import {
   type LegacyToolStartEvent
 } from '@archislop/shared';
 import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
+import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
 const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
@@ -269,7 +270,7 @@ export function applyAgentStreamInsightEvent(
       }
       return { ...entry, planBeats: beats };
     });
-    setInsightStatus(sectionId, text);
+    setInsightStatus(sectionId, summarizeInsightNowStatus(text, { statusText: text }));
   } else if (evt.type === 'tool_start') {
     const toolEvt = evt as LegacyToolStartEvent;
     if (!toolEvt.name) return;
