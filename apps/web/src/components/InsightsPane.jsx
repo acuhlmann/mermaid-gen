@@ -1200,7 +1200,7 @@ export default function InsightsPane({
                   >
                     <span className="insights-status-strip-pulse" aria-hidden="true" />
                     <span className="insights-status-strip-label">
-                      {rawStatus === 'failed' ? 'Issue' : rawStatus === 'cancelled' ? 'Stopped' : 'Now'}
+                      {rawStatus === 'failed' ? 'Issue' : 'Now'}
                     </span>
                     <span className="insights-status-strip-copy">
                       <span className="insights-status-strip-text">{entry.statusText}</span>
