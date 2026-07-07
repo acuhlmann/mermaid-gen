@@ -14,6 +14,7 @@ import TechnicalActionStepper from './TechnicalActionStepper.jsx';
 import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
 import StyleEditsA2uiSurface from './StyleEditsA2uiSurface';
 import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
+import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
 import { getVariantPersona, phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
 import {
@@ -1045,10 +1046,13 @@ export default function InsightsPane({
             const variant = entry.variant ?? 'general';
             const isRunning = rawStatus === 'running';
             const isStreaming = isRunning && Boolean(entry.content?.trim());
-            const statusStrip =
+            const nowStatusCopy =
               entry.statusText &&
+              summarizeInsightNowStatus(entry.statusText, entry);
+            const statusStrip =
+              nowStatusCopy &&
               (rawStatus === 'running' || rawStatus === 'failed' || rawStatus === 'cancelled') &&
-              entry.statusText.trim();
+              nowStatusCopy.trim();
             const accentuateSections = isAccentuatedInsightVariant(variant);
             const collapseTech =
               isAccentuatedInsightVariant(variant) && (entry.technicalActions?.length ?? 0) > 0;
@@ -1228,7 +1232,7 @@ export default function InsightsPane({
                       {rawStatus === 'failed' ? 'Issue' : 'Now'}
                     </span>
                     <span className="insights-status-strip-copy">
-                      <span className="insights-status-strip-text">{entry.statusText}</span>
+                      <span className="insights-status-strip-text">{nowStatusCopy}</span>
                       {entry.failureDetail ? (
                         <span className="insights-status-strip-detail" title={entry.failureDetail}>
                           {entry.failureDetail}

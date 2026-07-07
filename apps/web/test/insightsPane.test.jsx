@@ -391,6 +391,41 @@ flowchart TB
     expect(screen.getByText('Adding a session boundary before the API tier.')).toBeTruthy();
   });
 
+  it('summarizes code-heavy Now status without showing diagram previews', () => {
+    const statusText = `Drafting the chart.
+
+\`\`\`json
+{
+  "archislopVersion": 1,
+  "spec": { "mark": "bar", "data": { "values": [{ "category": "A", "value": 1 }] } }
+}
+\`\`\``;
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-now',
+            title: 'Go — chart',
+            variant: 'goMad',
+            status: 'running',
+            statusText,
+            content: '',
+            technicalActions: [],
+            phases: [{ id: 'agent_run', label: 'Tools' }],
+            contentType: 'chart'
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    const strip = screen.getByText('Now').closest('.insights-status-strip');
+    expect(strip).toBeTruthy();
+    expect(within(strip).getByText('Drafting the chart.')).toBeTruthy();
+    expect(within(strip).queryByText(/archislopVersion/)).toBeNull();
+  });
+
   it('shows agent phases, patch summary, and optional stream debug', () => {
     render(
       <InsightsPane
