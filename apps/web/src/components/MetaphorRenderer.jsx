@@ -44,9 +44,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
-import {
-  MetaphorChangeHighlightProvider
-} from './metaphorChangeHighlightContext.jsx';
+import MetaphorChangeHighlightProvider from './MetaphorChangeHighlightProvider.jsx';
 import {
   CakeSprinkles,
   IcingDrips,

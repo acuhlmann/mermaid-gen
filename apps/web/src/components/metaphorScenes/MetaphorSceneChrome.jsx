@@ -10,10 +10,7 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
 import { useMetaphorHover } from '../metaphorHover.js';
-import {
-  MetaphorChangeHighlightProvider,
-  useMetaphorChangeHighlight
-} from '../metaphorChangeHighlightContext.jsx';
+import { useMetaphorChangeHighlight } from '../metaphorChangeHighlightContext.js';
 import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import {
