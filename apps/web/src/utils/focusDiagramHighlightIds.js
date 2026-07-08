@@ -105,3 +105,59 @@ export function computeViewportFocusForHighlightIds(viewportEl, highlightIds) {
 
   return { x, y, scale };
 }
+
+function viewportFromElementBBox(viewportEl, bbox) {
+  if (!bbox || bbox.width <= 0 || bbox.height <= 0) return null;
+  const inner = readViewportInnerSize(viewportEl);
+  if (inner.width <= 0 || inner.height <= 0) return null;
+
+  const pad = VIEWPORT_PADDING_PX;
+  const availW = Math.max(1, inner.width - pad * 2);
+  const availH = Math.max(1, inner.height - pad * 2);
+  const scale = Math.min(
+    MAX_FOCUS_SCALE,
+    Math.max(MIN_FOCUS_SCALE, Math.min(availW / bbox.width, availH / bbox.height))
+  );
+  const contentW = bbox.width * scale;
+  const contentH = bbox.height * scale;
+  const x = pad + Math.max(0, (availW - contentW) / 2) - bbox.x * scale;
+  const y = pad + Math.max(0, (availH - contentH) / 2) - bbox.y * scale;
+  return { x, y, scale };
+}
+
+/**
+ * Pan/zoom viewport to frame thinking-pane change highlights on the main canvas.
+ *
+ * @param {HTMLElement | null | undefined} viewportEl
+ * @param {{ addedIds?: string[], modifiedIds?: string[] } | null | undefined} highlight
+ * @param {string} contentType
+ * @returns {{ x: number, y: number, scale: number } | null}
+ */
+export function computeViewportFocusForChangeHighlight(viewportEl, highlight, contentType) {
+  if (!viewportEl?.querySelector || !highlight) return null;
+  const ids = [...(highlight.addedIds ?? []), ...(highlight.modifiedIds ?? [])].filter(Boolean);
+  if (ids.length === 0) return null;
+
+  if (contentType === 'mermaid') {
+    return computeViewportFocusForHighlightIds(viewportEl, ids);
+  }
+
+  const root = viewportEl.querySelector('.diagram-zoom-layer') ?? viewportEl;
+  const matched = [];
+
+  if (contentType === 'infographic') {
+    const idSet = new Set(ids);
+    root.querySelectorAll('[data-indexes]').forEach((el) => {
+      const indexes = el.getAttribute('data-indexes') ?? '';
+      if (idSet.has(indexes)) matched.push(el);
+    });
+  } else if (contentType === 'chart') {
+    root.querySelectorAll('[data-diff-state]').forEach((el) => matched.push(el));
+  } else {
+    return null;
+  }
+
+  if (matched.length === 0) return null;
+  const bbox = unionSvgBBox(matched);
+  return viewportFromElementBBox(viewportEl, bbox);
+}

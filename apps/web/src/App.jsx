@@ -139,11 +139,10 @@ import {
 } from './utils/appSessionLocation.js';
 import {
   createInitialDiagramState,
-  diffInfographicSources,
   splitCritiqueActionableSections
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
-import { diffMermaidFlowcharts } from './utils/mermaidFlowchartDiff.js';
+import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
 import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
@@ -2756,23 +2755,54 @@ ${requirementsBlock}`;
         diagramAutoHighlightTimerRef.current = null;
       }
       setDiagramChangeHighlightAddedOnly(false);
-      setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : entryId));
+
+      const isClearing = diagramChangeHighlightEntryId === entryId;
+      if (isClearing) {
+        setDiagramChangeHighlightEntryId(null);
+        return;
+      }
+
+      const entry = insightsEntries.find((e) => e.id === entryId);
+      const targetContentType = entry?.diagramAfterContentType;
+      if (
+        targetContentType === 'mermaid' ||
+        targetContentType === 'infographic' ||
+        targetContentType === 'chart' ||
+        targetContentType === 'metaphor3d'
+      ) {
+        if (targetContentType !== contentMode) {
+          suppressNextModeSwitchRerunRef.current = true;
+          setContentMode(targetContentType);
+          setRendererRefreshKey((n) => n + 1);
+        }
+      }
+
+      setDiagramChangeHighlightEntryId(entryId);
+
+      if (narrowLayout && insightsOpen) {
+        setInsightsOpen(false);
+      }
     },
-    [clearPendingAutoDiagramHighlight]
+    [
+      clearPendingAutoDiagramHighlight,
+      contentMode,
+      diagramChangeHighlightEntryId,
+      insightsEntries,
+      insightsOpen,
+      narrowLayout
+    ]
   );
 
   const changeHighlightDiff = useMemo(() => {
     if (!diagramChangeHighlightEntryId) return null;
     const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
     const baseline = entry?.diagramUndoBaseline?.diagramSource;
-    if (typeof baseline !== 'string') return null;
-    if (contentMode === 'mermaid') {
-      return diffMermaidFlowcharts(baseline, state.diagramSource ?? '');
-    }
-    if (contentMode === 'infographic') {
-      return diffInfographicSources(baseline, state.diagramSource ?? '');
-    }
-    return null;
+    const after =
+      typeof entry?.diagramAfterSource === 'string'
+        ? entry.diagramAfterSource
+        : state.diagramSource ?? '';
+    const kind = entry?.diagramAfterContentType ?? contentMode;
+    return computeDiagramStructuralDiff(kind, baseline, after);
   }, [contentMode, diagramChangeHighlightEntryId, insightsEntries, state.diagramSource]);
 
   const changeHighlightForCanvas = useMemo(() => {
@@ -2790,6 +2820,12 @@ ${requirementsBlock}`;
       removedIds: changeHighlightDiff.removedIds
     };
   }, [changeHighlightDiff, diagramChangeHighlightEntryId, diagramChangeHighlightAddedOnly]);
+
+  const changeHighlightContentType = useMemo(() => {
+    if (!diagramChangeHighlightEntryId) return null;
+    const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
+    return entry?.diagramAfterContentType ?? contentMode;
+  }, [contentMode, diagramChangeHighlightEntryId, insightsEntries]);
 
   const diagramChangeHighlightSummary = useMemo(() => {
     if (!diagramChangeHighlightEntryId || !changeHighlightDiff) return null;
@@ -2810,15 +2846,8 @@ ${requirementsBlock}`;
       const baseline = entry.diagramUndoBaseline?.diagramSource;
       const after = entry.diagramAfterSource;
       if (typeof baseline !== 'string' || typeof after !== 'string') continue;
-      try {
-        if (kind === 'mermaid') {
-          map[entry.id] = diffMermaidFlowcharts(baseline, after);
-        } else if (kind === 'infographic') {
-          map[entry.id] = diffInfographicSources(baseline, after);
-        }
-      } catch {
-        // diff is best-effort; skip entry on failure
-      }
+      const diff = computeDiagramStructuralDiff(kind, baseline, after);
+      if (diff) map[entry.id] = diff;
     }
     return map;
   }, [insightsEntries]);
@@ -3355,6 +3384,7 @@ ${requirementsBlock}`;
         onNodeToolbarAnchor={setToolbarAnchor}
         onEditorClose={() => setEditorOpen(false)}
         changeHighlight={changeHighlightForCanvas}
+        changeHighlightContentType={changeHighlightContentType}
         onDiagramSvgRendered={handleDiagramSvgRendered}
         runFx={{
           variant: liveVariant,

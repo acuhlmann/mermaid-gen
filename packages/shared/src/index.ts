@@ -10,6 +10,8 @@ export * from './mermaidSanitizer.js';
 export * from './critiqueActionable.js';
 export * from './critiqueA2uiMessages.js';
 export * from './infographicDiff.js';
+export * from './chartDiff.js';
+export * from './metaphorDiff.js';
 export * from './infographicRefinePrepass.js';
 export * from './infographicSanitizer.js';
 export * from './metaphorSchema.js';
