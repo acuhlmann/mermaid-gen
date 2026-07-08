@@ -6,6 +6,7 @@ import {
   AGUI_CUSTOM_NAME_LEGACY,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
+  AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
   LEGACY_STREAM_TYPE_PLAN_BEAT,
@@ -252,6 +253,22 @@ export function createAgentStreamEmitter({
         activeToolCallId = null;
         if (!id) return;
         return rawEmit(toolCallEnd({ toolCallId: id }));
+      }
+      case 'tool_apply_result': {
+        const name = String(evt.name ?? '');
+        const error = typeof evt.error === 'string' ? evt.error : '';
+        if (!name || !error) return;
+        return rawEmit(
+          customEvent({
+            name: AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
+            value: {
+              name,
+              ...(evt.id != null ? { toolCallId: String(evt.id) } : {}),
+              accepted: false,
+              error
+            }
+          })
+        );
       }
       case 'draftPreview': {
         const ct = (typeof evt.contentType === 'string' && evt.contentType) || contentType || 'infographic';

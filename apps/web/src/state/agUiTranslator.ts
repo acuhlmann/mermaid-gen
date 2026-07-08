@@ -3,6 +3,7 @@ import {
   AGUI_CUSTOM_NAME_ARTIFACT,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
+  AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
   agUiDraftSourcePath,
@@ -138,6 +139,18 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
           return { type: LEGACY_STREAM_TYPE_A2UI, messages: value.messages };
         }
         if (name === AGUI_CUSTOM_NAME_ARTIFACT) return (value ?? null) as LegacyStreamEvent | null;
+        if (name === AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT && value && typeof value === 'object') {
+          const toolName = typeof value.name === 'string' ? value.name : '';
+          const error = typeof value.error === 'string' ? value.error : '';
+          if (!toolName || !error) return null;
+          return {
+            type: 'tool_apply_result',
+            name: toolName,
+            ...(typeof value.toolCallId === 'string' ? { id: value.toolCallId } : {}),
+            accepted: false,
+            error
+          };
+        }
         return null;
       }
       default:

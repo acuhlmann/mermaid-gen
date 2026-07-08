@@ -17,7 +17,82 @@ import { extractTextContent } from '../../utils/extractTextContent.js';
  * agnostic on purpose — every diagram type's tool names are listed here.
  */
 const INTERNAL_TOOL_NAME_PATTERN =
-  /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch|get_metaphor_dsl|apply_metaphor_patch|get_chart_dsl|apply_chart_patch)\b/;
+  /\b(?:get_diagram_state|apply_mermaid_patch|get_infographic_dsl|apply_infographic_patch|get_metaphor_dsl|apply_metaphor_patch|get_chart_dsl|apply_chart_patch|get_anything_html|apply_anything_patch)\b/;
+
+const APPLY_PATCH_TOOL_NAMES = new Set([
+  'apply_mermaid_patch',
+  'apply_infographic_patch',
+  'apply_metaphor_patch',
+  'apply_chart_patch',
+  'apply_anything_patch'
+]);
+
+/**
+ * Parse the JSON envelope returned by `apply_*_patch` tools from a LangChain
+ * tool-end output payload.
+ *
+ * @param {unknown} output
+ * @returns {{ accepted: boolean, error?: string } | null}
+ */
+export function parseToolApplyResultOutput(output) {
+  if (output == null) return null;
+  let raw = output;
+  if (typeof output === 'string') {
+    try {
+      raw = JSON.parse(output);
+    } catch {
+      return null;
+    }
+  }
+  if (raw && typeof raw === 'object' && typeof raw.content === 'string') {
+    try {
+      raw = JSON.parse(raw.content);
+    } catch {
+      return null;
+    }
+  }
+  const parsed = ToolApplyResultSchema.safeParse(raw);
+  if (parsed.success) {
+    return parsed.data.accepted
+      ? { accepted: true }
+      : { accepted: false, error: parsed.data.error };
+  }
+  if (raw && typeof raw === 'object' && typeof raw.accepted === 'boolean') {
+    return {
+      accepted: raw.accepted,
+      ...(typeof raw.error === 'string' && raw.error ? { error: raw.error } : {})
+    };
+  }
+  return null;
+}
+
+/**
+ * Emit a normalized stream event and, when an apply-patch tool rejects, a
+ * follow-up `tool_apply_result` event for the insights Tool trace.
+ *
+ * @param {(evt: object) => void} emit
+ * @param {{ type: string, name?: string, id?: string, applyResult?: { accepted: boolean, error?: string } } | null} normalized
+ */
+export function forwardNormalizedAgentStreamEvent(emit, normalized) {
+  if (!normalized || typeof emit !== 'function') return;
+  emit(normalized);
+  if (
+    normalized.type === 'tool_end' &&
+    normalized.applyResult?.accepted === false &&
+    typeof normalized.applyResult.error === 'string' &&
+    normalized.applyResult.error &&
+    typeof normalized.name === 'string' &&
+    APPLY_PATCH_TOOL_NAMES.has(normalized.name)
+  ) {
+    emit({
+      type: 'tool_apply_result',
+      name: normalized.name,
+      ...(normalized.id ? { id: normalized.id } : {}),
+      accepted: false,
+      error: normalized.applyResult.error
+    });
+  }
+}
 
 function normalizeMessageContent(content) {
   if (typeof content === 'string') return content;
@@ -109,7 +184,16 @@ export function normalizeAgentStreamEvent(event) {
       (data.output && typeof data.output === 'object' ? data.output.name : undefined) ??
       event?.name ??
       '';
-    return { type: 'tool_end', name: String(name) };
+    const toolName = String(name);
+    const applyResult =
+      APPLY_PATCH_TOOL_NAMES.has(toolName) && data.output != null
+        ? parseToolApplyResultOutput(data.output)
+        : null;
+    return {
+      type: 'tool_end',
+      name: toolName,
+      ...(applyResult ? { applyResult } : {})
+    };
   }
 
   return null;

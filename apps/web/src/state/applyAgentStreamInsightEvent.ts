@@ -47,7 +47,12 @@ export type InsightEventContext = {
   patchInsightEntry: (id: string, fn: (entry: Record<string, unknown>) => Record<string, unknown>) => void;
   appendToInsight: (id: string, text: string) => void;
   setInsightStatus: (id: string, text: string) => void;
-  appendTechnicalAction: (id: string, name: string, status: string) => void;
+  appendTechnicalAction: (id: string, name: string, status: string, opts?: { toolCallId?: string }) => void;
+  annotateTechnicalActionResult: (
+    id: string,
+    name: string,
+    opts?: { validationError?: string; toolCallId?: string }
+  ) => void;
   lastTokenSoundAtRef: { current: number };
   goMadTokenTickIndexRef: { current: number };
   lastDraftTickAtRef: { current: number };
@@ -103,6 +108,7 @@ export function applyAgentStreamInsightEvent(
     appendToInsight,
     setInsightStatus,
     appendTechnicalAction,
+    annotateTechnicalActionResult,
     lastTokenSoundAtRef,
     goMadTokenTickIndexRef,
     lastDraftTickAtRef,
@@ -274,12 +280,23 @@ export function applyAgentStreamInsightEvent(
   } else if (evt.type === 'tool_start') {
     const toolEvt = evt as LegacyToolStartEvent;
     if (!toolEvt.name) return;
-    appendTechnicalAction(sectionId, toolEvt.name, 'running');
+    appendTechnicalAction(sectionId, toolEvt.name, 'running', {
+      ...(toolEvt.id ? { toolCallId: toolEvt.id } : {})
+    });
     if (typeof playToolStartChime === 'function') tryAgentSound(playToolStartChime);
   } else if (evt.type === 'tool_end') {
     const toolEvt = evt as LegacyToolEndEvent;
-    appendTechnicalAction(sectionId, toolEvt.name ?? '', 'done');
+    appendTechnicalAction(sectionId, toolEvt.name ?? '', 'done', {
+      ...(toolEvt.id ? { toolCallId: toolEvt.id } : {})
+    });
     if (typeof playToolEndChime === 'function') tryAgentSound(playToolEndChime);
+  } else if (evt.type === 'tool_apply_result' && 'error' in evt && evt.error) {
+    const resultEvt = evt as { type: 'tool_apply_result'; name: string; id?: string; error: string };
+    if (!resultEvt.name) return;
+    annotateTechnicalActionResult(sectionId, resultEvt.name, {
+      validationError: resultEvt.error,
+      ...(resultEvt.id ? { toolCallId: resultEvt.id } : {})
+    });
   } else if (evt.type === 'draftPreview') {
     const draftSource =
       typeof evt.source === 'string' && evt.source

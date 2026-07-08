@@ -15,6 +15,7 @@ import {
   extractFinalMessage,
   extractLastAttemptedToolSource,
   extractToolFailureError,
+  forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -347,7 +348,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
           const normalized = normalizeAgentStreamEvent(ev);
-          if (normalized) emit(normalized);
+          if (normalized) forwardNormalizedAgentStreamEvent(emit, normalized);
 
           if (ev?.event === 'on_chat_model_stream') {
             const chunks = ev.data?.chunk?.tool_call_chunks;

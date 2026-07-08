@@ -618,6 +618,43 @@ flowchart TB
     expect(screen.getByText('Technical actions')).toBeTruthy();
   });
 
+  it('shows validation error on rejected apply_chart_patch in tool trace', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-chart-reject',
+            title: 'Refine — chart',
+            variant: 'refine',
+            status: 'running',
+            statusText: 'Repairing chart…',
+            content: '',
+            technicalActions: [
+              {
+                id: 't1',
+                name: 'apply_chart_patch',
+                label: 'Apply chart update',
+                status: 'rejected',
+                validationError: 'Vega-Lite compile failed: Invalid encoding channel "colour"'
+              },
+              {
+                id: 't2',
+                name: 'apply_chart_patch',
+                label: 'Apply chart update',
+                status: 'running'
+              }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.getByText(/Invalid encoding channel "colour"/)).toBeTruthy();
+    expect(screen.getAllByText('Apply chart update').length).toBe(2);
+  });
+
   it('uses Explanation label for explain variant', () => {
     render(
       <InsightsPane

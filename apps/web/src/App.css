@@ -2106,7 +2106,7 @@
 .insights-tech-step {
   display: grid;
   grid-template-columns: auto auto 1fr auto;
-  align-items: center;
+  align-items: start;
   gap: 0.35rem;
   font-size: 0.76rem;
   padding: 0.3rem 0.4rem;
@@ -2128,6 +2128,32 @@
 
 .insights-tech-step.is-done .insights-tech-step-icon {
   color: #15803d;
+}
+
+.insights-tech-step.is-rejected {
+  border-color: rgba(217, 119, 6, 0.35);
+  background: rgba(217, 119, 6, 0.06);
+}
+
+.insights-tech-step.is-rejected .insights-tech-step-icon {
+  color: #b45309;
+}
+
+.insights-tech-step-body {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.insights-tech-step-error {
+  display: block;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: #9a3412;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .insights-tech-step.is-patch-tool {

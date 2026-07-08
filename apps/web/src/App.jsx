@@ -1406,17 +1406,23 @@ function ArchiSlop() {
   );
 
   const appendTechnicalAction = useCallback(
-    (id, name, status) => {
+    (id, name, status, opts = {}) => {
       patchInsightEntry(id, (entry) => {
         const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
         if (status === 'done') {
+          const toolCallId = opts.toolCallId;
           const actionIndex = [...current].reverse().findIndex((action) => {
+            if (toolCallId && action.toolCallId === toolCallId) {
+              return action.status === 'running';
+            }
             if (!name) return action.status === 'running';
             return action.name === name && action.status === 'running';
           });
           if (actionIndex >= 0) {
             const realIndex = current.length - 1 - actionIndex;
-            const nextActions = current.map((action, idx) => (idx === realIndex ? { ...action, status: 'done' } : action));
+            const nextActions = current.map((action, idx) =>
+              idx === realIndex ? { ...action, status: 'done' } : action
+            );
             return {
               ...entry,
               technicalActions: collapseConsecutiveApplyPatchActions(nextActions, formatToolLabel)
@@ -1432,10 +1438,34 @@ function ArchiSlop() {
               id: actionId,
               name,
               label: formatToolLabel(name),
-              status
+              status,
+              ...(opts.toolCallId ? { toolCallId: opts.toolCallId } : {})
             }
           ]
         };
+      });
+    },
+    [patchInsightEntry]
+  );
+
+  const annotateTechnicalActionResult = useCallback(
+    (id, name, { validationError, toolCallId } = {}) => {
+      const errorText = typeof validationError === 'string' ? validationError.trim() : '';
+      if (!errorText) return;
+      patchInsightEntry(id, (entry) => {
+        const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
+        const actionIndex = [...current].reverse().findIndex((action) => {
+          if (toolCallId && action.toolCallId === toolCallId) return true;
+          return action.name === name;
+        });
+        if (actionIndex < 0) return entry;
+        const realIndex = current.length - 1 - actionIndex;
+        const nextActions = current.map((action, idx) =>
+          idx === realIndex
+            ? { ...action, status: 'rejected', validationError: errorText }
+            : action
+        );
+        return { ...entry, technicalActions: nextActions };
       });
     },
     [patchInsightEntry]
@@ -1529,6 +1559,7 @@ function ArchiSlop() {
           appendToInsight,
           setInsightStatus,
           appendTechnicalAction,
+          annotateTechnicalActionResult,
           lastTokenSoundAtRef,
           goMadTokenTickIndexRef,
           lastDraftTickAtRef,
@@ -1612,6 +1643,7 @@ function ArchiSlop() {
       appendInsightEntry,
       appendStreamDebugLog,
       appendTechnicalAction,
+      annotateTechnicalActionResult,
       appendToInsight,
       activeSessionId,
       contentMode,

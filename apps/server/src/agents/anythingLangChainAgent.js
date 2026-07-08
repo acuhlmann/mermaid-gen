@@ -17,6 +17,7 @@ import {
   extractFinalMessage,
   extractLastAttemptedToolSource,
   extractToolFailureError,
+  forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -187,7 +188,7 @@ export function createAnythingLangChainAgent({
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
           const normalized = normalizeAgentStreamEvent(ev);
-          if (normalized) emit(normalized);
+          if (normalized) forwardNormalizedAgentStreamEvent(emit, normalized);
           if (ev?.event === 'on_chat_model_stream') {
             patchTelemetry.processToolCallChunks(ev.data?.chunk?.tool_call_chunks);
           }

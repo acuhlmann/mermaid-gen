@@ -85,10 +85,25 @@ export type LegacyToolStartEvent = {
   timestamp?: number;
 };
 
+export type ToolApplyResultSummary = {
+  accepted: boolean;
+  error?: string;
+};
+
 export type LegacyToolEndEvent = {
   type: 'tool_end';
   name: string;
   id?: string;
+  applyResult?: ToolApplyResultSummary;
+  timestamp?: number;
+};
+
+export type LegacyToolApplyResultEvent = {
+  type: 'tool_apply_result';
+  name: string;
+  id?: string;
+  accepted: boolean;
+  error?: string;
   timestamp?: number;
 };
 
@@ -127,6 +142,7 @@ export type LegacyStreamEvent =
   | LegacyArtifactEvent
   | LegacyToolStartEvent
   | LegacyToolEndEvent
+  | LegacyToolApplyResultEvent
   | LegacyDraftPreviewEvent
   | LegacyErrorEvent
   | LegacyFinalEvent

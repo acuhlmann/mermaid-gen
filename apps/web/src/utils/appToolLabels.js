@@ -1,6 +1,10 @@
 const TOOL_LABELS = {
   get_diagram_state: 'Read diagram snapshot',
-  apply_mermaid_patch: 'Apply diagram update'
+  apply_mermaid_patch: 'Apply diagram update',
+  apply_chart_patch: 'Apply chart update',
+  apply_infographic_patch: 'Apply infographic update',
+  apply_metaphor_patch: 'Apply 3D scene update',
+  apply_anything_patch: 'Apply canvas update'
 };
 
 /** Human label for an LLM-tool call name shown in the insights pane. */
