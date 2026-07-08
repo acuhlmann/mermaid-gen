@@ -22,6 +22,56 @@ afterEach(() => {
 });
 
 describe('InsightsPane', () => {
+  it('pins the Now status strip in the thinking pane header', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-1',
+            title: 'Go - diagram',
+            status: 'running',
+            statusText: 'Working on your request...',
+            content: '### Recommended edits\n- **Rename** _Prototype Ideas_',
+            technicalActions: [
+              { id: 't1', name: 'get_diagram_state', label: 'Read diagram snapshot', status: 'done' }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    const strip = screen.getByTestId('insights-pane-now-status');
+    expect(strip.closest('.insights-pane-header')).toBeTruthy();
+    expect(within(strip).getByText('Working on your request...')).toBeTruthy();
+    expect(strip.closest('.insights-pane-body')).toBeNull();
+  });
+
+  it('shows failed Now status in the header after a run stops', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-failed',
+            title: 'Refine — diagram',
+            variant: 'refine',
+            status: 'failed',
+            statusText: 'Syntax repair failed',
+            failureDetail: 'Mermaid parse error near line 4',
+            content: '',
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    const strip = screen.getByTestId('insights-pane-now-status');
+    expect(strip.closest('.insights-pane-header')).toBeTruthy();
+    expect(within(strip).getByText('Issue')).toBeTruthy();
+    expect(within(strip).getByText('Syntax repair failed')).toBeTruthy();
+  });
+
   it('renders rich content and technical action lane', () => {
     render(
       <InsightsPane
@@ -432,8 +482,8 @@ flowchart TB
       />
     );
 
-    const strip = screen.getByText('Now').closest('.insights-status-strip');
-    expect(strip).toBeTruthy();
+    const strip = screen.getByTestId('insights-pane-now-status');
+    expect(strip.closest('.insights-pane-header')).toBeTruthy();
     expect(within(strip).getByText('Drafting the chart.')).toBeTruthy();
     expect(within(strip).queryByText(/archislopVersion/)).toBeNull();
   });

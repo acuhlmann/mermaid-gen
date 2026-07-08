@@ -862,6 +862,10 @@
   animation: insights-header-soft-glow 2.4s ease-in-out infinite;
 }
 
+.insights-pane-header-status {
+  margin: 0;
+}
+
 @keyframes insights-header-soft-glow {
   0%,
   100% {
