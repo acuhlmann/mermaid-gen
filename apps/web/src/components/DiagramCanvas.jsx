@@ -1047,7 +1047,7 @@ export default function DiagramCanvas({
       };
     }
     if (chartHit) {
-      return buildChartDescriptorFromDomHit(chartHit);
+      return buildChartDescriptorFromDomHit(chartHit, viewportRef.current);
     }
     return null;
   }
@@ -1136,8 +1136,11 @@ export default function DiagramCanvas({
       contentType === 'infographic' &&
       infographicHit &&
       INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES.has(infographicHit.elementType);
+    const passiveChartMark =
+      contentType === 'chart' && chartHit && event.pointerType === 'touch';
+    const passiveGesture = passiveInfographicText || passiveChartMark;
 
-    if (!passiveInfographicText) {
+    if (!passiveGesture) {
       event.preventDefault();
       pointersRef.current.set(event.pointerId, {
         x: localX,
@@ -1146,7 +1149,7 @@ export default function DiagramCanvas({
     }
 
     const pointers = getPointers(pointersRef.current);
-    if (!passiveInfographicText) {
+    if (!passiveGesture) {
       gestureRef.current = {
         centroid: getCentroid(pointers),
         distance: pointers.length >= 2 ? getDistance(pointers[0], pointers[1]) : null
@@ -1203,14 +1206,15 @@ export default function DiagramCanvas({
         kind: 'chart-mark',
         label: chartHit.label,
         roleDesc: chartHit.roleDesc,
-        className: chartHit.className
+        className: chartHit.className,
+        passiveChartMark
       };
     } else {
       tapCandidateRef.current = null;
     }
 
     const noTap = !nodeEl && !clusterEl && !actorHit && !edgeHit && !infographicHit && !chartHit;
-    if (pointers.length === 1 && noTap && !passiveInfographicText) {
+    if (pointers.length === 1 && noTap && !passiveGesture) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
         sx: event.clientX,
@@ -1220,7 +1224,7 @@ export default function DiagramCanvas({
       backgroundTapRef.current = null;
     }
 
-    if (!passiveInfographicText) {
+    if (!passiveGesture) {
       panGestureNotifiedRef.current = false;
       panGestureStartRef.current = { x: event.clientX, y: event.clientY };
       setIsPanning(true);
@@ -1234,7 +1238,7 @@ export default function DiagramCanvas({
     if (contentType === 'metaphor3d' || contentType === 'anything') return;
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
-      if (!tap.passiveNativeText) {
+      if (!tap.passiveNativeText && !tap.passiveChartMark) {
         event.preventDefault();
       }
       const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
@@ -1324,7 +1328,7 @@ export default function DiagramCanvas({
   function endPointerGesture(event) {
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
-      if (!tap.passiveNativeText) {
+      if (!tap.passiveNativeText && !tap.passiveChartMark) {
         event.preventDefault();
       }
       const moved = Math.hypot(event.clientX - tap.startClientX, event.clientY - tap.startClientY);
@@ -1501,7 +1505,6 @@ export default function DiagramCanvas({
                     key={`chart-${rendererRefreshKey}`}
                     diagramSource={editorSource}
                     selectedNode={selectedNode}
-                    onSelectedNodeChange={onSelectedNodeChange}
                   />
                 ) : (
                   <div dangerouslySetInnerHTML={{ __html: svgMarkup }} />
