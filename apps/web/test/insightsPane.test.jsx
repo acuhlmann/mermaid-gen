@@ -1,12 +1,24 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import InsightsPane from '../src/components/InsightsPane.jsx';
 import { splitCritiqueActionableSections } from '@archislop/shared';
 import { cleanup } from '@testing-library/react';
 
+beforeEach(() => {
+  vi.stubGlobal(
+    'IntersectionObserver',
+    class {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    }
+  );
+});
+
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe('InsightsPane', () => {
@@ -710,6 +722,70 @@ flowchart TB
     expect(screen.getByText('Tool trace')).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
     expect(screen.getByText('Read snapshot')).toBeTruthy();
+  });
+
+  it('renders chart DSL preview in Refinement instead of raw JSON', () => {
+    const chart = {
+      archislopVersion: 1,
+      theme: 'blueprint',
+      spec: {
+        $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+        data: { values: [{ category: 'A', value: 1 }] },
+        mark: 'bar',
+        encoding: {
+          x: { field: 'category', type: 'nominal' },
+          y: { field: 'value', type: 'quantitative' }
+        }
+      }
+    };
+    const content = `Polishing the chart.\n\n## Refinement notes\n\n\`\`\`json\n${JSON.stringify(chart, null, 2)}\n\`\`\``;
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-ref-chart',
+            title: 'Refine — chart',
+            variant: 'refine',
+            status: 'running',
+            statusText: 'Working…',
+            content,
+            technicalActions: [],
+            contentType: 'chart'
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Refinement')).toBeTruthy();
+    expect(screen.getByText('Polishing the chart.')).toBeTruthy();
+    expect(screen.getByTestId('insights-embedded-diagram')).toBeTruthy();
+    expect(screen.queryByText(/"archislopVersion"/)).toBeNull();
+  });
+
+  it('syntax-highlights non-diagram JSON in thinking content', () => {
+    const content = `Config snapshot:\n\n\`\`\`json\n{"tool":"get_diagram_state","ok":true}\n\`\`\``;
+
+    const { container } = render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-json',
+            title: 'Explain — diagram',
+            variant: 'explain',
+            status: 'done',
+            content,
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByTestId('thinking-syntax-code')).toBeTruthy();
+    expect(container.querySelector('.insights-code-token-key')).toBeTruthy();
+    expect(screen.queryByText(/"tool":"get_diagram_state"/)).toBeNull();
   });
 
   it('uses Refinement label, opener, and section cards for refine variant', () => {
