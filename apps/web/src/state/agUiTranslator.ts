@@ -142,14 +142,32 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
         if (name === AGUI_CUSTOM_NAME_ARTIFACT) return (value ?? null) as LegacyStreamEvent | null;
         if (name === AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT && value && typeof value === 'object') {
           const toolName = typeof value.name === 'string' ? value.name : '';
+          const accepted = value.accepted === true;
           const error = typeof value.error === 'string' ? value.error : '';
-          if (!toolName || !error) return null;
+          if (!toolName || (!accepted && !error)) return null;
+          const optionalKeys = [
+            'revisionId',
+            'reason',
+            'validator',
+            'sanitizerApplied',
+            'linesAdded',
+            'linesRemoved',
+            'nodesAdded',
+            'nodesRemoved',
+            'edgesAdded',
+            'edgesRemoved'
+          ] as const;
+          const extras: Record<string, unknown> = {};
+          for (const key of optionalKeys) {
+            const v = value[key];
+            if (v !== undefined && v !== null) extras[key] = v;
+          }
           return {
             type: 'tool_apply_result',
             name: toolName,
             ...(typeof value.toolCallId === 'string' ? { id: value.toolCallId } : {}),
-            accepted: false,
-            error
+            accepted,
+            ...(accepted ? extras : { error })
           };
         }
         if (name === AGUI_CUSTOM_NAME_SYNTAX_FIXER && value && typeof value === 'object') {

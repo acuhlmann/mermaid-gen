@@ -28,11 +28,52 @@ const APPLY_PATCH_TOOL_NAMES = new Set([
 ]);
 
 /**
+ * @param {Record<string, unknown>} raw
+ * @returns {Omit<import('@archislop/shared').ToolApplyResultSummary, 'accepted' | 'error'>}
+ */
+function extractPatchApplySummary(raw) {
+  /** @type {Record<string, unknown>} */
+  const summary = {};
+  const metadata =
+    raw.metadata && typeof raw.metadata === 'object' ? /** @type {Record<string, unknown>} */ (raw.metadata) : null;
+  const patch =
+    raw.patch && typeof raw.patch === 'object' ? /** @type {Record<string, unknown>} */ (raw.patch) : null;
+  const state =
+    raw.state && typeof raw.state === 'object' ? /** @type {Record<string, unknown>} */ (raw.state) : null;
+
+  if (state && Number.isFinite(state.revisionId)) {
+    summary.revisionId = state.revisionId;
+  }
+  if (patch && typeof patch.reason === 'string' && patch.reason.trim()) {
+    summary.reason = patch.reason.trim();
+  }
+  if (metadata && typeof metadata.validator === 'string' && metadata.validator.trim()) {
+    summary.validator = metadata.validator.trim();
+  }
+  if (metadata && Array.isArray(metadata.sanitizerApplied) && metadata.sanitizerApplied.length > 0) {
+    summary.sanitizerApplied = metadata.sanitizerApplied.filter((item) => typeof item === 'string');
+  }
+
+  const graphDiff =
+    metadata?.graphDiff && typeof metadata.graphDiff === 'object'
+      ? /** @type {Record<string, unknown>} */ (metadata.graphDiff)
+      : null;
+  if (graphDiff) {
+    if (Array.isArray(graphDiff.nodesAdded)) summary.nodesAdded = graphDiff.nodesAdded.length;
+    if (Array.isArray(graphDiff.nodesRemoved)) summary.nodesRemoved = graphDiff.nodesRemoved.length;
+    if (Array.isArray(graphDiff.edgesAdded)) summary.edgesAdded = graphDiff.edgesAdded.length;
+    if (Array.isArray(graphDiff.edgesRemoved)) summary.edgesRemoved = graphDiff.edgesRemoved.length;
+  }
+
+  return summary;
+}
+
+/**
  * Parse the JSON envelope returned by `apply_*_patch` tools from a LangChain
  * tool-end output payload.
  *
  * @param {unknown} output
- * @returns {{ accepted: boolean, error?: string } | null}
+ * @returns {import('@archislop/shared').ToolApplyResultSummary | null}
  */
 export function parseToolApplyResultOutput(output) {
   if (output == null) return null;
@@ -54,44 +95,60 @@ export function parseToolApplyResultOutput(output) {
   const parsed = ToolApplyResultSchema.safeParse(raw);
   if (parsed.success) {
     return parsed.data.accepted
-      ? { accepted: true }
+      ? { accepted: true, ...extractPatchApplySummary(parsed.data) }
       : { accepted: false, error: parsed.data.error };
   }
   if (raw && typeof raw === 'object' && typeof raw.accepted === 'boolean') {
-    return {
-      accepted: raw.accepted,
-      ...(typeof raw.error === 'string' && raw.error ? { error: raw.error } : {})
-    };
+    return raw.accepted
+      ? { accepted: true, ...extractPatchApplySummary(raw) }
+      : {
+          accepted: false,
+          ...(typeof raw.error === 'string' && raw.error ? { error: raw.error } : {})
+        };
   }
   return null;
 }
 
 /**
- * Emit a normalized stream event and, when an apply-patch tool rejects, a
+ * Emit a normalized stream event and, when an apply-patch tool finishes, a
  * follow-up `tool_apply_result` event for the insights Tool trace.
  *
  * @param {(evt: object) => void} emit
- * @param {{ type: string, name?: string, id?: string, applyResult?: { accepted: boolean, error?: string } } | null} normalized
+ * @param {{ type: string, name?: string, id?: string, applyResult?: import('@archislop/shared').ToolApplyResultSummary } | null} normalized
  */
 export function forwardNormalizedAgentStreamEvent(emit, normalized) {
   if (!normalized || typeof emit !== 'function') return;
   emit(normalized);
   if (
-    normalized.type === 'tool_end' &&
-    normalized.applyResult?.accepted === false &&
-    typeof normalized.applyResult.error === 'string' &&
-    normalized.applyResult.error &&
-    typeof normalized.name === 'string' &&
-    APPLY_PATCH_TOOL_NAMES.has(normalized.name)
+    normalized.type !== 'tool_end' ||
+    typeof normalized.name !== 'string' ||
+    !APPLY_PATCH_TOOL_NAMES.has(normalized.name) ||
+    !normalized.applyResult
   ) {
+    return;
+  }
+
+  const { accepted, error, ...patchMeta } = normalized.applyResult;
+  if (accepted === false) {
+    if (typeof error !== 'string' || !error) return;
     emit({
       type: 'tool_apply_result',
       name: normalized.name,
       ...(normalized.id ? { id: normalized.id } : {}),
       accepted: false,
-      error: normalized.applyResult.error
+      error
     });
+    return;
   }
+
+  if (accepted !== true) return;
+  emit({
+    type: 'tool_apply_result',
+    name: normalized.name,
+    ...(normalized.id ? { id: normalized.id } : {}),
+    accepted: true,
+    ...patchMeta
+  });
 }
 
 function normalizeMessageContent(content) {

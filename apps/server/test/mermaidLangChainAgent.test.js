@@ -302,6 +302,55 @@ test('parseToolApplyResultOutput reads JSON string envelopes', () => {
   });
 });
 
+test('parseToolApplyResultOutput reads success metadata from apply envelopes', () => {
+  const parsed = parseToolApplyResultOutput(
+    JSON.stringify({
+      accepted: true,
+      state: { revisionId: 9, diagramSource: 'flowchart TD\n  A --> B' },
+      patch: { reason: 'Add auth gate', diagramSource: 'flowchart TD\n  A --> B' },
+      metadata: {
+        validator: 'local-parser',
+        graphDiff: {
+          nodesAdded: ['Auth'],
+          nodesRemoved: [],
+          edgesAdded: [{ from: 'A', to: 'Auth' }],
+          edgesRemoved: []
+        }
+      }
+    })
+  );
+  assert.deepEqual(parsed, {
+    accepted: true,
+    revisionId: 9,
+    reason: 'Add auth gate',
+    validator: 'local-parser',
+    nodesAdded: 1,
+    nodesRemoved: 0,
+    edgesAdded: 1,
+    edgesRemoved: 0
+  });
+});
+
+test('forwardNormalizedAgentStreamEvent emits tool_apply_result after accepted patch', () => {
+  const captured = [];
+  forwardNormalizedAgentStreamEvent(captured.push.bind(captured), {
+    type: 'tool_end',
+    name: 'apply_mermaid_patch',
+    id: 'tool_9',
+    applyResult: {
+      accepted: true,
+      revisionId: 5,
+      reason: 'Tighten layout',
+      nodesAdded: 1
+    }
+  });
+  assert.equal(captured.length, 2);
+  assert.equal(captured[1].type, 'tool_apply_result');
+  assert.equal(captured[1].accepted, true);
+  assert.equal(captured[1].revisionId, 5);
+  assert.equal(captured[1].reason, 'Tighten layout');
+});
+
 test('forwardNormalizedAgentStreamEvent emits tool_apply_result after rejected patch', () => {
   const captured = [];
   forwardNormalizedAgentStreamEvent(captured.push.bind(captured), {

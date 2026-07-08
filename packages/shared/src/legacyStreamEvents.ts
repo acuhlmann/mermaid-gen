@@ -85,9 +85,20 @@ export type LegacyToolStartEvent = {
   timestamp?: number;
 };
 
+/** Structured patch outcome surfaced in the insights tool trace (success or rejection). */
 export type ToolApplyResultSummary = {
   accepted: boolean;
   error?: string;
+  revisionId?: number;
+  reason?: string;
+  validator?: string;
+  sanitizerApplied?: string[];
+  linesAdded?: number;
+  linesRemoved?: number;
+  nodesAdded?: number;
+  nodesRemoved?: number;
+  edgesAdded?: number;
+  edgesRemoved?: number;
 };
 
 export type LegacyToolEndEvent = {
@@ -104,6 +115,16 @@ export type LegacyToolApplyResultEvent = {
   id?: string;
   accepted: boolean;
   error?: string;
+  revisionId?: number;
+  reason?: string;
+  validator?: string;
+  sanitizerApplied?: string[];
+  linesAdded?: number;
+  linesRemoved?: number;
+  nodesAdded?: number;
+  nodesRemoved?: number;
+  edgesAdded?: number;
+  edgesRemoved?: number;
   timestamp?: number;
 };
 

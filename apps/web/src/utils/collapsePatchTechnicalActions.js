@@ -20,11 +20,15 @@ export function collapseConsecutiveApplyPatchActions(actions, formatLabel) {
     prev?.status === 'done'
   ) {
     const count = (prev.count ?? 1) + 1;
+    const durationMs = (prev.durationMs ?? 0) + (cur.durationMs ?? 0);
     return [
       ...actions.slice(0, i - 1),
       {
         ...prev,
         count,
+        durationMs: durationMs > 0 ? durationMs : prev.durationMs,
+        outcomeDetail: cur.outcomeDetail ?? prev.outcomeDetail,
+        patchStats: cur.patchStats ?? prev.patchStats,
         label: formatLabel(APPLY_MERMAID_PATCH, count)
       }
     ];

@@ -257,17 +257,38 @@ export function createAgentStreamEmitter({
       }
       case 'tool_apply_result': {
         const name = String(evt.name ?? '');
+        if (!name) return;
+        const accepted = evt.accepted === true;
         const error = typeof evt.error === 'string' ? evt.error : '';
-        if (!name || !error) return;
+        if (!accepted && !error) return;
+        const value: Record<string, unknown> = {
+          name,
+          accepted,
+          ...(evt.id != null ? { toolCallId: String(evt.id) } : {}),
+          ...(accepted ? {} : { error })
+        };
+        if (accepted) {
+          const optionalKeys = [
+            'revisionId',
+            'reason',
+            'validator',
+            'sanitizerApplied',
+            'linesAdded',
+            'linesRemoved',
+            'nodesAdded',
+            'nodesRemoved',
+            'edgesAdded',
+            'edgesRemoved'
+          ] as const;
+          for (const key of optionalKeys) {
+            const v = evt[key];
+            if (v !== undefined && v !== null) value[key] = v;
+          }
+        }
         return rawEmit(
           customEvent({
             name: AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
-            value: {
-              name,
-              ...(evt.id != null ? { toolCallId: String(evt.id) } : {}),
-              accepted: false,
-              error
-            }
+            value
           })
         );
       }

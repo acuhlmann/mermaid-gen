@@ -11,6 +11,7 @@ function createCtx(overrides = {}) {
     appendTechnicalAction: vi.fn(),
     annotateTechnicalActionResult: vi.fn(),
     finalizeTechnicalActionResult: vi.fn(),
+    enrichTechnicalActionDetail: vi.fn(),
     lastTokenSoundAtRef: { current: 0 },
     goMadTokenTickIndexRef: { current: 0 },
     lastDraftTickAtRef: { current: 0 },
@@ -44,6 +45,36 @@ describe('applyAgentStreamInsightEvent tool_apply_result', () => {
       validationError: 'Chart DSL must include archislopVersion',
       toolCallId: 'tool_42'
     });
+  });
+
+  it('enriches accepted patch actions with outcome detail', () => {
+    const enrichTechnicalActionDetail = vi.fn();
+    const ctx = createCtx({ enrichTechnicalActionDetail });
+    applyAgentStreamInsightEvent(
+      { text: '' },
+      ctx,
+      {
+        type: 'tool_apply_result',
+        name: 'apply_mermaid_patch',
+        id: 'tool_1',
+        accepted: true,
+        revisionId: 8,
+        nodesAdded: 2,
+        reason: 'Add cache layer'
+      }
+    );
+    expect(enrichTechnicalActionDetail).toHaveBeenCalledWith(
+      'sec-1',
+      'apply_mermaid_patch',
+      expect.objectContaining({
+        toolCallId: 'tool_1',
+        patchStats: expect.objectContaining({
+          revisionId: 8,
+          nodesAdded: 2,
+          reason: 'Add cache layer'
+        })
+      })
+    );
   });
 });
 

@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
+
 const PATCH_TOOL_RE = /patch|mermaid|infographic|chart|anything|metaphor/i;
 
 function actionIcon(name: string | undefined): string {
@@ -21,7 +24,24 @@ type TechnicalAction = {
   validationError?: string;
   contextNote?: string;
   outcomeDetail?: string;
+  durationMs?: number;
+  startedAt?: number;
+  patchStats?: {
+    reason?: string;
+    revisionId?: number;
+    [key: string]: unknown;
+  };
 };
+
+function useNowTicker(active: boolean) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!active) return undefined;
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [active]);
+  return now;
+}
 
 export default function TechnicalActionStepper({
   actions = [],
@@ -30,6 +50,7 @@ export default function TechnicalActionStepper({
   actions?: TechnicalAction[];
   collapsed?: boolean;
 }) {
+  const now = useNowTicker(actions.some((action) => action.status === 'running'));
   if (!actions.length) {
     return <p className="insights-tech-empty">No technical actions yet.</p>;
   }
@@ -47,6 +68,12 @@ export default function TechnicalActionStepper({
         const contextNote = typeof action.contextNote === 'string' ? action.contextNote.trim() : '';
         const outcomeDetail =
           typeof action.outcomeDetail === 'string' ? action.outcomeDetail.trim() : '';
+        const reason =
+          typeof action.patchStats?.reason === 'string' ? action.patchStats.reason.trim() : '';
+        const durationLabel =
+          action.status === 'running' && Number.isFinite(action.startedAt)
+            ? formatActionDurationMs(now - (action.startedAt as number))
+            : formatActionDurationMs(action.durationMs);
         return (
           <li
             key={action.id ?? `${action.name}-${idx}`}
@@ -69,7 +96,19 @@ export default function TechnicalActionStepper({
               {actionIcon(action.name)}
             </span>
             <span className="insights-tech-step-body">
-              <span className="insights-tech-step-label">{action.label}</span>
+              <span className="insights-tech-step-label-row">
+                <span className="insights-tech-step-label">{action.label}</span>
+                {durationLabel ? (
+                  <span className="insights-tech-step-duration" title="Tool duration">
+                    {durationLabel}
+                  </span>
+                ) : null}
+              </span>
+              {reason ? (
+                <span className="insights-tech-step-context" title={reason}>
+                  {truncateValidationError(reason, 180)}
+                </span>
+              ) : null}
               {contextNote ? (
                 <span className="insights-tech-step-context" title={contextNote}>
                   After: {truncateValidationError(contextNote, 180)}
