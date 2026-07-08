@@ -15,6 +15,7 @@ import {
   extractFinalMessage,
   extractLastAttemptedToolSource,
   extractToolFailureError,
+  forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -68,6 +69,7 @@ import {
   isInfographicSyntaxFixerAvailable
 } from './infographicSyntaxFixer.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 
 const INFOGRAPHIC_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an infographic patch.
@@ -347,7 +349,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
           const normalized = normalizeAgentStreamEvent(ev);
-          if (normalized) emit(normalized);
+          if (normalized) forwardNormalizedAgentStreamEvent(emit, normalized);
 
           if (ev?.event === 'on_chat_model_stream') {
             const chunks = ev.data?.chunk?.tool_call_chunks;
@@ -432,14 +434,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
         if (fixerStop) return finishStoppedRun(fixerStop);
         syntaxFixerTried = true;
-        if (typeof emit === 'function') {
-          emitPlanBeat(
-            emit,
-            'Infographic DSL failed validation — running a quick syntax pass before retrying.',
-            'server'
-          );
-          emit({ type: 'phase', id: 'syntax_fixer', label: 'Infographic syntax fixer…' });
-        }
+        emitSyntaxFixerStart(emit, { contentType: 'infographic', triggerError: failureError });
         const fixerOutcome = await repairInfographicWithFixer({
           brokenSource: lastBrokenSource,
           parseError: failureError,
@@ -454,6 +449,11 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
             reason: 'syntax-fixer repair'
           });
           if (applied.accepted) {
+            emitSyntaxFixerResult(emit, {
+              contentType: 'infographic',
+              outcome: 'repaired',
+              detail: 'Repaired invalid infographic DSL and applied the patch.'
+            });
             return {
               message: 'Infographic updated (repaired by syntax fixer).',
               raw: result,
@@ -463,8 +463,18 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
           // If the fixer's candidate failed `applyDiagramSource` (re-validates), fall through
           // to the agent retry — pass the resulting error along so the next attempt sees it.
           lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+          emitSyntaxFixerResult(emit, {
+            contentType: 'infographic',
+            outcome: 'store_rejected',
+            error: applied.error ?? 'Infographic validation failed after syntax fixer.'
+          });
         } else {
           lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+          emitSyntaxFixerResult(emit, {
+            contentType: 'infographic',
+            outcome: 'fixer_failed',
+            error: fixerOutcome.error ?? 'Syntax fixer could not repair the infographic DSL.'
+          });
         }
       }
 

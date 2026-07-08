@@ -1,4 +1,4 @@
-const PATCH_TOOL_RE = /patch|mermaid|infographic/i;
+const PATCH_TOOL_RE = /patch|mermaid|infographic|chart|anything|metaphor/i;
 
 function actionIcon(name: string | undefined): string {
   if (PATCH_TOOL_RE.test(name ?? '')) return '✂️';
@@ -7,11 +7,20 @@ function actionIcon(name: string | undefined): string {
   return '⚙️';
 }
 
+function truncateValidationError(error: string, maxLen = 220): string {
+  const trimmed = error.trim();
+  if (trimmed.length <= maxLen) return trimmed;
+  return `${trimmed.slice(0, maxLen - 1)}…`;
+}
+
 type TechnicalAction = {
   id?: string;
   name?: string;
   label?: string;
   status?: string;
+  validationError?: string;
+  contextNote?: string;
+  outcomeDetail?: string;
 };
 
 export default function TechnicalActionStepper({
@@ -29,8 +38,15 @@ export default function TechnicalActionStepper({
     <ol className="insights-tech-stepper" data-testid="technical-action-stepper">
       {actions.map((action, idx) => {
         const isRunning = action.status === 'running';
-        const isDone = action.status === 'done';
+        const isRejected = action.status === 'rejected';
+        const isDone = action.status === 'done' && !isRejected;
         const isPatch = PATCH_TOOL_RE.test(action.name ?? '');
+        const isSyntaxFixer = action.name === 'syntax_fixer';
+        const validationError =
+          typeof action.validationError === 'string' ? action.validationError.trim() : '';
+        const contextNote = typeof action.contextNote === 'string' ? action.contextNote.trim() : '';
+        const outcomeDetail =
+          typeof action.outcomeDetail === 'string' ? action.outcomeDetail.trim() : '';
         return (
           <li
             key={action.id ?? `${action.name}-${idx}`}
@@ -38,19 +54,38 @@ export default function TechnicalActionStepper({
               'insights-tech-step',
               isRunning ? 'is-running' : '',
               isDone ? 'is-done' : '',
-              isPatch ? 'is-patch-tool' : ''
+              isRejected ? 'is-rejected' : '',
+              isPatch ? 'is-patch-tool' : '',
+              isSyntaxFixer ? 'is-syntax-fixer' : ''
             ]
               .filter(Boolean)
               .join(' ')}
             style={{ animationDelay: `${idx * 40}ms` }}
           >
             <span className="insights-tech-step-icon" aria-hidden="true">
-              {isDone ? '✓' : isRunning ? '◉' : '○'}
+              {isRejected ? '✗' : isDone ? '✓' : isRunning ? '◉' : '○'}
             </span>
             <span className="insights-tech-step-glyph" aria-hidden="true">
               {actionIcon(action.name)}
             </span>
-            <span className="insights-tech-step-label">{action.label}</span>
+            <span className="insights-tech-step-body">
+              <span className="insights-tech-step-label">{action.label}</span>
+              {contextNote ? (
+                <span className="insights-tech-step-context" title={contextNote}>
+                  After: {truncateValidationError(contextNote, 180)}
+                </span>
+              ) : null}
+              {outcomeDetail ? (
+                <span className="insights-tech-step-detail" title={outcomeDetail}>
+                  {truncateValidationError(outcomeDetail)}
+                </span>
+              ) : null}
+              {validationError ? (
+                <span className="insights-tech-step-error" title={validationError}>
+                  {truncateValidationError(validationError)}
+                </span>
+              ) : null}
+            </span>
             <code className="insights-tech-step-name">{action.name}</code>
           </li>
         );

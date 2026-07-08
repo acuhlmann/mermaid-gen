@@ -25,6 +25,10 @@ import {
   transformModeModelOptions,
   goMadTransformModelOptions
 } from '../src/agents/mermaidLangChainAgent.js';
+import {
+  forwardNormalizedAgentStreamEvent,
+  parseToolApplyResultOutput
+} from '../src/agents/_lib/diagramAgentHelpers.js';
 import { createDiagramStateStore } from '../src/state/diagramStateStore.js';
 
 test('agent message conversion drops assistant replies that expose internal tool names', () => {
@@ -267,6 +271,48 @@ test('normalizeAgentStreamEvent maps on_tool_start with nested input name', () =
   });
   assert.equal(mapped?.type, 'tool_start');
   assert.equal(mapped?.name, 'apply_infographic_patch');
+});
+
+test('normalizeAgentStreamEvent attaches applyResult on rejected apply_chart_patch tool_end', () => {
+  const mapped = normalizeAgentStreamEvent({
+    event: 'on_tool_end',
+    data: {
+      name: 'apply_chart_patch',
+      output: JSON.stringify({
+        accepted: false,
+        error: 'Vega-Lite compile failed: Invalid encoding channel "colour"'
+      })
+    }
+  });
+  assert.equal(mapped?.type, 'tool_end');
+  assert.equal(mapped?.name, 'apply_chart_patch');
+  assert.deepEqual(mapped?.applyResult, {
+    accepted: false,
+    error: 'Vega-Lite compile failed: Invalid encoding channel "colour"'
+  });
+});
+
+test('parseToolApplyResultOutput reads JSON string envelopes', () => {
+  const parsed = parseToolApplyResultOutput(
+    JSON.stringify({ accepted: false, error: 'Chart DSL must include archislopVersion' })
+  );
+  assert.deepEqual(parsed, {
+    accepted: false,
+    error: 'Chart DSL must include archislopVersion'
+  });
+});
+
+test('forwardNormalizedAgentStreamEvent emits tool_apply_result after rejected patch', () => {
+  const captured = [];
+  forwardNormalizedAgentStreamEvent(captured.push.bind(captured), {
+    type: 'tool_end',
+    name: 'apply_chart_patch',
+    applyResult: { accepted: false, error: 'Missing $schema in Vega-Lite spec' }
+  });
+  assert.equal(captured.length, 2);
+  assert.equal(captured[0].type, 'tool_end');
+  assert.equal(captured[1].type, 'tool_apply_result');
+  assert.equal(captured[1].error, 'Missing $schema in Vega-Lite spec');
 });
 
 test('shouldAttemptSyntaxRepair detects syntax-like validation errors', () => {

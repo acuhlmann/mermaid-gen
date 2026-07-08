@@ -3,6 +3,7 @@ import { getAgentRunnableConfig } from '../agentGraphConfig.js';
 import { createPatchToolStreamTracker } from '../streamPatchToolTelemetry.js';
 import {
   captureMessagesFromStreamEvent,
+  forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent
 } from './diagramAgentHelpers.js';
 
@@ -107,7 +108,7 @@ export async function streamReactAgentEvents({
       latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
       const normalized = normalizeAgentStreamEvent(ev);
       if (normalized) {
-        emit(normalized);
+        forwardNormalizedAgentStreamEvent(emit, normalized);
         lastActivity = Date.now();
       }
       if (patchTelemetry && ev?.event === 'on_chat_model_stream') {

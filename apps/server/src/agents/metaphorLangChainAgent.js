@@ -22,12 +22,14 @@ import {
   extractFinalMessage,
   extractLastAttemptedToolSource,
   extractToolFailureError,
+  forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import { repairMetaphorWithFixer, isMetaphorSyntaxFixerAvailable } from './metaphorSyntaxFixer.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
 import {
   appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
@@ -177,7 +179,7 @@ export function createMetaphorLangChainAgent({
         for await (const ev of stream) {
           latestMessages = captureMessagesFromStreamEvent(ev, latestMessages);
           const normalized = normalizeAgentStreamEvent(ev);
-          if (normalized) emit(normalized);
+          if (normalized) forwardNormalizedAgentStreamEvent(emit, normalized);
           if (ev?.event === 'on_chat_model_stream') {
             patchTelemetry.processToolCallChunks(ev.data?.chunk?.tool_call_chunks);
           }
@@ -348,14 +350,7 @@ export function createMetaphorLangChainAgent({
           const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
-          if (typeof emit === 'function') {
-            emitPlanBeat(
-              emit,
-              'Metaphor DSL failed validation — running a quick syntax pass before retrying.',
-              'server'
-            );
-            emit({ type: 'phase', id: 'metaphor_syntax_fixer', label: 'Metaphor syntax fixer…' });
-          }
+          emitSyntaxFixerStart(emit, { contentType: 'metaphor3d', triggerError: failureError });
           const fixerOutcome = await repairMetaphorWithFixer({
             brokenSource: lastBrokenSource,
             parseError: failureError,
@@ -370,6 +365,11 @@ export function createMetaphorLangChainAgent({
               reason: 'syntax-fixer repair'
             });
             if (applied.accepted) {
+              emitSyntaxFixerResult(emit, {
+                contentType: 'metaphor3d',
+                outcome: 'repaired',
+                detail: 'Repaired invalid metaphor DSL and applied the patch.'
+              });
               return {
                 message: 'Metaphor updated (repaired by syntax fixer).',
                 raw: result,
@@ -377,8 +377,18 @@ export function createMetaphorLangChainAgent({
               };
             }
             lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'metaphor3d',
+              outcome: 'store_rejected',
+              error: applied.error ?? 'Metaphor validation failed after syntax fixer.'
+            });
           } else {
             lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'metaphor3d',
+              outcome: 'fixer_failed',
+              error: fixerOutcome.error ?? 'Syntax fixer could not repair the metaphor DSL.'
+            });
           }
         }
 

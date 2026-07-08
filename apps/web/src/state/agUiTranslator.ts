@@ -3,6 +3,8 @@ import {
   AGUI_CUSTOM_NAME_ARTIFACT,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
+  AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
+  AGUI_CUSTOM_NAME_SYNTAX_FIXER,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
   agUiDraftSourcePath,
@@ -138,6 +140,42 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
           return { type: LEGACY_STREAM_TYPE_A2UI, messages: value.messages };
         }
         if (name === AGUI_CUSTOM_NAME_ARTIFACT) return (value ?? null) as LegacyStreamEvent | null;
+        if (name === AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT && value && typeof value === 'object') {
+          const toolName = typeof value.name === 'string' ? value.name : '';
+          const error = typeof value.error === 'string' ? value.error : '';
+          if (!toolName || !error) return null;
+          return {
+            type: 'tool_apply_result',
+            name: toolName,
+            ...(typeof value.toolCallId === 'string' ? { id: value.toolCallId } : {}),
+            accepted: false,
+            error
+          };
+        }
+        if (name === AGUI_CUSTOM_NAME_SYNTAX_FIXER && value && typeof value === 'object') {
+          const phase = value.phase;
+          const contentType = typeof value.contentType === 'string' ? value.contentType : 'mermaid';
+          if (phase === 'start') {
+            return {
+              type: 'syntax_fixer_start',
+              contentType,
+              triggerError: typeof value.triggerError === 'string' ? value.triggerError : ''
+            };
+          }
+          if (phase === 'result') {
+            const outcome = value.outcome;
+            if (outcome !== 'repaired' && outcome !== 'fixer_failed' && outcome !== 'store_rejected') {
+              return null;
+            }
+            return {
+              type: 'syntax_fixer_result',
+              contentType,
+              outcome,
+              error: typeof value.error === 'string' ? value.error : '',
+              detail: typeof value.detail === 'string' ? value.detail : ''
+            };
+          }
+        }
         return null;
       }
       default:

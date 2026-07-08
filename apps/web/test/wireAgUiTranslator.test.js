@@ -6,6 +6,8 @@ import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
+  AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
+  AGUI_CUSTOM_NAME_SYNTAX_FIXER,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
   LEGACY_STREAM_TYPE_PLAN_BEAT
@@ -87,5 +89,61 @@ describe('wire AG-UI translator fixtures', () => {
       value: legacy
     });
     expect(out).toEqual(legacy);
+  });
+
+  it('translates CUSTOM tool_apply_result wire to legacy tool_apply_result', () => {
+    const translate = createAgUiTranslator();
+    const out = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
+      value: {
+        name: 'apply_chart_patch',
+        toolCallId: 'tool_7',
+        accepted: false,
+        error: 'Vega-Lite compile failed: missing field'
+      }
+    });
+    expect(out).toEqual({
+      type: 'tool_apply_result',
+      name: 'apply_chart_patch',
+      id: 'tool_7',
+      accepted: false,
+      error: 'Vega-Lite compile failed: missing field'
+    });
+  });
+
+  it('translates CUSTOM syntax_fixer wire to legacy start/result events', () => {
+    const translate = createAgUiTranslator();
+    const start = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_SYNTAX_FIXER,
+      value: {
+        phase: 'start',
+        contentType: 'chart',
+        triggerError: 'bad field'
+      }
+    });
+    expect(start).toEqual({
+      type: 'syntax_fixer_start',
+      contentType: 'chart',
+      triggerError: 'bad field'
+    });
+    const result = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_SYNTAX_FIXER,
+      value: {
+        phase: 'result',
+        contentType: 'chart',
+        outcome: 'repaired',
+        detail: 'fixed'
+      }
+    });
+    expect(result).toEqual({
+      type: 'syntax_fixer_result',
+      contentType: 'chart',
+      outcome: 'repaired',
+      error: '',
+      detail: 'fixed'
+    });
   });
 });
