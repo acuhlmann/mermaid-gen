@@ -2787,16 +2787,24 @@ ${requirementsBlock}`;
         contentType: targetContentType,
         styleConfig: baseline?.styleConfig
       });
+
+      if (narrowLayout && insightsOpen) {
+        setInsightsOpen(false);
+      }
     },
-    [applyDiagramSnapshotToCanvas, insightsEntries]
+    [applyDiagramSnapshotToCanvas, insightsEntries, insightsOpen, narrowLayout]
   );
 
   const handleRestoreDiagramSnapshot = useCallback(
     async ({ diagramSource, contentType }) => {
       if (loadingRef.current) return;
       await applyDiagramSnapshotToCanvas({ diagramSource, contentType });
+
+      if (narrowLayout && insightsOpen) {
+        setInsightsOpen(false);
+      }
     },
-    [applyDiagramSnapshotToCanvas]
+    [applyDiagramSnapshotToCanvas, insightsOpen, narrowLayout]
   );
 
   const handleOpenProposalFullPreview = useCallback(

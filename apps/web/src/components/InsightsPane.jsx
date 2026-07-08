@@ -212,6 +212,60 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0 }) {
   );
 }
 
+function findInsightStatusEntry(entries) {
+  return (
+    [...entries]
+      .reverse()
+      .find((e) => {
+        if (e.kind === 'proposal' || e.kind === 'attributed-note') return false;
+        const status = e.status ?? 'running';
+        return status === 'running' || status === 'failed' || status === 'cancelled';
+      }) ?? null
+  );
+}
+
+function buildInsightNowStatusStrip(entry) {
+  if (!entry) return null;
+  const rawStatus = entry.status ?? 'running';
+  const nowStatusCopy = entry.statusText && summarizeInsightNowStatus(entry.statusText, entry);
+  if (
+    !nowStatusCopy ||
+    !(rawStatus === 'running' || rawStatus === 'failed' || rawStatus === 'cancelled') ||
+    !nowStatusCopy.trim()
+  ) {
+    return null;
+  }
+  return { rawStatus, nowStatusCopy, failureDetail: entry.failureDetail };
+}
+
+/** Pinned "Now" summary — stays visible while scrolling the thinking body. */
+function InsightsPaneNowStatusStrip({ entry }) {
+  const strip = buildInsightNowStatusStrip(entry);
+  if (!strip) return null;
+  const { rawStatus, nowStatusCopy, failureDetail } = strip;
+  return (
+    <p
+      className={`insights-status-strip insights-pane-header-status is-${rawStatus}`}
+      aria-live="polite"
+      aria-atomic="true"
+      data-testid="insights-pane-now-status"
+    >
+      <span className="insights-status-strip-pulse" aria-hidden="true" />
+      <span className="insights-status-strip-label">
+        {rawStatus === 'failed' ? 'Issue' : 'Now'}
+      </span>
+      <span className="insights-status-strip-copy">
+        <span className="insights-status-strip-text">{nowStatusCopy}</span>
+        {failureDetail ? (
+          <span className="insights-status-strip-detail" title={failureDetail}>
+            {failureDetail}
+          </span>
+        ) : null}
+      </span>
+    </p>
+  );
+}
+
 /** Who is driving this run — emoji, name, and role title. */
 function InsightEntryPersonaBanner({ variant, size = 'entry' }) {
   if (!variant || variant === 'general') return null;
@@ -997,6 +1051,7 @@ export default function InsightsPane({
     };
   }
   const liveEntry = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running') ?? null;
+  const statusEntry = findInsightStatusEntry(entries);
   const activeVariant = (() => {
     if (liveEntry?.variant) return liveEntry.variant;
     const latestWithVariant = [...entries].reverse().find((e) => e.variant);
@@ -1062,6 +1117,7 @@ export default function InsightsPane({
             ) : null}
           </div>
         ) : null}
+        <InsightsPaneNowStatusStrip entry={statusEntry} />
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
         {entries.length === 0 ? (
@@ -1154,13 +1210,6 @@ export default function InsightsPane({
             const variant = entry.variant ?? 'general';
             const isRunning = rawStatus === 'running';
             const isStreaming = isRunning && Boolean(entry.content?.trim());
-            const nowStatusCopy =
-              entry.statusText &&
-              summarizeInsightNowStatus(entry.statusText, entry);
-            const statusStrip =
-              nowStatusCopy &&
-              (rawStatus === 'running' || rawStatus === 'failed' || rawStatus === 'cancelled') &&
-              nowStatusCopy.trim();
             const accentuateSections = isAccentuatedInsightVariant(variant);
             const collapseTech =
               isAccentuatedInsightVariant(variant) && (entry.technicalActions?.length ?? 0) > 0;
@@ -1328,27 +1377,6 @@ export default function InsightsPane({
                 </div>
 
                 <EntryRunMeta entry={entry} />
-
-                {statusStrip ? (
-                  <p
-                    className={`insights-status-strip is-${rawStatus}`}
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    <span className="insights-status-strip-pulse" aria-hidden="true" />
-                    <span className="insights-status-strip-label">
-                      {rawStatus === 'failed' ? 'Issue' : 'Now'}
-                    </span>
-                    <span className="insights-status-strip-copy">
-                      <span className="insights-status-strip-text">{nowStatusCopy}</span>
-                      {entry.failureDetail ? (
-                        <span className="insights-status-strip-detail" title={entry.failureDetail}>
-                          {entry.failureDetail}
-                        </span>
-                      ) : null}
-                    </span>
-                  </p>
-                ) : null}
 
                 {entry.planBeats?.length ? (
                   <section className="insights-section is-plan-lane" aria-label="Diagram intent">
