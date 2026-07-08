@@ -150,14 +150,19 @@ export const VARIANT_QUOTES = {
   explain: [
     'Picture, if you will…',
     'Notice the symmetry few people see.',
-    'There is a named pattern here.',
+    'There is a named pattern here. There always is.',
     'Did you know: every diagram is a small theory of the world.',
     'A diagram is a frozen argument.',
     'In a perfect world, you’d never draw it like this.',
     'This is the shape of an idea, not the idea.',
     'Allow me to gesture vaguely.',
     'The path of least confusion is forward.',
-    'Every box is a verb in disguise.'
+    'Every box is a verb in disguise.',
+    'Fun fact nobody asked for, incoming.',
+    'Legend has it this has a name. It does.',
+    'Let me over-explain exactly one detail…',
+    'Beautiful in theory, awkward in practice — my favorite kind.',
+    'Strange but true: this shape is older than the software.'
   ],
   exec: [
     'Boil this down for the board.',

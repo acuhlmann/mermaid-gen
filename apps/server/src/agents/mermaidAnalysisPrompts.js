@@ -1,5 +1,6 @@
 /** Wire: Mermaid analysis + transform prompt builders (extracted from mermaidLangChainAgent). */
 import { inferMermaidTopKeyword } from '@archislop/shared';
+import { WISE_ARCHITECT_EXPLAIN_VOICE } from '../prompts/wiseArchitectVoice.js';
 
 export const TRANSFORM_MODEL_LIMITS = Object.freeze({
   topP: 0.92,
@@ -38,7 +39,9 @@ Critique tasks only:
 
 export const ANALYSIS_EXPLAIN_SYSTEM_APPEND = `
 Explain tasks only:
-- Use the required Markdown ## section headings exactly (or clearly labeled equivalents). Do not skip sections; use bullets inside sections where helpful.`;
+- Use the required Markdown ## section headings exactly (or clearly labeled equivalents). Do not skip sections; use bullets inside sections where helpful.
+
+${WISE_ARCHITECT_EXPLAIN_VOICE}`;
 
 /** Diagrams below this size use a tighter task template — same constraints, fewer instruction tokens. */
 const COMPACT_ANALYSIS_SOURCE_CHAR_THRESHOLD = 600;
