@@ -2743,6 +2743,63 @@
   overflow: hidden;
 }
 
+.insights-fenced-block {
+  margin: 0.45rem 0 0.55rem;
+}
+
+.insights-code-block {
+  margin: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.94));
+  overflow-x: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: rgba(15, 23, 42, 0.92);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.insights-code-block-inner {
+  display: block;
+}
+
+.insights-code-line {
+  display: block;
+  white-space: pre;
+}
+
+.insights-code-token-key {
+  color: #7c3aed;
+}
+
+.insights-code-token-string {
+  color: #047857;
+}
+
+.insights-code-token-number {
+  color: #b45309;
+}
+
+.insights-code-token-keyword {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.insights-code-token-tag {
+  color: #be123c;
+}
+
+.insights-code-token-comment {
+  color: rgba(100, 116, 139, 0.9);
+  font-style: italic;
+}
+
+.insights-code-token-plain {
+  color: inherit;
+}
+
 .insights-diagram-patch-callout-head {
   display: flex;
   flex-direction: column;

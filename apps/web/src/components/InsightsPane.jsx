@@ -3,7 +3,9 @@ import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { splitEmbeddedDiagramDsl, stripEmbeddedDslFromThinkingText, tryExtractDiagramPreviewFromText } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
+import { extractFencedCodeBlock } from '../utils/thinkingFencedBlock';
 import { extractMarkdownTableBlock, ThinkingMarkdownTable } from '../utils/thinkingMarkdownTable';
+import { ThinkingSyntaxCodeBlock } from '../utils/thinkingSyntaxCode';
 import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
@@ -506,7 +508,62 @@ function splitMarkdownSections(content) {
   );
 }
 
-function renderBodyLines(body, keyPrefix, useSectionTypography) {
+function renderFencedOrDiagramBlock(code, language, keyPrefix, embedOpts) {
+  const preview = tryExtractDiagramPreviewFromText(code);
+  if (preview) {
+    if (embedOpts?.suppressEmbedded) return null;
+    return (
+      <EmbeddedDiagramBlock
+        idPrefix={`${keyPrefix}-fence`}
+        source={preview.source}
+        kind={preview.kind}
+        streamingPreview={embedOpts?.streamingPreview}
+        showRestore={embedOpts?.showEmbeddedRestore && !embedOpts?.streamingPreview}
+        restoreDisabled={embedOpts?.restoreDisabled}
+        onRestoreDiagramSnapshot={embedOpts?.onRestoreDiagramSnapshot}
+      />
+    );
+  }
+  return (
+    <ThinkingSyntaxCodeBlock
+      code={code}
+      language={language}
+      keyPrefix={`${keyPrefix}-fence`}
+    />
+  );
+}
+
+/** Detect embedded diagram DSL in a body chunk before line-by-line shredding. */
+function renderEmbeddedBodyContent(body, keyPrefix, useSectionTypography, embedOpts) {
+  if (!body?.trim()) return null;
+  const split = splitEmbeddedDiagramDsl(body);
+  if (split?.dsl) {
+    if (embedOpts?.suppressEmbedded) {
+      return split.prose.trim()
+        ? renderBodyLines(split.prose, keyPrefix, useSectionTypography, embedOpts)
+        : null;
+    }
+    const showRestore =
+      embedOpts?.showEmbeddedRestore && !embedOpts?.streamingPreview && Boolean(split.dsl?.trim());
+    return (
+      <>
+        {split.prose.trim() ? renderBodyLines(split.prose, keyPrefix, useSectionTypography, embedOpts) : null}
+        <EmbeddedDiagramBlock
+          idPrefix={`${keyPrefix}-body-dsl`}
+          source={split.dsl}
+          kind={split.kind}
+          streamingPreview={embedOpts?.streamingPreview}
+          showRestore={showRestore}
+          restoreDisabled={embedOpts?.restoreDisabled}
+          onRestoreDiagramSnapshot={embedOpts?.onRestoreDiagramSnapshot}
+        />
+      </>
+    );
+  }
+  return renderBodyLines(body, keyPrefix, useSectionTypography, embedOpts);
+}
+
+function renderBodyLines(body, keyPrefix, useSectionTypography, embedOpts = null) {
   const lines = body.split('\n');
   const out = [];
   let index = 0;
@@ -517,6 +574,25 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
     if (!trimmed) {
       out.push(<div key={`${keyPrefix}-gap-${index}`} className="insights-content-gap" />);
       index += 1;
+      continue;
+    }
+
+    const fencedBlock = extractFencedCodeBlock(lines, index);
+    if (fencedBlock) {
+      const block = renderFencedOrDiagramBlock(
+        fencedBlock.code,
+        fencedBlock.language,
+        `${keyPrefix}-fence-${index}`,
+        embedOpts
+      );
+      if (block) {
+        out.push(
+          <div key={`${keyPrefix}-fence-wrap-${index}`} className="insights-fenced-block">
+            {block}
+          </div>
+        );
+      }
+      index = fencedBlock.nextIndex;
       continue;
     }
 
@@ -561,11 +637,15 @@ function renderBodyLines(body, keyPrefix, useSectionTypography) {
               </span>
             ) : null}
           </p>
-          {stepPreview ? (
+          {stepPreview && !embedOpts?.suppressEmbedded ? (
             <EmbeddedDiagramBlock
               idPrefix={`${keyPrefix}-ol-${index}-preview`}
               source={stepPreview.source}
               kind={stepPreview.kind}
+              streamingPreview={embedOpts?.streamingPreview}
+              showRestore={embedOpts?.showEmbeddedRestore && !embedOpts?.streamingPreview}
+              restoreDisabled={embedOpts?.restoreDisabled}
+              onRestoreDiagramSnapshot={embedOpts?.onRestoreDiagramSnapshot}
             />
           ) : null}
         </div>
@@ -684,7 +764,7 @@ function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
   if (!text.trim()) return null;
   const split = splitEmbeddedDiagramDsl(text);
   if (!split) {
-    return renderRichContent(text, richOpts);
+    return renderRichContent(text, { ...richOpts, embedOpts });
   }
   // When the entry already shows a "Resulting diagram" preview at the bottom, drop the
   // mid-prose DSL preview to avoid duplicating the same diagram twice in one entry.
@@ -692,13 +772,13 @@ function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
     ? split.prose
     : null;
   if (embedOpts.suppressEmbedded) {
-    return proseOnly?.trim() ? renderRichContent(proseOnly, richOpts) : null;
+    return proseOnly?.trim() ? renderRichContent(proseOnly, { ...richOpts, embedOpts }) : null;
   }
   const showRestore =
     embedOpts.showEmbeddedRestore && !embedOpts.streamingPreview && Boolean(split.dsl?.trim());
   return (
     <>
-      {split.prose.trim() ? renderRichContent(split.prose, richOpts) : null}
+      {split.prose.trim() ? renderRichContent(split.prose, { ...richOpts, embedOpts }) : null}
       <EmbeddedDiagramBlock
         idPrefix={`${embedOpts.idPrefix}-dsl`}
         source={split.dsl}
@@ -768,13 +848,13 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
   );
 }
 
-function renderRichContent(content, { accentuateSections, idPrefix = 'ins', variant = 'general' }) {
+function renderRichContent(content, { accentuateSections, idPrefix = 'ins', variant = 'general', embedOpts = null }) {
   const cleaned = preprocessBulletArtifacts(content);
   const chunks = splitMarkdownSections(cleaned);
   const hasSections = chunks.some((c) => c.type === 'section');
 
   if (!hasSections) {
-    return renderBodyLines(cleaned, 'flat', false);
+    return renderEmbeddedBodyContent(cleaned, 'flat', false, embedOpts);
   }
 
   let sectionAnimIndex = 0;
@@ -787,7 +867,7 @@ function renderRichContent(content, { accentuateSections, idPrefix = 'ins', vari
       const leadClass = openerExtra ? `insights-prose-lead ${openerExtra}` : 'insights-prose-lead';
       return [
         <div key={`lead-${chunkIdx}`} className={leadClass}>
-          {renderBodyLines(chunk.body, `lead-${chunkIdx}`, false)}
+          {renderEmbeddedBodyContent(chunk.body, `lead-${chunkIdx}`, false, embedOpts)}
         </div>
       ];
     }
@@ -819,7 +899,9 @@ function renderRichContent(content, { accentuateSections, idPrefix = 'ins', vari
           <span className={iconCls} aria-hidden="true" />
           <span className="insights-md-h2-text">{parseInline(chunk.heading)}</span>
         </h3>
-        <div className="insights-prose-section-body">{renderBodyLines(chunk.body, `sec-${chunkIdx}`, true)}</div>
+        <div className="insights-prose-section-body">
+          {renderEmbeddedBodyContent(chunk.body, `sec-${chunkIdx}`, true, embedOpts)}
+        </div>
       </section>
     ];
   });
