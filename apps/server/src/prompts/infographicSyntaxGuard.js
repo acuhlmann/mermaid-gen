@@ -20,6 +20,7 @@
  * actually expects (not just what the parser tolerates).
  */
 import { getTemplates } from '@antv/infographic';
+import { WISE_ARCHITECT_EXPLAIN_VOICE } from './wiseArchitectVoice.js';
 
 const ALL_TEMPLATES = (() => {
   try {
@@ -446,7 +447,9 @@ export const INFOGRAPHIC_EXPLAIN_TASK = `Explain the infographic for a new reade
 Rules:
 - Surface what the chosen template is communicating (process, comparison, hierarchy, etc.).
 - Quote specific labels/values from the DSL.
-- Keep each section to 1–3 short bullets.`;
+- Keep each section to 1–3 short bullets.
+
+${WISE_ARCHITECT_EXPLAIN_VOICE}`;
 
 /**
  * Build a Markdown-friendly repair instruction. Mirrors Mermaid's buildSyntaxRepairInstruction

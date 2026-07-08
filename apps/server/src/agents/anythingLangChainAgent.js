@@ -4,6 +4,7 @@ import { createAnythingTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { ANYTHING_SYSTEM_PROMPT } from '../prompts/anythingSystemPrompt.js';
 import { buildAnythingRepairInstruction } from '../prompts/anythingSyntaxGuard.js';
+import { WISE_ARCHITECT_EXPLAIN_VOICE } from '../prompts/wiseArchitectVoice.js';
 import { isAnythingSyntaxFixerAvailable, repairAnythingWithFixer } from './anythingSyntaxFixer.js';
 import {
   createLlmChatModel,
@@ -141,7 +142,7 @@ export function buildAnythingAnalyzeUserContent({ kind, currentHtml, advisorProm
   const task =
     kind === 'critique'
       ? 'Critique this HTML document in 3-5 short paragraphs. Call out: does the layout communicate the idea? Is the interaction discoverable? Any accessibility, contrast, or responsiveness issues? Does anything violate the sandbox contract (external URLs, storage, network)?'
-      : 'Explain this HTML document in 3-5 short paragraphs. Describe what the page shows, how the user interacts with it, and how the markup/CSS/JS pieces fit together.';
+      : `Explain this HTML document in 3-5 short paragraphs. Describe what the page shows, how the user interacts with it, and how the markup/CSS/JS pieces fit together.\n\n${WISE_ARCHITECT_EXPLAIN_VOICE}`;
   return [
     task,
     buildAdvisorSuggestionBlock(advisorPrompt),

@@ -1,4 +1,5 @@
 import { METAPHOR_SYSTEM_PROMPT } from './metaphorSystemPrompt.js';
+import { WISE_ARCHITECT_EXPLAIN_VOICE } from './wiseArchitectVoice.js';
 
 export const METAPHOR_RULE_PACK = METAPHOR_SYSTEM_PROMPT;
 
@@ -80,4 +81,6 @@ export const METAPHOR_EXPLAIN_TASK = `Explain the 3D metaphor view for a new rea
 Rules:
 - Surface what the metaphor type communicates and how magnitudes/positions carry meaning.
 - Quote specific item labels and scene title/subtitle from the DSL.
-- Keep each section to 1–3 short bullets.`;
+- Keep each section to 1–3 short bullets.
+
+${WISE_ARCHITECT_EXPLAIN_VOICE}`;

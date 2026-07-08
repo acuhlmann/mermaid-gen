@@ -1,4 +1,5 @@
 import { CHART_SYSTEM_PROMPT } from './chartSystemPrompt.js';
+import { WISE_ARCHITECT_EXPLAIN_VOICE } from './wiseArchitectVoice.js';
 
 export const CHART_RULE_PACK = CHART_SYSTEM_PROMPT;
 
@@ -77,4 +78,6 @@ export const CHART_EXPLAIN_TASK = `Explain the Vega-Lite chart for a new reader.
 Rules:
 - Surface what the chart is comparing or trending and why the chosen mark/encoding fits.
 - Quote specific fields, axis labels, and title text from the DSL.
-- Keep each section to 1–3 short bullets.`;
+- Keep each section to 1–3 short bullets.
+
+${WISE_ARCHITECT_EXPLAIN_VOICE}`;
