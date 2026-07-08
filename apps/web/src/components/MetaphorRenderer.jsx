@@ -45,6 +45,9 @@ import {
   MetaphorLinks
 } from './metaphorScenes/MetaphorSceneChrome.jsx';
 import {
+  MetaphorChangeHighlightProvider
+} from './metaphorChangeHighlightContext.jsx';
+import {
   CakeSprinkles,
   IcingDrips,
   PenthouseGlowBand,
@@ -1228,6 +1231,7 @@ function MetaphorRendererImpl(
   {
     diagramSource,
     streamingPreview = false,
+    changeHighlight = null,
     isFullscreen = false,
     onMetaphorKindChange = null,
     metaphorKindSwitchDisabled = false
@@ -1327,11 +1331,13 @@ function MetaphorRendererImpl(
           {dsl.metaphor === 'tree' ? <TreeSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
-              <Bounds fit clip observe margin={1.25}>
-                <Center disableY>
-                  <MetaphorScene dsl={dsl} theme={theme} />
-                </Center>
-              </Bounds>
+              <MetaphorChangeHighlightProvider highlight={changeHighlight}>
+                <Bounds fit clip observe margin={1.25}>
+                  <Center disableY>
+                    <MetaphorScene dsl={dsl} theme={theme} />
+                  </Center>
+                </Bounds>
+              </MetaphorChangeHighlightProvider>
             </MetaphorHoverContext.Provider>
           </MetaphorClockProvider>
           <OrbitControls enableDamping makeDefault />

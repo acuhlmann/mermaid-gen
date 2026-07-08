@@ -10,6 +10,11 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Billboard, ContactShadows, Line, Text } from '@react-three/drei';
 import { useMetaphorHover } from '../metaphorHover.js';
+import {
+  MetaphorChangeHighlightProvider,
+  useMetaphorChangeHighlight
+} from '../metaphorChangeHighlightContext.jsx';
+import { MetaphorChangeHighlightRing } from '../MetaphorChangeHighlightRing.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import {
   getRadialSpriteTexture,
@@ -83,6 +88,7 @@ export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
  */
 export function HoverableItem({ item, metaphor, children }) {
   const store = useMetaphorHover();
+  const highlightCategory = useMetaphorChangeHighlight(item?.id);
   const update = (event) => {
     if (!store) return;
     event.stopPropagation();
@@ -101,6 +107,7 @@ export function HoverableItem({ item, metaphor, children }) {
   };
   return (
     <group onPointerOver={handleOver} onPointerMove={update} onPointerOut={handleOut}>
+      {highlightCategory ? <MetaphorChangeHighlightRing category={highlightCategory} /> : null}
       {children}
     </group>
   );

@@ -632,6 +632,22 @@
   border-radius: 4px;
 }
 
+.diagram-viewport.is-chart [data-diff-state='added'],
+.diagram-viewport.is-chart [data-diff-state='added'] path,
+.diagram-viewport.is-chart [data-diff-state='added'] rect,
+.diagram-viewport.is-chart [data-diff-state='added'] circle {
+  outline: 3px solid #059669;
+  outline-offset: 2px;
+}
+
+.diagram-viewport.is-chart [data-diff-state='modified'],
+.diagram-viewport.is-chart [data-diff-state='modified'] path,
+.diagram-viewport.is-chart [data-diff-state='modified'] rect,
+.diagram-viewport.is-chart [data-diff-state='modified'] circle {
+  outline: 3px dashed #ea580c;
+  outline-offset: 2px;
+}
+
 .diagram-viewport [data-diff-state='modified'] {
   outline: 3px dashed #ea580c;
   outline-offset: 3px;

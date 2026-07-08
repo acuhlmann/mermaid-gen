@@ -6,6 +6,7 @@ import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
+import { applyChartHighlight } from '../utils/applyChartHighlight.js';
 import { applyInfographicHighlight } from '@archislop/shared';
 import {
   flowchartEdgeLabelText,
@@ -29,7 +30,7 @@ import ChartRenderer from './ChartRenderer.jsx';
 import AnythingRenderer from './AnythingRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
-import { computeViewportFocusForHighlightIds } from '../utils/focusDiagramHighlightIds.js';
+import { computeViewportFocusForHighlightIds, computeViewportFocusForChangeHighlight } from '../utils/focusDiagramHighlightIds.js';
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
@@ -207,6 +208,7 @@ export default function DiagramCanvas({
   onNodeToolbarAnchor,
   onEditorClose = null,
   changeHighlight = null,
+  changeHighlightContentType = null,
   onDiagramSvgRendered = null,
   runFx = null,
   /** When set, pan/zoom the canvas to frame these advisor highlight ids (e.g. on pin). */
@@ -402,6 +404,23 @@ export default function DiagramCanvas({
     });
     return () => cancelAnimationFrame(id);
   }, [advisorPinFocusIds, revisionId, streamingPreview, svgMarkup]);
+
+  useEffect(() => {
+    if (!changeHighlight || !changeHighlightContentType || streamingPreview) return undefined;
+    const viewportEl = viewportRef.current;
+    if (!viewportEl) return undefined;
+    const run = () => {
+      const next = computeViewportFocusForChangeHighlight(
+        viewportEl,
+        changeHighlight,
+        changeHighlightContentType
+      );
+      if (!next) return;
+      setViewport(next);
+    };
+    const id = requestAnimationFrame(run);
+    return () => cancelAnimationFrame(id);
+  }, [changeHighlight, changeHighlightContentType, revisionId, streamingPreview, svgMarkup, editorSource]);
 
   const fireDiagramRevisionPulse = useCallback(() => {
     if (pulseTimeoutRef.current) {
@@ -627,6 +646,25 @@ export default function DiagramCanvas({
     const apply = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => applyInfographicHighlight(root, changeHighlight));
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [contentType, editorSource, changeHighlight]);
+
+  // Chart canvas is rendered async by Vega; observe DOM mutations and re-apply.
+  useEffect(() => {
+    if (contentType !== 'chart') return undefined;
+    const root = viewportRef.current;
+    if (!root) return undefined;
+    let frame = 0;
+    const apply = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => applyChartHighlight(root, changeHighlight));
     };
     apply();
     const observer = new MutationObserver(apply);
@@ -1435,6 +1473,7 @@ export default function DiagramCanvas({
                   key={`metaphor3d-${rendererRefreshKey}`}
                   diagramSource={editorSource}
                   streamingPreview={streamingPreview}
+                  changeHighlight={changeHighlight}
                   isFullscreen={isFullscreen}
                   onMetaphorKindChange={handleMetaphorKindChange}
                   metaphorKindSwitchDisabled={streamingPreview}
