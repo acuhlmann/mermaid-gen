@@ -14,7 +14,6 @@ import PlanBeatCard from './PlanBeatCard';
 import PatchSummaryViz from './PatchSummaryViz';
 import TechnicalActionStepper from './TechnicalActionStepper.jsx';
 import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
-import StyleEditsA2uiSurface from './StyleEditsA2uiSurface';
 import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
@@ -1489,16 +1488,11 @@ export default function InsightsPane({
                 ) : null}
 
                 {hasStyleEdits ? (
-                  <>
-                    <StyleEditsPanel styleEdits={entry.styleEdits} />
-                    {entry.styleEditsA2uiMessages?.length > 0 && onApplyStyleEdits ? (
-                      <StyleEditsA2uiSurface
-                        messages={entry.styleEditsA2uiMessages}
-                        busy={styleEditsApplyBusy}
-                        onApply={() => onApplyStyleEdits(entry)}
-                      />
-                    ) : null}
-                  </>
+                  <StyleEditsPanel
+                    styleEdits={entry.styleEdits}
+                    busy={styleEditsApplyBusy}
+                    onApply={onApplyStyleEdits ? () => onApplyStyleEdits(entry) : undefined}
+                  />
                 ) : null}
 
                 <section className={`insights-section ${accentContentLaneClass(variant)}`}>

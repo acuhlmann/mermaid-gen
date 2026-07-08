@@ -1,4 +1,5 @@
 import type { StyleEdit } from '@archislop/shared';
+import { styleEditSummaryLine } from '@archislop/shared';
 import { ColorRamp, ColorSwatch, IconChip, IconReplaceRow, ThemeVarPill } from '../utils/thinkingProseEnrich';
 
 function StyleEditCard({ edit, index }: { edit: StyleEdit; index: number }) {
@@ -55,7 +56,15 @@ function StyleEditCard({ edit, index }: { edit: StyleEdit; index: number }) {
   );
 }
 
-export default function StyleEditsPanel({ styleEdits }: { styleEdits?: StyleEdit[] }) {
+export default function StyleEditsPanel({
+  styleEdits,
+  onApply,
+  busy = false
+}: {
+  styleEdits?: StyleEdit[];
+  onApply?: () => void;
+  busy?: boolean;
+}) {
   if (!Array.isArray(styleEdits) || styleEdits.length === 0) return null;
 
   return (
@@ -70,21 +79,49 @@ export default function StyleEditsPanel({ styleEdits }: { styleEdits?: StyleEdit
           <StyleEditCard key={`${edit.kind}-${edit.id ?? idx}`} edit={edit} index={idx} />
         ))}
       </ul>
+      {onApply ? (
+        <div className="insights-style-edits-actions">
+          <button
+            type="button"
+            className="insights-style-edits-apply-btn"
+            disabled={busy}
+            onClick={onApply}
+            data-testid="style-edits-apply-btn"
+          >
+            Apply style tweaks
+          </button>
+        </div>
+      ) : null}
     </section>
   );
 }
 
+function lineMatchesStyleEdit(line: string, styleEdits: StyleEdit[], summaries: Set<string>): boolean {
+  const t = line.trim();
+  if (!t) return false;
+  if (/^#{0,3}\s*visual tweaks$/i.test(t)) return true;
+
+  const stepId = t.match(/^(\d+)[.)]\s+/)?.[1];
+  if (stepId && styleEdits.some((e) => e.id === stepId)) return true;
+
+  const stripped = t.replace(/^(\d+)[.)]\s+/, '').replace(/^[-•*]\s+/, '').trim();
+  if (summaries.has(stripped.toLowerCase())) return true;
+
+  if (/replace\s*::?\s*icon/i.test(t) && styleEdits.some((e) => e.kind === 'icon_replace')) return true;
+  if (/#([0-9a-fA-F]{3,8})\b/i.test(t) && styleEdits.some((e) => e.kind === 'color_shift')) return true;
+  if (
+    styleEdits.some((e) => e.kind === 'color_shift' && e.variable && t.includes(e.variable)) &&
+    /→|->|to\b/i.test(t)
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function stripStyleEditLinesFromContent(content: string, styleEdits: StyleEdit[]): string {
   if (!content?.trim() || !styleEdits?.length) return content;
+  const summaries = new Set(styleEdits.map((edit) => styleEditSummaryLine(edit).trim().toLowerCase()));
   const lines = content.split('\n');
-  const filtered = lines.filter((line) => {
-    const t = line.trim();
-    if (!t) return true;
-    const stepId = t.match(/^(\d+)[.)]\s+/)?.[1];
-    if (stepId && styleEdits.some((e) => e.id === stepId)) return false;
-    if (/replace\s*::?\s*icon/i.test(t) && styleEdits.some((e) => e.kind === 'icon_replace')) return false;
-    if (/#([0-9a-fA-F]{3,8})\b/i.test(t) && styleEdits.some((e) => e.kind === 'color_shift')) return false;
-    return true;
-  });
+  const filtered = lines.filter((line) => !lineMatchesStyleEdit(line, styleEdits, summaries));
   return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 }

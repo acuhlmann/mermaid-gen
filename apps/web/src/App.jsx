@@ -43,6 +43,7 @@ import {
   syncClientDiagramState,
   submitDiagramIntent,
   submitDiagramRenderRepair,
+  submitDiagramStyle,
   writeDiagramCache
 } from './state/diagramStore.js';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
@@ -139,8 +140,12 @@ import {
   readStoredContentMode
 } from './utils/appSessionLocation.js';
 import {
+  applyMermaidStyleDirective,
+  applyStyleEditsToStyleConfig,
+  canApplyStyleEditsDeterministically,
   createInitialDiagramState,
-  splitCritiqueActionableSections
+  splitCritiqueActionableSections,
+  styleEditsToPrompt
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
@@ -3183,26 +3188,74 @@ ${requirementsBlock}`;
   }, [activeRequest, critiqueActionableSplit, handleFixFromCritique, insightsEntries, latestCritique?.insightEntryId, latestCritique?.text, loading]);
 
   const handleApplyStyleEdits = useCallback(
-    (entry) => {
+    async (entry) => {
       const edits = entry?.styleEdits;
       if (!Array.isArray(edits) || edits.length === 0) return;
-      const lines = edits.map((e, i) => {
-        const step = e.id ?? String(i + 1);
-        if (e.kind === 'icon_replace') {
-          return `${step}. Replace icon ${e.from} with ${e.to}`;
+      if (loadingRef.current || streamingPreviewRef.current) return;
+
+      setInsightsOpen(true);
+      tryAgentSound(playSubmitThunk);
+      setLoading(true);
+      setActiveRequest('style');
+      setError('');
+
+      try {
+        const syncedState = await syncDiagramOrThrow();
+        const stylePrompt = styleEditsToPrompt(edits);
+
+        if (
+          contentMode === 'mermaid' &&
+          canApplyStyleEditsDeterministically(edits, syncedState.styleConfig)
+        ) {
+          const nextStyleConfig = applyStyleEditsToStyleConfig(edits, syncedState.styleConfig);
+          const styled = applyMermaidStyleDirective({
+            mermaidSource: syncedState.diagramSource,
+            styleConfig: nextStyleConfig
+          });
+          const nextState = await syncClientDiagramState({
+            contentType: 'mermaid',
+            diagramSource: styled.mermaidSource,
+            styleConfig: styled.styleConfig,
+            sessionId: activeSessionId
+          });
+          animateAcceptedSource(nextState);
+          return;
         }
-        if (e.kind === 'color_shift') {
-          const varPart = e.variable ? `${e.variable} ` : '';
-          const toPart = e.to ? `from ${e.from} to ${e.to}` : `use ${e.from}`;
-          return `${step}. Adjust ${varPart}${toPart}`;
+
+        if (contentMode === 'mermaid' || contentMode === 'chart') {
+          const result = await submitDiagramStyle({
+            stylePrompt,
+            prompt: stylePrompt,
+            revisionId: syncedState.revisionId,
+            diagramSource: syncedState.diagramSource,
+            contentType: contentMode,
+            settings: {},
+            modelProfile,
+            sessionId: activeSessionId
+          });
+          animateAcceptedSource(result.state);
+          return;
         }
-        return `${step}. ${e.text}`;
-      });
-      submitIntentWithPrompt(`Apply these style tweaks to the diagram:\n${lines.join('\n')}`, {
-        variantOverride: 'refine'
-      });
+
+        await submitIntentWithPrompt(stylePrompt, {
+          variantOverride: 'refine',
+          skipLoadingGuard: true
+        });
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+        setActiveRequest(null);
+      }
     },
-    [submitIntentWithPrompt]
+    [
+      activeSessionId,
+      animateAcceptedSource,
+      contentMode,
+      modelProfile,
+      submitIntentWithPrompt,
+      syncDiagramOrThrow
+    ]
   );
 
   const status = useMemo(() => {
@@ -3210,6 +3263,7 @@ ${requirementsBlock}`;
     if (loading && activeRequest?.startsWith?.('transform')) return 'Transforming diagram.';
     if (loading && activeRequest?.startsWith?.('analyze')) return 'Analyzing diagram.';
     if (loading && activeRequest === 'fix') return 'Applying critique fixes.';
+    if (loading && activeRequest === 'style') return 'Applying style tweaks.';
     if (loading && activeRequest === 'clear') return 'Resetting diagram.';
     if (loading && activeRequest === 'autofix')
       return contentMode === 'anything' ? 'Fixing page runtime error.' : 'Fixing Mermaid syntax.';

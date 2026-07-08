@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildStyleEditsArtifact, parseStyleEditsFromText } from '../src/styleEdits.js';
+import {
+  applyStyleEditsToStyleConfig,
+  buildStyleEditsArtifact,
+  canApplyStyleEditsDeterministically,
+  parseStyleEditsFromText,
+  styleEditsToPrompt
+} from '../src/styleEdits.js';
 
 const EARTH_IMPACTS = `Earth Impacts
 5. Replace ::icon(fa fa-fire) with 🔥
@@ -25,4 +31,24 @@ test('buildStyleEditsArtifact emits artifact shape', () => {
   const art = buildStyleEditsArtifact(EARTH_IMPACTS);
   assert.equal(art?.kind, 'style_edits');
   assert.equal(art?.edits.length, 2);
+});
+
+test('applyStyleEditsToStyleConfig updates theme variables deterministically', () => {
+  const edits = parseStyleEditsFromText('1. Shift background from #f7f7f7 to #ddf4ff');
+  assert.equal(edits.length, 1);
+  const next = applyStyleEditsToStyleConfig(edits);
+  assert.equal(next.themeVariables.background, '#ddf4ff');
+  assert.equal(canApplyStyleEditsDeterministically(edits), true);
+});
+
+test('canApplyStyleEditsDeterministically rejects icon replace edits', () => {
+  const edits = parseStyleEditsFromText(EARTH_IMPACTS);
+  assert.equal(canApplyStyleEditsDeterministically(edits), false);
+});
+
+test('styleEditsToPrompt builds an apply prompt', () => {
+  const edits = parseStyleEditsFromText('1. Shift background from #d7ffb8 to #ddf4ff');
+  const prompt = styleEditsToPrompt(edits);
+  assert.match(prompt, /Apply these style tweaks/);
+  assert.match(prompt, /background/);
 });

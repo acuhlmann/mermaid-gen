@@ -2138,6 +2138,29 @@
   line-height: 1.35;
 }
 
+.insights-style-edits-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.35rem;
+}
+
+.insights-style-edits-apply-btn {
+  border: 1px solid rgba(99, 102, 241, 0.32);
+  border-radius: 999px;
+  padding: 0.22rem 0.62rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  background: rgba(238, 242, 255, 0.92);
+  color: #3730a3;
+}
+
+.insights-style-edits-apply-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .insights-tech-stepper {
   margin: 0;
   padding: 0;
