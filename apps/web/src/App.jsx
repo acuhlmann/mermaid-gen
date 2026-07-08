@@ -120,6 +120,7 @@ import {
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
+import { formatPatchApplyDetail } from './utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
 import {
   proposalToInsightEntry,
@@ -1421,8 +1422,13 @@ function ArchiSlop() {
           });
           if (actionIndex >= 0) {
             const realIndex = current.length - 1 - actionIndex;
+            const runningAction = current[realIndex];
+            const startedAt = Number.isFinite(runningAction.startedAt)
+              ? runningAction.startedAt
+              : Date.now();
+            const durationMs = Math.max(0, Date.now() - startedAt);
             const nextActions = current.map((action, idx) =>
-              idx === realIndex ? { ...action, status: 'done' } : action
+              idx === realIndex ? { ...action, status: 'done', durationMs } : action
             );
             return {
               ...entry,
@@ -1440,11 +1446,48 @@ function ArchiSlop() {
               name,
               label: formatToolLabel(name),
               status,
+              startedAt: status === 'running' ? Date.now() : undefined,
               ...(opts.toolCallId ? { toolCallId: opts.toolCallId } : {}),
               ...(opts.contextNote ? { contextNote: opts.contextNote } : {})
             }
           ]
         };
+      });
+    },
+    [patchInsightEntry]
+  );
+
+  const enrichTechnicalActionDetail = useCallback(
+    (id, name, { toolCallId, patchStats, outcomeDetail } = {}) => {
+      patchInsightEntry(id, (entry) => {
+        const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
+        const actionIndex = [...current].reverse().findIndex((action) => {
+          if (toolCallId && action.toolCallId === toolCallId) return true;
+          return action.name === name;
+        });
+        if (actionIndex < 0) return entry;
+        const realIndex = current.length - 1 - actionIndex;
+        const action = current[realIndex];
+        const mergedStats = {
+          ...(action.patchStats && typeof action.patchStats === 'object' ? action.patchStats : {}),
+          ...(patchStats && typeof patchStats === 'object' ? patchStats : {})
+        };
+        const detail =
+          (typeof outcomeDetail === 'string' && outcomeDetail.trim()) ||
+          formatPatchApplyDetail({
+            ...mergedStats,
+            durationMs: action.durationMs
+          });
+        const nextActions = current.map((item, idx) =>
+          idx === realIndex
+            ? {
+                ...item,
+                ...(Object.keys(mergedStats).length > 0 ? { patchStats: mergedStats } : {}),
+                ...(detail ? { outcomeDetail: detail } : {})
+              }
+            : item
+        );
+        return { ...entry, technicalActions: nextActions };
       });
     },
     [patchInsightEntry]
@@ -1607,6 +1650,7 @@ function ArchiSlop() {
           appendTechnicalAction,
           annotateTechnicalActionResult,
           finalizeTechnicalActionResult,
+          enrichTechnicalActionDetail,
           lastTokenSoundAtRef,
           goMadTokenTickIndexRef,
           lastDraftTickAtRef,
@@ -1692,6 +1736,7 @@ function ArchiSlop() {
       appendTechnicalAction,
       annotateTechnicalActionResult,
       finalizeTechnicalActionResult,
+      enrichTechnicalActionDetail,
       appendToInsight,
       activeSessionId,
       contentMode,

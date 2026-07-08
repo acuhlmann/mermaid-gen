@@ -639,6 +639,38 @@ flowchart TB
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
 
+  it('renders patch duration and outcome detail in technical actions', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-patch-meta',
+            title: 'Refine — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Updated.',
+            technicalActions: [
+              {
+                id: 't1',
+                name: 'apply_mermaid_patch',
+                label: 'Apply diagram update',
+                status: 'done',
+                durationMs: 1250,
+                patchStats: { reason: 'Add auth gate before API' },
+                outcomeDetail: '1.3s · +2 nodes · rev 8'
+              }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('1.3s')).toBeTruthy();
+    expect(screen.getByText('1.3s · +2 nodes · rev 8')).toBeTruthy();
+    expect(screen.getByText('Add auth gate before API')).toBeTruthy();
+  });
+
   it('renders aggregated apply_mermaid_patch label in technical actions', () => {
     render(
       <InsightsPane

@@ -10,10 +10,12 @@ import {
   type LegacyStreamEvent,
   type LegacyTokenEvent,
   type LegacyToolEndEvent,
-  type LegacyToolStartEvent
+  type LegacyToolStartEvent,
+  type LegacyToolApplyResultEvent
 } from '@archislop/shared';
 import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
+import { formatPatchApplyDetail } from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
 const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
@@ -61,6 +63,15 @@ export type InsightEventContext = {
       validationError?: string;
       outcomeDetail?: string;
       toolCallId?: string;
+    }
+  ) => void;
+  enrichTechnicalActionDetail: (
+    id: string,
+    name: string,
+    opts?: {
+      toolCallId?: string;
+      patchStats?: Record<string, unknown>;
+      outcomeDetail?: string;
     }
   ) => void;
   lastTokenSoundAtRef: { current: number };
@@ -120,6 +131,7 @@ export function applyAgentStreamInsightEvent(
     appendTechnicalAction,
     annotateTechnicalActionResult,
     finalizeTechnicalActionResult,
+    enrichTechnicalActionDetail,
     lastTokenSoundAtRef,
     goMadTokenTickIndexRef,
     lastDraftTickAtRef,
@@ -187,18 +199,48 @@ export function applyAgentStreamInsightEvent(
       if (Math.random() < 0.4) tryAgentSound(playCritiqueScribbleLoop);
     }
   } else if (evt.type === 'artifact' && evt.kind === 'patch_summary') {
-    patchInsightEntry(sectionId, (entry) => ({
-      ...entry,
-      artifacts: [
-        ...(Array.isArray(entry.artifacts) ? entry.artifacts : []),
-        {
-          kind: evt.kind,
-          revisionId: evt.revisionId,
-          linesAdded: evt.linesAdded,
-          linesRemoved: evt.linesRemoved
-        }
-      ]
-    }));
+    patchInsightEntry(sectionId, (entry) => {
+      const previousArtifacts = Array.isArray(entry.artifacts) ? entry.artifacts : [];
+      const artifact = {
+        kind: evt.kind,
+        revisionId: evt.revisionId,
+        linesAdded: evt.linesAdded,
+        linesRemoved: evt.linesRemoved
+      };
+      const currentActions = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
+      const patchActionIndex = [...currentActions]
+        .reverse()
+        .findIndex((action) => /patch/i.test(String(action?.name ?? '')) && action?.status === 'done');
+      let technicalActions = currentActions;
+      if (patchActionIndex >= 0) {
+        const realIndex = currentActions.length - 1 - patchActionIndex;
+        const action = currentActions[realIndex] as Record<string, unknown>;
+        const patchStats = {
+          ...((action.patchStats as Record<string, unknown> | undefined) ?? {}),
+          linesAdded: evt.linesAdded ?? 0,
+          linesRemoved: evt.linesRemoved ?? 0,
+          revisionId: evt.revisionId ?? action.revisionId
+        };
+        const outcomeDetail = formatPatchApplyDetail({
+          ...(patchStats as Parameters<typeof formatPatchApplyDetail>[0]),
+          durationMs: action.durationMs as number | undefined
+        });
+        technicalActions = currentActions.map((item, idx) =>
+          idx === realIndex
+            ? {
+                ...item,
+                patchStats,
+                ...(outcomeDetail ? { outcomeDetail } : {})
+              }
+            : item
+        );
+      }
+      return {
+        ...entry,
+        artifacts: [...previousArtifacts, artifact],
+        technicalActions
+      };
+    });
   } else if (evt.type === 'artifact' && evt.kind === 'explain_sections') {
     const sections = Array.isArray(evt.sections) ? evt.sections : [];
     if (sections.length > 0) {
@@ -301,12 +343,32 @@ export function applyAgentStreamInsightEvent(
       ...(toolEvt.id ? { toolCallId: toolEvt.id } : {})
     });
     if (typeof playToolEndChime === 'function') tryAgentSound(playToolEndChime);
-  } else if (evt.type === 'tool_apply_result' && 'error' in evt && evt.error) {
-    const resultEvt = evt as { type: 'tool_apply_result'; name: string; id?: string; error: string };
+  } else if (evt.type === 'tool_apply_result') {
+    const resultEvt = evt as LegacyToolApplyResultEvent;
     if (!resultEvt.name) return;
-    annotateTechnicalActionResult(sectionId, resultEvt.name, {
-      validationError: resultEvt.error,
-      ...(resultEvt.id ? { toolCallId: resultEvt.id } : {})
+    if (resultEvt.accepted === false && resultEvt.error) {
+      annotateTechnicalActionResult(sectionId, resultEvt.name, {
+        validationError: resultEvt.error,
+        ...(resultEvt.id ? { toolCallId: resultEvt.id } : {})
+      });
+      return;
+    }
+    if (resultEvt.accepted !== true) return;
+    const patchStats = {
+      revisionId: resultEvt.revisionId,
+      reason: resultEvt.reason,
+      validator: resultEvt.validator,
+      sanitizerApplied: resultEvt.sanitizerApplied,
+      linesAdded: resultEvt.linesAdded,
+      linesRemoved: resultEvt.linesRemoved,
+      nodesAdded: resultEvt.nodesAdded,
+      nodesRemoved: resultEvt.nodesRemoved,
+      edgesAdded: resultEvt.edgesAdded,
+      edgesRemoved: resultEvt.edgesRemoved
+    };
+    enrichTechnicalActionDetail(sectionId, resultEvt.name, {
+      ...(resultEvt.id ? { toolCallId: resultEvt.id } : {}),
+      patchStats
     });
   } else if (evt.type === 'syntax_fixer_start') {
     const startEvt = evt as { type: 'syntax_fixer_start'; triggerError?: string };

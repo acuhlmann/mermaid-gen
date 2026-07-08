@@ -2255,6 +2255,22 @@
   line-height: 1.3;
 }
 
+.insights-tech-step-label-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.insights-tech-step-duration {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  background: rgba(99, 102, 241, 0.1);
+  border-radius: 0.25rem;
+  padding: 0.02rem 0.35rem;
+}
+
 .insights-tech-step-name {
   margin: 0;
   font-size: 0.62rem;

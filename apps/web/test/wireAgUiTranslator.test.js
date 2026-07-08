@@ -91,6 +91,31 @@ describe('wire AG-UI translator fixtures', () => {
     expect(out).toEqual(legacy);
   });
 
+  it('translates CUSTOM accepted tool_apply_result wire to legacy tool_apply_result', () => {
+    const translate = createAgUiTranslator();
+    const out = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
+      value: {
+        name: 'apply_mermaid_patch',
+        toolCallId: 'tool_9',
+        accepted: true,
+        revisionId: 6,
+        nodesAdded: 1,
+        reason: 'Add gateway'
+      }
+    });
+    expect(out).toEqual({
+      type: 'tool_apply_result',
+      name: 'apply_mermaid_patch',
+      id: 'tool_9',
+      accepted: true,
+      revisionId: 6,
+      nodesAdded: 1,
+      reason: 'Add gateway'
+    });
+  });
+
   it('translates CUSTOM tool_apply_result wire to legacy tool_apply_result', () => {
     const translate = createAgUiTranslator();
     const out = translate({
