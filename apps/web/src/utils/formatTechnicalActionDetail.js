@@ -1,4 +1,17 @@
-/** @typedef {import('@archislop/shared').ToolApplyResultSummary} PatchApplyStats */
+/** Display-only patch stats for the insights tool trace (no accepted/error discriminator). */
+/** @typedef {{
+ *   durationMs?: number,
+ *   revisionId?: number,
+ *   reason?: string,
+ *   validator?: string,
+ *   sanitizerApplied?: string[],
+ *   linesAdded?: number,
+ *   linesRemoved?: number,
+ *   nodesAdded?: number,
+ *   nodesRemoved?: number,
+ *   edgesAdded?: number,
+ *   edgesRemoved?: number
+ * }} PatchApplyDisplayStats */
 
 /**
  * @param {number | undefined | null} ms
@@ -12,9 +25,39 @@ export function formatActionDurationMs(ms) {
 }
 
 /**
+ * Coerce loosely-typed patch stats (insight entry storage) into display fields.
+ *
+ * @param {unknown} stats
+ * @param {number | undefined} durationMs
+ * @returns {PatchApplyDisplayStats}
+ */
+export function coercePatchApplyDisplayStats(stats, durationMs) {
+  const source = stats && typeof stats === 'object' ? /** @type {Record<string, unknown>} */ (stats) : {};
+  return {
+    ...(Number.isFinite(durationMs) ? { durationMs } : {}),
+    ...(typeof source.revisionId === 'number' ? { revisionId: source.revisionId } : {}),
+    ...(typeof source.reason === 'string' ? { reason: source.reason } : {}),
+    ...(typeof source.validator === 'string' ? { validator: source.validator } : {}),
+    ...(Array.isArray(source.sanitizerApplied)
+      ? {
+          sanitizerApplied: source.sanitizerApplied.filter(
+            (item) => typeof item === 'string'
+          )
+        }
+      : {}),
+    ...(typeof source.linesAdded === 'number' ? { linesAdded: source.linesAdded } : {}),
+    ...(typeof source.linesRemoved === 'number' ? { linesRemoved: source.linesRemoved } : {}),
+    ...(typeof source.nodesAdded === 'number' ? { nodesAdded: source.nodesAdded } : {}),
+    ...(typeof source.nodesRemoved === 'number' ? { nodesRemoved: source.nodesRemoved } : {}),
+    ...(typeof source.edgesAdded === 'number' ? { edgesAdded: source.edgesAdded } : {}),
+    ...(typeof source.edgesRemoved === 'number' ? { edgesRemoved: source.edgesRemoved } : {})
+  };
+}
+
+/**
  * Human-readable patch outcome for the insights tool trace.
  *
- * @param {PatchApplyStats & { durationMs?: number }} stats
+ * @param {PatchApplyDisplayStats} [stats]
  * @returns {string}
  */
 export function formatPatchApplyDetail(stats = {}) {

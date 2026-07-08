@@ -1,8 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
+  coercePatchApplyDisplayStats,
   formatActionDurationMs,
   formatPatchApplyDetail
 } from '../src/utils/formatTechnicalActionDetail.js';
+
+describe('coercePatchApplyDisplayStats', () => {
+  it('ignores non-stat fields like accepted', () => {
+    expect(
+      coercePatchApplyDisplayStats(
+        { accepted: true, revisionId: 3, reason: 'x', linesAdded: 'bad' },
+        500
+      )
+    ).toEqual({ durationMs: 500, revisionId: 3, reason: 'x' });
+  });
+});
 
 describe('formatActionDurationMs', () => {
   it('formats sub-second durations in ms', () => {

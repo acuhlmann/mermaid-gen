@@ -15,7 +15,7 @@ import {
 } from '@archislop/shared';
 import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
-import { formatPatchApplyDetail } from '../utils/formatTechnicalActionDetail.js';
+import { coercePatchApplyDisplayStats, formatPatchApplyDetail } from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
 const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
@@ -215,16 +215,21 @@ export function applyAgentStreamInsightEvent(
       if (patchActionIndex >= 0) {
         const realIndex = currentActions.length - 1 - patchActionIndex;
         const action = currentActions[realIndex] as Record<string, unknown>;
+        const existingStats = action.patchStats;
         const patchStats = {
-          ...((action.patchStats as Record<string, unknown> | undefined) ?? {}),
+          ...(existingStats && typeof existingStats === 'object'
+            ? (existingStats as Record<string, unknown>)
+            : {}),
           linesAdded: evt.linesAdded ?? 0,
           linesRemoved: evt.linesRemoved ?? 0,
-          revisionId: evt.revisionId ?? action.revisionId
+          revisionId: evt.revisionId
         };
-        const outcomeDetail = formatPatchApplyDetail({
-          ...(patchStats as Parameters<typeof formatPatchApplyDetail>[0]),
-          durationMs: action.durationMs as number | undefined
-        });
+        const outcomeDetail = formatPatchApplyDetail(
+          coercePatchApplyDisplayStats(
+            patchStats,
+            typeof action.durationMs === 'number' ? action.durationMs : undefined
+          )
+        );
         technicalActions = currentActions.map((item, idx) =>
           idx === realIndex
             ? {

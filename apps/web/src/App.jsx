@@ -120,7 +120,7 @@ import {
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
-import { formatPatchApplyDetail } from './utils/formatTechnicalActionDetail.js';
+import { coercePatchApplyDisplayStats, formatPatchApplyDetail } from './utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
 import {
   proposalToInsightEntry,
@@ -1474,10 +1474,9 @@ function ArchiSlop() {
         };
         const detail =
           (typeof outcomeDetail === 'string' && outcomeDetail.trim()) ||
-          formatPatchApplyDetail({
-            ...mergedStats,
-            durationMs: action.durationMs
-          });
+          formatPatchApplyDetail(
+            coercePatchApplyDisplayStats(mergedStats, action.durationMs)
+          );
         const nextActions = current.map((item, idx) =>
           idx === realIndex
             ? {
