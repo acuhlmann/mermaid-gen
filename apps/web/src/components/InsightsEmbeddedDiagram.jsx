@@ -4,6 +4,7 @@ import ChartRenderer from './ChartRenderer.jsx';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
+import { applyChartHighlight } from '../utils/applyChartHighlight.js';
 import {
   applyEmbeddedDiagramFocus,
   resetEmbeddedDiagramFocus
@@ -138,6 +139,27 @@ export default function InsightsEmbeddedDiagram({
       observer.disconnect();
     };
   }, [kind, source, highlight, applyPreviewFocus]);
+
+  // Chart canvas is rendered async by Vega; observe DOM mutations and re-apply highlights.
+  useEffect(() => {
+    if (kind !== 'chart') return undefined;
+    const host = svgHostRef.current;
+    if (!host) return undefined;
+    let frame = 0;
+    const apply = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        applyChartHighlight(host, highlight);
+      });
+    };
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(host, { childList: true, subtree: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [kind, source, highlight]);
 
   useEffect(() => {
     if (streamingPreview) return undefined;

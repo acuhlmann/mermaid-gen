@@ -409,17 +409,29 @@ export default function DiagramCanvas({
     if (!changeHighlight || !changeHighlightContentType || streamingPreview) return undefined;
     const viewportEl = viewportRef.current;
     if (!viewportEl) return undefined;
-    const run = () => {
+
+    let applied = false;
+    const tryApply = () => {
+      if (applied) return;
+      if (!viewportEl.querySelector('svg')) return;
       const next = computeViewportFocusForChangeHighlight(
         viewportEl,
         changeHighlight,
         changeHighlightContentType
       );
       if (!next) return;
+      applied = true;
       setViewport(next);
     };
-    const id = requestAnimationFrame(run);
-    return () => cancelAnimationFrame(id);
+
+    tryApply();
+    if (applied) return undefined;
+
+    const observer = new MutationObserver(() => {
+      requestAnimationFrame(tryApply);
+    });
+    observer.observe(viewportEl, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [changeHighlight, changeHighlightContentType, revisionId, streamingPreview, svgMarkup, editorSource]);
 
   const fireDiagramRevisionPulse = useCallback(() => {

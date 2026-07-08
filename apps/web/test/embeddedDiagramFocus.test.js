@@ -48,24 +48,21 @@ describe('embeddedDiagramFocus', () => {
     host.remove();
   });
 
-  it('applyEmbeddedDiagramFocus crops mermaid viewBox to highlighted nodes', () => {
+  it('applyEmbeddedDiagramFocus keeps the full mermaid viewBox with highlights present', () => {
     const { host, svg } = makeMermaidHost({
       nodeBBox: { x: 120, y: 60, width: 90, height: 50 },
       viewBox: '0 0 400 200'
     });
     applyEmbeddedDiagramFocus(host, { addedIds: ['A'], modifiedIds: [] }, 'mermaid');
 
-    const focused = parseViewBox(svg.getAttribute('viewBox'));
-    expect(focused.width).toBeLessThan(400);
-    expect(focused.height).toBeLessThan(200);
-    expect(focused.x).toBeGreaterThan(0);
+    expect(svg.getAttribute('viewBox')).toBe('0 0 400 200');
     expect(svg.getAttribute('preserveAspectRatio')).toBe('xMidYMid meet');
     expect(svg.getAttribute('width')).toBe('100%');
     expect(svg.getAttribute('height')).toBe('100%');
     host.remove();
   });
 
-  it('applyEmbeddedDiagramFocus crops infographic viewBox to diff elements', () => {
+  it('applyEmbeddedDiagramFocus keeps the full infographic viewBox with highlights present', () => {
     const host = document.createElement('div');
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
     svg.setAttribute('viewBox', '0 0 1000 500');
@@ -85,9 +82,7 @@ describe('embeddedDiagramFocus', () => {
 
     applyEmbeddedDiagramFocus(host, { addedIds: ['2'], modifiedIds: [] }, 'infographic');
 
-    const focused = parseViewBox(svg.getAttribute('viewBox'));
-    expect(focused.width).toBeLessThan(1000);
-    expect(focused.x).toBeGreaterThan(600);
+    expect(svg.getAttribute('viewBox')).toBe('0 0 1000 500');
     host.remove();
   });
 
@@ -107,7 +102,7 @@ describe('embeddedDiagramFocus', () => {
       viewBox: '0 0 400 200'
     });
     applyEmbeddedDiagramFocus(host, { addedIds: ['A'], modifiedIds: [] }, 'mermaid');
-    expect(svg.getAttribute('viewBox')).not.toBe('0 0 400 200');
+    expect(svg.getAttribute('viewBox')).toBe('0 0 400 200');
 
     resetEmbeddedDiagramFocus(host);
     expect(svg.getAttribute('viewBox')).toBe('0 0 400 200');
