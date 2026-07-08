@@ -398,7 +398,11 @@ export function createDiagramStateStore(
     const prepared = await validateAndPrepareAnythingPatch({
       currentState: slot,
       proposedDiagramSource: candidate,
-      reason: 'client sync'
+      reason: 'client sync',
+      // The user is looking at the live document; a runtime bug in their
+      // in-progress edit (or in broken source being synced for an auto-fix)
+      // must not block the sync. Static shape/policy/quality checks still run.
+      runtimeCheck: false
     });
     if (!prepared.accepted) {
       return prepared;

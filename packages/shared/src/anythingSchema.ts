@@ -29,22 +29,74 @@ export const ANYTHING_IFRAME_CSP =
   "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; media-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'";
 
 /**
- * Inject a CSP meta tag into an Anything HTML document before it is passed to
- * iframe srcDoc. Does not mutate scripts or styles — containment only.
+ * postMessage `type` used by the runtime-error bridge injected into Anything
+ * srcDoc documents. The renderer listens for messages of this type coming
+ * from its own iframe and surfaces them (error banner + auto-fix plumbing).
+ */
+export const ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE = 'archislop:anything-runtime-error';
+
+/**
+ * Error-capture harness injected into the document at wrap time — AFTER
+ * validation, so the policy lint's ban on `window.parent` in agent-authored
+ * code never sees it. Runs before any page script (it is inserted at the top
+ * of <head>), captures uncaught errors and unhandled rejections, and relays
+ * them to the parent frame. postMessage is the one channel that crosses the
+ * opaque-origin boundary; targetOrigin must be '*' because an opaque origin
+ * cannot name the parent. The payload is plain data and the renderer verifies
+ * `event.source` is its own iframe, so this does not weaken the sandbox.
+ */
+const ANYTHING_RUNTIME_ERROR_BRIDGE = `<script>(function () {
+  var START = Date.now();
+  var MAX_REPORTS = 12;
+  var sent = 0;
+  var seen = {};
+  function report(kind, message, detail) {
+    message = String(message || 'Unknown error').slice(0, 500);
+    if (sent >= MAX_REPORTS || seen[message]) return;
+    seen[message] = true;
+    sent += 1;
+    try {
+      window.parent.postMessage({
+        type: '${ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE}',
+        kind: kind,
+        message: message,
+        detail: detail ? String(detail).slice(0, 300) : null,
+        sinceLoadMs: Date.now() - START
+      }, '*');
+    } catch (e) { /* reporting must never break the page */ }
+  }
+  window.addEventListener('error', function (ev) {
+    if (!ev || !ev.message) return;
+    report('error', ev.message, ev.lineno ? 'line ' + ev.lineno + ':' + (ev.colno || 0) : null);
+  });
+  window.addEventListener('unhandledrejection', function (ev) {
+    var r = ev && ev.reason;
+    report(
+      'unhandledrejection',
+      (r && (r.message || String(r))) || 'Unhandled promise rejection',
+      r && r.name ? r.name : null
+    );
+  });
+})();</script>`;
+
+/**
+ * Inject a CSP meta tag and the runtime-error bridge into an Anything HTML
+ * document before it is passed to iframe srcDoc. Does not mutate the page's
+ * own scripts or styles — containment and observation only.
  */
 export function wrapAnythingSrcDoc(html: string, csp: string = ANYTHING_IFRAME_CSP): string {
-  const meta = `<meta http-equiv="Content-Security-Policy" content="${csp}">`;
+  const injected = `<meta http-equiv="Content-Security-Policy" content="${csp}">${ANYTHING_RUNTIME_ERROR_BRIDGE}`;
   const headMatch = html.match(/<head(\s[^>]*)?>/i);
   if (headMatch && headMatch.index != null) {
     const insertAt = headMatch.index + headMatch[0].length;
-    return `${html.slice(0, insertAt)}${meta}${html.slice(insertAt)}`;
+    return `${html.slice(0, insertAt)}${injected}${html.slice(insertAt)}`;
   }
   const htmlMatch = html.match(/<html(\s[^>]*)?>/i);
   if (htmlMatch && htmlMatch.index != null) {
     const insertAt = htmlMatch.index + htmlMatch[0].length;
-    return `${html.slice(0, insertAt)}<head>${meta}</head>${html.slice(insertAt)}`;
+    return `${html.slice(0, insertAt)}<head>${injected}</head>${html.slice(insertAt)}`;
   }
-  return `<!DOCTYPE html><html><head>${meta}</head><body>${html}</body></html>`;
+  return `<!DOCTYPE html><html><head>${injected}</head><body>${html}</body></html>`;
 }
 
 export interface ParseAnythingHtmlSuccess {

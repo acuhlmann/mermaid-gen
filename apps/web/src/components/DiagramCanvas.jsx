@@ -160,6 +160,9 @@ function formatEditorSource(source, contentType) {
 }
 
 
+/** Anything-iframe runtime errors later than this after load are treated as interaction-time. */
+const ANYTHING_LOAD_PHASE_ERROR_MS = 5000;
+
 /** Mermaid often sets `id` on a child shape; selection + CSS need a stable element with `id`. */
 function diagramDomAnchor(group) {
   if (!group) return null;
@@ -338,6 +341,20 @@ export default function DiagramCanvas({
       onValidationChange({ source, error });
     },
     [onValidationChange]
+  );
+
+  // Load-phase runtime errors relayed from the sandboxed Anything iframe flow
+  // into the same validation plumbing as Mermaid render errors (status line +
+  // auto-fix). Errors thrown long after load — during user interaction — stay
+  // banner-only in the renderer: rewriting the page mid-interaction over a
+  // single handler bug would be more disruptive than the bug.
+  const handleAnythingRuntimeError = useCallback(
+    (entry) => {
+      if (!entry?.message) return;
+      if (entry.sinceLoadMs != null && entry.sinceLoadMs > ANYTHING_LOAD_PHASE_ERROR_MS) return;
+      reportValidation(editorSource, `Page runtime error: ${entry.message}`);
+    },
+    [editorSource, reportValidation]
   );
 
   useEffect(() => {
@@ -1486,6 +1503,7 @@ export default function DiagramCanvas({
                 key={`anything-${rendererRefreshKey}`}
                 diagramSource={editorSource}
                 streamingPreview={streamingPreview}
+                onRuntimeError={handleAnythingRuntimeError}
               />
             ) : (
               <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>

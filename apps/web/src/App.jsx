@@ -46,6 +46,7 @@ import {
   writeDiagramCache
 } from './state/diagramStore.js';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
+import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
 import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import './App.css';
@@ -1809,20 +1810,7 @@ function ArchiSlop() {
 
         const result = await submitDiagramIntent({
           contentType: contentMode,
-          prompt: `The Mermaid editor currently shows a syntax error. Please fix the diagram and apply a corrected version with apply_mermaid_patch.
-
-Mermaid renderer error:
-${errorMessage}
-
-Current invalid Mermaid source:
-\`\`\`mermaid
-${brokenSource}
-\`\`\`
-
-Hard requirements:
-- Preserve the user's intent and as much of the structure as possible.
-- Output complete, valid Mermaid source.
-- Apply the fix with apply_mermaid_patch before summarizing.`,
+          prompt: buildAutoFixPrompt({ contentType: contentMode, errorMessage, brokenSource }),
           revisionId: syncedState.revisionId,
           diagramSource: syncedState.diagramSource,
           settings: {},
@@ -3215,14 +3203,18 @@ ${requirementsBlock}`;
     if (loading && activeRequest?.startsWith?.('analyze')) return 'Analyzing diagram.';
     if (loading && activeRequest === 'fix') return 'Applying critique fixes.';
     if (loading && activeRequest === 'clear') return 'Resetting diagram.';
-    if (loading && activeRequest === 'autofix') return 'Fixing Mermaid syntax.';
+    if (loading && activeRequest === 'autofix')
+      return contentMode === 'anything' ? 'Fixing page runtime error.' : 'Fixing Mermaid syntax.';
     if (loading && activeRequest === 'hydrate') return 'Loading shared session.';
     if (streamingPreview) return 'Refreshing diagram.';
     if (error) return error;
     if (voiceError) return voiceError;
-    if (validationError && autoFixAttempted) return `Mermaid syntax needs manual edit: ${validationError.error}`;
+    if (validationError && autoFixAttempted)
+      return contentMode === 'anything'
+        ? `Page needs manual edit: ${validationError.error}`
+        : `Mermaid syntax needs manual edit: ${validationError.error}`;
     return '';
-  }, [activeRequest, autoFixAttempted, error, loading, streamingPreview, validationError, voiceError]);
+  }, [activeRequest, autoFixAttempted, contentMode, error, loading, streamingPreview, validationError, voiceError]);
 
   const streamDebugEnabled = readStreamDebugEnabled();
 
