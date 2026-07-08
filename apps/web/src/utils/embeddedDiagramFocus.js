@@ -163,13 +163,14 @@ function applySvgFitAttributes(svgEl) {
 }
 
 /**
- * Crop/zoom embedded preview SVG to highlighted regions, or fit the full diagram.
+ * Fit the embedded preview SVG to the full diagram. Change highlights are applied
+ * separately; the preview stays centered on the whole graph for context.
  *
  * @param {HTMLElement | null | undefined} hostEl inner host containing the root `<svg>`
- * @param {{ addedIds?: string[], modifiedIds?: string[] } | null | undefined} highlight
- * @param {'mermaid' | 'infographic'} kind
+ * @param {{ addedIds?: string[], modifiedIds?: string[] } | null | undefined} [_highlight]
+ * @param {'mermaid' | 'infographic'} [_kind]
  */
-export function applyEmbeddedDiagramFocus(hostEl, highlight, kind) {
+export function applyEmbeddedDiagramFocus(hostEl, _highlight, _kind) {
   const svgEl = hostEl?.querySelector?.('svg');
   if (!svgEl) return;
 
@@ -177,11 +178,7 @@ export function applyEmbeddedDiagramFocus(hostEl, highlight, kind) {
   const original = svgEl.getAttribute(ORIGINAL_VIEWBOX_ATTR) || readViewBoxString(svgEl);
   if (!original) return;
 
-  const elements = collectHighlightedSvgElements(hostEl, highlight, kind);
-  const bbox = elements.length > 0 ? unionSvgBBox(elements) : null;
-  const focused = bbox ? computeFocusedViewBox(bbox) : null;
-
-  svgEl.setAttribute('viewBox', focused || original);
+  svgEl.setAttribute('viewBox', original);
   applySvgFitAttributes(svgEl);
 }
 

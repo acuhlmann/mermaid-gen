@@ -2911,7 +2911,7 @@ ${requirementsBlock}`;
     const { addedIds, modifiedIds, removedIds } = changeHighlightDiff;
     const isStructuralEmpty =
       addedIds.length === 0 && modifiedIds.length === 0 && removedIds.length === 0;
-    return { removedIds, isStructuralEmpty };
+    return { addedIds, modifiedIds, removedIds, isStructuralEmpty };
   }, [changeHighlightDiff, diagramChangeHighlightEntryId]);
 
   // Per-entry structural diff used to auto-highlight changes inside the embedded

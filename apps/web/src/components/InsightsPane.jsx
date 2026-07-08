@@ -724,6 +724,32 @@ function resultingPreviewLabel(afterKind) {
   return 'Resulting diagram';
 }
 
+function DiagramDiffLegend({ diff, ariaLabel }) {
+  if (
+    !diff ||
+    (!diff.addedIds?.length && !diff.modifiedIds?.length && !diff.removedIds?.length)
+  ) {
+    return null;
+  }
+  return (
+    <p className="insights-after-section-meta" aria-label={ariaLabel}>
+      {diff.addedIds?.length ? (
+        <span className="insights-after-meta-chip is-added">+{diff.addedIds.length} added</span>
+      ) : null}
+      {diff.modifiedIds?.length ? (
+        <span className="insights-after-meta-chip is-modified">
+          ~{diff.modifiedIds.length} changed
+        </span>
+      ) : null}
+      {diff.removedIds?.length ? (
+        <span className="insights-after-meta-chip is-removed">
+          −{diff.removedIds.length} removed
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
 function EmbeddedDiagramBlock({
   idPrefix,
   source,
@@ -1526,26 +1552,10 @@ export default function InsightsPane({
                     aria-label={resultingPreviewLabel(afterKind)}
                   >
                     <h4 className="insights-section-title">{resultingPreviewLabel(afterKind)}</h4>
-                    {afterDiff &&
-                    (afterDiff.addedIds.length || afterDiff.modifiedIds.length || afterDiff.removedIds.length) ? (
-                      <p className="insights-after-section-meta" aria-label="Changes since previous version">
-                        {afterDiff.addedIds.length ? (
-                          <span className="insights-after-meta-chip is-added">
-                            +{afterDiff.addedIds.length} added
-                          </span>
-                        ) : null}
-                        {afterDiff.modifiedIds.length ? (
-                          <span className="insights-after-meta-chip is-modified">
-                            ~{afterDiff.modifiedIds.length} changed
-                          </span>
-                        ) : null}
-                        {afterDiff.removedIds.length ? (
-                          <span className="insights-after-meta-chip is-removed">
-                            −{afterDiff.removedIds.length} removed
-                          </span>
-                        ) : null}
-                      </p>
-                    ) : null}
+                    <DiagramDiffLegend
+                      diff={afterDiff}
+                      ariaLabel="Changes since previous version"
+                    />
                     <InsightsEmbeddedDiagram
                       idPrefix={`${entry.id}-after`}
                       source={afterSource}
@@ -1585,6 +1595,12 @@ export default function InsightsPane({
                         Restore
                       </button>
                     </div>
+                    {entry.id === diagramChangeHighlightEntryId ? (
+                      <DiagramDiffLegend
+                        diff={diagramChangeHighlightSummary}
+                        ariaLabel="Highlighted changes on canvas"
+                      />
+                    ) : null}
                     {entry.id === diagramChangeHighlightEntryId &&
                     diagramChangeHighlightSummary?.removedIds?.length ? (
                       <p className="insights-change-highlight-note insights-change-highlight-removed">

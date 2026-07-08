@@ -2701,6 +2701,25 @@
   background: color-mix(in srgb, #fb923c 14%, transparent);
 }
 
+.insights-embedded-diagram--chart [data-diff-state='added'],
+.insights-embedded-diagram--chart [data-diff-state='added'] path,
+.insights-embedded-diagram--chart [data-diff-state='added'] rect,
+.insights-embedded-diagram--chart [data-diff-state='added'] circle {
+  stroke: #059669 !important;
+  stroke-width: 3px !important;
+  fill: color-mix(in srgb, #34d399 28%, transparent) !important;
+}
+
+.insights-embedded-diagram--chart [data-diff-state='modified'],
+.insights-embedded-diagram--chart [data-diff-state='modified'] path,
+.insights-embedded-diagram--chart [data-diff-state='modified'] rect,
+.insights-embedded-diagram--chart [data-diff-state='modified'] circle {
+  stroke: #ea580c !important;
+  stroke-width: 3px !important;
+  stroke-dasharray: 5 3 !important;
+  fill: color-mix(in srgb, #fb923c 22%, transparent) !important;
+}
+
 .insights-entry-after-section {
   margin-top: 0.55rem;
 }
