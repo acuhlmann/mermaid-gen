@@ -4,7 +4,9 @@ import {
   buildChartDescriptorFromDomHit,
   buildChartDescriptorFromVegaItem,
   findChartTapTarget,
-  isChartInteractiveDomNode
+  isChartInteractiveDomNode,
+  isChartVegaItemSelectable,
+  resolveVegaItemFromDomNode
 } from '../src/utils/chartHitTest.js';
 
 describe('chartHitTest', () => {
@@ -30,6 +32,32 @@ describe('chartHitTest', () => {
     expect(descriptor.id).toMatch(/^chart:mark:bar:2:/);
   });
 
+  it('buildChartDescriptorFromVegaItem rejects axis domain lines without labels', () => {
+    expect(
+      buildChartDescriptorFromVegaItem(
+        { mark: { marktype: 'rule', role: 'axis' } },
+        { target: { tagName: 'line' } },
+        null
+      )
+    ).toBeNull();
+  });
+
+  it('isChartVegaItemSelectable accepts legend entries and rejects legend frames', () => {
+    expect(
+      isChartVegaItemSelectable({ mark: { role: 'legend' }, datum: { label: 'North' } })
+    ).toBe(true);
+    expect(isChartVegaItemSelectable({ mark: { role: 'legend' } })).toBe(false);
+  });
+
+  it('isChartVegaItemSelectable accepts axis titles rendered as text marks', () => {
+    expect(
+      isChartVegaItemSelectable({
+        text: 'Revenue',
+        mark: { marktype: 'text', role: 'axis' }
+      })
+    ).toBe(true);
+  });
+
   it('buildChartDescriptorFromDomHit maps axis title hits', () => {
     const node = {
       nodeType: 1,
@@ -46,6 +74,29 @@ describe('chartHitTest', () => {
     expect(descriptor.elementType).toBe('axis-title');
     expect(descriptor.partKind).toBe('axis');
     expect(descriptor.label).toBe('Revenue');
+  });
+
+  it('buildChartDescriptorFromDomHit prefers Vega __data__ for datum index on tap', () => {
+    const node = {
+      nodeType: 1,
+      tagName: 'rect',
+      parentNode: null,
+      getAttribute: () => '',
+      __data__: {
+        index: 4,
+        datum: { category: 'Q2', sales: 120 },
+        mark: { marktype: 'bar', role: 'mark' }
+      }
+    };
+    const descriptor = buildChartDescriptorFromDomHit({
+      node,
+      roleDesc: 'mark',
+      className: 'mark-rect role-mark',
+      label: 'Q2'
+    });
+    expect(descriptor.indexes).toBe('4');
+    expect(descriptor.label).toBe('Q2');
+    expect(resolveVegaItemFromDomNode(node)?.datum?.sales).toBe(120);
   });
 
   it('findChartTapTarget walks up to a mark element', () => {

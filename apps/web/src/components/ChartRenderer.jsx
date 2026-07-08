@@ -4,10 +4,6 @@ import embed from 'vega-embed';
 import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartThemePresets.js';
 import { expressionInterpreter } from 'vega-interpreter';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
-import {
-  buildChartDescriptorFromVegaItem,
-  isChartInteractiveDomNode
-} from '../utils/chartHitTest.js';
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -57,12 +53,10 @@ function withDefaultSize(spec, compact = false) {
 export default function ChartRenderer({
   diagramSource,
   compact = false,
-  selectedNode = null,
-  onSelectedNodeChange = null
+  selectedNode = null
 }) {
   const containerRef = useRef(null);
   const viewRef = useRef(null);
-  const clickHandlerRef = useRef(null);
   const lastSelectedElRef = useRef(null);
   const [renderError, setRenderError] = useState(null);
 
@@ -105,27 +99,6 @@ export default function ChartRenderer({
           }
         }
         viewRef.current = result.view;
-
-        if (clickHandlerRef.current) {
-          try {
-            viewRef.current.removeEventListener('click', clickHandlerRef.current);
-          } catch {
-            // ignore
-          }
-        }
-        if (typeof onSelectedNodeChange === 'function') {
-          const handler = (event, item) => {
-            const descriptor = buildChartDescriptorFromVegaItem(
-              item,
-              event,
-              containerRef.current
-            );
-            onSelectedNodeChange(descriptor);
-          };
-          clickHandlerRef.current = handler;
-          viewRef.current.addEventListener('click', handler);
-        }
-
         setRenderError(null);
       })
       .catch((err) => {
@@ -141,16 +114,8 @@ export default function ChartRenderer({
 
     return () => {
       cancelled = true;
-      if (viewRef.current && clickHandlerRef.current) {
-        try {
-          viewRef.current.removeEventListener('click', clickHandlerRef.current);
-        } catch {
-          // ignore
-        }
-      }
-      clickHandlerRef.current = null;
     };
-  }, [compact, onSelectedNodeChange, parsed]);
+  }, [compact, parsed]);
 
   useEffect(
     () => () => {
@@ -162,22 +127,9 @@ export default function ChartRenderer({
         }
         viewRef.current = null;
       }
-      clickHandlerRef.current = null;
     },
     []
   );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !parsed.ok) return undefined;
-    const onPointerDown = (event) => {
-      if (isChartInteractiveDomNode(event.target, container)) {
-        event.stopPropagation();
-      }
-    };
-    container.addEventListener('pointerdown', onPointerDown, true);
-    return () => container.removeEventListener('pointerdown', onPointerDown, true);
-  }, [parsed.ok]);
 
   useEffect(() => {
     if (lastSelectedElRef.current) {
