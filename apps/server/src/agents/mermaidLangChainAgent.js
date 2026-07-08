@@ -11,6 +11,7 @@ import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { repairMermaidWithFixer, isSyntaxFixerAvailable } from './mermaidSyntaxFixer.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
 import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
@@ -586,14 +587,7 @@ async function invokeWithRepair(
       const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
       if (fixerStop) return finishStoppedRun(fixerStop, firstResult, latestError);
       repairAttempts += 1;
-      if (typeof emit === 'function') {
-        emitPlanBeat(
-          emit,
-          'Previous patch failed validation — running a quick syntax pass before asking the agent again.',
-          'server'
-        );
-        emit({ type: 'phase', id: 'syntax_fixer', label: 'Mermaid syntax fixer…' });
-      }
+      emitSyntaxFixerStart(emit, { contentType: 'mermaid', triggerError: latestError });
       const fixerOutcome = await repairMermaidWithFixer({
         brokenSource,
         parseError: latestError,
@@ -609,6 +603,11 @@ async function invokeWithRepair(
           reason: 'syntax-fixer repair'
         });
         if (applied?.accepted) {
+          emitSyntaxFixerResult(emit, {
+            contentType: 'mermaid',
+            outcome: 'repaired',
+            detail: 'Repaired invalid diagram source and applied the patch.'
+          });
           emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
           finishTurn({ accepted: true, validator: 'syntax-fixer' });
           return {
@@ -623,13 +622,35 @@ async function invokeWithRepair(
         // Fixer's source was valid in isolation but the state store rejected it (unlikely);
         // fall through to the full-agent repair loop with that error as new context.
         latestError = applied?.error ?? latestError;
+        emitSyntaxFixerResult(emit, {
+          contentType: 'mermaid',
+          outcome: 'store_rejected',
+          error: applied?.error ?? 'Diagram validation failed after syntax fixer.'
+        });
       } else if (fixerOutcome.error) {
         // Use the fixer's diagnostic to better seed the full-agent repair on fallback.
         latestError = `${latestError}\nFixer diagnostic: ${fixerOutcome.error}`;
+        emitSyntaxFixerResult(emit, {
+          contentType: 'mermaid',
+          outcome: 'fixer_failed',
+          error: fixerOutcome.error
+        });
+      } else {
+        emitSyntaxFixerResult(emit, {
+          contentType: 'mermaid',
+          outcome: 'fixer_failed',
+          error: 'Syntax fixer could not repair the diagram source.'
+        });
       }
     } catch (error) {
       // Telemetry only — fixer failures must never break the repair fallback.
-      latestError = `${latestError}\nFixer exception: ${error instanceof Error ? error.message : String(error)}`;
+      const exceptionMessage = error instanceof Error ? error.message : String(error);
+      latestError = `${latestError}\nFixer exception: ${exceptionMessage}`;
+      emitSyntaxFixerResult(emit, {
+        contentType: 'mermaid',
+        outcome: 'fixer_failed',
+        error: exceptionMessage
+      });
     }
   }
 

@@ -24,6 +24,7 @@ import {
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
 import {
   appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
@@ -364,14 +365,7 @@ export function createAnythingLangChainAgent({
           const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
-          if (typeof emit === 'function') {
-            emitPlanBeat(
-              emit,
-              'Page failed validation — running a quick syntax pass before retrying.',
-              'server'
-            );
-            emit({ type: 'phase', id: 'anything_syntax_fixer', label: 'Page syntax fixer…' });
-          }
+          emitSyntaxFixerStart(emit, { contentType: 'anything', triggerError: failureError });
           const fixerOutcome = await repairAnythingWithFixer({
             brokenSource: lastBrokenSource,
             parseError: failureError,
@@ -386,6 +380,11 @@ export function createAnythingLangChainAgent({
               reason: 'syntax-fixer repair'
             });
             if (applied.accepted) {
+              emitSyntaxFixerResult(emit, {
+                contentType: 'anything',
+                outcome: 'repaired',
+                detail: 'Repaired invalid page HTML and applied the patch.'
+              });
               return {
                 message: 'Page updated (repaired by syntax fixer).',
                 raw: result,
@@ -393,8 +392,18 @@ export function createAnythingLangChainAgent({
               };
             }
             lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'anything',
+              outcome: 'store_rejected',
+              error: applied.error ?? 'Page validation failed after syntax fixer.'
+            });
           } else {
             lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'anything',
+              outcome: 'fixer_failed',
+              error: fixerOutcome.error ?? 'Syntax fixer could not repair the page HTML.'
+            });
           }
         }
 

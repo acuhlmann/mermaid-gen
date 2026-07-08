@@ -107,6 +107,22 @@ export type LegacyToolApplyResultEvent = {
   timestamp?: number;
 };
 
+export type LegacySyntaxFixerStartEvent = {
+  type: 'syntax_fixer_start';
+  contentType: string;
+  triggerError?: string;
+  timestamp?: number;
+};
+
+export type LegacySyntaxFixerResultEvent = {
+  type: 'syntax_fixer_result';
+  contentType: string;
+  outcome: 'repaired' | 'fixer_failed' | 'store_rejected';
+  error?: string;
+  detail?: string;
+  timestamp?: number;
+};
+
 export type LegacyDraftPreviewEvent = {
   type: 'draftPreview';
   contentType: 'mermaid' | 'infographic' | string;
@@ -143,6 +159,8 @@ export type LegacyStreamEvent =
   | LegacyToolStartEvent
   | LegacyToolEndEvent
   | LegacyToolApplyResultEvent
+  | LegacySyntaxFixerStartEvent
+  | LegacySyntaxFixerResultEvent
   | LegacyDraftPreviewEvent
   | LegacyErrorEvent
   | LegacyFinalEvent

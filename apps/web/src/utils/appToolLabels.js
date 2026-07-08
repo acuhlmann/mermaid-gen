@@ -4,7 +4,8 @@ const TOOL_LABELS = {
   apply_chart_patch: 'Apply chart update',
   apply_infographic_patch: 'Apply infographic update',
   apply_metaphor_patch: 'Apply 3D scene update',
-  apply_anything_patch: 'Apply canvas update'
+  apply_anything_patch: 'Apply canvas update',
+  syntax_fixer: 'Quick syntax pass'
 };
 
 /** Human label for an LLM-tool call name shown in the insights pane. */

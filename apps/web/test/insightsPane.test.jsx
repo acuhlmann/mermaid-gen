@@ -655,6 +655,45 @@ flowchart TB
     expect(screen.getAllByText('Apply chart update').length).toBe(2);
   });
 
+  it('shows syntax fixer pass and outcome in tool trace', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-syntax-fixer',
+            title: 'Refine — chart',
+            variant: 'refine',
+            status: 'running',
+            statusText: 'Repairing chart…',
+            content: '',
+            technicalActions: [
+              {
+                id: 't1',
+                name: 'apply_chart_patch',
+                label: 'Apply chart update',
+                status: 'rejected',
+                validationError: 'Vega-Lite compile failed: Invalid encoding channel "colour"'
+              },
+              {
+                id: 't2',
+                name: 'syntax_fixer',
+                label: 'Quick syntax pass',
+                status: 'done',
+                contextNote: 'Vega-Lite compile failed: Invalid encoding channel "colour"',
+                outcomeDetail: 'Repaired invalid chart DSL and applied the patch.'
+              }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('Quick syntax pass')).toBeTruthy();
+    expect(screen.getByText(/Repaired invalid chart DSL/)).toBeTruthy();
+    expect(screen.getByText(/After: Vega-Lite compile failed/)).toBeTruthy();
+  });
+
   it('uses Explanation label for explain variant', () => {
     render(
       <InsightsPane

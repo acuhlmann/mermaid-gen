@@ -29,6 +29,7 @@ import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import { repairChartWithFixer, isChartSyntaxFixerAvailable } from './chartSyntaxFixer.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
 import {
   appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
@@ -402,14 +403,7 @@ export function createChartLangChainAgent({
           const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
-          if (typeof emit === 'function') {
-            emitPlanBeat(
-              emit,
-              'Chart DSL failed validation — running a quick syntax pass before retrying.',
-              'server'
-            );
-            emit({ type: 'phase', id: 'chart_syntax_fixer', label: 'Chart syntax fixer…' });
-          }
+          emitSyntaxFixerStart(emit, { contentType: 'chart', triggerError: failureError });
           const fixerOutcome = await repairChartWithFixer({
             brokenSource: lastBrokenSource,
             parseError: failureError,
@@ -424,6 +418,11 @@ export function createChartLangChainAgent({
               reason: 'syntax-fixer repair'
             });
             if (applied.accepted) {
+              emitSyntaxFixerResult(emit, {
+                contentType: 'chart',
+                outcome: 'repaired',
+                detail: 'Repaired invalid chart DSL and applied the patch.'
+              });
               return {
                 message: 'Chart updated (repaired by syntax fixer).',
                 raw: result,
@@ -431,8 +430,18 @@ export function createChartLangChainAgent({
               };
             }
             lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'chart',
+              outcome: 'store_rejected',
+              error: applied.error ?? 'Chart validation failed after syntax fixer.'
+            });
           } else {
             lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'chart',
+              outcome: 'fixer_failed',
+              error: fixerOutcome.error ?? 'Syntax fixer could not repair the chart DSL.'
+            });
           }
         }
 

@@ -7,6 +7,7 @@ import {
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
   AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
+  AGUI_CUSTOM_NAME_SYNTAX_FIXER,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
   LEGACY_STREAM_TYPE_PLAN_BEAT,
@@ -266,6 +267,35 @@ export function createAgentStreamEmitter({
               ...(evt.id != null ? { toolCallId: String(evt.id) } : {}),
               accepted: false,
               error
+            }
+          })
+        );
+      }
+      case 'syntax_fixer_start':
+        return rawEmit(
+          customEvent({
+            name: AGUI_CUSTOM_NAME_SYNTAX_FIXER,
+            value: {
+              phase: 'start',
+              contentType: String(evt.contentType ?? 'mermaid'),
+              triggerError: typeof evt.triggerError === 'string' ? evt.triggerError : ''
+            }
+          })
+        );
+      case 'syntax_fixer_result': {
+        const outcome = evt.outcome;
+        if (outcome !== 'repaired' && outcome !== 'fixer_failed' && outcome !== 'store_rejected') {
+          return;
+        }
+        return rawEmit(
+          customEvent({
+            name: AGUI_CUSTOM_NAME_SYNTAX_FIXER,
+            value: {
+              phase: 'result',
+              contentType: String(evt.contentType ?? 'mermaid'),
+              outcome,
+              error: typeof evt.error === 'string' ? evt.error : '',
+              detail: typeof evt.detail === 'string' ? evt.detail : ''
             }
           })
         );

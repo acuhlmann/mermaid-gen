@@ -19,6 +19,8 @@ type TechnicalAction = {
   label?: string;
   status?: string;
   validationError?: string;
+  contextNote?: string;
+  outcomeDetail?: string;
 };
 
 export default function TechnicalActionStepper({
@@ -39,8 +41,12 @@ export default function TechnicalActionStepper({
         const isRejected = action.status === 'rejected';
         const isDone = action.status === 'done' && !isRejected;
         const isPatch = PATCH_TOOL_RE.test(action.name ?? '');
+        const isSyntaxFixer = action.name === 'syntax_fixer';
         const validationError =
           typeof action.validationError === 'string' ? action.validationError.trim() : '';
+        const contextNote = typeof action.contextNote === 'string' ? action.contextNote.trim() : '';
+        const outcomeDetail =
+          typeof action.outcomeDetail === 'string' ? action.outcomeDetail.trim() : '';
         return (
           <li
             key={action.id ?? `${action.name}-${idx}`}
@@ -49,7 +55,8 @@ export default function TechnicalActionStepper({
               isRunning ? 'is-running' : '',
               isDone ? 'is-done' : '',
               isRejected ? 'is-rejected' : '',
-              isPatch ? 'is-patch-tool' : ''
+              isPatch ? 'is-patch-tool' : '',
+              isSyntaxFixer ? 'is-syntax-fixer' : ''
             ]
               .filter(Boolean)
               .join(' ')}
@@ -63,6 +70,16 @@ export default function TechnicalActionStepper({
             </span>
             <span className="insights-tech-step-body">
               <span className="insights-tech-step-label">{action.label}</span>
+              {contextNote ? (
+                <span className="insights-tech-step-context" title={contextNote}>
+                  After: {truncateValidationError(contextNote, 180)}
+                </span>
+              ) : null}
+              {outcomeDetail ? (
+                <span className="insights-tech-step-detail" title={outcomeDetail}>
+                  {truncateValidationError(outcomeDetail)}
+                </span>
+              ) : null}
               {validationError ? (
                 <span className="insights-tech-step-error" title={validationError}>
                   {truncateValidationError(validationError)}

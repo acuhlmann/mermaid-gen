@@ -1439,10 +1439,55 @@ function ArchiSlop() {
               name,
               label: formatToolLabel(name),
               status,
-              ...(opts.toolCallId ? { toolCallId: opts.toolCallId } : {})
+              ...(opts.toolCallId ? { toolCallId: opts.toolCallId } : {}),
+              ...(opts.contextNote ? { contextNote: opts.contextNote } : {})
             }
           ]
         };
+      });
+    },
+    [patchInsightEntry]
+  );
+
+  const finalizeTechnicalActionResult = useCallback(
+    (id, name, { status = 'done', validationError, outcomeDetail, toolCallId } = {}) => {
+      const errorText = typeof validationError === 'string' ? validationError.trim() : '';
+      const detailText = typeof outcomeDetail === 'string' ? outcomeDetail.trim() : '';
+      if (!errorText && !detailText && status === 'done') {
+        patchInsightEntry(id, (entry) => {
+          const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
+          const actionIndex = [...current].reverse().findIndex((action) => {
+            if (toolCallId && action.toolCallId === toolCallId) return action.status === 'running';
+            return action.name === name && action.status === 'running';
+          });
+          if (actionIndex < 0) return entry;
+          const realIndex = current.length - 1 - actionIndex;
+          const nextActions = current.map((action, idx) =>
+            idx === realIndex ? { ...action, status: 'done' } : action
+          );
+          return { ...entry, technicalActions: nextActions };
+        });
+        return;
+      }
+      patchInsightEntry(id, (entry) => {
+        const current = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
+        const actionIndex = [...current].reverse().findIndex((action) => {
+          if (toolCallId && action.toolCallId === toolCallId) return action.status === 'running';
+          return action.name === name && action.status === 'running';
+        });
+        if (actionIndex < 0) return entry;
+        const realIndex = current.length - 1 - actionIndex;
+        const nextActions = current.map((action, idx) =>
+          idx === realIndex
+            ? {
+                ...action,
+                status: status === 'rejected' ? 'rejected' : 'done',
+                ...(errorText ? { validationError: errorText } : {}),
+                ...(detailText ? { outcomeDetail: detailText } : {})
+              }
+            : action
+        );
+        return { ...entry, technicalActions: nextActions };
       });
     },
     [patchInsightEntry]
@@ -1560,6 +1605,7 @@ function ArchiSlop() {
           setInsightStatus,
           appendTechnicalAction,
           annotateTechnicalActionResult,
+          finalizeTechnicalActionResult,
           lastTokenSoundAtRef,
           goMadTokenTickIndexRef,
           lastDraftTickAtRef,
@@ -1644,6 +1690,7 @@ function ArchiSlop() {
       appendStreamDebugLog,
       appendTechnicalAction,
       annotateTechnicalActionResult,
+      finalizeTechnicalActionResult,
       appendToInsight,
       activeSessionId,
       contentMode,
