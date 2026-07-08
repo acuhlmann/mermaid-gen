@@ -705,6 +705,44 @@ export async function submitDiagramAnalyze({
   return payload;
 }
 
+export async function submitDiagramStyle({
+  prompt,
+  stylePrompt,
+  revisionId,
+  diagramSource,
+  contentType = 'mermaid',
+  settings,
+  modelProfile,
+  sessionId
+}) {
+  const resolvedPrompt = (stylePrompt ?? prompt ?? '').trim();
+  const response = await fetchWithTimeout(
+    `${API_BASE_URL}/api/copilotkit/style`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
+      body: JSON.stringify({
+        prompt: resolvedPrompt,
+        stylePrompt: resolvedPrompt,
+        revisionId,
+        diagramSource,
+        contentType,
+        settings,
+        ...(modelProfile != null ? { modelProfile } : {})
+      })
+    },
+    agentMutationTimeoutMs(modelProfile),
+    'Style agent request timed out. Please try again.'
+  );
+
+  const payload = await response.json();
+  if (!response.ok) {
+    throwApiPayloadError(payload, 'Style request failed');
+  }
+
+  return payload;
+}
+
 /**
  * Streams SSE from POST /api/copilotkit/agent-stream (AG-UI wire only). Uses
  * @ag-ui/client HttpAgent for decode + validation; `createAgUiTranslator` maps

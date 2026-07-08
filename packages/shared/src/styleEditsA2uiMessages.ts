@@ -1,23 +1,11 @@
 import { A2UI_BASIC_CATALOG_ID } from './critiqueA2uiMessages.js';
 import type { A2uiV09Message } from './legacyStreamEvents.js';
-import type { StyleEdit } from './styleEdits.js';
+import { styleEditSummaryLine, type StyleEdit } from './styleEdits.js';
 
 /** A2UI surface for server-built style edit cards in the Thinking pane. */
 export const A2UI_STYLE_EDITS_SURFACE_ID = 'style-edits';
 
 export const ACTION_APPLY_STYLE_EDITS = 'archislop_applyStyleEdits';
-
-function editSummaryLine(edit: StyleEdit): string {
-  if (edit.kind === 'icon_replace') {
-    return `Replace ${edit.from} with ${edit.to}`;
-  }
-  if (edit.kind === 'color_shift') {
-    const varPart = edit.variable ? `${edit.variable}: ` : '';
-    const toPart = edit.to ? `${edit.from} → ${edit.to}` : edit.from;
-    return `${varPart}${toPart}`;
-  }
-  return edit.text;
-}
 
 /**
  * A2UI v0.9 messages for style edit cards (read-only rows + optional Apply).
@@ -51,7 +39,7 @@ export function buildStyleEditsA2uiMessages(edits: StyleEdit[]): A2uiV09Message[
     components.push({
       id: rowIds[i],
       component: 'Text',
-      text: editSummaryLine(edits[i]),
+      text: styleEditSummaryLine(edits[i]),
       variant: 'body'
     });
   }

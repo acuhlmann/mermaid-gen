@@ -4,6 +4,7 @@
  */
 
 import { z } from 'zod';
+import { DEFAULT_DIAGRAM_STYLE, normalizeDiagramStyleConfig } from './mermaidStyle.js';
 
 const HEX_RE = /#([0-9a-fA-F]{3,8})\b/g;
 
@@ -174,4 +175,95 @@ export function buildStyleEditsArtifact(text: string): StyleEditsArtifact | null
     kind: 'style_edits',
     edits
   };
+}
+
+function normalizeHex(hex: string | null | undefined): string | null {
+  const h = String(hex ?? '')
+    .replace(/^#/, '')
+    .trim();
+  if (!h) return null;
+  if (/^[0-9a-fA-F]{3}$/.test(h)) {
+    return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`.toLowerCase();
+  }
+  if (/^[0-9a-fA-F]{6}$/.test(h)) return `#${h}`.toLowerCase();
+  if (/^[0-9a-fA-F]{8}$/.test(h)) return `#${h}`.toLowerCase();
+  return null;
+}
+
+/** One-line summary for prompts, A2UI rows, and prose de-duplication. */
+export function styleEditSummaryLine(edit: StyleEdit): string {
+  if (edit.kind === 'icon_replace') {
+    return `Replace ${edit.from} with ${edit.to}`;
+  }
+  if (edit.kind === 'color_shift') {
+    const varPart = edit.variable ? `${edit.variable}: ` : '';
+    const toPart = edit.to ? `${edit.from} → ${edit.to}` : edit.from;
+    return `${varPart}${toPart}`;
+  }
+  return edit.text;
+}
+
+/** Natural-language prompt for the style agent route. */
+export function styleEditsToPrompt(edits: StyleEdit[]): string {
+  const lines = edits.map((edit, index) => {
+    const step = edit.id ?? String(index + 1);
+    if (edit.kind === 'icon_replace') {
+      return `${step}. Replace icon ${edit.from} with ${edit.to}`;
+    }
+    if (edit.kind === 'color_shift') {
+      const varPart = edit.variable ? `${edit.variable} ` : '';
+      const toPart = edit.to ? `from ${edit.from} to ${edit.to}` : `use ${edit.from}`;
+      return `${step}. Adjust ${varPart}${toPart}`;
+    }
+    return `${step}. ${edit.text}`;
+  });
+  return `Apply these style tweaks to the diagram:\n${lines.join('\n')}`;
+}
+
+function resolveColorVariable(
+  edit: z.infer<typeof StyleEditColorShiftSchema>,
+  themeVariables: Record<string, unknown>
+): string | undefined {
+  if (edit.variable) return edit.variable;
+  if (!edit.from || !edit.to) return undefined;
+  const fromNorm = normalizeHex(edit.from);
+  if (!fromNorm) return undefined;
+  for (const [key, value] of Object.entries(themeVariables)) {
+    if (normalizeHex(String(value)) === fromNorm) return key;
+  }
+  return undefined;
+}
+
+/** True when every edit is a resolvable theme-variable color shift (no LLM). */
+export function canApplyStyleEditsDeterministically(
+  edits: StyleEdit[],
+  styleConfig: unknown = DEFAULT_DIAGRAM_STYLE
+): boolean {
+  if (!Array.isArray(edits) || edits.length === 0) return false;
+  const normalized = normalizeDiagramStyleConfig(styleConfig);
+  return edits.every((edit) => {
+    if (edit.kind !== 'color_shift' || !edit.to) return false;
+    return Boolean(resolveColorVariable(edit, normalized.themeVariables));
+  });
+}
+
+/** Merge parsed color shifts into a diagram style config. */
+export function applyStyleEditsToStyleConfig(
+  edits: StyleEdit[],
+  styleConfig: unknown = DEFAULT_DIAGRAM_STYLE
+) {
+  const normalized = normalizeDiagramStyleConfig(styleConfig);
+  const themeVariables = { ...normalized.themeVariables };
+
+  for (const edit of edits) {
+    if (edit.kind !== 'color_shift' || !edit.to) continue;
+    const key = resolveColorVariable(edit, normalized.themeVariables);
+    if (!key) continue;
+    themeVariables[key] = normalizeHex(edit.to) ?? edit.to;
+  }
+
+  return normalizeDiagramStyleConfig({
+    ...normalized,
+    themeVariables
+  });
 }
