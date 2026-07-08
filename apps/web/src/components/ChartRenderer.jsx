@@ -63,8 +63,13 @@ export default function ChartRenderer({
   const containerRef = useRef(null);
   const viewRef = useRef(null);
   const clickHandlerRef = useRef(null);
+  const onSelectedNodeChangeRef = useRef(onSelectedNodeChange);
   const lastSelectedElRef = useRef(null);
   const [renderError, setRenderError] = useState(null);
+
+  useEffect(() => {
+    onSelectedNodeChangeRef.current = onSelectedNodeChange;
+  }, [onSelectedNodeChange]);
 
   const parsed = useMemo(() => {
     if (!diagramSource || !diagramSource.trim()) return { ok: false, empty: true };
@@ -113,18 +118,17 @@ export default function ChartRenderer({
             // ignore
           }
         }
-        if (typeof onSelectedNodeChange === 'function') {
-          const handler = (event, item) => {
-            const descriptor = buildChartDescriptorFromVegaItem(
-              item,
-              event,
-              containerRef.current
-            );
-            onSelectedNodeChange(descriptor);
-          };
-          clickHandlerRef.current = handler;
-          viewRef.current.addEventListener('click', handler);
-        }
+        const handler = (event, item) => {
+          const descriptor = buildChartDescriptorFromVegaItem(
+            item,
+            event,
+            containerRef.current
+          );
+          if (!descriptor?.anchorEl) return;
+          onSelectedNodeChangeRef.current?.(descriptor);
+        };
+        clickHandlerRef.current = handler;
+        viewRef.current.addEventListener('click', handler);
 
         setRenderError(null);
       })
@@ -150,7 +154,7 @@ export default function ChartRenderer({
       }
       clickHandlerRef.current = null;
     };
-  }, [compact, onSelectedNodeChange, parsed]);
+  }, [compact, parsed]);
 
   useEffect(
     () => () => {

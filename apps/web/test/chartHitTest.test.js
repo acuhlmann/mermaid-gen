@@ -4,7 +4,8 @@ import {
   buildChartDescriptorFromDomHit,
   buildChartDescriptorFromVegaItem,
   findChartTapTarget,
-  isChartInteractiveDomNode
+  isChartInteractiveDomNode,
+  isChartVegaItemSelectable
 } from '../src/utils/chartHitTest.js';
 
 describe('chartHitTest', () => {
@@ -28,6 +29,32 @@ describe('chartHitTest', () => {
     expect(descriptor.label).toBe('Widgets');
     expect(descriptor.partKind).toBe('mark');
     expect(descriptor.id).toMatch(/^chart:mark:bar:2:/);
+  });
+
+  it('buildChartDescriptorFromVegaItem rejects axis domain lines without labels', () => {
+    expect(
+      buildChartDescriptorFromVegaItem(
+        { mark: { marktype: 'rule', role: 'axis' } },
+        { target: { tagName: 'line' } },
+        null
+      )
+    ).toBeNull();
+  });
+
+  it('isChartVegaItemSelectable accepts legend entries and rejects legend frames', () => {
+    expect(
+      isChartVegaItemSelectable({ mark: { role: 'legend' }, datum: { label: 'North' } })
+    ).toBe(true);
+    expect(isChartVegaItemSelectable({ mark: { role: 'legend' } })).toBe(false);
+  });
+
+  it('isChartVegaItemSelectable accepts axis titles rendered as text marks', () => {
+    expect(
+      isChartVegaItemSelectable({
+        text: 'Revenue',
+        mark: { marktype: 'text', role: 'axis' }
+      })
+    ).toBe(true);
   });
 
   it('buildChartDescriptorFromDomHit maps axis title hits', () => {

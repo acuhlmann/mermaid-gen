@@ -82,12 +82,42 @@ function nearestChartAnchor(node, boundary) {
 
 function isChartClassSelectable(className) {
   if (!className) return false;
-  return (
-    /\bmark-/.test(className) ||
-    /\brole-legend\b/.test(className) ||
-    /\brole-axis\b/.test(className) ||
-    /\brole-title\b/.test(className)
-  );
+  // Data marks only — axis/legend/title use aria-roledescription for precision.
+  return /\bmark-/.test(className);
+}
+
+/** True when a Vega scenegraph item is worth offering radial-menu actions. */
+export function isChartVegaItemSelectable(item) {
+  if (!item?.mark) return false;
+
+  const role = item.mark.role;
+  const markType = item.mark.marktype || item.mark.type;
+
+  if (role === 'title') return true;
+
+  if (role === 'legend') {
+    // Legend entries carry datum.label; skip the legend frame/group shell.
+    return item.datum?.label != null;
+  }
+
+  if (role === 'axis') {
+    const tickLabel = item.datum?.label;
+    if (tickLabel != null && String(tickLabel).trim()) return true;
+    // Axis title text marks omit datum.label but carry visible text.
+    if (markType === 'text') {
+      const text = normalizeWhitespace(item.text ?? item.mark?.text ?? '');
+      return text.length > 0;
+    }
+    return false;
+  }
+
+  if (role === 'mark' || markType) {
+    // Decorative rules/grid lines have no bound datum.
+    if (markType === 'rule' && !item.datum) return false;
+    return true;
+  }
+
+  return false;
 }
 
 /** True when `node` is inside an interactive Vega mark, axis, legend, or title element. */
@@ -147,7 +177,7 @@ function buildChartId(elementType, markType, indexes, label) {
 
 /** Build a radial-menu selection descriptor from a Vega scenegraph click item. */
 export function buildChartDescriptorFromVegaItem(item, event, boundary) {
-  if (!item) return null;
+  if (!item || !isChartVegaItemSelectable(item)) return null;
 
   const elementType = resolveElementType(item);
   const markType = resolveMarkType(item);
