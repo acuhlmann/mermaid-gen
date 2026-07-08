@@ -198,6 +198,45 @@
   opacity: 0.85;
 }
 
+.anything-runtime-banner {
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  background: rgba(127, 29, 29, 0.92);
+  color: #fef2f2;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+
+.anything-runtime-banner-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+.anything-runtime-banner-dismiss {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.anything-runtime-banner-dismiss:hover {
+  opacity: 1;
+}
+
 .diagram-zoom-layer {
   position: absolute;
   left: 0;

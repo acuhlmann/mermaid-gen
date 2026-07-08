@@ -1,10 +1,29 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest';
-import { cleanup, render } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, render } from '@testing-library/react';
+import { ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE } from '@archislop/shared';
 import AnythingRenderer from '../src/components/AnythingRenderer.jsx';
 
 const HELLO_DOC = `<!DOCTYPE html>
 <html><body><h1>Hello</h1><script>document.title = 'hi';</script></body></html>`;
+
+function dispatchRuntimeError(iframe, overrides = {}) {
+  act(() => {
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        source: iframe.contentWindow,
+        data: {
+          type: ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE,
+          kind: 'error',
+          message: 'ReferenceError: initWidget is not defined',
+          detail: 'line 12:3',
+          sinceLoadMs: 40,
+          ...overrides
+        }
+      })
+    );
+  });
+}
 
 describe('AnythingRenderer', () => {
   afterEach(() => {
@@ -60,5 +79,94 @@ describe('AnythingRenderer', () => {
     const iframe = container.querySelector('iframe.anything-frame');
     expect(iframe.getAttribute('srcdoc')).toContain('<h1>Hello</h1>');
     expect(iframe.getAttribute('srcdoc')).not.toContain('```');
+  });
+
+  it('injects the runtime-error bridge into srcDoc', () => {
+    const { container } = render(<AnythingRenderer diagramSource={HELLO_DOC} />);
+    const iframe = container.querySelector('iframe.anything-frame');
+    expect(iframe.getAttribute('srcdoc')).toContain(ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE);
+  });
+
+  it('surfaces bridge runtime errors as a banner and via onRuntimeError', () => {
+    const onRuntimeError = vi.fn();
+    const { container } = render(
+      <AnythingRenderer diagramSource={HELLO_DOC} onRuntimeError={onRuntimeError} />
+    );
+    const iframe = container.querySelector('iframe.anything-frame');
+
+    dispatchRuntimeError(iframe);
+
+    const banner = container.querySelector('.anything-runtime-banner');
+    expect(banner).toBeTruthy();
+    expect(banner.textContent).toContain('ReferenceError: initWidget is not defined');
+    expect(onRuntimeError).toHaveBeenCalledTimes(1);
+    expect(onRuntimeError.mock.calls[0][0]).toMatchObject({
+      kind: 'error',
+      message: 'ReferenceError: initWidget is not defined',
+      sinceLoadMs: 40
+    });
+
+    // Duplicate messages are collapsed, not re-reported into the banner.
+    dispatchRuntimeError(iframe);
+    expect(container.querySelectorAll('.anything-runtime-banner').length).toBe(1);
+    expect(banner.textContent).not.toContain('more');
+  });
+
+  it('ignores messages that are not from its own iframe or have a foreign type', () => {
+    const onRuntimeError = vi.fn();
+    const { container } = render(
+      <AnythingRenderer diagramSource={HELLO_DOC} onRuntimeError={onRuntimeError} />
+    );
+    const iframe = container.querySelector('iframe.anything-frame');
+
+    // Wrong source (null → not the iframe's contentWindow).
+    act(() => {
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          data: { type: ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE, message: 'spoofed' }
+        })
+      );
+    });
+    // Right source, wrong type.
+    dispatchRuntimeError(iframe, { type: 'someone-elses-message' });
+
+    expect(container.querySelector('.anything-runtime-banner')).toBeNull();
+    expect(onRuntimeError).not.toHaveBeenCalled();
+  });
+
+  it('suppresses runtime errors while streaming a draft preview', () => {
+    const onRuntimeError = vi.fn();
+    const { container } = render(
+      <AnythingRenderer
+        diagramSource={HELLO_DOC}
+        streamingPreview={true}
+        onRuntimeError={onRuntimeError}
+      />
+    );
+    const iframe = container.querySelector('iframe.anything-frame');
+
+    dispatchRuntimeError(iframe);
+
+    expect(container.querySelector('.anything-runtime-banner')).toBeNull();
+    expect(onRuntimeError).not.toHaveBeenCalled();
+  });
+
+  it('dismisses the banner and clears errors when the document changes', () => {
+    const { container, rerender } = render(<AnythingRenderer diagramSource={HELLO_DOC} />);
+    const iframe = container.querySelector('iframe.anything-frame');
+
+    dispatchRuntimeError(iframe);
+    expect(container.querySelector('.anything-runtime-banner')).toBeTruthy();
+
+    // Dismiss button hides the banner.
+    act(() => {
+      container.querySelector('.anything-runtime-banner-dismiss').click();
+    });
+    expect(container.querySelector('.anything-runtime-banner')).toBeNull();
+
+    // A new document resets the error state entirely.
+    dispatchRuntimeError(iframe);
+    rerender(<AnythingRenderer diagramSource={HELLO_DOC.replace('Hello', 'Hello v2')} />);
+    expect(container.querySelector('.anything-runtime-banner')).toBeNull();
   });
 });

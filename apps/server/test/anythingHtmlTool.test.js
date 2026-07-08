@@ -35,6 +35,63 @@ test('validateAndPrepareAnythingPatch accepts a full HTML document', async () =>
   assert.equal(result.patch.styleConfig, null);
   assert.match(result.patch.diagramSource, /<h1>Hello<\/h1>/);
   assert.equal(result.metadata.validator, 'anything-html');
+  assert.equal(result.metadata.runtimeChecked, true);
+});
+
+test('validateAndPrepareAnythingPatch rejects when the runtime check fails', async () => {
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: HELLO_DOC,
+    reason: 'test',
+    runtimeCheckImpl: async () => ({
+      ok: false,
+      code: 'runtime_error',
+      error: 'Page JavaScript failed at runtime:\n- ReferenceError: boom',
+      warnings: []
+    })
+  });
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.code, 'runtime_error');
+  assert.match(result.error, /ReferenceError: boom/);
+});
+
+test('validateAndPrepareAnythingPatch merges runtime warnings into metadata', async () => {
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: HELLO_DOC,
+    reason: 'test',
+    runtimeCheckImpl: async () => ({ ok: true, warnings: ['console.error: minor noise'] })
+  });
+
+  assert.equal(result.accepted, true);
+  assert.deepEqual(result.metadata.warnings, ['console.error: minor noise']);
+});
+
+test('validateAndPrepareAnythingPatch skips the runtime layer when asked or disabled', async () => {
+  const neverCalled = async () => {
+    throw new Error('runtime check must not run');
+  };
+
+  const skipped = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: HELLO_DOC,
+    reason: 'test',
+    runtimeCheck: false,
+    runtimeCheckImpl: neverCalled
+  });
+  assert.equal(skipped.accepted, true);
+  assert.equal(skipped.metadata.runtimeChecked, false);
+
+  const disabled = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: HELLO_DOC,
+    reason: 'test',
+    env: { ANYTHING_RUNTIME_CHECK: '0' },
+    runtimeCheckImpl: neverCalled
+  });
+  assert.equal(disabled.accepted, true);
+  assert.equal(disabled.metadata.runtimeChecked, false);
 });
 
 test('validateAndPrepareAnythingPatch rejects external URLs', async () => {
@@ -134,6 +191,41 @@ test('store syncs client HTML into the anything slot and accepts clearing', asyn
   });
   assert.equal(cleared.accepted, true);
   assert.equal(cleared.state.diagramSource, '');
+});
+
+// Runtime-clean statically (valid JS syntax), broken the moment it executes.
+const RUNTIME_BROKEN_DOC = `<!DOCTYPE html>
+<html>
+  <head></head>
+  <body><h1>Broken</h1><script>callThatDoesNotExist();</script></body>
+</html>`;
+
+test('store agent apply rejects runtime-broken HTML (end-to-end runtime check)', async () => {
+  const store = createDiagramStateStore();
+  const before = store.getSlot('anything');
+
+  const result = await store.applyDiagramSource({
+    contentType: 'anything',
+    diagramSource: RUNTIME_BROKEN_DOC,
+    reason: 'agent update'
+  });
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.code, 'runtime_error');
+  assert.match(result.error, /callThatDoesNotExist/);
+  assert.equal(store.getSlot('anything'), before);
+});
+
+test('store client sync accepts runtime-broken HTML (runtime check is agent-only)', async () => {
+  const store = createDiagramStateStore();
+
+  const synced = await store.syncClientDiagramSource({
+    contentType: 'anything',
+    diagramSource: RUNTIME_BROKEN_DOC
+  });
+
+  assert.equal(synced.accepted, true);
+  assert.match(synced.state.diagramSource, /callThatDoesNotExist/);
 });
 
 test('store can activate the anything content type', () => {
