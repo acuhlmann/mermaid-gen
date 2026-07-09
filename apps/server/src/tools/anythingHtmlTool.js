@@ -1,20 +1,28 @@
 import {
   DiagramPatchSchema,
+  lintAnythingLibMarkers,
   lintAnythingPolicy,
   lintAnythingQuality,
   parseAnythingHtml
 } from '@archislop/shared';
+import { expandAnythingLibs } from '@archislop/shared/anythingLibVendor.js';
 import { isAnythingRuntimeCheckEnabled, runAnythingRuntimeCheck } from './anythingRuntimeCheck.js';
 
 /**
  * Validation for the `anything` slot (freeform HTML/CSS/JS).
  *
- * Deterministic checks: shape, security policy, structure/JS/CSS quality —
- * then a runtime check that executes the page's scripts in an isolated jsdom
- * child process (anythingRuntimeCheck.js) and rejects uncaught errors, hangs,
- * and blank renders. Safety at render time is enforced by the sandboxed
- * iframe + CSP in AnythingRenderer.jsx — the server does not strip scripts or
- * styles.
+ * Deterministic checks: shape, security policy, structure/JS/CSS quality,
+ * `@lib:` marker allowlist — then a runtime check that executes the page's
+ * scripts in an isolated jsdom child process (anythingRuntimeCheck.js) and
+ * rejects uncaught errors, hangs, and blank renders. Safety at render time is
+ * enforced by the sandboxed iframe + CSP in AnythingRenderer.jsx — the server
+ * does not strip scripts or styles.
+ *
+ * Library markers: every static gate runs on the marker form (the vendored
+ * source is trusted and would false-positive the policy lint); only the
+ * runtime check sees the expanded document, so pages are executed with the
+ * same library bytes the client will inject at render time. See
+ * docs/decisions/0008-anything-inline-libraries.md.
  *
  * `runtimeCheck: false` skips the runtime layer. Used for client sync, where
  * the user is looking at the live document and rejecting their in-progress
@@ -44,10 +52,17 @@ export async function validateAndPrepareAnythingPatch({
     return { accepted: false, error: quality.error, code: quality.code };
   }
 
+  const libMarkers = lintAnythingLibMarkers(parsed.text);
+  if (!libMarkers.ok) {
+    return { accepted: false, error: libMarkers.error, code: libMarkers.code };
+  }
+
   let runtimeWarnings = [];
   let runtimeChecked = false;
   if (runtimeCheck && isAnythingRuntimeCheckEnabled(env)) {
-    const runtime = await runtimeCheckImpl(parsed.text, { env });
+    const runtimeHtml =
+      libMarkers.libs.length > 0 ? expandAnythingLibs(parsed.text).html : parsed.text;
+    const runtime = await runtimeCheckImpl(runtimeHtml, { env });
     if (!runtime.ok) {
       return { accepted: false, error: runtime.error, code: runtime.code };
     }
@@ -71,7 +86,8 @@ export async function validateAndPrepareAnythingPatch({
       validator: 'anything-html',
       warnings: [...quality.warnings, ...runtimeWarnings],
       quality: quality.quality,
-      runtimeChecked
+      runtimeChecked,
+      libs: libMarkers.libs
     }
   };
 }
@@ -104,6 +120,16 @@ export function validateAnythingStrict(source) {
       error: quality.error,
       validator: 'anything-html-quality',
       code: quality.code
+    };
+  }
+
+  const libMarkers = lintAnythingLibMarkers(parsed.text);
+  if (!libMarkers.ok) {
+    return {
+      valid: false,
+      error: libMarkers.error,
+      validator: 'anything-html-lib',
+      code: libMarkers.code
     };
   }
 

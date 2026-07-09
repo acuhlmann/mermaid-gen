@@ -21,6 +21,9 @@ export * from './chartSchema.js';
 export * from './anythingSchema.js';
 export * from './anythingPolicyLint.js';
 export * from './anythingQualityLint.js';
+// NOTE: anythingLibVendor.js (the vendored library bytes) is deliberately NOT
+// re-exported here — import it via the subpath export so bundles stay lean.
+export * from './anythingLibs.js';
 export * from './infographicTransformPolicy.js';
 export * from './mermaidGraphMetrics.js';
 export * from './mermaidTransformPolicy.js';

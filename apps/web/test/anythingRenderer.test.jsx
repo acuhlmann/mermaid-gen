@@ -1,11 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE } from '@archislop/shared';
 import AnythingRenderer from '../src/components/AnythingRenderer.jsx';
 
 const HELLO_DOC = `<!DOCTYPE html>
 <html><body><h1>Hello</h1><script>document.title = 'hi';</script></body></html>`;
+
+const D3_MARKER_DOC = `<!DOCTYPE html>
+<html><head><!-- @lib:d3 --></head><body><h1>Viz</h1><script>d3.select('h1');</script></body></html>`;
 
 function dispatchRuntimeError(iframe, overrides = {}) {
   act(() => {
@@ -149,6 +152,33 @@ describe('AnythingRenderer', () => {
 
     expect(container.querySelector('.anything-runtime-banner')).toBeNull();
     expect(onRuntimeError).not.toHaveBeenCalled();
+  });
+
+  it('expands @lib markers into inline vendored scripts before srcDoc', async () => {
+    const { container } = render(<AnythingRenderer diagramSource={D3_MARKER_DOC} />);
+
+    // Expansion is async (the vendor chunk lazy-loads); the iframe appears
+    // once the expanded document is ready.
+    const iframe = await waitFor(() => {
+      const found = container.querySelector('iframe.anything-frame');
+      expect(found).toBeTruthy();
+      return found;
+    });
+
+    const srcDoc = iframe.getAttribute('srcdoc');
+    expect(srcDoc).toContain('data-archislop-lib="d3"');
+    expect(srcDoc).toContain('d3js.org'); // vendored source, not a URL load
+    expect(srcDoc).not.toContain('@lib:d3');
+    // The lib injection must not loosen the sandbox.
+    expect(iframe.getAttribute('sandbox')).toBe('allow-scripts');
+    expect(iframe.getAttribute('csp')).toMatch(/connect-src 'none'/);
+  });
+
+  it('keeps the marker-free render path synchronous (no vendor chunk)', () => {
+    const { container } = render(<AnythingRenderer diagramSource={HELLO_DOC} />);
+    const iframe = container.querySelector('iframe.anything-frame');
+    expect(iframe).toBeTruthy();
+    expect(iframe.getAttribute('srcdoc')).not.toContain('data-archislop-lib');
   });
 
   it('dismisses the banner and clears errors when the document changes', () => {

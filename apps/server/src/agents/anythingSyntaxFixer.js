@@ -1,4 +1,5 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
+import { ANYTHING_LIB_IDS } from '@archislop/shared';
 import { createSyntaxFixerModel, resolveSyntaxFixerTarget } from './llmProvider.js';
 import { validateAnythingStrict } from '../tools/anythingHtmlTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
@@ -11,6 +12,7 @@ CRITICAL output rules:
 - Preserve the user's concept, layout, and interactivity wherever possible.
 - All CSS must stay inline in <style> tags; all JS inline in <script> tags.
 - No external URLs, no window.parent/top, no nested iframes, no javascript: URLs.
+- Keep valid <!-- @lib:… --> library markers as-is (allowlisted ids: ${ANYTHING_LIB_IDS.join(', ')}); rewrite unknown marker ids to an allowlisted one or remove them.
 - Never call tools; never explain.`;
 
 function extractHtmlFromResponse(text) {

@@ -234,3 +234,86 @@ test('store can activate the anything content type', () => {
   assert.equal(slot.contentType, 'anything');
   assert.equal(store.getActiveContentType(), 'anything');
 });
+
+// ── @lib: markers (allowlisted inline libraries) ─────────────────────────────
+
+const D3_MARKER_DOC = `<!DOCTYPE html>
+<html>
+  <head><!-- @lib:d3 --><style>body { margin: 0; }</style></head>
+  <body>
+    <h1>Bars</h1><svg id="viz" width="300" height="120"></svg>
+    <script>
+      const data = [4, 8, 15, 16];
+      d3.select('#viz').selectAll('rect').data(data).join('rect')
+        .attr('x', (d, i) => i * 72)
+        .attr('y', (d) => 120 - d * 4)
+        .attr('width', 60)
+        .attr('height', (d) => d * 4);
+    </script>
+  </body>
+</html>`;
+
+test('marker doc: stored patch keeps the marker; runtime check gets the expanded doc', async () => {
+  let runtimeInput = null;
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: D3_MARKER_DOC,
+    reason: 'test',
+    runtimeCheckImpl: async (html) => {
+      runtimeInput = html;
+      return { ok: true, warnings: [] };
+    }
+  });
+
+  assert.equal(result.accepted, true);
+  assert.deepEqual(result.metadata.libs, ['d3']);
+  // The revision that will be stored/synced/exposed over MCP stays marker-form…
+  assert.match(result.patch.diagramSource, /<!-- @lib:d3 -->/);
+  assert.ok(!result.patch.diagramSource.includes('data-archislop-lib'));
+  // …while the executed document carries the vendored source instead.
+  assert.match(runtimeInput, /<script data-archislop-lib="d3"/);
+  assert.ok(!runtimeInput.includes('@lib:d3'));
+});
+
+test('unknown lib marker is rejected with the allowlist in the error', async () => {
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: HELLO_DOC.replace('<head>', '<head><!-- @lib:jquery -->'),
+    reason: 'test'
+  });
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.code, 'unknown_lib');
+  assert.match(result.error, /@lib:jquery/);
+  assert.match(result.error, /@lib:d3/);
+});
+
+test('validateAnythingStrict rejects unknown lib markers too', () => {
+  const result = validateAnythingStrict(HELLO_DOC.replace('<head>', '<head><!-- @lib:nope -->'));
+  assert.equal(result.valid, false);
+  assert.equal(result.code, 'unknown_lib');
+  assert.equal(result.validator, 'anything-html-lib');
+});
+
+test('marker doc passes the real jsdom runtime check with d3 injected (end-to-end)', async () => {
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: D3_MARKER_DOC,
+    reason: 'test'
+  });
+
+  assert.equal(result.accepted, true, result.accepted ? undefined : result.error);
+  assert.equal(result.metadata.runtimeChecked, true);
+});
+
+test('using d3 without the marker fails the runtime check (no ambient injection)', async () => {
+  const result = await validateAndPrepareAnythingPatch({
+    currentState: CURRENT_STATE,
+    proposedDiagramSource: D3_MARKER_DOC.replace('<!-- @lib:d3 -->', ''),
+    reason: 'test'
+  });
+
+  assert.equal(result.accepted, false);
+  assert.equal(result.code, 'runtime_error');
+  assert.match(result.error, /d3/);
+});
