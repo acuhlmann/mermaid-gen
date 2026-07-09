@@ -20,6 +20,8 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Infographic syntax fixer                               | `apps/server/src/agents/infographicSyntaxFixer.js`    |
 | Mermaid diagram-type rule packs                        | `apps/server/src/prompts/mermaidSyntaxGuard.js`       |
 | Infographic rule packs                                 | `apps/server/src/prompts/infographicSyntaxGuard.js`   |
+| Anything design craft rule pack                        | `apps/server/src/prompts/anythingDesignGuide.js`      |
+| Anything search/replace edit application               | `apps/server/src/agents/_lib/searchReplaceEdits.js`   |
 | Advisor prompts (Slopitect persona)                    | `apps/server/src/agents/advisorPrompts.js`            |
 | Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.ts`        |
 | Analyze finalize (critique / explain / style emits)    | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts` |

@@ -10,6 +10,7 @@
 
 - `npm test` — full workspace test suite.
 - `node apps/server/scripts/benchMermaid.js --tag <label>` — offline bench that replays a fixed corpus through `validateAndPreparePatch` and reports sanitizer-rescue rate, validator breakdown, and latency percentiles. Snapshots land in `apps/server/bench-results/<tag>-<iso>.json` (committed baselines for regression comparison; regenerate with the script, do not hand-edit); exits non-zero on regressions.
+- `node apps/server/scripts/benchAnything.js --tag <label>` — same pattern for Anything mode: replays valid / policy-violating / broken / runtime-failing HTML documents through `validateAndPrepareAnythingPatch` (full ladder including the jsdom runtime check) and reports accept rate, rejection-code breakdown, runtime-catch rate, doc sizes, and latency percentiles. Exits non-zero when outcomes drift from expectations.
 
 ## VS Code run configs
 

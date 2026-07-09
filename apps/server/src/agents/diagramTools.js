@@ -1,6 +1,7 @@
 import { tool } from 'langchain';
 import { z } from 'zod';
 import { ToolApplyResultSchema } from '@archislop/shared';
+import { applySearchReplaceEdits } from './_lib/searchReplaceEdits.js';
 
 /**
  * Validate the state-store envelope before stringifying so a future shape drift
@@ -196,7 +197,79 @@ export function createAnythingTools({ stateStore }) {
     }
   );
 
-  return [getAnythingHtml, applyAnythingPatch];
+  const applyAnythingEdit = tool(
+    async ({ edits, reason }) => {
+      const current = stateStore.getSlot('anything').diagramSource ?? '';
+      if (!current.trim()) {
+        return encodeApplyResult({
+          accepted: false,
+          error:
+            'There is no current document to edit — call apply_anything_patch with a full HTML document instead.'
+        });
+      }
+
+      const applied = applySearchReplaceEdits(current, edits);
+      if (!applied.ok) {
+        return encodeApplyResult({
+          accepted: false,
+          error: `${applied.error} No edits were applied.`
+        });
+      }
+      if (applied.text === current) {
+        return encodeApplyResult({
+          accepted: false,
+          error:
+            'The edits produced no change (SEARCH and REPLACE are identical). Nothing was applied.'
+        });
+      }
+
+      // The edited document goes through stateStore.applyDiagramSource, i.e.
+      // the exact same validation ladder as a full rewrite (shape, policy,
+      // quality, runtime check). Incremental edits never bypass a gate.
+      const result = await stateStore.applyDiagramSource({
+        contentType: 'anything',
+        diagramSource: applied.text,
+        reason: reason || 'LangChain agent edit'
+      });
+
+      return encodeApplyResult(result);
+    },
+    {
+      name: 'apply_anything_edit',
+      description:
+        'Apply targeted search/replace edits to the CURRENT Anything-mode HTML document instead of ' +
+        'rewriting it. Preferred for small, scoped changes (Refine / Exec / Fix): faster, cheaper, ' +
+        'and it cannot accidentally drop unrelated parts of the page. Each SEARCH block must be ' +
+        'copied verbatim from the current document and match exactly once; edits apply in order and ' +
+        'the whole call is atomic — if any block fails to match, nothing is applied. The edited ' +
+        'result is validated exactly like a full patch (sandbox policy, structure, runtime check). ' +
+        'If a block will not match or the change is sweeping, fall back to apply_anything_patch ' +
+        'with the full document. Returns {accepted, revisionId} or {accepted: false, error}.',
+      schema: z.object({
+        edits: z
+          .array(
+            z.object({
+              search: z
+                .string()
+                .min(1)
+                .describe(
+                  'Exact text to find in the current document — copy it verbatim, including ' +
+                    'whitespace, with enough surrounding lines to match exactly once.'
+                ),
+              replace: z
+                .string()
+                .describe('Replacement text. An empty string deletes the matched text.')
+            })
+          )
+          .min(1)
+          .max(20)
+          .describe('Search/replace blocks applied in order to the current document.'),
+        reason: z.string().min(1).describe('Short reason for this edit.')
+      })
+    }
+  );
+
+  return [getAnythingHtml, applyAnythingPatch, applyAnythingEdit];
 }
 
 export function createMetaphorTools({ stateStore }) {
