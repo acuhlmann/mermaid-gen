@@ -65,6 +65,12 @@ function RadialMenuHarness({ initialSelected = null, anchorsById = null }) {
       setRadialMenuVisible(false);
       return;
     }
+    if (!radialMenuVisible && selectedNode?.id === MOCK_DESCRIPTOR.id) {
+      setRadialMenuSession(null);
+      setRadialMenuVisible(true);
+      setSelectedNode(MOCK_DESCRIPTOR);
+      return;
+    }
     setSelectedNode(MOCK_DESCRIPTOR);
   }
 
@@ -171,6 +177,14 @@ describe('radial menu click-to-open UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Simulate pan dismiss' }));
     expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
     expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe('');
+  });
+
+  it('reopens the menu when the same selected part is clicked after dismiss', () => {
+    render(<RadialMenuHarness initialSelected={MOCK_DESCRIPTOR} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate pan dismiss' }));
+    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
+    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
   });
 });
 

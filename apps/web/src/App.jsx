@@ -3230,6 +3230,12 @@ ${requirementsBlock}`;
         dismissRadialMenu();
         return;
       }
+      if (next?.id && selectedNode?.id && next.id === selectedNode.id) {
+        setRadialMenuSession(null);
+        setRadialMenuVisible(true);
+        setSelectedNode(next);
+        return;
+      }
       if (next?.id && selectedNode?.id && next.id !== selectedNode.id) {
         setRadialMenuSession(null);
         setRadialMenuVisible(true);
