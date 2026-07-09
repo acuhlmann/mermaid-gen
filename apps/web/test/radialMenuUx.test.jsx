@@ -430,7 +430,7 @@ describe('radial render mode picker', () => {
   it('keeps the current mode disabled', () => {
     renderRenderModeMenu();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
-    expect(screen.getByRole('button', { name: 'Diagram is the current mode' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Diagram is the current mode' }).disabled).toBe(true);
   });
 });
 
