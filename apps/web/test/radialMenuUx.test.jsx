@@ -336,7 +336,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
   });
 
   it('does not schedule a close from the slop prompt tray on pointer leave', () => {
-    const { onHoverRelease, props } = renderSlopPromptMenu({
+    const { onHoverRelease } = renderSlopPromptMenu({
       slopPromptOpen: true,
       slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
     });
@@ -346,7 +346,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
   });
 
   it('does not schedule a close from the hit area while the slop prompt is open', () => {
-    const { onHoverRelease, props } = renderSlopPromptMenu({
+    const { onHoverRelease } = renderSlopPromptMenu({
       slopPromptOpen: true,
       slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
     });
