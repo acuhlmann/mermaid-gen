@@ -1018,7 +1018,7 @@ export default function RadialActionMenu({
                 <span className="radial-render-mode-row-text">
                   <span className="radial-render-mode-row-name">{mode.label}</span>
                   <span className="radial-render-mode-row-title">
-                    {mode.disabled ? 'Current mode' : 'Create a focused view of this item'}
+                    {mode.disabled ? 'Current mode' : mode.subtitle}
                   </span>
                 </span>
               </button>

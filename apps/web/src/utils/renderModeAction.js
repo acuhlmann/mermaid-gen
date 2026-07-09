@@ -1,9 +1,34 @@
 export const CONTENT_MODE_OPTIONS = [
-  { id: 'mermaid', label: 'Diagram', shortLabel: 'Diagram' },
-  { id: 'infographic', label: 'Infographic', shortLabel: 'Infographic' },
-  { id: 'metaphor3d', label: '3D metaphor', shortLabel: '3D' },
-  { id: 'chart', label: 'Chart', shortLabel: 'Chart' },
-  { id: 'anything', label: 'Anything page', shortLabel: 'Anything' }
+  {
+    id: 'mermaid',
+    label: 'Diagram',
+    shortLabel: 'Diagram',
+    subtitle: 'Mermaid architecture graph'
+  },
+  {
+    id: 'infographic',
+    label: 'Infographic',
+    shortLabel: 'Infographic',
+    subtitle: 'AntV narrative layout'
+  },
+  {
+    id: 'metaphor3d',
+    label: '3D metaphor',
+    shortLabel: '3D',
+    subtitle: 'Three.js spatial scene'
+  },
+  {
+    id: 'chart',
+    label: 'Chart',
+    shortLabel: 'Chart',
+    subtitle: 'Vega-Lite data view'
+  },
+  {
+    id: 'anything',
+    label: 'Anything page',
+    shortLabel: 'Anything',
+    subtitle: 'HTML/CSS/JS sandbox'
+  }
 ];
 
 export function isContentMode(value) {

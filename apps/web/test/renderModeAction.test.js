@@ -13,6 +13,17 @@ describe('renderModeAction helpers', () => {
     expect(options.find((option) => option.id === 'chart')?.disabled).toBe(false);
   });
 
+  it('keeps concise implementation subtitles for picker rows', () => {
+    const options = selectableRenderModes('mermaid');
+    expect(options.map((option) => option.subtitle)).toEqual([
+      'Mermaid architecture graph',
+      'AntV narrative layout',
+      'Three.js spatial scene',
+      'Vega-Lite data view',
+      'HTML/CSS/JS sandbox'
+    ]);
+  });
+
   it('validates supported content modes', () => {
     expect(isContentMode('anything')).toBe(true);
     expect(isContentMode('slides')).toBe(false);

@@ -394,9 +394,27 @@ describe('radial render mode picker', () => {
       behavior: 'expandRenderModes',
       persona: 'Mode Shifter',
       modeOptions: [
-        { id: 'mermaid', label: 'Diagram', shortLabel: 'Diagram', disabled: true },
-        { id: 'infographic', label: 'Infographic', shortLabel: 'Info', disabled: false },
-        { id: 'chart', label: 'Chart', shortLabel: 'Chart', disabled: false }
+        {
+          id: 'mermaid',
+          label: 'Diagram',
+          shortLabel: 'Diagram',
+          subtitle: 'Mermaid architecture graph',
+          disabled: true
+        },
+        {
+          id: 'infographic',
+          label: 'Infographic',
+          shortLabel: 'Info',
+          subtitle: 'AntV narrative layout',
+          disabled: false
+        },
+        {
+          id: 'chart',
+          label: 'Chart',
+          shortLabel: 'Chart',
+          subtitle: 'Vega-Lite data view',
+          disabled: false
+        }
       ]
     },
     { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
@@ -428,6 +446,9 @@ describe('radial render mode picker', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
     expect(screen.getByRole('dialog', { name: /Render selected item in another mode/i })).toBeTruthy();
     expect(screen.queryByRole('menuitem', { name: /Refine/i })).toBeNull();
+    expect(screen.getByText('AntV narrative layout')).toBeTruthy();
+    expect(screen.getByText('Vega-Lite data view')).toBeTruthy();
+    expect(screen.queryByText('Create a focused view of this item')).toBeNull();
     expect(onHoverHold).toHaveBeenCalled();
   });
 
