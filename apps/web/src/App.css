@@ -3490,6 +3490,89 @@
   line-height: 1.5;
 }
 
+.insights-explain-dumb-wrap {
+  margin-top: 0.65rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid color-mix(in srgb, var(--explain-accent, #0d9488) 18%, transparent);
+}
+
+.insights-explain-dumb-audience {
+  margin: 0 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, #d97706 85%, #431407);
+}
+
+.insights-explain-dumb-surrender {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #64748b;
+}
+
+.insights-explain-dumb-followups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.insights-explain-dumb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.32rem 0.65rem 0.32rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, #d97706 45%, white);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), color-mix(in srgb, #d97706 12%, white));
+  color: #92400e;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.insights-explain-dumb-btn:hover:not(:disabled),
+.insights-explain-dumb-btn:focus-visible:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, #d97706 65%, white);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), color-mix(in srgb, #d97706 18%, white));
+}
+
+.insights-explain-dumb-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  box-shadow: none;
+}
+
+.insights-explain-dumb-btn.is-active {
+  background: color-mix(in srgb, #d97706 16%, white);
+  border-color: color-mix(in srgb, #d97706 60%, white);
+}
+
+.insights-explain-dumb-btn.is-give-up {
+  border-color: color-mix(in srgb, #94a3b8 65%, transparent);
+  background: color-mix(in srgb, #f1f5f9 90%, #fee2e2);
+  color: #64748b;
+}
+
+.insights-explain-dumb-emoji {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.insights-explain-dumb-label {
+  white-space: nowrap;
+}
+
+.insights-entry-rich-text.is-explain-prose.is-gibberish,
+.insights-entry-rich-text.is-explain-prose.is-gibberish .insights-explain-section-body {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Segoe UI', sans-serif;
+  letter-spacing: 0.02em;
+}
+
 .insights-a2ui-block {
   margin: 0.55rem 0;
 }

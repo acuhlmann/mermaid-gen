@@ -858,6 +858,54 @@ flowchart TB
     expect(screen.queryByText(/Fallback prose/i)).toBeNull();
   });
 
+  it('shows progressive Dumb it Down control on completed explain entries', () => {
+    const onExplainDumbDown = vi.fn();
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-exp-dumb',
+            title: 'Explain — diagram',
+            variant: 'explain',
+            status: 'done',
+            content: '## Explanation\n\nOverview text.',
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+        onExplainDumbDown={onExplainDumbDown}
+      />
+    );
+
+    expect(screen.getByTestId('explain-dumb-down-controls')).toBeTruthy();
+    const dumbBtn = screen.getByRole('button', { name: /Dumb it Down/i });
+    fireEvent.click(dumbBtn);
+    expect(onExplainDumbDown).toHaveBeenCalledWith('e-exp-dumb');
+  });
+
+  it('shows kid-mode chip label after dumb-down level advances', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-exp-kid',
+            title: 'Explain — diagram',
+            variant: 'explain',
+            status: 'done',
+            content: '## Explanation\n\nOverview.',
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+        explainDumbLevelByEntryId={{ 'e-exp-kid': 3 }}
+        onExplainDumbDown={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /Little kid mode/i })).toBeTruthy();
+    expect(screen.getByText(/For a smart 10-year-old/i)).toBeTruthy();
+  });
+
   it('collapses technical actions behind Tool trace for explain variant', () => {
     render(
       <InsightsPane

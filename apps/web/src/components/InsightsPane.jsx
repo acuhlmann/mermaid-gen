@@ -10,11 +10,12 @@ import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
 import ExplainSectionsPanel from './ExplainSectionsPanel';
+import ExplainDumbDownControls from './ExplainDumbDownControls.jsx';
 import PlanBeatCard from './PlanBeatCard';
 import PatchSummaryViz from './PatchSummaryViz';
 import TechnicalActionStepper from './TechnicalActionStepper.jsx';
 import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
-import { normalizeCritiqueMarkdownForMatch } from '@archislop/shared';
+import { normalizeCritiqueMarkdownForMatch, isLabelExplainGibberishLevel } from '@archislop/shared';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
 import { getVariantPersona, phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
@@ -1035,7 +1036,11 @@ export default function InsightsPane({
   closing = false,
   liveDraftSource = '',
   liveDraftContentType = null,
-  activeContentType = 'mermaid'
+  activeContentType = 'mermaid',
+  explainDumbLevelByEntryId = null,
+  explainDumbLoadingEntryId = null,
+  explainDumbSurrenderedEntryIds = null,
+  onExplainDumbDown
 }) {
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
@@ -1263,6 +1268,15 @@ export default function InsightsPane({
               variant === 'explain' &&
               entry.explainSections?.sections?.length > 0 &&
               !isRunning;
+            const explainDumbLevel = explainDumbLevelByEntryId?.[entry.id] ?? 0;
+            const explainDumbLoading = explainDumbLoadingEntryId === entry.id;
+            const explainDumbSurrendered = Boolean(explainDumbSurrenderedEntryIds?.[entry.id]);
+            const showExplainDumbDown =
+              variant === 'explain' &&
+              rawStatus === 'done' &&
+              (Boolean(displayContent?.trim()) || explainStructured) &&
+              typeof onExplainDumbDown === 'function';
+            const explainProseGibberish = isLabelExplainGibberishLevel(explainDumbLevel);
             if (explainStructured) {
               const renderExplainChunk = (text) =>
                 renderEmbeddedAwareRich(
@@ -1517,6 +1531,7 @@ export default function InsightsPane({
                           'insights-entry-rich-text',
                           accentuateSections ? 'is-analyze-prose' : '',
                           variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
+                          explainProseGibberish ? 'is-gibberish' : '',
                           variant === 'refine' && accentuateSections ? 'is-refine-prose' : '',
                           variant === 'innovate' && accentuateSections ? 'is-innovate-prose' : '',
                           variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
@@ -1534,6 +1549,14 @@ export default function InsightsPane({
                         ) : null}
                         {analysisBody}
                       </div>
+                      {showExplainDumbDown ? (
+                        <ExplainDumbDownControls
+                          dumbLevel={explainDumbLevel}
+                          loading={explainDumbLoading}
+                          surrendered={explainDumbSurrendered}
+                          onDumbDown={() => onExplainDumbDown?.(entry.id)}
+                        />
+                      ) : null}
                       {isRunning && (entry.content ?? '').trim() ? (
                         <span
                           className={[

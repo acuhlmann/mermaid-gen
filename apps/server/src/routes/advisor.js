@@ -14,6 +14,7 @@ import {
   parseAdvisorReply
 } from '../agents/advisorPrompts.js';
 import { explainLabelOnce } from '../agents/labelExplainer.js';
+import { explainDumbDownOnce } from '../agents/explainDumbDown.js';
 
 const FocusDescriptorSchema = z.object({
   id: z.string().max(200),
@@ -53,6 +54,13 @@ const ExplainLabelSchema = z.object({
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   style: z.enum(['brief', 'simple', 'gibberish']).default('brief'),
+  simpleLevel: z.number().int().min(1).max(6).optional()
+});
+
+const ExplainDumbDownSchema = z.object({
+  previousExplain: z.string().max(12_000),
+  contentType: ContentTypeSchema.default('mermaid'),
+  style: z.enum(['simple', 'gibberish']).default('simple'),
   simpleLevel: z.number().int().min(1).max(6).optional()
 });
 
@@ -145,6 +153,38 @@ export function createAdvisorRouter() {
         kind: parsedReply.kind
       });
     } catch (error) {
+      res.status(502).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  router.post('/explain-dumb', async (req, res) => {
+    const parsed = ExplainDumbDownSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid explain-dumb payload', details: parsed.error.flatten() });
+      return;
+    }
+    const payload = parsed.data;
+    const previous = (payload.previousExplain ?? '').trim();
+    if (!previous) {
+      res.status(400).json({ error: 'Missing previousExplain text' });
+      return;
+    }
+
+    try {
+      const result = await explainDumbDownOnce({ payload });
+      if (!result.markdown) {
+        res.status(200).json({ markdown: null, explainSections: null });
+        return;
+      }
+      res.status(200).json({
+        markdown: result.markdown,
+        explainSections: result.explainSections ?? null
+      });
+    } catch (error) {
+      if (error?.name === 'LlmNotConfiguredError') {
+        res.status(503).json({ error: safeErrorMessage(error) });
+        return;
+      }
       res.status(502).json({ error: safeErrorMessage(error) });
     }
   });
