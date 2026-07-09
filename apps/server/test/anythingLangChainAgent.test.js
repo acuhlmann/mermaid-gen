@@ -17,6 +17,22 @@ test('buildAnythingTransformUserContent includes advisor prompt', () => {
   assert.match(body, /Start button/);
 });
 
+test('buildAnythingTransformUserContent prefers targeted edits for refine and exec', () => {
+  for (const mode of ['refine', 'exec']) {
+    const body = buildAnythingTransformUserContent({ mode, currentHtml: HTML });
+    assert.match(body, /apply_anything_edit/, `${mode} should prefer apply_anything_edit`);
+    assert.match(body, /Fall back to apply_anything_patch/);
+  }
+});
+
+test('buildAnythingTransformUserContent keeps full rewrites for innovate and goMad', () => {
+  for (const mode of ['innovate', 'goMad']) {
+    const body = buildAnythingTransformUserContent({ mode, currentHtml: HTML });
+    assert.match(body, /Call apply_anything_patch with the full HTML document\./);
+    assert.doesNotMatch(body, /Prefer apply_anything_edit/);
+  }
+});
+
 test('buildAnythingAnalyzeUserContent includes advisor prompt', () => {
   const body = buildAnythingAnalyzeUserContent({
     kind: 'critique',

@@ -36,8 +36,8 @@ import {
 } from '@archislop/shared';
 import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 
-const ANYTHING_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an Anything-mode patch.
-- You MUST call apply_anything_patch now once with a complete, self-contained HTML document, then briefly summarize in prose only.
+const ANYTHING_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an Anything-mode update.
+- You MUST apply it now through a tool: apply_anything_edit with targeted search/replace blocks for a scoped change to the existing document, or apply_anything_patch once with a complete, self-contained HTML document. Then briefly summarize in prose only.
 - Do not return prose only, and do not paste the document into prose — it goes through the tool.
 - Do not mention tool names in your final user-facing summary.`;
 
@@ -128,11 +128,18 @@ export function buildAnythingTransformUserContent({
     goMad: `Go mad on this document — escalate the spectacle (depth ${goMadDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained.`,
     exec: 'Execute the requested change tightly. No additions beyond the implied scope.'
   };
+  // Refine and Exec are scoped changes to an existing document — targeted
+  // edits keep the untouched 95% of the page byte-identical instead of
+  // trusting a full regeneration to reproduce it. Innovate and Go Mad
+  // restructure freely, so a full rewrite is the honest tool there.
+  const preferEdits = mode === 'refine' || mode === 'exec';
   return [
     modeInstructions[mode] ?? modeInstructions.refine,
     `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``,
     buildAdvisorSuggestionBlock(advisorPrompt),
-    'Call apply_anything_patch with the full HTML document.'
+    preferEdits
+      ? 'Prefer apply_anything_edit with targeted search/replace blocks (copy each SEARCH block verbatim from the current document, with enough surrounding lines to match exactly once). Fall back to apply_anything_patch with the full HTML document only if the change is sweeping or a SEARCH block cannot be made to match.'
+      : 'Call apply_anything_patch with the full HTML document.'
   ]
     .filter(Boolean)
     .join('\n\n');

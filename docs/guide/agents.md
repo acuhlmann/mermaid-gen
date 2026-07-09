@@ -16,12 +16,12 @@ flowchart TB
   IAS --> IT["Infographic tools\napply_infographic_patch\nget_diagram_state"]
   MES --> MET["Metaphor tools\napply_metaphor_patch\nget_diagram_state"]
   CAS --> CT["Chart tools\napply_chart_patch\nget_diagram_state"]
-  AAS --> AT["Anything tools\napply_anything_patch\nget_diagram_state"]
+  AAS --> AT["Anything tools\napply_anything_patch\napply_anything_edit\nget_anything_html"]
   MT --> MV["validateAndPreparePatch\n(Mermaid 4-layer ladder)"]
   IT --> IV["validateAndPrepareInfographicPatch\n(2-layer: sanitizer + parseSyntax)"]
   MET --> MEV["validateAndPrepareMetaphorPatch\n(schema + sanitizer + syntax fixer)"]
   CT --> CV["validateAndPrepareChartPatch\n(DSL parse + schema)"]
-  AT --> AV["validateAndPrepareAnythingPatch\n(shape + policy + quality lint)"]
+  AT --> AV["validateAndPrepareAnythingPatch\n(shape + policy + quality + runtime check)"]
 ```
 
 ## Roles: intent vs transform vs analysis

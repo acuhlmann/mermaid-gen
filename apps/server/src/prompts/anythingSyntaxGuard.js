@@ -1,6 +1,11 @@
-import { ANYTHING_SYSTEM_PROMPT } from './anythingSystemPrompt.js';
+import { ANYTHING_CORE_RULES } from './anythingSystemPrompt.js';
 
-export const ANYTHING_RULE_PACK = ANYTHING_SYSTEM_PROMPT;
+/**
+ * Repair prompts inject only the sandbox contract + document validity rules —
+ * the things validation actually enforces. Mode boundaries and design craft
+ * guidance (see anythingDesignGuide.js) would be dead weight in a repair turn.
+ */
+export const ANYTHING_RULE_PACK = ANYTHING_CORE_RULES;
 
 export const ANYTHING_SELF_CHECK = `Self-check before calling apply_anything_patch:
 - The output is one complete HTML document (doctype, <html>, <head>, <body>).
@@ -9,6 +14,7 @@ export const ANYTHING_SELF_CHECK = `Self-check before calling apply_anything_pat
 - No nested iframes/objects/embeds, no javascript: URLs, no meta refresh, no base href.
 - Inline script blocks must be valid JavaScript; inline style blocks must have balanced braces.
 - Scripts run after the DOM exists (end of <body> or DOMContentLoaded).
+- Scripts must not throw, hang, or leave <body> empty — the server executes the page before accepting it.
 - The document stays under the size budget (~150KB).`;
 
 /**
