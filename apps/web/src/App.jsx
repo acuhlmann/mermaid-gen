@@ -146,13 +146,18 @@ import {
   canApplyStyleEditsDeterministically,
   createInitialDiagramState,
   splitCritiqueActionableSections,
-  styleEditsToPrompt
+  styleEditsToPrompt,
+  isLabelExplainGiveUpLevel,
+  LABEL_EXPLAIN_GIBBERISH_LEVEL,
+  MAX_LABEL_EXPLAIN_DUMB_LEVEL
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
 import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
+import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
+import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import {
   buildAdvisorIntentPrompt,
@@ -225,6 +230,10 @@ function ArchiSlop() {
   const [insightsEntries, setInsightsEntries] = useState(() =>
     Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []
   );
+  /** Per explain insight entry: progressive dumb-down depth (0 = original Wise Architect brief). */
+  const [explainDumbLevelByEntryId, setExplainDumbLevelByEntryId] = useState({});
+  const [explainDumbLoadingEntryId, setExplainDumbLoadingEntryId] = useState(null);
+  const [explainDumbSurrenderedEntryIds, setExplainDumbSurrenderedEntryIds] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   const [contentMode, setContentMode] = useState(() => readStoredContentMode());
@@ -1823,6 +1832,76 @@ function ArchiSlop() {
       }
     },
     [contentMode, modelProfile, runStreamingAgent, syncDiagramOrThrow]
+  );
+
+  const handleExplainDumbDown = useCallback(
+    async (entryId) => {
+      const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
+      if (!entry || entry.variant !== 'explain' || (entry.status ?? 'running') !== 'done') return;
+      if (explainDumbLoadingEntryId) return;
+
+      const currentLevel = explainDumbLevelByEntryId[entryId] ?? 0;
+      if (explainDumbSurrenderedEntryIds[entryId]) return;
+
+      if (isLabelExplainGiveUpLevel(currentLevel)) {
+        setExplainDumbSurrenderedEntryIds((prev) => ({ ...prev, [entryId]: true }));
+        return;
+      }
+
+      const nextLevel =
+        currentLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
+          ? LABEL_EXPLAIN_GIBBERISH_LEVEL
+          : currentLevel <= 0
+            ? 1
+            : currentLevel + 1;
+      const isGibberish = nextLevel === LABEL_EXPLAIN_GIBBERISH_LEVEL;
+      const previousExplain = explainEntryMarkdown(entry);
+      if (!previousExplain) return;
+
+      setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: nextLevel }));
+      setExplainDumbLoadingEntryId(entryId);
+
+      try {
+        const { markdown, explainSections } = await fetchExplainDumbDown({
+          previousExplain,
+          contentType: entry.contentType ?? contentMode,
+          sessionId: activeSessionId,
+          style: isGibberish ? 'gibberish' : 'simple',
+          simpleLevel: isGibberish ? undefined : nextLevel
+        });
+        if (!markdown) {
+          setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: currentLevel }));
+          return;
+        }
+        setInsightsEntries((prev) =>
+          prev.map((e) =>
+            e.id === entryId
+              ? {
+                  ...e,
+                  content: markdown,
+                  ...(explainSections?.sections?.length
+                    ? { explainSections }
+                    : { explainSections: undefined })
+                }
+              : e
+          )
+        );
+      } catch (err) {
+        setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: currentLevel }));
+        if (err?.name !== 'AbortError') {
+          setError(err?.message || 'Could not simplify explanation.');
+        }
+      } finally {
+        setExplainDumbLoadingEntryId(null);
+      }
+    },
+    [
+      activeSessionId,
+      contentMode,
+      explainDumbLevelByEntryId,
+      explainDumbLoadingEntryId,
+      explainDumbSurrenderedEntryIds
+    ]
   );
 
   const runAutoFix = useCallback(
@@ -3526,6 +3605,10 @@ ${requirementsBlock}`;
       liveDraftSource={liveDraftSource}
       liveDraftContentType={liveDraftContentType}
       activeContentType={contentMode}
+      explainDumbLevelByEntryId={explainDumbLevelByEntryId}
+      explainDumbLoadingEntryId={explainDumbLoadingEntryId}
+      explainDumbSurrenderedEntryIds={explainDumbSurrenderedEntryIds}
+      onExplainDumbDown={handleExplainDumbDown}
     />
   ) : null;
 
