@@ -4,7 +4,8 @@
  *
  * Kinds:
  *   valid    — must stay accepted (regression = ladder got stricter than browsers)
- *   policy   — sandbox-contract violations; must stay rejected (regression = safety gate weakened)
+ *   policy   — sandbox-contract / lib-allowlist violations; must stay rejected
+ *              (regression = safety gate weakened)
  *   quality  — static structure/JS/CSS defects; must stay rejected
  *   runtime  — pages that only fail when executed; must stay rejected by the runtime check
  *   shape    — not a usable document at all; must stay rejected
@@ -91,6 +92,26 @@ export const ANYTHING_BENCH_CORPUS = [
 </script>`
     )
   },
+  {
+    // Allowlisted lib marker: the runtime check must execute the page WITH the
+    // vendored d3 injected (regression = expansion dropped from the ladder).
+    id: 'valid-lib-d3',
+    kind: 'valid',
+    expectedAccept: true,
+    html: page(
+      `<h1>Bars</h1><svg id="viz" width="300" height="120"></svg>
+<script>
+  const data = [4, 8, 15, 16, 23, 42];
+  d3.select('#viz').selectAll('rect').data(data).join('rect')
+    .attr('x', (d, i) => i * 48)
+    .attr('y', (d) => 120 - d * 2)
+    .attr('width', 40)
+    .attr('height', (d) => d * 2)
+    .attr('fill', 'steelblue');
+</script>`,
+      { head: '<!-- @lib:d3 -->' }
+    )
+  },
 
   // ── policy: sandbox-contract violations, must stay rejected ─────────────
   {
@@ -122,6 +143,15 @@ export const ANYTHING_BENCH_CORPUS = [
     expectedAccept: false,
     expectedCode: 'embedded_browsing',
     html: page('<h1>Frame</h1><iframe srcdoc="<p>inner</p>"></iframe>')
+  },
+  {
+    // Lib markers are an allowlist: unknown ids must stay rejected (regression
+    // = arbitrary marker ids silently pass and render as dead comments).
+    id: 'policy-unknown-lib',
+    kind: 'policy',
+    expectedAccept: false,
+    expectedCode: 'unknown_lib',
+    html: page('<h1>jQuery page</h1>', { head: '<!-- @lib:jquery -->' })
   },
 
   // ── quality: static defects, must stay rejected ──────────────────────────
@@ -178,6 +208,15 @@ export const ANYTHING_BENCH_CORPUS = [
     expectedAccept: false,
     expectedCode: 'runtime_timeout',
     html: page('<h1>Spin</h1><script>while (true) { Math.random(); }</script>')
+  },
+  {
+    // Libraries exist only behind their marker: d3 without <!-- @lib:d3 -->
+    // must fail at execution (regression = ambient injection crept in).
+    id: 'runtime-lib-without-marker',
+    kind: 'runtime',
+    expectedAccept: false,
+    expectedCode: 'runtime_error',
+    html: page(`<h1>No marker</h1><svg id="viz"></svg><script>d3.select('#viz');</script>`)
   },
 
   // ── shape: not a document, must stay rejected ────────────────────────────

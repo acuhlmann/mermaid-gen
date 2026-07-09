@@ -3,11 +3,22 @@ import {
   ANYTHING_IFRAME_CSP,
   ANYTHING_IFRAME_SANDBOX,
   ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE,
+  hasAnythingLibMarkers,
   parseAnythingHtml,
   wrapAnythingSrcDoc
 } from '@archislop/shared';
 
 const MAX_DISPLAYED_RUNTIME_ERRORS = 3;
+
+// Vendored library bytes for `@lib:` markers live in a separate chunk
+// (~280KB with d3) behind the shared package's subpath export. Load it at most
+// once, and only when a document actually opts into a library — documents
+// without markers keep the fully synchronous render path.
+let anythingLibVendorPromise = null;
+function loadAnythingLibVendor() {
+  anythingLibVendorPromise ??= import('@archislop/shared/anythingLibVendor.js');
+  return anythingLibVendorPromise;
+}
 
 function AnythingErrorState({ error }) {
   return (
@@ -40,6 +51,13 @@ function AnythingErrorState({ error }) {
  * inert text — never markup — so a hostile page cannot spoof or inject
  * through this channel. Errors surface as a dismissible banner and through
  * the optional `onRuntimeError` callback.
+ *
+ * Library markers: documents may opt into allowlisted vendored libraries with
+ * `<!-- @lib:d3 -->` comments. The slot keeps the marker form; this component
+ * expands markers into inline <script> tags (pinned bytes from the shared
+ * vendor chunk) just before srcDoc — vendored code only, never a network
+ * load, and the sandbox/CSP above are unchanged. See
+ * docs/decisions/0008-anything-inline-libraries.md.
  */
 export default function AnythingRenderer({
   diagramSource,
@@ -60,8 +78,41 @@ export default function AnythingRenderer({
     if (!diagramSource || !diagramSource.trim()) return { ok: false, empty: true };
     const result = parseAnythingHtml(diagramSource);
     if (!result.ok) return { ok: false, error: result.error };
-    return { ok: true, html: wrapAnythingSrcDoc(result.text) };
+    return { ok: true, text: result.text, needsLibs: hasAnythingLibMarkers(result.text) };
   }, [diagramSource]);
+
+  // Marker expansion is async (the vendor chunk loads on demand); tag the
+  // result with the text it was computed from so a stale expansion is never
+  // rendered against a newer document.
+  const [libExpansion, setLibExpansion] = useState(null);
+  useEffect(() => {
+    if (!parsed.ok || !parsed.needsLibs) return undefined;
+    let cancelled = false;
+    loadAnythingLibVendor()
+      .then((vendor) => {
+        if (cancelled) return;
+        setLibExpansion({ source: parsed.text, html: vendor.expandAnythingLibs(parsed.text).html });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        // Vendor chunk failed to load: render the marker form. The marker is
+        // an inert comment, so the page still renders; if its scripts need
+        // the library, the runtime-error bridge surfaces that visibly.
+        setLibExpansion({ source: parsed.text, html: parsed.text });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [parsed]);
+
+  const srcDoc = useMemo(() => {
+    if (!parsed.ok) return null;
+    if (!parsed.needsLibs) return wrapAnythingSrcDoc(parsed.text);
+    if (libExpansion && libExpansion.source === parsed.text) {
+      return wrapAnythingSrcDoc(libExpansion.html);
+    }
+    return null; // vendor chunk still loading for this document
+  }, [parsed, libExpansion]);
 
   // A new document starts with a clean slate.
   useEffect(() => {
@@ -103,6 +154,10 @@ export default function AnythingRenderer({
   if (!parsed.ok) {
     return <AnythingErrorState error={parsed.error ?? 'Invalid HTML.'} />;
   }
+  if (srcDoc == null) {
+    // Vendor chunk loading — keep the canvas region mounted, iframe comes next paint.
+    return <div className="anything-renderer-root" />;
+  }
 
   const showRuntimeBanner = !streamingPreview && !errorsDismissed && runtimeErrors.length > 0;
 
@@ -116,7 +171,7 @@ export default function AnythingRenderer({
         csp={ANYTHING_IFRAME_CSP}
         referrerPolicy="no-referrer"
         loading="lazy"
-        srcDoc={parsed.html}
+        srcDoc={srcDoc}
         // While a stream is in flight the document may be mid-edit; keep it
         // inert so half-written scripts don't grab pointer focus.
         style={streamingPreview ? { pointerEvents: 'none' } : undefined}

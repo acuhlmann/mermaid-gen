@@ -1,3 +1,4 @@
+import { describeAnythingLibsForPrompt } from '@archislop/shared';
 import { ANYTHING_DESIGN_GUIDE } from './anythingDesignGuide.js';
 
 /**
@@ -18,7 +19,9 @@ Document rules:
 - Emit a complete document: <!DOCTYPE html><html><head>…</head><body>…</body></html>.
 - All CSS inside <style> tags in <head>; all JS inside <script> tags (defer-style, at the end of <body> or wrapped in DOMContentLoaded).
 - Make it responsive: the iframe fills the canvas, so use relative units and let the layout breathe at any size. Root the page with margin:0 and a deliberate background color (both light-friendly and readable).
-- Prefer vanilla JS + CSS. There are no libraries available and none can be loaded.
+- Prefer vanilla JS + CSS. External code can never be loaded (no CDNs, no <script src>), and pasting library source inline would blow the size budget. The ONLY libraries available are these vendored builds, opted into with an HTML comment marker placed in <head>, before any script that uses the library:
+${describeAnythingLibsForPrompt()}
+  The marker is replaced with the pinned library source after validation — injected bytes do not count against your size budget. One marker per library; never invent marker ids beyond this list.
 - Keep it under ~150KB. Small, elegant, and working beats sprawling and broken.
 - Make interactive affordances obvious (hover states, labels, instructions in the page when a widget needs them).
 - The page is executed before acceptance: scripts that throw, hang, or leave the <body> empty are rejected. Initialization must finish quickly and render visible content.`;

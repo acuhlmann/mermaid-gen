@@ -38,6 +38,8 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **Rule pack.** A diagram-type-specific block of "don't do this, do that" guidance fed to the fixer and to repair turns. Mermaid packs (15+) live in `apps/server/src/prompts/mermaidSyntaxGuard.js`; infographic packs in `apps/server/src/prompts/infographicSyntaxGuard.js`.
 
+**Lib marker.** An HTML comment (`<!-- @lib:d3 -->`) by which an Anything-mode document opts into an allowlisted, pinned, vendored library. The slot stores the marker form; `expandAnythingLibs` splices the vendored source in as an inline `<script>` only where the page executes (client renderer + jsdom runtime check). Registry and marker lint: `packages/shared/src/anythingLibs.ts`; rationale: ADR-0008.
+
 ## Wire protocols
 
 **AG-UI.** Server-sent events on `agent-stream` (`POST /api/copilotkit/agent-stream`): tokens, tool calls, draft previews, final state. See `docs/architecture-ag-ui.md`. The shared emitter lives in `packages/shared/src/agentStreamEmitter.js` and the wire constants in `agUiWireConstants.js` / `agUiEventTypes.js`.

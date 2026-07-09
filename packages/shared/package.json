@@ -19,6 +19,11 @@
       "types": "./dist/sanitizeSvg.d.ts",
       "import": "./dist/sanitizeSvg.js",
       "default": "./dist/sanitizeSvg.js"
+    },
+    "./anythingLibVendor.js": {
+      "types": "./dist/anythingLibVendor.d.ts",
+      "import": "./dist/anythingLibVendor.js",
+      "default": "./dist/anythingLibVendor.js"
     }
   },
   "scripts": {
@@ -27,6 +32,7 @@
     "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
     "build": "tsc -p tsconfig.build.json",
+    "vendor:anything-libs": "node scripts/vendorAnythingLibs.mjs",
     "prepare": "npm run build"
   },
   "keywords": [],
@@ -45,6 +51,7 @@
   },
   "devDependencies": {
     "@archislop/eslint-config": "^1.0.0",
+    "d3": "7.9.0",
     "eslint": "^10.4.0",
     "tsx": "^4.22.3"
   }
