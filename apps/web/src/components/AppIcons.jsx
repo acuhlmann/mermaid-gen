@@ -58,6 +58,40 @@ export function BrainIcon() {
   );
 }
 
+export function RenderModeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+      <path
+        d="M7.2 8.2A6.4 6.4 0 0 1 17.7 6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M17.7 6h-3.2M17.7 6v-3.2M16.8 15.8A6.4 6.4 0 0 1 6.3 18"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.3 18h3.2M6.3 18v3.2"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 8.1 13.15 10.4 15.7 10.78 13.85 12.58 14.28 15.12 12 13.92 9.72 15.12 10.15 12.58 8.3 10.78 10.85 10.4 12 8.1Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function MicIcon() {
   return (
     <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">

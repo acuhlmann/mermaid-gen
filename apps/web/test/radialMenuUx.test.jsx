@@ -365,6 +365,75 @@ describe('radial slop prompt survives the hover-close grace period', () => {
   });
 });
 
+describe('radial render mode picker', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const RENDER_MODE_ACTIONS = [
+    {
+      id: 'renderMode',
+      label: 'Render as...',
+      icon: 'M',
+      variant: 'render-mode',
+      group: 'primary',
+      behavior: 'expandRenderModes',
+      persona: 'Mode Shifter',
+      modeOptions: [
+        { id: 'mermaid', label: 'Diagram', shortLabel: 'Diagram', disabled: true },
+        { id: 'infographic', label: 'Infographic', shortLabel: 'Info', disabled: false },
+        { id: 'chart', label: 'Chart', shortLabel: 'Chart', disabled: false }
+      ]
+    },
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+  ];
+
+  function renderRenderModeMenu(overrides = {}) {
+    const onActionPick = vi.fn();
+    const onHoverHold = vi.fn();
+    const onHoverRelease = vi.fn();
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={RENDER_MODE_ACTIONS}
+        onActionPick={onActionPick}
+        onHoverHold={onHoverHold}
+        onHoverRelease={onHoverRelease}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+        {...overrides}
+      />
+    );
+    return { onActionPick, onHoverHold, onHoverRelease };
+  }
+
+  it('opens a target-mode picker from the primary action', () => {
+    const { onHoverHold } = renderRenderModeMenu();
+    onHoverHold.mockClear();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
+    expect(screen.getByRole('dialog', { name: /Render selected item in another mode/i })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /Refine/i })).toBeNull();
+    expect(onHoverHold).toHaveBeenCalled();
+  });
+
+  it('passes the selected target mode to onActionPick', () => {
+    const { onActionPick } = renderRenderModeMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Render selected item as Chart' }));
+    expect(onActionPick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'renderMode', targetMode: 'chart' }),
+      MOCK_DESCRIPTOR
+    );
+  });
+
+  it('keeps the current mode disabled', () => {
+    renderRenderModeMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
+    expect(screen.getByRole('button', { name: 'Diagram is the current mode' })).toBeDisabled();
+  });
+});
+
 /**
  * The "?" answer is voiced by the Wise Architect and offers two follow-ups:
  * "Dumb it Down" rephrases inline; "Drill Deeper" hands off to the Thinking
