@@ -26,7 +26,7 @@ import {
   ItemLabel,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
-import { ShootingStars, SpinningGroup } from './MetaphorSceneDecorations.jsx';
+import { ShootingStars, SpinningGroup, SupernovaPulse } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { getRadialSpriteTexture, idHash, idHash2, shiftColor } from './sceneUtils.js';
 
@@ -48,18 +48,14 @@ function StarTwinkle({ children, id, baseIntensity }) {
     }
   });
   return (
-    <group ref={groupRef}>
-      {typeof children === 'function' ? children({ matRef }) : children}
-    </group>
+    <group ref={groupRef}>{typeof children === 'function' ? children({ matRef }) : children}</group>
   );
 }
 
 function DiffractionSpikes({ size, color, bright }) {
   const length = Math.max(0.6, size * 4.2);
   const width = Math.max(0.04, size * 0.16);
-  const spikes = bright
-    ? [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4]
-    : [0, Math.PI / 2];
+  const spikes = bright ? [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4] : [0, Math.PI / 2];
   return (
     <Billboard>
       {spikes.map((rot, i) => (
@@ -357,11 +353,7 @@ function ClusterLabel({ cluster, theme }) {
   return (
     <ItemLabel
       text={cluster.name}
-      position={[
-        cluster.center[0],
-        cluster.center[1] - radius * 0.4 - 1.3,
-        cluster.center[2]
-      ]}
+      position={[cluster.center[0], cluster.center[1] - radius * 0.4 - 1.3, cluster.center[2]]}
       fontSize={0.6}
       color={theme.labelColor}
       outlineColor={theme.labelOutline}
@@ -435,6 +427,17 @@ export function GalaxyScene({ dsl, theme }) {
   // label clusters when the author actually split the stars.
   const showClusterLabels = layout.clusters.length > 1;
 
+  // The single brightest star earns a slow supernova shockwave pulse.
+  const brightest = useMemo(() => {
+    let best = null;
+    for (const item of dsl.items) {
+      const magnitude = item.magnitude ?? 5;
+      if (!best || magnitude > best.magnitude) best = { id: item.id, magnitude };
+    }
+    return best;
+  }, [dsl.items]);
+  const brightestPos = brightest ? anchors.get(brightest.id) : null;
+
   return (
     <group>
       {nebula.map((cloud, idx) => (
@@ -473,6 +476,13 @@ export function GalaxyScene({ dsl, theme }) {
       {binaryPairs.map((pair) => (
         <BinaryConnector key={pair.key} from={pair.from} to={pair.to} theme={galaxyTheme} />
       ))}
+      {brightestPos ? (
+        <SupernovaPulse
+          position={brightestPos}
+          color={galaxyTheme.binaryGlowColor ?? galaxyTheme.starColor ?? '#fef08a'}
+          idSeed={brightest.id}
+        />
+      ) : null}
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
   );

@@ -411,10 +411,7 @@ test('sanitizeMetaphorDsl drops unknown legend axes without rejecting the DSL', 
   if (result.dsl?.metaphor === 'city') {
     assert.equal(result.dsl.scene.legend?.height, 'h');
     assert.equal(result.dsl.scene.legend?.district, 'd');
-    assert.equal(
-      (result.dsl.scene.legend as Record<string, unknown>).mystery,
-      undefined
-    );
+    assert.equal((result.dsl.scene.legend as Record<string, unknown>).mystery, undefined);
   }
   assert.ok(result.applied.includes('drop-invalid-legend-axis'));
 });
@@ -474,6 +471,96 @@ test('sanitizeMetaphorDsl clamps an over-long item.note to 140 chars', () => {
     assert.equal(result.dsl.items[0]?.note?.length, 140);
   }
   assert.ok(result.applied.includes('clamp-note'));
+});
+
+test('MetaphorDslSchema parses an orrery DSL with moons and defaults', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'orrery',
+    scene: {},
+    items: [
+      { id: 'core', label: 'Core Platform', orbit: 0, size: 8 },
+      { id: 'billing', label: 'Billing', orbit: 2, size: 4 },
+      { id: 'invoices', label: 'Invoices', orbit: 2, size: 1.5, moon: 'billing' },
+      { id: 'partner-api', label: 'Partner API' }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'orrery');
+  if (dsl.metaphor === 'orrery') {
+    assert.equal(dsl.items[0].orbit, 0);
+    assert.equal(dsl.items[2].moon, 'billing');
+    assert.equal(dsl.items[3].orbit, 3);
+    assert.equal(dsl.items[3].size, 3);
+  }
+});
+
+test('sanitizeMetaphorDsl clamps orrery orbit/size and drops orphan or nested moons', () => {
+  const input = JSON.stringify({
+    metaphor: 'orrery',
+    items: [
+      { id: 'sun', label: 'Sun', orbit: -3, size: 40 },
+      { id: 'p1', label: 'P1', orbit: 30, size: 2, moon: 'ghost' },
+      { id: 'm1', label: 'M1', orbit: 2, size: 1, moon: 'p1' },
+      { id: 'm2', label: 'M2', orbit: 2, size: 1, moon: 'm1' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'orrery') {
+    assert.equal(result.dsl.items[0].orbit, 0);
+    assert.equal(result.dsl.items[0].size, 10);
+    assert.equal(result.dsl.items[1].orbit, 12);
+    assert.equal(result.dsl.items[1].moon, undefined);
+    assert.equal(result.dsl.items[2].moon, 'p1');
+    assert.equal(result.dsl.items[3].moon, undefined);
+  }
+  assert.ok(result.applied.includes('clamp-orbit'));
+  assert.ok(result.applied.includes('clamp-size'));
+  assert.ok(result.applied.includes('drop-orphan-moon'));
+  assert.ok(result.applied.includes('flatten-nested-moon'));
+});
+
+test('MetaphorDslSchema parses a river DSL with stages, flow, and hazard', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'river',
+    scene: { legend: { stage: 'pipeline step', flow: 'daily events' } },
+    items: [
+      { id: 'ingest', label: 'Ingest', stage: 0, flow: 12 },
+      { id: 'validate', label: 'Validate', stage: 1, flow: 10, hazard: 0.7 },
+      { id: 'publish', label: 'Publish', stage: 2, flow: 6 }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'river');
+  if (dsl.metaphor === 'river') {
+    assert.equal(dsl.items[1].hazard, 0.7);
+    assert.equal(dsl.scene.legend?.flow, 'daily events');
+  }
+});
+
+test('sanitizeMetaphorDsl clamps river stage/flow/hazard', () => {
+  const input = JSON.stringify({
+    metaphor: 'river',
+    items: [{ id: 'a', label: 'A', stage: 500, flow: 99, hazard: 3 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'river') {
+    assert.equal(result.dsl.items[0].stage, 100);
+    assert.equal(result.dsl.items[0].flow, 20);
+    assert.equal(result.dsl.items[0].hazard, 1);
+  }
+  assert.ok(result.applied.includes('clamp-stage'));
+  assert.ok(result.applied.includes('clamp-flow'));
+  assert.ok(result.applied.includes('clamp-hazard'));
+});
+
+test('MetaphorLegendSchema accepts the orrery and river axes', () => {
+  const ok = MetaphorLegendSchema.safeParse({
+    orbit: 'distance from platform core',
+    size: 'team size',
+    stage: 'funnel step',
+    flow: 'weekly signups'
+  });
+  assert.equal(ok.success, true);
 });
 
 test('sanitizeMetaphorDsl drops a non-string item.note', () => {

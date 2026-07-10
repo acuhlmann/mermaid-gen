@@ -1,6 +1,14 @@
 import { z } from 'zod';
 
-export const METAPHOR_KINDS = ['city', 'layercake', 'galaxy', 'tree', 'terrain'] as const;
+export const METAPHOR_KINDS = [
+  'city',
+  'layercake',
+  'galaxy',
+  'tree',
+  'terrain',
+  'orrery',
+  'river'
+] as const;
 export const MetaphorKindSchema = z.enum(METAPHOR_KINDS);
 
 export const METAPHOR_THEMES = ['whiteboard', 'noir', 'arcade', 'blueprint'] as const;
@@ -53,7 +61,11 @@ export const MetaphorLegendSchema = z
     thickness: z.string().max(80).optional(),
     weight: z.string().max(80).optional(),
     elevation: z.string().max(80).optional(),
-    intensity: z.string().max(80).optional()
+    intensity: z.string().max(80).optional(),
+    orbit: z.string().max(80).optional(),
+    size: z.string().max(80).optional(),
+    stage: z.string().max(80).optional(),
+    flow: z.string().max(80).optional()
   })
   .strict();
 
@@ -189,12 +201,48 @@ export const TerrainMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+export const ORRERY_MAX_ITEMS = 40;
+export const OrreryItemSchema = MetaphorItemBase.extend({
+  /** Ring distance from the core; 0 = the central sun itself. */
+  orbit: z.number().min(0).max(12).default(3),
+  /** Body size (planet radius scale). */
+  size: z.number().positive().max(10).default(3),
+  /** Id of another item this body circles as a moon (renders beside its parent). */
+  moon: z.string().max(64).optional()
+});
+
+export const OrreryMetaphorSchema = z.object({
+  metaphor: z.literal('orrery'),
+  scene: MetaphorSceneSchema,
+  items: z.array(OrreryItemSchema).max(ORRERY_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
+export const RIVER_MAX_ITEMS = 30;
+export const RiverItemSchema = MetaphorItemBase.extend({
+  /** Order along the river, source → mouth. Ties keep authoring order. */
+  stage: z.number().min(0).max(100).default(0),
+  /** Water volume passing this station — drives channel width. */
+  flow: z.number().positive().max(20).default(5),
+  /** 0–1 turbulence at this station — renders whitewater rapids. */
+  hazard: z.number().min(0).max(1).optional()
+});
+
+export const RiverMetaphorSchema = z.object({
+  metaphor: z.literal('river'),
+  scene: MetaphorSceneSchema,
+  items: z.array(RiverItemSchema).max(RIVER_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
 export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   CityMetaphorSchema,
   LayercakeMetaphorSchema,
   GalaxyMetaphorSchema,
   TreeMetaphorSchema,
-  TerrainMetaphorSchema
+  TerrainMetaphorSchema,
+  OrreryMetaphorSchema,
+  RiverMetaphorSchema
 ]);
 
 export type MetaphorKind = z.infer<typeof MetaphorKindSchema>;
@@ -213,9 +261,13 @@ export type LayerItem = z.infer<typeof LayerItemSchema>;
 export type StarItem = z.infer<typeof StarItemSchema>;
 export type TreeItem = z.infer<typeof TreeItemSchema>;
 export type TerrainItem = z.infer<typeof TerrainItemSchema>;
+export type OrreryItem = z.infer<typeof OrreryItemSchema>;
+export type RiverItem = z.infer<typeof RiverItemSchema>;
 export type CityMetaphor = z.infer<typeof CityMetaphorSchema>;
 export type LayercakeMetaphor = z.infer<typeof LayercakeMetaphorSchema>;
 export type GalaxyMetaphor = z.infer<typeof GalaxyMetaphorSchema>;
 export type TreeMetaphor = z.infer<typeof TreeMetaphorSchema>;
 export type TerrainMetaphor = z.infer<typeof TerrainMetaphorSchema>;
+export type OrreryMetaphor = z.infer<typeof OrreryMetaphorSchema>;
+export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
 export type MetaphorDsl = z.infer<typeof MetaphorDslSchema>;

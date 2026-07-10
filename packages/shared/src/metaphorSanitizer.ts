@@ -9,6 +9,8 @@ import {
   METAPHOR_LINK_KINDS,
   METAPHOR_MAX_LINKS,
   MetaphorDslSchema,
+  ORRERY_MAX_ITEMS,
+  RIVER_MAX_ITEMS,
   TERRAIN_MAX_ITEMS,
   TREE_MAX_ITEMS,
   type MetaphorDsl,
@@ -31,7 +33,9 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   layercake: LAYERCAKE_MAX_ITEMS,
   galaxy: GALAXY_MAX_ITEMS,
   tree: TREE_MAX_ITEMS,
-  terrain: TERRAIN_MAX_ITEMS
+  terrain: TERRAIN_MAX_ITEMS,
+  orrery: ORRERY_MAX_ITEMS,
+  river: RIVER_MAX_ITEMS
 };
 
 const LIGHTING_SET = new Set<string>(CITY_LIGHTING);
@@ -108,10 +112,7 @@ function clampPositionAxis(value: unknown): number | null {
   return Math.max(-POSITION_CLAMP, Math.min(POSITION_CLAMP, value));
 }
 
-function rescueItemPositions(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueItemPositions(working: Record<string, unknown>, applied: string[]): void {
   if (!Array.isArray(working.items)) return;
   for (const item of working.items) {
     if (!isObject(item) || !Array.isArray(item.position)) continue;
@@ -140,10 +141,7 @@ function clampNumber(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
-function rescueNumericRanges(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueNumericRanges(working: Record<string, unknown>, applied: string[]): void {
   if (!Array.isArray(working.items)) return;
   const kind = working.metaphor as MetaphorKind | undefined;
 
@@ -191,13 +189,51 @@ function rescueNumericRanges(
         }
       }
     }
+
+    if (kind === 'orrery') {
+      if (typeof item.orbit === 'number' && Number.isFinite(item.orbit)) {
+        const clamped = clampNumber(item.orbit, 0, 12);
+        if (clamped !== item.orbit) {
+          item.orbit = clamped;
+          applied.push('clamp-orbit');
+        }
+      }
+      if (typeof item.size === 'number' && Number.isFinite(item.size)) {
+        const clamped = clampNumber(item.size, 0.1, 10);
+        if (clamped !== item.size) {
+          item.size = clamped;
+          applied.push('clamp-size');
+        }
+      }
+    }
+
+    if (kind === 'river') {
+      if (typeof item.stage === 'number' && Number.isFinite(item.stage)) {
+        const clamped = clampNumber(item.stage, 0, 100);
+        if (clamped !== item.stage) {
+          item.stage = clamped;
+          applied.push('clamp-stage');
+        }
+      }
+      if (typeof item.flow === 'number' && Number.isFinite(item.flow)) {
+        const clamped = clampNumber(item.flow, 0.1, 20);
+        if (clamped !== item.flow) {
+          item.flow = clamped;
+          applied.push('clamp-flow');
+        }
+      }
+      if (typeof item.hazard === 'number' && Number.isFinite(item.hazard)) {
+        const clamped = clampNumber(item.hazard, 0, 1);
+        if (clamped !== item.hazard) {
+          item.hazard = clamped;
+          applied.push('clamp-hazard');
+        }
+      }
+    }
   }
 }
 
-function rescueGlyphField(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueGlyphField(working: Record<string, unknown>, applied: string[]): void {
   if (!Array.isArray(working.items)) return;
   for (const item of working.items as unknown[]) {
     if (!isObject(item)) continue;
@@ -220,10 +256,7 @@ function rescueGlyphField(
   }
 }
 
-function rescueItemNotes(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueItemNotes(working: Record<string, unknown>, applied: string[]): void {
   if (!Array.isArray(working.items)) return;
   for (const item of working.items as unknown[]) {
     if (!isObject(item)) continue;
@@ -243,10 +276,7 @@ function rescueItemNotes(
   }
 }
 
-function rescueSceneLegend(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueSceneLegend(working: Record<string, unknown>, applied: string[]): void {
   if (!isObject(working.scene)) return;
   const legend = working.scene.legend;
   if (legend === undefined) return;
@@ -264,7 +294,11 @@ function rescueSceneLegend(
     'thickness',
     'weight',
     'elevation',
-    'intensity'
+    'intensity',
+    'orbit',
+    'size',
+    'stage',
+    'flow'
   ];
   const kept: Record<string, string> = {};
   let droppedUnknown = false;
@@ -289,10 +323,7 @@ function rescueSceneLegend(
   }
 }
 
-function rescueCityEnumCase(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueCityEnumCase(working: Record<string, unknown>, applied: string[]): void {
   if (working.metaphor !== 'city' || !Array.isArray(working.items)) return;
   for (const item of working.items as unknown[]) {
     if (!isObject(item)) continue;
@@ -323,10 +354,7 @@ function rescueCityEnumCase(
   }
 }
 
-function rescueTreeStructure(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueTreeStructure(working: Record<string, unknown>, applied: string[]): void {
   if (working.metaphor !== 'tree' || !Array.isArray(working.items)) return;
   const items = working.items as Array<Record<string, unknown>>;
   const ids = new Set(
@@ -387,10 +415,7 @@ function rescueTreeStructure(
   }
 }
 
-function rescueGalaxyBinary(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueGalaxyBinary(working: Record<string, unknown>, applied: string[]): void {
   if (working.metaphor !== 'galaxy' || !Array.isArray(working.items)) return;
   const items = working.items as Array<Record<string, unknown>>;
   const ids = new Set(
@@ -411,6 +436,38 @@ function rescueGalaxyBinary(
     if (!ids.has(item.binary) || item.binary === item.id) {
       delete item.binary;
       applied.push('drop-orphan-binary');
+    }
+  }
+}
+
+function rescueOrreryMoons(working: Record<string, unknown>, applied: string[]): void {
+  if (working.metaphor !== 'orrery' || !Array.isArray(working.items)) return;
+  const items = working.items as Array<Record<string, unknown>>;
+  const ids = new Set(
+    items
+      .filter(isObject)
+      .map((item) => item.id)
+      .filter((id): id is string => typeof id === 'string')
+  );
+  for (const item of items) {
+    if (!isObject(item)) continue;
+    if (typeof item.moon !== 'string') {
+      if ('moon' in item && item.moon != null) {
+        delete item.moon;
+        applied.push('drop-invalid-moon');
+      }
+      continue;
+    }
+    if (!ids.has(item.moon) || item.moon === item.id) {
+      delete item.moon;
+      applied.push('drop-orphan-moon');
+      continue;
+    }
+    const parent = items.find((it) => isObject(it) && it.id === item.moon);
+    // A moon of a moon has no stable anchor — flatten to a planet.
+    if (parent && typeof parent.moon === 'string') {
+      delete item.moon;
+      applied.push('flatten-nested-moon');
     }
   }
 }
@@ -457,10 +514,7 @@ function rescueLinksField(
   working.links = filtered;
 }
 
-function rescueLinkKinds(
-  working: Record<string, unknown>,
-  applied: string[]
-): void {
+function rescueLinkKinds(working: Record<string, unknown>, applied: string[]): void {
   if (!Array.isArray(working.links)) return;
   for (const link of working.links as unknown[]) {
     if (!isObject(link)) continue;
@@ -523,6 +577,7 @@ export function sanitizeMetaphorDsl(
   rescueSceneLegend(working, applied);
   rescueTreeStructure(working, applied);
   rescueGalaxyBinary(working, applied);
+  rescueOrreryMoons(working, applied);
   rescueLinksField(working, applied, allowStructureRewrite);
   rescueLinkKinds(working, applied);
 

@@ -1,14 +1,7 @@
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState
-} from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { OrbitControls, Billboard, Bounds, Center, Environment, Line } from '@react-three/drei';
+import { OrbitControls, Bounds, Center, Environment, Line } from '@react-three/drei';
 import {
   parsePartialMetaphorDsl,
   partialToRenderableMetaphorDsl,
@@ -25,7 +18,6 @@ import {
   layercakeSlabRadius,
   layercakeStackLayout
 } from '../utils/metaphorLayouts/layercakeComponentsLayout.js';
-import { terrainHeightmap, heightColor } from '../utils/metaphorLayouts/terrainHeightmap.js';
 import { Glyph } from './metaphorGlyphs/index.jsx';
 import {
   MetaphorTitleOverlay,
@@ -35,7 +27,7 @@ import {
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
-import { MetaphorClockContext, useMetaphorClock } from './metaphorScenes/metaphorClock.js';
+import { MetaphorClockContext } from './metaphorScenes/metaphorClock.js';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
   GradientSkySphere,
@@ -47,13 +39,18 @@ import {
 import MetaphorChangeHighlightProvider from './MetaphorChangeHighlightProvider.jsx';
 import {
   CakeSprinkles,
+  CityTraffic,
+  FloorGlowDisc,
   IcingDrips,
   PenthouseGlowBand,
-  SpireBeacon,
-  TerrainClouds
+  RisingSparkles,
+  SpireBeacon
 } from './metaphorScenes/MetaphorSceneDecorations.jsx';
+import { TerrainScene } from './metaphorScenes/TerrainScene.jsx';
 import { TreeScene, TreeSky } from './metaphorScenes/TreeScene.jsx';
 import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
+import { OrreryScene } from './metaphorScenes/OrreryScene.jsx';
+import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -156,10 +153,7 @@ function CityRoof({ style, footprint, height, condition, theme }) {
 
   if (style === 'spire') {
     return (
-      <group
-        position={[0, height, 0]}
-        rotation={[conditionTilt, 0, conditionTilt * 0.7]}
-      >
+      <group position={[0, height, 0]} rotation={[conditionTilt, 0, conditionTilt * 0.7]}>
         <mesh position={[0, roofHeight / 2, 0]}>
           <boxGeometry args={[footprint * 0.95, roofHeight, footprint * 0.95]} />
           <meshStandardMaterial color={color} />
@@ -173,10 +167,7 @@ function CityRoof({ style, footprint, height, condition, theme }) {
   }
   if (style === 'gable') {
     return (
-      <group
-        position={[0, height, 0]}
-        rotation={[conditionTilt, 0, conditionTilt * 0.7]}
-      >
+      <group position={[0, height, 0]} rotation={[conditionTilt, 0, conditionTilt * 0.7]}>
         <mesh position={[0, roofHeight / 2, 0]}>
           <boxGeometry args={[footprint * 0.92, roofHeight * 0.5, footprint * 0.92]} />
           <meshStandardMaterial color={color} />
@@ -190,10 +181,7 @@ function CityRoof({ style, footprint, height, condition, theme }) {
   }
   if (style === 'hipped') {
     return (
-      <group
-        position={[0, height, 0]}
-        rotation={[conditionTilt, 0, conditionTilt * 0.7]}
-      >
+      <group position={[0, height, 0]} rotation={[conditionTilt, 0, conditionTilt * 0.7]}>
         <mesh position={[0, roofHeight * 0.75, 0]}>
           <coneGeometry args={[footprint * 0.62, roofHeight * 1.5, 4]} />
           <meshStandardMaterial color={color} />
@@ -331,17 +319,30 @@ function DistrictGrid({ size, color }) {
     const halfW = w / 2;
     const halfH = h / 2;
     for (let x = -halfW; x <= halfW + 0.001; x += step) {
-      segs.push([[x, 0.02, -halfH], [x, 0.02, halfH]]);
+      segs.push([
+        [x, 0.02, -halfH],
+        [x, 0.02, halfH]
+      ]);
     }
     for (let z = -halfH; z <= halfH + 0.001; z += step) {
-      segs.push([[-halfW, 0.02, z], [halfW, 0.02, z]]);
+      segs.push([
+        [-halfW, 0.02, z],
+        [halfW, 0.02, z]
+      ]);
     }
     return segs;
   }, [w, h]);
   return (
     <group>
       {lines.map((pts, idx) => (
-        <Line key={`grid-${idx}`} points={pts} color={color} lineWidth={0.8} transparent opacity={0.4} />
+        <Line
+          key={`grid-${idx}`}
+          points={pts}
+          color={color}
+          lineWidth={0.8}
+          transparent
+          opacity={0.4}
+        />
       ))}
     </group>
   );
@@ -413,11 +414,7 @@ function CrackDecals({ radius, thickness, cracks, theme, idSeed }) {
   return (
     <group>
       {wedges.map((w, i) => (
-        <mesh
-          key={`crack-${i}`}
-          position={[w.x, 0, w.z]}
-          rotation={[0, -w.angle + Math.PI / 2, 0]}
-        >
+        <mesh key={`crack-${i}`} position={[w.x, 0, w.z]} rotation={[0, -w.angle + Math.PI / 2, 0]}>
           <boxGeometry args={[w.width, w.height, w.depth]} />
           <meshStandardMaterial
             color={theme.crackColor ?? theme.labelOutline ?? '#1f2937'}
@@ -458,7 +455,14 @@ function CrackStreaks({ radius, cracks, theme, idSeed }) {
   return (
     <group>
       {segments.map((pts, i) => (
-        <Line key={`streak-${i}`} points={pts} color={color} lineWidth={1.2} transparent opacity={0.7} />
+        <Line
+          key={`streak-${i}`}
+          points={pts}
+          color={color}
+          lineWidth={1.2}
+          transparent
+          opacity={0.7}
+        />
       ))}
     </group>
   );
@@ -478,11 +482,7 @@ function SlabSideRidges({ radius, thickness, theme }) {
   return (
     <group>
       {ridges.map((r, i) => (
-        <mesh
-          key={`ridge-${i}`}
-          position={[r.x, 0, r.z]}
-          rotation={[0, -r.angle + Math.PI / 2, 0]}
-        >
+        <mesh key={`ridge-${i}`} position={[r.x, 0, r.z]} rotation={[0, -r.angle + Math.PI / 2, 0]}>
           <boxGeometry args={[0.04, thickness * 0.85, 0.04]} />
           <meshStandardMaterial color={color} transparent opacity={0.6} />
         </mesh>
@@ -527,7 +527,13 @@ function CameraFacingLabel({ centerY, radius, text, fontSize, color, outlineColo
   if (!text) return null;
   return (
     <group ref={ref}>
-      <ItemLabel text={text} position={[0, 0, 0]} fontSize={fontSize} color={color} outlineColor={outlineColor} />
+      <ItemLabel
+        text={text}
+        position={[0, 0, 0]}
+        fontSize={fontSize}
+        color={color}
+        outlineColor={outlineColor}
+      />
     </group>
   );
 }
@@ -547,7 +553,12 @@ function CutawayFaces({ radius, thickness, color, thetaLength }) {
           rotation={[0, theta - Math.PI / 2, 0]}
         >
           <planeGeometry args={[radius, thickness]} />
-          <meshStandardMaterial color={color} roughness={0.6} metalness={0} side={THREE.DoubleSide} />
+          <meshStandardMaterial
+            color={color}
+            roughness={0.6}
+            metalness={0}
+            side={THREE.DoubleSide}
+          />
         </mesh>
       ))}
     </group>
@@ -675,7 +686,7 @@ function CakeTopping({ radius, topY, thetaLength, bodyColor, theme, showCherry }
           </mesh>
           <mesh position={[0, 0.62, 0]} rotation={[0, 0, 0.28]}>
             <cylinderGeometry args={[0.025, 0.035, 0.4, 6]} />
-            <meshStandardMaterial color='#6b4423' roughness={0.8} />
+            <meshStandardMaterial color="#6b4423" roughness={0.8} />
           </mesh>
         </group>
       ) : null}
@@ -690,14 +701,17 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, is
   const thetaLength = showCutaway ? CUTAWAY_THETA : Math.PI * 2;
   const tiltRad = ((item.tilt ?? 0) * Math.PI) / 180;
   const cracks = typeof item.cracks === 'number' ? item.cracks : 0;
-  const bodyColor = useMemo(
-    () => layerSlabShade(theme, index, total),
-    [theme, index, total]
-  );
+  const bodyColor = useMemo(() => layerSlabShade(theme, index, total), [theme, index, total]);
   // Lighter "cream filling" bands between layers, and a lighter cross-section
   // for the cutaway slice so it looks like the inside of the cake.
-  const bevelColor = useMemo(() => shiftColor(bodyColor, { lightness: 0.16, satScale: 0.82 }), [bodyColor]);
-  const cutColor = useMemo(() => shiftColor(bodyColor, { lightness: 0.1, satScale: 0.88 }), [bodyColor]);
+  const bevelColor = useMemo(
+    () => shiftColor(bodyColor, { lightness: 0.16, satScale: 0.82 }),
+    [bodyColor]
+  );
+  const cutColor = useMemo(
+    () => shiftColor(bodyColor, { lightness: 0.1, satScale: 0.88 }),
+    [bodyColor]
+  );
   // Matches CakeTopping's cream so the top layer's drips read as the same glaze.
   const creamColor = useMemo(
     () => shiftColor(bodyColor, { lightness: 0.24, satScale: 0.6 }),
@@ -719,10 +733,17 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, is
             <cylinderGeometry
               args={[radius * 0.96, radius * 0.98, bevelThickness, 48, 1, false, 0, thetaLength]}
             />
-            <meshStandardMaterial color={bevelColor} roughness={0.4} metalness={0} side={slabSide} />
+            <meshStandardMaterial
+              color={bevelColor}
+              roughness={0.4}
+              metalness={0}
+              side={slabSide}
+            />
           </mesh>
           <mesh position={[0, yOffset + bevelThickness + bodyThickness / 2, 0]}>
-            <cylinderGeometry args={[radius, radius, bodyThickness, 48, 1, false, 0, thetaLength]} />
+            <cylinderGeometry
+              args={[radius, radius, bodyThickness, 48, 1, false, 0, thetaLength]}
+            />
             <meshStandardMaterial
               color={bodyColor}
               emissive={bodyColor}
@@ -736,15 +757,30 @@ function LayerSlab({ item, yOffset, theme, showCutaway, index = 0, total = 1, is
             <cylinderGeometry
               args={[radius * 0.98, radius * 0.96, bevelThickness, 48, 1, false, 0, thetaLength]}
             />
-            <meshStandardMaterial color={bevelColor} roughness={0.4} metalness={0} side={slabSide} />
+            <meshStandardMaterial
+              color={bevelColor}
+              roughness={0.4}
+              metalness={0}
+              side={slabSide}
+            />
           </mesh>
           <mesh position={[0, yOffset + thickness + 0.005, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <torusGeometry args={[radius * 0.99, 0.045, 10, 64, thetaLength]} />
-            <meshStandardMaterial color={rimColor} emissive={rimColor} emissiveIntensity={0.3} roughness={0.28} />
+            <meshStandardMaterial
+              color={rimColor}
+              emissive={rimColor}
+              emissiveIntensity={0.3}
+              roughness={0.28}
+            />
           </mesh>
           {showCutaway ? (
             <group position={[0, slabCenterY, 0]}>
-              <CutawayFaces radius={radius} thickness={thickness} color={cutColor} thetaLength={thetaLength} />
+              <CutawayFaces
+                radius={radius}
+                thickness={thickness}
+                color={cutColor}
+                thetaLength={thetaLength}
+              />
             </group>
           ) : null}
           <SlabDecorations
@@ -841,8 +877,7 @@ function CityFooting({ theme, radius }) {
     () => `#${new THREE.Color(baseColor).lerp(new THREE.Color('#ffffff'), 0.1).getHexString()}`,
     [baseColor]
   );
-  const rimColor =
-    theme.binaryGlowColor ?? theme.starColor ?? theme.districtGridColor ?? '#94a3b8';
+  const rimColor = theme.binaryGlowColor ?? theme.starColor ?? theme.districtGridColor ?? '#94a3b8';
   const gridColor = theme.districtGridColor ?? theme.labelColor ?? '#cbd5e1';
   const plinthR = radius * 0.94;
   return (
@@ -899,16 +934,12 @@ function CityScene({ dsl, theme }) {
         const accentGlow = height >= heightThreshold ? 1 : 0;
         return (
           <HoverableItem key={item.id} item={item} metaphor="city">
-            <CityBuilding
-              item={item}
-              theme={theme}
-              position={position}
-              accentGlow={accentGlow}
-            />
+            <CityBuilding item={item} theme={theme} position={position} accentGlow={accentGlow} />
           </HoverableItem>
         );
       })}
       <CityFooting theme={theme} radius={footingRadius} />
+      <CityTraffic radius={footingRadius} theme={theme} />
       <MetaphorGroundShadow theme={theme} scale={footingRadius * 2.1} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
     </group>
@@ -918,6 +949,15 @@ function CityScene({ dsl, theme }) {
 function LayercakeScene({ dsl, theme }) {
   const { yOffsets } = useMemo(() => layercakeStackLayout(dsl.items), [dsl.items]);
   const showCutaway = dsl.items.length > 3;
+
+  const stackHeight = useMemo(() => {
+    let top = 0;
+    for (const item of dsl.items) {
+      const y = yOffsets.get(item.id) ?? 0;
+      top = Math.max(top, y + Math.max(0.2, item.thickness ?? 1));
+    }
+    return top;
+  }, [dsl.items, yOffsets]);
 
   const anchors = useMemo(() => {
     const map = new Map();
@@ -937,6 +977,18 @@ function LayercakeScene({ dsl, theme }) {
   return (
     <group>
       <CakeStand radius={maxRadius + 1.1} theme={theme} />
+      {/* Soft spotlight pool under the stand + celebratory drifting sparkles. */}
+      <FloorGlowDisc
+        radius={maxRadius + 3}
+        color={theme.slabTrimColor ?? theme.slabColor}
+        opacity={0.16}
+        y={-1.19}
+      />
+      <RisingSparkles
+        radius={maxRadius + 1.6}
+        height={stackHeight}
+        palette={theme.clusterPalette}
+      />
       {dsl.items.map((item, index) => {
         const yOffset = yOffsets.get(item.id) ?? 0;
         return (
@@ -960,208 +1012,14 @@ function LayercakeScene({ dsl, theme }) {
   );
 }
 
-function TerrainSurface({ heightmap }) {
-  const geometry = useMemo(() => {
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.BufferAttribute(heightmap.vertices, 3));
-    geom.setIndex(new THREE.BufferAttribute(heightmap.indices, 1));
-
-    const colors = new Float32Array(heightmap.vertices.length);
-    const snowThreshold = heightmap.bounds.maxHeight * 0.75;
-    const snowSpan = Math.max(0.0001, heightmap.bounds.maxHeight - snowThreshold);
-    for (let i = 0; i < heightmap.vertices.length; i += 3) {
-      const h = heightmap.vertices[i + 1];
-      const [r, g, b] = heightColor(h, heightmap.bounds);
-      if (h > snowThreshold) {
-        const mix = Math.min(1, (h - snowThreshold) / snowSpan);
-        colors[i] = r + (1 - r) * mix;
-        colors[i + 1] = g + (1 - g) * mix;
-        colors[i + 2] = b + (1 - b) * mix;
-      } else {
-        colors[i] = r;
-        colors[i + 1] = g;
-        colors[i + 2] = b;
-      }
-    }
-    geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geom.computeVertexNormals();
-    return geom;
-  }, [heightmap]);
-
-  return (
-    <mesh geometry={geometry}>
-      <meshStandardMaterial vertexColors flatShading roughness={0.85} metalness={0.05} />
-    </mesh>
-  );
-}
-
-function TerrainWaterPlane({ halfExtent, theme }) {
-  const matRef = useRef(null);
-  const { getTime, animated } = useMetaphorClock();
-  useFrame(() => {
-    if (!animated || !matRef.current) return;
-    const t = getTime();
-    matRef.current.opacity = 0.4 + 0.05 * Math.sin(t * 0.8);
-  });
-  return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-      <planeGeometry args={[halfExtent * 2.2, halfExtent * 2.2]} />
-      <meshStandardMaterial
-        ref={matRef}
-        color={theme.waterColor ?? '#7dd3fc'}
-        transparent
-        opacity={0.4}
-        roughness={0.3}
-        metalness={0.2}
-      />
-    </mesh>
-  );
-}
-
-function TerrainContourRings({ heightmap, theme }) {
-  const rings = useMemo(() => {
-    const { maxHeight } = heightmap.bounds;
-    if (maxHeight <= 0.5) return [];
-    const halfExtent = heightmap.halfExtent;
-    const segments = 64;
-    const levels = [0.33, 0.66, 1.0];
-    const out = [];
-    for (const fraction of levels) {
-      const y = maxHeight * fraction + 0.05;
-      const radius = halfExtent * (1.05 - fraction * 0.55);
-      const pts = [];
-      for (let i = 0; i <= segments; i += 1) {
-        const angle = (i / segments) * Math.PI * 2;
-        pts.push([Math.cos(angle) * radius, y, Math.sin(angle) * radius]);
-      }
-      out.push(pts);
-    }
-    return out;
-  }, [heightmap]);
-  if (!rings.length) return null;
-  const color = theme.labelOutline ?? '#ffffff';
-  return (
-    <group>
-      {rings.map((pts, i) => (
-        <Line
-          key={`contour-${i}`}
-          points={pts}
-          color={color}
-          lineWidth={0.8}
-          transparent
-          opacity={0.35}
-        />
-      ))}
-    </group>
-  );
-}
-
-function TerrainPin({ position, label, elevation, idSeed, theme, glyph }) {
-  const pinHeight = 0.95;
-  const labelHeight = pinHeight + 0.7;
-  const accent = elevation > 0 ? '#ef4444' : '#3b82f6';
-  const flagSway = (idHash(idSeed ?? label ?? '') - 0.5) * 0.15;
-  return (
-    <group position={position}>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-        <circleGeometry args={[0.32, 18]} />
-        <meshStandardMaterial color={theme.labelColor ?? '#0f172a'} transparent opacity={0.3} />
-      </mesh>
-      <mesh position={[0, pinHeight / 2, 0]}>
-        <cylinderGeometry args={[0.04, 0.04, pinHeight, 6]} />
-        <meshStandardMaterial color={theme.labelColor ?? '#0f172a'} />
-      </mesh>
-      {glyph ? (
-        <Billboard position={[0.32, pinHeight - 0.1, 0]}>
-          <group scale={0.6}>
-            <Glyph kind={glyph} theme={theme} />
-          </group>
-        </Billboard>
-      ) : (
-        <mesh position={[0.22, pinHeight - 0.18, 0]} rotation={[0, flagSway, 0]}>
-          <planeGeometry args={[0.42, 0.28]} />
-          <meshStandardMaterial
-            color={accent}
-            emissive={accent}
-            emissiveIntensity={0.45}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-      )}
-      <mesh position={[0, pinHeight + 0.02, 0]}>
-        <sphereGeometry args={[0.07, 10, 10]} />
-        <meshStandardMaterial color={theme.labelColor ?? '#0f172a'} />
-      </mesh>
-      <ItemLabel
-        text={label}
-        position={[0, labelHeight, 0]}
-        fontSize={0.4}
-        color={theme.labelColor}
-        outlineColor={theme.labelOutline}
-      />
-    </group>
-  );
-}
-
-function TerrainScene({ dsl, theme }) {
-  const heightmap = useMemo(() => terrainHeightmap(dsl.items, dsl.scene), [dsl.items, dsl.scene]);
-
-  const anchors = useMemo(() => {
-    const map = new Map();
-    for (const [id, pos] of heightmap.itemPositions.entries()) {
-      map.set(id, [pos[0], pos[1] + 1.5, pos[2]]);
-    }
-    return map;
-  }, [heightmap.itemPositions]);
-
-  const metricLabel = dsl.scene?.surface?.metric;
-  const showWater = heightmap.bounds.minHeight < 0;
-
-  return (
-    <group>
-      <TerrainSurface heightmap={heightmap} />
-      {showWater ? <TerrainWaterPlane halfExtent={heightmap.halfExtent} theme={theme} /> : null}
-      <TerrainContourRings heightmap={heightmap} theme={theme} />
-      <TerrainClouds
-        halfExtent={heightmap.halfExtent}
-        maxHeight={heightmap.bounds.maxHeight}
-      />
-      {dsl.items.map((item) => {
-        const position = heightmap.itemPositions.get(item.id);
-        if (!position) return null;
-        return (
-          <HoverableItem key={item.id} item={item} metaphor="terrain">
-            <TerrainPin
-              idSeed={item.id}
-              position={position}
-              label={item.label}
-              elevation={item.elevation ?? 3}
-              theme={theme}
-              glyph={item.glyph}
-            />
-          </HoverableItem>
-        );
-      })}
-      {metricLabel ? (
-        <ItemLabel
-          text={metricLabel}
-          position={[0, heightmap.bounds.maxHeight + 3.5, -heightmap.halfExtent + 1]}
-          fontSize={0.7}
-          color={theme.labelColor}
-          outlineColor={theme.labelOutline}
-        />
-      ) : null}
-      <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} />
-    </group>
-  );
-}
-
 function MetaphorScene({ dsl, theme }) {
   if (dsl.metaphor === 'city') return <CityScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'layercake') return <LayercakeScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'galaxy') return <GalaxyScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'tree') return <TreeScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'terrain') return <TerrainScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'orrery') return <OrreryScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'river') return <RiverScene dsl={dsl} theme={theme} />;
   return null;
 }
 
@@ -1292,10 +1150,9 @@ function MetaphorRendererImpl(
     };
   }, [diagramSource, streamingPreview]);
 
-  const dsl = streamingPreview ? streamDsl ?? lastGoodDslRef.current : finalResolved.dsl;
+  const dsl = streamingPreview ? (streamDsl ?? lastGoodDslRef.current) : finalResolved.dsl;
   const hasSource = Boolean(diagramSource?.trim());
-  const renderError =
-    !streamingPreview && hasSource && !dsl ? finalResolved.renderError : '';
+  const renderError = !streamingPreview && hasSource && !dsl ? finalResolved.renderError : '';
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
   const theme = resolveMetaphorThemePreset(themeId);
@@ -1311,6 +1168,11 @@ function MetaphorRendererImpl(
       {dsl ? (
         <Canvas camera={ORBIT_CAMERA} style={{ width: '100%', height: '100%' }}>
           <color attach="background" args={[theme.background]} />
+          {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
+              far enough out that Bounds framing never greys the subject. */}
+          {dsl.metaphor === 'city' ? (
+            <fog attach="fog" args={[theme.skyHorizonColor ?? theme.background, 42, 150]} />
+          ) : null}
           <ambientLight intensity={theme.ambientIntensity} />
           <hemisphereLight args={theme.hemisphere} />
           <directionalLight
@@ -1323,10 +1185,13 @@ function MetaphorRendererImpl(
           {dsl.metaphor === 'city' || dsl.metaphor === 'layercake' ? (
             <CitySky theme={theme} />
           ) : null}
-          {dsl.metaphor === 'galaxy' ? (
+          {/* Orrery shares the galaxy's deep-space backdrop — same star-field
+              vocabulary, different spatial story. */}
+          {dsl.metaphor === 'galaxy' || dsl.metaphor === 'orrery' ? (
             <GalaxySky theme={theme} animated={!streamingPreview} />
           ) : null}
           {dsl.metaphor === 'tree' ? <TreeSky theme={theme} /> : null}
+          {dsl.metaphor === 'river' ? <RiverSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>

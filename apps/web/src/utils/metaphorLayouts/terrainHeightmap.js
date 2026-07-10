@@ -103,7 +103,13 @@ function buildIndices() {
 }
 
 function clampGridIndex(value) {
-  return Math.max(0, Math.min(GRID_SIZE - 1, Math.round(((value + HALF_EXTENT) / (2 * HALF_EXTENT)) * (GRID_SIZE - 1))));
+  return Math.max(
+    0,
+    Math.min(
+      GRID_SIZE - 1,
+      Math.round(((value + HALF_EXTENT) / (2 * HALF_EXTENT)) * (GRID_SIZE - 1))
+    )
+  );
 }
 
 function snapItemPositions(plots, vertices) {
@@ -161,19 +167,37 @@ export function sampleTerrainHeight(heightmap, x, z) {
   return vertices[vi + 1];
 }
 
+// Multi-stop alpine ramp, valley floor → summit rock: deep meadow, grass,
+// sunlit scrub, exposed earth, then grey rock (snow is blended separately by
+// TerrainSurface above the snowline so summits stay crisp white).
+const HEIGHT_RAMP = [
+  { t: 0.0, color: [0.2, 0.38, 0.26] },
+  { t: 0.28, color: [0.4, 0.6, 0.3] },
+  { t: 0.5, color: [0.68, 0.64, 0.33] },
+  { t: 0.72, color: [0.55, 0.42, 0.3] },
+  { t: 0.9, color: [0.52, 0.5, 0.52] },
+  { t: 1.0, color: [0.62, 0.62, 0.66] }
+];
+
 /**
- * Map a height value to a color ramp (low=cool green, mid=amber, high=warm red).
- * Returns [r, g, b] in 0-1.
+ * Map a height value to the terrain color ramp. Returns [r, g, b] in 0-1.
  */
 export function heightColor(height, bounds) {
   const { minHeight, maxHeight } = bounds;
   const range = Math.max(0.001, maxHeight - minHeight);
   const t = Math.max(0, Math.min(1, (height - minHeight) / range));
 
-  if (t < 0.5) {
-    const k = t * 2;
-    return [0.45 + 0.4 * k, 0.62 + 0.18 * k, 0.45 - 0.3 * k];
+  for (let i = 1; i < HEIGHT_RAMP.length; i += 1) {
+    if (t <= HEIGHT_RAMP[i].t) {
+      const lo = HEIGHT_RAMP[i - 1];
+      const hi = HEIGHT_RAMP[i];
+      const k = (t - lo.t) / Math.max(0.0001, hi.t - lo.t);
+      return [
+        lo.color[0] + (hi.color[0] - lo.color[0]) * k,
+        lo.color[1] + (hi.color[1] - lo.color[1]) * k,
+        lo.color[2] + (hi.color[2] - lo.color[2]) * k
+      ];
+    }
   }
-  const k = (t - 0.5) * 2;
-  return [0.85 + 0.1 * k, 0.55 - 0.3 * k, 0.18 + 0.1 * k];
+  return [...HEIGHT_RAMP[HEIGHT_RAMP.length - 1].color];
 }

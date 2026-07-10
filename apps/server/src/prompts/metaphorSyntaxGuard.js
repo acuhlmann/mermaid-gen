@@ -5,13 +5,15 @@ export const METAPHOR_RULE_PACK = METAPHOR_SYSTEM_PROMPT;
 
 export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_patch:
 - Valid JSON object (no trailing commas, double-quoted keys/strings).
-- "metaphor" is exactly "city", "layercake", "galaxy", "tree", or "terrain".
+- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", or "river".
 - Every item has unique "id" (kebab-case) and non-empty "label".
 - City items: numeric height and footprint; meaningful district when >6 items. Optional lighting (lit/dim/dark), condition (new/aging/crumbling).
 - Layercake items: thickness + components[]. Optional cracks (0-1) and tilt (0-15).
 - Galaxy items: magnitude; meaningful cluster when >6 items. Optional binary (id of paired star). Scene may include nebula[].
 - Tree items: optional parent (id of another item); items without parent are roots. weight (1-20) controls branch thickness.
 - Terrain items: elevation (-10..20) and intensity (0.1..10). Optional scene.surface = { metric, baseline }.
+- Orrery items: orbit (0-12; 0 = the central sun, ideally exactly one) and size (0.1-10). Optional moon (id of a non-moon item to sit beside).
+- River items: stage (0-100, source → mouth order) and flow (0.1-20, channel width). Optional hazard (0-1) for rapids.
 - "links" is an array (may be empty). Each link has "from" and "to" ids that exist in items; optional "label"; optional "kind" (flow/dependency/ownership).
 - Optional item "note": a short string (≤ 140 chars) shown on hover.
 - Optional item "position": [x,y,z] with numbers in −30…30.
