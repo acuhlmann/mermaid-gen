@@ -177,7 +177,7 @@ Phases 0–4 of the Mermaid reliability ladder are shipped (sanitizer in [`packa
 
 ### bench-with-llm
 
-Extend the bench (or add a sibling script) to drive `applyIntent` / `applyTransformIntent` across modes and model profiles on a fixed prompt corpus with real API keys. Use results to decide whether to trim `GO_MAD_TEMP_MAX` and whether the JSON intermediate below is worth building.
+Extend the bench (or add a sibling script) to drive `applyIntent` / `applyTransformIntent` across modes and model profiles on a fixed prompt corpus with real API keys. (`GO_MAD_TEMP_MAX` has since been trimmed to ~1.15 — Go Mad chaos is now prompt-driven; a bench like this would confirm the accept-rate gain and whether the JSON intermediate below is still worth building.)
 
 ### JSON-graph intermediate (Go Mad only)
 

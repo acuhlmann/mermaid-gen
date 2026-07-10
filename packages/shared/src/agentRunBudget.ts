@@ -1,8 +1,9 @@
 export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST = 75_000;
 export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY = 150_000;
-// Go Mad runs at hot temperatures and frequently needs a patch_retry turn after
-// the first hot pass produces prose-without-patch; give it extra headroom so the
-// fallback turn doesn't get cut off mid-stream ("BodyStreamBuffer aborted").
+// Go Mad output fails validation more often than other modes (exotic diagram
+// types, prompt-driven chaos) and may need a recovery or repair turn after the
+// first pass; give it extra headroom so the fallback turn doesn't get cut off
+// mid-stream ("BodyStreamBuffer aborted").
 export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD = 105_000;
 export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD = 180_000;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_FAST = 2;

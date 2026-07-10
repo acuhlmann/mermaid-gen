@@ -22,9 +22,18 @@ export function isTransformMode(value) {
   return typeof value === 'string' && TRANSFORM_MODES.includes(value);
 }
 
-/** Base sampling for Go Mad tier 1; ramps up with `goMadDepth` via `goMadTransformModelOptions`. */
-const GO_MAD_TEMP_MIN = 1.48;
-const GO_MAD_TEMP_MAX = 1.7;
+/**
+ * Base sampling for Go Mad tier 1; ramps gently with `goMadDepth` via
+ * `goMadTransformModelOptions`. Chaos is PROMPT-driven (type roulette +
+ * escalation tiers in `buildTransformUserContent`), not sampling-driven: the
+ * earlier 1.48–1.7 range mostly produced invalid Mermaid and malformed tool
+ * calls that burned the run budget in repair turns. The anything/chart/metaphor
+ * modes run Go Mad at default temperature and escalate purely via prompt, and
+ * fail far less often — keep sampling in the range where tool calls stay
+ * reliable and let the escalation text carry the madness.
+ */
+const GO_MAD_TEMP_MIN = 0.95;
+const GO_MAD_TEMP_MAX = 1.15;
 const GO_MAD_TEMP_PER_DEPTH = 0.02;
 
 export const ANALYSIS_SYSTEM_PROMPT = `You are ArchiSlop in read-only mode.
@@ -332,6 +341,7 @@ export function buildTransformUserContent({
 - Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
 - Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
+- The madness lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.
 - Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildGoMadEscalationInstructions(
             mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
             diagramSource

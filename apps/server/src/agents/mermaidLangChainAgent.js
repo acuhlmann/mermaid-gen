@@ -1,7 +1,7 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
-import { isSyntaxValidationError } from './mermaidReliabilitySkill.js';
+import { isSyntaxValidationError, looksLikeMermaid } from './mermaidReliabilitySkill.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { computeLineDiffStats } from '../utils/patchLineStats.js';
 import { createDiagramAgentMiddleware } from './agentGraphConfig.js';
@@ -40,6 +40,55 @@ export {
 /** Mermaid-specialized lookup of the last patch source attempted in this run. */
 export function extractLastAttemptedMermaidSource(result) {
   return extractLastAttemptedToolSource(result, 'apply_mermaid_patch');
+}
+
+/**
+ * First non-blank, non-`%%` line of a candidate source. Init directives
+ * (%%{init: …}%%) and %% comments legally precede the diagram declaration,
+ * so the type check has to skip past them.
+ */
+function firstMeaningfulMermaidLine(text) {
+  for (const line of String(text ?? '').split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('%%')) continue;
+    return trimmed;
+  }
+  return '';
+}
+
+const FENCED_BLOCK_PATTERN = /```([A-Za-z0-9_-]*)[^\S\n]*\n([\s\S]*?)```/g;
+
+/**
+ * Some models emit the diagram as a fenced block in prose instead of calling
+ * apply_mermaid_patch — the dominant failure of hot transform turns (Go Mad).
+ * Mirror of the prose-recovery extractors in the anything/chart/infographic/
+ * metaphor agents: salvage that source so the caller can route it through the
+ * normal validation pipeline instead of paying a full patch-retry model turn.
+ */
+export function extractMermaidFromAssistantResult(result) {
+  const messages = result?.messages ?? [];
+  for (let i = messages.length - 1; i >= 0; i -= 1) {
+    const m = messages[i];
+    const isAssistant =
+      m?._getType?.() === 'ai' ||
+      m?.type === 'ai' ||
+      m?.role === 'assistant' ||
+      m?.kwargs?.role === 'assistant';
+    if (!isAssistant) continue;
+    const raw = extractTextContent(m?.content ?? m?.kwargs?.content ?? '');
+    if (!raw?.trim()) continue;
+    for (const match of raw.matchAll(FENCED_BLOCK_PATTERN)) {
+      const lang = (match[1] ?? '').toLowerCase();
+      if (lang && lang !== 'mermaid') continue;
+      const body = (match[2] ?? '').trim();
+      if (body && looksLikeMermaid(firstMeaningfulMermaidLine(body))) return body;
+    }
+    const bare = raw.trim();
+    if (!bare.includes('```') && looksLikeMermaid(firstMeaningfulMermaidLine(bare))) {
+      return bare;
+    }
+  }
+  return null;
 }
 import {
   appendLastValidationError,
@@ -488,7 +537,7 @@ async function invokeWithRepair(
 
   const firstMessage = extractFinalMessage(firstResult);
   const afterFirstRevision = stateStore.getSlot('mermaid').revisionId;
-  const firstError = extractToolFailureError(firstResult);
+  let firstError = extractToolFailureError(firstResult);
 
   if (afterFirstRevision !== beforeRevision) {
     emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
@@ -497,6 +546,34 @@ async function invokeWithRepair(
       message: firstMessage,
       raw: firstResult
     };
+  }
+
+  // Prose recovery — the same salvage every other diagram agent does: when the model
+  // pasted the diagram into prose instead of calling apply_mermaid_patch, route that
+  // source through the normal validation pipeline before paying a full patch-retry
+  // model turn. A rejected candidate still helps: it seeds the syntax fixer / repair
+  // loop with a concrete broken source instead of re-rolling the same dice.
+  let proseBrokenSource = null;
+  if (requirePatch && !firstError) {
+    const proseMermaid = extractMermaidFromAssistantResult(firstResult);
+    if (proseMermaid) {
+      const applied = await stateStore.applyDiagramSource({
+        contentType: 'mermaid',
+        diagramSource: proseMermaid,
+        reason: 'prose-mermaid recovery'
+      });
+      if (applied?.accepted) {
+        emitPatchSummaryArtifact(emit, stateStore, beforeRevision, beforeSource);
+        finishTurn({ accepted: true, validator: 'prose-mermaid-recovery' });
+        return {
+          message: firstMessage,
+          raw: firstResult,
+          metadata: { validator: 'prose-mermaid-recovery' }
+        };
+      }
+      firstError = applied?.error ?? 'Mermaid validation failed.';
+      proseBrokenSource = proseMermaid;
+    }
   }
 
   if (requirePatch && !firstError) {
@@ -571,7 +648,7 @@ async function invokeWithRepair(
 
   let latestError = firstError;
   let latestResult = firstResult;
-  let brokenSource = extractLastAttemptedMermaidSource(firstResult);
+  let brokenSource = extractLastAttemptedMermaidSource(firstResult) ?? proseBrokenSource;
   const originalRequest = toLangChainMessages(messages)
     .filter((m) => m.role === 'user')
     .map((m) => m.content)
@@ -581,8 +658,15 @@ async function invokeWithRepair(
   // Tool-less single-shot fixer using a cheap fast model. Independent of the intent/transform
   // model so repair runs on a small model regardless of caller profile. If the fixer accepts,
   // apply through the same patch pipeline (which re-validates and runs the sanitizer once more
-  // for safety) and short-circuit the agent loop.
-  if (brokenSource && isSyntaxFixerAvailable(env)) {
+  // for safety) and short-circuit the agent loop. Transform-policy rejections (e.g. Go Mad
+  // tier ≥3 "switch diagram type") are semantic constraints the low-temperature syntax fixer
+  // cannot satisfy — routing them there is guaranteed wasted budget, so those go straight to
+  // the full-agent repair turn.
+  if (
+    brokenSource &&
+    isSyntaxFixerAvailable(env) &&
+    !isMermaidTransformConstraintError(latestError)
+  ) {
     try {
       const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
       if (fixerStop) return finishStoppedRun(fixerStop, firstResult, latestError);

@@ -15,6 +15,7 @@ import {
   clampGoMadDepth,
   createMermaidLangChainAgent,
   emitIntentTransformStreamResult,
+  extractMermaidFromAssistantResult,
   inferMermaidTopKeyword,
   normalizeAgentStreamEvent,
   normalizeModelProfile,
@@ -60,7 +61,9 @@ test('transform mode picks increasing temperatures', () => {
     transformModeModelOptions('innovate').temperature <
       transformModeModelOptions('goMad').temperature
   );
-  assert.ok(transformModeModelOptions('goMad').temperature > 1.45);
+  // Go Mad chaos is prompt-driven; sampling stays in the range where tool calls
+  // and Mermaid syntax remain reliable (see goMadTransformModelOptions).
+  assert.ok(transformModeModelOptions('goMad').temperature <= 1.2);
   assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
   assert.equal(transformModeModelOptions('goMad').maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
   assert.ok(GO_MAD_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
@@ -76,7 +79,7 @@ test('goMadTransformModelOptions ramps temperature and topP with depth', () => {
   const shallow = goMadTransformModelOptions(1);
   const deep = goMadTransformModelOptions(12);
   assert.ok(deep.temperature > shallow.temperature);
-  assert.ok(deep.temperature <= 1.8);
+  assert.ok(deep.temperature <= 1.2);
   assert.ok(deep.topP >= shallow.topP);
   assert.equal(shallow.maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
   assert.equal(deep.maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
@@ -909,4 +912,183 @@ test('runInvokeWithStreamingKeepalive emits status while invoke runs', async () 
   assert.equal(result, 99);
   assert.ok(statusTexts.length >= 1);
   assert.ok(statusTexts.every((t) => t === 'Still working…'));
+});
+
+test('extractMermaidFromAssistantResult salvages fenced and bare sources conservatively', () => {
+  const fence = (lang, body) => '```' + lang + '\n' + body + '\n```';
+
+  // Fenced ```mermaid block inside prose.
+  assert.equal(
+    extractMermaidFromAssistantResult({
+      messages: [
+        { role: 'assistant', content: 'Sure:\n\n' + fence('mermaid', 'flowchart TD\n  A --> B') }
+      ]
+    }),
+    'flowchart TD\n  A --> B'
+  );
+
+  // Untagged fence whose first meaningful line (after an init directive) is a diagram decl.
+  assert.equal(
+    extractMermaidFromAssistantResult({
+      messages: [
+        { role: 'assistant', content: fence('', '%%{init: {"theme":"dark"}}%%\npie\n  "a" : 1') }
+      ]
+    }),
+    '%%{init: {"theme":"dark"}}%%\npie\n  "a" : 1'
+  );
+
+  // Non-mermaid fences are not salvaged.
+  assert.equal(
+    extractMermaidFromAssistantResult({
+      messages: [{ role: 'assistant', content: fence('json', '{"a": 1}') }]
+    }),
+    null
+  );
+
+  // Prose mentioning a diagram type mid-sentence is not salvaged.
+  assert.equal(
+    extractMermaidFromAssistantResult({
+      messages: [{ role: 'assistant', content: 'A flowchart would be great here, let me know.' }]
+    }),
+    null
+  );
+
+  // Bare source without fences.
+  assert.equal(
+    extractMermaidFromAssistantResult({
+      messages: [{ role: 'assistant', content: 'flowchart TD\n  A --> B' }]
+    }),
+    'flowchart TD\n  A --> B'
+  );
+
+  // Only assistant messages are scanned.
+  assert.equal(
+    extractMermaidFromAssistantResult({
+      messages: [{ role: 'user', content: fence('mermaid', 'flowchart TD\n  A --> B') }]
+    }),
+    null
+  );
+});
+
+test('prose-mermaid recovery applies a fenced diagram without paying a retry turn', async () => {
+  let invokeCount = 0;
+  const fakeAgent = {
+    async invoke() {
+      invokeCount += 1;
+      return {
+        messages: [
+          {
+            role: 'assistant',
+            content: 'Here you go:\n\n```mermaid\nflowchart TD\n  A[Start] --> B[End]\n```'
+          }
+        ]
+      };
+    }
+  };
+
+  const stateStore = createDiagramStateStore();
+  const before = stateStore.getSlot('mermaid').revisionId;
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    chatModelFactory: () => ({}),
+    createAgentImpl: () => fakeAgent
+  });
+
+  const result = await service.applyIntent({
+    prompt: 'draw a start/end flow',
+    modelProfile: 'fast'
+  });
+
+  // One model turn only — the salvage replaces the whole patch_retry turn.
+  assert.equal(invokeCount, 1);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, before + 1);
+  assert.match(stateStore.getSlot('mermaid').diagramSource, /A\[Start\] --> B\[End\]/);
+  assert.equal(result.metadata?.validator, 'prose-mermaid-recovery');
+});
+
+test('rejected prose-mermaid recovery seeds the repair loop instead of a patch retry', async () => {
+  let invokeCount = 0;
+  const fakeAgent = {
+    async invoke() {
+      invokeCount += 1;
+      return {
+        messages: [
+          // Dangling edge — extractable as mermaid but fails strict validation.
+          { role: 'assistant', content: '```mermaid\nflowchart TD\n  A -->\n```' }
+        ]
+      };
+    }
+  };
+
+  const stateStore = createDiagramStateStore();
+  const before = stateStore.getSlot('mermaid').revisionId;
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    // MERMAID_REPAIR_BACKEND points at an unconfigured backend so the syntax
+    // fixer is unavailable and the flow falls through to the agent repair loop.
+    env: { OPENROUTER_API_KEY: 'test-key', MERMAID_REPAIR_BACKEND: 'deepseek' },
+    chatModelFactory: () => ({}),
+    createAgentImpl: () => fakeAgent
+  });
+
+  const result = await service.applyIntent({ prompt: 'draw', modelProfile: 'fast' });
+
+  // First turn + exactly one repair turn (which yields no tool failure, so the loop breaks).
+  // No patch_retry turn fires: the rejected prose candidate turned into a validation error.
+  assert.equal(invokeCount, 2);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, before);
+  assert.match(result.message, /Diagram update failed/);
+});
+
+test('transform-policy rejection skips the syntax fixer and goes to agent repair', async () => {
+  const policyError = 'Go Mad tier 3: switch diagram type (still "flowchart").';
+  const resultMessages = [
+    {
+      role: 'assistant',
+      content: '',
+      tool_calls: [
+        { name: 'apply_mermaid_patch', args: { diagramSource: 'flowchart TD\n  A --> B' } }
+      ]
+    },
+    { role: 'tool', content: JSON.stringify({ accepted: false, error: policyError }) }
+  ];
+  let turnCount = 0;
+  const fakeAgent = {
+    async invoke() {
+      turnCount += 1;
+      return { messages: resultMessages };
+    },
+    async streamEvents() {
+      turnCount += 1;
+      return (async function* () {
+        yield { event: 'on_chain_end', data: { output: { messages: resultMessages } } };
+      })();
+    }
+  };
+
+  const events = [];
+  const stateStore = createDiagramStateStore();
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    // Fixer IS available in this env — the skip must come from the policy-error
+    // detection, not from fixer unavailability.
+    env: { OPENROUTER_API_KEY: 'test-key' },
+    chatModelFactory: () => ({}),
+    createAgentImpl: () => fakeAgent
+  });
+
+  const result = await service.applyTransformIntent({
+    mode: 'goMad',
+    goMadDepth: 3,
+    emit: (e) => events.push(e)
+  });
+
+  assert.ok(
+    events.every((e) => e.type !== 'syntax_fixer_start'),
+    'syntax fixer must not run on a transform-policy rejection'
+  );
+  // First turn + both repair attempts, no fixer call in between.
+  assert.equal(turnCount, 3);
+  assert.match(result.message, /Go Mad tier 3/);
 });
