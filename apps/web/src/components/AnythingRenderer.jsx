@@ -3,7 +3,8 @@ import {
   ANYTHING_IFRAME_CSP,
   ANYTHING_IFRAME_SANDBOX,
   ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE,
-  hasAnythingLibMarkers,
+  findAnythingLibMarkers,
+  getAnythingLibInfo,
   parseAnythingHtml,
   wrapAnythingSrcDoc
 } from '@archislop/shared';
@@ -56,7 +57,9 @@ function AnythingErrorState({ error }) {
  * `<!-- @lib:d3 -->` comments. The slot keeps the marker form; this component
  * expands markers into inline <script> tags (pinned bytes from the shared
  * vendor chunk) just before srcDoc — vendored code only, never a network
- * load, and the sandbox/CSP above are unchanged. See
+ * load, and the sandbox/CSP above are unchanged. A corner badge names the
+ * injected libs and versions (from the registry metadata, which is
+ * main-bundle-safe), so the otherwise-invisible injection is observable. See
  * docs/decisions/0008-anything-inline-libraries.md.
  */
 export default function AnythingRenderer({
@@ -78,7 +81,16 @@ export default function AnythingRenderer({
     if (!diagramSource || !diagramSource.trim()) return { ok: false, empty: true };
     const result = parseAnythingHtml(diagramSource);
     if (!result.ok) return { ok: false, error: result.error };
-    return { ok: true, text: result.text, needsLibs: hasAnythingLibMarkers(result.text) };
+    const markers = findAnythingLibMarkers(result.text);
+    // Registry metadata (name/version) for the lib badge — allowlisted ids
+    // only, deduped. Unknown markers still trigger the expansion path, where
+    // they pass through as inert comments.
+    const libs = [];
+    for (const marker of markers) {
+      const info = getAnythingLibInfo(marker.id);
+      if (info && !libs.some((lib) => lib.id === info.id)) libs.push(info);
+    }
+    return { ok: true, text: result.text, needsLibs: markers.length > 0, libs };
   }, [diagramSource]);
 
   // Marker expansion is async (the vendor chunk loads on demand); tag the
@@ -176,6 +188,19 @@ export default function AnythingRenderer({
         // inert so half-written scripts don't grab pointer focus.
         style={streamingPreview ? { pointerEvents: 'none' } : undefined}
       />
+      {parsed.libs.length > 0 && !streamingPreview ? (
+        <div
+          className="anything-lib-badge"
+          role="note"
+          title={`This page uses ${parsed.libs
+            .map((lib) => `${lib.name} ${lib.version}`)
+            .join(
+              ' and '
+            )}. Library code is pinned, vendored, and injected at render time — nothing loads from the network.`}
+        >
+          {parsed.libs.map((lib) => `${lib.id} v${lib.version}`).join(' · ')}
+        </div>
+      ) : null}
       {showRuntimeBanner ? (
         <div className="anything-runtime-banner" role="status">
           <span className="anything-runtime-banner-text">

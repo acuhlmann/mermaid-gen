@@ -53,6 +53,7 @@
     "@archislop/eslint-config": "^1.0.0",
     "d3": "7.9.0",
     "eslint": "^10.4.0",
+    "matter-js": "0.20.0",
     "tsx": "^4.22.3"
   }
 }

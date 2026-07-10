@@ -36,4 +36,10 @@ States:
 - Empty state: if the page starts with no data/selection, SAY so and point at the first action ("Pick a planet to compare") — never render a blank region.
 - Loading/thinking states for anything that takes >150ms: skeleton or spinner built in CSS.
 - Interactive affordances must look interactive: cursor: pointer, visible hover AND focus-visible states, active/pressed feedback. Keyboard focus must never be invisible.
-- Handle the edges inside your JS: zero items, one item, many items, extreme values — the page should degrade gracefully, not throw.`;
+- Handle the edges inside your JS: zero items, one item, many items, extreme values — the page should degrade gracefully, not throw.
+
+Libraries (the @lib: markers from the sandbox contract — when to reach for one):
+- Default to vanilla. A page with no marker renders instantly; every library you opt into is real weight. Import a library because the page NEEDS its engine, never for one call you could write yourself.
+- @lib:d3 earns its import for data joins over changing data, real scales and axes (time, log, band), force/hierarchy layouts (network graphs, trees, treemaps, packing), and geo projections. It does NOT earn it for a counter widget, a static bar chart (a few divs or hand-written SVG rects do that), simple tweens (CSS transitions), or basic math.
+- @lib:matter earns its import when things should fall, collide, swing, stack, or be dragged with believable physics — games, toys, simulations (Go Mad territory). It does NOT earn it for scripted motion on a fixed path — CSS animation or a small requestAnimationFrame loop is lighter and easier to control.
+- Use the library's idiom once imported: with d3, bind data and let joins update the DOM instead of innerHTML rebuilds; with matter, let the engine own positions and only read them out to render — don't fight the physics with manual coordinates.`;

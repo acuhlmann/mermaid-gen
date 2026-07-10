@@ -21,6 +21,11 @@ const MANIFEST = [
     id: 'd3',
     npmPackage: 'd3',
     distPath: 'dist/d3.min.js'
+  },
+  {
+    id: 'matter',
+    npmPackage: 'matter-js',
+    distPath: 'build/matter.min.js'
   }
 ];
 

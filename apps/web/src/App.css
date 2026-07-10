@@ -198,6 +198,27 @@
   opacity: 0.85;
 }
 
+/* Which vendored libraries the page opted into (@lib: markers). Injection is
+   deliberately invisible in the document — the badge is what makes it
+   observable. Tooltip carries the provenance story. */
+.anything-lib-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.88);
+  color: rgba(15, 23, 42, 0.75);
+  z-index: 2;
+  cursor: help;
+  user-select: none;
+}
+
 .anything-runtime-banner {
   position: absolute;
   left: 0.75rem;
@@ -2069,6 +2090,11 @@
   border: 0;
   border-radius: 0.45rem;
   background: #fff;
+}
+
+/* Thumbnails are too small for the lib badge to read as anything but clutter. */
+.insights-embedded-diagram--anything .anything-lib-badge {
+  display: none;
 }
 
 .insights-patch-summary-viz {
