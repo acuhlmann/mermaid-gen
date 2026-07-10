@@ -1,7 +1,10 @@
 import { DiagramPatchSchema, sanitizeMetaphorDsl } from '@archislop/shared';
 
 function stripJsonCodeFence(raw) {
-  const text = String(raw ?? '').replace(/^﻿/, '').replace(/\r\n?/g, '\n').trim();
+  const text = String(raw ?? '')
+    .replace(/^﻿/, '')
+    .replace(/\r\n?/g, '\n')
+    .trim();
   const applied = [];
   const fenced = text.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i);
   if (fenced) {
@@ -28,7 +31,7 @@ export async function validateAndPrepareMetaphorPatch({
     return {
       accepted: false,
       error:
-        'Metaphor DSL did not parse. Emit a JSON object: {"metaphor":"city|layercake|galaxy|tree|terrain","scene":{...},"items":[...]}.'
+        'Metaphor DSL did not parse. Emit a JSON object: {"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river","scene":{...},"items":[...]}.'
     };
   }
 
@@ -68,5 +71,10 @@ export function validateMetaphorStrict(source) {
       validator: 'metaphor-zod'
     };
   }
-  return { valid: true, diagramSource: sanitized.text, metaphor: sanitized.dsl.metaphor, validator: 'metaphor-zod' };
+  return {
+    valid: true,
+    diagramSource: sanitized.text,
+    metaphor: sanitized.dsl.metaphor,
+    validator: 'metaphor-zod'
+  };
 }

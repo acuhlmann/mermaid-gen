@@ -45,10 +45,7 @@ export function createDiagramTools({ stateStore }) {
       description:
         'Validate and apply a complete Mermaid source update. The server runs mermaid.parse() strictly before accepting; common rejections to avoid: missing diagram-type prefix on the first non-blank line; comma-separated style targets (style A,B,C fails — one node per line); unquoted labels containing (, ), :, /, #, %, or smart quotes; classDef applied to [*] in stateDiagram; "\\n" inside state transition labels; ";" inside sequenceDiagram Note text; ER attribute order must be `type name`, not `name type`. Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
-        diagramSource: z
-          .string()
-          .min(1)
-          .describe('The full replacement Mermaid diagram source.'),
+        diagramSource: z.string().min(1).describe('The full replacement Mermaid diagram source.'),
         reason: z.string().min(1).describe('Short reason for this diagram update.')
       })
     }
@@ -89,10 +86,7 @@ export function createInfographicTools({ stateStore }) {
       description:
         'Validate and apply a complete AntV Infographic DSL update. Use this when the user asks to change infographic content.',
       schema: z.object({
-        diagramSource: z
-          .string()
-          .min(1)
-          .describe('The full replacement AntV Infographic DSL.'),
+        diagramSource: z.string().min(1).describe('The full replacement AntV Infographic DSL.'),
         reason: z.string().min(1).describe('Short reason for this infographic update.')
       })
     }
@@ -139,10 +133,7 @@ export function createChartTools({ stateStore }) {
         'Data lives inline as spec.data.values (an array of plain objects). ' +
         'Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
-        diagramSource: z
-          .string()
-          .min(1)
-          .describe('The full chart DSL wrapper as a JSON string.'),
+        diagramSource: z.string().min(1).describe('The full chart DSL wrapper as a JSON string.'),
         reason: z.string().min(1).describe('Short reason for this chart update.')
       })
     }
@@ -285,7 +276,7 @@ export function createMetaphorTools({ stateStore }) {
     {
       name: 'get_metaphor_dsl',
       description:
-        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain), including revision id and source.',
+        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain/orrery/river), including revision id and source.',
       schema: z.object({})
     }
   );
@@ -304,12 +295,14 @@ export function createMetaphorTools({ stateStore }) {
       name: 'apply_metaphor_patch',
       description:
         'Validate and apply a complete 3D metaphor DSL update. The DSL is a JSON object: ' +
-        '{"metaphor":"city|layercake|galaxy|tree|terrain","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
+        '{"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
         'For city: items are {id, label, height (1-100), footprint (1-20), district?, lighting?, condition?}. ' +
         'For layercake: items are {id, label, thickness (1-10), components?: string[], cracks?, tilt?}. ' +
         'For galaxy: items are {id, label, magnitude (1-20), cluster?, binary?}. ' +
         'For tree: items are {id, label, parent?, weight? (1-20), kind?}. Items without parent are roots. ' +
         'For terrain: items are {id, label, elevation (-10..20), intensity (0.1..10)}; optional scene.surface={metric,baseline}. ' +
+        'For orrery: items are {id, label, orbit (0-12; 0 = central sun), size (0.1-10), moon?}. ' +
+        'For river: items are {id, label, stage (0-100, source→mouth order), flow (0.1-20, channel width), hazard? (0-1, rapids)}. ' +
         'Item ids must be stable lowercase-kebab strings (e.g. auth-service). Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
         diagramSource: z

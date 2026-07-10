@@ -167,7 +167,11 @@ function ShootingStar({ seed, animated, color }) {
     const y1 = 18 + seed * 26;
     const r = 70;
     const start = new THREE.Vector3(Math.cos(a1) * r, y1, Math.sin(a1) * r);
-    const end = new THREE.Vector3(Math.cos(a2) * r * 0.7, y1 - (10 + seed * 14), Math.sin(a2) * r * 0.7);
+    const end = new THREE.Vector3(
+      Math.cos(a2) * r * 0.7,
+      y1 - (10 + seed * 14),
+      Math.sin(a2) * r * 0.7
+    );
     const dir = end.clone().sub(start).normalize();
     const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
     return { start, end, quat };
@@ -360,6 +364,281 @@ export function TerrainClouds({ halfExtent, maxHeight, idSeed = 'terrain-clouds'
               />
             </mesh>
           ))}
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** Tiny emissive cars circling the city's ring road with a headlight glow —
+ *  the skyline reads as alive even before any flow links animate. */
+export function CityTraffic({ radius, theme, count = 9, idSeed = 'traffic' }) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const cars = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        lane: radius * (0.78 + idHash2(idSeed, `l${i}`) * 0.14),
+        phase: idHash2(idSeed, `p${i}`) * Math.PI * 2,
+        speed: (0.14 + idHash2(idSeed, `s${i}`) * 0.12) * (idHash2(idSeed, `d${i}`) > 0.5 ? 1 : -1)
+      })),
+    [radius, count, idSeed]
+  );
+  const headlight = theme.windowEmissiveColor ?? theme.windowColor ?? '#fef3c7';
+  const taillight = theme.treeAccentColor ?? '#f87171';
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const car = cars[i];
+      if (!car) return;
+      const angle = car.phase + t * car.speed;
+      child.position.set(Math.cos(angle) * car.lane, 0.09, Math.sin(angle) * car.lane);
+      child.rotation.y = -angle + (car.speed > 0 ? 0 : Math.PI);
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {cars.map((car, i) => (
+        <group
+          key={`car-${i}`}
+          position={[Math.cos(car.phase) * car.lane, 0.09, Math.sin(car.phase) * car.lane]}
+        >
+          <mesh>
+            <boxGeometry args={[0.16, 0.09, 0.3]} />
+            <meshStandardMaterial
+              color={car.speed > 0 ? headlight : taillight}
+              emissive={car.speed > 0 ? headlight : taillight}
+              emissiveIntensity={1.1}
+              toneMapped={false}
+            />
+          </mesh>
+          <GlowSprite size={0.6} color={car.speed > 0 ? headlight : taillight} opacity={0.4} />
+        </group>
+      ))}
+    </group>
+  );
+}
+
+/** Celebration sparkles drifting up around the cake, looping forever. */
+export function RisingSparkles({ radius, height, palette, count = 22, idSeed = 'sparkle' }) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const colors = palette?.length ? palette : ['#ffd166', '#4cc9f0', '#ff6bcb', '#06d6a0'];
+  const sparks = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => {
+        const angle = idHash2(idSeed, `a${i}`) * Math.PI * 2;
+        const dist = radius * (0.55 + idHash2(idSeed, `d${i}`) * 0.75);
+        return {
+          x: Math.cos(angle) * dist,
+          z: Math.sin(angle) * dist,
+          phase: idHash2(idSeed, `p${i}`),
+          speed: 0.05 + idHash2(idSeed, `s${i}`) * 0.06,
+          sway: 0.2 + idHash2(idSeed, `w${i}`) * 0.3,
+          colorIndex: Math.floor(idHash2(idSeed, `c${i}`) * colors.length)
+        };
+      }),
+    [radius, count, idSeed, colors.length]
+  );
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const s = sparks[i];
+      if (!s) return;
+      const cycle = (s.phase + t * s.speed) % 1;
+      child.position.set(
+        s.x + Math.sin(t * 0.8 + s.phase * 9) * s.sway,
+        -0.9 + cycle * (height + 2.2),
+        s.z + Math.cos(t * 0.7 + s.phase * 7) * s.sway
+      );
+      const fade = Math.sin(cycle * Math.PI);
+      child.scale.setScalar(0.5 + fade * 0.8);
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {sparks.map((s, i) => (
+        <mesh key={`spark-${i}`} position={[s.x, -0.9, s.z]}>
+          <sphereGeometry args={[0.05, 6, 6]} />
+          <meshBasicMaterial
+            color={colors[s.colorIndex]}
+            toneMapped={false}
+            transparent
+            opacity={0.85}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Flat additive glow disc on the ground — a soft spotlight pool under a
+ *  centrepiece (e.g. the cake stand). Not billboarded: it hugs the floor. */
+export function FloorGlowDisc({ radius, color, opacity = 0.22, y = 0 }) {
+  const map = getRadialSpriteTexture();
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, y, 0]}>
+      <planeGeometry args={[radius * 2, radius * 2]} />
+      <meshBasicMaterial
+        map={map ?? undefined}
+        color={color}
+        transparent
+        opacity={opacity}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+        toneMapped={false}
+      />
+    </mesh>
+  );
+}
+
+/** Expanding, fading shockwave ring — a slow supernova pulse for the galaxy's
+ *  brightest star. Billboarded so the ring always faces the viewer. */
+export function SupernovaPulse({ position, color, period = 7, idSeed = 'nova' }) {
+  const ringRef = useRef(null);
+  const matRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const offset = useMemo(() => idHash2(idSeed, 'offset') * period, [idSeed, period]);
+  useFrame(() => {
+    if (!ringRef.current || !matRef.current) return;
+    if (!animated) {
+      ringRef.current.visible = false;
+      return;
+    }
+    const cycle = ((getTime() + offset) % period) / period;
+    // Only the first ~40% of the period shows the pulse; then the star rests.
+    if (cycle > 0.4) {
+      ringRef.current.visible = false;
+      return;
+    }
+    const p = cycle / 0.4;
+    ringRef.current.visible = true;
+    const scale = 0.6 + p * 4.2;
+    ringRef.current.scale.set(scale, scale, scale);
+    matRef.current.opacity = 0.55 * (1 - p);
+  });
+  return (
+    <Billboard position={position}>
+      <mesh ref={ringRef} visible={false}>
+        <ringGeometry args={[0.86, 1, 40]} />
+        <meshBasicMaterial
+          ref={matRef}
+          color={color}
+          transparent
+          opacity={0}
+          depthWrite={false}
+          side={THREE.DoubleSide}
+          blending={THREE.AdditiveBlending}
+          toneMapped={false}
+        />
+      </mesh>
+    </Billboard>
+  );
+}
+
+/** Leaves shed from the canopies, tumbling and drifting to the meadow floor. */
+export function FallingLeaves({ radius, height, color, count = 14, idSeed = 'leaf-fall' }) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const leaves = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => {
+        const angle = idHash2(idSeed, `a${i}`) * Math.PI * 2;
+        const dist = Math.sqrt(idHash2(idSeed, `d${i}`)) * radius * 0.8;
+        return {
+          x: Math.cos(angle) * dist,
+          z: Math.sin(angle) * dist,
+          phase: idHash2(idSeed, `p${i}`),
+          speed: 0.03 + idHash2(idSeed, `s${i}`) * 0.03,
+          sway: 0.5 + idHash2(idSeed, `w${i}`) * 0.8,
+          spin: 1 + idHash2(idSeed, `r${i}`) * 2
+        };
+      }),
+    [radius, count, idSeed]
+  );
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const leaf = leaves[i];
+      if (!leaf) return;
+      const cycle = (leaf.phase + t * leaf.speed) % 1;
+      child.position.set(
+        leaf.x + Math.sin(t * 0.9 + leaf.phase * 8) * leaf.sway,
+        height * (1 - cycle) + 0.2,
+        leaf.z + Math.cos(t * 0.7 + leaf.phase * 5) * leaf.sway * 0.7
+      );
+      child.rotation.set(t * leaf.spin, leaf.phase * 6, t * leaf.spin * 0.6);
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {leaves.map((leaf, i) => (
+        <mesh key={`fall-${i}`} position={[leaf.x, height, leaf.z]}>
+          <planeGeometry args={[0.16, 0.22]} />
+          <meshStandardMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.9} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Silhouette birds circling lazily over a scene, wings flapping — shared by the
+ *  nature scenes (terrain, tree, river). Reads the metaphor clock, so birds hold
+ *  still during streaming like every other animated flourish. */
+export function SoaringBirds({
+  radius = 10,
+  height = 8,
+  count = 3,
+  color = '#1f2937',
+  idSeed = 'birds'
+}) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const birds = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => ({
+        phase: idHash2(idSeed, `p${i}`) * Math.PI * 2,
+        speed:
+          (0.1 + idHash2(idSeed, `s${i}`) * 0.08) * (idHash2(idSeed, `dir${i}`) > 0.5 ? 1 : -1),
+        r: radius * (0.5 + idHash2(idSeed, `r${i}`) * 0.5),
+        h: height + idHash2(idSeed, `h${i}`) * 3,
+        flap: 4 + idHash2(idSeed, `f${i}`) * 3
+      })),
+    [radius, height, count, idSeed]
+  );
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const b = birds[i];
+      if (!b) return;
+      const angle = b.phase + t * b.speed;
+      child.position.set(
+        Math.cos(angle) * b.r,
+        b.h + Math.sin(t * 0.7 + b.phase) * 0.5,
+        Math.sin(angle) * b.r
+      );
+      child.rotation.y = -angle + (b.speed > 0 ? 0 : Math.PI);
+      const flap = Math.sin(t * b.flap + b.phase) * 0.55;
+      if (child.children[0]) child.children[0].rotation.z = 0.25 + flap;
+      if (child.children[1]) child.children[1].rotation.z = -0.25 - flap;
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {birds.map((b, i) => (
+        <group key={`bird-${i}`} position={[Math.cos(b.phase) * b.r, b.h, Math.sin(b.phase) * b.r]}>
+          <mesh position={[0.2, 0, 0]} rotation={[0, 0, 0.25]}>
+            <planeGeometry args={[0.52, 0.15]} />
+            <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.8} />
+          </mesh>
+          <mesh position={[-0.2, 0, 0]} rotation={[0, 0, -0.25]}>
+            <planeGeometry args={[0.52, 0.15]} />
+            <meshBasicMaterial color={color} side={THREE.DoubleSide} transparent opacity={0.8} />
+          </mesh>
         </group>
       ))}
     </group>

@@ -8,6 +8,11 @@ import {
 } from '../src/utils/metaphorLayouts/layercakeComponentsLayout.js';
 import { treeRadialLayout } from '../src/utils/metaphorLayouts/treeRadialLayout.js';
 import { gridPosition } from '../src/utils/metaphorLayouts/gridPosition.js';
+import { orreryOrbitLayout } from '../src/utils/metaphorLayouts/orreryOrbitLayout.js';
+import {
+  riverPathLayout,
+  riverWidthForFlow
+} from '../src/utils/metaphorLayouts/riverPathLayout.js';
 
 describe('metaphorLayouts', () => {
   it('gridPosition centers a single item at origin', () => {
@@ -34,7 +39,9 @@ describe('metaphorLayouts', () => {
   });
 
   it('cityDistrictLayout honors explicit position override', () => {
-    const explicit = cityDistrictLayout([{ id: 'x', label: 'X', position: [5, 1, -3], footprint: 2 }]);
+    const explicit = cityDistrictLayout([
+      { id: 'x', label: 'X', position: [5, 1, -3], footprint: 2 }
+    ]);
     const auto = cityDistrictLayout([{ id: 'x', label: 'X', footprint: 2 }]);
     // Explicit coords opt out of grid placement; the layout still recentres the
     // whole composition on the origin for the circular footing.
@@ -119,5 +126,62 @@ describe('metaphorLayouts', () => {
     const chips = layercakeComponentPositions(5, ['redis', 'postgres']);
     expect(chips.length).toBe(2);
     expect(chips[0].position[0]).not.toBe(chips[1].position[0]);
+  });
+
+  it('orreryOrbitLayout centres suns and rings planets by ascending orbit', () => {
+    const items = [
+      { id: 'core', label: 'Core', orbit: 0, size: 8 },
+      { id: 'near', label: 'Near', orbit: 2, size: 3 },
+      { id: 'far', label: 'Far', orbit: 8, size: 3 },
+      { id: 'sat', label: 'Sat', orbit: 2, size: 1, moon: 'near' }
+    ];
+    const { positions, rings, sunIds, moonParent, bounds } = orreryOrbitLayout(items);
+    expect(sunIds).toEqual(['core']);
+    expect(positions.get('core')).toEqual([0, 0, 0]);
+    expect(rings.map((r) => r.orbit)).toEqual([2, 8]);
+    expect(rings[1].radius).toBeGreaterThan(rings[0].radius);
+    const near = positions.get('near');
+    const far = positions.get('far');
+    expect(Math.hypot(near[0], near[2])).toBeCloseTo(rings[0].radius, 5);
+    expect(Math.hypot(far[0], far[2])).toBeCloseTo(rings[1].radius, 5);
+    // The moon stays beside its parent planet.
+    expect(moonParent.get('sat')).toBe('near');
+    const sat = positions.get('sat');
+    expect(Math.hypot(sat[0] - near[0], sat[2] - near[2])).toBeLessThan(2.5);
+    expect(bounds.radius).toBeGreaterThan(rings[1].radius);
+  });
+
+  it('orreryOrbitLayout survives a scene with no explicit sun', () => {
+    const { sunIds, rings } = orreryOrbitLayout([
+      { id: 'a', label: 'A', orbit: 3, size: 2 },
+      { id: 'b', label: 'B', orbit: 5, size: 2 }
+    ]);
+    expect(sunIds).toEqual([]);
+    expect(rings.length).toBe(2);
+  });
+
+  it('riverPathLayout orders stations by stage and widens with flow', () => {
+    const items = [
+      { id: 'publish', label: 'Publish', stage: 2, flow: 4 },
+      { id: 'ingest', label: 'Ingest', stage: 0, flow: 12 },
+      { id: 'validate', label: 'Validate', stage: 1, flow: 10 }
+    ];
+    const { samples, stations, positions } = riverPathLayout(items);
+    expect(stations.map((s) => s.id)).toEqual(['ingest', 'validate', 'publish']);
+    // Source → mouth runs along +x.
+    expect(stations[0].point[0]).toBeLessThan(stations[2].point[0]);
+    expect(samples.length).toBeGreaterThan(100);
+    expect(positions.size).toBe(3);
+    // Station anchors sit on the bank, away from the channel centre.
+    const ingest = stations[0];
+    const offset = Math.hypot(ingest.bank[0] - ingest.point[0], ingest.bank[2] - ingest.point[2]);
+    expect(offset).toBeGreaterThan(riverWidthForFlow(12));
+  });
+
+  it('riverPathLayout handles empty and single-station inputs', () => {
+    expect(riverPathLayout([]).samples).toEqual([]);
+    const single = riverPathLayout([{ id: 'only', label: 'Only', stage: 0, flow: 5 }]);
+    expect(single.samples.length).toBeGreaterThan(2);
+    expect(single.stations).toHaveLength(1);
   });
 });

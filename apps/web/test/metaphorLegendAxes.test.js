@@ -42,8 +42,23 @@ describe('legendAxesFor', () => {
       'city',
       'galaxy',
       'layercake',
+      'orrery',
+      'river',
       'terrain',
       'tree'
+    ]);
+  });
+
+  it('exposes the orrery and river axes', () => {
+    const orrery = legendAxesFor('orrery', { orbit: 'distance from core', size: 'headcount' });
+    expect(orrery).toEqual([
+      { key: 'orbit', label: 'Orbit', text: 'distance from core' },
+      { key: 'size', label: 'Size', text: 'headcount' }
+    ]);
+    const river = legendAxesFor('river', { stage: 'funnel step', flow: 'weekly signups' });
+    expect(river).toEqual([
+      { key: 'stage', label: 'Stage', text: 'funnel step' },
+      { key: 'flow', label: 'Flow', text: 'weekly signups' }
     ]);
   });
 });

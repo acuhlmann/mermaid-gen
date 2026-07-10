@@ -21,7 +21,13 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
-import { MeadowFireflies, SkySunGlow, SwayGroup } from './MetaphorSceneDecorations.jsx';
+import {
+  FallingLeaves,
+  MeadowFireflies,
+  SkySunGlow,
+  SoaringBirds,
+  SwayGroup
+} from './MetaphorSceneDecorations.jsx';
 import { idHash, idHash2, shiftColor } from './sceneUtils.js';
 
 /**
@@ -170,7 +176,11 @@ function TreeLeafCluster({ position, theme, id, weight }) {
         {fruits.map((f, i) => (
           <mesh key={`fruit-${i}`} position={f.pos}>
             <sphereGeometry args={[0.1, 8, 8]} />
-            <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.25} />
+            <meshStandardMaterial
+              color={accentColor}
+              emissive={accentColor}
+              emissiveIntensity={0.25}
+            />
           </mesh>
         ))}
       </SwayGroup>
@@ -302,7 +312,11 @@ function TreeTrunk({ root, theme }) {
       {flares.map((f, i) => (
         <mesh
           key={`flare-${i}`}
-          position={[Math.cos(f.angle) * f.length * 0.45, 0.05, Math.sin(f.angle) * f.length * 0.45]}
+          position={[
+            Math.cos(f.angle) * f.length * 0.45,
+            0.05,
+            Math.sin(f.angle) * f.length * 0.45
+          ]}
           rotation={[0, -f.angle, 0]}
           scale={[f.length, radiusBottom * 0.55, radiusBottom * 0.5]}
         >
@@ -442,7 +456,11 @@ function MeadowDetails({ roots, theme, radius }) {
       {drops.map((drop, i) => (
         <mesh key={`drop-${i}`} position={drop.position}>
           <sphereGeometry args={[0.07, 8, 8]} />
-          <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.2} />
+          <meshStandardMaterial
+            color={accentColor}
+            emissive={accentColor}
+            emissiveIntensity={0.2}
+          />
         </mesh>
       ))}
     </group>
@@ -635,6 +653,12 @@ export function TreeScene({ dsl, theme }) {
 
   const meadowRadius = Math.max(6, (layout.bounds?.radius ?? 5) * 1.02 + 1.1);
 
+  const canopyTop = useMemo(() => {
+    let top = 4;
+    for (const pos of layout.positions.values()) top = Math.max(top, pos[1] + 1.5);
+    return top;
+  }, [layout.positions]);
+
   return (
     <group>
       <TreeMeadow theme={treeTheme} radius={meadowRadius} />
@@ -656,6 +680,19 @@ export function TreeScene({ dsl, theme }) {
       <AmbientForest roots={trunkRoots} theme={treeTheme} radius={meadowRadius} />
       {/* Warm blinking motes wandering over the clearing — pure ambience. */}
       <MeadowFireflies radius={meadowRadius} count={Math.min(26, Math.round(meadowRadius * 2.4))} />
+      {/* Loose leaves drifting off the canopies, and birds wheeling above. */}
+      <FallingLeaves
+        radius={meadowRadius}
+        height={canopyTop}
+        color={treeTheme.treeLeafColor ?? '#4ade80'}
+      />
+      <SoaringBirds
+        radius={meadowRadius * 0.8}
+        height={canopyTop + 2.5}
+        count={3}
+        color={theme.labelColor ?? '#1f2937'}
+        idSeed="tree-birds"
+      />
       {dsl.items.map((item) => {
         const position = layout.positions.get(item.id);
         const info = layout.nodeInfo.get(item.id);
@@ -680,10 +717,20 @@ export function TreeScene({ dsl, theme }) {
                 />
               ) : null}
               {isTrunk ? (
-                <TrunkCrown position={position} theme={treeTheme} id={item.id} weight={info.weight} />
+                <TrunkCrown
+                  position={position}
+                  theme={treeTheme}
+                  id={item.id}
+                  weight={info.weight}
+                />
               ) : null}
               {info.kind === 'branch' ? (
-                <BranchFoliage position={position} theme={treeTheme} id={item.id} weight={info.weight} />
+                <BranchFoliage
+                  position={position}
+                  theme={treeTheme}
+                  id={item.id}
+                  weight={info.weight}
+                />
               ) : null}
               {item.glyph ? (
                 <group position={glyphPos} scale={glyphScale}>

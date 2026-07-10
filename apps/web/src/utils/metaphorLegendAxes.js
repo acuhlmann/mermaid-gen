@@ -27,6 +27,14 @@ export const METAPHOR_LEGEND_AXES = {
   terrain: [
     ['elevation', 'Elevation'],
     ['intensity', 'Intensity']
+  ],
+  orrery: [
+    ['orbit', 'Orbit'],
+    ['size', 'Size']
+  ],
+  river: [
+    ['stage', 'Stage'],
+    ['flow', 'Flow']
   ]
 };
 
@@ -50,6 +58,15 @@ const ITEM_METRICS = {
   terrain: [
     { key: 'elevation', label: 'Elevation', type: 'number' },
     { key: 'intensity', label: 'Intensity', type: 'number' }
+  ],
+  orrery: [
+    { key: 'orbit', label: 'Orbit', type: 'number' },
+    { key: 'size', label: 'Size', type: 'number' }
+  ],
+  river: [
+    { key: 'stage', label: 'Stage', type: 'number' },
+    { key: 'flow', label: 'Flow', type: 'number' },
+    { key: 'hazard', label: 'Hazard', type: 'number' }
   ]
 };
 

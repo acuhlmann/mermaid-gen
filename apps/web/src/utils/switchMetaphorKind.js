@@ -6,7 +6,9 @@ export const METAPHOR_KIND_LABELS = {
   layercake: 'Layer cake',
   galaxy: 'Galaxy',
   tree: 'Tree',
-  terrain: 'Terrain'
+  terrain: 'Terrain',
+  orrery: 'Orrery',
+  river: 'River'
 };
 
 function isObject(value) {
@@ -30,6 +32,10 @@ function primaryMagnitude(item, kind) {
       return finiteNumber(item.weight, 3);
     case 'terrain':
       return finiteNumber(item.elevation, 3);
+    case 'orrery':
+      return finiteNumber(item.size, 3);
+    case 'river':
+      return finiteNumber(item.flow, 5);
     default:
       return 10;
   }
@@ -42,6 +48,8 @@ function secondaryMagnitude(item, kind) {
       return finiteNumber(item.footprint, 2);
     case 'terrain':
       return finiteNumber(item.intensity, 3);
+    case 'orrery':
+      return finiteNumber(item.orbit, 3);
     default:
       return null;
   }
@@ -57,7 +65,7 @@ function groupingLabel(item, kind) {
   return '';
 }
 
-function mapItemToKind(item, fromKind, toKind) {
+function mapItemToKind(item, fromKind, toKind, index) {
   const primary = primaryMagnitude(item, fromKind);
   const secondary = secondaryMagnitude(item, fromKind);
   const group = groupingLabel(item, fromKind);
@@ -106,6 +114,15 @@ function mapItemToKind(item, fromKind, toKind) {
       next.elevation = primary;
       next.intensity = secondary ?? 3;
       break;
+    case 'orrery':
+      next.size = Math.max(0.5, Math.min(10, primary));
+      // Bigger/more central things orbit closer to the core.
+      next.orbit = Math.max(1, Math.min(12, Math.round(12 - Math.min(primary, 11))));
+      break;
+    case 'river':
+      next.stage = index;
+      next.flow = Math.max(0.1, Math.min(20, primary));
+      break;
     default:
       break;
   }
@@ -123,7 +140,7 @@ function mapItemToKind(item, fromKind, toKind) {
  */
 export function switchMetaphorKind(source, nextKind) {
   const kind = typeof nextKind === 'string' ? nextKind.trim().toLowerCase() : '';
-  if (!(METAPHOR_KINDS).includes(kind)) {
+  if (!METAPHOR_KINDS.includes(kind)) {
     return { ok: false, error: 'Unknown metaphor type.' };
   }
 
@@ -140,7 +157,7 @@ export function switchMetaphorKind(source, nextKind) {
   const working = {
     metaphor: kind,
     scene: isObject(sanitized.dsl.scene) ? { ...sanitized.dsl.scene } : {},
-    items: sanitized.dsl.items.map((item) => mapItemToKind(item, currentKind, kind)),
+    items: sanitized.dsl.items.map((item, index) => mapItemToKind(item, currentKind, kind, index)),
     links: Array.isArray(sanitized.dsl.links) ? [...sanitized.dsl.links] : []
   };
 
