@@ -45,10 +45,14 @@ function nonEmptyLineCount(text) {
 }
 
 function isSubstantialDsl(dsl, kind) {
-  if (!dsl || dsl.length < 28) return false;
+  if (!dsl?.trim()) return false;
   const lines = nonEmptyLineCount(dsl);
+  if (kind === 'anything') {
+    // Streaming pages often start as a short `<!DOCTYPE html>\n<html>` stub — still previewable.
+    return lines >= 1 && dsl.length >= 10;
+  }
+  if (dsl.length < 28) return false;
   if (kind === 'infographic') return lines >= 2;
-  if (kind === 'anything') return lines >= 2 || dsl.length >= 48;
   if (lines >= 2) return true;
   return dsl.length >= 48;
 }
@@ -165,7 +169,9 @@ function splitEmbeddedAnythingHtml(text) {
     const closeIdx = text.indexOf('```', contentStart);
     const inner = (closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)).trim();
     const dsl = tryParseAnythingHtml(inner);
-    if (!dsl || !isSubstantialDsl(dsl, 'anything')) continue;
+    if (!dsl) continue;
+    // Fenced blocks are intentional markup — preview even while the closing fence is still streaming.
+    if (closeIdx < 0 && !isSubstantialDsl(dsl, 'anything')) continue;
     return {
       prose: joinProseSegments(text.slice(0, fenceMatch.index), closeIdx >= 0 ? text.slice(closeIdx + 3) : ''),
       dsl,
@@ -311,6 +317,11 @@ export function tryExtractDiagramPreviewFromText(text) {
   }
   const metaphorDsl = tryParseMetaphorDsl(trimmed);
   if (metaphorDsl) return { kind: 'metaphor3d', source: metaphorDsl };
+
+  const anythingHtml = tryParseAnythingHtml(trimmed);
+  if (anythingHtml && isSubstantialDsl(anythingHtml, 'anything')) {
+    return { kind: 'anything', source: anythingHtml };
+  }
 
   return null;
 }

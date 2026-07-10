@@ -1235,7 +1235,8 @@ export default function InsightsPane({
               (afterKind === 'mermaid' ||
                 afterKind === 'infographic' ||
                 afterKind === 'chart' ||
-                afterKind === 'metaphor3d');
+                afterKind === 'metaphor3d' ||
+                afterKind === 'anything');
             const afterDiff = hasAfterPreview ? entryDiagramDiffById?.[entry.id] ?? null : null;
             const afterRemovedIds = afterDiff?.removedIds ?? [];
             // Restore is a per-version bookmark: click to jump the canvas back to this entry's

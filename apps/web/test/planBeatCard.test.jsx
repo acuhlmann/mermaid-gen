@@ -60,4 +60,24 @@ describe('PlanBeatCard', () => {
     expect(screen.getByText('Inventory the services')).toBeTruthy();
     expect(screen.getByText('Draw the flows')).toBeTruthy();
   });
+
+  it('renders an HTML preview instead of raw fenced markup for an anything plan beat', () => {
+    const html = `<!DOCTYPE html>
+<html>
+<head><title>Photosynthesis</title></head>
+<body><h1>Photosynthesis</h1></body>
+</html>`;
+    const text = `Current HTML document:\n\n\`\`\`html\n${html}\n\`\`\``;
+    render(
+      <ul>
+        <PlanBeatCard beat={{ text, source: 'agent' }} variant="refine" index={0} />
+      </ul>
+    );
+
+    const preview = screen.getByTestId('insights-embedded-diagram');
+    expect(preview.getAttribute('aria-label')).toBe('Page preview (read-only)');
+    expect(screen.getByText('Current HTML document:')).toBeTruthy();
+    expect(screen.queryByText('```html')).toBeNull();
+    expect(screen.queryByText(/<!DOCTYPE html>/)).toBeNull();
+  });
 });
