@@ -18,6 +18,7 @@ import { getVariantPersona } from '../utils/slopitectCopy.js';
 
 const WISE_ARCHITECT_EMOJI = getVariantPersona('explain').avatarEmoji || '🧙';
 const STAKEHOLDERS_EMOJI = '👥';
+const RENDER_MODE_EMOJI = '🔄';
 
 const ARC_RADIUS_DESKTOP_PX = 82;
 const ARC_RADIUS_MOBILE_PX = 62;
@@ -144,6 +145,7 @@ export default function RadialActionMenu({
   const [isDragging, setIsDragging] = useState(false);
   const [viewportTick, setViewportTick] = useState(0);
   const [stakeholdersExpanded, setStakeholdersExpanded] = useState(false);
+  const [renderModesExpanded, setRenderModesExpanded] = useState(false);
   const [explainerOpen, setExplainerOpen] = useState(false);
   /** 0 = Wise Architect brief; 1–6 = younger; 7 = pre-verbal babble. */
   const [dumbLevel, setDumbLevel] = useState(0);
@@ -182,7 +184,7 @@ export default function RadialActionMenu({
     };
   }, [descriptor]);
 
-  const popoverMode = explainerOpen || stakeholdersExpanded;
+  const popoverMode = explainerOpen || stakeholdersExpanded || renderModesExpanded;
   /** Modal trays (explainer, stakeholders, slop prompt) must not inherit the
    * 450ms hover-close grace timer from the arc buttons they replace. */
   const modalSurfaceOpen = popoverMode || slopPromptOpen;
@@ -200,9 +202,8 @@ export default function RadialActionMenu({
     const cleaned = actions.filter((action) => action && !action.hidden);
     const hasPrimaryGroup = cleaned.some((action) => action.group === 'primary');
     if (!hasPrimaryGroup) return cleaned;
-    // In the new design, opening either popover hides the chip + arc entirely
-    // (the popover replaces the menu), so we only ever render the primary
-    // group's two entries here.
+    // Primary actions stay on the arc; persona actions move into the
+    // stakeholders tray so the radial menu stays compact.
     return cleaned.filter((action) => (action.group || 'persona') === 'primary');
   }, [actions]);
 
@@ -212,6 +213,14 @@ export default function RadialActionMenu({
       (action) => action && !action.hidden && (action.group || 'persona') !== 'primary'
     );
   }, [actions]);
+
+  const renderModeAction = useMemo(() => {
+    if (!Array.isArray(actions)) return null;
+    return actions.find((action) => action && action.behavior === 'expandRenderModes') ?? null;
+  }, [actions]);
+  const renderModeOptions = Array.isArray(renderModeAction?.modeOptions)
+    ? renderModeAction.modeOptions
+    : [];
 
   const chipTypeLabel = descriptor ? partKindLabel(descriptor.partKind) : '';
   const chipName = descriptor ? descriptor.partName || descriptor.label || descriptor.id || '' : '';
@@ -249,7 +258,14 @@ export default function RadialActionMenu({
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [popoverMode, explainerOpen, stakeholdersExpanded, explanation.status, viewportTick]);
+  }, [
+    popoverMode,
+    explainerOpen,
+    stakeholdersExpanded,
+    renderModesExpanded,
+    explanation.status,
+    viewportTick
+  ]);
 
   // The parent re-mounts this component with `key={descriptor.id}` whenever the
   // selected element changes, so popover state (explainer / stakeholders) starts
@@ -548,7 +564,7 @@ export default function RadialActionMenu({
     // Use measured height when available; on first paint fall back to a
     // generous estimate. Once measured, the actual rendered size drives
     // placement so a long Wise Architect explanation can't silently overflow.
-    const estimatedHeight = popoverHeight || (stakeholdersExpanded ? 280 : 220);
+    const estimatedHeight = popoverHeight || (stakeholdersExpanded ? 280 : renderModesExpanded ? 300 : 220);
     const popHeight = Math.min(estimatedHeight, usableHeight);
     const nodeBottom = Math.max(layout.nodeBottom, layout.centerY);
     const nodeTop = Math.min(layout.nodeTop, layout.centerY);
@@ -584,7 +600,7 @@ export default function RadialActionMenu({
     const vv = readViewportBounds();
     const bottomReserve = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
     const width = popoverWidth || 280;
-    const height = popoverHeight || (stakeholdersExpanded ? 280 : 220);
+    const height = popoverHeight || (stakeholdersExpanded ? 280 : renderModesExpanded ? 300 : 220);
     const minLeft = vv.left + VIEWPORT_MARGIN_PX;
     const minTop = vv.top + VIEWPORT_MARGIN_PX;
     const maxLeft = Math.max(minLeft, vv.right - VIEWPORT_MARGIN_PX - width);
@@ -678,15 +694,24 @@ export default function RadialActionMenu({
             const behavior = action.behavior;
             const isExpander = behavior === 'expandStakeholders';
             const isExplainer = behavior === 'showExplanation';
+            const isModeRenderer = behavior === 'expandRenderModes';
             const handleClick = () => {
               if (isExplainer) {
                 setStakeholdersExpanded(false);
+                setRenderModesExpanded(false);
                 setExplainerOpen(true);
                 return;
               }
               if (isExpander) {
                 setExplainerOpen(false);
+                setRenderModesExpanded(false);
                 setStakeholdersExpanded(true);
+                return;
+              }
+              if (isModeRenderer) {
+                setExplainerOpen(false);
+                setStakeholdersExpanded(false);
+                setRenderModesExpanded(true);
                 return;
               }
               onActionPick?.(action, descriptor);
@@ -701,14 +726,14 @@ export default function RadialActionMenu({
                 tabIndex={index === Math.min(focusedIndex, visibleActions.length - 1) ? 0 : -1}
                 className={className}
                 style={{ left: pos.x, top: pos.y }}
-                disabled={(busy && !(isExplainer || isExpander)) || action.disabled}
+                disabled={(busy && !(isExplainer || isExpander || isModeRenderer)) || action.disabled}
                 onClick={handleClick}
                 onFocus={() => setFocusedIndex(index)}
                 onPointerEnter={onHoverHold}
                 onPointerLeave={onHoverRelease}
                 aria-label={personaShort ? `${action.label} (${personaShort})` : action.label}
-                aria-pressed={isExplainer || isExpander ? false : undefined}
-                aria-expanded={isExpander ? false : undefined}
+                aria-pressed={isExplainer || isExpander || isModeRenderer ? false : undefined}
+                aria-expanded={isExpander || isModeRenderer ? false : undefined}
                 title={title}
                 data-persona={personaShort || undefined}
                 data-action-id={action.id}
@@ -927,6 +952,77 @@ export default function RadialActionMenu({
                 </button>
               );
             })}
+          </div>
+        </div>
+      ) : null}
+      {renderModesExpanded && !slopPrompt ? (
+        <div
+          ref={popoverRef}
+          className={`radial-render-mode-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}`}
+          role="dialog"
+          aria-label="Render selected item in another mode"
+          style={{
+            left: popoverStyle.left,
+            top: popoverStyle.top,
+            transform: popoverStyle.transform,
+            opacity: popoverMeasured || dragPos ? 1 : 0,
+            pointerEvents: popoverMeasured || dragPos ? undefined : 'none'
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerEnter={onHoverHold}
+        >
+          <div
+            className="radial-render-mode-head"
+            onPointerDown={handleDragPointerDown}
+            onPointerMove={handleDragPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+            title="Drag to reposition"
+          >
+            <span className="radial-render-mode-eyebrow" aria-hidden="true">{RENDER_MODE_EMOJI}</span>
+            <span className="radial-render-mode-heading">
+              {chipName ? <>Render <strong>{chipName}</strong> as...</> : 'Render this as...'}
+            </span>
+            <button
+              type="button"
+              className="radial-render-mode-close"
+              onClick={() => onClose?.()}
+              aria-label="Close render mode picker"
+            >
+              ×
+            </button>
+          </div>
+          <div className="radial-render-mode-list" role="menu" aria-label="Target render mode">
+            {renderModeOptions.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                className={`radial-render-mode-row${mode.disabled ? ' is-current' : ''}`}
+                disabled={busy || mode.disabled}
+                onClick={() => {
+                  onActionPick?.({ ...renderModeAction, targetMode: mode.id }, descriptor);
+                }}
+                aria-label={
+                  mode.disabled
+                    ? `${mode.label} is the current mode`
+                    : `Render selected item as ${mode.label}`
+                }
+                title={
+                  mode.disabled
+                    ? `${mode.label} is already active`
+                    : `Render this selection as ${mode.label}`
+                }
+                data-mode-id={mode.id}
+              >
+                <span className="radial-render-mode-row-icon" aria-hidden="true">{mode.shortLabel}</span>
+                <span className="radial-render-mode-row-text">
+                  <span className="radial-render-mode-row-name">{mode.label}</span>
+                  <span className="radial-render-mode-row-title">
+                    {mode.disabled ? 'Current mode' : mode.subtitle}
+                  </span>
+                </span>
+              </button>
+            ))}
           </div>
         </div>
       ) : null}

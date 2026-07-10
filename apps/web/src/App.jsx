@@ -172,7 +172,8 @@ import {
   MicIcon,
   MicActiveIcon,
   CodeEditorIcon,
-  CodeCloseIcon
+  CodeCloseIcon,
+  RenderModeIcon
 } from './components/AppIcons.jsx';
 import { ActionPersonaIcon, ActionPersonaRole } from './components/ActionPersonaBits.jsx';
 import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
@@ -184,6 +185,11 @@ import {
   actionPersonaEmoji,
   actionPersonaTitle
 } from './utils/appActionPersonas.js';
+import {
+  buildRenderSelectionPrompt,
+  isContentMode,
+  selectableRenderModes
+} from './utils/renderModeAction.js';
 
 const RADIAL_MENU_CLOSE_GRACE_MS = 450;
 /** Auto-show diagram diff highlights after the final SVG for an agent-applied revision is on screen. */
@@ -353,6 +359,7 @@ function ArchiSlop() {
    * clobbering the just-restored snapshot.
    */
   const suppressNextModeSwitchRerunRef = useRef(false);
+  const pendingRenderModeRequestRef = useRef(null);
 
   const clearPendingAutoDiagramHighlight = useCallback(() => {
     pendingAutoDiagramHighlightRef.current = null;
@@ -911,6 +918,25 @@ function ArchiSlop() {
         }
 
         const peerContext = buildIntentPeerContext(contentMode, session, candidate);
+        const pendingRenderModeRequest = pendingRenderModeRequestRef.current;
+        if (pendingRenderModeRequest?.targetMode === contentMode) {
+          pendingRenderModeRequestRef.current = null;
+          Promise.resolve().then(async () => {
+            if (cancelled) return;
+            try {
+              await submitIntentWithPrompt(pendingRenderModeRequest.promptText, {
+                stateOverride: data,
+                peerContext: pendingRenderModeRequest.peerContext,
+                focusTarget: pendingRenderModeRequest.descriptor,
+                contentTypeOverride: contentMode,
+                skipLoadingGuard: true
+              });
+            } catch (err) {
+              if (!cancelled) setError(err.message);
+            }
+          });
+          return;
+        }
         // Cross-mode Restore intentionally jumps to a specific snapshot — don't let the auto
         // mode-switch rerun overwrite it on the very next hydrate pass.
         const restoreSuppressed = suppressNextModeSwitchRerunRef.current;
@@ -1607,6 +1633,32 @@ function ArchiSlop() {
     [contentMode, stopStreamingAgentRequest]
   );
 
+  async function renderSelectionInMode(targetMode, descriptor) {
+    if (!isContentMode(targetMode) || targetMode === contentMode) return;
+    if (loadingRef.current || streamingPreviewRef.current) return;
+    if (!stateRef.current.diagramSource.trim()) return;
+
+    const sourceMode = contentMode;
+    const promptText = buildRenderSelectionPrompt({ descriptor, sourceMode, targetMode });
+    hasInteractedRef.current = true;
+    closeRadialMenu();
+
+    try {
+      const sourceState = await syncDiagramOrThrow();
+      pendingRenderModeRequestRef.current = {
+        targetMode,
+        sourceMode,
+        promptText,
+        descriptor,
+        peerContext: { contentType: sourceMode, diagramSource: sourceState.diagramSource }
+      };
+      handleSelectContentMode(targetMode);
+    } catch (err) {
+      pendingRenderModeRequestRef.current = null;
+      setError(err.message);
+    }
+  }
+
   const runStreamingAgent = useCallback(
     async ({
       operation,
@@ -2101,6 +2153,9 @@ function ArchiSlop() {
       options.focusTarget ??
       (options.advisorFocusDescriptor?.id ? options.advisorFocusDescriptor : null) ??
       selectedNode;
+    const requestContentType = isContentMode(options.contentTypeOverride)
+      ? options.contentTypeOverride
+      : contentMode;
     setLoading(true);
     setActiveRequest('intent');
     setError('');
@@ -2119,7 +2174,7 @@ function ArchiSlop() {
           prompt: trimmed,
           revisionId: syncedState.revisionId,
           diagramSource: syncedState.diagramSource,
-          contentType: contentMode,
+          contentType: requestContentType,
           settings: {},
           focusNode,
           modelProfile,
@@ -3175,6 +3230,12 @@ ${requirementsBlock}`;
         dismissRadialMenu();
         return;
       }
+      if (next?.id && selectedNode?.id && next.id === selectedNode.id) {
+        setRadialMenuSession(null);
+        setRadialMenuVisible(true);
+        setSelectedNode(next);
+        return;
+      }
       if (next?.id && selectedNode?.id && next.id !== selectedNode.id) {
         setRadialMenuSession(null);
         setRadialMenuVisible(true);
@@ -3420,6 +3481,10 @@ ${requirementsBlock}`;
       openRadialSlopPrompt();
       return;
     }
+    if (action.id === 'renderMode') {
+      renderSelectionInMode(action.targetMode, descriptor);
+      return;
+    }
     closeRadialMenu();
     const runOpts = { focusTarget: descriptor };
     const variantForBoot =
@@ -3482,6 +3547,21 @@ ${requirementsBlock}`;
         persona: PROMPT_ACTION_COPY.roleTag,
         personaEmoji: PROMPT_ACTION_COPY.roleEmoji,
         personaTitle: PROMPT_ACTION_COPY.title
+      },
+      {
+        id: 'renderMode',
+        label: 'Render as...',
+        icon: (
+          <span className="action-persona-icon is-render-mode" aria-hidden="true">
+            <RenderModeIcon />
+          </span>
+        ),
+        variant: 'render-mode',
+        group: 'primary',
+        behavior: 'expandRenderModes',
+        persona: 'Mode Shifter',
+        personaTitle: 'Mode Shifter · Re-render this selection in another mode',
+        modeOptions: selectableRenderModes(contentMode)
       },
       {
         id: 'refine',
@@ -3550,7 +3630,7 @@ ${requirementsBlock}`;
       }
     ];
     return list;
-  }, [canFixFromCritique, goMadStreak, latestCritique?.text]);
+  }, [canFixFromCritique, contentMode, goMadStreak, latestCritique?.text]);
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(insightsOpen, 240);
   const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');

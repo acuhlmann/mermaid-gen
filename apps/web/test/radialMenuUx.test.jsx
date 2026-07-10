@@ -65,6 +65,12 @@ function RadialMenuHarness({ initialSelected = null, anchorsById = null }) {
       setRadialMenuVisible(false);
       return;
     }
+    if (!radialMenuVisible && selectedNode?.id === MOCK_DESCRIPTOR.id) {
+      setRadialMenuSession(null);
+      setRadialMenuVisible(true);
+      setSelectedNode(MOCK_DESCRIPTOR);
+      return;
+    }
     setSelectedNode(MOCK_DESCRIPTOR);
   }
 
@@ -171,6 +177,14 @@ describe('radial menu click-to-open UX', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Simulate pan dismiss' }));
     expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
     expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe('');
+  });
+
+  it('reopens the menu when the same selected part is clicked after dismiss', () => {
+    render(<RadialMenuHarness initialSelected={MOCK_DESCRIPTOR} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate pan dismiss' }));
+    expect(screen.queryByRole('menu', { name: 'Diagram selection actions' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Simulate select' }));
+    expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
   });
 });
 
@@ -336,7 +350,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
   });
 
   it('does not schedule a close from the slop prompt tray on pointer leave', () => {
-    const { onHoverRelease, props } = renderSlopPromptMenu({
+    const { onHoverRelease } = renderSlopPromptMenu({
       slopPromptOpen: true,
       slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
     });
@@ -346,7 +360,7 @@ describe('radial slop prompt survives the hover-close grace period', () => {
   });
 
   it('does not schedule a close from the hit area while the slop prompt is open', () => {
-    const { onHoverRelease, props } = renderSlopPromptMenu({
+    const { onHoverRelease } = renderSlopPromptMenu({
       slopPromptOpen: true,
       slopPrompt: <input data-testid="slop-prompt-input" aria-label="New prompt" />
     });
@@ -362,6 +376,96 @@ describe('radial slop prompt survives the hover-close grace period', () => {
     });
     expect(screen.queryByRole('menuitem', { name: /Weigh In/ })).toBeNull();
     expect(screen.getByTestId('slop-prompt-input')).toBeTruthy();
+  });
+});
+
+describe('radial render mode picker', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  const RENDER_MODE_ACTIONS = [
+    {
+      id: 'renderMode',
+      label: 'Render as...',
+      icon: 'M',
+      variant: 'render-mode',
+      group: 'primary',
+      behavior: 'expandRenderModes',
+      persona: 'Mode Shifter',
+      modeOptions: [
+        {
+          id: 'mermaid',
+          label: 'Diagram',
+          shortLabel: 'Diagram',
+          subtitle: 'Mermaid architecture graph',
+          disabled: true
+        },
+        {
+          id: 'infographic',
+          label: 'Infographic',
+          shortLabel: 'Info',
+          subtitle: 'AntV narrative layout',
+          disabled: false
+        },
+        {
+          id: 'chart',
+          label: 'Chart',
+          shortLabel: 'Chart',
+          subtitle: 'Vega-Lite data view',
+          disabled: false
+        }
+      ]
+    },
+    { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' }
+  ];
+
+  function renderRenderModeMenu(overrides = {}) {
+    const onActionPick = vi.fn();
+    const onHoverHold = vi.fn();
+    const onHoverRelease = vi.fn();
+    render(
+      <RadialActionMenu
+        descriptor={MOCK_DESCRIPTOR}
+        anchor={MOCK_ANCHOR}
+        actions={RENDER_MODE_ACTIONS}
+        onActionPick={onActionPick}
+        onHoverHold={onHoverHold}
+        onHoverRelease={onHoverRelease}
+        onBackdropPointerDown={vi.fn()}
+        onClose={vi.fn()}
+        {...overrides}
+      />
+    );
+    return { onActionPick, onHoverHold, onHoverRelease };
+  }
+
+  it('opens a target-mode picker from the primary action', () => {
+    const { onHoverHold } = renderRenderModeMenu();
+    onHoverHold.mockClear();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
+    expect(screen.getByRole('dialog', { name: /Render selected item in another mode/i })).toBeTruthy();
+    expect(screen.queryByRole('menuitem', { name: /Refine/i })).toBeNull();
+    expect(screen.getByText('AntV narrative layout')).toBeTruthy();
+    expect(screen.getByText('Vega-Lite data view')).toBeTruthy();
+    expect(screen.queryByText('Create a focused view of this item')).toBeNull();
+    expect(onHoverHold).toHaveBeenCalled();
+  });
+
+  it('passes the selected target mode to onActionPick', () => {
+    const { onActionPick } = renderRenderModeMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Render selected item as Chart' }));
+    expect(onActionPick).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'renderMode', targetMode: 'chart' }),
+      MOCK_DESCRIPTOR
+    );
+  });
+
+  it('keeps the current mode disabled', () => {
+    renderRenderModeMenu();
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
+    expect(screen.getByRole('button', { name: 'Diagram is the current mode' }).disabled).toBe(true);
   });
 });
 
