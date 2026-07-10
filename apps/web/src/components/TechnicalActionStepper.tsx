@@ -85,9 +85,9 @@ function useNowTicker(active: boolean) {
 }
 
 function actionDurationMs(action: TechnicalAction, now: number): number | null {
-  if (Number.isFinite(action.durationMs)) return action.durationMs as number;
+  if (Number.isFinite(action.durationMs)) return action.durationMs;
   if (action.status === 'running' && Number.isFinite(action.startedAt)) {
-    return Math.max(0, now - (action.startedAt as number));
+    return Math.max(0, now - action.startedAt);
   }
   return null;
 }
@@ -176,6 +176,53 @@ function PipelineOverview({
   );
 }
 
+function TechnicalActionDetail({
+  action,
+  actions,
+  index
+}: {
+  action: TechnicalAction;
+  actions: TechnicalAction[];
+  index: number;
+}) {
+  const validationError =
+    typeof action.validationError === 'string' ? action.validationError.trim() : '';
+  const contextNote = typeof action.contextNote === 'string' ? action.contextNote.trim() : '';
+  const outcomeDetail = typeof action.outcomeDetail === 'string' ? action.outcomeDetail.trim() : '';
+  const reason =
+    typeof action.patchStats?.reason === 'string' ? action.patchStats.reason.trim() : '';
+  return (
+    <>
+      {reason ? (
+        <span className="insights-tech-step-context" title={reason}>
+          <b>Intent</b>
+          {truncateValidationError(reason, 180)}
+        </span>
+      ) : null}
+      {contextNote ? (
+        <span className="insights-tech-step-context" title={contextNote}>
+          <b>Triggered by</b>
+          {truncateValidationError(contextNote, 180)}
+        </span>
+      ) : null}
+      {outcomeDetail ? (
+        <span className="insights-tech-step-detail" title={outcomeDetail}>
+          {truncateValidationError(outcomeDetail)}
+        </span>
+      ) : null}
+      {validationError ? (
+        <span className="insights-tech-step-error" title={validationError}>
+          <span className="insights-tech-step-error-heading">
+            <b>Validation feedback</b>
+            <em>{recoveryStatus(actions, index)}</em>
+          </span>
+          <code>{truncateValidationError(validationError)}</code>
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 function TechnicalActionStep({
   action,
   actions,
@@ -191,12 +238,6 @@ function TechnicalActionStep({
   const isRunning = action.status === 'running';
   const isRejected = action.status === 'rejected';
   const isDone = action.status === 'done';
-  const validationError =
-    typeof action.validationError === 'string' ? action.validationError.trim() : '';
-  const contextNote = typeof action.contextNote === 'string' ? action.contextNote.trim() : '';
-  const outcomeDetail = typeof action.outcomeDetail === 'string' ? action.outcomeDetail.trim() : '';
-  const reason =
-    typeof action.patchStats?.reason === 'string' ? action.patchStats.reason.trim() : '';
   const durationLabel = formatActionDurationMs(actionDurationMs(action, now));
 
   return (
@@ -228,32 +269,7 @@ function TechnicalActionStep({
             {actionStatusLabel(action, meta)}
           </span>
         </span>
-        {reason ? (
-          <span className="insights-tech-step-context" title={reason}>
-            <b>Intent</b>
-            {truncateValidationError(reason, 180)}
-          </span>
-        ) : null}
-        {contextNote ? (
-          <span className="insights-tech-step-context" title={contextNote}>
-            <b>Triggered by</b>
-            {truncateValidationError(contextNote, 180)}
-          </span>
-        ) : null}
-        {outcomeDetail ? (
-          <span className="insights-tech-step-detail" title={outcomeDetail}>
-            {truncateValidationError(outcomeDetail)}
-          </span>
-        ) : null}
-        {validationError ? (
-          <span className="insights-tech-step-error" title={validationError}>
-            <span className="insights-tech-step-error-heading">
-              <b>Validation feedback</b>
-              <em>{recoveryStatus(actions, index)}</em>
-            </span>
-            <code>{truncateValidationError(validationError)}</code>
-          </span>
-        ) : null}
+        <TechnicalActionDetail action={action} actions={actions} index={index} />
         <code className="insights-tech-step-name">{action.name}</code>
       </span>
       {durationLabel ? (
