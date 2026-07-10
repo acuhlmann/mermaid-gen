@@ -202,6 +202,17 @@ flowchart TB
     expect(r.kind).toBe('anything');
     expect(r.prose.trim()).toBe('Applied patch.');
   });
+
+  it('splits a short streaming HTML stub after prose', () => {
+    const html = `<!DOCTYPE html>
+<html>`;
+    const text = `Current HTML document:\n\n\`\`\`html\n${html}`;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('anything');
+    expect(r.prose.trim()).toBe('Current HTML document:');
+    expect(r.dsl).toContain('<!DOCTYPE html>');
+  });
 });
 
 describe('tryExtractDiagramPreviewFromText', () => {
@@ -239,6 +250,13 @@ describe('tryExtractDiagramPreviewFromText', () => {
     expect(preview).not.toBeNull();
     expect(preview.kind).toBe('metaphor3d');
     expect(preview.source).toContain('"metaphor": "galaxy"');
+  });
+
+  it('returns anything preview metadata for a short HTML stub in a plan step', () => {
+    const preview = tryExtractDiagramPreviewFromText('<!DOCTYPE html>\n<html>');
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('anything');
+    expect(preview.source).toContain('<!DOCTYPE html>');
   });
 });
 

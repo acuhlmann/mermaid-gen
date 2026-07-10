@@ -27,6 +27,17 @@ function splitPlanSteps(text: string): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
 
+  // Keep fenced diagram/HTML blocks intact — line splitting would show ```html and tags as plain text.
+  if (/```/.test(trimmed)) {
+    const preview = tryExtractDiagramPreviewFromText(trimmed);
+    if (preview) {
+      const prose = preview.prose?.trim();
+      return prose ? splitPlanSteps(prose) : [];
+    }
+    const proseOnly = trimmed.replace(/```[\s\S]*$/s, '').trim();
+    return proseOnly ? [proseOnly] : [trimmed];
+  }
+
   const lines = trimmed
     .split('\n')
     .map((line) => line.trim())
