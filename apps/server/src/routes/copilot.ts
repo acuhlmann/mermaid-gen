@@ -41,7 +41,9 @@ import { approveHandshake, denyHandshake } from '../mcp/mcpCollaborationActions.
 import { buildWebCanvasUrl } from '../mcp/diagramDiffSummary.js';
 import { normalizePairingCode, type PairingCodeStore } from '../state/pairingCodeStore.js';
 import {
+  AGUI_CUSTOM_NAME_HEARTBEAT,
   createAgentStreamEmitter,
+  customEvent,
   newRunIds,
   runStarted,
   runError,
@@ -673,6 +675,11 @@ export function createCopilotRouter({
     return res.status(result.status).json(result.body);
   });
 
+  // Keep-alive cadence for /agent-stream. The web client aborts after 60s of
+  // event silence (AGENT_STREAM_IDLE_TIMEOUT_MS in diagramStore.js) — 15s gives
+  // a 4x margin.
+  const AGENT_STREAM_HEARTBEAT_MS = 15_000;
+
   router.post('/agent-stream', async (req, res) => {
     const { sessionId, stateStore, agentService } = resolveServices(req);
     res.setHeader(SESSION_HEADER, sessionId);
@@ -728,6 +735,17 @@ export function createCopilotRouter({
       initialStep: 'planning'
     });
 
+    // Route-level keep-alive: the agent-level heartbeats ("Thinking…" during
+    // streaming turns, invoke keepalive during blocking turns) don't cover every
+    // quiet window — syntax-fixer model calls and lazy-agent cold start emit
+    // nothing. The client kills the stream after 60s of event silence, so cover
+    // the whole run here. SSE comment lines won't do: the client's idle timer
+    // resets per decoded AG-UI event, hence a real CUSTOM event.
+    const heartbeat = setInterval(() => {
+      rawEmit(customEvent({ name: AGUI_CUSTOM_NAME_HEARTBEAT, value: { ts: Date.now() } }));
+    }, AGENT_STREAM_HEARTBEAT_MS);
+    heartbeat.unref?.();
+
     try {
       await agentService.runAgentStream(
         payload.operation,
@@ -738,6 +756,7 @@ export function createCopilotRouter({
       const message = safeErrorMessage(error);
       rawEmit(runError({ message, code: undefined }));
     } finally {
+      clearInterval(heartbeat);
       req.off?.('aborted', cleanup);
       res.off?.('close', cleanup);
     }

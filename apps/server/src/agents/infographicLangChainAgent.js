@@ -34,6 +34,7 @@ import {
 import {
   appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
+  isMermaidTransformConstraintError,
   MIN_AGENT_REPAIR_TURN_BUDGET_MS,
   MIN_SYNTAX_FIXER_BUDGET_MS,
   refineInfographicDsl,
@@ -429,8 +430,15 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       // (a) Tool-less single-shot syntax fixer: runs ONCE before the next full agent retry.
       // Mirrors the Mermaid pattern (mermaidLangChainAgent.js around line 949). The fixer is
       // a cheap fast model and skips tool plumbing entirely — when it works, we apply the
-      // patch directly and short-circuit the rest of the loop.
-      if (!syntaxFixerTried && lastBrokenSource && isInfographicSyntaxFixerAvailable(env)) {
+      // patch directly and short-circuit the rest of the loop. Transform-policy rejections
+      // (e.g. Go Mad tier ≥3 "switch template family") are semantic constraints the
+      // low-temperature fixer cannot satisfy, so those go straight to the agent retry.
+      if (
+        !syntaxFixerTried &&
+        lastBrokenSource &&
+        isInfographicSyntaxFixerAvailable(env) &&
+        !isMermaidTransformConstraintError(failureError)
+      ) {
         const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
         if (fixerStop) return finishStoppedRun(fixerStop);
         syntaxFixerTried = true;
