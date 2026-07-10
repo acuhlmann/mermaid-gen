@@ -51,6 +51,7 @@ import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
 import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import './App.css';
+import './components/TechnicalActionStepper.css';
 import {
   playAchievementFanfare,
   playKonamiRainbow,
@@ -1546,7 +1547,15 @@ function ArchiSlop() {
           if (actionIndex < 0) return entry;
           const realIndex = current.length - 1 - actionIndex;
           const nextActions = current.map((action, idx) =>
-            idx === realIndex ? { ...action, status: 'done' } : action
+            idx === realIndex
+              ? {
+                  ...action,
+                  status: 'done',
+                  ...(Number.isFinite(action.startedAt)
+                    ? { durationMs: Math.max(0, Date.now() - action.startedAt) }
+                    : {})
+                }
+              : action
           );
           return { ...entry, technicalActions: nextActions };
         });
@@ -1565,6 +1574,9 @@ function ArchiSlop() {
             ? {
                 ...action,
                 status: status === 'rejected' ? 'rejected' : 'done',
+                ...(Number.isFinite(action.startedAt)
+                  ? { durationMs: Math.max(0, Date.now() - action.startedAt) }
+                  : {}),
                 ...(errorText ? { validationError: errorText } : {}),
                 ...(detailText ? { outcomeDetail: detailText } : {})
               }
