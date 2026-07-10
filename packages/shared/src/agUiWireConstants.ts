@@ -12,6 +12,13 @@ export const AGUI_CUSTOM_NAME_PLAN_BEAT = 'plan_beat';
 export const AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT = 'tool_apply_result';
 /** Single-shot syntax fixer start/result for the insights Tool trace. */
 export const AGUI_CUSTOM_NAME_SYNTAX_FIXER = 'syntax_fixer';
+/**
+ * Route-level keep-alive on `/agent-stream`. Carries no payload the UI renders —
+ * it exists so the client's stream idle timer resets during server-side quiet
+ * windows the agent-level heartbeats don't cover (syntax-fixer model calls,
+ * lazy-agent cold start). Translators must ignore it.
+ */
+export const AGUI_CUSTOM_NAME_HEARTBEAT = 'heartbeat';
 export const AGUI_CUSTOM_NAME_LEGACY = 'legacy';
 
 /** Legacy stream `{ type }` consumed by `createAgentStreamEmitter` / web translator. */

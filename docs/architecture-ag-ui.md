@@ -69,6 +69,7 @@ From [`packages/shared/src/agUiWireConstants.js`](../packages/shared/src/agUiWir
 | `plan_beat` | `{ text, source?: 'server' \| 'agent' }` | `{ type:'plan_beat', text, source }` — diagram **why** (Thinking pane Plan lane) |
 | `a2ui` | `{ messages }` | `{ type:'a2ui', messages }` |
 | `artifact` | opaque artifact object | passthrough (`patch_summary` → legacy artifact; `explain_sections` → insight `explainSections`) |
+| `heartbeat` | `{ ts }` | dropped — route-level keep-alive so the client's stream idle timer resets during quiet windows (syntax-fixer calls, lazy-agent cold start) |
 | `legacy` | unknown | dropped |
 
 Critique checklists use `CUSTOM` + `name: "a2ui"` — details in [`architecture-a2ui.md`](architecture-a2ui.md).

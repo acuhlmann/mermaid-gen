@@ -1,6 +1,7 @@
 import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
+  AGUI_CUSTOM_NAME_HEARTBEAT,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
   AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
@@ -127,6 +128,9 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
       case 'CUSTOM': {
         const name = evt.name;
         const value = evt.value as Record<string, unknown> | undefined;
+        // Keep-alive only — its job (resetting the stream idle timer) is done the
+        // moment the event is decoded; nothing renders it.
+        if (name === AGUI_CUSTOM_NAME_HEARTBEAT) return null;
         if (name === AGUI_CUSTOM_NAME_STATUS) {
           const text = (value?.text as string) ?? '';
           return { type: 'status', text };
