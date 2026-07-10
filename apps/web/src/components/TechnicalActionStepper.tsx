@@ -85,9 +85,17 @@ function useNowTicker(active: boolean) {
 }
 
 function actionDurationMs(action: TechnicalAction, now: number): number | null {
-  if (Number.isFinite(action.durationMs)) return action.durationMs;
-  if (action.status === 'running' && Number.isFinite(action.startedAt)) {
-    return Math.max(0, now - action.startedAt);
+  const durationMs = action.durationMs;
+  if (typeof durationMs === 'number' && Number.isFinite(durationMs)) {
+    return durationMs;
+  }
+  const startedAt = action.startedAt;
+  if (
+    action.status === 'running' &&
+    typeof startedAt === 'number' &&
+    Number.isFinite(startedAt)
+  ) {
+    return Math.max(0, now - startedAt);
   }
   return null;
 }
