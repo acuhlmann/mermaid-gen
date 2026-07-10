@@ -285,8 +285,8 @@ function buildGoMadEscalationInstructions(depth, diagramSource) {
 
   const deepVisual =
     depth >= 4
-      ? `- Visual overload: ≥3 of %%init%% theming, classDef/class, linkStyle, styled subgraph titles.\n`
-      : `- Visual overload: ≥2 mechanisms (init vars, classDef/class, subgraph, linkStyle).\n`;
+      ? `- Visual overload: layer ≥3 theming mechanisms the CHOSEN type supports — %%init%% theme vars always work; classDef/class, linkStyle, styled subgraph titles only on flowchart/graph/state/class/er.\n`
+      : `- Visual overload: ≥2 theming mechanisms the chosen type supports (%%init%% vars always; classDef/class/subgraph/linkStyle only on flowchart-family/state/class/er).\n`;
 
   const ultraTypes =
     depth >= 6
@@ -350,7 +350,7 @@ export function buildTransformUserContent({
 - SUBJECT-ROOTED CHAOS: your madness must be rooted in the diagram's actual subject. If the labels are recipes, go mad on recipes; if they're org charts, go mad on the org; if they're biology, go mad in biology terms. Defaulting to "blockchain / Kubernetes / lambdas / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode — earn the chaos from the actual visible labels.
 - Diagram-type roulette: prefer exotic renderable types — gitGraph, journey, timeline, quadrantChart, pie, mindmap, sankey-beta, block-beta, requirement, C4*, sequence/state/er. Plain flowchart/source → pivot hard unless one killer gag keeps it.
 - Compact spectacle: trim %%init%% JSON to loud-but-minimal vars; short absurd labels beat paragraphs; aim ~≤14 nodes/edges combined unless the diagram type needs fewer.
-- Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
+- Visual punch (valid Mermaid): %%init%% theme swing always works and is the safe default. classDef/class/style/linkStyle are ONLY valid on flowchart/graph/stateDiagram/classDiagram/erDiagram — if you pivot to mindmap/pie/journey/timeline/gitGraph/quadrantChart/sankey-beta/block-beta/C4* (or any other type), theme it with %%init%% ONLY; a classDef/style/linkStyle line there is a parse error that fails the whole run. Contrast must stay readable.
 - The madness lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.
 - Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildGoMadEscalationInstructions(
               mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
@@ -366,6 +366,8 @@ Hard requirements:
 - Apply exactly one successful transformative update: call apply_mermaid_patch once with complete Mermaid source, then answer in prose only (no further tool calls after acceptance).
 - Do not return only text; apply the patch.
 - Keep node IDs simple ASCII identifiers where possible; keep labels concise.
+- Styling directives (classDef/class/style/linkStyle) parse only on flowchart/graph/stateDiagram/classDiagram/erDiagram. On any other diagram type, style via a %%init%% directive only — emitting them elsewhere is a parse error.
+- Use plain ASCII in syntax-critical positions (hex colors like #ff00ff, node IDs, keywords); never place non-ASCII characters inside a color value or directive.
 ${focusScope}${stakeholderBlock}
 
 Output goal:

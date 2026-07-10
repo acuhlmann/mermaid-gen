@@ -368,6 +368,75 @@ function repairInitDirective(source: string) {
 }
 
 /**
+ * Diagram types whose grammar has no `classDef` / `class` / `style` / `linkStyle` construct.
+ * Go Mad's "type roulette + loud theming" prompt frequently pairs one of these (mindmap, pie,
+ * journey, …) with a styling directive — the parser then rejects the whole diagram (e.g. a
+ * top-level `classDef` line in a mindmap parses as a second root: "There can be only one root").
+ * Stripping the orphan directive lets the diagram render unstyled instead of failing outright.
+ * The flowchart family and stateDiagram/classDiagram (which DO support these) are excluded, so
+ * legitimate theming is never touched.
+ */
+// Kept deliberately conservative: only types whose grammar has NO node-styling construct at all,
+// so a standalone classDef/class/style/linkStyle line is always a hard parse error. Types that DO
+// support styling in current Mermaid (flowchart/graph/state/class/er, block-beta, quadrantChart,
+// gantt, kanban) are excluded so a legitimate directive is never stripped. The prompt handles the
+// broader "theme exotic types via %%init%% only" prevention; this fixer is the proven-safe backstop
+// (chiefly the reported mindmap + classDef → "There can be only one root" failure).
+const STYLE_DIRECTIVE_UNSUPPORTED_TYPES = new Set([
+  'mindmap',
+  'pie',
+  'journey',
+  'timeline',
+  'gitGraph',
+  'sankey-beta',
+  'xychart-beta',
+  'requirementDiagram',
+  'C4Context',
+  'C4Container',
+  'C4Component',
+  'C4Dynamic',
+  'C4Deployment'
+]);
+
+const STYLE_DIRECTIVE_LINE_RE = /^(classDef|class|style|linkStyle)\b/i;
+
+/** Canonical diagram prefix of the header line, skipping blanks, `%%` directives, and a leading `---` frontmatter block. */
+function detectDiagramType(source: string): string | null {
+  const lines = source.split('\n');
+  let i = 0;
+  while (i < lines.length && lines[i].trim() === '') i += 1;
+  if (lines[i]?.trim() === '---') {
+    i += 1;
+    while (i < lines.length && lines[i].trim() !== '---') i += 1;
+    i += 1; // consume closing ---
+  }
+  for (; i < lines.length; i += 1) {
+    const trimmed = lines[i].trim();
+    if (!trimmed || trimmed.startsWith('%%')) continue;
+    for (const { prefix, re } of HEADER_PREFIX_REGEXES) {
+      if (re.test(trimmed)) return prefix;
+    }
+    return null;
+  }
+  return null;
+}
+
+/**
+ * Remove `classDef` / `class` / `style` / `linkStyle` lines from diagram types whose grammar
+ * rejects them. Only fires on the styling-unsupported types above, so it never strips a valid
+ * directive from a flowchart/state/class diagram. Runs only as a parse-fail rescue, so a valid
+ * diagram never reaches it.
+ */
+function stripUnsupportedStyleDirectives(source: string) {
+  const type = detectDiagramType(source);
+  if (!type || !STYLE_DIRECTIVE_UNSUPPORTED_TYPES.has(type)) return null;
+  const lines = source.split('\n');
+  const kept = lines.filter((line) => !STYLE_DIRECTIVE_LINE_RE.test(line.trim()));
+  if (kept.length === lines.length) return null;
+  return kept.join('\n');
+}
+
+/**
  * @typedef {{name: string, fn: (source: string, ctx: {parseError?: string | null}) => string | null}} Fixer
  */
 
@@ -376,6 +445,7 @@ type Fixer = (source: string, ctx?: { parseError?: string | null }) => string | 
 const FIXERS: Array<{ name: string; fn: Fixer }> = [
   { name: 'normalizeSmartQuotes', fn: normalizeSmartQuotes },
   { name: 'normalizeDiagramHeader', fn: normalizeDiagramHeader },
+  { name: 'stripUnsupportedStyleDirectives', fn: stripUnsupportedStyleDirectives },
   { name: 'repairInitDirective', fn: repairInitDirective },
   { name: 'expandCommaSeparatedStyleLines', fn: expandCommaSeparatedStyleLines },
   { name: 'escapeReservedNodeIds', fn: escapeReservedNodeIds },
@@ -439,5 +509,7 @@ export const __internal = {
   stripInvalidSemicolons,
   closeUnbalancedSubgraphs,
   repairInitDirective,
-  expandCommaSeparatedStyleLines
+  expandCommaSeparatedStyleLines,
+  stripUnsupportedStyleDirectives,
+  detectDiagramType
 };
