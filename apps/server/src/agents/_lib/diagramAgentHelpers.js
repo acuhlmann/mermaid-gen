@@ -221,6 +221,29 @@ function tokenFromLangChainChunk(chunk) {
   return '';
 }
 
+/** Best-effort model slug for a chat-model stream event (LangChain `ls_*` metadata). */
+function modelNameFromStreamEvent(event) {
+  const meta = event?.metadata && typeof event.metadata === 'object' ? event.metadata : {};
+  const candidate = meta.ls_model_name ?? event?.name ?? '';
+  return typeof candidate === 'string' ? candidate : '';
+}
+
+/** Extract `{inputTokens, outputTokens}` from an on_chat_model_end output, when the provider reports usage. */
+function usageFromModelOutput(output) {
+  const usage =
+    output?.usage_metadata ??
+    output?.kwargs?.usage_metadata ??
+    output?.llmOutput?.tokenUsage ??
+    null;
+  if (!usage || typeof usage !== 'object') return {};
+  const input = usage.input_tokens ?? usage.promptTokens;
+  const outputTokens = usage.output_tokens ?? usage.completionTokens;
+  return {
+    ...(Number.isFinite(input) ? { inputTokens: input } : {}),
+    ...(Number.isFinite(outputTokens) ? { outputTokens } : {})
+  };
+}
+
 /**
  * Translate a LangChain v2 stream event into the small `{type, text, name}`
  * envelope the SSE layer emits to the client. Returns null for events the
@@ -233,6 +256,22 @@ export function normalizeAgentStreamEvent(event) {
   if (/stream/i.test(ev) && data.chunk !== undefined) {
     const text = tokenFromLangChainChunk(data.chunk);
     if (text) return { type: 'token', text };
+  }
+
+  if (ev === 'on_chat_model_start') {
+    return {
+      type: 'model_call_start',
+      callId: String(event?.run_id ?? ''),
+      model: modelNameFromStreamEvent(event)
+    };
+  }
+  if (ev === 'on_chat_model_end') {
+    return {
+      type: 'model_call_end',
+      callId: String(event?.run_id ?? ''),
+      model: modelNameFromStreamEvent(event),
+      ...usageFromModelOutput(data.output)
+    };
   }
 
   if (ev.includes('tool_start') || ev === 'on_tool_start') {

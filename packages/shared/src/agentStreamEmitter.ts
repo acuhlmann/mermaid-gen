@@ -4,6 +4,7 @@ import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
   AGUI_CUSTOM_NAME_LEGACY,
+  AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
   AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
@@ -294,6 +295,19 @@ export function createAgentStreamEmitter({
             value
           })
         );
+      }
+      case 'model_call_start':
+      case 'model_call_end': {
+        const value: Record<string, unknown> = {
+          phase: evt.type === 'model_call_start' ? 'start' : 'end',
+          ...(typeof evt.callId === 'string' && evt.callId ? { callId: evt.callId } : {}),
+          ...(typeof evt.model === 'string' && evt.model ? { model: evt.model } : {})
+        };
+        if (evt.type === 'model_call_end') {
+          if (Number.isFinite(evt.inputTokens)) value.inputTokens = evt.inputTokens;
+          if (Number.isFinite(evt.outputTokens)) value.outputTokens = evt.outputTokens;
+        }
+        return rawEmit(customEvent({ name: AGUI_CUSTOM_NAME_MODEL_CALL, value }));
       }
       case 'syntax_fixer_start':
         return rawEmit(

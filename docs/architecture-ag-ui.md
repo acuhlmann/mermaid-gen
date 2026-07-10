@@ -43,19 +43,19 @@ The route opens and closes the run; agents must not emit `RUN_STARTED`.
 
 ## Semantic agent API (`emit` helpers)
 
-| Helper                          | Legacy shape                                | AG-UI output                           |
-| ------------------------------- | ------------------------------------------- | -------------------------------------- |
-| `emit.phase(id, label)`         | `{ type:'phase', id, label }`               | `STEP_STARTED` / `STEP_FINISHED`       |
-| `emit.status(text)`             | `{ type:'status', text }`                   | `CUSTOM(status)`                       |
-| `emit.planBeat(text, source?)`  | `{ type:'plan_beat', text, source }`        | `CUSTOM(plan_beat)`                    |
-| `emit.token(text)`              | `{ type:'token', text }`                    | `TEXT_MESSAGE_*`                       |
-| `emit.a2ui(messages)`           | `{ type:'a2ui', messages }`                 | `CUSTOM(a2ui)`                         |
-| `emit.patchSummary(...)`        | `{ type:'artifact', kind:'patch_summary' }` | `STATE_DELTA`                          |
-| `emit.toolStart(name, id?)`     | `{ type:'tool_start' }`                     | `TOOL_CALL_START`                      |
-| `emit.toolEnd(name, id?)`       | `{ type:'tool_end' }`                       | `TOOL_CALL_END`                        |
-| `emit.draftPreview(ct, source)` | `{ type:'draftPreview' }`                   | `STATE_DELTA` on `/<slot>/draftSource` |
-| `emit.final(payload)`           | `{ type:'final', ... }`                     | `STATE_SNAPSHOT` + `RUN_FINISHED`      |
-| `emit.error(message, code?)`    | `{ type:'error' }`                          | `RUN_ERROR`                            |
+| Helper                          | Legacy shape                                | AG-UI output                                                                                                                |
+| ------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `emit.phase(id, label)`         | `{ type:'phase', id, label }`               | `STEP_STARTED` / `STEP_FINISHED` — the client maps the pair to `phase` / `phase_end`, timing each phase on the run timeline |
+| `emit.status(text)`             | `{ type:'status', text }`                   | `CUSTOM(status)`                                                                                                            |
+| `emit.planBeat(text, source?)`  | `{ type:'plan_beat', text, source }`        | `CUSTOM(plan_beat)`                                                                                                         |
+| `emit.token(text)`              | `{ type:'token', text }`                    | `TEXT_MESSAGE_*`                                                                                                            |
+| `emit.a2ui(messages)`           | `{ type:'a2ui', messages }`                 | `CUSTOM(a2ui)`                                                                                                              |
+| `emit.patchSummary(...)`        | `{ type:'artifact', kind:'patch_summary' }` | `STATE_DELTA`                                                                                                               |
+| `emit.toolStart(name, id?)`     | `{ type:'tool_start' }`                     | `TOOL_CALL_START`                                                                                                           |
+| `emit.toolEnd(name, id?)`       | `{ type:'tool_end' }`                       | `TOOL_CALL_END`                                                                                                             |
+| `emit.draftPreview(ct, source)` | `{ type:'draftPreview' }`                   | `STATE_DELTA` on `/<slot>/draftSource`                                                                                      |
+| `emit.final(payload)`           | `{ type:'final', ... }`                     | `STATE_SNAPSHOT` + `RUN_FINISHED`                                                                                           |
+| `emit.error(message, code?)`    | `{ type:'error' }`                          | `RUN_ERROR`                                                                                                                 |
 
 Pass-through: if `emit` receives an object whose `type` is already an `AGUI_EVENT_TYPE` value, it is written unchanged.
 
@@ -63,14 +63,17 @@ Pass-through: if `emit` receives an object whose `type` is already an `AGUI_EVEN
 
 From [`packages/shared/src/agUiWireConstants.js`](../packages/shared/src/agUiWireConstants.js):
 
-| `name`      | `value`                                  | Web legacy                                                                                                                                 |
-| ----------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `status`    | `{ text }`                               | `{ type:'status', text }`                                                                                                                  |
-| `plan_beat` | `{ text, source?: 'server' \| 'agent' }` | `{ type:'plan_beat', text, source }` — diagram **why** (Thinking pane Plan lane)                                                           |
-| `a2ui`      | `{ messages }`                           | `{ type:'a2ui', messages }`                                                                                                                |
-| `artifact`  | opaque artifact object                   | passthrough (`patch_summary` → legacy artifact; `explain_sections` → insight `explainSections`)                                            |
-| `heartbeat` | `{ ts }`                                 | dropped — route-level keep-alive so the client's stream idle timer resets during quiet windows (syntax-fixer calls, lazy-agent cold start) |
-| `legacy`    | unknown                                  | dropped                                                                                                                                    |
+| `name`              | `value`                                                                | Web legacy                                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `status`            | `{ text }`                                                             | `{ type:'status', text }`                                                                                                                  |
+| `plan_beat`         | `{ text, source?: 'server' \| 'agent' }`                               | `{ type:'plan_beat', text, source }` — diagram **why**, shown as beat cards on the Thinking run timeline                                   |
+| `a2ui`              | `{ messages }`                                                         | `{ type:'a2ui', messages }`                                                                                                                |
+| `artifact`          | opaque artifact object                                                 | passthrough (`patch_summary` → legacy artifact; `explain_sections` → insight `explainSections`)                                            |
+| `model_call`        | `{ phase:'start'\|'end', callId, model, inputTokens?, outputTokens? }` | `{ type:'model_call_start' \| 'model_call_end', ... }` — one LLM turn inside the run; timeline shows the turn live with duration + usage   |
+| `tool_apply_result` | `{ name, accepted, toolCallId?, error?, revisionId?, … }`              | `{ type:'tool_apply_result', ... }` — patch validation outcome enriching the matching tool step                                            |
+| `syntax_fixer`      | `{ phase:'start'\|'result', contentType, outcome?, … }`                | `{ type:'syntax_fixer_start' \| 'syntax_fixer_result', ... }` — single-shot fixer pass in the timeline                                     |
+| `heartbeat`         | `{ ts }`                                                               | dropped — route-level keep-alive so the client's stream idle timer resets during quiet windows (syntax-fixer calls, lazy-agent cold start) |
+| `legacy`            | unknown                                                                | dropped                                                                                                                                    |
 
 Critique checklists use `CUSTOM` + `name: "a2ui"` — details in [`architecture-a2ui.md`](architecture-a2ui.md).
 
@@ -97,16 +100,20 @@ All `/api/copilotkit/*` routes use this resolver. The web client persists a UUID
 
 ## What the web renders (Gen UI surface)
 
+Every progress signal below lands on the **unified run timeline** ([`RunTimeline.tsx`](../apps/web/src/components/RunTimeline.tsx)) inside a Thinking-pane entry: phases become timed segments, and plan beats, tool calls, model turns, and fixer passes interleave chronologically inside them. The streamed response renders as the timeline's final segment.
+
 | Stream data                 | AG-UI mechanism                              | Web consumer                                                                                                                         |
 | --------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| Status line                 | `CUSTOM(status)`                             | Insights status chip                                                                                                                 |
-| Diagram intent (why)        | `CUSTOM(plan_beat)`                          | Thinking pane **Plan** list (+ latest beat in status strip)                                                                          |
-| Streaming prose             | `TEXT_MESSAGE_*`                             | Critique / explain text                                                                                                              |
-| Tool progress               | `TOOL_CALL_*`                                | Phase labels in Thinking pane                                                                                                        |
+| Status line                 | `CUSTOM(status)`                             | Pinned "Now" strip + live sublabel on the active timeline segment                                                                    |
+| Diagram intent (why)        | `CUSTOM(plan_beat)`                          | Beat cards on the run timeline (+ latest beat in status strip)                                                                       |
+| Streaming prose             | `TEXT_MESSAGE_*`                             | Response segment of the run timeline (critique / explain text)                                                                       |
+| Run phases                  | `STEP_STARTED` / `STEP_FINISHED`             | Timeline segments with per-phase live durations                                                                                      |
+| Tool progress               | `TOOL_CALL_*`                                | Technical step rows nested in the active timeline segment                                                                            |
+| LLM turns                   | `CUSTOM(model_call)`                         | "Model reasoning turn" rows with model slug, live duration, token usage                                                              |
 | Live diagram while patching | `STATE_DELTA` `/mermaid                      | infographic/draftSource`                                                                                                             | Draft preview on canvas |
-| Patch stats                 | `STATE_DELTA` revision + `/lastPatchSummary` | Insight artifacts                                                                                                                    |
+| Patch stats                 | `STATE_DELTA` revision + `/lastPatchSummary` | Lines-changed bar on the matching patch step                                                                                         |
 | Critique checkboxes         | `CUSTOM(a2ui)`                               | [`CritiqueA2uiSurface.jsx`](../apps/web/src/components/CritiqueA2uiSurface.jsx) — see [`architecture-a2ui.md`](architecture-a2ui.md) |
-| Final diagram               | `STATE_SNAPSHOT` + `RUN_FINISHED`            | `diagramStore` applies revision                                                                                                      |
+| Final diagram               | `STATE_SNAPSHOT` + `RUN_FINISHED`            | `diagramStore` applies revision; timeline shows the terminal row with total time                                                     |
 
 External agents do **not** consume this stream; they use MCP + MCP Apps ([`architecture-generative-ui.md`](architecture-generative-ui.md)).
 

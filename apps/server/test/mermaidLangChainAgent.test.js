@@ -295,6 +295,54 @@ test('normalizeAgentStreamEvent attaches applyResult on rejected apply_chart_pat
   });
 });
 
+test('normalizeAgentStreamEvent maps on_chat_model_start to model_call_start', () => {
+  const mapped = normalizeAgentStreamEvent({
+    event: 'on_chat_model_start',
+    run_id: 'run-abc',
+    name: 'ChatDeepSeek',
+    metadata: { ls_model_name: 'deepseek-chat' },
+    data: { input: { messages: [] } }
+  });
+  assert.deepEqual(mapped, {
+    type: 'model_call_start',
+    callId: 'run-abc',
+    model: 'deepseek-chat'
+  });
+});
+
+test('normalizeAgentStreamEvent maps on_chat_model_end with usage metadata', () => {
+  const mapped = normalizeAgentStreamEvent({
+    event: 'on_chat_model_end',
+    run_id: 'run-abc',
+    name: 'ChatDeepSeek',
+    metadata: { ls_model_name: 'deepseek-chat' },
+    data: {
+      output: { usage_metadata: { input_tokens: 812, output_tokens: 96, total_tokens: 908 } }
+    }
+  });
+  assert.deepEqual(mapped, {
+    type: 'model_call_end',
+    callId: 'run-abc',
+    model: 'deepseek-chat',
+    inputTokens: 812,
+    outputTokens: 96
+  });
+});
+
+test('normalizeAgentStreamEvent maps on_chat_model_end without usage metadata', () => {
+  const mapped = normalizeAgentStreamEvent({
+    event: 'on_chat_model_end',
+    run_id: 'run-def',
+    name: 'ChatVertexAI',
+    data: { output: {} }
+  });
+  assert.deepEqual(mapped, {
+    type: 'model_call_end',
+    callId: 'run-def',
+    model: 'ChatVertexAI'
+  });
+});
+
 test('parseToolApplyResultOutput reads JSON string envelopes', () => {
   const parsed = parseToolApplyResultOutput(
     JSON.stringify({ accepted: false, error: 'Chart DSL must include archislopVersion' })

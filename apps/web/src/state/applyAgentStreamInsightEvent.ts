@@ -47,6 +47,37 @@ function shouldAppendFinalInsightEcho(
 
 export type InsightStreamAccumulator = { text: string };
 
+type InsightPhaseRecord = {
+  id?: unknown;
+  label?: unknown;
+  at?: number;
+  endAt?: number;
+  serverAt?: number;
+  serverEndAt?: number;
+  [key: string]: unknown;
+};
+
+/** Stamp `endAt` on every phase still open, so per-phase durations freeze. */
+export function closeOpenInsightPhases(
+  phases: unknown,
+  endAt: number,
+  serverEndAt?: number
+): InsightPhaseRecord[] {
+  const list = Array.isArray(phases) ? (phases as InsightPhaseRecord[]) : [];
+  return list.map((phase) =>
+    phase && typeof phase === 'object' && phase.endAt == null && Number.isFinite(phase.at)
+      ? { ...phase, endAt, ...(serverEndAt != null ? { serverEndAt } : {}) }
+      : phase
+  );
+}
+
+function formatModelUsageDetail(evt: { inputTokens?: number; outputTokens?: number }): string {
+  const parts: string[] = [];
+  if (Number.isFinite(evt.inputTokens)) parts.push(`${evt.inputTokens} tokens in`);
+  if (Number.isFinite(evt.outputTokens)) parts.push(`${evt.outputTokens} tokens out`);
+  return parts.join(' · ');
+}
+
 export type InsightEventContext = {
   sectionId: string;
   operation?: string;
@@ -62,7 +93,7 @@ export type InsightEventContext = {
     id: string,
     name: string,
     status: string,
-    opts?: { toolCallId?: string; contextNote?: string }
+    opts?: { toolCallId?: string; contextNote?: string; modelName?: string }
   ) => void;
   annotateTechnicalActionResult: (
     id: string,
@@ -188,12 +219,19 @@ export function applyAgentStreamInsightEvent(
   } = ctx;
 
   if (evt.type === 'phase' && 'id' in evt && evt.id && 'label' in evt && evt.label) {
+    const now = Date.now();
+    const serverAt = typeof evt.timestamp === 'number' ? evt.timestamp : undefined;
     patchInsightEntry(sectionId, (entry) => {
-      const previous = Array.isArray(entry.phases) ? entry.phases : [];
+      // A new phase implicitly closes the previous one — stamp its end so the
+      // timeline can show how long the run stayed in each step.
+      const previous = closeOpenInsightPhases(entry.phases, now, serverAt);
       return {
         ...entry,
-        phases: [...previous, { id: evt.id, label: evt.label }],
-        lastPhaseChangedAt: Date.now()
+        phases: [
+          ...previous,
+          { id: evt.id, label: evt.label, at: now, ...(serverAt != null ? { serverAt } : {}) }
+        ],
+        lastPhaseChangedAt: now
       };
     });
     if (typeof playPhaseChangePluck === 'function') {
@@ -216,6 +254,26 @@ export function applyAgentStreamInsightEvent(
     } else if (variant === 'critique' && typeof playCritiqueScribbleLoop === 'function') {
       if (Math.random() < 0.4) tryAgentSound(playCritiqueScribbleLoop);
     }
+  } else if (evt.type === 'phase_end') {
+    const endNow = Date.now();
+    const serverEndAt = typeof evt.timestamp === 'number' ? evt.timestamp : undefined;
+    const phaseId = typeof (evt as { id?: unknown }).id === 'string' ? String(evt.id) : '';
+    patchInsightEntry(sectionId, (entry) => {
+      const list = Array.isArray(entry.phases) ? (entry.phases as InsightPhaseRecord[]) : [];
+      let idx = -1;
+      for (let i = list.length - 1; i >= 0; i -= 1) {
+        const p = list[i];
+        if (!p || typeof p !== 'object' || p.endAt != null) continue;
+        if (phaseId && p.id !== phaseId) continue;
+        idx = i;
+        break;
+      }
+      if (idx < 0) return entry;
+      const phases = list.map((p, i) =>
+        i === idx ? { ...p, endAt: endNow, ...(serverEndAt != null ? { serverEndAt } : {}) } : p
+      );
+      return { ...entry, phases };
+    });
   } else if (evt.type === 'artifact' && evt.kind === 'patch_summary') {
     patchInsightEntry(sectionId, (entry) => {
       const previousArtifacts = Array.isArray(entry.artifacts) ? entry.artifacts : [];
@@ -399,6 +457,25 @@ export function applyAgentStreamInsightEvent(
       ...(resultEvt.id ? { toolCallId: resultEvt.id } : {}),
       patchStats
     });
+  } else if (evt.type === 'model_call_start') {
+    const callEvt = evt as { type: 'model_call_start'; callId?: string; model?: string };
+    appendTechnicalAction(sectionId, 'model_call', 'running', {
+      ...(callEvt.callId ? { toolCallId: callEvt.callId } : {}),
+      ...(callEvt.model ? { modelName: callEvt.model } : {})
+    });
+  } else if (evt.type === 'model_call_end') {
+    const callEvt = evt as {
+      type: 'model_call_end';
+      callId?: string;
+      inputTokens?: number;
+      outputTokens?: number;
+    };
+    const usageDetail = formatModelUsageDetail(callEvt);
+    finalizeTechnicalActionResult(sectionId, 'model_call', {
+      status: 'done',
+      ...(callEvt.callId ? { toolCallId: callEvt.callId } : {}),
+      ...(usageDetail ? { outcomeDetail: usageDetail } : {})
+    });
   } else if (evt.type === 'syntax_fixer_start') {
     const startEvt = evt as { type: 'syntax_fixer_start'; triggerError?: string };
     const triggerError =
@@ -473,7 +550,12 @@ export function applyAgentStreamInsightEvent(
       statusText: failure.statusText,
       failureClass: failure.failureClass,
       failureDetail: failure.detail,
-      completedAt: Date.now()
+      completedAt: Date.now(),
+      phases: closeOpenInsightPhases(
+        entry.phases,
+        Date.now(),
+        typeof evt.timestamp === 'number' ? evt.timestamp : undefined
+      )
     }));
   } else if (evt.type === 'final') {
     const finalEvt = evt as LegacyFinalEvent;
@@ -561,6 +643,11 @@ export function applyAgentStreamInsightEvent(
           }
         : {}),
       completedAt: Date.now(),
+      phases: closeOpenInsightPhases(
+        entry.phases,
+        Date.now(),
+        typeof evt.timestamp === 'number' ? evt.timestamp : undefined
+      ),
       ...(finalEvt.revisionChanged && finalState && entry.diagramUndoBaseline
         ? {
             diagramRevisionApplied: true,

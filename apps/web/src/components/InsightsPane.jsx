@@ -18,9 +18,7 @@ import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
 import ExplainSectionsPanel from './ExplainSectionsPanel';
 import ExplainDumbDownControls from './ExplainDumbDownControls.jsx';
-import PlanBeatCard from './PlanBeatCard';
-import PatchSummaryViz from './PatchSummaryViz';
-import TechnicalActionStepper from './TechnicalActionStepper.jsx';
+import RunTimeline from './RunTimeline';
 import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
 import { normalizeCritiqueMarkdownForMatch, isLabelExplainGibberishLevel } from '@archislop/shared';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
@@ -68,23 +66,6 @@ const VARIANT_ACTION_LABELS = {
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
 const BOTTOM_SNAP_THRESHOLD_PX = 72;
-
-const PHASE_ID_LABELS = {
-  analyze: 'Analyze',
-  analyze_stream: 'Stream',
-  intent: 'Apply',
-  agent_run: 'Tools',
-  transform: 'Transform',
-  run_started: 'Start',
-  planning: 'Plan',
-  syntax_fixer: 'Syntax',
-  syntax_repair: 'Repair',
-  patch_retry: 'Retry',
-  invoke: 'Generate',
-  invoke_fallback: 'Finalize',
-  repair_1: 'Repair',
-  repair_2: 'Repair'
-};
 
 function IconThinking() {
   return <ThinkingPanelIcon />;
@@ -350,75 +331,6 @@ function IconAlert({ small }) {
   return (
     <svg className={cls} viewBox="0 0 24 24" width={dim} height={dim} aria-hidden="true">
       <path fill="currentColor" d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
-    </svg>
-  );
-}
-
-function IconPhaseCheck() {
-  return (
-    <svg
-      className="insights-phase-glyph"
-      viewBox="0 0 24 24"
-      width="14"
-      height="14"
-      aria-hidden="true"
-    >
-      <path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-    </svg>
-  );
-}
-
-function IconPhasePulse() {
-  return <span className="insights-phase-glyph insights-phase-pulse-dot" aria-hidden="true" />;
-}
-
-function IconPhaseAnalyze() {
-  return (
-    <svg
-      className="insights-phase-glyph"
-      viewBox="0 0 24 24"
-      width="14"
-      height="14"
-      aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C10.01 14 8 11.99 8 9.5S10.01 5 12.5 5 17 7.01 17 9.5 14.99 14 12.5 14z"
-      />
-    </svg>
-  );
-}
-
-function IconPhaseStream() {
-  return (
-    <svg
-      className="insights-phase-glyph"
-      viewBox="0 0 24 24"
-      width="14"
-      height="14"
-      aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        d="M4 18h12v2H4v-2zm0-6h18v2H4v-2zm0-6h14v2H4V6zm14 8v3l4-4-4-4v3H8v2h10z"
-      />
-    </svg>
-  );
-}
-
-function IconPhaseGeneric() {
-  return (
-    <svg
-      className="insights-phase-glyph"
-      viewBox="0 0 24 24"
-      width="14"
-      height="14"
-      aria-hidden="true"
-    >
-      <path
-        fill="currentColor"
-        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-      />
     </svg>
   );
 }
@@ -1087,18 +999,6 @@ function AccentSectionTitleIcon({ variant }) {
   return null;
 }
 
-function phaseRowGlyph(phaseId, phaseComplete, phaseActive, phaseFailedLast, phaseStoppedLast) {
-  if (phaseComplete) return <IconPhaseCheck />;
-  if (phaseFailedLast) return <IconAlert small />;
-  if (phaseStoppedLast) return <IconPhaseGeneric />;
-  if (phaseActive) {
-    if (phaseId === 'analyze') return <IconPhaseAnalyze />;
-    if (phaseId === 'analyze_stream') return <IconPhaseStream />;
-    return <IconPhasePulse />;
-  }
-  return <IconPhaseGeneric />;
-}
-
 export default function InsightsPane({
   ceremonySlot = null,
   entries,
@@ -1320,8 +1220,6 @@ export default function InsightsPane({
             const isRunning = rawStatus === 'running';
             const isStreaming = isRunning && Boolean(entry.content?.trim());
             const accentuateSections = isAccentuatedInsightVariant(variant);
-            const collapseTech =
-              isAccentuatedInsightVariant(variant) && (entry.technicalActions?.length ?? 0) > 0;
             const phaseIdsHidden = hidePhaseIds(variant, streamDebugEnabled);
             const matchesLatestActionable =
               critiqueActionableUi &&
@@ -1508,22 +1406,6 @@ export default function InsightsPane({
 
                 <EntryRunMeta entry={entry} />
 
-                {entry.planBeats?.length ? (
-                  <section className="insights-section is-plan-lane" aria-label="Diagram intent">
-                    <h4 className="insights-section-title">Plan</h4>
-                    <ul className="insights-plan-list insights-plan-list-cards">
-                      {entry.planBeats.map((beat, idx) => (
-                        <PlanBeatCard
-                          key={`${entry.id}-plan-${idx}-${beat.at ?? idx}`}
-                          beat={beat}
-                          variant={variant}
-                          index={idx}
-                        />
-                      ))}
-                    </ul>
-                  </section>
-                ) : null}
-
                 {canRetryInsightEntry(entry) ? (
                   <div className="insights-entry-retry-row">
                     <div className="insights-entry-retry-actions">
@@ -1549,75 +1431,87 @@ export default function InsightsPane({
                   </div>
                 ) : null}
 
-                {entry.phases?.length ? (
-                  <section className="insights-section is-phase-lane" aria-label="Agent phases">
-                    <h4 className="insights-section-title">Agent phases</h4>
-                    <ol className="insights-phase-list">
-                      {entry.phases.map((phase, idx) => {
-                        const phases = entry.phases;
-                        const isLast = idx === phases.length - 1;
-                        const isFailed = rawStatus === 'failed';
-                        const isCancelled = rawStatus === 'cancelled';
-                        const phaseComplete =
-                          rawStatus === 'done' ||
-                          (!isLast && (isRunning || isFailed || isCancelled));
-                        const phaseActive = isRunning && isLast && !isFailed && !isCancelled;
-                        const phaseFailedLast = isFailed && isLast;
-                        const phaseStoppedLast = isCancelled && isLast;
-                        const friendlyId = PHASE_ID_LABELS[phase.id] ?? phase.id;
-                        const slopitectLabel = phaseCeremonyLabel(variant, phase.id, phase.label);
-                        return (
-                          <li
-                            key={`${entry.id}-phase-${phase.id}-${idx}`}
-                            className={`insights-phase-item ${phaseActive ? 'is-active' : ''} ${phaseComplete ? 'is-complete' : ''} ${phaseFailedLast ? 'is-failed-at' : ''} ${phaseStoppedLast ? 'is-stopped-at' : ''}`}
+                <RunTimeline
+                  entry={entry}
+                  variant={variant}
+                  showRawPhaseIds={!phaseIdsHidden}
+                  responseTitle={contentUpdatesTitle(variant)}
+                  responseHead={
+                    <h4
+                      className={['insights-section-title', accentSectionTitleClass(variant)]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {accentSectionTitleClass(variant) ? (
+                        <>
+                          <span
+                            className={accentSectionTitleIconWrapClass(variant)}
+                            aria-hidden="true"
                           >
-                            <span className="insights-phase-glyph-wrap" aria-hidden="true">
-                              {phaseRowGlyph(
-                                phase.id,
-                                phaseComplete,
-                                phaseActive,
-                                phaseFailedLast,
-                                phaseStoppedLast
-                              )}
-                            </span>
-                            <span className="insights-phase-step">{idx + 1}</span>
-                            <span className="insights-phase-label">{slopitectLabel}</span>
-                            {phaseIdsHidden ? (
-                              <>
-                                <span className="insights-visually-hidden">{phase.id}</span>
-                                <span className="insights-phase-chip" aria-hidden="true">
-                                  {friendlyId}
-                                </span>
-                              </>
-                            ) : (
-                              <code className="insights-phase-id" title={friendlyId}>
-                                {phase.id}
-                              </code>
-                            )}
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  </section>
-                ) : null}
-
-                {entry.artifacts?.some((a) => a.kind === 'patch_summary') ? (
-                  <section className="insights-section is-artifacts" aria-label="Patch summary">
-                    <h4 className="insights-section-title">Diagram patch</h4>
-                    <ul className="insights-artifact-list">
-                      {entry.artifacts
-                        .filter((a) => a.kind === 'patch_summary')
-                        .map((a, idx) => (
-                          <PatchSummaryViz
-                            key={`${entry.id}-patch-${a.revisionId}-${idx}`}
-                            revisionId={a.revisionId}
-                            linesAdded={a.linesAdded}
-                            linesRemoved={a.linesRemoved}
-                          />
-                        ))}
-                    </ul>
-                  </section>
-                ) : null}
+                            <AccentSectionTitleIcon variant={variant} />
+                          </span>
+                          <span>{contentUpdatesTitle(variant)}</span>
+                        </>
+                      ) : (
+                        contentUpdatesTitle(variant)
+                      )}
+                    </h4>
+                  }
+                  hasResponse={Boolean(displayContent || explainStructured || showLiveDraftPreview)}
+                  responseActive={isRunning && (isStreaming || showLiveDraftPreview)}
+                >
+                  <div
+                    className={`insights-entry-rich-text-wrap ${accentContentLaneClass(variant)}`.trim()}
+                  >
+                    <div
+                      className={[
+                        'insights-entry-rich-text',
+                        accentuateSections ? 'is-analyze-prose' : '',
+                        variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
+                        explainProseGibberish ? 'is-gibberish' : '',
+                        variant === 'refine' && accentuateSections ? 'is-refine-prose' : '',
+                        variant === 'innovate' && accentuateSections ? 'is-innovate-prose' : '',
+                        variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      {showLiveDraftPreview ? (
+                        <EmbeddedDiagramBlock
+                          idPrefix={`${entry.id}-live-draft`}
+                          source={liveDraftSource}
+                          kind={liveDraftContentType}
+                          streamingPreview
+                        />
+                      ) : null}
+                      {analysisBody}
+                    </div>
+                    {showExplainDumbDown ? (
+                      <ExplainDumbDownControls
+                        dumbLevel={explainDumbLevel}
+                        loading={explainDumbLoading}
+                        surrendered={explainDumbSurrendered}
+                        onDumbDown={() => onExplainDumbDown?.(entry.id)}
+                      />
+                    ) : null}
+                    {isRunning && (entry.content ?? '').trim() ? (
+                      <span
+                        className={[
+                          'insights-stream-caret',
+                          'is-shimmer',
+                          variant === 'goMad' ? 'is-gomad-caret' : '',
+                          variant === 'refine' ? 'is-refine-caret' : '',
+                          variant === 'innovate' ? 'is-innovate-caret' : '',
+                          variant === 'critique' ? 'is-critique-caret' : '',
+                          variant === 'explain' ? 'is-explain-caret' : ''
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                  </div>
+                </RunTimeline>
 
                 {hasStyleEdits ? (
                   <StyleEditsPanel
@@ -1626,95 +1520,6 @@ export default function InsightsPane({
                     onApply={onApplyStyleEdits ? () => onApplyStyleEdits(entry) : undefined}
                   />
                 ) : null}
-
-                <section className={`insights-section ${accentContentLaneClass(variant)}`}>
-                  <h4
-                    className={['insights-section-title', accentSectionTitleClass(variant)]
-                      .filter(Boolean)
-                      .join(' ')}
-                  >
-                    {accentSectionTitleClass(variant) ? (
-                      <>
-                        <span
-                          className={accentSectionTitleIconWrapClass(variant)}
-                          aria-hidden="true"
-                        >
-                          <AccentSectionTitleIcon variant={variant} />
-                        </span>
-                        <span>{contentUpdatesTitle(variant)}</span>
-                      </>
-                    ) : (
-                      contentUpdatesTitle(variant)
-                    )}
-                  </h4>
-                  {displayContent || explainStructured || showLiveDraftPreview ? (
-                    <div className="insights-entry-rich-text-wrap">
-                      <div
-                        className={[
-                          'insights-entry-rich-text',
-                          accentuateSections ? 'is-analyze-prose' : '',
-                          variant === 'explain' && accentuateSections ? 'is-explain-prose' : '',
-                          explainProseGibberish ? 'is-gibberish' : '',
-                          variant === 'refine' && accentuateSections ? 'is-refine-prose' : '',
-                          variant === 'innovate' && accentuateSections ? 'is-innovate-prose' : '',
-                          variant === 'goMad' && accentuateSections ? 'is-gomad-prose' : ''
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                      >
-                        {showLiveDraftPreview ? (
-                          <EmbeddedDiagramBlock
-                            idPrefix={`${entry.id}-live-draft`}
-                            source={liveDraftSource}
-                            kind={liveDraftContentType}
-                            streamingPreview
-                          />
-                        ) : null}
-                        {analysisBody}
-                      </div>
-                      {showExplainDumbDown ? (
-                        <ExplainDumbDownControls
-                          dumbLevel={explainDumbLevel}
-                          loading={explainDumbLoading}
-                          surrendered={explainDumbSurrendered}
-                          onDumbDown={() => onExplainDumbDown?.(entry.id)}
-                        />
-                      ) : null}
-                      {isRunning && (entry.content ?? '').trim() ? (
-                        <span
-                          className={[
-                            'insights-stream-caret',
-                            'is-shimmer',
-                            variant === 'goMad' ? 'is-gomad-caret' : '',
-                            variant === 'refine' ? 'is-refine-caret' : '',
-                            variant === 'innovate' ? 'is-innovate-caret' : '',
-                            variant === 'critique' ? 'is-critique-caret' : '',
-                            variant === 'explain' ? 'is-explain-caret' : ''
-                          ]
-                            .filter(Boolean)
-                            .join(' ')}
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                    </div>
-                  ) : isRunning ? (
-                    <p className="insights-waiting-text">Working on your request...</p>
-                  ) : null}
-                </section>
-
-                {collapseTech ? (
-                  <details className="insights-tech-details" defaultOpen={isRunning}>
-                    <summary className="insights-tech-summary">
-                      {isRunning ? 'Live generation pipeline' : 'Generation pipeline'}
-                    </summary>
-                    <TechnicalActionStepper actions={entry.technicalActions} collapsed />
-                  </details>
-                ) : (
-                  <section className="insights-section is-tech">
-                    <h4 className="insights-section-title">Generation pipeline</h4>
-                    <TechnicalActionStepper actions={entry.technicalActions} />
-                  </section>
-                )}
 
                 {hasAfterPreview ? (
                   <section

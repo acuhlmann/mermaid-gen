@@ -48,10 +48,13 @@ import {
 } from './state/diagramStore.js';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
 import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
-import { applyAgentStreamInsightEvent } from './state/applyAgentStreamInsightEvent';
+import {
+  applyAgentStreamInsightEvent,
+  closeOpenInsightPhases
+} from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import './App.css';
-import './components/TechnicalActionStepper.css';
+import './components/RunTimeline.css';
 import {
   playAchievementFanfare,
   playKonamiRainbow,
@@ -1533,7 +1536,8 @@ function ArchiSlop() {
               status,
               startedAt: status === 'running' ? Date.now() : undefined,
               ...(opts.toolCallId ? { toolCallId: opts.toolCallId } : {}),
-              ...(opts.contextNote ? { contextNote: opts.contextNote } : {})
+              ...(opts.contextNote ? { contextNote: opts.contextNote } : {}),
+              ...(opts.modelName ? { modelName: opts.modelName } : {})
             }
           ]
         };
@@ -1825,7 +1829,8 @@ function ArchiSlop() {
             ...entry,
             status: 'cancelled',
             statusText: 'Stopped.',
-            completedAt: Date.now()
+            completedAt: Date.now(),
+            phases: closeOpenInsightPhases(entry.phases, Date.now())
           }));
         } else {
           appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
@@ -1837,7 +1842,8 @@ function ArchiSlop() {
             statusText: failure.statusText,
             failureClass: failure.failureClass,
             failureDetail: failure.detail,
-            completedAt: Date.now()
+            completedAt: Date.now(),
+            phases: closeOpenInsightPhases(entry.phases, Date.now())
           }));
         }
       } finally {

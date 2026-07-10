@@ -725,15 +725,19 @@ export function createCopilotRouter({
 
     // AG-UI is the only wire shape for this route: first-paint RUN_STARTED +
     // STEP_STARTED, then createAgentStreamEmitter maps agent events into AG-UI.
+    // The step name uses the emitter's `id\x1flabel` encoding so the Thinking
+    // timeline renders a readable label instead of the raw step id; the same
+    // string must be passed as initialStep so STEP_FINISHED pairs verbatim.
+    const PLANNING_STEP = 'planning\x1fPlanning the approach…';
     const ids = newRunIds();
     rawEmit(runStarted({ ...ids, parentRunId: undefined }));
-    rawEmit(stepStarted({ stepName: 'planning' }));
+    rawEmit(stepStarted({ stepName: PLANNING_STEP }));
     const emit = createAgentStreamEmitter({
       rawEmit: rawEmit as (evt: unknown) => void,
       threadId: ids.threadId,
       runId: ids.runId,
       contentType: payload.contentType,
-      initialStep: 'planning'
+      initialStep: PLANNING_STEP
     });
 
     // Route-level keep-alive: the agent-level heartbeats ("Thinking…" during
