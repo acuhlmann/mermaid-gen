@@ -1581,13 +1581,15 @@ export default function InsightsPane({
                 </section>
 
                 {collapseTech ? (
-                  <details className="insights-tech-details">
-                    <summary className="insights-tech-summary">Tool trace</summary>
+                  <details className="insights-tech-details" defaultOpen={isRunning}>
+                    <summary className="insights-tech-summary">
+                      {isRunning ? 'Live generation pipeline' : 'Generation pipeline'}
+                    </summary>
                     <TechnicalActionStepper actions={entry.technicalActions} collapsed />
                   </details>
                 ) : (
                   <section className="insights-section is-tech">
-                    <h4 className="insights-section-title">Technical actions</h4>
+                    <h4 className="insights-section-title">Generation pipeline</h4>
                     <TechnicalActionStepper actions={entry.technicalActions} />
                   </section>
                 )}

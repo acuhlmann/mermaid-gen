@@ -697,10 +697,11 @@ flowchart TB
     );
 
     expect(screen.getByText('Apply diagram update (×2)')).toBeTruthy();
-    expect(screen.getByText('Technical actions')).toBeTruthy();
+    expect(screen.getByText('Generation pipeline')).toBeTruthy();
+    expect(screen.getByText('Pipeline complete')).toBeTruthy();
   });
 
-  it('shows validation error on rejected apply_chart_patch in tool trace', () => {
+  it('shows live progress and validation recovery in the generation pipeline', () => {
     render(
       <InsightsPane
         entries={[
@@ -732,7 +733,12 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.getByText('Live generation pipeline')).toBeTruthy();
+    expect(screen.getByText('Pipeline active')).toBeTruthy();
+    expect(screen.getAllByText('Validating update').length).toBeGreaterThan(0);
+    expect(screen.getByText('1 issue')).toBeTruthy();
+    expect(screen.getByText('Validation feedback')).toBeTruthy();
+    expect(screen.getByText('Repairing now')).toBeTruthy();
     expect(screen.getByText(/Invalid encoding channel "colour"/)).toBeTruthy();
     expect(screen.getAllByText('Apply chart update').length).toBe(2);
   });
@@ -772,8 +778,9 @@ flowchart TB
     );
 
     expect(screen.getByText('Quick syntax pass')).toBeTruthy();
+    expect(screen.getByText('1 repair')).toBeTruthy();
     expect(screen.getByText(/Repaired invalid chart DSL/)).toBeTruthy();
-    expect(screen.getByText(/After: Vega-Lite compile failed/)).toBeTruthy();
+    expect(screen.getByText(/Vega-Lite compile failed/)).toBeTruthy();
   });
 
   it('uses Explanation label for explain variant', () => {
