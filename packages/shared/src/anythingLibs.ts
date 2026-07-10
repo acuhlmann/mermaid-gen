@@ -34,6 +34,14 @@ export const ANYTHING_LIBS: readonly AnythingLibInfo[] = [
     global: 'd3',
     promptSummary:
       'full d3 bundle — selections, scales, axes, shapes, force/hierarchy layouts, transitions, geo'
+  },
+  {
+    id: 'matter',
+    name: 'Matter.js',
+    version: '0.20.0',
+    global: 'Matter',
+    promptSummary:
+      '2D rigid-body physics — Engine/Runner, Bodies, constraints, collisions, mouse dragging; render via Matter.Render on a canvas or draw bodies yourself'
   }
 ];
 

@@ -84,6 +84,17 @@ test('expandAnythingLibs replaces the marker with the pinned inline script', () 
   assert.ok(html.includes('d3js.org'), 'vendored d3 source not present');
 });
 
+test('expandAnythingLibs injects multiple libs in document order', () => {
+  const { html, injected } = expandAnythingLibs(
+    libDoc('<!-- @lib:d3 --><!-- @lib:matter -->', '<h1>Physics viz</h1>')
+  );
+  assert.deepEqual(injected, ['d3', 'matter']);
+  assert.match(html, /<script data-archislop-lib="d3" data-lib-version="7\.9\.0">/);
+  assert.match(html, /<script data-archislop-lib="matter" data-lib-version="0\.20\.0">/);
+  assert.ok(html.indexOf('data-archislop-lib="d3"') < html.indexOf('data-archislop-lib="matter"'));
+  assert.ok(!html.includes('@lib:'));
+});
+
 test('expandAnythingLibs injects a duplicated lib once and strips the repeat marker', () => {
   const { html, injected } = expandAnythingLibs(
     libDoc('<!-- @lib:d3 -->', '<h1>Viz</h1><!-- @lib:d3 -->')

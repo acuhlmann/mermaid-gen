@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { expandAnythingLibs } from '@archislop/shared/anythingLibVendor.js';
 import {
   isAnythingRuntimeCheckEnabled,
   runAnythingRuntimeCheck
@@ -149,6 +150,59 @@ test('canvas, matchMedia, observers, and audio do not false-positive', async () 
     ),
     { env: {} }
   );
+  assert.equal(result.ok, true, JSON.stringify(result));
+});
+
+test('host-object monkey-patching (Tone.js pattern) does not false-positive on stubs', async () => {
+  // Libraries like Tone.js wrap host objects: walk the prototype chain with
+  // hasOwnProperty, destructure the property descriptor, redefine the
+  // property. The inert stub must answer that introspection consistently —
+  // claiming a property exists but yielding no descriptor threw inside
+  // library code before the getOwnPropertyDescriptor trap existed.
+  const result = await runAnythingRuntimeCheck(
+    doc(
+      `<h1>Patch</h1>
+       <script>
+         const ctx = new AudioContext();
+         let target = ctx;
+         while (!target.hasOwnProperty('state')) target = Object.getPrototypeOf(target);
+         const { get, set } = Object.getOwnPropertyDescriptor(target, 'state');
+         Object.defineProperty(ctx, 'state', { configurable: true, get, set });
+         if (!('state' in ctx)) throw new Error('has trap missing');
+       </script>`
+    ),
+    { env: {} }
+  );
+  assert.equal(result.ok, true, JSON.stringify(result));
+});
+
+test('vendored libraries execute cleanly in the sandbox (d3 + matter)', async () => {
+  // Runs the REAL vendored bytes, not stubs — a lib version bump that breaks
+  // under jsdom (like Tone.js v15, evaluated and rejected in ADR-0008) should
+  // fail here, not in production repair loops.
+  const { html, injected } = expandAnythingLibs(
+    doc(
+      `<h1>Libs</h1><svg id="viz"></svg><canvas id="world" width="200" height="100"></canvas>
+       <script>
+         d3.select('#viz').append('rect').attr('width', 10);
+         const engine = Matter.Engine.create();
+         const render = Matter.Render.create({
+           canvas: document.getElementById('world'),
+           engine,
+           options: { width: 200, height: 100 }
+         });
+         Matter.Composite.add(engine.world, [
+           Matter.Bodies.rectangle(100, 20, 30, 30),
+           Matter.Bodies.rectangle(100, 90, 200, 10, { isStatic: true })
+         ]);
+         Matter.Render.run(render);
+         Matter.Runner.run(Matter.Runner.create(), engine);
+       </script>`,
+      { head: '<!-- @lib:d3 --><!-- @lib:matter -->' }
+    )
+  );
+  assert.deepEqual(injected, ['d3', 'matter']);
+  const result = await runAnythingRuntimeCheck(html, { env: {} });
   assert.equal(result.ok, true, JSON.stringify(result));
 });
 

@@ -112,6 +112,33 @@ export const ANYTHING_BENCH_CORPUS = [
       { head: '<!-- @lib:d3 -->' }
     )
   },
+  {
+    // Second allowlisted lib: physics via matter must execute under the
+    // runtime check's canvas stubs (regression = a lib bump or stub change
+    // breaks lib pages while plain pages keep passing).
+    id: 'valid-lib-matter',
+    kind: 'valid',
+    expectedAccept: true,
+    html: page(
+      `<h1>Drop</h1><canvas id="world" width="400" height="300"></canvas>
+<script>
+  const engine = Matter.Engine.create();
+  const render = Matter.Render.create({
+    canvas: document.getElementById('world'),
+    engine,
+    options: { width: 400, height: 300 }
+  });
+  Matter.Composite.add(engine.world, [
+    Matter.Bodies.rectangle(200, 40, 60, 60),
+    Matter.Bodies.circle(240, 0, 24),
+    Matter.Bodies.rectangle(200, 290, 400, 20, { isStatic: true })
+  ]);
+  Matter.Render.run(render);
+  Matter.Runner.run(Matter.Runner.create(), engine);
+</script>`,
+      { head: '<!-- @lib:matter -->' }
+    )
+  },
 
   // ── policy: sandbox-contract violations, must stay rejected ─────────────
   {
