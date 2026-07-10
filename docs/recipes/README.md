@@ -13,5 +13,6 @@ Step-by-step playbooks for recurring changes. Each recipe names the files to tou
 | [add-eslint-rule.md](add-eslint-rule.md)               | Adding a new ESLint rule with agent-readable guidance                                          |
 | [add-dep-cruiser-layer.md](add-dep-cruiser-layer.md)   | Adding a new dependency-cruiser layer/boundary rule                                            |
 | [convert-js-leaf-to-ts.md](convert-js-leaf-to-ts.md)   | Converting a small `.js` module to `.ts` and adding it to a strict island (ADR-0006 ratchet)   |
+| [add-anything-lib.md](add-anything-lib.md)             | Adding (or version-bumping) a library in the Anything-mode `@lib:` allowlist (ADR-0008)        |
 
 If a recipe is missing for something you find yourself doing twice, write one — the format is loose: 5–10 numbered steps, each naming the file and what changes.

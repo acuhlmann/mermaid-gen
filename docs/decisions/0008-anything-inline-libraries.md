@@ -42,7 +42,7 @@ Trade-offs accepted:
 
 - A document is now self-contained _modulo the app's registry_: renderers outside archislop must call `expandAnythingLibs` (or accept the marker as a dead comment). This is the price of not persisting 273KB per revision.
 - Old revisions re-render with whatever version the registry pins **now**, not the version at authoring time. Acceptable for a canvas tool; the injected `data-lib-version` attribute makes it observable.
-- The web app pays a one-time lazy ~280KB chunk (~90KB gzipped) the first time a lib-using document renders.
+- The web app pays a one-time lazy vendor chunk (~355KB raw / ~117KB gzipped with d3 + matter; the chunk carries every vendored lib, not just the ones a document uses) the first time a lib-using document renders.
 - Each new library grows the repo and that chunk, so the allowlist is meant to stay short; additions need a registry entry, a pinned devDep, regeneration, and bench/test coverage.
 
 Explicitly out of scope (ideas, not scheduled): a "deep build" tier where external agents compose larger apps over MCP, and an LLM-driven bench extension (`benchAnything --with-llm`) — both flagged in the planning brief.
@@ -53,11 +53,25 @@ Explicitly out of scope (ideas, not scheduled): a "deep build" tier where extern
 - **Ambient injection (no marker).** Always inject d3 so pages "just work". Rejected: every page pays the bytes and jsdom execution cost, and there is no explicit, lintable opt-in for agents to reason about. The bench keeps a `runtime-lib-without-marker` case to ensure ambient injection never creeps in.
 - **Runtime read from `node_modules` / CDN allowlist in CSP.** Reading dist files at runtime couples prod images to devDependencies and gives the web no story; loosening CSP for a CDN violates the no-network invariant outright. Vendored, committed, generator-verified bytes are the only variant where review, pinning, and offline behavior all hold.
 
+## Addendum — first allowlist expansion (2026-07-10)
+
+The one-entry-per-lib process was exercised for real: **matter** (Matter.js 0.20.0, `<!-- @lib:matter -->`, 81KB min) joined the registry. The full recipe held — registry entry in `anythingLibs.ts`, exact-pinned devDep, `npm run vendor:anything-libs`, `valid-lib-matter` bench case, and a real-execution test that runs the vendored bytes through the jsdom sandbox (so a future version bump that breaks under jsdom fails in CI, not in production repair loops). Prompts, marker lint, and `unknown_lib` errors picked the new lib up automatically because they are generated from the registry.
+
+**Tone.js was evaluated and rejected.** Its UMD build (v15, 340KB) eagerly constructs an audio graph at load and validates real Web Audio semantics — prototype-chain monkey-patching of context instances, node topology counts, `instanceof AudioParam` checks — which the runtime check's generic inert stubs cannot satisfy (each stub fix surfaced the next validation failure). Every tone-using page would be rejected by the runtime gate. Admitting it would require a faithful headless Web Audio fake in `anythingRuntimeSandbox.js` or a per-lib bypass of the runtime check; neither is worth it for a library whose output (sound) the gate can't observe anyway. Revisit only with a concrete user ask plus a vendored web-audio mock.
+
+Two by-products of that evaluation shipped anyway:
+
+- **Sandbox stub hardening** — the inert proxy in `anythingRuntimeSandbox.js` now answers `has`/`getOwnPropertyDescriptor`/`defineProperty` introspection consistently (claiming a property exists but yielding no descriptor threw inside library code that monkey-patches host objects, the Tone.js load pattern). Regression-tested in `anythingRuntimeCheck.test.js`.
+- **Lib badge** — `AnythingRenderer` shows a corner badge ("d3 v7.9.0 · matter v0.20.0") for documents that inject libraries, derived client-side from the markers + registry metadata; the injection is otherwise invisible by design. `metadata.libs` on accepted patches carries the same list for programmatic consumers.
+
+The design guide (`anythingDesignGuide.js`) now carries when-to-use craft rules per lib (d3 for data joins/scales/layouts, not counter widgets; matter for physics, not scripted tweens), with a drift-guard test that every `@lib:` id it mentions is allowlisted.
+
 ## Where this lives in code
 
 - Registry + marker lint: `packages/shared/src/anythingLibs.ts` (barrel-exported)
 - Expansion + vendored bytes: `packages/shared/src/anythingLibVendor.ts` (subpath export `@archislop/shared/anythingLibVendor.js`), `packages/shared/src/vendor/anythingLibSources.ts` (generated), `packages/shared/scripts/vendorAnythingLibs.mjs`
 - Ladder: `apps/server/src/tools/anythingHtmlTool.js` (marker lint + expanded runtime check)
-- Client: `apps/web/src/components/AnythingRenderer.jsx` (lazy vendor chunk, expansion before `wrapAnythingSrcDoc`)
-- Prompts: `apps/server/src/prompts/anythingSystemPrompt.js`, `anythingSyntaxGuard.js` (generated from the registry)
-- Bench: `apps/server/scripts/benchAnythingCorpus.js` (`valid-lib-d3`, `policy-unknown-lib`, `runtime-lib-without-marker`)
+- Client: `apps/web/src/components/AnythingRenderer.jsx` (lazy vendor chunk, expansion before `wrapAnythingSrcDoc`, lib badge)
+- Prompts: `apps/server/src/prompts/anythingSystemPrompt.js`, `anythingSyntaxGuard.js` (generated from the registry); when-to-use craft rules in `anythingDesignGuide.js`
+- Bench: `apps/server/scripts/benchAnythingCorpus.js` (`valid-lib-d3`, `valid-lib-matter`, `policy-unknown-lib`, `runtime-lib-without-marker`)
+- Real-execution lib test: `apps/server/test/anythingRuntimeCheck.test.js` (vendored d3 + matter run in the sandbox)
