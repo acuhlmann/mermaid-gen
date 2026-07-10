@@ -38,7 +38,9 @@ export default function ActionBootSequence({ trigger, variant }) {
     const reduceMotion =
       typeof globalThis.matchMedia === 'function' &&
       globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const ms = reduceMotion ? REDUCED_DURATION_MS : VARIANT_DURATION_MS[variant] ?? DEFAULT_DURATION_MS;
+    const ms = reduceMotion
+      ? REDUCED_DURATION_MS
+      : (VARIANT_DURATION_MS[variant] ?? DEFAULT_DURATION_MS);
 
     const token = { variant, trigger };
     setPlaying(token);

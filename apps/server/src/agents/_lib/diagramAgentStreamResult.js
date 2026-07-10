@@ -33,8 +33,7 @@ export function emitIntentTransformStreamResult({
 }) {
   const slotKey = normalizeContentType(contentType);
   let afterState = stateStore.getSlot(slotKey);
-  const agentMessage =
-    typeof agentResult?.message === 'string' ? agentResult.message.trim() : '';
+  const agentMessage = typeof agentResult?.message === 'string' ? agentResult.message.trim() : '';
   const revisionChanged =
     typeof revisionBefore === 'number' ? afterState.revisionId !== revisionBefore : true;
 

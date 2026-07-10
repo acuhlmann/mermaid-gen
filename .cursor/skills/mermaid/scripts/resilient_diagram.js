@@ -32,7 +32,7 @@ try {
     JSON.stringify({
       status: 'error',
       message:
-        'beautiful-mermaid not installed. Run /mermaid-config → option 7 (health check) to install.',
+        'beautiful-mermaid not installed. Run /mermaid-config → option 7 (health check) to install.'
     }) + '\n'
   );
   process.exit(1);
@@ -47,7 +47,8 @@ function resolveTheme(name, customJson) {
       return JSON.parse(customJson);
     } catch {
       process.stderr.write(
-        JSON.stringify({ status: 'error', message: `Invalid --custom-theme JSON: ${customJson}` }) + '\n'
+        JSON.stringify({ status: 'error', message: `Invalid --custom-theme JSON: ${customJson}` }) +
+          '\n'
       );
       process.exit(1);
     }
@@ -60,13 +61,7 @@ function resolveTheme(name, customJson) {
 // Troubleshooting suggestion lookup
 // ---------------------------------------------------------------------------
 function findSuggestion(errorMessage) {
-  const troubleshootingPath = join(
-    __dir,
-    '..',
-    'references',
-    'guides',
-    'troubleshooting.md'
-  );
+  const troubleshootingPath = join(__dir, '..', 'references', 'guides', 'troubleshooting.md');
   if (!existsSync(troubleshootingPath))
     return 'Check references/guides/troubleshooting.md for syntax help';
 
@@ -79,18 +74,13 @@ function findSuggestion(errorMessage) {
   let bestScore = 0;
   for (const section of sections) {
     const lines = section.split('\n');
-    const score = keywords.reduce(
-      (n, kw) => n + (section.toLowerCase().includes(kw) ? 1 : 0),
-      0
-    );
+    const score = keywords.reduce((n, kw) => n + (section.toLowerCase().includes(kw) ? 1 : 0), 0);
     if (score > bestScore) {
       bestScore = score;
       best = `See troubleshooting: "${lines[0].trim()}"`;
     }
   }
-  return bestScore > 0
-    ? best
-    : 'Check references/guides/troubleshooting.md for syntax help';
+  return bestScore > 0 ? best : 'Check references/guides/troubleshooting.md for syntax help';
 }
 
 // ---------------------------------------------------------------------------
@@ -125,9 +115,7 @@ const outputDir =
 // --theme (default: 'zinc-light')
 const themeFlagIndex = args.indexOf('--theme');
 const themeName =
-  themeFlagIndex !== -1 && args[themeFlagIndex + 1]
-    ? args[themeFlagIndex + 1]
-    : 'zinc-light';
+  themeFlagIndex !== -1 && args[themeFlagIndex + 1] ? args[themeFlagIndex + 1] : 'zinc-light';
 
 // --custom-theme (JSON string: '{"bg":"#...","fg":"#..."}')
 const customThemeFlagIndex = args.indexOf('--custom-theme');

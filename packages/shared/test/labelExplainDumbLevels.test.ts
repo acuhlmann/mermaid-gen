@@ -21,7 +21,10 @@ test('chip label advances through toddler into give-up', () => {
   assert.match(labelExplainDumbChipLabel(0), /Dumb it Down/i);
   assert.match(labelExplainDumbChipLabel(1), /dumber|Kid/i);
   assert.match(labelExplainDumbChipLabel(MAX_LABEL_EXPLAIN_DUMB_LEVEL), /Babble/i);
-  assert.equal(labelExplainDumbChipLabel(LABEL_EXPLAIN_GIBBERISH_LEVEL), LABEL_EXPLAIN_GIVE_UP_LABEL);
+  assert.equal(
+    labelExplainDumbChipLabel(LABEL_EXPLAIN_GIBBERISH_LEVEL),
+    LABEL_EXPLAIN_GIVE_UP_LABEL
+  );
 });
 
 test('fallback gibberish is deterministic per label', () => {

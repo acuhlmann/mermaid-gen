@@ -17,7 +17,7 @@ Use this when you want to forbid an import direction across a layer boundary, pr
    },
    ```
 3. **The `comment` IS the agent's fix.** Write it in second person ("invert the dependency by..."), name the canonical alternative, and reference an ADR or doc when the rule encodes a decision.
-4. **Audit before activating.** Run `npm run verify:boundaries` and confirm the new rule passes against the current tree. If it fails, either fix the violations *first* in the same PR or set `severity: 'warn'` with a `# TODO: promote to error after <ticket>` line in the comment.
+4. **Audit before activating.** Run `npm run verify:boundaries` and confirm the new rule passes against the current tree. If it fails, either fix the violations _first_ in the same PR or set `severity: 'warn'` with a `# TODO: promote to error after <ticket>` line in the comment.
 5. **Promote to `error`** when violations reach zero and the team has had a chance to see warnings for a week.
 6. **No corresponding doc update needed** in most cases — the comment is self-documenting. Mention the new rule in the PR description.
 
@@ -30,6 +30,6 @@ Use this when you want to forbid an import direction across a layer boundary, pr
 
 ## When NOT to add a layer rule
 
-- The rule depends on the *content* of an import, not its location → that's an ESLint rule
+- The rule depends on the _content_ of an import, not its location → that's an ESLint rule
 - The rule is enforced by types (e.g., "this function only accepts ids of this brand") → use TypeScript
 - The constraint is semantic (cohesion, hub-ness) → run a `/modularity:review` instead

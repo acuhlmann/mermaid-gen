@@ -2,11 +2,7 @@
  * Compute structural diagram diffs for thinking-pane canvas highlights.
  */
 
-import {
-  diffChartSources,
-  diffInfographicSources,
-  diffMetaphorSources
-} from '@archislop/shared';
+import { diffChartSources, diffInfographicSources, diffMetaphorSources } from '@archislop/shared';
 import { diffMermaidFlowcharts } from './mermaidFlowchartDiff.js';
 
 const EMPTY_DIFF = { addedIds: [], modifiedIds: [], removedIds: [] };

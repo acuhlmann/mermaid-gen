@@ -117,8 +117,7 @@ export function applyCompletedRun(state, input) {
   recentVariantTimeline.push({ variant, at: now });
 
   const streakBonus = Math.max(0, streakByVariant[variant] - 1) * persona.xpStreakBonus;
-  const goMadDepthBonus =
-    variant === 'goMad' && (input.goMadDepth ?? 0) >= 3 ? 35 : 0;
+  const goMadDepthBonus = variant === 'goMad' && (input.goMadDepth ?? 0) >= 3 ? 35 : 0;
   const comboBonus = combo >= 2 ? 8 + Math.min(combo, 6) * 4 : 0;
   const xpGained = persona.xpAward + streakBonus + goMadDepthBonus + comboBonus;
   const totalXp = (state.xp ?? 0) + xpGained;

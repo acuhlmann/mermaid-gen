@@ -60,7 +60,9 @@ const DIAGRAM_TYPE_LABELS = new Set([
 ]);
 
 export function normalizeHex(hex: string | null | undefined): string | null {
-  const h = String(hex ?? '').replace(/^#/, '').trim();
+  const h = String(hex ?? '')
+    .replace(/^#/, '')
+    .trim();
   if (!h) return null;
   if (/^[0-9a-fA-F]{3}$/.test(h)) {
     return `#${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`.toLowerCase();
@@ -105,7 +107,9 @@ export function ColorSwatch({
         style={{ backgroundColor: color }}
         aria-hidden="true"
       />
-      <code className={`insights-color-swatch-hex ${darkText ? 'is-on-light' : 'is-on-dark'}`}>{color}</code>
+      <code className={`insights-color-swatch-hex ${darkText ? 'is-on-light' : 'is-on-dark'}`}>
+        {color}
+      </code>
     </span>
   );
 }
@@ -122,7 +126,11 @@ export function ColorRamp({
   const from = normalizeHex(fromHex) ?? fromHex;
   const to = normalizeHex(toHex) ?? toHex;
   return (
-    <span className="insights-color-ramp" data-testid="thinking-color-ramp" title={`${from} → ${to}`}>
+    <span
+      className="insights-color-ramp"
+      data-testid="thinking-color-ramp"
+      title={`${from} → ${to}`}
+    >
       <ColorSwatch hex={from} keyPrefix={`${keyPrefix}-f`} />
       <span className="insights-color-ramp-arrow" aria-hidden="true">
         →
@@ -143,12 +151,20 @@ export function ThemeVarPill({ name, keyPrefix = 'tv' }: { name: string; keyPref
   return (
     <span className="insights-theme-var-pill" data-testid="thinking-theme-var" title={name}>
       <span className="insights-theme-var-label">{name}</span>
-      {defaultHex ? <ColorSwatch hex={defaultHex} label={`Default ${name}`} keyPrefix={`${keyPrefix}-d`} /> : null}
+      {defaultHex ? (
+        <ColorSwatch hex={defaultHex} label={`Default ${name}`} keyPrefix={`${keyPrefix}-d`} />
+      ) : null}
     </span>
   );
 }
 
-export function IconChip({ faClasses, keyPrefix = 'ic' }: { faClasses?: string; keyPrefix?: string }) {
+export function IconChip({
+  faClasses,
+  keyPrefix = 'ic'
+}: {
+  faClasses?: string;
+  keyPrefix?: string;
+}) {
   const parts = String(faClasses ?? '')
     .trim()
     .split(/\s+/)
@@ -234,10 +250,18 @@ export function PatchLinesBar({
   const addPct = (a / total) * 100;
   const remPct = (r / total) * 100;
   return (
-    <span className="insights-patch-lines-bar" data-testid="thinking-patch-bar" title={`+${a} / −${r} lines`}>
+    <span
+      className="insights-patch-lines-bar"
+      data-testid="thinking-patch-bar"
+      title={`+${a} / −${r} lines`}
+    >
       <span className="insights-patch-lines-bar-track" aria-hidden="true">
-        {a > 0 ? <span className="insights-patch-lines-bar-add" style={{ width: `${addPct}%` }} /> : null}
-        {r > 0 ? <span className="insights-patch-lines-bar-rem" style={{ width: `${remPct}%` }} /> : null}
+        {a > 0 ? (
+          <span className="insights-patch-lines-bar-add" style={{ width: `${addPct}%` }} />
+        ) : null}
+        {r > 0 ? (
+          <span className="insights-patch-lines-bar-rem" style={{ width: `${remPct}%` }} />
+        ) : null}
       </span>
       <span className="insights-patch-lines-bar-label">
         +{a} / −{r} lines
@@ -251,8 +275,7 @@ const INLINE_MARKDOWN = /(\*\*[^*]+\*\*|_[^_]+_|`[^`]+`)/;
 const COLOR_RAMP_RE =
   /(?:from|#)\s*(#[0-9a-fA-F]{3,8})\b[\s\S]{0,80}?(?:to|like|→)\s*(#[0-9a-fA-F]{3,8})\b/i;
 
-const ICON_REPLACE_RE =
-  /replace\s*::?\s*icon\s*\(\s*(fa\s+fa-[\w-]+)\s*\)\s*(?:with|→)\s*(\S+)/i;
+const ICON_REPLACE_RE = /replace\s*::?\s*icon\s*\(\s*(fa\s+fa-[\w-]+)\s*\)\s*(?:with|→)\s*(\S+)/i;
 
 const ICON_SYNTAX_RE = /::icon\s*\(\s*(fa\s+fa-[\w-]+)\s*\)/gi;
 
@@ -284,7 +307,12 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
     const after = text.slice(idx + ramp[0].length);
     return [
       ...tokenizeThinkingProse(before, `${keyBase}-b`),
-      <ColorRamp key={`${keyBase}-ramp`} fromHex={ramp[1]} toHex={ramp[2]} keyPrefix={`${keyBase}-r`} />,
+      <ColorRamp
+        key={`${keyBase}-ramp`}
+        fromHex={ramp[1]}
+        toHex={ramp[2]}
+        keyPrefix={`${keyBase}-r`}
+      />,
       ...tokenizeThinkingProse(after, `${keyBase}-a`)
     ];
   }
@@ -328,7 +356,12 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
   ICON_SYNTAX_RE.lastIndex = 0;
   const iconM = ICON_SYNTAX_RE.exec(text);
   if (iconM) {
-    earliest = { index: iconM.index, len: (iconM[0] ?? '').length, kind: 'icon', data: iconM[1] ?? '' };
+    earliest = {
+      index: iconM.index,
+      len: (iconM[0] ?? '').length,
+      kind: 'icon',
+      data: iconM[1] ?? ''
+    };
   }
 
   DIAGRAM_TYPE_RE.lastIndex = 0;
@@ -340,7 +373,12 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
   THEME_VAR_RE.lastIndex = 0;
   const tvM = THEME_VAR_RE.exec(text);
   if (tvM && (!earliest || tvM.index < earliest.index)) {
-    earliest = { index: tvM.index, len: (tvM[0] ?? '').length, kind: 'themeVar', data: tvM[1] ?? '' };
+    earliest = {
+      index: tvM.index,
+      len: (tvM[0] ?? '').length,
+      kind: 'themeVar',
+      data: tvM[1] ?? ''
+    };
   }
 
   HEX_RE.lastIndex = 0;
@@ -356,15 +394,30 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
     if (idx < 0) continue;
     if (earliest && idx >= earliest.index) continue;
     if (MERMAID_THEME_LABELS.has(w)) {
-      earliest = { index: idx, len: word.length, kind: 'enum', data: { value: w, enumKind: 'theme' } };
+      earliest = {
+        index: idx,
+        len: word.length,
+        kind: 'enum',
+        data: { value: w, enumKind: 'theme' }
+      };
       break;
     }
     if (MERMAID_LOOK_LABELS.has(w)) {
-      earliest = { index: idx, len: word.length, kind: 'enum', data: { value: w, enumKind: 'look' } };
+      earliest = {
+        index: idx,
+        len: word.length,
+        kind: 'enum',
+        data: { value: w, enumKind: 'look' }
+      };
       break;
     }
     if (MERMAID_CURVE_LABELS.has(w)) {
-      earliest = { index: idx, len: word.length, kind: 'enum', data: { value: w, enumKind: 'curve' } };
+      earliest = {
+        index: idx,
+        len: word.length,
+        kind: 'enum',
+        data: { value: w, enumKind: 'curve' }
+      };
       break;
     }
   }
@@ -378,7 +431,9 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
   const mid: ReactNode[] = [];
 
   if (earliest.kind === 'icon') {
-    mid.push(<IconChip key={`${keyBase}-ic`} faClasses={earliest.data} keyPrefix={`${keyBase}-ic`} />);
+    mid.push(
+      <IconChip key={`${keyBase}-ic`} faClasses={earliest.data} keyPrefix={`${keyBase}-ic`} />
+    );
   } else if (earliest.kind === 'diagram') {
     const match = earliest.data;
     const typeRaw = match[1] ?? '';
@@ -392,7 +447,9 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
       />
     );
   } else if (earliest.kind === 'themeVar') {
-    mid.push(<ThemeVarPill key={`${keyBase}-tv`} name={earliest.data} keyPrefix={`${keyBase}-tv`} />);
+    mid.push(
+      <ThemeVarPill key={`${keyBase}-tv`} name={earliest.data} keyPrefix={`${keyBase}-tv`} />
+    );
   } else if (earliest.kind === 'hex') {
     mid.push(<ColorSwatch key={`${keyBase}-hx`} hex={earliest.data} keyPrefix={`${keyBase}-hx`} />);
   } else if (earliest.kind === 'enum') {
@@ -406,7 +463,11 @@ export function tokenizeThinkingProse(text: string, keyBase = 'tp'): ReactNode[]
     );
   }
 
-  return [...tokenizeThinkingProse(before, `${keyBase}-l`), ...mid, ...tokenizeThinkingProse(after, `${keyBase}-r`)];
+  return [
+    ...tokenizeThinkingProse(before, `${keyBase}-l`),
+    ...mid,
+    ...tokenizeThinkingProse(after, `${keyBase}-r`)
+  ];
 }
 
 function tokenizeMarkdownInline(text: string, keyBase: string): ReactNode[] {
@@ -426,11 +487,15 @@ function tokenizeMarkdownInline(text: string, keyBase: string): ReactNode[] {
     const token = match[0] ?? '';
     if (token.startsWith('**')) {
       fragments.push(
-        <strong key={`${keyBase}-s-${keyIndex}`}>{enrichInline(token.slice(2, -2), `${keyBase}-s${keyIndex}`)}</strong>
+        <strong key={`${keyBase}-s-${keyIndex}`}>
+          {enrichInline(token.slice(2, -2), `${keyBase}-s${keyIndex}`)}
+        </strong>
       );
     } else if (token.startsWith('_')) {
       fragments.push(
-        <em key={`${keyBase}-e-${keyIndex}`}>{enrichInline(token.slice(1, -1), `${keyBase}-e${keyIndex}`)}</em>
+        <em key={`${keyBase}-e-${keyIndex}`}>
+          {enrichInline(token.slice(1, -1), `${keyBase}-e${keyIndex}`)}
+        </em>
       );
     } else if (token.startsWith('`')) {
       const inner = token.slice(1, -1);
@@ -469,9 +534,18 @@ function splitPlainWithEnums(chunk: string, keyBase: string): ReactNode[] {
     if (m.index > cursor) out.push(chunk.slice(cursor, m.index));
     out.push(
       enumKind === 'diagram' ? (
-        <DiagramTypeBadge key={`${keyBase}-d-${m.index}`} typeLabel={w} keyPrefix={`${keyBase}-d`} />
+        <DiagramTypeBadge
+          key={`${keyBase}-d-${m.index}`}
+          typeLabel={w}
+          keyPrefix={`${keyBase}-d`}
+        />
       ) : (
-        <StyleEnumPill key={`${keyBase}-e-${m.index}`} value={w} kind={enumKind} keyPrefix={`${keyBase}-e`} />
+        <StyleEnumPill
+          key={`${keyBase}-e-${m.index}`}
+          value={w}
+          kind={enumKind}
+          keyPrefix={`${keyBase}-e`}
+        />
       )
     );
     cursor = m.index + w.length;

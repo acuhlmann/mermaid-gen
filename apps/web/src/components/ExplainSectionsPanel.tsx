@@ -39,11 +39,14 @@ export default function ExplainSectionsPanel({
           className={`insights-section insights-explain-section ${toneClassForSectionId(section.id)}`}
           aria-labelledby={`explain-sec-${idx}`}
         >
-          <h4 id={`explain-sec-${idx}`} className="insights-section-title insights-section-title-explain">
+          <h4
+            id={`explain-sec-${idx}`}
+            className="insights-section-title insights-section-title-explain"
+          >
             {section.heading}
           </h4>
           <div className="insights-explain-section-body">
-            {section.body?.trim() ? renderBody?.(section.body) ?? section.body : null}
+            {section.body?.trim() ? (renderBody?.(section.body) ?? section.body) : null}
           </div>
         </section>
       ))}

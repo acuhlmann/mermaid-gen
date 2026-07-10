@@ -29,10 +29,10 @@ component under test directly with `createRoot`, parameterized via
 The sandbox network policy blocks CDNs, and two runtime fetches crash the
 whole R3F tree when they fail — the canvas stays mounted but renders nothing:
 
-1. **drei `<Text>` (troika) font resolution** — fetched from jsdelivr *inside a
-   blob worker*, which bypasses `page.route`. Fix in the harness:
+1. **drei `<Text>` (troika) font resolution** — fetched from jsdelivr _inside a
+   blob worker_, which bypasses `page.route`. Fix in the harness:
    `import { configureTextBuilder } from 'troika-three-text';
-   configureTextBuilder({ useWorker: false });` then intercept with
+configureTextBuilder({ useWorker: false });` then intercept with
    `page.route` and fulfill:
    - `codepoint-index/plane*/*.json` → `[1, {"en": {"latin": "<'o' × 44>"}}]`
      (each char carries 6 coverage bits; `'o'` = all set)

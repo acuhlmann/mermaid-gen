@@ -15,7 +15,7 @@ export const LEGACY_MONOLITHS = [
   'apps/server/src/mcp/mcpServer.js',
   'apps/server/src/agents/mermaidLangChainAgent.js',
   'apps/server/src/agents/infographicLangChainAgent.js',
-  'apps/server/src/routes/copilot.ts',
+  'apps/server/src/routes/copilot.ts'
 ];
 
 // Build the eslint flat-config override block that disables the threshold
@@ -23,9 +23,9 @@ export const LEGACY_MONOLITHS = [
 // them against the file path passed in via `files` glob.
 export function legacyOverridesForWorkspace(workspaceDir) {
   const prefix = `${workspaceDir.replace(/\/$/, '')}/`;
-  const files = LEGACY_MONOLITHS
-    .filter((p) => p.startsWith(prefix))
-    .map((p) => p.slice(prefix.length));
+  const files = LEGACY_MONOLITHS.filter((p) => p.startsWith(prefix)).map((p) =>
+    p.slice(prefix.length)
+  );
   if (files.length === 0) return [];
   return [
     {
@@ -33,8 +33,8 @@ export function legacyOverridesForWorkspace(workspaceDir) {
       rules: {
         'max-lines': 'off',
         'max-lines-per-function': 'off',
-        complexity: 'off',
-      },
-    },
+        complexity: 'off'
+      }
+    }
   ];
 }

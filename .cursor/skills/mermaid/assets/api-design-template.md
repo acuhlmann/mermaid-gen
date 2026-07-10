@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # [API Name] - API Design Document
@@ -304,11 +304,11 @@ stateDiagram-v2
 
 ### 6.1 Rate Limit Policy
 
-| Tier | Requests/Minute | Requests/Hour | Burst |
-|------|-----------------|---------------|-------|
-| Free | 60 | 1000 | 10 |
-| Basic | 300 | 10000 | 50 |
-| Premium | 1000 | 100000 | 200 |
+| Tier    | Requests/Minute | Requests/Hour | Burst |
+| ------- | --------------- | ------------- | ----- |
+| Free    | 60              | 1000          | 10    |
+| Basic   | 300             | 10000         | 50    |
+| Premium | 1000            | 100000        | 200   |
 
 **Headers:**
 
@@ -340,16 +340,16 @@ X-RateLimit-Reset: 1640995200
 
 ### 7.2 Error Codes
 
-| HTTP Status | Error Code | Description |
-|-------------|------------|-------------|
-| 400 | INVALID_REQUEST | Request validation failed |
-| 401 | UNAUTHORIZED | Missing or invalid authentication |
-| 403 | FORBIDDEN | Insufficient permissions |
-| 404 | NOT_FOUND | Resource not found |
-| 422 | VALIDATION_ERROR | Data validation failed |
-| 429 | RATE_LIMIT_EXCEEDED | Too many requests |
-| 500 | INTERNAL_ERROR | Server error |
-| 503 | SERVICE_UNAVAILABLE | Service temporarily unavailable |
+| HTTP Status | Error Code          | Description                       |
+| ----------- | ------------------- | --------------------------------- |
+| 400         | INVALID_REQUEST     | Request validation failed         |
+| 401         | UNAUTHORIZED        | Missing or invalid authentication |
+| 403         | FORBIDDEN           | Insufficient permissions          |
+| 404         | NOT_FOUND           | Resource not found                |
+| 422         | VALIDATION_ERROR    | Data validation failed            |
+| 429         | RATE_LIMIT_EXCEEDED | Too many requests                 |
+| 500         | INTERNAL_ERROR      | Server error                      |
+| 503         | SERVICE_UNAVAILABLE | Service temporarily unavailable   |
 
 ---
 
@@ -483,12 +483,12 @@ API-Sunset-Date: null
 
 ## 13. Performance Targets
 
-| Metric | Target | Current |
-|--------|--------|---------|
-| Response Time (p95) | < 200ms | 150ms |
-| Response Time (p99) | < 500ms | 350ms |
-| Throughput | > 1000 req/s | 1200 req/s |
-| Uptime | 99.9% | 99.95% |
+| Metric              | Target       | Current    |
+| ------------------- | ------------ | ---------- |
+| Response Time (p95) | < 200ms      | 150ms      |
+| Response Time (p99) | < 500ms      | 350ms      |
+| Throughput          | > 1000 req/s | 1200 req/s |
+| Uptime              | 99.9%        | 99.95%     |
 
 ---
 
@@ -581,9 +581,9 @@ print(response.json())
 
 ### A. Glossary
 
-| Term | Definition |
-|------|------------|
-| JWT | JSON Web Token |
+| Term | Definition                   |
+| ---- | ---------------------------- |
+| JWT  | JSON Web Token               |
 | CRUD | Create, Read, Update, Delete |
 
 ### B. References

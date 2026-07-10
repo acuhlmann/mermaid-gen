@@ -33,7 +33,16 @@ const WHITEBOARD_CONFIG = {
   },
   view: { stroke: 'transparent' },
   range: {
-    category: ['#3b82f6', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#84cc16']
+    category: [
+      '#3b82f6',
+      '#f59e0b',
+      '#10b981',
+      '#ef4444',
+      '#8b5cf6',
+      '#06b6d4',
+      '#ec4899',
+      '#84cc16'
+    ]
   }
 };
 

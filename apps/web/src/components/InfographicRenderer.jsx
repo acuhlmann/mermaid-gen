@@ -100,7 +100,11 @@ function InfographicRendererImpl(
       setRenderError('');
       containerRef.current.innerHTML = '';
       if (instanceRef.current) {
-        try { instanceRef.current.destroy(); } catch { /* noop */ }
+        try {
+          instanceRef.current.destroy();
+        } catch {
+          /* noop */
+        }
         instanceRef.current = null;
       }
       lastSourceRef.current = '';
@@ -112,7 +116,11 @@ function InfographicRendererImpl(
     }
 
     if (instanceRef.current) {
-      try { instanceRef.current.destroy(); } catch { /* noop */ }
+      try {
+        instanceRef.current.destroy();
+      } catch {
+        /* noop */
+      }
       instanceRef.current = null;
     }
     containerRef.current.innerHTML = '';
@@ -120,7 +128,10 @@ function InfographicRendererImpl(
     try {
       const parsed = parseSyntax(dsl);
       if (parsed?.errors?.length) {
-        const head = parsed.errors.slice(0, 3).map((e) => e.message).join(' · ');
+        const head = parsed.errors
+          .slice(0, 3)
+          .map((e) => e.message)
+          .join(' · ');
         setRenderError(`Infographic DSL parse error: ${head}`);
         return undefined;
       }
@@ -142,7 +153,9 @@ function InfographicRendererImpl(
       setRenderError('');
       requestAnimationFrame(() => {
         if (containerRef.current && containerRef.current.querySelectorAll('svg').length === 0) {
-          setRenderError('Infographic produced no visible output. Try a different template or simplify the data.');
+          setRenderError(
+            'Infographic produced no visible output. Try a different template or simplify the data.'
+          );
         }
       });
     } catch (error) {
@@ -155,7 +168,11 @@ function InfographicRendererImpl(
   useEffect(() => {
     return () => {
       if (instanceRef.current) {
-        try { instanceRef.current.destroy(); } catch { /* noop */ }
+        try {
+          instanceRef.current.destroy();
+        } catch {
+          /* noop */
+        }
         instanceRef.current = null;
       }
     };

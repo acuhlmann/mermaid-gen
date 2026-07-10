@@ -17,8 +17,7 @@ const HTML_DOCUMENT_START =
 
 const INFOGRAPHIC_FIRST_LINE = /^infographic\s+[a-z0-9][a-z0-9-]*\s*$/i;
 
-const MERMAID_FIRST_LINE =
-  /^(?:flowchart|graph)\s+(?:TD|TB|BT|RL|LR|td|tb|bt|rl|lr)\b/i;
+const MERMAID_FIRST_LINE = /^(?:flowchart|graph)\s+(?:TD|TB|BT|RL|LR|td|tb|bt|rl|lr)\b/i;
 
 const MERMAID_BLOCK_START =
   /^(?:sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|journey|gantt|pie|mindmap|timeline|sankey-beta|block-beta|gitGraph|requirementDiagram|quadrantChart|gitgraph|zenuml|packet-beta|radar|treemap|block|packet)\b/i;
@@ -124,11 +123,16 @@ function splitEmbeddedJsonDsl(text, marker, tryParse, kind) {
   while ((fenceMatch = JSON_FENCE_START.exec(text)) !== null) {
     const contentStart = fenceMatch.index + fenceMatch[0].length;
     const closeIdx = text.indexOf('```', contentStart);
-    const inner = (closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)).trim();
+    const inner = (
+      closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)
+    ).trim();
     const dsl = tryParse(inner);
     if (!dsl) continue;
     return {
-      prose: joinProseSegments(text.slice(0, fenceMatch.index), closeIdx >= 0 ? text.slice(closeIdx + 3) : ''),
+      prose: joinProseSegments(
+        text.slice(0, fenceMatch.index),
+        closeIdx >= 0 ? text.slice(closeIdx + 3) : ''
+      ),
       dsl,
       kind
     };
@@ -167,13 +171,18 @@ function splitEmbeddedAnythingHtml(text) {
   while ((fenceMatch = HTML_FENCE_START.exec(text)) !== null) {
     const contentStart = fenceMatch.index + fenceMatch[0].length;
     const closeIdx = text.indexOf('```', contentStart);
-    const inner = (closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)).trim();
+    const inner = (
+      closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)
+    ).trim();
     const dsl = tryParseAnythingHtml(inner);
     if (!dsl) continue;
     // Fenced blocks are intentional markup — preview even while the closing fence is still streaming.
     if (closeIdx < 0 && !isSubstantialDsl(dsl, 'anything')) continue;
     return {
-      prose: joinProseSegments(text.slice(0, fenceMatch.index), closeIdx >= 0 ? text.slice(closeIdx + 3) : ''),
+      prose: joinProseSegments(
+        text.slice(0, fenceMatch.index),
+        closeIdx >= 0 ? text.slice(closeIdx + 3) : ''
+      ),
       dsl,
       kind: 'anything'
     };
@@ -276,7 +285,11 @@ export function splitEmbeddedDiagramDsl(text) {
     const dsl = lines.slice(dslStart).join('\n').trim();
     if (!isSubstantialDsl(dsl, kind)) continue;
 
-    if (kind === 'mermaid' && MERMAID_BARE_FLOW.test(trimmed) && !MERMAID_FIRST_LINE.test(trimmed)) {
+    if (
+      kind === 'mermaid' &&
+      MERMAID_BARE_FLOW.test(trimmed) &&
+      !MERMAID_FIRST_LINE.test(trimmed)
+    ) {
       const looksLikeFlowchartBody =
         /-->|---/.test(dsl) ||
         dsl.includes('[') ||

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { parsePartialMetaphorDsl, partialToRenderableMetaphorDsl } from '../src/metaphorPartialParse.js';
+import {
+  parsePartialMetaphorDsl,
+  partialToRenderableMetaphorDsl
+} from '../src/metaphorPartialParse.js';
 
 test('parsePartialMetaphorDsl returns complete items from partial JSON', () => {
   const raw = `{"metaphor":"city","scene":{"theme":"whiteboard"},"items":[{"id":"a","label":"Alpha","height":5`;

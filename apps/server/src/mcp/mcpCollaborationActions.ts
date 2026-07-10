@@ -52,11 +52,7 @@ type PresenceStore = {
 };
 
 type AgentTokenStore = {
-  issue?(opts: {
-    sessionId: string;
-    agentId: string;
-    mcpSessionId: string | null;
-  }): string | null;
+  issue?(opts: { sessionId: string; agentId: string; mcpSessionId: string | null }): string | null;
   bindMcpSession?(sessionId: string, agentId: string, mcpSessionId: string): void;
 };
 
@@ -160,7 +156,8 @@ export function approveHandshake({
   mcpSessionId?: string | null;
 }): ActionResult {
   const agent = handshakeStore.approveRequest(requestId);
-  if (!agent) return { ok: false, status: 404, body: { error: 'Unknown or already resolved handshake.' } };
+  if (!agent)
+    return { ok: false, status: 404, body: { error: 'Unknown or already resolved handshake.' } };
   presenceStore.upsert({
     agentId: agent.agentId,
     agentName: agent.agentName,
@@ -206,7 +203,8 @@ export function denyHandshake({
   requestId: string;
 }): ActionResult {
   const ok = handshakeStore.denyRequest(requestId);
-  if (!ok) return { ok: false, status: 404, body: { error: 'Unknown or already resolved handshake.' } };
+  if (!ok)
+    return { ok: false, status: 404, body: { error: 'Unknown or already resolved handshake.' } };
   eventBus.publish(sessionId, {
     type: 'handshake_resolved',
     payload: { requestId, status: 'denied' }

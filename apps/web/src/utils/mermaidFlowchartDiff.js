@@ -1,4 +1,8 @@
-import { parseSubgraphHeaderId, peekDiagramDirective, stripLineComment } from './mermaidSourceLocate.js';
+import {
+  parseSubgraphHeaderId,
+  peekDiagramDirective,
+  stripLineComment
+} from './mermaidSourceLocate.js';
 
 export { peekDiagramDirective };
 

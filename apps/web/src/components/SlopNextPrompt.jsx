@@ -29,21 +29,24 @@ export default function SlopNextPrompt({
   const inputId = layout === 'radial' ? 'slop-prompt-radial-input' : 'slop-prompt-chrome-input';
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      const el = inputRef.current;
-      if (!el) return;
-      try {
-        el.focus({ preventScroll: true });
-      } catch {
-        el.focus();
-      }
-      // Keep the input inside the visual viewport after the mobile keyboard opens.
-      try {
-        el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-      } catch {
-        // ignore
-      }
-    }, narrowLayout ? 80 : 30);
+    const id = window.setTimeout(
+      () => {
+        const el = inputRef.current;
+        if (!el) return;
+        try {
+          el.focus({ preventScroll: true });
+        } catch {
+          el.focus();
+        }
+        // Keep the input inside the visual viewport after the mobile keyboard opens.
+        try {
+          el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        } catch {
+          // ignore
+        }
+      },
+      narrowLayout ? 80 : 30
+    );
     return () => window.clearTimeout(id);
   }, [narrowLayout]);
 

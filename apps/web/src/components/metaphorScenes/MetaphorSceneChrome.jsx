@@ -41,7 +41,13 @@ export function GlowSprite({ size, color, opacity }) {
   );
 }
 
-export function ItemLabel({ text, position, fontSize = 0.55, color = '#0f172a', outlineColor = '#ffffff' }) {
+export function ItemLabel({
+  text,
+  position,
+  fontSize = 0.55,
+  color = '#0f172a',
+  outlineColor = '#ffffff'
+}) {
   if (!text) return null;
   return (
     <Billboard position={position}>

@@ -74,10 +74,8 @@ export function validateMermaidTransformConstraint(opts: {
         error: `Executive simplify is subtractive only (had ${beforeGraph.edges} edges, now ${afterGraph.edges}).`
       };
     }
-    const large =
-      beforeGraph.nodes > 4 || beforeGraph.edges > 5;
-    const shrank =
-      afterGraph.nodes < beforeGraph.nodes || afterGraph.edges < beforeGraph.edges;
+    const large = beforeGraph.nodes > 4 || beforeGraph.edges > 5;
+    const shrank = afterGraph.nodes < beforeGraph.nodes || afterGraph.edges < beforeGraph.edges;
     if (large && !shrank) {
       return {
         ok: false,

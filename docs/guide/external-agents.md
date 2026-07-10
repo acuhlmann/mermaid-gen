@@ -29,23 +29,23 @@ flowchart LR
 
 Interactive HTML in MCP hosts that support Apps; bundles in [`apps/server/src/mcp/apps/`](../../apps/server/src/mcp/apps/).
 
-| Tool | MCP App (`ui://…`) | Purpose |
-| --- | --- | --- |
-| `open_web_companion` | `archislop/web-companion.html` | **Hybrid default:** read-only queue + activity feed while you control approvals in the web UI |
-| `join_session` / `open_session_pairing` | `archislop/session-pairing.html` | Paste pairing code from Invite agent |
-| `register_agent` | `archislop/web-companion.html` | Opens web companion (handshake focus); approve in web or `open_handshake_review` for MCP-only |
-| `open_handshake_review` | `archislop/handshake.html` | Legacy Approve/Deny for MCP-only hosts |
-| `open_diagram_canvas` | `archislop/canvas-preview.html` | Live canvas preview + link to web editor |
-| `propose_diagram_edit` | `archislop/web-companion.html` | Opens web companion (proposal focus); accept in web Insights |
-| `open_proposal_review` | `archislop/proposal-review.html` | Full diff review for MCP-only hosts (optional in hybrid) |
-| `open_my_proposals` | `archislop/proposal-inbox.html` | Your proposal status inbox |
-| `open_session_dashboard` | `archislop/session-dashboard.html` | Presence + pending proposals; **Review** opens proposal App |
-| `open_insights_feed` | `archislop/insights-feed.html` | Attributed insights (Thinking pane parity) |
-| `open_critique_review` | `archislop/critique-map.html` | Actionable critique; `request_critique_fix` |
-| `open_welcome` / `get_session_bootstrap` | `archislop/welcome.html` | Onboarding checklist + revision ids |
-| `open_session_events` | `archislop/session-events.html` | Live collaboration feed (SSE + long-poll fallback) |
-| `open_compose_insight` | `archislop/compose-insight.html` | Post note / suggestion / critique |
-| `open_focus_picker` | `archislop/focus-picker.html` | Pick a node to highlight via `set_focus` |
+| Tool                                     | MCP App (`ui://…`)                 | Purpose                                                                                       |
+| ---------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------- |
+| `open_web_companion`                     | `archislop/web-companion.html`     | **Hybrid default:** read-only queue + activity feed while you control approvals in the web UI |
+| `join_session` / `open_session_pairing`  | `archislop/session-pairing.html`   | Paste pairing code from Invite agent                                                          |
+| `register_agent`                         | `archislop/web-companion.html`     | Opens web companion (handshake focus); approve in web or `open_handshake_review` for MCP-only |
+| `open_handshake_review`                  | `archislop/handshake.html`         | Legacy Approve/Deny for MCP-only hosts                                                        |
+| `open_diagram_canvas`                    | `archislop/canvas-preview.html`    | Live canvas preview + link to web editor                                                      |
+| `propose_diagram_edit`                   | `archislop/web-companion.html`     | Opens web companion (proposal focus); accept in web Insights                                  |
+| `open_proposal_review`                   | `archislop/proposal-review.html`   | Full diff review for MCP-only hosts (optional in hybrid)                                      |
+| `open_my_proposals`                      | `archislop/proposal-inbox.html`    | Your proposal status inbox                                                                    |
+| `open_session_dashboard`                 | `archislop/session-dashboard.html` | Presence + pending proposals; **Review** opens proposal App                                   |
+| `open_insights_feed`                     | `archislop/insights-feed.html`     | Attributed insights (Thinking pane parity)                                                    |
+| `open_critique_review`                   | `archislop/critique-map.html`      | Actionable critique; `request_critique_fix`                                                   |
+| `open_welcome` / `get_session_bootstrap` | `archislop/welcome.html`           | Onboarding checklist + revision ids                                                           |
+| `open_session_events`                    | `archislop/session-events.html`    | Live collaboration feed (SSE + long-poll fallback)                                            |
+| `open_compose_insight`                   | `archislop/compose-insight.html`   | Post note / suggestion / critique                                                             |
+| `open_focus_picker`                      | `archislop/focus-picker.html`      | Pick a node to highlight via `set_focus`                                                      |
 
 Proposal review includes Mermaid preview (with CDN timeouts and fallback copy), unified diff, graph-level chips, and **Request changes** (proposal stays pending; agent gets session event + attributed insight). Apps share nav chrome and auto-refresh via the session event bridge where noted in [`docs/architecture-external-agents.md`](../architecture-external-agents.md).
 

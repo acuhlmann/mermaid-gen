@@ -60,21 +60,31 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
       <div className="invite-card">
         <header className="invite-header">
           <div className="invite-header-titlebar">
-            <span className="invite-header-emoji" aria-hidden="true">🤝</span>
+            <span className="invite-header-emoji" aria-hidden="true">
+              🤝
+            </span>
             <div className="invite-header-text">
               <h2 id="invite-title">Onboard an external agent</h2>
-              <p className="invite-header-subtitle">Bring another LLM into the Co-Design roundtable.</p>
+              <p className="invite-header-subtitle">
+                Bring another LLM into the Co-Design roundtable.
+              </p>
             </div>
           </div>
-          <button type="button" className="overlay-button compact-button invite-close-button" onClick={onClose} aria-label="Close">
+          <button
+            type="button"
+            className="overlay-button compact-button invite-close-button"
+            onClick={onClose}
+            aria-label="Close"
+          >
             Close
           </button>
         </header>
         <p className="invite-explainer">
-          External agents join over <strong>MCP</strong> — they can see the diagram, propose changes, and weigh in
-          alongside the Stakeholders. <strong>Scan the QR</strong> or hit <strong>Connect now</strong> to pair an
-          IDE-side agent in one tap; you’ll still approve the handshake before anyone touches the slop. For a
-          long-lived setup, use the stable URL under Advanced.
+          External agents join over <strong>MCP</strong> — they can see the diagram, propose
+          changes, and weigh in alongside the Stakeholders. <strong>Scan the QR</strong> or hit{' '}
+          <strong>Connect now</strong> to pair an IDE-side agent in one tap; you’ll still approve
+          the handshake before anyone touches the slop. For a long-lived setup, use the stable URL
+          under Advanced.
         </p>
         {loading ? <p>Loading invite…</p> : null}
         {error ? <p className="invite-error">{error}</p> : null}
@@ -83,7 +93,11 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
             {invite.qrDataUrl ? (
               <section className="invite-section invite-qr-section invite-qr-primary">
                 <h3>Scan to connect</h3>
-                <img src={invite.qrDataUrl} alt="QR code for MCP pairing URL" className="invite-qr" />
+                <img
+                  src={invite.qrDataUrl}
+                  alt="QR code for MCP pairing URL"
+                  className="invite-qr"
+                />
               </section>
             ) : null}
 

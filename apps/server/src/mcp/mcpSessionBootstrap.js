@@ -3,13 +3,14 @@ import { buildWebCanvasUrl } from './diagramDiffSummary.js';
 /**
  * One-shot bootstrap document for external agents after room bind.
  */
-export function buildSessionBootstrap({
-  entry,
-  services,
-  pairingCodeStore,
-  publicBaseUrl
-}) {
-  const checklist = ['join_session', 'register_agent', 'open_welcome', 'open_diagram_canvas', 'open_session_events'];
+export function buildSessionBootstrap({ entry, services, pairingCodeStore, publicBaseUrl }) {
+  const checklist = [
+    'join_session',
+    'register_agent',
+    'open_welcome',
+    'open_diagram_canvas',
+    'open_session_events'
+  ];
   const collaborationGuidePrompt = 'archislop_collaboration_guide';
 
   if (!entry) {

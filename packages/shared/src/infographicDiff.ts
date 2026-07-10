@@ -170,7 +170,10 @@ export function parseInfographicTree(text: string) {
   return { template, topField, items };
 }
 
-function flattenByIndexPath(items: InfographicNode[], into: Map<string, InfographicNode> = new Map()) {
+function flattenByIndexPath(
+  items: InfographicNode[],
+  into: Map<string, InfographicNode> = new Map()
+) {
   for (const item of items) {
     into.set(item.indexPath, item);
     if (item.children?.length) flattenByIndexPath(item.children, into);
@@ -190,7 +193,9 @@ export function diffInfographicSources(
 ) {
   const before = parseInfographicTree(previousSource ?? '');
   const after = parseInfographicTree(nextSource ?? '');
-  const templateChanged = Boolean(before.template && after.template && before.template !== after.template);
+  const templateChanged = Boolean(
+    before.template && after.template && before.template !== after.template
+  );
 
   const beforeMap = flattenByIndexPath(before.items);
   const afterMap = flattenByIndexPath(after.items);
@@ -216,7 +221,8 @@ export function diffInfographicSources(
     if (!afterMap.has(id)) removed.push(id);
   }
 
-  const sort = (arr: string[]) => arr.sort((a: string, b: string) => a.localeCompare(b, undefined, { numeric: true }));
+  const sort = (arr: string[]) =>
+    arr.sort((a: string, b: string) => a.localeCompare(b, undefined, { numeric: true }));
   return {
     addedIds: sort(added),
     modifiedIds: sort(modified),

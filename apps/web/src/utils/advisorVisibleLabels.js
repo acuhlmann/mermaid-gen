@@ -6,7 +6,9 @@ const MAX_LABELS = 30;
 const MAX_LABEL_CHARS = 160;
 
 function pushUnique(list, seen, value) {
-  const label = String(value ?? '').replace(/\s+/g, ' ').trim();
+  const label = String(value ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!label || seen.has(label)) return;
   seen.add(label);
   list.push(label.slice(0, MAX_LABEL_CHARS));
@@ -71,7 +73,11 @@ export function extractAnythingAdvisorLabels(source) {
   ];
   for (const el of doc.querySelectorAll(selectors.join(','))) {
     if (labels.length >= MAX_LABELS) break;
-    pushUnique(labels, seen, el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent);
+    pushUnique(
+      labels,
+      seen,
+      el.getAttribute('aria-label') || el.getAttribute('title') || el.textContent
+    );
   }
   if (labels.length === 0 && doc.body?.textContent) {
     for (const chunk of doc.body.textContent.split(/[.!?\n]/)) {

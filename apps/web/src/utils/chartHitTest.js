@@ -63,11 +63,7 @@ function resolveElementType(item) {
 
 function resolveMarkType(item) {
   return (
-    item?.mark?.marktype ||
-    item?.mark?.type ||
-    item?.markdef?.type ||
-    item?.mark?.name ||
-    'mark'
+    item?.mark?.marktype || item?.mark?.type || item?.markdef?.type || item?.mark?.name || 'mark'
   );
 }
 
@@ -202,7 +198,9 @@ export function buildChartDescriptorFromVegaItem(item, event, boundary) {
 
   const rawIndex = item.index ?? item._index;
   const indexes =
-    rawIndex != null && Number.isFinite(Number(rawIndex)) ? String(Math.trunc(Number(rawIndex))) : '';
+    rawIndex != null && Number.isFinite(Number(rawIndex))
+      ? String(Math.trunc(Number(rawIndex)))
+      : '';
 
   const partKind = CHART_PART_KINDS[elementType] || 'mark';
   const anchorEl = nearestChartAnchor(event?.target, boundary);
@@ -237,7 +235,8 @@ export function buildChartDescriptorFromDomHit(chartHit, boundary = null) {
 
   const roleDesc = chartHit.roleDesc || '';
   let elementType = 'mark';
-  if (roleDesc.includes('legend')) elementType = roleDesc.includes('title') ? 'legend' : 'legend-label';
+  if (roleDesc.includes('legend'))
+    elementType = roleDesc.includes('title') ? 'legend' : 'legend-label';
   else if (roleDesc.includes('axis')) {
     elementType = roleDesc.includes('title') ? 'axis-title' : 'axis-tick';
   } else if (roleDesc.includes('title')) elementType = 'title';

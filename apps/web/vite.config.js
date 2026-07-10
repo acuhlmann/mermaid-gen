@@ -1,16 +1,16 @@
-import path from 'node:path'
-import { createRequire } from 'node:module'
-import { fileURLToPath } from 'node:url'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const require = createRequire(import.meta.url)
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 
 function normalizeBase(value) {
-  const s = (value ?? '/').trim() || '/'
-  if (s === '/') return '/'
-  return s.endsWith('/') ? s : `${s}/`
+  const s = (value ?? '/').trim() || '/';
+  if (s === '/') return '/';
+  return s.endsWith('/') ? s : `${s}/`;
 }
 
 // https://vite.dev/config/
@@ -33,4 +33,4 @@ export default defineConfig({
     // stale split chunks (504 Outdated Optimize Dep) after dependency changes.
     include: ['source-map-js', 'path-browserify', '@antv/infographic', 'mermaid', 'vega-embed']
   }
-})
+});

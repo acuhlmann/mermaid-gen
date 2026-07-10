@@ -6,7 +6,7 @@ Accepted — 2026-05-24
 
 ## Context
 
-Most edits in this repo are now made by coding agents (Claude Code, Cursor). The existing automated checks — `verify:boundaries` (regex), `verify:doc-paths`, typecheck, tests — catch correctness regressions but were never designed to *teach* the agent. When a check fails, the agent reads "violation X at line Y" and has to guess the canonical fix from context.
+Most edits in this repo are now made by coding agents (Claude Code, Cursor). The existing automated checks — `verify:boundaries` (regex), `verify:doc-paths`, typecheck, tests — catch correctness regressions but were never designed to _teach_ the agent. When a check fails, the agent reads "violation X at line Y" and has to guess the canonical fix from context.
 
 Martin Fowler's article [Sensors for Coding Agents](https://martinfowler.com/articles/sensors-for-coding-agents.html) reframes this: every sensor should hand the agent the fix. The article highlights four levers: stricter linting (with custom guidance), `dependency-cruiser` for layered architecture, AI-driven semantic modularity review, and a custom ESLint formatter that overrides default messages.
 

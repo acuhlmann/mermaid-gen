@@ -22,7 +22,12 @@ export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
   }
 
   return (
-    <div className="agent-handshake-overlay" role="dialog" aria-modal="true" aria-labelledby="agent-handshake-title">
+    <div
+      className="agent-handshake-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="agent-handshake-title"
+    >
       <div className="agent-handshake-card">
         <h2 id="agent-handshake-title" className="agent-handshake-title">
           An external agent wants to join your session

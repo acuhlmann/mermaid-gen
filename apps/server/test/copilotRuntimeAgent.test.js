@@ -59,6 +59,12 @@ test('Copilot runtime agent yields assistant text for invoke failures instead of
   }
 
   assert.equal(events.at(-1)?.type, 'TEXT_MESSAGE_END');
-  assert.ok(events.some((e) => e.type === 'TEXT_MESSAGE_CONTENT' && String(e.delta).includes('Model request failed')));
-  assert.ok(events.some((e) => e.type === 'TEXT_MESSAGE_CONTENT' && String(e.delta).includes('region')));
+  assert.ok(
+    events.some(
+      (e) => e.type === 'TEXT_MESSAGE_CONTENT' && String(e.delta).includes('Model request failed')
+    )
+  );
+  assert.ok(
+    events.some((e) => e.type === 'TEXT_MESSAGE_CONTENT' && String(e.delta).includes('region'))
+  );
 });

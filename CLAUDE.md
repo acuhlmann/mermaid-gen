@@ -31,7 +31,7 @@ A **fourth** orthogonal layer is **MCP Apps** (interactive HTML at `ui://archisl
 
 Every session carries **five independent diagram slots** — `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (Zod-structured JSON for a Three.js scene), `chart` (archislop wrapper around a Vega-Lite spec), and `anything` (freeform self-contained HTML/CSS/JS, rendered only inside a sandboxed iframe) — plus an `activeContentType` pointer. Every HTTP request and SSE payload carries `contentType`, which the `DiagramAgentDispatcher` uses to route to the per-slot agent service. Switching modes does **not** mutate the other slot's revision history. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
 
-**Chart vs infographic.** Both can present chart-like visuals (infographic's AntV layouts include charts). The boundary: `chart` is for *data-driven exploration* (the agent fabricates or transcribes `spec.data.values` and picks marks/encodings); `infographic` is for *narrative composition* (titles, hero numbers, KPI tiles, multi-block storytelling). Route data-viz verbs (bar chart, scatter, trend, compare, aggregate) to `chart`; route narrative verbs (summary, infographic, KPI tile) to `infographic`. The `inferDiagramType` boundary is intentionally strict — when in doubt, prefer `infographic` for layout-first asks and `chart` for "show me the numbers" asks.
+**Chart vs infographic.** Both can present chart-like visuals (infographic's AntV layouts include charts). The boundary: `chart` is for _data-driven exploration_ (the agent fabricates or transcribes `spec.data.values` and picks marks/encodings); `infographic` is for _narrative composition_ (titles, hero numbers, KPI tiles, multi-block storytelling). Route data-viz verbs (bar chart, scatter, trend, compare, aggregate) to `chart`; route narrative verbs (summary, infographic, KPI tile) to `infographic`. The `inferDiagramType` boundary is intentionally strict — when in doubt, prefer `infographic` for layout-first asks and `chart` for "show me the numbers" asks.
 
 ## Validation ladder
 
@@ -50,23 +50,23 @@ Every session carries **five independent diagram slots** — `mermaid` (Mermaid 
 
 ## Canonical commands
 
-| Goal                                   | Command                                                  |
-| -------------------------------------- | -------------------------------------------------------- |
-| Run web + server together              | `npm run dev`                                            |
-| Run all tests                          | `npm test`                                               |
-| **Verify (diff-scoped, agents)**       | `npm run check:affected`                                 |
+| Goal                                   | Command                                                             |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| Run web + server together              | `npm run dev`                                                       |
+| Run all tests                          | `npm test`                                                          |
+| **Verify (diff-scoped, agents)**       | `npm run check:affected`                                            |
 | **Verify a change end-to-end**         | `npm run check` (typecheck + typecheck:strict + lint + test + wire) |
-| Shared-only / schema touch             | `npm run check:fast`                                     |
-| Before PR (matches CI)                 | `npm run check:full` (`check` + build)                   |
-| Wire + doc paths only                  | `npm run check:wire`                                     |
-| Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) |
-| Format the diff you're about to commit | `npm run format`                                         |
-| Build all workspaces                   | `npm run build`                                          |
-| Health probe                           | `curl http://localhost:4000/api/health`                  |
-| Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>` |
-| Anything offline bench                 | `node apps/server/scripts/benchAnything.js --tag <label>` |
+| Shared-only / schema touch             | `npm run check:fast`                                                |
+| Before PR (matches CI)                 | `npm run check:full` (`check` + build)                              |
+| Wire + doc paths only                  | `npm run check:wire`                                                |
+| Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)          |
+| Format the diff you're about to commit | `npm run format`                                                    |
+| Build all workspaces                   | `npm run build`                                                     |
+| Health probe                           | `curl http://localhost:4000/api/health`                             |
+| Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>`            |
+| Anything offline bench                 | `node apps/server/scripts/benchAnything.js --tag <label>`           |
 
-`npm run check` includes `verify:deps` (override/singleton npm pins), `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. `npm run check` excludes `format:check` (codebase isn't fully prettier-formatted yet — global `prettier --write .` lands separately). A `.husky/pre-push` hook runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
+`npm run check` includes `verify:deps` (override/singleton npm pins), `format:check`, `lint` for all three workspaces, and the rest of the sensor stack, plus `typecheck:strict` — full-strict typechecking of the files listed in each app's `tsconfig.strict.json` (the ADR-0006 "strict islands"; add a `.ts`/`.tsx` path there to opt it into strict, and a regression fails CI). Lint messages go through a custom formatter (`packages/eslint-config/formatter.cjs`) that appends a per-rule "Agent guidance" footer with the canonical fix and suppression syntax — read it before suppressing. `@typescript-eslint`'s `recommended` rules now fire as warnings on every `.ts`/`.tsx` file, so converting `.js`→`.ts` ([recipe](docs/recipes/convert-js-leaf-to-ts.md)) gains both Factory and ts-eslint guidance. Thresholds (`max-lines`, `complexity`, …) ship as warnings; ADR-0005 monoliths are pre-suppressed in `packages/eslint-config/legacy-monoliths.js`. A `.husky/pre-push` hook runs `npm run check:affected`. Architecture rules now live in `.dependency-cruiser.cjs` (replaces the older regex-based boundary script); each rule's `comment` field is the agent-readable fix. See [`docs/agents/sensors.md`](docs/agents/sensors.md) for the full sensor map.
 
 ## Don't-touch list
 

@@ -193,17 +193,33 @@ export function useAdvisorOrchestrator(params) {
     setProposalHistoryRef.current = setProposalHistory;
   });
 
-  useEffect(() => { paramsRef.current = params; });
+  useEffect(() => {
+    paramsRef.current = params;
+  });
   useEffect(() => {
     proposalHistoryRef.current = proposalHistory;
   }, [proposalHistory]);
-  useEffect(() => { mutedRef.current = isMuted; }, [isMuted]);
-  useEffect(() => { pauseRef.current = pause; }, [pause]);
-  useEffect(() => { pinnedRef.current = isPinned; }, [isPinned]);
-  useEffect(() => { onAcceptRef.current = onAccept; }, [onAccept]);
-  useEffect(() => { focusKeyRef.current = focusKey; }, [focusKey]);
-  useEffect(() => { suggestionRef.current = suggestion; }, [suggestion]);
-  useEffect(() => { activePersonaRef.current = activePersona; }, [activePersona]);
+  useEffect(() => {
+    mutedRef.current = isMuted;
+  }, [isMuted]);
+  useEffect(() => {
+    pauseRef.current = pause;
+  }, [pause]);
+  useEffect(() => {
+    pinnedRef.current = isPinned;
+  }, [isPinned]);
+  useEffect(() => {
+    onAcceptRef.current = onAccept;
+  }, [onAccept]);
+  useEffect(() => {
+    focusKeyRef.current = focusKey;
+  }, [focusKey]);
+  useEffect(() => {
+    suggestionRef.current = suggestion;
+  }, [suggestion]);
+  useEffect(() => {
+    activePersonaRef.current = activePersona;
+  }, [activePersona]);
 
   useEffect(() => {
     let phaseTimer = null;
@@ -335,8 +351,7 @@ export function useAdvisorOrchestrator(params) {
         const rawKind = typeof payload?.kind === 'string' ? payload.kind.toLowerCase() : '';
         // Belt-and-suspenders: even if the model leaked a "suggestion" for explain,
         // we never want the Wise Architect's bubble to show a Do-it button.
-        const kind =
-          persona === 'explain' || rawKind === 'comment' ? 'comment' : 'suggestion';
+        const kind = persona === 'explain' || rawKind === 'comment' ? 'comment' : 'suggestion';
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinkingPersona(null);
@@ -358,8 +373,7 @@ export function useAdvisorOrchestrator(params) {
           highlightIds: highlight
         };
         const hist = proposalHistoryRef.current;
-        const atLiveEnd =
-          hist.entries.length === 0 || hist.index === hist.entries.length - 1;
+        const atLiveEnd = hist.entries.length === 0 || hist.index === hist.entries.length - 1;
         const nextHistory = pushProposalHistory(hist, historyEntry, { atLiveEnd });
         proposalHistoryRef.current = nextHistory;
         setProposalHistoryRef.current?.(nextHistory);
@@ -413,16 +427,19 @@ export function useAdvisorOrchestrator(params) {
 
     function scheduleNext(delay) {
       clearPhaseTimer();
-      phaseTimer = setTimeout(() => {
-        phaseTimer = null;
-        if (!alive) return;
-        if (pinnedRef.current) return; // pinned — hold current bubble until unpin
-        if (shouldPauseNow()) {
-          scheduleNext(GAP_MS);
-          return;
-        }
-        void tick();
-      }, Math.max(0, delay));
+      phaseTimer = setTimeout(
+        () => {
+          phaseTimer = null;
+          if (!alive) return;
+          if (pinnedRef.current) return; // pinned — hold current bubble until unpin
+          if (shouldPauseNow()) {
+            scheduleNext(GAP_MS);
+            return;
+          }
+          void tick();
+        },
+        Math.max(0, delay)
+      );
     }
 
     function dismissCycle(opts) {
@@ -661,9 +678,7 @@ export function useAdvisorOrchestrator(params) {
           ...(focusDescriptor?.id ? { focusNode: focusDescriptor } : {}),
           mode: 'dumb',
           previousSuggestion: previous,
-          ...(isGibberish
-            ? { style: 'gibberish' }
-            : { simpleLevel: nextLevel })
+          ...(isGibberish ? { style: 'gibberish' } : { simpleLevel: nextLevel })
         })
       });
       if (!response.ok) {
@@ -674,9 +689,7 @@ export function useAdvisorOrchestrator(params) {
       const payload = await response.json();
       let text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
       if (!text && isGibberish) {
-        text = fallbackLabelGibberish(
-          focusDescriptor?.label || labels?.[0] || previous
-        );
+        text = fallbackLabelGibberish(focusDescriptor?.label || labels?.[0] || previous);
       }
       if (!text) {
         setArchitectDumbLevel(architectDumbLevel);
@@ -737,8 +750,7 @@ export function useAdvisorOrchestrator(params) {
 
   const canGoBack = proposalHistory.index > 0;
   const canGoForward =
-    proposalHistory.index >= 0 &&
-    proposalHistory.index < proposalHistory.entries.length - 1;
+    proposalHistory.index >= 0 && proposalHistory.index < proposalHistory.entries.length - 1;
   const showHistoryNav = proposalHistory.entries.length > 1;
   const historyPositionLabel =
     proposalHistory.entries.length > 0
@@ -771,8 +783,7 @@ export function useAdvisorOrchestrator(params) {
   }, [applyHistoryEntry, syncDismissTimerForHistory]);
 
   const diagramHasText = Boolean((paramsRef.current.getDiagramSource?.() ?? '').trim());
-  const canPromptNext =
-    !thinkingPersona && !pause && !isMuted && diagramHasText;
+  const canPromptNext = !thinkingPersona && !pause && !isMuted && diagramHasText;
 
   return {
     activePersona,

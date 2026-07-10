@@ -80,7 +80,9 @@ export const DEFAULT_DIAGRAM_STYLE = Object.freeze(DiagramStyleSchema.parse({}))
 const INIT_DIRECTIVE_PATTERN = /^\s*%%\{\s*(?:init|initialize)\s*:\s*([\s\S]*?)\s*\}%%\s*/;
 
 function formatZodError(error: z.ZodError) {
-  return error.issues.map((issue) => `${issue.path.join('.') || 'styleConfig'}: ${issue.message}`).join('; ');
+  return error.issues
+    .map((issue) => `${issue.path.join('.') || 'styleConfig'}: ${issue.message}`)
+    .join('; ');
 }
 
 export function normalizeDiagramStyleConfig(styleConfig: unknown = {}) {
@@ -110,7 +112,9 @@ export function extractMermaidInitDirective(mermaidSource: string | null | undef
 
 export function parseMermaidStyleConfig(
   mermaidSource: string | null | undefined
-): { accepted: true; styleConfig: z.infer<typeof DiagramStyleSchema> } | { accepted: false; error: string } {
+):
+  | { accepted: true; styleConfig: z.infer<typeof DiagramStyleSchema> }
+  | { accepted: false; error: string } {
   const directive = extractMermaidInitDirective(mermaidSource);
   if (!directive.hasDirective) {
     return {

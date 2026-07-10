@@ -85,7 +85,10 @@ export function dedupeThemePalette(text: string) {
   const out = lines.map((line) => {
     const m = line.match(/^(\s*)palette\s+(.+)$/i);
     if (!m) return line;
-    const colors = m[2].trim().split(/\s+/).filter((c) => /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c));
+    const colors = m[2]
+      .trim()
+      .split(/\s+/)
+      .filter((c) => /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(c));
     if (colors.length <= 1) return line;
     const unique = [];
     const seen = new Set();
@@ -210,10 +213,15 @@ export function convertHubRelationToHierarchy(text: string): { text: string; app
  * @param {{ allowStructureRewrite?: boolean }} [options]
  * @returns {{ text: string, applied: string[] }}
  */
-export function sanitizeInfographicDsl(raw: unknown, options: { allowStructureRewrite?: boolean } = {}) {
+export function sanitizeInfographicDsl(
+  raw: unknown,
+  options: { allowStructureRewrite?: boolean } = {}
+) {
   const { allowStructureRewrite = true } = options;
   const applied = [];
-  let text = String(raw ?? '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  let text = String(raw ?? '')
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n?/g, '\n');
 
   const theme = stripInvalidThemeKeys(text);
   if (theme.applied.length) {

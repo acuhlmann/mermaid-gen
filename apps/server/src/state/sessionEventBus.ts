@@ -107,7 +107,11 @@ export function createSessionEventBus({ maxHistoryPerSession = DEFAULT_MAX_HISTO
 
   function waitForEvent(
     sessionId: string,
-    { sinceSeq = 0, types, timeoutMs = 50000 }: { sinceSeq?: number; types?: string[]; timeoutMs?: number } = {}
+    {
+      sinceSeq = 0,
+      types,
+      timeoutMs = 50000
+    }: { sinceSeq?: number; types?: string[]; timeoutMs?: number } = {}
   ): Promise<SessionEventEnvelope | null> {
     const floor = parseSinceSeq(sinceSeq);
     const pending = getHistory(sessionId, { sinceSeq: floor }).filter(

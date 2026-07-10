@@ -15,7 +15,10 @@ import {
 } from '@archislop/shared';
 import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
-import { coercePatchApplyDisplayStats, formatPatchApplyDetail } from '../utils/formatTechnicalActionDetail.js';
+import {
+  coercePatchApplyDisplayStats,
+  formatPatchApplyDetail
+} from '../utils/formatTechnicalActionDetail.js';
 
 const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_PENDING_TIMEOUT_MS = 10000;
 const AUTO_DIAGRAM_HIGHLIGHT_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad']);
@@ -24,7 +27,10 @@ function normalizeInsightTextForDedup(text: string | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
 }
 
-function shouldAppendFinalInsightEcho(streamedText: string, finalMessage: string | undefined): boolean {
+function shouldAppendFinalInsightEcho(
+  streamedText: string,
+  finalMessage: string | undefined
+): boolean {
   const msg = (finalMessage ?? '').trim();
   if (!msg) return false;
   const stream = (streamedText ?? '').trim();
@@ -46,10 +52,18 @@ export type InsightEventContext = {
   operation?: string;
   variant?: string;
   diagramUndoBaseline?: unknown;
-  patchInsightEntry: (id: string, fn: (entry: Record<string, unknown>) => Record<string, unknown>) => void;
+  patchInsightEntry: (
+    id: string,
+    fn: (entry: Record<string, unknown>) => Record<string, unknown>
+  ) => void;
   appendToInsight: (id: string, text: string) => void;
   setInsightStatus: (id: string, text: string) => void;
-  appendTechnicalAction: (id: string, name: string, status: string, opts?: { toolCallId?: string; contextNote?: string }) => void;
+  appendTechnicalAction: (
+    id: string,
+    name: string,
+    status: string,
+    opts?: { toolCallId?: string; contextNote?: string }
+  ) => void;
   annotateTechnicalActionResult: (
     id: string,
     name: string,
@@ -104,7 +118,11 @@ export type InsightEventContext = {
   modeSwitchSync?: boolean;
   modeSwitchPeerRevisionId?: number | null;
   modeSwitchPeerMode?: string | null;
-  animateAcceptedSource: (state: unknown, onDone?: () => void, opts?: { denseSteps?: boolean }) => void;
+  animateAcceptedSource: (
+    state: unknown,
+    onDone?: () => void,
+    opts?: { denseSteps?: boolean }
+  ) => void;
   pendingAutoDiagramHighlightRef: { current: { entryId: string; revisionId: number } | null };
   pendingAutoDiagramHighlightTimeoutRef: { current: ReturnType<typeof setTimeout> | null };
   triggerCompletionDelight: (sectionId: string, variant: string | undefined) => void;
@@ -210,7 +228,9 @@ export function applyAgentStreamInsightEvent(
       const currentActions = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
       const patchActionIndex = [...currentActions]
         .reverse()
-        .findIndex((action) => /patch/i.test(String(action?.name ?? '')) && action?.status === 'done');
+        .findIndex(
+          (action) => /patch/i.test(String(action?.name ?? '')) && action?.status === 'done'
+        );
       let technicalActions = currentActions;
       if (patchActionIndex >= 0) {
         const realIndex = currentActions.length - 1 - patchActionIndex;
@@ -266,7 +286,11 @@ export function applyAgentStreamInsightEvent(
         styleEdits: edits
       }));
     }
-  } else if (evt.type === LEGACY_STREAM_TYPE_A2UI && Array.isArray(evt.messages) && evt.messages.length > 0) {
+  } else if (
+    evt.type === LEGACY_STREAM_TYPE_A2UI &&
+    Array.isArray(evt.messages) &&
+    evt.messages.length > 0
+  ) {
     const surfaceId =
       evt.messages[0]?.createSurface?.surfaceId ?? evt.messages[0]?.updateComponents?.surfaceId;
     const isStyleEditsSurface = surfaceId === 'style-edits';
@@ -476,7 +500,13 @@ export function applyAgentStreamInsightEvent(
           }
         };
       } else if (!modeSwitchSync) {
-        crossModeSyncRef.current = { mermaid: null, infographic: null, metaphor3d: null, chart: null, anything: null };
+        crossModeSyncRef.current = {
+          mermaid: null,
+          infographic: null,
+          metaphor3d: null,
+          chart: null,
+          anything: null
+        };
       }
     }
     if (finalEvt.revisionChanged && finalState) {
@@ -506,7 +536,11 @@ export function applyAgentStreamInsightEvent(
         { denseSteps: variant === 'goMad' }
       );
     }
-    if (finalEvt.message && operation !== 'analyze' && shouldAppendFinalInsightEcho(streamAcc.text, finalEvt.message)) {
+    if (
+      finalEvt.message &&
+      operation !== 'analyze' &&
+      shouldAppendFinalInsightEcho(streamAcc.text, finalEvt.message)
+    ) {
       appendToInsight(sectionId, `\n\n— _${finalEvt.message}_`);
     }
     const failureStatus = mutationBlocked

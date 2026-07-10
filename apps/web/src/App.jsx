@@ -122,7 +122,10 @@ import {
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
-import { coercePatchApplyDisplayStats, formatPatchApplyDetail } from './utils/formatTechnicalActionDetail.js';
+import {
+  coercePatchApplyDisplayStats,
+  formatPatchApplyDetail
+} from './utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
 import {
   proposalToInsightEntry,
@@ -160,10 +163,7 @@ import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
-import {
-  buildAdvisorIntentPrompt,
-  resolveAdvisorFocusNode
-} from './utils/advisorActionContext.js';
+import { buildAdvisorIntentPrompt, resolveAdvisorFocusNode } from './utils/advisorActionContext.js';
 import { useCompactBrandLayout, useNarrowLayout } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 import {
@@ -281,12 +281,11 @@ function ArchiSlop() {
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
   /** Pinned radial menu; survives diagram hover leave until menu grace expires or explicit close. */
   const [radialMenuSession, setRadialMenuSession] = useState(null);
-  const [voiceSupported] = useState(
-    () =>
-      Boolean(
-        SpeechRecognitionCtor &&
-          (typeof globalThis.isSecureContext === 'boolean' ? globalThis.isSecureContext : true)
-      )
+  const [voiceSupported] = useState(() =>
+    Boolean(
+      SpeechRecognitionCtor &&
+      (typeof globalThis.isSecureContext === 'boolean' ? globalThis.isSecureContext : true)
+    )
   );
   const [voiceListening, setVoiceListening] = useState(false);
   const [voiceError, setVoiceError] = useState('');
@@ -456,9 +455,16 @@ function ArchiSlop() {
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const sequence = [
-      'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-      'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
-      'b', 'a'
+      'ArrowUp',
+      'ArrowUp',
+      'ArrowDown',
+      'ArrowDown',
+      'ArrowLeft',
+      'ArrowRight',
+      'ArrowLeft',
+      'ArrowRight',
+      'b',
+      'a'
     ];
     function isEditable(target) {
       if (!target) return false;
@@ -477,7 +483,11 @@ function ArchiSlop() {
         if (buf[i] !== sequence[i]) return;
       }
       konamiFiredRef.current = true;
-      const banner = { id: `konami-${Date.now()}`, title: KONAMI_ACHIEVEMENT.title, subtitle: KONAMI_ACHIEVEMENT.subtitle };
+      const banner = {
+        id: `konami-${Date.now()}`,
+        title: KONAMI_ACHIEVEMENT.title,
+        subtitle: KONAMI_ACHIEVEMENT.subtitle
+      };
       setStreakHudAchievement(banner);
       setTimeout(() => {
         setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
@@ -621,8 +631,12 @@ function ArchiSlop() {
     cacheRef.current = readDiagramCache(activeSessionId);
     setPrompt('');
     promptRef.current = '';
-    setInsightsEntries(Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []);
-    setLatestCritique(cacheRef.current?.latestCritique?.text ? cacheRef.current.latestCritique : null);
+    setInsightsEntries(
+      Array.isArray(cacheRef.current?.insightsEntries) ? cacheRef.current.insightsEntries : []
+    );
+    setLatestCritique(
+      cacheRef.current?.latestCritique?.text ? cacheRef.current.latestCritique : null
+    );
     setEditorOpen(Boolean(cacheRef.current?.editorOpen));
     setInsightsOpen(Boolean(cacheRef.current?.insightsOpen));
     setSoundEnabled(cacheRef.current?.soundEnabled ?? true);
@@ -655,7 +669,9 @@ function ArchiSlop() {
         if (type === 'snapshot') {
           setExternalAgentPresence(Array.isArray(payload?.presence) ? payload.presence : []);
           // Re-hydrate any proposals that arrived before this client connected.
-          const proposals = Array.isArray(payload?.pendingProposals) ? payload.pendingProposals : [];
+          const proposals = Array.isArray(payload?.pendingProposals)
+            ? payload.pendingProposals
+            : [];
           if (proposals.length > 0) {
             fetchSessionDiagramState({ sessionId: activeSessionId })
               .then((session) => {
@@ -664,9 +680,7 @@ function ArchiSlop() {
                   const additions = proposals
                     .filter((p) => !existingIds.has(p.proposalId))
                     .map((p) =>
-                      proposalToInsightEntry(
-                        enrichProposalForInsight(p, session, activeSessionId)
-                      )
+                      proposalToInsightEntry(enrichProposalForInsight(p, session, activeSessionId))
                     );
                   return additions.length > 0 ? [...prev, ...additions] : prev;
                 });
@@ -753,10 +767,7 @@ function ArchiSlop() {
         }
 
         if (type === 'attributed_insight' && payload?.insightId) {
-          setInsightsEntries((prev) => [
-            ...prev,
-            attributedInsightToInsightEntry(payload)
-          ]);
+          setInsightsEntries((prev) => [...prev, attributedInsightToInsightEntry(payload)]);
           return;
         }
 
@@ -1024,11 +1035,31 @@ function ArchiSlop() {
           } else {
             try {
               await Promise.all([
-                syncClientDiagramState({ contentType: 'mermaid', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId }),
-                syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: targetId })
+                syncClientDiagramState({
+                  contentType: 'mermaid',
+                  diagramSource: '',
+                  sessionId: targetId
+                }),
+                syncClientDiagramState({
+                  contentType: 'infographic',
+                  diagramSource: '',
+                  sessionId: targetId
+                }),
+                syncClientDiagramState({
+                  contentType: 'metaphor3d',
+                  diagramSource: '',
+                  sessionId: targetId
+                }),
+                syncClientDiagramState({
+                  contentType: 'chart',
+                  diagramSource: '',
+                  sessionId: targetId
+                }),
+                syncClientDiagramState({
+                  contentType: 'anything',
+                  diagramSource: '',
+                  sessionId: targetId
+                })
               ]);
             } catch {
               // best-effort — if priming sync fails the next user action will create the session
@@ -1066,16 +1097,28 @@ function ArchiSlop() {
   }, [activeSessionId, contentMode]);
 
   useEffect(() => {
-    writeDiagramCache({
-      diagramSource: contentMode === 'anything' ? '' : state.diagramSource,
-      contentMode,
-      insightsEntries,
-      latestCritique,
-      editorOpen,
-      insightsOpen,
-      soundEnabled
-    }, activeSessionId);
-  }, [activeSessionId, contentMode, editorOpen, insightsEntries, insightsOpen, latestCritique, soundEnabled, state.diagramSource]);
+    writeDiagramCache(
+      {
+        diagramSource: contentMode === 'anything' ? '' : state.diagramSource,
+        contentMode,
+        insightsEntries,
+        latestCritique,
+        editorOpen,
+        insightsOpen,
+        soundEnabled
+      },
+      activeSessionId
+    );
+  }, [
+    activeSessionId,
+    contentMode,
+    editorOpen,
+    insightsEntries,
+    insightsOpen,
+    latestCritique,
+    soundEnabled,
+    state.diagramSource
+  ]);
 
   useEffect(() => {
     try {
@@ -1232,8 +1275,9 @@ function ArchiSlop() {
               streakEmissionSeqRef.current = seq;
               return { ...e, id: `slop-${now}-${seq}` };
             });
-            const toasts = stamped.filter((e) =>
-              e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
+            const toasts = stamped.filter(
+              (e) =>
+                e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
             );
             const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
             const levelUpEmission = stamped.find((e) => e.kind === 'levelUp');
@@ -1319,7 +1363,6 @@ function ArchiSlop() {
     [tryAgentSound, goMadStreak]
   );
 
-
   const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
     const previousState = stateRef.current;
     const nextSource = nextState.diagramSource;
@@ -1329,7 +1372,10 @@ function ArchiSlop() {
       streamTimerRef.current = null;
     }
 
-    if (previousState.revisionId === nextState.revisionId || previousState.diagramSource === nextSource) {
+    if (
+      previousState.revisionId === nextState.revisionId ||
+      previousState.diagramSource === nextSource
+    ) {
       setState(nextState);
       setStreamingPreview(false);
       setLoading(false);
@@ -1429,9 +1475,7 @@ function ArchiSlop() {
   }, []);
 
   const patchInsightEntry = useCallback((id, patcher) => {
-    setInsightsEntries((prev) =>
-      prev.map((entry) => (entry.id === id ? patcher(entry) : entry))
-    );
+    setInsightsEntries((prev) => prev.map((entry) => (entry.id === id ? patcher(entry) : entry)));
   }, []);
 
   const appendToInsight = useCallback(
@@ -1515,9 +1559,7 @@ function ArchiSlop() {
         };
         const detail =
           (typeof outcomeDetail === 'string' && outcomeDetail.trim()) ||
-          formatPatchApplyDetail(
-            coercePatchApplyDisplayStats(mergedStats, action.durationMs)
-          );
+          formatPatchApplyDetail(coercePatchApplyDisplayStats(mergedStats, action.durationMs));
         const nextActions = current.map((item, idx) =>
           idx === realIndex
             ? {
@@ -1601,9 +1643,7 @@ function ArchiSlop() {
         if (actionIndex < 0) return entry;
         const realIndex = current.length - 1 - actionIndex;
         const nextActions = current.map((action, idx) =>
-          idx === realIndex
-            ? { ...action, status: 'rejected', validationError: errorText }
-            : action
+          idx === realIndex ? { ...action, status: 'rejected', validationError: errorText } : action
         );
         return { ...entry, technicalActions: nextActions };
       });
@@ -1838,7 +1878,7 @@ function ArchiSlop() {
       if (!desc || loadingRef.current || streamingPreviewRef.current) return;
 
       const useQuality = Boolean(options.useQuality);
-      const profile = useQuality ? 'quality' : desc.modelProfile ?? modelProfile;
+      const profile = useQuality ? 'quality' : (desc.modelProfile ?? modelProfile);
 
       setLoading(true);
       setActiveRequest(desc.operation === 'intent' ? 'intent' : `transform:${desc.mode}`);
@@ -2052,7 +2092,9 @@ function ArchiSlop() {
   );
 
   const handleValidationChange = useCallback(({ source, error: nextError }) => {
-    clientValidationRef.current = nextError ? { source, error: nextError } : { source: null, error: null };
+    clientValidationRef.current = nextError
+      ? { source, error: nextError }
+      : { source: null, error: null };
     setValidationError(nextError ? { source, error: nextError } : null);
 
     if (!nextError) {
@@ -2146,10 +2188,7 @@ function ArchiSlop() {
   async function submitIntentWithPrompt(nextPrompt, options = {}) {
     const trimmed = (nextPrompt ?? '').trim();
     if (!trimmed) return;
-    if (
-      !options.skipLoadingGuard &&
-      (loadingRef.current || streamingPreviewRef.current)
-    ) {
+    if (!options.skipLoadingGuard && (loadingRef.current || streamingPreviewRef.current)) {
       return;
     }
 
@@ -2224,7 +2263,7 @@ function ArchiSlop() {
     const trimmed = (text ?? '').trim();
     if (!trimmed) return;
     const radialDescriptor =
-      slopPromptSource === 'radial' ? radialMenuSession?.descriptor ?? null : null;
+      slopPromptSource === 'radial' ? (radialMenuSession?.descriptor ?? null) : null;
     closeSlopPrompt();
     setInsightsOpen(true);
     if (radialDescriptor) {
@@ -2237,72 +2276,75 @@ function ArchiSlop() {
     await submitIntentWithPrompt(trimmed);
   }
 
-  const stopVoiceInput = useCallback((options = {}) => {
-    const immediate = Boolean(options.immediate);
-    voicePressedRef.current = false;
-    if (voiceStopTimerRef.current) {
-      clearTimeout(voiceStopTimerRef.current);
-      voiceStopTimerRef.current = null;
-    }
-
-    const recognition = recognitionRef.current;
-    if (!recognition) {
-      setVoiceListening(false);
-      return;
-    }
-
-    if (immediate) {
-      micSessionRef.current += 1;
-      lastSpeechInterimRef.current = '';
-      try {
-        recognition.abort();
-      } catch {
-        try {
-          recognition.stop();
-        } catch {
-          // ignore
-        }
+  const stopVoiceInput = useCallback(
+    (options = {}) => {
+      const immediate = Boolean(options.immediate);
+      voicePressedRef.current = false;
+      if (voiceStopTimerRef.current) {
+        clearTimeout(voiceStopTimerRef.current);
+        voiceStopTimerRef.current = null;
       }
-      try {
-        recognition.onresult = null;
-        recognition.onerror = null;
-        recognition.onend = null;
-      } catch {
-        // ignore
-      }
-      recognitionRef.current = null;
-      setVoiceListening(false);
-      return;
-    }
 
-    const recInstance = recognition;
-    voiceStopTimerRef.current = globalThis.setTimeout(() => {
-      voiceStopTimerRef.current = null;
-      if (recognitionRef.current !== recInstance) return;
-      try {
-        recInstance.stop();
-      } catch {
-        micSessionRef.current += 1;
-        const interimFlush = lastSpeechInterimRef.current?.trim();
-        lastSpeechInterimRef.current = '';
-        if (interimFlush) {
-          voiceAccumulatedRef.current = voiceAccumulatedRef.current
-            ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
-            : interimFlush;
-          appendActivePromptText(interimFlush);
-        }
-        try {
-          recInstance.onresult = null;
-          recInstance.onerror = null;
-          recInstance.onend = null;
-        } catch {
-          // ignore
-        }
-        if (recognitionRef.current === recInstance) recognitionRef.current = null;
+      const recognition = recognitionRef.current;
+      if (!recognition) {
         setVoiceListening(false);
+        return;
       }
-    }, 220);
-  }, [appendActivePromptText]);
+
+      if (immediate) {
+        micSessionRef.current += 1;
+        lastSpeechInterimRef.current = '';
+        try {
+          recognition.abort();
+        } catch {
+          try {
+            recognition.stop();
+          } catch {
+            // ignore
+          }
+        }
+        try {
+          recognition.onresult = null;
+          recognition.onerror = null;
+          recognition.onend = null;
+        } catch {
+          // ignore
+        }
+        recognitionRef.current = null;
+        setVoiceListening(false);
+        return;
+      }
+
+      const recInstance = recognition;
+      voiceStopTimerRef.current = globalThis.setTimeout(() => {
+        voiceStopTimerRef.current = null;
+        if (recognitionRef.current !== recInstance) return;
+        try {
+          recInstance.stop();
+        } catch {
+          micSessionRef.current += 1;
+          const interimFlush = lastSpeechInterimRef.current?.trim();
+          lastSpeechInterimRef.current = '';
+          if (interimFlush) {
+            voiceAccumulatedRef.current = voiceAccumulatedRef.current
+              ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
+              : interimFlush;
+            appendActivePromptText(interimFlush);
+          }
+          try {
+            recInstance.onresult = null;
+            recInstance.onerror = null;
+            recInstance.onend = null;
+          } catch {
+            // ignore
+          }
+          if (recognitionRef.current === recInstance) recognitionRef.current = null;
+          setVoiceListening(false);
+        }
+      }, 220);
+    },
+    [appendActivePromptText]
+  );
 
   const startVoiceInput = useCallback(() => {
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
@@ -2585,9 +2627,7 @@ function ArchiSlop() {
       }
 
       const itemsToApply =
-        scope === 'selected'
-          ? actionableItems.filter((_, i) => selectedMask[i])
-          : actionableItems;
+        scope === 'selected' ? actionableItems.filter((_, i) => selectedMask[i]) : actionableItems;
 
       const useActionableBullets = itemsToApply.length > 0;
       let critiqueBlock;
@@ -2677,7 +2717,14 @@ ${requirementsBlock}`;
         setActiveRequest(null);
       }
     },
-    [contentMode, critiqueActionableSelected, latestCritique, modelProfile, runStreamingAgent, syncDiagramOrThrow]
+    [
+      contentMode,
+      critiqueActionableSelected,
+      latestCritique,
+      modelProfile,
+      runStreamingAgent,
+      syncDiagramOrThrow
+    ]
   );
 
   function handleClearDiagram() {
@@ -2686,7 +2733,8 @@ ${requirementsBlock}`;
   }
 
   const diagramSurfaceRef = useRef(null);
-  const { fullscreenSupported, isFullscreen, toggleFullscreen } = useDiagramFullscreen(diagramSurfaceRef);
+  const { fullscreenSupported, isFullscreen, toggleFullscreen } =
+    useDiagramFullscreen(diagramSurfaceRef);
 
   const advisorPause =
     loading ||
@@ -2787,15 +2835,9 @@ ${requirementsBlock}`;
   const advisorDiagramHighlight = useMemo(() => {
     const ids = advisor.highlightIds ?? [];
     const active =
-      ids.length > 0 &&
-      Boolean(advisor.suggestion || advisor.isPinned || advisor.thinkingPersona);
+      ids.length > 0 && Boolean(advisor.suggestion || advisor.isPinned || advisor.thinkingPersona);
     return active ? { addedIds: ids } : null;
-  }, [
-    advisor.highlightIds,
-    advisor.isPinned,
-    advisor.suggestion,
-    advisor.thinkingPersona
-  ]);
+  }, [advisor.highlightIds, advisor.isPinned, advisor.suggestion, advisor.thinkingPersona]);
 
   useEffect(() => {
     if (typeof document === 'undefined') return undefined;
@@ -2829,7 +2871,14 @@ ${requirementsBlock}`;
         diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
       }
     };
-  }, [advisor.activePersona, advisor.isPinned, advisor.thinkingPersona, advisorDiagramHighlight, state.revisionId, state.diagramSource]);
+  }, [
+    advisor.activePersona,
+    advisor.isPinned,
+    advisor.thinkingPersona,
+    advisorDiagramHighlight,
+    state.revisionId,
+    state.diagramSource
+  ]);
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -2974,7 +3023,8 @@ ${requirementsBlock}`;
         targetContentType !== 'metaphor3d' &&
         targetContentType !== 'chart' &&
         targetContentType !== 'anything'
-      ) return;
+      )
+        return;
 
       const baseline = entry?.diagramUndoBaseline;
       await applyDiagramSnapshotToCanvas({
@@ -3070,7 +3120,7 @@ ${requirementsBlock}`;
     const after =
       typeof entry?.diagramAfterSource === 'string'
         ? entry.diagramAfterSource
-        : state.diagramSource ?? '';
+        : (state.diagramSource ?? '');
     const kind = entry?.diagramAfterContentType ?? contentMode;
     return computeDiagramStructuralDiff(kind, baseline, after);
   }, [contentMode, diagramChangeHighlightEntryId, insightsEntries, state.diagramSource]);
@@ -3165,8 +3215,7 @@ ${requirementsBlock}`;
     }
     const revisionChanged = state.revisionId !== autoCloseRunStartRevisionRef.current;
     const completedActiveMutation =
-      activeEntryStatus === 'done' &&
-      Boolean(activeAutoCloseEntry?.diagramRevisionApplied);
+      activeEntryStatus === 'done' && Boolean(activeAutoCloseEntry?.diagramRevisionApplied);
     const runProducedCanvasResult = revisionChanged || completedActiveMutation;
     if (
       narrowLayout &&
@@ -3381,7 +3430,15 @@ ${requirementsBlock}`;
       },
       onFixAll: () => handleFixFromCritique('all')
     };
-  }, [activeRequest, critiqueActionableSplit, handleFixFromCritique, insightsEntries, latestCritique?.insightEntryId, latestCritique?.text, loading]);
+  }, [
+    activeRequest,
+    critiqueActionableSplit,
+    handleFixFromCritique,
+    insightsEntries,
+    latestCritique?.insightEntryId,
+    latestCritique?.text,
+    loading
+  ]);
 
   const handleApplyStyleEdits = useCallback(
     async (entry) => {
@@ -3472,7 +3529,16 @@ ${requirementsBlock}`;
         ? `Page needs manual edit: ${validationError.error}`
         : `Mermaid syntax needs manual edit: ${validationError.error}`;
     return '';
-  }, [activeRequest, autoFixAttempted, contentMode, error, loading, streamingPreview, validationError, voiceError]);
+  }, [
+    activeRequest,
+    autoFixAttempted,
+    contentMode,
+    error,
+    loading,
+    streamingPreview,
+    validationError,
+    voiceError
+  ]);
 
   const streamDebugEnabled = readStreamDebugEnabled();
 
@@ -3500,8 +3566,12 @@ ${requirementsBlock}`;
     closeRadialMenu();
     const runOpts = { focusTarget: descriptor };
     const variantForBoot =
-      action.id === 'refine' || action.id === 'innovate' || action.id === 'goMad' ||
-      action.id === 'critique' || action.id === 'explain' || action.id === 'exec'
+      action.id === 'refine' ||
+      action.id === 'innovate' ||
+      action.id === 'goMad' ||
+      action.id === 'critique' ||
+      action.id === 'explain' ||
+      action.id === 'exec'
         ? action.id
         : null;
     if (variantForBoot) {
@@ -3533,7 +3603,11 @@ ${requirementsBlock}`;
       {
         id: 'definition',
         label: 'What is this?',
-        icon: <span className="action-persona-icon is-definition" aria-hidden="true">?</span>,
+        icon: (
+          <span className="action-persona-icon is-definition" aria-hidden="true">
+            ?
+          </span>
+        ),
         variant: 'definition',
         group: 'primary',
         behavior: 'showExplanation',
@@ -3543,7 +3617,11 @@ ${requirementsBlock}`;
       {
         id: 'stakeholders',
         label: 'Stakeholders',
-        icon: <span className="action-persona-icon is-stakeholders" aria-hidden="true">👥</span>,
+        icon: (
+          <span className="action-persona-icon is-stakeholders" aria-hidden="true">
+            👥
+          </span>
+        ),
         variant: 'stakeholders',
         group: 'primary',
         behavior: 'expandStakeholders',
@@ -3553,7 +3631,11 @@ ${requirementsBlock}`;
       {
         id: 'prompt',
         label: PROMPT_ACTION_COPY.label,
-        icon: <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>,
+        icon: (
+          <span className="action-persona-icon is-prompt" aria-hidden="true">
+            💬
+          </span>
+        ),
         variant: 'prompt',
         group: 'primary',
         persona: PROMPT_ACTION_COPY.roleTag,
@@ -3623,7 +3705,11 @@ ${requirementsBlock}`;
       {
         id: 'fix',
         label: 'Fix',
-        icon: <span className="action-persona-icon is-fix" aria-hidden="true">🛠️</span>,
+        icon: (
+          <span className="action-persona-icon is-fix" aria-hidden="true">
+            🛠️
+          </span>
+        ),
         variant: 'fix',
         persona: 'Site Foreman',
         personaEmoji: '🛠️',
@@ -3644,15 +3730,14 @@ ${requirementsBlock}`;
     return list;
   }, [canFixFromCritique, contentMode, goMadStreak, latestCritique?.text]);
 
-  const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(insightsOpen, 240);
+  const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(
+    insightsOpen,
+    240
+  );
   const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');
   const liveVariant = liveStreamingEntry?.variant ?? null;
   const ceremonyAnchor =
-    insightsMounted && insightsOpen
-      ? narrowLayout
-        ? 'insights'
-        : 'canvas'
-      : 'viewport';
+    insightsMounted && insightsOpen ? (narrowLayout ? 'insights' : 'canvas') : 'viewport';
   const ceremonyOverlays = (
     <RunCeremonyOverlays
       anchor={ceremonyAnchor}
@@ -3685,7 +3770,9 @@ ${requirementsBlock}`;
       onToggleDiagramChangeHighlight={handleToggleDiagramChangeHighlight}
       onStopStreamingAgent={streamingAgentStoppable ? stopStreamingAgentRequest : undefined}
       onRetryInsightEntry={retryFailedInsight}
-      onRetryInsightEntryWithQuality={(entryId) => retryFailedInsight(entryId, { useQuality: true })}
+      onRetryInsightEntryWithQuality={(entryId) =>
+        retryFailedInsight(entryId, { useQuality: true })
+      }
       retryActionsDisabled={loading}
       onDismiss={() => setInsightsOpen(false)}
       onAcceptProposal={handleAcceptProposal}
@@ -3722,7 +3809,9 @@ ${requirementsBlock}`;
         rendererRefreshKey={rendererRefreshKey}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
-        streamingPreview={streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)}
+        streamingPreview={
+          streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)
+        }
         agentThinking={agentThinkingChrome && !streamingPreview}
         editorOpen={editorOpen}
         insightsOpen={insightsMounted && Boolean(insightsSlot)}
@@ -3756,61 +3845,61 @@ ${requirementsBlock}`;
         host={diagramSurfaceRef.current}
         onExit={toggleFullscreen}
       >
-      <RadialActionMenu
-        key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
-        descriptor={radialMenuSession?.descriptor ?? null}
-        anchor={radialMenuSession?.anchor ?? null}
-        actions={radialActions}
-        busy={busy}
-        diagramSource={state.diagramSource}
-        contentType={contentMode}
-        sessionId={activeSessionId}
-        slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
-        onSlopPromptClose={closeSlopPrompt}
-        slopPrompt={
-          slopPromptExpanded && slopPromptSource === 'radial' ? (
-            <SlopNextPrompt
-              layout="radial"
-              prompt={slopNextPrompt}
-              busy={busy}
-              voiceSupported={voiceSupported}
-              voiceListening={voiceListening}
-              narrowLayout={narrowLayout}
-              speechRecognitionCtor={SpeechRecognitionCtor}
-              PromptIcon={PromptIcon}
-              MicIcon={MicIcon}
-              MicActiveIcon={MicActiveIcon}
-              ButtonIcon={ButtonIcon}
-              onPromptChange={setSlopNextPrompt}
-              onSubmit={handleSlopPromptSubmit}
-              onClose={closeSlopPrompt}
-              onMicToggleClick={handleMicToggleClick}
-              onMicPointerDown={handleMicPointerDown}
-              onMicPointerUp={handleMicPointerUp}
-              onMicLostPointerCapture={() => stopVoiceInput()}
-            />
-          ) : null
-        }
-        onActionPick={handleRadialAction}
-        onDrillDeeper={(descriptor) => {
-          if (!descriptor) return;
-          setSelectedNode(descriptor);
-          closeRadialMenu();
-          setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'explain' }));
-          tryAgentSound(playExplainBoot);
-          runAnalyze('explain', { focusTarget: descriptor });
-        }}
-        onHoverHold={cancelMenuClose}
-        onHoverRelease={scheduleMenuClose}
-        onBackdropPointerDown={() => {
-          if (slopPromptExpanded && slopPromptSource === 'radial') {
-            closeSlopPrompt();
-            return;
+        <RadialActionMenu
+          key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
+          descriptor={radialMenuSession?.descriptor ?? null}
+          anchor={radialMenuSession?.anchor ?? null}
+          actions={radialActions}
+          busy={busy}
+          diagramSource={state.diagramSource}
+          contentType={contentMode}
+          sessionId={activeSessionId}
+          slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
+          onSlopPromptClose={closeSlopPrompt}
+          slopPrompt={
+            slopPromptExpanded && slopPromptSource === 'radial' ? (
+              <SlopNextPrompt
+                layout="radial"
+                prompt={slopNextPrompt}
+                busy={busy}
+                voiceSupported={voiceSupported}
+                voiceListening={voiceListening}
+                narrowLayout={narrowLayout}
+                speechRecognitionCtor={SpeechRecognitionCtor}
+                PromptIcon={PromptIcon}
+                MicIcon={MicIcon}
+                MicActiveIcon={MicActiveIcon}
+                ButtonIcon={ButtonIcon}
+                onPromptChange={setSlopNextPrompt}
+                onSubmit={handleSlopPromptSubmit}
+                onClose={closeSlopPrompt}
+                onMicToggleClick={handleMicToggleClick}
+                onMicPointerDown={handleMicPointerDown}
+                onMicPointerUp={handleMicPointerUp}
+                onMicLostPointerCapture={() => stopVoiceInput()}
+              />
+            ) : null
           }
-          dismissRadialMenu();
-        }}
-        onClose={closeRadialMenu}
-      />
+          onActionPick={handleRadialAction}
+          onDrillDeeper={(descriptor) => {
+            if (!descriptor) return;
+            setSelectedNode(descriptor);
+            closeRadialMenu();
+            setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'explain' }));
+            tryAgentSound(playExplainBoot);
+            runAnalyze('explain', { focusTarget: descriptor });
+          }}
+          onHoverHold={cancelMenuClose}
+          onHoverRelease={scheduleMenuClose}
+          onBackdropPointerDown={() => {
+            if (slopPromptExpanded && slopPromptSource === 'radial') {
+              closeSlopPrompt();
+              return;
+            }
+            dismissRadialMenu();
+          }}
+          onClose={closeRadialMenu}
+        />
       </DiagramFullscreenOverlay>
 
       {ceremonyOverlays}
@@ -3818,153 +3907,153 @@ ${requirementsBlock}`;
       <HotkeyOverlay open={hotkeyOverlayOpen} onClose={() => setHotkeyOverlayOpen(false)} />
 
       <TopShell>
-      <div
-        className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
-        aria-label="ArchiSlop"
-        onClick={handleBrandClick}
-      >
-        <div className="brand-control-chip">
-          <div className="brand-control-chip-row">
-            <span className="brand-mark" aria-hidden="true">
-              <ArchiSlopMarkIcon />
-            </span>
-            <span className="brand-name">ArchiSlop</span>
-          {gamification?.prestigeShortLabel ? (
-            narrowLayout && compactBrand ? (
-            <button
-              type="button"
-              className="brand-prestige-badge"
-              title={`${gamification.totalRuns ?? 0} total slop runs · tap to ${xpBarMobileOpen ? 'hide' : 'show'} XP`}
-              data-testid="brand-prestige-badge"
-              aria-expanded={xpBarMobileOpen}
-              aria-controls="brand-xp-mobile-slot"
+        <div
+          className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
+          aria-label="ArchiSlop"
+          onClick={handleBrandClick}
+        >
+          <div className="brand-control-chip">
+            <div className="brand-control-chip-row">
+              <span className="brand-mark" aria-hidden="true">
+                <ArchiSlopMarkIcon />
+              </span>
+              <span className="brand-name">ArchiSlop</span>
+              {gamification?.prestigeShortLabel ? (
+                narrowLayout && compactBrand ? (
+                  <button
+                    type="button"
+                    className="brand-prestige-badge"
+                    title={`${gamification.totalRuns ?? 0} total slop runs · tap to ${xpBarMobileOpen ? 'hide' : 'show'} XP`}
+                    data-testid="brand-prestige-badge"
+                    aria-expanded={xpBarMobileOpen}
+                    aria-controls="brand-xp-mobile-slot"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setXpBarMobileOpen((current) => !current);
+                    }}
+                  >
+                    {gamification.prestigeShortLabel}
+                  </button>
+                ) : (
+                  <span
+                    className="brand-prestige-badge"
+                    title={`${gamification.totalRuns ?? 0} total slop runs`}
+                    data-testid="brand-prestige-badge"
+                  >
+                    {gamification.prestigeShortLabel}
+                  </span>
+                )
+              ) : null}
+              {gamification?.level && !narrowLayout ? (
+                <XpProgressBar
+                  level={gamification.level}
+                  short={gamification.levelShortLabel}
+                  flair={gamification.levelFlair}
+                  progressRatio={gamification.levelProgressRatio}
+                  xpInto={gamification.xpIntoLevel}
+                  xpForNext={gamification.xpForNextLevel}
+                  totalXp={gamification.xp}
+                  isMaxLevel={gamification.xpForNextLevel == null}
+                  flashKey={xpBarFlashKey}
+                  variant={liveVariant}
+                  onClick={() => setXpInfoPanelOpen((open) => !open)}
+                  expanded={xpInfoPanelOpen}
+                  controlsId="levelup-info-panel"
+                />
+              ) : null}
+            </div>
+            {gamification?.level && narrowLayout ? (
+              <div
+                id="brand-xp-mobile-slot"
+                className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
+                aria-hidden={compactBrand ? !xpBarMobileOpen : false}
+              >
+                <XpProgressBar
+                  level={gamification.level}
+                  short={gamification.levelShortLabel}
+                  flair={gamification.levelFlair}
+                  progressRatio={gamification.levelProgressRatio}
+                  xpInto={gamification.xpIntoLevel}
+                  xpForNext={gamification.xpForNextLevel}
+                  totalXp={gamification.xp}
+                  isMaxLevel={gamification.xpForNextLevel == null}
+                  flashKey={xpBarFlashKey}
+                  variant={liveVariant}
+                  onClick={() => setXpInfoPanelOpen((open) => !open)}
+                  expanded={xpInfoPanelOpen}
+                  controlsId="levelup-info-panel"
+                />
+              </div>
+            ) : null}
+          </div>
+          {xpInfoPanelOpen && gamification?.level ? (
+            <div
+              id="levelup-info-panel"
+              className="levelup-info-panel-mount"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <LevelUpInfoPanel
+                level={gamification.level}
+                levelTitle={gamification.levelTitle}
+                levelFlair={gamification.levelFlair}
+                levelShortLabel={gamification.levelShortLabel}
+                progressRatio={gamification.levelProgressRatio}
+                xpInto={gamification.xpIntoLevel}
+                xpForNext={gamification.xpForNextLevel}
+                totalXp={gamification.xp}
+                isMaxLevel={gamification.xpForNextLevel == null}
+                prestigeShortLabel={gamification.prestigeShortLabel}
+                totalRuns={gamification.totalRuns}
+                runsByVariant={gamification.runsByVariant}
+                achievements={gamification.achievements}
+                onClose={() => setXpInfoPanelOpen(false)}
+              />
+            </div>
+          ) : null}
+          {slopitectTip ? (
+            <div
+              ref={slopitectTipRef}
+              className="slopitect-tip-chip"
+              role="status"
+              aria-live="polite"
+              data-testid="slopitect-tip-chip"
               onClick={(event) => {
                 event.stopPropagation();
-                setXpBarMobileOpen((current) => !current);
+                dismissSlopitectTip();
               }}
             >
-              {gamification.prestigeShortLabel}
-            </button>
-            ) : (
-              <span
-                className="brand-prestige-badge"
-                title={`${gamification.totalRuns ?? 0} total slop runs`}
-                data-testid="brand-prestige-badge"
-              >
-                {gamification.prestigeShortLabel}
+              <span className="slopitect-tip-chip-label" aria-hidden="true">
+                Slopitect Tip™
               </span>
-            )
-          ) : null}
-          {gamification?.level && !narrowLayout ? (
-            <XpProgressBar
-              level={gamification.level}
-              short={gamification.levelShortLabel}
-              flair={gamification.levelFlair}
-              progressRatio={gamification.levelProgressRatio}
-              xpInto={gamification.xpIntoLevel}
-              xpForNext={gamification.xpForNextLevel}
-              totalXp={gamification.xp}
-              isMaxLevel={gamification.xpForNextLevel == null}
-              flashKey={xpBarFlashKey}
-              variant={liveVariant}
-              onClick={() => setXpInfoPanelOpen((open) => !open)}
-              expanded={xpInfoPanelOpen}
-              controlsId="levelup-info-panel"
-            />
-          ) : null}
-        </div>
-        {gamification?.level && narrowLayout ? (
-          <div
-            id="brand-xp-mobile-slot"
-            className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
-            aria-hidden={compactBrand ? !xpBarMobileOpen : false}
-          >
-            <XpProgressBar
-              level={gamification.level}
-              short={gamification.levelShortLabel}
-              flair={gamification.levelFlair}
-              progressRatio={gamification.levelProgressRatio}
-              xpInto={gamification.xpIntoLevel}
-              xpForNext={gamification.xpForNextLevel}
-              totalXp={gamification.xp}
-              isMaxLevel={gamification.xpForNextLevel == null}
-              flashKey={xpBarFlashKey}
-              variant={liveVariant}
-              onClick={() => setXpInfoPanelOpen((open) => !open)}
-              expanded={xpInfoPanelOpen}
-              controlsId="levelup-info-panel"
-            />
+              <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
             </div>
           ) : null}
         </div>
-        {xpInfoPanelOpen && gamification?.level ? (
-          <div
-            id="levelup-info-panel"
-            className="levelup-info-panel-mount"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <LevelUpInfoPanel
-              level={gamification.level}
-              levelTitle={gamification.levelTitle}
-              levelFlair={gamification.levelFlair}
-              levelShortLabel={gamification.levelShortLabel}
-              progressRatio={gamification.levelProgressRatio}
-              xpInto={gamification.xpIntoLevel}
-              xpForNext={gamification.xpForNextLevel}
-              totalXp={gamification.xp}
-              isMaxLevel={gamification.xpForNextLevel == null}
-              prestigeShortLabel={gamification.prestigeShortLabel}
-              totalRuns={gamification.totalRuns}
-              runsByVariant={gamification.runsByVariant}
-              achievements={gamification.achievements}
-              onClose={() => setXpInfoPanelOpen(false)}
-            />
-          </div>
-        ) : null}
-        {slopitectTip ? (
-          <div
-            ref={slopitectTipRef}
-            className="slopitect-tip-chip"
-            role="status"
-            aria-live="polite"
-            data-testid="slopitect-tip-chip"
-            onClick={(event) => {
-              event.stopPropagation();
-              dismissSlopitectTip();
-            }}
-          >
-            <span className="slopitect-tip-chip-label" aria-hidden="true">
-              Slopitect Tip™
-            </span>
-            <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
-          </div>
-        ) : null}
-      </div>
 
-      {fullscreenSupported || hasDiagramText || editorOpen ? (
-        <div className="top-corner-controls" aria-label="Diagram surface controls">
-          {fullscreenSupported ? (
-            <DiagramFullscreenButton
-              isFullscreen={isFullscreen}
-              disabled={streamingPreview}
-              onToggle={toggleFullscreen}
-            />
-          ) : null}
-          {hasDiagramText || editorOpen ? (
-            <button
-              type="button"
-              className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
-              onClick={() => setEditorOpen((current) => !current)}
-              aria-expanded={editorOpen}
-              aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
-              title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
-            >
-              <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
-              <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+        {fullscreenSupported || hasDiagramText || editorOpen ? (
+          <div className="top-corner-controls" aria-label="Diagram surface controls">
+            {fullscreenSupported ? (
+              <DiagramFullscreenButton
+                isFullscreen={isFullscreen}
+                disabled={streamingPreview}
+                onToggle={toggleFullscreen}
+              />
+            ) : null}
+            {hasDiagramText || editorOpen ? (
+              <button
+                type="button"
+                className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
+                onClick={() => setEditorOpen((current) => !current)}
+                aria-expanded={editorOpen}
+                aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
+                title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
+              >
+                <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
+                <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </TopShell>
 
       <AgentHandshakeDialog
@@ -3990,7 +4079,11 @@ ${requirementsBlock}`;
 
       {editorOpen ? (
         <div className="corner-control editor-done-bar">
-          <button type="button" className="overlay-button primary-button" onClick={() => setEditorOpen(false)}>
+          <button
+            type="button"
+            className="overlay-button primary-button"
+            onClick={() => setEditorOpen(false)}
+          >
             Done editing
           </button>
         </div>
@@ -3998,46 +4091,54 @@ ${requirementsBlock}`;
 
       <BottomRow
         narrowLayout={narrowLayout}
-        statusRow={status ? (
-          <div className="overlay-status-row">
-            <p id="app-status" className={`overlay-status ${error ? 'is-error' : ''}`} role="status">
-              {status}
-            </p>
-            {streamingAgentStoppable && !insightsOpen ? (
-              <button
-                type="button"
-                className="overlay-button compact-button overlay-status-stop"
-                onClick={stopStreamingAgentRequest}
+        statusRow={
+          status ? (
+            <div className="overlay-status-row">
+              <p
+                id="app-status"
+                className={`overlay-status ${error ? 'is-error' : ''}`}
+                role="status"
               >
-                Stop request
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-        promptPopover={hasDiagramText && slopPromptExpanded && slopPromptSource === 'chrome' ? (
-          <div className="bottom-row-popover bottom-row-popover--prompt">
-            <SlopNextPrompt
-              layout="chrome"
-              prompt={slopNextPrompt}
-              busy={busy}
-              voiceSupported={voiceSupported}
-              voiceListening={voiceListening}
-              narrowLayout={narrowLayout}
-              speechRecognitionCtor={SpeechRecognitionCtor}
-              PromptIcon={PromptIcon}
-              MicIcon={MicIcon}
-              MicActiveIcon={MicActiveIcon}
-              ButtonIcon={ButtonIcon}
-              onPromptChange={setSlopNextPrompt}
-              onSubmit={handleSlopPromptSubmit}
-              onClose={closeSlopPrompt}
-              onMicToggleClick={handleMicToggleClick}
-              onMicPointerDown={handleMicPointerDown}
-              onMicPointerUp={handleMicPointerUp}
-              onMicLostPointerCapture={() => stopVoiceInput()}
-            />
-          </div>
-        ) : null}
+                {status}
+              </p>
+              {streamingAgentStoppable && !insightsOpen ? (
+                <button
+                  type="button"
+                  className="overlay-button compact-button overlay-status-stop"
+                  onClick={stopStreamingAgentRequest}
+                >
+                  Stop request
+                </button>
+              ) : null}
+            </div>
+          ) : null
+        }
+        promptPopover={
+          hasDiagramText && slopPromptExpanded && slopPromptSource === 'chrome' ? (
+            <div className="bottom-row-popover bottom-row-popover--prompt">
+              <SlopNextPrompt
+                layout="chrome"
+                prompt={slopNextPrompt}
+                busy={busy}
+                voiceSupported={voiceSupported}
+                voiceListening={voiceListening}
+                narrowLayout={narrowLayout}
+                speechRecognitionCtor={SpeechRecognitionCtor}
+                PromptIcon={PromptIcon}
+                MicIcon={MicIcon}
+                MicActiveIcon={MicActiveIcon}
+                ButtonIcon={ButtonIcon}
+                onPromptChange={setSlopNextPrompt}
+                onSubmit={handleSlopPromptSubmit}
+                onClose={closeSlopPrompt}
+                onMicToggleClick={handleMicToggleClick}
+                onMicPointerDown={handleMicPointerDown}
+                onMicPointerUp={handleMicPointerUp}
+                onMicLostPointerCapture={() => stopVoiceInput()}
+              />
+            </div>
+          ) : null
+        }
         actions={
           !hasDiagramText && !insightsOpen ? (
             <form className="prompt-control" onSubmit={runIntentChange}>
@@ -4085,7 +4186,13 @@ ${requirementsBlock}`;
                           }
                         }
                       })}
-                  aria-label={narrowLayout ? (voiceListening ? 'Tap to stop dictation' : 'Tap to dictate') : 'Hold to speak'}
+                  aria-label={
+                    narrowLayout
+                      ? voiceListening
+                        ? 'Tap to stop dictation'
+                        : 'Tap to dictate'
+                      : 'Hold to speak'
+                  }
                   aria-pressed={narrowLayout ? voiceListening : undefined}
                   title={
                     voiceSupported
@@ -4102,7 +4209,11 @@ ${requirementsBlock}`;
                   <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
                   <span className="button-label">Mic</span>
                 </button>
-                <button type="submit" className="overlay-button primary-button" disabled={busy || !prompt.trim()}>
+                <button
+                  type="submit"
+                  className="overlay-button primary-button"
+                  disabled={busy || !prompt.trim()}
+                >
                   <ButtonIcon>{'>'}</ButtonIcon>
                   <span className="button-label">Do it</span>
                 </button>
@@ -4121,11 +4232,15 @@ ${requirementsBlock}`;
                   title={PROMPT_ACTION_COPY.title}
                 >
                   <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">
+                      💬
+                    </span>
                   </ButtonIcon>
                   <span className="button-label">{PROMPT_ACTION_COPY.label}</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">{PROMPT_ACTION_COPY.roleEmoji}</span>
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {PROMPT_ACTION_COPY.roleEmoji}
+                    </span>
                     {PROMPT_ACTION_COPY.roleTag}
                   </span>
                 </button>
@@ -4133,12 +4248,31 @@ ${requirementsBlock}`;
               <div className="button-group">
                 <StakeholdersMascot
                   personas={[
-                    { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
-                    { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
-                    { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
-                    { variant: 'exec', onClick: () => runTransform('exec', { useDiagramFocus: true }) },
-                    { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
-                    { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
+                    {
+                      variant: 'refine',
+                      onClick: () => runTransform('refine', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'innovate',
+                      onClick: () => runTransform('innovate', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'goMad',
+                      label: goMadShapeLabel(goMadStreak),
+                      onClick: () => runTransform('goMad', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'exec',
+                      onClick: () => runTransform('exec', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'critique',
+                      onClick: () => runAnalyze('critique', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'explain',
+                      onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                    }
                   ]}
                   activeAdvisorVariant={advisor.activePersona}
                   thinkingPersona={advisor.thinkingPersona}
@@ -4153,7 +4287,11 @@ ${requirementsBlock}`;
                   onClick={advisor.toggleMute}
                   aria-pressed={advisor.isMuted}
                   aria-label={advisor.isMuted ? 'Unmute stakeholders' : 'Mute stakeholders'}
-                  title={advisor.isMuted ? 'Stakeholders muted · click to unmute' : 'Stakeholders watching · click to mute'}
+                  title={
+                    advisor.isMuted
+                      ? 'Stakeholders muted · click to unmute'
+                      : 'Stakeholders watching · click to mute'
+                  }
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
@@ -4163,7 +4301,9 @@ ${requirementsBlock}`;
                   <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
-                      {advisor.isMuted ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                      {advisor.isMuted
+                        ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
+                        : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
                     </span>
                     {STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
                   </span>
@@ -4180,7 +4320,9 @@ ${requirementsBlock}`;
                     title="Site Foreman · Fixing the slop"
                   >
                     <ButtonIcon>
-                      <span className="action-persona-icon is-fix" aria-hidden="true">🛠️</span>
+                      <span className="action-persona-icon is-fix" aria-hidden="true">
+                        🛠️
+                      </span>
                     </ButtonIcon>
                     <span className="button-label">Fix</span>
                     <ActionPersonaRole fallback="Site Foreman" />
@@ -4197,11 +4339,15 @@ ${requirementsBlock}`;
                   title="Clear · Demolish the slop and start fresh"
                 >
                   <ButtonIcon>
-                    <span className="action-persona-icon is-clear" aria-hidden="true">🧨</span>
+                    <span className="action-persona-icon is-clear" aria-hidden="true">
+                      🧨
+                    </span>
                   </ButtonIcon>
                   <span className="button-label">Clear</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">🧨</span>
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      🧨
+                    </span>
                     Demolish
                   </span>
                 </button>
@@ -4220,22 +4366,45 @@ ${requirementsBlock}`;
                   title={PROMPT_ACTION_COPY.title}
                 >
                   <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">💬</span>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">
+                      💬
+                    </span>
                   </ButtonIcon>
                   <span className="button-label">{PROMPT_ACTION_COPY.label}</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">{PROMPT_ACTION_COPY.roleEmoji}</span>
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {PROMPT_ACTION_COPY.roleEmoji}
+                    </span>
                     {PROMPT_ACTION_COPY.roleTag}
                   </span>
                 </button>
                 <StakeholdersMascot
                   personas={[
-                    { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
-                    { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
-                    { variant: 'goMad', label: goMadShapeLabel(goMadStreak), onClick: () => runTransform('goMad', { useDiagramFocus: true }) },
-                    { variant: 'exec', onClick: () => runTransform('exec', { useDiagramFocus: true }) },
-                    { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
-                    { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) }
+                    {
+                      variant: 'refine',
+                      onClick: () => runTransform('refine', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'innovate',
+                      onClick: () => runTransform('innovate', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'goMad',
+                      label: goMadShapeLabel(goMadStreak),
+                      onClick: () => runTransform('goMad', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'exec',
+                      onClick: () => runTransform('exec', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'critique',
+                      onClick: () => runAnalyze('critique', { useDiagramFocus: true })
+                    },
+                    {
+                      variant: 'explain',
+                      onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                    }
                   ]}
                   activeAdvisorVariant={advisor.activePersona}
                   thinkingPersona={advisor.thinkingPersona}
@@ -4250,7 +4419,11 @@ ${requirementsBlock}`;
                   onClick={advisor.toggleMute}
                   aria-pressed={advisor.isMuted}
                   aria-label={advisor.isMuted ? 'Unmute stakeholders' : 'Mute stakeholders'}
-                  title={advisor.isMuted ? 'Stakeholders muted · tap to unmute' : 'Stakeholders watching · tap to mute'}
+                  title={
+                    advisor.isMuted
+                      ? 'Stakeholders muted · tap to unmute'
+                      : 'Stakeholders watching · tap to mute'
+                  }
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
@@ -4260,7 +4433,9 @@ ${requirementsBlock}`;
                   <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
-                      {advisor.isMuted ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                      {advisor.isMuted
+                        ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
+                        : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
                     </span>
                     {STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
                   </span>
@@ -4275,7 +4450,9 @@ ${requirementsBlock}`;
                     title="Site Foreman · Fixing the slop"
                   >
                     <ButtonIcon>
-                      <span className="action-persona-icon is-fix" aria-hidden="true">🛠️</span>
+                      <span className="action-persona-icon is-fix" aria-hidden="true">
+                        🛠️
+                      </span>
                     </ButtonIcon>
                     <span className="button-label">Fix</span>
                     <ActionPersonaRole fallback="Site Foreman" />
@@ -4290,11 +4467,15 @@ ${requirementsBlock}`;
                   title="Clear · Demolish the slop and start fresh"
                 >
                   <ButtonIcon>
-                    <span className="action-persona-icon is-clear" aria-hidden="true">🧨</span>
+                    <span className="action-persona-icon is-clear" aria-hidden="true">
+                      🧨
+                    </span>
                   </ButtonIcon>
                   <span className="button-label">Clear</span>
                   <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">🧨</span>
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      🧨
+                    </span>
                     Demolish
                   </span>
                 </button>

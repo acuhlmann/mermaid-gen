@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # Node.js/Express to Mermaid Diagrams
@@ -193,15 +193,15 @@ const express = require('express');
 const app = express();
 
 // Global middleware (applied to all routes)
-app.use(helmet());                    // Security headers
-app.use(cors());                      // CORS policy
-app.use(morgan('combined'));          // HTTP logging
-app.use(express.json());              // Body parser
+app.use(helmet()); // Security headers
+app.use(cors()); // CORS policy
+app.use(morgan('combined')); // HTTP logging
+app.use(express.json()); // Body parser
 app.use(express.urlencoded({ extended: true }));
 
 // Custom middleware
-app.use(requestId());                 // Add request ID
-app.use(rateLimiter);                 // Rate limiting
+app.use(requestId()); // Add request ID
+app.use(rateLimiter); // Rate limiting
 
 // Routes with route-specific middleware
 app.use('/api/auth', authRoutes);
@@ -311,7 +311,7 @@ const userController = {
       await cacheService.set(`user:${user.id}`, user, 3600);
 
       // 6. Send welcome email (async, non-blocking)
-      emailService.sendWelcome(user.email).catch(err => {
+      emailService.sendWelcome(user.email).catch((err) => {
         logger.error('Failed to send welcome email', err);
       });
 
@@ -543,11 +543,14 @@ const asyncHandler = (fn) => {
 };
 
 // Usage - cleaner controllers
-app.get('/users', asyncHandler(async (req, res) => {
-  const users = await User.find();
-  res.json(users);
-  // No try-catch needed!
-}));
+app.get(
+  '/users',
+  asyncHandler(async (req, res) => {
+    const users = await User.find();
+    res.json(users);
+    // No try-catch needed!
+  })
+);
 ```
 
 ### 3. Service Layer Pattern
@@ -655,17 +658,20 @@ const emailQueue = new Queue('email', {
 
 // Producer: Add jobs to queue
 exports.sendEmail = async (to, subject, body) => {
-  await emailQueue.add({
-    to,
-    subject,
-    body
-  }, {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000
+  await emailQueue.add(
+    {
+      to,
+      subject,
+      body
+    },
+    {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 2000
+      }
     }
-  });
+  );
 };
 
 // Consumer: Process jobs

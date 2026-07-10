@@ -95,43 +95,57 @@ export default function StakeholdersMascot({
         : 'stakeholders-mascot--idle',
     !expanded && thinkingPersona ? 'stakeholders-mascot--thinking' : '',
     expanded ? 'is-expanded' : ''
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   const accentVar = expanded ? null : stageMeta?.accentColorVar;
   const accentStyle = accentVar
-    ? (accentVar.startsWith('--') ? `var(${accentVar})` : accentVar)
+    ? accentVar.startsWith('--')
+      ? `var(${accentVar})`
+      : accentVar
     : 'var(--accent)';
   const style = { '--stakeholders-accent': accentStyle };
 
   return (
     <div
-      className={['stakeholders-mascot-wrap', expanded ? 'is-menu-expanded' : ''].filter(Boolean).join(' ')}
+      className={['stakeholders-mascot-wrap', expanded ? 'is-menu-expanded' : '']
+        .filter(Boolean)
+        .join(' ')}
       ref={wrapperRef}
       style={style}
     >
-      {thinkingPersona
-        ? (
-          <AdvisorThinkingIndicator
-            persona={thinkingPersona}
-            castVariants={castVariants}
-            onSelectVariant={onSelectVariant}
-            castDisabled={castDisabled}
-          />
-        )
-        : (bubbleProps ? <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} /> : null)}
+      {thinkingPersona ? (
+        <AdvisorThinkingIndicator
+          persona={thinkingPersona}
+          castVariants={castVariants}
+          onSelectVariant={onSelectVariant}
+          castDisabled={castDisabled}
+        />
+      ) : bubbleProps ? (
+        <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} />
+      ) : null}
       <button
         type="button"
         className={mascotClass}
         aria-expanded={expanded}
         aria-haspopup="menu"
-        aria-label={expanded ? 'Hide stakeholders actions' : `Open the Stakeholders · ${mascotName}`}
+        aria-label={
+          expanded ? 'Hide stakeholders actions' : `Open the Stakeholders · ${mascotName}`
+        }
         title={expanded ? 'Tap to hide' : `${mascotName} · tap to open the Stakeholders`}
         onClick={() => setExpanded((v) => !v)}
       >
-        <span className="stakeholders-mascot-emoji" aria-hidden="true">{mascotEmoji}</span>
-        <span className="button-label">{expanded ? 'Stakeholders' : (stageMeta ? stageMeta.name.split(' ').pop() : 'Stakeholders')}</span>
+        <span className="stakeholders-mascot-emoji" aria-hidden="true">
+          {mascotEmoji}
+        </span>
+        <span className="button-label">
+          {expanded ? 'Stakeholders' : stageMeta ? stageMeta.name.split(' ').pop() : 'Stakeholders'}
+        </span>
         <span className="slop-action-role stakeholders-mascot-role">
-          <span className="slop-action-role-emoji" aria-hidden="true">👥</span>
+          <span className="slop-action-role-emoji" aria-hidden="true">
+            👥
+          </span>
           {expanded ? 'Pick a persona' : 'Stakeholders'}
         </span>
       </button>
@@ -153,7 +167,9 @@ export default function StakeholdersMascot({
               'slop-action-button',
               `is-${variantClass}`,
               isActiveAdvisor ? 'is-advisor-active' : ''
-            ].filter(Boolean).join(' ');
+            ]
+              .filter(Boolean)
+              .join(' ');
             return (
               <button
                 key={p.variant}
@@ -175,7 +191,9 @@ export default function StakeholdersMascot({
                   <span className="stakeholders-roster-name">{meta.name}</span>
                   <span className="stakeholders-roster-title">{meta.title}</span>
                 </span>
-                <span className="stakeholders-roster-chip" aria-hidden="true">{actionLabel}</span>
+                <span className="stakeholders-roster-chip" aria-hidden="true">
+                  {actionLabel}
+                </span>
               </button>
             );
           })}

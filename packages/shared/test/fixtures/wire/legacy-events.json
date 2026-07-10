@@ -29,9 +29,7 @@
   "style_edits": {
     "type": "artifact",
     "kind": "style_edits",
-    "edits": [
-      { "kind": "icon_replace", "id": "5", "from": "fa fa-fire", "to": "🔥" }
-    ]
+    "edits": [{ "kind": "icon_replace", "id": "5", "from": "fa fa-fire", "to": "🔥" }]
   },
   "a2ui_critique_minimal": {
     "type": "a2ui",

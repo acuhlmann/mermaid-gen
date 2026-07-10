@@ -34,9 +34,18 @@ const CORPUS = [
     source: 'sequenceDiagram\n  Alice->>Bob: hi\n  Bob-->>Alice: ok',
     expectedAccept: true
   },
-  { id: 'valid-state', source: 'stateDiagram-v2\n  [*] --> Idle\n  Idle --> Running', expectedAccept: true },
+  {
+    id: 'valid-state',
+    source: 'stateDiagram-v2\n  [*] --> Idle\n  Idle --> Running',
+    expectedAccept: true
+  },
   // Mechanical failures — Phase 1 sanitizer should rescue these.
-  { id: 'smart-quotes', source: 'flowchart TD\n  A[“Hello”] --> B', expectedAccept: true, rescueable: true },
+  {
+    id: 'smart-quotes',
+    source: 'flowchart TD\n  A[“Hello”] --> B',
+    expectedAccept: true,
+    rescueable: true
+  },
   {
     id: 'parens-label',
     source: 'flowchart TD\n  A[user (admin)] --> B[guest (anon)]',
@@ -55,8 +64,18 @@ const CORPUS = [
     expectedAccept: true,
     rescueable: true
   },
-  { id: 'flow-chart-typo', source: 'flow chart TD\n  A --> B', expectedAccept: true, rescueable: true },
-  { id: 'flowchart-case', source: 'FLOWCHART TD\n  A --> B', expectedAccept: true, rescueable: true },
+  {
+    id: 'flow-chart-typo',
+    source: 'flow chart TD\n  A --> B',
+    expectedAccept: true,
+    rescueable: true
+  },
+  {
+    id: 'flowchart-case',
+    source: 'FLOWCHART TD\n  A --> B',
+    expectedAccept: true,
+    rescueable: true
+  },
   {
     id: 'state-v2-promotion',
     source: 'stateDiagram\n  [*] --> Idle\n  Idle --> Running',
@@ -143,13 +162,15 @@ async function run() {
       accepted: Boolean(outcome.accepted),
       validator: outcome.metadata?.validator ?? null,
       sanitizerApplied: outcome.metadata?.sanitizerApplied ?? [],
-      error: outcome.accepted ? null : outcome.error ?? null,
+      error: outcome.accepted ? null : (outcome.error ?? null),
       durationMs: Math.round(durationMs * 100) / 100
     });
   }
 
   const acceptCount = results.filter((r) => r.accepted).length;
-  const rescueAccepts = results.filter((r) => r.accepted && r.validator === 'sanitizer-rescue').length;
+  const rescueAccepts = results.filter(
+    (r) => r.accepted && r.validator === 'sanitizer-rescue'
+  ).length;
   const passedAsExpected = results.filter((r) => r.accepted === r.expectedAccept).length;
   const rescueable = results.filter((r) => r.rescueable);
   const rescueableHits = rescueable.filter((r) => r.accepted).length;

@@ -31,10 +31,14 @@ if (outputFlagIndex === -1 || !args[outputFlagIndex + 1]) {
 const outputPath = resolve(args[outputFlagIndex + 1]);
 
 const themeFlagIndex = args.indexOf('--theme');
-const theme = (themeFlagIndex !== -1 && args[themeFlagIndex + 1]) ? args[themeFlagIndex + 1] : 'zinc-light';
+const theme =
+  themeFlagIndex !== -1 && args[themeFlagIndex + 1] ? args[themeFlagIndex + 1] : 'zinc-light';
 
 const customThemeFlagIndex = args.indexOf('--custom-theme');
-const customThemeRaw = (customThemeFlagIndex !== -1 && args[customThemeFlagIndex + 1]) ? args[customThemeFlagIndex + 1] : null;
+const customThemeRaw =
+  customThemeFlagIndex !== -1 && args[customThemeFlagIndex + 1]
+    ? args[customThemeFlagIndex + 1]
+    : null;
 
 function resolveTheme(name, customJson) {
   // Custom theme JSON takes priority
@@ -42,7 +46,9 @@ function resolveTheme(name, customJson) {
     try {
       return JSON.parse(customJson);
     } catch {
-      console.error(JSON.stringify({ status: 'error', message: `Invalid --custom-theme JSON: ${customJson}` }));
+      console.error(
+        JSON.stringify({ status: 'error', message: `Invalid --custom-theme JSON: ${customJson}` })
+      );
       process.exit(1);
     }
   }

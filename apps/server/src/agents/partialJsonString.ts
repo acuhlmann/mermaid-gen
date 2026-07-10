@@ -6,7 +6,10 @@ export function extractJsonStringPrefix(buffer: string, key: string): string {
   const start = buffer.indexOf(needle);
   if (start < 0) return '';
   let i = start + needle.length;
-  while (i < buffer.length && (buffer[i] === ' ' || buffer[i] === '\t' || buffer[i] === '\n' || buffer[i] === ':')) {
+  while (
+    i < buffer.length &&
+    (buffer[i] === ' ' || buffer[i] === '\t' || buffer[i] === '\n' || buffer[i] === ':')
+  ) {
     i += 1;
   }
   if (buffer[i] !== '"') return '';

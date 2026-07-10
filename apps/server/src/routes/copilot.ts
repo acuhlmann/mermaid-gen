@@ -287,7 +287,8 @@ export async function handleDiagramTransformIntent({
         status: 422,
         body: {
           error: 'Transform did not apply a diagram patch.',
-          message: 'The transform returned text instead of a valid diagram update. Please try again or simplify the diagram.',
+          message:
+            'The transform returned text instead of a valid diagram update. Please try again or simplify the diagram.',
           state: nextState
         }
       };
@@ -954,7 +955,7 @@ export function createCopilotRouter({
       const rawQuery = req.query.agentToken;
       const agentToken = Array.isArray(rawHeader)
         ? rawHeader[0]
-        : rawHeader ?? (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery);
+        : (rawHeader ?? (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery));
       if (agentToken && typeof agentToken === 'string') {
         const verified = agentTokenStore.verify(agentToken);
         if (!verified || verified.sessionId !== sessionId) {
@@ -986,9 +987,7 @@ export function createCopilotRouter({
       }
     });
     const { latestSeq } = eventBus.getSessionMeta(sessionId);
-    const sinceSeq = eventBus.parseSinceSeq(
-      req.headers['last-event-id'] ?? req.query.sinceSeq
-    );
+    const sinceSeq = eventBus.parseSinceSeq(req.headers['last-event-id'] ?? req.query.sinceSeq);
     writeSseData(res, {
       type: 'snapshot',
       payload: {

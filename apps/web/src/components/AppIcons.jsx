@@ -15,7 +15,13 @@ export function ArchiSlopMarkIcon() {
   // viewBox tightened to the actual helmet+grass silhouette so the surrounding
   // brand-control pill doesn't render visible whitespace around the logo.
   return (
-    <svg className="brand-helmet-svg" viewBox="4.5 5.4 15 18.4" width="36" height="36" aria-hidden="true">
+    <svg
+      className="brand-helmet-svg"
+      viewBox="4.5 5.4 15 18.4"
+      width="36"
+      height="36"
+      aria-hidden="true"
+    >
       <path d="M5 16 Q5 7 12 6 Q19 7 19 16 Z" fill="#F4A300" />
       <ellipse cx="12" cy="16" rx="9" ry="1.4" fill="#C77A00" />
       <path d="M12 6 L11 16 L13 16 Z" fill="#C77A00" opacity="0.55" />
@@ -106,7 +112,10 @@ export function MicIcon() {
 export function MicActiveIcon() {
   return (
     <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
-      <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+      <path
+        fill="currentColor"
+        d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"
+      />
       <circle cx="12" cy="19" r="2" fill="currentColor" />
     </svg>
   );
@@ -126,7 +135,13 @@ export function SettingsGearIcon() {
 /** Insights / Thinking pane — prose panel with a sparkle (agent deep-dive). */
 export function ThinkingPanelIcon() {
   return (
-    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="shell-control-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M6 4.75h9.2c.97 0 1.75.78 1.75 1.75v10.5c0 .97-.78 1.75-1.75 1.75H6A1.75 1.75 0 0 1 4.25 17V6.5C4.25 5.53 5.03 4.75 6 4.75z"
@@ -156,7 +171,13 @@ export function ThinkingPanelIcon() {
 /** Collapse the Thinking pane (chevron tucks the side panel away). */
 export function ThinkingPanelCloseIcon() {
   return (
-    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="shell-control-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="none"
         stroke="currentColor"
@@ -172,7 +193,13 @@ export function ThinkingPanelCloseIcon() {
 /** Monaco / diagram source editor. */
 export function CodeEditorIcon() {
   return (
-    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="shell-control-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="none"
         stroke="currentColor"
@@ -187,7 +214,13 @@ export function CodeEditorIcon() {
 
 export function CodeCloseIcon() {
   return (
-    <svg className="shell-control-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="shell-control-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="none"
         stroke="currentColor"

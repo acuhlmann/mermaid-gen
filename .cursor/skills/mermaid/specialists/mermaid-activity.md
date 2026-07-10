@@ -28,6 +28,7 @@ user asks for the flow of code or a script, base the diagram strictly on the sou
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/activity-diagrams.md` for patterns and syntax
 3. **Identify Components**: Extract start point, process steps, decisions, error paths, end points
 4. **Generate Diagram**:

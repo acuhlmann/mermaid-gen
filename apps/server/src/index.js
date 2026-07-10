@@ -28,7 +28,8 @@ const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../.
 dotenv.config({ path: envPath });
 assertProductionInviteSecret();
 
-const { store: pairingCodeStore, backend: pairingStoreBackend } = await createPairingCodeStoreFromEnv();
+const { store: pairingCodeStore, backend: pairingStoreBackend } =
+  await createPairingCodeStoreFromEnv();
 const agentTokenStore = createAgentTokenStore();
 const mcpRateLimiter = createMcpRateLimiter();
 
@@ -148,11 +149,7 @@ function resolveDist(envPath, ...fallbacks) {
   return path.join(repoRoot, fallbacks[fallbacks.length - 1] ?? 'apps/web/dist');
 }
 
-const mainDist = resolveDist(
-  process.env.WEB_DIST_MAIN,
-  'apps/web/dist-main',
-  'apps/web/dist'
-);
+const mainDist = resolveDist(process.env.WEB_DIST_MAIN, 'apps/web/dist-main', 'apps/web/dist');
 const hackathonDist = resolveDist(process.env.WEB_DIST_HACKATHON, 'apps/web/dist-hackathon');
 
 const hasHackathonUi = fs.existsSync(path.join(hackathonDist, 'index.html'));
@@ -187,7 +184,10 @@ const server = app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
   console.log(`Pairing store: ${pairingStoreBackend}`);
   ensureMermaidInitialized().catch((error) => {
-    console.warn('Mermaid validator warm-up failed (will lazy-init on first request):', error?.message ?? error);
+    console.warn(
+      'Mermaid validator warm-up failed (will lazy-init on first request):',
+      error?.message ?? error
+    );
   });
 });
 server.ref();

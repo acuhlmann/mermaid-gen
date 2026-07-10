@@ -19,10 +19,7 @@ import {
   findInfographicTapTarget,
   INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES
 } from '../utils/infographicHitTest.js';
-import {
-  buildChartDescriptorFromDomHit,
-  findChartTapTarget
-} from '../utils/chartHitTest.js';
+import { buildChartDescriptorFromDomHit, findChartTapTarget } from '../utils/chartHitTest.js';
 import { formatChartDslForEditor } from '../utils/formatChartDsl.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
@@ -30,7 +27,10 @@ import ChartRenderer from './ChartRenderer.jsx';
 import AnythingRenderer from './AnythingRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
-import { computeViewportFocusForHighlightIds, computeViewportFocusForChangeHighlight } from '../utils/focusDiagramHighlightIds.js';
+import {
+  computeViewportFocusForHighlightIds,
+  computeViewportFocusForChangeHighlight
+} from '../utils/focusDiagramHighlightIds.js';
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
@@ -89,7 +89,13 @@ function getDistance(first, second) {
 
 function StreamingWaveIcon() {
   return (
-    <svg className="streaming-wave-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+    <svg
+      className="streaming-wave-icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M3 16h2v-8H3v8zm4 8h2V8H7v16zm4-12h2V4h-2v8zm4 8h2v-4h-2v4zm4-6v10h2V10h-2z"
@@ -159,7 +165,6 @@ function formatEditorSource(source, contentType) {
   return source ?? '';
 }
 
-
 /** Anything-iframe runtime errors later than this after load are treated as interaction-time. */
 const ANYTHING_LOAD_PHASE_ERROR_MS = 5000;
 
@@ -224,7 +229,9 @@ export default function DiagramCanvas({
   isFullscreen = false
 }) {
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
-  const [editorSource, setEditorSource] = useState(() => formatEditorSource(diagramSource, contentType));
+  const [editorSource, setEditorSource] = useState(() =>
+    formatEditorSource(diagramSource, contentType)
+  );
   const [svgMarkup, setSvgMarkup] = useState('');
   const [renderError, setRenderError] = useState('');
   const requestRef = useRef(0);
@@ -258,10 +265,11 @@ export default function DiagramCanvas({
   const diagramSyncRafRef = useRef(0);
   const lastSvgRenderedReportRef = useRef('');
   const [monacoBind, setMonacoBind] = useState(null);
-  const [narrowLayout, setNarrowLayout] = useState(() =>
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia(MOBILE_MEDIA_QUERY).matches
+  const [narrowLayout, setNarrowLayout] = useState(
+    () =>
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia(MOBILE_MEDIA_QUERY).matches
   );
   const bindDiagramSurfaceRef = useCallback(
     (node) => {
@@ -449,7 +457,14 @@ export default function DiagramCanvas({
     });
     observer.observe(viewportEl, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [changeHighlight, changeHighlightContentType, revisionId, streamingPreview, svgMarkup, editorSource]);
+  }, [
+    changeHighlight,
+    changeHighlightContentType,
+    revisionId,
+    streamingPreview,
+    svgMarkup,
+    editorSource
+  ]);
 
   const fireDiagramRevisionPulse = useCallback(() => {
     if (pulseTimeoutRef.current) {
@@ -527,7 +542,11 @@ export default function DiagramCanvas({
       async function runRender() {
         try {
           const diagramId = `diagram-${requestId}`;
-          const { svg } = await renderMermaidSvg(diagramId, editorSource, ARCHISLOP_MERMAID_CANVAS_INIT);
+          const { svg } = await renderMermaidSvg(
+            diagramId,
+            editorSource,
+            ARCHISLOP_MERMAID_CANVAS_INIT
+          );
           if (cancelled || requestRef.current !== requestId) {
             return;
           }
@@ -729,10 +748,18 @@ export default function DiagramCanvas({
   useEffect(() => {
     const root = viewportRef.current;
     if (!root) return;
-    root.querySelectorAll('path.is-diagram-edge-selected').forEach((el) => el.classList.remove('is-diagram-edge-selected'));
-    root.querySelectorAll('g.node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
-    root.querySelectorAll('g.timeline-node.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
-    root.querySelectorAll('g.cluster.is-diagram-selected').forEach((el) => el.classList.remove('is-diagram-selected'));
+    root
+      .querySelectorAll('path.is-diagram-edge-selected')
+      .forEach((el) => el.classList.remove('is-diagram-edge-selected'));
+    root
+      .querySelectorAll('g.node.is-diagram-selected')
+      .forEach((el) => el.classList.remove('is-diagram-selected'));
+    root
+      .querySelectorAll('g.timeline-node.is-diagram-selected')
+      .forEach((el) => el.classList.remove('is-diagram-selected'));
+    root
+      .querySelectorAll('g.cluster.is-diagram-selected')
+      .forEach((el) => el.classList.remove('is-diagram-selected'));
     root
       .querySelectorAll('[data-et="participant"].is-diagram-selected')
       .forEach((el) => el.classList.remove('is-diagram-selected'));
@@ -753,7 +780,9 @@ export default function DiagramCanvas({
   useEffect(() => {
     const root = viewportRef.current;
     if (!root) return;
-    root.querySelectorAll('.is-diagram-hover').forEach((el) => el.classList.remove('is-diagram-hover'));
+    root
+      .querySelectorAll('.is-diagram-hover')
+      .forEach((el) => el.classList.remove('is-diagram-hover'));
     if (!hoverDescriptor?.id) return;
     if (hoverDescriptor.kind === 'edge') {
       try {
@@ -949,7 +978,7 @@ export default function DiagramCanvas({
 
     if (contentType === 'mermaid') {
       nodeEl = target?.closest?.('g.node') ?? target?.closest?.('g.timeline-node') ?? null;
-      clusterEl = nodeEl ? null : target?.closest?.('g.cluster') ?? null;
+      clusterEl = nodeEl ? null : (target?.closest?.('g.cluster') ?? null);
       actorHit = !nodeEl && !clusterEl ? resolveSequenceActorInteractionRoot(target) : null;
       edgeHit =
         !nodeEl && !clusterEl && !actorHit ? resolveFlowchartEdgeInteractionRoot(target) : null;
@@ -1165,8 +1194,7 @@ export default function DiagramCanvas({
       contentType === 'infographic' &&
       infographicHit &&
       INFOGRAPHIC_NATIVE_TEXT_SELECTION_TYPES.has(infographicHit.elementType);
-    const passiveChartMark =
-      contentType === 'chart' && chartHit && event.pointerType === 'touch';
+    const passiveChartMark = contentType === 'chart' && chartHit && event.pointerType === 'touch';
     const passiveGesture = passiveInfographicText || passiveChartMark;
 
     if (!passiveGesture) {
@@ -1571,7 +1599,11 @@ export default function DiagramCanvas({
                 <span className="mobile-code-editor-title">{editorPanelShortTitle}</span>
                 <div className="mobile-code-editor-actions">
                   {onEditorClose ? (
-                    <button type="button" className="overlay-button compact-button primary-button" onClick={onEditorClose}>
+                    <button
+                      type="button"
+                      className="overlay-button compact-button primary-button"
+                      onClick={onEditorClose}
+                    >
                       Done
                     </button>
                   ) : null}

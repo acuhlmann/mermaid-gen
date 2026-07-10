@@ -18,8 +18,7 @@ export function enrichProposalForReview({
   webCanvasUrl
 }: ProposalReviewInput): Record<string, unknown> {
   const contentType = normalizeContentType(proposal.contentType);
-  const proposedSource =
-    typeof proposal.diagramSource === 'string' ? proposal.diagramSource : '';
+  const proposedSource = typeof proposal.diagramSource === 'string' ? proposal.diagramSource : '';
   const current = currentDiagramSource ?? '';
   const diffSummary = buildDiagramDiffSummary(current, proposedSource, { contentType });
   const meta = proposal.metadata as Record<string, unknown> | undefined;

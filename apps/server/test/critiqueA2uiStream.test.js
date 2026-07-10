@@ -15,6 +15,9 @@ test('emitCritiqueA2uiBeforeFinal emits a2ui when critique has actionable items'
 
 test('emitCritiqueA2uiBeforeFinal skips non-critique', () => {
   const out = [];
-  emitCritiqueA2uiBeforeFinal((e) => out.push(e), { kind: 'explain', analyzeText: '## Actionable\n\n- X\n' });
+  emitCritiqueA2uiBeforeFinal((e) => out.push(e), {
+    kind: 'explain',
+    analyzeText: '## Actionable\n\n- X\n'
+  });
   assert.deepEqual(out, []);
 });

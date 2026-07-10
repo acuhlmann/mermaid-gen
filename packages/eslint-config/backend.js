@@ -11,8 +11,8 @@ export function backendConfig({ workspaceDir = '.' } = {}) {
       files: ['src/**/*.{js,jsx,ts,tsx}'],
       plugins: { '@factory': factory },
       rules: {
-        '@factory/no-log-exception-with-throw': 'warn',
-      },
+        '@factory/no-log-exception-with-throw': 'warn'
+      }
     },
     {
       files: ['src/**/*.{ts,tsx}'],
@@ -20,9 +20,9 @@ export function backendConfig({ workspaceDir = '.' } = {}) {
       rules: {
         '@factory/filename-match-export': 'warn',
         '@factory/no-exported-string-union-types': 'warn',
-        '@factory/no-exported-function-expressions': 'warn',
-      },
-    },
+        '@factory/no-exported-function-expressions': 'warn'
+      }
+    }
   ];
 }
 

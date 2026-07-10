@@ -96,11 +96,7 @@ function classify(files) {
     }
     // Anything that could change the dependency graph or the boundary config
     // re-runs the graph check.
-    if (
-      f === '.dependency-cruiser.cjs' ||
-      f === 'package.json' ||
-      f === 'package-lock.json'
-    ) {
+    if (f === '.dependency-cruiser.cjs' || f === 'package.json' || f === 'package-lock.json') {
       flags.deps = true;
     }
     if (
@@ -122,9 +118,7 @@ function changedFiles() {
     encoding: 'utf8'
   });
   const diffBase =
-    mergeBase.status === 0 && mergeBase.stdout.trim()
-      ? mergeBase.stdout.trim()
-      : baseRef;
+    mergeBase.status === 0 && mergeBase.stdout.trim() ? mergeBase.stdout.trim() : baseRef;
 
   const committed = gitLines(['diff', '--name-only', `${diffBase}...HEAD`]);
   const unstaged = gitLines(['diff', '--name-only']);

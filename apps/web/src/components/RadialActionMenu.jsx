@@ -87,7 +87,10 @@ function computeButtonPositions(side, count, arcRadiusPx, arcSpreadDeg) {
 function clampToViewport(x, y, vv, buttonHalfPx, bottomReservePx = 0) {
   const bottomLimit = vv.bottom - bottomReservePx;
   return {
-    x: Math.max(vv.left + VIEWPORT_MARGIN_PX + buttonHalfPx, Math.min(vv.right - VIEWPORT_MARGIN_PX - buttonHalfPx, x)),
+    x: Math.max(
+      vv.left + VIEWPORT_MARGIN_PX + buttonHalfPx,
+      Math.min(vv.right - VIEWPORT_MARGIN_PX - buttonHalfPx, x)
+    ),
     y: Math.max(
       vv.top + VIEWPORT_MARGIN_PX + buttonHalfPx,
       Math.min(bottomLimit - VIEWPORT_MARGIN_PX - buttonHalfPx, y)
@@ -225,7 +228,8 @@ export default function RadialActionMenu({
   const chipTypeLabel = descriptor ? partKindLabel(descriptor.partKind) : '';
   const chipName = descriptor ? descriptor.partName || descriptor.label || descriptor.id || '' : '';
   const explainTarget =
-    (descriptor && (descriptor.clickedLabel || descriptor.partName || descriptor.label || descriptor.id)) ||
+    (descriptor &&
+      (descriptor.clickedLabel || descriptor.partName || descriptor.label || descriptor.id)) ||
     '';
 
   useEffect(() => {
@@ -332,8 +336,7 @@ export default function RadialActionMenu({
     })
       .then((text) => {
         if (!alive) return;
-        const resolved =
-          text || (isGibberish ? fallbackLabelGibberish(explainTarget) : '');
+        const resolved = text || (isGibberish ? fallbackLabelGibberish(explainTarget) : '');
         if (resolved) {
           setExplanation({ status: 'ready', text: resolved, error: '' });
         } else {
@@ -357,14 +360,23 @@ export default function RadialActionMenu({
       alive = false;
       controller.abort();
     };
-  }, [contentType, descriptor, diagramSource, explainerOpen, dumbLevel, sessionId, explainTarget, explainerSurrendering]);
+  }, [
+    contentType,
+    descriptor,
+    diagramSource,
+    explainerOpen,
+    dumbLevel,
+    sessionId,
+    explainTarget,
+    explainerSurrendering
+  ]);
 
   const dumbChipLabel = labelExplainDumbChipLabel(dumbLevel);
   const dumbChipEmoji = isLabelExplainGiveUpLevel(dumbLevel)
     ? '🏳️'
     : dumbLevel > 0
-      ? getLabelExplainDumbLevel(dumbLevel)?.emoji ?? '🍼'
-      : getLabelExplainDumbLevel(1)?.emoji ?? '🍼';
+      ? (getLabelExplainDumbLevel(dumbLevel)?.emoji ?? '🍼')
+      : (getLabelExplainDumbLevel(1)?.emoji ?? '🍼');
   const dumbAudienceBadge = dumbLevel > 0 ? labelExplainDumbAudienceBadge(dumbLevel) : '';
   const isGibberishAnswer = isLabelExplainGibberishLevel(dumbLevel);
 
@@ -413,10 +425,19 @@ export default function RadialActionMenu({
       chipClearancePx
     );
     const bottomReservePx = narrowLayout ? MOBILE_BOTTOM_CHROME_RESERVE_PX : 0;
-    const centerX = typeof anchor.left === 'number' ? anchor.left : (anchor.nodeLeft + anchor.nodeRight) / 2;
-    const centerY = typeof anchor.centerY === 'number' ? anchor.centerY : (anchor.nodeTop + anchor.nodeBottom) / 2;
+    const centerX =
+      typeof anchor.left === 'number' ? anchor.left : (anchor.nodeLeft + anchor.nodeRight) / 2;
+    const centerY =
+      typeof anchor.centerY === 'number'
+        ? anchor.centerY
+        : (anchor.nodeTop + anchor.nodeBottom) / 2;
     const side = pickArcSide(anchor, vv);
-    const positions = computeButtonPositions(side, visibleActions.length, arcRadiusPx, arcSpreadDeg);
+    const positions = computeButtonPositions(
+      side,
+      visibleActions.length,
+      arcRadiusPx,
+      arcSpreadDeg
+    );
     const hoverDiskDiameter = 2 * (arcRadiusPx + buttonHalfPx + HOVER_DISK_EXTRA_PX);
     const nodeBottom = typeof anchor.nodeBottom === 'number' ? anchor.nodeBottom : centerY;
     const nodeTop = typeof anchor.nodeTop === 'number' ? anchor.nodeTop : centerY;
@@ -437,7 +458,14 @@ export default function RadialActionMenu({
     };
     // viewportTick forces re-layout when the visual viewport size changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anchor, effectiveChipSize.height, effectiveChipSize.width, narrowLayout, visibleActions.length, viewportTick]);
+  }, [
+    anchor,
+    effectiveChipSize.height,
+    effectiveChipSize.width,
+    narrowLayout,
+    visibleActions.length,
+    viewportTick
+  ]);
 
   useEffect(() => {
     function onKey(event) {
@@ -564,7 +592,8 @@ export default function RadialActionMenu({
     // Use measured height when available; on first paint fall back to a
     // generous estimate. Once measured, the actual rendered size drives
     // placement so a long Wise Architect explanation can't silently overflow.
-    const estimatedHeight = popoverHeight || (stakeholdersExpanded ? 280 : renderModesExpanded ? 300 : 220);
+    const estimatedHeight =
+      popoverHeight || (stakeholdersExpanded ? 280 : renderModesExpanded ? 300 : 220);
     const popHeight = Math.min(estimatedHeight, usableHeight);
     const nodeBottom = Math.max(layout.nodeBottom, layout.centerY);
     const nodeTop = Math.min(layout.nodeTop, layout.centerY);
@@ -586,9 +615,10 @@ export default function RadialActionMenu({
     const halfWidth = (popoverWidth || 280) / 2;
     const minLeft = vv.left + VIEWPORT_MARGIN_PX + halfWidth;
     const maxLeft = vv.right - VIEWPORT_MARGIN_PX - halfWidth;
-    const clampedLeft = maxLeft >= minLeft
-      ? Math.max(minLeft, Math.min(maxLeft, layout.centerX))
-      : (vv.left + vv.right) / 2;
+    const clampedLeft =
+      maxLeft >= minLeft
+        ? Math.max(minLeft, Math.min(maxLeft, layout.centerX))
+        : (vv.left + vv.right) / 2;
     return { left: clampedLeft, top, transform: 'translate(-50%, 0)' };
   })();
 
@@ -716,17 +746,22 @@ export default function RadialActionMenu({
               }
               onActionPick?.(action, descriptor);
             };
-            const className = `radial-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim();
+            const className =
+              `radial-action-button ${action.variant ? `is-${action.variant}` : ''}`.trim();
             return (
               <button
                 key={action.id}
-                ref={(el) => { buttonRefs.current[index] = el; }}
+                ref={(el) => {
+                  buttonRefs.current[index] = el;
+                }}
                 type="button"
                 role="menuitem"
                 tabIndex={index === Math.min(focusedIndex, visibleActions.length - 1) ? 0 : -1}
                 className={className}
                 style={{ left: pos.x, top: pos.y }}
-                disabled={(busy && !(isExplainer || isExpander || isModeRenderer)) || action.disabled}
+                disabled={
+                  (busy && !(isExplainer || isExpander || isModeRenderer)) || action.disabled
+                }
                 onClick={handleClick}
                 onFocus={() => setFocusedIndex(index)}
                 onPointerEnter={onHoverHold}
@@ -782,104 +817,106 @@ export default function RadialActionMenu({
               <span className="radial-explainer-surrender-tag">DEPRECATED</span>
             </div>
           ) : null}
-          <div className={`radial-explainer-panel${explainerSurrendering ? ' is-surrendering' : ''}`}>
           <div
-            className="radial-explainer-head"
-            onPointerDown={handleDragPointerDown}
-            onPointerMove={handleDragPointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            title="Drag to reposition"
+            className={`radial-explainer-panel${explainerSurrendering ? ' is-surrendering' : ''}`}
           >
-            <span
-              className="radial-explainer-eyebrow"
-              role="img"
-              aria-label={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
-              title={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
+            <div
+              className="radial-explainer-head"
+              onPointerDown={handleDragPointerDown}
+              onPointerMove={handleDragPointerMove}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              title="Drag to reposition"
             >
-              {explainerSurrendering ? '📋' : WISE_ARCHITECT_EMOJI}
-            </span>
-            <span className="radial-explainer-heading">
-              <span className="radial-explainer-attribution">
-                {explainerSurrendering ? 'Scheduling deprecation for' : 'The Wise Architect on'}
-              </span>
-              {explainTarget ? <strong>“{explainTarget}”</strong> : <strong>this element</strong>}
-            </span>
-            <button
-              type="button"
-              className="radial-explainer-close"
-              onClick={() => onClose?.()}
-              disabled={explainerSurrendering}
-              aria-label="Close explanation"
-            >
-              ×
-            </button>
-          </div>
-          {explanation.status === 'loading' ? (
-            <p className="radial-explainer-body is-loading" aria-live="polite">
-              <span className="radial-explainer-dot" aria-hidden="true" />
-              <span className="radial-explainer-dot" aria-hidden="true" />
-              <span className="radial-explainer-dot" aria-hidden="true" />
-              <span className="sr-only">{labelExplainDumbLoadingText(dumbLevel)}</span>
-            </p>
-          ) : explanation.status === 'error' ? (
-            <p className="radial-explainer-body is-error" role="status">
-              {explanation.error}
-            </p>
-          ) : explanation.status === 'ready' ? (
-            <>
-              {dumbAudienceBadge ? (
-                <p className="radial-explainer-audience" aria-live="polite">
-                  {dumbAudienceBadge}
-                </p>
-              ) : null}
-              <p
-                className={`radial-explainer-body${isGibberishAnswer ? ' is-gibberish' : ''}`}
+              <span
+                className="radial-explainer-eyebrow"
+                role="img"
+                aria-label={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
+                title={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
               >
-                {explanation.text}
-              </p>
-            </>
-          ) : null}
-          {explainerSurrendering ? (
-            <p className="radial-explainer-surrender-caption" aria-live="assertive">
-              Moved to the architecture backlog. Won&apos;t fix. 🏳️
-            </p>
-          ) : null}
-          <div className="radial-explainer-followups" role="group" aria-label="Rephrase options">
-            <button
-              type="button"
-              className={`radial-explainer-followup is-simple${dumbLevel > 0 ? ' is-active' : ''}${isLabelExplainGiveUpLevel(dumbLevel) ? ' is-give-up' : ''}`}
-              onClick={handleDumbDownClick}
-              disabled={explanation.status === 'loading' || explainerSurrendering}
-              aria-pressed={dumbLevel > 0}
-              title={
-                isLabelExplainGiveUpLevel(dumbLevel)
-                  ? 'Decommission this explanation (OUT OF SCOPE)'
-                  : dumbLevel <= 0
-                    ? 'Rephrase in plain language — click again for even simpler'
-                    : dumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
-                      ? 'One last try: pre-verbal babble'
-                      : 'Make it even simpler for a younger audience'
-              }
-            >
-              <span className="radial-explainer-followup-emoji" aria-hidden="true">
-                {dumbChipEmoji}
+                {explainerSurrendering ? '📋' : WISE_ARCHITECT_EMOJI}
               </span>
-              <span className="radial-explainer-followup-label">{dumbChipLabel}</span>
-            </button>
-            <button
-              type="button"
-              className="radial-explainer-followup is-detail"
-              onClick={() => {
-                onDrillDeeper?.(descriptor);
-              }}
-              disabled={typeof onDrillDeeper !== 'function' || explainerSurrendering}
-              title="Spin up a full architecture deep-dive in the Thinking panel"
-            >
-              <span className="radial-explainer-followup-emoji" aria-hidden="true">🔍</span>
-              <span className="radial-explainer-followup-label">Drill Deeper</span>
-            </button>
-          </div>
+              <span className="radial-explainer-heading">
+                <span className="radial-explainer-attribution">
+                  {explainerSurrendering ? 'Scheduling deprecation for' : 'The Wise Architect on'}
+                </span>
+                {explainTarget ? <strong>“{explainTarget}”</strong> : <strong>this element</strong>}
+              </span>
+              <button
+                type="button"
+                className="radial-explainer-close"
+                onClick={() => onClose?.()}
+                disabled={explainerSurrendering}
+                aria-label="Close explanation"
+              >
+                ×
+              </button>
+            </div>
+            {explanation.status === 'loading' ? (
+              <p className="radial-explainer-body is-loading" aria-live="polite">
+                <span className="radial-explainer-dot" aria-hidden="true" />
+                <span className="radial-explainer-dot" aria-hidden="true" />
+                <span className="radial-explainer-dot" aria-hidden="true" />
+                <span className="sr-only">{labelExplainDumbLoadingText(dumbLevel)}</span>
+              </p>
+            ) : explanation.status === 'error' ? (
+              <p className="radial-explainer-body is-error" role="status">
+                {explanation.error}
+              </p>
+            ) : explanation.status === 'ready' ? (
+              <>
+                {dumbAudienceBadge ? (
+                  <p className="radial-explainer-audience" aria-live="polite">
+                    {dumbAudienceBadge}
+                  </p>
+                ) : null}
+                <p className={`radial-explainer-body${isGibberishAnswer ? ' is-gibberish' : ''}`}>
+                  {explanation.text}
+                </p>
+              </>
+            ) : null}
+            {explainerSurrendering ? (
+              <p className="radial-explainer-surrender-caption" aria-live="assertive">
+                Moved to the architecture backlog. Won&apos;t fix. 🏳️
+              </p>
+            ) : null}
+            <div className="radial-explainer-followups" role="group" aria-label="Rephrase options">
+              <button
+                type="button"
+                className={`radial-explainer-followup is-simple${dumbLevel > 0 ? ' is-active' : ''}${isLabelExplainGiveUpLevel(dumbLevel) ? ' is-give-up' : ''}`}
+                onClick={handleDumbDownClick}
+                disabled={explanation.status === 'loading' || explainerSurrendering}
+                aria-pressed={dumbLevel > 0}
+                title={
+                  isLabelExplainGiveUpLevel(dumbLevel)
+                    ? 'Decommission this explanation (OUT OF SCOPE)'
+                    : dumbLevel <= 0
+                      ? 'Rephrase in plain language — click again for even simpler'
+                      : dumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
+                        ? 'One last try: pre-verbal babble'
+                        : 'Make it even simpler for a younger audience'
+                }
+              >
+                <span className="radial-explainer-followup-emoji" aria-hidden="true">
+                  {dumbChipEmoji}
+                </span>
+                <span className="radial-explainer-followup-label">{dumbChipLabel}</span>
+              </button>
+              <button
+                type="button"
+                className="radial-explainer-followup is-detail"
+                onClick={() => {
+                  onDrillDeeper?.(descriptor);
+                }}
+                disabled={typeof onDrillDeeper !== 'function' || explainerSurrendering}
+                title="Spin up a full architecture deep-dive in the Thinking panel"
+              >
+                <span className="radial-explainer-followup-emoji" aria-hidden="true">
+                  🔍
+                </span>
+                <span className="radial-explainer-followup-label">Drill Deeper</span>
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
@@ -907,9 +944,17 @@ export default function RadialActionMenu({
             onPointerCancel={endDrag}
             title="Drag to reposition"
           >
-            <span className="radial-stakeholders-eyebrow" aria-hidden="true">{STAKEHOLDERS_EMOJI}</span>
+            <span className="radial-stakeholders-eyebrow" aria-hidden="true">
+              {STAKEHOLDERS_EMOJI}
+            </span>
             <span className="radial-stakeholders-heading">
-              {chipName ? <>Stakeholders · <strong>{chipName}</strong></> : 'Stakeholders'}
+              {chipName ? (
+                <>
+                  Stakeholders · <strong>{chipName}</strong>
+                </>
+              ) : (
+                'Stakeholders'
+              )}
             </span>
             <button
               type="button"
@@ -941,14 +986,18 @@ export default function RadialActionMenu({
                     {action.icon}
                   </span>
                   <span className="radial-stakeholders-row-text">
-                    <span className="radial-stakeholders-row-name">{personaShort || action.label}</span>
+                    <span className="radial-stakeholders-row-name">
+                      {personaShort || action.label}
+                    </span>
                     {action.personaTitle ? (
                       <span className="radial-stakeholders-row-title">
                         {action.personaTitle.replace(/^[^·]*·\s*/, '')}
                       </span>
                     ) : null}
                   </span>
-                  <span className="radial-stakeholders-row-chip" aria-hidden="true">{action.label}</span>
+                  <span className="radial-stakeholders-row-chip" aria-hidden="true">
+                    {action.label}
+                  </span>
                 </button>
               );
             })}
@@ -979,9 +1028,17 @@ export default function RadialActionMenu({
             onPointerCancel={endDrag}
             title="Drag to reposition"
           >
-            <span className="radial-render-mode-eyebrow" aria-hidden="true">{RENDER_MODE_EMOJI}</span>
+            <span className="radial-render-mode-eyebrow" aria-hidden="true">
+              {RENDER_MODE_EMOJI}
+            </span>
             <span className="radial-render-mode-heading">
-              {chipName ? <>Render <strong>{chipName}</strong> as...</> : 'Render this as...'}
+              {chipName ? (
+                <>
+                  Render <strong>{chipName}</strong> as...
+                </>
+              ) : (
+                'Render this as...'
+              )}
             </span>
             <button
               type="button"
@@ -1014,7 +1071,9 @@ export default function RadialActionMenu({
                 }
                 data-mode-id={mode.id}
               >
-                <span className="radial-render-mode-row-icon" aria-hidden="true">{mode.shortLabel}</span>
+                <span className="radial-render-mode-row-icon" aria-hidden="true">
+                  {mode.shortLabel}
+                </span>
                 <span className="radial-render-mode-row-text">
                   <span className="radial-render-mode-row-name">{mode.label}</span>
                   <span className="radial-render-mode-row-title">

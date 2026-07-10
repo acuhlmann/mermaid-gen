@@ -65,7 +65,8 @@ test('applyPatch rejects contentType mismatch between slot and patch', () => {
   const result = applyPatch(slot, {
     previousRevisionId: 0,
     nextRevisionId: 1,
-    diagramSource: 'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label A',
+    diagramSource:
+      'infographic list-row-simple-horizontal-arrow\n  data\n    lists\n      - label A',
     contentType: 'infographic',
     reason: 'wrong slot'
   });
@@ -154,7 +155,9 @@ test('extractMermaidInitDirective reports no directive without changing body', (
 
 test('parseMermaidStyleConfig rejects invalid JSON and unsupported values', () => {
   const invalidJson = parseMermaidStyleConfig('%%{init: {"theme": } }%%\nflowchart TD\n  A --> B');
-  const invalidTheme = parseMermaidStyleConfig('%%{init: {"theme":"unsupported"}}%%\nflowchart TD\n  A --> B');
+  const invalidTheme = parseMermaidStyleConfig(
+    '%%{init: {"theme":"unsupported"}}%%\nflowchart TD\n  A --> B'
+  );
 
   if (invalidJson.accepted) throw new Error('expected rejected');
   assert.match(invalidJson.error, /Invalid Mermaid init JSON/);
@@ -192,10 +195,7 @@ test('intent payloads reject peerContext when contentType matches intent slot', 
     peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' }
   };
   assert.equal(DiagramIntentSchema.safeParse(base).success, false);
-  assert.equal(
-    AgentStreamPayloadSchema.safeParse({ operation: 'intent', ...base }).success,
-    false
-  );
+  assert.equal(AgentStreamPayloadSchema.safeParse({ operation: 'intent', ...base }).success, false);
 });
 
 test('intent payloads accept valid peerContext for cross-format intent', () => {
@@ -540,7 +540,6 @@ test('sanitizeAgentStreamPayload keeps valid transformPersona', () => {
   const sanitized = sanitizeAgentStreamPayload(payload) as Record<string, unknown>;
   assert.equal(sanitized.transformPersona, 'refine');
 });
-
 
 test('ToolApplyResultSchema accepts a success envelope with state.revisionId', () => {
   const parsed = ToolApplyResultSchema.safeParse({

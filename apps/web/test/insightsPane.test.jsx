@@ -33,7 +33,12 @@ describe('InsightsPane', () => {
             statusText: 'Working on your request...',
             content: '### Recommended edits\n- **Rename** _Prototype Ideas_',
             technicalActions: [
-              { id: 't1', name: 'get_diagram_state', label: 'Read diagram snapshot', status: 'done' }
+              {
+                id: 't1',
+                name: 'get_diagram_state',
+                label: 'Read diagram snapshot',
+                status: 'done'
+              }
             ]
           }
         ]}
@@ -83,7 +88,12 @@ describe('InsightsPane', () => {
             statusText: 'Working on your request...',
             content: '### Recommended edits\n- **Rename** _Prototype Ideas_',
             technicalActions: [
-              { id: 't1', name: 'get_diagram_state', label: 'Read diagram snapshot', status: 'done' }
+              {
+                id: 't1',
+                name: 'get_diagram_state',
+                label: 'Read diagram snapshot',
+                status: 'done'
+              }
             ]
           }
         ]}
@@ -308,7 +318,9 @@ describe('InsightsPane', () => {
 
     expect(screen.getByRole('button', { name: 'Clear canvas highlights' })).toBeTruthy();
     expect(
-      screen.getByText(/No structural changes detected between this version and the diagram before this step/i)
+      screen.getByText(
+        /No structural changes detected between this version and the diagram before this step/i
+      )
     ).toBeTruthy();
   });
 
@@ -503,9 +515,7 @@ flowchart TB
               { id: 'intent', label: 'Applying your request…' },
               { id: 'agent_run', label: 'Planning and executing tools…' }
             ],
-            artifacts: [
-              { kind: 'patch_summary', revisionId: 7, linesAdded: 3, linesRemoved: 1 }
-            ],
+            artifacts: [{ kind: 'patch_summary', revisionId: 7, linesAdded: 3, linesRemoved: 1 }],
             streamDebugLog: [{ type: 'phase', id: 'intent', _ts: 1 }]
           }
         ]}
@@ -828,10 +838,18 @@ flowchart TB
     expect(screen.getByRole('heading', { level: 3, name: /Key entities/i })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 3, name: /Takeaways/i })).toBeTruthy();
     expect(screen.getByRole('heading', { level: 4, name: /Explanation/i })).toBeTruthy();
-    expect(container.querySelector('.insights-prose-section.insights-tone-explain-overview')).toBeTruthy();
-    expect(container.querySelector('.insights-prose-section.insights-tone-explain-flows')).toBeTruthy();
-    expect(container.querySelector('.insights-prose-section.insights-tone-explain-entities')).toBeTruthy();
-    expect(container.querySelector('.insights-prose-section.insights-tone-explain-takeaways')).toBeTruthy();
+    expect(
+      container.querySelector('.insights-prose-section.insights-tone-explain-overview')
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.insights-prose-section.insights-tone-explain-flows')
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.insights-prose-section.insights-tone-explain-entities')
+    ).toBeTruthy();
+    expect(
+      container.querySelector('.insights-prose-section.insights-tone-explain-takeaways')
+    ).toBeTruthy();
   });
 
   it('renders server-built explain_sections artifact panel when present', () => {
@@ -1066,7 +1084,9 @@ flowchart TB
 
     expect(screen.getByText('Innovation')).toBeTruthy();
     expect(container.querySelector('.insights-innovate-opener')).toBeTruthy();
-    expect(container.querySelector('.insights-prose-section.insights-tone-innovate-spark')).toBeTruthy();
+    expect(
+      container.querySelector('.insights-prose-section.insights-tone-innovate-spark')
+    ).toBeTruthy();
   });
 
   it('uses Mad mode label, opener, and cycles goMad section tones', () => {
@@ -1078,7 +1098,8 @@ flowchart TB
             title: 'Go Mad — diagram',
             variant: 'goMad',
             status: 'done',
-            content: 'Wild intro.\n\n## Block one\n\nA.\n\n## Block two\n\nB.\n\n## Block three\n\nC.',
+            content:
+              'Wild intro.\n\n## Block one\n\nA.\n\n## Block two\n\nB.\n\n## Block three\n\nC.',
             technicalActions: []
           }
         ]}

@@ -100,9 +100,7 @@ test('repairMermaidWithFixer renders previousAttempts in the prompt', async () =
   await repairMermaidWithFixer({
     brokenSource: 'flowchart TD\n  A[bad (paren)] --> B',
     parseError: 'still broken',
-    previousAttempts: [
-      { source: 'flowchart TD\n  A[bad (paren)] --> B', error: 'unexpected (' }
-    ],
+    previousAttempts: [{ source: 'flowchart TD\n  A[bad (paren)] --> B', error: 'unexpected (' }],
     modelOverride: fakeModelFromMessages(spy)
   });
   const human = spy.lastMessages[spy.lastMessages.length - 1];

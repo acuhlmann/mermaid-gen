@@ -120,7 +120,11 @@ describe('DiagramCanvas', () => {
 
   it('re-syncs editor and renderer when a new agent source arrives', async () => {
     const { rerender } = render(
-      <DiagramCanvas diagramSource={'flowchart TD\nStart --> Mid'} revisionId={2} onManualEdit={vi.fn()} />
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nStart --> Mid'}
+        revisionId={2}
+        onManualEdit={vi.fn()}
+      />
     );
 
     await act(async () => {
@@ -128,7 +132,12 @@ describe('DiagramCanvas', () => {
     });
 
     rerender(
-      <DiagramCanvas diagramSource={'flowchart TD\nStart --> End'} revisionId={3} onManualEdit={vi.fn()} editorOpen />
+      <DiagramCanvas
+        diagramSource={'flowchart TD\nStart --> End'}
+        revisionId={3}
+        onManualEdit={vi.fn()}
+        editorOpen
+      />
     );
 
     await act(async () => {
@@ -148,12 +157,7 @@ describe('DiagramCanvas', () => {
       '%%{init: {"theme":"dark","look":"neo","themeVariables":{},"flowchart":{"curve":"rounded"}}}%%\nflowchart TD\nA --> B';
 
     render(
-      <DiagramCanvas
-        diagramSource={source}
-        revisionId={1}
-        onManualEdit={vi.fn()}
-        editorOpen
-      />
+      <DiagramCanvas diagramSource={source} revisionId={1} onManualEdit={vi.fn()} editorOpen />
     );
 
     await act(async () => {
@@ -172,11 +176,7 @@ describe('DiagramCanvas', () => {
 
   it('renders mermaid while streamingPreview is active', async () => {
     render(
-      <DiagramCanvas
-        diagramSource={'flowchart TD\nA --> B'}
-        revisionId={1}
-        streamingPreview
-      />
+      <DiagramCanvas diagramSource={'flowchart TD\nA --> B'} revisionId={1} streamingPreview />
     );
 
     await act(async () => {
@@ -188,7 +188,9 @@ describe('DiagramCanvas', () => {
   });
 
   it('zooms the renderer with touch pointer gestures', async () => {
-    const { container } = render(<DiagramCanvas diagramSource={'flowchart TD\nA --> B'} revisionId={1} />);
+    const { container } = render(
+      <DiagramCanvas diagramSource={'flowchart TD\nA --> B'} revisionId={1} />
+    );
 
     await act(async () => {
       vi.advanceTimersByTime(250);
@@ -196,8 +198,18 @@ describe('DiagramCanvas', () => {
 
     const renderer = screen.getByLabelText(/Mermaid renderer/i);
     fireEvent.pointerDown(renderer, { pointerId: 1, pointerType: 'touch', clientX: 0, clientY: 0 });
-    fireEvent.pointerDown(renderer, { pointerId: 2, pointerType: 'touch', clientX: 100, clientY: 0 });
-    fireEvent.pointerMove(renderer, { pointerId: 2, pointerType: 'touch', clientX: 200, clientY: 0 });
+    fireEvent.pointerDown(renderer, {
+      pointerId: 2,
+      pointerType: 'touch',
+      clientX: 100,
+      clientY: 0
+    });
+    fireEvent.pointerMove(renderer, {
+      pointerId: 2,
+      pointerType: 'touch',
+      clientX: 200,
+      clientY: 0
+    });
 
     expect(container.querySelector('.diagram-zoom-layer').style.transform).toContain('scale(2)');
   });
@@ -217,8 +229,18 @@ describe('DiagramCanvas', () => {
     });
 
     const renderer = screen.getByLabelText(/Mermaid renderer/i);
-    fireEvent.pointerDown(renderer, { pointerId: 1, pointerType: 'mouse', clientX: 10, clientY: 10 });
-    fireEvent.pointerMove(renderer, { pointerId: 1, pointerType: 'mouse', clientX: 40, clientY: 40 });
+    fireEvent.pointerDown(renderer, {
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 10,
+      clientY: 10
+    });
+    fireEvent.pointerMove(renderer, {
+      pointerId: 1,
+      pointerType: 'mouse',
+      clientX: 40,
+      clientY: 40
+    });
 
     expect(onPanGestureStart).toHaveBeenCalledTimes(1);
   });

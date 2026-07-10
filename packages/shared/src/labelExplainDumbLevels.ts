@@ -144,10 +144,9 @@ export function fallbackLabelGibberish(label = '') {
     .slice(0, 4)
     .toLowerCase();
   let seed = 0;
-  for (let i = 0; i < tail.length; i += 1) seed = (seed + tail.charCodeAt(i) * (i + 3)) % bits.length;
+  for (let i = 0; i < tail.length; i += 1)
+    seed = (seed + tail.charCodeAt(i) * (i + 3)) % bits.length;
   const mash =
-    tail.length >= 2
-      ? `${tail.slice(0, 2)}-${bits[seed % bits.length]}`
-      : bits[seed % bits.length];
+    tail.length >= 2 ? `${tail.slice(0, 2)}-${bits[seed % bits.length]}` : bits[seed % bits.length];
   return `${bits[seed % bits.length]} ${bits[(seed + 1) % bits.length]} ${mash} ${bits[(seed + 2) % bits.length]}!!!`;
 }

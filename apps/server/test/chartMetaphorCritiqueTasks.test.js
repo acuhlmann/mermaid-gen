@@ -29,7 +29,12 @@ test('chart critique task requires actionable improvements section', () => {
 });
 
 test('chart explain task requires the canonical section headers', () => {
-  for (const heading of ['## Explanation', '## Data story', '## Encodings and marks', '## Takeaways']) {
+  for (const heading of [
+    '## Explanation',
+    '## Data story',
+    '## Encodings and marks',
+    '## Takeaways'
+  ]) {
     assert.ok(CHART_EXPLAIN_TASK.includes(heading), `expected ${heading}`);
   }
 });

@@ -23,7 +23,9 @@ function viewportBounds() {
 
 function rectIntersects(rect, vp) {
   if (!rect || rect.width <= 0 || rect.height <= 0) return false;
-  return rect.right >= vp.left && rect.left <= vp.right && rect.bottom >= vp.top && rect.top <= vp.bottom;
+  return (
+    rect.right >= vp.left && rect.left <= vp.right && rect.bottom >= vp.top && rect.top <= vp.bottom
+  );
 }
 
 /**

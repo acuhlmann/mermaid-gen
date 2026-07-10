@@ -74,11 +74,7 @@ export function cityDistrictLayout(items) {
         return;
       }
       const local = gridPosition(idx, group.length, maxFootprint);
-      positions.set(item.id, [
-        patchCenterX + local[0],
-        local[1],
-        patchCenterZ + local[2]
-      ]);
+      positions.set(item.id, [patchCenterX + local[0], local[1], patchCenterZ + local[2]]);
     });
 
     districts.push({

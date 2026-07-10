@@ -53,7 +53,9 @@ export function buildRenderSelectionPrompt({ descriptor, sourceMode, targetMode 
     descriptor?.label ||
     descriptor?.id ||
     'the selected item';
-  const kind = descriptor?.partKind ? String(descriptor.partKind).replace(/[-_]+/g, ' ') : 'selection';
+  const kind = descriptor?.partKind
+    ? String(descriptor.partKind).replace(/[-_]+/g, ' ')
+    : 'selection';
   return [
     `Render "${label}" as ${contentModeLabel(targetMode)}.`,
     `The user clicked a ${kind} in the current ${contentModeLabel(sourceMode)} canvas.`,

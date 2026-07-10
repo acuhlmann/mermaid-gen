@@ -52,7 +52,9 @@ export default function AdvisorThinkingIndicator({
         disabled={castDisabled}
       />
       <div className="advisor-thinking-main">
-        <span className="advisor-thinking-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>
+        <span className="advisor-thinking-emoji" aria-hidden="true">
+          {meta.avatarEmoji || '🏗️'}
+        </span>
         <span className="advisor-thinking-text">
           <span className="advisor-thinking-persona">{meta.name}</span>
           <span className="advisor-thinking-verb">{verb}</span>

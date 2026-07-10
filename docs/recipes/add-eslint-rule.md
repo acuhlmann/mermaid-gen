@@ -13,9 +13,9 @@ Adding a rule isn't done until the agent reading its violation knows the canonic
 4. **Add an agent-guidance entry**. Two places:
    - `packages/eslint-config/guidance.js` (ESM, source of truth)
    - `packages/eslint-config/formatter.cjs` (the duplicated `GUIDANCE` map — CommonJS formatter; keep in sync)
-   Each entry is 3–4 lines: what the rule prevents, the canonical fix, and the suppression syntax with `(reason: ...)`.
+     Each entry is 3–4 lines: what the rule prevents, the canonical fix, and the suppression syntax with `(reason: ...)`.
 5. **Run `npm run lint`** in the affected workspace; expect the warning to fire on at least one file (otherwise the rule is dead).
-6. **Document the rule** in [`docs/agents/sensors.md`](../agents/sensors.md) only if it adds a new *category* of check; small additions don't need a doc update.
+6. **Document the rule** in [`docs/agents/sensors.md`](../agents/sensors.md) only if it adds a new _category_ of check; small additions don't need a doc update.
 
 ## Rule severity policy
 

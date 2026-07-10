@@ -48,7 +48,9 @@ export function AiCornerControlsInner({
           title={effectiveOpen ? 'Hide settings' : 'Settings · invite agent, mode, brain'}
         >
           <ButtonIcon>
-            <span className="action-persona-icon is-settings" aria-hidden="true">⚙️</span>
+            <span className="action-persona-icon is-settings" aria-hidden="true">
+              ⚙️
+            </span>
           </ButtonIcon>
           <span className="button-label">Settings</span>
         </button>
@@ -59,7 +61,11 @@ export function AiCornerControlsInner({
           aria-label="Session settings"
           hidden={!effectiveOpen}
         >
-          <div className="model-profile-toggle agent-collab-toggle" role="group" aria-label="External agents">
+          <div
+            className="model-profile-toggle agent-collab-toggle"
+            role="group"
+            aria-label="External agents"
+          >
             <div className="agent-collab-segment">
               {pendingHandshake ? (
                 <span className="agent-handshake-waiting" role="status">
@@ -156,7 +162,9 @@ export function AiCornerControlsInner({
           title={insightsOpen ? 'Hide Thinking panel' : 'Show Thinking panel'}
         >
           <ButtonIcon>
-            <span className="action-persona-icon is-thinking" aria-hidden="true">🧠</span>
+            <span className="action-persona-icon is-thinking" aria-hidden="true">
+              🧠
+            </span>
           </ButtonIcon>
           <span className="button-label">Thinking</span>
         </button>

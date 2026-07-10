@@ -50,8 +50,7 @@ describe('InfographicRenderer', () => {
 
 describe('normalizeRootSvgElement', () => {
   it('pins pixel dimensions from viewBox attribute', () => {
-    document.body.innerHTML =
-      '<svg viewBox="-20 -20 320 130" width="100%" height="100%"></svg>';
+    document.body.innerHTML = '<svg viewBox="-20 -20 320 130" width="100%" height="100%"></svg>';
     const svg = document.querySelector('svg');
     expect(normalizeRootSvgElement(svg)).toBe(true);
     expect(svg.getAttribute('width')).toBe('320');

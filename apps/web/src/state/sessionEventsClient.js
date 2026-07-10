@@ -49,7 +49,8 @@ async function jsonFetch(input, init = {}) {
   const ct = res.headers.get('content-type') ?? '';
   const body = ct.includes('application/json') ? await res.json() : await res.text();
   if (!res.ok) {
-    const message = body?.error ?? body?.message ?? (typeof body === 'string' ? body : 'Request failed');
+    const message =
+      body?.error ?? body?.message ?? (typeof body === 'string' ? body : 'Request failed');
     throw new Error(`${res.status} ${message}`);
   }
   return body;

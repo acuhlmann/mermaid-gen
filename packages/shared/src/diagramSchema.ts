@@ -1,7 +1,17 @@
 import { z } from 'zod';
-import { DEFAULT_DIAGRAM_STYLE, DiagramStyleSchema, parseMermaidStyleConfig } from './mermaidStyle.js';
+import {
+  DEFAULT_DIAGRAM_STYLE,
+  DiagramStyleSchema,
+  parseMermaidStyleConfig
+} from './mermaidStyle.js';
 
-export const ContentTypeSchema = z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']);
+export const ContentTypeSchema = z.enum([
+  'mermaid',
+  'infographic',
+  'metaphor3d',
+  'chart',
+  'anything'
+]);
 
 /**
  * Coerce an unknown value to a known ContentType, defaulting to 'mermaid'. Use this in
@@ -27,7 +37,10 @@ export const OriginSchema = z.object({
   kind: z.enum(['user', 'host-agent', 'external-agent']).default('host-agent'),
   agentId: z.string().max(64).optional(),
   agentName: z.string().max(64).optional(),
-  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  color: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
   emoji: z.string().max(8).optional()
 });
 
@@ -349,7 +362,10 @@ export const AgentHandshakeRequestSchema = z.object({
   requestId: z.string().min(1),
   sessionId: z.string().min(1),
   proposedName: z.string().min(1).max(64),
-  proposedColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+  proposedColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .optional(),
   proposedEmoji: z.string().max(8).optional(),
   clientInfo: z.string().max(200).optional(),
   createdAt: z.string(),

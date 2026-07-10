@@ -66,7 +66,10 @@ export async function createRedisPairingCodeStore(redisUrl) {
       );
       return code;
     } catch (err) {
-      console.warn('pairingCodeStoreRedis: getOrCreateCode falling back to memory store:', err?.message ?? err);
+      console.warn(
+        'pairingCodeStoreRedis: getOrCreateCode falling back to memory store:',
+        err?.message ?? err
+      );
       return memoryFallback.getOrCreateCode(sessionId, options);
     }
   }
@@ -91,7 +94,10 @@ export async function createRedisPairingCodeStore(redisUrl) {
       }
       return { ok: true, sessionId: entry.sessionId };
     } catch (err) {
-      console.warn('pairingCodeStoreRedis: resolveDetailed falling back to memory store:', err?.message ?? err);
+      console.warn(
+        'pairingCodeStoreRedis: resolveDetailed falling back to memory store:',
+        err?.message ?? err
+      );
       return memoryFallback.resolveDetailed(code, options);
     }
   }

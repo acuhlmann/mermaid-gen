@@ -57,7 +57,8 @@ function buildMcpServer({
   mcpSessionIdRef,
   getPublicBaseUrl
 }) {
-  const publicBaseUrl = () => (typeof getPublicBaseUrl === 'function' ? getPublicBaseUrl() : resolvePublicBaseUrl(null));
+  const publicBaseUrl = () =>
+    typeof getPublicBaseUrl === 'function' ? getPublicBaseUrl() : resolvePublicBaseUrl(null);
 
   function recordPairingFailure(entry) {
     if (!mcpRateLimiter || !entry?.clientIp) return;
@@ -118,7 +119,10 @@ function buildMcpServer({
   server.registerResource(
     'slot',
     new ResourceTemplate('archislop://session/{sessionId}/{contentType}', { list: undefined }),
-    { description: 'Diagram state for a specific slot (mermaid, infographic, metaphor3d, chart, or anything).' },
+    {
+      description:
+        'Diagram state for a specific slot (mermaid, infographic, metaphor3d, chart, or anything).'
+    },
     async (uri, { sessionId, contentType }) => {
       assertResourceSessionAccess(sessionId);
       if (
@@ -218,7 +222,11 @@ function buildMcpServer({
   function requireBoundSession() {
     const entry = currentEntry();
     if (!entry) {
-      return { error: safeError('No MCP transport session. Reconnect to /mcp and call join_session or use ?pairing= / ?token=.') };
+      return {
+        error: safeError(
+          'No MCP transport session. Reconnect to /mcp and call join_session or use ?pairing= / ?token=.'
+        )
+      };
     }
     if (!entry.appSessionId) {
       return {
@@ -455,11 +463,14 @@ function buildMcpServer({
           proposedEmoji: pending?.proposedEmoji ?? emoji,
           proposedColor: pending?.proposedColor ?? color,
           clientInfo: pending?.clientInfo ?? entry.clientInfo,
-          message: 'Awaiting human approval. Poll get_handshake_status or subscribe to session events.'
+          message:
+            'Awaiting human approval. Poll get_handshake_status or subscribe to session events.'
         });
       }
 
-      const resolution = await services.handshakeStore.waitForResolution(requestId, { timeoutMs: 50000 });
+      const resolution = await services.handshakeStore.waitForResolution(requestId, {
+        timeoutMs: 50000
+      });
       if (resolution.status === 'approved') {
         const finalized = finalizeApprovedAgent(entry, services, resolution.agent);
         return jsonResult({ status: 'approved', ...finalized });
@@ -693,7 +704,9 @@ function buildMcpServer({
       description:
         'Opens the focus-picker MCP App: pick a diagram node to highlight on the shared canvas for humans and other agents.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
+        contentType: z
+          .enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything'])
+          .optional()
       },
       ...UI_META(MCP_APP_URI_FOCUS_PICKER)
     },
@@ -718,7 +731,9 @@ function buildMcpServer({
       description:
         'Returns the current state of a slot (mermaid, infographic, metaphor3d, or chart). Use this before proposing edits so you can pass the right baseRevisionId.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
+        contentType: z
+          .enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything'])
+          .optional()
       }
     },
     async ({ contentType }) => {
@@ -753,7 +768,9 @@ function buildMcpServer({
       description:
         'Opens the canvas-preview MCP App: live Mermaid render (or infographic DSL) for the current session, plus a link to open the full editor in ArchiSlop web.',
       inputSchema: {
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
+        contentType: z
+          .enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything'])
+          .optional()
       },
       ...UI_META(MCP_APP_URI_CANVAS_PREVIEW)
     },
@@ -918,8 +935,7 @@ function buildMcpServer({
     'get_session_snapshot',
     {
       title: 'Session collaboration snapshot',
-      description:
-        'Returns presence list and pending proposals for the session dashboard MCP App.',
+      description: 'Returns presence list and pending proposals for the session dashboard MCP App.',
       inputSchema: {}
     },
     async () => {
@@ -975,9 +991,7 @@ function buildMcpServer({
       const pending = services.handshakeStore
         .listPendingRequests()
         .filter((h) => h.sessionId === entry.appSessionId);
-      const match = requestId
-        ? pending.find((h) => h.requestId === requestId)
-        : pending[0];
+      const match = requestId ? pending.find((h) => h.requestId === requestId) : pending[0];
       if (!match) {
         return jsonResult({ status: 'none', message: 'No pending handshake.' });
       }
@@ -1184,7 +1198,13 @@ function buildMcpServer({
         insight
       });
       services.presenceStore.touch(entry.agentId);
-      const posted = { status: 'posted', insightId: insight.insightId, variant, text, origin: insight.origin };
+      const posted = {
+        status: 'posted',
+        insightId: insight.insightId,
+        variant,
+        text,
+        origin: insight.origin
+      };
       if (variant === 'critique') {
         return jsonResult({
           ...posted,
@@ -1206,7 +1226,9 @@ function buildMcpServer({
         text: z.string().min(1).max(8000),
         variant: z.enum(['note', 'critique', 'suggestion']).default('critique'),
         insightId: z.string().optional(),
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']).optional()
+        contentType: z
+          .enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything'])
+          .optional()
       },
       ...UI_META(MCP_APP_URI_CRITIQUE_MAP)
     },
@@ -1419,7 +1441,11 @@ export function createMcpHandler({
         onsessioninitialized: (newMcpSessionId) => {
           mcpSessionIdRef.current = newMcpSessionId;
           transportsByMcpSessionId.set(newMcpSessionId, transport);
-          mcpRegistry.bind(newMcpSessionId, { appSessionId: queryAppSessionId, clientInfo, clientIp });
+          mcpRegistry.bind(newMcpSessionId, {
+            appSessionId: queryAppSessionId,
+            clientInfo,
+            clientIp
+          });
           if (queryAppSessionId) mcpRateLimiter?.reset(req);
         }
       });

@@ -11,9 +11,7 @@ type ToolCallChunk = {
   args?: string;
 };
 
-export type PatchStreamEmit = (
-  evt: LegacyPlanBeatEvent | LegacyDraftPreviewEvent
-) => void;
+export type PatchStreamEmit = (evt: LegacyPlanBeatEvent | LegacyDraftPreviewEvent) => void;
 
 /** Tracks in-flight patch tool args and emits diagram-focused plan beats plus optional drafts. */
 export function createPatchToolStreamTracker({

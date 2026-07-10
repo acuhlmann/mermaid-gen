@@ -16,7 +16,10 @@ export default function PatchSummaryViz({
   const added = Number(linesAdded) || 0;
   const removed = Number(linesRemoved) || 0;
   return (
-    <li className="insights-patch-summary insights-patch-summary-viz" data-testid="patch-summary-viz">
+    <li
+      className="insights-patch-summary insights-patch-summary-viz"
+      data-testid="patch-summary-viz"
+    >
       <span className="insights-patch-summary-rev">
         Revision <strong>{revisionId}</strong>
       </span>

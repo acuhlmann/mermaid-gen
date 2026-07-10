@@ -149,9 +149,7 @@ describe('useAdvisorOrchestrator', () => {
       })
     });
     const onAccept = vi.fn();
-    const { result } = renderHook(() =>
-      useAdvisorOrchestrator(defaultParams({ onAccept }))
-    );
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams({ onAccept })));
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(GAP_MS + 100);
@@ -406,7 +404,9 @@ describe('useAdvisorOrchestrator', () => {
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.contentType).toBe('chart');
-    expect(body.visibleLabels).toEqual(expect.arrayContaining(['Revenue by quarter', 'Quarter', 'Q1']));
+    expect(body.visibleLabels).toEqual(
+      expect.arrayContaining(['Revenue by quarter', 'Quarter', 'Q1'])
+    );
   });
 
   it('includes Anything labels in proactive advisor requests', async () => {
@@ -503,9 +503,7 @@ describe('useAdvisorOrchestrator', () => {
   it('keeps a pinned suggestion when canvas focus changes', async () => {
     const { result, rerender } = renderHook(
       ({ focusKey, focusSource }) =>
-        useAdvisorOrchestrator(
-          defaultParams({ focusKey, focusSource: focusSource ?? 'selected' })
-        ),
+        useAdvisorOrchestrator(defaultParams({ focusKey, focusSource: focusSource ?? 'selected' })),
       { initialProps: { focusKey: 'selected:A', focusSource: 'selected' } }
     );
 
@@ -561,9 +559,7 @@ describe('useAdvisorOrchestrator', () => {
             focusKey,
             focusSource,
             getFocusDescriptor: () =>
-              focusKey
-                ? { id: 'A', label: 'A', source: focusSource ?? 'selected' }
-                : null
+              focusKey ? { id: 'A', label: 'A', source: focusSource ?? 'selected' } : null
           })
         ),
       { initialProps: { focusKey: null, focusSource: null } }

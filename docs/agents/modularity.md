@@ -2,7 +2,7 @@
 
 The semantic counterpart to the static sensors. Uses Vlad Khononov's [Balanced Coupling Model](https://coupling.dev) to surface coupling imbalances that linting and dependency-cruiser miss: hidden duplication, distributed-monolith risks, hub modules, parameter-handling smells, misplaced responsibilities.
 
-Run a modularity review when you finish a feature, before splitting a monolith file (ADR-0005), or any time `npm run verify:boundaries` is clean but something still *feels* tangled.
+Run a modularity review when you finish a feature, before splitting a monolith file (ADR-0005), or any time `npm run verify:boundaries` is clean but something still _feels_ tangled.
 
 ## Claude Code
 

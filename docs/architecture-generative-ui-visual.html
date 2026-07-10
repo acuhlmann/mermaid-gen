@@ -1,642 +1,1404 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Generative UI in ArchiSlop — a visual tour</title>
-<style>
-  /* ---------- tokens ---------- */
-  :root {
-    --bg: #f7f7f4;
-    --surface: #ffffff;
-    --ink: #20262b;
-    --muted: #5c666d;
-    --line: #dfe1da;
-    --accent: #0c7a6b;          /* protocol teal — every wire is this color */
-    --accent-soft: #0c7a6b22;
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Generative UI in ArchiSlop — a visual tour</title>
+    <style>
+      /* ---------- tokens ---------- */
+      :root {
+        --bg: #f7f7f4;
+        --surface: #ffffff;
+        --ink: #20262b;
+        --muted: #5c666d;
+        --line: #dfe1da;
+        --accent: #0c7a6b; /* protocol teal — every wire is this color */
+        --accent-soft: #0c7a6b22;
 
-    /* slot identities — same slot, same hue, in every figure.
+        /* slot identities — same slot, same hue, in every figure.
        cool → warm mirrors constrained → freeform */
-    --c-fixed:   #5c666d;  /* fixed React components */
-    --c-a2ui:    #0e7f8c;  /* A2UI component trees */
-    --c-chart:   #3d5fc0;  /* Vega-Lite */
-    --c-3d:      #7b5bc4;  /* Metaphor3D */
-    --c-info:    #b4700f;  /* AntV Infographic */
-    --c-mermaid: #c2417b;  /* Mermaid */
-    --c-any:     #c4402c;  /* freeform HTML */
+        --c-fixed: #5c666d; /* fixed React components */
+        --c-a2ui: #0e7f8c; /* A2UI component trees */
+        --c-chart: #3d5fc0; /* Vega-Lite */
+        --c-3d: #7b5bc4; /* Metaphor3D */
+        --c-info: #b4700f; /* AntV Infographic */
+        --c-mermaid: #c2417b; /* Mermaid */
+        --c-any: #c4402c; /* freeform HTML */
 
-    --sans: "Avenir Next", "Seravek", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
-    --mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Consolas, monospace;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #14181a;
-      --surface: #1c2124;
-      --ink: #e6e9e6;
-      --muted: #98a2a6;
-      --line: #2c3336;
-      --accent: #35b39f;
-      --accent-soft: #35b39f26;
-      --c-fixed:   #96a1a8;
-      --c-a2ui:    #4cb2c0;
-      --c-chart:   #7d97e8;
-      --c-3d:      #a98fe6;
-      --c-info:    #dda04a;
-      --c-mermaid: #e076a8;
-      --c-any:     #e07361;
-    }
-  }
-  :root[data-theme="light"] {
-    --bg: #f7f7f4; --surface: #ffffff; --ink: #20262b; --muted: #5c666d;
-    --line: #dfe1da; --accent: #0c7a6b; --accent-soft: #0c7a6b22;
-    --c-fixed: #5c666d; --c-a2ui: #0e7f8c; --c-chart: #3d5fc0; --c-3d: #7b5bc4;
-    --c-info: #b4700f; --c-mermaid: #c2417b; --c-any: #c4402c;
-  }
-  :root[data-theme="dark"] {
-    --bg: #14181a; --surface: #1c2124; --ink: #e6e9e6; --muted: #98a2a6;
-    --line: #2c3336; --accent: #35b39f; --accent-soft: #35b39f26;
-    --c-fixed: #96a1a8; --c-a2ui: #4cb2c0; --c-chart: #7d97e8; --c-3d: #a98fe6;
-    --c-info: #dda04a; --c-mermaid: #e076a8; --c-any: #e07361;
-  }
+        --sans:
+          'Avenir Next', 'Seravek', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
+        --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Consolas, monospace;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14181a;
+          --surface: #1c2124;
+          --ink: #e6e9e6;
+          --muted: #98a2a6;
+          --line: #2c3336;
+          --accent: #35b39f;
+          --accent-soft: #35b39f26;
+          --c-fixed: #96a1a8;
+          --c-a2ui: #4cb2c0;
+          --c-chart: #7d97e8;
+          --c-3d: #a98fe6;
+          --c-info: #dda04a;
+          --c-mermaid: #e076a8;
+          --c-any: #e07361;
+        }
+      }
+      :root[data-theme='light'] {
+        --bg: #f7f7f4;
+        --surface: #ffffff;
+        --ink: #20262b;
+        --muted: #5c666d;
+        --line: #dfe1da;
+        --accent: #0c7a6b;
+        --accent-soft: #0c7a6b22;
+        --c-fixed: #5c666d;
+        --c-a2ui: #0e7f8c;
+        --c-chart: #3d5fc0;
+        --c-3d: #7b5bc4;
+        --c-info: #b4700f;
+        --c-mermaid: #c2417b;
+        --c-any: #c4402c;
+      }
+      :root[data-theme='dark'] {
+        --bg: #14181a;
+        --surface: #1c2124;
+        --ink: #e6e9e6;
+        --muted: #98a2a6;
+        --line: #2c3336;
+        --accent: #35b39f;
+        --accent-soft: #35b39f26;
+        --c-fixed: #96a1a8;
+        --c-a2ui: #4cb2c0;
+        --c-chart: #7d97e8;
+        --c-3d: #a98fe6;
+        --c-info: #dda04a;
+        --c-mermaid: #e076a8;
+        --c-any: #e07361;
+      }
 
-  /* ---------- base ---------- */
-  * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    margin: 0;
-    background: var(--bg);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 16.5px;
-    line-height: 1.65;
-  }
-  main { max-width: 1080px; margin: 0 auto; padding: 0 24px 96px; }
-  .prose { max-width: 72ch; }
-  h1, h2, h3 { line-height: 1.15; text-wrap: balance; font-weight: 650; letter-spacing: -0.01em; }
-  h1 { font-size: clamp(1.9rem, 4.5vw, 2.7rem); margin: 0.4rem 0 0.8rem; }
-  h2 { font-size: 1.45rem; margin: 0 0 0.6rem; }
-  h3 { font-size: 1.05rem; margin: 1.6rem 0 0.4rem; }
-  p { margin: 0.55rem 0; }
-  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 3px; }
-  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
-  code, .mono {
-    font-family: var(--mono);
-    font-size: 0.86em;
-  }
-  code {
-    background: var(--accent-soft);
-    padding: 0.08em 0.35em;
-    border-radius: 3px;
-  }
-  .eyebrow {
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin: 0 0 0.2rem;
-  }
-  .muted { color: var(--muted); }
-  .small { font-size: 0.85rem; }
+      /* ---------- base ---------- */
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--sans);
+        font-size: 16.5px;
+        line-height: 1.65;
+      }
+      main {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 0 24px 96px;
+      }
+      .prose {
+        max-width: 72ch;
+      }
+      h1,
+      h2,
+      h3 {
+        line-height: 1.15;
+        text-wrap: balance;
+        font-weight: 650;
+        letter-spacing: -0.01em;
+      }
+      h1 {
+        font-size: clamp(1.9rem, 4.5vw, 2.7rem);
+        margin: 0.4rem 0 0.8rem;
+      }
+      h2 {
+        font-size: 1.45rem;
+        margin: 0 0 0.6rem;
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin: 1.6rem 0 0.4rem;
+      }
+      p {
+        margin: 0.55rem 0;
+      }
+      a {
+        color: var(--accent);
+        text-decoration-thickness: 1px;
+        text-underline-offset: 3px;
+      }
+      a:focus-visible,
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+      code,
+      .mono {
+        font-family: var(--mono);
+        font-size: 0.86em;
+      }
+      code {
+        background: var(--accent-soft);
+        padding: 0.08em 0.35em;
+        border-radius: 3px;
+      }
+      .eyebrow {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 0.2rem;
+      }
+      .muted {
+        color: var(--muted);
+      }
+      .small {
+        font-size: 0.85rem;
+      }
 
-  header.page { padding: 56px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 40px; }
-  header.page .dek { font-size: 1.12rem; color: var(--muted); max-width: 62ch; }
+      header.page {
+        padding: 56px 0 8px;
+        border-bottom: 1px solid var(--line);
+        margin-bottom: 40px;
+      }
+      header.page .dek {
+        font-size: 1.12rem;
+        color: var(--muted);
+        max-width: 62ch;
+      }
 
-  section { margin: 56px 0; }
-  section > .axis-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-  .axis-num {
-    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 10px;
-    white-space: nowrap;
-  }
+      section {
+        margin: 56px 0;
+      }
+      section > .axis-head {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .axis-num {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        border-radius: 999px;
+        padding: 2px 10px;
+        white-space: nowrap;
+      }
 
-  /* ---------- figure panels ---------- */
-  .figure {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 4px;
-    padding: 22px;
-    margin: 20px 0;
-  }
-  .figure .caption {
-    font-size: 0.82rem; color: var(--muted); margin-top: 16px; padding-top: 12px;
-    border-top: 1px dashed var(--line);
-  }
-  .scroll-x { overflow-x: auto; }
+      /* ---------- figure panels ---------- */
+      .figure {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 22px;
+        margin: 20px 0;
+      }
+      .figure .caption {
+        font-size: 0.82rem;
+        color: var(--muted);
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--line);
+      }
+      .scroll-x {
+        overflow-x: auto;
+      }
 
-  /* ---------- map (three questions) ---------- */
-  .map-row {
-    display: grid; grid-template-columns: 190px 1fr; gap: 16px;
-    padding: 14px 0; align-items: start;
-  }
-  .map-row + .map-row { border-top: 1px solid var(--line); }
-  .map-q .q-axis { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
-  .map-q .q-text { font-weight: 650; font-size: 0.95rem; line-height: 1.35; }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    font-family: var(--mono); font-size: 0.74rem; line-height: 1.4;
-    border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px;
-    background: var(--bg); white-space: nowrap;
-  }
-  .chip b { font-weight: 650; }
-  .chip.wire { border-color: var(--accent); color: var(--accent); background: transparent; }
-  .chip.dim { color: var(--muted); border-style: dashed; }
-  @media (max-width: 640px) { .map-row { grid-template-columns: 1fr; gap: 6px; } }
+      /* ---------- map (three questions) ---------- */
+      .map-row {
+        display: grid;
+        grid-template-columns: 190px 1fr;
+        gap: 16px;
+        padding: 14px 0;
+        align-items: start;
+      }
+      .map-row + .map-row {
+        border-top: 1px solid var(--line);
+      }
+      .map-q .q-axis {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      .map-q .q-text {
+        font-weight: 650;
+        font-size: 0.95rem;
+        line-height: 1.35;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .chip {
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        line-height: 1.4;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 4px 11px;
+        background: var(--bg);
+        white-space: nowrap;
+      }
+      .chip b {
+        font-weight: 650;
+      }
+      .chip.wire {
+        border-color: var(--accent);
+        color: var(--accent);
+        background: transparent;
+      }
+      .chip.dim {
+        color: var(--muted);
+        border-style: dashed;
+      }
+      @media (max-width: 640px) {
+        .map-row {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+      }
 
-  /* ---------- transport wire ---------- */
-  .wire-fig { display: flex; align-items: center; gap: 0; min-width: 620px; }
-  .node {
-    border: 1px solid var(--line); background: var(--bg); border-radius: 4px;
-    padding: 12px 16px; text-align: center; flex: 0 0 auto; max-width: 220px;
-  }
-  .node .t { font-weight: 650; font-size: 0.92rem; }
-  .node .s { font-family: var(--mono); font-size: 0.7rem; color: var(--muted); }
-  .wire-track { flex: 1 1 auto; position: relative; height: 34px; }
-  .wire-track .rail {
-    position: absolute; left: 0; right: 0; top: 50%; height: 2px;
-    background: var(--accent); opacity: 0.55;
-  }
-  .wire-track .rail::after {
-    content: ""; position: absolute; right: -1px; top: 50%; transform: translateY(-50%);
-    border-left: 8px solid var(--accent); border-top: 5px solid transparent; border-bottom: 5px solid transparent;
-  }
-  .wire-track .pulse {
-    position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%;
-    background: var(--accent); transform: translate(-50%, -50%);
-    animation: pulse-flow 5s linear infinite;
-  }
-  .wire-track .label {
-    position: absolute; left: 50%; transform: translateX(-50%); top: -14px;
-    font-family: var(--mono); font-size: 0.72rem; color: var(--accent); white-space: nowrap;
-  }
-  @keyframes pulse-flow { from { left: 2%; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } to { left: 98%; opacity: 0; } }
-  @media (prefers-reduced-motion: reduce) { .wire-track .pulse { animation: none; left: 60%; } }
+      /* ---------- transport wire ---------- */
+      .wire-fig {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        min-width: 620px;
+      }
+      .node {
+        border: 1px solid var(--line);
+        background: var(--bg);
+        border-radius: 4px;
+        padding: 12px 16px;
+        text-align: center;
+        flex: 0 0 auto;
+        max-width: 220px;
+      }
+      .node .t {
+        font-weight: 650;
+        font-size: 0.92rem;
+      }
+      .node .s {
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        color: var(--muted);
+      }
+      .wire-track {
+        flex: 1 1 auto;
+        position: relative;
+        height: 34px;
+      }
+      .wire-track .rail {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        height: 2px;
+        background: var(--accent);
+        opacity: 0.55;
+      }
+      .wire-track .rail::after {
+        content: '';
+        position: absolute;
+        right: -1px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-left: 8px solid var(--accent);
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+      }
+      .wire-track .pulse {
+        position: absolute;
+        top: 50%;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--accent);
+        transform: translate(-50%, -50%);
+        animation: pulse-flow 5s linear infinite;
+      }
+      .wire-track .label {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%);
+        top: -14px;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--accent);
+        white-space: nowrap;
+      }
+      @keyframes pulse-flow {
+        from {
+          left: 2%;
+          opacity: 0;
+        }
+        12% {
+          opacity: 1;
+        }
+        88% {
+          opacity: 1;
+        }
+        to {
+          left: 98%;
+          opacity: 0;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .wire-track .pulse {
+          animation: none;
+          left: 60%;
+        }
+      }
 
-  .event-seq { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 18px; }
-  .event-seq .arrow { color: var(--muted); font-size: 0.75rem; }
-  .ev {
-    font-family: var(--mono); font-size: 0.72rem; padding: 3px 9px; border-radius: 3px;
-    border: 1px solid var(--line); background: var(--bg);
-  }
-  .ev.hot { border-color: var(--c-a2ui); color: var(--c-a2ui); font-weight: 650; }
+      .event-seq {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-top: 18px;
+      }
+      .event-seq .arrow {
+        color: var(--muted);
+        font-size: 0.75rem;
+      }
+      .ev {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 3px 9px;
+        border-radius: 3px;
+        border: 1px solid var(--line);
+        background: var(--bg);
+      }
+      .ev.hot {
+        border-color: var(--c-a2ui);
+        color: var(--c-a2ui);
+        font-weight: 650;
+      }
 
-  .subwires { margin-top: 22px; border-top: 1px dashed var(--line); padding-top: 16px; display: grid; gap: 10px; }
-  .subwire { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-  .subwire .who { font-weight: 650; font-size: 0.88rem; min-width: 170px; }
-  .subwire .what { font-family: var(--mono); font-size: 0.76rem; color: var(--muted); }
+      .subwires {
+        margin-top: 22px;
+        border-top: 1px dashed var(--line);
+        padding-top: 16px;
+        display: grid;
+        gap: 10px;
+      }
+      .subwire {
+        display: flex;
+        gap: 12px;
+        align-items: baseline;
+        flex-wrap: wrap;
+      }
+      .subwire .who {
+        font-weight: 650;
+        font-size: 0.88rem;
+        min-width: 170px;
+      }
+      .subwire .what {
+        font-family: var(--mono);
+        font-size: 0.76rem;
+        color: var(--muted);
+      }
 
-  /* ---------- spectrum ---------- */
-  .spec-wrap { min-width: 1120px; }
-  .spec-ends { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-  .spec-rail {
-    height: 6px; border-radius: 3px;
-    background: linear-gradient(90deg, var(--c-fixed), var(--c-a2ui), var(--c-chart), var(--c-3d), var(--c-info), var(--c-mermaid), var(--c-any));
-    margin-bottom: 18px;
-  }
-  .spec-cards { display: grid; grid-template-columns: repeat(7, minmax(148px, 1fr)); gap: 10px; }
-  .spec-card {
-    border: 1px solid var(--line); border-top: 3px solid var(--sc, var(--line));
-    border-radius: 4px; background: var(--bg); padding: 10px 12px 12px;
-    display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem; line-height: 1.45;
-  }
-  .spec-card .name { font-weight: 650; font-size: 0.9rem; color: var(--sc); }
-  .spec-card .kind {
-    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--muted);
-  }
-  .spec-card .row { display: flex; flex-direction: column; gap: 1px; }
-  .spec-card .k { font-family: var(--mono); font-size: 0.62rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-  .spec-card .v { font-size: 0.78rem; }
-  .spec-card .v code { font-size: 0.72rem; }
+      /* ---------- spectrum ---------- */
+      .spec-wrap {
+        min-width: 1120px;
+      }
+      .spec-ends {
+        display: flex;
+        justify-content: space-between;
+        font-family: var(--mono);
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+      .spec-rail {
+        height: 6px;
+        border-radius: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--c-fixed),
+          var(--c-a2ui),
+          var(--c-chart),
+          var(--c-3d),
+          var(--c-info),
+          var(--c-mermaid),
+          var(--c-any)
+        );
+        margin-bottom: 18px;
+      }
+      .spec-cards {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(148px, 1fr));
+        gap: 10px;
+      }
+      .spec-card {
+        border: 1px solid var(--line);
+        border-top: 3px solid var(--sc, var(--line));
+        border-radius: 4px;
+        background: var(--bg);
+        padding: 10px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.8rem;
+        line-height: 1.45;
+      }
+      .spec-card .name {
+        font-weight: 650;
+        font-size: 0.9rem;
+        color: var(--sc);
+      }
+      .spec-card .kind {
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .spec-card .row {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .spec-card .k {
+        font-family: var(--mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .spec-card .v {
+        font-size: 0.78rem;
+      }
+      .spec-card .v code {
+        font-size: 0.72rem;
+      }
 
-  .spec-arrows { margin-top: 18px; display: grid; gap: 8px; }
-  .spec-arrow { display: grid; grid-template-columns: 1fr; }
-  .spec-arrow .bar { position: relative; height: 22px; display: flex; align-items: center; }
-  .spec-arrow .bar .line { flex: 1; height: 2px; }
-  .spec-arrow.right .line { background: linear-gradient(90deg, transparent, var(--c-any)); }
-  .spec-arrow.right .bar::after {
-    content: ""; border-left: 8px solid var(--c-any); border-top: 5px solid transparent; border-bottom: 5px solid transparent;
-  }
-  .spec-arrow.left .line { background: linear-gradient(90deg, var(--accent), transparent); }
-  .spec-arrow.left .bar::before {
-    content: ""; border-right: 8px solid var(--accent); border-top: 5px solid transparent; border-bottom: 5px solid transparent;
-  }
-  .spec-arrow .lbl { font-family: var(--mono); font-size: 0.72rem; padding: 0 10px; white-space: nowrap; }
-  .spec-arrow.right .lbl { color: var(--c-any); }
-  .spec-arrow.left .lbl { color: var(--accent); }
+      .spec-arrows {
+        margin-top: 18px;
+        display: grid;
+        gap: 8px;
+      }
+      .spec-arrow {
+        display: grid;
+        grid-template-columns: 1fr;
+      }
+      .spec-arrow .bar {
+        position: relative;
+        height: 22px;
+        display: flex;
+        align-items: center;
+      }
+      .spec-arrow .bar .line {
+        flex: 1;
+        height: 2px;
+      }
+      .spec-arrow.right .line {
+        background: linear-gradient(90deg, transparent, var(--c-any));
+      }
+      .spec-arrow.right .bar::after {
+        content: '';
+        border-left: 8px solid var(--c-any);
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+      }
+      .spec-arrow.left .line {
+        background: linear-gradient(90deg, var(--accent), transparent);
+      }
+      .spec-arrow.left .bar::before {
+        content: '';
+        border-right: 8px solid var(--accent);
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+      }
+      .spec-arrow .lbl {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        padding: 0 10px;
+        white-space: nowrap;
+      }
+      .spec-arrow.right .lbl {
+        color: var(--c-any);
+      }
+      .spec-arrow.left .lbl {
+        color: var(--accent);
+      }
 
-  /* validation ladders */
-  .ladders { display: grid; grid-template-columns: repeat(7, minmax(148px, 1fr)); gap: 10px; margin-top: 18px; }
-  .ladder { display: flex; flex-direction: column-reverse; gap: 4px; justify-content: flex-end; }
-  .rung {
-    font-family: var(--mono); font-size: 0.66rem; line-height: 1.3;
-    border: 1px solid var(--line); border-left: 3px solid var(--sc, var(--line));
-    border-radius: 3px; padding: 3px 7px; background: var(--surface);
-  }
-  .rung.sandbox { border-style: dashed; border-left-style: solid; color: var(--c-any); border-left-color: var(--c-any); }
-  .rung.trust { border-style: dashed; border-left-style: solid; color: var(--c-a2ui); border-left-color: var(--c-a2ui); }
-  .ladder-head { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+      /* validation ladders */
+      .ladders {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(148px, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+      .ladder {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 4px;
+        justify-content: flex-end;
+      }
+      .rung {
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        line-height: 1.3;
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--sc, var(--line));
+        border-radius: 3px;
+        padding: 3px 7px;
+        background: var(--surface);
+      }
+      .rung.sandbox {
+        border-style: dashed;
+        border-left-style: solid;
+        color: var(--c-any);
+        border-left-color: var(--c-any);
+      }
+      .rung.trust {
+        border-style: dashed;
+        border-left-style: solid;
+        color: var(--c-a2ui);
+        border-left-color: var(--c-a2ui);
+      }
+      .ladder-head {
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
 
-  .callout {
-    border: 1px solid var(--line); border-left: 3px solid var(--accent);
-    border-radius: 4px; background: var(--surface); padding: 14px 18px; margin: 20px 0;
-    max-width: 72ch; font-size: 0.95rem;
-  }
-  .callout .t { font-weight: 650; }
+      .callout {
+        border: 1px solid var(--line);
+        border-left: 3px solid var(--accent);
+        border-radius: 4px;
+        background: var(--surface);
+        padding: 14px 18px;
+        margin: 20px 0;
+        max-width: 72ch;
+        font-size: 0.95rem;
+      }
+      .callout .t {
+        font-weight: 650;
+      }
 
-  /* ---------- MCP host mock ---------- */
-  .host-mock { border: 1px solid var(--line); border-radius: 6px; overflow: hidden; min-width: 640px; background: var(--bg); }
-  .host-bar { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
-  .host-bar .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
-  .host-bar .title { font-family: var(--mono); font-size: 0.72rem; color: var(--muted); margin-left: 8px; }
-  .host-panes { display: grid; grid-template-columns: 1fr 1fr; }
-  .host-pane { padding: 16px; min-height: 220px; }
-  .host-pane + .host-pane { border-left: 1px solid var(--line); }
-  .pane-label {
-    font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--muted); margin-bottom: 10px;
-  }
-  .chat-line { font-family: var(--mono); font-size: 0.74rem; line-height: 1.6; white-space: pre-wrap; }
-  .chat-line.call { color: var(--accent); }
-  .chat-line.result { color: var(--muted); }
-  .app-frame {
-    border: 1px dashed var(--c-a2ui); border-radius: 4px; padding: 14px; background: var(--surface);
-  }
-  .app-frame .uri { font-family: var(--mono); font-size: 0.66rem; color: var(--c-a2ui); margin-bottom: 10px; }
-  .diff-card { border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; font-family: var(--mono); font-size: 0.72rem; line-height: 1.6; background: var(--bg); }
-  .diff-add { color: var(--accent); }
-  .diff-del { color: var(--c-any); text-decoration: line-through; text-decoration-thickness: 1px; }
-  .app-actions { display: flex; gap: 8px; margin-top: 12px; }
-  .btn {
-    font: 650 0.78rem var(--sans); border-radius: 4px; padding: 6px 14px; cursor: default;
-    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-  }
-  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--bg); }
-  @media (max-width: 720px) { .host-panes { grid-template-columns: 1fr; } .host-pane + .host-pane { border-left: 0; border-top: 1px solid var(--line); } }
+      /* ---------- MCP host mock ---------- */
+      .host-mock {
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        overflow: hidden;
+        min-width: 640px;
+        background: var(--bg);
+      }
+      .host-bar {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+      .host-bar .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--line);
+      }
+      .host-bar .title {
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-left: 8px;
+      }
+      .host-panes {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .host-pane {
+        padding: 16px;
+        min-height: 220px;
+      }
+      .host-pane + .host-pane {
+        border-left: 1px solid var(--line);
+      }
+      .pane-label {
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 10px;
+      }
+      .chat-line {
+        font-family: var(--mono);
+        font-size: 0.74rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+      }
+      .chat-line.call {
+        color: var(--accent);
+      }
+      .chat-line.result {
+        color: var(--muted);
+      }
+      .app-frame {
+        border: 1px dashed var(--c-a2ui);
+        border-radius: 4px;
+        padding: 14px;
+        background: var(--surface);
+      }
+      .app-frame .uri {
+        font-family: var(--mono);
+        font-size: 0.66rem;
+        color: var(--c-a2ui);
+        margin-bottom: 10px;
+      }
+      .diff-card {
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        padding: 10px 12px;
+        font-family: var(--mono);
+        font-size: 0.72rem;
+        line-height: 1.6;
+        background: var(--bg);
+      }
+      .diff-add {
+        color: var(--accent);
+      }
+      .diff-del {
+        color: var(--c-any);
+        text-decoration: line-through;
+        text-decoration-thickness: 1px;
+      }
+      .app-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .btn {
+        font: 650 0.78rem var(--sans);
+        border-radius: 4px;
+        padding: 6px 14px;
+        cursor: default;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+      }
+      .btn.primary {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--bg);
+      }
+      @media (max-width: 720px) {
+        .host-panes {
+          grid-template-columns: 1fr;
+        }
+        .host-pane + .host-pane {
+          border-left: 0;
+          border-top: 1px solid var(--line);
+        }
+      }
 
-  /* ---------- composition sequence ---------- */
-  .seq { list-style: none; margin: 0; padding: 0; counter-reset: step; }
-  .seq li {
-    counter-increment: step; position: relative; padding: 10px 0 10px 52px; max-width: 76ch;
-  }
-  .seq li + li { border-top: 1px dashed var(--line); }
-  .seq li::before {
-    content: counter(step);
-    position: absolute; left: 0; top: 12px;
-    width: 30px; height: 30px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font: 650 0.8rem var(--mono);
-    border: 1px solid var(--accent); color: var(--accent);
-  }
-  .seq .tag {
-    font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase;
-    padding: 1px 7px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap;
-  }
+      /* ---------- composition sequence ---------- */
+      .seq {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: step;
+      }
+      .seq li {
+        counter-increment: step;
+        position: relative;
+        padding: 10px 0 10px 52px;
+        max-width: 76ch;
+      }
+      .seq li + li {
+        border-top: 1px dashed var(--line);
+      }
+      .seq li::before {
+        content: counter(step);
+        position: absolute;
+        left: 0;
+        top: 12px;
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: 650 0.8rem var(--mono);
+        border: 1px solid var(--accent);
+        color: var(--accent);
+      }
+      .seq .tag {
+        font-family: var(--mono);
+        font-size: 0.64rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 1px 7px;
+        border-radius: 999px;
+        border: 1px solid currentColor;
+        white-space: nowrap;
+      }
 
-  /* ---------- doc links ---------- */
-  table.docs { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
-  table.docs th, table.docs td { text-align: left; padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  table.docs th { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+      /* ---------- doc links ---------- */
+      table.docs {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 0.9rem;
+      }
+      table.docs th,
+      table.docs td {
+        text-align: left;
+        padding: 9px 14px 9px 0;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      table.docs th {
+        font-family: var(--mono);
+        font-size: 0.68rem;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 500;
+      }
 
-  footer.page { margin-top: 72px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--muted); }
-</style>
-</head>
-<body>
-<main>
+      footer.page {
+        margin-top: 72px;
+        padding-top: 20px;
+        border-top: 1px solid var(--line);
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="page">
+        <p class="eyebrow">archislop &middot; docs &middot; generative ui</p>
+        <h1>One system, three questions</h1>
+        <p class="dek">
+          ArchiSlop uses several generative-UI technologies at once — AG-UI, A2UI, five content-slot
+          languages, MCP Apps. They are not competitors. Each answers a different question, and
+          conflating the questions is the main way to get confused.
+        </p>
+        <p class="small muted">
+          Companion to
+          <a
+            href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-generative-ui.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            >architecture-generative-ui.md</a
+          >
+          — this page is the intuition; that page is the contract. Linked docs open on GitHub
+          (rendered markdown); this page is self-contained HTML.
+        </p>
+      </header>
 
-<header class="page">
-  <p class="eyebrow">archislop &middot; docs &middot; generative ui</p>
-  <h1>One system, three questions</h1>
-  <p class="dek">ArchiSlop uses several generative-UI technologies at once — AG-UI, A2UI, five content-slot languages, MCP Apps. They are not competitors. Each answers a different question, and conflating the questions is the main way to get confused.</p>
-  <p class="small muted">Companion to <a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-generative-ui.md" target="_blank" rel="noopener noreferrer">architecture-generative-ui.md</a> — this page is the intuition; that page is the contract. Linked docs open on GitHub (rendered markdown); this page is self-contained HTML.</p>
-</header>
-
-<!-- ================= MAP ================= -->
-<section id="map">
-  <div class="figure">
-    <div class="map-row">
-      <div class="map-q">
-        <div class="q-axis">Axis 1 · Transport</div>
-        <div class="q-text">How do agent and UI talk?</div>
-      </div>
-      <div class="chips">
-        <span class="chip wire"><b>AG-UI</b> events over SSE &middot; POST /api/copilotkit/agent-stream</span>
-        <span class="chip wire"><b>MCP</b> Streamable HTTP &middot; /mcp</span>
-        <span class="chip dim">session-events SSE &middot; collaboration sync — <b>not</b> gen-UI</span>
-      </div>
-    </div>
-    <div class="map-row">
-      <div class="map-q">
-        <div class="q-axis">Axis 2 · Payload</div>
-        <div class="q-text">What language describes the thing the model made?</div>
-      </div>
-      <div class="chips">
-        <span class="chip" style="border-color:var(--c-fixed)">structured data → fixed React</span>
-        <span class="chip" style="border-color:var(--c-a2ui);color:var(--c-a2ui)">A2UI component tree</span>
-        <span class="chip" style="border-color:var(--c-chart);color:var(--c-chart)">Vega-Lite</span>
-        <span class="chip" style="border-color:var(--c-3d);color:var(--c-3d)">Metaphor3D JSON</span>
-        <span class="chip" style="border-color:var(--c-info);color:var(--c-info)">AntV Infographic DSL</span>
-        <span class="chip" style="border-color:var(--c-mermaid);color:var(--c-mermaid)">Mermaid text</span>
-        <span class="chip" style="border-color:var(--c-any);color:var(--c-any)">freeform HTML/CSS/JS</span>
-      </div>
-    </div>
-    <div class="map-row">
-      <div class="map-q">
-        <div class="q-axis">Axis 3 · Placement</div>
-        <div class="q-text">Whose screen renders it?</div>
-      </div>
-      <div class="chips">
-        <span class="chip">ArchiSlop web — native React</span>
-        <span class="chip">MCP host iframe — <b>MCP Apps</b> in Cursor / VS Code / Claude Desktop</span>
-        <span class="chip">sandboxed iframe in-canvas — the <b>anything</b> slot</span>
-      </div>
-    </div>
-    <p class="caption">The map. A transport carries payloads; a payload language says what was generated; a placement says where a human sees it. Any payload can, in principle, ride any wire to any surface — the combinations below are the ones ArchiSlop actually ships.</p>
-  </div>
-</section>
-
-<!-- ================= AXIS 1: TRANSPORT ================= -->
-<section id="transport">
-  <div class="axis-head">
-    <span class="axis-num">Axis 1 · Transport</span>
-    <h2>AG-UI is the wire, not the widget</h2>
-  </div>
-  <div class="prose">
-    <p><strong>AG-UI</strong> is an event vocabulary between an agent backend and a frontend — run lifecycle, streamed tokens, tool calls, state deltas — carried here over SSE. It says <em>nothing</em> about what the UI looks like. The frontend decides how to render each event; the protocol just guarantees what arrives and in what order.</p>
-  </div>
-  <div class="figure">
-    <div class="scroll-x">
-      <div class="wire-fig">
-        <div class="node"><div class="t">LangChain agent</div><div class="s">apps/server</div></div>
-        <div class="wire-track">
-          <span class="label">AG-UI over SSE</span>
-          <div class="rail"></div>
-          <div class="pulse"></div>
+      <!-- ================= MAP ================= -->
+      <section id="map">
+        <div class="figure">
+          <div class="map-row">
+            <div class="map-q">
+              <div class="q-axis">Axis 1 · Transport</div>
+              <div class="q-text">How do agent and UI talk?</div>
+            </div>
+            <div class="chips">
+              <span class="chip wire"
+                ><b>AG-UI</b> events over SSE &middot; POST /api/copilotkit/agent-stream</span
+              >
+              <span class="chip wire"><b>MCP</b> Streamable HTTP &middot; /mcp</span>
+              <span class="chip dim"
+                >session-events SSE &middot; collaboration sync — <b>not</b> gen-UI</span
+              >
+            </div>
+          </div>
+          <div class="map-row">
+            <div class="map-q">
+              <div class="q-axis">Axis 2 · Payload</div>
+              <div class="q-text">What language describes the thing the model made?</div>
+            </div>
+            <div class="chips">
+              <span class="chip" style="border-color: var(--c-fixed)"
+                >structured data → fixed React</span
+              >
+              <span class="chip" style="border-color: var(--c-a2ui); color: var(--c-a2ui)"
+                >A2UI component tree</span
+              >
+              <span class="chip" style="border-color: var(--c-chart); color: var(--c-chart)"
+                >Vega-Lite</span
+              >
+              <span class="chip" style="border-color: var(--c-3d); color: var(--c-3d)"
+                >Metaphor3D JSON</span
+              >
+              <span class="chip" style="border-color: var(--c-info); color: var(--c-info)"
+                >AntV Infographic DSL</span
+              >
+              <span class="chip" style="border-color: var(--c-mermaid); color: var(--c-mermaid)"
+                >Mermaid text</span
+              >
+              <span class="chip" style="border-color: var(--c-any); color: var(--c-any)"
+                >freeform HTML/CSS/JS</span
+              >
+            </div>
+          </div>
+          <div class="map-row">
+            <div class="map-q">
+              <div class="q-axis">Axis 3 · Placement</div>
+              <div class="q-text">Whose screen renders it?</div>
+            </div>
+            <div class="chips">
+              <span class="chip">ArchiSlop web — native React</span>
+              <span class="chip"
+                >MCP host iframe — <b>MCP Apps</b> in Cursor / VS Code / Claude Desktop</span
+              >
+              <span class="chip">sandboxed iframe in-canvas — the <b>anything</b> slot</span>
+            </div>
+          </div>
+          <p class="caption">
+            The map. A transport carries payloads; a payload language says what was generated; a
+            placement says where a human sees it. Any payload can, in principle, ride any wire to
+            any surface — the combinations below are the ones ArchiSlop actually ships.
+          </p>
         </div>
-        <div class="node"><div class="t">Web UI</div><div class="s">diagramStore.js</div></div>
-      </div>
-    </div>
-    <div class="event-seq" aria-label="AG-UI event order">
-      <span class="ev">RUN_STARTED</span><span class="arrow">→</span>
-      <span class="ev">STEP_STARTED</span><span class="arrow">→</span>
-      <span class="ev">TEXT_MESSAGE_CONTENT ×n</span><span class="arrow">→</span>
-      <span class="ev">TOOL_CALL_ARGS</span><span class="arrow">→</span>
-      <span class="ev">STATE_DELTA</span><span class="arrow">→</span>
-      <span class="ev hot">CUSTOM name:"a2ui"</span><span class="arrow">→</span>
-      <span class="ev">STATE_SNAPSHOT</span><span class="arrow">→</span>
-      <span class="ev">RUN_FINISHED</span>
-    </div>
-    <div class="subwires">
-      <div class="subwire">
-        <span class="who">External agents</span>
-        <span class="what">MCP Streamable HTTP on /mcp — tools + resources, including the ui:// HTML bundles that become MCP Apps (Axis 3)</span>
-      </div>
-      <div class="subwire">
-        <span class="who">Collaboration sync</span>
-        <span class="what">GET /api/copilotkit/session-events — handshakes, proposals, presence. Often mistaken for gen-UI; it is state sync rendered by ordinary React.</span>
-      </div>
-    </div>
-    <p class="caption">One run on the AG-UI wire. Note the <code>CUSTOM</code> envelope: that is where A2UI payloads ride — A2UI is <em>inside</em> AG-UI here, not a parallel transport.</p>
-  </div>
-</section>
+      </section>
 
-<!-- ================= AXIS 2: PAYLOAD ================= -->
-<section id="payload">
-  <div class="axis-head">
-    <span class="axis-num">Axis 2 · Payload</span>
-    <h2>The abstraction spectrum</h2>
-  </div>
-  <div class="prose">
-    <p>Everything a model emits toward a screen sits somewhere between two poles. At the <strong>constrained</strong> pole the model emits plain data and a trusted renderer owns every pixel. At the <strong>freeform</strong> pole the model writes the program itself. A2UI, Mermaid, Vega-Lite, AntV, and Metaphor3D are all points in the middle band: declarative languages a trusted renderer interprets.</p>
-  </div>
-
-  <div class="figure">
-    <div class="scroll-x">
-      <div class="spec-wrap">
-        <div class="spec-ends"><span>◀ constrained — renderer owns everything</span><span>freeform — model owns everything ▶</span></div>
-        <div class="spec-rail" role="presentation"></div>
-
-        <div class="spec-cards">
-          <div class="spec-card" style="--sc: var(--c-fixed)">
-            <div class="name">Fixed components</div>
-            <div class="kind">structured data</div>
-            <div class="row"><span class="k">model writes</span><span class="v">data only (deltas, artifacts)</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v">hand-built React (Insights pane)</span></div>
-            <div class="row"><span class="k">example</span><span class="v"><code>STATE_DELTA</code>, <code>explain_sections</code></span></div>
-          </div>
-          <div class="spec-card" style="--sc: var(--c-a2ui)">
-            <div class="name">A2UI v0.9</div>
-            <div class="kind">UI DSL — components + actions</div>
-            <div class="row"><span class="k">model writes</span><span class="v">markdown; the <em>server</em> builds the A2UI JSON</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v"><code>@a2ui/react</code> + allowlisted catalog</span></div>
-            <div class="row"><span class="k">example</span><span class="v">Critique checklist, style-edit apply</span></div>
-          </div>
-          <div class="spec-card" style="--sc: var(--c-chart)">
-            <div class="name">Vega-Lite</div>
-            <div class="kind">content DSL — charts</div>
-            <div class="row"><span class="k">model writes</span><span class="v">chart spec JSON (+ data values)</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v"><code>vega-embed</code> (ChartRenderer)</span></div>
-            <div class="row"><span class="k">slot</span><span class="v"><code>chart</code></span></div>
-          </div>
-          <div class="spec-card" style="--sc: var(--c-3d)">
-            <div class="name">Metaphor3D</div>
-            <div class="kind">content DSL — 3D scenes</div>
-            <div class="row"><span class="k">model writes</span><span class="v">Zod-shaped scene JSON</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v">React Three Fiber</span></div>
-            <div class="row"><span class="k">slot</span><span class="v"><code>metaphor3d</code></span></div>
-          </div>
-          <div class="spec-card" style="--sc: var(--c-info)">
-            <div class="name">AntV Infographic</div>
-            <div class="kind">content DSL — narrative layout</div>
-            <div class="row"><span class="k">model writes</span><span class="v">infographic DSL text</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v"><code>@antv/infographic</code></span></div>
-            <div class="row"><span class="k">slot</span><span class="v"><code>infographic</code></span></div>
-          </div>
-          <div class="spec-card" style="--sc: var(--c-mermaid)">
-            <div class="name">Mermaid</div>
-            <div class="kind">content DSL — diagrams</div>
-            <div class="row"><span class="k">model writes</span><span class="v">Mermaid text</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v">Mermaid.js → SVG</span></div>
-            <div class="row"><span class="k">slot</span><span class="v"><code>mermaid</code></span></div>
-          </div>
-          <div class="spec-card" style="--sc: var(--c-any)">
-            <div class="name">Anything</div>
-            <div class="kind">code — full document</div>
-            <div class="row"><span class="k">model writes</span><span class="v">the whole HTML/CSS/JS program</span></div>
-            <div class="row"><span class="k">rendered by</span><span class="v">sandboxed iframe, <code>allow-scripts</code> only</span></div>
-            <div class="row"><span class="k">slot</span><span class="v"><code>anything</code></span></div>
-          </div>
+      <!-- ================= AXIS 1: TRANSPORT ================= -->
+      <section id="transport">
+        <div class="axis-head">
+          <span class="axis-num">Axis 1 · Transport</span>
+          <h2>AG-UI is the wire, not the widget</h2>
         </div>
-
-        <div class="spec-arrows" role="presentation">
-          <div class="spec-arrow right"><div class="bar"><span class="lbl">expressive freedom grows →</span><span class="line"></span></div></div>
-          <div class="spec-arrow left"><div class="bar"><span class="line"></span><span class="lbl">← deterministic validation &amp; repair grow</span></div></div>
+        <div class="prose">
+          <p>
+            <strong>AG-UI</strong> is an event vocabulary between an agent backend and a frontend —
+            run lifecycle, streamed tokens, tool calls, state deltas — carried here over SSE. It
+            says <em>nothing</em> about what the UI looks like. The frontend decides how to render
+            each event; the protocol just guarantees what arrives and in what order.
+          </p>
         </div>
-
-        <div class="ladders" aria-label="Validation depth per payload type">
-          <div>
-            <div class="ladder-head">trust model</div>
-            <div class="ladder" style="--sc: var(--c-fixed)">
-              <div class="rung">Zod schemas on the wire</div>
-              <div class="rung">renderer is app code</div>
-            </div>
-          </div>
-          <div>
-            <div class="ladder-head">trust model</div>
-            <div class="ladder" style="--sc: var(--c-a2ui)">
-              <div class="rung trust">safe by construction — server-built, catalog + actions allowlisted</div>
-            </div>
-          </div>
-          <div>
-            <div class="ladder-head">5 gates</div>
-            <div class="ladder" style="--sc: var(--c-chart)">
-              <div class="rung">JSON.parse</div>
-              <div class="rung">Zod wrapper</div>
-              <div class="rung">vega-lite compile()</div>
-              <div class="rung">1-shot LLM fixer</div>
-              <div class="rung">agent repair turns</div>
-            </div>
-          </div>
-          <div>
-            <div class="ladder-head">schema + rescue</div>
-            <div class="ladder" style="--sc: var(--c-3d)">
-              <div class="rung">Zod scene schema</div>
-              <div class="rung">sanitizer</div>
-              <div class="rung">agent repair turns</div>
-            </div>
-          </div>
-          <div>
-            <div class="ladder-head">3 layers</div>
-            <div class="ladder" style="--sc: var(--c-info)">
-              <div class="rung">lint + parseSyntax</div>
-              <div class="rung">1-shot LLM fixer</div>
-              <div class="rung">agent repair turns</div>
-            </div>
-          </div>
-          <div>
-            <div class="ladder-head">4 layers</div>
-            <div class="ladder" style="--sc: var(--c-mermaid)">
-              <div class="rung">heuristic prefix check</div>
-              <div class="rung">deterministic sanitizer</div>
-              <div class="rung">1-shot LLM fixer</div>
-              <div class="rung">agent repair turns</div>
-            </div>
-          </div>
-          <div>
-            <div class="ladder-head">sandbox + lint</div>
-            <div class="ladder" style="--sc: var(--c-any)">
-              <div class="rung">shape check + size cap</div>
-              <div class="rung">policy lint (no external URLs)</div>
-              <div class="rung">quality lint (HTML/JS/CSS)</div>
-              <div class="rung">1-shot LLM fixer</div>
-              <div class="rung">agent repair turns</div>
-              <div class="rung sandbox">iframe sandbox + CSP = render boundary</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    <p class="caption">The trade-off law of this axis: as expressive freedom grows, what you can deterministically validate shrinks — until validation is replaced by containment. Mermaid earns a four-layer repair ladder; freeform HTML gets a shape check and a locked sandbox (<code>allow-scripts</code> only, never <code>allow-same-origin</code>).</p>
-  </div>
-
-  <div class="callout">
-    <span class="t">A2UI is not "between components and HTML" — it sits at the component end, and it differs in kind.</span>
-    The content DSLs describe <em>things</em> (a diagram, a chart, a scene); the renderer owns all interactivity. A2UI describes <em>interfaces</em>: a component tree plus <em>actions</em> wired back to the agent. In ArchiSlop the actions are pinned to two intent routes (<code>archislop_fixSelected</code>, <code>archislop_fixAll</code>), and the model never authors A2UI JSON directly — it writes critique markdown, and <code>buildCritiqueActionableA2uiMessages</code> builds the UI deterministically on the server. Same spectrum, different column: content language vs. UI language.
-  </div>
-</section>
-
-<!-- ================= AXIS 3: PLACEMENT ================= -->
-<section id="placement">
-  <div class="axis-head">
-    <span class="axis-num">Axis 3 · Placement</span>
-    <h2>MCP Apps: UI inside someone else's client</h2>
-  </div>
-  <div class="prose">
-    <p>MCP Apps (SEP-1865) answer the placement question. An MCP <em>server</em> registers HTML bundles as <code>ui://archislop/*.html</code> resources; when a tool call carries <code>_meta.ui.resourceUri</code>, the MCP <em>host</em> — Claude Desktop, VS Code, Cursor — renders that HTML in a sandboxed iframe next to the conversation. The precision that matters: the UI is for the <strong>human</strong> using the LLM client. The model itself still sees the tool's JSON result; it never "looks at" the pixels.</p>
-  </div>
-  <div class="figure">
-    <div class="scroll-x">
-      <div class="host-mock" role="img" aria-label="Mock of an MCP host window showing the chat pane with a JSON tool result next to an MCP App iframe with approve and reject buttons">
-        <div class="host-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="title">Claude Desktop / Cursor / VS Code — any MCP host</span></div>
-        <div class="host-panes">
-          <div class="host-pane">
-            <div class="pane-label">chat pane — what the model sees</div>
-            <div class="chat-line call">▸ tool: open_proposal_review({ proposalId: "p-42" })</div>
-            <div class="chat-line result">{
-  "proposalId": "p-42",
-  "status": "pending",
-  "summary": "add auth service + edge to gateway",
-  "diff": "+ AUTH[Auth service] …"
-}</div>
-            <div class="chat-line muted small" style="margin-top:10px">← plain JSON. The model reasons over this.</div>
-          </div>
-          <div class="host-pane">
-            <div class="pane-label">app iframe — what the human sees</div>
-            <div class="app-frame">
-              <div class="uri">ui://archislop/proposal-review.html</div>
-              <div class="diff-card">
-                <div>flowchart TD</div>
-                <div class="diff-add">+  AUTH[Auth service]</div>
-                <div class="diff-add">+  GW --&gt; AUTH</div>
-                <div class="diff-del">-  GW --&gt; DB</div>
+        <div class="figure">
+          <div class="scroll-x">
+            <div class="wire-fig">
+              <div class="node">
+                <div class="t">LangChain agent</div>
+                <div class="s">apps/server</div>
               </div>
-              <div class="app-actions">
-                <span class="btn primary">Approve</span>
-                <span class="btn">Request changes</span>
+              <div class="wire-track">
+                <span class="label">AG-UI over SSE</span>
+                <div class="rail"></div>
+                <div class="pulse"></div>
+              </div>
+              <div class="node">
+                <div class="t">Web UI</div>
+                <div class="s">diagramStore.js</div>
               </div>
             </div>
           </div>
+          <div class="event-seq" aria-label="AG-UI event order">
+            <span class="ev">RUN_STARTED</span><span class="arrow">→</span>
+            <span class="ev">STEP_STARTED</span><span class="arrow">→</span>
+            <span class="ev">TEXT_MESSAGE_CONTENT ×n</span><span class="arrow">→</span>
+            <span class="ev">TOOL_CALL_ARGS</span><span class="arrow">→</span>
+            <span class="ev">STATE_DELTA</span><span class="arrow">→</span>
+            <span class="ev hot">CUSTOM name:"a2ui"</span><span class="arrow">→</span>
+            <span class="ev">STATE_SNAPSHOT</span><span class="arrow">→</span>
+            <span class="ev">RUN_FINISHED</span>
+          </div>
+          <div class="subwires">
+            <div class="subwire">
+              <span class="who">External agents</span>
+              <span class="what"
+                >MCP Streamable HTTP on /mcp — tools + resources, including the ui:// HTML bundles
+                that become MCP Apps (Axis 3)</span
+              >
+            </div>
+            <div class="subwire">
+              <span class="who">Collaboration sync</span>
+              <span class="what"
+                >GET /api/copilotkit/session-events — handshakes, proposals, presence. Often
+                mistaken for gen-UI; it is state sync rendered by ordinary React.</span
+              >
+            </div>
+          </div>
+          <p class="caption">
+            One run on the AG-UI wire. Note the <code>CUSTOM</code> envelope: that is where A2UI
+            payloads ride — A2UI is <em>inside</em> AG-UI here, not a parallel transport.
+          </p>
         </div>
-      </div>
-    </div>
-    <p class="caption">Fourteen Apps ship today — pairing, welcome, canvas preview, session dashboard, proposal inbox, critique map, handshake review, proposal review, and more. Registration lives in <code>registerMcpApps.js</code>; the HTML bundles in <code>apps/server/src/mcp/apps/</code>. Host support varies: Claude Desktop renders Apps well; Cursor often shows them read-only, which is why the hybrid "approve in the web app" flow exists.</p>
-  </div>
-</section>
+      </section>
 
-<!-- ================= COMPOSITION ================= -->
-<section id="compose">
-  <div class="axis-head">
-    <span class="axis-num">All three at once</span>
-    <h2>One critique run, every layer</h2>
-  </div>
-  <div class="prose">
-    <p>The layers are complementary because a single feature crosses all of them. Follow one <strong>Critique</strong> click:</p>
-  </div>
-  <div class="figure">
-    <ol class="seq">
-      <li><span class="tag" style="color:var(--accent)">transport</span> &nbsp;The web UI opens an AG-UI run: <code>POST /api/copilotkit/agent-stream</code>, operation <code>analyze</code>. Phases and tokens stream as <code>STEP_*</code> and <code>TEXT_MESSAGE_*</code> events.</li>
-      <li><span class="tag" style="color:var(--c-fixed)">payload · data</span> &nbsp;The LLM writes plain <strong>markdown</strong> — content, not UI — including an <code>## Actionable</code> section.</li>
-      <li><span class="tag" style="color:var(--c-a2ui)">payload · UI DSL</span> &nbsp;The server parses that markdown and deterministically builds <strong>A2UI</strong> messages, emitted as a <code>CUSTOM name:"a2ui"</code> event on the same wire.</li>
-      <li><span class="tag" style="color:var(--c-a2ui)">placement · web</span> &nbsp;<code>CritiqueA2uiSurface.jsx</code> renders the checklist with <code>@a2ui/react</code>. "Fix selected" fires a fixed action name that maps to the validated <strong>intent</strong> route — never an arbitrary model-chosen action.</li>
-      <li><span class="tag" style="color:var(--c-mermaid)">payload · content DSL</span> &nbsp;The fix run edits the <strong>Mermaid</strong> slot through the four-layer validation ladder, and the canvas re-renders from <code>STATE_SNAPSHOT</code>.</li>
-      <li><span class="tag" style="color:var(--c-info)">placement · MCP host</span> &nbsp;Meanwhile a guest agent in Cursor calls <code>open_critique_review</code>; the <strong>critique-map MCP App</strong> shows the same bullets in its iframe, and a human can queue <code>request_critique_fix</code> — which arrives back in the web app over session-events.</li>
-    </ol>
-    <p class="caption">One session state, three surfaces, one trust model: models author <em>content</em>; servers author <em>UI</em>; sandboxes contain <em>code</em>.</p>
-  </div>
-</section>
+      <!-- ================= AXIS 2: PAYLOAD ================= -->
+      <section id="payload">
+        <div class="axis-head">
+          <span class="axis-num">Axis 2 · Payload</span>
+          <h2>The abstraction spectrum</h2>
+        </div>
+        <div class="prose">
+          <p>
+            Everything a model emits toward a screen sits somewhere between two poles. At the
+            <strong>constrained</strong> pole the model emits plain data and a trusted renderer owns
+            every pixel. At the <strong>freeform</strong> pole the model writes the program itself.
+            A2UI, Mermaid, Vega-Lite, AntV, and Metaphor3D are all points in the middle band:
+            declarative languages a trusted renderer interprets.
+          </p>
+        </div>
 
-<!-- ================= LINKS ================= -->
-<section id="links">
-  <h2>Go deeper</h2>
-  <div class="scroll-x">
-    <table class="docs">
-      <thead><tr><th>Doc</th><th>What it covers</th></tr></thead>
-      <tbody>
-        <tr><td><a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-generative-ui.md" target="_blank" rel="noopener noreferrer">architecture-generative-ui.md</a></td><td>The full map: strategy table, App-by-App matrix, host compatibility, roadmap</td></tr>
-        <tr><td><a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-ag-ui.md" target="_blank" rel="noopener noreferrer">architecture-ag-ui.md</a></td><td>AG-UI SSE contract — event types and <code>emit</code> helpers</td></tr>
-        <tr><td><a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-a2ui.md" target="_blank" rel="noopener noreferrer">architecture-a2ui.md</a></td><td>Critique A2UI trust model, style-edits surface, extending Gen UI safely</td></tr>
-        <tr><td><a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-external-agents.md" target="_blank" rel="noopener noreferrer">architecture-external-agents.md</a></td><td>MCP join, handshakes, proposals, session-events</td></tr>
-        <tr><td><a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/guide/content-types.md" target="_blank" rel="noopener noreferrer">guide/content-types.md</a></td><td>The five slots and their renderers, including the anything sandbox contract</td></tr>
-        <tr><td><a href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/guide/validation.md" target="_blank" rel="noopener noreferrer">guide/validation.md</a></td><td>The validation ladders in detail</td></tr>
-      </tbody>
-    </table>
-  </div>
-</section>
+        <div class="figure">
+          <div class="scroll-x">
+            <div class="spec-wrap">
+              <div class="spec-ends">
+                <span>◀ constrained — renderer owns everything</span
+                ><span>freeform — model owns everything ▶</span>
+              </div>
+              <div class="spec-rail" role="presentation"></div>
 
-<footer class="page">
-  <p>ArchiSlop generative-UI visual tour &middot; <span class="mono">docs/architecture-generative-ui-visual.html</span> &middot; self-contained, theme-aware (follows your OS light/dark preference). Live: <a href="https://acuhlmann.github.io/mermaid-gen/architecture-generative-ui-visual.html">acuhlmann.github.io/mermaid-gen</a></p>
-</footer>
+              <div class="spec-cards">
+                <div class="spec-card" style="--sc: var(--c-fixed)">
+                  <div class="name">Fixed components</div>
+                  <div class="kind">structured data</div>
+                  <div class="row">
+                    <span class="k">model writes</span
+                    ><span class="v">data only (deltas, artifacts)</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span
+                    ><span class="v">hand-built React (Insights pane)</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">example</span
+                    ><span class="v"><code>STATE_DELTA</code>, <code>explain_sections</code></span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-a2ui)">
+                  <div class="name">A2UI v0.9</div>
+                  <div class="kind">UI DSL — components + actions</div>
+                  <div class="row">
+                    <span class="k">model writes</span
+                    ><span class="v">markdown; the <em>server</em> builds the A2UI JSON</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span
+                    ><span class="v"><code>@a2ui/react</code> + allowlisted catalog</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">example</span
+                    ><span class="v">Critique checklist, style-edit apply</span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-chart)">
+                  <div class="name">Vega-Lite</div>
+                  <div class="kind">content DSL — charts</div>
+                  <div class="row">
+                    <span class="k">model writes</span
+                    ><span class="v">chart spec JSON (+ data values)</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span
+                    ><span class="v"><code>vega-embed</code> (ChartRenderer)</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">slot</span><span class="v"><code>chart</code></span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-3d)">
+                  <div class="name">Metaphor3D</div>
+                  <div class="kind">content DSL — 3D scenes</div>
+                  <div class="row">
+                    <span class="k">model writes</span><span class="v">Zod-shaped scene JSON</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span><span class="v">React Three Fiber</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">slot</span><span class="v"><code>metaphor3d</code></span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-info)">
+                  <div class="name">AntV Infographic</div>
+                  <div class="kind">content DSL — narrative layout</div>
+                  <div class="row">
+                    <span class="k">model writes</span><span class="v">infographic DSL text</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span
+                    ><span class="v"><code>@antv/infographic</code></span>
+                  </div>
+                  <div class="row">
+                    <span class="k">slot</span><span class="v"><code>infographic</code></span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-mermaid)">
+                  <div class="name">Mermaid</div>
+                  <div class="kind">content DSL — diagrams</div>
+                  <div class="row">
+                    <span class="k">model writes</span><span class="v">Mermaid text</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span><span class="v">Mermaid.js → SVG</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">slot</span><span class="v"><code>mermaid</code></span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-any)">
+                  <div class="name">Anything</div>
+                  <div class="kind">code — full document</div>
+                  <div class="row">
+                    <span class="k">model writes</span
+                    ><span class="v">the whole HTML/CSS/JS program</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">rendered by</span
+                    ><span class="v">sandboxed iframe, <code>allow-scripts</code> only</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">slot</span><span class="v"><code>anything</code></span>
+                  </div>
+                </div>
+              </div>
 
-</main>
-</body>
+              <div class="spec-arrows" role="presentation">
+                <div class="spec-arrow right">
+                  <div class="bar">
+                    <span class="lbl">expressive freedom grows →</span><span class="line"></span>
+                  </div>
+                </div>
+                <div class="spec-arrow left">
+                  <div class="bar">
+                    <span class="line"></span
+                    ><span class="lbl">← deterministic validation &amp; repair grow</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ladders" aria-label="Validation depth per payload type">
+                <div>
+                  <div class="ladder-head">trust model</div>
+                  <div class="ladder" style="--sc: var(--c-fixed)">
+                    <div class="rung">Zod schemas on the wire</div>
+                    <div class="rung">renderer is app code</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ladder-head">trust model</div>
+                  <div class="ladder" style="--sc: var(--c-a2ui)">
+                    <div class="rung trust">
+                      safe by construction — server-built, catalog + actions allowlisted
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ladder-head">5 gates</div>
+                  <div class="ladder" style="--sc: var(--c-chart)">
+                    <div class="rung">JSON.parse</div>
+                    <div class="rung">Zod wrapper</div>
+                    <div class="rung">vega-lite compile()</div>
+                    <div class="rung">1-shot LLM fixer</div>
+                    <div class="rung">agent repair turns</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ladder-head">schema + rescue</div>
+                  <div class="ladder" style="--sc: var(--c-3d)">
+                    <div class="rung">Zod scene schema</div>
+                    <div class="rung">sanitizer</div>
+                    <div class="rung">agent repair turns</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ladder-head">3 layers</div>
+                  <div class="ladder" style="--sc: var(--c-info)">
+                    <div class="rung">lint + parseSyntax</div>
+                    <div class="rung">1-shot LLM fixer</div>
+                    <div class="rung">agent repair turns</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ladder-head">4 layers</div>
+                  <div class="ladder" style="--sc: var(--c-mermaid)">
+                    <div class="rung">heuristic prefix check</div>
+                    <div class="rung">deterministic sanitizer</div>
+                    <div class="rung">1-shot LLM fixer</div>
+                    <div class="rung">agent repair turns</div>
+                  </div>
+                </div>
+                <div>
+                  <div class="ladder-head">sandbox + lint</div>
+                  <div class="ladder" style="--sc: var(--c-any)">
+                    <div class="rung">shape check + size cap</div>
+                    <div class="rung">policy lint (no external URLs)</div>
+                    <div class="rung">quality lint (HTML/JS/CSS)</div>
+                    <div class="rung">1-shot LLM fixer</div>
+                    <div class="rung">agent repair turns</div>
+                    <div class="rung sandbox">iframe sandbox + CSP = render boundary</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="caption">
+            The trade-off law of this axis: as expressive freedom grows, what you can
+            deterministically validate shrinks — until validation is replaced by containment.
+            Mermaid earns a four-layer repair ladder; freeform HTML gets a shape check and a locked
+            sandbox (<code>allow-scripts</code> only, never <code>allow-same-origin</code>).
+          </p>
+        </div>
+
+        <div class="callout">
+          <span class="t"
+            >A2UI is not "between components and HTML" — it sits at the component end, and it
+            differs in kind.</span
+          >
+          The content DSLs describe <em>things</em> (a diagram, a chart, a scene); the renderer owns
+          all interactivity. A2UI describes <em>interfaces</em>: a component tree plus
+          <em>actions</em> wired back to the agent. In ArchiSlop the actions are pinned to two
+          intent routes (<code>archislop_fixSelected</code>, <code>archislop_fixAll</code>), and the
+          model never authors A2UI JSON directly — it writes critique markdown, and
+          <code>buildCritiqueActionableA2uiMessages</code> builds the UI deterministically on the
+          server. Same spectrum, different column: content language vs. UI language.
+        </div>
+      </section>
+
+      <!-- ================= AXIS 3: PLACEMENT ================= -->
+      <section id="placement">
+        <div class="axis-head">
+          <span class="axis-num">Axis 3 · Placement</span>
+          <h2>MCP Apps: UI inside someone else's client</h2>
+        </div>
+        <div class="prose">
+          <p>
+            MCP Apps (SEP-1865) answer the placement question. An MCP <em>server</em> registers HTML
+            bundles as <code>ui://archislop/*.html</code> resources; when a tool call carries
+            <code>_meta.ui.resourceUri</code>, the MCP <em>host</em> — Claude Desktop, VS Code,
+            Cursor — renders that HTML in a sandboxed iframe next to the conversation. The precision
+            that matters: the UI is for the <strong>human</strong> using the LLM client. The model
+            itself still sees the tool's JSON result; it never "looks at" the pixels.
+          </p>
+        </div>
+        <div class="figure">
+          <div class="scroll-x">
+            <div
+              class="host-mock"
+              role="img"
+              aria-label="Mock of an MCP host window showing the chat pane with a JSON tool result next to an MCP App iframe with approve and reject buttons"
+            >
+              <div class="host-bar">
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span
+                ><span class="title">Claude Desktop / Cursor / VS Code — any MCP host</span>
+              </div>
+              <div class="host-panes">
+                <div class="host-pane">
+                  <div class="pane-label">chat pane — what the model sees</div>
+                  <div class="chat-line call">
+                    ▸ tool: open_proposal_review({ proposalId: "p-42" })
+                  </div>
+                  <div class="chat-line result">
+                    { "proposalId": "p-42", "status": "pending", "summary": "add auth service + edge
+                    to gateway", "diff": "+ AUTH[Auth service] …" }
+                  </div>
+                  <div class="chat-line muted small" style="margin-top: 10px">
+                    ← plain JSON. The model reasons over this.
+                  </div>
+                </div>
+                <div class="host-pane">
+                  <div class="pane-label">app iframe — what the human sees</div>
+                  <div class="app-frame">
+                    <div class="uri">ui://archislop/proposal-review.html</div>
+                    <div class="diff-card">
+                      <div>flowchart TD</div>
+                      <div class="diff-add">+ AUTH[Auth service]</div>
+                      <div class="diff-add">+ GW --&gt; AUTH</div>
+                      <div class="diff-del">- GW --&gt; DB</div>
+                    </div>
+                    <div class="app-actions">
+                      <span class="btn primary">Approve</span>
+                      <span class="btn">Request changes</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="caption">
+            Fourteen Apps ship today — pairing, welcome, canvas preview, session dashboard, proposal
+            inbox, critique map, handshake review, proposal review, and more. Registration lives in
+            <code>registerMcpApps.js</code>; the HTML bundles in
+            <code>apps/server/src/mcp/apps/</code>. Host support varies: Claude Desktop renders Apps
+            well; Cursor often shows them read-only, which is why the hybrid "approve in the web
+            app" flow exists.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= COMPOSITION ================= -->
+      <section id="compose">
+        <div class="axis-head">
+          <span class="axis-num">All three at once</span>
+          <h2>One critique run, every layer</h2>
+        </div>
+        <div class="prose">
+          <p>
+            The layers are complementary because a single feature crosses all of them. Follow one
+            <strong>Critique</strong> click:
+          </p>
+        </div>
+        <div class="figure">
+          <ol class="seq">
+            <li>
+              <span class="tag" style="color: var(--accent)">transport</span> &nbsp;The web UI opens
+              an AG-UI run: <code>POST /api/copilotkit/agent-stream</code>, operation
+              <code>analyze</code>. Phases and tokens stream as <code>STEP_*</code> and
+              <code>TEXT_MESSAGE_*</code> events.
+            </li>
+            <li>
+              <span class="tag" style="color: var(--c-fixed)">payload · data</span> &nbsp;The LLM
+              writes plain <strong>markdown</strong> — content, not UI — including an
+              <code>## Actionable</code> section.
+            </li>
+            <li>
+              <span class="tag" style="color: var(--c-a2ui)">payload · UI DSL</span> &nbsp;The
+              server parses that markdown and deterministically builds
+              <strong>A2UI</strong> messages, emitted as a <code>CUSTOM name:"a2ui"</code> event on
+              the same wire.
+            </li>
+            <li>
+              <span class="tag" style="color: var(--c-a2ui)">placement · web</span> &nbsp;<code
+                >CritiqueA2uiSurface.jsx</code
+              >
+              renders the checklist with <code>@a2ui/react</code>. "Fix selected" fires a fixed
+              action name that maps to the validated <strong>intent</strong> route — never an
+              arbitrary model-chosen action.
+            </li>
+            <li>
+              <span class="tag" style="color: var(--c-mermaid)">payload · content DSL</span>
+              &nbsp;The fix run edits the <strong>Mermaid</strong> slot through the four-layer
+              validation ladder, and the canvas re-renders from <code>STATE_SNAPSHOT</code>.
+            </li>
+            <li>
+              <span class="tag" style="color: var(--c-info)">placement · MCP host</span>
+              &nbsp;Meanwhile a guest agent in Cursor calls <code>open_critique_review</code>; the
+              <strong>critique-map MCP App</strong> shows the same bullets in its iframe, and a
+              human can queue <code>request_critique_fix</code> — which arrives back in the web app
+              over session-events.
+            </li>
+          </ol>
+          <p class="caption">
+            One session state, three surfaces, one trust model: models author <em>content</em>;
+            servers author <em>UI</em>; sandboxes contain <em>code</em>.
+          </p>
+        </div>
+      </section>
+
+      <!-- ================= LINKS ================= -->
+      <section id="links">
+        <h2>Go deeper</h2>
+        <div class="scroll-x">
+          <table class="docs">
+            <thead>
+              <tr>
+                <th>Doc</th>
+                <th>What it covers</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <a
+                    href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-generative-ui.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >architecture-generative-ui.md</a
+                  >
+                </td>
+                <td>
+                  The full map: strategy table, App-by-App matrix, host compatibility, roadmap
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-ag-ui.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >architecture-ag-ui.md</a
+                  >
+                </td>
+                <td>AG-UI SSE contract — event types and <code>emit</code> helpers</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-a2ui.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >architecture-a2ui.md</a
+                  >
+                </td>
+                <td>Critique A2UI trust model, style-edits surface, extending Gen UI safely</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/architecture-external-agents.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >architecture-external-agents.md</a
+                  >
+                </td>
+                <td>MCP join, handshakes, proposals, session-events</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/guide/content-types.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >guide/content-types.md</a
+                  >
+                </td>
+                <td>The five slots and their renderers, including the anything sandbox contract</td>
+              </tr>
+              <tr>
+                <td>
+                  <a
+                    href="https://github.com/acuhlmann/mermaid-gen/blob/main/docs/guide/validation.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >guide/validation.md</a
+                  >
+                </td>
+                <td>The validation ladders in detail</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="page">
+        <p>
+          ArchiSlop generative-UI visual tour &middot;
+          <span class="mono">docs/architecture-generative-ui-visual.html</span> &middot;
+          self-contained, theme-aware (follows your OS light/dark preference). Live:
+          <a href="https://acuhlmann.github.io/mermaid-gen/architecture-generative-ui-visual.html"
+            >acuhlmann.github.io/mermaid-gen</a
+          >
+        </p>
+      </footer>
+    </main>
+  </body>
 </html>

@@ -43,9 +43,7 @@ export function signInviteToken({
   return `${encoded}.${sig}`;
 }
 
-export function verifyInviteToken(
-  token: string
-): { sessionId: string; singleUse: boolean } | null {
+export function verifyInviteToken(token: string): { sessionId: string; singleUse: boolean } | null {
   if (typeof token !== 'string' || !token.includes('.')) return null;
   const dot = token.lastIndexOf('.');
   const encoded = token.slice(0, dot);

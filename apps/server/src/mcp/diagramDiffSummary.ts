@@ -1,4 +1,9 @@
-export { buildDiagramDiffSummary, buildMermaidGraphDiff, extractMermaidEdges, extractMermaidNodeIds } from '@archislop/shared';
+export {
+  buildDiagramDiffSummary,
+  buildMermaidGraphDiff,
+  extractMermaidEdges,
+  extractMermaidNodeIds
+} from '@archislop/shared';
 
 export function buildWebCanvasUrl(sessionId: string): string {
   const fromWeb = process.env.ARCHISLOP_WEB_URL?.trim();

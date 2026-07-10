@@ -48,7 +48,9 @@ test('normalizeDiagramHeader leaves bare stateDiagram alone when no v2 syntax', 
 });
 
 test('escapeReservedNodeIds renames `end` node and rewrites edges', () => {
-  const out = __internal.escapeReservedNodeIds('flowchart TD\n  Start --> end[Done]\n  end --> Final');
+  const out = __internal.escapeReservedNodeIds(
+    'flowchart TD\n  Start --> end[Done]\n  end --> Final'
+  );
   assert.match(out, /n_end\[Done\]/);
   assert.match(out, /n_end --> Final/);
   // Original keyword `end` at start of subgraph block must NOT be touched.
@@ -75,7 +77,10 @@ test('quoteLabelsWithSpecials wraps edge pipe labels with specials', () => {
 });
 
 test('quoteLabelsWithSpecials leaves already-quoted labels alone', () => {
-  assert.equal(__internal.quoteLabelsWithSpecials('flowchart TD\n  A["already (quoted)"] --> B'), null);
+  assert.equal(
+    __internal.quoteLabelsWithSpecials('flowchart TD\n  A["already (quoted)"] --> B'),
+    null
+  );
 });
 
 test('quoteLabelsWithSpecials leaves plain alphanumeric labels alone', () => {
@@ -99,7 +104,9 @@ test('quoteLabelsWithSpecials does not mangle subroutine shape `id[[label]]`', (
 });
 
 test('stripInvalidSemicolons removes trailing ; outside flowchart', () => {
-  const out = __internal.stripInvalidSemicolons('sequenceDiagram\n  Alice->>Bob: hi;\n  Bob->>Alice: ok;');
+  const out = __internal.stripInvalidSemicolons(
+    'sequenceDiagram\n  Alice->>Bob: hi;\n  Bob->>Alice: ok;'
+  );
   assert.doesNotMatch(out, /;$/m);
 });
 

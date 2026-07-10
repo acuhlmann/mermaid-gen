@@ -233,7 +233,10 @@ export function NetworkGlyph({ size, theme }) {
             <meshStandardMaterial color={c.body} />
           </mesh>
           <Line
-            points={[[0, 0, 0], [pos[0] * size, pos[1] * size, pos[2] * size]]}
+            points={[
+              [0, 0, 0],
+              [pos[0] * size, pos[1] * size, pos[2] * size]
+            ]}
             color={c.line}
             lineWidth={1.4}
             transparent

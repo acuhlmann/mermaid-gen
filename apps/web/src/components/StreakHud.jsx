@@ -25,7 +25,8 @@ function renderToastContent(toast) {
       </>
     );
   }
-  if (toast.kind === 'streak') return `🔥 ${formatVariantName(toast.variant)} streak ×${toast.streak}`;
+  if (toast.kind === 'streak')
+    return `🔥 ${formatVariantName(toast.variant)} streak ×${toast.streak}`;
   if (toast.kind === 'combo') {
     return toast.label ? toast.label : `⚡ COMBO ×${toast.combo}`;
   }
@@ -86,7 +87,12 @@ export default function StreakHud({ toasts = [], achievement = null, levelUp = n
         </div>
       ) : null}
       {achievement ? (
-        <div className="streak-hud-achievement" role="status" aria-live="polite" data-testid="streak-hud-achievement">
+        <div
+          className="streak-hud-achievement"
+          role="status"
+          aria-live="polite"
+          data-testid="streak-hud-achievement"
+        >
           <div className="streak-hud-achievement-title">{achievement.title}</div>
           {achievement.subtitle ? (
             <div className="streak-hud-achievement-subtitle">{achievement.subtitle}</div>

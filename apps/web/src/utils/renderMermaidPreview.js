@@ -34,7 +34,11 @@ export async function renderMermaidSvg(diagramId, source, mermaidInit) {
       return new Promise(() => {});
     }
     const parseError =
-      firstError instanceof Error ? firstError.message : typeof firstError === 'string' ? firstError : '';
+      firstError instanceof Error
+        ? firstError.message
+        : typeof firstError === 'string'
+          ? firstError
+          : '';
     const { sanitized, applied } = sanitizeMermaid(dsl, { parseError });
     if (!applied.length || sanitized === dsl) {
       throw firstError;

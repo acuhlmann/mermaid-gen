@@ -49,10 +49,18 @@ export function registerGetMcpBinding(server, ctx) {
 
 ```js
 const ctx = {
-  mcpRegistry, sessionRegistry, pairingCodeStore, agentTokenStore,
-  mcpRateLimiter, mcpSessionIdRef,
-  publicBaseUrl, currentEntry, currentServices,
-  assertResourceSessionAccess, recordPairingFailure, finalizeApprovedAgent
+  mcpRegistry,
+  sessionRegistry,
+  pairingCodeStore,
+  agentTokenStore,
+  mcpRateLimiter,
+  mcpSessionIdRef,
+  publicBaseUrl,
+  currentEntry,
+  currentServices,
+  assertResourceSessionAccess,
+  recordPairingFailure,
+  finalizeApprovedAgent
 };
 registerGetMcpBinding(server, ctx);
 // …other registers in deterministic order

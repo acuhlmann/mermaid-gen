@@ -29,7 +29,9 @@ function formatParseError(error, sourceLines) {
     if (typeof raw === 'string') {
       const trimmed = raw.replace(/\s+$/, '');
       const truncated =
-        trimmed.length > MAX_QUOTED_LINE_LEN ? `${trimmed.slice(0, MAX_QUOTED_LINE_LEN)}…` : trimmed;
+        trimmed.length > MAX_QUOTED_LINE_LEN
+          ? `${trimmed.slice(0, MAX_QUOTED_LINE_LEN)}…`
+          : trimmed;
       return `${base}\n  > ${truncated}`;
     }
   }
@@ -50,7 +52,9 @@ function summarizeParseErrors(errors, sourceLines, maxShown = 5) {
  */
 function sanitizeInfographicDsl(raw) {
   const applied = [];
-  let text = String(raw ?? '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
+  let text = String(raw ?? '')
+    .replace(/^﻿/, '')
+    .replace(/\r\n?/g, '\n');
 
   // Strip enclosing code fences (```infographic / ```text / ``` etc.). Trim outer whitespace lines first.
   const trimmed = text.replace(/^\s+|\s+$/g, '');
@@ -84,9 +88,7 @@ function sanitizeInfographicDsl(raw) {
 
   // Normalize smart quotes to ASCII (the strict check would otherwise reject the DSL).
   if (SMART_QUOTE_REGEX.test(text)) {
-    text = text
-      .replace(/[‘’]/g, "'")
-      .replace(/[“”]/g, '"');
+    text = text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
     applied.push('smart-quotes-to-ascii');
   }
 
@@ -200,10 +202,11 @@ export async function validateAndPrepareInfographicPatch({
   if (TEMPLATE_WHITELIST_SET.size > 0 && !TEMPLATE_WHITELIST_SET.has(templateName)) {
     // Suggest the closest few templates by prefix to make repair easier.
     const family = templateName.split('-')[0];
-    const familyMatches = INFOGRAPHIC_TEMPLATE_WHITELIST.filter((t) => t.startsWith(family + '-')).slice(0, 8);
-    const suggestion = familyMatches.length > 0
-      ? ` Did you mean one of: ${familyMatches.join(', ')}?`
-      : '';
+    const familyMatches = INFOGRAPHIC_TEMPLATE_WHITELIST.filter((t) =>
+      t.startsWith(family + '-')
+    ).slice(0, 8);
+    const suggestion =
+      familyMatches.length > 0 ? ` Did you mean one of: ${familyMatches.join(', ')}?` : '';
     return {
       accepted: false,
       error: `Unknown template "${templateName}".${suggestion}`
@@ -266,7 +269,11 @@ export async function validateAndPrepareInfographicPatch({
  */
 export function validateInfographicStrict(source) {
   if (typeof source !== 'string') {
-    return { valid: false, error: 'Infographic DSL must be a string.', validator: 'infographic-type' };
+    return {
+      valid: false,
+      error: 'Infographic DSL must be a string.',
+      validator: 'infographic-type'
+    };
   }
 
   const sanitized = sanitizeInfographicDsl(source);
@@ -311,14 +318,19 @@ export function validateInfographicStrict(source) {
   }
 
   if (/^\s/.test(headerLine)) {
-    return { valid: false, error: 'Template header must not be indented.', validator: 'infographic-lint' };
+    return {
+      valid: false,
+      error: 'Template header must not be indented.',
+      validator: 'infographic-lint'
+    };
   }
 
   const headerCount = lines.filter((l) => /^infographic\s+[a-z0-9-]+\s*$/i.test(l)).length;
   if (headerCount > 1) {
     return {
       valid: false,
-      error: 'Multiple `infographic <template>` headers in one diagram. Emit exactly one DSL block per patch.',
+      error:
+        'Multiple `infographic <template>` headers in one diagram. Emit exactly one DSL block per patch.',
       validator: 'infographic-lint'
     };
   }
@@ -326,10 +338,11 @@ export function validateInfographicStrict(source) {
   const templateName = headerMatch[1];
   if (TEMPLATE_WHITELIST_SET.size > 0 && !TEMPLATE_WHITELIST_SET.has(templateName)) {
     const family = templateName.split('-')[0];
-    const familyMatches = INFOGRAPHIC_TEMPLATE_WHITELIST.filter((t) => t.startsWith(family + '-')).slice(0, 8);
-    const suggestion = familyMatches.length > 0
-      ? ` Did you mean one of: ${familyMatches.join(', ')}?`
-      : '';
+    const familyMatches = INFOGRAPHIC_TEMPLATE_WHITELIST.filter((t) =>
+      t.startsWith(family + '-')
+    ).slice(0, 8);
+    const suggestion =
+      familyMatches.length > 0 ? ` Did you mean one of: ${familyMatches.join(', ')}?` : '';
     return {
       valid: false,
       error: `Unknown template "${templateName}".${suggestion}`,
@@ -347,7 +360,12 @@ export function validateInfographicStrict(source) {
   }
 
   const diagramSource = normalized.endsWith('\n') ? normalized.slice(0, -1) : normalized;
-  return { valid: true, diagramSource, template: templateName, validator: 'infographic-parseSyntax' };
+  return {
+    valid: true,
+    diagramSource,
+    template: templateName,
+    validator: 'infographic-parseSyntax'
+  };
 }
 
 export { inferInfographicTemplate };

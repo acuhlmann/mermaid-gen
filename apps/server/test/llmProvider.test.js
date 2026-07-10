@@ -53,13 +53,22 @@ test('resolveVertexModelId mirrors OpenRouter-style tier env keys', () => {
   assert.equal(resolveVertexModelId(base, 'quality'), 'shared');
   assert.equal(resolveVertexModelId({ ...base, VERTEX_MODEL_FAST: 'f' }, 'fast'), 'f');
   assert.equal(resolveVertexModelId({ ...base, VERTEX_MODEL_QUALITY: 'q' }, 'quality'), 'q');
-  assert.equal(resolveVertexModelId({ GOOGLE_CLOUD_PROJECT: 'p' }, 'fast'), DEFAULT_VERTEX_MODEL_FAST);
-  assert.equal(resolveVertexModelId({ GOOGLE_CLOUD_PROJECT: 'p' }, 'quality'), DEFAULT_VERTEX_MODEL_QUALITY);
+  assert.equal(
+    resolveVertexModelId({ GOOGLE_CLOUD_PROJECT: 'p' }, 'fast'),
+    DEFAULT_VERTEX_MODEL_FAST
+  );
+  assert.equal(
+    resolveVertexModelId({ GOOGLE_CLOUD_PROJECT: 'p' }, 'quality'),
+    DEFAULT_VERTEX_MODEL_QUALITY
+  );
 });
 
 test('resolveLlmBackend openrouter mode requires API key', () => {
   assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'openrouter' }), null);
-  assert.equal(resolveLlmBackend({ LLM_PROVIDER: 'openrouter', OPENROUTER_API_KEY: 'k' }), 'openrouter');
+  assert.equal(
+    resolveLlmBackend({ LLM_PROVIDER: 'openrouter', OPENROUTER_API_KEY: 'k' }),
+    'openrouter'
+  );
 });
 
 test('resolveLlmBackend deepseek mode requires API key', () => {
@@ -96,10 +105,7 @@ test('resolveLlmBackend auto uses DeepSeek locally when key present and not on C
 });
 
 test('resolveLlmBackend auto prefers DeepSeek over OpenRouter locally when both keys are set', () => {
-  assert.equal(
-    resolveLlmBackend({ DEEPSEEK_API_KEY: 'd', OPENROUTER_API_KEY: 'o' }),
-    'deepseek'
-  );
+  assert.equal(resolveLlmBackend({ DEEPSEEK_API_KEY: 'd', OPENROUTER_API_KEY: 'o' }), 'deepseek');
 });
 
 test('resolveLlmBackend auto uses OpenRouter locally when only OpenRouter key is set', () => {
@@ -115,9 +121,18 @@ test('resolveDeepSeekModelId mirrors tier env keys', () => {
   assert.equal(resolveDeepSeekModelId(base, 'fast'), 'shared');
   assert.equal(resolveDeepSeekModelId(base, 'quality'), 'shared');
   assert.equal(resolveDeepSeekModelId({ ...base, DEEPSEEK_MODEL_FAST: 'flash' }, 'fast'), 'flash');
-  assert.equal(resolveDeepSeekModelId({ ...base, DEEPSEEK_MODEL_QUALITY: 'pro' }, 'quality'), 'pro');
-  assert.equal(resolveDeepSeekModelId({ DEEPSEEK_API_KEY: 'k' }, 'fast'), DEFAULT_DEEPSEEK_MODEL_FAST);
-  assert.equal(resolveDeepSeekModelId({ DEEPSEEK_API_KEY: 'k' }, 'quality'), DEFAULT_DEEPSEEK_MODEL_QUALITY);
+  assert.equal(
+    resolveDeepSeekModelId({ ...base, DEEPSEEK_MODEL_QUALITY: 'pro' }, 'quality'),
+    'pro'
+  );
+  assert.equal(
+    resolveDeepSeekModelId({ DEEPSEEK_API_KEY: 'k' }, 'fast'),
+    DEFAULT_DEEPSEEK_MODEL_FAST
+  );
+  assert.equal(
+    resolveDeepSeekModelId({ DEEPSEEK_API_KEY: 'k' }, 'quality'),
+    DEFAULT_DEEPSEEK_MODEL_QUALITY
+  );
 });
 
 test('resolveModelId dispatches by backend', () => {
@@ -135,8 +150,14 @@ test('resolveModelId dispatches by backend', () => {
 });
 
 test('resolveOpenRouterModelId uses defaults when tier env is unset', () => {
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'fast'), DEFAULT_OPENROUTER_MODEL_FAST);
-  assert.equal(resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'quality'), DEFAULT_OPENROUTER_MODEL_QUALITY);
+  assert.equal(
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'fast'),
+    DEFAULT_OPENROUTER_MODEL_FAST
+  );
+  assert.equal(
+    resolveOpenRouterModelId({ OPENROUTER_API_KEY: 'k' }, 'quality'),
+    DEFAULT_OPENROUTER_MODEL_QUALITY
+  );
 });
 
 test('resolveDeepSeekThinkingKwargs disables thinking by default', () => {
@@ -147,10 +168,7 @@ test('resolveDeepSeekThinkingKwargs disables thinking by default', () => {
 });
 
 test('createDeepSeekChatModel passes thinking disabled for tool-agent compatibility', () => {
-  const model = createDeepSeekChatModel(
-    { DEEPSEEK_API_KEY: 'k' },
-    { model: 'deepseek-v4-flash' }
-  );
+  const model = createDeepSeekChatModel({ DEEPSEEK_API_KEY: 'k' }, { model: 'deepseek-v4-flash' });
   assert.deepEqual(model.modelKwargs, { thinking: { type: 'disabled' } });
 });
 

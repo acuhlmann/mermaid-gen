@@ -27,8 +27,7 @@ export function buildInsightRetryDescriptor({
     topic: topic ?? null,
     focusNode: focusNode ?? payload?.focusNode ?? null,
     modeSwitchSync: Boolean(modeSwitchSync),
-    modeSwitchPeerRevisionId:
-      modeSwitchPeerRevisionId != null ? modeSwitchPeerRevisionId : null,
+    modeSwitchPeerRevisionId: modeSwitchPeerRevisionId != null ? modeSwitchPeerRevisionId : null,
     modeSwitchPeerMode: modeSwitchPeerMode ?? null
   };
   if (operation === 'intent') {

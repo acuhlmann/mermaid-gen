@@ -9,9 +9,9 @@
 function isSvgPath(el) {
   return Boolean(
     el &&
-      typeof el === 'object' &&
-      /** @type {Element} */ (el).namespaceURI === 'http://www.w3.org/2000/svg' &&
-      /** @type {Element} */ (el).tagName === 'path'
+    typeof el === 'object' &&
+    /** @type {Element} */ (el).namespaceURI === 'http://www.w3.org/2000/svg' &&
+    /** @type {Element} */ (el).tagName === 'path'
   );
 }
 
@@ -125,8 +125,7 @@ export function resolveSequenceActorInteractionRoot(target) {
   const actorShape = el.closest?.('.actor-top, .actor-bottom, rect.actor, text.actor');
   if (actorShape) {
     const host =
-      actorShape.closest?.('[data-et="participant"]') ??
-      actorShape.closest?.('[data-id]');
+      actorShape.closest?.('[data-et="participant"]') ?? actorShape.closest?.('[data-id]');
     const dataId = host?.getAttribute?.('data-id');
     if (dataId) return { groupEl: host, dataId };
   }

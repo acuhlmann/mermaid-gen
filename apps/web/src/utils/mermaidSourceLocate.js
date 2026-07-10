@@ -62,7 +62,8 @@ export function normalizeDiagramElementId(raw, kind) {
 export function logicalIdFromDiagramSelection(sel) {
   const kind = sel.kind === 'cluster' ? 'cluster' : 'node';
   const data = sel.dataId != null && String(sel.dataId).trim() ? String(sel.dataId).trim() : '';
-  const domId = sel.elementId != null && String(sel.elementId).trim() ? String(sel.elementId).trim() : '';
+  const domId =
+    sel.elementId != null && String(sel.elementId).trim() ? String(sel.elementId).trim() : '';
   const primary = data || domId;
   if (!primary) return null;
   const normalized = normalizeDiagramElementId(primary, kind);

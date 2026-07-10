@@ -45,7 +45,8 @@ test('intent route applies a patch from the agent service', async () => {
     async applyIntent() {
       await stateStore.applyDiagramSource({
         contentType: 'mermaid',
-        diagramSource: 'flowchart TD\n  Start[Start] --> Gateway[API Gateway]\n  Gateway --> EndNode[End]',
+        diagramSource:
+          'flowchart TD\n  Start[Start] --> Gateway[API Gateway]\n  Gateway --> EndNode[End]',
         reason: 'add gateway'
       });
       return { message: 'Added API gateway.' };
@@ -189,7 +190,8 @@ test('transform route applies a patch from the transform agent service', async (
     async applyTransformIntent() {
       await stateStore.applyDiagramSource({
         contentType: 'mermaid',
-        diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
+        diagramSource:
+          'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
         reason: 'transform extension'
       });
       return { message: 'Added an extension.' };

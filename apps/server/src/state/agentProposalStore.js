@@ -9,7 +9,15 @@ export function createAgentProposalStore() {
   const byId = new Map();
   const waitersById = new Map();
 
-  function create({ sessionId, origin, contentType, baseRevisionId, diagramSource, reason, metadata }) {
+  function create({
+    sessionId,
+    origin,
+    contentType,
+    baseRevisionId,
+    diagramSource,
+    reason,
+    metadata
+  }) {
     const proposalId = randomUUID();
     const proposal = {
       proposalId,
@@ -85,7 +93,10 @@ export function createAgentProposalStore() {
       comment: String(comment ?? '').trim(),
       requestedAt: new Date().toISOString()
     };
-    resolveWaiters(proposalId, { status: 'changes_requested', comment: p.changesRequested.comment });
+    resolveWaiters(proposalId, {
+      status: 'changes_requested',
+      comment: p.changesRequested.comment
+    });
     return { ...p };
   }
 

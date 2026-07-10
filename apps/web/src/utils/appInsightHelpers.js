@@ -116,12 +116,17 @@ export function selectionActionTitle(selectionLike, verbLabel) {
     const labelText = selectionLike.label || selectionLike.clickedLabel || selectionLike.id;
     const elementType = selectionLike.elementType || '';
     const noun =
-      elementType === 'title' ? 'title'
-      : elementType === 'desc' ? 'description'
-      : elementType === 'item-desc' ? 'item desc'
-      : elementType === 'item-value' ? 'item value'
-      : elementType === 'item-icon' || elementType === 'item-icon-group' ? 'item icon'
-      : 'item';
+      elementType === 'title'
+        ? 'title'
+        : elementType === 'desc'
+          ? 'description'
+          : elementType === 'item-desc'
+            ? 'item desc'
+            : elementType === 'item-value'
+              ? 'item value'
+              : elementType === 'item-icon' || elementType === 'item-icon-group'
+                ? 'item icon'
+                : 'item';
     return `${verbLabel} — ${noun} “${labelText}”`;
   }
   const metaphorLike =
@@ -136,10 +141,13 @@ export function selectionActionTitle(selectionLike, verbLabel) {
     const labelText = selectionLike.label || selectionLike.clickedLabel || selectionLike.id;
     const elementType = selectionLike.elementType || '';
     const noun =
-      elementType === 'title' ? 'title'
-      : elementType === 'legend' || elementType === 'legend-label' ? 'legend'
-      : elementType.startsWith('axis') ? 'axis'
-      : 'mark';
+      elementType === 'title'
+        ? 'title'
+        : elementType === 'legend' || elementType === 'legend-label'
+          ? 'legend'
+          : elementType.startsWith('axis')
+            ? 'axis'
+            : 'mark';
     return `${verbLabel} — ${noun} “${labelText}”`;
   }
   const clusterLike = selectionLike.kind === 'cluster' || selectionLike.selectionKind === 'cluster';

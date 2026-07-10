@@ -24,7 +24,12 @@ function extractChartRows(source: string | null | undefined): Record<string, unk
 function rowFingerprint(row: Record<string, unknown>) {
   return Object.keys(row)
     .sort()
-    .map((key) => `${key}:${String(row[key] ?? '').trim().toLowerCase()}`)
+    .map(
+      (key) =>
+        `${key}:${String(row[key] ?? '')
+          .trim()
+          .toLowerCase()}`
+    )
     .join('||');
 }
 

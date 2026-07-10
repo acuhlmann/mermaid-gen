@@ -26,7 +26,9 @@ export default function StakeholderCastStrip({
     compact ? 'is-compact' : '',
     onSelectVariant ? 'is-selectable' : '',
     className
-  ].filter(Boolean).join(' ');
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <div
@@ -34,7 +36,9 @@ export default function StakeholderCastStrip({
       aria-label={`${activeMeta.name} is one of ${cast.length} stakeholders`}
     >
       <span className="stakeholder-cast-strip-tag">
-        <span className="stakeholder-cast-strip-icon" aria-hidden="true">👥</span>
+        <span className="stakeholder-cast-strip-icon" aria-hidden="true">
+          👥
+        </span>
         <span className="stakeholder-cast-strip-label">Stakeholders</span>
       </span>
       <span className="stakeholder-cast-strip-avatars" role="group" aria-label="Stakeholder cast">
@@ -46,7 +50,9 @@ export default function StakeholderCastStrip({
             'stakeholder-cast-avatar',
             `is-${variantClass}`,
             isActive ? 'is-active' : ''
-          ].filter(Boolean).join(' ');
+          ]
+            .filter(Boolean)
+            .join(' ');
 
           if (onSelectVariant) {
             return (
@@ -57,9 +63,7 @@ export default function StakeholderCastStrip({
                 disabled={disabled || isActive}
                 aria-current={isActive ? 'true' : undefined}
                 aria-label={
-                  isActive
-                    ? `${meta.name} is speaking`
-                    : `Ask ${meta.name} for commentary`
+                  isActive ? `${meta.name} is speaking` : `Ask ${meta.name} for commentary`
                 }
                 title={isActive ? meta.name : `Ask ${meta.name} for commentary`}
                 onClick={(event) => {

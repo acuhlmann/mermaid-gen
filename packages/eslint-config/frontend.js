@@ -13,7 +13,7 @@ export function frontendConfig({ workspaceDir = '.' } = {}) {
       files: ['**/*.{js,jsx}'],
       plugins: {
         'react-hooks': reactHooks,
-        'react-refresh': reactRefresh,
+        'react-refresh': reactRefresh
       },
       rules: {
         // React 19's strict hooks rules surface patterns predating this
@@ -24,24 +24,24 @@ export function frontendConfig({ workspaceDir = '.' } = {}) {
         'react-hooks/purity': 'warn',
         'react-hooks/refs': 'warn',
         'react-hooks/immutability': 'warn',
-        ...reactRefresh.configs.vite.rules,
-      },
+        ...reactRefresh.configs.vite.rules
+      }
     },
     {
       files: ['src/components/**/*.{tsx,jsx}'],
       plugins: { '@factory': factory },
       rules: {
-        '@factory/filename-match-export': 'warn',
-      },
+        '@factory/filename-match-export': 'warn'
+      }
     },
     {
       files: ['src/**/*.{ts,tsx}'],
       plugins: { '@factory': factory },
       rules: {
         '@factory/no-exported-string-union-types': 'warn',
-        '@factory/no-exported-function-expressions': 'warn',
-      },
-    },
+        '@factory/no-exported-function-expressions': 'warn'
+      }
+    }
   ];
 }
 

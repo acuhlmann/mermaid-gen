@@ -4,7 +4,13 @@ import { ChartDslSchema, parseChartDsl } from '../src/chartSchema.js';
 
 const HELLO_BAR_SPEC = {
   $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-  data: { values: [{ q: 'Q1', rev: 12 }, { q: 'Q2', rev: 18 }, { q: 'Q3', rev: 9 }] },
+  data: {
+    values: [
+      { q: 'Q1', rev: 12 },
+      { q: 'Q2', rev: 18 },
+      { q: 'Q3', rev: 9 }
+    ]
+  },
   mark: 'bar',
   encoding: {
     x: { field: 'q', type: 'ordinal' },
@@ -65,9 +71,7 @@ test('parseChartDsl rejects non-string input', () => {
 });
 
 test('parseChartDsl returns canonical JSON text on success', () => {
-  const result = parseChartDsl(
-    JSON.stringify({ theme: 'whiteboard', spec: HELLO_BAR_SPEC })
-  );
+  const result = parseChartDsl(JSON.stringify({ theme: 'whiteboard', spec: HELLO_BAR_SPEC }));
   assert.equal(result.ok, true);
   if (!result.ok) return;
   assert.equal(typeof result.text, 'string');

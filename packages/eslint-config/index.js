@@ -14,20 +14,20 @@ const THRESHOLDS = {
     'max-lines': ['warn', { max: 800, skipBlankLines: true, skipComments: true }],
     'max-lines-per-function': [
       'warn',
-      { max: 150, skipBlankLines: true, skipComments: true, IIFEs: true },
+      { max: 150, skipBlankLines: true, skipComments: true, IIFEs: true }
     ],
     'max-params': ['warn', 5],
-    complexity: ['warn', 12],
+    complexity: ['warn', 12]
   },
   shared: {
     'max-lines': ['warn', { max: 400, skipBlankLines: true, skipComments: true }],
     'max-lines-per-function': [
       'warn',
-      { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true },
+      { max: 80, skipBlankLines: true, skipComments: true, IIFEs: true }
     ],
     'max-params': ['warn', 4],
-    complexity: ['warn', 10],
-  },
+    complexity: ['warn', 10]
+  }
 };
 
 // Per ADR-0007 warm-up policy: every new rule starts at 'warn'. Promote
@@ -63,7 +63,7 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
         ecmaVersion: 'latest',
         sourceType: 'module',
         globals: { ...envGlobals },
-        parserOptions: { ecmaFeatures: { jsx: true } },
+        parserOptions: { ecmaFeatures: { jsx: true } }
       },
       rules: {
         ...rules,
@@ -72,10 +72,10 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
           {
             argsIgnorePattern: '^_',
             varsIgnorePattern: '^_',
-            caughtErrorsIgnorePattern: '^_',
-          },
-        ],
-      },
+            caughtErrorsIgnorePattern: '^_'
+          }
+        ]
+      }
     },
     {
       // TypeScript files: use @typescript-eslint/parser + the plugin's
@@ -93,7 +93,7 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
         ecmaVersion: 'latest',
         sourceType: 'module',
         globals: { ...envGlobals },
-        parserOptions: { ecmaFeatures: { jsx: true } },
+        parserOptions: { ecmaFeatures: { jsx: true } }
       },
       plugins: { '@typescript-eslint': tsPlugin },
       rules: {
@@ -109,10 +109,10 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
           {
             argsIgnorePattern: '^_',
             varsIgnorePattern: '^_',
-            caughtErrorsIgnorePattern: '^_',
-          },
-        ],
-      },
+            caughtErrorsIgnorePattern: '^_'
+          }
+        ]
+      }
     },
     {
       files: ['**/*.config.{js,mjs,cjs}', '**/vite.config.*', '**/eslint.config.*'],
@@ -120,8 +120,8 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
       rules: {
         'max-lines': 'off',
         'max-lines-per-function': 'off',
-        complexity: 'off',
-      },
+        complexity: 'off'
+      }
     },
     {
       files: ['test/**/*.{js,jsx,ts,tsx}', '**/*.test.{js,jsx,ts,tsx}'],
@@ -130,10 +130,10 @@ export function baseConfig({ env = 'node', tighten = false, workspaceDir = '.' }
         'max-lines': 'off',
         'max-lines-per-function': 'off',
         complexity: 'off',
-        'max-params': 'off',
-      },
+        'max-params': 'off'
+      }
     },
-    ...legacyOverridesForWorkspace(workspaceDir),
+    ...legacyOverridesForWorkspace(workspaceDir)
   ];
 }
 

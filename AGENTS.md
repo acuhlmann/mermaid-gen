@@ -43,6 +43,7 @@ This file is a quick operator manual for coding agents working in this repositor
   - `npm run typecheck -w packages/shared && npm run test -w packages/shared`
 
 Package-specific commands:
+
 - Server dev: `npm run dev -w apps/server`
 - Web dev: `npm run dev -w apps/web`
 
@@ -86,25 +87,25 @@ Production deploy notes (Cloud Run, billing credits, GitHub Actions CI, optional
 
 ## Architecture docs (read before changing wire contracts)
 
-| Doc | Topic |
-| --- | --- |
-| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix |
-| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events |
-| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) | AG-UI SSE for built-in `agent-stream` |
-| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) | A2UI critique `CUSTOM` on AG-UI streams |
-| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md) | **Impact map** — if you change X, also change Y (wire contracts) |
-| [`README.md`](README.md) | Human-facing hub (links to guides below) |
-| [`docs/guide/README.md`](docs/guide/README.md) | Split human guides: setup, agents, MCP, API, config |
-| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) | Agent onboarding: read order, verification table, PR checklist |
-| [`docs/agents/sensors.md`](docs/agents/sensors.md) | Lint, dep-cruiser, verify:deps — how to read sensor output |
+| Doc                                                                            | Topic                                                            |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)     | **AG-UI + A2UI + MCP Apps map**, MCP connectivity, host matrix   |
+| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | MCP join, handshakes, proposals, MCP Apps, session-events        |
+| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     | AG-UI SSE for built-in `agent-stream`                            |
+| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                       | A2UI critique `CUSTOM` on AG-UI streams                          |
+| [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)                     | **Impact map** — if you change X, also change Y (wire contracts) |
+| [`README.md`](README.md)                                                       | Human-facing hub (links to guides below)                         |
+| [`docs/guide/README.md`](docs/guide/README.md)                                 | Split human guides: setup, agents, MCP, API, config              |
+| [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md)                   | Agent onboarding: read order, verification table, PR checklist   |
+| [`docs/agents/sensors.md`](docs/agents/sensors.md)                             | Lint, dep-cruiser, verify:deps — how to read sensor output       |
 
 ## Documentation map
 
-| Audience | Start here |
-| --- | --- |
-| **Humans** (setup, product, API) | [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md) |
+| Audience                                  | Start here                                                                                                                                                      |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Humans** (setup, product, API)          | [`README.md`](README.md) → [`docs/guide/README.md`](docs/guide/README.md)                                                                                       |
 | **Coding agents** (edits, wire contracts) | [`docs/guide/coding-agents.md`](docs/guide/coding-agents.md) → [`GLOSSARY.md`](GLOSSARY.md) → [`STRUCTURE.md`](STRUCTURE.md) → [`docs/recipes/`](docs/recipes/) |
-| **Sensors** (lint / boundaries / deps) | [`docs/agents/sensors.md`](docs/agents/sensors.md) — canonical fix lives in the tool output |
+| **Sensors** (lint / boundaries / deps)    | [`docs/agents/sensors.md`](docs/agents/sensors.md) — canonical fix lives in the tool output                                                                     |
 
 ## CopilotKit skill note
 

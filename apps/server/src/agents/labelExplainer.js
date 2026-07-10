@@ -27,7 +27,7 @@ const SYSTEM_PROMPT = [
   'The user clicked one element on a diagram. Explain what THAT specific label means in this diagram, in ONE plain-text sentence.',
   'RULES:',
   '- Explain the CONTENT (the actual text on the label). Do not explain what a "node" or "edge" or "label" is in general.',
-  '- Subject-aware: the diagram could be about anything — software, recipes, biology, urban planning, project plans, board games, history. Speak in THAT subject\'s vocabulary. Do NOT default to enterprise-software / cloud / DevOps terms unless the diagram is actually about that — read the nearby labels first.',
+  "- Subject-aware: the diagram could be about anything — software, recipes, biology, urban planning, project plans, board games, history. Speak in THAT subject's vocabulary. Do NOT default to enterprise-software / cloud / DevOps terms unless the diagram is actually about that — read the nearby labels first.",
   '- Plain text only. No markdown, no quotes, no bullet lists, no preamble like "This means" or "It refers to".',
   '- Max 30 words. One sentence.',
   '- If the label is a well-known concept in its subject (HTTP / OAuth in software; Maillard / mise en place in cooking; PERT / critical path in planning; etc.), give the standard one-line definition tied to its likely role here.',
@@ -159,7 +159,9 @@ export function buildLabelExplainerUserPrompt({
       `Reply with ONE short plain-language sentence (max ${maxWords} words) explaining what "${target}" means in this diagram, pitched to ${audience}.`
     );
   } else {
-    lines.push(`Reply with ONE short plain-text sentence (max 30 words) explaining what "${target}" means in this diagram.`);
+    lines.push(
+      `Reply with ONE short plain-text sentence (max 30 words) explaining what "${target}" means in this diagram.`
+    );
   }
   return lines.join('\n');
 }
@@ -173,9 +175,14 @@ export function sanitizeLabelExplanation(raw) {
   if (typeof raw !== 'string') return '';
   let text = raw.replace(/\r/g, '').trim();
   if (!text) return '';
-  text = text.replace(/^```[\w-]*\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
+  text = text
+    .replace(/^```[\w-]*\s*\n?/m, '')
+    .replace(/\n?```\s*$/m, '')
+    .trim();
   text = text.replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '').trim();
-  text = text.replace(/^(this\s+(?:means|is|refers\s+to)|it\s+(?:means|is|refers\s+to))[:,\s]+/i, '').trim();
+  text = text
+    .replace(/^(this\s+(?:means|is|refers\s+to)|it\s+(?:means|is|refers\s+to))[:,\s]+/i, '')
+    .trim();
   const firstLine = text.split(/\n+/, 1)[0] ?? '';
   text = firstLine.trim();
   const sentenceMatch = text.match(/^(.+?[.!?])(\s|$)/);
@@ -191,7 +198,10 @@ export function sanitizeLabelGibberish(raw) {
   if (typeof raw !== 'string') return '';
   let text = raw.replace(/\r/g, '').trim();
   if (!text) return '';
-  text = text.replace(/^```[\w-]*\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
+  text = text
+    .replace(/^```[\w-]*\s*\n?/m, '')
+    .replace(/\n?```\s*$/m, '')
+    .trim();
   text = text.replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '').trim();
   text = text.replace(/^(this\s+(?:means|is)|it\s+means)[:,\s]+/i, '').trim();
   text = (text.split(/\n+/, 1)[0] ?? '').trim();
@@ -212,15 +222,9 @@ export async function explainLabelOnce({ env = process.env, payload }) {
   const model = createLabelExplainerChatModel(env);
   if (!model) return '';
   const style =
-    payload?.style === 'gibberish'
-      ? 'gibberish'
-      : payload?.style === 'simple'
-        ? 'simple'
-        : 'brief';
+    payload?.style === 'gibberish' ? 'gibberish' : payload?.style === 'simple' ? 'simple' : 'brief';
   const simpleLevel =
-    style === 'simple'
-      ? Math.min(6, Math.max(1, Number(payload?.simpleLevel) || 1))
-      : 1;
+    style === 'simple' ? Math.min(6, Math.max(1, Number(payload?.simpleLevel) || 1)) : 1;
   const system = buildLabelExplainerSystemPrompt(style, simpleLevel);
   const user = buildLabelExplainerUserPrompt({ ...payload, style, simpleLevel });
   const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);

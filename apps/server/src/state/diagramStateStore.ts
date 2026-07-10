@@ -23,7 +23,6 @@ function assertContentType(contentType: string): asserts contentType is ContentT
   }
 }
 
-
 export type DiagramStateStore = ReturnType<typeof createDiagramStateStore>;
 
 export function createDiagramStateStore(
@@ -65,7 +64,9 @@ export function createDiagramStateStore(
       return { accepted: true, state: slot };
     }
 
-    const parsedStyle = styleConfig ? { accepted: true, styleConfig } : parseMermaidStyleConfig(candidate);
+    const parsedStyle = styleConfig
+      ? { accepted: true, styleConfig }
+      : parseMermaidStyleConfig(candidate);
     if (!parsedStyle.accepted) {
       return parsedStyle;
     }
@@ -167,7 +168,11 @@ export function createDiagramStateStore(
     if (!prepared.accepted) {
       return prepared;
     }
-    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+    const ok = prepared as {
+      accepted: true;
+      patch: Parameters<typeof applyPatch>[1];
+      metadata?: unknown;
+    };
 
     const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
     const applied = applyPatch(slot, patchWithOrigin);
@@ -205,7 +210,11 @@ export function createDiagramStateStore(
     if (!prepared.accepted) {
       return prepared;
     }
-    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+    const ok = prepared as {
+      accepted: true;
+      patch: Parameters<typeof applyPatch>[1];
+      metadata?: unknown;
+    };
 
     const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
     const applied = applyPatch(slot, patchWithOrigin);
@@ -281,7 +290,11 @@ export function createDiagramStateStore(
     if (!prepared.accepted) {
       return prepared;
     }
-    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+    const ok = prepared as {
+      accepted: true;
+      patch: Parameters<typeof applyPatch>[1];
+      metadata?: unknown;
+    };
 
     const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
     const applied = applyPatch(slot, patchWithOrigin);
@@ -357,7 +370,11 @@ export function createDiagramStateStore(
     if (!prepared.accepted) {
       return prepared;
     }
-    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+    const ok = prepared as {
+      accepted: true;
+      patch: Parameters<typeof applyPatch>[1];
+      metadata?: unknown;
+    };
 
     const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
     const applied = applyPatch(slot, patchWithOrigin);
@@ -437,7 +454,11 @@ export function createDiagramStateStore(
     if (!prepared.accepted) {
       return prepared;
     }
-    const ok = prepared as { accepted: true; patch: Parameters<typeof applyPatch>[1]; metadata?: unknown };
+    const ok = prepared as {
+      accepted: true;
+      patch: Parameters<typeof applyPatch>[1];
+      metadata?: unknown;
+    };
 
     const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
     const applied = applyPatch(slot, patchWithOrigin);
@@ -583,7 +604,13 @@ export function createDiagramStateStore(
      * Copy `lastUserPrompt` to every sibling slot (metadata only) so mode-switch topic carry-over
      * and peer-context matching work before the user visits another mode.
      */
-    mirrorLastUserPromptToSibling({ contentType, prompt }: { contentType: ContentType; prompt: string }) {
+    mirrorLastUserPromptToSibling({
+      contentType,
+      prompt
+    }: {
+      contentType: ContentType;
+      prompt: string;
+    }) {
       assertContentType(contentType);
       const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
       if (!trimmed) return session[contentType];

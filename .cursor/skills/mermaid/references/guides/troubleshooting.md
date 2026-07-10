@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # Mermaid Syntax Troubleshooting Guide
@@ -134,7 +134,9 @@ mermaid.parseError = (err, hash) => {
 - Words that could be confused with keywords like `cherry-pick` must be quoted
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     start --> end
@@ -194,7 +196,9 @@ sequenceDiagram
 - Hash: `#`, Percent: `%`, At: `@`
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A[Say "hello"]
@@ -263,7 +267,9 @@ sequenceDiagram
 **Problem:** The word "end" is reserved and breaks flowcharts.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     start --> end
@@ -295,7 +301,9 @@ flowchart TD
 **Problem:** Missing dashes or using wrong arrow syntax.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A - B
@@ -335,7 +343,9 @@ flowchart TD
 **Problem:** Missing or mismatched brackets around node labels.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A[Start --> B[Process]]
@@ -368,7 +378,9 @@ flowchart TD
 **Problem:** Diagram type and direction must be on a separate line.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD A --> B
 ```
@@ -391,7 +403,9 @@ flowchart TD
 **Problem:** Colon is required to separate arrow from message.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 sequenceDiagram
     Alice->>Bob Message
@@ -413,7 +427,9 @@ sequenceDiagram
 **Problem:** No space between "participant" keyword and participant name.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 sequenceDiagram
     participantAlice
@@ -435,7 +451,9 @@ sequenceDiagram
 **Problem:** Using `;` inside a `Note` statement. The official Mermaid parser treats `;` as a statement terminator, silently truncating or breaking the Note. The `beautiful-mermaid` local validator does not enforce this.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 sequenceDiagram
     Note over Alice: Step 1; Step 2
@@ -459,7 +477,9 @@ sequenceDiagram
 **Problem:** Forgetting to close blocks with "end" keyword.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 sequenceDiagram
     Alice->>Bob: Request
@@ -496,7 +516,9 @@ sequenceDiagram
 **Problem:** Embedding `\n` or a literal line break inside a transition label. The `beautiful-mermaid` validator is permissive here, but the official Mermaid CLI rejects it.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 stateDiagram-v2
     A --> B : step one\nstep two
@@ -520,7 +542,9 @@ stateDiagram-v2
 **Problem:** Using colon instead of "as" keyword with state descriptions.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 stateDiagram-v2
     state "This is a description": s2
@@ -542,7 +566,9 @@ stateDiagram-v2
 **Problem:** Classes cannot be applied to `[*]` (start/end states).
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 stateDiagram-v2
     classDef myClass fill:#f00
@@ -569,7 +595,9 @@ stateDiagram-v2
 **Problem:** Attribute type must come BEFORE the name.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 erDiagram
     Order {
@@ -599,7 +627,9 @@ erDiagram
 **Problem:** Using incomplete relationship notation.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 erDiagram
     Order |-- Customer
@@ -629,7 +659,9 @@ erDiagram
 **Problem:** Words like "gantt", "section", "dateFormat" cause errors.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 gantt
     dateFormat YYYY-MM-DD
@@ -662,7 +694,9 @@ gantt
 **Problem:** Missing comma between task ID and date.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 gantt
     dateFormat YYYY-MM-DD
@@ -688,7 +722,9 @@ gantt
 **Problem:** Hash, semicolon, or colon cause truncation or errors.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 gantt
     section Tasks
@@ -722,7 +758,9 @@ gantt
 **Problem:** Missing or incorrect "after" keyword for dependencies.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 gantt
     dateFormat YYYY-MM-DD
@@ -750,7 +788,9 @@ gantt
 **Problem:** Negative numbers or non-numeric values.
 
 **Incorrect:**
+
 <!-- validate:skip -->
+
 ```mermaid
 pie
     title Key elements

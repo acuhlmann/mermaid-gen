@@ -59,7 +59,12 @@ test('critique task requires the canonical section headers (Strengths is optiona
 });
 
 test('explain task requires the canonical section headers', () => {
-  for (const heading of ['## Explanation', '## Main message', '## Key data points', '## Takeaways']) {
+  for (const heading of [
+    '## Explanation',
+    '## Main message',
+    '## Key data points',
+    '## Takeaways'
+  ]) {
     assert.ok(INFOGRAPHIC_EXPLAIN_TASK.includes(heading), `expected ${heading}`);
   }
 });

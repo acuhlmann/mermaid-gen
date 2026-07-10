@@ -37,10 +37,7 @@ test('exec rejects relabel-only on large diagrams', () => {
 
 test('exec accepts merge that drops nodes', () => {
   const after =
-    'flowchart TD\n' +
-    '  A[Acquire] --> B[Build]\n' +
-    '  B --> C[Ship]\n' +
-    '  C --> D[Operate]';
+    'flowchart TD\n' + '  A[Acquire] --> B[Build]\n' + '  B --> C[Ship]\n' + '  C --> D[Operate]';
   const result = validateMermaidTransformConstraint({
     transformMode: 'exec',
     beforeSource: BUSY_FLOW,

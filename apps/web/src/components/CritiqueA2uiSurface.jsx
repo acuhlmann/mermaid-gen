@@ -12,14 +12,24 @@ function readCheckboxMask(root) {
 
 function findFixSelectedButton(root) {
   if (!root) return null;
-  return [...root.querySelectorAll('button')].find((btn) => btn.textContent?.trim() === 'Fix selected') ?? null;
+  return (
+    [...root.querySelectorAll('button')].find(
+      (btn) => btn.textContent?.trim() === 'Fix selected'
+    ) ?? null
+  );
 }
 
 /**
  * Renders critique "Fix selected / Fix all" using A2UI v0.9 + basic catalog only.
  * Messages are produced server-side from the same critique markdown.
  */
-export default function CritiqueA2uiSurface({ messages, busy, onFixAll, onFixSelected, onUnavailable }) {
+export default function CritiqueA2uiSurface({
+  messages,
+  busy,
+  onFixAll,
+  onFixSelected,
+  onUnavailable
+}) {
   const callbacksRef = useRef({ onFixAll, onFixSelected, busy });
   callbacksRef.current = { onFixAll, onFixSelected, busy };
 

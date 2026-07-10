@@ -36,7 +36,10 @@ function resolveConnectDomains(getPublicBaseUrl) {
     try {
       domains.add(new URL(base.replace(/\/+$/, '')).origin);
     } catch (err) {
-      console.warn(`registerMcpApps: dropping invalid CSP connect URL ${JSON.stringify(base)}:`, err?.message ?? err);
+      console.warn(
+        `registerMcpApps: dropping invalid CSP connect URL ${JSON.stringify(base)}:`,
+        err?.message ?? err
+      );
     }
   }
   return [...domains];

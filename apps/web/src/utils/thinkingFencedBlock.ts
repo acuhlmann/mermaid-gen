@@ -14,7 +14,10 @@ const FENCE_OPEN = /^```([a-zA-Z0-9_-]*)?\s*$/;
  * When `lines[startIndex]` opens a markdown fence, return the inner code and the next line index.
  * Unclosed fences consume through end-of-input (streaming).
  */
-export function extractFencedCodeBlock(lines: string[], startIndex: number): FencedCodeBlock | null {
+export function extractFencedCodeBlock(
+  lines: string[],
+  startIndex: number
+): FencedCodeBlock | null {
   const openLine = (lines[startIndex] ?? '').trim();
   const openMatch = openLine.match(FENCE_OPEN);
   if (!openMatch) return null;

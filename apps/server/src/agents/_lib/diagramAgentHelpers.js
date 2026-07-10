@@ -35,11 +35,17 @@ function extractPatchApplySummary(raw) {
   /** @type {Record<string, unknown>} */
   const summary = {};
   const metadata =
-    raw.metadata && typeof raw.metadata === 'object' ? /** @type {Record<string, unknown>} */ (raw.metadata) : null;
+    raw.metadata && typeof raw.metadata === 'object'
+      ? /** @type {Record<string, unknown>} */ (raw.metadata)
+      : null;
   const patch =
-    raw.patch && typeof raw.patch === 'object' ? /** @type {Record<string, unknown>} */ (raw.patch) : null;
+    raw.patch && typeof raw.patch === 'object'
+      ? /** @type {Record<string, unknown>} */ (raw.patch)
+      : null;
   const state =
-    raw.state && typeof raw.state === 'object' ? /** @type {Record<string, unknown>} */ (raw.state) : null;
+    raw.state && typeof raw.state === 'object'
+      ? /** @type {Record<string, unknown>} */ (raw.state)
+      : null;
 
   if (state && Number.isFinite(state.revisionId)) {
     summary.revisionId = state.revisionId;
@@ -50,7 +56,11 @@ function extractPatchApplySummary(raw) {
   if (metadata && typeof metadata.validator === 'string' && metadata.validator.trim()) {
     summary.validator = metadata.validator.trim();
   }
-  if (metadata && Array.isArray(metadata.sanitizerApplied) && metadata.sanitizerApplied.length > 0) {
+  if (
+    metadata &&
+    Array.isArray(metadata.sanitizerApplied) &&
+    metadata.sanitizerApplied.length > 0
+  ) {
     summary.sanitizerApplied = metadata.sanitizerApplied.filter((item) => typeof item === 'string');
   }
 

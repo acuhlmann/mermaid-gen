@@ -18,9 +18,9 @@ test('buildStyleEditsA2uiMessages returns surface and apply action', () => {
   assert.ok(msgs.length >= 3);
   assert.equal(msgs[0].createSurface?.surfaceId, A2UI_STYLE_EDITS_SURFACE_ID);
   const msg1 = msgs[1] as A2uiV09Message;
-  const btn = (msg1.updateComponents?.components as { id: string; action?: { event?: { name: string } } }[])?.find(
-    (c) => c.id === 'btn_apply'
-  );
+  const btn = (
+    msg1.updateComponents?.components as { id: string; action?: { event?: { name: string } } }[]
+  )?.find((c) => c.id === 'btn_apply');
   assert.equal(btn?.action?.event?.name, ACTION_APPLY_STYLE_EDITS);
 });
 

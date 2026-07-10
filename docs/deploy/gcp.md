@@ -44,7 +44,6 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
 2. Create Artifact Registry repo `mermaid-gen` in `REGION` if missing (same as [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh)).
 
 3. Create a **deployer service account** (example name `github-deploy-mermaid-gen`) and grant it:
-
    - `roles/run.admin`
    - `roles/artifactregistry.writer`
    - `roles/iam.serviceAccountUser` on the **Cloud Run runtime** service account (often `PROJECT_NUMBER-compute@developer.gserviceaccount.com`) so deploy can attach revisions.
@@ -71,11 +70,11 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
 
 5. In the GitHub repo **Settings → Secrets and variables → Actions**, add:
 
-   | Secret | Example |
-   |--------|---------|
-   | `GCP_PROJECT_ID` | e.g. `mermaidgen` |
+   | Secret                           | Example                                                                                    |
+   | -------------------------------- | ------------------------------------------------------------------------------------------ |
+   | `GCP_PROJECT_ID`                 | e.g. `mermaidgen`                                                                          |
    | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider resource name from `gcloud iam workload-identity-pools providers describe …` |
-   | `GCP_SERVICE_ACCOUNT` | Deployer SA email, e.g. `github-deploy-mermaid-gen@PROJECT_ID.iam.gserviceaccount.com` |
+   | `GCP_SERVICE_ACCOUNT`            | Deployer SA email, e.g. `github-deploy-mermaid-gen@PROJECT_ID.iam.gserviceaccount.com`     |
 
 6. Optional: create Secret Manager secret **`openrouter-api-key`** for LLM features; grant the **runtime** SA `secretAccessor` on it (see below).
 
@@ -147,7 +146,6 @@ When the API server runs on **Cloud Run**, it can call **Vertex AI** (Gemini / G
    ```
 
 3. **Configure routing** (see [`.env.example`](../../.env.example)):
-
    - **`LLM_PROVIDER=auto`** (default): on Cloud Run (`K_SERVICE` is set), prefer Vertex when project and region resolve; otherwise use OpenRouter if `OPENROUTER_API_KEY` is set. Set **`OPENROUTER_PREFERRED=1`** to use OpenRouter first whenever the key is present (including on Cloud Run).
    - **`LLM_PROVIDER=vertex`**: Vertex only (requires a resolvable GCP project and region).
    - **`LLM_PROVIDER=openrouter`**: OpenRouter only (requires Secret Manager or env key).
@@ -225,10 +223,10 @@ gcloud auth configure-docker REGION-docker.pkg.dev
 
 ## Build matrix (two app variants)
 
-| Variant    | Git source                         | Docker image tag (example) | Purpose                                      |
-|-----------|-------------------------------------|----------------------------|----------------------------------------------|
-| **main**  | `master` (or your default branch) | `main`                     | Primary URL; redeploy when you ship changes. |
-| **hackathon** | Tag `hackathon-pre-deploy`      | `hackathon`                | Frozen snapshot from the hackathon release.  |
+| Variant       | Git source                        | Docker image tag (example) | Purpose                                      |
+| ------------- | --------------------------------- | -------------------------- | -------------------------------------------- |
+| **main**      | `master` (or your default branch) | `main`                     | Primary URL; redeploy when you ship changes. |
+| **hackathon** | Tag `hackathon-pre-deploy`        | `hackathon`                | Frozen snapshot from the hackathon release.  |
 
 Check out the commit you want, then build with **`--build-arg`** so the browser bundle points at the correct public API origin.
 

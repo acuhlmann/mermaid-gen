@@ -242,7 +242,11 @@ function parseScenePartial(source: string): PartialMetaphorDsl['scene'] | undefi
   const camera = coerceCamera(extractJsonStringField(source, 'camera'));
   const title = extractJsonStringField(source, 'title');
   if (!theme && !camera && !title) return undefined;
-  return { ...(theme ? { theme } : {}), ...(camera ? { camera } : {}), ...(title ? { title } : {}) };
+  return {
+    ...(theme ? { theme } : {}),
+    ...(camera ? { camera } : {}),
+    ...(title ? { title } : {})
+  };
 }
 
 /**
@@ -256,12 +260,8 @@ export function parsePartialMetaphorDsl(raw: string): PartialMetaphorDsl | null 
   try {
     const parsed = JSON.parse(trimmed) as Record<string, unknown>;
     if (parsed && typeof parsed === 'object') {
-      const items = Array.isArray(parsed.items)
-        ? parsed.items.filter(isCompleteItem)
-        : [];
-      const links = Array.isArray(parsed.links)
-        ? parsed.links.filter(isCompleteLink)
-        : [];
+      const items = Array.isArray(parsed.items) ? parsed.items.filter(isCompleteItem) : [];
+      const links = Array.isArray(parsed.links) ? parsed.links.filter(isCompleteLink) : [];
       const metaphor = coerceMetaphorKind(parsed.metaphor);
       const sceneRaw = parsed.scene;
       let scene: PartialMetaphorDsl['scene'];

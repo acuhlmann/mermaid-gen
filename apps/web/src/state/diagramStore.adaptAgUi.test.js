@@ -117,7 +117,9 @@ describe('createAgUiTranslator', () => {
   });
 
   it('CUSTOM(status) becomes legacy status', () => {
-    const [out] = runThrough([{ type: 'CUSTOM', name: 'status', value: { text: 'Still working…' } }]);
+    const [out] = runThrough([
+      { type: 'CUSTOM', name: 'status', value: { text: 'Still working…' } }
+    ]);
     expect(out).toEqual({ type: 'status', text: 'Still working…' });
   });
 

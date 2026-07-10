@@ -62,9 +62,7 @@ export default function AgentProposalCard({
     >
       <header className="agent-proposal-head">
         <AgentBadge origin={origin} size="sm" />
-        <span className="agent-proposal-target">
-          proposed a {proposal.contentType} edit
-        </span>
+        <span className="agent-proposal-target">proposed a {proposal.contentType} edit</span>
         <span className="agent-proposal-time">{formatRelative(proposal.createdAt)}</span>
       </header>
       {proposal.reason ? <p className="agent-proposal-reason">{proposal.reason}</p> : null}

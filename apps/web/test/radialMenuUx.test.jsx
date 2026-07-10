@@ -134,7 +134,9 @@ describe('radial menu click-to-open UX', () => {
     expect(refineBtn).toBeTruthy();
     expect(refineBtn.getAttribute('data-persona')).toBe('Engineer');
     // No persona / label chip rendered inside the button anymore.
-    expect(screen.queryByText('Engineer', { selector: '.radial-action-button-persona' })).toBeNull();
+    expect(
+      screen.queryByText('Engineer', { selector: '.radial-action-button-persona' })
+    ).toBeNull();
   });
 
   it('closes the menu when the same part is clicked again', () => {
@@ -165,7 +167,9 @@ describe('radial menu click-to-open UX', () => {
     );
     expect(screen.getByRole('menu', { name: 'Diagram selection actions' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Simulate select other' }));
-    expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe(OTHER_DESCRIPTOR.id);
+    expect(screen.getByTestId('radial-harness').getAttribute('data-session')).toBe(
+      OTHER_DESCRIPTOR.id
+    );
     const chip = document.querySelector('.radial-action-chip');
     expect(chip).toBeTruthy();
     expect(chip.style.left).toBe(`${anchorB.left}px`);
@@ -444,7 +448,9 @@ describe('radial render mode picker', () => {
     const { onHoverHold } = renderRenderModeMenu();
     onHoverHold.mockClear();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Render as... (Mode Shifter)' }));
-    expect(screen.getByRole('dialog', { name: /Render selected item in another mode/i })).toBeTruthy();
+    expect(
+      screen.getByRole('dialog', { name: /Render selected item in another mode/i })
+    ).toBeTruthy();
     expect(screen.queryByRole('menuitem', { name: /Refine/i })).toBeNull();
     expect(screen.getByText('AntV narrative layout')).toBeTruthy();
     expect(screen.getByText('Vega-Lite data view')).toBeTruthy();
@@ -517,8 +523,12 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
     );
     fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     const dialog = screen.getByRole('dialog', { name: /What does .* mean\?/i });
-    expect(dialog.querySelector('.radial-explainer-attribution')?.textContent).toMatch(/Wise Architect/);
-    expect(dialog.querySelector('.radial-explainer-eyebrow')?.getAttribute('aria-label')).toBe('The Wise Architect');
+    expect(dialog.querySelector('.radial-explainer-attribution')?.textContent).toMatch(
+      /Wise Architect/
+    );
+    expect(dialog.querySelector('.radial-explainer-eyebrow')?.getAttribute('aria-label')).toBe(
+      'The Wise Architect'
+    );
   });
 
   it('renders Dumb it Down and Drill Deeper follow-up chips', () => {
@@ -630,7 +640,15 @@ describe('explainer popover follow-ups (Wise Architect)', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'What is this? (Quick Reference)' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
 
-    const dumbPath = [/Dumb it Down/i, /Even dumber/i, /Kid mode/i, /Little kid mode/i, /Baby talk/i, /Toddler mode/i, /Babble mode/i];
+    const dumbPath = [
+      /Dumb it Down/i,
+      /Even dumber/i,
+      /Kid mode/i,
+      /Little kid mode/i,
+      /Baby talk/i,
+      /Toddler mode/i,
+      /Babble mode/i
+    ];
     for (let i = 0; i < dumbPath.length; i += 1) {
       const btn = await screen.findByRole('button', { name: dumbPath[i] });
       fireEvent.click(btn);

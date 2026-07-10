@@ -53,10 +53,7 @@ const RESERVED_ID_RENAME_REGEXES = Object.freeze(
   Object.fromEntries(
     RESERVED_NODE_IDS.map((raw) => [
       raw,
-      new RegExp(
-        `(^|[\\s;{[(>|])${escapeRegex(raw)}(?=\\s*(---|--|-\\.|==|\\[|\\(|\\{|<))`,
-        'g'
-      )
+      new RegExp(`(^|[\\s;{[(>|])${escapeRegex(raw)}(?=\\s*(---|--|-\\.|==|\\[|\\(|\\{|<))`, 'g')
     ])
   )
 );
@@ -122,7 +119,11 @@ function normalizeDiagramHeader(source: string) {
   // Bare `stateDiagram` followed by v2-only syntax → `stateDiagram-v2`.
   if (/^\s*stateDiagram\b(?!-v2)/.test(updated)) {
     const rest = lines.slice(headerIdx + 1).join('\n');
-    if (/-->/.test(rest) || /\bnote\s+(left|right)\s+of\b/i.test(rest) || /\bstate\s+"[^"]+"\s+as\b/i.test(rest)) {
+    if (
+      /-->/.test(rest) ||
+      /\bnote\s+(left|right)\s+of\b/i.test(rest) ||
+      /\bstate\s+"[^"]+"\s+as\b/i.test(rest)
+    ) {
       updated = updated.replace(/^(\s*)stateDiagram\b/, '$1stateDiagram-v2');
     }
   }
@@ -141,7 +142,8 @@ function escapeReservedNodeIds(source: string) {
 
   const candidates = new Set<string>();
   // Node declarations like `end[label]`, `end(label)`, `end{label}`, or bare `end -->`.
-  const declRe = /(^|\n|[\s;])(end|class|style|default|interpolate|linkStyle|subgraph)\s*([\[\(\{<])/gi;
+  const declRe =
+    /(^|\n|[\s;])(end|class|style|default|interpolate|linkStyle|subgraph)\s*([\[\(\{<])/gi;
   let m;
   while ((m = declRe.exec(source)) != null) {
     const id = m[2].toLowerCase();
@@ -152,7 +154,8 @@ function escapeReservedNodeIds(source: string) {
     if (beforeId === '' && (id === 'subgraph' || id === 'end')) continue;
     candidates.add(m[2]);
   }
-  const edgeRe = /([\s;{[(>|])(end|class|style|default|interpolate|linkStyle)\s*(---|--|-\.|==|<==|<--|<-)/gi;
+  const edgeRe =
+    /([\s;{[(>|])(end|class|style|default|interpolate|linkStyle)\s*(---|--|-\.|==|<==|<--|<-)/gi;
   while ((m = edgeRe.exec(source)) != null) {
     candidates.add(m[2]);
   }
@@ -172,27 +175,33 @@ function escapeReservedNodeIds(source: string) {
 function quoteLabelsWithSpecials(source: string) {
   let changed = false;
   // Node labels in [] — skip subroutine shapes `id[[…]]` so we don't break them.
-  let updated = source.replace(/(\w[\w-]*)\[(?!\[)([^\]\n]+)\](?!\])/g, (whole: string, id: string, label: string) => {
-    const inner = label.trim();
-    if (inner.length === 0) return whole;
-    if (/^".*"$/.test(inner)) return whole;
-    if (/^\w[\w\s.-]*$/.test(inner)) return whole;
-    if (!SPECIAL_LABEL_CHARS_RE.test(inner)) return whole;
-    if (inner.includes('"')) return whole;
-    changed = true;
-    return `${id}["${inner}"]`;
-  });
+  let updated = source.replace(
+    /(\w[\w-]*)\[(?!\[)([^\]\n]+)\](?!\])/g,
+    (whole: string, id: string, label: string) => {
+      const inner = label.trim();
+      if (inner.length === 0) return whole;
+      if (/^".*"$/.test(inner)) return whole;
+      if (/^\w[\w\s.-]*$/.test(inner)) return whole;
+      if (!SPECIAL_LABEL_CHARS_RE.test(inner)) return whole;
+      if (inner.includes('"')) return whole;
+      changed = true;
+      return `${id}["${inner}"]`;
+    }
+  );
   // Node labels in () — skip circle shapes `id((…))` so we don't break them.
-  updated = updated.replace(/(\w[\w-]*)\((?!\()([^)\n]+)\)(?!\))/g, (whole: string, id: string, label: string) => {
-    const inner = label.trim();
-    if (inner.length === 0) return whole;
-    if (/^".*"$/.test(inner)) return whole;
-    if (/^\w[\w\s.-]*$/.test(inner)) return whole;
-    if (!SPECIAL_LABEL_CHARS_RE.test(inner)) return whole;
-    if (inner.includes('"')) return whole;
-    changed = true;
-    return `${id}("${inner}")`;
-  });
+  updated = updated.replace(
+    /(\w[\w-]*)\((?!\()([^)\n]+)\)(?!\))/g,
+    (whole: string, id: string, label: string) => {
+      const inner = label.trim();
+      if (inner.length === 0) return whole;
+      if (/^".*"$/.test(inner)) return whole;
+      if (/^\w[\w\s.-]*$/.test(inner)) return whole;
+      if (!SPECIAL_LABEL_CHARS_RE.test(inner)) return whole;
+      if (inner.includes('"')) return whole;
+      changed = true;
+      return `${id}("${inner}")`;
+    }
+  );
   // Edge pipe-labels: `A -->|label with ()| B` — quote the pipe contents when needed.
   updated = updated.replace(/\|([^|\n]+)\|/g, (whole: string, inner: string) => {
     const t = inner.trim();
@@ -220,22 +229,28 @@ function quoteBracketLabelsWithEmbeddedQuotes(source: string) {
       .replace(/\r/g, '\\n');
   }
 
-  let updated = source.replace(/(\w[\w-]*)\[([^\]\n]+)\]/g, (whole: string, id: string, label: string) => {
-    const inner = label.trim();
-    if (inner.length === 0) return whole;
-    if (/^".*"$/.test(inner)) return whole;
-    if (!inner.includes('"') && !/[\n\r]/.test(inner) && !/\\/.test(inner)) return whole;
-    changed = true;
-    return `${id}["${esc(inner)}"]`;
-  });
-  updated = updated.replace(/(\w[\w-]*)\(([^)\n]+)\)/g, (whole: string, id: string, label: string) => {
-    const inner = label.trim();
-    if (inner.length === 0) return whole;
-    if (/^".*"$/.test(inner)) return whole;
-    if (!inner.includes('"') && !/[\n\r]/.test(inner) && !/\\/.test(inner)) return whole;
-    changed = true;
-    return `${id}("${esc(inner)}")`;
-  });
+  let updated = source.replace(
+    /(\w[\w-]*)\[([^\]\n]+)\]/g,
+    (whole: string, id: string, label: string) => {
+      const inner = label.trim();
+      if (inner.length === 0) return whole;
+      if (/^".*"$/.test(inner)) return whole;
+      if (!inner.includes('"') && !/[\n\r]/.test(inner) && !/\\/.test(inner)) return whole;
+      changed = true;
+      return `${id}["${esc(inner)}"]`;
+    }
+  );
+  updated = updated.replace(
+    /(\w[\w-]*)\(([^)\n]+)\)/g,
+    (whole: string, id: string, label: string) => {
+      const inner = label.trim();
+      if (inner.length === 0) return whole;
+      if (/^".*"$/.test(inner)) return whole;
+      if (!inner.includes('"') && !/[\n\r]/.test(inner) && !/\\/.test(inner)) return whole;
+      changed = true;
+      return `${id}("${esc(inner)}")`;
+    }
+  );
   return changed ? updated : null;
 }
 

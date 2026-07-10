@@ -19,7 +19,9 @@ type AgUiWireEvent = { type: string; [key: string]: unknown };
 /**
  * Translates AG-UI wire events into legacy stream events for `applyAgentStreamInsightEvent`.
  */
-export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) => LegacyStreamEvent | null {
+export function createAgUiTranslator(): (
+  evt: AgUiWireEvent | null | undefined
+) => LegacyStreamEvent | null {
   let lastSnapshot: unknown = null;
   /** AG-UI TOOL_CALL_END carries only toolCallId — resolve name from the matching start. */
   const toolCallNamesById = new Map<string, string>();
@@ -51,7 +53,11 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
         const toolCallId = String(evt.toolCallId ?? '');
         const toolCallName = String(evt.toolCallName ?? 'tool');
         if (toolCallId) toolCallNamesById.set(toolCallId, toolCallName);
-        return { type: 'tool_start', name: toolCallName, ...(toolCallId ? { id: toolCallId } : {}) };
+        return {
+          type: 'tool_start',
+          name: toolCallName,
+          ...(toolCallId ? { id: toolCallId } : {})
+        };
       }
       case 'TOOL_CALL_END': {
         const toolCallId = String(evt.toolCallId ?? '');
@@ -84,7 +90,9 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
           const v = typeof draftOp.value === 'string' ? draftOp.value : '';
           return { type: 'draftPreview', contentType: ct, source: v, delta: '' };
         }
-        const summaryOp = ops.find((op: { path?: string }) => op?.path === AGUI_STATE_PATH_LAST_PATCH_SUMMARY);
+        const summaryOp = ops.find(
+          (op: { path?: string }) => op?.path === AGUI_STATE_PATH_LAST_PATCH_SUMMARY
+        );
         if (summaryOp?.value && typeof summaryOp.value === 'object') {
           const v = summaryOp.value as {
             revisionId?: number;
@@ -186,7 +194,11 @@ export function createAgUiTranslator(): (evt: AgUiWireEvent | null | undefined) 
           }
           if (phase === 'result') {
             const outcome = value.outcome;
-            if (outcome !== 'repaired' && outcome !== 'fixer_failed' && outcome !== 'store_rejected') {
+            if (
+              outcome !== 'repaired' &&
+              outcome !== 'fixer_failed' &&
+              outcome !== 'store_rejected'
+            ) {
               return null;
             }
             return {

@@ -17,7 +17,10 @@ test('emitServerMutationPlanBeats emits diagram-focused server beats', () => {
     contentType: 'mermaid'
   });
   assert.ok(captured.length >= 2);
-  assert.equal(captured.every((e) => e.type === 'plan_beat' && e.source === 'server'), true);
+  assert.equal(
+    captured.every((e) => e.type === 'plan_beat' && e.source === 'server'),
+    true
+  );
   assert.ok(captured.some((e) => e.text.includes('Cache')));
   assert.ok(captured.some((e) => e.text.includes('flowchart') || e.text.includes('Keeping')));
 });

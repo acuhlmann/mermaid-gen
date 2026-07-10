@@ -14,12 +14,18 @@ vi.mock('mermaid', () => ({
 
 vi.mock('@archislop/shared', () => ({
   prepareMermaidForRender: vi.fn((source) => source),
-  sanitizeMermaid: vi.fn((source) => ({ sanitized: `${source}\n  Z[fixed]`, applied: ['mockFix'] })),
+  sanitizeMermaid: vi.fn((source) => ({
+    sanitized: `${source}\n  Z[fixed]`,
+    applied: ['mockFix']
+  })),
   sanitizeSvgMarkup: vi.fn((svg) => svg)
 }));
 
 import { sanitizeMermaid } from '@archislop/shared';
-import { renderMermaidPreviewSvg, MERMAID_PREVIEW_INIT } from '../src/utils/renderMermaidPreview.js';
+import {
+  renderMermaidPreviewSvg,
+  MERMAID_PREVIEW_INIT
+} from '../src/utils/renderMermaidPreview.js';
 
 describe('renderMermaidPreviewSvg', () => {
   beforeEach(() => {

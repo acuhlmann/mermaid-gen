@@ -24,8 +24,8 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      # format:check is intentionally omitted until the TypeScript migration (Phase 8)
-      # runs a single global `prettier --write .` so the noise lands in one PR.
+      - name: Format (Prettier)
+        run: npm run format:check
       - name: Verify doc paths (recipes, STRUCTURE)
         run: npm run verify:doc-paths
       - name: Check (typecheck, test, build — matches local check:full)

@@ -32,10 +32,7 @@
       "envFile": "${workspaceFolder}/.env",
       "console": "integratedTerminal",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
-      "resolveSourceMapLocations": [
-        "${workspaceFolder}/apps/server/**",
-        "!**/node_modules/**"
-      ]
+      "resolveSourceMapLocations": ["${workspaceFolder}/apps/server/**", "!**/node_modules/**"]
     },
     {
       "name": "Web: Dev (Vite)",

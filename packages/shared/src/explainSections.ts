@@ -34,11 +34,13 @@ function headingToId(heading: string, contentType: ExplainContentType): string {
   for (const [re, id] of table) {
     if (re.test(heading)) return id;
   }
-  return heading
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '_')
-    .replace(/^_|_$/g, '')
-    .slice(0, 48) || 'section';
+  return (
+    heading
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 48) || 'section'
+  );
 }
 
 /**

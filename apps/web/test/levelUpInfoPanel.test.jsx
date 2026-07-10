@@ -39,9 +39,9 @@ describe('LevelUpInfoPanel', () => {
       <LevelUpInfoPanel
         {...baseProps}
         level={12}
-        levelTitle='Slopitect, Lord of Synergy'
-        levelFlair='🔮'
-        levelShortLabel='Lvl 12'
+        levelTitle="Slopitect, Lord of Synergy"
+        levelFlair="🔮"
+        levelShortLabel="Lvl 12"
         progressRatio={1}
         xpInto={0}
         xpForNext={null}

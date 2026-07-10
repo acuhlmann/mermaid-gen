@@ -7,13 +7,13 @@
 A handful of files in `apps/web` and `apps/server` have grown into 1 000–4 000 LOC
 monoliths. Concretely, before this ADR landed:
 
-| File | LOC | Shape |
-| ---- | --- | ----- |
-| `apps/web/src/App.jsx` | 4 292 | One component with 143 hooks + 38 inline helpers + 4 000 LOC of JSX |
-| `apps/server/src/mcp/mcpServer.js` | 1 551 | One closure registering 14 tools + 4 resources inline |
-| `apps/web/src/components/InsightsPane.jsx` | 1 475 | Single component |
-| `apps/server/src/agents/mermaidLangChainAgent.js` | 1 350 | Agent loop + repair flow + finalize in one module |
-| `apps/web/src/components/DiagramCanvas.jsx` | 1 376 | Renderer + selection + diff + highlight |
+| File                                              | LOC   | Shape                                                               |
+| ------------------------------------------------- | ----- | ------------------------------------------------------------------- |
+| `apps/web/src/App.jsx`                            | 4 292 | One component with 143 hooks + 38 inline helpers + 4 000 LOC of JSX |
+| `apps/server/src/mcp/mcpServer.js`                | 1 551 | One closure registering 14 tools + 4 resources inline               |
+| `apps/web/src/components/InsightsPane.jsx`        | 1 475 | Single component                                                    |
+| `apps/server/src/agents/mermaidLangChainAgent.js` | 1 350 | Agent loop + repair flow + finalize in one module                   |
+| `apps/web/src/components/DiagramCanvas.jsx`       | 1 376 | Renderer + selection + diff + highlight                             |
 
 For coding agents, these are bottleneck files: every feature in the area requires
 a long-context edit, and unrelated work serializes through the same file.

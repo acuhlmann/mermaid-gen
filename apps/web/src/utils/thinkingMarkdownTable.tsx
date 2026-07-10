@@ -31,7 +31,10 @@ export type MarkdownTableBlock = {
 /**
  * When `lines[startIndex]` begins a GFM pipe table, return headers/rows and the next line index.
  */
-export function extractMarkdownTableBlock(lines: string[], startIndex: number): MarkdownTableBlock | null {
+export function extractMarkdownTableBlock(
+  lines: string[],
+  startIndex: number
+): MarkdownTableBlock | null {
   const headerCells = parseMarkdownTableRow(lines[startIndex] ?? '');
   if (!headerCells || headerCells.length < 2) return null;
 

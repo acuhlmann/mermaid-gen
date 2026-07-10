@@ -129,7 +129,7 @@ export async function validateAndPreparePatch({
       validator: rescued ? 'sanitizer-rescue' : strictValidation.validator,
       warnings: strictValidation.warnings ?? [],
       sanitizerApplied,
-      rescuedFrom: rescued ? strictValidation.rescuedFrom ?? strictValidation.validator : null,
+      rescuedFrom: rescued ? (strictValidation.rescuedFrom ?? strictValidation.validator) : null,
       graphDiff: buildMermaidGraphDiff(currentState.diagramSource ?? '', workingSource)
     }
   };

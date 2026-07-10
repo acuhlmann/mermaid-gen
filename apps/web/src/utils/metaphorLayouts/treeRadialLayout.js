@@ -54,7 +54,8 @@ export function treeRadialLayout(items) {
     // Honor an author-declared kind (drives foliage/labels); fall back to the
     // structural one.
     const kind = EXPLICIT_KINDS.has(node.kind) ? node.kind : derivedKind;
-    const weight = typeof node.weight === 'number' && Number.isFinite(node.weight) ? node.weight : 3;
+    const weight =
+      typeof node.weight === 'number' && Number.isFinite(node.weight) ? node.weight : 3;
     nodeInfo.set(node.id, { kind, depth, parentId, weight });
 
     if (children.length === 0) return;
