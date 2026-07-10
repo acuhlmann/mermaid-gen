@@ -181,6 +181,43 @@ describe('AnythingRenderer', () => {
     expect(iframe.getAttribute('srcdoc')).not.toContain('data-archislop-lib');
   });
 
+  it('shows a lib badge naming the injected libraries and versions', async () => {
+    const multiLibDoc = D3_MARKER_DOC.replace(
+      '<!-- @lib:d3 -->',
+      '<!-- @lib:d3 --><!-- @lib:matter -->'
+    );
+    const { container } = render(<AnythingRenderer diagramSource={multiLibDoc} />);
+
+    await waitFor(() => {
+      expect(container.querySelector('iframe.anything-frame')).toBeTruthy();
+    });
+
+    const badge = container.querySelector('.anything-lib-badge');
+    expect(badge).toBeTruthy();
+    expect(badge.textContent).toMatch(/d3 v7\.\d+\.\d+ · matter v0\.\d+\.\d+/);
+    expect(badge.getAttribute('title')).toContain('D3.js');
+    expect(badge.getAttribute('title')).toContain('Matter.js');
+    expect(badge.getAttribute('title')).toContain('nothing loads from the network');
+  });
+
+  it('shows no lib badge for marker-free documents or unknown markers', async () => {
+    const plain = render(<AnythingRenderer diagramSource={HELLO_DOC} />);
+    expect(plain.container.querySelector('iframe.anything-frame')).toBeTruthy();
+    expect(plain.container.querySelector('.anything-lib-badge')).toBeNull();
+    cleanup();
+
+    // Unknown markers pass through expansion as inert comments — they inject
+    // nothing, so the badge must not advertise them. Wait for the iframe so
+    // the assertion runs against the rendered document, not the loading stub.
+    const unknown = render(
+      <AnythingRenderer diagramSource={HELLO_DOC.replace('<body>', '<body><!-- @lib:jquery -->')} />
+    );
+    await waitFor(() => {
+      expect(unknown.container.querySelector('iframe.anything-frame')).toBeTruthy();
+    });
+    expect(unknown.container.querySelector('.anything-lib-badge')).toBeNull();
+  });
+
   it('dismisses the banner and clears errors when the document changes', () => {
     const { container, rerender } = render(<AnythingRenderer diagramSource={HELLO_DOC} />);
     const iframe = container.querySelector('iframe.anything-frame');
