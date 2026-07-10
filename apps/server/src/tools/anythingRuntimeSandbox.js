@@ -44,6 +44,12 @@ function parseSettleMs(argv) {
  * audio nodes, …): every property access returns another inert value, every
  * call succeeds. `then` is explicitly undefined so `await inert` resolves
  * instead of hanging on thenable assimilation.
+ *
+ * Introspection must stay consistent with the get trap: libraries that
+ * monkey-patch host objects (Tone.js wraps AudioContext instances) walk
+ * `hasOwnProperty` and then destructure `Object.getOwnPropertyDescriptor` —
+ * claiming a property exists but returning no descriptor for it would throw
+ * inside library code the page cannot fix.
  */
 function createInert() {
   const inert = new Proxy(function inertStub() {}, {
@@ -56,6 +62,19 @@ function createInert() {
       return inert;
     },
     set() {
+      return true;
+    },
+    has() {
+      return true;
+    },
+    getOwnPropertyDescriptor(target, prop) {
+      // Real target properties (fn.length, fn.prototype, …) must be reported
+      // as-is — proxy invariants forbid lying about non-configurable ones.
+      const real = Reflect.getOwnPropertyDescriptor(target, prop);
+      if (real) return real;
+      return { configurable: true, enumerable: false, get: () => inert, set: () => {} };
+    },
+    defineProperty() {
       return true;
     },
     apply() {
