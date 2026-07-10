@@ -92,7 +92,7 @@ describe('InsightsPane', () => {
     );
 
     expect(screen.getByText('Content updates')).toBeTruthy();
-    expect(screen.getByText('Technical actions')).toBeTruthy();
+    expect(screen.getByText('Generation pipeline')).toBeTruthy();
     expect(screen.getByText('Read diagram snapshot')).toBeTruthy();
     expect(screen.getByText('Working')).toBeTruthy();
     expect(screen.getByText('Now')).toBeTruthy();
@@ -615,7 +615,7 @@ flowchart TB
     expect(container.querySelector('code.insights-phase-id')?.textContent).toBe('analyze');
   });
 
-  it('collapses technical actions behind Tool trace for critique variant', () => {
+  it('collapses technical actions behind the generation pipeline for critique variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -634,7 +634,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.getByText('Generation pipeline')).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
@@ -666,7 +666,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('1.3s')).toBeTruthy();
+    expect(screen.getAllByText('1.3s').length).toBe(2);
     expect(screen.getByText('1.3s · +2 nodes · rev 8')).toBeTruthy();
     expect(screen.getByText('Add auth gate before API')).toBeTruthy();
   });
@@ -780,7 +780,7 @@ flowchart TB
     expect(screen.getByText('Quick syntax pass')).toBeTruthy();
     expect(screen.getByText('1 repair')).toBeTruthy();
     expect(screen.getByText(/Repaired invalid chart DSL/)).toBeTruthy();
-    expect(screen.getByText(/Vega-Lite compile failed/)).toBeTruthy();
+    expect(screen.getAllByText(/Vega-Lite compile failed/).length).toBeGreaterThan(0);
   });
 
   it('uses Explanation label for explain variant', () => {
@@ -913,7 +913,7 @@ flowchart TB
     expect(screen.getByText(/For a smart 10-year-old/i)).toBeTruthy();
   });
 
-  it('collapses technical actions behind Tool trace for explain variant', () => {
+  it('collapses technical actions behind the generation pipeline for explain variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -932,7 +932,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.getByText('Generation pipeline')).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
@@ -1024,7 +1024,7 @@ flowchart TB
     expect(container.querySelector('.insights-prose-section.insights-tone-strengths')).toBeTruthy();
   });
 
-  it('collapses technical actions behind Tool trace for refine variant', () => {
+  it('collapses technical actions behind the generation pipeline for refine variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -1043,7 +1043,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Tool trace')).toBeTruthy();
+    expect(screen.getByText('Generation pipeline')).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
   });
 
