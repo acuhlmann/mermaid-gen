@@ -31,12 +31,11 @@ export function formatXmlForDisplay(source: string): string {
 function serializeXmlNode(node: Element, depth: number): string {
   const indent = '  '.repeat(depth);
   const tag = node.tagName;
-  const attrs = [...node.attributes]
-    .map((attr) => ` ${attr.name}="${attr.value}"`)
-    .join('');
+  const attrs = [...node.attributes].map((attr) => ` ${attr.name}="${attr.value}"`).join('');
   const children = [...node.childNodes];
   const elementChildren = children.filter((child) => child.nodeType === 1) as Element[];
-  const textChild = children.length === 1 && children[0]?.nodeType === 3 ? children[0].textContent?.trim() : '';
+  const textChild =
+    children.length === 1 && children[0]?.nodeType === 3 ? children[0].textContent?.trim() : '';
 
   if (elementChildren.length === 0) {
     if (textChild) {
@@ -49,12 +48,7 @@ function serializeXmlNode(node: Element, depth: number): string {
   return `${indent}<${tag}${attrs}>\n${inner}\n${indent}</${tag}>`;
 }
 
-function pushToken(
-  out: ReactNode[],
-  key: string,
-  className: string,
-  value: string
-) {
+function pushToken(out: ReactNode[], key: string, className: string, value: string) {
   out.push(
     <span key={key} className={className}>
       {value}
@@ -121,7 +115,9 @@ function highlightJsonLine(line: string, lineKey: string): ReactNode[] {
 
   const used: Array<[number, number]> = [];
   for (const marker of markers) {
-    const overlaps = used.some(([start, end]) => marker.index < end && marker.index + marker.len > start);
+    const overlaps = used.some(
+      ([start, end]) => marker.index < end && marker.index + marker.len > start
+    );
     if (overlaps) continue;
     used.push([marker.index, marker.index + marker.len]);
     if (marker.index > cursor) {

@@ -12,7 +12,9 @@ function formatLabel(name, repeatCount) {
 
 describe('collapseConsecutiveApplyPatchActions', () => {
   it('returns unchanged when fewer than two actions', () => {
-    const one = [{ id: 'a', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+    const one = [
+      { id: 'a', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }
+    ];
     expect(collapseConsecutiveApplyPatchActions(one, formatLabel)).toBe(one);
     expect(collapseConsecutiveApplyPatchActions([], formatLabel)).toEqual([]);
   });
@@ -39,13 +41,21 @@ describe('collapseConsecutiveApplyPatchActions', () => {
   });
 
   it('merges incrementally for three consecutive completions', () => {
-    let actions = [{ id: 'p1', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
-    actions = [...actions, { id: 'p2', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+    let actions = [
+      { id: 'p1', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }
+    ];
+    actions = [
+      ...actions,
+      { id: 'p2', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }
+    ];
     actions = collapseConsecutiveApplyPatchActions(actions, formatLabel);
     expect(actions).toHaveLength(1);
     expect(actions[0].count).toBe(2);
 
-    actions = [...actions, { id: 'p3', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+    actions = [
+      ...actions,
+      { id: 'p3', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }
+    ];
     actions = collapseConsecutiveApplyPatchActions(actions, formatLabel);
     expect(actions).toHaveLength(1);
     expect(actions[0].count).toBe(3);
@@ -53,9 +63,14 @@ describe('collapseConsecutiveApplyPatchActions', () => {
   });
 
   it('caps merged patch label display at ×3 while preserving numeric count', () => {
-    let actions = [{ id: 'p1', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+    let actions = [
+      { id: 'p1', name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }
+    ];
     for (let i = 2; i <= 4; i += 1) {
-      actions = [...actions, { id: `p${i}`, name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }];
+      actions = [
+        ...actions,
+        { id: `p${i}`, name: 'apply_mermaid_patch', label: 'Apply diagram update', status: 'done' }
+      ];
       actions = collapseConsecutiveApplyPatchActions(actions, formatLabel);
     }
     expect(actions).toHaveLength(1);

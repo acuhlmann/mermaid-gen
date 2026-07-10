@@ -26,7 +26,9 @@ describe('AdvisorSpeechBubble', () => {
   it('fires onGo only when Do it is present and clicked', () => {
     const onGo = vi.fn();
     const onDismiss = vi.fn();
-    render(<AdvisorSpeechBubble {...baseProps} kind="suggestion" onGo={onGo} onDismiss={onDismiss} />);
+    render(
+      <AdvisorSpeechBubble {...baseProps} kind="suggestion" onGo={onGo} onDismiss={onDismiss} />
+    );
     fireEvent.click(screen.getByText('Do it'));
     expect(onGo).toHaveBeenCalledTimes(1);
     expect(onDismiss).not.toHaveBeenCalled();
@@ -63,19 +65,15 @@ describe('AdvisorSpeechBubble', () => {
   });
 
   it('disables prompt-next when canPromptNext is false', () => {
-    render(
-      <AdvisorSpeechBubble
-        {...baseProps}
-        canPromptNext={false}
-        onPromptNext={vi.fn()}
-      />
-    );
+    render(<AdvisorSpeechBubble {...baseProps} canPromptNext={false} onPromptNext={vi.fn()} />);
     expect(screen.getByRole('button', { name: /Next stakeholder comment/i }).disabled).toBe(true);
   });
 
   it('exposes data-kind for styling and assertions', () => {
     const { rerender } = render(<AdvisorSpeechBubble {...baseProps} kind="suggestion" />);
-    expect(screen.getByTestId('advisor-speech-bubble').getAttribute('data-kind')).toBe('suggestion');
+    expect(screen.getByTestId('advisor-speech-bubble').getAttribute('data-kind')).toBe(
+      'suggestion'
+    );
     rerender(<AdvisorSpeechBubble {...baseProps} kind="comment" />);
     expect(screen.getByTestId('advisor-speech-bubble').getAttribute('data-kind')).toBe('comment');
   });

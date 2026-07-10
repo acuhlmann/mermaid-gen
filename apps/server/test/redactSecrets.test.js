@@ -9,5 +9,8 @@ test('redactSecrets masks OpenRouter-style keys', () => {
 });
 
 test('redactSecrets masks Bearer tokens', () => {
-  assert.equal(redactSecrets('Upstream said Bearer eyJhbGciOiJIUzI1NiJ'), 'Upstream said Bearer [REDACTED]');
+  assert.equal(
+    redactSecrets('Upstream said Bearer eyJhbGciOiJIUzI1NiJ'),
+    'Upstream said Bearer [REDACTED]'
+  );
 });

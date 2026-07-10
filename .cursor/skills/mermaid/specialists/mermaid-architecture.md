@@ -27,6 +27,7 @@ Generate a Mermaid architecture diagram for system components, layers, and desig
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/architecture-diagrams.md` for patterns and syntax
 3. **Identify Components**: Frontend (web, mobile), backend (API, services, workers), data (databases, caches, queues), integrations (external APIs, third-party)
 4. **Identify Pattern**: Layered (presentation → business → data), microservices (API gateway + services), event-driven (producers → broker → consumers), hexagonal (core + adapters)

@@ -27,6 +27,7 @@ Generate a Mermaid class diagram for object-oriented design, data models, or UML
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/class-diagrams.md` for patterns and syntax
 3. **Identify Classes**: Extract class names, attributes (fields), methods (operations), relationships (inheritance, composition, aggregation, association)
 4. **Identify Relationships**:

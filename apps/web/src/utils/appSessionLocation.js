@@ -28,11 +28,11 @@ function relativePathname(pathname) {
 }
 
 /** Read the session id out of `/sessions/{id}` in the current URL, or null. */
-export function readSessionIdFromLocation(locationLike = typeof window !== 'undefined' ? window.location : null) {
+export function readSessionIdFromLocation(
+  locationLike = typeof window !== 'undefined' ? window.location : null
+) {
   if (!locationLike) return null;
-  const segments = relativePathname(locationLike.pathname)
-    .split('/')
-    .filter(Boolean);
+  const segments = relativePathname(locationLike.pathname).split('/').filter(Boolean);
   if (segments[0] !== SESSION_ROUTE_SEGMENT) return null;
   return normalizeSessionId(decodePathSegment(segments[1] ?? ''));
 }
@@ -57,7 +57,11 @@ export function ensureUrlBackedSession() {
   const fromUrl = Boolean(urlSessionId);
   const nextPath = sessionPathFor(sessionId);
   if (window.location.pathname !== nextPath) {
-    window.history.replaceState({}, '', `${nextPath}${window.location.search}${window.location.hash}`);
+    window.history.replaceState(
+      {},
+      '',
+      `${nextPath}${window.location.search}${window.location.hash}`
+    );
   }
   return { sessionId, fromUrl };
 }

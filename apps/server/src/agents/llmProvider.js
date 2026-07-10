@@ -81,7 +81,8 @@ export function resolveVertexModelId(env = process.env, profile = 'fast') {
   const p = normalizeModelProfile(profile);
   const shared = typeof env.VERTEX_MODEL === 'string' ? env.VERTEX_MODEL.trim() : '';
   if (p === 'quality') {
-    const quality = typeof env.VERTEX_MODEL_QUALITY === 'string' ? env.VERTEX_MODEL_QUALITY.trim() : '';
+    const quality =
+      typeof env.VERTEX_MODEL_QUALITY === 'string' ? env.VERTEX_MODEL_QUALITY.trim() : '';
     if (quality) return quality;
     if (shared) return shared;
     return DEFAULT_VERTEX_MODEL_QUALITY;
@@ -101,12 +102,14 @@ export function resolveOpenRouterModelId(env = process.env, profile = 'fast') {
   const p = normalizeModelProfile(profile);
   const shared = typeof env.OPENROUTER_MODEL === 'string' ? env.OPENROUTER_MODEL.trim() : '';
   if (p === 'quality') {
-    const quality = typeof env.OPENROUTER_MODEL_QUALITY === 'string' ? env.OPENROUTER_MODEL_QUALITY.trim() : '';
+    const quality =
+      typeof env.OPENROUTER_MODEL_QUALITY === 'string' ? env.OPENROUTER_MODEL_QUALITY.trim() : '';
     if (quality) return quality;
     if (shared) return shared;
     return DEFAULT_OPENROUTER_MODEL_QUALITY;
   }
-  const fast = typeof env.OPENROUTER_MODEL_FAST === 'string' ? env.OPENROUTER_MODEL_FAST.trim() : '';
+  const fast =
+    typeof env.OPENROUTER_MODEL_FAST === 'string' ? env.OPENROUTER_MODEL_FAST.trim() : '';
   if (fast) return fast;
   if (shared) return shared;
   return DEFAULT_OPENROUTER_MODEL_FAST;
@@ -144,7 +147,8 @@ export function resolveDeepSeekModelId(env = process.env, profile = 'fast') {
   const p = normalizeModelProfile(profile);
   const shared = typeof env.DEEPSEEK_MODEL === 'string' ? env.DEEPSEEK_MODEL.trim() : '';
   if (p === 'quality') {
-    const quality = typeof env.DEEPSEEK_MODEL_QUALITY === 'string' ? env.DEEPSEEK_MODEL_QUALITY.trim() : '';
+    const quality =
+      typeof env.DEEPSEEK_MODEL_QUALITY === 'string' ? env.DEEPSEEK_MODEL_QUALITY.trim() : '';
     if (quality) return quality;
     if (shared) return shared;
     return DEFAULT_DEEPSEEK_MODEL_QUALITY;
@@ -161,7 +165,11 @@ export function resolveDeepSeekModelId(env = process.env, profile = 'fast') {
  * @param {'fast' | 'quality'} [profile]
  * @param {LlmBackend} [backend]
  */
-export function resolveModelId(env = process.env, profile = 'fast', backend = resolveLlmBackend(env)) {
+export function resolveModelId(
+  env = process.env,
+  profile = 'fast',
+  backend = resolveLlmBackend(env)
+) {
   if (backend === 'vertex') return resolveVertexModelId(env, profile);
   if (backend === 'deepseek') return resolveDeepSeekModelId(env, profile);
   return resolveOpenRouterModelId(env, profile);
@@ -173,8 +181,7 @@ export function resolveModelId(env = process.env, profile = 'fast', backend = re
  */
 export function resolveLlmBackend(env = process.env) {
   const raw = typeof env.LLM_PROVIDER === 'string' ? env.LLM_PROVIDER.trim().toLowerCase() : '';
-  const mode =
-    raw === 'vertex' || raw === 'openrouter' || raw === 'deepseek' ? raw : 'auto';
+  const mode = raw === 'vertex' || raw === 'openrouter' || raw === 'deepseek' ? raw : 'auto';
 
   if (mode === 'openrouter') {
     return env.OPENROUTER_API_KEY ? 'openrouter' : null;
@@ -362,7 +369,8 @@ function resolveFastDefaultForBackend(env, backend) {
     const explicit = typeof env.DEEPSEEK_MODEL_FAST === 'string' && env.DEEPSEEK_MODEL_FAST.trim();
     return explicit || DEFAULT_DEEPSEEK_MODEL_FAST;
   }
-  const explicit = typeof env.OPENROUTER_MODEL_FAST === 'string' && env.OPENROUTER_MODEL_FAST.trim();
+  const explicit =
+    typeof env.OPENROUTER_MODEL_FAST === 'string' && env.OPENROUTER_MODEL_FAST.trim();
   return explicit || DEFAULT_OPENROUTER_MODEL_FAST;
 }
 
@@ -378,9 +386,10 @@ function resolveFastDefaultForBackend(env, backend) {
  * @returns {{ backend: LlmBackend, modelId: string } | null}
  */
 export function resolveSyntaxFixerTarget(env = process.env) {
-  const requested = typeof env.MERMAID_REPAIR_BACKEND === 'string'
-    ? env.MERMAID_REPAIR_BACKEND.trim().toLowerCase()
-    : '';
+  const requested =
+    typeof env.MERMAID_REPAIR_BACKEND === 'string'
+      ? env.MERMAID_REPAIR_BACKEND.trim().toLowerCase()
+      : '';
   const backend =
     requested === 'vertex' || requested === 'openrouter' || requested === 'deepseek'
       ? requested
@@ -390,7 +399,8 @@ export function resolveSyntaxFixerTarget(env = process.env) {
   if (backend === 'openrouter' && !env.OPENROUTER_API_KEY) return null;
   if (backend === 'deepseek' && !env.DEEPSEEK_API_KEY) return null;
 
-  const explicit = typeof env.MERMAID_REPAIR_MODEL === 'string' ? env.MERMAID_REPAIR_MODEL.trim() : '';
+  const explicit =
+    typeof env.MERMAID_REPAIR_MODEL === 'string' ? env.MERMAID_REPAIR_MODEL.trim() : '';
   return { backend, modelId: explicit || resolveFastDefaultForBackend(env, backend) };
 }
 

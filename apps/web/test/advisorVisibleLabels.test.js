@@ -12,7 +12,12 @@ describe('advisorVisibleLabels', () => {
       theme: 'whiteboard',
       spec: {
         title: 'Revenue by quarter',
-        data: { values: [{ quarter: 'Q1', revenue: 120 }, { quarter: 'Q2', revenue: 180 }] },
+        data: {
+          values: [
+            { quarter: 'Q1', revenue: 120 },
+            { quarter: 'Q2', revenue: 180 }
+          ]
+        },
         mark: 'bar',
         encoding: {
           x: { field: 'quarter', type: 'ordinal', title: 'Quarter' },
@@ -22,7 +27,9 @@ describe('advisorVisibleLabels', () => {
     });
 
     const result = extractChartAdvisorLabels(chart);
-    expect(result.labels).toEqual(expect.arrayContaining(['Revenue by quarter', 'Quarter', 'quarter', 'Q1']));
+    expect(result.labels).toEqual(
+      expect.arrayContaining(['Revenue by quarter', 'Quarter', 'quarter', 'Q1'])
+    );
     expect(result.ids).toEqual(result.labels);
   });
 

@@ -80,9 +80,11 @@ export function computeViewportFocusForHighlightIds(viewportEl, highlightIds) {
 
   const root = viewportEl.querySelector('.diagram-zoom-layer') ?? viewportEl;
   const matched = [];
-  root.querySelectorAll('g.node, g.timeline-node, g.cluster, [data-et="participant"]').forEach((group) => {
-    if (groupMatchesIds(group, idSet)) matched.push(group);
-  });
+  root
+    .querySelectorAll('g.node, g.timeline-node, g.cluster, [data-et="participant"]')
+    .forEach((group) => {
+      if (groupMatchesIds(group, idSet)) matched.push(group);
+    });
   if (matched.length === 0) return null;
 
   const bbox = unionSvgBBox(matched);

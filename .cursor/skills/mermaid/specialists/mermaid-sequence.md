@@ -27,6 +27,7 @@ Generate a Mermaid sequence diagram for API calls, service interactions, and mes
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/sequence-diagrams.md` for patterns and syntax
 3. **Identify Participants**: Extract users/clients, frontend, API layer, backend services, data layer, external services
 4. **Map Message Flow**: Who initiates? What messages? Sync or async? Loops/alternatives? How terminates?

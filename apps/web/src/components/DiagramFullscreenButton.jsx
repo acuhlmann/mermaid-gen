@@ -1,6 +1,12 @@
 function FullscreenEnterIcon() {
   return (
-    <svg className="diagram-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="diagram-fullscreen-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="none"
         stroke="currentColor"
@@ -15,7 +21,13 @@ function FullscreenEnterIcon() {
 
 function FullscreenExitIcon() {
   return (
-    <svg className="diagram-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="diagram-fullscreen-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="none"
         stroke="currentColor"

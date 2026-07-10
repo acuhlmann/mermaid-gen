@@ -104,9 +104,11 @@ describe('findSubgraphBlockRange', () => {
 
 describe('findSequenceParticipantRange', () => {
   it('finds explicit participant declarations', () => {
-    const src = ['sequenceDiagram', '  participant Ingestion', '  Ingestion ->> Validation: hi'].join(
-      '\n'
-    );
+    const src = [
+      'sequenceDiagram',
+      '  participant Ingestion',
+      '  Ingestion ->> Validation: hi'
+    ].join('\n');
     const r = findSequenceParticipantRange(src, 'Ingestion');
     expect(r?.startLineNumber).toBe(2);
     expect(r?.startColumn).toBe(15);

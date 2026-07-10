@@ -52,7 +52,10 @@ function splitPlanSteps(text: string): string[] {
   }
 
   if (trimmed.includes('; ')) {
-    const parts = trimmed.split(/;\s+/).map((part) => part.trim()).filter(Boolean);
+    const parts = trimmed
+      .split(/;\s+/)
+      .map((part) => part.trim())
+      .filter(Boolean);
     if (parts.length > 1) return parts;
   }
 
@@ -79,11 +82,7 @@ function PlanStepBody({
             {enrichInline(preview.prose, `${keyBase}-prose`)}
           </p>
         ) : null}
-        <InsightsEmbeddedDiagram
-          idPrefix={keyBase}
-          source={preview.source}
-          kind={preview.kind}
-        />
+        <InsightsEmbeddedDiagram idPrefix={keyBase} source={preview.source} kind={preview.kind} />
       </div>
     );
   }

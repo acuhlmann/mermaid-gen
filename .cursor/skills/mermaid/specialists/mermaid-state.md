@@ -27,6 +27,7 @@ Generate a Mermaid state diagram for state machines, lifecycle management, or wo
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/state-diagrams.md` for patterns and syntax
 3. **Identify States**: Extract all possible states, initial state, final states
 4. **Identify Transitions**: Extract triggers/events that cause state changes, conditions/guards, actions on transitions

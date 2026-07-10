@@ -74,7 +74,9 @@ export async function fetchLabelExplanation({
     });
     if (!response.ok) {
       const text = await response.text().catch(() => '');
-      throw new Error(`Explain failed (${response.status})${text ? `: ${text.slice(0, 200)}` : ''}`);
+      throw new Error(
+        `Explain failed (${response.status})${text ? `: ${text.slice(0, 200)}` : ''}`
+      );
     }
     const payload = await response.json();
     return typeof payload?.explanation === 'string' ? payload.explanation.trim() : '';

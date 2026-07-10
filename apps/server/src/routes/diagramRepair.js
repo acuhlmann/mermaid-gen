@@ -83,9 +83,10 @@ export function createDiagramRepairRouter({
     }
 
     if (!fixerOutcome?.accepted || !fixerOutcome.diagramSource) {
-      return res
-        .status(200)
-        .json({ repaired: false, error: fixerOutcome?.error || 'Fixer could not repair the diagram.' });
+      return res.status(200).json({
+        repaired: false,
+        error: fixerOutcome?.error || 'Fixer could not repair the diagram.'
+      });
     }
 
     // Re-check the slot right before applying, in case state moved during the LLM call.
@@ -106,12 +107,15 @@ export function createDiagramRepairRouter({
     }
 
     if (!applied?.accepted) {
-      return res
-        .status(200)
-        .json({ repaired: false, error: applied?.error || 'State store rejected the repair candidate.' });
+      return res.status(200).json({
+        repaired: false,
+        error: applied?.error || 'State store rejected the repair candidate.'
+      });
     }
 
-    return res.status(200).json({ repaired: true, state: applied.state ?? stateStore.getSlot('mermaid') });
+    return res
+      .status(200)
+      .json({ repaired: true, state: applied.state ?? stateStore.getSlot('mermaid') });
   });
 
   return router;

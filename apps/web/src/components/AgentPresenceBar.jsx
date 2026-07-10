@@ -59,7 +59,9 @@ export default function AgentPresenceBar({ presence, onInvite }) {
           aria-label="Invite agent"
           title="Invite an external agent into the Co-Design session"
         >
-          <span className="agent-invite-emoji" aria-hidden="true">🤝</span>
+          <span className="agent-invite-emoji" aria-hidden="true">
+            🤝
+          </span>
         </button>
       ) : null}
     </div>

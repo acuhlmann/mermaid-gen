@@ -65,7 +65,10 @@ export function resolveWorkspacePackage(root, workspace, pkg) {
  */
 export function resolveReactWebCore(root) {
   return (
-    readInstalledVersion(root, 'node_modules/@a2ui/react/node_modules/@a2ui/web_core/package.json') ??
+    readInstalledVersion(
+      root,
+      'node_modules/@a2ui/react/node_modules/@a2ui/web_core/package.json'
+    ) ??
     readInstalledVersion(root, 'node_modules/@a2ui/web_core/package.json') ??
     readInstalledVersion(root, `${WEB_WORKSPACE}/node_modules/@a2ui/web_core/package.json`)
   );

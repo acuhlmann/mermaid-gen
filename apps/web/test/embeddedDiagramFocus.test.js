@@ -43,7 +43,11 @@ describe('embeddedDiagramFocus', () => {
 
   it('collectHighlightedSvgElements finds mermaid nodes by highlight ids', () => {
     const { host } = makeMermaidHost({ nodeBBox: { x: 10, y: 10, width: 40, height: 20 } });
-    const els = collectHighlightedSvgElements(host, { addedIds: ['A'], modifiedIds: [] }, 'mermaid');
+    const els = collectHighlightedSvgElements(
+      host,
+      { addedIds: ['A'], modifiedIds: [] },
+      'mermaid'
+    );
     expect(els.length).toBe(1);
     host.remove();
   });

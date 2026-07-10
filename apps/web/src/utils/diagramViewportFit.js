@@ -15,7 +15,12 @@ export function readSvgLayoutSize(svgEl) {
 
   const widthAttr = parseFloat(svgEl.getAttribute('width') ?? '');
   const heightAttr = parseFloat(svgEl.getAttribute('height') ?? '');
-  if (Number.isFinite(widthAttr) && widthAttr > 0 && Number.isFinite(heightAttr) && heightAttr > 0) {
+  if (
+    Number.isFinite(widthAttr) &&
+    widthAttr > 0 &&
+    Number.isFinite(heightAttr) &&
+    heightAttr > 0
+  ) {
     return { width: widthAttr, height: heightAttr };
   }
 
@@ -53,13 +58,7 @@ export function readViewportInnerSize(viewportEl) {
  *
  * @param {{ svgWidth: number, svgHeight: number, innerWidth: number, innerHeight: number, inset?: number }}
  */
-export function computeFitViewport({
-  svgWidth,
-  svgHeight,
-  innerWidth,
-  innerHeight,
-  inset = 32
-}) {
+export function computeFitViewport({ svgWidth, svgHeight, innerWidth, innerHeight, inset = 32 }) {
   const availW = Math.max(1, innerWidth - inset * 2);
   const availH = Math.max(1, innerHeight - inset * 2);
   const fitScale = Math.min(availW / svgWidth, availH / svgHeight, 1);
@@ -79,7 +78,13 @@ export function computeFitViewport({
 /**
  * Center diagram at 1× zoom inside the viewport padding box.
  */
-export function computeCenteredViewport({ svgWidth, svgHeight, innerWidth, innerHeight, inset = 32 }) {
+export function computeCenteredViewport({
+  svgWidth,
+  svgHeight,
+  innerWidth,
+  innerHeight,
+  inset = 32
+}) {
   const availW = Math.max(1, innerWidth - inset * 2);
   const availH = Math.max(1, innerHeight - inset * 2);
   return {

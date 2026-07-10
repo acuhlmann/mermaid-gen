@@ -16,13 +16,25 @@ test('resolveSessionIdFromRequest prefers x-session-id header', () => {
 });
 
 test('resolveSessionIdFromRequest falls back to query keys', () => {
-  assert.equal(resolveSessionIdFromRequest({ query: { sessionId: 'query-session' } }), 'query-session');
-  assert.equal(resolveSessionIdFromRequest({ query: { threadId: 'thread-session' } }), 'thread-session');
+  assert.equal(
+    resolveSessionIdFromRequest({ query: { sessionId: 'query-session' } }),
+    'query-session'
+  );
+  assert.equal(
+    resolveSessionIdFromRequest({ query: { threadId: 'thread-session' } }),
+    'thread-session'
+  );
 });
 
 test('resolveSessionIdFromRequest normalizes URL-safe shared session ids', () => {
-  assert.equal(resolveSessionIdFromRequest({ headers: { 'x-session-id': ' shared/session id ' } }), 'shared-session-id');
-  assert.equal(resolveSessionIdFromRequest({ headers: { 'x-session-id': 'x'.repeat(140) } }).length, 128);
+  assert.equal(
+    resolveSessionIdFromRequest({ headers: { 'x-session-id': ' shared/session id ' } }),
+    'shared-session-id'
+  );
+  assert.equal(
+    resolveSessionIdFromRequest({ headers: { 'x-session-id': 'x'.repeat(140) } }).length,
+    128
+  );
 });
 
 test('resolveSessionIdFromCopilotInput reads threadId', () => {

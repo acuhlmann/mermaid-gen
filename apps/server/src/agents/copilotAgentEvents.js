@@ -69,10 +69,9 @@ export async function* createCopilotAgentEvents({ input, agentService, stateStor
         delta: detail
       };
     } else {
-      const regionHint =
-        /region|not available in your country|unsupported_country/i.test(detail)
-          ? '\n\nIf this is a **region / model availability** issue, set `DEEPSEEK_MODEL*` / `OPENROUTER_MODEL*` / `VERTEX_MODEL*` tier env vars in your server `.env` (for example DeepSeek `deepseek-v4-flash` or OpenRouter `qwen/qwen3-32b`), then restart the API server.\n'
-          : '';
+      const regionHint = /region|not available in your country|unsupported_country/i.test(detail)
+        ? '\n\nIf this is a **region / model availability** issue, set `DEEPSEEK_MODEL*` / `OPENROUTER_MODEL*` / `VERTEX_MODEL*` tier env vars in your server `.env` (for example DeepSeek `deepseek-v4-flash` or OpenRouter `qwen/qwen3-32b`), then restart the API server.\n'
+        : '';
       yield {
         type: 'TEXT_MESSAGE_CONTENT',
         messageId,

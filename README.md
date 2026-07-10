@@ -17,34 +17,34 @@ Step-by-step setup, env vars, and MCP pairing: **[`docs/guide/`](docs/guide/)**.
 
 Human guides (split for faster GitHub preview — diagrams live on focused pages):
 
-| Guide | Topics |
-| --- | --- |
-| [`docs/guide/README.md`](docs/guide/README.md) | Index of all guides |
-| [Quick start](docs/guide/quick-start.md) | Local run, health check |
-| [Product & web UI](docs/guide/product.md) | Toolbar modes, Insights pane |
-| [System overview](docs/guide/system-overview.md) | Web ↔ server ↔ MCP; Gen UI layers |
-| [Content types](docs/guide/content-types.md) | Five slots: Mermaid, Infographic, Metaphor3D, Chart, Anything |
-| [Agents](docs/guide/agents.md) | Intent / transform / analysis; user modes |
-| [Validation & repair](docs/guide/validation.md) | Mermaid ladder, Infographic pipeline |
-| [External agents](docs/guide/external-agents.md) | MCP join, Apps table |
-| [Configuration](docs/guide/configuration.md) | `.env`, LLM, reliability |
-| [API endpoints](docs/guide/api-endpoints.md) | REST + SSE routes |
-| [Development](docs/guide/development.md) | Stack, tests, VS Code |
+| Guide                                            | Topics                                                        |
+| ------------------------------------------------ | ------------------------------------------------------------- |
+| [`docs/guide/README.md`](docs/guide/README.md)   | Index of all guides                                           |
+| [Quick start](docs/guide/quick-start.md)         | Local run, health check                                       |
+| [Product & web UI](docs/guide/product.md)        | Toolbar modes, Insights pane                                  |
+| [System overview](docs/guide/system-overview.md) | Web ↔ server ↔ MCP; Gen UI layers                             |
+| [Content types](docs/guide/content-types.md)     | Five slots: Mermaid, Infographic, Metaphor3D, Chart, Anything |
+| [Agents](docs/guide/agents.md)                   | Intent / transform / analysis; user modes                     |
+| [Validation & repair](docs/guide/validation.md)  | Mermaid ladder, Infographic pipeline                          |
+| [External agents](docs/guide/external-agents.md) | MCP join, Apps table                                          |
+| [Configuration](docs/guide/configuration.md)     | `.env`, LLM, reliability                                      |
+| [API endpoints](docs/guide/api-endpoints.md)     | REST + SSE routes                                             |
+| [Development](docs/guide/development.md)         | Stack, tests, VS Code                                         |
 
 Integrator & operator references:
 
-| Doc | Audience |
-| --- | --- |
+| Doc                                                                                                                      | Audience                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------- |
 | [architecture-generative-ui-visual.html](https://acuhlmann.github.io/mermaid-gen/architecture-generative-ui-visual.html) | **Visual tour** — the Gen UI stack in diagrams ([GitHub Pages](https://acuhlmann.github.io/mermaid-gen/)) |
-| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md) | AG-UI, A2UI, MCP Apps map |
-| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) | Guest agents, session-events |
-| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md) | AG-UI SSE contract |
-| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) | Critique A2UI on `CUSTOM` events |
-| [`docs/llm-config.md`](docs/llm-config.md) | Model tiers and providers |
-| [`docs/deploy/gcp.md`](docs/deploy/gcp.md) | Cloud Run deploy |
-| [`AGENTS.md`](AGENTS.md) | Coding-agent operator manual |
-| [`STRUCTURE.md`](STRUCTURE.md) | Concept → file index |
-| [`GLOSSARY.md`](GLOSSARY.md) | Terminology |
+| [`docs/architecture-generative-ui.md`](docs/architecture-generative-ui.md)                                               | AG-UI, A2UI, MCP Apps map                                                                                 |
+| [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md)                                           | Guest agents, session-events                                                                              |
+| [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                                                               | AG-UI SSE contract                                                                                        |
+| [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md)                                                                 | Critique A2UI on `CUSTOM` events                                                                          |
+| [`docs/llm-config.md`](docs/llm-config.md)                                                                               | Model tiers and providers                                                                                 |
+| [`docs/deploy/gcp.md`](docs/deploy/gcp.md)                                                                               | Cloud Run deploy                                                                                          |
+| [`AGENTS.md`](AGENTS.md)                                                                                                 | Coding-agent operator manual                                                                              |
+| [`STRUCTURE.md`](STRUCTURE.md)                                                                                           | Concept → file index                                                                                      |
+| [`GLOSSARY.md`](GLOSSARY.md)                                                                                             | Terminology                                                                                               |
 
 ## Stack
 

@@ -50,11 +50,7 @@ function withDefaultSize(spec, compact = false) {
   };
 }
 
-export default function ChartRenderer({
-  diagramSource,
-  compact = false,
-  selectedNode = null
-}) {
+export default function ChartRenderer({ diagramSource, compact = false, selectedNode = null }) {
   const containerRef = useRef(null);
   const viewRef = useRef(null);
   const lastSelectedElRef = useRef(null);
@@ -81,7 +77,10 @@ export default function ChartRenderer({
     }
 
     let cancelled = false;
-    const themed = applyChartThemeToSpec(withDefaultSize(parsed.dsl.spec, compact), parsed.dsl.theme);
+    const themed = applyChartThemeToSpec(
+      withDefaultSize(parsed.dsl.spec, compact),
+      parsed.dsl.theme
+    );
     const preset = resolveChartThemePreset(parsed.dsl.theme);
     const options = {
       ...EMBED_DEFAULT_OPTIONS,
@@ -104,9 +103,7 @@ export default function ChartRenderer({
       .catch((err) => {
         if (cancelled) return;
         if (isMermaidInfrastructureError(err)) {
-          setRenderError(
-            'Chart runtime failed to load. Refresh the page and try again.'
-          );
+          setRenderError('Chart runtime failed to load. Refresh the page and try again.');
           return;
         }
         setRenderError(err instanceof Error ? err.message : String(err));

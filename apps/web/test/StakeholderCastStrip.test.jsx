@@ -17,9 +17,7 @@ describe('StakeholderCastStrip', () => {
   });
 
   it('renders nothing for a single-persona cast', () => {
-    const { container } = render(
-      <StakeholderCastStrip variants={['exec']} activeVariant="exec" />
-    );
+    const { container } = render(<StakeholderCastStrip variants={['exec']} activeVariant="exec" />);
     expect(container.querySelector('.stakeholder-cast-strip')).toBeNull();
   });
 

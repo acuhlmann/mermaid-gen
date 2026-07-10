@@ -53,7 +53,9 @@ test('repairInfographicWithFixer rejects when model output still fails validatio
   const result = await repairInfographicWithFixer({
     brokenSource: 'infographic list-row-simple-horizontal-arrow\ndata\n  lists\n    - label A',
     parseError: 'parser rejected',
-    modelOverride: fakeModel('```\ninfographic totally-fake-template\ndata\n  lists\n    - label A\n```')
+    modelOverride: fakeModel(
+      '```\ninfographic totally-fake-template\ndata\n  lists\n    - label A\n```'
+    )
   });
   assert.equal(result.accepted, false);
   assert.match(String(result.error), /Unknown template|parser/i);

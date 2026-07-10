@@ -68,7 +68,9 @@ test('text message lifecycle events match their schemas', () => {
 });
 
 test('tool call lifecycle events match their schemas', () => {
-  ToolCallStartEventSchema.parse(toolCallStart({ toolCallId: 't1', toolCallName: 'apply_infographic_patch' }));
+  ToolCallStartEventSchema.parse(
+    toolCallStart({ toolCallId: 't1', toolCallName: 'apply_infographic_patch' })
+  );
   ToolCallArgsEventSchema.parse(toolCallArgs({ toolCallId: 't1', delta: '{"a":1' }));
   ToolCallEndEventSchema.parse(toolCallEnd({ toolCallId: 't1' }));
 });
@@ -119,7 +121,12 @@ test('createAgentStreamEmitter translates a full legacy lifecycle into AG-UI eve
   emit({ type: 'token', text: 'hi ' });
   emit({ type: 'token', text: 'there' });
   emit({ type: 'tool_start', id: 'tool_1', name: 'apply_infographic_patch' });
-  emit({ type: 'draftPreview', contentType: 'infographic', accumulated: '# Title', delta: '# Title' });
+  emit({
+    type: 'draftPreview',
+    contentType: 'infographic',
+    accumulated: '# Title',
+    delta: '# Title'
+  });
   emit({ type: 'tool_end', id: 'tool_1', name: 'apply_infographic_patch' });
   emit({ type: 'artifact', kind: 'patch_summary', revisionId: 7, linesAdded: 3, linesRemoved: 1 });
   emit({ type: 'final', revisionChanged: true, message: 'done', state: { revisionId: 7 } });
@@ -176,7 +183,10 @@ test('createAgentStreamEmitter translates a full legacy lifecycle into AG-UI eve
   const endMsg = captured.findIndex((e) => e.type === 'TEXT_MESSAGE_END');
   const snap = captured.findIndex((e) => e.type === 'STATE_SNAPSHOT');
   const finished = captured.findIndex((e) => e.type === 'RUN_FINISHED');
-  assert.ok(endMsg > 0 && snap > endMsg && finished > snap, 'final must order END → SNAPSHOT → FINISHED');
+  assert.ok(
+    endMsg > 0 && snap > endMsg && finished > snap,
+    'final must order END → SNAPSHOT → FINISHED'
+  );
   assert.equal(captured[finished].runId, ids.runId);
   assert.equal(captured[finished].result.revisionChanged, true);
 

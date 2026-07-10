@@ -32,7 +32,8 @@ export function formatActionDurationMs(ms) {
  * @returns {PatchApplyDisplayStats}
  */
 export function coercePatchApplyDisplayStats(stats, durationMs) {
-  const source = stats && typeof stats === 'object' ? /** @type {Record<string, unknown>} */ (stats) : {};
+  const source =
+    stats && typeof stats === 'object' ? /** @type {Record<string, unknown>} */ (stats) : {};
   return {
     ...(Number.isFinite(durationMs) ? { durationMs } : {}),
     ...(typeof source.revisionId === 'number' ? { revisionId: source.revisionId } : {}),
@@ -40,9 +41,7 @@ export function coercePatchApplyDisplayStats(stats, durationMs) {
     ...(typeof source.validator === 'string' ? { validator: source.validator } : {}),
     ...(Array.isArray(source.sanitizerApplied)
       ? {
-          sanitizerApplied: source.sanitizerApplied.filter(
-            (item) => typeof item === 'string'
-          )
+          sanitizerApplied: source.sanitizerApplied.filter((item) => typeof item === 'string')
         }
       : {}),
     ...(typeof source.linesAdded === 'number' ? { linesAdded: source.linesAdded } : {}),

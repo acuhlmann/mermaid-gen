@@ -59,7 +59,8 @@ test('wire round-trip: plan_beat legacy → CUSTOM → legacy shape', () => {
 
 test('wire round-trip: patch_summary legacy → STATE_DELTA path', () => {
   const legacy = FIXTURES.patch_summary;
-  if (legacy.type !== 'artifact' || legacy.kind !== 'patch_summary') throw new Error('fixture kind');
+  if (legacy.type !== 'artifact' || legacy.kind !== 'patch_summary')
+    throw new Error('fixture kind');
   const wire = emitLegacyToWire(legacy);
   assert.equal(wire.length, 1);
   assert.equal(wire[0].type, 'STATE_DELTA');

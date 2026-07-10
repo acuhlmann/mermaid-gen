@@ -285,7 +285,8 @@ export function resolveNebulaColor(theme, index) {
  */
 export function resolveTreeNatureTheme(theme) {
   const leafTint = theme?.treeLeafColor ?? theme?.starColor ?? TREE_NATURE_BASE.treeLeafColor;
-  const meadowTint = theme?.treeMeadowColor ?? theme?.groundColor ?? TREE_NATURE_BASE.treeMeadowColor;
+  const meadowTint =
+    theme?.treeMeadowColor ?? theme?.groundColor ?? TREE_NATURE_BASE.treeMeadowColor;
   const blend = 0.1;
   return {
     ...theme,

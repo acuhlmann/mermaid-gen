@@ -19,7 +19,13 @@ const PERSONA_CLASS = {
 
 function IconChevronLeft() {
   return (
-    <svg className="advisor-speech-nav-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+    <svg
+      className="advisor-speech-nav-icon"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
       <path fill="currentColor" d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
     </svg>
   );
@@ -27,7 +33,13 @@ function IconChevronLeft() {
 
 function IconPromptNext() {
   return (
-    <svg className="advisor-speech-nav-icon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+    <svg
+      className="advisor-speech-nav-icon"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M4 4h2v16H4V4zm13.17 2.59-1.41 1.41L16.17 11H8v2h8.17l-2.41 2.59 1.41 1.41L21 12l-3.83-5.41z"
@@ -81,12 +93,16 @@ export default function AdvisorSpeechBubble({
   const dumbChipEmoji = isLabelExplainGiveUpLevel(architectDumbLevel)
     ? '🏳️'
     : architectDumbLevel > 0
-      ? getLabelExplainDumbLevel(architectDumbLevel)?.emoji ?? '🍼'
-      : getLabelExplainDumbLevel(1)?.emoji ?? '🍼';
+      ? (getLabelExplainDumbLevel(architectDumbLevel)?.emoji ?? '🍼')
+      : (getLabelExplainDumbLevel(1)?.emoji ?? '🍼');
   const isGibberishAnswer = architectDumbLevel === 7;
 
   const handleBubbleClick = (event) => {
-    if (event.target?.closest?.('.advisor-speech-btn, .advisor-speech-history-nav, .stakeholder-cast-avatar-btn')) {
+    if (
+      event.target?.closest?.(
+        '.advisor-speech-btn, .advisor-speech-history-nav, .stakeholder-cast-avatar-btn'
+      )
+    ) {
       return;
     }
     onTogglePin?.();
@@ -113,12 +129,18 @@ export default function AdvisorSpeechBubble({
         disabled={castDisabled}
       />
       <div className="advisor-speech-main">
-        <span className="advisor-speech-emoji" aria-hidden="true">{meta.avatarEmoji || '🏗️'}</span>
+        <span className="advisor-speech-emoji" aria-hidden="true">
+          {meta.avatarEmoji || '🏗️'}
+        </span>
         <div className="advisor-speech-body">
           <div className="advisor-speech-head">
             <span className="advisor-speech-persona">
               {meta.name}
-              {isPinned ? <span className="advisor-speech-pin" aria-label="Pinned">📌</span> : null}
+              {isPinned ? (
+                <span className="advisor-speech-pin" aria-label="Pinned">
+                  📌
+                </span>
+              ) : null}
             </span>
           </div>
           {dumbAudienceBadge ? (
@@ -126,9 +148,7 @@ export default function AdvisorSpeechBubble({
               {dumbAudienceBadge}
             </p>
           ) : null}
-          <span
-            className={`advisor-speech-text${isGibberishAnswer ? ' is-gibberish' : ''}`}
-          >
+          <span className={`advisor-speech-text${isGibberishAnswer ? ' is-gibberish' : ''}`}>
             {suggestion}
           </span>
         </div>
@@ -149,9 +169,7 @@ export default function AdvisorSpeechBubble({
                     onHistoryBack?.();
                   }}
                   aria-label={
-                    canGoBack
-                      ? `Older suggestion (${historyPositionLabel})`
-                      : 'Oldest suggestion'
+                    canGoBack ? `Older suggestion (${historyPositionLabel})` : 'Oldest suggestion'
                   }
                   title={canGoBack ? 'Older suggestion' : 'Oldest suggestion'}
                 >
@@ -181,7 +199,10 @@ export default function AdvisorSpeechBubble({
               <button
                 type="button"
                 className="advisor-speech-btn advisor-speech-btn--go"
-                onClick={(event) => { event.stopPropagation(); onGo?.(); }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onGo?.();
+                }}
                 aria-label={`Apply suggestion from ${meta.name}`}
               >
                 Do it
@@ -191,7 +212,10 @@ export default function AdvisorSpeechBubble({
               <button
                 type="button"
                 className={`advisor-speech-btn advisor-speech-btn--dumb${architectDumbLevel > 0 ? ' is-active' : ''}${isLabelExplainGiveUpLevel(architectDumbLevel) ? ' is-give-up' : ''}`}
-                onClick={(event) => { event.stopPropagation(); onDumbDown?.(); }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDumbDown?.();
+                }}
                 disabled={isDumbingDown}
                 aria-pressed={architectDumbLevel > 0}
                 aria-label={
@@ -219,7 +243,10 @@ export default function AdvisorSpeechBubble({
               <button
                 type="button"
                 className="advisor-speech-btn advisor-speech-btn--drill"
-                onClick={(event) => { event.stopPropagation(); onDrillDeeper?.(); }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDrillDeeper?.();
+                }}
                 disabled={isDumbingDown}
                 aria-label="Drill deeper — open the full architecture dissertation"
                 title="Open the full architecture deep-dive in the Thinking panel"
@@ -230,7 +257,10 @@ export default function AdvisorSpeechBubble({
             <button
               type="button"
               className="advisor-speech-btn advisor-speech-btn--dismiss"
-              onClick={(event) => { event.stopPropagation(); onDismiss?.(); }}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDismiss?.();
+              }}
               aria-label={isComment ? 'Dismiss comment' : 'Dismiss suggestion'}
             >
               ×

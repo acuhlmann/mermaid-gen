@@ -50,14 +50,7 @@ describe('XpProgressBar', () => {
   });
 
   it('clamps the fill ratio inside the 0..1 range', () => {
-    render(
-      <XpProgressBar
-        level={1}
-        progressRatio={1.42}
-        xpInto={120}
-        xpForNext={50}
-      />
-    );
+    render(<XpProgressBar level={1} progressRatio={1.42} xpInto={120} xpForNext={50} />);
     const fill = screen.getByTestId('xp-progress-bar').querySelector('.xp-progress-bar-fill');
     expect(fill.getAttribute('style')).toContain('100%');
   });
@@ -67,15 +60,15 @@ describe('XpProgressBar', () => {
     render(
       <XpProgressBar
         level={3}
-        short='Lvl 3'
-        flair='✏️'
+        short="Lvl 3"
+        flair="✏️"
         progressRatio={0.4}
         xpInto={28}
         xpForNext={70}
         totalXp={148}
         onClick={onClick}
         expanded={false}
-        controlsId='levelup-info-panel'
+        controlsId="levelup-info-panel"
       />
     );
     const bar = screen.getByTestId('xp-progress-bar');
@@ -104,9 +97,7 @@ describe('XpProgressBar', () => {
   });
 
   it('falls back to a div with meter semantics when no onClick is supplied', () => {
-    render(
-      <XpProgressBar level={2} progressRatio={0.5} xpInto={10} xpForNext={20} />
-    );
+    render(<XpProgressBar level={2} progressRatio={0.5} xpInto={10} xpForNext={20} />);
     const bar = screen.getByTestId('xp-progress-bar');
     expect(bar.tagName).toBe('DIV');
     expect(bar.getAttribute('role')).toBe('meter');

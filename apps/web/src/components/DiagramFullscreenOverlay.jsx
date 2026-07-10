@@ -2,7 +2,13 @@ import { createPortal } from 'react-dom';
 
 function FullscreenCloseIcon() {
   return (
-    <svg className="diagram-fullscreen-close-icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+    <svg
+      className="diagram-fullscreen-close-icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      aria-hidden="true"
+    >
       <path
         fill="none"
         stroke="currentColor"

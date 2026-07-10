@@ -49,7 +49,11 @@ function resolveSource() {
     rmSync(scratch, { recursive: true, force: true });
     throw new Error('git clone failed; install the plugin or set MODULARITY_PLUGIN_PATH');
   }
-  return { kind: 'cloned', path: scratch, cleanup: () => rmSync(scratch, { recursive: true, force: true }) };
+  return {
+    kind: 'cloned',
+    path: scratch,
+    cleanup: () => rmSync(scratch, { recursive: true, force: true })
+  };
 }
 
 async function main() {

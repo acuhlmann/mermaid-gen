@@ -6,7 +6,8 @@ export { createCopilotAgentEvents } from './copilotAgentEvents.js';
 export function createCopilotRuntimeAgent({ agentService, stateStore }) {
   return new BuiltInAgent({
     type: 'custom',
-    factory: (context) => createCopilotAgentEvents({ input: context.input, agentService, stateStore })
+    factory: (context) =>
+      createCopilotAgentEvents({ input: context.input, agentService, stateStore })
   });
 }
 

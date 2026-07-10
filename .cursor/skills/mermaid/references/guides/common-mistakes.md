@@ -27,7 +27,9 @@
 ### ❌ NEVER: Mix Quote Types
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A["Mixed 'quotes"]
@@ -47,7 +49,9 @@ flowchart TD
 ### ❌ NEVER: Unquoted Special Characters
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A[Text with (parentheses)]
@@ -69,7 +73,9 @@ flowchart TD
 ### ❌ NEVER: Unescaped Quotes in Labels
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A[Say "hello"]
@@ -101,7 +107,9 @@ flowchart TD
 ### ❌ NEVER: Use Reserved Keywords Unquoted
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     start --> end
@@ -124,17 +132,17 @@ flowchart LR
 
 ### Critical Reserved Words (MUST Quote)
 
-| Word | Why Reserved | Correct Usage |
-| --- | --- | --- |
-| `end` | Block terminator | `"end"` or `(end)` or `[end]` |
-| `default` | Styling keyword | `"default"` |
-| `style` | Styling command | `"style"` |
-| `class` | Class assignment | `"class"` |
-| `classDef` | Class definition | `"classDef"` |
-| `subgraph` | Subgraph keyword | `"subgraph"` |
-| `click` | Click handler | `"click"` |
-| `call` | Function call | `"call"` |
-| `graph` | Graph declaration | `"graph"` |
+| Word       | Why Reserved      | Correct Usage                 |
+| ---------- | ----------------- | ----------------------------- |
+| `end`      | Block terminator  | `"end"` or `(end)` or `[end]` |
+| `default`  | Styling keyword   | `"default"`                   |
+| `style`    | Styling command   | `"style"`                     |
+| `class`    | Class assignment  | `"class"`                     |
+| `classDef` | Class definition  | `"classDef"`                  |
+| `subgraph` | Subgraph keyword  | `"subgraph"`                  |
+| `click`    | Click handler     | `"click"`                     |
+| `call`     | Function call     | `"call"`                      |
+| `graph`    | Graph declaration | `"graph"`                     |
 
 ### Alternative: Use Parentheses/Brackets
 
@@ -155,7 +163,9 @@ flowchart LR
 ### ❌ NEVER: Wrong Arrow Syntax
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A -> B       -- Single dash
@@ -191,7 +201,9 @@ flowchart TD
 ### ❌ NEVER: Missing Colons in Sequence Diagrams
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 sequenceDiagram
     Alice->>Bob Hello Bob
@@ -211,7 +223,9 @@ sequenceDiagram
 ### ❌ NEVER: Invalid Node Shapes
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A<Node>       -- Invalid syntax
@@ -238,7 +252,9 @@ flowchart TD
 ### ❌ NEVER: Extra Spaces in IDs
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     Node A[Label]      -- Space in ID
@@ -267,7 +283,9 @@ flowchart TD
 ### ❌ NEVER: Spaces Around Arrows
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A -- > B     -- Space in arrow
@@ -291,7 +309,9 @@ flowchart TD
 ### ❌ NEVER: Use Special Chars in IDs
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     Node@1[Label]
@@ -315,7 +335,9 @@ flowchart TD
 ### ❌ NEVER: Invalid Link Text Syntax
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A -->Text--> B         -- No pipes
@@ -334,7 +356,9 @@ flowchart TD
 ### ❌ NEVER: Multiple Arrow Types on One Link
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     A -->-.-> B    -- Mixed arrow types
@@ -359,7 +383,9 @@ flowchart TD
 ### ❌ NEVER: Forget `end` Keyword
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     subgraph Sub1
@@ -386,7 +412,9 @@ flowchart TD
 ### ❌ NEVER: Use Reserved Words as Subgraph IDs
 
 **WRONG:**
+
 <!-- validate:skip -->
+
 ```mermaid
 flowchart TD
     subgraph end
@@ -420,13 +448,13 @@ flowchart TD
 
 **✅ What WORKS in Mermaid:**
 
-| Character | Working Code | Alternative |
-| --- | --- | --- |
-| `"` | `#34;` | `&quot;` (only `&` entity that works) |
-| `(` | `#40;` | N/A |
-| `)` | `#41;` | N/A |
-| `♥` | `#9829;` | N/A |
-| `∞` | `#infin;` | N/A |
+| Character | Working Code | Alternative                           |
+| --------- | ------------ | ------------------------------------- |
+| `"`       | `#34;`       | `&quot;` (only `&` entity that works) |
+| `(`       | `#40;`       | N/A                                   |
+| `)`       | `#41;`       | N/A                                   |
+| `♥`       | `#9829;`     | N/A                                   |
+| `∞`       | `#infin;`    | N/A                                   |
 
 **❌ What DOES NOT WORK (displays literally):**
 

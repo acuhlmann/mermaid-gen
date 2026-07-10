@@ -25,7 +25,9 @@ describe('normalizeHex', () => {
 describe('isVisualStepLine', () => {
   it('detects Earth Impacts style lines', () => {
     expect(isVisualStepLine('5. Replace ::icon(fa fa-fire) with 🔥')).toBe(true);
-    expect(isVisualStepLine('6. Darken tertiary text from #4b3b00 to something like #3a2a00')).toBe(true);
+    expect(isVisualStepLine('6. Darken tertiary text from #4b3b00 to something like #3a2a00')).toBe(
+      true
+    );
     expect(isVisualStepLine('Plain paragraph.')).toBe(false);
   });
 });
@@ -71,14 +73,14 @@ describe('enrichInline', () => {
   });
 
   it('renders icon replace for sloppy Replace::icon line', () => {
-    const { container } = render(
-      <span>{enrichInline('Replace::icon(fa fa-fire)with 🔥')}</span>
-    );
+    const { container } = render(<span>{enrichInline('Replace::icon(fa fa-fire)with 🔥')}</span>);
     expect(container.querySelector('[data-testid="thinking-icon-replace"]')).toBeTruthy();
   });
 
   it('renders theme variable pill', () => {
-    const { container } = render(<span>{enrichInline('Adjust tertiaryTextColor for contrast')}</span>);
+    const { container } = render(
+      <span>{enrichInline('Adjust tertiaryTextColor for contrast')}</span>
+    );
     expect(container.querySelector('[data-testid="thinking-theme-var"]')).toBeTruthy();
   });
 

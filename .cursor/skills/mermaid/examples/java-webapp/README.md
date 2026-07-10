@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # Java Servlet/JSP Web Application → Mermaid Diagrams
@@ -408,14 +408,14 @@ graph TB
 
 **Key Configuration Mappings:**
 
-| web.xml Element | Diagram Component | Notes |
-|-----------------|-------------------|-------|
-| `<servlet>` + `<servlet-mapping>` | Servlet nodes with URL patterns | Shows routing configuration |
-| `<filter>` + `<filter-mapping>` | Filter chain sequence | Order matters for execution |
-| `<session-config>` | Session Manager component | Security settings (HttpOnly, Secure) |
-| `<context-param>` | Configuration properties | Database URLs, pool sizes |
-| `<Resource>` (server.xml) | JNDI resources | DataSource, Mail, JMS connections |
-| `<error-page>` | Error handling routes | (Optional in diagram) |
+| web.xml Element                   | Diagram Component               | Notes                                |
+| --------------------------------- | ------------------------------- | ------------------------------------ |
+| `<servlet>` + `<servlet-mapping>` | Servlet nodes with URL patterns | Shows routing configuration          |
+| `<filter>` + `<filter-mapping>`   | Filter chain sequence           | Order matters for execution          |
+| `<session-config>`                | Session Manager component       | Security settings (HttpOnly, Secure) |
+| `<context-param>`                 | Configuration properties        | Database URLs, pool sizes            |
+| `<Resource>` (server.xml)         | JNDI resources                  | DataSource, Mail, JMS connections    |
+| `<error-page>`                    | Error handling routes           | (Optional in diagram)                |
 
 ---
 
@@ -1070,11 +1070,11 @@ erDiagram
 
 **Relationship Details:**
 
-| Relationship | Type | Cascade | Fetch | Notes |
-|--------------|------|---------|-------|-------|
-| User → Contact | 1:N | ALL + orphanRemoval | LAZY | Deleting user deletes all contacts |
-| User ↔ Role | N:M | None | EAGER | Junction table `user_roles` |
-| Contact → Tag | 1:N | ALL + orphanRemoval | LAZY | Deleting contact deletes all tags |
+| Relationship   | Type | Cascade             | Fetch | Notes                              |
+| -------------- | ---- | ------------------- | ----- | ---------------------------------- |
+| User → Contact | 1:N  | ALL + orphanRemoval | LAZY  | Deleting user deletes all contacts |
+| User ↔ Role    | N:M  | None                | EAGER | Junction table `user_roles`        |
+| Contact → Tag  | 1:N  | ALL + orphanRemoval | LAZY  | Deleting contact deletes all tags  |
 
 **Index Strategy:**
 
@@ -1211,13 +1211,13 @@ Use semantic Unicode symbols consistently:
 
 ## Summary: Java Servlet → Mermaid Mapping
 
-| Java Element | Diagram Type | Key Patterns |
-|--------------|--------------|--------------|
-| Package structure (`controller/`, `service/`, `dao/`) | Architecture | Three-layer MVC separation |
-| `web.xml` + `server.xml` config | Deployment | Servlet mappings, filters, JNDI resources |
-| Method call chain (Servlet → Service → DAO) | Sequence | Request/response flow with method calls |
-| Filter chain with `doFilter()` | Activity | Sequential filter execution with conditionals |
-| `@Entity`, `@OneToMany`, `@ManyToMany` | ER Diagram | JPA annotations to table relationships |
+| Java Element                                          | Diagram Type | Key Patterns                                  |
+| ----------------------------------------------------- | ------------ | --------------------------------------------- |
+| Package structure (`controller/`, `service/`, `dao/`) | Architecture | Three-layer MVC separation                    |
+| `web.xml` + `server.xml` config                       | Deployment   | Servlet mappings, filters, JNDI resources     |
+| Method call chain (Servlet → Service → DAO)           | Sequence     | Request/response flow with method calls       |
+| Filter chain with `doFilter()`                        | Activity     | Sequential filter execution with conditionals |
+| `@Entity`, `@OneToMany`, `@ManyToMany`                | ER Diagram   | JPA annotations to table relationships        |
 
 **Token Efficiency:**
 

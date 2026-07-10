@@ -28,13 +28,22 @@ export default class AppErrorBoundary extends Component {
     const componentStack = info?.componentStack ?? '';
 
     return (
-      <div className="app-error-boundary-overlay" role="alertdialog" aria-modal="true" aria-labelledby="app-error-boundary-title">
+      <div
+        className="app-error-boundary-overlay"
+        role="alertdialog"
+        aria-modal="true"
+        aria-labelledby="app-error-boundary-title"
+      >
         <div className="app-error-boundary-card">
-          <h2 id="app-error-boundary-title" className="app-error-boundary-title">Something went wrong</h2>
+          <h2 id="app-error-boundary-title" className="app-error-boundary-title">
+            Something went wrong
+          </h2>
           <p className="app-error-boundary-explainer">
             The app hit an unexpected error and stopped rendering. Reload to recover.
           </p>
-          <p className="app-error-boundary-message" data-testid="app-error-boundary-message">{message}</p>
+          <p className="app-error-boundary-message" data-testid="app-error-boundary-message">
+            {message}
+          </p>
           <div className="app-error-boundary-actions">
             <button
               type="button"
@@ -49,7 +58,9 @@ export default class AppErrorBoundary extends Component {
             <details className="app-error-boundary-details">
               <summary>Error details</summary>
               {stack ? <pre className="app-error-boundary-stack">{stack}</pre> : null}
-              {componentStack ? <pre className="app-error-boundary-stack">{componentStack}</pre> : null}
+              {componentStack ? (
+                <pre className="app-error-boundary-stack">{componentStack}</pre>
+              ) : null}
             </details>
           ) : null}
         </div>

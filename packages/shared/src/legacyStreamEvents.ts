@@ -188,5 +188,7 @@ export type LegacyStreamEvent =
   | { type: string; timestamp?: number; [key: string]: unknown };
 
 export function isLegacyStreamEvent(evt: unknown): evt is LegacyStreamEvent {
-  return Boolean(evt && typeof evt === 'object' && typeof (evt as { type?: unknown }).type === 'string');
+  return Boolean(
+    evt && typeof evt === 'object' && typeof (evt as { type?: unknown }).type === 'string'
+  );
 }

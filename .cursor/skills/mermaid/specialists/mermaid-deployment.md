@@ -27,6 +27,7 @@ Generate a Mermaid deployment diagram for infrastructure, cloud resources, and n
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/deployment-diagrams.md` for patterns and syntax
 3. **Identify Infrastructure**: Compute (containers, VMs, serverless), data (RDS, NoSQL, caches, storage), network (load balancers, API gateways, CDN), supporting (queues, monitoring, orchestration)
 4. **Organize into Tiers**: Public (load balancers, CDN), application (app servers, containers), data (databases, caches), supporting services

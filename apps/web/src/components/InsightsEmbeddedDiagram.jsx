@@ -83,26 +83,32 @@ export default function InsightsEmbeddedDiagram({
       clearTimeout(debounceRef.current);
     }
 
-    debounceRef.current = setTimeout(() => {
-      const requestId = requestRef.current + 1;
-      requestRef.current = requestId;
+    debounceRef.current = setTimeout(
+      () => {
+        const requestId = requestRef.current + 1;
+        requestRef.current = requestId;
 
-      async function runRender() {
-        try {
-          const diagramId = `insights-embed-${idPrefix}-${requestId}`.replace(/[^a-zA-Z0-9_-]/g, '');
-          const { svg } = await renderMermaidPreviewSvg(diagramId, dsl);
-          if (requestRef.current !== requestId) return;
-          setSvgMarkup(svg);
-          setRenderError('');
-        } catch (error) {
-          if (requestRef.current !== requestId) return;
-          setSvgMarkup('');
-          setRenderError(extractErrorMessage(error));
+        async function runRender() {
+          try {
+            const diagramId = `insights-embed-${idPrefix}-${requestId}`.replace(
+              /[^a-zA-Z0-9_-]/g,
+              ''
+            );
+            const { svg } = await renderMermaidPreviewSvg(diagramId, dsl);
+            if (requestRef.current !== requestId) return;
+            setSvgMarkup(svg);
+            setRenderError('');
+          } catch (error) {
+            if (requestRef.current !== requestId) return;
+            setSvgMarkup('');
+            setRenderError(extractErrorMessage(error));
+          }
         }
-      }
 
-      runRender();
-    }, streamingPreview ? 120 : 200);
+        runRender();
+      },
+      streamingPreview ? 120 : 200
+    );
 
     return () => {
       if (debounceRef.current) {
@@ -248,7 +254,9 @@ export default function InsightsEmbeddedDiagram({
       aria-label="Mermaid preview (read-only)"
     >
       <div className="insights-embedded-diagram-inner">
-        {renderError ? <p className="diagram-error insights-embedded-diagram-error">{renderError}</p> : null}
+        {renderError ? (
+          <p className="diagram-error insights-embedded-diagram-error">{renderError}</p>
+        ) : null}
         {!renderError && svgMarkup ? (
           <div
             ref={svgHostRef}

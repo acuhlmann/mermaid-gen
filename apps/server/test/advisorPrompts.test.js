@@ -10,7 +10,10 @@ import {
 
 test('every advisor persona has a non-trivial persona prompt', () => {
   for (const [key, spec] of Object.entries(ADVISOR_PERSONAS)) {
-    assert.ok(typeof spec.persona === 'string' && spec.persona.length > 40, `persona text for ${key}`);
+    assert.ok(
+      typeof spec.persona === 'string' && spec.persona.length > 40,
+      `persona text for ${key}`
+    );
     assert.ok(spec.temperature > 0 && spec.temperature <= 2, `temperature for ${key}`);
   }
 });
@@ -42,10 +45,9 @@ test('parseAdvisorReply coerces explain persona to comment regardless of model o
 test('parseAdvisorReply coerces refine persona to suggestion regardless of model output', () => {
   // THE Engineer is action-only — even if the model emits kind:"comment", the bubble
   // must always offer a Do-it button so the user gets a concrete next step.
-  const reply = parseAdvisorReply(
-    '{"suggestion": "Add a Cool-down step.", "kind": "comment"}',
-    { persona: 'refine' }
-  );
+  const reply = parseAdvisorReply('{"suggestion": "Add a Cool-down step.", "kind": "comment"}', {
+    persona: 'refine'
+  });
   assert.equal(reply.kind, 'suggestion');
 });
 
@@ -61,7 +63,10 @@ test('parseAdvisorReply tolerates malformed json and missing suggestion', () => 
 });
 
 test('buildAdvisorSystemPrompt swaps to explainer voice for explain dumb-down', () => {
-  const architectDumb = buildAdvisorSystemPrompt('explain', 'mermaid', { mode: 'dumb', simpleLevel: 1 });
+  const architectDumb = buildAdvisorSystemPrompt('explain', 'mermaid', {
+    mode: 'dumb',
+    simpleLevel: 1
+  });
   assert.match(architectDumb, /grown-up who wants zero jargon/);
   assert.match(architectDumb, /DUMB-DOWN TASK/);
   assert.doesNotMatch(architectDumb, /Principal Tech Evangelist/);

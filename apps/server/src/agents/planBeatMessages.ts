@@ -1,4 +1,9 @@
-import type { ContentType, FocusNode, IntentPeerContext, LegacyPlanBeatEvent } from '@archislop/shared';
+import type {
+  ContentType,
+  FocusNode,
+  IntentPeerContext,
+  LegacyPlanBeatEvent
+} from '@archislop/shared';
 import { inferDiagramType } from './inferDiagramType.js';
 
 function normalizeRequestText(text: unknown): string {
@@ -25,7 +30,8 @@ function extractUserRequestFromMessages(messages: unknown[]): string {
         return normalizeRequestText(raw.slice(userRequestIdx + 'User request:'.length));
       }
       if (raw.includes('Transform mode:')) continue;
-      if (raw.includes('Repair instructions:') || raw.includes('Your previous patch failed')) continue;
+      if (raw.includes('Repair instructions:') || raw.includes('Your previous patch failed'))
+        continue;
       return normalizeRequestText(raw);
     }
   }
@@ -59,7 +65,10 @@ type StateStoreLike = {
   getSlot?: (slot: 'mermaid') => { diagramSource?: string } | undefined;
 };
 
-function syntaxGuidancePlanBeat(stateStore: StateStoreLike | undefined, mode: string | null): string | null {
+function syntaxGuidancePlanBeat(
+  stateStore: StateStoreLike | undefined,
+  mode: string | null
+): string | null {
   const source = stateStore?.getSlot?.('mermaid')?.diagramSource ?? '';
   const detected = inferDiagramType(source);
   if (!detected) return null;
@@ -87,7 +96,9 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
     case 'go':
     case 'intent':
     case 'invoke':
-      return requestSnippet ? `Extending the diagram: ${requestSnippet}` : 'Applying your diagram request.';
+      return requestSnippet
+        ? `Extending the diagram: ${requestSnippet}`
+        : 'Applying your diagram request.';
     default:
       return requestSnippet ? `Working on: ${requestSnippet}` : null;
   }

@@ -16,7 +16,9 @@ const SESSION_ID_ALLOWED_CHARS = /[^a-zA-Z0-9._-]/g;
 export function sanitizeSessionId(value: unknown): string | null {
   const candidate = typeof value === 'string' ? value.trim() : '';
   if (!candidate) return null;
-  const normalized = candidate.replace(SESSION_ID_ALLOWED_CHARS, '-').slice(0, MAX_SESSION_ID_LENGTH);
+  const normalized = candidate
+    .replace(SESSION_ID_ALLOWED_CHARS, '-')
+    .slice(0, MAX_SESSION_ID_LENGTH);
   return normalized || null;
 }
 
@@ -30,9 +32,7 @@ export function resolveSessionIdFromRequest(requestLike: RequestLike | Request):
   const headerRaw =
     requestLike?.headers?.[SESSION_HEADER] ??
     (typeof requestLike?.get === 'function' ? requestLike.get(SESSION_HEADER) : undefined);
-  const headerId = sanitizeSessionId(
-    Array.isArray(headerRaw) ? headerRaw[0] : headerRaw
-  );
+  const headerId = sanitizeSessionId(Array.isArray(headerRaw) ? headerRaw[0] : headerRaw);
   if (headerId) return headerId;
 
   for (const key of SESSION_QUERY_KEYS) {
@@ -62,7 +62,9 @@ export type SessionServices = {
 
 export type SessionServicesRegistry = ReturnType<typeof createSessionServicesRegistry>;
 
-export function createSessionServicesRegistry({ env = process.env }: { env?: NodeJS.ProcessEnv } = {}) {
+export function createSessionServicesRegistry({
+  env = process.env
+}: { env?: NodeJS.ProcessEnv } = {}) {
   const sessions = new Map<string, SessionServices>();
   const eventBus = createSessionEventBus();
 

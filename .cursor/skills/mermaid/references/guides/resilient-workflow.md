@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # Resilient Diagram Generation Workflow
@@ -89,14 +89,14 @@ Analyze the Mermaid code to determine the diagram type and load appropriate refe
 
 **Detection Patterns:**
 
-| First Line Pattern | Type | Reference Guide |
-| --- | --- | --- |
-| `flowchart TD/LR/...` or `graph TB/...` | Flowchart | `references/guides/diagrams/activity-diagrams.md` |
-| `sequenceDiagram` | Sequence | `references/guides/diagrams/sequence-diagrams.md` |
-| `classDiagram` | Class | `references/guides/diagrams/class-diagrams.md` |
-| `stateDiagram-v2` | State | `references/guides/diagrams/state-diagrams.md` |
-| `erDiagram` | ER | `references/guides/diagrams/er-diagrams.md` |
-| `C4Context/Container/...` | C4 | `references/guides/diagrams/architecture-diagrams.md` |
+| First Line Pattern                      | Type      | Reference Guide                                       |
+| --------------------------------------- | --------- | ----------------------------------------------------- |
+| `flowchart TD/LR/...` or `graph TB/...` | Flowchart | `references/guides/diagrams/activity-diagrams.md`     |
+| `sequenceDiagram`                       | Sequence  | `references/guides/diagrams/sequence-diagrams.md`     |
+| `classDiagram`                          | Class     | `references/guides/diagrams/class-diagrams.md`        |
+| `stateDiagram-v2`                       | State     | `references/guides/diagrams/state-diagrams.md`        |
+| `erDiagram`                             | ER        | `references/guides/diagrams/er-diagrams.md`           |
+| `C4Context/Container/...`               | C4        | `references/guides/diagrams/architecture-diagrams.md` |
 
 **Action:** Load the appropriate reference guide to ensure correct syntax and patterns are used.
 
@@ -188,13 +188,13 @@ Optionally include a link to the source:
 
 ### Components
 
-| Component | Description | Example |
-| --- | --- | --- |
-| `markdown_file` | Source file name (no extension, sanitized) | `api_design` |
-| `num` | Zero-padded diagram number (01-99) | `01`, `02`, `03` |
-| `type` | Diagram type (lowercase) | `flowchart`, `sequence`, `class` |
-| `title` | Sanitized title (max 20 chars) | `auth_flow`, `user_reg` |
-| `ext` | File extension | `.mmd`, `.svg` |
+| Component       | Description                                | Example                          |
+| --------------- | ------------------------------------------ | -------------------------------- |
+| `markdown_file` | Source file name (no extension, sanitized) | `api_design`                     |
+| `num`           | Zero-padded diagram number (01-99)         | `01`, `02`, `03`                 |
+| `type`          | Diagram type (lowercase)                   | `flowchart`, `sequence`, `class` |
+| `title`         | Sanitized title (max 20 chars)             | `auth_flow`, `user_reg`          |
+| `ext`           | File extension                             | `.mmd`, `.svg`                   |
 
 ### Sanitization Rules
 
@@ -247,16 +247,16 @@ node "$PLUGIN_DIR/scripts/resilient_diagram.js" \
 
 ### CLI Options
 
-| Option | Short | Description | Default |
-| --- | --- | --- | --- |
-| `--code` | `-c` | Mermaid code string | --- |
-| `--mmd-file` | `-i` | Path to .mmd file | --- |
-| `--stdin` | --- | Read from stdin | --- |
-| `--output-dir` | `-o` | Output directory | `./diagrams` |
-| `--markdown-file` | `-m` | Source markdown name | `diagram` |
-| `--diagram-num` | `-n` | Diagram number | `1` |
-| `--title` | `-t` | Diagram title | `diagram` |
-| `--json` | `-j` | Output as JSON | `false` |
+| Option            | Short | Description          | Default      |
+| ----------------- | ----- | -------------------- | ------------ |
+| `--code`          | `-c`  | Mermaid code string  | ---          |
+| `--mmd-file`      | `-i`  | Path to .mmd file    | ---          |
+| `--stdin`         | ---   | Read from stdin      | ---          |
+| `--output-dir`    | `-o`  | Output directory     | `./diagrams` |
+| `--markdown-file` | `-m`  | Source markdown name | `diagram`    |
+| `--diagram-num`   | `-n`  | Diagram number       | `1`          |
+| `--title`         | `-t`  | Diagram title        | `diagram`    |
+| `--json`          | `-j`  | Output as JSON       | `false`      |
 
 ### JSON Output Format
 
@@ -451,14 +451,14 @@ If the `resilient_diagram.js` script is unavailable or fails, follow these manua
 
 Look at the first non-comment line of Mermaid code:
 
-| First Line | Type |
-| --- | --- |
+| First Line            | Type               |
+| --------------------- | ------------------ |
 | `flowchart` / `graph` | Flowchart/Activity |
-| `sequenceDiagram` | Sequence |
-| `classDiagram` | Class |
-| `stateDiagram-v2` | State |
-| `erDiagram` | ER |
-| `C4Context` | C4/Architecture |
+| `sequenceDiagram`     | Sequence           |
+| `classDiagram`        | Class              |
+| `stateDiagram-v2`     | State              |
+| `erDiagram`           | ER                 |
+| `C4Context`           | C4/Architecture    |
 
 ### Step 2: Load Reference Guide
 
@@ -562,6 +562,7 @@ Only after validation succeeds:
    - `./diagrams/auth_doc_01_sequence_user_login.svg`
 5. **Validate:** `node "$PLUGIN_DIR/scripts/render.js" ... --output ...` → Success
 6. **Add to markdown:**
+
    > Note: example path (not repository file).
 
    ```markdown

@@ -90,11 +90,7 @@ function actionDurationMs(action: TechnicalAction, now: number): number | null {
     return durationMs;
   }
   const startedAt = action.startedAt;
-  if (
-    action.status === 'running' &&
-    typeof startedAt === 'number' &&
-    Number.isFinite(startedAt)
-  ) {
+  if (action.status === 'running' && typeof startedAt === 'number' && Number.isFinite(startedAt)) {
     return Math.max(0, now - startedAt);
   }
   return null;

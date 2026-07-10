@@ -359,7 +359,9 @@ test('validateInfographicStrict rejects an empty string', () => {
 });
 
 test('validateInfographicStrict rejects an unknown template with siblings suggestion', () => {
-  const result = validateInfographicStrict('infographic list-totally-made-up-template\ndata\n  lists\n    - label A');
+  const result = validateInfographicStrict(
+    'infographic list-totally-made-up-template\ndata\n  lists\n    - label A'
+  );
   assert.equal(result.valid, false);
   assert.match(result.error, /Unknown template/);
 });

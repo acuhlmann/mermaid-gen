@@ -25,8 +25,8 @@ export default function ExplainDumbDownControls({
   const dumbChipEmoji = isLabelExplainGiveUpLevel(dumbLevel)
     ? '🏳️'
     : dumbLevel > 0
-      ? getLabelExplainDumbLevel(dumbLevel)?.emoji ?? '🍼'
-      : getLabelExplainDumbLevel(1)?.emoji ?? '🍼';
+      ? (getLabelExplainDumbLevel(dumbLevel)?.emoji ?? '🍼')
+      : (getLabelExplainDumbLevel(1)?.emoji ?? '🍼');
   const isGibberishAnswer = isLabelExplainGibberishLevel(dumbLevel);
 
   return (

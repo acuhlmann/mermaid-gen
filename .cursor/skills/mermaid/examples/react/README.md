@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # React to Mermaid Diagrams
@@ -405,28 +405,33 @@ graph TB
 
 ```tsx
 // hooks/useContacts.ts
-import { useAppDispatch, useAppSelector } from '@/store/hooks'
-import { fetchContacts, addContact, updateContact, deleteContact } from '@/store/slices/contactsSlice'
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  fetchContacts,
+  addContact,
+  updateContact,
+  deleteContact
+} from '@/store/slices/contactsSlice';
 
 export function useContacts() {
-  const dispatch = useAppDispatch()
-  const { contacts, loading, error } = useAppSelector(state => state.contacts)
+  const dispatch = useAppDispatch();
+  const { contacts, loading, error } = useAppSelector((state) => state.contacts);
 
   const loadContacts = async () => {
-    await dispatch(fetchContacts())
-  }
+    await dispatch(fetchContacts());
+  };
 
   const createContact = async (data: ContactCreate) => {
-    await dispatch(addContact(data))
-  }
+    await dispatch(addContact(data));
+  };
 
   const editContact = async (id: number, data: ContactUpdate) => {
-    await dispatch(updateContact({ id, data }))
-  }
+    await dispatch(updateContact({ id, data }));
+  };
 
   const removeContact = async (id: number) => {
-    await dispatch(deleteContact(id))
-  }
+    await dispatch(deleteContact(id));
+  };
 
   return {
     contacts,
@@ -436,7 +441,7 @@ export function useContacts() {
     createContact,
     editContact,
     removeContact
-  }
+  };
 }
 ```
 
@@ -486,7 +491,7 @@ function ContactsPage() {
       <Header title="Contacts" />
       <Filters onFilterChange={handleFilter} />
       <ContactList contacts={filteredContacts}>
-        {contact => (
+        {(contact) => (
           <ContactCard
             key={contact.id}
             contact={contact}
@@ -501,7 +506,7 @@ function ContactsPage() {
       </ContactList>
       <Pagination page={page} total={total} onChange={setPage} />
     </Layout>
-  )
+  );
 }
 ```
 
@@ -532,7 +537,7 @@ graph TB
 
 ```tsx
 // App.tsx with routing
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 function App() {
   return (
@@ -542,12 +547,19 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="contacts" element={<ContactsPage />} />
           <Route path="contacts/:id" element={<ContactDetailPage />} />
-          <Route path="profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+          <Route
+            path="profile"
+            element={
+              <PrivateRoute>
+                <ProfilePage />
+              </PrivateRoute>
+            }
+          />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 ```
 
@@ -585,11 +597,11 @@ graph TB
 ### Code Splitting & Lazy Loading
 
 ```tsx
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense } from 'react';
 
 // Lazy load heavy components
-const ContactsPage = lazy(() => import('./pages/ContactsPage'))
-const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const ContactsPage = lazy(() => import('./pages/ContactsPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 
 function App() {
   return (
@@ -599,7 +611,7 @@ function App() {
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
     </Suspense>
-  )
+  );
 }
 ```
 
@@ -637,8 +649,8 @@ flowchart TD
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
@@ -646,9 +658,9 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          'vendor': ['react', 'react-dom', 'react-router-dom'],
-          'redux': ['@reduxjs/toolkit', 'react-redux'],
-          'ui': ['@mui/material', '@emotion/react']
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          redux: ['@reduxjs/toolkit', 'react-redux'],
+          ui: ['@mui/material', '@emotion/react']
         }
       }
     }
@@ -662,7 +674,7 @@ export default defineConfig({
       }
     }
   }
-})
+});
 ```
 
 ## See Also

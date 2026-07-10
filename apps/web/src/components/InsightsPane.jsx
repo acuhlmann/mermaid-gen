@@ -1,7 +1,14 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
-import { splitEmbeddedDiagramDsl, stripEmbeddedDslFromThinkingText, tryExtractDiagramPreviewFromText } from '../utils/insightsEmbeddedDiagramSplit.js';
-import { partitionDiagramToolJsonBlocks, stripInsightStreamDelimiters } from '../utils/insightThinkingEnrich.js';
+import {
+  splitEmbeddedDiagramDsl,
+  stripEmbeddedDslFromThinkingText,
+  tryExtractDiagramPreviewFromText
+} from '../utils/insightsEmbeddedDiagramSplit.js';
+import {
+  partitionDiagramToolJsonBlocks,
+  stripInsightStreamDelimiters
+} from '../utils/insightThinkingEnrich.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 import { extractFencedCodeBlock } from '../utils/thinkingFencedBlock';
 import { extractMarkdownTableBlock, ThinkingMarkdownTable } from '../utils/thinkingMarkdownTable';
@@ -17,8 +24,16 @@ import TechnicalActionStepper from './TechnicalActionStepper.jsx';
 import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
 import { normalizeCritiqueMarkdownForMatch, isLabelExplainGibberishLevel } from '@archislop/shared';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
-import { canRetryInsightEntry, showRetryWithQualityForEntry } from '../utils/insightRetryDescriptor.js';
-import { getVariantPersona, phaseCeremonyLabel, tipForIndex, VARIANT_TAGLINES } from '../utils/slopitectCopy.js';
+import {
+  canRetryInsightEntry,
+  showRetryWithQualityForEntry
+} from '../utils/insightRetryDescriptor.js';
+import {
+  getVariantPersona,
+  phaseCeremonyLabel,
+  tipForIndex,
+  VARIANT_TAGLINES
+} from '../utils/slopitectCopy.js';
 import {
   accentContentLaneClass,
   accentSectionTitleClass,
@@ -77,7 +92,13 @@ function IconThinking() {
 
 function IconSparkles() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="m11 6.5 1.43 3.24L15.77 11l-3.34 1.26L11 15.5 9.57 12.26 6.23 11l3.34-1.26L11 6.5zm7-2 1 2.25L21.25 8 19 10.25 18 8l-2.25-1.75L18 4.75l1-2.25zm0 11 1 2.25L21.25 19 19 21.25 18 19l-2.25-1.75L18 15.75l1-2.25zM6 16l.85 1.92L8.77 19l-1.92.92L6 21.84l-.85-1.92L3.23 19l1.92-.92L6 16z"
@@ -88,7 +109,13 @@ function IconSparkles() {
 
 function IconCritique() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M9 21c-.55 0-1-.45-1-1v-1H5c-1.1 0-2-.9-2-2V5c0-1.1.9-2 2-2h14c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2h-6l-3 3v-3H9v1zm1-7h8V7H7v10h2v2l2-2h1zm2.5-4h-5v1.5h5V10zm3 3h-8V11.5h8V13z"
@@ -99,7 +126,13 @@ function IconCritique() {
 
 function IconExplain() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"
@@ -110,7 +143,13 @@ function IconExplain() {
 
 function IconRefine() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1-.9 10.1 1 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z"
@@ -121,7 +160,13 @@ function IconRefine() {
 
 function IconInnovate() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1-.85-.6V16h-4v-4.5l-.85.6C7.68 13.28 7 12.18 7 11c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.18-.68 2.28-1.15 3.1z"
@@ -132,7 +177,13 @@ function IconInnovate() {
 
 function IconStopped() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path fill="currentColor" d="M6 6h12v12H6V6z" />
     </svg>
   );
@@ -140,7 +191,13 @@ function IconStopped() {
 
 function IconGoMad() {
   return (
-    <svg className="insights-svg-icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+    <svg
+      className="insights-svg-icon"
+      viewBox="0 0 24 24"
+      width="16"
+      height="16"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm10 0c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm-8.31 4.39C9.22 17.84 8.46 17 7.5 17h-3c-.55 0-1-.45-1-1s.45-1 1-1h2.57c.39-.61 1.07-1 1.82-1h6.22c.75 0 1.43.39 1.82 1h2.57c.55 0 1 .45 1 1s-.45 1-1 1h-3c-.96 0-1.72-.84-1.19-1.61-.42-.26-.91-.39-1.41-.39h-4c-.5 0-.99.13-1.41.39zM4.5 9h2c.28 0 .5-.22.5-.5S6.78 8 6.5 8h-2c-.28 0-.5.22-.5.5S4.22 9 4.5 9zm15 0h-2c-.28 0-.5-.22-.5-.5s.22-.5.5-.5h2c.28 0 .5.22.5.5s-.22.5-.5.5zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8 0-.29.02-.58.05-.86 2.36-1.05 4.91-1.64 7.95-1.64s5.59.59 7.95 1.64c.03.28.05.57.05.86 0 4.41-3.59 8-8 8z"
@@ -172,9 +229,7 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0 }) {
   const elapsedLabel = started != null ? formatElapsedDuration(now - started) : '';
   const latestPhase = Array.isArray(phases) && phases.length > 0 ? phases[phases.length - 1] : null;
   const ceremonyLabel =
-    latestPhase?.id != null
-      ? phaseCeremonyLabel(variant, latestPhase.id, latestPhase.label)
-      : null;
+    latestPhase?.id != null ? phaseCeremonyLabel(variant, latestPhase.id, latestPhase.label) : null;
   const actionLabel = VARIANT_ACTION_LABELS[variant] || null;
   const phaseStep = phases?.length ? phases.length : 0;
 
@@ -204,7 +259,10 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0 }) {
         <span className="insights-pane-live-chip is-clock">{elapsedLabel}</span>
       ) : null}
       {streak >= 2 ? (
-        <span className="insights-pane-live-chip is-streak" title={`${actionLabel || variant} streak`}>
+        <span
+          className="insights-pane-live-chip is-streak"
+          title={`${actionLabel || variant} streak`}
+        >
           🔥 ×{streak}
         </span>
       ) : null}
@@ -214,13 +272,11 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0 }) {
 
 function findInsightStatusEntry(entries) {
   return (
-    [...entries]
-      .reverse()
-      .find((e) => {
-        if (e.kind === 'proposal' || e.kind === 'attributed-note') return false;
-        const status = e.status ?? 'running';
-        return status === 'running' || status === 'failed' || status === 'cancelled';
-      }) ?? null
+    [...entries].reverse().find((e) => {
+      if (e.kind === 'proposal' || e.kind === 'attributed-note') return false;
+      const status = e.status ?? 'running';
+      return status === 'running' || status === 'failed' || status === 'cancelled';
+    }) ?? null
   );
 }
 
@@ -293,17 +349,20 @@ function IconAlert({ small }) {
   const dim = small ? 13 : 16;
   return (
     <svg className={cls} viewBox="0 0 24 24" width={dim} height={dim} aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"
-      />
+      <path fill="currentColor" d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
     </svg>
   );
 }
 
 function IconPhaseCheck() {
   return (
-    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+    <svg
+      className="insights-phase-glyph"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
       <path fill="currentColor" d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
     </svg>
   );
@@ -315,7 +374,13 @@ function IconPhasePulse() {
 
 function IconPhaseAnalyze() {
   return (
-    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
+    <svg
+      className="insights-phase-glyph"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C10.01 14 8 11.99 8 9.5S10.01 5 12.5 5 17 7.01 17 9.5 14.99 14 12.5 14z"
@@ -326,16 +391,34 @@ function IconPhaseAnalyze() {
 
 function IconPhaseStream() {
   return (
-    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-      <path fill="currentColor" d="M4 18h12v2H4v-2zm0-6h18v2H4v-2zm0-6h14v2H4V6zm14 8v3l4-4-4-4v3H8v2h10z" />
+    <svg
+      className="insights-phase-glyph"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
+      <path
+        fill="currentColor"
+        d="M4 18h12v2H4v-2zm0-6h18v2H4v-2zm0-6h14v2H4V6zm14 8v3l4-4-4-4v3H8v2h10z"
+      />
     </svg>
   );
 }
 
 function IconPhaseGeneric() {
   return (
-    <svg className="insights-phase-glyph" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true">
-      <path fill="currentColor" d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    <svg
+      className="insights-phase-glyph"
+      viewBox="0 0 24 24"
+      width="14"
+      height="14"
+      aria-hidden="true"
+    >
+      <path
+        fill="currentColor"
+        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+      />
     </svg>
   );
 }
@@ -481,10 +564,14 @@ function explainHeadingToneClass(headingText) {
 
 function innovateHeadingToneClass(headingText) {
   const h = headingText.toLowerCase();
-  if (h.includes('idea') || h.includes('concept') || h.includes('proposal')) return 'insights-tone-innovate-spark';
-  if (h.includes('alternative') || h.includes('option') || h.includes('stretch')) return 'insights-tone-innovate-alt';
-  if (h.includes('experiment') || h.includes('wildcard') || h.includes('wild card')) return 'insights-tone-innovate-play';
-  if (h.includes('risk') || h.includes('tradeoff') || h.includes('trade-off')) return 'insights-tone-innovate-tradeoff';
+  if (h.includes('idea') || h.includes('concept') || h.includes('proposal'))
+    return 'insights-tone-innovate-spark';
+  if (h.includes('alternative') || h.includes('option') || h.includes('stretch'))
+    return 'insights-tone-innovate-alt';
+  if (h.includes('experiment') || h.includes('wildcard') || h.includes('wild card'))
+    return 'insights-tone-innovate-play';
+  if (h.includes('risk') || h.includes('tradeoff') || h.includes('trade-off'))
+    return 'insights-tone-innovate-tradeoff';
   return 'insights-tone-innovate-neutral';
 }
 
@@ -513,16 +600,23 @@ function sectionHeadingIconClass(toneClass) {
   if (toneClass === 'insights-tone-diagram-type') return 'insights-section-icon is-diagram-type';
   if (toneClass === 'insights-tone-visual') return 'insights-section-icon is-visual';
   if (toneClass === 'insights-tone-actionable') return 'insights-section-icon is-actionable';
-  if (toneClass === 'insights-tone-explain-overview') return 'insights-section-icon is-explain-overview';
+  if (toneClass === 'insights-tone-explain-overview')
+    return 'insights-section-icon is-explain-overview';
   if (toneClass === 'insights-tone-explain-flows') return 'insights-section-icon is-explain-flows';
-  if (toneClass === 'insights-tone-explain-entities') return 'insights-section-icon is-explain-entities';
-  if (toneClass === 'insights-tone-explain-takeaways') return 'insights-section-icon is-explain-takeaways';
-  if (toneClass === 'insights-tone-explain-neutral') return 'insights-section-icon is-explain-neutral';
-  if (toneClass === 'insights-tone-innovate-spark') return 'insights-section-icon is-innovate-spark';
+  if (toneClass === 'insights-tone-explain-entities')
+    return 'insights-section-icon is-explain-entities';
+  if (toneClass === 'insights-tone-explain-takeaways')
+    return 'insights-section-icon is-explain-takeaways';
+  if (toneClass === 'insights-tone-explain-neutral')
+    return 'insights-section-icon is-explain-neutral';
+  if (toneClass === 'insights-tone-innovate-spark')
+    return 'insights-section-icon is-innovate-spark';
   if (toneClass === 'insights-tone-innovate-alt') return 'insights-section-icon is-innovate-alt';
   if (toneClass === 'insights-tone-innovate-play') return 'insights-section-icon is-innovate-play';
-  if (toneClass === 'insights-tone-innovate-tradeoff') return 'insights-section-icon is-innovate-tradeoff';
-  if (toneClass === 'insights-tone-innovate-neutral') return 'insights-section-icon is-innovate-neutral';
+  if (toneClass === 'insights-tone-innovate-tradeoff')
+    return 'insights-section-icon is-innovate-tradeoff';
+  if (toneClass === 'insights-tone-innovate-neutral')
+    return 'insights-section-icon is-innovate-neutral';
   if (toneClass === 'insights-tone-gomad-a') return 'insights-section-icon is-gomad-a';
   if (toneClass === 'insights-tone-gomad-b') return 'insights-section-icon is-gomad-b';
   if (toneClass === 'insights-tone-gomad-c') return 'insights-section-icon is-gomad-c';
@@ -579,11 +673,7 @@ function renderFencedOrDiagramBlock(code, language, keyPrefix, embedOpts) {
     );
   }
   return (
-    <ThinkingSyntaxCodeBlock
-      code={code}
-      language={language}
-      keyPrefix={`${keyPrefix}-fence`}
-    />
+    <ThinkingSyntaxCodeBlock code={code} language={language} keyPrefix={`${keyPrefix}-fence`} />
   );
 }
 
@@ -601,7 +691,9 @@ function renderEmbeddedBodyContent(body, keyPrefix, useSectionTypography, embedO
       embedOpts?.showEmbeddedRestore && !embedOpts?.streamingPreview && Boolean(split.dsl?.trim());
     return (
       <>
-        {split.prose.trim() ? renderBodyLines(split.prose, keyPrefix, useSectionTypography, embedOpts) : null}
+        {split.prose.trim()
+          ? renderBodyLines(split.prose, keyPrefix, useSectionTypography, embedOpts)
+          : null}
         <EmbeddedDiagramBlock
           idPrefix={`${keyPrefix}-body-dsl`}
           source={split.dsl}
@@ -744,7 +836,9 @@ function renderBodyLines(body, keyPrefix, useSectionTypography, embedOpts = null
       index += 1;
       continue;
     }
-    const paraClass = useSectionTypography ? 'insights-content-line insights-content-line-in-section' : 'insights-content-line';
+    const paraClass = useSectionTypography
+      ? 'insights-content-line insights-content-line-in-section'
+      : 'insights-content-line';
     out.push(
       <p key={`${keyPrefix}-p-${index}`} className={paraClass}>
         {parseInline(line)}
@@ -779,10 +873,7 @@ function resultingPreviewLabel(afterKind) {
 }
 
 function DiagramDiffLegend({ diff, ariaLabel }) {
-  if (
-    !diff ||
-    (!diff.addedIds?.length && !diff.modifiedIds?.length && !diff.removedIds?.length)
-  ) {
+  if (!diff || (!diff.addedIds?.length && !diff.modifiedIds?.length && !diff.removedIds?.length)) {
     return null;
   }
   return (
@@ -848,9 +939,7 @@ function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
   }
   // When the entry already shows a "Resulting diagram" preview at the bottom, drop the
   // mid-prose DSL preview to avoid duplicating the same diagram twice in one entry.
-  const proseOnly = embedOpts.suppressEmbedded
-    ? split.prose
-    : null;
+  const proseOnly = embedOpts.suppressEmbedded ? split.prose : null;
   if (embedOpts.suppressEmbedded) {
     return proseOnly?.trim() ? renderRichContent(proseOnly, { ...richOpts, embedOpts }) : null;
   }
@@ -928,7 +1017,10 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
   );
 }
 
-function renderRichContent(content, { accentuateSections, idPrefix = 'ins', variant = 'general', embedOpts = null }) {
+function renderRichContent(
+  content,
+  { accentuateSections, idPrefix = 'ins', variant = 'general', embedOpts = null }
+) {
   const cleaned = preprocessBulletArtifacts(content);
   const chunks = splitMarkdownSections(cleaned);
   const hasSections = chunks.some((c) => c.type === 'section');
@@ -1054,7 +1146,8 @@ export default function InsightsPane({
       onRestoreDiagramSnapshot
     };
   }
-  const liveEntry = [...entries].reverse().find((e) => (e.status ?? 'running') === 'running') ?? null;
+  const liveEntry =
+    [...entries].reverse().find((e) => (e.status ?? 'running') === 'running') ?? null;
   const statusEntry = findInsightStatusEntry(entries);
   const activeVariant = (() => {
     if (liveEntry?.variant) return liveEntry.variant;
@@ -1063,10 +1156,12 @@ export default function InsightsPane({
   })();
   const liveStreak =
     activeVariant && streakByVariant && typeof streakByVariant === 'object'
-      ? streakByVariant[activeVariant] ?? 0
+      ? (streakByVariant[activeVariant] ?? 0)
       : 0;
   const slopitectVariantClass =
-    activeVariant && SLOPITECT_VARIANT_CLASS[activeVariant] ? SLOPITECT_VARIANT_CLASS[activeVariant] : '';
+    activeVariant && SLOPITECT_VARIANT_CLASS[activeVariant]
+      ? SLOPITECT_VARIANT_CLASS[activeVariant]
+      : '';
   const slopitectTagline = activeVariant ? VARIANT_TAGLINES[activeVariant] : null;
 
   const [tipIndex, setTipIndex] = useState(0);
@@ -1126,7 +1221,9 @@ export default function InsightsPane({
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
         {entries.length === 0 ? (
           <>
-            <p className="insights-pane-empty">Agent thoughts and critique responses appear here.</p>
+            <p className="insights-pane-empty">
+              Agent thoughts and critique responses appear here.
+            </p>
             <aside className="insights-tip-of-the-day" data-testid="slopitect-tip-of-the-day">
               <span className="insights-tip-of-the-day-label">Slopitect Tip™</span>
               {tipForIndex(tipIndex)}
@@ -1193,7 +1290,11 @@ export default function InsightsPane({
                         variant: noteVariant
                       },
                       buildEmbedOpts(
-                        { idPrefix: `${entry.id}-note`, streamingPreview: false, suppressEmbedded: false },
+                        {
+                          idPrefix: `${entry.id}-note`,
+                          streamingPreview: false,
+                          suppressEmbedded: false
+                        },
                         { showEmbeddedRestore: true }
                       )
                     )}
@@ -1201,7 +1302,11 @@ export default function InsightsPane({
                   {noteReactions.length > 0 ? (
                     <div className="insights-entry-note-reactions">
                       {noteReactions.map((r) => (
-                        <span key={r.reactionId} className="agent-reaction-inline" title={r.origin?.agentName}>
+                        <span
+                          key={r.reactionId}
+                          className="agent-reaction-inline"
+                          title={r.origin?.agentName}
+                        >
                           {r.emoji}
                         </span>
                       ))}
@@ -1237,7 +1342,7 @@ export default function InsightsPane({
                 afterKind === 'chart' ||
                 afterKind === 'metaphor3d' ||
                 afterKind === 'anything');
-            const afterDiff = hasAfterPreview ? entryDiagramDiffById?.[entry.id] ?? null : null;
+            const afterDiff = hasAfterPreview ? (entryDiagramDiffById?.[entry.id] ?? null) : null;
             const afterRemovedIds = afterDiff?.removedIds ?? [];
             // Restore is a per-version bookmark: click to jump the canvas back to this entry's
             // resulting state. Always available on entries that produced a snapshot.
@@ -1261,14 +1366,15 @@ export default function InsightsPane({
                 liveDraftContentType === 'metaphor3d' ||
                 liveDraftContentType === 'anything');
             if (showLiveDraftPreview && displayContent) {
-              displayContent = stripEmbeddedDslFromThinkingText(displayContent, liveDraftContentType);
+              displayContent = stripEmbeddedDslFromThinkingText(
+                displayContent,
+                liveDraftContentType
+              );
             }
 
             let analysisBody = null;
             const explainStructured =
-              variant === 'explain' &&
-              entry.explainSections?.sections?.length > 0 &&
-              !isRunning;
+              variant === 'explain' && entry.explainSections?.sections?.length > 0 && !isRunning;
             const explainDumbLevel = explainDumbLevelByEntryId?.[entry.id] ?? 0;
             const explainDumbLoading = explainDumbLoadingEntryId === entry.id;
             const explainDumbSurrendered = Boolean(explainDumbSurrenderedEntryIds?.[entry.id]);
@@ -1309,7 +1415,11 @@ export default function InsightsPane({
                             variant
                           },
                           buildEmbedOpts(
-                            { idPrefix: `${entry.id}-pre`, streamingPreview: isRunning, suppressEmbedded },
+                            {
+                              idPrefix: `${entry.id}-pre`,
+                              streamingPreview: isRunning,
+                              suppressEmbedded
+                            },
                             { showEmbeddedRestore }
                           )
                         )}
@@ -1334,7 +1444,11 @@ export default function InsightsPane({
                             variant
                           },
                           buildEmbedOpts(
-                            { idPrefix: `${entry.id}-post`, streamingPreview: isRunning, suppressEmbedded },
+                            {
+                              idPrefix: `${entry.id}-post`,
+                              streamingPreview: isRunning,
+                              suppressEmbedded
+                            },
                             { showEmbeddedRestore }
                           )
                         )}
@@ -1385,7 +1499,9 @@ export default function InsightsPane({
                     </span>
                   </h3>
                   <span className={`insights-status-chip is-${rawStatus}`}>
-                    {rawStatus === 'running' ? <span className="insights-working-dot" aria-hidden="true" /> : null}
+                    {rawStatus === 'running' ? (
+                      <span className="insights-working-dot" aria-hidden="true" />
+                    ) : null}
                     {statusLabel(entry)}
                   </span>
                 </div>
@@ -1443,7 +1559,8 @@ export default function InsightsPane({
                         const isFailed = rawStatus === 'failed';
                         const isCancelled = rawStatus === 'cancelled';
                         const phaseComplete =
-                          rawStatus === 'done' || (!isLast && (isRunning || isFailed || isCancelled));
+                          rawStatus === 'done' ||
+                          (!isLast && (isRunning || isFailed || isCancelled));
                         const phaseActive = isRunning && isLast && !isFailed && !isCancelled;
                         const phaseFailedLast = isFailed && isLast;
                         const phaseStoppedLast = isCancelled && isLast;
@@ -1512,11 +1629,16 @@ export default function InsightsPane({
 
                 <section className={`insights-section ${accentContentLaneClass(variant)}`}>
                   <h4
-                    className={['insights-section-title', accentSectionTitleClass(variant)].filter(Boolean).join(' ')}
+                    className={['insights-section-title', accentSectionTitleClass(variant)]
+                      .filter(Boolean)
+                      .join(' ')}
                   >
                     {accentSectionTitleClass(variant) ? (
                       <>
-                        <span className={accentSectionTitleIconWrapClass(variant)} aria-hidden="true">
+                        <span
+                          className={accentSectionTitleIconWrapClass(variant)}
+                          aria-hidden="true"
+                        >
                           <AccentSectionTitleIcon variant={variant} />
                         </span>
                         <span>{contentUpdatesTitle(variant)}</span>
@@ -1657,8 +1779,12 @@ export default function InsightsPane({
                     ) : null}
                     {entry.id === diagramChangeHighlightEntryId &&
                     diagramChangeHighlightSummary?.isStructuralEmpty ? (
-                      <p className="insights-change-highlight-note insights-change-highlight-empty" aria-live="polite">
-                        No structural changes detected between this version and the diagram before this step.
+                      <p
+                        className="insights-change-highlight-note insights-change-highlight-empty"
+                        aria-live="polite"
+                      >
+                        No structural changes detected between this version and the diagram before
+                        this step.
                       </p>
                     ) : null}
                   </div>
@@ -1678,11 +1804,7 @@ export default function InsightsPane({
         )}
       </div>
       {typeof onStopStreamingAgent === 'function' ? (
-        <button
-          type="button"
-          className="insights-stop-stream-btn"
-          onClick={onStopStreamingAgent}
-        >
+        <button type="button" className="insights-stop-stream-btn" onClick={onStopStreamingAgent}>
           Stop request
         </button>
       ) : null}

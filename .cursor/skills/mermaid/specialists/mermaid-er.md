@@ -27,6 +27,7 @@ Generate a Mermaid Entity-Relationship (ER) diagram for database schema design, 
    ```
 
    Use the returned path as `PLUGIN_DIR` in all steps below.
+
 2. **Load Reference**: Read `PLUGIN_DIR/references/guides/diagrams/er-diagrams.md` for patterns and syntax
 3. **Identify Entities**: Extract table/entity names, attributes (columns), primary keys
 4. **Identify Relationships**:
@@ -41,7 +42,7 @@ Generate a Mermaid Entity-Relationship (ER) diagram for database schema design, 
    - Keep output theme-first: avoid hardcoded `classDef fill/stroke/color` unless user explicitly requests custom colors
    - Include entity attributes with types
    - Mark primary keys (PK), foreign keys (FK)
-   - Add cardinality labels (1, N, 0..1, 1..*)
+   - Add cardinality labels (1, N, 0..1, 1..\*)
    - Use descriptive relationship labels
 6. **Validate**:
    - If output is Markdown with ` ```mermaid ` blocks, use:

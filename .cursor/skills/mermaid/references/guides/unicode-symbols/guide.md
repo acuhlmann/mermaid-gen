@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # Unicode Semantic Symbols in Mermaid Diagrams
@@ -24,14 +24,14 @@ Mermaid supports Unicode characters within node labels when enclosed in double q
 
 ### Infrastructure & Cloud (☁️ 🌐 🔌)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| ☁️ | Cloud Service | `[☁️ AWS Lambda]` |
-| 🌐 | Network/Internet/Load Balancer | `[🌐 API Gateway]` |
-| 🔌 | Network Connection | `[🔌 VPC Connector]` |
-| 📡 | Communication/Broadcast | `[📡 WebSocket Server]` |
-| 🛰️ | Satellite/Remote | `[🛰️ Edge Location]` |
-| 🗄️ | Server/Storage | `[🗄️ File Server]` |
+| Symbol | Meaning                        | Example Usage           |
+| ------ | ------------------------------ | ----------------------- |
+| ☁️     | Cloud Service                  | `[☁️ AWS Lambda]`       |
+| 🌐     | Network/Internet/Load Balancer | `[🌐 API Gateway]`      |
+| 🔌     | Network Connection             | `[🔌 VPC Connector]`    |
+| 📡     | Communication/Broadcast        | `[📡 WebSocket Server]` |
+| 🛰️     | Satellite/Remote               | `[🛰️ Edge Location]`    |
+| 🗄️     | Server/Storage                 | `[🗄️ File Server]`      |
 
 **Example:**
 
@@ -44,15 +44,15 @@ graph LR
 
 ### Compute & Processing (⚙️ ⚡ 🔄)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| ⚙️ | Process/Service/Configuration | `[⚙️ Worker Service]` |
-| ⚡ | Fast/Real-time/Cache | `[⚡ Redis Cache]` |
-| 🔄 | Sync/Retry/Circular Process | `[🔄 Sync Service]` |
-| ♻️ | Recycle/Reprocess | `[♻️ Retry Queue]` |
-| 🚀 | Launch/Start/Deploy | `[🚀 Startup Process]` |
-| 🔥 | Hot/Active/Critical | `[🔥 Hot Path]` |
-| 💨 | Fast/Lightweight | `[💨 Quick Response]` |
+| Symbol | Meaning                       | Example Usage          |
+| ------ | ----------------------------- | ---------------------- |
+| ⚙️     | Process/Service/Configuration | `[⚙️ Worker Service]`  |
+| ⚡     | Fast/Real-time/Cache          | `[⚡ Redis Cache]`     |
+| 🔄     | Sync/Retry/Circular Process   | `[🔄 Sync Service]`    |
+| ♻️     | Recycle/Reprocess             | `[♻️ Retry Queue]`     |
+| 🚀     | Launch/Start/Deploy           | `[🚀 Startup Process]` |
+| 🔥     | Hot/Active/Critical           | `[🔥 Hot Path]`        |
+| 💨     | Fast/Lightweight              | `[💨 Quick Response]`  |
 
 **Example:**
 
@@ -66,16 +66,16 @@ flowchart TD
 
 ### Data & Storage (💾 📦 📊)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| 💾 | Database/Persistent Storage | `[(💾 PostgreSQL)]` |
-| 📦 | Object Storage/Package | `[📦 S3 Bucket]` |
-| 📊 | Data/Analytics/Metrics | `[📊 Analytics DB]` |
-| 📈 | Growth/Trending Up | `[📈 Metrics Dashboard]` |
-| 📉 | Decline/Trending Down | `[📉 Error Rate]` |
-| 🗃️ | Archive/Files | `[🗃️ Archive Storage]` |
-| 💿 | Disk/Volume | `[💿 EBS Volume]` |
-| 🧊 | Cold Storage | `[🧊 Glacier]` |
+| Symbol | Meaning                     | Example Usage            |
+| ------ | --------------------------- | ------------------------ |
+| 💾     | Database/Persistent Storage | `[(💾 PostgreSQL)]`      |
+| 📦     | Object Storage/Package      | `[📦 S3 Bucket]`         |
+| 📊     | Data/Analytics/Metrics      | `[📊 Analytics DB]`      |
+| 📈     | Growth/Trending Up          | `[📈 Metrics Dashboard]` |
+| 📉     | Decline/Trending Down       | `[📉 Error Rate]`        |
+| 🗃️     | Archive/Files               | `[🗃️ Archive Storage]`   |
+| 💿     | Disk/Volume                 | `[💿 EBS Volume]`        |
+| 🧊     | Cold Storage                | `[🧊 Glacier]`           |
 
 **Example:**
 
@@ -89,15 +89,15 @@ graph TB
 
 ### Messaging & Events (📨 📬 🐰)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| 📨 | Event/Message/Email | `[📨 Event Bus]` |
-| 📬 | Queue/Mailbox | `[📬 SQS Queue]` |
-| 📤 | Outbox/Send | `[📤 Outgoing Messages]` |
-| 📥 | Inbox/Receive | `[📥 Incoming Events]` |
-| 🐰 | RabbitMQ specifically | `[🐰 RabbitMQ]` |
-| 📢 | Broadcast/Notification | `[📢 Push Notifications]` |
-| 📲 | Mobile Push | `[📲 Mobile Alerts]` |
+| Symbol | Meaning                | Example Usage             |
+| ------ | ---------------------- | ------------------------- |
+| 📨     | Event/Message/Email    | `[📨 Event Bus]`          |
+| 📬     | Queue/Mailbox          | `[📬 SQS Queue]`          |
+| 📤     | Outbox/Send            | `[📤 Outgoing Messages]`  |
+| 📥     | Inbox/Receive          | `[📥 Incoming Events]`    |
+| 🐰     | RabbitMQ specifically  | `[🐰 RabbitMQ]`           |
+| 📢     | Broadcast/Notification | `[📢 Push Notifications]` |
+| 📲     | Mobile Push            | `[📲 Mobile Alerts]`      |
 
 **Example:**
 
@@ -112,16 +112,16 @@ flowchart LR
 
 ### Security & Authentication (🔐 🔑 🛡️)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| 🔐 | Security/Encryption/Auth | `[🔐 Auth Service]` |
-| 🔑 | Key/Secret/Credential | `[🔑 Secret Manager]` |
-| 🛡️ | Protection/Firewall/WAF | `[🛡️ Security Gateway]` |
-| 🚪 | Gateway/Entry Point | `[🚪 API Gateway]` |
-| 👤 | User/Person | `[👤 End User]` |
-| 👥 | Users/Group | `[👥 User Pool]` |
-| 🎫 | Token/Ticket | `[🎫 JWT Token]` |
-| 🔓 | Unlocked/Public | `[🔓 Public API]` |
+| Symbol | Meaning                  | Example Usage           |
+| ------ | ------------------------ | ----------------------- |
+| 🔐     | Security/Encryption/Auth | `[🔐 Auth Service]`     |
+| 🔑     | Key/Secret/Credential    | `[🔑 Secret Manager]`   |
+| 🛡️     | Protection/Firewall/WAF  | `[🛡️ Security Gateway]` |
+| 🚪     | Gateway/Entry Point      | `[🚪 API Gateway]`      |
+| 👤     | User/Person              | `[👤 End User]`         |
+| 👥     | Users/Group              | `[👥 User Pool]`        |
+| 🎫     | Token/Ticket             | `[🎫 JWT Token]`        |
+| 🔓     | Unlocked/Public          | `[🔓 Public API]`       |
 
 **Example:**
 
@@ -142,17 +142,17 @@ sequenceDiagram
 
 ### Monitoring & Operations (📝 📊 🚨)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| 📝 | Logging/Writing | `[📝 Log Aggregator]` |
-| 📊 | Monitoring/Dashboard | `[📊 Grafana]` |
-| 🚨 | Alert/Critical | `[🚨 Alert Manager]` |
-| ⚠️ | Warning | `[⚠️ Rate Limit Warning]` |
-| ✅ | Success/OK | `[✅ Health Check Pass]` |
-| ❌ | Failure/Error | `[❌ Failed]` |
-| 🔍 | Search/Inspect | `[🔍 Log Search]` |
-| 🎯 | Target/Goal | `[🎯 SLA Target]` |
-| 🏷️ | Tag/Label | `[🏷️ Resource Tags]` |
+| Symbol | Meaning              | Example Usage             |
+| ------ | -------------------- | ------------------------- |
+| 📝     | Logging/Writing      | `[📝 Log Aggregator]`     |
+| 📊     | Monitoring/Dashboard | `[📊 Grafana]`            |
+| 🚨     | Alert/Critical       | `[🚨 Alert Manager]`      |
+| ⚠️     | Warning              | `[⚠️ Rate Limit Warning]` |
+| ✅     | Success/OK           | `[✅ Health Check Pass]`  |
+| ❌     | Failure/Error        | `[❌ Failed]`             |
+| 🔍     | Search/Inspect       | `[🔍 Log Search]`         |
+| 🎯     | Target/Goal          | `[🎯 SLA Target]`         |
+| 🏷️     | Tag/Label            | `[🏷️ Resource Tags]`      |
 
 **Example:**
 
@@ -169,17 +169,17 @@ flowchart TD
 
 ### Status & State (✓ ❌ ⏸️)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| ✓ / ✅ | Success/Complete/Approved | `[✅ Approved]` |
-| ❌ / ✗ | Failed/Rejected/Error | `[❌ Failed]` |
-| ⏸️ | Paused/Suspended | `[⏸️ Paused]` |
-| ▶️ | Running/Active | `[▶️ Running]` |
-| ⏹️ | Stopped/Terminated | `[⏹️ Stopped]` |
-| 🔴 | Critical/Down | `[🔴 Service Down]` |
-| 🟢 | OK/Up/Green | `[🟢 Service Up]` |
-| 🟡 | Warning/Degraded | `[🟡 Degraded]` |
-| ⭕ | Pending/Waiting | `[⭕ Pending]` |
+| Symbol | Meaning                   | Example Usage       |
+| ------ | ------------------------- | ------------------- |
+| ✓ / ✅ | Success/Complete/Approved | `[✅ Approved]`     |
+| ❌ / ✗ | Failed/Rejected/Error     | `[❌ Failed]`       |
+| ⏸️     | Paused/Suspended          | `[⏸️ Paused]`       |
+| ▶️     | Running/Active            | `[▶️ Running]`      |
+| ⏹️     | Stopped/Terminated        | `[⏹️ Stopped]`      |
+| 🔴     | Critical/Down             | `[🔴 Service Down]` |
+| 🟢     | OK/Up/Green               | `[🟢 Service Up]`   |
+| 🟡     | Warning/Degraded          | `[🟡 Degraded]`     |
+| ⭕     | Pending/Waiting           | `[⭕ Pending]`      |
 
 **Example:**
 
@@ -197,14 +197,14 @@ stateDiagram-v2
 
 ### Time & Scheduling (⏰ ⏱️ 📅)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| ⏰ | Scheduled/Cron Job | `[⏰ Nightly Batch]` |
-| ⏱️ | Timer/Timeout | `[⏱️ 30s Timeout]` |
-| 📅 | Calendar/Schedule | `[📅 Event Scheduler]` |
-| ⌛ | Hourglass/Waiting | `[⌛ Long Running]` |
-| ⏳ | Processing Time | `[⏳ Processing]` |
-| 🕐-🕛 | Specific Time | `[🕐 1:00 AM Job]` |
+| Symbol | Meaning            | Example Usage          |
+| ------ | ------------------ | ---------------------- |
+| ⏰     | Scheduled/Cron Job | `[⏰ Nightly Batch]`   |
+| ⏱️     | Timer/Timeout      | `[⏱️ 30s Timeout]`     |
+| 📅     | Calendar/Schedule  | `[📅 Event Scheduler]` |
+| ⌛     | Hourglass/Waiting  | `[⌛ Long Running]`    |
+| ⏳     | Processing Time    | `[⏳ Processing]`      |
+| 🕐-🕛  | Specific Time      | `[🕐 1:00 AM Job]`     |
 
 **Example:**
 
@@ -218,16 +218,16 @@ flowchart TD
 
 ### Development & Code (💻 🔧 🐛)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| 💻 | Development/Code | `[💻 Dev Environment]` |
-| 🔧 | Tool/Build/Fix | `[🔧 Build Pipeline]` |
-| 🐛 | Bug/Debug | `[🐛 Bug Fix]` |
-| 🧪 | Test/Experiment | `[🧪 Test Suite]` |
-| 📦 | Package/Artifact | `[📦 Docker Image]` |
-| 🏗️ | Build/Construction | `[🏗️ CI/CD]` |
-| 🚢 | Ship/Deploy | `[🚢 Production Deploy]` |
-| 🔀 | Branch/Merge | `[🔀 Git Merge]` |
+| Symbol | Meaning            | Example Usage            |
+| ------ | ------------------ | ------------------------ |
+| 💻     | Development/Code   | `[💻 Dev Environment]`   |
+| 🔧     | Tool/Build/Fix     | `[🔧 Build Pipeline]`    |
+| 🐛     | Bug/Debug          | `[🐛 Bug Fix]`           |
+| 🧪     | Test/Experiment    | `[🧪 Test Suite]`        |
+| 📦     | Package/Artifact   | `[📦 Docker Image]`      |
+| 🏗️     | Build/Construction | `[🏗️ CI/CD]`             |
+| 🚢     | Ship/Deploy        | `[🚢 Production Deploy]` |
+| 🔀     | Branch/Merge       | `[🔀 Git Merge]`         |
 
 **Example:**
 
@@ -241,15 +241,15 @@ flowchart LR
 
 ### UI/UX & Frontend (⚛️ 🎨 📱)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| ⚛️ | React/Frontend Framework | `[⚛️ React App]` |
-| 🎨 | Design/Styling | `[🎨 CSS Engine]` |
-| 📱 | Mobile | `[📱 Mobile App]` |
-| 🖥️ | Desktop | `[🖥️ Desktop Client]` |
-| 🌐 | Browser/Web | `[🌐 Web Browser]` |
-| 🖱️ | User Interaction | `[🖱️ Click Handler]` |
-| 👁️ | View/Display | `[👁️ Render View]` |
+| Symbol | Meaning                  | Example Usage         |
+| ------ | ------------------------ | --------------------- |
+| ⚛️     | React/Frontend Framework | `[⚛️ React App]`      |
+| 🎨     | Design/Styling           | `[🎨 CSS Engine]`     |
+| 📱     | Mobile                   | `[📱 Mobile App]`     |
+| 🖥️     | Desktop                  | `[🖥️ Desktop Client]` |
+| 🌐     | Browser/Web              | `[🌐 Web Browser]`    |
+| 🖱️     | User Interaction         | `[🖱️ Click Handler]`  |
+| 👁️     | View/Display             | `[👁️ Render View]`    |
 
 **Example:**
 
@@ -263,16 +263,16 @@ flowchart TD
 
 ### Business & Domain (💰 🛒 📋)
 
-| Symbol | Meaning | Example Usage |
-|--------|---------|---------------|
-| 💰 | Payment/Money | `[💰 Payment Gateway]` |
-| 🛒 | Shopping/Cart | `[🛒 Shopping Cart]` |
-| 📋 | Order/List | `[📋 Order Management]` |
-| 📦 | Product/Package | `[📦 Product Catalog]` |
-| 🏢 | Enterprise/Organization | `[🏢 Company]` |
-| 🏦 | Financial/Bank | `[🏦 Bank Integration]` |
-| 📧 | Email/Communication | `[📧 Email Service]` |
-| 🎁 | Reward/Bonus | `[🎁 Loyalty Program]` |
+| Symbol | Meaning                 | Example Usage           |
+| ------ | ----------------------- | ----------------------- |
+| 💰     | Payment/Money           | `[💰 Payment Gateway]`  |
+| 🛒     | Shopping/Cart           | `[🛒 Shopping Cart]`    |
+| 📋     | Order/List              | `[📋 Order Management]` |
+| 📦     | Product/Package         | `[📦 Product Catalog]`  |
+| 🏢     | Enterprise/Organization | `[🏢 Company]`          |
+| 🏦     | Financial/Bank          | `[🏦 Bank Integration]` |
+| 📧     | Email/Communication     | `[📧 Email Service]`    |
+| 🎁     | Reward/Bonus            | `[🎁 Loyalty Program]`  |
 
 **Example:**
 
@@ -463,20 +463,20 @@ graph LR
 
 ## Complete Symbol Reference Table
 
-| Category | Symbols |
-|----------|---------|
-| Cloud/Network | ☁️ 🌐 🔌 📡 🛰️ 🗄️ |
-| Compute | ⚙️ ⚡ 🔄 ♻️ 🚀 🔥 💨 |
-| Data/Storage | 💾 📦 📊 📈 📉 🗃️ 💿 🧊 |
-| Messaging | 📨 📬 📤 📥 🐰 📢 📲 |
-| Security | 🔐 🔑 🛡️ 🚪 👤 👥 🎫 🔓 |
-| Monitoring | 📝 📊 🚨 ⚠️ ✅ ❌ 🔍 🎯 🏷️ |
-| Status | ✓ ✅ ❌ ⏸️ ▶️ ⏹️ 🔴 🟢 🟡 ⭕ |
-| Time | ⏰ ⏱️ 📅 ⌛ ⏳ 🕐-🕛 |
-| Development | 💻 🔧 🐛 🧪 📦 🏗️ 🚢 🔀 |
-| Frontend | ⚛️ 🎨 📱 🖥️ 🌐 🖱️ 👁️ |
-| Business | 💰 🛒 📋 📦 🏢 🏦 📧 🎁 |
-| Languages | 🐍 (Python) ☕ (Java) 📗 (Node) ⚛️ (React) |
+| Category      | Symbols                                    |
+| ------------- | ------------------------------------------ |
+| Cloud/Network | ☁️ 🌐 🔌 📡 🛰️ 🗄️                          |
+| Compute       | ⚙️ ⚡ 🔄 ♻️ 🚀 🔥 💨                       |
+| Data/Storage  | 💾 📦 📊 📈 📉 🗃️ 💿 🧊                    |
+| Messaging     | 📨 📬 📤 📥 🐰 📢 📲                       |
+| Security      | 🔐 🔑 🛡️ 🚪 👤 👥 🎫 🔓                    |
+| Monitoring    | 📝 📊 🚨 ⚠️ ✅ ❌ 🔍 🎯 🏷️                 |
+| Status        | ✓ ✅ ❌ ⏸️ ▶️ ⏹️ 🔴 🟢 🟡 ⭕               |
+| Time          | ⏰ ⏱️ 📅 ⌛ ⏳ 🕐-🕛                       |
+| Development   | 💻 🔧 🐛 🧪 📦 🏗️ 🚢 🔀                    |
+| Frontend      | ⚛️ 🎨 📱 🖥️ 🌐 🖱️ 👁️                       |
+| Business      | 💰 🛒 📋 📦 🏢 🏦 📧 🎁                    |
+| Languages     | 🐍 (Python) ☕ (Java) 📗 (Node) ⚛️ (React) |
 
 ## Advanced: Creating Symbol Legends
 

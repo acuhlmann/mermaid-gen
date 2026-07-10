@@ -140,7 +140,10 @@ test('applyIntent surfaces tool failure error in the repair instruction even whe
             },
             {
               role: 'tool',
-              content: JSON.stringify({ accepted: false, error: 'Unknown template "mystery-template".' })
+              content: JSON.stringify({
+                accepted: false,
+                error: 'Unknown template "mystery-template".'
+              })
             }
           ]
         };
@@ -235,13 +238,19 @@ test('repair instruction includes the original user request', async () => {
               tool_calls: [
                 {
                   name: 'apply_infographic_patch',
-                  args: { diagramSource: 'infographic mystery-template\n  data', reason: 'first try' }
+                  args: {
+                    diagramSource: 'infographic mystery-template\n  data',
+                    reason: 'first try'
+                  }
                 }
               ]
             },
             {
               role: 'tool',
-              content: JSON.stringify({ accepted: false, error: 'Unknown template "mystery-template".' })
+              content: JSON.stringify({
+                accepted: false,
+                error: 'Unknown template "mystery-template".'
+              })
             }
           ]
         };
@@ -296,8 +305,7 @@ test('stable agent fallback runs the next attempt with the fallback agent when f
       invocationLog.push({ agent: 'stable', call: calls, messages });
       await stateStore.applyDiagramSource({
         contentType: 'infographic',
-        diagramSource:
-          'infographic compare-swot\n  data\n    items\n      - label A',
+        diagramSource: 'infographic compare-swot\n  data\n    items\n      - label A',
         reason: 'stable agent fallback'
       });
       return { messages: [{ role: 'assistant', content: 'Patched by stable.' }] };

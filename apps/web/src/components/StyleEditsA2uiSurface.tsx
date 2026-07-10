@@ -3,7 +3,11 @@ import { renderMarkdown } from '@a2ui/markdown-it';
 import { MessageProcessor } from '@a2ui/web_core/v0_9';
 import { A2uiSurface, basicCatalog, MarkdownContext } from '@a2ui/react/v0_9';
 import '@a2ui/react/styles';
-import { A2UI_STYLE_EDITS_SURFACE_ID, ACTION_APPLY_STYLE_EDITS, type A2uiV09Message } from '@archislop/shared';
+import {
+  A2UI_STYLE_EDITS_SURFACE_ID,
+  ACTION_APPLY_STYLE_EDITS,
+  type A2uiV09Message
+} from '@archislop/shared';
 
 export default function StyleEditsA2uiSurface({
   messages,

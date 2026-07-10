@@ -1,8 +1,8 @@
 ---
-origin: "SpillwaveSolutions/design-doc-mermaid"
-origin_url: "https://github.com/SpillwaveSolutions/design-doc-mermaid"
-origin_license: "MIT"
-adaptation: "Adapted for the claude-toolshed Mermaid plugin"
+origin: 'SpillwaveSolutions/design-doc-mermaid'
+origin_url: 'https://github.com/SpillwaveSolutions/design-doc-mermaid'
+origin_license: 'MIT'
+adaptation: 'Adapted for the claude-toolshed Mermaid plugin'
 ---
 
 # Spring Boot to Mermaid Diagrams

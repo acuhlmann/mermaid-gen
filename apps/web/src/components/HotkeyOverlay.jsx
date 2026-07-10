@@ -36,12 +36,11 @@ export default function HotkeyOverlay({ open, onClose }) {
       onClick={onClose}
       data-testid="hotkey-overlay"
     >
-      <div
-        className="hotkey-overlay-card"
-        onClick={(event) => event.stopPropagation()}
-      >
+      <div className="hotkey-overlay-card" onClick={(event) => event.stopPropagation()}>
         <div className="hotkey-overlay-header">
-          <h2 id="hotkey-overlay-title" className="hotkey-overlay-title">Keyboard shortcuts</h2>
+          <h2 id="hotkey-overlay-title" className="hotkey-overlay-title">
+            Keyboard shortcuts
+          </h2>
           <button
             type="button"
             className="hotkey-overlay-close"
@@ -52,14 +51,17 @@ export default function HotkeyOverlay({ open, onClose }) {
           </button>
         </div>
         <p className="hotkey-overlay-hint">
-          Single-letter hotkeys fire when a diagram element is selected. Hotkeys are ignored while typing.
+          Single-letter hotkeys fire when a diagram element is selected. Hotkeys are ignored while
+          typing.
         </p>
         <ul className="hotkey-overlay-list">
           {ENTRIES.map((entry) => (
             <li key={entry.label} className="hotkey-overlay-row">
               <span className="hotkey-overlay-keys">
                 {entry.keys.map((k, i) => (
-                  <kbd key={`${entry.label}-${k}-${i}`} className="hotkey-overlay-key">{k}</kbd>
+                  <kbd key={`${entry.label}-${k}-${i}`} className="hotkey-overlay-key">
+                    {k}
+                  </kbd>
                 ))}
               </span>
               <span className="hotkey-overlay-label">{entry.label}</span>

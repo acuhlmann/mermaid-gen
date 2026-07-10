@@ -169,7 +169,11 @@ Concise conclusions — what to remember or how to read the diagram.${tail}`;
 }
 
 function isEdgeFocus(focusNode) {
-  return focusNode?.selectionKind === 'edge' && Boolean(focusNode.edgeFrom?.trim()) && Boolean(focusNode.edgeTo?.trim());
+  return (
+    focusNode?.selectionKind === 'edge' &&
+    Boolean(focusNode.edgeFrom?.trim()) &&
+    Boolean(focusNode.edgeTo?.trim())
+  );
 }
 
 /**
@@ -241,7 +245,13 @@ export function goMadTransformModelOptions(depthRaw) {
   const span = GO_MAD_TEMP_MAX - GO_MAD_TEMP_MIN;
   const temperature = GO_MAD_TEMP_MIN + Math.min(span, (d - 1) * GO_MAD_TEMP_PER_DEPTH);
   const topP =
-    d <= 2 ? 0.94 : d <= 5 ? 0.95 : d <= 8 ? 0.96 : Math.min(0.97, TRANSFORM_MODEL_LIMITS.topP + 0.06);
+    d <= 2
+      ? 0.94
+      : d <= 5
+        ? 0.95
+        : d <= 8
+          ? 0.96
+          : Math.min(0.97, TRANSFORM_MODEL_LIMITS.topP + 0.06);
   return {
     temperature,
     topP,
@@ -343,9 +353,9 @@ export function buildTransformUserContent({
 - Visual punch (valid Mermaid): theme swing + classDef/class and/or linkStyle as needed; contrast must stay readable.
 - The madness lives in your CHOICES — diagram-type roulette, absurd-but-coherent labels, loud theming — not in randomness. Commit hard to ONE weird coherent take; hedged mildness is a failure mode, and so is word salad.
 - Weird > safe — but weird IN-SUBJECT, not weird-by-default.${buildGoMadEscalationInstructions(
-            mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
-            diagramSource
-          )}`;
+              mode === 'goMad' ? clampGoMadDepth(rawDepth) : 1,
+              diagramSource
+            )}`;
 
   const stakeholderBlock = buildAdvisorSuggestionBlock(advisorPrompt);
 

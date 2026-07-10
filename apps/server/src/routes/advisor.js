@@ -143,7 +143,9 @@ export function createAdvisorRouter() {
         };
       }
       if (!parsedReply) {
-        res.status(200).json({ persona: payload.persona, suggestion: null, highlightIds: [], kind: 'comment' });
+        res
+          .status(200)
+          .json({ persona: payload.persona, suggestion: null, highlightIds: [], kind: 'comment' });
         return;
       }
       res.status(200).json({
@@ -160,7 +162,9 @@ export function createAdvisorRouter() {
   router.post('/explain-dumb', async (req, res) => {
     const parsed = ExplainDumbDownSchema.safeParse(req.body);
     if (!parsed.success) {
-      res.status(400).json({ error: 'Invalid explain-dumb payload', details: parsed.error.flatten() });
+      res
+        .status(400)
+        .json({ error: 'Invalid explain-dumb payload', details: parsed.error.flatten() });
       return;
     }
     const payload = parsed.data;

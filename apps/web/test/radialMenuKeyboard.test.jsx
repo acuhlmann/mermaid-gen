@@ -22,7 +22,13 @@ const DESCRIPTOR = {
 
 const ACTIONS = [
   { id: 'refine', label: 'Refine', icon: 'R', variant: 'refine', persona: 'THE Engineer' },
-  { id: 'innovate', label: 'Innovate', icon: 'I', variant: 'innovate', persona: 'Chief Innovation Officer' },
+  {
+    id: 'innovate',
+    label: 'Innovate',
+    icon: 'I',
+    variant: 'innovate',
+    persona: 'Chief Innovation Officer'
+  },
   { id: 'critique', label: 'Critique', icon: 'C', variant: 'critique', persona: 'The Auditor' }
 ];
 

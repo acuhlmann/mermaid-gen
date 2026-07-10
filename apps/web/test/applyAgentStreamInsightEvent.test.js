@@ -30,17 +30,13 @@ describe('applyAgentStreamInsightEvent tool_apply_result', () => {
   it('annotates the matching technical action with validation error', () => {
     const annotateTechnicalActionResult = vi.fn();
     const ctx = createCtx({ annotateTechnicalActionResult });
-    applyAgentStreamInsightEvent(
-      { text: '' },
-      ctx,
-      {
-        type: 'tool_apply_result',
-        name: 'apply_chart_patch',
-        id: 'tool_42',
-        accepted: false,
-        error: 'Chart DSL must include archislopVersion'
-      }
-    );
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'tool_apply_result',
+      name: 'apply_chart_patch',
+      id: 'tool_42',
+      accepted: false,
+      error: 'Chart DSL must include archislopVersion'
+    });
     expect(annotateTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'apply_chart_patch', {
       validationError: 'Chart DSL must include archislopVersion',
       toolCallId: 'tool_42'
@@ -50,19 +46,15 @@ describe('applyAgentStreamInsightEvent tool_apply_result', () => {
   it('enriches accepted patch actions with outcome detail', () => {
     const enrichTechnicalActionDetail = vi.fn();
     const ctx = createCtx({ enrichTechnicalActionDetail });
-    applyAgentStreamInsightEvent(
-      { text: '' },
-      ctx,
-      {
-        type: 'tool_apply_result',
-        name: 'apply_mermaid_patch',
-        id: 'tool_1',
-        accepted: true,
-        revisionId: 8,
-        nodesAdded: 2,
-        reason: 'Add cache layer'
-      }
-    );
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'tool_apply_result',
+      name: 'apply_mermaid_patch',
+      id: 'tool_1',
+      accepted: true,
+      revisionId: 8,
+      nodesAdded: 2,
+      reason: 'Add cache layer'
+    });
     expect(enrichTechnicalActionDetail).toHaveBeenCalledWith(
       'sec-1',
       'apply_mermaid_patch',
@@ -82,15 +74,11 @@ describe('applyAgentStreamInsightEvent syntax_fixer', () => {
   it('starts a syntax fixer technical action with trigger context', () => {
     const appendTechnicalAction = vi.fn();
     const ctx = createCtx({ appendTechnicalAction });
-    applyAgentStreamInsightEvent(
-      { text: '' },
-      ctx,
-      {
-        type: 'syntax_fixer_start',
-        contentType: 'chart',
-        triggerError: 'Vega-Lite compile failed: missing field'
-      }
-    );
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'syntax_fixer_start',
+      contentType: 'chart',
+      triggerError: 'Vega-Lite compile failed: missing field'
+    });
     expect(appendTechnicalAction).toHaveBeenCalledWith('sec-1', 'syntax_fixer', 'running', {
       contextNote: 'Vega-Lite compile failed: missing field'
     });
@@ -99,16 +87,12 @@ describe('applyAgentStreamInsightEvent syntax_fixer', () => {
   it('finalizes syntax fixer success with outcome detail', () => {
     const finalizeTechnicalActionResult = vi.fn();
     const ctx = createCtx({ finalizeTechnicalActionResult });
-    applyAgentStreamInsightEvent(
-      { text: '' },
-      ctx,
-      {
-        type: 'syntax_fixer_result',
-        contentType: 'chart',
-        outcome: 'repaired',
-        detail: 'Repaired invalid chart DSL and applied the patch.'
-      }
-    );
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'syntax_fixer_result',
+      contentType: 'chart',
+      outcome: 'repaired',
+      detail: 'Repaired invalid chart DSL and applied the patch.'
+    });
     expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'syntax_fixer', {
       status: 'done',
       outcomeDetail: 'Repaired invalid chart DSL and applied the patch.'
@@ -118,16 +102,12 @@ describe('applyAgentStreamInsightEvent syntax_fixer', () => {
   it('finalizes syntax fixer failure with validation error', () => {
     const finalizeTechnicalActionResult = vi.fn();
     const ctx = createCtx({ finalizeTechnicalActionResult });
-    applyAgentStreamInsightEvent(
-      { text: '' },
-      ctx,
-      {
-        type: 'syntax_fixer_result',
-        contentType: 'chart',
-        outcome: 'fixer_failed',
-        error: 'Could not repair chart DSL'
-      }
-    );
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'syntax_fixer_result',
+      contentType: 'chart',
+      outcome: 'fixer_failed',
+      error: 'Could not repair chart DSL'
+    });
     expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'syntax_fixer', {
       status: 'rejected',
       validationError: 'Could not repair chart DSL'

@@ -26,10 +26,7 @@ test('refine rejects template change', () => {
 });
 
 test('refine allows label polish and one new item', () => {
-  const after =
-    BASE +
-    '\n    - label Step 3\n' +
-    '      desc Ship';
+  const after = BASE + '\n    - label Step 3\n' + '      desc Ship';
   const result = validateInfographicTransformConstraint({
     transformMode: 'refine',
     beforeSource: BASE,
@@ -39,10 +36,7 @@ test('refine allows label polish and one new item', () => {
 });
 
 test('exec rejects extra items', () => {
-  const after =
-    BASE +
-    '\n    - label Step 3\n' +
-    '      desc Extra';
+  const after = BASE + '\n    - label Step 3\n' + '      desc Extra';
   const result = validateInfographicTransformConstraint({
     transformMode: 'exec',
     beforeSource: BASE,

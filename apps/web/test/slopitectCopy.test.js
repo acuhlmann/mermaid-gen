@@ -22,9 +22,18 @@ describe('slopitectCopy', () => {
   it('has a ceremony label for every real phase id × all mutator variants', () => {
     const mutatorVariants = ['refine', 'innovate', 'goMad', 'exec'];
     const mutationPhases = [
-      'analyze', 'analyze_stream', 'intent', 'agent_run', 'transform',
-      'planning', 'syntax_fixer', 'syntax_repair', 'patch_retry', 'invoke',
-      'repair_1', 'repair_2'
+      'analyze',
+      'analyze_stream',
+      'intent',
+      'agent_run',
+      'transform',
+      'planning',
+      'syntax_fixer',
+      'syntax_repair',
+      'patch_retry',
+      'invoke',
+      'repair_1',
+      'repair_2'
     ];
     for (const phase of mutationPhases) {
       for (const variant of mutatorVariants) {

@@ -43,9 +43,9 @@ describe('chartHitTest', () => {
   });
 
   it('isChartVegaItemSelectable accepts legend entries and rejects legend frames', () => {
-    expect(
-      isChartVegaItemSelectable({ mark: { role: 'legend' }, datum: { label: 'North' } })
-    ).toBe(true);
+    expect(isChartVegaItemSelectable({ mark: { role: 'legend' }, datum: { label: 'North' } })).toBe(
+      true
+    );
     expect(isChartVegaItemSelectable({ mark: { role: 'legend' } })).toBe(false);
   });
 

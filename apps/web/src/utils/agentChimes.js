@@ -30,13 +30,7 @@ export function playShortTone(audioContextRef, opts) {
   const context = getContext(audioContextRef);
   if (!context) return;
   const now = context.currentTime;
-  const {
-    type = 'sine',
-    freqHz,
-    freqEndHz = freqHz,
-    durationSec,
-    peakGain
-  } = opts;
+  const { type = 'sine', freqHz, freqEndHz = freqHz, durationSec, peakGain } = opts;
   const oscillator = context.createOscillator();
   const gainNode = context.createGain();
   oscillator.type = type;
@@ -261,10 +255,14 @@ function playToneSeq(audioContextRef, notes, { type = 'triangle', stagger = 0.6 
 
 /** Refine boot: gentle ascending two-note chrome shine. */
 export function playRefineBoot(audioContextRef) {
-  playToneSeq(audioContextRef, [
-    { freq: 523.25, dur: 0.07, peak: 0.04 },
-    { freq: 783.99, dur: 0.09, peak: 0.038 }
-  ], { type: 'triangle', stagger: 0.55 });
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 523.25, dur: 0.07, peak: 0.04 },
+      { freq: 783.99, dur: 0.09, peak: 0.038 }
+    ],
+    { type: 'triangle', stagger: 0.55 }
+  );
 }
 
 /** Innovate boot: synthwave riser (sawtooth sweep up). */
@@ -285,9 +283,9 @@ export function playInnovateBoot(audioContextRef) {
   oscillator.start(now);
   oscillator.stop(now + 0.4);
   // synth-pluck cap on top
-  playToneSeq(audioContextRef, [
-    { freq: 1318.5, dur: 0.06, peak: 0.045, type: 'square' }
-  ], { stagger: 1 });
+  playToneSeq(audioContextRef, [{ freq: 1318.5, dur: 0.06, peak: 0.045, type: 'square' }], {
+    stagger: 1
+  });
 }
 
 /** Go Mad boot: airhorn-ish three-note hit. Loud and unhinged but brief. */
@@ -345,17 +343,19 @@ export function playCritiqueBoot(audioContextRef) {
   slam.start(now);
   slam.stop(now + 0.16);
   // ding
-  playToneSeq(audioContextRef, [
-    { freq: 1760, dur: 0.12, peak: 0.038, type: 'sine' }
-  ]);
+  playToneSeq(audioContextRef, [{ freq: 1760, dur: 0.12, peak: 0.038, type: 'sine' }]);
 }
 
 /** Explain boot: scroll-unfurl soft chime (two-note open fifth). */
 export function playExplainBoot(audioContextRef) {
-  playToneSeq(audioContextRef, [
-    { freq: 392, dur: 0.18, peak: 0.04, type: 'triangle' },
-    { freq: 587.33, dur: 0.22, peak: 0.045, type: 'triangle' }
-  ], { stagger: 0.55 });
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 392, dur: 0.18, peak: 0.04, type: 'triangle' },
+      { freq: 587.33, dur: 0.22, peak: 0.045, type: 'triangle' }
+    ],
+    { stagger: 0.55 }
+  );
 }
 
 export function playRefineCompletion(audioContextRef) {
@@ -375,10 +375,14 @@ export function playInnovateCompletion(audioContextRef) {
 
 export function playCritiqueCompletion(audioContextRef) {
   // red-pen ding then stamp
-  playToneSeq(audioContextRef, [
-    { freq: 1568, dur: 0.07, peak: 0.04, type: 'sine' },
-    { freq: 220, dur: 0.13, peak: 0.045, type: 'triangle' }
-  ], { stagger: 0.7 });
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 1568, dur: 0.07, peak: 0.04, type: 'sine' },
+      { freq: 220, dur: 0.13, peak: 0.045, type: 'triangle' }
+    ],
+    { stagger: 0.7 }
+  );
 }
 
 export function playExplainCompletion(audioContextRef) {
@@ -441,30 +445,42 @@ export function playPhaseChangePluck(audioContextRef) {
 /** Stinger on streak ≥ 2. Pitch climbs with streak. */
 export function playStreakStinger(audioContextRef, streak = 2) {
   const base = 660 + Math.min(streak, 8) * 60;
-  playToneSeq(audioContextRef, [
-    { freq: base, dur: 0.06, peak: 0.045 },
-    { freq: base * 1.25, dur: 0.06, peak: 0.045 },
-    { freq: base * 1.5, dur: 0.08, peak: 0.045 }
-  ], { stagger: 0.55 });
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: base, dur: 0.06, peak: 0.045 },
+      { freq: base * 1.25, dur: 0.06, peak: 0.045 },
+      { freq: base * 1.5, dur: 0.08, peak: 0.045 }
+    ],
+    { stagger: 0.55 }
+  );
 }
 
 /** Stinger on cross-variant combo. */
 export function playComboStinger(audioContextRef, combo = 2) {
   const top = 880 + Math.min(combo, 6) * 80;
-  playToneSeq(audioContextRef, [
-    { freq: 523.25, dur: 0.05, peak: 0.045, type: 'square' },
-    { freq: top, dur: 0.08, peak: 0.04, type: 'square' }
-  ], { stagger: 0.6 });
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 523.25, dur: 0.05, peak: 0.045, type: 'square' },
+      { freq: top, dur: 0.08, peak: 0.04, type: 'square' }
+    ],
+    { stagger: 0.6 }
+  );
 }
 
 /** Big achievement fanfare. Use sparingly. */
 export function playAchievementFanfare(audioContextRef) {
-  playToneSeq(audioContextRef, [
-    { freq: 523.25, dur: 0.08, peak: 0.05 },
-    { freq: 659.25, dur: 0.08, peak: 0.05 },
-    { freq: 783.99, dur: 0.08, peak: 0.05 },
-    { freq: 1046.5, dur: 0.18, peak: 0.06, type: 'square' }
-  ], { stagger: 0.65 });
+  playToneSeq(
+    audioContextRef,
+    [
+      { freq: 523.25, dur: 0.08, peak: 0.05 },
+      { freq: 659.25, dur: 0.08, peak: 0.05 },
+      { freq: 783.99, dur: 0.08, peak: 0.05 },
+      { freq: 1046.5, dur: 0.18, peak: 0.06, type: 'square' }
+    ],
+    { stagger: 0.65 }
+  );
 }
 
 /**

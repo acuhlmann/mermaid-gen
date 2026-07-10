@@ -32,7 +32,7 @@ const NEXT_LEVEL_TAUNTS = [
   'a microservice or two would do it.',
   'go bribe a stakeholder.',
   'just ship something. anything.',
-  "stop reading this and slop.",
+  'stop reading this and slop.',
   "you're basically already there. legally.",
   'fewer naps, more Co-Design.'
 ];
@@ -280,7 +280,9 @@ export default function LevelUpInfoPanel({
           </strong>{' '}
           unlocked.
           {prestigeShortLabel ? ` Tier: ${prestigeShortLabel}.` : ''}
-          {nextPrestige ? ` Next: ${nextPrestige.label} in ${nextPrestige.gap} run${nextPrestige.gap === 1 ? '' : 's'}.` : ''}
+          {nextPrestige
+            ? ` Next: ${nextPrestige.label} in ${nextPrestige.gap} run${nextPrestige.gap === 1 ? '' : 's'}.`
+            : ''}
         </p>
         {recentUnlocked.length > 0 ? (
           <ul className="levelup-info-trophies">

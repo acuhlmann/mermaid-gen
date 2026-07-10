@@ -28,7 +28,9 @@ export function resolveAdvisorFocusNode({ advisorFocusDescriptor, focusTarget, s
 
 /** User intent prompt when accepting a stakeholder suggestion via the intent route. */
 export function buildAdvisorIntentPrompt(suggestionText) {
-  const trimmed = String(suggestionText ?? '').trim().slice(0, 400);
+  const trimmed = String(suggestionText ?? '')
+    .trim()
+    .slice(0, 400);
   if (!trimmed) return '';
   return [
     'Apply this stakeholder suggestion to the diagram.',

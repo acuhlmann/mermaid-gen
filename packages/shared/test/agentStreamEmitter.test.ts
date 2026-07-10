@@ -15,7 +15,10 @@ test('createAgentStreamEmitter emit.planBeat maps to CUSTOM plan_beat', () => {
   assert.equal(captured.length, 1);
   assert.equal(captured[0].type, 'CUSTOM');
   assert.equal(captured[0].name, AGUI_CUSTOM_NAME_PLAN_BEAT);
-  assert.equal((captured[0].value as Record<string, unknown>).text, 'Adding an auth boundary for the login flow.');
+  assert.equal(
+    (captured[0].value as Record<string, unknown>).text,
+    'Adding an auth boundary for the login flow.'
+  );
   assert.equal((captured[0].value as Record<string, unknown>).source, 'agent');
 });
 

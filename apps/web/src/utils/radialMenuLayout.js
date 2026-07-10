@@ -13,7 +13,12 @@ export const CHIP_TO_BUTTON_GAP_PX = 12;
  * Smallest arc radius (px) so button centers sit outside a rectangular chip
  * centered on the menu origin.
  */
-export function chipBoundingClearancePx(chipWidth, chipHeight, buttonHalfPx, gapPx = CHIP_TO_BUTTON_GAP_PX) {
+export function chipBoundingClearancePx(
+  chipWidth,
+  chipHeight,
+  buttonHalfPx,
+  gapPx = CHIP_TO_BUTTON_GAP_PX
+) {
   if (!chipWidth || !chipHeight) return 0;
   const halfDiagonal = Math.hypot(chipWidth / 2, chipHeight / 2);
   return halfDiagonal + buttonHalfPx + gapPx;
@@ -28,7 +33,7 @@ export function minArcSpreadDeg(count, radiusPx) {
   const halfChord = RADIAL_MIN_CENTER_SEPARATION_PX / 2;
   const ratio = Math.min(1, halfChord / radiusPx);
   const stepRad = 2 * Math.asin(ratio);
-  return (stepRad * 180) / Math.PI * (count - 1);
+  return ((stepRad * 180) / Math.PI) * (count - 1);
 }
 
 /** Smallest radius that fits `count` buttons with the given total spread. */

@@ -97,10 +97,7 @@ DUMB-DOWN TASK (this beats ivory-tower architect rules — you are simplifying, 
 export function buildAdvisorDumbExplainSystemPrompt(opts = {}) {
   const isGibberish = opts.style === 'gibberish';
   const level = Math.min(6, Math.max(1, Number(opts.simpleLevel) || 1));
-  const voice = buildLabelExplainerSystemPrompt(
-    isGibberish ? 'gibberish' : 'simple',
-    level
-  );
+  const voice = buildLabelExplainerSystemPrompt(isGibberish ? 'gibberish' : 'simple', level);
   const gibberish = isGibberish ? `\n\n${ADVISOR_DUMB_GIBBERISH_OVERRIDE}` : '';
   const levelHint = isGibberish
     ? ''
@@ -274,12 +271,17 @@ export function buildAdvisorUserPrompt({
   simpleLevel,
   style
 }) {
-  const recent = Array.isArray(lastSuggestions) && lastSuggestions.length > 0
-    ? lastSuggestions.slice(0, 5).map((s) => `- ${String(s).slice(0, 200)}`).join('\n')
-    : '(none yet)';
-  const source = typeof diagramSource === 'string' && diagramSource.trim()
-    ? diagramSource.slice(0, 4000)
-    : '(empty)';
+  const recent =
+    Array.isArray(lastSuggestions) && lastSuggestions.length > 0
+      ? lastSuggestions
+          .slice(0, 5)
+          .map((s) => `- ${String(s).slice(0, 200)}`)
+          .join('\n')
+      : '(none yet)';
+  const source =
+    typeof diagramSource === 'string' && diagramSource.trim()
+      ? diagramSource.slice(0, 4000)
+      : '(empty)';
 
   // Focus mode (user has selected or hovered a part) takes priority over
   // viewport-wide commentary. The label or id is the *target* of the suggestion.
@@ -293,11 +295,14 @@ export function buildAdvisorUserPrompt({
     focusNode?.indexes && focusNode.selectionKind === 'infographic-item'
       ? String(focusNode.indexes).slice(0, 64)
       : null;
-  const focusSource = focusNode?.source === 'selected'
-    ? 'SELECTED (user clicked it — strong signal)'
-    : focusNode?.source === 'hover'
-      ? 'HOVERING (user is exploring it — weaker signal but still their focus)'
-      : (focusId ? 'FOCUSED' : null);
+  const focusSource =
+    focusNode?.source === 'selected'
+      ? 'SELECTED (user clicked it — strong signal)'
+      : focusNode?.source === 'hover'
+        ? 'HOVERING (user is exploring it — weaker signal but still their focus)'
+        : focusId
+          ? 'FOCUSED'
+          : null;
 
   const focusBlock = focusId
     ? [
@@ -318,18 +323,19 @@ export function buildAdvisorUserPrompt({
       ].join('\n')
     : null;
 
-  const labels = Array.isArray(visibleLabels) && visibleLabels.length > 0
-    ? visibleLabels.slice(0, 30).map((l) => `- ${String(l).slice(0, 120)}`).join('\n')
-    : '(no labels detected in viewport)';
+  const labels =
+    Array.isArray(visibleLabels) && visibleLabels.length > 0
+      ? visibleLabels
+          .slice(0, 30)
+          .map((l) => `- ${String(l).slice(0, 120)}`)
+          .join('\n')
+      : '(no labels detected in viewport)';
   const viewportBlock = focusBlock
     ? [
         'Wider viewport (context only — do NOT pivot away from the focused part above):',
         labels
       ].join('\n')
-    : [
-        'Visible labels (what the user is currently looking at):',
-        labels
-      ].join('\n');
+    : ['Visible labels (what the user is currently looking at):', labels].join('\n');
 
   const previous =
     mode === 'dumb' && typeof previousSuggestion === 'string' && previousSuggestion.trim()
@@ -371,7 +377,9 @@ export function buildAdvisorUserPrompt({
     '```',
     '',
     'Reply with strict JSON: {"suggestion": "...", "highlightIds": ["..."]}'
-  ].filter(Boolean).join('\n');
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 function resolveAdvisorModelId(env, backend) {
@@ -462,7 +470,11 @@ export function parseAdvisorReply(raw, opts = {}) {
 function clampPunchy(text, maxChars) {
   if (text.length <= maxChars) return text;
   const slice = text.slice(0, maxChars);
-  const lastBreak = Math.max(slice.lastIndexOf(' '), slice.lastIndexOf('—'), slice.lastIndexOf('-'));
+  const lastBreak = Math.max(
+    slice.lastIndexOf(' '),
+    slice.lastIndexOf('—'),
+    slice.lastIndexOf('-')
+  );
   const cut = lastBreak > maxChars * 0.6 ? slice.slice(0, lastBreak) : slice;
   return cut.replace(/[\s,.;:—-]+$/, '') + '…';
 }

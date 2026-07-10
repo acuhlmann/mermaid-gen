@@ -100,10 +100,7 @@ export function collectHighlightedSvgElements(host, highlight, kind) {
     const byState = [...host.querySelectorAll('[data-diff-state]')];
     if (byState.length > 0) return byState;
 
-    const idSet = new Set([
-      ...(highlight.addedIds ?? []),
-      ...(highlight.modifiedIds ?? [])
-    ]);
+    const idSet = new Set([...(highlight.addedIds ?? []), ...(highlight.modifiedIds ?? [])]);
     if (idSet.size === 0) return [];
     const matched = [];
     host.querySelectorAll('[data-indexes]').forEach((el) => {
@@ -120,15 +117,14 @@ export function collectHighlightedSvgElements(host, highlight, kind) {
   ];
   if (styled.length > 0) return styled;
 
-  const idSet = new Set([
-    ...(highlight.addedIds ?? []),
-    ...(highlight.modifiedIds ?? [])
-  ]);
+  const idSet = new Set([...(highlight.addedIds ?? []), ...(highlight.modifiedIds ?? [])]);
   if (idSet.size === 0) return [];
   const matched = [];
-  host.querySelectorAll('g.node, g.timeline-node, g.cluster, [data-et="participant"]').forEach((group) => {
-    if (groupMatchesIds(group, idSet)) matched.push(group);
-  });
+  host
+    .querySelectorAll('g.node, g.timeline-node, g.cluster, [data-et="participant"]')
+    .forEach((group) => {
+      if (groupMatchesIds(group, idSet)) matched.push(group);
+    });
   return matched;
 }
 

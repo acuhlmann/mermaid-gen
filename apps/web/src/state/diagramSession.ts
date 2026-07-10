@@ -28,7 +28,9 @@ export function normalizeSessionId(value: unknown): string | null {
   const candidate = typeof value === 'string' ? value.trim() : '';
   if (!candidate) return null;
 
-  const normalized = candidate.replace(SESSION_ID_ALLOWED_CHARS, '-').slice(0, MAX_SESSION_ID_LENGTH);
+  const normalized = candidate
+    .replace(SESSION_ID_ALLOWED_CHARS, '-')
+    .slice(0, MAX_SESSION_ID_LENGTH);
   return normalized || null;
 }
 

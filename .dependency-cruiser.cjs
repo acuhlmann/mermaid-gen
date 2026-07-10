@@ -16,7 +16,7 @@ module.exports = {
       comment:
         'Cycle detected. Break it by inverting a dependency or by hoisting the shared piece into packages/shared. Do not extend the cycle.',
       from: {},
-      to: { circular: true },
+      to: { circular: true }
     },
     {
       name: 'shared-must-be-leaf',
@@ -24,7 +24,7 @@ module.exports = {
       comment:
         'packages/shared is a leaf (ADR-0003). Move the helper into apps/<x>, or extract a pure utility into packages/shared rather than reaching back into app code.',
       from: { path: '^packages/shared/' },
-      to: { path: '^apps/' },
+      to: { path: '^apps/' }
     },
     {
       name: 'web-not-server',
@@ -32,7 +32,7 @@ module.exports = {
       comment:
         'apps/web must not import from apps/server. Cross-app sharing goes through @archislop/shared; talk to the server via HTTP / SSE / MCP.',
       from: { path: '^apps/web/' },
-      to: { path: '^apps/server/' },
+      to: { path: '^apps/server/' }
     },
     {
       name: 'server-not-web',
@@ -40,7 +40,7 @@ module.exports = {
       comment:
         'apps/server must not import from apps/web. Define the contract in packages/shared (Zod or event type) and let both apps depend on it.',
       from: { path: '^apps/server/' },
-      to: { path: '^apps/web/' },
+      to: { path: '^apps/web/' }
     },
     {
       name: 'server-prompts-leaf',
@@ -48,7 +48,7 @@ module.exports = {
       comment:
         'Prompt modules are pure data. They must not import agents/tools/routes — agents/tools/routes depend on prompts, not the other way.',
       from: { path: '^apps/server/src/prompts/' },
-      to: { path: '^apps/server/src/(agents|tools|routes)/' },
+      to: { path: '^apps/server/src/(agents|tools|routes)/' }
     },
     {
       name: 'server-tools-no-agents-routes',
@@ -61,7 +61,7 @@ module.exports = {
       comment:
         'Tools are leaves below agents and routes (CLAUDE.md). If you need agent state, accept a `ctx` arg instead of importing from agents/routes. To fix the current mermaidReliabilitySkill -> tools dep, move the validator into tools/ or packages/shared.',
       from: { path: '^apps/server/src/tools/' },
-      to: { path: '^apps/server/src/(agents|routes)/' },
+      to: { path: '^apps/server/src/(agents|routes)/' }
     },
     {
       name: 'server-mcp-no-routes',
@@ -69,7 +69,7 @@ module.exports = {
       comment:
         'MCP server and /api/copilotkit routes share apps/server/src/state — not each other. If they need to coordinate, do it via the shared state module.',
       from: { path: '^apps/server/src/mcp/' },
-      to: { path: '^apps/server/src/routes/' },
+      to: { path: '^apps/server/src/routes/' }
     },
     {
       name: 'web-non-component-no-components',
@@ -77,7 +77,7 @@ module.exports = {
       comment:
         'state/utils/hooks must not import React components. Invert the dependency: components import the hook/state/util, not the other way.',
       from: { path: '^apps/web/src/(state|utils|hooks)/' },
-      to: { path: '^apps/web/src/components/' },
+      to: { path: '^apps/web/src/components/' }
     },
     {
       name: 'no-orphans',
@@ -100,16 +100,16 @@ module.exports = {
           '/shims/',
           // packages/eslint-config inlines guidance into formatter.cjs by
           // design (CJS / ESM split), so guidance.js looks like an orphan.
-          '^packages/eslint-config/',
-        ],
+          '^packages/eslint-config/'
+        ]
       },
-      to: {},
-    },
+      to: {}
+    }
   ],
   allowed: [],
   options: {
     doNotFollow: {
-      path: 'node_modules',
+      path: 'node_modules'
     },
     exclude: {
       path: [
@@ -121,8 +121,8 @@ module.exports = {
         '(^|/)\\.agents/',
         '(^|/)\\.cursor/',
         '(^|/)\\.claude/',
-        '(^|/)bench-results/',
-      ],
+        '(^|/)bench-results/'
+      ]
     },
     tsPreCompilationDeps: true,
     // No tsConfig pointer: this monorepo uses moduleResolution: "bundler" with
@@ -131,10 +131,10 @@ module.exports = {
     enhancedResolveOptions: {
       exportsFields: ['exports'],
       conditionNames: ['import', 'require', 'node', 'default'],
-      extensions: ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs'],
+      extensions: ['.js', '.jsx', '.ts', '.tsx', '.mjs', '.cjs']
     },
     reporterOptions: {
-      text: { highlightFocused: true },
-    },
-  },
+      text: { highlightFocused: true }
+    }
+  }
 };

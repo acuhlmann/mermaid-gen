@@ -102,7 +102,8 @@ const BASE_HREF_PATTERN = /<base\b[^>]*\bhref\s*=\s*["'][^"']+["']/i;
 
 const EMBEDDED_BROWSING_PATTERN = /<(?:iframe|object|embed)\b/i;
 
-const JAVASCRIPT_URL_PATTERN = /\b(?:href|src|action|formaction|data|poster)\s*=\s*["']javascript:/i;
+const JAVASCRIPT_URL_PATTERN =
+  /\b(?:href|src|action|formaction|data|poster)\s*=\s*["']javascript:/i;
 
 /**
  * Lint a freeform HTML document for sandbox-policy violations.

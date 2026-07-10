@@ -1,10 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import {
-  createPairingCodeStore,
-  normalizePairingCode
-} from '../src/state/pairingCodeStore.js';
+import { createPairingCodeStore, normalizePairingCode } from '../src/state/pairingCodeStore.js';
 
 test('normalizePairingCode uppercases and validates length', () => {
   assert.equal(normalizePairingCode('ab12cd'), 'AB12CD');

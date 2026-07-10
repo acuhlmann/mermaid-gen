@@ -111,8 +111,7 @@ export function buildExplainDumbDownUserPrompt({
   style = 'simple',
   simpleLevel = 1
 }) {
-  const prev =
-    typeof previousExplain === 'string' ? previousExplain.trim().slice(0, 12_000) : '';
+  const prev = typeof previousExplain === 'string' ? previousExplain.trim().slice(0, 12_000) : '';
   if (!prev) return 'Reply with an empty string.';
 
   if (style === 'gibberish') {
@@ -149,7 +148,10 @@ export function sanitizeExplainDumbDownMarkdown(raw) {
   if (typeof raw !== 'string') return '';
   let text = raw.replace(/\r/g, '').trim();
   if (!text) return '';
-  text = text.replace(/^```(?:markdown|md)?\s*\n?/im, '').replace(/\n?```\s*$/m, '').trim();
+  text = text
+    .replace(/^```(?:markdown|md)?\s*\n?/im, '')
+    .replace(/\n?```\s*$/m, '')
+    .trim();
   return text.slice(0, 14_000);
 }
 
@@ -192,9 +194,7 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
 
   const style = payload?.style === 'gibberish' ? 'gibberish' : 'simple';
   const simpleLevel =
-    style === 'simple'
-      ? Math.min(6, Math.max(1, Number(payload?.simpleLevel) || 1))
-      : 1;
+    style === 'simple' ? Math.min(6, Math.max(1, Number(payload?.simpleLevel) || 1)) : 1;
   const contentType = payload?.contentType === 'infographic' ? 'infographic' : 'mermaid';
 
   const model = createExplainDumbDownChatModel(env);
@@ -203,9 +203,7 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
   }
 
   const system =
-    style === 'gibberish'
-      ? GIBBERISH_SYSTEM_PROMPT
-      : buildExplainDumbDownSystemPrompt(simpleLevel);
+    style === 'gibberish' ? GIBBERISH_SYSTEM_PROMPT : buildExplainDumbDownSystemPrompt(simpleLevel);
   const user = buildExplainDumbDownUserPrompt({
     previousExplain,
     contentType,

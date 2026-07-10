@@ -1,10 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAgentStreamEmitter, AGUI_CUSTOM_NAME_SYNTAX_FIXER } from '@archislop/shared';
-import {
-  emitSyntaxFixerResult,
-  emitSyntaxFixerStart
-} from '../src/agents/syntaxFixerTelemetry.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from '../src/agents/syntaxFixerTelemetry.js';
 
 test('emitSyntaxFixerStart emits plan beat, phase, and syntax_fixer_start', () => {
   const captured = [];

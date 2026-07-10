@@ -22,5 +22,7 @@ export const AGUI_EVENT_TYPE = Object.freeze({
 const AGUI_EVENT_TYPE_SET = new Set<string>(Object.values(AGUI_EVENT_TYPE));
 
 export function isAgUiWireEvent(evt: unknown) {
-  return Boolean(evt && typeof evt === 'object' && AGUI_EVENT_TYPE_SET.has((evt as { type?: string }).type ?? ''));
+  return Boolean(
+    evt && typeof evt === 'object' && AGUI_EVENT_TYPE_SET.has((evt as { type?: string }).type ?? '')
+  );
 }

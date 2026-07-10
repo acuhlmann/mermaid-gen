@@ -27,11 +27,11 @@
 
 Mermaid diagrams support two primary styling methods:
 
-| Method | Use Case | Advantages | Disadvantages |
-| --- | --- | --- | --- |
-| **Theme / themeVariables** | Global visual style across the whole diagram | Consistent, user-configured, low maintenance | Less granular per-node control |
-| **ClassDef** | Targeted overrides for specific nodes | Fine-grained control when needed | Can override user theme and create visual drift |
-| **Inline** | One-off styling for specific nodes | Quick, simple for single nodes | Repetitive, harder to maintain |
+| Method                     | Use Case                                     | Advantages                                   | Disadvantages                                   |
+| -------------------------- | -------------------------------------------- | -------------------------------------------- | ----------------------------------------------- |
+| **Theme / themeVariables** | Global visual style across the whole diagram | Consistent, user-configured, low maintenance | Less granular per-node control                  |
+| **ClassDef**               | Targeted overrides for specific nodes        | Fine-grained control when needed             | Can override user theme and create visual drift |
+| **Inline**                 | One-off styling for specific nodes           | Quick, simple for single nodes               | Repetitive, harder to maintain                  |
 
 **Recommendation:** Use theme-first styling for production diagrams. Use `classDef` only for explicit, minimal overrides.
 
@@ -101,13 +101,13 @@ flowchart LR
 
 **Theme Options:**
 
-| Theme | Description | Use Case |
-| --- | --- | --- |
-| `default` | Standard light theme with blue accents | General purpose, documentation |
-| `dark` | Dark background with light text | Dark mode UI, presentations |
-| `forest` | Green tones with natural colors | Environmental, organic processes |
-| `neutral` | Grayscale palette | Professional, minimal distraction |
-| `base` | Minimal styling, clean look | When you want control, starting point |
+| Theme     | Description                            | Use Case                              |
+| --------- | -------------------------------------- | ------------------------------------- |
+| `default` | Standard light theme with blue accents | General purpose, documentation        |
+| `dark`    | Dark background with light text        | Dark mode UI, presentations           |
+| `forest`  | Green tones with natural colors        | Environmental, organic processes      |
+| `neutral` | Grayscale palette                      | Professional, minimal distraction     |
+| `base`    | Minimal styling, clean look            | When you want control, starting point |
 
 ### Using Themes
 
@@ -432,12 +432,12 @@ flowchart TD
 
 **Quick Reference:**
 
-| Foreground | Background | Ratio | AA Pass? |
-| --- | --- | --- | --- |
-| `#FFFFFF` | `#1976D2` | 5.37:1 | ✅ Yes |
-| `#000000` | `#FFD700` | 10.4:1 | ✅ Yes |
-| `#FFEB3B` | `#FFFFFF` | 1.47:1 | ❌ No |
-| `#006400` | `#90EE90` | 4.98:1 | ✅ Yes |
+| Foreground | Background | Ratio  | AA Pass? |
+| ---------- | ---------- | ------ | -------- |
+| `#FFFFFF`  | `#1976D2`  | 5.37:1 | ✅ Yes   |
+| `#000000`  | `#FFD700`  | 10.4:1 | ✅ Yes   |
+| `#FFEB3B`  | `#FFFFFF`  | 1.47:1 | ❌ No    |
+| `#006400`  | `#90EE90`  | 4.98:1 | ✅ Yes   |
 
 ---
 

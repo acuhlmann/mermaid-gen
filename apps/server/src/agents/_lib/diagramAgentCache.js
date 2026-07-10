@@ -1,8 +1,4 @@
-import {
-  normalizeModelProfile,
-  resolveLlmBackend,
-  resolveModelId
-} from '../llmProvider.js';
+import { normalizeModelProfile, resolveLlmBackend, resolveModelId } from '../llmProvider.js';
 import {
   clampGoMadDepth,
   goMadTransformModelOptions,

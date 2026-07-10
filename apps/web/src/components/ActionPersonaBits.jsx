@@ -17,7 +17,9 @@ export function ActionPersonaRole({ variant, fallback = null, fallbackEmoji = 'ð
   if (!label) return null;
   return (
     <span className="slop-action-role">
-      <span className="slop-action-role-emoji" aria-hidden="true">{emoji}</span>
+      <span className="slop-action-role-emoji" aria-hidden="true">
+        {emoji}
+      </span>
       {variant ? actionPersonaName(variant) : label.replace(/^The\s+/i, '')}
     </span>
   );

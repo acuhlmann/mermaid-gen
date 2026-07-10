@@ -37,20 +37,20 @@ sequenceDiagram
 
 ## Trust model
 
-| Concern | Mitigation |
-| --- | --- |
-| Arbitrary UI components | Allowlisted catalog only; no inline catalog from the model |
-| Arbitrary actions | Fixed action names → intent flows only |
+| Concern                  | Mitigation                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------- |
+| Arbitrary UI components  | Allowlisted catalog only; no inline catalog from the model                                  |
+| Arbitrary actions        | Fixed action names → intent flows only                                                      |
 | Untrusted text in labels | Bullets sliced from critique markdown; treat like any rendered markdown (CSP, sanitization) |
 
 ## Server and shared code
 
-| Piece | Location |
-| --- | --- |
-| Message builder | [`packages/shared/src/critiqueA2uiMessages.js`](../packages/shared/src/critiqueA2uiMessages.js) |
+| Piece                               | Location                                                                                          |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------- |
+| Message builder                     | [`packages/shared/src/critiqueA2uiMessages.js`](../packages/shared/src/critiqueA2uiMessages.js)   |
 | Stream hook (before `RUN_FINISHED`) | [`apps/server/src/agents/critiqueA2uiStream.js`](../apps/server/src/agents/critiqueA2uiStream.js) |
-| AG-UI mapping | [`packages/shared/src/agentStreamEmitter.js`](../packages/shared/src/agentStreamEmitter.js) |
-| Client decode | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js) |
+| AG-UI mapping                       | [`packages/shared/src/agentStreamEmitter.js`](../packages/shared/src/agentStreamEmitter.js)       |
+| Client decode                       | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js)                     |
 
 ## AG-UI envelope
 
@@ -77,12 +77,12 @@ Streaming prose also passes through [`thinkingProseEnrich.jsx`](../apps/web/src/
 
 ## Extending Gen UI safely
 
-| Approach | Fits ArchiSlop? | Notes |
-| --- | --- | --- |
-| More server-built A2UI from Markdown | Yes | Same trust model — new catalogs/actions must map to known routes (e.g. intent only). |
-| Server-built `CUSTOM` artifacts (e.g. `explain_sections`) | Yes | Parsed markdown → structured UI without model-authored JSON. |
-| Model-authored A2UI JSON | Discouraged | Bypasses allowlist; use Markdown + builder instead. |
-| AG-UI `CUSTOM` artifacts (non-A2UI) | Possible | Add a `name` in `agUiWireConstants.js` + reducer in `applyAgentStreamInsightEvent.js`. |
-| MCP App for new human workflows | Yes | New `ui://` bundle + `registerAppResource` + tool with `UI_META`. |
+| Approach                                                  | Fits ArchiSlop? | Notes                                                                                  |
+| --------------------------------------------------------- | --------------- | -------------------------------------------------------------------------------------- |
+| More server-built A2UI from Markdown                      | Yes             | Same trust model — new catalogs/actions must map to known routes (e.g. intent only).   |
+| Server-built `CUSTOM` artifacts (e.g. `explain_sections`) | Yes             | Parsed markdown → structured UI without model-authored JSON.                           |
+| Model-authored A2UI JSON                                  | Discouraged     | Bypasses allowlist; use Markdown + builder instead.                                    |
+| AG-UI `CUSTOM` artifacts (non-A2UI)                       | Possible        | Add a `name` in `agUiWireConstants.js` + reducer in `applyAgentStreamInsightEvent.js`. |
+| MCP App for new human workflows                           | Yes             | New `ui://` bundle + `registerAppResource` + tool with `UI_META`.                      |
 
 Proposal review in the **web** today uses React (`AgentProposalCard`), not A2UI — MCP **proposal-review** App is the rich host-side counterpart. Unifying those is a documented roadmap item in [`architecture-generative-ui.md`](architecture-generative-ui.md).

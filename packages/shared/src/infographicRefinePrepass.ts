@@ -7,9 +7,7 @@ const SMART_QUOTE_REGEX = /[‘’“”]/g;
 const KV_LINE = /^(\s*)(?:-\s+)?(label|desc|value)(\s+)(.*)$/i;
 
 function normalizeQuotes(text: string) {
-  return text
-    .replace(/[‘’]/g, "'")
-    .replace(/[“”]/g, '"');
+  return text.replace(/[‘’]/g, "'").replace(/[“”]/g, '"');
 }
 
 function polishReaderText(raw: unknown) {
@@ -43,9 +41,7 @@ export function refineInfographicDsl(source: string | null | undefined) {
     const [, indent, key, , valuePart] = m;
     const polished = polishReaderText(valuePart);
     const isListItem = /^\s*-\s/.test(line);
-    const nextLine = isListItem
-      ? `${indent}- ${key} ${polished}`
-      : `${indent}${key} ${polished}`;
+    const nextLine = isListItem ? `${indent}- ${key} ${polished}` : `${indent}${key} ${polished}`;
     if (nextLine === line && !SMART_QUOTE_REGEX.test(valuePart)) return line;
     changed = true;
     return nextLine;

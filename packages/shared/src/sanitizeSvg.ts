@@ -25,7 +25,10 @@ export function parseViewBoxPixelSize(viewBoxValue: string) {
  * @param {number} [padding]
  * @returns {boolean}
  */
-export function expandRootSvgViewBoxToContent(svgEl: SVGGraphicsElement | null | undefined, padding = 20) {
+export function expandRootSvgViewBoxToContent(
+  svgEl: SVGGraphicsElement | null | undefined,
+  padding = 20
+) {
   if (!svgEl || typeof svgEl.getBBox !== 'function') return false;
   let bbox;
   try {

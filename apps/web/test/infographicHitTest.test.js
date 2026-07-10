@@ -48,29 +48,51 @@ function buildFixture() {
   svg.appendChild(itemsGroup);
 
   // Item 0
-  const iconGroup0 = makeElement('g', { 'data-element-type': 'item-icon-group', 'data-indexes': '0' });
+  const iconGroup0 = makeElement('g', {
+    'data-element-type': 'item-icon-group',
+    'data-indexes': '0'
+  });
   const ellipse0 = makeElement('ellipse', { 'data-element-type': 'shape' });
   const iconRect0 = makeElement('rect', { 'data-element-type': 'item-icon', 'data-indexes': '0' });
   iconGroup0.appendChild(ellipse0);
   iconGroup0.appendChild(iconRect0);
   itemsGroup.appendChild(iconGroup0);
 
-  const label0 = makeElement('text', { 'data-element-type': 'item-label', 'data-indexes': '0' }, 'Acquire');
+  const label0 = makeElement(
+    'text',
+    { 'data-element-type': 'item-label', 'data-indexes': '0' },
+    'Acquire'
+  );
   itemsGroup.appendChild(label0);
 
-  const desc0 = makeElement('text', { 'data-element-type': 'item-desc', 'data-indexes': '0' }, 'Multi-channel');
+  const desc0 = makeElement(
+    'text',
+    { 'data-element-type': 'item-desc', 'data-indexes': '0' },
+    'Multi-channel'
+  );
   itemsGroup.appendChild(desc0);
 
   // Item 1
-  const iconGroup1 = makeElement('g', { 'data-element-type': 'item-icon-group', 'data-indexes': '1' });
+  const iconGroup1 = makeElement('g', {
+    'data-element-type': 'item-icon-group',
+    'data-indexes': '1'
+  });
   const iconRect1 = makeElement('rect', { 'data-element-type': 'item-icon', 'data-indexes': '1' });
   iconGroup1.appendChild(iconRect1);
   itemsGroup.appendChild(iconGroup1);
 
-  const label1 = makeElement('text', { 'data-element-type': 'item-label', 'data-indexes': '1' }, 'Convert');
+  const label1 = makeElement(
+    'text',
+    { 'data-element-type': 'item-label', 'data-indexes': '1' },
+    'Convert'
+  );
   itemsGroup.appendChild(label1);
 
-  const desc1 = makeElement('text', { 'data-element-type': 'item-desc', 'data-indexes': '1' }, 'Reduce drop-off');
+  const desc1 = makeElement(
+    'text',
+    { 'data-element-type': 'item-desc', 'data-indexes': '1' },
+    'Reduce drop-off'
+  );
   itemsGroup.appendChild(desc1);
 
   // Background decorative shape (no indexes, no selectable element-type up the chain)
@@ -190,7 +212,11 @@ describe('findInfographicTapTarget', () => {
     const arrowBody = makeElement('path', { 'data-element-type': 'illus', 'data-indexes': '2' });
     itemsGroup.appendChild(arrowBody);
     // Sibling label so infographicItemLabelFor resolves.
-    const label = makeElement('text', { 'data-element-type': 'item-label', 'data-indexes': '2' }, 'Ship');
+    const label = makeElement(
+      'text',
+      { 'data-element-type': 'item-label', 'data-indexes': '2' },
+      'Ship'
+    );
     itemsGroup.appendChild(label);
 
     const hit = findInfographicTapTarget(arrowBody, boundary);
@@ -221,7 +247,11 @@ describe('findInfographicTapTarget', () => {
     svg.appendChild(itemsGroup);
     const itemGroup = makeElement('g', { 'data-element-type': 'unknown', 'data-indexes': '0' });
     itemsGroup.appendChild(itemGroup);
-    const label = makeElement('text', { 'data-element-type': 'item-label', 'data-indexes': '0' }, 'Step 1');
+    const label = makeElement(
+      'text',
+      { 'data-element-type': 'item-label', 'data-indexes': '0' },
+      'Step 1'
+    );
     itemsGroup.appendChild(label);
     // Inner decorative rect with no element-type, no indexes — walker goes up to itemGroup.
     const innerRect = makeElement('rect');
@@ -242,7 +272,10 @@ describe('findInfographicTapTarget', () => {
     const boundary = document.createElement('div');
     const svg = makeElement('svg');
     boundary.appendChild(svg);
-    const itemsGroup = makeElement('g', { 'data-element-type': 'items-group', 'data-indexes': '0' });
+    const itemsGroup = makeElement('g', {
+      'data-element-type': 'items-group',
+      'data-indexes': '0'
+    });
     svg.appendChild(itemsGroup);
     const inner = makeElement('rect');
     itemsGroup.appendChild(inner);

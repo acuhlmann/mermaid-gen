@@ -60,29 +60,30 @@ them anyway. They're stable, low-churn, and JSDoc-annotated where it matters.
 ## Strict-mode gate
 
 `apps/server/tsconfig.json` and `apps/web/tsconfig.json` flip `strict: true`
-+ `noImplicitAny: true` once the top 10 files in each workspace are typed
-(`.ts`/`.tsx` or `checkJs` + JSDoc). Until then we grow **strict islands**:
-`tsconfig.strict.json` per app lists the files checked under full strict
-(`strict` + `noImplicitAny` + `strictNullChecks` + `noUncheckedIndexedAccess`).
-Adding a `.ts`/`.tsx` file to an island's `include` array opts it in. Both
-islands are wired into `npm run check` via the root `typecheck:strict` script,
-so an island regression now fails CI — the ratchet is enforced, not advisory.
-Run `npm run typecheck:strict` (both apps) or `-w apps/server` / `-w apps/web`.
+
+- `noImplicitAny: true` once the top 10 files in each workspace are typed
+  (`.ts`/`.tsx` or `checkJs` + JSDoc). Until then we grow **strict islands**:
+  `tsconfig.strict.json` per app lists the files checked under full strict
+  (`strict` + `noImplicitAny` + `strictNullChecks` + `noUncheckedIndexedAccess`).
+  Adding a `.ts`/`.tsx` file to an island's `include` array opts it in. Both
+  islands are wired into `npm run check` via the root `typecheck:strict` script,
+  so an island regression now fails CI — the ratchet is enforced, not advisory.
+  Run `npm run typecheck:strict` (both apps) or `-w apps/server` / `-w apps/web`.
 
 ### `packages/shared` → strict is sized, not free
 
 A naive `tsc --strict` probe reported shared as clean, but that was a
-measurement error: an *explicit* `"noImplicitAny": false` in a tsconfig
+measurement error: an _explicit_ `"noImplicitAny": false` in a tsconfig
 overrides the `--strict` meta-flag default, so the CLI probe wasn't actually
 strict. Measured properly against `packages/shared/tsconfig.json`, flipping
 shared to the strict base surfaces **363 errors** across ~34 files:
 
-| Lever | Added errors |
-| --- | --- |
-| `noImplicitAny` (TS70xx — add annotations) | 204 |
-| `+ strictNullChecks` (TS18048/2345) | +34 |
-| `+ noUncheckedIndexedAccess` (TS2532 — null guards in sanitizers/diff) | +125 |
-| **Total (`strict` + `noUncheckedIndexedAccess`)** | **363** (233 src / 130 test) |
+| Lever                                                                  | Added errors                 |
+| ---------------------------------------------------------------------- | ---------------------------- |
+| `noImplicitAny` (TS70xx — add annotations)                             | 204                          |
+| `+ strictNullChecks` (TS18048/2345)                                    | +34                          |
+| `+ noUncheckedIndexedAccess` (TS2532 — null guards in sanitizers/diff) | +125                         |
+| **Total (`strict` + `noUncheckedIndexedAccess`)**                      | **363** (233 src / 130 test) |
 
 Done in staged levers (see the 2026-05-29 log): `noImplicitAny` (204) then
 `strictNullChecks` (+34) landed, and `packages/shared` now compiles at
@@ -134,7 +135,7 @@ pollute `dist/.d.ts`.
 
 The web island now covers **all 12** of the web app's TypeScript files. Typing the
 `utils/thinkingProseEnrich.tsx` hub (tokenizer discriminated-union + regex-group
-`?? ''` coercions, plus *permissive optional* component props so there was no
+`?? ''` coercions, plus _permissive optional_ component props so there was no
 consumer cascade) pulled in its importers
 `components/{StyleEditsPanel,PlanBeatCard,PatchSummaryViz}.tsx` cleanly; behavior is
 guarded by `apps/web/test/thinkingProseEnrich.test.jsx` (14 tests, green).

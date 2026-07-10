@@ -7,10 +7,7 @@ import {
 } from '../src/agents/infographicTransformPrompts.js';
 
 const DSL =
-  'infographic list-row-simple-horizontal-arrow\n' +
-  'data\n' +
-  '  lists\n' +
-  '    - label A';
+  'infographic list-row-simple-horizontal-arrow\n' + 'data\n' + '  lists\n' + '    - label A';
 
 test('refine instructions require keeping template', () => {
   assert.match(INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine, /KEEP the exact same/i);

@@ -49,4 +49,5 @@ function wireAppNav(active) {
 }
 `;
 
-export const MCP_APP_SHELL_NAV_HTML = '<nav class="app-nav" id="app-nav" aria-label="ArchiSlop apps"></nav>';
+export const MCP_APP_SHELL_NAV_HTML =
+  '<nav class="app-nav" id="app-nav" aria-label="ArchiSlop apps"></nav>';

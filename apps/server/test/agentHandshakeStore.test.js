@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createAgentHandshakeStore, AGENT_COLOR_PALETTE } from '../src/state/agentHandshakeStore.js';
+import {
+  createAgentHandshakeStore,
+  AGENT_COLOR_PALETTE
+} from '../src/state/agentHandshakeStore.js';
 
 test('createRequest auto-assigns a color from the palette if none provided', () => {
   const store = createAgentHandshakeStore();

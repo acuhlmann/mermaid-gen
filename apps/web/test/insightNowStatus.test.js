@@ -3,7 +3,9 @@ import { summarizeInsightNowStatus } from '../src/utils/insightNowStatus.js';
 
 describe('summarizeInsightNowStatus', () => {
   it('keeps short curated statuses verbatim', () => {
-    expect(summarizeInsightNowStatus('Working on your request...')).toBe('Working on your request...');
+    expect(summarizeInsightNowStatus('Working on your request...')).toBe(
+      'Working on your request...'
+    );
     expect(summarizeInsightNowStatus('Still working…')).toBe('Still working…');
     expect(summarizeInsightNowStatus('Polishing the diagram…')).toBe('Polishing the diagram…');
   });

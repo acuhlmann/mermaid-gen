@@ -105,10 +105,13 @@ export function buildInfographicTransformUserContent({
   originalRequest,
   advisorPrompt
 }) {
-  const directive = INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine;
-  const depthValue = mode === 'goMad' ? Math.min(12, Math.max(1, Math.trunc(Number(goMadDepth) || 1))) : 0;
+  const directive =
+    INFOGRAPHIC_TRANSFORM_INSTRUCTIONS[mode] ?? INFOGRAPHIC_TRANSFORM_INSTRUCTIONS.refine;
+  const depthValue =
+    mode === 'goMad' ? Math.min(12, Math.max(1, Math.trunc(Number(goMadDepth) || 1))) : 0;
   const depthLine = mode === 'goMad' && goMadDepth ? `\nGo Mad depth: ${depthValue} of 12.` : '';
-  const escalation = mode === 'goMad' ? buildInfographicGoMadEscalation(depthValue, currentDsl) : '';
+  const escalation =
+    mode === 'goMad' ? buildInfographicGoMadEscalation(depthValue, currentDsl) : '';
   const stakeholderBlock =
     typeof advisorPrompt === 'string' && advisorPrompt.trim()
       ? `\n\nStakeholder suggestion to honor within the transform rules above:\n"${advisorPrompt.trim().slice(0, 400)}"\n`

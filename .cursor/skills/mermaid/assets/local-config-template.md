@@ -22,14 +22,14 @@ Copy this file to `.claude/mermaid.json` in your project root, or run `/mermaid-
 
 **Settings:**
 
-| Key | Values | Default | Notes |
-|---|---|---|---|
-| `theme` | zinc-light, zinc-dark, github-light, github-dark, catppuccin-latte, catppuccin-mocha, nord-light, nord, dracula, solarized-light, solarized-dark, tokyo-night, tokyo-night-light, tokyo-night-storm, one-dark, custom | zinc-light | Applied to all generated diagrams |
-| `output_directory` | any path or `"same"` | `./diagrams` | `"same"` saves output next to the input file |
-| `auto_validate` | true/false | true | Run validation after generating |
-| `auto_render` | true/false | false | Auto-render to SVG after generating |
-| `output_format` | svg | svg | Only SVG is supported |
-| `themeVariables` | JSON object | (none) | Only used when `theme` is `"custom"`. Keys: `bg`, `fg`, `line`, `accent`, `muted` |
+| Key                | Values                                                                                                                                                                                                                | Default      | Notes                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------- |
+| `theme`            | zinc-light, zinc-dark, github-light, github-dark, catppuccin-latte, catppuccin-mocha, nord-light, nord, dracula, solarized-light, solarized-dark, tokyo-night, tokyo-night-light, tokyo-night-storm, one-dark, custom | zinc-light   | Applied to all generated diagrams                                                 |
+| `output_directory` | any path or `"same"`                                                                                                                                                                                                  | `./diagrams` | `"same"` saves output next to the input file                                      |
+| `auto_validate`    | true/false                                                                                                                                                                                                            | true         | Run validation after generating                                                   |
+| `auto_render`      | true/false                                                                                                                                                                                                            | false        | Auto-render to SVG after generating                                               |
+| `output_format`    | svg                                                                                                                                                                                                                   | svg          | Only SVG is supported                                                             |
+| `themeVariables`   | JSON object                                                                                                                                                                                                           | (none)       | Only used when `theme` is `"custom"`. Keys: `bg`, `fg`, `line`, `accent`, `muted` |
 
 ## Definition of Done
 

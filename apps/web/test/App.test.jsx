@@ -34,7 +34,8 @@ const {
   const updated = {
     ...initial,
     revisionId: 2,
-    diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
+    diagramSource:
+      'flowchart TD\n  Start[Start] --> EndNode[End]\n  EndNode --> Extended[Extended path]',
     updatedAt: '2026-05-10T08:31:00.000Z'
   };
   return {
@@ -55,7 +56,10 @@ vi.mock('../src/components/DiagramCanvas.jsx', () => ({
     return (
       <section>
         <pre data-testid="mermaid-source">{diagramSource}</pre>
-        <button type="button" onClick={() => onManualEdit('flowchart TD\n  Start[Start] --> Edited[Edited]')}>
+        <button
+          type="button"
+          onClick={() => onManualEdit('flowchart TD\n  Start[Start] --> Edited[Edited]')}
+        >
           Mock edit
         </button>
         {insightsSlot}
@@ -291,30 +295,28 @@ describe('App simplified controls', () => {
     );
   });
 
-  it(
-    'Thinking segment Restore re-syncs the entry\'s after-snapshot to the canvas',
-    async () => {
-      render(<App />);
-      await waitForControlsReady('Refine');
-      fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
+  it("Thinking segment Restore re-syncs the entry's after-snapshot to the canvas", async () => {
+    render(<App />);
+    await waitForControlsReady('Refine');
+    fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
 
-      await screen.findByRole('button', { name: 'Restore' });
-      await new Promise((resolve) => setTimeout(resolve, 0));
+    await screen.findByRole('button', { name: 'Restore' });
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-      const callsBefore = syncClientDiagramStateMock.mock.calls.length;
-      fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+    const callsBefore = syncClientDiagramStateMock.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
 
-      await waitFor(() => expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore));
-      // Restore now jumps to the entry's after-source (the snapshot rendered in its preview),
-      // not the baseline. We just assert the call happened with a diagramSource string — the
-      // exact source depends on the streamed final state captured during the test.
-      const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
-      expect(typeof lastPayload.diagramSource).toBe('string');
-      // Restore stays available so the user can re-jump to this version anytime.
-      expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
-    },
-    15_000
-  );
+    await waitFor(() =>
+      expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore)
+    );
+    // Restore now jumps to the entry's after-source (the snapshot rendered in its preview),
+    // not the baseline. We just assert the call happened with a diagramSource string — the
+    // exact source depends on the streamed final state captured during the test.
+    const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
+    expect(typeof lastPayload.diagramSource).toBe('string');
+    // Restore stays available so the user can re-jump to this version anytime.
+    expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
+  }, 15_000);
 
   it('streams intent when submitting the prompt control', async () => {
     // Prompt input is only shown when no diagram is set (initial topic-setting state).
@@ -377,14 +379,24 @@ describe('App simplified controls', () => {
   it('Fix selected sends only checked actionable improvements', async () => {
     streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
       if (payload.operation === 'intent') {
-        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
       } else if (payload.operation === 'analyze') {
         const analyzeBody =
           '## Summary\n\nOk.\n\n## Actionable improvements\n\n- Keep this change\n- Skip this change\n';
         onEvent?.({ type: 'token', text: analyzeBody });
         onEvent?.({ type: 'final', revisionChanged: false, analyzeText: analyzeBody });
       } else {
-        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Transformed.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Transformed.'
+        });
       }
     });
 
@@ -398,7 +410,9 @@ describe('App simplified controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fix selected' }));
 
     await waitFor(() => {
-      const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (c) => c[0]?.operation === 'intent'
+      );
       expect(intentCalls.length).toBeGreaterThan(0);
       const prompt = intentCalls[intentCalls.length - 1][0].prompt;
       expect(prompt).toContain('Keep this change');
@@ -407,13 +421,17 @@ describe('App simplified controls', () => {
   });
 
   it('shows actionable checkboxes when critique final has analyzeText but no token stream', async () => {
-    const analyzeBody =
-      '## Summary\n\nOk.\n\n## Actionable improvements\n\n- Alpha\n- Beta\n';
+    const analyzeBody = '## Summary\n\nOk.\n\n## Actionable improvements\n\n- Alpha\n- Beta\n';
     streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
       if (payload.operation === 'analyze') {
         onEvent?.({ type: 'final', revisionChanged: false, analyzeText: analyzeBody });
       } else {
-        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
       }
     });
 
@@ -547,7 +565,12 @@ describe('App simplified controls', () => {
         return;
       }
       if (payload.operation === 'intent') {
-        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
         return;
       }
       if (payload.operation === 'analyze') {
@@ -608,10 +631,14 @@ describe('App simplified controls', () => {
     try {
       render(<App />);
       fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
-      await waitFor(() => expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open'));
+      await waitFor(() =>
+        expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open')
+      );
 
       fireEvent.click(screen.getByRole('button', { name: 'Refine' }));
-      await waitFor(() => expect(document.querySelector('.insights-entry.is-running')).not.toBeNull());
+      await waitFor(() =>
+        expect(document.querySelector('.insights-entry.is-running')).not.toBeNull()
+      );
 
       await act(async () => {
         finishStream();
@@ -643,11 +670,21 @@ describe('App simplified controls', () => {
           onEvent?.({ type: 'final', revisionChanged: false, message: 'Model reply only.' });
           return;
         }
-        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
         return;
       }
       if (payload.operation === 'intent') {
-        onEvent?.({ type: 'final', revisionChanged: true, state: updatedState, message: 'Applied.' });
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
       }
     });
 
@@ -727,7 +764,9 @@ describe('App simplified controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Infographic' }));
 
     await waitFor(() => {
-      const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (c) => c[0]?.operation === 'intent'
+      );
       expect(intentCalls).toHaveLength(1);
     });
     await screen.findByText('Done');
@@ -744,7 +783,9 @@ describe('App simplified controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Diagram' }));
     await waitForControlsReady('Refine');
 
-    const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+    const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+      (c) => c[0]?.operation === 'intent'
+    );
     expect(intentCalls).toHaveLength(0);
 
     globalThis.matchMedia = previousMatchMedia;
@@ -827,7 +868,9 @@ describe('App simplified controls', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Diagram' }));
 
     await waitFor(() => {
-      const intentCalls = streamDiagramAgentMock.mock.calls.filter((c) => c[0]?.operation === 'intent');
+      const intentCalls = streamDiagramAgentMock.mock.calls.filter(
+        (c) => c[0]?.operation === 'intent'
+      );
       expect(intentCalls.length).toBeGreaterThan(0);
       expect(
         intentCalls.some(
@@ -866,7 +909,8 @@ describe('App simplified controls', () => {
           state: {
             ...createInitialDiagramState('metaphor3d'),
             revisionId: 1,
-            diagramSource: '{"metaphor":"city","scene":{"theme":"whiteboard","camera":"orbit"},"items":[]}',
+            diagramSource:
+              '{"metaphor":"city","scene":{"theme":"whiteboard","camera":"orbit"},"items":[]}',
             lastUserPrompt: payload.prompt
           },
           message: 'Applied.'

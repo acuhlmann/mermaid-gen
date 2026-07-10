@@ -28,7 +28,8 @@ function withMeta(evt: AgUiEvent): AgUiEvent {
 }
 
 function randomId(prefix: string): string {
-  const uuid = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const uuid =
+    globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   return `${prefix}_${uuid}`;
 }
 
@@ -82,7 +83,13 @@ export function stepFinished({ stepName }: { stepName: string }) {
   return withMeta({ type: AGUI_EVENT_TYPE.STEP_FINISHED, stepName: String(stepName) });
 }
 
-export function textMessageStart({ messageId, role = 'assistant' }: { messageId: string; role?: string }) {
+export function textMessageStart({
+  messageId,
+  role = 'assistant'
+}: {
+  messageId: string;
+  role?: string;
+}) {
   return withMeta({ type: AGUI_EVENT_TYPE.TEXT_MESSAGE_START, messageId, role });
 }
 
@@ -133,9 +140,7 @@ export function customEvent({ name, value }: { name: string; value: unknown }) {
 
 function patchSummaryToJsonPatch(evt: Record<string, unknown>, contentType: string | undefined) {
   const slot =
-    contentType === 'infographic' ||
-    contentType === 'metaphor3d' ||
-    contentType === 'chart'
+    contentType === 'infographic' || contentType === 'metaphor3d' || contentType === 'chart'
       ? contentType
       : 'mermaid';
   return [
@@ -219,9 +224,7 @@ export function createAgentStreamEmitter({
         const text = String(evt.text ?? '').trim();
         if (!text) return;
         const source = evt.source === 'agent' ? 'agent' : 'server';
-        return rawEmit(
-          customEvent({ name: AGUI_CUSTOM_NAME_PLAN_BEAT, value: { text, source } })
-        );
+        return rawEmit(customEvent({ name: AGUI_CUSTOM_NAME_PLAN_BEAT, value: { text, source } }));
       }
       case 'token': {
         const delta = typeof evt.text === 'string' ? evt.text : '';
@@ -322,15 +325,20 @@ export function createAgentStreamEmitter({
         );
       }
       case 'draftPreview': {
-        const ct = (typeof evt.contentType === 'string' && evt.contentType) || contentType || 'infographic';
+        const ct =
+          (typeof evt.contentType === 'string' && evt.contentType) || contentType || 'infographic';
         const value = typeof evt.accumulated === 'string' ? evt.accumulated : '';
-        return rawEmit(stateDelta({ delta: [{ op: 'replace', path: agUiDraftSourcePath(ct), value }] }));
+        return rawEmit(
+          stateDelta({ delta: [{ op: 'replace', path: agUiDraftSourcePath(ct), value }] })
+        );
       }
       case 'error': {
         endActiveMessage();
         endActiveStep();
         if (contentType) {
-          rawEmit(stateDelta({ delta: [{ op: 'remove', path: agUiDraftSourcePath(contentType) }] }));
+          rawEmit(
+            stateDelta({ delta: [{ op: 'remove', path: agUiDraftSourcePath(contentType) }] })
+          );
         }
         terminalState = 'error';
         return rawEmit(
@@ -344,7 +352,9 @@ export function createAgentStreamEmitter({
         endActiveMessage();
         endActiveStep();
         if (contentType) {
-          rawEmit(stateDelta({ delta: [{ op: 'remove', path: agUiDraftSourcePath(contentType) }] }));
+          rawEmit(
+            stateDelta({ delta: [{ op: 'remove', path: agUiDraftSourcePath(contentType) }] })
+          );
         }
         if (evt.state) rawEmit(stateSnapshot({ snapshot: evt.state }));
         const result = {

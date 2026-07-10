@@ -152,7 +152,10 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
   const eventsRead = await client.readResource({ uri: 'ui://archislop/session-events.html' });
   const eventsHtml = eventsRead.contents?.[0]?.text ?? '';
   assert.ok(eventsHtml.includes('EventSource'), 'session-events MCP App should use SSE');
-  assert.ok(eventsHtml.includes('createSessionEventBridge'), 'session-events MCP App should use session bridge');
+  assert.ok(
+    eventsHtml.includes('createSessionEventBridge'),
+    'session-events MCP App should use session bridge'
+  );
 
   const welcomeRead = await client.readResource({ uri: 'ui://archislop/welcome.html' });
   assert.ok((welcomeRead.contents?.[0]?.text ?? '').includes('get_session_bootstrap'));
@@ -417,7 +420,9 @@ test('MCP: join_session binds stable transport to room', async (t) => {
   const reg = parseToolText(
     await callTool(client, 'register_agent', { name: 'JoinBot', emoji: '🤖', color: '#336699' })
   );
-  assert.ok(['pending', 'awaiting_user_approval', 'approved', 'already_registered'].includes(reg.status));
+  assert.ok(
+    ['pending', 'awaiting_user_approval', 'approved', 'already_registered'].includes(reg.status)
+  );
 });
 
 test('MCP: initialize with ?pairing= binds without join_session', async (t) => {

@@ -41,12 +41,20 @@ test('recordAgentTurn emits structured line when enabled', () => {
 test('classifyAgentTurnError buckets common failures', () => {
   assert.equal(classifyAgentTurnError(null), null);
   assert.equal(
-    classifyAgentTurnError('Proposed source is not valid Mermaid syntax (missing known diagram type).'),
+    classifyAgentTurnError(
+      'Proposed source is not valid Mermaid syntax (missing known diagram type).'
+    ),
     'missing-diagram-type'
   );
-  assert.equal(classifyAgentTurnError('Mermaid parser rejected source: Parse error on line 3'), 'parser-rejected');
+  assert.equal(
+    classifyAgentTurnError('Mermaid parser rejected source: Parse error on line 3'),
+    'parser-rejected'
+  );
   assert.equal(classifyAgentTurnError('Upstream service returned 503'), 'other');
-  assert.equal(classifyAgentTurnError('Your previous response did not apply a diagram patch.'), 'no-patch');
+  assert.equal(
+    classifyAgentTurnError('Your previous response did not apply a diagram patch.'),
+    'no-patch'
+  );
   assert.equal(classifyAgentTurnError('something unexpected'), 'other');
 });
 

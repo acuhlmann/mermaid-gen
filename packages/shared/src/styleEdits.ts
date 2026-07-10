@@ -72,13 +72,14 @@ function extractStepId(line: string): string | undefined {
 }
 
 function stripStepPrefix(line: string): string {
-  return line.trim().replace(/^(\d+)[.)]\s+/, '').replace(/^[-•*]\s+/, '');
+  return line
+    .trim()
+    .replace(/^(\d+)[.)]\s+/, '')
+    .replace(/^[-•*]\s+/, '');
 }
 
 function parseIconReplace(body: string, id?: string): StyleEdit | null {
-  const m = body.match(
-    /replace\s*::?\s*icon\s*\(\s*(fa\s+fa-[\w-]+)\s*\)\s*(?:with|→)\s*(\S+)/i
-  );
+  const m = body.match(/replace\s*::?\s*icon\s*\(\s*(fa\s+fa-[\w-]+)\s*\)\s*(?:with|→)\s*(\S+)/i);
   if (!m) return null;
   return StyleEditIconReplaceSchema.parse({
     kind: 'icon_replace',
@@ -134,7 +135,12 @@ function parseLine(line: string): StyleEdit | null {
     if (color) return color;
   }
 
-  if (/::icon\s*\(/i.test(body) || /\breplace\b/i.test(body) || /\bdarken\b/i.test(body) || /\blighten\b/i.test(body)) {
+  if (
+    /::icon\s*\(/i.test(body) ||
+    /\breplace\b/i.test(body) ||
+    /\bdarken\b/i.test(body) ||
+    /\blighten\b/i.test(body)
+  ) {
     return StyleEditGenericSchema.parse({ kind: 'generic', id, text: body });
   }
 

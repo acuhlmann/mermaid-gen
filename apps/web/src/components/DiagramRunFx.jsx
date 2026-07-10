@@ -39,18 +39,27 @@ const PIN_SLOTS = [
 
 function SparkleSvg() {
   return (
-    <svg className="diagram-run-fx-sparkle-svg" viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M6 0 7 5l5 1-5 1-1 5-1-5-5-1 5-1z"
-      />
+    <svg
+      className="diagram-run-fx-sparkle-svg"
+      viewBox="0 0 12 12"
+      width="12"
+      height="12"
+      aria-hidden="true"
+    >
+      <path fill="currentColor" d="M6 0 7 5l5 1-5 1-1 5-1-5-5-1 5-1z" />
     </svg>
   );
 }
 
 function SquiggleSvg() {
   return (
-    <svg className="diagram-run-fx-squiggle-svg" viewBox="0 0 80 20" width="80" height="20" aria-hidden="true">
+    <svg
+      className="diagram-run-fx-squiggle-svg"
+      viewBox="0 0 80 20"
+      width="80"
+      height="20"
+      aria-hidden="true"
+    >
       <path
         d="M2 12 Q 8 2, 14 12 T 26 12 T 38 12 T 50 12 T 62 12 T 76 12"
         fill="none"
@@ -64,7 +73,13 @@ function SquiggleSvg() {
 
 function LightningSvg() {
   return (
-    <svg className="diagram-run-fx-zap-svg" viewBox="0 0 32 64" width="32" height="64" aria-hidden="true">
+    <svg
+      className="diagram-run-fx-zap-svg"
+      viewBox="0 0 32 64"
+      width="32"
+      height="64"
+      aria-hidden="true"
+    >
       <path fill="currentColor" d="M18 0 4 36h10L8 64l22-40H18z" />
     </svg>
   );
@@ -72,7 +87,13 @@ function LightningSvg() {
 
 function PinSvg({ number }) {
   return (
-    <svg className="diagram-run-fx-pin-svg" viewBox="0 0 24 32" width="24" height="32" aria-hidden="true">
+    <svg
+      className="diagram-run-fx-pin-svg"
+      viewBox="0 0 24 32"
+      width="24"
+      height="32"
+      aria-hidden="true"
+    >
       <path
         fill="currentColor"
         d="M12 0c-5.5 0-10 4.5-10 10 0 7.5 10 22 10 22s10-14.5 10-22C22 4.5 17.5 0 12 0z"

@@ -237,7 +237,9 @@ describe('tryExtractDiagramPreviewFromText', () => {
   });
 
   it('returns null for plain prose steps', () => {
-    expect(tryExtractDiagramPreviewFromText('Add a session boundary before the API tier.')).toBeNull();
+    expect(
+      tryExtractDiagramPreviewFromText('Add a session boundary before the API tier.')
+    ).toBeNull();
   });
 
   it('returns metaphor3d preview metadata for bare metaphor JSON in a plan step', () => {
@@ -262,12 +264,7 @@ describe('tryExtractDiagramPreviewFromText', () => {
 
 describe('mermaidDslStartIndex', () => {
   it('walks back over init directives', () => {
-    const lines = [
-      '%%{init: {"theme":"dark"}}%%',
-      '',
-      'flowchart LR',
-      '  A --> B'
-    ];
+    const lines = ['%%{init: {"theme":"dark"}}%%', '', 'flowchart LR', '  A --> B'];
     expect(mermaidDslStartIndex(lines, 2)).toBe(0);
   });
 });

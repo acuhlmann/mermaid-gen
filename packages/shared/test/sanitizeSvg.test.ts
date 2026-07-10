@@ -3,8 +3,7 @@ import assert from 'node:assert/strict';
 import { parseViewBoxPixelSize, sanitizeSvgMarkup } from '../src/sanitizeSvg.js';
 
 test('sanitizeSvgMarkup strips script and on* handlers', () => {
-  const dirty =
-    '<svg><script>alert(1)</script><rect onload="alert(2)" width="1"/></svg>';
+  const dirty = '<svg><script>alert(1)</script><rect onload="alert(2)" width="1"/></svg>';
   const clean = sanitizeSvgMarkup(dirty);
   assert.doesNotMatch(clean, /<script/i);
   assert.doesNotMatch(clean, /onload=/i);

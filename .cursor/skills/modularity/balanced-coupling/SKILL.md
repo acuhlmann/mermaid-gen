@@ -23,7 +23,7 @@ A comprehensive reference for understanding the Balanced Coupling model as descr
 
 The term "coupling" has long been synonymous with bad design. The balanced coupling model challenges this assumption. According to the dictionary, coupling is simply a device for connecting parts. If a system is a set of components interacting to achieve a goal, then coupling is what connects those components and makes it possible to achieve those goals. **Coupling is what makes the value of a system greater than the sum of its parts.**
 
-You cannot build a system out of fully independent components — that would go against the very definition of "system." The question is not whether to couple, but *how* to couple. Some forms of coupling lead to modularity; others create complexity. The balanced coupling model treats coupling not as a nuisance to eliminate but as a **design tool** to wield deliberately.
+You cannot build a system out of fully independent components — that would go against the very definition of "system." The question is not whether to couple, but _how_ to couple. Some forms of coupling lead to modularity; others create complexity. The balanced coupling model treats coupling not as a nuisance to eliminate but as a **design tool** to wield deliberately.
 
 ### 1.2 Complexity (via Cynefin)
 
@@ -51,9 +51,9 @@ If complexity makes change outcomes unpredictable, modularity is its opposite. A
 1. It is **clear what parts** of the system need to change.
 2. The **outcome of the change** is clear and predictable.
 
-Modularity extends a system's goals into the future. It doesn't mean preemptively implementing future requirements — that's impossible. It means making the implementation of *reasonable* future changes easy by minimizing the cognitive load required.
+Modularity extends a system's goals into the future. It doesn't mean preemptively implementing future requirements — that's impossible. It means making the implementation of _reasonable_ future changes easy by minimizing the cognitive load required.
 
-A system is a set of components interacting to achieve goals. Even a "big ball of mud" can achieve its current goals. Modular design extends the system's goals by ensuring it can *continue* to achieve goals as they evolve.
+A system is a set of components interacting to achieve goals. Even a "big ball of mud" can achieve its current goals. Modular design extends the system's goals by ensuring it can _continue_ to achieve goals as they evolve.
 
 ### 1.4 The Shared Cause
 
@@ -72,12 +72,14 @@ Integration requires components to exchange **knowledge** about each other. The 
 Rather than trying to "measure" knowledge quantitatively, the model **categorizes** types of knowledge. Each type involves significantly different amounts of shared knowledge. This is the **Integration Strength** model, which identifies four levels (from strongest/most knowledge to weakest/least):
 
 #### Intrusive Coupling (Strongest)
+
 Occurs when **private interfaces** or implementation details are used for integration — internal databases, private objects, undocumented APIs. We must assume **all knowledge** about a component's implementation is shared. Intrusive coupling is both **fragile** and **implicit** — the authors of the "intruded" component may not even know the integration exists.
 
 Corresponds to **content coupling** (pathological coupling) in the classic module coupling model.
 
 #### Functional Coupling
-Shifts focus from *how* a component is implemented to *what* it implements: its **functional requirements**. Occurs when multiple components share knowledge of their business requirements and must change together when those requirements evolve.
+
+Shifts focus from _how_ a component is implemented to _what_ it implements: its **functional requirements**. Occurs when multiple components share knowledge of their business requirements and must change together when those requirements evolve.
 
 An extreme case is **duplicated knowledge** — the same business rule implemented in both frontend and backend. If a specification change isn't reflected in both simultaneously, the system enters an inconsistent state.
 
@@ -86,6 +88,7 @@ Like intrusive coupling, functional coupling can be **implicit**: duplicated bus
 Corresponds to **common, external, and control coupling** in the classic module coupling model.
 
 #### Model Coupling
+
 Occurs when components share knowledge of a **business domain model**. If the model changes — due to new domain insights — all coupled components must change accordingly.
 
 Domain-driven design emphasizes working with multiple specialized models rather than one massive all-encompassing model. Model coupling arises when components share one of these models.
@@ -93,6 +96,7 @@ Domain-driven design emphasizes working with multiple specialized models rather 
 Corresponds to **stamp coupling** in the classic module coupling model.
 
 #### Contract Coupling (Weakest)
+
 The lowest level of shared knowledge. An integration contract **encapsulates** implementation details, functional requirements, and business models, making integration explicit and stable.
 
 Design patterns that introduce contracts include: Facade, Open-host service / Published language (DDD), Anti-corruption layer (DDD), Data transfer objects (DTOs).
@@ -111,6 +115,7 @@ The four levels of integration strength also reflect how **implicit or explicit*
 #### Degrees of Integration Strength
 
 Within each level, finer-grained comparisons are possible using the levels of **connascence**:
+
 - **Static connascence** levels (name, type, meaning, algorithm, position) can compare degrees of contract and model coupling.
 - **Dynamic connascence** levels (execution, timing, value, identity) can compare degrees of functional coupling.
 
@@ -126,7 +131,7 @@ Distance is not an absolute measure — it is **relative to the level of abstrac
 
 At any given level of abstraction, the **highest distance is the boundary of that level**. If a project consists of a single service with multiple modules, then the distance between those modules is the highest distance in that context. The same principles apply: if two modules share high integration strength, that coupling is unbalanced — even though, from a system-wide perspective, they live in the same service.
 
-You do not need microservices or distributed systems to have high-distance coupling problems. A single-person project with a single deployable unit can still suffer from tight coupling between its modules, because at the module level of abstraction, cross-module integration *is* the highest distance available.
+You do not need microservices or distributed systems to have high-distance coupling problems. A single-person project with a single deployable unit can still suffer from tight coupling between its modules, because at the module level of abstraction, cross-module integration _is_ the highest distance available.
 
 #### Lifecycle Coupling (The Counterforce)
 
@@ -161,7 +166,7 @@ Predicting the future is impossible, but domain-driven design's concept of **sub
 
 - **Core subdomains** (competitive advantage, "interesting problems") -> **highest volatility**. Companies continuously optimize and improve them.
 - **Supporting subdomains** (no competitive advantage, no ready-made solutions, "boring problems") -> **low volatility**. Typically CRUD data entry or ETL processes.
-- **Generic subdomains** (solved problems, off-the-shelf solutions) -> **low functional volatility, variable implementation volatility**. The functionality itself is mature and rarely changes — it's a solved problem. However, the *implementation* may be volatile: switching providers, adopting a different technology, or running multiple implementations in parallel are all realistic change vectors. For example, a TTS engine (AWS Polly) is generic functionality, but switching to Google TTS, ElevenLabs, or a self-hosted solution is a reasonable expectation. In such cases, strong integration contracts are essential to encapsulate provider-specific knowledge. Conversely, some generic subdomain implementations are inherently sticky — choosing Auth0 for identity and access means switching to Clerk would be a significant event regardless of contract design. When designing boundaries for generic subdomains, evaluate the probability of switching implementations or using multiple ones simultaneously, and enforce integration contracts accordingly.
+- **Generic subdomains** (solved problems, off-the-shelf solutions) -> **low functional volatility, variable implementation volatility**. The functionality itself is mature and rarely changes — it's a solved problem. However, the _implementation_ may be volatile: switching providers, adopting a different technology, or running multiple implementations in parallel are all realistic change vectors. For example, a TTS engine (AWS Polly) is generic functionality, but switching to Google TTS, ElevenLabs, or a self-hosted solution is a reasonable expectation. In such cases, strong integration contracts are essential to encapsulate provider-specific knowledge. Conversely, some generic subdomain implementations are inherently sticky — choosing Auth0 for identity and access means switching to Clerk would be a significant event regardless of contract design. When designing boundaries for generic subdomains, evaluate the probability of switching implementations or using multiple ones simultaneously, and enforce integration contracts accordingly.
 
 The **Wardley Maps** commoditization axis provides another perspective on volatility.
 
@@ -169,8 +174,8 @@ The **Wardley Maps** commoditization axis provides another perspective on volati
 
 A critical distinction:
 
-- **Accidental volatility**: Frequent commits don't necessarily mean the business domain is volatile. Poor design — ineffective management of integration strength and distance — can *cause* a component to change frequently.
-- **Accidental involatility**: A seemingly stable component may not be inherently stable. The business may *want* to change it, but the high risk and effort of modifying a poorly designed system prevents them from doing so.
+- **Accidental volatility**: Frequent commits don't necessarily mean the business domain is volatile. Poor design — ineffective management of integration strength and distance — can _cause_ a component to change frequently.
+- **Accidental involatility**: A seemingly stable component may not be inherently stable. The business may _want_ to change it, but the high risk and effort of modifying a poorly designed system prevents them from doing so.
 
 Therefore, volatility should be evaluated from the **business domain perspective** (essential volatility), not from commit history alone.
 
@@ -199,10 +204,10 @@ Without this framing, the same coupling relationship can appear balanced or unba
 
 The interplay of integration strength and distance can be understood through their extreme combinations:
 
-| | **Low Distance** | **High Distance** |
-|---|---|---|
-| **Low Strength** | **Low Cohesion** (Complexity) — Unrelated components located close together. Increases cognitive load. Drifts toward big ball of mud. | **Loose Coupling** (Modularity) — Low strength minimizes cascading changes. High distance is balanced. |
-| **High Strength** | **High Cohesion** (Modularity) — Components must co-evolve, but low distance makes cascading changes cheap. | **Tight Coupling** (Complexity) — Frequent cascading changes (high strength) that are expensive to implement (high distance). A step toward a distributed monolith. |
+|                   | **Low Distance**                                                                                                                      | **High Distance**                                                                                                                                                   |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Low Strength**  | **Low Cohesion** (Complexity) — Unrelated components located close together. Increases cognitive load. Drifts toward big ball of mud. | **Loose Coupling** (Modularity) — Low strength minimizes cascading changes. High distance is balanced.                                                              |
+| **High Strength** | **High Cohesion** (Modularity) — Components must co-evolve, but low distance makes cascading changes cheap.                           | **Tight Coupling** (Complexity) — Frequent cascading changes (high strength) that are expensive to implement (high distance). A step toward a distributed monolith. |
 
 ### 4.2The Balance Rule
 
@@ -230,10 +235,11 @@ BALANCE = (STRENGTH XOR DISTANCE) OR NOT VOLATILITY
 ```
 
 This means coupling is balanced when either:
+
 - Strength and distance counterbalance each other (XOR), **OR**
 - The component has low volatility (regardless of strength/distance relationship).
 
-**Note**: The blog uses a simplified binary model for illustration. The book *Balancing Coupling in Software Design* contains a more elaborate mathematical model with continuous values rather than binary extremes.
+**Note**: The blog uses a simplified binary model for illustration. The book _Balancing Coupling in Software Design_ contains a more elaborate mathematical model with continuous values rather than binary extremes.
 
 ---
 
@@ -242,18 +248,21 @@ This means coupling is balanced when either:
 The balanced coupling model has deep connections to DDD. Many DDD patterns and practices directly relate to the dimensions of coupling:
 
 ### Strategic Design
+
 - **Bounded contexts** define physical boundaries (medium distance, shared lifecycle) for components that share a model of the business domain (model coupling).
 - **Bounded context integration patterns** (shared kernel, partnership, conformist, anti-corruption layer, open-host service, separate ways) determine the level of knowledge sharing. Ad-hoc patterns allow more knowledge exchange; formal patterns reduce it. This reflects both the integration strength and the organizational aspect of distance.
 - Some integration patterns (anti-corruption layer, open-host service) encapsulate internal models behind integration-specific contracts (contract coupling), used when high distance exists.
 
 ### Tactical Design
+
 - **Aggregate** and **value object** patterns co-locate (low distance) behaviors sharing transactional boundaries (high degree of functional coupling). This is balanced: high strength is offset by low distance.
 - Business logic implementation patterns (transaction script, active record, domain model, event-sourced domain model) are chosen based on domain complexity — which directly relates to volatility.
 
 ### Subdomains and Volatility
+
 - **Core subdomains** = highest volatility -> require the most careful coupling management
 - **Supporting subdomains** = low volatility -> DDD explicitly allows pragmatic shortcuts here ("Not all of a large system will be well-designed" — Eric Evans), because low volatility neutralizes unbalanced coupling
-- **Generic subdomains** = low *functional* volatility (the problem is solved), but *implementation* volatility varies. When the probability of switching providers or using multiple implementations is high (e.g., TTS engines, payment gateways, notification services), enforce strong integration contracts to encapsulate provider-specific knowledge. When switching cost is inherently high and unlikely (e.g., identity providers, core databases), pragmatic shortcuts are acceptable — but verify this assumption and brainstorm plausible change vectors before committing
+- **Generic subdomains** = low _functional_ volatility (the problem is solved), but _implementation_ volatility varies. When the probability of switching providers or using multiple implementations is high (e.g., TTS engines, payment gateways, notification services), enforce strong integration contracts to encapsulate provider-specific knowledge. When switching cost is inherently high and unlikely (e.g., identity providers, core databases), pragmatic shortcuts are acceptable — but verify this assumption and brainstorm plausible change vectors before committing
 
 DDD's subdomains are the primary tool for evaluating the **volatility dimension** of components in the balanced coupling model.
 
