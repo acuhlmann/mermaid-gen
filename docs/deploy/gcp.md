@@ -352,7 +352,7 @@ The Docker image **builds successfully**; Artifact Registry and Cloud Run requir
 
 4. Re-run deploy: **Actions → Deploy Cloud Run → Run workflow** (or push an empty commit to `main`).
 
-Preflight (local or CI): [`scripts/verify-gcp-billing.sh`](../../scripts/verify-gcp-billing.sh) — wired into [`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml) before the image build so failures surface in ~10s instead of after a multi-minute Docker build.
+Preflight (local or CI): [`scripts/verify-gcp-billing.sh`](../../scripts/verify-gcp-billing.sh) — wired into [`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml) before the image build so failures surface in ~10s instead of after a multi-minute Docker build. The deploy service account may lack `billing.viewer`; in that case the script falls back to an Artifact Registry probe and only fails when billing is explicitly disabled or billable APIs are unreachable.
 
 **`gcloud builds submit` PERMISSION_DENIED:** Your Google account needs permission to run Cloud Build and push to Artifact Registry (often **Cloud Build Editor**, **Run Admin**, **Artifact Registry Writer**, and Storage access for the Cloud Build source bucket). Ask a project owner to grant those roles, or build and push locally with Docker then deploy only the image:
 
