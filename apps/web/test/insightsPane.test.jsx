@@ -102,7 +102,7 @@ describe('InsightsPane', () => {
     );
 
     expect(screen.getByText('Content updates')).toBeTruthy();
-    expect(screen.getByText('Generation pipeline')).toBeTruthy();
+    expect(screen.getByTestId('run-timeline')).toBeTruthy();
     expect(screen.getByText('Read diagram snapshot')).toBeTruthy();
     expect(screen.getByText('Working')).toBeTruthy();
     expect(screen.getByText('Now')).toBeTruthy();
@@ -216,8 +216,9 @@ describe('InsightsPane', () => {
       />
     );
 
-    expect(screen.getByText('Done')).toBeTruthy();
+    expect(screen.getAllByText('Done').length).toBeGreaterThan(0);
     expect(screen.getByText('Thinking')).toBeTruthy();
+    expect(screen.getByTestId('run-timeline-terminal')).toBeTruthy();
     expect(screen.queryByTestId('insights-pane-persona')).toBeNull();
     expect(screen.queryByTestId('insights-tagline')).toBeNull();
   });
@@ -439,7 +440,7 @@ flowchart TB
     expect(screen.getByRole('button', { name: 'Restore' }).disabled).toBe(true);
   });
 
-  it('shows Plan lane for diagram intent beats', () => {
+  it('shows plan beats inside the unified run timeline', () => {
     render(
       <InsightsPane
         entries={[
@@ -461,7 +462,8 @@ flowchart TB
         celebratingEntryId={null}
       />
     );
-    expect(screen.getByRole('region', { name: 'Diagram intent' })).toBeTruthy();
+    const timeline = screen.getByTestId('run-timeline');
+    expect(within(timeline).getAllByTestId('plan-beat-card').length).toBe(2);
     expect(screen.getByText('Adding a session boundary before the API tier.')).toBeTruthy();
   });
 
@@ -500,7 +502,7 @@ flowchart TB
     expect(within(strip).queryByText(/archislopVersion/)).toBeNull();
   });
 
-  it('shows agent phases, patch summary, and optional stream debug', () => {
+  it('shows phase segments, patch line stats, and optional stream debug in the timeline', () => {
     render(
       <InsightsPane
         entries={[
@@ -510,10 +512,20 @@ flowchart TB
             status: 'running',
             statusText: 'Working…',
             content: '',
-            technicalActions: [],
+            technicalActions: [
+              {
+                id: 't1',
+                name: 'apply_mermaid_patch',
+                label: 'Apply diagram update',
+                status: 'done',
+                startedAt: 2100,
+                durationMs: 900,
+                patchStats: { revisionId: 7, linesAdded: 3, linesRemoved: 1 }
+              }
+            ],
             phases: [
-              { id: 'intent', label: 'Applying your request…' },
-              { id: 'agent_run', label: 'Planning and executing tools…' }
+              { id: 'intent', label: 'Applying your request…', at: 1000, endAt: 2000 },
+              { id: 'agent_run', label: 'Planning and executing tools…', at: 2000 }
             ],
             artifacts: [{ kind: 'patch_summary', revisionId: 7, linesAdded: 3, linesRemoved: 1 }],
             streamDebugLog: [{ type: 'phase', id: 'intent', _ts: 1 }]
@@ -524,11 +536,10 @@ flowchart TB
       />
     );
 
-    expect(screen.getByRole('region', { name: 'Agent phases' })).toBeTruthy();
+    expect(screen.getAllByTestId('run-timeline-segment').length).toBe(2);
     expect(screen.getByText('Applying your request…')).toBeTruthy();
     expect(screen.getByText('Live')).toBeTruthy();
-    expect(screen.getByText('Working…')).toBeTruthy();
-    expect(screen.getByRole('region', { name: 'Patch summary' })).toBeTruthy();
+    expect(screen.getAllByText('Working…').length).toBeGreaterThan(0);
     expect(screen.getByText('+3 / −1 lines')).toBeTruthy();
     expect(screen.getByText(/Raw stream events/i)).toBeTruthy();
   });
@@ -598,7 +609,7 @@ flowchart TB
       />
     );
 
-    expect(container.querySelector('code.insights-phase-id')).toBeNull();
+    expect(container.querySelector('code.run-timeline-segment-id')).toBeNull();
     expect(screen.getByText('Analyze')).toBeTruthy();
     expect(screen.getByText('Stream')).toBeTruthy();
   });
@@ -622,10 +633,10 @@ flowchart TB
       />
     );
 
-    expect(container.querySelector('code.insights-phase-id')?.textContent).toBe('analyze');
+    expect(container.querySelector('code.run-timeline-segment-id')?.textContent).toBe('analyze');
   });
 
-  it('collapses technical actions behind the generation pipeline for critique variant', () => {
+  it('folds completed technical steps behind a summary for critique variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -644,9 +655,55 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Generation pipeline')).toBeTruthy();
+    expect(screen.getByText(/1 technical step/)).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
     expect(screen.getByText('Read snapshot')).toBeTruthy();
+  });
+
+  it('renders model reasoning turns with model name and usage in the timeline', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-model-turns',
+            title: 'Go — diagram',
+            status: 'running',
+            statusText: 'Working…',
+            content: '',
+            startedAt: Date.now() - 5000,
+            phases: [{ id: 'agent_run', label: 'Planning and executing tools…', at: 1000 }],
+            technicalActions: [
+              {
+                id: 'm1',
+                name: 'model_call',
+                label: 'Model reasoning turn',
+                status: 'done',
+                startedAt: 1200,
+                durationMs: 2400,
+                modelName: 'deepseek-chat',
+                outcomeDetail: '812 tokens in · 96 tokens out'
+              },
+              {
+                id: 'm2',
+                name: 'model_call',
+                label: 'Model reasoning turn',
+                status: 'running',
+                startedAt: 4000,
+                modelName: 'deepseek-chat'
+              }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getAllByText('Model reasoning turn').length).toBe(2);
+    expect(screen.getAllByText('deepseek-chat').length).toBe(2);
+    expect(screen.getByText('812 tokens in · 96 tokens out')).toBeTruthy();
+    expect(screen.getByText('Reasoning…')).toBeTruthy();
+    expect(screen.getByText('2 model turns')).toBeTruthy();
+    expect(screen.getByText('2.4s')).toBeTruthy();
   });
 
   it('renders patch duration and outcome detail in technical actions', () => {
@@ -676,7 +733,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getAllByText('1.3s').length).toBe(2);
+    expect(screen.getAllByText('1.3s').length).toBeGreaterThan(0);
     expect(screen.getByText('1.3s · +2 nodes · rev 8')).toBeTruthy();
     expect(screen.getByText('Add auth gate before API')).toBeTruthy();
   });
@@ -707,8 +764,8 @@ flowchart TB
     );
 
     expect(screen.getByText('Apply diagram update (×2)')).toBeTruthy();
-    expect(screen.getByText('Generation pipeline')).toBeTruthy();
-    expect(screen.getByText('Pipeline complete')).toBeTruthy();
+    expect(screen.getByTestId('run-timeline')).toBeTruthy();
+    expect(screen.getByText('All steps complete')).toBeTruthy();
   });
 
   it('shows live progress and validation recovery in the generation pipeline', () => {
@@ -743,12 +800,11 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Live generation pipeline')).toBeTruthy();
-    expect(screen.getByText('Pipeline active')).toBeTruthy();
-    expect(screen.getAllByText('Validating update').length).toBeGreaterThan(0);
+    expect(screen.getByText('Live activity')).toBeTruthy();
+    expect(screen.getByText('Validating')).toBeTruthy();
+    expect(screen.getByText('Validation failed')).toBeTruthy();
     expect(screen.getByText('1 issue')).toBeTruthy();
     expect(screen.getByText('Validation feedback')).toBeTruthy();
-    expect(screen.getByText('Repairing now')).toBeTruthy();
     expect(screen.getByText(/Invalid encoding channel "colour"/)).toBeTruthy();
     expect(screen.getAllByText('Apply chart update').length).toBe(2);
   });
@@ -789,6 +845,7 @@ flowchart TB
 
     expect(screen.getByText('Quick syntax pass')).toBeTruthy();
     expect(screen.getByText('1 repair')).toBeTruthy();
+    expect(screen.getByText('1 issue')).toBeTruthy();
     expect(screen.getByText(/Repaired invalid chart DSL/)).toBeTruthy();
     expect(screen.getAllByText(/Vega-Lite compile failed/).length).toBeGreaterThan(0);
   });
@@ -931,7 +988,7 @@ flowchart TB
     expect(screen.getByText(/For a smart 10-year-old/i)).toBeTruthy();
   });
 
-  it('collapses technical actions behind the generation pipeline for explain variant', () => {
+  it('folds completed technical steps behind a summary for explain variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -950,7 +1007,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Generation pipeline')).toBeTruthy();
+    expect(screen.getByText(/1 technical step/)).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
@@ -1042,7 +1099,7 @@ flowchart TB
     expect(container.querySelector('.insights-prose-section.insights-tone-strengths')).toBeTruthy();
   });
 
-  it('collapses technical actions behind the generation pipeline for refine variant', () => {
+  it('folds completed technical steps behind a summary for refine variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -1061,7 +1118,7 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('Generation pipeline')).toBeTruthy();
+    expect(screen.getByText(/1 technical step/)).toBeTruthy();
     expect(screen.queryByText('Technical actions')).toBeNull();
   });
 

@@ -22,6 +22,31 @@ export type LegacyPhaseEvent = {
   timestamp?: number;
 };
 
+/** Closes the phase opened by the matching `phase` event (wire STEP_FINISHED). */
+export type LegacyPhaseEndEvent = {
+  type: 'phase_end';
+  id: string;
+  timestamp?: number;
+};
+
+/** An LLM turn started inside the run (LangChain on_chat_model_start). */
+export type LegacyModelCallStartEvent = {
+  type: 'model_call_start';
+  callId?: string;
+  model?: string;
+  timestamp?: number;
+};
+
+/** An LLM turn finished; token usage is best-effort (provider-dependent). */
+export type LegacyModelCallEndEvent = {
+  type: 'model_call_end';
+  callId?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  timestamp?: number;
+};
+
 export type LegacyStatusEvent = {
   type: 'status';
   text: string;
@@ -172,6 +197,9 @@ export type LegacyFinalEvent = {
 
 export type LegacyStreamEvent =
   | LegacyPhaseEvent
+  | LegacyPhaseEndEvent
+  | LegacyModelCallStartEvent
+  | LegacyModelCallEndEvent
   | LegacyStatusEvent
   | LegacyPlanBeatEvent
   | LegacyTokenEvent

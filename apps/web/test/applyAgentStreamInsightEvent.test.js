@@ -70,6 +70,103 @@ describe('applyAgentStreamInsightEvent tool_apply_result', () => {
   });
 });
 
+describe('applyAgentStreamInsightEvent phase timing', () => {
+  it('stamps new phases with a start time and closes the previous open phase', () => {
+    let entry = {
+      technicalActions: [],
+      planBeats: [],
+      phases: [{ id: 'planning', label: 'Planning…', at: 100 }]
+    };
+    const patchInsightEntry = vi.fn((id, fn) => {
+      entry = fn(entry);
+    });
+    const ctx = createCtx({ patchInsightEntry });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'phase',
+      id: 'agent_run',
+      label: 'Planning and executing tools…',
+      timestamp: 5000
+    });
+    expect(entry.phases).toHaveLength(2);
+    expect(entry.phases[0].endAt).toEqual(expect.any(Number));
+    expect(entry.phases[1]).toMatchObject({
+      id: 'agent_run',
+      at: expect.any(Number),
+      serverAt: 5000
+    });
+    expect(entry.phases[1].endAt).toBeUndefined();
+  });
+
+  it('closes the matching open phase on phase_end', () => {
+    let entry = {
+      technicalActions: [],
+      planBeats: [],
+      phases: [
+        { id: 'planning', label: 'Planning…', at: 100, endAt: 200 },
+        { id: 'agent_run', label: 'Tools…', at: 200, serverAt: 5000 }
+      ]
+    };
+    const patchInsightEntry = vi.fn((id, fn) => {
+      entry = fn(entry);
+    });
+    const ctx = createCtx({ patchInsightEntry });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'phase_end',
+      id: 'agent_run',
+      timestamp: 9000
+    });
+    expect(entry.phases[1].endAt).toEqual(expect.any(Number));
+    expect(entry.phases[1].serverEndAt).toBe(9000);
+    expect(entry.phases[0].endAt).toBe(200);
+  });
+});
+
+describe('applyAgentStreamInsightEvent model_call', () => {
+  it('starts a model-call technical action with the model name', () => {
+    const appendTechnicalAction = vi.fn();
+    const ctx = createCtx({ appendTechnicalAction });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'model_call_start',
+      callId: 'run-42',
+      model: 'deepseek-chat'
+    });
+    expect(appendTechnicalAction).toHaveBeenCalledWith('sec-1', 'model_call', 'running', {
+      toolCallId: 'run-42',
+      modelName: 'deepseek-chat'
+    });
+  });
+
+  it('finalizes a model-call action with token usage detail', () => {
+    const finalizeTechnicalActionResult = vi.fn();
+    const ctx = createCtx({ finalizeTechnicalActionResult });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'model_call_end',
+      callId: 'run-42',
+      model: 'deepseek-chat',
+      inputTokens: 1204,
+      outputTokens: 512
+    });
+    expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'model_call', {
+      status: 'done',
+      toolCallId: 'run-42',
+      outcomeDetail: '1204 tokens in · 512 tokens out'
+    });
+  });
+
+  it('finalizes a model-call action without usage when the provider reports none', () => {
+    const finalizeTechnicalActionResult = vi.fn();
+    const ctx = createCtx({ finalizeTechnicalActionResult });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'model_call_end',
+      callId: 'run-43'
+    });
+    expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'model_call', {
+      status: 'done',
+      toolCallId: 'run-43'
+    });
+  });
+});
+
 describe('applyAgentStreamInsightEvent syntax_fixer', () => {
   it('starts a syntax fixer technical action with trigger context', () => {
     const appendTechnicalAction = vi.fn();

@@ -347,7 +347,7 @@ describe('App simplified controls', () => {
     );
     await screen.findByText('Read diagram snapshot');
     await screen.findByText('Apply diagram update');
-    await screen.findByText('Done');
+    await screen.findAllByText('Done');
   });
 
   it('shows Fix after critique and applies critique-driven intent', async () => {
@@ -769,7 +769,7 @@ describe('App simplified controls', () => {
       );
       expect(intentCalls).toHaveLength(1);
     });
-    await screen.findByText('Done');
+    await screen.findAllByText('Done');
     await waitForControlsReady();
 
     fetchSessionDiagramStateMock.mockResolvedValue({

@@ -12,6 +12,8 @@ export const AGUI_CUSTOM_NAME_PLAN_BEAT = 'plan_beat';
 export const AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT = 'tool_apply_result';
 /** Single-shot syntax fixer start/result for the insights Tool trace. */
 export const AGUI_CUSTOM_NAME_SYNTAX_FIXER = 'syntax_fixer';
+/** LLM turn start/end inside a run (`{ phase: 'start' | 'end', callId, model, … }`). */
+export const AGUI_CUSTOM_NAME_MODEL_CALL = 'model_call';
 /**
  * Route-level keep-alive on `/agent-stream`. Carries no payload the UI renders —
  * it exists so the client's stream idle timer resets during server-side quiet

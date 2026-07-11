@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
+  AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
   AGUI_CUSTOM_NAME_SYNTAX_FIXER,
@@ -134,6 +135,70 @@ describe('wire AG-UI translator fixtures', () => {
       id: 'tool_7',
       accepted: false,
       error: 'Vega-Lite compile failed: missing field'
+    });
+  });
+
+  it('translates STEP_STARTED/STEP_FINISHED pairs into phase and phase_end events', () => {
+    const translate = createAgUiTranslator();
+    const started = translate({
+      type: 'STEP_STARTED',
+      stepName: 'agent_run\x1fPlanning and executing tools…',
+      timestamp: 1111
+    });
+    expect(started).toMatchObject({
+      type: 'phase',
+      id: 'agent_run',
+      label: 'Planning and executing tools…',
+      timestamp: 1111
+    });
+    const finished = translate({
+      type: 'STEP_FINISHED',
+      stepName: 'agent_run\x1fPlanning and executing tools…',
+      timestamp: 2222
+    });
+    expect(finished).toEqual({ type: 'phase_end', id: 'agent_run', timestamp: 2222 });
+  });
+
+  it('carries wire timestamps onto translated events', () => {
+    const translate = createAgUiTranslator();
+    const out = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_PLAN_BEAT,
+      value: { text: 'Scoping the update.', source: 'server' },
+      timestamp: 4242
+    });
+    expect(out?.timestamp).toBe(4242);
+  });
+
+  it('translates CUSTOM model_call wire to legacy model call events', () => {
+    const translate = createAgUiTranslator();
+    const start = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_MODEL_CALL,
+      value: { phase: 'start', callId: 'run-9', model: 'deepseek-chat' }
+    });
+    expect(start).toEqual({
+      type: 'model_call_start',
+      callId: 'run-9',
+      model: 'deepseek-chat'
+    });
+    const end = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_MODEL_CALL,
+      value: {
+        phase: 'end',
+        callId: 'run-9',
+        model: 'deepseek-chat',
+        inputTokens: 900,
+        outputTokens: 120
+      }
+    });
+    expect(end).toEqual({
+      type: 'model_call_end',
+      callId: 'run-9',
+      model: 'deepseek-chat',
+      inputTokens: 900,
+      outputTokens: 120
     });
   });
 

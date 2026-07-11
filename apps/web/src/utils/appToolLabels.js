@@ -5,7 +5,8 @@ const TOOL_LABELS = {
   apply_infographic_patch: 'Apply infographic update',
   apply_metaphor_patch: 'Apply 3D scene update',
   apply_anything_patch: 'Apply canvas update',
-  syntax_fixer: 'Quick syntax pass'
+  syntax_fixer: 'Quick syntax pass',
+  model_call: 'Model reasoning turn'
 };
 
 /** Human label for an LLM-tool call name shown in the insights pane. */

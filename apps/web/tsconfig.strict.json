@@ -12,11 +12,11 @@
   },
   "include": [
     "src/components/ExplainSectionsPanel.tsx",
-    "src/components/PatchSummaryViz.tsx",
     "src/components/PlanBeatCard.tsx",
+    "src/components/RunTimeline.tsx",
+    "src/components/runTimelineModel.ts",
     "src/components/StyleEditsA2uiSurface.tsx",
     "src/components/StyleEditsPanel.tsx",
-    "src/components/TechnicalActionStepper.tsx",
     "src/components/insightsEntryTypes.ts",
     "src/state/agentStreamInsightContext.ts",
     "src/state/agUiTranslator.ts",

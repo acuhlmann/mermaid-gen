@@ -1,7 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createAgentStreamEmitter } from '../src/agentStreamEmitter.js';
-import { AGUI_CUSTOM_NAME_A2UI, AGUI_CUSTOM_NAME_PLAN_BEAT } from '../src/agUiWireConstants.js';
+import {
+  AGUI_CUSTOM_NAME_A2UI,
+  AGUI_CUSTOM_NAME_MODEL_CALL,
+  AGUI_CUSTOM_NAME_PLAN_BEAT
+} from '../src/agUiWireConstants.js';
 
 test('createAgentStreamEmitter emit.planBeat maps to CUSTOM plan_beat', () => {
   const captured: Array<Record<string, unknown>> = [];
@@ -36,6 +40,40 @@ test('createAgentStreamEmitter emit.a2ui maps to CUSTOM a2ui', () => {
   assert.equal(captured[0].type, 'CUSTOM');
   assert.equal(captured[0].name, AGUI_CUSTOM_NAME_A2UI);
   assert.deepEqual((captured[0].value as Record<string, unknown>).messages, messages);
+});
+
+test('createAgentStreamEmitter maps model_call_start/end to CUSTOM model_call', () => {
+  const captured: Array<Record<string, unknown>> = [];
+  const emit = createAgentStreamEmitter({
+    rawEmit: (e) => captured.push(e),
+    threadId: 'thr_test',
+    runId: 'run_test',
+    contentType: 'mermaid'
+  });
+  emit({ type: 'model_call_start', callId: 'run-1', model: 'deepseek-chat' });
+  emit({
+    type: 'model_call_end',
+    callId: 'run-1',
+    model: 'deepseek-chat',
+    inputTokens: 321,
+    outputTokens: 45
+  });
+  assert.equal(captured.length, 2);
+  assert.equal(captured[0].type, 'CUSTOM');
+  assert.equal(captured[0].name, AGUI_CUSTOM_NAME_MODEL_CALL);
+  assert.deepEqual(captured[0].value, {
+    phase: 'start',
+    callId: 'run-1',
+    model: 'deepseek-chat'
+  });
+  assert.equal(captured[1].name, AGUI_CUSTOM_NAME_MODEL_CALL);
+  assert.deepEqual(captured[1].value, {
+    phase: 'end',
+    callId: 'run-1',
+    model: 'deepseek-chat',
+    inputTokens: 321,
+    outputTokens: 45
+  });
 });
 
 test('createAgentStreamEmitter passes through AG-UI wire events', () => {

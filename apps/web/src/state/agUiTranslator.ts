@@ -2,6 +2,7 @@ import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
   AGUI_CUSTOM_NAME_HEARTBEAT,
+  AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_STATUS,
   AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
@@ -16,6 +17,16 @@ import {
 
 type AgUiWireEvent = { type: string; [key: string]: unknown };
 
+/** Split the `id\x1flabel` wire encoding used on STEP_STARTED / STEP_FINISHED stepName. */
+function parseWireStepName(raw: string): { id: string; label: string } {
+  const sep = raw.indexOf('\x1f');
+  if (sep >= 0) {
+    const id = raw.slice(0, sep) || 'step';
+    return { id, label: raw.slice(sep + 1) || id };
+  }
+  return { id: raw, label: raw };
+}
+
 /**
  * Translates AG-UI wire events into legacy stream events for `applyAgentStreamInsightEvent`.
  */
@@ -26,21 +37,28 @@ export function createAgUiTranslator(): (
   /** AG-UI TOOL_CALL_END carries only toolCallId — resolve name from the matching start. */
   const toolCallNamesById = new Map<string, string>();
   return function translate(evt): LegacyStreamEvent | null {
+    const out = translateWireEvent(evt);
+    // Carry the server-side emit time so the Thinking timeline can order and
+    // measure steps by when the server knew, not when the packet arrived.
+    if (out && out.timestamp == null && typeof evt?.timestamp === 'number') {
+      out.timestamp = evt.timestamp;
+    }
+    return out;
+  };
+
+  function translateWireEvent(evt: AgUiWireEvent | null | undefined): LegacyStreamEvent | null {
     if (!evt || typeof evt !== 'object') return null;
     switch (evt.type) {
       case 'RUN_STARTED':
         return { type: 'phase', id: 'run_started', label: 'Starting…' };
       case 'STEP_STARTED': {
-        const raw = String(evt.stepName ?? 'step');
-        const sep = raw.indexOf('\x1f');
-        if (sep >= 0) {
-          const id = raw.slice(0, sep) || 'step';
-          const label = raw.slice(sep + 1) || id;
-          return { type: 'phase', id, label };
-        }
-        return { type: 'phase', id: raw, label: raw };
+        const { id, label } = parseWireStepName(String(evt.stepName ?? 'step'));
+        return { type: 'phase', id, label };
       }
-      case 'STEP_FINISHED':
+      case 'STEP_FINISHED': {
+        const { id } = parseWireStepName(String(evt.stepName ?? 'step'));
+        return { type: 'phase_end', id };
+      }
       case 'TEXT_MESSAGE_START':
       case 'TEXT_MESSAGE_END':
         return null;
@@ -182,6 +200,32 @@ export function createAgUiTranslator(): (
             ...(accepted ? extras : { error })
           };
         }
+        if (name === AGUI_CUSTOM_NAME_MODEL_CALL && value && typeof value === 'object') {
+          const phase = value.phase;
+          if (phase !== 'start' && phase !== 'end') return null;
+          const callId = typeof value.callId === 'string' ? value.callId : '';
+          const model = typeof value.model === 'string' ? value.model : '';
+          if (phase === 'start') {
+            return {
+              type: 'model_call_start',
+              ...(callId ? { callId } : {}),
+              ...(model ? { model } : {})
+            };
+          }
+          const inputTokens = value.inputTokens;
+          const outputTokens = value.outputTokens;
+          return {
+            type: 'model_call_end',
+            ...(callId ? { callId } : {}),
+            ...(model ? { model } : {}),
+            ...(typeof inputTokens === 'number' && Number.isFinite(inputTokens)
+              ? { inputTokens }
+              : {}),
+            ...(typeof outputTokens === 'number' && Number.isFinite(outputTokens)
+              ? { outputTokens }
+              : {})
+          };
+        }
         if (name === AGUI_CUSTOM_NAME_SYNTAX_FIXER && value && typeof value === 'object') {
           const phase = value.phase;
           const contentType = typeof value.contentType === 'string' ? value.contentType : 'mermaid';
@@ -215,5 +259,5 @@ export function createAgUiTranslator(): (
       default:
         return evt as LegacyStreamEvent;
     }
-  };
+  }
 }
