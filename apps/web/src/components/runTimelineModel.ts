@@ -143,10 +143,15 @@ export function truncateDetail(text: string, maxLen = 220): string {
   return `${trimmed.slice(0, maxLen - 1)}…`;
 }
 
-/** Compact clock offset from run start (e.g. `+0:07`). */
+/** Compact offset from run start (e.g. `+13ms`, `+2.2s`, `+1:05`). */
 export function formatRunOffset(startedAt: number | null, at: number | null): string {
   if (startedAt == null || at == null) return '';
-  const seconds = Math.max(0, Math.floor((at - startedAt) / 1000));
+  const ms = Math.max(0, at - startedAt);
+  if (ms < 60_000) {
+    const compact = formatActionDurationMs(ms);
+    return compact ? `+${compact}` : '+0ms';
+  }
+  const seconds = Math.floor(ms / 1000);
   const mm = Math.floor(seconds / 60);
   const ss = String(seconds % 60).padStart(2, '0');
   return `+${mm}:${ss}`;
