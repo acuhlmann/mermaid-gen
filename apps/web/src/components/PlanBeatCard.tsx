@@ -5,6 +5,7 @@
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { tryExtractDiagramPreviewFromText } from '../utils/insightsEmbeddedDiagramSplit.js';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
+import type { ContentType } from '@archislop/shared';
 
 const VARIANT_ICONS: Record<string, string> = {
   refine: '✨',
@@ -23,16 +24,16 @@ type PlanBeat = {
   source?: 'agent' | 'server';
 };
 
-function splitPlanSteps(text: string): string[] {
+function splitPlanSteps(text: string, contentType: ContentType | null = null): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
 
   // Keep fenced diagram/HTML blocks intact — line splitting would show ```html and tags as plain text.
   if (/```/.test(trimmed)) {
-    const preview = tryExtractDiagramPreviewFromText(trimmed);
+    const preview = tryExtractDiagramPreviewFromText(trimmed, { expectedKind: contentType });
     if (preview) {
       const prose = preview.prose?.trim();
-      return prose ? splitPlanSteps(prose) : [];
+      return prose ? splitPlanSteps(prose, contentType) : [];
     }
     const proseOnly = trimmed.replace(/```[\s\S]*$/s, '').trim();
     return proseOnly ? [proseOnly] : [trimmed];
@@ -65,13 +66,15 @@ function splitPlanSteps(text: string): string[] {
 function PlanStepBody({
   step,
   cardIndex,
-  stepIndex
+  stepIndex,
+  contentType = null
 }: {
   step: string;
   cardIndex: number;
   stepIndex: number;
+  contentType?: ContentType | null;
 }) {
-  const preview = tryExtractDiagramPreviewFromText(step);
+  const preview = tryExtractDiagramPreviewFromText(step, { expectedKind: contentType });
   const keyBase = `plan-${cardIndex}-${stepIndex}`;
 
   if (preview) {
@@ -93,11 +96,13 @@ function PlanStepBody({
 export default function PlanBeatCard({
   beat,
   variant = 'general',
-  index = 0
+  index = 0,
+  contentType = null
 }: {
   beat?: PlanBeat;
   variant?: string;
   index?: number;
+  contentType?: ContentType | null;
 }) {
   const source = beat?.source === 'agent' ? 'agent' : 'server';
   const text = String(beat?.text ?? '').trim();
@@ -108,8 +113,10 @@ export default function PlanBeatCard({
   // Detect an embedded diagram DSL across the whole beat before splitting it into
   // steps: multi-line DSL (metaphor/chart JSON, HTML, Mermaid) would otherwise be
   // shredded into one "step" per line and shown as raw code instead of a preview.
-  const wholePreview = tryExtractDiagramPreviewFromText(text);
-  const steps = wholePreview ? splitPlanSteps(wholePreview.prose ?? '') : splitPlanSteps(text);
+  const wholePreview = tryExtractDiagramPreviewFromText(text, { expectedKind: contentType });
+  const steps = wholePreview
+    ? splitPlanSteps(wholePreview.prose ?? '', contentType)
+    : splitPlanSteps(text, contentType);
   const multiStep = steps.length > 1;
 
   return (
@@ -164,7 +171,7 @@ export default function PlanBeatCard({
         ) : multiStep ? (
           <ol className="insights-plan-card-steps">
             {steps.map((step, stepIndex) => {
-              const preview = tryExtractDiagramPreviewFromText(step);
+              const preview = tryExtractDiagramPreviewFromText(step, { expectedKind: contentType });
               return (
                 <li
                   key={`plan-${index}-step-${stepIndex}`}
@@ -180,7 +187,12 @@ export default function PlanBeatCard({
                     {stepIndex + 1}
                   </span>
                   <span className="insights-plan-card-step-text">
-                    <PlanStepBody step={step} cardIndex={index} stepIndex={stepIndex} />
+                        <PlanStepBody
+                          step={step}
+                          cardIndex={index}
+                          stepIndex={stepIndex}
+                          contentType={contentType}
+                        />
                   </span>
                 </li>
               );

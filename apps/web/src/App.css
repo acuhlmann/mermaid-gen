@@ -2087,12 +2087,30 @@
   align-items: baseline;
 }
 
+.insights-embedded-diagram--anything {
+  max-height: min(14rem, 32vh);
+}
+
+.insights-embedded-diagram--anything .insights-embedded-diagram-inner {
+  position: relative;
+  height: 12rem;
+  min-height: 10rem;
+  max-height: min(14rem, 32vh);
+  overflow: hidden;
+  padding: 0;
+}
+
 .insights-embedded-diagram--anything .insights-embedded-diagram-inner,
 .insights-embedded-diagram--anything .anything-renderer-root,
 .insights-embedded-diagram--anything .anything-frame {
   width: 100%;
   height: 100%;
-  min-height: 10rem;
+  min-height: 0;
+}
+
+.insights-embedded-diagram--anything .anything-renderer-root {
+  position: relative;
+  inset: auto;
 }
 
 .insights-embedded-diagram--anything .anything-frame {

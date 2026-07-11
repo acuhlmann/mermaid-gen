@@ -569,7 +569,9 @@ function splitMarkdownSections(content) {
 }
 
 function renderFencedOrDiagramBlock(code, language, keyPrefix, embedOpts) {
-  const preview = tryExtractDiagramPreviewFromText(code);
+  const preview = tryExtractDiagramPreviewFromText(code, {
+    expectedKind: embedOpts?.expectedPreviewKind ?? null
+  });
   if (preview) {
     if (embedOpts?.suppressEmbedded) return null;
     return (
@@ -592,7 +594,7 @@ function renderFencedOrDiagramBlock(code, language, keyPrefix, embedOpts) {
 /** Detect embedded diagram DSL in a body chunk before line-by-line shredding. */
 function renderEmbeddedBodyContent(body, keyPrefix, useSectionTypography, embedOpts) {
   if (!body?.trim()) return null;
-  const split = splitEmbeddedDiagramDsl(body);
+  const split = splitEmbeddedDiagramDsl(body, embedOpts?.expectedPreviewKind ?? null);
   if (split?.dsl) {
     if (embedOpts?.suppressEmbedded) {
       return split.prose.trim()
@@ -671,7 +673,9 @@ function renderBodyLines(body, keyPrefix, useSectionTypography, embedOpts = null
     const olMatch = trimmed.match(/^(\d+)\.\s+(.*)$/);
     if (olMatch) {
       const stepBody = olMatch[2];
-      const stepPreview = tryExtractDiagramPreviewFromText(stepBody);
+      const stepPreview = tryExtractDiagramPreviewFromText(stepBody, {
+        expectedKind: embedOpts?.expectedPreviewKind ?? null
+      });
       const stepClass = [
         'insights-content-ordered',
         stepPreview ? 'is-diagram-preview' : '',
@@ -845,7 +849,7 @@ function EmbeddedDiagramBlock({
 
 function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
   if (!text.trim()) return null;
-  const split = splitEmbeddedDiagramDsl(text);
+  const split = splitEmbeddedDiagramDsl(text, embedOpts.expectedPreviewKind ?? null);
   if (!split) {
     return renderRichContent(text, { ...richOpts, embedOpts });
   }
@@ -894,6 +898,12 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
         // Same dedup as DSL: hide mid-prose JSON tool-call previews when the bottom
         // "Resulting diagram" section will already show the same final source.
         if (embedOpts.suppressEmbedded) return null;
+        if (
+          embedOpts.expectedPreviewKind &&
+          seg.kind !== embedOpts.expectedPreviewKind
+        ) {
+          return null;
+        }
         const showPatchRestore =
           embedOpts.showEmbeddedRestore &&
           !embedOpts.streamingPreview &&
@@ -1038,10 +1048,11 @@ export default function InsightsPane({
   const stickToBottomRef = useRef(true);
   const hasLiveAgent = entries.some((e) => (e.status ?? 'running') === 'running');
 
-  function buildEmbedOpts(base, { showEmbeddedRestore = false } = {}) {
+  function buildEmbedOpts(base, { showEmbeddedRestore = false, expectedPreviewKind = null } = {}) {
     return {
       ...base,
       showEmbeddedRestore,
+      expectedPreviewKind,
       restoreDisabled: diagramUndoDisabled,
       onRestoreDiagramSnapshot
     };
@@ -1131,6 +1142,12 @@ export default function InsightsPane({
           </>
         ) : (
           entries.map((entry) => {
+            const entryPreviewKind =
+              typeof entry.contentType === 'string' && entry.contentType.trim()
+                ? entry.contentType
+                : (entry.status ?? 'running') === 'running'
+                  ? activeContentType
+                  : null;
             if (entry.kind === 'proposal') {
               return (
                 <div key={entry.id} className="insights-entry insights-entry-proposal">
@@ -1195,7 +1212,7 @@ export default function InsightsPane({
                           streamingPreview: false,
                           suppressEmbedded: false
                         },
-                        { showEmbeddedRestore: true }
+                        { showEmbeddedRestore: true, expectedPreviewKind: entryPreviewKind }
                       )
                     )}
                   </div>
@@ -1289,7 +1306,7 @@ export default function InsightsPane({
                   { accentuateSections, idPrefix: `${entry.id}-explain`, variant },
                   buildEmbedOpts(
                     { idPrefix: `${entry.id}-explain`, streamingPreview: false, suppressEmbedded },
-                    { showEmbeddedRestore }
+                    { showEmbeddedRestore, expectedPreviewKind: entryPreviewKind }
                   )
                 );
               analysisBody = (
@@ -1318,7 +1335,7 @@ export default function InsightsPane({
                               streamingPreview: isRunning,
                               suppressEmbedded
                             },
-                            { showEmbeddedRestore }
+                            { showEmbeddedRestore, expectedPreviewKind: entryPreviewKind }
                           )
                         )}
                       </div>
@@ -1347,7 +1364,7 @@ export default function InsightsPane({
                               streamingPreview: isRunning,
                               suppressEmbedded
                             },
-                            { showEmbeddedRestore }
+                            { showEmbeddedRestore, expectedPreviewKind: entryPreviewKind }
                           )
                         )}
                       </div>
@@ -1364,7 +1381,7 @@ export default function InsightsPane({
                   },
                   buildEmbedOpts(
                     { idPrefix: entry.id, streamingPreview: isRunning, suppressEmbedded },
-                    { showEmbeddedRestore }
+                    { showEmbeddedRestore, expectedPreviewKind: entryPreviewKind }
                   )
                 );
               }

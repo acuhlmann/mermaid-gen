@@ -260,6 +260,29 @@ describe('tryExtractDiagramPreviewFromText', () => {
     expect(preview.kind).toBe('anything');
     expect(preview.source).toContain('<!DOCTYPE html>');
   });
+
+  it('skips mermaid previews when the run targets metaphor3d', () => {
+    const text = `Translating the source diagram.
+
+flowchart LR
+  Auth --> API
+  API --> DB
+`;
+    expect(tryExtractDiagramPreviewFromText(text)).not.toBeNull();
+    expect(tryExtractDiagramPreviewFromText(text, { expectedKind: 'metaphor3d' })).toBeNull();
+  });
+
+  it('keeps metaphor3d previews when the run targets metaphor3d', () => {
+    const metaphor = {
+      metaphor: 'terrain',
+      scene: { theme: 'whiteboard', camera: 'orbit' },
+      items: [{ id: 'core', label: 'Core', elevation: 8 }]
+    };
+    const text = `Sculpting terrain.\n\n${JSON.stringify(metaphor)}`;
+    const preview = tryExtractDiagramPreviewFromText(text, { expectedKind: 'metaphor3d' });
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('metaphor3d');
+  });
 });
 
 describe('mermaidDslStartIndex', () => {
