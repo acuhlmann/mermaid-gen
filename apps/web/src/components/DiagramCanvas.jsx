@@ -32,6 +32,7 @@ import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
 import { switchMetaphorKind } from '../utils/switchMetaphorKind.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const TAP_MOVE_THRESHOLD_PX = 14;
 /** Debounce before clearing diagram hover when the pointer leaves a node hit area. */
@@ -223,6 +224,7 @@ export default function DiagramCanvas({
   /** True while the surface is in native fullscreen — gates the metaphor3d title/legend overlays. */
   isFullscreen = false
 }) {
+  const { controls } = useUiCopy();
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
   const [editorSource, setEditorSource] = useState(() =>
     formatEditorSource(diagramSource, contentType)
@@ -1571,7 +1573,7 @@ export default function DiagramCanvas({
             <p className="streaming-note" role="status">
               <span className="streaming-note-inner">
                 <StreamingWaveIcon />
-                <span>Streaming validated source…</span>
+                <span>{controls.diagramCanvas.streamingSource}</span>
               </span>
             </p>
           ) : null}
@@ -1586,7 +1588,7 @@ export default function DiagramCanvas({
                       className="overlay-button compact-button primary-button"
                       onClick={onEditorClose}
                     >
-                      Done
+                      {controls.diagramCanvas.done}
                     </button>
                   ) : null}
                 </div>

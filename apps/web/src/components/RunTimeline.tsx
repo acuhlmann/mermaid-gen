@@ -15,7 +15,6 @@ import PlanBeatCard from './PlanBeatCard';
 import { PatchLinesBar } from '../utils/thinkingProseEnrich';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
 import {
-  PHASE_ID_LABELS,
   actionDurationMs,
   actionKind,
   actionStatusLabel,
@@ -24,6 +23,7 @@ import {
   deriveRunTimelineView,
   foldSummaryLabel,
   formatRunOffset,
+  phaseIdLabel,
   runKicker,
   segmentDurationMs,
   segmentStateFor,
@@ -37,6 +37,7 @@ import {
   type TimelineSegment
 } from './runTimelineModel';
 import type { InsightEntry, InsightTechnicalAction } from './insightsEntryTypes';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const CONTENT_TYPES = new Set<ContentType>([
   'mermaid',
@@ -79,18 +80,19 @@ function ActionRowDetails({
   kind: ActionKind;
   showRawNames: boolean;
 }) {
+  const copy = useUiCopy().controls.runTimeline;
   const details = deriveActionDetails(action, kind);
   return (
     <>
       {details.reason ? (
         <span className="run-timeline-action-note" title={details.reason}>
-          <b>Intent</b>
+          <b>{copy.intent}</b>
           {truncateDetail(details.reason, 180)}
         </span>
       ) : null}
       {details.contextNote ? (
         <span className="run-timeline-action-note" title={details.contextNote}>
-          <b>Triggered by</b>
+          <b>{copy.triggeredBy}</b>
           {truncateDetail(details.contextNote, 180)}
         </span>
       ) : null}
@@ -110,7 +112,7 @@ function ActionRowDetails({
       ) : null}
       {details.validationError ? (
         <span className="run-timeline-action-error">
-          <b>Validation feedback</b>
+          <b>{copy.validationFeedback}</b>
           <code>{truncateDetail(details.validationError)}</code>
         </span>
       ) : null}
@@ -132,6 +134,7 @@ function ActionRow({
   now: number;
   showRawNames: boolean;
 }) {
+  const copy = useUiCopy().controls.runTimeline;
   const kind = actionKind(action);
   const isRunning = action.status === 'running' && runLive;
   const durationLabel = formatActionDurationMs(actionDurationMs(action, runLive, now));
@@ -162,12 +165,12 @@ function ActionRow({
           ) : null}
           <span className={`run-timeline-action-status is-${action.status ?? 'pending'}`}>
             {isRunning ? <span className="run-timeline-action-spinner" aria-hidden="true" /> : null}
-            {actionStatusLabel(action, kind, runLive)}
+            {actionStatusLabel(action, kind, runLive, copy)}
           </span>
           {durationLabel ? (
             <span
               className={`run-timeline-action-duration ${isRunning ? 'is-live' : ''}`}
-              title={isRunning ? 'Elapsed so far' : 'Step duration'}
+              title={isRunning ? copy.elapsedSoFar : copy.stepDuration}
             >
               {durationLabel}
             </span>
@@ -196,6 +199,7 @@ function SegmentItems({
   collapsed: boolean;
   planContentType?: ContentType | null;
 }) {
+  const copy = useUiCopy().controls.runTimeline;
   if (items.length === 0) return null;
 
   // Preserve chronology while letting beats stay visible when tech steps fold:
@@ -258,7 +262,7 @@ function SegmentItems({
           <details key={`actions-${runIdx}`} className="run-timeline-actions-fold" open>
             <summary>
               <span className="run-timeline-fold-marker" aria-hidden="true" />
-              {foldSummaryLabel(actionItems, runLive, now)}
+              {foldSummaryLabel(actionItems, runLive, now, copy)}
             </summary>
             <ul className="run-timeline-actions">{rows}</ul>
           </details>
@@ -319,25 +323,26 @@ function TimelineOverview({
   totalLabel: string;
   statChips: StatChip[];
 }) {
+  const copy = useUiCopy().controls.runTimeline;
   return (
     <header className="run-timeline-overview">
       <div className="run-timeline-overview-copy">
         <span className="run-timeline-kicker">
           <span className="run-timeline-live-dot" aria-hidden="true" />
-          {runKicker(runStatus)}
+          {runKicker(runStatus, copy)}
         </span>
         <strong className="run-timeline-headline">{headline}</strong>
       </div>
       {totalLabel ? (
         <span
           className={`run-timeline-total ${runLive ? 'is-live' : ''}`}
-          title={runLive ? 'Elapsed run time' : 'Total run time'}
+          title={runLive ? copy.elapsedRunTime : copy.totalRunTime}
         >
           <span aria-hidden="true">◷</span>
           {totalLabel}
         </span>
       ) : null}
-      <div className="run-timeline-stats" aria-label="Run summary">
+      <div className="run-timeline-stats" aria-label={copy.summary}>
         {statChips.map((chip) => (
           <span key={chip.key} className={chip.className}>
             {chip.text}
@@ -389,6 +394,7 @@ function PhaseSegment({
   now: number;
   planContentType?: ContentType | null;
 }) {
+  const copy = useUiCopy().controls.runTimeline;
   const isActive = state === 'active';
   return (
     <li
@@ -405,7 +411,7 @@ function PhaseSegment({
             {ceremonyLabelFor(variant, seg.id, seg.label)}
           </span>
           <span className="run-timeline-segment-chip" aria-hidden="true">
-            {PHASE_ID_LABELS[seg.id] ?? seg.id}
+            {phaseIdLabel(seg.id, copy)}
           </span>
           {showRawPhaseIds ? (
             <code className="run-timeline-segment-id">{seg.id}</code>
@@ -413,17 +419,14 @@ function PhaseSegment({
             <span className="insights-visually-hidden">{seg.id}</span>
           )}
           {offsetLabel ? (
-            <span
-              className="run-timeline-segment-offset"
-              title="When this step started, relative to run start"
-            >
+            <span className="run-timeline-segment-offset" title={copy.stepStartTitle}>
               {offsetLabel}
             </span>
           ) : null}
           {durationLabel ? (
             <span
               className={`run-timeline-segment-duration ${isActive ? 'is-live' : ''}`}
-              title={isActive ? 'Time in this step so far' : 'Time spent in this step'}
+              title={isActive ? copy.timeInStepSoFar : copy.timeSpentInStep}
             >
               {durationLabel}
             </span>
@@ -474,10 +477,15 @@ function ResponseSegment({
 }
 
 function TerminalRow({ runStatus, totalLabel }: { runStatus: RunStatus; totalLabel: string }) {
+  const copy = useUiCopy().controls.runTimeline;
   const state: SegmentState =
     runStatus === 'failed' ? 'failed-at' : runStatus === 'cancelled' ? 'stopped-at' : 'complete';
   const label =
-    runStatus === 'failed' ? 'Ended with an issue' : runStatus === 'cancelled' ? 'Stopped' : 'Done';
+    runStatus === 'failed'
+      ? copy.endedWithIssue
+      : runStatus === 'cancelled'
+        ? copy.stopped
+        : copy.done;
   return (
     <li className={`run-timeline-terminal is-${runStatus}`} data-testid="run-timeline-terminal">
       <span className="run-timeline-node" aria-hidden="true">
@@ -511,13 +519,15 @@ export default function RunTimeline({
   responseActive?: boolean;
   children?: ReactNode;
 }) {
+  const copy = useUiCopy().controls.runTimeline;
   const now = useNowTicker((entry.status ?? 'running') === 'running');
   const view = deriveRunTimelineView(entry, {
     variant,
     responseTitle,
     responseActive,
     hasResponse,
-    now
+    now,
+    copy
   });
   const { runStatus, runLive, segments, startedAt, totalLabel, headline, statusText, statChips } =
     view;
@@ -529,7 +539,7 @@ export default function RunTimeline({
   return (
     <section
       className={timelineRootClass(runStatus, runLive)}
-      aria-label="Run activity timeline"
+      aria-label={copy.activity}
       data-testid="run-timeline"
     >
       <TimelineOverview

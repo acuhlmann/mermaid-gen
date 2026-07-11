@@ -8,6 +8,7 @@ import {
   parseAnythingHtml,
   wrapAnythingSrcDoc
 } from '@archislop/shared';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const MAX_DISPLAYED_RUNTIME_ERRORS = 3;
 
@@ -22,9 +23,10 @@ function loadAnythingLibVendor() {
 }
 
 function AnythingErrorState({ error }) {
+  const { controls } = useUiCopy();
   return (
     <div className="anything-error-state" role="alert">
-      <p>Page could not render.</p>
+      <p>{controls.errors.pageFailed}</p>
       <pre className="anything-error-detail">{error}</pre>
     </div>
   );
@@ -67,6 +69,7 @@ export default function AnythingRenderer({
   streamingPreview = false,
   onRuntimeError
 }) {
+  const { controls } = useUiCopy();
   const iframeRef = useRef(null);
   const [runtimeErrors, setRuntimeErrors] = useState([]);
   const [errorsDismissed, setErrorsDismissed] = useState(false);
@@ -178,7 +181,7 @@ export default function AnythingRenderer({
       <iframe
         ref={iframeRef}
         className="anything-frame"
-        title="Anything canvas (sandboxed)"
+        title={controls.anythingCanvas.canvas}
         sandbox={ANYTHING_IFRAME_SANDBOX}
         csp={ANYTHING_IFRAME_CSP}
         referrerPolicy="no-referrer"
@@ -210,7 +213,7 @@ export default function AnythingRenderer({
           <button
             type="button"
             className="anything-runtime-banner-dismiss"
-            aria-label="Dismiss runtime error"
+            aria-label={controls.anythingCanvas.dismissError}
             onClick={() => setErrorsDismissed(true)}
           >
             ×

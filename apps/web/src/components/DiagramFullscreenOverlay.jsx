@@ -1,4 +1,5 @@
 import { createPortal } from 'react-dom';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 function FullscreenCloseIcon() {
   return (
@@ -41,14 +42,15 @@ function FullscreenCloseIcon() {
  * }} props
  */
 export default function DiagramFullscreenOverlay({ isFullscreen, host, onExit, children }) {
+  const { controls } = useUiCopy();
   if (!isFullscreen || !host) return children;
   return createPortal(
     <>
       <button
         type="button"
         className="diagram-fullscreen-close"
-        title="Exit fullscreen"
-        aria-label="Exit fullscreen"
+        title={controls.fullscreen.exit}
+        aria-label={controls.fullscreen.exit}
         // Don't let the press bubble into the canvas pan/selection handlers.
         onPointerDown={(event) => event.stopPropagation()}
         onClick={() => onExit?.()}

@@ -174,6 +174,10 @@ export const CONTROLS_ZH_TW = {
     pickPersona: '選擇角色',
     personaMenu: '相關方角色',
     castGroup: '相關方陣容',
+    castLabel: '相關方',
+    castOneOfMany: '{name} 是 {count} 位相關方之一',
+    castSpeaking: '{name} 正在發言',
+    castAskCommentary: '請 {name} 點評',
     align: '對齊'
   },
   invite: {
@@ -238,7 +242,22 @@ export const CONTROLS_ZH_TW = {
     levelLadder: '等級階梯',
     earnXp: '如何獲得經驗',
     trophyShelf: '獎盃架',
-    closeLevelDetails: '關閉等級詳情'
+    closeLevelDetails: '關閉等級詳情',
+    patchPreview: '修補預覽',
+    jumpToVersion: '將畫布跳回圖表的此版本。',
+    closeThinking: '關閉思考面板',
+    actionableImprovements: '可執行的改進',
+    restore: '還原',
+    retry: '重試',
+    retryQuality: '以高品質重試',
+    noStructuralChanges: '此版本與該步驟之前的圖表相比未偵測到結構性變化。',
+    stopRequest: '停止請求',
+    hide: '隱藏',
+    highlightOnCanvas: '在畫布上醒目顯示',
+    clearHighlights: '清除畫布醒目顯示',
+    highlightedChanges: '畫布上已醒目顯示的變化',
+    removedFromDiagram: '已從圖表移除：{ids}',
+    rawStreamEvents: '原始串流事件（{count}）'
   },
   editor: {
     doneEditing: '完成編輯',
@@ -270,5 +289,199 @@ export const CONTROLS_ZH_TW = {
     micDenied: '語音辨識被拒絕麥克風權限。',
     voiceFailed: '語音輸入失敗，請重試。',
     voiceUnavailable: '此瀏覽器無法使用語音輸入。'
+  },
+  errors: {
+    notifications: '錯誤通知',
+    dismiss: '關閉錯誤',
+    details: '錯誤詳情',
+    chartFailed: '圖表無法渲染。',
+    pageFailed: '頁面無法渲染。'
+  },
+  fullscreen: {
+    exit: '退出全螢幕'
+  },
+  presence: {
+    connected: '已連線的外部智慧代理',
+    invite: '邀請智慧代理',
+    moreAgents: '另有 {count} 個智慧代理',
+    inviteTitle: '邀請外部智慧代理加入協同設計工作階段'
+  },
+  proposal: {
+    loadPreviewTitle: '在主畫布上載入此提案以全尺寸預覽。不會接受該提案。',
+    openFullPreview: '開啟全螢幕預覽',
+    showSource: '顯示原始碼',
+    proposedAria: '來自 {name} 的 {type} 編輯提案',
+    proposedEdit: '提出了一個 {type} 編輯',
+    reject: '拒絕',
+    rejecting: '拒絕中…',
+    accept: '接受並套用',
+    applying: '套用中…',
+    statusPrefix: '狀態：'
+  },
+  handshake: {
+    title: '一個外部智慧代理想加入你的工作階段',
+    reportedClient: '回報的用戶端：',
+    explainer:
+      '如果你允許，該智慧代理可以讀取你的圖表、提出修改（每一項都需你核准）、留下署名備註並對修訂作出反應。它無法直接套用修改。',
+    deny: '拒絕',
+    denying: '拒絕中…',
+    allow: '允許智慧代理',
+    allowing: '允許中…'
+  },
+  appError: {
+    title: '出錯了',
+    body: '應用遇到意外錯誤並停止渲染。重新載入以恢復。',
+    reload: '重新載入應用'
+  },
+  checklist: {
+    fixSelected: '修復所選',
+    fixAll: '全部修復'
+  },
+  diagramCanvas: {
+    streamingSource: '正在串流已驗證的原始碼…',
+    done: '完成'
+  },
+  anythingCanvas: {
+    canvas: '任意畫布（沙箱）',
+    dismissError: '關閉執行階段錯誤'
+  },
+  embeddedPreview: {
+    infographic: '資訊圖預覽（唯讀）',
+    chart: '圖表預覽（唯讀）',
+    metaphor3d: '3D 隱喻預覽（唯讀）',
+    page: '頁面預覽（唯讀）',
+    mermaid: 'Mermaid 預覽（唯讀）'
+  },
+  diagramSurface: {
+    controls: '圖表介面控制項'
+  },
+  runFx: {
+    reviewing: '評審中'
+  },
+  advisor: {
+    pinned: '已釘選',
+    suggestionNav: '相關方建議導覽',
+    nextComment: '下一則相關方評論',
+    drillDeeperAria: '深入挖掘 — 開啟完整的架構長篇論述',
+    drillDeeperTitle: '在思考面板中開啟完整的架構深潛',
+    pinTitle: '已釘選 — 點擊取消釘選',
+    unpinTitle: '點擊釘選此評論',
+    olderSuggestion: '較早的建議',
+    olderSuggestionAt: '較早的建議（{pos}）',
+    oldestSuggestion: '最早的建議',
+    applySuggestion: '套用 {name} 的建議'
+  },
+  metaphor: {
+    legend: '圖例',
+    type: '隱喻類型',
+    viewAs: '檢視為',
+    kinds: {
+      city: '城市',
+      layercake: '千層蛋糕',
+      galaxy: '星系',
+      tree: '樹',
+      terrain: '地形',
+      orrery: '天體儀',
+      river: '河流',
+      garden: '花園'
+    }
+  },
+  styleEdits: {
+    region: '樣式編輯',
+    title: '視覺微調',
+    iconReplace: '替換圖示',
+    colorShift: '色彩變更',
+    apply: '套用樣式微調'
+  },
+  runTimeline: {
+    summary: '執行摘要',
+    activity: '執行活動時間軸',
+    runActivity: '執行活動',
+    intent: '意圖',
+    triggeredBy: '觸發來源',
+    validationFeedback: '驗證回饋',
+    stepStartTitle: '此步驟相對於執行開始的啟動時間',
+    elapsedSoFar: '已用時',
+    stepDuration: '步驟耗時',
+    elapsedRunTime: '已執行時間',
+    totalRunTime: '總執行時間',
+    timeInStepSoFar: '此步驟已用時',
+    timeSpentInStep: '此步驟耗時',
+    endedWithIssue: '以問題結束',
+    stopped: '已停止',
+    done: '完成',
+    phases: {
+      run_started: '開始',
+      planning: '規劃',
+      analyze: '分析',
+      analyze_stream: '串流',
+      intent: '套用',
+      agent_run: '工具',
+      transform: '變換',
+      syntax_fixer: '語法',
+      chart_syntax_fixer: '語法',
+      metaphor_syntax_fixer: '語法',
+      anything_syntax_fixer: '語法',
+      syntax_repair: '修復',
+      patch_retry: '重試',
+      invoke: '生成',
+      invoke_fallback: '收尾',
+      repair_1: '修復',
+      repair_2: '修復',
+      chart_transform: '變換',
+      chart_style: '樣式',
+      chart_analyze: '分析',
+      metaphor_transform: '變換',
+      metaphor_analyze: '分析',
+      anything_transform: '變換',
+      anything_analyze: '分析',
+      activity: '活動'
+    },
+    running: {
+      model: '推理中…',
+      fixer: '修復中',
+      patch: '驗證中',
+      inspect: '讀取上下文',
+      tool: '處理中'
+    },
+    doneLabels: {
+      model: '本輪完成',
+      fixer: '修復完成',
+      patch: '更新已接受',
+      inspect: '上下文已載入',
+      tool: '完成'
+    },
+    validationFailed: '驗證失敗',
+    interrupted: '已中斷',
+    queued: '排隊中',
+    kicker: {
+      live: '即時活動',
+      issue: '執行問題',
+      stopped: '執行已停止',
+      activity: '執行活動'
+    },
+    headline: {
+      working: '處理中…',
+      stoppedOnIssue: '因問題停止',
+      stoppedByYou: '被你停止',
+      recovered: '已恢復並完成',
+      allComplete: '所有步驟已完成'
+    },
+    units: {
+      phase: '個階段',
+      phases: '個階段',
+      modelTurn: '輪模型',
+      modelTurns: '輪模型',
+      toolRun: '次工具呼叫',
+      toolRuns: '次工具呼叫',
+      planBeat: '個計劃節拍',
+      planBeats: '個計劃節拍',
+      repair: '次修復',
+      repairs: '次修復',
+      issue: '個問題',
+      issues: '個問題',
+      technicalStep: '個技術步驟',
+      technicalSteps: '個技術步驟'
+    }
   }
 };

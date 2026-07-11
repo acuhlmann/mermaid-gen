@@ -7,6 +7,8 @@
  * `prefers-reduced-motion: no-preference` (reduced-motion gets a static tint).
  */
 
+import { useUiCopy } from '../i18n/useUiLocale.js';
+
 const VARIANT_CLASS = {
   refine: 'is-refine',
   innovate: 'is-innovate',
@@ -114,6 +116,7 @@ function PinSvg({ number }) {
 }
 
 export default function DiagramRunFx({ variant, streaming = false, intensity = 'normal' }) {
+  const { controls } = useUiCopy();
   if (!streaming || !variant || !VARIANT_CLASS[variant]) return null;
   const className = [
     'diagram-run-fx',
@@ -198,7 +201,7 @@ export default function DiagramRunFx({ variant, streaming = false, intensity = '
               <SquiggleSvg />
             </span>
           ))}
-          <div className="diagram-run-fx-stamp">REVIEWING</div>
+          <div className="diagram-run-fx-stamp">{controls.runFx.reviewing}</div>
         </>
       ) : null}
 

@@ -4063,7 +4063,7 @@ ${requirementsBlock}`;
         </div>
 
         {fullscreenSupported || hasDiagramText || editorOpen ? (
-          <div className="top-corner-controls" aria-label="Diagram surface controls">
+          <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
             {fullscreenSupported ? (
               <DiagramFullscreenButton
                 isFullscreen={isFullscreen}

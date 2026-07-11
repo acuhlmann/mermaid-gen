@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import AgentBadge from './AgentBadge.jsx';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 function formatRelative(iso) {
   if (!iso) return '';
@@ -21,6 +23,8 @@ export default function AgentProposalCard({
   openFullPreviewDisabled = false,
   status = 'pending'
 }) {
+  const { controls } = useUiCopy();
+  const proposalCopy = controls.proposal;
   const [busy, setBusy] = useState(null);
   const [actionError, setActionError] = useState(null);
   if (!proposal) return null;
@@ -58,11 +62,16 @@ export default function AgentProposalCard({
   return (
     <article
       className={`agent-proposal-card agent-proposal-status-${status}`}
-      aria-label={`Proposed ${proposal.contentType} edit from ${origin.agentName ?? 'external agent'}`}
+      aria-label={formatLocale(proposalCopy.proposedAria, {
+        type: proposal.contentType,
+        name: origin.agentName ?? 'external agent'
+      })}
     >
       <header className="agent-proposal-head">
         <AgentBadge origin={origin} size="sm" />
-        <span className="agent-proposal-target">proposed a {proposal.contentType} edit</span>
+        <span className="agent-proposal-target">
+          {formatLocale(proposalCopy.proposedEdit, { type: proposal.contentType })}
+        </span>
         <span className="agent-proposal-time">{formatRelative(proposal.createdAt)}</span>
       </header>
       {proposal.reason ? <p className="agent-proposal-reason">{proposal.reason}</p> : null}
@@ -104,7 +113,7 @@ export default function AgentProposalCard({
                 type="button"
                 className="insights-entry-undo-btn agent-proposal-open-preview-btn"
                 disabled={openFullPreviewDisabled || Boolean(busy)}
-                title="Load this proposal on the main canvas for a full-size preview. Does not accept the proposal."
+                title={proposalCopy.loadPreviewTitle}
                 onClick={() =>
                   onOpenFullPreview({
                     diagramSource,
@@ -112,14 +121,14 @@ export default function AgentProposalCard({
                   })
                 }
               >
-                Open full preview
+                {proposalCopy.openFullPreview}
               </button>
             </div>
           ) : null}
         </div>
       ) : null}
       <details className="agent-proposal-source-details">
-        <summary>Show source</summary>
+        <summary>{proposalCopy.showSource}</summary>
         <pre className="agent-proposal-source">
           <code>{diagramSource}</code>
         </pre>
@@ -137,7 +146,7 @@ export default function AgentProposalCard({
             disabled={Boolean(busy)}
             onClick={() => go('reject', onReject)}
           >
-            {busy === 'reject' ? 'Rejecting…' : 'Reject'}
+            {busy === 'reject' ? proposalCopy.rejecting : proposalCopy.reject}
           </button>
           <button
             type="button"
@@ -145,11 +154,13 @@ export default function AgentProposalCard({
             disabled={Boolean(busy)}
             onClick={() => go('accept', onAccept)}
           >
-            {busy === 'accept' ? 'Applying…' : 'Accept & apply'}
+            {busy === 'accept' ? proposalCopy.applying : proposalCopy.accept}
           </button>
         </div>
       ) : (
-        <p className="agent-proposal-resolved">Status: {status}</p>
+        <p className="agent-proposal-resolved">
+          {proposalCopy.statusPrefix} {status}
+        </p>
       )}
     </article>
   );

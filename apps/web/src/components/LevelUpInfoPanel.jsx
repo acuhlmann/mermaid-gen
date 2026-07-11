@@ -51,7 +51,7 @@ export default function LevelUpInfoPanel({
   achievements = {},
   onClose
 }) {
-  const { slopitect } = useUiCopy();
+  const { slopitect, controls } = useUiCopy();
   const levels = slopitect.LEVELS ?? [];
   const prestigeTiers = slopitect.PRESTIGE_TIERS ?? [];
   const achievementCopy = slopitect.ACHIEVEMENTS ?? {};
@@ -184,7 +184,7 @@ export default function LevelUpInfoPanel({
         </div>
       </header>
 
-      <section className="levelup-info-section" aria-label="Level ladder">
+      <section className="levelup-info-section" aria-label={controls.insights.levelLadder}>
         <h3 className="levelup-info-section-title">{panel.ladderTitle}</h3>
         <ol className="levelup-info-ladder">
           {ladder.map((tier) => {
@@ -217,7 +217,7 @@ export default function LevelUpInfoPanel({
         </ol>
       </section>
 
-      <section className="levelup-info-section" aria-label="How to earn XP">
+      <section className="levelup-info-section" aria-label={controls.insights.earnXp}>
         <h3 className="levelup-info-section-title">{panel.engineTitle}</h3>
         <p className="levelup-info-section-lede">{panel.engineLede}</p>
         <ul className="levelup-info-variants">
@@ -253,7 +253,7 @@ export default function LevelUpInfoPanel({
         </p>
       </section>
 
-      <section className="levelup-info-section" aria-label="Trophy shelf">
+      <section className="levelup-info-section" aria-label={controls.insights.trophyShelf}>
         <h3 className="levelup-info-section-title">{panel.trophyTitle}</h3>
         <p className="levelup-info-section-lede">
           <strong>
