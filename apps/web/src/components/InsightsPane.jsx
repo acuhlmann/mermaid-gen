@@ -898,10 +898,7 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
         // Same dedup as DSL: hide mid-prose JSON tool-call previews when the bottom
         // "Resulting diagram" section will already show the same final source.
         if (embedOpts.suppressEmbedded) return null;
-        if (
-          embedOpts.expectedPreviewKind &&
-          seg.kind !== embedOpts.expectedPreviewKind
-        ) {
+        if (embedOpts.expectedPreviewKind && seg.kind !== embedOpts.expectedPreviewKind) {
           return null;
         }
         const showPatchRestore =

@@ -36,7 +36,12 @@ describe('PlanBeatCard', () => {
     const text = `Sketching the 3D terrain first.\n\n\`\`\`\n${JSON.stringify(METAPHOR_DSL, null, 2)}\n\`\`\``;
     render(
       <ul>
-        <PlanBeatCard beat={{ text, source: 'agent' }} variant="goMad" index={0} contentType="metaphor3d" />
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="goMad"
+          index={0}
+          contentType="metaphor3d"
+        />
       </ul>
     );
 
@@ -70,7 +75,12 @@ describe('PlanBeatCard', () => {
     const text = `Current HTML document:\n\n\`\`\`html\n${html}\n\`\`\``;
     render(
       <ul>
-        <PlanBeatCard beat={{ text, source: 'agent' }} variant="refine" index={0} contentType="anything" />
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="refine"
+          index={0}
+          contentType="anything"
+        />
       </ul>
     );
 
@@ -89,7 +99,12 @@ flowchart LR
   API --> DB`;
     render(
       <ul>
-        <PlanBeatCard beat={{ text, source: 'agent' }} variant="goMad" index={0} contentType="metaphor3d" />
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="goMad"
+          index={0}
+          contentType="metaphor3d"
+        />
       </ul>
     );
 

@@ -187,12 +187,12 @@ export default function PlanBeatCard({
                     {stepIndex + 1}
                   </span>
                   <span className="insights-plan-card-step-text">
-                        <PlanStepBody
-                          step={step}
-                          cardIndex={index}
-                          stepIndex={stepIndex}
-                          contentType={contentType}
-                        />
+                    <PlanStepBody
+                      step={step}
+                      cardIndex={index}
+                      stepIndex={stepIndex}
+                      contentType={contentType}
+                    />
                   </span>
                 </li>
               );
