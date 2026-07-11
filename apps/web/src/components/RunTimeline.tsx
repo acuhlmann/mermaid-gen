@@ -4,7 +4,7 @@
  * Merges every signal the server streams — run phases, plan beats, tool calls,
  * model turns, syntax-fixer passes, patch results — into one chronological rail
  * with live per-step timing. Content-domain beats stay visible; technical steps
- * fold into per-phase summaries once a phase completes. The streamed response
+ * fold into per-phase summaries once a phase completes (expanded by default). The streamed response
  * (children) renders as the final segment so the whole run reads as one story.
  * Derivation logic lives in `runTimelineModel.ts`.
  */
@@ -255,7 +255,7 @@ function SegmentItems({
           );
         }
         return (
-          <details key={`actions-${runIdx}`} className="run-timeline-actions-fold">
+          <details key={`actions-${runIdx}`} className="run-timeline-actions-fold" open>
             <summary>
               <span className="run-timeline-fold-marker" aria-hidden="true" />
               {foldSummaryLabel(actionItems, runLive, now)}
@@ -413,7 +413,10 @@ function PhaseSegment({
             <span className="insights-visually-hidden">{seg.id}</span>
           )}
           {offsetLabel ? (
-            <span className="run-timeline-segment-offset" title="Time from run start">
+            <span
+              className="run-timeline-segment-offset"
+              title="When this step started, relative to run start"
+            >
               {offsetLabel}
             </span>
           ) : null}
