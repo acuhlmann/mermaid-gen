@@ -1,4 +1,6 @@
 /** Simplified Chinese overrides for Slopitect flavor copy. */
+import { SLOPITECT_GAMIFICATION_ZH_CN } from './slopitectGamification.zh-CN.js';
+
 export const SLOPITECT_ZH_CN = {
   PROMPT_ACTION_COPY: {
     label: '发表意见',
@@ -76,5 +78,6 @@ export const SLOPITECT_ZH_CN = {
     refine: '工程师',
     innovate: '创新官',
     explain: '架构师'
-  }
+  },
+  ...SLOPITECT_GAMIFICATION_ZH_CN
 };

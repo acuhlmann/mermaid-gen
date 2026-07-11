@@ -15,7 +15,13 @@ describe('ui locale bundles', () => {
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
   });
 
-  it('maps detected Chinese prompts to zh-CN locale', () => {
-    expect(resolveUiLocaleFromText('画一个用户登录流程图')).toBe('zh-CN');
+  it('returns simplified Chinese gamification flavor when locale is zh-CN', () => {
+    const bundle = getUiLocaleBundle('zh-CN');
+    expect(bundle.slopitect.ACHIEVEMENTS.firstSlop.title).toMatch(/首|第一|初次/);
+    expect(bundle.slopitect.IDLE_TIPS[0]).not.toBe(
+      'Always over-engineer. The microservices love a good Co-Design session.'
+    );
+    expect(bundle.slopitect.LEVEL_PANEL.ladderTitle).toBeTruthy();
+    expect(bundle.slopitect.VARIANT_QUOTES.refine[0]).not.toBe('One useful next step at a time.');
   });
 });

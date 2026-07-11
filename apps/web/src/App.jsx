@@ -113,13 +113,7 @@ import {
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage
 } from './state/runGamificationStore.js';
-import {
-  CONSOLE_STAMP_LINES,
-  PROMPT_EASTER_EGGS,
-  IDLE_TIPS,
-  KONAMI_ACHIEVEMENT,
-  getVariantPersona
-} from './utils/slopitectCopy.js';
+import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import confetti from 'canvas-confetti';
@@ -420,19 +414,22 @@ function ArchiSlop() {
   // Slopitect console stamp on first mount — pure flavor, no functional effect.
   useEffect(() => {
     if (typeof console === 'undefined' || typeof console.log !== 'function') return;
+    const lines = slopitect.CONSOLE_STAMP_LINES;
+    if (!Array.isArray(lines) || lines.length === 0) return;
     try {
-      console.log('%c' + CONSOLE_STAMP_LINES.join('\n'), 'color:#c77a00;font-weight:700;');
+      console.log('%c' + lines.join('\n'), 'color:#c77a00;font-weight:700;');
     } catch {
       // ignore
     }
-  }, []);
+  }, [slopitect.CONSOLE_STAMP_LINES]);
 
   // Slopitect prompt easter eggs: fire each keyword's toast at most once per session.
   const promptEasterEggsFiredRef = useRef(new Set());
   const promptEasterEggSeqRef = useRef(0);
   useEffect(() => {
     if (!prompt) return;
-    for (const egg of PROMPT_EASTER_EGGS) {
+    const eggs = slopitect.PROMPT_EASTER_EGGS ?? [];
+    for (const egg of eggs) {
       if (egg.match.test(prompt) && !promptEasterEggsFiredRef.current.has(egg.toast)) {
         promptEasterEggsFiredRef.current.add(egg.toast);
         const seq = promptEasterEggSeqRef.current + 1;
@@ -444,7 +441,7 @@ function ArchiSlop() {
         }, 1800);
       }
     }
-  }, [prompt]);
+  }, [prompt, slopitect.PROMPT_EASTER_EGGS]);
 
   useEffect(() => {
     if (!latestCritique?.text) {
@@ -489,10 +486,11 @@ function ArchiSlop() {
         if (buf[i] !== sequence[i]) return;
       }
       konamiFiredRef.current = true;
+      const konami = slopitect.KONAMI_ACHIEVEMENT;
       const banner = {
         id: `konami-${Date.now()}`,
-        title: KONAMI_ACHIEVEMENT.title,
-        subtitle: KONAMI_ACHIEVEMENT.subtitle
+        title: konami?.title ?? '',
+        subtitle: konami?.subtitle ?? ''
       };
       setStreakHudAchievement(banner);
       setTimeout(() => {
@@ -509,7 +507,7 @@ function ArchiSlop() {
     return () => window.removeEventListener('keydown', handleKey);
     // tryAgentSound is stable enough for this listener and we want a one-shot lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [slopitect.KONAMI_ACHIEVEMENT]);
 
   // Tip chip lives below the brand logo. A single click on the logo brings up
   // a fresh tip; the idle scheduler below cycles them on its own.
@@ -518,7 +516,8 @@ function ArchiSlop() {
   const tipDismissTimerRef = useRef(null);
   const slopitectTipRef = useRef(null);
   const showSlopitectTip = useCallback(() => {
-    const tip = IDLE_TIPS[Math.floor(Math.random() * IDLE_TIPS.length)] || '';
+    const tips = slopitect.IDLE_TIPS ?? [];
+    const tip = tips[Math.floor(Math.random() * tips.length)] || '';
     if (!tip) return;
     const seq = tipSeqRef.current + 1;
     tipSeqRef.current = seq;
@@ -532,7 +531,7 @@ function ArchiSlop() {
       setSlopitectTip((current) => (current?.id === next.id ? null : current));
       tipDismissTimerRef.current = null;
     }, SLOPITECT_TIP_TTL_MS);
-  }, []);
+  }, [slopitect.IDLE_TIPS]);
 
   const handleBrandClick = useCallback(() => {
     showSlopitectTip();
