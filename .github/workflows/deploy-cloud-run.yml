@@ -39,6 +39,15 @@ jobs:
       - name: Configure Artifact Registry docker auth
         run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
 
+      - name: Verify GCP billing (preflight)
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          export GCP_PROJECT_ID="${PROJECT_ID}"
+          chmod +x scripts/verify-gcp-billing.sh
+          scripts/verify-gcp-billing.sh
+
       - name: Build and push image
         env:
           PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}

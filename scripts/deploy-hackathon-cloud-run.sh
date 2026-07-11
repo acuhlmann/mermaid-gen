@@ -21,6 +21,9 @@ cd "$ROOT"
 echo "Project=${PROJECT_ID} Region=${REGION} Service=${SERVICE}"
 echo "Git HEAD: $(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 
+export GCP_PROJECT_ID="${PROJECT_ID}"
+"${ROOT}/scripts/verify-gcp-billing.sh"
+
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com \
   --project="${PROJECT_ID}"
 

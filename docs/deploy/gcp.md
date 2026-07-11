@@ -333,6 +333,27 @@ gcloud logging read 'resource.type="cloud_run_revision"' --limit=30 --freshness=
 
 ## Troubleshooting
 
+**GitHub Actions `Deploy Cloud Run` fails at `docker push` with billing disabled:**
+
+```
+denied: This API method requires billing to be enabled. Please enable billing on project #…
+```
+
+The Docker image **builds successfully**; Artifact Registry and Cloud Run require an active billing account on the project. This is **not** caused by application code — CI still passes. Recent merges (for example PRs #91–#93) can all fail deploy with the same message when billing is unlinked or suspended.
+
+1. Open [Enable billing for the project](https://console.developers.google.com/billing/enable?project=464241135431) (project `mermaidgen`, number `464241135431`).
+2. Link the billing account that holds your credits (**Billing → Manage billing account → My projects**).
+3. Verify:
+
+   ```bash
+   gcloud billing projects describe mermaidgen
+   # billingEnabled: True
+   ```
+
+4. Re-run deploy: **Actions → Deploy Cloud Run → Run workflow** (or push an empty commit to `main`).
+
+Preflight (local or CI): [`scripts/verify-gcp-billing.sh`](../../scripts/verify-gcp-billing.sh) — wired into [`.github/workflows/deploy-cloud-run.yml`](../../.github/workflows/deploy-cloud-run.yml) before the image build so failures surface in ~10s instead of after a multi-minute Docker build.
+
 **`gcloud builds submit` PERMISSION_DENIED:** Your Google account needs permission to run Cloud Build and push to Artifact Registry (often **Cloud Build Editor**, **Run Admin**, **Artifact Registry Writer**, and Storage access for the Cloud Build source bucket). Ask a project owner to grant those roles, or build and push locally with Docker then deploy only the image:
 
 ```bash
