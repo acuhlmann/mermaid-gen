@@ -8343,6 +8343,11 @@ button {
 /* Desktop split view: keep top-right ceremony chrome on the diagram column. */
 @media (min-width: 1025px) {
   .app-shell.is-insights-open:not(.is-editor-open)
+    .run-ceremony-layer[data-ceremony-anchor='canvas'] {
+    right: max(260px, 30vw);
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open)
     .run-ceremony-layer[data-ceremony-anchor='canvas']
     .boot-sequence-overlay {
     padding-right: calc(max(260px, 30vw) + 1rem);
@@ -8364,6 +8369,10 @@ button {
     .run-ceremony-layer[data-ceremony-anchor='canvas']
     .streak-hud-level-up {
     right: calc(max(260px, 30vw) + 1rem);
+  }
+
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] {
+    right: calc(max(260px, 30vw) + max(320px, 38vw));
   }
 
   .app-shell.is-insights-open.is-editor-open
@@ -8729,27 +8738,18 @@ button {
   }
 }
 
-/* ── Variant pane backgrounds + carets ─────────────────────────────── */
+/* ── Variant pane accents (subtle — avoid washing out streamed text) ── */
 .insights-pane.is-variant-refine {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-    repeating-linear-gradient(0deg, rgba(37, 99, 235, 0.06) 0 1px, transparent 1px 24px),
-    repeating-linear-gradient(90deg, rgba(37, 99, 235, 0.06) 0 1px, transparent 1px 24px);
+  border-left-color: rgba(37, 99, 235, 0.35);
 }
 .insights-pane.is-variant-innovate {
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(253, 251, 255, 0.96) 0%,
-      rgba(253, 251, 255, 0.92) 70%,
-      rgba(168, 85, 247, 0.08) 100%
-    ),
-    repeating-linear-gradient(180deg, transparent 0 18px, rgba(236, 72, 153, 0.07) 18px 19px);
+  border-left-color: rgba(168, 85, 247, 0.35);
 }
 .insights-pane.is-variant-go-mad {
   background-image:
     linear-gradient(rgba(253, 251, 255, 0.92), rgba(253, 251, 255, 0.92)),
     repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.04) 0 1px, transparent 1px 3px);
+  border-left-color: rgba(236, 72, 153, 0.45);
   position: relative;
 }
 .insights-pane.is-variant-go-mad::before {
@@ -8760,15 +8760,13 @@ button {
   background: radial-gradient(ellipse at top right, rgba(236, 72, 153, 0.18), transparent 60%);
 }
 .insights-pane.is-variant-critique {
-  background-image:
-    linear-gradient(rgba(255, 251, 240, 0.96), rgba(255, 251, 240, 0.96)),
-    repeating-linear-gradient(0deg, rgba(120, 53, 15, 0.06) 0 1px, transparent 1px 28px);
-  border-left: 1px solid rgba(185, 28, 28, 0.18);
+  border-left-color: rgba(185, 28, 28, 0.35);
 }
 .insights-pane.is-variant-explain {
-  background-image:
-    linear-gradient(rgba(247, 245, 235, 0.95), rgba(247, 245, 235, 0.95)),
-    repeating-linear-gradient(0deg, rgba(13, 148, 136, 0.05) 0 1px, transparent 1px 32px);
+  border-left-color: rgba(13, 148, 136, 0.35);
+}
+.insights-pane.is-variant-exec {
+  border-left-color: rgba(30, 58, 138, 0.35);
 }
 
 /* Persona attribution — who is driving this run in the Thinking pane. */
@@ -8869,8 +8867,9 @@ button {
   color: rgba(40, 30, 60, 0.5);
 }
 
-/* Pane tagline that swaps with variant. */
-.insights-pane-tagline {
+/* Pane tagline / rotating persona quote in the live-run header. */
+.insights-pane-tagline,
+.insights-pane-persona-quote {
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -8879,9 +8878,19 @@ button {
   margin: 0;
   line-height: 1.35;
 }
-.insights-pane.is-variant-go-mad .insights-pane-tagline {
+.insights-pane-persona-quote {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 0.78rem;
+  font-weight: 650;
+  font-style: italic;
+  color: rgba(40, 30, 60, 0.72);
+}
+.insights-pane.is-variant-go-mad .insights-pane-tagline,
+.insights-pane.is-variant-go-mad .insights-pane-persona-quote {
   color: #ec4899;
   font-weight: 700;
+  font-style: normal;
   letter-spacing: 0.1em;
 }
 

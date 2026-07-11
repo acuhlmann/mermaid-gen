@@ -23,19 +23,26 @@ export default function RunCeremonyOverlays({
   liveVariant = null,
   liveStreaming = false,
   showLiveRunHud = false,
-  liveStreak = 0
+  liveStreak = 0,
+  /** When true, persona pop-ups (boot flash, mascot) stay off the Thinking pane unless goMad. */
+  insightsOpen = false
 }) {
   const anchorClass = ANCHOR_CLASS[anchor] || ANCHOR_CLASS.viewport;
+  const showPersonaCeremony = !insightsOpen || liveVariant === 'goMad';
 
   return (
     <div className={`run-ceremony-layer ${anchorClass}`.trim()} data-ceremony-anchor={anchor}>
-      <ActionBootSequence trigger={bootSeq?.trigger} variant={bootSeq?.variant} />
+      {showPersonaCeremony ? (
+        <ActionBootSequence trigger={bootSeq?.trigger} variant={bootSeq?.variant} />
+      ) : null}
       <StreakHud toasts={toasts} achievement={achievement} levelUp={levelUp} />
-      <SlopitectCompanion
-        key={`companion-${bootSeq?.trigger ?? 0}`}
-        variant={liveVariant}
-        streaming={liveStreaming}
-      />
+      {showPersonaCeremony ? (
+        <SlopitectCompanion
+          key={`companion-${bootSeq?.trigger ?? 0}`}
+          variant={liveVariant}
+          streaming={liveStreaming}
+        />
+      ) : null}
       <LiveRunHud
         key={`live-${bootSeq?.trigger ?? 0}`}
         variant={liveVariant}

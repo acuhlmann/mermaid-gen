@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+# Auto-format staged files so CI Prettier check does not fail on drift.
+# Skip with `git commit --no-verify`.
+set -e
+
+npx lint-staged

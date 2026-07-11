@@ -23,7 +23,7 @@ Operator guide for Claude Code, Cursor, Copilot, and other agents editing **arch
 
 | When you changed…                              | Run                                                                             |
 | ---------------------------------------------- | ------------------------------------------------------------------------------- |
-| Not sure / many areas                          | `npm run check:affected` (diff-scoped)                                          |
+| Not sure / many areas                          | `npm run check:affected` (diff-scoped; includes **Prettier** on changed files)  |
 | `packages/shared` only                         | `npm run check:fast`                                                            |
 | Default local gate                             | `npm run check` (boundaries, typecheck, lint, test, **wire**)                   |
 | **Before opening a PR** (matches CI)           | `npm run check:full`                                                            |
@@ -36,6 +36,7 @@ After editing `packages/shared`, run `npm run build -w packages/shared` before s
 ## PR checklist (copy before submit)
 
 - [ ] Ran `npm run check:affected` or the smallest row from the table above
+- [ ] If Prettier failed locally: `npm run format` (or rely on the pre-commit hook after `npm install`)
 - [ ] Ran `npm run check:full` if the change touches build, routes, or multiple workspaces
 - [ ] Updated producer **and** consumer for any wire/schema change ([blast-radius](../agent-blast-radius.md))
 - [ ] Updated `docs/guide/`, architecture doc, or recipe if behavior or routes changed
