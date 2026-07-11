@@ -2035,11 +2035,15 @@ function ArchiSlop() {
         // Fast path: ask the cheap syntax-fixer model directly via the render-error endpoint.
         // One LLM call vs an entire agent turn. Fall back to the full intent pipeline only when
         // the fixer rejects (e.g., fixer model not configured, repair didn't validate, stale).
-        if (contentMode === 'mermaid') {
+        // Mermaid render errors and Anything load-phase iframe errors both take this rung; the
+        // Anything store-apply re-runs the full ladder (runtime check included), so no gate is
+        // skipped by taking the cheaper path first.
+        if (contentMode === 'mermaid' || contentMode === 'anything') {
           const fast = await submitDiagramRenderRepair({
             revisionId: syncedState.revisionId,
             source: syncedState.diagramSource,
             renderError: errorMessage,
+            contentType: contentMode,
             sessionId: activeSessionId
           });
           if (fast?.repaired && fast.state) {
