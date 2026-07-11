@@ -72,4 +72,36 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
     expect(screen.getByText(/Consider the saga/i)).toBeTruthy();
   });
+
+  it('keeps the thinking indicator until the speech bubble is renderable', () => {
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        activeAdvisorVariant="explain"
+        thinkingPersona="explain"
+      />
+    );
+    expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
+    expect(screen.queryByTestId('advisor-speech-bubble')).toBeNull();
+    expect(screen.getByText(/is musing/i)).toBeTruthy();
+  });
+
+  it('prefers the speech bubble once suggestion text is available', () => {
+    const bubbleProps = {
+      persona: 'explain',
+      suggestion: 'Consider the saga between Order and Payment.',
+      kind: 'comment',
+      onDismiss: vi.fn()
+    };
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        activeAdvisorVariant="explain"
+        thinkingPersona="explain"
+        bubbleProps={bubbleProps}
+      />
+    );
+    expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
+    expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
+  });
 });

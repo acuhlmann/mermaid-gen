@@ -43,8 +43,14 @@ export default function StakeholdersMascot({
   onSelectVariant = null,
   castDisabled = false
 }) {
-  const stagePersona =
-    thinkingPersona || (activeAdvisorVariant && bubbleProps ? activeAdvisorVariant : null);
+  const bubbleReady = Boolean(
+    bubbleProps?.persona &&
+      typeof bubbleProps.suggestion === 'string' &&
+      bubbleProps.suggestion.trim().length > 0
+  );
+  const thinkingDisplayPersona = thinkingPersona ?? activeAdvisorVariant;
+  const showThinking = Boolean(thinkingDisplayPersona) && !bubbleReady;
+  const stagePersona = bubbleReady ? bubbleProps.persona : thinkingDisplayPersona;
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
   const wrapperRef = useRef(null);
@@ -115,14 +121,14 @@ export default function StakeholdersMascot({
       ref={wrapperRef}
       style={style}
     >
-      {thinkingPersona ? (
+      {showThinking ? (
         <AdvisorThinkingIndicator
-          persona={thinkingPersona}
+          persona={thinkingDisplayPersona}
           castVariants={castVariants}
           onSelectVariant={onSelectVariant}
           castDisabled={castDisabled}
         />
-      ) : bubbleProps ? (
+      ) : bubbleReady ? (
         <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} />
       ) : null}
       <button

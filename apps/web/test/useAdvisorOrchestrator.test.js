@@ -552,6 +552,69 @@ describe('useAdvisorOrchestrator', () => {
         })
     );
 
+    const { result } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey ? { id: 'A', label: 'A', source: focusSource ?? 'selected' } : null
+          })
+        ),
+      { initialProps: { focusKey: 'selected:A', focusSource: 'selected' } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('explain');
+
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toMatch(/bounded context/i);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toMatch(/bounded context/i);
+  });
+
+  it('discards a stale suggestion when focus changes during fetch and re-ticks', async () => {
+    mockPersonaPick('explain');
+    let resolveFirst;
+    fetchMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = () =>
+              resolve({
+                ok: true,
+                json: async () => ({
+                  persona: 'explain',
+                  suggestion: 'Viewport-era wisdom that should never flash.',
+                  highlightIds: [],
+                  kind: 'comment'
+                })
+              });
+          })
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          persona: 'explain',
+          suggestion: 'Focused wisdom for node A.',
+          highlightIds: ['A'],
+          kind: 'comment'
+        })
+      });
+
     const { result, rerender } = renderHook(
       ({ focusKey, focusSource }) =>
         useAdvisorOrchestrator(
@@ -574,18 +637,21 @@ describe('useAdvisorOrchestrator', () => {
     rerender({ focusKey: 'selected:A', focusSource: 'selected' });
 
     await act(async () => {
-      resolveFetch();
+      resolveFirst();
       await Promise.resolve();
       await Promise.resolve();
     });
-    expect(result.current.suggestion).toMatch(/bounded context/i);
+
+    expect(result.current.suggestion).toBeNull();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(60);
+      await vi.advanceTimersByTimeAsync(GAP_MS + 200);
+      await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(result.current.suggestion).toMatch(/bounded context/i);
+    expect(result.current.suggestion).toBe('Focused wisdom for node A.');
+    expect(result.current.suggestionKind).toBe('comment');
   });
 
   it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
