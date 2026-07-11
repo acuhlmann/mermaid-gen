@@ -20,6 +20,9 @@ cd "$ROOT"
 
 echo "Project=${PROJECT_ID} Region=${REGION} Service=${SERVICE} Image=${IMAGE}"
 
+export GCP_PROJECT_ID="${PROJECT_ID}"
+"${ROOT}/scripts/verify-gcp-billing.sh"
+
 gcloud services enable cloudbuild.googleapis.com run.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com aiplatform.googleapis.com \
   --project="${PROJECT_ID}"
 
