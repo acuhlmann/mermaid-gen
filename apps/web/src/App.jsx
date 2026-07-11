@@ -115,13 +115,13 @@ import {
 } from './state/runGamificationStore.js';
 import {
   CONSOLE_STAMP_LINES,
-  PROMPT_ACTION_COPY,
   PROMPT_EASTER_EGGS,
   IDLE_TIPS,
   KONAMI_ACHIEVEMENT,
-  STAKEHOLDERS_MUTE_COPY,
   getVariantPersona
 } from './utils/slopitectCopy.js';
+import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
+import { useUiCopy } from './i18n/useUiLocale.js';
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
@@ -135,7 +135,6 @@ import {
   enrichProposalForInsight,
   attributedInsightToInsightEntry,
   focusPayload,
-  goMadShapeLabel,
   selectionActionTitle,
   topicFromDescriptor
 } from './utils/appInsightHelpers.js';
@@ -190,7 +189,9 @@ import {
   actionPersonaTitle
 } from './utils/appActionPersonas.js';
 import {
+  buildContentModeOptions,
   buildRenderSelectionPrompt,
+  goMadShapeLabel,
   isContentMode,
   selectableRenderModes
 } from './utils/renderModeAction.js';
@@ -202,6 +203,8 @@ const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
 const SpeechRecognitionCtor = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
 
 function ArchiSlop() {
+  const { controls, slopitect, applyLocaleFromText } = useUiCopy();
+  const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
   // 404 handler uses this to decide whether to keep the same id or rotate to a new one.
@@ -586,6 +589,10 @@ function ArchiSlop() {
   useEffect(() => {
     stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    applyLocaleFromText(prompt, state.diagramSource);
+  }, [applyLocaleFromText, prompt, state.diagramSource]);
 
   useEffect(() => {
     function handlePopState() {
@@ -1697,7 +1704,12 @@ function ArchiSlop() {
     if (!stateRef.current.diagramSource.trim()) return;
 
     const sourceMode = contentMode;
-    const promptText = buildRenderSelectionPrompt({ descriptor, sourceMode, targetMode });
+    const promptText = buildRenderSelectionPrompt({
+      descriptor,
+      sourceMode,
+      targetMode,
+      options: contentModeOptions
+    });
     hasInteractedRef.current = true;
     closeRadialMenu();
 
@@ -2200,6 +2212,7 @@ function ArchiSlop() {
   async function submitIntentWithPrompt(nextPrompt, options = {}) {
     const trimmed = (nextPrompt ?? '').trim();
     if (!trimmed) return;
+    applyLocaleFromText(trimmed, stateRef.current?.diagramSource);
     if (!options.skipLoadingGuard && (loadingRef.current || streamingPreviewRef.current)) {
       return;
     }
@@ -3606,10 +3619,12 @@ ${requirementsBlock}`;
   });
 
   const radialActions = useMemo(() => {
+    const a = controls.actions;
+    const promptCopy = slopitect.PROMPT_ACTION_COPY;
     const list = [
       {
         id: 'definition',
-        label: 'What is this?',
+        label: a.definition,
         icon: (
           <span className="action-persona-icon is-definition" aria-hidden="true">
             ?
@@ -3618,12 +3633,12 @@ ${requirementsBlock}`;
         variant: 'definition',
         group: 'primary',
         behavior: 'showExplanation',
-        persona: 'Quick Reference',
-        personaTitle: 'Quick Reference · What does this element mean?'
+        persona: a.definitionPersona,
+        personaTitle: a.definitionTitle
       },
       {
         id: 'stakeholders',
-        label: 'Stakeholders',
+        label: a.stakeholders,
         icon: (
           <span className="action-persona-icon is-stakeholders" aria-hidden="true">
             👥
@@ -3632,12 +3647,12 @@ ${requirementsBlock}`;
         variant: 'stakeholders',
         group: 'primary',
         behavior: 'expandStakeholders',
-        persona: 'Stakeholders',
-        personaTitle: 'Stakeholders · Tap to summon the roundtable'
+        persona: a.stakeholders,
+        personaTitle: a.stakeholdersTitle
       },
       {
         id: 'prompt',
-        label: PROMPT_ACTION_COPY.label,
+        label: promptCopy.label,
         icon: (
           <span className="action-persona-icon is-prompt" aria-hidden="true">
             💬
@@ -3645,13 +3660,13 @@ ${requirementsBlock}`;
         ),
         variant: 'prompt',
         group: 'primary',
-        persona: PROMPT_ACTION_COPY.roleTag,
-        personaEmoji: PROMPT_ACTION_COPY.roleEmoji,
-        personaTitle: PROMPT_ACTION_COPY.title
+        persona: promptCopy.roleTag,
+        personaEmoji: promptCopy.roleEmoji,
+        personaTitle: promptCopy.title
       },
       {
         id: 'renderMode',
-        label: 'Render as...',
+        label: a.renderMode,
         icon: (
           <span className="action-persona-icon is-render-mode" aria-hidden="true">
             <RenderModeIcon />
@@ -3660,13 +3675,13 @@ ${requirementsBlock}`;
         variant: 'render-mode',
         group: 'primary',
         behavior: 'expandRenderModes',
-        persona: 'Mode Shifter',
-        personaTitle: 'Mode Shifter · Re-render this selection in another mode',
-        modeOptions: selectableRenderModes(contentMode)
+        persona: a.renderModePersona,
+        personaTitle: a.renderModeTitle,
+        modeOptions: selectableRenderModes(contentMode, contentModeOptions)
       },
       {
         id: 'refine',
-        label: 'Refine',
+        label: a.refine,
         icon: <ActionPersonaIcon variant="refine" />,
         variant: 'refine',
         persona: actionPersonaName('refine'),
@@ -3675,7 +3690,7 @@ ${requirementsBlock}`;
       },
       {
         id: 'innovate',
-        label: 'Innovate',
+        label: a.innovate,
         icon: <ActionPersonaIcon variant="innovate" />,
         variant: 'innovate',
         persona: actionPersonaName('innovate'),
@@ -3684,7 +3699,7 @@ ${requirementsBlock}`;
       },
       {
         id: 'goMad',
-        label: goMadShapeLabel(goMadStreak),
+        label: goMadShapeLabel(goMadStreak, a),
         icon: <ActionPersonaIcon variant="goMad" />,
         variant: 'go-mad',
         persona: actionPersonaName('goMad'),
@@ -3693,7 +3708,7 @@ ${requirementsBlock}`;
       },
       {
         id: 'exec',
-        label: 'Co-Design',
+        label: a.coDesign,
         icon: <ActionPersonaIcon variant="exec" />,
         variant: 'exec',
         persona: actionPersonaName('exec'),
@@ -3702,7 +3717,7 @@ ${requirementsBlock}`;
       },
       {
         id: 'critique',
-        label: 'Critique',
+        label: a.critique,
         icon: <ActionPersonaIcon variant="critique" />,
         variant: 'critique',
         persona: actionPersonaName('critique'),
@@ -3711,22 +3726,22 @@ ${requirementsBlock}`;
       },
       {
         id: 'fix',
-        label: 'Fix',
+        label: a.fix,
         icon: (
           <span className="action-persona-icon is-fix" aria-hidden="true">
             🛠️
           </span>
         ),
         variant: 'fix',
-        persona: 'Site Foreman',
+        persona: a.fixPersona,
         personaEmoji: '🛠️',
-        personaTitle: 'Site Foreman · Fixing the slop',
+        personaTitle: a.fixTitle,
         hidden: !latestCritique?.text,
         disabled: !canFixFromCritique
       },
       {
         id: 'explain',
-        label: 'Explain',
+        label: a.explain,
         icon: <ActionPersonaIcon variant="explain" />,
         variant: 'explain',
         persona: actionPersonaName('explain'),
@@ -3735,7 +3750,15 @@ ${requirementsBlock}`;
       }
     ];
     return list;
-  }, [canFixFromCritique, contentMode, goMadStreak, latestCritique?.text]);
+  }, [
+    canFixFromCritique,
+    contentMode,
+    contentModeOptions,
+    controls.actions,
+    goMadStreak,
+    latestCritique?.text,
+    slopitect.PROMPT_ACTION_COPY
+  ]);
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(
     insightsOpen,
@@ -3877,6 +3900,7 @@ ${requirementsBlock}`;
                 MicIcon={MicIcon}
                 MicActiveIcon={MicActiveIcon}
                 ButtonIcon={ButtonIcon}
+                copy={controls.prompt}
                 onPromptChange={setSlopNextPrompt}
                 onSubmit={handleSlopPromptSubmit}
                 onClose={closeSlopPrompt}
@@ -3911,7 +3935,11 @@ ${requirementsBlock}`;
 
       {ceremonyOverlays}
       <ErrorToast />
-      <HotkeyOverlay open={hotkeyOverlayOpen} onClose={() => setHotkeyOverlayOpen(false)} />
+      <HotkeyOverlay
+        open={hotkeyOverlayOpen}
+        onClose={() => setHotkeyOverlayOpen(false)}
+        copy={controls.hotkeys}
+      />
 
       <TopShell>
         <div
@@ -4078,6 +4106,7 @@ ${requirementsBlock}`;
       <ClearConfirmDialog
         key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
         open={clearConfirmOpen}
+        copy={controls.clearDialog}
         onConfirm={() => {
           void performClearDiagram();
         }}
@@ -4135,6 +4164,7 @@ ${requirementsBlock}`;
                 MicIcon={MicIcon}
                 MicActiveIcon={MicActiveIcon}
                 ButtonIcon={ButtonIcon}
+                copy={controls.prompt}
                 onPromptChange={setSlopNextPrompt}
                 onSubmit={handleSlopPromptSubmit}
                 onClose={closeSlopPrompt}
@@ -4150,13 +4180,13 @@ ${requirementsBlock}`;
           !hasDiagramText && !insightsOpen ? (
             <form className="prompt-control" onSubmit={runIntentChange}>
               <label className="sr-only" htmlFor="diagram-change-prompt">
-                Your Topic
+                {controls.prompt.yourTopic}
               </label>
               <input
                 id="diagram-change-prompt"
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
-                placeholder="Your Topic"
+                placeholder={controls.prompt.yourTopic}
                 disabled={busy}
                 aria-invalid={error ? 'true' : 'false'}
                 aria-describedby={status ? 'app-status' : undefined}
@@ -4196,25 +4226,25 @@ ${requirementsBlock}`;
                   aria-label={
                     narrowLayout
                       ? voiceListening
-                        ? 'Tap to stop dictation'
-                        : 'Tap to dictate'
-                      : 'Hold to speak'
+                        ? controls.prompt.tapToStop
+                        : controls.prompt.tapToDictate
+                      : controls.prompt.holdToSpeak
                   }
                   aria-pressed={narrowLayout ? voiceListening : undefined}
                   title={
                     voiceSupported
                       ? narrowLayout
                         ? voiceListening
-                          ? 'Tap to stop dictation'
-                          : 'Tap to dictate prompt'
-                        : 'Hold to dictate prompt'
+                          ? controls.prompt.tapToStop
+                          : controls.prompt.tapToDictatePrompt
+                        : controls.prompt.holdToDictate
                       : SpeechRecognitionCtor
-                        ? 'Voice input needs a secure connection (HTTPS), except on localhost'
-                        : 'Voice input not supported in this browser'
+                        ? controls.prompt.voiceNeedsHttps
+                        : controls.prompt.voiceUnsupported
                   }
                 >
                   <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-                  <span className="button-label">Mic</span>
+                  <span className="button-label">{controls.prompt.mic}</span>
                 </button>
                 <button
                   type="submit"
@@ -4222,7 +4252,7 @@ ${requirementsBlock}`;
                   disabled={busy || !prompt.trim()}
                 >
                   <ButtonIcon>{'>'}</ButtonIcon>
-                  <span className="button-label">Do it</span>
+                  <span className="button-label">{controls.prompt.doIt}</span>
                 </button>
               </div>
             </form>
@@ -4235,20 +4265,20 @@ ${requirementsBlock}`;
                   disabled={busy}
                   onClick={toggleChromeSlopPrompt}
                   aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={PROMPT_ACTION_COPY.label}
-                  title={PROMPT_ACTION_COPY.title}
+                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                  title={slopitect.PROMPT_ACTION_COPY.title}
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-prompt" aria-hidden="true">
                       💬
                     </span>
                   </ButtonIcon>
-                  <span className="button-label">{PROMPT_ACTION_COPY.label}</span>
+                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
-                      {PROMPT_ACTION_COPY.roleEmoji}
+                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
                     </span>
-                    {PROMPT_ACTION_COPY.roleTag}
+                    {slopitect.PROMPT_ACTION_COPY.roleTag}
                   </span>
                 </button>
               </div>
@@ -4265,7 +4295,7 @@ ${requirementsBlock}`;
                     },
                     {
                       variant: 'goMad',
-                      label: goMadShapeLabel(goMadStreak),
+                      label: goMadShapeLabel(goMadStreak, controls.actions),
                       onClick: () => runTransform('goMad', { useDiagramFocus: true })
                     },
                     {
@@ -4293,11 +4323,11 @@ ${requirementsBlock}`;
                   className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
                   onClick={advisor.toggleMute}
                   aria-pressed={advisor.isMuted}
-                  aria-label={advisor.isMuted ? 'Unmute stakeholders' : 'Mute stakeholders'}
+                  aria-label={
+                    advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
+                  }
                   title={
-                    advisor.isMuted
-                      ? 'Stakeholders muted · click to unmute'
-                      : 'Stakeholders watching · click to mute'
+                    advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
                   }
                 >
                   <ButtonIcon>
@@ -4305,14 +4335,16 @@ ${requirementsBlock}`;
                       {advisor.isMuted ? '🔇' : '🔊'}
                     </span>
                   </ButtonIcon>
-                  <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
+                  <span className="button-label">
+                    {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
+                  </span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
                       {advisor.isMuted
-                        ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
-                        : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                        ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
+                        : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
                     </span>
-                    {STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
+                    {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
                   </span>
                 </button>
               </div>
@@ -4323,16 +4355,16 @@ ${requirementsBlock}`;
                     className="overlay-button compact-button slop-action-button is-fix"
                     disabled={!canFixFromCritique}
                     onClick={() => handleFixFromCritique('all')}
-                    aria-label="Fix"
-                    title="Site Foreman · Fixing the slop"
+                    aria-label={controls.actions.fix}
+                    title={controls.actions.fixTitle}
                   >
                     <ButtonIcon>
                       <span className="action-persona-icon is-fix" aria-hidden="true">
                         🛠️
                       </span>
                     </ButtonIcon>
-                    <span className="button-label">Fix</span>
-                    <ActionPersonaRole fallback="Site Foreman" />
+                    <span className="button-label">{controls.actions.fix}</span>
+                    <ActionPersonaRole fallback={controls.actions.fixPersona} />
                   </button>
                 </div>
               ) : null}
@@ -4342,20 +4374,20 @@ ${requirementsBlock}`;
                   className="overlay-button compact-button slop-action-button is-clear"
                   disabled={busy}
                   onClick={() => handleClearDiagram()}
-                  aria-label="Clear"
-                  title="Clear · Demolish the slop and start fresh"
+                  aria-label={controls.actions.clear}
+                  title={controls.actions.clearTitle}
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-clear" aria-hidden="true">
                       🧨
                     </span>
                   </ButtonIcon>
-                  <span className="button-label">Clear</span>
+                  <span className="button-label">{controls.actions.clear}</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
                       🧨
                     </span>
-                    Demolish
+                    {controls.actions.demolish}
                   </span>
                 </button>
               </div>
@@ -4369,20 +4401,20 @@ ${requirementsBlock}`;
                   disabled={busy}
                   onClick={toggleChromeSlopPrompt}
                   aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={PROMPT_ACTION_COPY.label}
-                  title={PROMPT_ACTION_COPY.title}
+                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                  title={slopitect.PROMPT_ACTION_COPY.title}
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-prompt" aria-hidden="true">
                       💬
                     </span>
                   </ButtonIcon>
-                  <span className="button-label">{PROMPT_ACTION_COPY.label}</span>
+                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
-                      {PROMPT_ACTION_COPY.roleEmoji}
+                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
                     </span>
-                    {PROMPT_ACTION_COPY.roleTag}
+                    {slopitect.PROMPT_ACTION_COPY.roleTag}
                   </span>
                 </button>
                 <StakeholdersMascot
@@ -4397,7 +4429,7 @@ ${requirementsBlock}`;
                     },
                     {
                       variant: 'goMad',
-                      label: goMadShapeLabel(goMadStreak),
+                      label: goMadShapeLabel(goMadStreak, controls.actions),
                       onClick: () => runTransform('goMad', { useDiagramFocus: true })
                     },
                     {
@@ -4425,11 +4457,11 @@ ${requirementsBlock}`;
                   className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
                   onClick={advisor.toggleMute}
                   aria-pressed={advisor.isMuted}
-                  aria-label={advisor.isMuted ? 'Unmute stakeholders' : 'Mute stakeholders'}
+                  aria-label={
+                    advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
+                  }
                   title={
-                    advisor.isMuted
-                      ? 'Stakeholders muted · tap to unmute'
-                      : 'Stakeholders watching · tap to mute'
+                    advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
                   }
                 >
                   <ButtonIcon>
@@ -4437,14 +4469,16 @@ ${requirementsBlock}`;
                       {advisor.isMuted ? '🔇' : '🔊'}
                     </span>
                   </ButtonIcon>
-                  <span className="button-label">{advisor.isMuted ? 'Unmute' : 'Mute'}</span>
+                  <span className="button-label">
+                    {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
+                  </span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
                       {advisor.isMuted
-                        ? STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
-                        : STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                        ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
+                        : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
                     </span>
-                    {STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
+                    {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
                   </span>
                 </button>
                 {latestCritique?.text ? (
@@ -4453,16 +4487,16 @@ ${requirementsBlock}`;
                     className="overlay-button compact-button slop-action-button is-fix"
                     disabled={!canFixFromCritique}
                     onClick={() => handleFixFromCritique('all')}
-                    aria-label="Fix"
-                    title="Site Foreman · Fixing the slop"
+                    aria-label={controls.actions.fix}
+                    title={controls.actions.fixTitle}
                   >
                     <ButtonIcon>
                       <span className="action-persona-icon is-fix" aria-hidden="true">
                         🛠️
                       </span>
                     </ButtonIcon>
-                    <span className="button-label">Fix</span>
-                    <ActionPersonaRole fallback="Site Foreman" />
+                    <span className="button-label">{controls.actions.fix}</span>
+                    <ActionPersonaRole fallback={controls.actions.fixPersona} />
                   </button>
                 ) : null}
                 <button
@@ -4470,20 +4504,20 @@ ${requirementsBlock}`;
                   className="overlay-button compact-button slop-action-button is-clear"
                   disabled={busy}
                   onClick={() => handleClearDiagram()}
-                  aria-label="Clear"
-                  title="Clear · Demolish the slop and start fresh"
+                  aria-label={controls.actions.clear}
+                  title={controls.actions.clearTitle}
                 >
                   <ButtonIcon>
                     <span className="action-persona-icon is-clear" aria-hidden="true">
                       🧨
                     </span>
                   </ButtonIcon>
-                  <span className="button-label">Clear</span>
+                  <span className="button-label">{controls.actions.clear}</span>
                   <span className="slop-action-role">
                     <span className="slop-action-role-emoji" aria-hidden="true">
                       🧨
                     </span>
-                    Demolish
+                    {controls.actions.demolish}
                   </span>
                 </button>
               </div>
@@ -4493,6 +4527,8 @@ ${requirementsBlock}`;
         aiControls={
           <AiCornerControlsInner
             contentMode={contentMode}
+            contentModeOptions={contentModeOptions}
+            controls={controls.settings}
             onSelectContentMode={handleSelectContentMode}
             modelProfile={modelProfile}
             onSelectModelProfile={setModelProfile}
@@ -4512,7 +4548,11 @@ ${requirementsBlock}`;
 }
 
 function App() {
-  return <ArchiSlop />;
+  return (
+    <UiLocaleProvider>
+      <ArchiSlop />
+    </UiLocaleProvider>
+  );
 }
 
 export default App;

@@ -3,7 +3,7 @@ import {
   ACHIEVEMENTS,
   LEVELS,
   PRESTIGE_TIERS,
-  VARIANT_PERSONAS,
+  getVariantPersona,
   tipForIndex
 } from '../utils/slopitectCopy.js';
 
@@ -241,7 +241,7 @@ export default function LevelUpInfoPanel({
         </p>
         <ul className="levelup-info-variants">
           {VARIANT_ROW_ORDER.map((id) => {
-            const persona = VARIANT_PERSONAS[id];
+            const persona = getVariantPersona(id);
             if (!persona) return null;
             const runs = runsByVariant?.[id] ?? 0;
             return (

@@ -1,4 +1,7 @@
 import { useEffect, useRef } from 'react';
+import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+
+const DEFAULT_COPY = CONTROLS_EN.prompt;
 
 /**
  * Inline “what should we slop next?” prompt — expands in the bottom action bar or
@@ -16,6 +19,7 @@ export default function SlopNextPrompt({
   MicIcon,
   MicActiveIcon,
   ButtonIcon,
+  copy = DEFAULT_COPY,
   onPromptChange,
   onSubmit,
   onClose,
@@ -38,7 +42,6 @@ export default function SlopNextPrompt({
         } catch {
           el.focus();
         }
-        // Keep the input inside the visual viewport after the mobile keyboard opens.
         try {
           el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         } catch {
@@ -68,8 +71,6 @@ export default function SlopNextPrompt({
   const micProps = narrowLayout
     ? {
         onPointerUp: (event) => {
-          // pointerup + preventDefault keeps the tap from being eaten by input blur
-          // on iOS when the virtual keyboard is open (click alone often does nothing).
           event.preventDefault();
           event.stopPropagation();
           onMicToggleClick?.(event);
@@ -94,19 +95,19 @@ export default function SlopNextPrompt({
           {PromptIcon ? <PromptIcon /> : '💬'}
         </span>
         <p className="slop-prompt-panel-title" id={`${inputId}-label`}>
-          What should we slop next?
+          {copy.slopNextTitle}
         </p>
         <button
           type="button"
           className="slop-prompt-panel-close"
           onClick={onClose}
-          aria-label="Close prompt"
+          aria-label={copy.closePrompt}
         >
           ×
         </button>
       </div>
       <label className="sr-only" htmlFor={inputId}>
-        New prompt
+        {copy.slopNextLabel}
       </label>
       <input
         id={inputId}
@@ -114,7 +115,7 @@ export default function SlopNextPrompt({
         className="slop-prompt-panel-input"
         value={prompt ?? ''}
         onChange={(event) => onPromptChange?.(event.target.value)}
-        placeholder="Tell the agent what to change…"
+        placeholder={copy.slopNextPlaceholder}
         disabled={busy}
         autoComplete="off"
         autoCapitalize="sentences"
@@ -127,29 +128,25 @@ export default function SlopNextPrompt({
           disabled={!voiceSupported || busy}
           {...micProps}
           aria-label={
-            narrowLayout
-              ? voiceListening
-                ? 'Tap to stop dictation'
-                : 'Tap to dictate'
-              : 'Hold to speak'
+            narrowLayout ? (voiceListening ? copy.tapToStop : copy.tapToDictate) : copy.holdToSpeak
           }
           aria-pressed={narrowLayout ? voiceListening : undefined}
           title={
             voiceSupported
               ? narrowLayout
                 ? voiceListening
-                  ? 'Tap to stop dictation'
-                  : 'Tap to dictate prompt'
-                : 'Hold to dictate prompt'
+                  ? copy.tapToStop
+                  : copy.tapToDictatePrompt
+                : copy.holdToDictate
               : speechRecognitionCtor
-                ? 'Voice input needs a secure connection (HTTPS), except on localhost'
-                : 'Voice input not supported in this browser'
+                ? copy.voiceNeedsHttps
+                : copy.voiceUnsupported
           }
         >
           {ButtonIcon ? (
             <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
           ) : null}
-          <span className="button-label">Mic</span>
+          <span className="button-label">{copy.mic}</span>
         </button>
         <button
           type="submit"
@@ -157,7 +154,7 @@ export default function SlopNextPrompt({
           disabled={busy || !(prompt ?? '').trim()}
         >
           {ButtonIcon ? <ButtonIcon>{'>'}</ButtonIcon> : '>'}
-          <span className="button-label">Do it</span>
+          <span className="button-label">{copy.doIt}</span>
         </button>
       </div>
     </form>

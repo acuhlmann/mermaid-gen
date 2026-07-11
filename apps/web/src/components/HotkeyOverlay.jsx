@@ -1,19 +1,26 @@
 import { useEffect } from 'react';
+import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 
-const ENTRIES = [
-  { keys: ['R'], label: 'Refine — polish labels & structure' },
-  { keys: ['I'], label: 'Innovate — bolder redesign' },
-  { keys: ['M'], label: 'Go Mad — chaos transformation' },
-  { keys: ['X'], label: 'Exec — boil it down' },
-  { keys: ['C'], label: 'Critique — structured review' },
-  { keys: ['E'], label: 'Explain — what does this mean?' },
-  { keys: ['?'], label: 'Toggle this help' },
-  { keys: ['Esc'], label: 'Close menus / dialogs' },
-  { keys: ['↑', '↓', '←', '→'], label: 'Move focus across radial actions' },
-  { keys: ['Enter', 'Space'], label: 'Activate focused action' }
-];
+const DEFAULT_COPY = CONTROLS_EN.hotkeys;
 
-export default function HotkeyOverlay({ open, onClose }) {
+function buildEntries(copy) {
+  return [
+    { keys: ['R'], label: copy.refine },
+    { keys: ['I'], label: copy.innovate },
+    { keys: ['M'], label: copy.goMad },
+    { keys: ['X'], label: copy.exec },
+    { keys: ['C'], label: copy.critique },
+    { keys: ['E'], label: copy.explain },
+    { keys: ['?'], label: copy.toggleHelp },
+    { keys: ['Esc'], label: copy.esc },
+    { keys: ['↑', '↓', '←', '→'], label: copy.arrows },
+    { keys: ['Enter', 'Space'], label: copy.activate }
+  ];
+}
+
+export default function HotkeyOverlay({ open, onClose, copy = DEFAULT_COPY }) {
+  const entries = buildEntries(copy);
+
   useEffect(() => {
     if (!open) return undefined;
     function onKey(event) {
@@ -39,23 +46,20 @@ export default function HotkeyOverlay({ open, onClose }) {
       <div className="hotkey-overlay-card" onClick={(event) => event.stopPropagation()}>
         <div className="hotkey-overlay-header">
           <h2 id="hotkey-overlay-title" className="hotkey-overlay-title">
-            Keyboard shortcuts
+            {copy.title}
           </h2>
           <button
             type="button"
             className="hotkey-overlay-close"
-            aria-label="Close keyboard shortcuts"
+            aria-label={copy.close}
             onClick={onClose}
           >
             ×
           </button>
         </div>
-        <p className="hotkey-overlay-hint">
-          Single-letter hotkeys fire when a diagram element is selected. Hotkeys are ignored while
-          typing.
-        </p>
+        <p className="hotkey-overlay-hint">{copy.hint}</p>
         <ul className="hotkey-overlay-list">
-          {ENTRIES.map((entry) => (
+          {entries.map((entry) => (
             <li key={entry.label} className="hotkey-overlay-row">
               <span className="hotkey-overlay-keys">
                 {entry.keys.map((k, i) => (

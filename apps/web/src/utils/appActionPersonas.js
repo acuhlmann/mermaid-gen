@@ -1,20 +1,15 @@
-import { getVariantPersona } from './slopitectCopy.js';
+import { getVariantPersona, slopitectShortName } from './slopitectCopy.js';
 
 /** CSS class suffix for an action variant — `goMad` ships as `go-mad` for kebab-case rules. */
 export function actionCssVariant(variant) {
   return variant === 'goMad' ? 'go-mad' : variant;
 }
 
-const ACTION_PERSONA_SHORT_NAMES = {
-  refine: 'Engineer',
-  innovate: 'Innovator',
-  explain: 'Architect'
-};
-
 /** Short persona name for an action variant (strips a leading `The `, except for overrides). */
 export function actionPersonaName(variant) {
   const persona = getVariantPersona(variant);
-  return ACTION_PERSONA_SHORT_NAMES[variant] || persona.name.replace(/^The\s+/i, '');
+  const override = slopitectShortName(variant);
+  return override || persona.name.replace(/^The\s+/i, '');
 }
 
 /** Emoji avatar for an action variant, falling back to 🏗️. */
