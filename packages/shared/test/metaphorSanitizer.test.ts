@@ -71,11 +71,55 @@ test('sanitizeMetaphorDsl returns null dsl for empty input but does not throw', 
   const result = sanitizeMetaphorDsl('');
   assert.equal(result.dsl, null);
   assert.equal(result.text, '');
+  assert.match(String(result.error), /empty/i);
 });
 
 test('sanitizeMetaphorDsl returns null dsl for unparseable JSON without throwing', () => {
   const result = sanitizeMetaphorDsl('{not json');
   assert.equal(result.dsl, null);
+  assert.match(String(result.error), /not valid JSON/i);
+});
+
+test('sanitizeMetaphorDsl reports the JSON.parse root cause for truncated JSON', () => {
+  const result = sanitizeMetaphorDsl('{"metaphor":"city","items":[{"id":"a","label":"A"}');
+  assert.equal(result.dsl, null);
+  // The verbatim engine message must survive so repair prompts see the failure site.
+  assert.match(String(result.error), /Metaphor DSL is not valid JSON: .+/);
+});
+
+test('sanitizeMetaphorDsl rejects a non-object top level with a typed error', () => {
+  const result = sanitizeMetaphorDsl('["not","an","object"]');
+  assert.equal(result.dsl, null);
+  assert.match(String(result.error), /must be a JSON object/i);
+});
+
+test('sanitizeMetaphorDsl formats Zod issues path-by-path on schema failure', () => {
+  // `height` must be a number — survives all rescue passes and fails the final safeParse.
+  const input = JSON.stringify({
+    metaphor: 'city',
+    items: [{ id: 'a', label: 'A', height: 'tall' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.equal(result.dsl, null);
+  assert.match(String(result.error), /did not match schema/i);
+  assert.match(String(result.error), /items\.0\.height/);
+});
+
+test('sanitizeMetaphorDsl names the offending metaphor kind when rewrite is disabled', () => {
+  const result = sanitizeMetaphorDsl(JSON.stringify({ metaphor: 'spaceship', items: [] }), {
+    allowStructureRewrite: false
+  });
+  assert.equal(result.dsl, null);
+  assert.match(String(result.error), /metaphor: must be one of/);
+  assert.match(String(result.error), /"spaceship"/);
+});
+
+test('sanitizeMetaphorDsl omits error on success', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({ metaphor: 'city', items: [{ id: 'a', label: 'A' }] })
+  );
+  assert.ok(result.dsl);
+  assert.equal(result.error, undefined);
 });
 
 test('sanitizeMetaphorDsl defaults missing metaphor when structure rewrite is allowed', () => {

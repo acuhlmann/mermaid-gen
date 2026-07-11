@@ -23,6 +23,12 @@ export interface SanitizeMetaphorResult {
   text: string;
   applied: string[];
   dsl: MetaphorDsl | null;
+  /**
+   * Root-cause diagnostic when `dsl` is null: the JSON.parse message or the
+   * formatted Zod issues (`path: message; …`). Callers must relay it verbatim
+   * so the fixer/repair prompts see WHICH field failed, not a generic notice.
+   */
+  error?: string;
 }
 
 export interface SanitizeMetaphorOptions {
@@ -578,6 +584,12 @@ function rescueLinkKinds(working: Record<string, unknown>, applied: string[]): v
   }
 }
 
+function formatZodIssues(issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>): string {
+  return issues
+    .map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`)
+    .join('; ');
+}
+
 export function sanitizeMetaphorDsl(
   source: string,
   options: SanitizeMetaphorOptions = {}
@@ -587,24 +599,39 @@ export function sanitizeMetaphorDsl(
   const trimmed = source.trim();
 
   if (!trimmed) {
-    return { text: '', applied, dsl: null };
+    return { text: '', applied, dsl: null, error: 'Metaphor DSL is empty.' };
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(trimmed);
-  } catch {
-    return { text: trimmed, applied, dsl: null };
+  } catch (err) {
+    return {
+      text: trimmed,
+      applied,
+      dsl: null,
+      error: `Metaphor DSL is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
+    };
   }
 
   if (!isObject(parsed)) {
-    return { text: trimmed, applied, dsl: null };
+    return {
+      text: trimmed,
+      applied,
+      dsl: null,
+      error: 'Metaphor DSL must be a JSON object, not an array or primitive.'
+    };
   }
 
   const working: Record<string, unknown> = { ...parsed };
 
   if (!rescueMetaphorField(working, applied, allowStructureRewrite)) {
-    return { text: trimmed, applied, dsl: null };
+    return {
+      text: trimmed,
+      applied,
+      dsl: null,
+      error: `metaphor: must be one of ${METAPHOR_KINDS.join(' | ')} (got ${JSON.stringify(working.metaphor ?? null)}).`
+    };
   }
 
   if (!isObject(working.scene)) {
@@ -628,7 +655,12 @@ export function sanitizeMetaphorDsl(
 
   const result = MetaphorDslSchema.safeParse(working);
   if (!result.success) {
-    return { text: trimmed, applied, dsl: null };
+    return {
+      text: trimmed,
+      applied,
+      dsl: null,
+      error: `Metaphor DSL did not match schema: ${formatZodIssues(result.error.issues)}`
+    };
   }
 
   return {

@@ -38,6 +38,23 @@ test('repairMetaphorWithFixer rejects invalid fixer output', async () => {
     modelOverride: fakeModel('```json\n{"metaphor":"unknown","items":[]}\n```')
   });
   assert.equal(result.accepted, false);
+  // The strict validator's root cause must be relayed, not a generic notice —
+  // it seeds the next repair turn.
+  assert.match(String(result.error), /metaphor: must be one of/);
+  assert.match(String(result.error), /"unknown"/);
+});
+
+test('repairMetaphorWithFixer relays per-field Zod issues from invalid output', async () => {
+  const result = await repairMetaphorWithFixer({
+    brokenSource: '{"metaphor":"city","items":[]}',
+    parseError: 'bad height',
+    modelOverride: fakeModel(
+      '```json\n{"metaphor":"city","scene":{},"items":[{"id":"a","label":"A","height":"tall"}]}\n```'
+    )
+  });
+  assert.equal(result.accepted, false);
+  assert.match(String(result.error), /did not match schema/i);
+  assert.match(String(result.error), /items\.0\.height/);
 });
 
 test('repairMetaphorWithFixer reports empty output', async () => {
