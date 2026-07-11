@@ -4,6 +4,7 @@ import { deepMergeLocale } from './deepMergeLocale.js';
 import { CONTROLS_EN } from './locales/controls.en.js';
 import { CONTROLS_ZH_CN } from './locales/controls.zh-CN.js';
 import { CONTROLS_ZH_TW } from './locales/controls.zh-TW.js';
+import { SLOPITECT_GAMIFICATION_EN } from './locales/slopitectGamification.en.js';
 import { SLOPITECT_ZH_CN } from './locales/slopitect.zh-CN.js';
 import { SLOPITECT_ZH_TW } from './locales/slopitect.zh-TW.js';
 
@@ -26,11 +27,14 @@ function buildEnglishBundle() {
       ACHIEVEMENTS: slopitectEn.ACHIEVEMENTS,
       LEVEL_UP_BANNER: slopitectEn.LEVEL_UP_BANNER,
       KONAMI_ACHIEVEMENT: slopitectEn.KONAMI_ACHIEVEMENT,
+      CONSOLE_STAMP_LINES: slopitectEn.CONSOLE_STAMP_LINES,
+      PROMPT_EASTER_EGGS: slopitectEn.PROMPT_EASTER_EGGS,
       ACTION_PERSONA_SHORT_NAMES: {
         refine: 'Engineer',
         innovate: 'Innovator',
         explain: 'Architect'
-      }
+      },
+      ...SLOPITECT_GAMIFICATION_EN
     }
   };
 }

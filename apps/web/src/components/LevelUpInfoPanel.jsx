@@ -1,50 +1,19 @@
 import { useEffect, useMemo, useRef } from 'react';
-import {
-  ACHIEVEMENTS,
-  LEVELS,
-  PRESTIGE_TIERS,
-  getVariantPersona,
-  tipForIndex
-} from '../utils/slopitectCopy.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { getVariantPersona, tipForIndex } from '../utils/slopitectCopy.js';
 
 const VARIANT_ROW_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 
-const LEVEL_FLAVOR = [
-  'The Slopitect notices you exist.',
-  'Promoted to "knows where the Confluence is".',
-  'Your name is now spelled correctly in stand-ups.',
-  'Eligible to lead a Co-Design workshop. Bring snacks.',
-  'You may now title slides without manager review.',
-  'The board uses your diagram in a slide. No credit.',
-  'You have a reserved seat at the architecture review.',
-  'A junior asks how you "see the whole system". Smile.',
-  'HR has approved a new title card. It says SLOPITECT.',
-  'The CTO follows you on the org chart. Reluctantly.',
-  'Mythic synergy unlocked. Recruiters appear in dreams.',
-  'You ARE the architecture now. Frame this in HR.'
-];
-
-const NEXT_LEVEL_TAUNTS = [
-  'so close the synergy can taste it.',
-  'one good Co-Design away.',
-  'a single stand-up could push you over.',
-  'the gap is mostly vibes at this point.',
-  'a microservice or two would do it.',
-  'go bribe a stakeholder.',
-  'just ship something. anything.',
-  'stop reading this and slop.',
-  "you're basically already there. legally.",
-  'fewer naps, more Co-Design.'
-];
-
-function pickNextTaunt(seed) {
+function pickNextTaunt(taunts, seed) {
+  if (!taunts?.length) return '';
   const safe = Math.max(0, Number.isFinite(seed) ? Math.trunc(seed) : 0);
-  return NEXT_LEVEL_TAUNTS[safe % NEXT_LEVEL_TAUNTS.length];
+  return taunts[safe % taunts.length];
 }
 
-function levelFlavorFor(level) {
-  const idx = Math.max(1, Math.min(LEVEL_FLAVOR.length, level)) - 1;
-  return LEVEL_FLAVOR[idx];
+function levelFlavorFor(levelFlavors, level) {
+  if (!levelFlavors?.length) return '';
+  const idx = Math.max(1, Math.min(levelFlavors.length, level)) - 1;
+  return levelFlavors[idx];
 }
 
 function unlockedAchievementList(achievements) {
@@ -52,8 +21,8 @@ function unlockedAchievementList(achievements) {
   return Object.keys(achievements).filter((id) => achievements[id] === true);
 }
 
-function nextPrestigeMilestone(totalRuns) {
-  for (const tier of PRESTIGE_TIERS) {
+function nextPrestigeMilestone(prestigeTiers, totalRuns) {
+  for (const tier of prestigeTiers) {
     if (totalRuns < tier.threshold) {
       return { label: tier.label, gap: tier.threshold - totalRuns };
     }
@@ -82,24 +51,30 @@ export default function LevelUpInfoPanel({
   achievements = {},
   onClose
 }) {
+  const { slopitect } = useUiCopy();
+  const levels = slopitect.LEVELS ?? [];
+  const prestigeTiers = slopitect.PRESTIGE_TIERS ?? [];
+  const achievementCopy = slopitect.ACHIEVEMENTS ?? {};
+  const panel = slopitect.LEVEL_PANEL ?? {};
+
   const panelRef = useRef(null);
   const ratio = Number.isFinite(progressRatio) ? Math.max(0, Math.min(1, progressRatio)) : 0;
   const fillWidth = `${Math.round(ratio * 1000) / 10}%`;
   const xpRemaining = isMaxLevel ? 0 : Math.max(0, Math.round((xpForNext ?? 0) - xpInto));
 
   const nextLevelEntry = useMemo(() => {
-    const idx = LEVELS.findIndex((tier) => tier.level === level);
+    const idx = levels.findIndex((tier) => tier.level === level);
     if (idx < 0) return null;
-    return LEVELS[idx + 1] ?? null;
-  }, [level]);
+    return levels[idx + 1] ?? null;
+  }, [level, levels]);
 
   const ladder = useMemo(() => {
-    const idx = LEVELS.findIndex((tier) => tier.level === level);
-    if (idx < 0) return LEVELS.slice(0, 4);
+    const idx = levels.findIndex((tier) => tier.level === level);
+    if (idx < 0) return levels.slice(0, 4);
     const from = Math.max(0, idx - 1);
-    const to = Math.min(LEVELS.length, idx + 3);
-    return LEVELS.slice(from, to);
-  }, [level]);
+    const to = Math.min(levels.length, idx + 3);
+    return levels.slice(from, to);
+  }, [level, levels]);
 
   const unlocked = useMemo(() => unlockedAchievementList(achievements), [achievements]);
   const recentUnlocked = useMemo(
@@ -107,17 +82,23 @@ export default function LevelUpInfoPanel({
       unlocked
         .slice(-3)
         .reverse()
-        .map((id) => ACHIEVEMENTS[id])
+        .map((id) => achievementCopy[id])
         .filter(Boolean),
-    [unlocked]
+    [unlocked, achievementCopy]
   );
   const totalTrackedAchievements = useMemo(
-    () => Object.keys(ACHIEVEMENTS).filter((id) => id !== 'prestige').length,
-    []
+    () => Object.keys(achievementCopy).filter((id) => id !== 'prestige').length,
+    [achievementCopy]
   );
 
-  const nextPrestige = useMemo(() => nextPrestigeMilestone(totalRuns), [totalRuns]);
-  const taunt = useMemo(() => pickNextTaunt(level + Math.floor(totalXp / 10)), [level, totalXp]);
+  const nextPrestige = useMemo(
+    () => nextPrestigeMilestone(prestigeTiers, totalRuns),
+    [prestigeTiers, totalRuns]
+  );
+  const taunt = useMemo(
+    () => pickNextTaunt(panel.nextLevelTaunts, level + Math.floor(totalXp / 10)),
+    [panel.nextLevelTaunts, level, totalXp]
+  );
   const tip = useMemo(() => tipForIndex(level + (unlocked.length % 7)), [level, unlocked.length]);
 
   useEffect(() => {
@@ -148,13 +129,15 @@ export default function LevelUpInfoPanel({
     focusable?.focus?.({ preventScroll: true });
   }, []);
 
+  const runsGapLabel = nextPrestige?.gap === 1 ? panel.trophyRunsGap : panel.trophyRunsGapPlural;
+
   return (
     <div
       ref={panelRef}
       className="levelup-info-panel"
       role="dialog"
       aria-modal="false"
-      aria-label={`Level ${level} progress`}
+      aria-label={`Level ${level} ${panel.progressAriaLabel ?? 'progress'}`}
       data-testid="levelup-info-panel"
     >
       <header className="levelup-info-head">
@@ -168,14 +151,14 @@ export default function LevelUpInfoPanel({
               <span className="levelup-info-eyebrow-xp">{Math.round(totalXp)} XP</span>
             </div>
             <h2 className="levelup-info-title">{levelTitle || 'Slopitect'}</h2>
-            <p className="levelup-info-flavor">{levelFlavorFor(level)}</p>
+            <p className="levelup-info-flavor">{levelFlavorFor(panel.levelFlavor, level)}</p>
           </div>
           {typeof onClose === 'function' ? (
             <button
               type="button"
               className="levelup-info-close"
               onClick={onClose}
-              aria-label="Close level details"
+              aria-label={panel.closeLevelDetails ?? 'Close level details'}
             >
               ✕
             </button>
@@ -187,13 +170,13 @@ export default function LevelUpInfoPanel({
           </div>
           {isMaxLevel ? (
             <p className="levelup-info-progress-caption is-max">
-              <span aria-hidden="true">🏆</span> Max level. The slop is forever.
+              <span aria-hidden="true">🏆</span> {panel.maxLevelCaption}
             </p>
           ) : (
             <p className="levelup-info-progress-caption">
-              <strong>{xpRemaining} XP</strong> to{' '}
+              <strong>{xpRemaining} XP</strong> {panel.xpToNextPrefix}{' '}
               <span className="levelup-info-next-name">
-                {nextLevelEntry?.flair} {nextLevelEntry?.title || 'next tier'}
+                {nextLevelEntry?.flair} {nextLevelEntry?.title || panel.nextTierFallback}
               </span>
               <span className="levelup-info-next-taunt"> — {taunt}</span>
             </p>
@@ -202,7 +185,7 @@ export default function LevelUpInfoPanel({
       </header>
 
       <section className="levelup-info-section" aria-label="Level ladder">
-        <h3 className="levelup-info-section-title">Slopitect Ladder™</h3>
+        <h3 className="levelup-info-section-title">{panel.ladderTitle}</h3>
         <ol className="levelup-info-ladder">
           {ladder.map((tier) => {
             const reached = tier.level <= level;
@@ -221,11 +204,11 @@ export default function LevelUpInfoPanel({
                 </span>
                 {current ? (
                   <span className="levelup-info-ladder-pin" aria-hidden="true">
-                    you are here
+                    {panel.youAreHere}
                   </span>
                 ) : reached ? (
                   <span className="levelup-info-ladder-pin is-done" aria-hidden="true">
-                    cleared
+                    {panel.cleared}
                   </span>
                 ) : null}
               </li>
@@ -235,10 +218,8 @@ export default function LevelUpInfoPanel({
       </section>
 
       <section className="levelup-info-section" aria-label="How to earn XP">
-        <h3 className="levelup-info-section-title">Slop Engine</h3>
-        <p className="levelup-info-section-lede">
-          Every completed run pays XP. Stack streaks, combos and Go Mad depth to mint extra.
-        </p>
+        <h3 className="levelup-info-section-title">{panel.engineTitle}</h3>
+        <p className="levelup-info-section-lede">{panel.engineLede}</p>
         <ul className="levelup-info-variants">
           {VARIANT_ROW_ORDER.map((id) => {
             const persona = getVariantPersona(id);
@@ -252,8 +233,8 @@ export default function LevelUpInfoPanel({
                 <span className="levelup-info-variant-text">
                   <span className="levelup-info-variant-name">{persona.name}</span>
                   <span className="levelup-info-variant-meta">
-                    +{persona.xpAward} base · +{persona.xpStreakBonus} per streak
-                    {id === 'goMad' ? ' · +35 depth ≥ 3' : ''}
+                    +{persona.xpAward} base · +{persona.xpStreakBonus} {panel.variantMetaSuffix}
+                    {id === 'goMad' ? ` ${panel.goMadDepthBonus}` : ''}
                   </span>
                 </span>
                 <span
@@ -267,21 +248,21 @@ export default function LevelUpInfoPanel({
           })}
         </ul>
         <p className="levelup-info-bonus-line">
-          <span className="levelup-info-bonus-chip">Combo</span>
-          chain two personas in a row inside 6s for +8 (+4 per extra link).
+          <span className="levelup-info-bonus-chip">{panel.comboChip}</span>
+          {panel.comboLine}
         </p>
       </section>
 
       <section className="levelup-info-section" aria-label="Trophy shelf">
-        <h3 className="levelup-info-section-title">Trophy Shelf</h3>
+        <h3 className="levelup-info-section-title">{panel.trophyTitle}</h3>
         <p className="levelup-info-section-lede">
           <strong>
             {unlocked.length} / {totalTrackedAchievements}
           </strong>{' '}
-          unlocked.
-          {prestigeShortLabel ? ` Tier: ${prestigeShortLabel}.` : ''}
+          {panel.trophyLedeUnlocked}
+          {prestigeShortLabel ? ` ${panel.tierLabel} ${prestigeShortLabel}.` : ''}
           {nextPrestige
-            ? ` Next: ${nextPrestige.label} in ${nextPrestige.gap} run${nextPrestige.gap === 1 ? '' : 's'}.`
+            ? ` ${panel.trophyNextPrestige} ${nextPrestige.label} in ${nextPrestige.gap} ${runsGapLabel}.`
             : ''}
         </p>
         {recentUnlocked.length > 0 ? (
@@ -294,14 +275,12 @@ export default function LevelUpInfoPanel({
             ))}
           </ul>
         ) : (
-          <p className="levelup-info-empty">
-            No trophies yet. Hat-trick three personas in 30s to break the seal.
-          </p>
+          <p className="levelup-info-empty">{panel.trophyEmpty}</p>
         )}
       </section>
 
       <aside className="levelup-info-tip" data-testid="levelup-info-tip">
-        <span className="levelup-info-tip-label">Slopitect Tip™</span>
+        <span className="levelup-info-tip-label">{panel.tipLabel}</span>
         <span className="levelup-info-tip-text">{tip}</span>
       </aside>
     </div>

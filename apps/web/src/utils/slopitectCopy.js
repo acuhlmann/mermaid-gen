@@ -10,6 +10,8 @@
  * Locale overrides merge at runtime via `setActiveSlopitectBundle`.
  */
 
+import { SLOPITECT_GAMIFICATION_EN } from '../i18n/locales/slopitectGamification.en.js';
+
 let activeSlopitectBundle = null;
 
 /** @param {Record<string, unknown> | null} bundle */
@@ -207,8 +209,8 @@ export function variantQuotes(variant) {
 
 /** Pick a quote by rotation index (stable, no random). */
 export function quoteForRotation(variant, rotationIndex) {
-  const quotes = VARIANT_QUOTES[variant];
-  if (!quotes || quotes.length === 0) return '';
+  const quotes = variantQuotes(variant);
+  if (!quotes.length) return '';
   const safe = Math.max(0, Number.isFinite(rotationIndex) ? Math.trunc(rotationIndex) : 0);
   return quotes[safe % quotes.length];
 }
@@ -228,6 +230,50 @@ export function getVariantPersona(variant) {
 
 export function getVariantTagline(variant) {
   return slop()?.VARIANT_TAGLINES?.[variant] ?? VARIANT_TAGLINES[variant] ?? '';
+}
+
+export function getVariantBootHeadline(variant) {
+  return slop()?.VARIANT_BOOT_HEADLINES?.[variant] ?? VARIANT_BOOT_HEADLINES[variant] ?? '';
+}
+
+export function getAchievements() {
+  return slop()?.ACHIEVEMENTS ?? ACHIEVEMENTS;
+}
+
+export function getVariantMasteryAchievements() {
+  return slop()?.VARIANT_MASTERY_ACHIEVEMENTS ?? VARIANT_MASTERY_ACHIEVEMENTS;
+}
+
+export function getLevelUpBanner() {
+  return slop()?.LEVEL_UP_BANNER ?? LEVEL_UP_BANNER;
+}
+
+export function getKonamiAchievement() {
+  return slop()?.KONAMI_ACHIEVEMENT ?? KONAMI_ACHIEVEMENT;
+}
+
+export function getConsoleStampLines() {
+  return slop()?.CONSOLE_STAMP_LINES ?? CONSOLE_STAMP_LINES;
+}
+
+export function getPromptEasterEggs() {
+  return slop()?.PROMPT_EASTER_EGGS ?? PROMPT_EASTER_EGGS;
+}
+
+export function getLevels() {
+  return slop()?.LEVELS ?? LEVELS;
+}
+
+export function getPrestigeTiers() {
+  return slop()?.PRESTIGE_TIERS ?? PRESTIGE_TIERS;
+}
+
+export function getLevelPanelCopy() {
+  return slop()?.LEVEL_PANEL ?? SLOPITECT_GAMIFICATION_EN.LEVEL_PANEL;
+}
+
+export function getPrestigePromotionCopy() {
+  return slop()?.PRESTIGE_PROMOTION ?? SLOPITECT_GAMIFICATION_EN.PRESTIGE_PROMOTION;
 }
 
 /** Full persona line for roster row tooltips (name · title · tagline). */

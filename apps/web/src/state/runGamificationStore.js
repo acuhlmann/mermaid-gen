@@ -14,10 +14,11 @@ import {
   prestigeForTotalRuns,
   getVariantPersona,
   levelForXp,
-  ACHIEVEMENTS,
-  VARIANT_MASTERY_ACHIEVEMENTS,
-  VARIANT_MASTERY_THRESHOLD,
-  LEVEL_UP_BANNER
+  getAchievements,
+  getVariantMasteryAchievements,
+  getLevelUpBanner,
+  getPrestigePromotionCopy,
+  VARIANT_MASTERY_THRESHOLD
 } from '../utils/slopitectCopy.js';
 
 export const COMBO_WINDOW_MS = 6000;
@@ -142,6 +143,7 @@ export function applyCompletedRun(state, input) {
   // Level up — emit once per crossing (a big XP haul could span multiple
   // levels, but we surface only the highest reached to keep banners sane).
   if (nextLevelInfo.level > previousLevelInfo.level) {
+    const levelUpBanner = getLevelUpBanner();
     emissions.push({
       kind: 'levelUp',
       from: previousLevelInfo.level,
@@ -150,13 +152,14 @@ export function applyCompletedRun(state, input) {
       flair: nextLevelInfo.flair,
       short: nextLevelInfo.short,
       totalXp,
-      bannerTitle: LEVEL_UP_BANNER.title,
-      bannerSubtitle: LEVEL_UP_BANNER.subtitle
+      bannerTitle: levelUpBanner.title,
+      bannerSubtitle: levelUpBanner.subtitle
     });
   }
 
   // Achievements.
   const achievements = { ...(state.achievements || {}) };
+  const achievementCopy = getAchievements();
   function unlock(id, copy) {
     if (achievements[id]) return false;
     achievements[id] = true;
@@ -165,31 +168,31 @@ export function applyCompletedRun(state, input) {
   }
 
   if (totalRuns === 1) {
-    unlock(ACHIEVEMENTS.firstSlop.id, ACHIEVEMENTS.firstSlop);
+    unlock(achievementCopy.firstSlop.id, achievementCopy.firstSlop);
   }
   if (variant === 'goMad' && (input.goMadDepth ?? 0) >= 3) {
-    unlock(ACHIEVEMENTS.slopitectCertified.id, ACHIEVEMENTS.slopitectCertified);
+    unlock(achievementCopy.slopitectCertified.id, achievementCopy.slopitectCertified);
   }
   if (variant === 'critique' && input.critiquePerfect) {
-    unlock(ACHIEVEMENTS.perfectInspection.id, ACHIEVEMENTS.perfectInspection);
+    unlock(achievementCopy.perfectInspection.id, achievementCopy.perfectInspection);
   }
   if (variantsSeen.length >= 5) {
-    unlock(ACHIEVEMENTS.fullStackSlopitect.id, ACHIEVEMENTS.fullStackSlopitect);
+    unlock(achievementCopy.fullStackSlopitect.id, achievementCopy.fullStackSlopitect);
   }
   if (combo >= COMBO_KING_THRESHOLD) {
-    unlock(ACHIEVEMENTS.comboKing.id, ACHIEVEMENTS.comboKing);
+    unlock(achievementCopy.comboKing.id, achievementCopy.comboKing);
   }
   if (sessionRuns >= SLOP_MARATHON_SESSION_THRESHOLD) {
-    unlock(ACHIEVEMENTS.slopMarathon.id, ACHIEVEMENTS.slopMarathon);
+    unlock(achievementCopy.slopMarathon.id, achievementCopy.slopMarathon);
   }
   {
     const distinctInWindow = new Set(recentVariantTimeline.map((e) => e.variant));
     if (distinctInWindow.size >= 3) {
-      unlock(ACHIEVEMENTS.hatTrick.id, ACHIEVEMENTS.hatTrick);
+      unlock(achievementCopy.hatTrick.id, achievementCopy.hatTrick);
     }
   }
   // Per-variant mastery — gates on cumulative variant count.
-  const variantMastery = VARIANT_MASTERY_ACHIEVEMENTS[variant];
+  const variantMastery = getVariantMasteryAchievements()[variant];
   if (variantMastery && runsByVariant[variant] >= VARIANT_MASTERY_THRESHOLD) {
     unlock(variantMastery.id, variantMastery);
   }
@@ -198,10 +201,11 @@ export function applyCompletedRun(state, input) {
   const previousPrestige = prestigeForTotalRuns(state.totalRuns);
   const nextPrestige = prestigeForTotalRuns(totalRuns);
   if (nextPrestige.label !== previousPrestige.label && totalRuns > 0) {
+    const prestigePromotion = getPrestigePromotionCopy();
     emissions.push({
       kind: 'prestige',
-      title: `PROMOTION: ${nextPrestige.label}`,
-      subtitle: 'You have ascended a prestige tier. Update your LinkedIn.'
+      title: `${prestigePromotion.titlePrefix}: ${nextPrestige.label}`,
+      subtitle: prestigePromotion.subtitle
     });
   }
 

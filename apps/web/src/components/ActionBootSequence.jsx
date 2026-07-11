@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { VARIANT_BOOT_HEADLINES, getVariantPersona } from '../utils/slopitectCopy.js';
+import { getVariantBootHeadline, getVariantPersona } from '../utils/slopitectCopy.js';
 
 const VARIANT_DURATION_MS = {
   refine: 660,
@@ -53,7 +53,7 @@ export default function ActionBootSequence({ trigger, variant }) {
   if (!playing) return null;
 
   const className = `boot-sequence-overlay ${VARIANT_CSS_CLASS[playing.variant] || ''}`.trim();
-  const headline = VARIANT_BOOT_HEADLINES[playing.variant] || '';
+  const headline = getVariantBootHeadline(playing.variant);
   const persona = getVariantPersona(playing.variant);
 
   return (
