@@ -49,7 +49,7 @@ sequenceDiagram
 | ----------------------------------- | ------------------------------------------------------------------------------------------------- |
 | Message builder                     | [`packages/shared/src/critiqueA2uiMessages.js`](../packages/shared/src/critiqueA2uiMessages.js)   |
 | Stream hook (before `RUN_FINISHED`) | [`apps/server/src/agents/critiqueA2uiStream.js`](../apps/server/src/agents/critiqueA2uiStream.js) |
-| AG-UI mapping                       | [`packages/shared/src/agentStreamEmitter.js`](../packages/shared/src/agentStreamEmitter.js)       |
+| AG-UI mapping                       | [`packages/shared/src/agentStreamEmitter.ts`](../packages/shared/src/agentStreamEmitter.ts)       |
 | Client decode                       | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js)                     |
 
 ## AG-UI envelope

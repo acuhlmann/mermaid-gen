@@ -38,7 +38,7 @@ Every session carries **five independent diagram slots** — `mermaid` (Mermaid 
 **Mermaid** (4 layers, in cost order):
 
 1. Heuristic prefix check (instant) — `apps/server/src/tools/mermaidDiffTool.js`.
-2. Deterministic sanitizer rescue (~1–10 ms) — `packages/shared/src/mermaidSanitizer.js`. Composable fixers for quotes, header typos, init JSON, etc.
+2. Deterministic sanitizer rescue (~1–10 ms) — `packages/shared/src/mermaidSanitizer.ts`. Composable fixers for quotes, header typos, init JSON, etc.
 3. Single-shot syntax fixer (1 LLM call, low temp, fast model) — `apps/server/src/agents/mermaidSyntaxFixer.js` with rule packs in `apps/server/src/prompts/mermaidSyntaxGuard.js`.
 4. Full-agent syntax-repair turns (bounded by `MERMAID_REPAIR_MAX_ATTEMPTS`).
 
@@ -89,7 +89,7 @@ If you change an HTTP route, AG-UI event, MCP tool, or schema, update **all four
 
 1. The producing code (route / agent / tool).
 2. The consumer (web client store, MCP client, or App HTML bridge).
-3. The Zod schema in `packages/shared/src/diagramSchema.js` if shape changes.
+3. The Zod schema in `packages/shared/src/diagramSchema.ts` if shape changes.
 4. The corresponding guide under [`docs/guide/`](docs/guide/) or the relevant `docs/architecture-*.md` (hub: [`README.md`](README.md)).
 
 See [`docs/recipes/`](docs/recipes/) for templates of recurring changes (new MCP tool, new rule pack, new intent variant, new stream event).
