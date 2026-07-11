@@ -97,8 +97,8 @@ flowchart TB
   F -->|fail| A["Agent repair up to N attempts"]
 ```
 
-- **Sanitizer** (`packages/shared/src/metaphorSanitizer.ts`) strips code fences, normalises JSON, and coerces obvious type mismatches.
-- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union (city / layercake / galaxy / tree / terrain / orrery / river / garden) and all item/link/scene fields.
+- **Sanitizer** (`packages/shared/src/metaphorSanitizer.ts`) strips code fences, normalises JSON, and coerces obvious type mismatches. On an unrecoverable input it returns a **root-cause `error`** — the verbatim `JSON.parse` message, or the failing Zod issues formatted path-by-path (`items.0.height: …`), mirroring `parseChartDsl` — instead of a generic notice. `validateAndPrepareMetaphorPatch` / `validateMetaphorStrict` relay it verbatim, so the fixer and repair prompts see exactly which field failed (upholds the "parser errors are verbatim" principle above).
+- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union (city / layercake / galaxy / tree / terrain / orrery / river / garden) and all item/link/scene fields; failures surface as the formatted Zod issues described above.
 - **Single-shot syntax fixer** (`apps/server/src/agents/metaphorSyntaxFixer.js`) — one LLM call with the schema error and broken DSL; references `metaphorSyntaxGuard.js`.
 - **Agent repair turns** — bounded by `METAPHOR_REPAIR_MAX_ATTEMPTS` env var.
 
@@ -123,6 +123,8 @@ Anything validation runs through `validateAndPrepareAnythingPatch` (`apps/server
 7. **Agent repair** — bounded by `ANYTHING_REPAIR_MAX_ATTEMPTS`. Deliberately **no HTML sanitizer** — safety at render time is the sandboxed iframe + CSP in `AnythingRenderer.jsx` — see [Content types](content-types.md#anything).
 
 After acceptance the client closes the loop: `AnythingRenderer` expands `@lib:` markers into inline vendored `<script>` tags (lazy-loading the `@archislop/shared/anythingLibVendor.js` chunk only when a document has markers — the slot keeps the compact marker form) and shows a corner badge naming the injected libs and versions, then `wrapAnythingSrcDoc` (shared) injects a runtime-error bridge into the srcDoc — after validation, so the policy lint's `window.parent` ban never applies to it. Uncaught errors and unhandled rejections inside the sandboxed iframe are relayed via `postMessage` (`ANYTHING_RUNTIME_ERROR_MESSAGE_TYPE`); `AnythingRenderer` accepts messages only from its own iframe, shows a dismissible error banner, and forwards them through `onRuntimeError`. `DiagramCanvas` feeds load-phase errors (< 5 s after load) into the same validation/auto-fix plumbing Mermaid render errors use — the per-content-type auto-fix prompt lives in `apps/web/src/utils/autoFixPrompt.js`. Interaction-time errors stay banner-only.
+
+Both Mermaid render errors and Anything load-phase errors take a **fast-path repair endpoint** first: `POST /api/diagram/render-error` (`apps/server/src/routes/diagramRepair.js`) runs only the single-shot syntax fixer (one LLM call, no agent loop) against the still-current slot, applies the result through the normal state-store pipeline (so the Anything runtime check still runs), and returns `{repaired}`. It accepts a `contentType` of `mermaid` (default) or `anything`; `runAutoFix` (`App.jsx`) only falls back to the full intent ladder when the fast path rejects.
 
 ## Session state: five-slot model
 
