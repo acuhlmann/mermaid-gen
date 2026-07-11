@@ -23,7 +23,7 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 
 - "galaxy" — items as stars, with optional cluster grouping. Magnitude encodes importance/size. Cluster groups stars by domain or affinity. Use for networks where you want to show emergent clustering; add \`links\` sparingly for key relationships.
 
-- "tree" — items as a hierarchy. Each item has an optional \`parent\` (id of another item); items with no parent are roots and become trunks. \`weight\` (1–20, default 3) controls branch thickness. \`kind\` (trunk/branch/leaf) is auto-derived if omitted. Use for org charts, decision trees, taxonomies, dependency hierarchies.
+- "tree" — items as a hierarchy. Each item has an optional \`parent\` (id of another item); items with no parent are roots and become trunks. \`weight\` (1–20, default 3) controls branch thickness. \`kind\` (trunk/branch/leaf) is auto-derived if omitted. Use for org charts, decision trees, taxonomies, dependency hierarchies. Multiple roots render as a natural grove — trunks scatter organically across a clearing (not a straight row) — so use several roots freely when the topic is a forest of separate hierarchies (independent teams, parallel product lines, distinct taxonomies).
 
 - "terrain" — items as elevated markers on a generated heightmap. \`elevation\` (−10…20, default 3) encodes the metric you want to surface (risk, complexity, priority, throughput). \`intensity\` (0.1–10, default 3) controls how sharp/wide the peak is. The surface is the *sum* of all peaks, so nearby items merge into ranges. Optional scene-level \`surface: { metric: "risk score", baseline: 0 }\` labels what elevation means. Use for landscapes of continuous values — risk maps, complexity hotspots, capacity planning.
 

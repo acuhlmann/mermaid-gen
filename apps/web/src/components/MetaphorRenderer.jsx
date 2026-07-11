@@ -25,8 +25,7 @@ import {
   MetaphorTitleOverlay,
   MetaphorLegendOverlay,
   MetaphorKindSwitcher,
-  MetaphorHoverTooltip,
-  MetaphorContextOverlay
+  MetaphorHoverTooltip
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
@@ -1188,7 +1187,7 @@ function MetaphorRendererImpl(
     >
       {renderError ? <p className="diagram-error">{renderError}</p> : null}
       {dsl ? (
-        <Canvas camera={ORBIT_CAMERA} style={{ width: '100%', height: '100%' }}>
+        <Canvas camera={ORBIT_CAMERA} dpr={[1, 2]} style={{ width: '100%', height: '100%' }}>
           <color attach="background" args={[theme.background]} />
           {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
               far enough out that Bounds framing never greys the subject. */}
@@ -1200,6 +1199,21 @@ function MetaphorRendererImpl(
           <directionalLight
             position={theme.directional.position}
             intensity={theme.directional.intensity}
+          />
+          {/* Soft complementary fill from the opposite side lifts the shadowed
+              faces so forms read as rounded and dimensional instead of flat.
+              Tinting it with the theme's horizon colour auto-gates its strength:
+              bright themes (near-white horizon) get a real fill, while dark/noir
+              themes (near-black horizon) stay dramatic — the light contributes
+              almost nothing. */}
+          <directionalLight
+            position={[
+              -theme.directional.position[0],
+              theme.directional.position[1] * 0.6,
+              -theme.directional.position[2]
+            ]}
+            intensity={theme.directional.intensity * 0.28}
+            color={theme.skyHorizonColor ?? theme.background ?? '#ffffff'}
           />
           {theme.environment ? <Environment preset={theme.environment} /> : null}
           {/* Layercake shares the city's calm gradient backdrop so the cake
@@ -1233,9 +1247,13 @@ function MetaphorRendererImpl(
       ) : null}
       {dsl && !streamingPreview ? (
         <>
-          {/* Title (top-left) + legend (bottom-left) collide with the app's logo
-              and corner controls in the inline view, so surface them only in
-              fullscreen — where that chrome isn't painted. */}
+          {/* The inline view keeps the canvas clean: no persistent title card,
+              legend, or kind-switcher panels — they collide with the app's logo
+              and corner controls and clutter the scene. Those chrome panels are
+              surfaced only in fullscreen, where the canvas owns the whole
+              viewport. The hover tooltip stays in both modes: it's transient,
+              appears only while pointing at an item, and never occludes the
+              scene. */}
           {isFullscreen ? (
             <>
               <MetaphorKindSwitcher
@@ -1246,9 +1264,7 @@ function MetaphorRendererImpl(
               <MetaphorTitleOverlay scene={dsl.scene} />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
             </>
-          ) : (
-            <MetaphorContextOverlay metaphor={dsl.metaphor} scene={dsl.scene} />
-          )}
+          ) : null}
           <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />
         </>
       ) : null}
