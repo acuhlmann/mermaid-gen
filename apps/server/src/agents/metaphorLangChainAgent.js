@@ -21,6 +21,8 @@ import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
   extractLastAttemptedToolSource,
+  extractOriginalRequest,
+  extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
@@ -50,16 +52,6 @@ function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
 }
 
-function extractTextContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map((part) => extractTextContent(part)).join('');
-  if (content && typeof content === 'object') {
-    if (typeof content.text === 'string') return content.text;
-    if (typeof content.content === 'string') return content.content;
-  }
-  return '';
-}
-
 /**
  * Some models emit the metaphor DSL as a fenced JSON block in prose instead of calling
  * apply_metaphor_patch. Scan the last assistant message for such a block (or for a bare
@@ -85,19 +77,6 @@ function extractMetaphorDslFromAssistantResult(result) {
       const candidate = raw.slice(braceStart, braceEnd + 1);
       if (candidate.includes('"metaphor"')) return candidate.trim();
     }
-  }
-  return null;
-}
-
-function extractOriginalRequest(userMessages) {
-  if (!Array.isArray(userMessages)) return null;
-  for (const m of userMessages) {
-    if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
-    const text =
-      typeof m?.content === 'string'
-        ? m.content
-        : extractTextContent(m?.content ?? m?.kwargs?.content);
-    if (text && text.trim()) return text.trim();
   }
   return null;
 }

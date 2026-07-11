@@ -14,6 +14,8 @@ import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
   extractLastAttemptedToolSource,
+  extractOriginalRequest,
+  extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
@@ -90,32 +92,8 @@ async function withInfographicTransformContext(stateStore, context, fn) {
   }
 }
 
-/** Best-effort extraction of the user's request text from the message bag that drives a turn. */
-function extractOriginalRequest(userMessages) {
-  if (!Array.isArray(userMessages)) return null;
-  for (const m of userMessages) {
-    if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
-    const text =
-      typeof m?.content === 'string'
-        ? m.content
-        : extractTextContent(m?.content ?? m?.kwargs?.content);
-    if (text && text.trim()) return text.trim();
-  }
-  return null;
-}
-
 function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
-}
-
-function extractTextContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map((part) => extractTextContent(part)).join('');
-  if (content && typeof content === 'object') {
-    if (typeof content.text === 'string') return content.text;
-    if (typeof content.content === 'string') return content.content;
-  }
-  return '';
 }
 
 function detectPromptLanguageHint(text) {
