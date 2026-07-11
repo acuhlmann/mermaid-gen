@@ -3,7 +3,14 @@ import { hash01Salted } from '../seededHash.js';
 const LEVEL_HEIGHT = 3.2;
 const BASE_RADIUS = 4.2;
 const RADIUS_DEPTH_FACTOR = 1.4;
-const ROOT_SPACING = 14;
+// Nominal centre-to-centre spacing between trunks in a multi-root grove. Combined
+// with the phyllotaxis packing below this yields ~14 world units between nearest
+// neighbours — enough that adjacent crowns read as a clearing, not one blob.
+const GROVE_SPACING = 8;
+// Golden angle (~137.5°). Stepping each successive trunk by this around the
+// clearing is what makes a sunflower/phyllotaxis scatter look organic instead of
+// gridded — the same packing nature uses for leaves and seed heads.
+const GROVE_GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 // Roots sit at trunk-top height so the renderer can draw a visible trunk below
 // them (at y=0 the trunk segment would have zero length and never render).
 const TRUNK_HEIGHT = 3.0;
@@ -93,8 +100,25 @@ export function treeRadialLayout(items) {
   }
 
   roots.forEach((root, rootIdx) => {
-    const rootX = rootCount === 1 ? 0 : (rootIdx - (rootCount - 1) / 2) * ROOT_SPACING;
-    const autoPos = [rootX, TRUNK_HEIGHT, 0];
+    let autoPos;
+    if (rootCount === 1) {
+      autoPos = [0, TRUNK_HEIGHT, 0];
+    } else {
+      // A forest of roots used to stand in a single straight east–west row, which
+      // read as an unnatural line-up rather than a stand of trees. Scatter the
+      // trunks across a clearing with phyllotaxis (sunflower) packing instead:
+      // each root spirals outward by the golden angle at radius ∝ √index, so the
+      // grove fills a rough disc evenly and organically. Per-root id-hashed jitter
+      // on angle and radius keeps two groves of the same size from looking
+      // mechanically identical.
+      const angle =
+        rootIdx * GROVE_GOLDEN_ANGLE + (hash01Salted(root.id, 'grove-spin') - 0.5) * 0.45;
+      const radius =
+        GROVE_SPACING *
+        Math.sqrt(rootIdx + 0.5) *
+        (0.92 + hash01Salted(root.id, 'grove-radius') * 0.16);
+      autoPos = [Math.cos(angle) * radius, TRUNK_HEIGHT, Math.sin(angle) * radius];
+    }
     const rootPos =
       Array.isArray(root.position) && root.position.length === 3
         ? [root.position[0], root.position[1], root.position[2]]

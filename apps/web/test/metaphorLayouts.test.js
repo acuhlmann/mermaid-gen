@@ -97,6 +97,27 @@ describe('metaphorLayouts', () => {
     expect(bounds.radius).toBeGreaterThan(0);
   });
 
+  it('treeRadialLayout scatters a multi-root forest into a grove, not a straight row', () => {
+    const items = Array.from({ length: 5 }, (_, i) => ({
+      id: `tree-${i}`,
+      label: `Tree ${i}`
+    }));
+    const { positions } = treeRadialLayout(items);
+    const rootZs = items.map((item) => positions.get(item.id)[2]);
+    // A straight east–west row would leave every trunk at z≈0; the grove packing
+    // must spread them across depth as well as width.
+    const zSpread = Math.max(...rootZs) - Math.min(...rootZs);
+    expect(zSpread).toBeGreaterThan(4);
+    // And no two trunks may land on top of each other.
+    for (let i = 0; i < items.length; i += 1) {
+      for (let j = i + 1; j < items.length; j += 1) {
+        const a = positions.get(items[i].id);
+        const b = positions.get(items[j].id);
+        expect(Math.hypot(a[0] - b[0], a[2] - b[2])).toBeGreaterThan(3);
+      }
+    }
+  });
+
   it('treeRadialLayout honors explicit position and author kind overrides', () => {
     const items = [
       { id: 'root', label: 'Root', position: [2, 4, -1] },
