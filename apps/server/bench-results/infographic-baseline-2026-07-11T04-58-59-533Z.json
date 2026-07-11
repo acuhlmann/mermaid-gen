@@ -1,0 +1,173 @@
+{
+  "summary": {
+    "tag": "infographic-baseline",
+    "timestamp": "2026-07-11T04:58:59.533Z",
+    "totalCases": 14,
+    "acceptRate": 57.14,
+    "expectationMatch": 100,
+    "sanitizerRescues": 5,
+    "rescueableHitRate": 100,
+    "latency": {
+      "p50": 0.28,
+      "p95": 12.88,
+      "p99": 12.88,
+      "max": 12.88
+    },
+    "validatorBreakdown": {
+      "infographic-parseSyntax": 8,
+      "rejected": 6
+    }
+  },
+  "results": [
+    {
+      "id": "valid-list-row",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 12.88
+    },
+    {
+      "id": "valid-chart-pie",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 1.35
+    },
+    {
+      "id": "valid-sequence",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [],
+      "error": null,
+      "durationMs": 0.5
+    },
+    {
+      "id": "fenced-block",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [
+        "strip-code-fence"
+      ],
+      "error": null,
+      "durationMs": 0.28
+    },
+    {
+      "id": "leading-prose",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [
+        "strip-leading-prose"
+      ],
+      "error": null,
+      "durationMs": 0.35
+    },
+    {
+      "id": "stray-open-fence",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [
+        "strip-stray-fence"
+      ],
+      "error": null,
+      "durationMs": 0.18
+    },
+    {
+      "id": "empty",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "Infographic DSL is empty.",
+      "durationMs": 0.07
+    },
+    {
+      "id": "not-a-diagram",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "First non-blank line must be: `infographic <template-name>` (lowercase, hyphens). Got: \"this is not an infographic\"",
+      "durationMs": 0.12
+    },
+    {
+      "id": "unknown-template",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "Unknown template \"list-made-up-template\". Did you mean one of: list-column-done-list, list-column-simple-vertical-arrow, list-column-vertical-icon-arrow, list-grid-badge-card, list-grid-candy-card-lite, list-grid-circular-progress, list-grid-compact-card, list-grid-done-list?",
+      "durationMs": 0.17
+    },
+    {
+      "id": "multiple-headers",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "Multiple `infographic <template>` headers in one diagram. Emit exactly one DSL block per patch.",
+      "durationMs": 0.12
+    },
+    {
+      "id": "indented-header",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "First non-blank line must be: `infographic <template-name>` (lowercase, hyphens). Got: \"infographic list-row-simple-horizontal-arrow\"",
+      "durationMs": 0.09
+    },
+    {
+      "id": "bad-structure-unknown-keys",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "sanitizerApplied": [],
+      "error": "AntV Infographic parser rejected the DSL:\nUnknown top-level key. at title (line 2)\n  >   title Sun\nUnknown top-level key. at content (line 3)\n  >   content The Sun is a star.",
+      "durationMs": 0.39
+    },
+    {
+      "id": "smart-quotes-rescued",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [
+        "smart-quotes-to-ascii"
+      ],
+      "error": null,
+      "durationMs": 0.68
+    },
+    {
+      "id": "tabs-rescued",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "infographic-parseSyntax",
+      "sanitizerApplied": [
+        "tabs-to-spaces"
+      ],
+      "error": null,
+      "durationMs": 0.18
+    }
+  ]
+}
