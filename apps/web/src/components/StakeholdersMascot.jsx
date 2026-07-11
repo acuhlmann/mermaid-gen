@@ -45,8 +45,8 @@ export default function StakeholdersMascot({
 }) {
   const bubbleReady = Boolean(
     bubbleProps?.persona &&
-      typeof bubbleProps.suggestion === 'string' &&
-      bubbleProps.suggestion.trim().length > 0
+    typeof bubbleProps.suggestion === 'string' &&
+    bubbleProps.suggestion.trim().length > 0
   );
   const thinkingDisplayPersona = thinkingPersona ?? activeAdvisorVariant;
   const showThinking = Boolean(thinkingDisplayPersona) && !bubbleReady;
