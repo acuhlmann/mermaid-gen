@@ -13,6 +13,7 @@ import {
   riverPathLayout,
   riverWidthForFlow
 } from '../src/utils/metaphorLayouts/riverPathLayout.js';
+import { gardenBedLayout } from '../src/utils/metaphorLayouts/gardenBedLayout.js';
 
 describe('metaphorLayouts', () => {
   it('gridPosition centers a single item at origin', () => {
@@ -183,5 +184,21 @@ describe('metaphorLayouts', () => {
     const single = riverPathLayout([{ id: 'only', label: 'Only', stage: 0, flow: 5 }]);
     expect(single.samples.length).toBeGreaterThan(2);
     expect(single.stations).toHaveLength(1);
+  });
+
+  it('gardenBedLayout groups plants into topic beds', () => {
+    const items = [
+      { id: 'a', label: 'A', bed: 'Growth', maturity: 0.8, impact: 8 },
+      { id: 'b', label: 'B', bed: 'Trust', maturity: 0.4, impact: 6 },
+      { id: 'c', label: 'C', bed: 'Growth', maturity: 0.2, impact: 3 }
+    ];
+    const { positions, beds, bounds } = gardenBedLayout(items);
+    expect(positions.size).toBe(3);
+    expect(beds.map((bed) => bed.name).sort()).toEqual(['Growth', 'Trust']);
+    expect(bounds.radius).toBeGreaterThan(0);
+    const a = positions.get('a');
+    const c = positions.get('c');
+    const b = positions.get('b');
+    expect(Math.hypot(a[0] - c[0], a[2] - c[2])).toBeLessThan(Math.hypot(a[0] - b[0], a[2] - b[2]));
   });
 });

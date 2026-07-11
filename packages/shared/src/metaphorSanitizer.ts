@@ -3,6 +3,8 @@ import {
   CITY_LIGHTING,
   CITY_MAX_ITEMS,
   GALAXY_MAX_ITEMS,
+  GARDEN_HEALTH,
+  GARDEN_MAX_ITEMS,
   LAYERCAKE_MAX_ITEMS,
   METAPHOR_GLYPH_KINDS,
   METAPHOR_KINDS,
@@ -35,11 +37,13 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   tree: TREE_MAX_ITEMS,
   terrain: TERRAIN_MAX_ITEMS,
   orrery: ORRERY_MAX_ITEMS,
-  river: RIVER_MAX_ITEMS
+  river: RIVER_MAX_ITEMS,
+  garden: GARDEN_MAX_ITEMS
 };
 
 const LIGHTING_SET = new Set<string>(CITY_LIGHTING);
 const CONDITION_SET = new Set<string>(CITY_CONDITION);
+const GARDEN_HEALTH_SET = new Set<string>(GARDEN_HEALTH);
 const GLYPH_SET = new Set<string>(METAPHOR_GLYPH_KINDS);
 const LINK_KIND_SET = new Set<string>(METAPHOR_LINK_KINDS);
 const NOTE_MAX_LENGTH = 140;
@@ -230,6 +234,23 @@ function rescueNumericRanges(working: Record<string, unknown>, applied: string[]
         }
       }
     }
+
+    if (kind === 'garden') {
+      if (typeof item.maturity === 'number' && Number.isFinite(item.maturity)) {
+        const clamped = clampNumber(item.maturity, 0, 1);
+        if (clamped !== item.maturity) {
+          item.maturity = clamped;
+          applied.push('clamp-maturity');
+        }
+      }
+      if (typeof item.impact === 'number' && Number.isFinite(item.impact)) {
+        const clamped = clampNumber(item.impact, 0.1, 10);
+        if (clamped !== item.impact) {
+          item.impact = clamped;
+          applied.push('clamp-impact');
+        }
+      }
+    }
   }
 }
 
@@ -298,7 +319,11 @@ function rescueSceneLegend(working: Record<string, unknown>, applied: string[]):
     'orbit',
     'size',
     'stage',
-    'flow'
+    'flow',
+    'maturity',
+    'impact',
+    'bed',
+    'health'
   ];
   const kept: Record<string, string> = {};
   let droppedUnknown = false;
@@ -351,6 +376,25 @@ function rescueCityEnumCase(working: Record<string, unknown>, applied: string[])
         applied.push('drop-invalid-condition');
       }
     }
+  }
+}
+
+function rescueGardenHealth(working: Record<string, unknown>, applied: string[]): void {
+  if (working.metaphor !== 'garden' || !Array.isArray(working.items)) return;
+  for (const item of working.items as unknown[]) {
+    if (!isObject(item) || !('health' in item)) continue;
+    if (typeof item.health === 'string') {
+      const lower = item.health.trim().toLowerCase();
+      if (GARDEN_HEALTH_SET.has(lower)) {
+        if (item.health !== lower) {
+          item.health = lower;
+          applied.push('normalize-garden-health-case');
+        }
+        continue;
+      }
+    }
+    delete item.health;
+    applied.push('drop-invalid-garden-health');
   }
 }
 
@@ -572,6 +616,7 @@ export function sanitizeMetaphorDsl(
   rescueItemPositions(working, applied);
   rescueNumericRanges(working, applied);
   rescueCityEnumCase(working, applied);
+  rescueGardenHealth(working, applied);
   rescueGlyphField(working, applied);
   rescueItemNotes(working, applied);
   rescueSceneLegend(working, applied);

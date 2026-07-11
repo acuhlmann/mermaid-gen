@@ -304,6 +304,64 @@ export function MeadowFireflies({ radius, color = '#ffe28a', count = 22, idSeed 
   );
 }
 
+/** Sunlit pollen and dandelion seeds drifting over daytime outdoor scenes. */
+export function DaylightPollen({ radius, count = 18, idSeed = 'pollen' }) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const motes = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => {
+        const angle = idHash2(idSeed, `a${i}`) * Math.PI * 2;
+        const dist = Math.sqrt(idHash2(idSeed, `d${i}`)) * radius * 0.85;
+        return {
+          x: Math.cos(angle) * dist,
+          y: 0.8 + idHash2(idSeed, `y${i}`) * 3.2,
+          z: Math.sin(angle) * dist,
+          phase: idHash2(idSeed, `p${i}`) * Math.PI * 2,
+          speed: 0.15 + idHash2(idSeed, `s${i}`) * 0.22,
+          sway: 0.35 + idHash2(idSeed, `w${i}`) * 0.7,
+          scale: 0.7 + idHash2(idSeed, `z${i}`) * 0.8
+        };
+      }),
+    [count, idSeed, radius]
+  );
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const mote = motes[i];
+      if (!mote) return;
+      child.position.set(
+        mote.x + Math.sin(t * mote.speed + mote.phase) * mote.sway,
+        mote.y + Math.sin(t * mote.speed * 0.7 + mote.phase) * 0.35,
+        mote.z + Math.cos(t * mote.speed * 0.85 + mote.phase) * mote.sway
+      );
+      child.rotation.y = t * mote.speed + mote.phase;
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {motes.map((mote, i) => (
+        <group
+          key={`pollen-${i}`}
+          position={[mote.x, mote.y, mote.z]}
+          scale={mote.scale}
+          rotation={[0, mote.phase, 0]}
+        >
+          <mesh>
+            <sphereGeometry args={[0.035, 6, 6]} />
+            <meshStandardMaterial color="#fffdf1" roughness={0.75} />
+          </mesh>
+          <mesh position={[0, 0.08, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.07, 8]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.48} side={THREE.DoubleSide} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  );
+}
+
 /** Low-poly cloud puffs drifting gently above the terrain peaks. Oscillating
  *  drift (not wrapping) so clouds never pop in or out at the edges. */
 export function TerrainClouds({ halfExtent, maxHeight, idSeed = 'terrain-clouds' }) {

@@ -7337,6 +7337,97 @@ button {
   color: #cbd5e1;
 }
 
+.metaphor-context-overlay {
+  top: 12px;
+  left: 50%;
+  width: min(58%, 680px);
+  max-width: min(58%, 680px);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.metaphor-context-heading {
+  min-width: 0;
+  text-align: left;
+}
+
+.metaphor-context-title {
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaphor-context-subtitle {
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: #cbd5e1;
+  font-size: 0.67rem;
+  font-weight: 500;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metaphor-context-axes {
+  flex: 0 1 auto;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+
+.metaphor-context-axis {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 3px 7px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.38);
+  font-size: 0.65rem;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.metaphor-context-axis dt {
+  color: #e2e8f0;
+  font-weight: 700;
+}
+
+.metaphor-context-axis dd {
+  margin: 0;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .metaphor-context-overlay {
+    top: 8px;
+    width: min(82%, 520px);
+    max-width: min(82%, 520px);
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .metaphor-context-heading {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .metaphor-context-subtitle {
+    display: none;
+  }
+}
+
 /* Fullscreen-only metaphor kind switcher — top center, above title card. */
 .metaphor-kind-switcher {
   top: 14px;

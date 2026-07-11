@@ -10,7 +10,9 @@ import {
 import {
   resolveMetaphorThemePreset,
   resolveMetaphorPostfx,
-  resolveDistrictColor
+  resolveDistrictColor,
+  resolveGardenDaylightTheme,
+  resolveRiverDaylightTheme
 } from '../utils/metaphorThemePresets.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
 import {
@@ -23,7 +25,8 @@ import {
   MetaphorTitleOverlay,
   MetaphorLegendOverlay,
   MetaphorKindSwitcher,
-  MetaphorHoverTooltip
+  MetaphorHoverTooltip,
+  MetaphorContextOverlay
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
@@ -51,12 +54,24 @@ import { TreeScene, TreeSky } from './metaphorScenes/TreeScene.jsx';
 import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
 import { OrreryScene } from './metaphorScenes/OrreryScene.jsx';
 import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
+import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
 const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
 const CUTAWAY_THETA = (330 / 360) * Math.PI * 2;
+
+const BOUNDS_MARGIN_BY_KIND = {
+  city: 1.06,
+  layercake: 1.08,
+  galaxy: 1.08,
+  tree: 1.04,
+  terrain: 1.04,
+  orrery: 1.08,
+  river: 0.84,
+  garden: 1.12
+};
 
 /** Advances the shared scene clock; gated off (frozen at 0) during streaming. */
 function MetaphorClockProvider({ enabled, children }) {
@@ -1020,6 +1035,7 @@ function MetaphorScene({ dsl, theme }) {
   if (dsl.metaphor === 'terrain') return <TerrainScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'orrery') return <OrreryScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'river') return <RiverScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'garden') return <GardenScene dsl={dsl} theme={theme} />;
   return null;
 }
 
@@ -1155,8 +1171,14 @@ function MetaphorRendererImpl(
   const renderError = !streamingPreview && hasSource && !dsl ? finalResolved.renderError : '';
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
-  const theme = resolveMetaphorThemePreset(themeId);
+  const theme = useMemo(() => {
+    const base = resolveMetaphorThemePreset(themeId);
+    if (dsl?.metaphor === 'river') return resolveRiverDaylightTheme(base);
+    if (dsl?.metaphor === 'garden') return resolveGardenDaylightTheme(base);
+    return base;
+  }, [dsl?.metaphor, themeId]);
   const postfx = resolveMetaphorPostfx(theme);
+  const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.08;
 
   return (
     <div
@@ -1192,10 +1214,11 @@ function MetaphorRendererImpl(
           ) : null}
           {dsl.metaphor === 'tree' ? <TreeSky theme={theme} /> : null}
           {dsl.metaphor === 'river' ? <RiverSky theme={theme} /> : null}
+          {dsl.metaphor === 'garden' ? <GardenSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                <Bounds fit clip observe margin={1.25}>
+                <Bounds fit clip observe margin={boundsMargin}>
                   <Center disableY>
                     <MetaphorScene dsl={dsl} theme={theme} />
                   </Center>
@@ -1223,7 +1246,9 @@ function MetaphorRendererImpl(
               <MetaphorTitleOverlay scene={dsl.scene} />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
             </>
-          ) : null}
+          ) : (
+            <MetaphorContextOverlay metaphor={dsl.metaphor} scene={dsl.scene} />
+          )}
           <MetaphorHoverTooltip store={hoverStore} legend={dsl.scene?.legend} />
         </>
       ) : null}

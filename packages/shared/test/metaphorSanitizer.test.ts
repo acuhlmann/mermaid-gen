@@ -575,3 +575,58 @@ test('sanitizeMetaphorDsl drops a non-string item.note', () => {
   }
   assert.ok(result.applied.includes('drop-invalid-note'));
 });
+
+test('MetaphorDslSchema parses a garden with semantic growth and health fields', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'garden',
+    scene: {
+      title: 'Capability garden',
+      legend: {
+        maturity: 'delivery maturity',
+        impact: 'customer impact',
+        bed: 'strategic theme',
+        health: 'delivery health'
+      }
+    },
+    items: [
+      {
+        id: 'support-copilot',
+        label: 'Support copilot',
+        maturity: 0.8,
+        impact: 7,
+        bed: 'Customer care',
+        health: 'thriving'
+      }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'garden');
+  if (dsl.metaphor === 'garden') {
+    assert.equal(dsl.items[0].maturity, 0.8);
+    assert.equal(dsl.items[0].health, 'thriving');
+    assert.equal(dsl.scene.legend?.impact, 'customer impact');
+  }
+});
+
+test('sanitizeMetaphorDsl clamps garden metrics and repairs health values', () => {
+  const input = JSON.stringify({
+    metaphor: 'garden',
+    items: [
+      { id: 'healthy', label: 'Healthy', maturity: 2, impact: 99, health: 'THRIVING' },
+      { id: 'unknown', label: 'Unknown', maturity: -1, impact: 0.01, health: 'wilting' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'garden') {
+    assert.equal(result.dsl.items[0].maturity, 1);
+    assert.equal(result.dsl.items[0].impact, 10);
+    assert.equal(result.dsl.items[0].health, 'thriving');
+    assert.equal(result.dsl.items[1].maturity, 0);
+    assert.equal(result.dsl.items[1].impact, 0.1);
+    assert.equal(result.dsl.items[1].health, 'steady');
+  }
+  assert.ok(result.applied.includes('clamp-maturity'));
+  assert.ok(result.applied.includes('clamp-impact'));
+  assert.ok(result.applied.includes('normalize-garden-health-case'));
+  assert.ok(result.applied.includes('drop-invalid-garden-health'));
+});

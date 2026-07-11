@@ -7,7 +7,8 @@ export const METAPHOR_KINDS = [
   'tree',
   'terrain',
   'orrery',
-  'river'
+  'river',
+  'garden'
 ] as const;
 export const MetaphorKindSchema = z.enum(METAPHOR_KINDS);
 
@@ -65,7 +66,11 @@ export const MetaphorLegendSchema = z
     orbit: z.string().max(80).optional(),
     size: z.string().max(80).optional(),
     stage: z.string().max(80).optional(),
-    flow: z.string().max(80).optional()
+    flow: z.string().max(80).optional(),
+    maturity: z.string().max(80).optional(),
+    impact: z.string().max(80).optional(),
+    bed: z.string().max(80).optional(),
+    health: z.string().max(80).optional()
   })
   .strict();
 
@@ -235,6 +240,26 @@ export const RiverMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+export const GARDEN_HEALTH = ['thriving', 'steady', 'at-risk'] as const;
+export const GARDEN_MAX_ITEMS = 40;
+export const GardenItemSchema = MetaphorItemBase.extend({
+  /** 0–1 lifecycle progress; drives stem height and bloom stage. */
+  maturity: z.number().min(0).max(1).default(0.5),
+  /** Relative value or influence; drives the flower/canopy scale. */
+  impact: z.number().positive().max(10).default(3),
+  /** Domain grouping rendered as a planted bed. */
+  bed: z.string().max(64).optional(),
+  /** Current state rendered through posture and foliage colour. */
+  health: z.enum(GARDEN_HEALTH).default('steady')
+});
+
+export const GardenMetaphorSchema = z.object({
+  metaphor: z.literal('garden'),
+  scene: MetaphorSceneSchema,
+  items: z.array(GardenItemSchema).max(GARDEN_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
 export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   CityMetaphorSchema,
   LayercakeMetaphorSchema,
@@ -242,7 +267,8 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   TreeMetaphorSchema,
   TerrainMetaphorSchema,
   OrreryMetaphorSchema,
-  RiverMetaphorSchema
+  RiverMetaphorSchema,
+  GardenMetaphorSchema
 ]);
 
 export type MetaphorKind = z.infer<typeof MetaphorKindSchema>;
@@ -263,6 +289,7 @@ export type TreeItem = z.infer<typeof TreeItemSchema>;
 export type TerrainItem = z.infer<typeof TerrainItemSchema>;
 export type OrreryItem = z.infer<typeof OrreryItemSchema>;
 export type RiverItem = z.infer<typeof RiverItemSchema>;
+export type GardenItem = z.infer<typeof GardenItemSchema>;
 export type CityMetaphor = z.infer<typeof CityMetaphorSchema>;
 export type LayercakeMetaphor = z.infer<typeof LayercakeMetaphorSchema>;
 export type GalaxyMetaphor = z.infer<typeof GalaxyMetaphorSchema>;
@@ -270,4 +297,5 @@ export type TreeMetaphor = z.infer<typeof TreeMetaphorSchema>;
 export type TerrainMetaphor = z.infer<typeof TerrainMetaphorSchema>;
 export type OrreryMetaphor = z.infer<typeof OrreryMetaphorSchema>;
 export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
+export type GardenMetaphor = z.infer<typeof GardenMetaphorSchema>;
 export type MetaphorDsl = z.infer<typeof MetaphorDslSchema>;

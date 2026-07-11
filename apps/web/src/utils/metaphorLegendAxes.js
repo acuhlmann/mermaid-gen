@@ -35,6 +35,12 @@ export const METAPHOR_LEGEND_AXES = {
   river: [
     ['stage', 'Stage'],
     ['flow', 'Flow']
+  ],
+  garden: [
+    ['maturity', 'Maturity'],
+    ['impact', 'Impact'],
+    ['bed', 'Bed'],
+    ['health', 'Health']
   ]
 };
 
@@ -67,6 +73,12 @@ const ITEM_METRICS = {
     { key: 'stage', label: 'Stage', type: 'number' },
     { key: 'flow', label: 'Flow', type: 'number' },
     { key: 'hazard', label: 'Hazard', type: 'number' }
+  ],
+  garden: [
+    { key: 'maturity', label: 'Maturity', type: 'number' },
+    { key: 'impact', label: 'Impact', type: 'number' },
+    { key: 'bed', label: 'Bed', type: 'text' },
+    { key: 'health', label: 'Health', type: 'text' }
   ]
 };
 

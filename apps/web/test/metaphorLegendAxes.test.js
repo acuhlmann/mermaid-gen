@@ -41,6 +41,7 @@ describe('legendAxesFor', () => {
     expect(Object.keys(METAPHOR_LEGEND_AXES).sort()).toEqual([
       'city',
       'galaxy',
+      'garden',
       'layercake',
       'orrery',
       'river',
@@ -59,6 +60,21 @@ describe('legendAxesFor', () => {
     expect(river).toEqual([
       { key: 'stage', label: 'Stage', text: 'funnel step' },
       { key: 'flow', label: 'Flow', text: 'weekly signups' }
+    ]);
+  });
+
+  it('exposes garden growth, impact, grouping, and health axes', () => {
+    const garden = legendAxesFor('garden', {
+      maturity: 'delivery maturity',
+      impact: 'customer impact',
+      bed: 'strategic theme',
+      health: 'delivery health'
+    });
+    expect(garden).toEqual([
+      { key: 'maturity', label: 'Maturity', text: 'delivery maturity' },
+      { key: 'impact', label: 'Impact', text: 'customer impact' },
+      { key: 'bed', label: 'Bed', text: 'strategic theme' },
+      { key: 'health', label: 'Health', text: 'delivery health' }
     ]);
   });
 });
@@ -103,5 +119,25 @@ describe('formatItemMetric', () => {
   it('returns an empty shape for missing item or unknown metaphor', () => {
     expect(formatItemMetric('city', null)).toEqual({ label: '', rows: [], glyph: undefined });
     expect(formatItemMetric('mystery', { label: 'X', height: 3 }).rows).toEqual([]);
+  });
+
+  it('formats garden maturity, impact, bed, and health', () => {
+    const out = formatItemMetric(
+      'garden',
+      {
+        label: 'Support copilot',
+        maturity: 0.85,
+        impact: 8,
+        bed: 'Customer care',
+        health: 'thriving'
+      },
+      { maturity: 'delivery maturity', impact: 'customer impact' }
+    );
+    expect(out.rows).toEqual([
+      { label: 'Delivery maturity', value: '0.9' },
+      { label: 'Customer impact', value: '8' },
+      { label: 'Bed', value: 'Customer care' },
+      { label: 'Health', value: 'thriving' }
+    ]);
   });
 });

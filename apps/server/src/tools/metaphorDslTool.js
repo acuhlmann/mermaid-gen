@@ -31,7 +31,7 @@ export async function validateAndPrepareMetaphorPatch({
     return {
       accepted: false,
       error:
-        'Metaphor DSL did not parse. Emit a JSON object: {"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river","scene":{...},"items":[...]}.'
+        'Metaphor DSL did not parse. Emit a JSON object: {"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden","scene":{...},"items":[...]}.'
     };
   }
 

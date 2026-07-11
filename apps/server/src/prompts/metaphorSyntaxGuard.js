@@ -5,7 +5,7 @@ export const METAPHOR_RULE_PACK = METAPHOR_SYSTEM_PROMPT;
 
 export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_patch:
 - Valid JSON object (no trailing commas, double-quoted keys/strings).
-- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", or "river".
+- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", or "garden".
 - Every item has unique "id" (kebab-case) and non-empty "label".
 - City items: numeric height and footprint; meaningful district when >6 items. Optional lighting (lit/dim/dark), condition (new/aging/crumbling).
 - Layercake items: thickness + components[]. Optional cracks (0-1) and tilt (0-15).
@@ -14,11 +14,15 @@ export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_pat
 - Terrain items: elevation (-10..20) and intensity (0.1..10). Optional scene.surface = { metric, baseline }.
 - Orrery items: orbit (0-12; 0 = the central sun, ideally exactly one) and size (0.1-10). Optional moon (id of a non-moon item to sit beside).
 - River items: stage (0-100, source → mouth order) and flow (0.1-20, channel width). Optional hazard (0-1) for rapids.
+- Garden items: maturity (0-1), impact (0.1-10), optional bed, and health (thriving/steady/at-risk).
 - "links" is an array (may be empty). Each link has "from" and "to" ids that exist in items; optional "label"; optional "kind" (flow/dependency/ownership).
 - Optional item "note": a short string (≤ 140 chars) shown on hover.
 - Optional item "position": [x,y,z] with numbers in −30…30.
 - scene.title and scene.subtitle are set; scene.legend.<axis> is set for every encoding axis used (these render as visible overlays — do not leave them empty).
-- scene.theme is whiteboard|noir|arcade|blueprint; scene.camera is orbit|isometric|cinematic when present.`;
+- scene.theme is whiteboard|noir|arcade|blueprint; scene.camera is orbit|isometric|cinematic when present.
+- The title and item labels preserve concrete user-topic nouns; at least half of recognisable concrete items have a glyph, and headline items have factual notes.
+- Numeric encodings are proportional to facts from the prompt, or explicitly named as relative/inferred in the legend when facts are absent.
+- River and garden scenes prefer whiteboard and always render as sunny daylight outdoors.`;
 
 /**
  * Build repair instructions after a failed metaphor patch tool call.
