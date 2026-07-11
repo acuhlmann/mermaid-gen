@@ -296,6 +296,7 @@ export function useAdvisorOrchestrator(params) {
     const tick = async () => {
       clearPhaseTimer();
       const gen = ++generation;
+      const focusKeyAtTick = focusKeyRef.current;
       const persona = forcedPersonaRef.current ?? pickNextPersona(previousPersona);
       forcedPersonaRef.current = null;
       const svgRoot = paramsRef.current.getSvgRoot?.() ?? null;
@@ -362,6 +363,13 @@ export function useAdvisorOrchestrator(params) {
         if (pinnedRef.current) {
           // Fetch finished after pin — keep the pinned bubble, skip rotation.
           setThinkingPersona(null);
+          return;
+        }
+        if (focusKeyRef.current !== focusKeyAtTick) {
+          // Focus moved while the LLM was thinking — discard this stale reply and
+          // immediately re-tick for the new focus so the bubble never flashes then vanishes.
+          setThinkingPersona(null);
+          scheduleNext(0);
           return;
         }
         const highlight =

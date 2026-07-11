@@ -27,10 +27,7 @@ import ChartRenderer from './ChartRenderer.jsx';
 import AnythingRenderer from './AnythingRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
-import {
-  computeViewportFocusForHighlightIds,
-  computeViewportFocusForChangeHighlight
-} from '../utils/focusDiagramHighlightIds.js';
+import { computeViewportFocusForChangeHighlight } from '../utils/focusDiagramHighlightIds.js';
 import { ARCHISLOP_MERMAID_CANVAS_INIT } from '../utils/mermaidRenderInit.js';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
@@ -219,8 +216,6 @@ export default function DiagramCanvas({
   changeHighlightContentType = null,
   onDiagramSvgRendered = null,
   runFx = null,
-  /** When set, pan/zoom the canvas to frame these advisor highlight ids (e.g. on pin). */
-  advisorPinFocusIds = null,
   /** Incremented by App on each mode switch so the infographic renderer fully remounts. */
   rendererRefreshKey = 0,
   /** Ref to `.diagram-output` for fullscreen (button lives in App top-corner controls). */
@@ -416,19 +411,6 @@ export default function DiagramCanvas({
     observer.observe(root, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, [applyViewportFit, contentType, editorSource, revisionId, streamingPreview]);
-
-  useEffect(() => {
-    if (!Array.isArray(advisorPinFocusIds) || advisorPinFocusIds.length === 0) return undefined;
-    if (streamingPreview) return undefined;
-    const viewportEl = viewportRef.current;
-    if (!viewportEl?.querySelector('svg')) return undefined;
-    const next = computeViewportFocusForHighlightIds(viewportEl, advisorPinFocusIds);
-    if (!next) return undefined;
-    const id = requestAnimationFrame(() => {
-      setViewport(next);
-    });
-    return () => cancelAnimationFrame(id);
-  }, [advisorPinFocusIds, revisionId, streamingPreview, svgMarkup]);
 
   useEffect(() => {
     if (!changeHighlight || !changeHighlightContentType || streamingPreview) return undefined;

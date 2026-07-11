@@ -2808,7 +2808,7 @@ ${requirementsBlock}`;
   const advisorBubbleProps = useMemo(() => {
     if (!advisor.suggestion) return null;
     return {
-      persona: advisor.activePersona,
+      persona: advisor.activePersona ?? advisor.thinkingPersona,
       suggestion: advisor.suggestion,
       kind: advisor.suggestionKind,
       isPinned: advisor.isPinned,
@@ -2838,11 +2838,6 @@ ${requirementsBlock}`;
       castDisabled: false
     };
   }, [advisor, advisorFocusDescriptor]);
-
-  const advisorPinFocusIds = useMemo(() => {
-    if (!advisor.isPinned || !(advisor.highlightIds?.length > 0)) return null;
-    return advisor.highlightIds;
-  }, [advisor.highlightIds, advisor.isPinned]);
 
   const advisorDiagramHighlight = useMemo(() => {
     const ids = advisor.highlightIds ?? [];
@@ -3847,7 +3842,6 @@ ${requirementsBlock}`;
               ? 'high'
               : 'normal'
         }}
-        advisorPinFocusIds={advisorPinFocusIds}
         diagramSurfaceRef={diagramSurfaceRef}
         isFullscreen={isFullscreen}
       />
