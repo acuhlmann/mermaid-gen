@@ -36,6 +36,12 @@ function bedColor(theme, index) {
   return palette[index % palette.length];
 }
 
+function gardenStemColor(theme, health) {
+  if (health === 'thriving') return theme.gardenThrivingColor;
+  if (health === 'at-risk') return theme.gardenRiskColor;
+  return theme.gardenSteadyColor;
+}
+
 function GardenBed({ bed, theme, index }) {
   const soil = theme.gardenSoilColor ?? '#795438';
   const edging = shiftColor(bedColor(theme, index), { lightness: 0.12, satScale: 0.75 });
@@ -111,18 +117,16 @@ function GardenPlant({ item, position, theme, bloomColor }) {
   const posture = HEALTH_POSTURE[health] ?? HEALTH_POSTURE.steady;
   const stemHeight = 0.65 + maturity * 4.2;
   const bloomRadius = 0.36 + Math.sqrt(impact) * 0.18;
-  const stemColor =
-    health === 'thriving'
-      ? theme.gardenThrivingColor
-      : health === 'at-risk'
-        ? theme.gardenRiskColor
-        : theme.gardenSteadyColor;
+  const stemColor = gardenStemColor(theme, health);
   const leafColor = shiftColor(stemColor ?? '#65a30d', {
     lightness: 0.05,
     satScale: posture.saturation
   });
   const bend = posture.bend * (idHash2(item.id, 'bend') > 0.5 ? 1 : -1);
-  const top = [Math.sin(bend) * stemHeight * 0.25, stemHeight, 0];
+  const top = useMemo(
+    () => [Math.sin(bend) * stemHeight * 0.25, stemHeight, 0],
+    [bend, stemHeight]
+  );
   const stem = useMemo(() => {
     const curve = new THREE.QuadraticBezierCurve3(
       new THREE.Vector3(0, 0, 0),
