@@ -11,6 +11,7 @@ if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "(unset)" ]]; then
 fi
 
 REGION="${REGION:-us-central1}"
+MIN_INSTANCES="${MIN_INSTANCES:-1}"
 SERVICE="${SERVICE_NAME:-mermaid-gen-hackathon}"
 AR_REPO="${AR_REPO:-mermaid-gen}"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPO}/web-hackathon"
@@ -48,6 +49,7 @@ DEPLOY_ARGS=(
   --platform=managed
   --allow-unauthenticated
   --port=8080
+  --min-instances="${MIN_INSTANCES}"
 )
 
 CLOUD_RUN_SECRETS=()

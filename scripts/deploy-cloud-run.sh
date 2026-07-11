@@ -10,6 +10,7 @@ if [[ -z "${PROJECT_ID}" || "${PROJECT_ID}" == "(unset)" ]]; then
 fi
 
 REGION="${REGION:-us-central1}"
+MIN_INSTANCES="${MIN_INSTANCES:-1}"
 SERVICE="${SERVICE_NAME:-mermaid-gen-main}"
 AR_REPO="${AR_REPO:-mermaid-gen}"
 IMAGE_NAME="${IMAGE_NAME:-web-main}"
@@ -59,6 +60,7 @@ DEPLOY_ARGS=(
   --platform=managed
   --allow-unauthenticated
   --port=8080
+  --min-instances="${MIN_INSTANCES}"
 )
 
 CLOUD_RUN_SECRETS=()

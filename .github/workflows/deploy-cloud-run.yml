@@ -72,6 +72,7 @@ jobs:
             --platform=managed
             --allow-unauthenticated
             --port=8080
+            --min-instances=1
           )
           CLOUD_RUN_SECRETS=()
           if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/null; then
