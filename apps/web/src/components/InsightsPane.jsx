@@ -29,6 +29,7 @@ import {
 import {
   getVariantPersona,
   phaseCeremonyLabel,
+  quoteForRotation,
   tipForIndex,
   VARIANT_TAGLINES
 } from '../utils/slopitectCopy.js';
@@ -53,6 +54,7 @@ const SLOPITECT_VARIANT_CLASS = {
 };
 
 const TIP_ROTATION_MS = 7000;
+const PERSONA_QUOTE_ROTATION_MS = 3200;
 
 const VARIANT_ACTION_LABELS = {
   refine: 'Refine',
@@ -322,6 +324,40 @@ function InsightEntryPersonaBanner({ variant, size = 'entry' }) {
         <span className="insights-entry-persona-title">{persona.title}</span>
       </span>
     </div>
+  );
+}
+
+/** Rotating persona one-liner — same copy the run mascot bubble cycles through. */
+function InsightsPanePersonaQuote({ variant, streaming = false }) {
+  const [rotationIndex, setRotationIndex] = useState(0);
+
+  useEffect(() => {
+    if (!streaming || !variant) return undefined;
+    const handle = setInterval(
+      () => setRotationIndex((n) => n + 1),
+      PERSONA_QUOTE_ROTATION_MS
+    );
+    return () => clearInterval(handle);
+  }, [streaming, variant]);
+
+  if (!variant || variant === 'general') return null;
+  const persona = getVariantPersona(variant);
+  const quote =
+    quoteForRotation(variant, rotationIndex) ||
+    persona.entryLine ||
+    persona.tagline ||
+    VARIANT_TAGLINES[variant] ||
+    '';
+  if (!quote) return null;
+
+  return (
+    <p
+      className="insights-pane-persona-quote"
+      data-testid="insights-pane-persona-quote"
+      aria-live="polite"
+    >
+      {quote}
+    </p>
   );
 }
 
@@ -1070,7 +1106,6 @@ export default function InsightsPane({
     activeVariant && SLOPITECT_VARIANT_CLASS[activeVariant]
       ? SLOPITECT_VARIANT_CLASS[activeVariant]
       : '';
-  const slopitectTagline = activeVariant ? VARIANT_TAGLINES[activeVariant] : null;
 
   const [tipIndex, setTipIndex] = useState(0);
   useEffect(() => {
@@ -1117,11 +1152,7 @@ export default function InsightsPane({
               startedAt={liveEntry.startedAt}
               streak={liveStreak}
             />
-            {slopitectTagline ? (
-              <span className="insights-pane-tagline" data-testid="insights-tagline">
-                {slopitectTagline}
-              </span>
-            ) : null}
+            <InsightsPanePersonaQuote variant={liveEntry.variant} streaming />
           </div>
         ) : null}
         <InsightsPaneNowStatusStrip entry={statusEntry} />

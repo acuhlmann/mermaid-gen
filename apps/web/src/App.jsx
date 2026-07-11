@@ -3756,6 +3756,7 @@ ${requirementsBlock}`;
       liveStreaming={Boolean(liveStreamingEntry)}
       showLiveRunHud={Boolean(liveStreamingEntry) && !insightsOpen}
       liveStreak={gamification?.streakByVariant?.[liveVariant] ?? 0}
+      insightsOpen={insightsMounted && insightsOpen}
     />
   );
   const insightsSlot = insightsMounted ? (
@@ -3836,7 +3837,9 @@ ${requirementsBlock}`;
         onDiagramSvgRendered={handleDiagramSvgRendered}
         runFx={{
           variant: liveVariant,
-          streaming: Boolean(liveStreamingEntry),
+          streaming:
+            Boolean(liveStreamingEntry) &&
+            (!insightsOpen || liveVariant === 'goMad'),
           intensity:
             (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || goMadStreak >= 2
               ? 'high'

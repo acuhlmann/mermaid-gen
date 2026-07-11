@@ -139,6 +139,32 @@ describe('InsightsPane', () => {
     expect(within(liveMeta).getByText('Refine')).toBeTruthy();
     expect(within(liveMeta).getByText('🔥 ×3')).toBeTruthy();
     expect(within(liveMeta).getByText('Phase 1')).toBeTruthy();
+    expect(screen.getByTestId('insights-pane-persona-quote')).toBeTruthy();
+  });
+
+  it('shows rotating persona quote for live critique runs', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-critique',
+            title: 'Critique - diagram',
+            variant: 'critique',
+            status: 'running',
+            statusText: 'Auditing…',
+            content: '',
+            technicalActions: [],
+            phases: [{ id: 'agent_run', label: 'Generate' }],
+            startedAt: Date.now() - 12_000
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    const quote = screen.getByTestId('insights-pane-persona-quote');
+    expect(quote.textContent.length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('insights-tagline')).toBeNull();
   });
 
   it('shows the diagram mode, brain, and start time on each run entry', () => {
@@ -221,6 +247,7 @@ describe('InsightsPane', () => {
     expect(screen.getByTestId('run-timeline-terminal')).toBeTruthy();
     expect(screen.queryByTestId('insights-pane-persona')).toBeNull();
     expect(screen.queryByTestId('insights-tagline')).toBeNull();
+    expect(screen.queryByTestId('insights-pane-persona-quote')).toBeNull();
   });
 
   it('shows Restore when entry has an after-snapshot and invokes handler', () => {
