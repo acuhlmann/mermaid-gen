@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
@@ -7,14 +8,6 @@ const VARIANT_CLASS = {
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain'
-};
-
-const VARIANT_DISPLAY = {
-  refine: 'Refine',
-  innovate: 'Innovate',
-  goMad: 'Go Mad',
-  critique: 'Critique',
-  explain: 'Explain'
 };
 
 function formatElapsed(ms) {
@@ -31,13 +24,13 @@ function formatElapsed(ms) {
  * needing in-effect setState.
  */
 export default function LiveRunHud({ variant, streaming = false, streak = 0 }) {
+  const { controls } = useUiCopy();
   const startRef = useRef(0);
   const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
     if (!streaming) return undefined;
     startRef.current = Date.now();
-    // setInterval callback is async — not flagged as in-effect setState.
     const handle = setInterval(() => {
       setElapsedMs(Date.now() - startRef.current);
     }, 500);
@@ -46,6 +39,7 @@ export default function LiveRunHud({ variant, streaming = false, streak = 0 }) {
 
   if (!streaming || !variant || !VARIANT_CLASS[variant]) return null;
   const persona = getVariantPersona(variant);
+  const variantLabel = controls.actions[variant] ?? persona.name;
 
   return (
     <div
@@ -57,10 +51,10 @@ export default function LiveRunHud({ variant, streaming = false, streak = 0 }) {
       <span className="live-run-hud-emoji" aria-hidden="true">
         {persona.avatarEmoji || '🏗️'}
       </span>
-      <span className="live-run-hud-label">{VARIANT_DISPLAY[variant] || persona.name}</span>
+      <span className="live-run-hud-label">{variantLabel}</span>
       <span className="live-run-hud-clock">{formatElapsed(elapsedMs)}</span>
       {streak >= 2 ? (
-        <span className="live-run-hud-streak" title={`${VARIANT_DISPLAY[variant]} streak`}>
+        <span className="live-run-hud-streak" title={`${variantLabel} streak`}>
           🔥 ×{streak}
         </span>
       ) : null}

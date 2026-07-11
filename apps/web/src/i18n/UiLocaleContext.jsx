@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { DEFAULT_UI_LOCALE, normalizeUiLocale, resolveUiLocaleFromText } from '@archislop/shared';
+import {
+  DEFAULT_UI_LOCALE,
+  normalizeUiLocale,
+  resolveUiLocaleFromExplicitRequest
+} from '@archislop/shared';
 import { getUiLocaleBundle } from './getUiLocaleBundle.js';
 import { readStoredUiLocale, writeStoredUiLocale } from './uiLocaleStorage.js';
 import { setActiveSlopitectBundle } from '../utils/slopitectCopy.js';
@@ -28,7 +32,7 @@ export function UiLocaleProvider({ children, initialLocale }) {
 
   const applyLocaleFromText = useCallback(
     (...sources) => {
-      const detected = resolveUiLocaleFromText(...sources);
+      const detected = resolveUiLocaleFromExplicitRequest(...sources);
       if (detected) setLocale(detected);
     },
     [setLocale]

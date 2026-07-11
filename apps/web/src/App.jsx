@@ -590,10 +590,6 @@ function ArchiSlop() {
   }, [state]);
 
   useEffect(() => {
-    applyLocaleFromText(prompt, state.diagramSource);
-  }, [applyLocaleFromText, prompt, state.diagramSource]);
-
-  useEffect(() => {
     function handlePopState() {
       const { sessionId: nextSessionId, fromUrl } = ensureUrlBackedSession();
       if (!fromUrl) freshlyMintedSessionIdsRef.current.add(nextSessionId);
@@ -2211,7 +2207,7 @@ function ArchiSlop() {
   async function submitIntentWithPrompt(nextPrompt, options = {}) {
     const trimmed = (nextPrompt ?? '').trim();
     if (!trimmed) return;
-    applyLocaleFromText(trimmed, stateRef.current?.diagramSource);
+    applyLocaleFromText(trimmed);
     if (!options.skipLoadingGuard && (loadingRef.current || streamingPreviewRef.current)) {
       return;
     }
@@ -3531,16 +3527,17 @@ ${requirementsBlock}`;
   );
 
   const status = useMemo(() => {
-    if (loading && activeRequest === 'intent') return 'Applying diagram change.';
-    if (loading && activeRequest?.startsWith?.('transform')) return 'Transforming diagram.';
-    if (loading && activeRequest?.startsWith?.('analyze')) return 'Analyzing diagram.';
-    if (loading && activeRequest === 'fix') return 'Applying critique fixes.';
-    if (loading && activeRequest === 'style') return 'Applying style tweaks.';
-    if (loading && activeRequest === 'clear') return 'Resetting diagram.';
+    const loadingCopy = controls.loading;
+    if (loading && activeRequest === 'intent') return loadingCopy.applyingChange;
+    if (loading && activeRequest?.startsWith?.('transform')) return loadingCopy.transforming;
+    if (loading && activeRequest?.startsWith?.('analyze')) return loadingCopy.analyzing;
+    if (loading && activeRequest === 'fix') return loadingCopy.applyingFixes;
+    if (loading && activeRequest === 'style') return loadingCopy.applyingStyle;
+    if (loading && activeRequest === 'clear') return loadingCopy.resetting;
     if (loading && activeRequest === 'autofix')
-      return contentMode === 'anything' ? 'Fixing page runtime error.' : 'Fixing Mermaid syntax.';
-    if (loading && activeRequest === 'hydrate') return 'Loading shared session.';
-    if (streamingPreview) return 'Refreshing diagram.';
+      return contentMode === 'anything' ? loadingCopy.fixingPage : loadingCopy.fixingMermaid;
+    if (loading && activeRequest === 'hydrate') return loadingCopy.hydrating;
+    if (streamingPreview) return loadingCopy.refreshing;
     if (error) return error;
     if (voiceError) return voiceError;
     if (validationError && autoFixAttempted)
@@ -3556,7 +3553,8 @@ ${requirementsBlock}`;
     loading,
     streamingPreview,
     validationError,
-    voiceError
+    voiceError,
+    controls.loading
   ]);
 
   const streamDebugEnabled = readStreamDebugEnabled();
@@ -4079,11 +4077,13 @@ ${requirementsBlock}`;
                 className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
                 onClick={() => setEditorOpen((current) => !current)}
                 aria-expanded={editorOpen}
-                aria-label={editorOpen ? 'Close code editor' : 'Open code editor'}
-                title={editorOpen ? 'Close code editor' : 'Code · edit diagram source'}
+                aria-label={editorOpen ? controls.editor.closeEditor : controls.editor.openEditor}
+                title={editorOpen ? controls.editor.closeEditor : controls.editor.codeTitle}
               >
                 <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
-                <span className="button-label">{editorOpen ? 'Close' : 'Code'}</span>
+                <span className="button-label">
+                  {editorOpen ? controls.editor.close : controls.editor.code}
+                </span>
               </button>
             ) : null}
           </div>
@@ -4119,7 +4119,7 @@ ${requirementsBlock}`;
             className="overlay-button primary-button"
             onClick={() => setEditorOpen(false)}
           >
-            Done editing
+            {controls.editor.doneEditing}
           </button>
         </div>
       ) : null}

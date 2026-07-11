@@ -6,6 +6,7 @@ import {
   labelExplainDumbLoadingText
 } from '@archislop/shared';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
 const PERSONA_CLASS = {
@@ -77,6 +78,8 @@ export default function AdvisorSpeechBubble({
   onHistoryBack,
   onPromptNext
 }) {
+  const { controls } = useUiCopy();
+  const explainDumb = controls.explainDumb;
   if (!persona || !suggestion) return null;
   const meta = getVariantPersona(persona);
   const personaClass = PERSONA_CLASS[persona] || '';
@@ -220,15 +223,15 @@ export default function AdvisorSpeechBubble({
                 aria-pressed={architectDumbLevel > 0}
                 aria-label={
                   isLabelExplainGiveUpLevel(architectDumbLevel)
-                    ? 'I give up — dismiss this observation'
-                    : `${dumbChipLabel} — rephrase for a simpler audience`
+                    ? explainDumb.decommissionAria
+                    : `${dumbChipLabel}${explainDumb.rephraseAriaSuffix}`
                 }
                 title={
                   isLabelExplainGiveUpLevel(architectDumbLevel)
-                    ? 'Decommission this observation (OUT OF SCOPE)'
+                    ? explainDumb.decommissionTitle
                     : architectDumbLevel <= 0
-                      ? 'Rephrase in plain language — click again for even simpler'
-                      : 'Make it even simpler for a younger audience'
+                      ? explainDumb.rephrasePlain
+                      : explainDumb.rephraseYounger
                 }
               >
                 <span className="advisor-speech-dumb-emoji" aria-hidden="true">

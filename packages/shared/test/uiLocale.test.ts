@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 import {
   normalizeUiLocale,
   promptHintToUiLocale,
+  resolveUiLocaleFromExplicitRequest,
   resolveUiLocaleFromText
 } from '../src/uiLocale.js';
 
@@ -26,6 +27,29 @@ describe('resolveUiLocaleFromText', () => {
 
   it('returns null for Latin-only prompts', () => {
     assert.equal(resolveUiLocaleFromText('draw a login flow'), null);
+  });
+});
+
+describe('resolveUiLocaleFromExplicitRequest', () => {
+  it('returns zh-CN for explicit simplified Chinese UI requests', () => {
+    assert.equal(resolveUiLocaleFromExplicitRequest('switch UI to Chinese'), 'zh-CN');
+    assert.equal(resolveUiLocaleFromExplicitRequest('界面改成中文'), 'zh-CN');
+    assert.equal(resolveUiLocaleFromExplicitRequest('用中文界面'), 'zh-CN');
+  });
+
+  it('returns zh-TW for explicit traditional Chinese UI requests', () => {
+    assert.equal(resolveUiLocaleFromExplicitRequest('use traditional Chinese'), 'zh-TW');
+    assert.equal(resolveUiLocaleFromExplicitRequest('切换到繁體中文'), 'zh-TW');
+  });
+
+  it('returns en for explicit English UI requests', () => {
+    assert.equal(resolveUiLocaleFromExplicitRequest('switch to English'), 'en');
+    assert.equal(resolveUiLocaleFromExplicitRequest('界面改成英文'), 'en');
+  });
+
+  it('returns null for general Chinese content without a UI switch', () => {
+    assert.equal(resolveUiLocaleFromExplicitRequest('画一个用户登录流程图'), null);
+    assert.equal(resolveUiLocaleFromExplicitRequest('draw a login flow'), null);
   });
 });
 

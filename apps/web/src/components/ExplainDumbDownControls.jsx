@@ -6,6 +6,7 @@ import {
   labelExplainDumbChipLabel,
   labelExplainDumbLoadingText
 } from '@archislop/shared';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
  * Progressive "Dumb it Down" chip row — same ladder as the radial Wise Architect explainer.
@@ -17,6 +18,9 @@ export default function ExplainDumbDownControls({
   onDumbDown,
   className = ''
 }) {
+  const { controls } = useUiCopy();
+  const copy = controls.explainDumb;
+
   if (typeof onDumbDown !== 'function') return null;
 
   const dumbChipLabel = labelExplainDumbChipLabel(dumbLevel);
@@ -41,10 +45,10 @@ export default function ExplainDumbDownControls({
       ) : null}
       {surrendered ? (
         <p className="insights-explain-dumb-surrender" aria-live="assertive">
-          Moved to the architecture backlog. Won&apos;t fix. 🏳️
+          {copy.surrenderCaption}
         </p>
       ) : null}
-      <div className="insights-explain-dumb-followups" role="group" aria-label="Rephrase options">
+      <div className="insights-explain-dumb-followups" role="group" aria-label={copy.rephraseGroup}>
         <button
           type="button"
           className={[
@@ -59,15 +63,15 @@ export default function ExplainDumbDownControls({
           aria-pressed={dumbLevel > 0}
           aria-label={
             isLabelExplainGiveUpLevel(dumbLevel)
-              ? 'I give up — decommission this explanation'
-              : `${dumbChipLabel} — rephrase for a simpler audience`
+              ? copy.decommissionAria
+              : `${dumbChipLabel}${copy.rephraseAriaSuffix}`
           }
           title={
             isLabelExplainGiveUpLevel(dumbLevel)
-              ? 'Decommission this explanation (OUT OF SCOPE)'
+              ? copy.decommissionTitle
               : dumbLevel <= 0
-                ? 'Rephrase in plain language — click again for even simpler'
-                : 'Make it even simpler for a younger audience'
+                ? copy.rephrasePlain
+                : copy.rephraseYounger
           }
         >
           <span className="insights-explain-dumb-emoji" aria-hidden="true">
@@ -79,7 +83,7 @@ export default function ExplainDumbDownControls({
         </button>
       </div>
       {isGibberishAnswer && !surrendered ? (
-        <span className="sr-only">Gibberish simplification active</span>
+        <span className="sr-only">{copy.gibberishActive}</span>
       ) : null}
     </div>
   );

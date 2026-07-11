@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
@@ -24,6 +26,11 @@ const ACTION_LABEL = {
   exec: 'Align'
 };
 
+function resolveActionLabel(variant, controls) {
+  if (variant === 'exec') return controls.stakeholders.align;
+  return controls.actions[variant] ?? ACTION_LABEL[variant] ?? variant;
+}
+
 function cssVariant(variant) {
   return variant === 'goMad' ? 'go-mad' : variant;
 }
@@ -43,6 +50,8 @@ export default function StakeholdersMascot({
   onSelectVariant = null,
   castDisabled = false
 }) {
+  const { controls } = useUiCopy();
+  const stakeholdersCopy = controls.stakeholders;
   const bubbleReady = Boolean(
     bubbleProps?.persona &&
     typeof bubbleProps.suggestion === 'string' &&
@@ -88,7 +97,9 @@ export default function StakeholdersMascot({
   const castVariants = personas.map((p) => p.variant).filter(Boolean);
   const stageMeta = stagePersona ? getVariantPersona(stagePersona) : null;
   const mascotEmoji = expanded ? '👥' : (stageMeta?.avatarEmoji ?? '👥');
-  const mascotName = expanded ? 'The Stakeholders' : (stageMeta?.name ?? 'The Stakeholders');
+  const mascotName = expanded
+    ? stakeholdersCopy.theStakeholders
+    : (stageMeta?.name ?? stakeholdersCopy.theStakeholders);
   const mascotClass = [
     'overlay-button',
     'compact-button',
@@ -137,35 +148,45 @@ export default function StakeholdersMascot({
         aria-expanded={expanded}
         aria-haspopup="menu"
         aria-label={
-          expanded ? 'Hide stakeholders actions' : `Open the Stakeholders · ${mascotName}`
+          expanded
+            ? stakeholdersCopy.hideActions
+            : formatLocale(stakeholdersCopy.openStakeholders, { name: mascotName })
         }
-        title={expanded ? 'Tap to hide' : `${mascotName} · tap to open the Stakeholders`}
+        title={
+          expanded
+            ? stakeholdersCopy.tapToHide
+            : formatLocale(stakeholdersCopy.tapToOpen, { name: mascotName })
+        }
         onClick={() => setExpanded((v) => !v)}
       >
         <span className="stakeholders-mascot-emoji" aria-hidden="true">
           {mascotEmoji}
         </span>
         <span className="button-label">
-          {expanded ? 'Stakeholders' : stageMeta ? stageMeta.name.split(' ').pop() : 'Stakeholders'}
+          {expanded
+            ? controls.actions.stakeholders
+            : stageMeta
+              ? stageMeta.name.split(' ').pop()
+              : controls.actions.stakeholders}
         </span>
         <span className="slop-action-role stakeholders-mascot-role">
           <span className="slop-action-role-emoji" aria-hidden="true">
             👥
           </span>
-          {expanded ? 'Pick a persona' : 'Stakeholders'}
+          {expanded ? stakeholdersCopy.pickPersona : controls.actions.stakeholders}
         </span>
       </button>
       {expanded ? (
         <div
           className="stakeholders-roster"
           role="menu"
-          aria-label="Stakeholder personas"
+          aria-label={stakeholdersCopy.personaMenu}
           onPointerEnter={armCollapseTimer}
           onPointerMove={armCollapseTimer}
         >
           {personas.map((p) => {
             const meta = getVariantPersona(p.variant);
-            const actionLabel = p.label ?? ACTION_LABEL[p.variant] ?? meta.name;
+            const actionLabel = p.label ?? resolveActionLabel(p.variant, controls) ?? meta.name;
             const isActiveAdvisor = activeAdvisorVariant === p.variant;
             const variantClass = p.cssVariant ?? cssVariant(p.variant);
             const rowClassName = [
