@@ -259,18 +259,22 @@ export function stripEmbeddedDslFromThinkingText(text, kind = null) {
 
 /**
  * @param {string} text
- * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' } | null}
+ * @param {DiagramPreviewKind | null} [expectedKind] when set, only return a split for that slot
+ * @returns {{ prose: string, dsl: string, kind: DiagramPreviewKind } | null}
  */
-export function splitEmbeddedDiagramDsl(text) {
+export function splitEmbeddedDiagramDsl(text, expectedKind = null) {
   if (typeof text !== 'string' || !text.trim()) return null;
 
-  const chartSplit = splitEmbeddedChartDsl(text);
+  const acceptSplit = (split) =>
+    split && (!expectedKind || split.kind === expectedKind) ? split : null;
+
+  const chartSplit = acceptSplit(splitEmbeddedChartDsl(text));
   if (chartSplit) return chartSplit;
 
-  const metaphorSplit = splitEmbeddedMetaphorDsl(text);
+  const metaphorSplit = acceptSplit(splitEmbeddedMetaphorDsl(text));
   if (metaphorSplit) return metaphorSplit;
 
-  const anythingSplit = splitEmbeddedAnythingHtml(text);
+  const anythingSplit = acceptSplit(splitEmbeddedAnythingHtml(text));
   if (anythingSplit) return anythingSplit;
 
   const lines = text.split('\n');
@@ -299,8 +303,32 @@ export function splitEmbeddedDiagramDsl(text) {
     }
 
     const prose = lines.slice(0, dslStart).join('\n');
-    return { prose, dsl, kind };
+    const split = { prose, dsl, kind };
+    return acceptSplit(split);
   }
+  return null;
+}
+
+/**
+ * @typedef {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything'} DiagramPreviewKind
+ */
+
+/**
+ * @typedef {{ kind: DiagramPreviewKind, source: string, prose?: string }} DiagramPreviewMeta
+ */
+
+/**
+ * When a run targets a specific slot (e.g. metaphor3d after a mode switch), ignore
+ * incidental Mermaid/DSL fragments in plan beats or prose — they are subject context,
+ * not the artifact being produced.
+ *
+ * @param {DiagramPreviewMeta | null} preview
+ * @param {DiagramPreviewKind | null | undefined} expectedKind
+ * @returns {DiagramPreviewMeta | null}
+ */
+export function filterDiagramPreviewForContentType(preview, expectedKind) {
+  if (!preview) return null;
+  if (!expectedKind || preview.kind === expectedKind) return preview;
   return null;
 }
 
@@ -309,31 +337,49 @@ export function splitEmbeddedDiagramDsl(text) {
  * Thinking pane can render a read-only preview instead of raw JSON / Mermaid text.
  *
  * @param {string} text
- * @returns {{ kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything', source: string, prose?: string } | null}
+ * @param {{ expectedKind?: DiagramPreviewKind | null }} [options]
+ * @returns {DiagramPreviewMeta | null}
  */
-export function tryExtractDiagramPreviewFromText(text) {
+export function tryExtractDiagramPreviewFromText(text, options = {}) {
   if (typeof text !== 'string' || !text.trim()) return null;
+  const { expectedKind = null } = options;
 
-  const split = splitEmbeddedDiagramDsl(text);
+  const split = splitEmbeddedDiagramDsl(text, expectedKind);
   if (split?.dsl) {
-    return {
-      kind: split.kind,
-      source: split.dsl,
-      ...(split.prose?.trim() ? { prose: split.prose.trim() } : {})
-    };
+    return filterDiagramPreviewForContentType(
+      {
+        kind: split.kind,
+        source: split.dsl,
+        ...(split.prose?.trim() ? { prose: split.prose.trim() } : {})
+      },
+      expectedKind
+    );
   }
 
   const trimmed = text.trim();
   if (trimmed.includes(CHART_MARKER)) {
     const result = parseChartDsl(trimmed);
-    if (result.ok) return { kind: 'chart', source: result.text };
+    if (result.ok) {
+      return filterDiagramPreviewForContentType(
+        { kind: 'chart', source: result.text },
+        expectedKind
+      );
+    }
   }
   const metaphorDsl = tryParseMetaphorDsl(trimmed);
-  if (metaphorDsl) return { kind: 'metaphor3d', source: metaphorDsl };
+  if (metaphorDsl) {
+    return filterDiagramPreviewForContentType(
+      { kind: 'metaphor3d', source: metaphorDsl },
+      expectedKind
+    );
+  }
 
   const anythingHtml = tryParseAnythingHtml(trimmed);
   if (anythingHtml && isSubstantialDsl(anythingHtml, 'anything')) {
-    return { kind: 'anything', source: anythingHtml };
+    return filterDiagramPreviewForContentType(
+      { kind: 'anything', source: anythingHtml },
+      expectedKind
+    );
   }
 
   return null;

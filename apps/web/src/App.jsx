@@ -1675,6 +1675,8 @@ function ArchiSlop() {
     (nextMode) => {
       if (nextMode === contentMode) return;
       stopStreamingAgentRequest();
+      setLiveDraftSource('');
+      setLiveDraftContentType(null);
       setSelectedNode(null);
       setHoverDescriptor(null);
       setToolbarAnchor(null);

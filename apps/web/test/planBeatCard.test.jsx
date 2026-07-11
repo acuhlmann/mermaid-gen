@@ -36,7 +36,12 @@ describe('PlanBeatCard', () => {
     const text = `Sketching the 3D terrain first.\n\n\`\`\`\n${JSON.stringify(METAPHOR_DSL, null, 2)}\n\`\`\``;
     render(
       <ul>
-        <PlanBeatCard beat={{ text, source: 'agent' }} variant="goMad" index={0} />
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="goMad"
+          index={0}
+          contentType="metaphor3d"
+        />
       </ul>
     );
 
@@ -70,7 +75,12 @@ describe('PlanBeatCard', () => {
     const text = `Current HTML document:\n\n\`\`\`html\n${html}\n\`\`\``;
     render(
       <ul>
-        <PlanBeatCard beat={{ text, source: 'agent' }} variant="refine" index={0} />
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="refine"
+          index={0}
+          contentType="anything"
+        />
       </ul>
     );
 
@@ -79,5 +89,26 @@ describe('PlanBeatCard', () => {
     expect(screen.getByText('Current HTML document:')).toBeTruthy();
     expect(screen.queryByText('```html')).toBeNull();
     expect(screen.queryByText(/<!DOCTYPE html>/)).toBeNull();
+  });
+
+  it('does not render a mermaid preview for peer-context prose during a 3D run', () => {
+    const text = `Using the Mermaid diagram as subject context for this view.
+
+flowchart LR
+  Auth --> API
+  API --> DB`;
+    render(
+      <ul>
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="goMad"
+          index={0}
+          contentType="metaphor3d"
+        />
+      </ul>
+    );
+
+    expect(screen.queryByTestId('insights-embedded-diagram')).toBeNull();
+    expect(screen.getByText(/Using the Mermaid diagram as subject context/)).toBeTruthy();
   });
 });

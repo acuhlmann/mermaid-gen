@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
+import type { ContentType } from '@archislop/shared';
 import PlanBeatCard from './PlanBeatCard';
 import { PatchLinesBar } from '../utils/thinkingProseEnrich';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
@@ -36,6 +37,19 @@ import {
   type TimelineSegment
 } from './runTimelineModel';
 import type { InsightEntry, InsightTechnicalAction } from './insightsEntryTypes';
+
+const CONTENT_TYPES = new Set<ContentType>([
+  'mermaid',
+  'infographic',
+  'metaphor3d',
+  'chart',
+  'anything'
+]);
+
+function normalizePlanContentType(raw: unknown): ContentType | null {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  return CONTENT_TYPES.has(raw as ContentType) ? (raw as ContentType) : null;
+}
 
 const ACTION_GLYPHS: Record<ActionKind, string> = {
   model: '✻',
@@ -171,7 +185,8 @@ function SegmentItems({
   runLive,
   now,
   showRawNames,
-  collapsed
+  collapsed,
+  planContentType = null
 }: {
   items: TimelineItem[];
   variant: string;
@@ -179,6 +194,7 @@ function SegmentItems({
   now: number;
   showRawNames: boolean;
   collapsed: boolean;
+  planContentType?: ContentType | null;
 }) {
   if (items.length === 0) return null;
 
@@ -212,6 +228,7 @@ function SegmentItems({
                     beat={item.beat}
                     variant={variant}
                     index={item.beatIndex}
+                    contentType={planContentType}
                   />
                 ) : null
               )}
@@ -358,7 +375,8 @@ function PhaseSegment({
   durationLabel,
   statusText,
   runLive,
-  now
+  now,
+  planContentType = null
 }: {
   seg: TimelineSegment;
   state: SegmentState;
@@ -369,6 +387,7 @@ function PhaseSegment({
   statusText: string;
   runLive: boolean;
   now: number;
+  planContentType?: ContentType | null;
 }) {
   const isActive = state === 'active';
   return (
@@ -415,6 +434,7 @@ function PhaseSegment({
           now={now}
           showRawNames={showRawPhaseIds}
           collapsed={!isActive && state === 'complete'}
+          planContentType={planContentType}
         />
       </div>
     </li>
@@ -499,6 +519,8 @@ export default function RunTimeline({
   const { runStatus, runLive, segments, startedAt, totalLabel, headline, statusText, statChips } =
     view;
 
+  const planContentType = normalizePlanContentType(entry.contentType);
+
   if (view.empty) return null;
 
   return (
@@ -540,6 +562,7 @@ export default function RunTimeline({
               statusText={statusText}
               runLive={runLive}
               now={now}
+              planContentType={planContentType}
             />
           );
         })}
