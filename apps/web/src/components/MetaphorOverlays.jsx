@@ -48,6 +48,41 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
 }
 
 /**
+ * Compact inline title + semantic key. Fullscreen keeps the larger split cards;
+ * the normal canvas gets this centered strip so the topic and encodings remain
+ * visible without colliding with corner controls.
+ */
+export function MetaphorContextOverlay({ metaphor, scene }) {
+  const title = typeof scene?.title === 'string' ? scene.title.trim() : '';
+  const subtitle = typeof scene?.subtitle === 'string' ? scene.subtitle.trim() : '';
+  const rows = legendAxesFor(metaphor, scene?.legend);
+  if (!title && !subtitle && rows.length === 0) return null;
+  return (
+    <section
+      className="metaphor-overlay metaphor-context-overlay"
+      aria-label="Metaphor topic and visual key"
+    >
+      {title || subtitle ? (
+        <div className="metaphor-context-heading">
+          {title ? <p className="metaphor-context-title">{title}</p> : null}
+          {subtitle ? <p className="metaphor-context-subtitle">{subtitle}</p> : null}
+        </div>
+      ) : null}
+      {rows.length ? (
+        <dl className="metaphor-context-axes">
+          {rows.map((row) => (
+            <div className="metaphor-context-axis" key={row.key}>
+              <dt>{row.label}</dt>
+              <dd>{row.text}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </section>
+  );
+}
+
+/**
  * Cursor-following tooltip showing the hovered item's label + its encoded
  * metrics (in the author's legend words). Subscribes to the external hover store
  * so only this small element re-renders on hover — never the 3D scene.

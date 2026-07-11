@@ -10,7 +10,7 @@
 export function buildMetaphorFocusScopeInstructions(focusNode) {
   if (!focusNode?.id || focusNode.selectionKind !== 'metaphor-item') return '';
   const label = focusNode.label ? ` (“${focusNode.label}”)` : '';
-  return `\n\nFocus scope: The user selected metaphor item \`${focusNode.id}\`${label}. Prefer edits centered on that item in the \`items\` array — its label, magnitude (height/thickness/magnitude), footprint, district, cluster, or components. Keep sibling items and the overall metaphor type unchanged unless the request explicitly requires broader changes. Refer to the item by its visible label, not by index.`;
+  return `\n\nFocus scope: The user selected metaphor item \`${focusNode.id}\`${label}. Prefer edits centered on that item in the \`items\` array — its label, note, glyph, grouping, and the numeric/status fields for the active metaphor (height/footprint, thickness, magnitude, weight, elevation/intensity, orbit/size, stage/flow/hazard, or maturity/impact/health). Keep sibling items and the overall metaphor type unchanged unless the request explicitly requires broader changes. Refer to the item by its visible label, not by index.`;
 }
 
 /** Analyze-mode instruction (explain / critique). */

@@ -1,6 +1,6 @@
 # ArchiSlop
 
-Single-repo JavaScript prototype for **collaborative diagram editing**: humans in the browser, built-in LangChain agents, and **external agents over MCP** in the same session. Five canvas modes: **Mermaid** (flowcharts, sequences, etc.), **Infographic** (AntV template-based layouts), **Metaphor3D** (immersive spatial stories: city, layer-cake, galaxy, tree, terrain), **Chart** (Vega-Lite charts), and **Anything** (sandboxed freeform HTML/CSS/JS). The active mode is toggled from the UI; Mermaid, Infographic, and Metaphor3D are persisted across sessions; Chart and Anything are session-only.
+Single-repo JavaScript prototype for **collaborative diagram editing**: humans in the browser, built-in LangChain agents, and **external agents over MCP** in the same session. Five canvas modes: **Mermaid** (flowcharts, sequences, etc.), **Infographic** (AntV template-based layouts), **Metaphor3D** (immersive spatial stories: city, layer-cake, galaxy, tree, terrain, orrery, river, garden), **Chart** (Vega-Lite charts), and **Anything** (sandboxed freeform HTML/CSS/JS). The active mode is toggled from the UI; Mermaid, Infographic, and Metaphor3D are persisted across sessions; Chart and Anything are session-only.
 
 ## Quick start
 

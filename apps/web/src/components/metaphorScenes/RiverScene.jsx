@@ -21,7 +21,7 @@ import {
   MetaphorGroundShadow,
   MetaphorLinks
 } from './MetaphorSceneChrome.jsx';
-import { MeadowFireflies, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
+import { DaylightPollen, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorations.jsx';
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
 
@@ -92,8 +92,8 @@ function RiverChannel({ samples, normals, theme }) {
   });
 
   const { waterGeom, bedGeom, edges } = useMemo(() => {
-    const deep = new THREE.Color(waterColor).lerp(new THREE.Color('#0b3a5e'), 0.55);
-    const light = new THREE.Color(waterColor).lerp(new THREE.Color('#ffffff'), 0.1);
+    const deep = new THREE.Color(theme.riverDeepColor ?? '#168fc7');
+    const light = new THREE.Color(waterColor).lerp(new THREE.Color('#ffffff'), 0.26);
     const water = buildRibbonGeometry(samples, normals, {
       y: 0.06,
       widthScale: 1,
@@ -116,7 +116,7 @@ function RiverChannel({ samples, normals, theme }) {
       s.z - normals[i][1] * s.width * 0.96
     ]);
     return { waterGeom: water, bedGeom: bed, edges: [left, right] };
-  }, [samples, normals, waterColor]);
+  }, [samples, normals, waterColor, theme.riverDeepColor]);
 
   useEffect(
     () => () => {
@@ -568,7 +568,7 @@ export function RiverScene({ dsl, theme }) {
           </HoverableItem>
         );
       })}
-      <MeadowFireflies radius={meadowZ * 1.1} count={14} idSeed="river-flies" />
+      <DaylightPollen radius={meadowZ * 1.1} count={18} idSeed="river-pollen" />
       <SoaringBirds
         radius={meadowZ * 1.1}
         height={7}
@@ -582,7 +582,7 @@ export function RiverScene({ dsl, theme }) {
   );
 }
 
-/** Daylight (or theme-moody) sky over the river, with a sun/celestial glow. */
+/** Clear daylight sky over the river, with a warm sun halo. */
 export function RiverSky({ theme }) {
   return (
     <group>

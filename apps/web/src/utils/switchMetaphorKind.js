@@ -8,7 +8,8 @@ export const METAPHOR_KIND_LABELS = {
   tree: 'Tree',
   terrain: 'Terrain',
   orrery: 'Orrery',
-  river: 'River'
+  river: 'River',
+  garden: 'Garden'
 };
 
 function isObject(value) {
@@ -36,6 +37,8 @@ function primaryMagnitude(item, kind) {
       return finiteNumber(item.size, 3);
     case 'river':
       return finiteNumber(item.flow, 5);
+    case 'garden':
+      return finiteNumber(item.impact, 3);
     default:
       return 10;
   }
@@ -61,6 +64,9 @@ function groupingLabel(item, kind) {
   }
   if (kind === 'galaxy' && typeof item.cluster === 'string' && item.cluster.trim()) {
     return item.cluster.trim();
+  }
+  if (kind === 'garden' && typeof item.bed === 'string' && item.bed.trim()) {
+    return item.bed.trim();
   }
   return '';
 }
@@ -122,6 +128,12 @@ function mapItemToKind(item, fromKind, toKind, index) {
     case 'river':
       next.stage = index;
       next.flow = Math.max(0.1, Math.min(20, primary));
+      break;
+    case 'garden':
+      next.maturity = 0.35 + (index % 4) * 0.18;
+      next.impact = Math.max(0.1, Math.min(10, primary));
+      next.health = 'steady';
+      if (group) next.bed = group;
       break;
     default:
       break;

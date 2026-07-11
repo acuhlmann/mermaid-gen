@@ -13,6 +13,7 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 | Continuous field of a metric (risk, load, cost) | "terrain" |
 | One core with satellites at varying closeness | "orrery" |
 | Sequential pipeline / funnel / journey | "river" |
+| Portfolio / roadmap / capabilities with growth and health | "garden" |
 
 - "city" — components as buildings. Height encodes magnitude (traffic, importance, complexity). Footprint encodes scale (LOC, team size). District groups buildings into neighborhoods (team, tier, layer). Use \`links\` for dependencies and data flow between buildings.
 
@@ -27,6 +28,8 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 - "orrery" — the subject as a solar system. Items with \`orbit: 0\` are the blazing sun at the core (the platform, the leader, the hub — usually exactly one). Every other item is a planet whose \`orbit\` (1–12) is its distance from that core: coupling, dependency depth, criticality, team proximity — closer = more central. \`size\` (0.1–10, default 3) is the body's importance. Optional \`moon\` (id of another item) parks a small satellite beside its parent planet — sub-services, plugins, direct reports. Use for hub-and-spoke topologies, platform + satellites, core/periphery stories, orbits of influence.
 
 - "river" — the subject as a waterway flowing source → mouth. \`stage\` (0–100) orders stations along the river (pipeline step, funnel phase, journey milestone). \`flow\` (0.1–20, default 5) is the volume passing that station — the channel visibly widens and narrows with it, so drop-off between stages is instantly legible. Optional \`hazard\` (0–1) churns that station's water into whitewater rapids — risk, failure rate, friction. Use for CI/CD pipelines, data pipelines, conversion funnels, user journeys, value streams. A narrowing river IS the funnel story; put the numbers in \`flow\`.
+
+- "garden" — initiatives, products, capabilities, or investments as living plants in named beds. \`maturity\` (0–1) controls growth from seedling to full bloom. \`impact\` (0.1–10) controls blossom/canopy size. \`bed\` groups items by portfolio, domain, team, or strategic theme. \`health\` ("thriving" / "steady" / "at-risk") changes colour and posture. Use for roadmaps, product portfolios, capability maps, transformation programs, innovation pipelines, and any topic where growth + health matter more than sequence.
 
 DSL shape (emit via apply_metaphor_patch):
 
@@ -143,10 +146,33 @@ River (pipeline/funnel with volume + risk):
   "links": []
 }
 
+Garden (portfolio maturity + impact + health):
+{
+  "metaphor": "garden",
+  "scene": {
+    "theme": "whiteboard",
+    "camera": "orbit",
+    "title": "AI capability garden",
+    "subtitle": "Portfolio health and maturity, Q3 2026",
+    "legend": {
+      "maturity": "delivery maturity (0–1)",
+      "impact": "expected customer impact",
+      "bed": "strategic theme",
+      "health": "delivery health"
+    }
+  },
+  "items": [
+    { "id": "support-copilot", "label": "Support copilot", "maturity": 0.9, "impact": 8, "bed": "Customer care", "health": "thriving", "glyph": "agent", "note": "Live in three regions; 28% deflection" },
+    { "id": "risk-review", "label": "Risk review", "maturity": 0.45, "impact": 7, "bed": "Trust", "health": "at-risk", "glyph": "security", "note": "Blocked on evaluation data" },
+    { "id": "sales-assistant", "label": "Sales assistant", "maturity": 0.25, "impact": 4, "bed": "Growth", "health": "steady", "glyph": "user" }
+  ],
+  "links": []
+}
+
 Rules:
 - Item ids are lowercase-kebab strings, stable across revisions.
 - Defaults if you omit: theme=whiteboard, camera=orbit, sensible per-metaphor numeric defaults, links=[].
-- Caps: city ≤ 50 items, layercake ≤ 20, galaxy ≤ 150, tree ≤ 60, terrain ≤ 40, orrery ≤ 40, river ≤ 30, links ≤ 80.
+- Caps: city ≤ 50 items, layercake ≤ 20, galaxy ≤ 150, tree ≤ 60, terrain ≤ 40, orrery ≤ 40, river ≤ 30, garden ≤ 40, links ≤ 80.
 - Pick ONE metaphor per call. Switching metaphors mid-revision is a full rewrite.
 - Choose magnitudes/elevations proportionally — exaggerate differences so the spatial story is visible at a glance. A scene where every item has the same size says nothing; spread values across most of the allowed range.
 - When item count > 6, use meaningful \`district\` (city) / \`cluster\` (galaxy) / \`parent\` (tree) — not the same label for every item.
@@ -159,17 +185,21 @@ Rules:
 - Optional terrain scene field: \`surface: { metric, baseline }\` — give the metric a name so the legend is clear.
 - Optional orrery field: \`moon\` (id of another non-moon item — renders a small satellite beside that planet with a local orbit ring). Exactly one sun (orbit 0) is the strongest composition; zero suns renders an anonymous core.
 - Optional river field: \`hazard\` (0–1) — whitewater rapids at that station; use it where things actually fail or leak.
+- Garden fields: \`maturity\` (0–1), \`impact\` (0.1–10), \`bed\` (domain grouping), and \`health\` ("thriving"/"steady"/"at-risk"). Use at-risk only when the prompt contains evidence of a blocker, delay, weak signal, or declining result.
 - The \`cinematic\` camera auto-rotates slowly with controls disabled — choose it when you want the diagram to feel like a presentation. \`orbit\` is the default with user controls; \`isometric\` is fixed.
 - The \`blueprint\` theme renders as white linework on deep navy — choose it for technical/architectural framings.
+- River and garden are outdoor daylight scenes. Prefer \`whiteboard\` for them; the renderer keeps their sky sunny even if the surrounding topic is about risk.
 
 MAKE THE SCENE CARRY THE TOPIC (this is what separates a decorative scene from a meaningful one):
 
-1. Encode a REAL metric, not vibes. Before writing numbers, decide what height/magnitude/elevation/orbit/flow *means* for this topic (requests/day, headcount, risk score, coupling), write that phrase into \`scene.legend\`, then make the numbers honestly proportional to it. The hover tooltip shows your legend phrase next to each item's number — it must read sensibly ("Weekly users (thousands): 9").
+1. Encode a REAL metric, not vibes. Before writing numbers, decide what height/magnitude/elevation/orbit/flow/maturity/impact *means* for this topic (requests/day, headcount, risk score, coupling), write that phrase into \`scene.legend\`, then make the numbers honestly proportional to it. Never invent precise facts the user did not provide: when the prompt has no numbers, use a visibly spread relative scale and name it honestly ("relative importance from prompt", "inferred delivery maturity"). The hover tooltip shows your legend phrase next to each item's number — it must read sensibly ("Weekly users (thousands): 9").
 2. Name groupings from the user's domain. Districts, clusters, and layer labels must come from the topic ("checkout", "ml-platform", "EU region") — never generic filler ("group 1", "misc").
 3. Use the storytelling fields to say what the topic is going through: a service being deprecated is a "crumbling" building or a cracked layer; an outage-prone step is a high-\`hazard\` rapid; an idle system is a "dark" building; a tightly-coupled satellite orbits at 1, a loosely-coupled one at 11. If the user's prompt mentions health, age, risk, drop-off, or coupling anywhere, at least one of these fields should carry it.
 4. Give most concrete items a \`glyph\` and give at least the headline items a \`note\` with a real fact from the prompt (owner, status, number, caveat). Notes are where the topic's specifics survive; a scene without notes forgets the user's story.
 5. Match the mood: \`noir\` for incidents/risk/tech-debt post-mortems, \`arcade\` for growth/launch/celebration, \`blueprint\` for architecture reviews, \`whiteboard\` for neutral analysis. Camera \`cinematic\` for presentations, \`orbit\` for exploration.
 6. Compose the scene so its most extreme element IS the headline insight. The tallest tower, the highest peak, the innermost orbit, the hardest rapid should be the thing the user most needs to see. If everything is medium, the scene has no thesis.
+7. Preserve the user's nouns. Extract the concrete actors, systems, phases, risks, goals, or initiatives from the prompt and make those the visible item labels. Do not replace topic language with generic labels such as "Component 1", "Process", or "Other".
+8. Aim for 5–12 meaningful items when the prompt supports them. Give at least half of concrete items a relevant \`glyph\`, and give the three headline items a factual \`note\`. Never pad a sparse prompt with invented entities just to hit a count.
 
 Topic glyphs (optional per-item icon — works on every metaphor):
 
@@ -205,6 +235,7 @@ Axes per metaphor:
 - Terrain: \`elevation\` + \`intensity\` (also keep \`scene.surface.metric\` populated).
 - Orrery: \`orbit\` + \`size\`.
 - River: \`stage\` + \`flow\`.
+- Garden: \`maturity\` + \`impact\`, plus \`bed\` and \`health\` when used.
 
 Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "coupling to core", "weekly signups". Not full sentences. They double as the hover-tooltip labels, so write them to read naturally next to a number ("Monthly transaction volume: 12").
 

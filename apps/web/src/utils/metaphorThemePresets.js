@@ -14,6 +14,25 @@ const TREE_NATURE_BASE = {
   treeSkyHorizonColor: '#e8f4e8'
 };
 
+const DAYLIGHT_OUTDOOR_BASE = {
+  background: '#cfeeff',
+  skyTopColor: '#58b8f5',
+  skyHorizonColor: '#f5fbdf',
+  ambientIntensity: 0.82,
+  hemisphere: ['#dff5ff', '#6f8f4f', 0.72],
+  directional: { position: [16, 24, 10], intensity: 1.35 },
+  environment: null,
+  waterColor: '#39bde8',
+  riverDeepColor: '#168fc7',
+  treeMeadowColor: '#71c96b',
+  treeSoilColor: '#8b6843',
+  treeTrunkColor: '#70451f',
+  treeBranchColor: '#8b5a2b',
+  treeLeafColor: '#36a852',
+  labelColor: '#102a43',
+  labelOutline: '#f8fafc'
+};
+
 function blendHexColors(base, tint, amount) {
   const out = new THREE.Color(base);
   out.lerp(new THREE.Color(tint), amount);
@@ -298,6 +317,44 @@ export function resolveTreeNatureTheme(theme) {
     treeAccentColor: TREE_NATURE_BASE.treeAccentColor,
     treeSkyTopColor: TREE_NATURE_BASE.treeSkyTopColor,
     treeSkyHorizonColor: TREE_NATURE_BASE.treeSkyHorizonColor
+  };
+}
+
+/**
+ * Rivers always render as a clear daytime landscape. The selected theme still
+ * contributes a restrained accent tint, but cannot turn the sky, meadow, or
+ * water into a night scene.
+ */
+export function resolveRiverDaylightTheme(theme) {
+  const accent = theme?.waterColor ?? DAYLIGHT_OUTDOOR_BASE.waterColor;
+  const meadowTint = theme?.treeMeadowColor ?? DAYLIGHT_OUTDOOR_BASE.treeMeadowColor;
+  return {
+    ...theme,
+    ...DAYLIGHT_OUTDOOR_BASE,
+    waterColor: blendHexColors(DAYLIGHT_OUTDOOR_BASE.waterColor, accent, 0.12),
+    riverDeepColor: blendHexColors(DAYLIGHT_OUTDOOR_BASE.riverDeepColor, accent, 0.08),
+    treeMeadowColor: blendHexColors(DAYLIGHT_OUTDOOR_BASE.treeMeadowColor, meadowTint, 0.08),
+    postfx: {
+      ...(theme?.postfx ?? {}),
+      bloomStrength: 0.2,
+      bloomThreshold: 0.92,
+      vignette: 0.12,
+      shadowOpacity: 0.24,
+      shadowColor: '#31543f'
+    }
+  };
+}
+
+/** Sunny botanical palette for the garden metaphor, with theme-tinted blooms. */
+export function resolveGardenDaylightTheme(theme) {
+  return {
+    ...resolveRiverDaylightTheme(theme),
+    gardenBloomPalette: theme?.clusterPalette ?? ['#f472b6', '#fbbf24', '#a78bfa', '#fb7185'],
+    gardenThrivingColor: '#2f9e44',
+    gardenSteadyColor: '#65a30d',
+    gardenRiskColor: '#c26b35',
+    gardenSoilColor: '#795438',
+    gardenPathColor: '#e9d6aa'
   };
 }
 

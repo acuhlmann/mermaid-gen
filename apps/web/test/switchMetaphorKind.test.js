@@ -79,4 +79,20 @@ describe('switchMetaphorKind', () => {
     const dsl = JSON.parse(result.text);
     expect(dsl.items[0]).toMatchObject({ id: 'core', magnitude: 8 });
   });
+
+  it('remaps city items to a garden while preserving topic groupings', () => {
+    const result = switchMetaphorKind(CITY_DSL, 'garden');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const dsl = JSON.parse(result.text);
+    expect(dsl.metaphor).toBe('garden');
+    expect(dsl.items[0]).toMatchObject({
+      id: 'auth',
+      impact: 10,
+      maturity: 0.35,
+      health: 'steady',
+      bed: 'Core'
+    });
+    expect(dsl.items[1].maturity).toBeGreaterThan(dsl.items[0].maturity);
+  });
 });
