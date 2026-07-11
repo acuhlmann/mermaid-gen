@@ -46,7 +46,7 @@ flowchart TB
     Cursor["Cursor · Claude · VS Code …"]
   end
 
-  LLM[("OpenRouter or Vertex")]
+  LLM[("DeepSeek · OpenRouter · Vertex")]
 
   Store <-->|"REST + AG-UI SSE"| Router
   Collab <-->|"collaboration only"| SE

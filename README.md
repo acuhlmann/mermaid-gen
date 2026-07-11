@@ -4,7 +4,7 @@ Single-repo JavaScript prototype for **collaborative diagram editing**: humans i
 
 ## Quick start
 
-1. `npm run setup` then `cp .env.example .env` and set at least `OPENROUTER_API_KEY` (or Vertex vars) for AI features.
+1. `npm run setup` then `cp .env.example .env` and set at least one LLM backend: `DEEPSEEK_API_KEY` (local default when set), `OPENROUTER_API_KEY`, or Vertex vars (`VERTEX_PROJECT_ID` / ADC).
 2. `npm run dev` — API on `http://localhost:4000`, UI on `http://localhost:5173` (`VITE_API_BASE_URL` → API).
 3. Open the UI, use **Go** in the prompt bar; switch modes (**Diagram**, **Infographic**, **3D**, **Chart**, **Anything**) from the AI corner controls.
 4. `curl http://localhost:4000/api/health` — `llmConfigured: true` when AI routes are ready.

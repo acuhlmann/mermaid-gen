@@ -169,7 +169,7 @@ These are gaps worth knowing when extending the project — not bugs.
 
 | Area                 | Path                                                                                          |
 | -------------------- | --------------------------------------------------------------------------------------------- |
-| AG-UI emitter        | `packages/shared/src/agentStreamEmitter.js`, `apps/server/src/agents/agUiEvents.js`           |
+| AG-UI emitter        | `packages/shared/src/agentStreamEmitter.ts`, `apps/server/src/agents/agUiEvents.js`           |
 | A2UI messages        | `packages/shared/src/critiqueA2uiMessages.js`, `apps/server/src/agents/critiqueA2uiStream.js` |
 | Web stream client    | `apps/web/src/state/diagramStore.js`, `applyAgentStreamInsightEvent.js`                       |
 | A2UI host            | `apps/web/src/components/CritiqueA2uiSurface.jsx`                                             |

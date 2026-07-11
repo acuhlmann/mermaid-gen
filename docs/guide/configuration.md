@@ -51,7 +51,22 @@ Cloud Run operators: see [`docs/deploy/gcp.md`](../deploy/gcp.md) for `PUBLIC_BA
 
 ## LLM configuration
 
-Backends are selected in `apps/server/src/agents/llmProvider.js` via `LLM_PROVIDER` (`auto` | `vertex` | `openrouter`). **`auto`**: on Cloud Run with a GCP project and region, **Vertex** is preferred unless `OPENROUTER_PREFERRED=1` and an OpenRouter key exists; otherwise **OpenRouter** when `OPENROUTER_API_KEY` is set; else Vertex if the project is configured.
+Backends are selected in `apps/server/src/agents/llmProvider.js` via `LLM_PROVIDER` (`auto` | `vertex` | `openrouter` | `deepseek`). Full resolution table: [`docs/llm-config.md`](../llm-config.md).
+
+**`auto` resolution order:**
+
+1. `OPENROUTER_PREFERRED=1` and `OPENROUTER_API_KEY` set → OpenRouter
+2. Cloud Run (`K_SERVICE` set) with Vertex env → Vertex
+3. `DEEPSEEK_API_KEY` set → DeepSeek
+4. `OPENROUTER_API_KEY` set → OpenRouter
+5. Vertex env configured → Vertex
+6. Otherwise → `llmConfigured: false` (503 from intent/transform/analyze)
+
+**DeepSeek** (local dev default when key is set):
+
+- `DEEPSEEK_API_KEY`: required when `LLM_PROVIDER=deepseek` or when `auto` chooses DeepSeek.
+- `DEEPSEEK_MODEL_FAST` / `DEEPSEEK_MODEL_QUALITY`: slugs for the UI **Fast** / **Quality** toggles. If either tier is unset, **`DEEPSEEK_MODEL`** can supply a single slug for both.
+- **Built-in defaults** when all of the above are empty: **Fast** = `deepseek-v4-flash`; **Quality** = `deepseek-v4-pro`.
 
 **OpenRouter** (any host with a key):
 

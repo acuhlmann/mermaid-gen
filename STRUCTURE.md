@@ -9,7 +9,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Server entrypoint, app wiring                          | `apps/server/src/index.js`                                       |
 | Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.ts`                              |
 | Advisor companion routes                               | `apps/server/src/routes/advisor.js`                              |
-| Diagram repair route (debug)                           | `apps/server/src/routes/diagramRepair.js`                        |
+| Diagram repair route (render-error fast path)          | `apps/server/src/routes/diagramRepair.js`                        |
 | Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`               |
 | Mermaid agent service                                  | `apps/server/src/agents/mermaidLangChainAgent.js`                |
 | Infographic agent service                              | `apps/server/src/agents/infographicLangChainAgent.js`            |
@@ -103,12 +103,13 @@ Look up a concept here before grepping. Paths are repo-relative.
 
 ## Tests
 
-| Concept               | File(s)                                                                           |
-| --------------------- | --------------------------------------------------------------------------------- |
-| Server tests          | `apps/server/test/*.test.js` (run via `node --test`)                              |
-| Web tests             | `apps/web/test/*.test.{js,jsx}` (run via Vitest)                                  |
-| Shared tests          | `packages/shared/test/*.test.ts` (run via `node --test`)                          |
-| Mermaid offline bench | `apps/server/scripts/benchMermaid.js` (snapshots in `apps/server/bench-results/`) |
+| Concept                | File(s)                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| Server tests           | `apps/server/test/*.test.js` (run via `node --test`)                               |
+| Web tests              | `apps/web/test/*.test.{js,jsx}` (run via Vitest)                                   |
+| Shared tests           | `packages/shared/test/*.test.ts` (run via `node --test`)                           |
+| Mermaid offline bench  | `apps/server/scripts/benchMermaid.js` (snapshots in `apps/server/bench-results/`)  |
+| Anything offline bench | `apps/server/scripts/benchAnything.js` (snapshots in `apps/server/bench-results/`) |
 
 ## Human guides (`docs/guide/`)
 

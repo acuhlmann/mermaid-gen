@@ -28,11 +28,11 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 ## Validation
 
-**Sanitizer rescue.** Layer 2 of the [[Mermaid validation ladder]]: deterministic, composable text fixers in `packages/shared/src/mermaidSanitizer.js`. Runs after a parse failure to repair common LLM-emitted errors (smart quotes, header typos, malformed init JSON, reserved-word IDs, unbalanced subgraphs, …). Cheap (~1–10 ms), no LLM call.
+**Sanitizer rescue.** Layer 2 of the [[Mermaid validation ladder]]: deterministic, composable text fixers in `packages/shared/src/mermaidSanitizer.ts`. Runs after a parse failure to repair common LLM-emitted errors (smart quotes, header typos, malformed init JSON, reserved-word IDs, unbalanced subgraphs, …). Cheap (~1–10 ms), no LLM call.
 
 **Single-shot syntax fixer.** Layer 3: one LLM call, no tools, low temperature, fast model. Inputs: parser error, broken source, diagram-type-specific rule pack. Lives in `apps/server/src/agents/mermaidSyntaxFixer.js` (and `infographicSyntaxFixer.js`).
 
-**Agent repair (full-agent turns).** Layer 4 fallback: the main LangChain agent runs an extra repair turn with a diagram-type rule pack appended. Bounded by `MERMAID_REPAIR_MAX_ATTEMPTS` (Fast default 2, Quality default 1).
+**Agent repair (full-agent turns).** Layer 4 fallback: the main LangChain agent runs an extra repair turn with a diagram-type rule pack appended. Bounded by `MERMAID_REPAIR_MAX_ATTEMPTS` (Fast default 2, Quality default 2; see `resolveAgentRepairMaxAttempts` in `packages/shared/src/agentRunBudget.ts`).
 
 **Mermaid validation ladder.** The combined four-layer sequence: heuristic prefix → sanitizer rescue → single-shot fixer → agent repair. Wraps every Mermaid mutation via `invokeWithRepair`.
 
@@ -42,7 +42,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 ## Wire protocols
 
-**AG-UI.** Server-sent events on `agent-stream` (`POST /api/copilotkit/agent-stream`): tokens, tool calls, draft previews, final state. See `docs/architecture-ag-ui.md`. The shared emitter lives in `packages/shared/src/agentStreamEmitter.js` and the wire constants in `agUiWireConstants.js` / `agUiEventTypes.js`.
+**AG-UI.** Server-sent events on `agent-stream` (`POST /api/copilotkit/agent-stream`): tokens, tool calls, draft previews, final state. See `docs/architecture-ag-ui.md`. The shared emitter lives in `packages/shared/src/agentStreamEmitter.ts` and the wire constants in `agUiWireConstants.ts` / `agUiEventTypes.ts`.
 
 **A2UI.** A checklist rendering protocol used inside AG-UI `CUSTOM` events (name `"a2ui"`) when a critique includes `## Actionable …`. The model emits Markdown; the server builds A2UI v0.9 messages from it via `critiqueA2uiMessages.js`. The web surface is `CritiqueA2uiSurface.jsx` / `CritiqueActionableChecklist.jsx`.
 
