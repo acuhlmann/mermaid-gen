@@ -585,7 +585,7 @@ export function createChartLangChainAgent({
       });
     },
 
-    async applyStyleIntent({ prompt, modelProfile, emit }) {
+    async applyStyleIntent({ prompt, modelProfile, emit, abortSignal }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to style — generate a chart first.', raw: null };
@@ -606,6 +606,7 @@ export function createChartLangChainAgent({
         requirePatch: true,
         emit,
         profile,
+        abortSignal,
         mode: 'style'
       });
     },
