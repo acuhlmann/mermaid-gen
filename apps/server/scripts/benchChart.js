@@ -27,17 +27,27 @@ const OUT_DIR = path.join(REPO_ROOT, 'bench-results');
 
 const EMPTY_STATE = () => ({ revisionId: 0, diagramSource: '' });
 
-const wrap = (spec, theme = 'whiteboard') =>
-  JSON.stringify({ archislopVersion: 1, theme, spec });
+const wrap = (spec, theme = 'whiteboard') => JSON.stringify({ archislopVersion: 1, theme, spec });
 
 const BAR_SPEC = {
-  data: { values: [{ q: 'Q1', rev: 100 }, { q: 'Q2', rev: 140 }] },
+  data: {
+    values: [
+      { q: 'Q1', rev: 100 },
+      { q: 'Q2', rev: 140 }
+    ]
+  },
   mark: 'bar',
   encoding: { x: { field: 'q', type: 'ordinal' }, y: { field: 'rev', type: 'quantitative' } }
 };
 
 const LINE_SPEC = {
-  data: { values: [{ t: 1, v: 3 }, { t: 2, v: 5 }, { t: 3, v: 4 }] },
+  data: {
+    values: [
+      { t: 1, v: 3 },
+      { t: 2, v: 5 },
+      { t: 3, v: 4 }
+    ]
+  },
   mark: 'line',
   encoding: { x: { field: 't', type: 'quantitative' }, y: { field: 'v', type: 'quantitative' } }
 };

@@ -461,9 +461,7 @@ export function createAnythingLangChainAgent({
 
     finishTurn({
       accepted: false,
-      errorClass: invokeErrored
-        ? 'invoke-error'
-        : (classifyAgentTurnError(lastError) ?? 'no-patch')
+      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
     });
     return {
       message: lastError ? `Page update failed: ${lastError}` : 'Page update did not apply.',

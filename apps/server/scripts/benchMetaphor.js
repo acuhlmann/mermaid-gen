@@ -91,7 +91,10 @@ const CORPUS = [
     id: 'drop-orphan-link',
     source: JSON.stringify({
       metaphor: 'city',
-      items: [{ id: 'a', label: 'A' }, { id: 'b', label: 'B' }],
+      items: [
+        { id: 'a', label: 'A' },
+        { id: 'b', label: 'B' }
+      ],
       links: [{ from: 'a', to: 'ghost' }]
     }),
     expectedAccept: true,

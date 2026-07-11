@@ -436,9 +436,7 @@ export function createMetaphorLangChainAgent({
 
     finishTurn({
       accepted: false,
-      errorClass: invokeErrored
-        ? 'invoke-error'
-        : (classifyAgentTurnError(lastError) ?? 'no-patch')
+      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
     });
     return {
       message: lastError

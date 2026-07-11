@@ -88,8 +88,7 @@ export function createDiagramRepairRouter({
 
     const { revisionId, source, renderError, contentType } = parsed.data;
     const fixer = contentType === 'anything' ? repairAnythingImpl : repairImpl;
-    const fixerAvailable =
-      contentType === 'anything' ? isAnythingFixerAvailable : isFixerAvailable;
+    const fixerAvailable = contentType === 'anything' ? isAnythingFixerAvailable : isFixerAvailable;
 
     if (!fixerAvailable(env)) {
       return res.status(503).json({

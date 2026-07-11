@@ -552,9 +552,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
 
   finishTurn({
     accepted: false,
-    errorClass: invokeErrored
-      ? 'invoke-error'
-      : (classifyAgentTurnError(lastError) ?? 'no-patch')
+    errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
   });
   return {
     message: lastError

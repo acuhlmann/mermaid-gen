@@ -585,9 +585,7 @@ function rescueLinkKinds(working: Record<string, unknown>, applied: string[]): v
 }
 
 function formatZodIssues(issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>): string {
-  return issues
-    .map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`)
-    .join('; ');
+  return issues.map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`).join('; ');
 }
 
 export function sanitizeMetaphorDsl(

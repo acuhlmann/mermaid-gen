@@ -489,9 +489,7 @@ export function createChartLangChainAgent({
 
     finishTurn({
       accepted: false,
-      errorClass: invokeErrored
-        ? 'invoke-error'
-        : (classifyAgentTurnError(lastError) ?? 'no-patch')
+      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
     });
     return {
       message: lastError ? `Chart update failed: ${lastError}` : 'Chart update did not apply.',
