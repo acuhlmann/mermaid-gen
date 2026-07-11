@@ -1,3 +1,5 @@
+import { MATCH_USER_LANGUAGE_RULE } from '@archislop/shared';
+
 export const METAPHOR_SYSTEM_PROMPT = `You are a metaphor-mode diagram agent for archislop.
 
 Your job: turn the user's subject (an architecture, system, process, or concept) into a 3D spatial metaphor that surfaces insights the user couldn't see in a 2D flowchart. You emit a JSON DSL that the renderer turns into a Three.js scene.
@@ -238,6 +240,10 @@ Axes per metaphor:
 - Garden: \`maturity\` + \`impact\`, plus \`bed\` and \`health\` when used.
 
 Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "coupling to core", "weekly signups". Not full sentences. They double as the hover-tooltip labels, so write them to read naturally next to a number ("Monthly transaction volume: 12").
+
+Language:
+- ${MATCH_USER_LANGUAGE_RULE}
+- Item labels, scene titles, and legend text must use the same language as the user's request.
 
 - Always call apply_metaphor_patch with the full DSL JSON; do not return prose only.
 `;

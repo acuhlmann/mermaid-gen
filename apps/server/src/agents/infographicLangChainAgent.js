@@ -9,7 +9,11 @@ import {
   INFOGRAPHIC_EXPLAIN_TASK,
   buildInfographicRepairInstruction
 } from '../prompts/infographicSyntaxGuard.js';
-import { createLlmChatModel, resolveLlmBackend, resolveModelId } from './llmProvider.js';
+import {
+  appendProseLanguageInstruction,
+  appendLanguageInstruction,
+  buildLanguageInstruction
+} from '@archislop/shared';
 import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
@@ -21,6 +25,7 @@ import {
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
+import { createLlmChatModel, resolveLlmBackend, resolveModelId } from './llmProvider.js';
 import { createDiagramAgentCache } from './_lib/diagramAgentCache.js';
 import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
@@ -96,23 +101,6 @@ function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
 }
 
-function detectPromptLanguageHint(text) {
-  if (typeof text !== 'string' || !text.trim()) return null;
-  // Count CJK characters; if substantial, the user likely wants CJK output. Otherwise Latin.
-  const cjkMatches = text.match(/[㐀-鿿豈-﫿]/g) ?? [];
-  const totalLetters = text.match(/[\p{L}]/gu)?.length ?? 0;
-  if (totalLetters === 0) return null;
-  const cjkRatio = cjkMatches.length / totalLetters;
-  if (cjkRatio >= 0.25) return 'Chinese (zh)';
-  return 'English (en)';
-}
-
-function buildLanguageInstruction(prompt, currentDsl) {
-  const hint = detectPromptLanguageHint(prompt) ?? detectPromptLanguageHint(currentDsl);
-  if (!hint) return '';
-  return `\n\nLANGUAGE LOCK: Output ALL reader-facing text (title, desc, label, edge labels) in ${hint}. Do NOT translate, do NOT add second-language alternates. This is NON-NEGOTIABLE for this turn.`;
-}
-
 function buildIntentUserContent({ prompt, focusScope, currentDsl, peerMermaid, transformPersona }) {
   const peerBlock =
     typeof peerMermaid === 'string' && peerMermaid.trim()
@@ -158,6 +146,21 @@ function buildAnalysisUserContent({ task, focusScope, currentDsl, advisorPrompt 
 \`\`\`
 ${currentDsl}
 \`\`\``;
+}
+
+function buildAnalysisUserContentWithLanguage({
+  task,
+  focusScope,
+  currentDsl,
+  advisorPrompt,
+  lastUserPrompt
+}) {
+  return appendProseLanguageInstruction(
+    buildAnalysisUserContent({ task, focusScope, currentDsl, advisorPrompt }),
+    lastUserPrompt,
+    currentDsl,
+    advisorPrompt
+  );
 }
 
 /** Strip a single outer ```…``` wrapper if the whole string is one fenced block. */
@@ -721,14 +724,17 @@ export function createInfographicLangChainAgent({
         const agent = getTransformAgent(mode, modelProfile, goMadDepth);
         const stableAgent = getStableIntentAgent('fast');
         const originalRequest = typeof slot?.lastUserPrompt === 'string' ? slot.lastUserPrompt : '';
-        const languageInstruction = buildLanguageInstruction(originalRequest, slot.diagramSource);
-        const body = `${buildInfographicTransformUserContent({
-          mode,
-          focusScope,
-          currentDsl: slot.diagramSource,
-          goMadDepth,
-          advisorPrompt
-        })}${languageInstruction}`;
+        const body = appendLanguageInstruction(
+          buildInfographicTransformUserContent({
+            mode,
+            focusScope,
+            currentDsl: slot.diagramSource,
+            goMadDepth,
+            advisorPrompt
+          }),
+          originalRequest,
+          slot.diagramSource
+        );
 
         return invokeWithRepair(
           agent,
@@ -761,11 +767,12 @@ export function createInfographicLangChainAgent({
       const messages = [
         new SystemMessage(INFOGRAPHIC_ANALYSIS_SYSTEM_PROMPT),
         new HumanMessage(
-          buildAnalysisUserContent({
+          buildAnalysisUserContentWithLanguage({
             task,
             focusScope,
             currentDsl: slot.diagramSource,
-            advisorPrompt
+            advisorPrompt,
+            lastUserPrompt: slot.lastUserPrompt
           })
         )
       ];

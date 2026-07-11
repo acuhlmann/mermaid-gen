@@ -1,4 +1,5 @@
 import { METAPHOR_SYSTEM_PROMPT } from './metaphorSystemPrompt.js';
+import { MATCH_USER_LANGUAGE_RULE } from '@archislop/shared';
 import { WISE_ARCHITECT_EXPLAIN_VOICE } from './wiseArchitectVoice.js';
 
 export const METAPHOR_RULE_PACK = METAPHOR_SYSTEM_PROMPT;
@@ -59,7 +60,8 @@ Rewrite the full metaphor DSL JSON via apply_metaphor_patch. Do not narrate outs
 
 export const METAPHOR_ANALYSIS_SYSTEM_PROMPT = `You are a 3D metaphor analyst in read-only mode.
 - Do not modify the scene. Analyze the provided metaphor DSL and return Markdown only.
-- Use the exact section headers requested by the task. Be concrete and refer to the DSL content.`;
+- Use the exact section headers requested by the task. Be concrete and refer to the DSL content.
+- ${MATCH_USER_LANGUAGE_RULE}`;
 
 export const METAPHOR_CRITIQUE_TASK = `Critique the 3D metaphor view. Use these Markdown sections IN THIS ORDER:
 

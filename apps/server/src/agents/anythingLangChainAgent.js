@@ -3,6 +3,7 @@ import { createAgent } from 'langchain';
 import { createAnythingTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { ANYTHING_SYSTEM_PROMPT } from '../prompts/anythingSystemPrompt.js';
+import { appendLanguageInstruction, appendProseLanguageInstruction } from '@archislop/shared';
 import { buildAnythingRepairInstruction } from '../prompts/anythingSyntaxGuard.js';
 import { WISE_ARCHITECT_EXPLAIN_VOICE } from '../prompts/wiseArchitectVoice.js';
 import { isAnythingSyntaxFixerAvailable, repairAnythingWithFixer } from './anythingSyntaxFixer.js';
@@ -91,7 +92,7 @@ function buildIntentUserContent({ prompt, currentHtml, peerContext }) {
     );
   }
   parts.push('Call apply_anything_patch with the full HTML document.');
-  return parts.join('\n\n');
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentHtml);
 }
 
 export function buildAnythingTransformUserContent({
@@ -125,18 +126,28 @@ export function buildAnythingTransformUserContent({
     .join('\n\n');
 }
 
-export function buildAnythingAnalyzeUserContent({ kind, currentHtml, advisorPrompt }) {
+export function buildAnythingAnalyzeUserContent({
+  kind,
+  currentHtml,
+  advisorPrompt,
+  lastUserPrompt
+}) {
   const task =
     kind === 'critique'
       ? 'Critique this HTML document in 3-5 short paragraphs. Call out: does the layout communicate the idea? Is the interaction discoverable? Any accessibility, contrast, or responsiveness issues? Does anything violate the sandbox contract (external URLs, storage, network)?'
       : `Explain this HTML document in 3-5 short paragraphs. Describe what the page shows, how the user interacts with it, and how the markup/CSS/JS pieces fit together.\n\n${WISE_ARCHITECT_EXPLAIN_VOICE}`;
-  return [
-    task,
-    buildAdvisorSuggestionBlock(advisorPrompt),
-    `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  return appendProseLanguageInstruction(
+    [
+      task,
+      buildAdvisorSuggestionBlock(advisorPrompt),
+      `Current HTML document:\n\n\`\`\`html\n${currentHtml}\n\`\`\``
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
+    lastUserPrompt,
+    currentHtml,
+    advisorPrompt
+  );
 }
 
 export function createAnythingLangChainAgent({
@@ -516,12 +527,17 @@ export function createAnythingLangChainAgent({
       const userMessages = [
         {
           role: 'user',
-          content: buildAnythingTransformUserContent({
-            mode,
-            currentHtml: slot.diagramSource,
-            goMadDepth,
+          content: appendLanguageInstruction(
+            buildAnythingTransformUserContent({
+              mode,
+              currentHtml: slot.diagramSource,
+              goMadDepth,
+              advisorPrompt
+            }),
+            slot.lastUserPrompt,
+            slot.diagramSource,
             advisorPrompt
-          })
+          )
         }
       ];
 
@@ -551,7 +567,8 @@ export function createAnythingLangChainAgent({
           `${ANYTHING_SYSTEM_PROMPT}\n\n${buildAnythingAnalyzeUserContent({
             kind,
             currentHtml: slot.diagramSource,
-            advisorPrompt
+            advisorPrompt,
+            lastUserPrompt: slot.lastUserPrompt
           })}`
         )
       ];
