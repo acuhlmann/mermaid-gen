@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import { fetchInvite, rotatePairingCode } from '../state/sessionEventsClient.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 export default function InviteAgentDialog({ sessionId, open, onClose }) {
+  const { controls } = useUiCopy();
+  const copy = controls.invite;
   const [invite, setInvite] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,7 +22,7 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
         if (!cancelled) setInvite(data);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message ?? 'Failed to load invite.');
+        if (!cancelled) setError(err?.message ?? copy.loadFailed);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -27,11 +30,11 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
     return () => {
       cancelled = true;
     };
-  }, [open, sessionId]);
+  }, [open, sessionId, copy.loadFailed]);
 
   if (!open) return null;
 
-  async function copy(label, text) {
+  async function copyText(label, text) {
     try {
       await navigator.clipboard?.writeText(text);
       setCopied(label);
@@ -49,7 +52,7 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
       const result = await rotatePairingCode({ sessionId });
       setInvite((prev) => (prev ? { ...prev, pairingCode: result.pairingCode } : prev));
     } catch (err) {
-      setError(err?.message ?? 'Failed to rotate pairing code.');
+      setError(err?.message ?? copy.rotateFailed);
     } finally {
       setRotating(false);
     }
@@ -64,52 +67,40 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
               🤝
             </span>
             <div className="invite-header-text">
-              <h2 id="invite-title">Onboard an external agent</h2>
-              <p className="invite-header-subtitle">
-                Bring another LLM into the Co-Design roundtable.
-              </p>
+              <h2 id="invite-title">{copy.title}</h2>
+              <p className="invite-header-subtitle">{copy.subtitle}</p>
             </div>
           </div>
           <button
             type="button"
             className="overlay-button compact-button invite-close-button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={copy.close}
           >
-            Close
+            {copy.close}
           </button>
         </header>
-        <p className="invite-explainer">
-          External agents join over <strong>MCP</strong> — they can see the diagram, propose
-          changes, and weigh in alongside the Stakeholders. <strong>Scan the QR</strong> or hit{' '}
-          <strong>Connect now</strong> to pair an IDE-side agent in one tap; you’ll still approve
-          the handshake before anyone touches the slop. For a long-lived setup, use the stable URL
-          under Advanced.
-        </p>
-        {loading ? <p>Loading invite…</p> : null}
+        <p className="invite-explainer">{copy.explainer}</p>
+        {loading ? <p>{copy.loading}</p> : null}
         {error ? <p className="invite-error">{error}</p> : null}
         {invite ? (
           <div className="invite-content">
             {invite.qrDataUrl ? (
               <section className="invite-section invite-qr-section invite-qr-primary">
-                <h3>Scan to connect</h3>
-                <img
-                  src={invite.qrDataUrl}
-                  alt="QR code for MCP pairing URL"
-                  className="invite-qr"
-                />
+                <h3>{copy.scanToConnect}</h3>
+                <img src={invite.qrDataUrl} alt={copy.qrAlt} className="invite-qr" />
               </section>
             ) : null}
 
             <section className="invite-section invite-install-actions">
-              <h3>Connect now</h3>
+              <h3>{copy.connectNow}</h3>
               <div className="invite-install-buttons">
                 {invite.cursorInstallUrlWithPairing ? (
                   <a
                     href={invite.cursorInstallUrlWithPairing}
                     className="overlay-button invite-install-button invite-install-cursor"
                   >
-                    <span className="invite-install-button-prefix">Connect</span>
+                    <span className="invite-install-button-prefix">{copy.connect}</span>
                     <span className="invite-install-button-target">Cursor</span>
                   </a>
                 ) : null}
@@ -118,7 +109,7 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                     href={invite.vscodeInstallUrlWithPairing}
                     className="overlay-button invite-install-button invite-install-vscode"
                   >
-                    <span className="invite-install-button-prefix">Connect</span>
+                    <span className="invite-install-button-prefix">{copy.connect}</span>
                     <span className="invite-install-button-target">VS Code</span>
                   </a>
                 ) : null}
@@ -126,13 +117,13 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                   <button
                     type="button"
                     className="overlay-button invite-install-button invite-install-secondary"
-                    onClick={() => copy('cli-pair', invite.claudeCodeCommandWithPairing)}
+                    onClick={() => copyText('cli-pair', invite.claudeCodeCommandWithPairing)}
                   >
                     {copied === 'cli-pair' ? (
-                      <span className="invite-install-button-target">Copied!</span>
+                      <span className="invite-install-button-target">{copy.copied}</span>
                     ) : (
                       <>
-                        <span className="invite-install-button-prefix">Copy</span>
+                        <span className="invite-install-button-prefix">{copy.copy}</span>
                         <span className="invite-install-button-target">Claude CLI</span>
                       </>
                     )}
@@ -142,17 +133,17 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
             </section>
 
             <section className="invite-section">
-              <h3>Pairing code</h3>
+              <h3>{copy.pairingCode}</h3>
               <div className="invite-pairing-row">
-                <span className="invite-pairing-code" aria-label="Pairing code">
+                <span className="invite-pairing-code" aria-label={copy.pairingCodeAria}>
                   {invite.pairingCode}
                 </span>
                 <button
                   type="button"
                   className="overlay-button compact-button"
-                  onClick={() => copy('pairing', invite.pairingCode)}
+                  onClick={() => copyText('pairing', invite.pairingCode)}
                 >
-                  {copied === 'pairing' ? 'Copied!' : 'Copy code'}
+                  {copied === 'pairing' ? copy.copied : copy.copyCode}
                 </button>
                 <button
                   type="button"
@@ -160,7 +151,7 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                   onClick={handleRotateCode}
                   disabled={rotating}
                 >
-                  {rotating ? 'Rotating…' : 'Rotate code'}
+                  {rotating ? copy.rotating : copy.rotateCode}
                 </button>
               </div>
             </section>
@@ -172,64 +163,64 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
                 onClick={() => setShowAdvanced((v) => !v)}
                 aria-expanded={showAdvanced}
               >
-                {showAdvanced ? 'Hide' : 'Show'} stable MCP URL & legacy options
+                {showAdvanced ? copy.advancedToggleHide : copy.advancedToggleShow}
               </button>
             </section>
 
             {showAdvanced ? (
               <div className="invite-advanced">
                 <section className="invite-section">
-                  <h3>Stable MCP URL (configure once)</h3>
+                  <h3>{copy.stableMcpUrl}</h3>
                   <div className="invite-row">
                     <code className="invite-url">{invite.stableMcpUrl}</code>
                     <button
                       type="button"
                       className="overlay-button compact-button"
-                      onClick={() => copy('stable', invite.stableMcpUrl)}
+                      onClick={() => copyText('stable', invite.stableMcpUrl)}
                     >
-                      {copied === 'stable' ? 'Copied!' : 'Copy'}
+                      {copied === 'stable' ? copy.copied : copy.copy}
                     </button>
                   </div>
                 </section>
 
                 {invite.cursorInstallUrl ? (
                   <section className="invite-section">
-                    <h3>Add to Cursor (stable)</h3>
+                    <h3>{copy.addCursorStable}</h3>
                     <a
                       href={invite.cursorInstallUrl}
                       className="overlay-button invite-install-button invite-install-secondary"
                     >
-                      Add to Cursor
+                      {copy.addToCursor}
                     </a>
                   </section>
                 ) : null}
 
                 {invite.claudeCodeCommand ? (
                   <section className="invite-section">
-                    <h3>Claude Code (stable URL)</h3>
+                    <h3>{copy.claudeCodeStable}</h3>
                     <div className="invite-row">
                       <code className="invite-cli">{invite.claudeCodeCommand}</code>
                       <button
                         type="button"
                         className="overlay-button compact-button"
-                        onClick={() => copy('cli', invite.claudeCodeCommand)}
+                        onClick={() => copyText('cli', invite.claudeCodeCommand)}
                       >
-                        {copied === 'cli' ? 'Copied!' : 'Copy'}
+                        {copied === 'cli' ? copy.copied : copy.copy}
                       </button>
                     </div>
                   </section>
                 ) : null}
 
                 <section className="invite-section">
-                  <h3>Session MCP URL (legacy)</h3>
+                  <h3>{copy.sessionMcpLegacy}</h3>
                   <div className="invite-row">
                     <code className="invite-url">{invite.mcpUrl}</code>
                     <button
                       type="button"
                       className="overlay-button compact-button"
-                      onClick={() => copy('url', invite.mcpUrl)}
+                      onClick={() => copyText('url', invite.mcpUrl)}
                     >
-                      {copied === 'url' ? 'Copied!' : 'Copy'}
+                      {copied === 'url' ? copy.copied : copy.copy}
                     </button>
                   </div>
                 </section>

@@ -1,19 +1,38 @@
 /** Wire: Thinking pane entry labels and accent lane class helpers. */
 
-export function statusLabel(entry) {
-  if (entry.status === 'failed') return 'Issue';
-  if (entry.status === 'cancelled') return 'Stopped';
-  if (entry.status === 'done') return 'Done';
-  return 'Working';
+const DEFAULT_INSIGHTS_COPY = {
+  statusIssue: 'Issue',
+  statusStopped: 'Stopped',
+  statusDone: 'Done',
+  statusWorking: 'Working',
+  contentAnalysis: 'Analysis',
+  contentExplanation: 'Explanation',
+  contentRefinement: 'Refinement',
+  contentInnovation: 'Innovation',
+  contentMadMode: 'Mad mode',
+  contentUpdates: 'Content updates'
+};
+
+function insightsCopy(copy) {
+  return copy ? { ...DEFAULT_INSIGHTS_COPY, ...copy } : DEFAULT_INSIGHTS_COPY;
 }
 
-export function contentUpdatesTitle(variant) {
-  if (variant === 'critique') return 'Analysis';
-  if (variant === 'explain') return 'Explanation';
-  if (variant === 'refine') return 'Refinement';
-  if (variant === 'innovate') return 'Innovation';
-  if (variant === 'goMad') return 'Mad mode';
-  return 'Content updates';
+export function statusLabel(entry, copy) {
+  const c = insightsCopy(copy);
+  if (entry.status === 'failed') return c.statusIssue;
+  if (entry.status === 'cancelled') return c.statusStopped;
+  if (entry.status === 'done') return c.statusDone;
+  return c.statusWorking;
+}
+
+export function contentUpdatesTitle(variant, copy) {
+  const c = insightsCopy(copy);
+  if (variant === 'critique') return c.contentAnalysis;
+  if (variant === 'explain') return c.contentExplanation;
+  if (variant === 'refine') return c.contentRefinement;
+  if (variant === 'innovate') return c.contentInnovation;
+  if (variant === 'goMad') return c.contentMadMode;
+  return c.contentUpdates;
 }
 
 export function hidePhaseIds(variant, streamDebugEnabled) {

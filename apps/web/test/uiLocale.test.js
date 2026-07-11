@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { getUiLocaleBundle } from '../src/i18n/getUiLocaleBundle.js';
-import { resolveUiLocaleFromText } from '@archislop/shared';
+import { resolveUiLocaleFromExplicitRequest } from '@archislop/shared';
 
 describe('ui locale bundles', () => {
   it('returns English controls by default', () => {
@@ -12,7 +12,13 @@ describe('ui locale bundles', () => {
   it('returns simplified Chinese controls when locale is zh-CN', () => {
     const bundle = getUiLocaleBundle('zh-CN');
     expect(bundle.controls.actions.refine).toBe('精修');
+    expect(bundle.controls.radial.drillDeeper).toBe('深入挖掘');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
+  });
+
+  it('resolves explicit UI locale requests from weigh-in prompts', () => {
+    expect(resolveUiLocaleFromExplicitRequest('switch UI to Chinese')).toBe('zh-CN');
+    expect(resolveUiLocaleFromExplicitRequest('画一个登录流程图')).toBeNull();
   });
 
   it('returns simplified Chinese gamification flavor when locale is zh-CN', () => {

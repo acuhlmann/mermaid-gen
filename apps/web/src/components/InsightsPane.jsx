@@ -43,6 +43,7 @@ import {
 } from './insightsPaneEntryUi.js';
 import { ThinkingPanelIcon } from './AppIcons.jsx';
 import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const SLOPITECT_VARIANT_CLASS = {
   refine: 'is-variant-refine',
@@ -206,14 +207,14 @@ function personaBannerClass(variant) {
 }
 
 /** Live-run chips in the pane header (replaces top-right LiveRunHud when Thinking is open). */
-function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0 }) {
+function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0, actionLabels = {} }) {
   const now = useElapsedNow(true);
   const started = Number.isFinite(startedAt) ? startedAt : null;
   const elapsedLabel = started != null ? formatElapsedDuration(now - started) : '';
   const latestPhase = Array.isArray(phases) && phases.length > 0 ? phases[phases.length - 1] : null;
   const ceremonyLabel =
     latestPhase?.id != null ? phaseCeremonyLabel(variant, latestPhase.id, latestPhase.label) : null;
-  const actionLabel = VARIANT_ACTION_LABELS[variant] || null;
+  const actionLabel = actionLabels[variant] || null;
   const phaseStep = phases?.length ? phases.length : 0;
 
   if (!actionLabel && !ceremonyLabel && !elapsedLabel && streak < 2) return null;
@@ -278,7 +279,7 @@ function buildInsightNowStatusStrip(entry) {
 }
 
 /** Pinned "Now" summary — stays visible while scrolling the thinking body. */
-function InsightsPaneNowStatusStrip({ entry }) {
+function InsightsPaneNowStatusStrip({ entry, insightsCopy }) {
   const strip = buildInsightNowStatusStrip(entry);
   if (!strip) return null;
   const { rawStatus, nowStatusCopy, failureDetail } = strip;
@@ -291,7 +292,7 @@ function InsightsPaneNowStatusStrip({ entry }) {
     >
       <span className="insights-status-strip-pulse" aria-hidden="true" />
       <span className="insights-status-strip-label">
-        {rawStatus === 'failed' ? 'Issue' : 'Now'}
+        {rawStatus === 'failed' ? insightsCopy.nowIssue : insightsCopy.now}
       </span>
       <span className="insights-status-strip-copy">
         <span className="insights-status-strip-text">{nowStatusCopy}</span>
@@ -813,12 +814,12 @@ function leadOpenerExtraClass(variant, accentuateSections, openerUsedRef) {
   return extra;
 }
 
-function resultingPreviewLabel(afterKind) {
-  if (afterKind === 'infographic') return 'Resulting infographic';
-  if (afterKind === 'chart') return 'Resulting chart';
-  if (afterKind === 'metaphor3d') return 'Resulting 3D scene';
-  if (afterKind === 'anything') return 'Resulting page';
-  return 'Resulting diagram';
+function resultingPreviewLabel(afterKind, insightsCopy) {
+  if (afterKind === 'infographic') return insightsCopy.resultingInfographic;
+  if (afterKind === 'chart') return insightsCopy.resultingChart;
+  if (afterKind === 'metaphor3d') return insightsCopy.resulting3d;
+  if (afterKind === 'anything') return insightsCopy.resultingPage;
+  return insightsCopy.resultingDiagram;
 }
 
 function DiagramDiffLegend({ diff, ariaLabel }) {
@@ -1074,6 +1075,8 @@ export default function InsightsPane({
   explainDumbSurrenderedEntryIds = null,
   onExplainDumbDown
 }) {
+  const { controls } = useUiCopy();
+  const insightsCopy = controls.insights;
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
   const hasLiveAgent = entries.some((e) => (e.status ?? 'running') === 'running');
@@ -1126,17 +1129,17 @@ export default function InsightsPane({
   return (
     <aside
       className={`insights-pane ${slopitectVariantClass} ${closing ? 'is-closing' : ''}`.trim()}
-      aria-label="Thoughts and analysis"
+      aria-label={insightsCopy.paneLabel}
       data-variant={activeVariant || undefined}
     >
       {ceremonySlot}
       <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
         <div className="insights-pane-title-row">
-          <span className="insights-pane-title">Thinking</span>
+          <span className="insights-pane-title">{insightsCopy.title}</span>
           {hasLiveAgent ? (
             <span className="insights-live-badge" aria-live="polite">
               <span className="insights-live-dot" aria-hidden="true" />
-              Live
+              {insightsCopy.live}
             </span>
           ) : null}
         </div>
@@ -1148,20 +1151,19 @@ export default function InsightsPane({
               phases={liveEntry.phases}
               startedAt={liveEntry.startedAt}
               streak={liveStreak}
+              actionLabels={controls.actions}
             />
             <InsightsPanePersonaQuote variant={liveEntry.variant} streaming />
           </div>
         ) : null}
-        <InsightsPaneNowStatusStrip entry={statusEntry} />
+        <InsightsPaneNowStatusStrip entry={statusEntry} insightsCopy={insightsCopy} />
       </header>
       <div ref={bodyRef} className="insights-pane-body" onScroll={handleBodyScroll}>
         {entries.length === 0 ? (
           <>
-            <p className="insights-pane-empty">
-              Agent thoughts and critique responses appear here.
-            </p>
+            <p className="insights-pane-empty">{insightsCopy.empty}</p>
             <aside className="insights-tip-of-the-day" data-testid="slopitect-tip-of-the-day">
-              <span className="insights-tip-of-the-day-label">Slopitect Tip™</span>
+              <span className="insights-tip-of-the-day-label">{insightsCopy.tipLabel}</span>
               {tipForIndex(tipIndex)}
             </aside>
           </>
@@ -1442,7 +1444,7 @@ export default function InsightsPane({
                     {rawStatus === 'running' ? (
                       <span className="insights-working-dot" aria-hidden="true" />
                     ) : null}
-                    {statusLabel(entry)}
+                    {statusLabel(entry, insightsCopy)}
                   </span>
                 </div>
 
@@ -1477,7 +1479,7 @@ export default function InsightsPane({
                   entry={entry}
                   variant={variant}
                   showRawPhaseIds={!phaseIdsHidden}
-                  responseTitle={contentUpdatesTitle(variant)}
+                  responseTitle={contentUpdatesTitle(variant, insightsCopy)}
                   responseHead={
                     <h4
                       className={['insights-section-title', accentSectionTitleClass(variant)]
@@ -1492,10 +1494,10 @@ export default function InsightsPane({
                           >
                             <AccentSectionTitleIcon variant={variant} />
                           </span>
-                          <span>{contentUpdatesTitle(variant)}</span>
+                          <span>{contentUpdatesTitle(variant, insightsCopy)}</span>
                         </>
                       ) : (
-                        contentUpdatesTitle(variant)
+                        contentUpdatesTitle(variant, insightsCopy)
                       )}
                     </h4>
                   }
@@ -1566,9 +1568,11 @@ export default function InsightsPane({
                 {hasAfterPreview ? (
                   <section
                     className="insights-section insights-entry-after-section"
-                    aria-label={resultingPreviewLabel(afterKind)}
+                    aria-label={resultingPreviewLabel(afterKind, insightsCopy)}
                   >
-                    <h4 className="insights-section-title">{resultingPreviewLabel(afterKind)}</h4>
+                    <h4 className="insights-section-title">
+                      {resultingPreviewLabel(afterKind, insightsCopy)}
+                    </h4>
                     <DiagramDiffLegend
                       diff={afterDiff}
                       ariaLabel="Changes since previous version"

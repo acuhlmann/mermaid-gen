@@ -15,6 +15,7 @@ import {
 } from '@archislop/shared';
 import { fetchLabelExplanation } from '../utils/fetchLabelExplanation.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 
 const WISE_ARCHITECT_EMOJI = getVariantPersona('explain').avatarEmoji || '🧙';
@@ -134,6 +135,8 @@ export default function RadialActionMenu({
   onClose
 }) {
   const { controls } = useUiCopy();
+  const radial = controls.radial;
+  const explainDumb = controls.explainDumb;
   const wrapperRef = useRef(null);
   const chipRef = useRef(null);
   const popoverRef = useRef(null);
@@ -345,7 +348,7 @@ export default function RadialActionMenu({
           setExplanation({
             status: 'error',
             text: '',
-            error: 'No explanation came back — try again in a moment.'
+            error: radial.explanationMissing
           });
         }
       })
@@ -355,7 +358,7 @@ export default function RadialActionMenu({
         setExplanation({
           status: 'error',
           text: '',
-          error: err?.message || 'Could not fetch explanation.'
+          error: err?.message || radial.explanationFailed
         });
       });
     return () => {
@@ -370,7 +373,9 @@ export default function RadialActionMenu({
     dumbLevel,
     sessionId,
     explainTarget,
-    explainerSurrendering
+    explainerSurrendering,
+    radial.explanationMissing,
+    radial.explanationFailed
   ]);
 
   const dumbChipLabel = labelExplainDumbChipLabel(dumbLevel);
@@ -696,7 +701,7 @@ export default function RadialActionMenu({
       ref={wrapperRef}
       className={`radial-action-menu${popoverMode ? ' is-popover' : ''}${slopPrompt ? ' is-slop-prompt' : ''}`}
       role="menu"
-      aria-label="Diagram selection actions"
+      aria-label={radial.selectionActions}
       onKeyDown={handleArcKeyDown}
     >
       <div
@@ -800,7 +805,11 @@ export default function RadialActionMenu({
           ref={popoverRef}
           className={`radial-explainer-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}${explainerSurrendering ? ' is-surrendering' : ''}`}
           role="dialog"
-          aria-label={`What does ${explainTarget || 'this'} mean?`}
+          aria-label={
+            explainTarget
+              ? formatLocale(radial.whatDoesMean, { target: explainTarget })
+              : radial.whatDoesThisMean
+          }
           style={{
             left: popoverStyle.left,
             top: popoverStyle.top,
@@ -813,10 +822,10 @@ export default function RadialActionMenu({
         >
           {explainerSurrendering ? (
             <div className="radial-explainer-surrender-debris" aria-hidden="true">
-              <span className="radial-explainer-surrender-tag">OUT OF SCOPE</span>
-              <span className="radial-explainer-surrender-tag">WON&apos;T FIX</span>
-              <span className="radial-explainer-surrender-tag">→ BACKLOG</span>
-              <span className="radial-explainer-surrender-tag">DEPRECATED</span>
+              <span className="radial-explainer-surrender-tag">{radial.outOfScope}</span>
+              <span className="radial-explainer-surrender-tag">{radial.wontFix}</span>
+              <span className="radial-explainer-surrender-tag">{radial.toBacklog}</span>
+              <span className="radial-explainer-surrender-tag">{radial.deprecated}</span>
             </div>
           ) : null}
           <div
@@ -828,28 +837,32 @@ export default function RadialActionMenu({
               onPointerMove={handleDragPointerMove}
               onPointerUp={endDrag}
               onPointerCancel={endDrag}
-              title="Drag to reposition"
+              title={radial.dragToReposition}
             >
               <span
                 className="radial-explainer-eyebrow"
                 role="img"
-                aria-label={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
-                title={explainerSurrendering ? 'Decommissioning' : 'The Wise Architect'}
+                aria-label={explainerSurrendering ? radial.decommissioning : radial.wiseArchitect}
+                title={explainerSurrendering ? radial.decommissioning : radial.wiseArchitect}
               >
                 {explainerSurrendering ? '📋' : WISE_ARCHITECT_EMOJI}
               </span>
               <span className="radial-explainer-heading">
                 <span className="radial-explainer-attribution">
-                  {explainerSurrendering ? 'Scheduling deprecation for' : 'The Wise Architect on'}
+                  {explainerSurrendering ? radial.schedulingDeprecation : radial.wiseArchitectOn}
                 </span>
-                {explainTarget ? <strong>“{explainTarget}”</strong> : <strong>this element</strong>}
+                {explainTarget ? (
+                  <strong>“{explainTarget}”</strong>
+                ) : (
+                  <strong>{radial.thisElement}</strong>
+                )}
               </span>
               <button
                 type="button"
                 className="radial-explainer-close"
                 onClick={() => onClose?.()}
                 disabled={explainerSurrendering}
-                aria-label="Close explanation"
+                aria-label={radial.closeExplanation}
               >
                 ×
               </button>
@@ -879,10 +892,14 @@ export default function RadialActionMenu({
             ) : null}
             {explainerSurrendering ? (
               <p className="radial-explainer-surrender-caption" aria-live="assertive">
-                Moved to the architecture backlog. Won&apos;t fix. 🏳️
+                {explainDumb.surrenderCaption}
               </p>
             ) : null}
-            <div className="radial-explainer-followups" role="group" aria-label="Rephrase options">
+            <div
+              className="radial-explainer-followups"
+              role="group"
+              aria-label={explainDumb.rephraseGroup}
+            >
               <button
                 type="button"
                 className={`radial-explainer-followup is-simple${dumbLevel > 0 ? ' is-active' : ''}${isLabelExplainGiveUpLevel(dumbLevel) ? ' is-give-up' : ''}`}
@@ -891,12 +908,12 @@ export default function RadialActionMenu({
                 aria-pressed={dumbLevel > 0}
                 title={
                   isLabelExplainGiveUpLevel(dumbLevel)
-                    ? 'Decommission this explanation (OUT OF SCOPE)'
+                    ? explainDumb.decommissionTitle
                     : dumbLevel <= 0
-                      ? controls.explainDumb.rephrasePlain
+                      ? explainDumb.rephrasePlain
                       : dumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
-                        ? 'One last try: pre-verbal babble'
-                        : 'Make it even simpler for a younger audience'
+                        ? explainDumb.rephraseGibberish
+                        : explainDumb.rephraseYounger
                 }
               >
                 <span className="radial-explainer-followup-emoji" aria-hidden="true">
@@ -911,12 +928,12 @@ export default function RadialActionMenu({
                   onDrillDeeper?.(descriptor);
                 }}
                 disabled={typeof onDrillDeeper !== 'function' || explainerSurrendering}
-                title="Spin up a full architecture deep-dive in the Thinking panel"
+                title={radial.drillDeeperTitle}
               >
                 <span className="radial-explainer-followup-emoji" aria-hidden="true">
                   🔍
                 </span>
-                <span className="radial-explainer-followup-label">Drill Deeper</span>
+                <span className="radial-explainer-followup-label">{radial.drillDeeper}</span>
               </button>
             </div>
           </div>
@@ -927,7 +944,7 @@ export default function RadialActionMenu({
           ref={popoverRef}
           className={`radial-stakeholders-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}`}
           role="dialog"
-          aria-label="Stakeholders for this element"
+          aria-label={radial.stakeholdersForElement}
           style={{
             left: popoverStyle.left,
             top: popoverStyle.top,
@@ -944,25 +961,23 @@ export default function RadialActionMenu({
             onPointerMove={handleDragPointerMove}
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
-            title="Drag to reposition"
+            title={radial.dragToReposition}
           >
             <span className="radial-stakeholders-eyebrow" aria-hidden="true">
               {STAKEHOLDERS_EMOJI}
             </span>
             <span className="radial-stakeholders-heading">
               {chipName ? (
-                <>
-                  Stakeholders · <strong>{chipName}</strong>
-                </>
+                <>{formatLocale(radial.stakeholdersWithName, { name: chipName })}</>
               ) : (
-                'Stakeholders'
+                radial.stakeholdersHeading
               )}
             </span>
             <button
               type="button"
               className="radial-stakeholders-close"
               onClick={() => onClose?.()}
-              aria-label="Close stakeholders"
+              aria-label={radial.closeStakeholders}
             >
               ×
             </button>
@@ -1011,7 +1026,7 @@ export default function RadialActionMenu({
           ref={popoverRef}
           className={`radial-render-mode-popover${isDragging ? ' is-dragging' : ''}${draggedPlacement ? ' is-repositioned' : ''}`}
           role="dialog"
-          aria-label="Render selected item in another mode"
+          aria-label={radial.renderSelectedInMode}
           style={{
             left: popoverStyle.left,
             top: popoverStyle.top,
@@ -1028,25 +1043,23 @@ export default function RadialActionMenu({
             onPointerMove={handleDragPointerMove}
             onPointerUp={endDrag}
             onPointerCancel={endDrag}
-            title="Drag to reposition"
+            title={radial.dragToReposition}
           >
             <span className="radial-render-mode-eyebrow" aria-hidden="true">
               {RENDER_MODE_EMOJI}
             </span>
             <span className="radial-render-mode-heading">
               {chipName ? (
-                <>
-                  Render <strong>{chipName}</strong> as...
-                </>
+                <>{formatLocale(radial.renderNameAs, { name: chipName })}</>
               ) : (
-                'Render this as...'
+                radial.renderAsHeading
               )}
             </span>
             <button
               type="button"
               className="radial-render-mode-close"
               onClick={() => onClose?.()}
-              aria-label="Close render mode picker"
+              aria-label={radial.closeRenderPicker}
             >
               ×
             </button>
@@ -1067,13 +1080,13 @@ export default function RadialActionMenu({
                 }}
                 aria-label={
                   mode.disabled
-                    ? `${mode.label} is the current mode`
-                    : `Render selected item as ${mode.label}`
+                    ? formatLocale(radial.currentModeIs, { mode: mode.label })
+                    : formatLocale(radial.renderAs, { mode: mode.label })
                 }
                 title={
                   mode.disabled
-                    ? `${mode.label} is already active`
-                    : `Render this selection as ${mode.label}`
+                    ? formatLocale(radial.currentModeActive, { mode: mode.label })
+                    : formatLocale(radial.renderSelectionAs, { mode: mode.label })
                 }
                 data-mode-id={mode.id}
               >
@@ -1083,7 +1096,7 @@ export default function RadialActionMenu({
                 <span className="radial-render-mode-row-text">
                   <span className="radial-render-mode-row-name">{mode.label}</span>
                   <span className="radial-render-mode-row-title">
-                    {mode.disabled ? 'Current mode' : mode.subtitle}
+                    {mode.disabled ? radial.currentMode : mode.subtitle}
                   </span>
                 </span>
               </button>
