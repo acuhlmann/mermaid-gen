@@ -35,3 +35,4 @@ export * from './styleEditsA2uiMessages.js';
 export * from './diagramDiffSummary.js';
 export * from './proposalReviewPayload.js';
 export * from './promptLanguage.js';
+export * from './uiLocale.js';

@@ -7,7 +7,24 @@
  * - Achievement copy + XP rewards.
  *
  * Keep all user-facing strings here so they can be tuned without touching components.
+ * Locale overrides merge at runtime via `setActiveSlopitectBundle`.
  */
+
+let activeSlopitectBundle = null;
+
+/** @param {Record<string, unknown> | null} bundle */
+export function setActiveSlopitectBundle(bundle) {
+  activeSlopitectBundle = bundle;
+}
+
+function slop() {
+  return activeSlopitectBundle;
+}
+
+/** Localized short persona name override when set. */
+export function slopitectShortName(variant) {
+  return slop()?.ACTION_PERSONA_SHORT_NAMES?.[variant] ?? null;
+}
 
 export const VARIANT_PERSONAS = {
   refine: {
@@ -184,7 +201,8 @@ export const VARIANT_QUOTES = {
 };
 
 export function variantQuotes(variant) {
-  return VARIANT_QUOTES[variant] || [];
+  const quotes = slop()?.VARIANT_QUOTES?.[variant] ?? VARIANT_QUOTES[variant];
+  return Array.isArray(quotes) ? quotes : [];
 }
 
 /** Pick a quote by rotation index (stable, no random). */
@@ -205,7 +223,11 @@ const FALLBACK_PERSONA = {
 };
 
 export function getVariantPersona(variant) {
-  return VARIANT_PERSONAS[variant] ?? FALLBACK_PERSONA;
+  return slop()?.VARIANT_PERSONAS?.[variant] ?? VARIANT_PERSONAS[variant] ?? FALLBACK_PERSONA;
+}
+
+export function getVariantTagline(variant) {
+  return slop()?.VARIANT_TAGLINES?.[variant] ?? VARIANT_TAGLINES[variant] ?? '';
 }
 
 /** Full persona line for roster row tooltips (name · title · tagline). */
@@ -322,7 +344,7 @@ export const PHASE_CEREMONIES = {
  */
 export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
   if (!phaseId) return fallbackLabel || '';
-  const row = PHASE_CEREMONIES[phaseId];
+  const row = slop()?.PHASE_CEREMONIES?.[phaseId] ?? PHASE_CEREMONIES[phaseId];
   if (!row) return fallbackLabel || '';
   return row[variant] || fallbackLabel || '';
 }
@@ -364,9 +386,10 @@ export const IDLE_TIPS = [
 
 /** Pick a tip for the given rotation index (stable, no random). */
 export function tipForIndex(index) {
-  if (!IDLE_TIPS.length) return '';
+  const tips = slop()?.IDLE_TIPS ?? IDLE_TIPS;
+  if (!tips.length) return '';
   const safe = Math.max(0, Number.isFinite(index) ? Math.trunc(index) : 0);
-  return IDLE_TIPS[safe % IDLE_TIPS.length];
+  return tips[safe % tips.length];
 }
 
 export const PRESTIGE_TIERS = [
@@ -378,8 +401,9 @@ export const PRESTIGE_TIERS = [
 ];
 
 export function prestigeForTotalRuns(totalRuns) {
-  let best = PRESTIGE_TIERS[0];
-  for (const tier of PRESTIGE_TIERS) {
+  const tiers = slop()?.PRESTIGE_TIERS ?? PRESTIGE_TIERS;
+  let best = tiers[0];
+  for (const tier of tiers) {
     if (totalRuns >= tier.threshold) best = tier;
   }
   return best;
@@ -424,13 +448,14 @@ export const LEVELS = [
  * @returns {LevelInfo}
  */
 export function levelForXp(totalXp) {
+  const levels = slop()?.LEVELS ?? LEVELS;
   const safe = Math.max(0, Number.isFinite(totalXp) ? totalXp : 0);
-  let current = LEVELS[0];
-  for (const tier of LEVELS) {
+  let current = levels[0];
+  for (const tier of levels) {
     if (safe >= tier.xp) current = tier;
   }
-  const idx = LEVELS.indexOf(current);
-  const next = idx + 1 < LEVELS.length ? LEVELS[idx + 1] : null;
+  const idx = levels.indexOf(current);
+  const next = idx + 1 < levels.length ? levels[idx + 1] : null;
   const xpInto = safe - current.xp;
   const xpForNext = next ? next.xp - current.xp : null;
   const isMaxLevel = !next;

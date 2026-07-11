@@ -31,7 +31,7 @@ import {
   phaseCeremonyLabel,
   quoteForRotation,
   tipForIndex,
-  VARIANT_TAGLINES
+  getVariantTagline
 } from '../utils/slopitectCopy.js';
 import {
   accentContentLaneClass,
@@ -343,7 +343,7 @@ function InsightsPanePersonaQuote({ variant, streaming = false }) {
     quoteForRotation(variant, rotationIndex) ||
     persona.entryLine ||
     persona.tagline ||
-    VARIANT_TAGLINES[variant] ||
+    getVariantTagline(variant) ||
     '';
   if (!quote) return null;
 

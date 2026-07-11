@@ -14,6 +14,7 @@ import {
   MAX_LABEL_EXPLAIN_DUMB_LEVEL
 } from '@archislop/shared';
 import { fetchLabelExplanation } from '../utils/fetchLabelExplanation.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 
 const WISE_ARCHITECT_EMOJI = getVariantPersona('explain').avatarEmoji || '🧙';
@@ -132,6 +133,7 @@ export default function RadialActionMenu({
   onBackdropPointerDown,
   onClose
 }) {
+  const { controls } = useUiCopy();
   const wrapperRef = useRef(null);
   const chipRef = useRef(null);
   const popoverRef = useRef(null);
@@ -891,7 +893,7 @@ export default function RadialActionMenu({
                   isLabelExplainGiveUpLevel(dumbLevel)
                     ? 'Decommission this explanation (OUT OF SCOPE)'
                     : dumbLevel <= 0
-                      ? 'Rephrase in plain language — click again for even simpler'
+                      ? controls.explainDumb.rephrasePlain
                       : dumbLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
                         ? 'One last try: pre-verbal babble'
                         : 'Make it even simpler for a younger audience'
@@ -1049,7 +1051,11 @@ export default function RadialActionMenu({
               ×
             </button>
           </div>
-          <div className="radial-render-mode-list" role="menu" aria-label="Target render mode">
+          <div
+            className="radial-render-mode-list"
+            role="menu"
+            aria-label={controls.contentModes.renderMenu}
+          >
             {renderModeOptions.map((mode) => (
               <button
                 key={mode.id}
