@@ -65,6 +65,7 @@ function buildAnalyzeFocusInstructions(focusNode, kind) {
   }
   return buildMermaidAnalyzeFocusInstructions(focusNode, kind);
 }
+import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import {
   repairInfographicWithFixer,
   isInfographicSyntaxFixerAvailable
@@ -268,6 +269,29 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   // Reliability hooks fire at most once each across the entire repair sequence.
   let syntaxFixerTried = false;
   let stableAgentTried = false;
+  let invokeErrored = false;
+
+  const backend = resolveLlmBackend(env);
+  const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
+  let repairAttempts = 0;
+  /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
+  const finishTurn = (sample) => {
+    recordAgentTurn(
+      {
+        contentType: 'infographic',
+        mode: mode ?? 'unknown',
+        model: modelLabel,
+        profile: runProfile,
+        durationMs: Date.now() - turnStarted,
+        accepted: sample.accepted,
+        validator: sample.validator ?? null,
+        repairAttempts,
+        sanitizerHits: 0,
+        errorClass: sample.errorClass ?? null
+      },
+      { env }
+    );
+  };
 
   /**
    * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
@@ -275,12 +299,17 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
    */
   const stopReason = (minRemainingMs = 0) => {
     if (abortSignal?.aborted) {
-      return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
+      return {
+        code: 'run_aborted',
+        message: 'Agent run was stopped before completion.',
+        errorClass: 'run-aborted'
+      };
     }
     if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
       return {
         code: 'run_budget_exceeded',
-        message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
+        message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
+        errorClass: 'budget-exceeded'
       };
     }
     return null;
@@ -293,6 +322,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
       emit({ type: 'error', code: reason.code, message });
     }
+    finishTurn({ accepted: false, errorClass: reason.errorClass });
     return {
       message,
       raw: lastResult,
@@ -313,6 +343,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   }
 
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
+    if (attempt > 0) repairAttempts += 1;
     const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
     if (stop) return finishStoppedRun(stop);
     if (typeof emit === 'function') {
@@ -370,6 +401,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
       const abortStop = stopReason();
       if (abortStop) return finishStoppedRun(abortStop);
       lastError = redactSecrets(error instanceof Error ? error.message : String(error));
+      invokeErrored = true;
       if (typeof emit === 'function') emit({ type: 'error', message: lastError });
       break;
     }
@@ -379,6 +411,10 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     const currentRevision = stateStore.getSlot('infographic').revisionId;
     if (currentRevision !== beforeRevision) {
       // Patch landed — success.
+      finishTurn({
+        accepted: true,
+        validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
+      });
       return {
         message: extractFinalMessage(result) || 'Infographic updated.',
         raw: result,
@@ -387,7 +423,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     }
 
     if (!requirePatch) {
-      // No patch needed (e.g. analyze) — return whatever the agent produced.
+      // No patch needed (e.g. analyze) — not an accept/reject sample, don't record.
       return {
         message: extractFinalMessage(result) || 'Done.',
         raw: result,
@@ -410,6 +446,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
           reason: 'prose-dsl recovery'
         });
         if (applied.accepted) {
+          finishTurn({ accepted: true, validator: 'prose-dsl-recovery' });
           return {
             message: extractFinalMessage(result) || 'Infographic updated.',
             raw: result,
@@ -442,6 +479,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
         const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
         if (fixerStop) return finishStoppedRun(fixerStop);
         syntaxFixerTried = true;
+        repairAttempts += 1;
         emitSyntaxFixerStart(emit, { contentType: 'infographic', triggerError: failureError });
         const fixerOutcome = await repairInfographicWithFixer({
           brokenSource: lastBrokenSource,
@@ -462,6 +500,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
               outcome: 'repaired',
               detail: 'Repaired invalid infographic DSL and applied the patch.'
             });
+            finishTurn({ accepted: true, validator: 'syntax-fixer' });
             return {
               message: 'Infographic updated (repaired by syntax fixer).',
               raw: result,
@@ -533,6 +572,12 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     });
   }
 
+  finishTurn({
+    accepted: false,
+    errorClass: invokeErrored
+      ? 'invoke-error'
+      : (classifyAgentTurnError(lastError) ?? 'no-patch')
+  });
   return {
     message: lastError
       ? `Infographic update failed: ${lastError}`

@@ -27,6 +27,7 @@ import {
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
+import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { repairMetaphorWithFixer, isMetaphorSyntaxFixerAvailable } from './metaphorSyntaxFixer.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
@@ -222,7 +223,30 @@ export function createMetaphorLangChainAgent({
     let lastError = null;
     let lastBrokenSource = null;
     let syntaxFixerTried = false;
+    let invokeErrored = false;
     const agent = buildAgent(runProfile);
+
+    const backend = resolveLlmBackend(env);
+    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
+    let repairAttempts = 0;
+    /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
+    const finishTurn = (sample) => {
+      recordAgentTurn(
+        {
+          contentType: 'metaphor3d',
+          mode: mode ?? 'unknown',
+          model: modelLabel,
+          profile: runProfile,
+          durationMs: Date.now() - turnStarted,
+          accepted: sample.accepted,
+          validator: sample.validator ?? null,
+          repairAttempts,
+          sanitizerHits: 0,
+          errorClass: sample.errorClass ?? null
+        },
+        { env }
+      );
+    };
 
     /**
      * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
@@ -230,12 +254,17 @@ export function createMetaphorLangChainAgent({
      */
     const stopReason = (minRemainingMs = 0) => {
       if (abortSignal?.aborted) {
-        return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
+        return {
+          code: 'run_aborted',
+          message: 'Agent run was stopped before completion.',
+          errorClass: 'run-aborted'
+        };
       }
       if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
         return {
           code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
+          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
+          errorClass: 'budget-exceeded'
         };
       }
       return null;
@@ -248,6 +277,7 @@ export function createMetaphorLangChainAgent({
       if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
         emit({ type: 'error', code: reason.code, message });
       }
+      finishTurn({ accepted: false, errorClass: reason.errorClass });
       return {
         message,
         raw: lastResult,
@@ -268,6 +298,7 @@ export function createMetaphorLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
+      if (attempt > 0) repairAttempts += 1;
       const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
@@ -296,6 +327,7 @@ export function createMetaphorLangChainAgent({
         const abortStop = stopReason();
         if (abortStop) return finishStoppedRun(abortStop);
         lastError = result.error;
+        invokeErrored = true;
         if (typeof emit === 'function') emit({ type: 'error', message: lastError });
         break;
       }
@@ -303,6 +335,10 @@ export function createMetaphorLangChainAgent({
       lastResult = result;
       const currentRevision = stateStore.getSlot('metaphor3d').revisionId;
       if (currentRevision !== beforeRevision) {
+        finishTurn({
+          accepted: true,
+          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
+        });
         return {
           message: extractFinalMessage(result) || 'Metaphor updated.',
           raw: result,
@@ -311,6 +347,7 @@ export function createMetaphorLangChainAgent({
       }
 
       if (!requirePatch) {
+        // Non-mutation runs (no caller today) aren't accept/reject samples — don't record.
         return {
           message: extractFinalMessage(result) || 'Done.',
           raw: result,
@@ -329,6 +366,7 @@ export function createMetaphorLangChainAgent({
             reason: 'prose-dsl recovery'
           });
           if (applied.accepted) {
+            finishTurn({ accepted: true, validator: 'prose-dsl-recovery' });
             return {
               message: extractFinalMessage(result) || 'Metaphor updated.',
               raw: result,
@@ -350,6 +388,7 @@ export function createMetaphorLangChainAgent({
           const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
+          repairAttempts += 1;
           emitSyntaxFixerStart(emit, { contentType: 'metaphor3d', triggerError: failureError });
           const fixerOutcome = await repairMetaphorWithFixer({
             brokenSource: lastBrokenSource,
@@ -370,6 +409,7 @@ export function createMetaphorLangChainAgent({
                 outcome: 'repaired',
                 detail: 'Repaired invalid metaphor DSL and applied the patch.'
               });
+              finishTurn({ accepted: true, validator: 'syntax-fixer' });
               return {
                 message: 'Metaphor updated (repaired by syntax fixer).',
                 raw: result,
@@ -407,6 +447,12 @@ export function createMetaphorLangChainAgent({
       }
     }
 
+    finishTurn({
+      accepted: false,
+      errorClass: invokeErrored
+        ? 'invoke-error'
+        : (classifyAgentTurnError(lastError) ?? 'no-patch')
+    });
     return {
       message: lastError
         ? `Metaphor update failed: ${lastError}`
@@ -436,7 +482,9 @@ export function createMetaphorLangChainAgent({
         emit,
         profile,
         abortSignal,
-        mode: 'intent',
+        // 'go' matches the mermaid/infographic label for prompt-bar intent so
+        // agent_turn dashboards aggregate one vocabulary across slots.
+        mode: 'go',
         focusNode,
         peerContext
       });

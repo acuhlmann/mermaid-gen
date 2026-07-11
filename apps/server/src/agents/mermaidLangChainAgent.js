@@ -451,6 +451,7 @@ async function invokeWithRepair(
   const finishTurn = (sample) => {
     recordAgentTurn(
       {
+        contentType: 'mermaid',
         mode: mode ?? 'unknown',
         model: modelLabel ?? null,
         profile: runProfile,
