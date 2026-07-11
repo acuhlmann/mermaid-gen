@@ -1,0 +1,190 @@
+{
+  "summary": {
+    "tag": "metaphor-baseline",
+    "timestamp": "2026-07-11T04:59:01.144Z",
+    "totalCases": 13,
+    "acceptRate": 61.54,
+    "expectationMatch": 100,
+    "sanitizerRescues": 8,
+    "rescueableHitRate": 100,
+    "latency": {
+      "p50": 0.23,
+      "p95": 3.93,
+      "p99": 3.93,
+      "max": 3.93
+    },
+    "validatorBreakdown": {
+      "metaphor-zod": 8,
+      "rejected": 5
+    }
+  },
+  "results": [
+    {
+      "id": "valid-city",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "city",
+      "sanitizerApplied": [
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 3.93
+    },
+    {
+      "id": "valid-tree",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "tree",
+      "sanitizerApplied": [
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 0.89
+    },
+    {
+      "id": "valid-galaxy",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "galaxy",
+      "sanitizerApplied": [
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 0.64
+    },
+    {
+      "id": "fenced-block",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "city",
+      "sanitizerApplied": [
+        "strip-code-fence",
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 0.29
+    },
+    {
+      "id": "clamp-position",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "city",
+      "sanitizerApplied": [
+        "default-scene",
+        "clamp-position",
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 0.44
+    },
+    {
+      "id": "default-missing-metaphor",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "city",
+      "sanitizerApplied": [
+        "default-metaphor-city",
+        "default-scene",
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 0.16
+    },
+    {
+      "id": "unknown-kind-defaults-city",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "city",
+      "sanitizerApplied": [
+        "default-metaphor-city",
+        "default-scene",
+        "default-links"
+      ],
+      "error": null,
+      "durationMs": 0.08
+    },
+    {
+      "id": "drop-orphan-link",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "metaphor-zod",
+      "metaphor": "city",
+      "sanitizerApplied": [
+        "default-scene",
+        "sanitize-links"
+      ],
+      "error": null,
+      "durationMs": 0.23
+    },
+    {
+      "id": "empty",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "metaphor": null,
+      "sanitizerApplied": [],
+      "error": "Metaphor DSL is empty. Emit a JSON object: {\"metaphor\":\"city|layercake|galaxy|tree|terrain|orrery|river|garden\",\"scene\":{...},\"items\":[...]}.",
+      "durationMs": 0.15
+    },
+    {
+      "id": "not-json",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "metaphor": null,
+      "sanitizerApplied": [],
+      "error": "Metaphor DSL is not valid JSON: Unexpected end of JSON input Emit a JSON object: {\"metaphor\":\"city|layercake|galaxy|tree|terrain|orrery|river|garden\",\"scene\":{...},\"items\":[...]}.",
+      "durationMs": 0.04
+    },
+    {
+      "id": "array-top-level",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "metaphor": null,
+      "sanitizerApplied": [],
+      "error": "Metaphor DSL must be a JSON object, not an array or primitive. Emit a JSON object: {\"metaphor\":\"city|layercake|galaxy|tree|terrain|orrery|river|garden\",\"scene\":{...},\"items\":[...]}.",
+      "durationMs": 0.01
+    },
+    {
+      "id": "primitive",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "metaphor": null,
+      "sanitizerApplied": [],
+      "error": "Metaphor DSL must be a JSON object, not an array or primitive. Emit a JSON object: {\"metaphor\":\"city|layercake|galaxy|tree|terrain|orrery|river|garden\",\"scene\":{...},\"items\":[...]}.",
+      "durationMs": 0
+    },
+    {
+      "id": "bad-field-type",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "metaphor": null,
+      "sanitizerApplied": [],
+      "error": "Metaphor DSL did not match schema: items.0.height: Invalid input: expected number, received object Emit a JSON object: {\"metaphor\":\"city|layercake|galaxy|tree|terrain|orrery|river|garden\",\"scene\":{...},\"items\":[...]}.",
+      "durationMs": 0.79
+    }
+  ]
+}

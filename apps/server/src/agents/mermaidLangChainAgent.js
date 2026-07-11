@@ -451,6 +451,7 @@ async function invokeWithRepair(
   const finishTurn = (sample) => {
     recordAgentTurn(
       {
+        contentType: 'mermaid',
         mode: mode ?? 'unknown',
         model: modelLabel ?? null,
         profile: runProfile,
@@ -966,7 +967,7 @@ ${prompt}${focusScope}`;
       });
     },
 
-    async applyStyleIntent({ prompt, settings }) {
+    async applyStyleIntent({ prompt, settings, abortSignal }) {
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const currentState = stateStore.getSlot('mermaid');
 
@@ -982,7 +983,8 @@ ${prompt}${focusScope}`;
           requirePatch: true,
           mode: 'style',
           profile: 'fast',
-          modelLabel: resolveModelLabel('fast')
+          modelLabel: resolveModelLabel('fast'),
+          abortSignal
         },
         stateStore,
         env

@@ -576,13 +576,19 @@ export async function syncClientDiagramState({
  * the fixer rejected, the revision was stale, or the server isn't configured. Callers should
  * fall back to the heavyweight agent-based fix on `repaired: false`.
  */
-export async function submitDiagramRenderRepair({ revisionId, source, renderError, sessionId }) {
+export async function submitDiagramRenderRepair({
+  revisionId,
+  source,
+  renderError,
+  contentType = 'mermaid',
+  sessionId
+}) {
   const response = await fetchWithTimeout(
     `${API_BASE_URL}/api/diagram/render-error`,
     {
       method: 'POST',
       headers: { 'content-type': 'application/json', ...createSessionHeaders(sessionId) },
-      body: JSON.stringify({ revisionId, source, renderError })
+      body: JSON.stringify({ revisionId, source, renderError, contentType })
     },
     AGENT_REQUEST_TIMEOUT_MS,
     'Render-error repair timed out.'

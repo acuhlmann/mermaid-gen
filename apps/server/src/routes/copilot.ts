@@ -96,12 +96,16 @@ type IntentHandlerDeps = {
   body: DiagramIntentBody;
   stateStore: DiagramStateStore;
   agentService: CopilotAgentService;
+  /** Aborts the agent run if the REST client disconnects mid-flight. */
+  abortSignal?: AbortSignal;
 };
 
 type TransformHandlerDeps = {
   body: DiagramTransformIntentBody;
   stateStore: DiagramStateStore;
   agentService: CopilotAgentService;
+  /** Aborts the agent run if the REST client disconnects mid-flight. */
+  abortSignal?: AbortSignal;
 };
 
 type AnalyzeHandlerDeps = {
@@ -114,6 +118,8 @@ type StyleHandlerDeps = {
   body: StyleIntentBody;
   stateStore: DiagramStateStore;
   agentService: CopilotAgentService;
+  /** Aborts the agent run if the REST client disconnects mid-flight. */
+  abortSignal?: AbortSignal;
 };
 
 type SyncHandlerDeps = {
@@ -150,10 +156,32 @@ function safeErrorMessage(error: unknown): string {
   return redactSecrets(error instanceof Error ? error.message : String(error));
 }
 
+/**
+ * Wire an AbortController to the response lifecycle for a blocking REST agent run.
+ * Express fires `close` on normal completion too, so only a close BEFORE the response
+ * finished (`!res.writableEnded`) is treated as a client disconnect worth aborting —
+ * otherwise an abandoned tab would keep the agent burning its full repair budget to the
+ * deadline. `dispose()` detaches the listener once the handler has responded.
+ */
+function createRestAbortSignal(res: Response): { abortSignal: AbortSignal; dispose: () => void } {
+  const controller = new AbortController();
+  const onClose = () => {
+    if (!res.writableEnded) controller.abort();
+  };
+  res.on('close', onClose);
+  return {
+    abortSignal: controller.signal,
+    dispose: () => {
+      res.off?.('close', onClose);
+    }
+  };
+}
+
 export async function handleDiagramIntent({
   body,
   stateStore,
-  agentService
+  agentService,
+  abortSignal
 }: IntentHandlerDeps): Promise<JsonRouteResult> {
   const parsedIntent = DiagramIntentSchema.safeParse(body);
   if (!parsedIntent.success) {
@@ -186,7 +214,8 @@ export async function handleDiagramIntent({
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
       peerContext: intent.peerContext,
-      transformPersona: intent.transformPersona
+      transformPersona: intent.transformPersona,
+      abortSignal
     });
     const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
@@ -245,7 +274,8 @@ export async function handleDiagramIntent({
 export async function handleDiagramTransformIntent({
   body,
   stateStore,
-  agentService
+  agentService,
+  abortSignal
 }: TransformHandlerDeps): Promise<JsonRouteResult> {
   const parsedIntent = DiagramTransformIntentSchema.safeParse(body);
   if (!parsedIntent.success) {
@@ -277,7 +307,8 @@ export async function handleDiagramTransformIntent({
       focusNode: intent.focusNode,
       modelProfile: intent.modelProfile,
       goMadDepth: intent.goMadDepth,
-      advisorPrompt: intent.advisorPrompt
+      advisorPrompt: intent.advisorPrompt,
+      abortSignal
     });
     const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
@@ -394,7 +425,8 @@ export async function handleDiagramAnalyze({
 export async function handleStyleIntent({
   body,
   stateStore,
-  agentService
+  agentService,
+  abortSignal
 }: StyleHandlerDeps): Promise<JsonRouteResult> {
   const parsedIntent = StyleIntentSchema.safeParse(body);
   if (!parsedIntent.success) {
@@ -432,7 +464,8 @@ export async function handleStyleIntent({
     const agentResult = await agentService.applyStyleIntent({
       prompt: intent.stylePrompt || intent.prompt,
       settings: intent.settings,
-      contentType: intent.contentType
+      contentType: intent.contentType,
+      abortSignal
     });
     const nextState = stateStore.getSlot(intent.contentType);
     const patch = nextState.history.at(-1);
@@ -642,26 +675,38 @@ export function createCopilotRouter({
 
   router.post('/intent', async (req, res) => {
     const { sessionId, stateStore, agentService } = resolveServices(req);
-    const result = await handleDiagramIntent({
-      body: req.body,
-      stateStore,
-      agentService
-    });
+    const { abortSignal, dispose } = createRestAbortSignal(res);
+    try {
+      const result = await handleDiagramIntent({
+        body: req.body,
+        stateStore,
+        agentService,
+        abortSignal
+      });
 
-    res.setHeader(SESSION_HEADER, sessionId);
-    return res.status(result.status).json(result.body);
+      res.setHeader(SESSION_HEADER, sessionId);
+      return res.status(result.status).json(result.body);
+    } finally {
+      dispose();
+    }
   });
 
   router.post('/transform', async (req, res) => {
     const { sessionId, stateStore, agentService } = resolveServices(req);
-    const result = await handleDiagramTransformIntent({
-      body: req.body,
-      stateStore,
-      agentService
-    });
+    const { abortSignal, dispose } = createRestAbortSignal(res);
+    try {
+      const result = await handleDiagramTransformIntent({
+        body: req.body,
+        stateStore,
+        agentService,
+        abortSignal
+      });
 
-    res.setHeader(SESSION_HEADER, sessionId);
-    return res.status(result.status).json(result.body);
+      res.setHeader(SESSION_HEADER, sessionId);
+      return res.status(result.status).json(result.body);
+    } finally {
+      dispose();
+    }
   });
 
   router.post('/analyze', async (req, res) => {
@@ -772,14 +817,20 @@ export function createCopilotRouter({
 
   router.post('/style', async (req, res) => {
     const { sessionId, stateStore, agentService } = resolveServices(req);
-    const result = await handleStyleIntent({
-      body: req.body,
-      stateStore,
-      agentService
-    });
+    const { abortSignal, dispose } = createRestAbortSignal(res);
+    try {
+      const result = await handleStyleIntent({
+        body: req.body,
+        stateStore,
+        agentService,
+        abortSignal
+      });
 
-    res.setHeader(SESSION_HEADER, sessionId);
-    return res.status(result.status).json(result.body);
+      res.setHeader(SESSION_HEADER, sessionId);
+      return res.status(result.status).json(result.body);
+    } finally {
+      dispose();
+    }
   });
 
   // -------------------- External-agent collaboration endpoints --------------------

@@ -28,10 +28,13 @@ export async function validateAndPrepareMetaphorPatch({
   const sanitizerApplied = [...fence.applied, ...sanitized.applied];
 
   if (!sanitized.dsl) {
+    // Relay the sanitizer's root-cause diagnostic verbatim (JSON.parse message or per-field
+    // Zod issues) — the fixer and repair prompts need to see WHICH field failed.
     return {
       accepted: false,
-      error:
-        'Metaphor DSL did not parse. Emit a JSON object: {"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden","scene":{...},"items":[...]}.'
+      error: `${
+        sanitized.error ?? 'Metaphor DSL did not parse.'
+      } Emit a JSON object: {"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden","scene":{...},"items":[...]}.`
     };
   }
 
@@ -67,7 +70,7 @@ export function validateMetaphorStrict(source) {
   if (!sanitized.dsl) {
     return {
       valid: false,
-      error: 'Metaphor DSL did not parse as a valid Zod discriminated union.',
+      error: sanitized.error ?? 'Metaphor DSL did not parse as a valid Zod discriminated union.',
       validator: 'metaphor-zod'
     };
   }

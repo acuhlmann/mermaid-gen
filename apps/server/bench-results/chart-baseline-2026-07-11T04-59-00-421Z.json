@@ -1,0 +1,138 @@
+{
+  "summary": {
+    "tag": "chart-baseline",
+    "timestamp": "2026-07-11T04:59:00.421Z",
+    "totalCases": 13,
+    "acceptRate": 38.46,
+    "expectationMatch": 100,
+    "latency": {
+      "p50": 0.41,
+      "p95": 22.11,
+      "p99": 22.11,
+      "max": 22.11
+    },
+    "validatorBreakdown": {
+      "chart-vega-lite-compile": 5,
+      "rejected": 8
+    }
+  },
+  "results": [
+    {
+      "id": "valid-bar",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "chart-vega-lite-compile",
+      "error": null,
+      "durationMs": 22.11
+    },
+    {
+      "id": "valid-line",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "chart-vega-lite-compile",
+      "error": null,
+      "durationMs": 3.7
+    },
+    {
+      "id": "valid-noir-theme",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "chart-vega-lite-compile",
+      "error": null,
+      "durationMs": 3.02
+    },
+    {
+      "id": "fenced-block",
+      "expectedAccept": true,
+      "rescueable": true,
+      "accepted": true,
+      "validator": "chart-vega-lite-compile",
+      "error": null,
+      "durationMs": 2.53
+    },
+    {
+      "id": "missing-version-defaulted",
+      "expectedAccept": true,
+      "rescueable": false,
+      "accepted": true,
+      "validator": "chart-vega-lite-compile",
+      "error": null,
+      "durationMs": 2.77
+    },
+    {
+      "id": "empty",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Chart DSL was empty.",
+      "durationMs": 0.02
+    },
+    {
+      "id": "not-json",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Chart DSL is not valid JSON: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+      "durationMs": 0.08
+    },
+    {
+      "id": "array-top-level",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Chart DSL did not match wrapper schema: <root>: Invalid input: expected object, received array",
+      "durationMs": 0.46
+    },
+    {
+      "id": "empty-spec",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Chart DSL \"spec\" must be a non-empty Vega-Lite object.",
+      "durationMs": 0.04
+    },
+    {
+      "id": "missing-spec",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Chart DSL did not match wrapper schema: spec: Invalid input: expected record, received undefined",
+      "durationMs": 0.08
+    },
+    {
+      "id": "invalid-theme",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Chart DSL did not match wrapper schema: theme: Invalid option: expected one of \"whiteboard\"|\"noir\"|\"arcade\"|\"blueprint\"",
+      "durationMs": 0.19
+    },
+    {
+      "id": "uncompilable-mark",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Vega-Lite compile() rejected the spec: Cannot read properties of undefined (reading 'filled')",
+      "durationMs": 0.41
+    },
+    {
+      "id": "bad-encoding-type",
+      "expectedAccept": false,
+      "rescueable": false,
+      "accepted": false,
+      "validator": null,
+      "error": "Vega-Lite compile() rejected the spec: Invalid field type \"undefined\".",
+      "durationMs": 0.35
+    }
+  ]
+}

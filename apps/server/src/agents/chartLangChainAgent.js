@@ -20,12 +20,15 @@ import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
   extractLastAttemptedToolSource,
+  extractOriginalRequest,
+  extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
+import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { repairChartWithFixer, isChartSyntaxFixerAvailable } from './chartSyntaxFixer.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
@@ -53,16 +56,6 @@ function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
 }
 
-function extractTextContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map((part) => extractTextContent(part)).join('');
-  if (content && typeof content === 'object') {
-    if (typeof content.text === 'string') return content.text;
-    if (typeof content.content === 'string') return content.content;
-  }
-  return '';
-}
-
 /**
  * Some models emit the chart DSL as a fenced JSON block in prose instead of calling
  * apply_chart_patch. Scan the last assistant message for such a block (or for a bare
@@ -88,19 +81,6 @@ function extractChartDslFromAssistantResult(result) {
       const candidate = raw.slice(braceStart, braceEnd + 1);
       if (candidate.includes('"archislopVersion"')) return candidate.trim();
     }
-  }
-  return null;
-}
-
-function extractOriginalRequest(userMessages) {
-  if (!Array.isArray(userMessages)) return null;
-  for (const m of userMessages) {
-    if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
-    const text =
-      typeof m?.content === 'string'
-        ? m.content
-        : extractTextContent(m?.content ?? m?.kwargs?.content);
-    if (text && text.trim()) return text.trim();
   }
   return null;
 }
@@ -249,7 +229,11 @@ export function createChartLangChainAgent({
       abortSignal,
       mode = null,
       focusNode = null,
-      peerContext = null
+      peerContext = null,
+      // When the caller has a clean short prompt (intent), pass it so the repair
+      // instruction doesn't re-embed the whole current-DSL block that the first
+      // user message carries. Falls back to extracting the first user message.
+      originalRequest: originalRequestOverride = null
     } = opts ?? {};
     const runProfile = normalizeModelProfile(profile);
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'chart');
@@ -263,14 +247,41 @@ export function createChartLangChainAgent({
       startedAt: turnStarted
     });
     const beforeRevision = stateStore.getSlot('chart').revisionId;
-    const originalRequest = extractOriginalRequest(userMessages);
+    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
 
-    let messages = toLangChainMessages(userMessages);
+    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
+    // appending to a growing transcript — otherwise each attempt re-embeds every prior
+    // broken source + repair instruction, blowing up token cost superlinearly (audit F1).
+    const initialMessages = toLangChainMessages(userMessages);
+    let messages = initialMessages;
     let lastResult = null;
     let lastError = null;
     let lastBrokenSource = null;
     let syntaxFixerTried = false;
+    let invokeErrored = false;
     const agent = buildAgent(runProfile);
+
+    const backend = resolveLlmBackend(env);
+    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
+    let repairAttempts = 0;
+    /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
+    const finishTurn = (sample) => {
+      recordAgentTurn(
+        {
+          contentType: 'chart',
+          mode: mode ?? 'unknown',
+          model: modelLabel,
+          profile: runProfile,
+          durationMs: Date.now() - turnStarted,
+          accepted: sample.accepted,
+          validator: sample.validator ?? null,
+          repairAttempts,
+          sanitizerHits: 0,
+          errorClass: sample.errorClass ?? null
+        },
+        { env }
+      );
+    };
 
     /**
      * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
@@ -278,12 +289,17 @@ export function createChartLangChainAgent({
      */
     const stopReason = (minRemainingMs = 0) => {
       if (abortSignal?.aborted) {
-        return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
+        return {
+          code: 'run_aborted',
+          message: 'Agent run was stopped before completion.',
+          errorClass: 'run-aborted'
+        };
       }
       if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
         return {
           code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
+          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
+          errorClass: 'budget-exceeded'
         };
       }
       return null;
@@ -296,6 +312,7 @@ export function createChartLangChainAgent({
       if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
         emit({ type: 'error', code: reason.code, message });
       }
+      finishTurn({ accepted: false, errorClass: reason.errorClass });
       return {
         message,
         raw: lastResult,
@@ -316,6 +333,7 @@ export function createChartLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
+      if (attempt > 0) repairAttempts += 1;
       const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
@@ -344,6 +362,7 @@ export function createChartLangChainAgent({
         const abortStop = stopReason();
         if (abortStop) return finishStoppedRun(abortStop);
         lastError = result.error;
+        invokeErrored = true;
         if (typeof emit === 'function') emit({ type: 'error', message: lastError });
         break;
       }
@@ -351,6 +370,10 @@ export function createChartLangChainAgent({
       lastResult = result;
       const currentRevision = stateStore.getSlot('chart').revisionId;
       if (currentRevision !== beforeRevision) {
+        finishTurn({
+          accepted: true,
+          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
+        });
         return {
           message: extractFinalMessage(result) || 'Chart updated.',
           raw: result,
@@ -359,6 +382,7 @@ export function createChartLangChainAgent({
       }
 
       if (!requirePatch) {
+        // Non-mutation runs (no caller today) aren't accept/reject samples — don't record.
         return {
           message: extractFinalMessage(result) || 'Done.',
           raw: result,
@@ -382,6 +406,7 @@ export function createChartLangChainAgent({
             reason: 'prose-dsl recovery'
           });
           if (applied.accepted) {
+            finishTurn({ accepted: true, validator: 'prose-dsl-recovery' });
             return {
               message: extractFinalMessage(result) || 'Chart updated.',
               raw: result,
@@ -403,6 +428,7 @@ export function createChartLangChainAgent({
           const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
+          repairAttempts += 1;
           emitSyntaxFixerStart(emit, { contentType: 'chart', triggerError: failureError });
           const fixerOutcome = await repairChartWithFixer({
             brokenSource: lastBrokenSource,
@@ -423,6 +449,7 @@ export function createChartLangChainAgent({
                 outcome: 'repaired',
                 detail: 'Repaired invalid chart DSL and applied the patch.'
               });
+              finishTurn({ accepted: true, validator: 'syntax-fixer' });
               return {
                 message: 'Chart updated (repaired by syntax fixer).',
                 raw: result,
@@ -446,7 +473,7 @@ export function createChartLangChainAgent({
         }
 
         messages = [
-          ...messages,
+          ...initialMessages,
           new SystemMessage(
             buildChartRepairInstruction({
               errorMessage: failureError,
@@ -456,10 +483,14 @@ export function createChartLangChainAgent({
           )
         ];
       } else {
-        messages = [...messages, new SystemMessage(CHART_PATCH_REQUIRED_INSTRUCTION)];
+        messages = [...initialMessages, new SystemMessage(CHART_PATCH_REQUIRED_INSTRUCTION)];
       }
     }
 
+    finishTurn({
+      accepted: false,
+      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
+    });
     return {
       message: lastError ? `Chart update failed: ${lastError}` : 'Chart update did not apply.',
       raw: lastResult,
@@ -489,9 +520,12 @@ export function createChartLangChainAgent({
         emit,
         profile,
         abortSignal,
-        mode: 'intent',
+        // 'go' matches the mermaid/infographic label for prompt-bar intent so
+        // agent_turn dashboards aggregate one vocabulary across slots.
+        mode: 'go',
         focusNode,
-        peerContext
+        peerContext,
+        originalRequest: prompt
       });
     },
 
@@ -537,7 +571,7 @@ export function createChartLangChainAgent({
       });
     },
 
-    async applyStyleIntent({ prompt, modelProfile, emit }) {
+    async applyStyleIntent({ prompt, modelProfile, emit, abortSignal }) {
       const slot = stateStore.getSlot('chart');
       if (!slot.diagramSource?.trim()) {
         return { message: 'Nothing to style — generate a chart first.', raw: null };
@@ -558,6 +592,7 @@ export function createChartLangChainAgent({
         requirePatch: true,
         emit,
         profile,
+        abortSignal,
         mode: 'style'
       });
     },

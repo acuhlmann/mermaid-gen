@@ -16,6 +16,7 @@ test('recordAgentTurn emits structured line when enabled', () => {
   const lines = [];
   const out = recordAgentTurn(
     {
+      contentType: 'chart',
       mode: 'goMad',
       model: 'qwen/qwen3-235b-a22b',
       profile: 'quality',
@@ -31,11 +32,22 @@ test('recordAgentTurn emits structured line when enabled', () => {
   assert.equal(lines.length, 1);
   const parsed = JSON.parse(lines[0]);
   assert.equal(parsed.tag, 'agent_turn');
+  assert.equal(parsed.contentType, 'chart');
   assert.equal(parsed.mode, 'goMad');
   assert.equal(parsed.durationMs, 1287);
   assert.equal(parsed.validator, 'sanitizer-rescue');
   assert.equal(parsed.sanitizerHits, 2);
   assert.equal(out.accepted, true);
+});
+
+test('recordAgentTurn defaults contentType to mermaid when omitted', () => {
+  const lines = [];
+  recordAgentTurn(
+    { mode: 'go', accepted: true, durationMs: 5 },
+    { env: { MERMAID_METRICS: '1' }, sink: (line) => lines.push(line) }
+  );
+  assert.equal(lines.length, 1);
+  assert.equal(JSON.parse(lines[0]).contentType, 'mermaid');
 });
 
 test('classifyAgentTurnError buckets common failures', () => {

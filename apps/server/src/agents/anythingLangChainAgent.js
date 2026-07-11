@@ -17,12 +17,15 @@ import {
   captureMessagesFromStreamEvent,
   extractFinalMessage,
   extractLastAttemptedToolSource,
+  extractOriginalRequest,
+  extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
+import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
 import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
@@ -43,16 +46,6 @@ const ANYTHING_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not appl
 
 function defaultChatModelFactory(env, options) {
   return createLlmChatModel(env, options);
-}
-
-function extractTextContent(content) {
-  if (typeof content === 'string') return content;
-  if (Array.isArray(content)) return content.map((part) => extractTextContent(part)).join('');
-  if (content && typeof content === 'object') {
-    if (typeof content.text === 'string') return content.text;
-    if (typeof content.content === 'string') return content.content;
-  }
-  return '';
 }
 
 /**
@@ -80,19 +73,6 @@ function extractHtmlFromAssistantResult(result) {
       const end = tailEnd !== -1 ? tailEnd + '</html>'.length : raw.length;
       return raw.slice(docStart, end).trim();
     }
-  }
-  return null;
-}
-
-function extractOriginalRequest(userMessages) {
-  if (!Array.isArray(userMessages)) return null;
-  for (const m of userMessages) {
-    if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
-    const text =
-      typeof m?.content === 'string'
-        ? m.content
-        : extractTextContent(m?.content ?? m?.kwargs?.content);
-    if (text && text.trim()) return text.trim();
   }
   return null;
 }
@@ -219,7 +199,13 @@ export function createAnythingLangChainAgent({
       abortSignal,
       mode = null,
       focusNode = null,
-      peerContext = null
+      peerContext = null,
+      // When the caller has a clean short prompt (intent), pass it so the repair
+      // instruction doesn't re-embed the whole current-document block that the first
+      // user message carries — anything docs run up to ANYTHING_HTML_MAX_LENGTH, so
+      // this is the single largest avoidable payload in the repair prompt. Falls back
+      // to extracting the first user message.
+      originalRequest: originalRequestOverride = null
     } = opts ?? {};
     const runProfile = normalizeModelProfile(profile);
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'anything');
@@ -233,14 +219,41 @@ export function createAnythingLangChainAgent({
       startedAt: turnStarted
     });
     const beforeRevision = stateStore.getSlot('anything').revisionId;
-    const originalRequest = extractOriginalRequest(userMessages);
+    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
 
-    let messages = toLangChainMessages(userMessages);
+    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
+    // appending to a growing transcript — otherwise attempt 2 can carry 4+ copies of a
+    // ~200 KB document, blowing up token cost superlinearly (audit F1).
+    const initialMessages = toLangChainMessages(userMessages);
+    let messages = initialMessages;
     let lastResult = null;
     let lastError = null;
     let lastBrokenSource = null;
     let syntaxFixerTried = false;
+    let invokeErrored = false;
     const agent = buildAgent(runProfile);
+
+    const backend = resolveLlmBackend(env);
+    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
+    let repairAttempts = 0;
+    /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
+    const finishTurn = (sample) => {
+      recordAgentTurn(
+        {
+          contentType: 'anything',
+          mode: mode ?? 'unknown',
+          model: modelLabel,
+          profile: runProfile,
+          durationMs: Date.now() - turnStarted,
+          accepted: sample.accepted,
+          validator: sample.validator ?? null,
+          repairAttempts,
+          sanitizerHits: 0,
+          errorClass: sample.errorClass ?? null
+        },
+        { env }
+      );
+    };
 
     /**
      * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
@@ -248,12 +261,17 @@ export function createAnythingLangChainAgent({
      */
     const stopReason = (minRemainingMs = 0) => {
       if (abortSignal?.aborted) {
-        return { code: 'run_aborted', message: 'Agent run was stopped before completion.' };
+        return {
+          code: 'run_aborted',
+          message: 'Agent run was stopped before completion.',
+          errorClass: 'run-aborted'
+        };
       }
       if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
         return {
           code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs)
+          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
+          errorClass: 'budget-exceeded'
         };
       }
       return null;
@@ -266,6 +284,7 @@ export function createAnythingLangChainAgent({
       if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
         emit({ type: 'error', code: reason.code, message });
       }
+      finishTurn({ accepted: false, errorClass: reason.errorClass });
       return {
         message,
         raw: lastResult,
@@ -286,6 +305,7 @@ export function createAnythingLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
+      if (attempt > 0) repairAttempts += 1;
       const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
@@ -314,6 +334,7 @@ export function createAnythingLangChainAgent({
         const abortStop = stopReason();
         if (abortStop) return finishStoppedRun(abortStop);
         lastError = result.error;
+        invokeErrored = true;
         if (typeof emit === 'function') emit({ type: 'error', message: lastError });
         break;
       }
@@ -321,6 +342,10 @@ export function createAnythingLangChainAgent({
       lastResult = result;
       const currentRevision = stateStore.getSlot('anything').revisionId;
       if (currentRevision !== beforeRevision) {
+        finishTurn({
+          accepted: true,
+          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
+        });
         return {
           message: extractFinalMessage(result) || 'Page updated.',
           raw: result,
@@ -329,6 +354,7 @@ export function createAnythingLangChainAgent({
       }
 
       if (!requirePatch) {
+        // Non-mutation runs (no caller today) aren't accept/reject samples — don't record.
         return {
           message: extractFinalMessage(result) || 'Done.',
           raw: result,
@@ -352,6 +378,7 @@ export function createAnythingLangChainAgent({
             reason: 'prose-html recovery'
           });
           if (applied.accepted) {
+            finishTurn({ accepted: true, validator: 'prose-html-recovery' });
             return {
               message: extractFinalMessage(result) || 'Page updated.',
               raw: result,
@@ -373,6 +400,7 @@ export function createAnythingLangChainAgent({
           const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
           if (fixerStop) return finishStoppedRun(fixerStop);
           syntaxFixerTried = true;
+          repairAttempts += 1;
           emitSyntaxFixerStart(emit, { contentType: 'anything', triggerError: failureError });
           const fixerOutcome = await repairAnythingWithFixer({
             brokenSource: lastBrokenSource,
@@ -393,6 +421,7 @@ export function createAnythingLangChainAgent({
                 outcome: 'repaired',
                 detail: 'Repaired invalid page HTML and applied the patch.'
               });
+              finishTurn({ accepted: true, validator: 'syntax-fixer' });
               return {
                 message: 'Page updated (repaired by syntax fixer).',
                 raw: result,
@@ -416,7 +445,7 @@ export function createAnythingLangChainAgent({
         }
 
         messages = [
-          ...messages,
+          ...initialMessages,
           new SystemMessage(
             buildAnythingRepairInstruction({
               errorMessage: failureError,
@@ -426,10 +455,14 @@ export function createAnythingLangChainAgent({
           )
         ];
       } else {
-        messages = [...messages, new SystemMessage(ANYTHING_PATCH_REQUIRED_INSTRUCTION)];
+        messages = [...initialMessages, new SystemMessage(ANYTHING_PATCH_REQUIRED_INSTRUCTION)];
       }
     }
 
+    finishTurn({
+      accepted: false,
+      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
+    });
     return {
       message: lastError ? `Page update failed: ${lastError}` : 'Page update did not apply.',
       raw: lastResult,
@@ -457,9 +490,12 @@ export function createAnythingLangChainAgent({
         emit,
         profile,
         abortSignal,
-        mode: 'intent',
+        // 'go' matches the mermaid/infographic label for prompt-bar intent so
+        // agent_turn dashboards aggregate one vocabulary across slots.
+        mode: 'go',
         focusNode,
-        peerContext
+        peerContext,
+        originalRequest: prompt
       });
     },
 

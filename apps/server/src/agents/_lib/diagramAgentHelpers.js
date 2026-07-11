@@ -390,5 +390,26 @@ export function extractLastAttemptedToolSource(result, toolName) {
   return null;
 }
 
+/**
+ * Best-effort extraction of the user's request text from the message bag that drives a
+ * turn — the first non-empty user message. Shared by the infographic/chart/metaphor/anything
+ * agents (each carried an identical copy) so the repair-instruction builders have one source.
+ *
+ * @param {unknown} userMessages
+ * @returns {string | null}
+ */
+export function extractOriginalRequest(userMessages) {
+  if (!Array.isArray(userMessages)) return null;
+  for (const m of userMessages) {
+    if ((m?.role ?? m?.kwargs?.role) !== 'user') continue;
+    const text =
+      typeof m?.content === 'string'
+        ? m.content
+        : extractTextContent(m?.content ?? m?.kwargs?.content);
+    if (text && text.trim()) return text.trim();
+  }
+  return null;
+}
+
 /** Re-exported so callers don't need a second import for the common case. */
 export { extractTextContent };

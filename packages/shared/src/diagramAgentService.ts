@@ -79,6 +79,8 @@ export interface ApplyStyleIntentInput {
   contentType?: ContentType;
   modelProfile?: ModelProfile;
   emit?: AgentStreamEmit;
+  /** Aborts the run when the REST client disconnects, so an abandoned run stops burning budget. */
+  abortSignal?: AbortSignal;
 }
 
 export type AgentStreamOperation = 'intent' | 'transform' | 'analyze';

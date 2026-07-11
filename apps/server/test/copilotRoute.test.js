@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import express from 'express';
 import { LlmNotConfiguredError } from '../src/agents/mermaidLangChainAgent.js';
 import {
+  createCopilotRouter,
   handleClientStateSync,
   handleDiagramAnalyze,
   handleDiagramIntent,
@@ -380,6 +382,148 @@ test('style route returns 503 when LLM is not configured', async () => {
 
   assert.equal(result.status, 503);
   assert.match(result.body.error, /No LLM backend is configured/);
+});
+
+test('intent handler forwards the abortSignal to the agent service', async () => {
+  const stateStore = createDiagramStateStore();
+  const controller = new AbortController();
+  let received;
+  const agentService = {
+    async applyIntent(input) {
+      received = input;
+      return { message: 'ok' };
+    }
+  };
+
+  await handleDiagramIntent({
+    body: intentPayload(),
+    stateStore,
+    agentService,
+    abortSignal: controller.signal
+  });
+
+  assert.equal(received.abortSignal, controller.signal);
+});
+
+test('transform handler forwards the abortSignal to the agent service', async () => {
+  const stateStore = createDiagramStateStore();
+  const controller = new AbortController();
+  let received;
+  const agentService = {
+    async applyTransformIntent(input) {
+      received = input;
+      return { message: 'ok' };
+    }
+  };
+
+  await handleDiagramTransformIntent({
+    body: {
+      revisionId: 0,
+      diagramSource: 'flowchart TD\n  Start[Start] --> EndNode[End]',
+      contentType: 'mermaid',
+      mode: 'refine'
+    },
+    stateStore,
+    agentService,
+    abortSignal: controller.signal
+  });
+
+  assert.equal(received.abortSignal, controller.signal);
+});
+
+test('style handler forwards the abortSignal to the agent service', async () => {
+  const stateStore = createDiagramStateStore();
+  const controller = new AbortController();
+  let received;
+  const agentService = {
+    async applyStyleIntent(input) {
+      received = input;
+      return { message: 'ok' };
+    }
+  };
+
+  await handleStyleIntent({
+    body: {
+      ...intentPayload({ prompt: 'Make it dark' }),
+      stylePrompt: 'Make it dark'
+    },
+    stateStore,
+    agentService,
+    abortSignal: controller.signal
+  });
+
+  assert.equal(received.abortSignal, controller.signal);
+});
+
+test('intent route aborts the agent run when the client disconnects mid-flight', async () => {
+  const stateStore = createDiagramStateStore();
+  let sawAbort = false;
+  let started = () => {};
+  const startedPromise = new Promise((resolve) => {
+    started = resolve;
+  });
+  const agentService = {
+    async applyIntent(input) {
+      started();
+      // Block until the REST client disconnects (or a safety timeout the test never
+      // reaches on the happy path). The route wires res 'close' → controller.abort().
+      await new Promise((resolve) => {
+        if (input.abortSignal?.aborted) {
+          sawAbort = true;
+          return resolve();
+        }
+        input.abortSignal?.addEventListener('abort', () => {
+          sawAbort = true;
+          resolve();
+        });
+        setTimeout(resolve, 5000);
+      });
+      return { message: 'run finished without applying a patch' };
+    }
+  };
+
+  const app = express();
+  app.use(express.json());
+  app.use(
+    '/api/copilotkit',
+    createCopilotRouter({
+      resolveServices: () => ({ sessionId: 'abort-session', stateStore, agentService }),
+      pairingCodeStore: { getOrCreateCode: () => 'ABCDEF' },
+      sessionRegistry: { getSessionServices: () => ({}) }
+    })
+  );
+  // Swallow the post-abort write error express surfaces when the handler responds on a
+  // socket the client already closed — it's expected here, not a test failure.
+  app.use((_err, _req, res, next) => {
+    if (res.headersSent) return next();
+    res.status(500).end();
+  });
+
+  const server = app.listen(0);
+  await new Promise((resolve) => server.once('listening', resolve));
+  const port = server.address().port;
+
+  try {
+    const controller = new AbortController();
+    const reqPromise = fetch(`http://127.0.0.1:${port}/api/copilotkit/intent`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(intentPayload()),
+      signal: controller.signal
+    }).catch(() => null);
+
+    // Abort only after the server has actually started the agent run.
+    await startedPromise;
+    controller.abort();
+
+    await reqPromise;
+    // Give the server's 'close' handler a tick to fire.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(sawAbort, true, 'agent run should observe the abort on client disconnect');
+  } finally {
+    server.closeAllConnections?.();
+    await new Promise((resolve) => server.close(resolve));
+  }
 });
 
 test('client state sync route updates backend source', async () => {

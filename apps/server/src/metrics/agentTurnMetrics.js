@@ -23,11 +23,13 @@ function sanitizeShortString(value, max = 120) {
  * Emits a single structured JSON line per completed agent turn so before/after benchmarks
  * are comparable across phases. Disabled by default; opt in by setting MERMAID_METRICS=1.
  *
- * Shape stays stable so log shippers can index on it:
- *   { tag, ts, mode, model, profile, durationMs, accepted, validator,
+ * Shape stays stable so log shippers can index on it (contentType was added
+ * additively — every slot's agent emits records now, not just mermaid):
+ *   { tag, ts, contentType, mode, model, profile, durationMs, accepted, validator,
  *     repairAttempts, sanitizerHits, errorClass }
  *
  * @param {{
+ *   contentType?: string,
  *   mode?: string,
  *   model?: string,
  *   profile?: string,
@@ -47,6 +49,7 @@ export function recordAgentTurn(sample, opts = {}) {
   const record = {
     tag: METRIC_TAG,
     ts: new Date().toISOString(),
+    contentType: sanitizeShortString(sample.contentType) ?? 'mermaid',
     mode: sanitizeShortString(sample.mode) ?? 'unknown',
     model: sanitizeShortString(sample.model) ?? null,
     profile: sanitizeShortString(sample.profile) ?? null,
