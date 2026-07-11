@@ -1,4 +1,4 @@
-import { describeAnythingLibsForPrompt } from '@archislop/shared';
+import { describeAnythingLibsForPrompt, MATCH_USER_LANGUAGE_RULE } from '@archislop/shared';
 import { ANYTHING_DESIGN_GUIDE } from './anythingDesignGuide.js';
 
 /**
@@ -48,6 +48,10 @@ Mode notes:
 - Exec: execute the requested change tightly. No additions beyond the implied scope.
 - Critique / Explain: respond in prose; do NOT call any apply tool.
 - Fix: repair the document so it renders; preserve the user's intent.
+
+Language:
+- ${MATCH_USER_LANGUAGE_RULE}
+- All visible copy in the HTML (headings, labels, button text, instructions) must use the same language as the user's request.
 
 Applying changes (two tools, same validation either way):
 - apply_anything_patch — full-document rewrite. Use it for first builds, Innovate, Go Mad, and any restructure that touches most of the page.

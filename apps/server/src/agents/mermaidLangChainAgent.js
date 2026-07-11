@@ -2,6 +2,11 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { createAgent } from 'langchain';
 import { createDiagramTools } from './diagramTools.js';
 import { isSyntaxValidationError, looksLikeMermaid } from './mermaidReliabilitySkill.js';
+import {
+  appendLanguageInstruction,
+  appendProseLanguageInstruction,
+  MATCH_USER_LANGUAGE_RULE
+} from '@archislop/shared';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { computeLineDiffStats } from '../utils/patchLineStats.js';
 import { createDiagramAgentMiddleware } from './agentGraphConfig.js';
@@ -194,6 +199,9 @@ Mode boundary (Mermaid is for relationships and flow):
 - Mermaid is the right fit for flowcharts, sequence diagrams, class/state diagrams, ER diagrams, journeys, timelines, gantt — anything where nodes-and-edges or ordered steps carry the meaning.
 - If the user is asking for a *data visualization* (bar chart, line chart, scatter, heatmap, etc.), the chart mode (Vega-Lite) is the better fit; you may briefly say so in prose, but still answer in Mermaid if the user explicitly stayed in this mode.
 - If the user is asking for a *narrative infographic* (hero numbers, KPI tiles, summary panels), the infographic mode is the better fit; same guidance.
+
+${MATCH_USER_LANGUAGE_RULE}
+- When the user's request is in Chinese (or another non-English language), keep all diagram labels, node text, and prose summaries in that same language — never translate unprompted.
 
 When the user asks a general question, answer concisely.`;
 
@@ -889,7 +897,8 @@ export function createMermaidLangChainAgent({
       const resolvedSettings = { ...INTENT_PROFILE_DEFAULTS, ...settings };
       const focusScope = buildFocusScopeInstructions(focusNode);
 
-      const userContent = `Interpret and apply the user's requested diagram change strictly according to their wording.
+      const userContent = appendLanguageInstruction(
+        `Interpret and apply the user's requested diagram change strictly according to their wording.
 
 Broad or short requests (for example a single topic name) still require a concrete diagram now: choose a sensible default overview (main entities and flows) instead of asking the user for clarification.
 
@@ -901,7 +910,10 @@ Settings (response shaping only):
 - persona: ${resolvedSettings.persona}
 
 User request:
-${prompt}${focusScope}`;
+${prompt}${focusScope}`,
+        prompt,
+        stateStore.getSlot('mermaid').diagramSource
+      );
 
       const agent = getDefaultAgent(modelProfile);
       return invokeMutation(
@@ -941,13 +953,18 @@ ${prompt}${focusScope}`;
           [
             {
               role: 'user',
-              content: buildTransformUserContent({
-                mode,
-                diagramSource: currentState.diagramSource,
-                focusScope,
-                goMadDepth,
+              content: appendLanguageInstruction(
+                buildTransformUserContent({
+                  mode,
+                  diagramSource: currentState.diagramSource,
+                  focusScope,
+                  goMadDepth,
+                  advisorPrompt
+                }),
+                currentState.lastUserPrompt,
+                currentState.diagramSource,
                 advisorPrompt
-              })
+              )
             }
           ],
           {
@@ -1002,6 +1019,12 @@ ${prompt}${focusScope}`;
       const scopedTask = stakeholderBlock ? `${task}${stakeholderBlock}` : task;
       const humanPrefix = focusNode?.id ? `${focusScope.trim()}\n\n` : '';
       const diagramBlock = `\`\`\`mermaid\n${state.diagramSource}\n\`\`\``;
+      const analysisBody = appendProseLanguageInstruction(
+        `${humanPrefix}${scopedTask}\n\n${diagramBlock}`,
+        state.lastUserPrompt,
+        state.diagramSource,
+        advisorPrompt
+      );
 
       const profile = normalizeModelProfile(modelProfile);
       const backend = resolveLlmBackend(env);
@@ -1012,10 +1035,7 @@ ${prompt}${focusScope}`;
         kind === 'critique'
           ? `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_CRITIQUE_SYSTEM_APPEND}`
           : `${ANALYSIS_SYSTEM_PROMPT}${ANALYSIS_EXPLAIN_SYSTEM_APPEND}`;
-      const messages = [
-        new SystemMessage(analysisSystem),
-        new HumanMessage(`${humanPrefix}${scopedTask}\n\n${diagramBlock}`)
-      ];
+      const messages = [new SystemMessage(analysisSystem), new HumanMessage(analysisBody)];
 
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'analyze_stream', label: 'Streaming analysis…' });

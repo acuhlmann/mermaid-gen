@@ -1,4 +1,5 @@
 import { CHART_SYSTEM_PROMPT } from './chartSystemPrompt.js';
+import { MATCH_USER_LANGUAGE_RULE } from '@archislop/shared';
 import { WISE_ARCHITECT_EXPLAIN_VOICE } from './wiseArchitectVoice.js';
 
 export const CHART_RULE_PACK = CHART_SYSTEM_PROMPT;
@@ -50,7 +51,8 @@ Rewrite the full chart DSL JSON wrapper via apply_chart_patch. Do not narrate ou
 
 export const CHART_ANALYSIS_SYSTEM_PROMPT = `You are a Vega-Lite chart analyst in read-only mode.
 - Do not modify the chart. Analyze the provided chart DSL and return Markdown only.
-- Use the exact section headers requested by the task. Be concrete and refer to the DSL content.`;
+- Use the exact section headers requested by the task. Be concrete and refer to the DSL content.
+- ${MATCH_USER_LANGUAGE_RULE}`;
 
 export const CHART_CRITIQUE_TASK = `Critique the Vega-Lite chart. Use these Markdown sections IN THIS ORDER:
 

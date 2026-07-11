@@ -4,6 +4,11 @@ import { createChartTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { CHART_SYSTEM_PROMPT } from '../prompts/chartSystemPrompt.js';
 import {
+  appendLanguageInstruction,
+  appendProseLanguageInstruction,
+  MATCH_USER_LANGUAGE_RULE
+} from '@archislop/shared';
+import {
   buildChartRepairInstruction,
   CHART_ANALYSIS_SYSTEM_PROMPT,
   CHART_CRITIQUE_TASK,
@@ -100,7 +105,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext, focusScope })
   }
   if (focusScope?.trim()) parts.push(focusScope.trim());
   parts.push('Call apply_chart_patch with the full JSON wrapper.');
-  return parts.join('\n\n');
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl);
 }
 
 export function buildChartTransformUserContent({
@@ -129,16 +134,27 @@ export function buildChartTransformUserContent({
     .join('\n\n');
 }
 
-export function buildChartAnalyzeUserContent({ kind, currentDsl, focusScope, advisorPrompt }) {
+export function buildChartAnalyzeUserContent({
+  kind,
+  currentDsl,
+  focusScope,
+  advisorPrompt,
+  lastUserPrompt
+}) {
   const task = kind === 'critique' ? CHART_CRITIQUE_TASK : CHART_EXPLAIN_TASK;
-  return [
-    task,
-    focusScope,
-    buildAdvisorSuggestionBlock(advisorPrompt),
-    `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+  return appendProseLanguageInstruction(
+    [
+      task,
+      focusScope,
+      buildAdvisorSuggestionBlock(advisorPrompt),
+      `Current chart DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
+    lastUserPrompt,
+    currentDsl,
+    advisorPrompt
+  );
 }
 
 /** Style intent for chart — bounded vocabulary (theme swap, color scheme, axis gridlines,
@@ -547,13 +563,18 @@ export function createChartLangChainAgent({
       const userMessages = [
         {
           role: 'user',
-          content: buildChartTransformUserContent({
-            mode,
-            currentDsl: slot.diagramSource,
-            goMadDepth,
-            advisorPrompt,
-            focusScope
-          })
+          content: appendLanguageInstruction(
+            buildChartTransformUserContent({
+              mode,
+              currentDsl: slot.diagramSource,
+              goMadDepth,
+              advisorPrompt,
+              focusScope
+            }),
+            slot.lastUserPrompt,
+            slot.diagramSource,
+            advisorPrompt
+          )
         }
       ];
 
@@ -612,7 +633,8 @@ export function createChartLangChainAgent({
             kind,
             currentDsl: slot.diagramSource,
             focusScope,
-            advisorPrompt
+            advisorPrompt,
+            lastUserPrompt: slot.lastUserPrompt
           })
         )
       ];

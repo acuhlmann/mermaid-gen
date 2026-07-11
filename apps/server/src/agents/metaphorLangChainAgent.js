@@ -3,6 +3,7 @@ import { createAgent } from 'langchain';
 import { createMetaphorTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
 import { METAPHOR_SYSTEM_PROMPT } from '../prompts/metaphorSystemPrompt.js';
+import { appendLanguageInstruction, appendProseLanguageInstruction } from '@archislop/shared';
 import {
   buildMetaphorRepairInstruction,
   METAPHOR_ANALYSIS_SYSTEM_PROMPT,
@@ -95,7 +96,7 @@ function buildIntentUserContent({ prompt, currentDsl, peerContext }) {
     );
   }
   parts.push('Call apply_metaphor_patch with the full JSON DSL.');
-  return parts.join('\n\n');
+  return appendLanguageInstruction(parts.join('\n\n'), prompt, currentDsl);
 }
 
 function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
@@ -114,11 +115,16 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
   ].join('\n\n');
 }
 
-function buildAnalyzeUserContent({ kind, currentDsl, focusScope }) {
+function buildAnalyzeUserContent({ kind, currentDsl, focusScope, lastUserPrompt, advisorPrompt }) {
   const task = kind === 'critique' ? METAPHOR_CRITIQUE_TASK : METAPHOR_EXPLAIN_TASK;
-  return [task, focusScope, `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
-    .filter(Boolean)
-    .join('\n\n');
+  return appendProseLanguageInstruction(
+    [task, focusScope, `Current metaphor DSL:\n\n\`\`\`json\n${currentDsl}\n\`\`\``]
+      .filter(Boolean)
+      .join('\n\n'),
+    lastUserPrompt,
+    currentDsl,
+    advisorPrompt
+  );
 }
 
 export function createMetaphorLangChainAgent({
@@ -485,11 +491,15 @@ export function createMetaphorLangChainAgent({
       const userMessages = [
         {
           role: 'user',
-          content: buildTransformUserContent({
-            mode,
-            currentDsl: slot.diagramSource,
-            goMadDepth
-          })
+          content: appendLanguageInstruction(
+            buildTransformUserContent({
+              mode,
+              currentDsl: slot.diagramSource,
+              goMadDepth
+            }),
+            slot.lastUserPrompt,
+            slot.diagramSource
+          )
         }
       ];
 
@@ -518,7 +528,12 @@ export function createMetaphorLangChainAgent({
       const messages = [
         new SystemMessage(METAPHOR_ANALYSIS_SYSTEM_PROMPT),
         new HumanMessage(
-          buildAnalyzeUserContent({ kind, currentDsl: slot.diagramSource, focusScope })
+          buildAnalyzeUserContent({
+            kind,
+            currentDsl: slot.diagramSource,
+            focusScope,
+            lastUserPrompt: slot.lastUserPrompt
+          })
         )
       ];
 

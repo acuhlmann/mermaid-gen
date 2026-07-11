@@ -8,7 +8,12 @@
  */
 
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { fallbackLabelGibberish, getLabelExplainDumbLevel } from '@archislop/shared';
+import {
+  fallbackLabelGibberish,
+  getLabelExplainDumbLevel,
+  appendProseLanguageInstruction,
+  MATCH_USER_LANGUAGE_RULE
+} from '@archislop/shared';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -31,7 +36,8 @@ const SYSTEM_PROMPT = [
   '- Plain text only. No markdown, no quotes, no bullet lists, no preamble like "This means" or "It refers to".',
   '- Max 30 words. One sentence.',
   '- If the label is a well-known concept in its subject (HTTP / OAuth in software; Maillard / mise en place in cooking; PERT / critical path in planning; etc.), give the standard one-line definition tied to its likely role here.',
-  '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
+  '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".',
+  `- ${MATCH_USER_LANGUAGE_RULE}`
 ].join('\n');
 
 function buildSimpleSystemPrompt(simpleLevel = 1) {
@@ -53,7 +59,8 @@ function buildSimpleSystemPrompt(simpleLevel = 1) {
     extra,
     '- Plain text only. No markdown, no quotes, no preambles like "This means".',
     `- Max ${maxWords} words. One sentence. Avoid acronyms — expand them or skip them.`,
-    '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".'
+    '- If you genuinely cannot tell, write a short guess starting with "Looks like" or "Probably".',
+    `- ${MATCH_USER_LANGUAGE_RULE}`
   ].join('\n');
 }
 
@@ -163,7 +170,9 @@ export function buildLabelExplainerUserPrompt({
       `Reply with ONE short plain-text sentence (max 30 words) explaining what "${target}" means in this diagram.`
     );
   }
-  return lines.join('\n');
+  const body = lines.join('\n');
+  if (style === 'gibberish') return body;
+  return appendProseLanguageInstruction(body, target, diagramSource);
 }
 
 /**

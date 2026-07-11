@@ -7,7 +7,9 @@ import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import {
   buildExplainSectionsArtifact,
   fallbackLabelGibberish,
-  getLabelExplainDumbLevel
+  getLabelExplainDumbLevel,
+  appendProseLanguageInstruction,
+  MATCH_USER_LANGUAGE_RULE
 } from '@archislop/shared';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import {
@@ -101,7 +103,8 @@ export function buildExplainDumbDownSystemPrompt(simpleLevel = 1) {
     extra,
     `- Per section: at most ${budget.maxBullets} bullet(s), each max ${budget.maxWordsPerBullet} words.`,
     '- Plain Markdown only — no code fences around the whole answer.',
-    '- Read-only: do not edit or output diagram source.'
+    '- Read-only: do not edit or output diagram source.',
+    `- ${MATCH_USER_LANGUAGE_RULE}`
   ].join('\n');
 }
 
@@ -130,18 +133,21 @@ export function buildExplainDumbDownUserPrompt({
   const audience = meta?.audience ?? 'a beginner';
   const budget = SECTION_BUDGET_BY_LEVEL[level] ?? SECTION_BUDGET_BY_LEVEL[1];
 
-  return [
-    `Diagram type: ${contentType || 'mermaid'}`,
-    '',
-    'PREVIOUS EXPLANATION (translate this simpler — same structure, easier words):',
-    '---',
-    prev,
-    '---',
-    '',
-    `Rephrase for ${audience}. Keep the same ## headings and preamble (if any).`,
-    `Max ${budget.maxBullets} bullet(s) per section, ${budget.maxWordsPerBullet} words each.`,
-    'Reply with Markdown only.'
-  ].join('\n');
+  return appendProseLanguageInstruction(
+    [
+      `Diagram type: ${contentType || 'mermaid'}`,
+      '',
+      'PREVIOUS EXPLANATION (translate this simpler — same structure, easier words):',
+      '---',
+      prev,
+      '---',
+      '',
+      `Rephrase for ${audience}. Keep the same ## headings and preamble (if any).`,
+      `Max ${budget.maxBullets} bullet(s) per section, ${budget.maxWordsPerBullet} words each.`,
+      'Reply with Markdown only.'
+    ].join('\n'),
+    prev
+  );
 }
 
 export function sanitizeExplainDumbDownMarkdown(raw) {
