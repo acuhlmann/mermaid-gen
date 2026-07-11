@@ -30,4 +30,21 @@ describe('ui locale bundles', () => {
     expect(bundle.slopitect.LEVEL_PANEL.ladderTitle).toBeTruthy();
     expect(bundle.slopitect.VARIANT_QUOTES.refine[0]).not.toBe('One useful next step at a time.');
   });
+
+  // Guards against the variant-mastery achievements being keyed by their `id`
+  // (masterPolisher, …) instead of the variant key (refine, …). Mis-keying
+  // adds extra ACHIEVEMENTS entries on merge — inflating the trophy total and
+  // leaving the mastery copy in English.
+  it.each(['zh-CN', 'zh-TW'])(
+    'keeps ACHIEVEMENTS keys aligned with English and translates mastery entries (%s)',
+    (locale) => {
+      const en = getUiLocaleBundle('en').slopitect.ACHIEVEMENTS;
+      const localized = getUiLocaleBundle(locale).slopitect.ACHIEVEMENTS;
+      expect(Object.keys(localized).sort()).toEqual(Object.keys(en).sort());
+      for (const variant of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
+        expect(localized[variant].id).toBe(en[variant].id);
+        expect(localized[variant].title).not.toBe(en[variant].title);
+      }
+    }
+  );
 });
