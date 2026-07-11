@@ -1,44 +1,165 @@
 /**
- * Lightweight prompt-language detection so agents reply in the same language
- * the user wrote — especially CJK (Chinese is the highest-priority case).
+ * Lightweight Chinese script detection so agents reply in the same language
+ * the user wrote. Single-pass, no LLM calls — only appends a prompt suffix
+ * when enough Han characters are present.
  */
 
-const HANGUL_RE = /[\uAC00-\uD7AF]/g;
-const KANA_RE = /[\u3040-\u30FF]/g;
-const CJK_HAN_RE = /[\u4E00-\u9FFF]/g;
+const CJK_HAN_RE = /\p{Script=Han}/gu;
 
-/** Ratio thresholds tuned for short UI prompts (not long documents). */
-const HANGUL_RATIO_THRESHOLD = 0.15;
-const KANA_RATIO_THRESHOLD = 0.1;
-const CJK_HAN_RATIO_THRESHOLD = 0.25;
+/** Minimum share of letters that must be Han before we treat text as Chinese. */
+const HAN_RATIO_THRESHOLD = 0.25;
 
-export type PromptLanguageHint = 'Chinese (zh)' | 'Japanese (ja)' | 'Korean (ko)';
+/** [simplified, traditional] — high-signal pairs only; built into Sets once. */
+const SCRIPT_PAIRS: readonly (readonly [string, string])[] = [
+  ['国', '國'],
+  ['学', '學'],
+  ['体', '體'],
+  ['网', '網'],
+  ['为', '為'],
+  ['这', '這'],
+  ['们', '們'],
+  ['说', '說'],
+  ['与', '與'],
+  ['产', '產'],
+  ['发', '發'],
+  ['经', '經'],
+  ['现', '現'],
+  ['动', '動'],
+  ['处', '處'],
+  ['过', '過'],
+  ['进', '進'],
+  ['选', '選'],
+  ['达', '達'],
+  ['连', '連'],
+  ['运', '運'],
+  ['问', '問'],
+  ['听', '聽'],
+  ['见', '見'],
+  ['认', '認'],
+  ['计', '計'],
+  ['议', '議'],
+  ['论', '論'],
+  ['关', '關'],
+  ['开', '開'],
+  ['门', '門'],
+  ['时', '時'],
+  ['长', '長'],
+  ['东', '東'],
+  ['书', '書'],
+  ['鱼', '魚'],
+  ['鸟', '鳥'],
+  ['龙', '龍'],
+  ['风', '風'],
+  ['飞', '飛'],
+  ['电', '電'],
+  ['云', '雲'],
+  ['团', '團'],
+  ['场', '場'],
+  ['线', '線'],
+  ['条', '條'],
+  ['备', '備'],
+  ['复', '復'],
+  ['迁', '遷'],
+  ['级', '級'],
+  ['务', '務'],
+  ['员', '員'],
+  ['众', '眾'],
+  ['专', '專'],
+  ['业', '業'],
+  ['标', '標'],
+  ['总', '總'],
+  ['类', '類'],
+  ['数', '數'],
+  ['据', '據'],
+  ['质', '質'],
+  ['权', '權'],
+  ['显', '顯'],
+  ['压', '壓'],
+  ['调', '調'],
+  ['协', '協'],
+  ['护', '護'],
+  ['储', '儲'],
+  ['测', '測'],
+  ['试', '試'],
+  ['验', '驗'],
+  ['证', '證'],
+  ['码', '碼'],
+  ['锁', '鎖'],
+  ['钥', '鑰'],
+  ['签', '簽'],
+  ['户', '戶'],
+  ['录', '錄'],
+  ['页', '頁'],
+  ['扩', '擴'],
+  ['败', '敗'],
+  ['买', '買'],
+  ['卖', '賣'],
+  ['价', '價'],
+  ['钱', '錢'],
+  ['单', '單'],
+  ['独', '獨'],
+  ['环', '環'],
+  ['应', '應'],
+  ['响', '響'],
+  ['属', '屬'],
+  ['层', '層'],
+  ['际', '際'],
+  ['随', '隨'],
+  ['险', '險'],
+  ['碍', '礙'],
+  ['创', '創'],
+  ['构', '構'],
+  ['设', '設'],
+  ['库', '庫'],
+  ['执', '執'],
+  ['订', '訂'],
+  ['览', '覽'],
+  ['载', '載'],
+  ['启', '啟'],
+  ['闭', '閉'],
+  ['结', '結'],
+  ['组', '組'],
+  ['织', '織'],
+  ['统', '統'],
+  ['维', '維']
+];
+
+const SIMPLIFIED_MARKERS = new Set(SCRIPT_PAIRS.map(([s]) => s));
+const TRADITIONAL_MARKERS = new Set(SCRIPT_PAIRS.map(([, t]) => t));
+
+export type PromptLanguageHint =
+  | 'Simplified Chinese (zh-CN)'
+  | 'Traditional Chinese (zh-TW)'
+  | 'Chinese (zh)';
+
+function classifyChineseVariant(text: string): PromptLanguageHint {
+  let simplified = 0;
+  let traditional = 0;
+  for (const ch of text) {
+    if (SIMPLIFIED_MARKERS.has(ch)) simplified += 1;
+    else if (TRADITIONAL_MARKERS.has(ch)) traditional += 1;
+  }
+  if (traditional > simplified) return 'Traditional Chinese (zh-TW)';
+  if (simplified > traditional) return 'Simplified Chinese (zh-CN)';
+  return 'Chinese (zh)';
+}
 
 /**
- * Detect a dominant non-Latin language in free text.
- * Returns null when the text is empty or predominantly Latin-script — callers
- * should still tell models to match the user's language via system prompts.
+ * Detect Chinese when Han characters dominate the prompt.
+ * Returns null for Latin-only or mixed text with too few Han characters.
  */
 export function detectPromptLanguageHint(
   text: string | null | undefined
 ): PromptLanguageHint | null {
   if (typeof text !== 'string' || !text.trim()) return null;
 
-  const hangul = text.match(HANGUL_RE) ?? [];
-  const kana = text.match(KANA_RE) ?? [];
-  const cjkHan = text.match(CJK_HAN_RE) ?? [];
+  const han = text.match(CJK_HAN_RE) ?? [];
   const totalLetters = text.match(/\p{L}/gu)?.length ?? 0;
   if (totalLetters === 0) return null;
 
-  const hangulRatio = hangul.length / totalLetters;
-  const kanaRatio = kana.length / totalLetters;
-  const cjkHanRatio = cjkHan.length / totalLetters;
+  if (han.length / totalLetters < HAN_RATIO_THRESHOLD) return null;
 
-  if (hangulRatio >= HANGUL_RATIO_THRESHOLD) return 'Korean (ko)';
-  if (kanaRatio >= KANA_RATIO_THRESHOLD) return 'Japanese (ja)';
-  if (cjkHanRatio >= CJK_HAN_RATIO_THRESHOLD) return 'Chinese (zh)';
-
-  return null;
+  return classifyChineseVariant(text);
 }
 
 /** First non-null hint wins — typical order: user prompt, then diagram content. */
@@ -53,11 +174,11 @@ export function resolvePromptLanguageHint(
 }
 
 const LANGUAGE_LOCK_BODY =
-  'Do NOT translate unprompted. Do NOT add second-language alternates. This is NON-NEGOTIABLE for this turn.';
+  'Do NOT translate unprompted. Do NOT convert between simplified and traditional unless the user asked. Do NOT add second-language alternates. This is NON-NEGOTIABLE for this turn.';
 
 /**
  * Hard lock for diagram labels, titles, and mixed prose+label output.
- * Appends nothing when no CJK script is detected.
+ * Appends nothing when Chinese is not detected.
  */
 export function buildLanguageInstruction(...sources: (string | null | undefined)[]): string {
   const hint = resolvePromptLanguageHint(...sources);
@@ -74,7 +195,7 @@ export function buildProseLanguageInstruction(...sources: (string | null | undef
   return `\n\nLANGUAGE LOCK: Write ALL prose (Markdown section headings and body text) in ${hint}. Keep proper nouns and technical acronyms as-is. ${LANGUAGE_LOCK_BODY}`;
 }
 
-/** Append {@link buildLanguageInstruction} when a CJK hint resolves. */
+/** Append {@link buildLanguageInstruction} when a Chinese hint resolves. */
 export function appendLanguageInstruction(
   content: string,
   ...sources: (string | null | undefined)[]
@@ -83,7 +204,7 @@ export function appendLanguageInstruction(
   return instruction ? `${content}${instruction}` : content;
 }
 
-/** Append {@link buildProseLanguageInstruction} when a CJK hint resolves. */
+/** Append {@link buildProseLanguageInstruction} when a Chinese hint resolves. */
 export function appendProseLanguageInstruction(
   content: string,
   ...sources: (string | null | undefined)[]
