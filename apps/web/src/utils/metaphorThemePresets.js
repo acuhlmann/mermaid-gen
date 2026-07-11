@@ -15,16 +15,16 @@ const TREE_NATURE_BASE = {
 };
 
 const DAYLIGHT_OUTDOOR_BASE = {
-  background: '#cfeeff',
-  skyTopColor: '#58b8f5',
-  skyHorizonColor: '#f5fbdf',
-  ambientIntensity: 0.82,
-  hemisphere: ['#dff5ff', '#6f8f4f', 0.72],
-  directional: { position: [16, 24, 10], intensity: 1.35 },
+  background: '#9fd5f2',
+  skyTopColor: '#258fce',
+  skyHorizonColor: '#c9e8f0',
+  ambientIntensity: 0.72,
+  hemisphere: ['#dff5ff', '#557a3d', 0.65],
+  directional: { position: [16, 24, 10], intensity: 1.45 },
   environment: null,
-  waterColor: '#39bde8',
-  riverDeepColor: '#168fc7',
-  treeMeadowColor: '#71c96b',
+  waterColor: '#27afe2',
+  riverDeepColor: '#087fb8',
+  treeMeadowColor: '#53b95e',
   treeSoilColor: '#8b6843',
   treeTrunkColor: '#70451f',
   treeBranchColor: '#8b5a2b',
@@ -336,10 +336,10 @@ export function resolveRiverDaylightTheme(theme) {
     treeMeadowColor: blendHexColors(DAYLIGHT_OUTDOOR_BASE.treeMeadowColor, meadowTint, 0.08),
     postfx: {
       ...(theme?.postfx ?? {}),
-      bloomStrength: 0.2,
+      bloomStrength: 0.12,
       bloomThreshold: 0.92,
-      vignette: 0.12,
-      shadowOpacity: 0.24,
+      vignette: 0.18,
+      shadowOpacity: 0.3,
       shadowColor: '#31543f'
     }
   };

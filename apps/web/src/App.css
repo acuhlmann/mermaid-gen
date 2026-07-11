@@ -7340,8 +7340,8 @@ button {
 .metaphor-context-overlay {
   top: 12px;
   left: 50%;
-  width: min(72%, 760px);
-  max-width: min(72%, 760px);
+  width: min(58%, 680px);
+  max-width: min(58%, 680px);
   transform: translateX(-50%);
   display: flex;
   align-items: center;

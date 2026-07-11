@@ -42,6 +42,10 @@ function gardenStemColor(theme, health) {
   return theme.gardenSteadyColor;
 }
 
+function shouldShowCompanionBlooms(maturity, impact) {
+  return maturity > 0.72 && impact > 5;
+}
+
 function GardenBed({ bed, theme, index }) {
   const soil = theme.gardenSoilColor ?? '#795438';
   const edging = shiftColor(bedColor(theme, index), { lightness: 0.12, satScale: 0.75 });
@@ -89,7 +93,7 @@ function FlowerHead({ radius, color, maturity, health, idSeed }) {
           <mesh
             key={`petal-${i}`}
             position={[Math.cos(angle) * radius * 0.58, 0, Math.sin(angle) * radius * 0.58]}
-            rotation={[0, -angle, Math.PI / 2]}
+            rotation={[0, -angle, 0]}
             scale={[petalLength, radius * 0.34, radius * 0.18]}
           >
             <sphereGeometry args={[0.52, 12, 8]} />
@@ -110,13 +114,69 @@ function FlowerHead({ radius, color, maturity, health, idSeed }) {
   );
 }
 
+function CompanionBlooms({ item, bloomRadius, bloomColor, maturity, impact, health }) {
+  if (!shouldShowCompanionBlooms(maturity, impact)) return null;
+  return (
+    <>
+      <group position={[-bloomRadius * 0.75, -0.4, 0.12]} scale={0.62}>
+        <FlowerHead
+          radius={bloomRadius}
+          color={bloomColor}
+          maturity={maturity}
+          health={health}
+          idSeed={`${item.id}-left`}
+        />
+      </group>
+      <group position={[bloomRadius * 0.72, -0.5, -0.16]} scale={0.55}>
+        <FlowerHead
+          radius={bloomRadius}
+          color={shiftColor(bloomColor, { hueShift: 0.04, lightness: 0.06 })}
+          maturity={maturity}
+          health={health}
+          idSeed={`${item.id}-right`}
+        />
+      </group>
+    </>
+  );
+}
+
+function GardenBloom({ item, top, bloomRadius, bloomColor, maturity, impact, health, leafColor }) {
+  if (maturity < 0.24) {
+    return (
+      <mesh position={top}>
+        <sphereGeometry args={[bloomRadius * 0.38, 12, 10]} />
+        <meshStandardMaterial color={leafColor} roughness={0.72} />
+      </mesh>
+    );
+  }
+  return (
+    <group position={top}>
+      <FlowerHead
+        radius={bloomRadius}
+        color={bloomColor}
+        maturity={maturity}
+        health={health}
+        idSeed={item.id}
+      />
+      <CompanionBlooms
+        item={item}
+        bloomRadius={bloomRadius}
+        bloomColor={bloomColor}
+        maturity={maturity}
+        impact={impact}
+        health={health}
+      />
+    </group>
+  );
+}
+
 function GardenPlant({ item, position, theme, bloomColor }) {
   const maturity = THREE.MathUtils.clamp(item.maturity ?? 0.5, 0, 1);
   const impact = THREE.MathUtils.clamp(item.impact ?? 3, 0.1, 10);
   const health = item.health ?? 'steady';
   const posture = HEALTH_POSTURE[health] ?? HEALTH_POSTURE.steady;
-  const stemHeight = 0.65 + maturity * 4.2;
-  const bloomRadius = 0.36 + Math.sqrt(impact) * 0.18;
+  const stemHeight = 1 + maturity * 5.4;
+  const bloomRadius = 0.48 + Math.sqrt(impact) * 0.23;
   const stemColor = gardenStemColor(theme, health);
   const leafColor = shiftColor(stemColor ?? '#65a30d', {
     lightness: 0.05,
@@ -138,6 +198,10 @@ function GardenPlant({ item, position, theme, bloomColor }) {
 
   return (
     <group position={position}>
+      <mesh position={[0, 0.06, 0]} scale={[1, 0.32, 1]}>
+        <sphereGeometry args={[0.48 + Math.sqrt(impact) * 0.05, 14, 8]} />
+        <meshStandardMaterial color={theme.gardenSoilColor ?? '#795438'} roughness={1} />
+      </mesh>
       <SwayGroup
         seed={idHash2(item.id, 'sway')}
         amplitude={health === 'at-risk' ? 0.012 : 0.022}
@@ -158,22 +222,16 @@ function GardenPlant({ item, position, theme, bloomColor }) {
           scale={[0.82, 0.22, 0.46]}
           color={leafColor}
         />
-        {maturity < 0.24 ? (
-          <mesh position={top}>
-            <sphereGeometry args={[bloomRadius * 0.38, 12, 10]} />
-            <meshStandardMaterial color={leafColor} roughness={0.72} />
-          </mesh>
-        ) : (
-          <group position={top}>
-            <FlowerHead
-              radius={bloomRadius}
-              color={bloomColor}
-              maturity={maturity}
-              health={health}
-              idSeed={item.id}
-            />
-          </group>
-        )}
+        <GardenBloom
+          item={item}
+          top={top}
+          bloomRadius={bloomRadius}
+          bloomColor={bloomColor}
+          maturity={maturity}
+          impact={impact}
+          health={health}
+          leafColor={leafColor}
+        />
         {item.glyph ? (
           <Billboard position={[top[0], stemHeight + bloomRadius + 0.78, 0]}>
             <group scale={0.82}>
@@ -185,7 +243,7 @@ function GardenPlant({ item, position, theme, bloomColor }) {
       <ItemLabel
         text={item.label}
         position={[top[0], stemHeight + bloomRadius + (item.glyph ? 1.65 : 0.7), 0]}
-        fontSize={0.5 + Math.min(0.2, impact * 0.02)}
+        fontSize={0.44 + Math.min(0.12, impact * 0.012)}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
       />
@@ -271,12 +329,12 @@ export function GardenScene({ dsl, theme }) {
   const layout = useMemo(() => gardenBedLayout(dsl.items), [dsl.items]);
   const itemById = useMemo(() => new Map(dsl.items.map((item) => [item.id, item])), [dsl.items]);
   const palette = theme.gardenBloomPalette ?? ['#f472b6', '#fbbf24', '#a78bfa', '#fb7185'];
-  const radius = Math.max(7, (layout.bounds.radius ?? 0) + 4.5);
+  const radius = Math.max(6.5, (layout.bounds.radius ?? 0) + 2.2);
   const anchors = useMemo(() => {
     const map = new Map();
     for (const [id, position] of layout.positions) {
       const item = itemById.get(id);
-      const height = 0.65 + (item?.maturity ?? 0.5) * 4.2;
+      const height = 1 + (item?.maturity ?? 0.5) * 5.4;
       map.set(id, [position[0], height, position[2]]);
     }
     return map;
@@ -306,9 +364,15 @@ export function GardenScene({ dsl, theme }) {
           </HoverableItem>
         );
       })}
-      <GardenButterflies radius={radius} palette={palette} />
-      <DaylightPollen radius={radius} count={24} idSeed="garden-pollen" />
-      <SoaringBirds radius={radius} height={7} count={3} color="#294936" idSeed="garden-birds" />
+      <GardenButterflies radius={radius * 0.82} palette={palette} />
+      <DaylightPollen radius={radius * 0.88} count={24} idSeed="garden-pollen" />
+      <SoaringBirds
+        radius={radius * 0.78}
+        height={7}
+        count={3}
+        color="#294936"
+        idSeed="garden-birds"
+      />
       <MetaphorGroundShadow theme={theme} y={-0.13} scale={radius * 2.15} />
       <MetaphorLinks links={dsl.links} anchors={anchors} theme={theme} variant="arc" />
     </group>
@@ -319,8 +383,8 @@ export function GardenSky({ theme }) {
   return (
     <group>
       <GradientSkySphere
-        topColor={theme.skyTopColor ?? '#58b8f5'}
-        horizonColor={theme.skyHorizonColor ?? '#f5fbdf'}
+        topColor={theme.skyTopColor ?? '#258fce'}
+        horizonColor={theme.skyHorizonColor ?? '#c9e8f0'}
       />
       <SkySunGlow color="#fff0ad" />
     </group>

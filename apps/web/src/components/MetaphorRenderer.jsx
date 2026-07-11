@@ -62,6 +62,17 @@ const ORBIT_CAMERA = { position: [18, 14, 18], fov: 45 };
 
 const CUTAWAY_THETA = (330 / 360) * Math.PI * 2;
 
+const BOUNDS_MARGIN_BY_KIND = {
+  city: 1.06,
+  layercake: 1.08,
+  galaxy: 1.08,
+  tree: 1.04,
+  terrain: 1.04,
+  orrery: 1.08,
+  river: 0.84,
+  garden: 1.12
+};
+
 /** Advances the shared scene clock; gated off (frozen at 0) during streaming. */
 function MetaphorClockProvider({ enabled, children }) {
   const timeRef = useRef(0);
@@ -1167,6 +1178,7 @@ function MetaphorRendererImpl(
     return base;
   }, [dsl?.metaphor, themeId]);
   const postfx = resolveMetaphorPostfx(theme);
+  const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.08;
 
   return (
     <div
@@ -1206,7 +1218,7 @@ function MetaphorRendererImpl(
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>
-                <Bounds fit clip observe margin={1.25}>
+                <Bounds fit clip observe margin={boundsMargin}>
                   <Center disableY>
                     <MetaphorScene dsl={dsl} theme={theme} />
                   </Center>

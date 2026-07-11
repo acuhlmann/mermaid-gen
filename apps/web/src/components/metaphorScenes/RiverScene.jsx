@@ -587,8 +587,8 @@ export function RiverSky({ theme }) {
   return (
     <group>
       <GradientSkySphere
-        topColor={theme.skyTopColor ?? '#87ceeb'}
-        horizonColor={theme.skyHorizonColor ?? '#e8f4e8'}
+        topColor={theme.skyTopColor ?? '#258fce'}
+        horizonColor={theme.skyHorizonColor ?? '#c9e8f0'}
       />
       <SkySunGlow />
     </group>

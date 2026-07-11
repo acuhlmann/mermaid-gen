@@ -44,8 +44,8 @@ describe('outdoor daylight themes', () => {
   it('keeps a noir-authored river sunny with clear water', () => {
     const river = resolveRiverDaylightTheme(METAPHOR_THEME_PRESETS.noir);
     expect(river.environment).toBeNull();
-    expect(river.background).toBe('#cfeeff');
-    expect(river.skyTopColor).toBe('#58b8f5');
+    expect(river.background).toBe('#9fd5f2');
+    expect(river.skyTopColor).toBe('#258fce');
     expect(river.treeMeadowColor).not.toBe(METAPHOR_THEME_PRESETS.noir.treeMeadowColor);
     expect(river.waterColor).not.toBe(METAPHOR_THEME_PRESETS.noir.waterColor);
     expect(river.ambientIntensity).toBeGreaterThan(0.7);
