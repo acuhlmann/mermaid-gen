@@ -27,6 +27,8 @@ This file is a quick operator manual for coding agents working in this repositor
 - Run all tests: `npm test`
 - Build all packages: `npm run build`
 - **Verify after edits** (pick the smallest loop that fits):
+  - `npm run check:affected` — diff-scoped sensors (includes Prettier on changed files; matches what agents should run before push)
+  - `npm run format` / `npm run format:check` — Prettier write / verify (CI runs `format:check`; pre-commit auto-formats staged files)
   - `npm run check:fast` — shared package only (schemas, sanitizers, wire constants)
   - `npm run check` — typecheck + lint + test all workspaces (default)
   - `npm run check:full` — same as CI: typecheck + test + build

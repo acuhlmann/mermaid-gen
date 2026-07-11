@@ -46,6 +46,56 @@ function gitLines(args) {
 
 const LINTABLE_RE = /\.(js|jsx|ts|tsx|mjs|cjs)$/;
 
+/** Mirrors `.prettierignore` — keep in sync when that file changes. */
+const PRETTIER_EXT = /\.(js|jsx|ts|tsx|mjs|cjs|css|json|md|mdx|yml|yaml|html)$/;
+const PRETTIER_SKIP = [
+  /^node_modules\//,
+  /^\.agents\//,
+  /^dist\//,
+  /^build\//,
+  /^coverage\//,
+  /^apps\/web\/dist/,
+  /^apps\/web\/dist-main/,
+  /^apps\/web\/dist-hackathon/,
+  /^apps\/server\/bench-results\//,
+  /^packages\/shared\/src\/vendor\//,
+  /^package-lock\.json$/,
+  /^skills-lock\.json$/,
+  /\.min\.js$/,
+  /\.min\.css$/,
+  /^\.env/,
+  /^\.env\./
+];
+
+/** @param {string[]} files */
+function filterPrettierFiles(files) {
+  return files.filter((f) => PRETTIER_EXT.test(f) && !PRETTIER_SKIP.some((re) => re.test(f)));
+}
+
+/** @param {string[]} files */
+function runFormatCheck(files) {
+  const pretty = filterPrettierFiles(files);
+  if (pretty.length === 0) return;
+  const label =
+    pretty.length > 40
+      ? 'format:check (full repo — large diff)'
+      : `format:check (${pretty.length} changed file(s))`;
+  console.log(`\n→ ${label}`);
+  if (pretty.length > 40) {
+    run('npm', ['run', 'format:check'], label);
+    return;
+  }
+  const out = spawnSync('npx', ['prettier', '--check', ...pretty], {
+    cwd: repoRoot,
+    stdio: 'inherit',
+    shell: process.platform === 'win32'
+  });
+  if (out.status !== 0) {
+    console.error('\nformat:check failed — run: npm run format');
+    process.exit(out.status ?? 1);
+  }
+}
+
 /** @param {string[]} files */
 function classify(files) {
   const flags = {
@@ -136,6 +186,11 @@ function main() {
 
   console.log(`check-affected: ${files.length} file(s) vs ${baseRef}`);
   const flags = classify(files);
+
+  // CI runs format:check on every PR — catch drift before push (skipped when full check runs below).
+  if (!flags.root) {
+    runFormatCheck(files);
+  }
 
   if (flags.root) {
     console.log('check-affected: root/tooling change → full check');

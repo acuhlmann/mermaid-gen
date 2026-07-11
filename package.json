@@ -46,11 +46,15 @@
     "secret:invite-token:cloud-run": "bash scripts/push-invite-token-secret-cloud-run.sh",
     "prepare": "husky || true"
   },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs,css,json,md,mdx,yml,yaml,html}": "prettier --write --ignore-unknown"
+  },
   "devDependencies": {
     "@types/node": "^25.9.1",
     "concurrently": "^9.2.1",
     "dependency-cruiser": "^17.4.2",
     "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3"
   },

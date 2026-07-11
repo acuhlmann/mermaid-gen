@@ -8371,8 +8371,7 @@ button {
     right: calc(max(260px, 30vw) + 1rem);
   }
 
-  .app-shell.is-insights-open.is-editor-open
-    .run-ceremony-layer[data-ceremony-anchor='canvas'] {
+  .app-shell.is-insights-open.is-editor-open .run-ceremony-layer[data-ceremony-anchor='canvas'] {
     right: calc(max(260px, 30vw) + max(320px, 38vw));
   }
 

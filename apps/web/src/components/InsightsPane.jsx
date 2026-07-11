@@ -333,10 +333,7 @@ function InsightsPanePersonaQuote({ variant, streaming = false }) {
 
   useEffect(() => {
     if (!streaming || !variant) return undefined;
-    const handle = setInterval(
-      () => setRotationIndex((n) => n + 1),
-      PERSONA_QUOTE_ROTATION_MS
-    );
+    const handle = setInterval(() => setRotationIndex((n) => n + 1), PERSONA_QUOTE_ROTATION_MS);
     return () => clearInterval(handle);
   }, [streaming, variant]);
 
