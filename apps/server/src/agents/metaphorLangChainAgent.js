@@ -202,7 +202,11 @@ export function createMetaphorLangChainAgent({
       abortSignal,
       mode = null,
       focusNode = null,
-      peerContext = null
+      peerContext = null,
+      // When the caller has a clean short prompt (intent), pass it so the repair
+      // instruction doesn't re-embed the whole current-document block that the first
+      // user message carries. Falls back to extracting the first user message.
+      originalRequest: originalRequestOverride = null
     } = opts ?? {};
     const runProfile = normalizeModelProfile(profile);
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'metaphor3d');
@@ -216,9 +220,13 @@ export function createMetaphorLangChainAgent({
       startedAt: turnStarted
     });
     const beforeRevision = stateStore.getSlot('metaphor3d').revisionId;
-    const originalRequest = extractOriginalRequest(userMessages);
+    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
 
-    let messages = toLangChainMessages(userMessages);
+    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
+    // appending to a growing transcript — otherwise each attempt re-embeds every prior
+    // broken source + repair instruction, blowing up token cost superlinearly (audit F1).
+    const initialMessages = toLangChainMessages(userMessages);
+    let messages = initialMessages;
     let lastResult = null;
     let lastError = null;
     let lastBrokenSource = null;
@@ -433,7 +441,7 @@ export function createMetaphorLangChainAgent({
         }
 
         messages = [
-          ...messages,
+          ...initialMessages,
           new SystemMessage(
             buildMetaphorRepairInstruction({
               errorMessage: failureError,
@@ -443,7 +451,7 @@ export function createMetaphorLangChainAgent({
           )
         ];
       } else {
-        messages = [...messages, new SystemMessage(METAPHOR_PATCH_REQUIRED_INSTRUCTION)];
+        messages = [...initialMessages, new SystemMessage(METAPHOR_PATCH_REQUIRED_INSTRUCTION)];
       }
     }
 
@@ -486,7 +494,8 @@ export function createMetaphorLangChainAgent({
         // agent_turn dashboards aggregate one vocabulary across slots.
         mode: 'go',
         focusNode,
-        peerContext
+        peerContext,
+        originalRequest: prompt
       });
     },
 

@@ -250,7 +250,11 @@ export function createChartLangChainAgent({
       abortSignal,
       mode = null,
       focusNode = null,
-      peerContext = null
+      peerContext = null,
+      // When the caller has a clean short prompt (intent), pass it so the repair
+      // instruction doesn't re-embed the whole current-DSL block that the first
+      // user message carries. Falls back to extracting the first user message.
+      originalRequest: originalRequestOverride = null
     } = opts ?? {};
     const runProfile = normalizeModelProfile(profile);
     const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'chart');
@@ -264,9 +268,13 @@ export function createChartLangChainAgent({
       startedAt: turnStarted
     });
     const beforeRevision = stateStore.getSlot('chart').revisionId;
-    const originalRequest = extractOriginalRequest(userMessages);
+    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
 
-    let messages = toLangChainMessages(userMessages);
+    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
+    // appending to a growing transcript — otherwise each attempt re-embeds every prior
+    // broken source + repair instruction, blowing up token cost superlinearly (audit F1).
+    const initialMessages = toLangChainMessages(userMessages);
+    let messages = initialMessages;
     let lastResult = null;
     let lastError = null;
     let lastBrokenSource = null;
@@ -486,7 +494,7 @@ export function createChartLangChainAgent({
         }
 
         messages = [
-          ...messages,
+          ...initialMessages,
           new SystemMessage(
             buildChartRepairInstruction({
               errorMessage: failureError,
@@ -496,7 +504,7 @@ export function createChartLangChainAgent({
           )
         ];
       } else {
-        messages = [...messages, new SystemMessage(CHART_PATCH_REQUIRED_INSTRUCTION)];
+        messages = [...initialMessages, new SystemMessage(CHART_PATCH_REQUIRED_INSTRUCTION)];
       }
     }
 
@@ -539,7 +547,8 @@ export function createChartLangChainAgent({
         // agent_turn dashboards aggregate one vocabulary across slots.
         mode: 'go',
         focusNode,
-        peerContext
+        peerContext,
+        originalRequest: prompt
       });
     },
 
