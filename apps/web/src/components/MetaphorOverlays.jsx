@@ -11,6 +11,7 @@
 import { useSyncExternalStore } from 'react';
 import { legendAxesFor, formatItemMetric } from '../utils/metaphorLegendAxes.js';
 import { METAPHOR_KINDS, METAPHOR_KIND_LABELS } from '../utils/switchMetaphorKind.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /** Top-left card: the scene's title and one-line subtitle. */
 export function MetaphorTitleOverlay({ scene }) {
@@ -30,11 +31,16 @@ export function MetaphorTitleOverlay({ scene }) {
  * the axes the author populated for this metaphor; nothing if none.
  */
 export function MetaphorLegendOverlay({ metaphor, legend }) {
+  const { controls } = useUiCopy();
   const rows = legendAxesFor(metaphor, legend);
   if (rows.length === 0) return null;
   return (
-    <div className="metaphor-overlay metaphor-legend-overlay" role="group" aria-label="Legend">
-      <p className="metaphor-legend-heading">Legend</p>
+    <div
+      className="metaphor-overlay metaphor-legend-overlay"
+      role="group"
+      aria-label={controls.metaphor.legend}
+    >
+      <p className="metaphor-legend-heading">{controls.metaphor.legend}</p>
       <dl className="metaphor-legend-rows">
         {rows.map((row) => (
           <div className="metaphor-legend-row" key={row.key}>
@@ -57,14 +63,15 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
  * (city, layer cake, galaxy, tree, terrain) without leaving the canvas.
  */
 export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind }) {
+  const { controls } = useUiCopy();
   if (!metaphor) return null;
   return (
     <div
       className="metaphor-overlay metaphor-kind-switcher"
       role="group"
-      aria-label="Metaphor type"
+      aria-label={controls.metaphor.type}
     >
-      <span className="metaphor-kind-switcher-label">View as</span>
+      <span className="metaphor-kind-switcher-label">{controls.metaphor.viewAs}</span>
       <div className="metaphor-kind-switcher-segment">
         {METAPHOR_KINDS.map((kind) => (
           <button
@@ -76,7 +83,7 @@ export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind 
             onPointerDown={(event) => event.stopPropagation()}
             onClick={() => onSelectKind?.(kind)}
           >
-            {METAPHOR_KIND_LABELS[kind] ?? kind}
+            {controls.metaphor.kinds[kind] ?? METAPHOR_KIND_LABELS[kind] ?? kind}
           </button>
         ))}
       </div>

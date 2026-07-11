@@ -1,4 +1,7 @@
 import { Component } from 'react';
+import { DEFAULT_UI_LOCALE } from '@archislop/shared';
+import { getUiLocaleBundle } from '../i18n/getUiLocaleBundle.js';
+import { readStoredUiLocale } from '../i18n/uiLocaleStorage.js';
 
 export default class AppErrorBoundary extends Component {
   constructor(props) {
@@ -26,6 +29,8 @@ export default class AppErrorBoundary extends Component {
     const message = error?.message ?? String(error);
     const stack = error?.stack ?? '';
     const componentStack = info?.componentStack ?? '';
+    const { controls } = getUiLocaleBundle(readStoredUiLocale() ?? DEFAULT_UI_LOCALE);
+    const appErrorCopy = controls.appError;
 
     return (
       <div
@@ -36,11 +41,9 @@ export default class AppErrorBoundary extends Component {
       >
         <div className="app-error-boundary-card">
           <h2 id="app-error-boundary-title" className="app-error-boundary-title">
-            Something went wrong
+            {appErrorCopy.title}
           </h2>
-          <p className="app-error-boundary-explainer">
-            The app hit an unexpected error and stopped rendering. Reload to recover.
-          </p>
+          <p className="app-error-boundary-explainer">{appErrorCopy.body}</p>
           <p className="app-error-boundary-message" data-testid="app-error-boundary-message">
             {message}
           </p>
@@ -51,12 +54,12 @@ export default class AppErrorBoundary extends Component {
               onClick={this.handleReload}
               data-testid="app-error-boundary-reload"
             >
-              Reload app
+              {appErrorCopy.reload}
             </button>
           </div>
           {stack || componentStack ? (
             <details className="app-error-boundary-details">
-              <summary>Error details</summary>
+              <summary>{controls.errors.details}</summary>
               {stack ? <pre className="app-error-boundary-stack">{stack}</pre> : null}
               {componentStack ? (
                 <pre className="app-error-boundary-stack">{componentStack}</pre>

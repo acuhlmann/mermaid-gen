@@ -44,6 +44,7 @@ import {
 import { ThinkingPanelIcon } from './AppIcons.jsx';
 import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 const SLOPITECT_VARIANT_CLASS = {
   refine: 'is-variant-refine',
@@ -422,6 +423,7 @@ function useElapsedNow(running) {
 }
 
 function EntryRunMeta({ entry }) {
+  const { controls } = useUiCopy();
   const contentMeta = entry?.contentType ? CONTENT_TYPE_META[entry.contentType] : null;
   const brainMeta = entry?.modelProfile ? MODEL_PROFILE_META[entry.modelProfile] : null;
   const startedAt = Number.isFinite(entry?.startedAt) ? entry.startedAt : null;
@@ -432,7 +434,7 @@ function EntryRunMeta({ entry }) {
   const elapsedLabel = elapsedMs != null ? formatElapsedDuration(elapsedMs) : '';
   if (!contentMeta && !brainMeta && !elapsedLabel) return null;
   return (
-    <div className="insights-entry-meta" aria-label="Run details">
+    <div className="insights-entry-meta" aria-label={controls.insights.runDetails}>
       {contentMeta ? (
         <span className="insights-entry-meta-chip is-mode" title={`${contentMeta.label} mode`}>
           <span className="insights-entry-meta-emoji" aria-hidden="true">
@@ -453,7 +455,7 @@ function EntryRunMeta({ entry }) {
         <time
           className={`insights-entry-meta-chip is-time${isRunning ? ' is-running' : ''}`}
           dateTime={startedAt != null ? new Date(startedAt).toISOString() : undefined}
-          title={isRunning ? 'Elapsed time' : 'Total time'}
+          title={isRunning ? controls.insights.elapsedTime : controls.insights.totalTime}
         >
           <span className="insights-entry-meta-emoji" aria-hidden="true">
             ⏱️
@@ -855,6 +857,7 @@ function EmbeddedDiagramBlock({
   restoreDisabled,
   onRestoreDiagramSnapshot
 }) {
+  const { controls } = useUiCopy();
   return (
     <div className="insights-embedded-diagram-block">
       <InsightsEmbeddedDiagram
@@ -870,10 +873,10 @@ function EmbeddedDiagramBlock({
             type="button"
             className="insights-entry-undo-btn"
             disabled={restoreDisabled}
-            title="Load this diagram onto the canvas."
+            title={controls.insights.loadOntoCanvas}
             onClick={() => onRestoreDiagramSnapshot({ diagramSource: source, contentType: kind })}
           >
-            Restore
+            {controls.insights.restore}
           </button>
         </div>
       ) : null}
@@ -944,10 +947,12 @@ function renderEmbeddedAwareRich(content, richOpts, embedOpts) {
             key={`patch-${i}`}
             className="insights-diagram-patch-callout"
             role="region"
-            aria-label="Diagram patch from agent tool"
+            aria-label={embedOpts.patchCalloutAria ?? 'Diagram patch from agent tool'}
           >
             <div className="insights-diagram-patch-callout-head">
-              <span className="insights-diagram-patch-callout-title">Patch preview</span>
+              <span className="insights-diagram-patch-callout-title">
+                {embedOpts.patchPreviewLabel ?? 'Patch preview'}
+              </span>
               {seg.reason?.trim() ? (
                 <span className="insights-diagram-patch-callout-reason" title={seg.reason}>
                   {seg.reason.length > 140 ? `${seg.reason.slice(0, 137)}…` : seg.reason}
@@ -1087,7 +1092,9 @@ export default function InsightsPane({
       showEmbeddedRestore,
       expectedPreviewKind,
       restoreDisabled: diagramUndoDisabled,
-      onRestoreDiagramSnapshot
+      onRestoreDiagramSnapshot,
+      patchCalloutAria: insightsCopy.patchFromTool,
+      patchPreviewLabel: insightsCopy.patchPreview
     };
   }
   const liveEntry =
@@ -1459,7 +1466,7 @@ export default function InsightsPane({
                         disabled={retryActionsDisabled}
                         onClick={() => onRetryInsightEntry?.(entry.id)}
                       >
-                        Retry
+                        {insightsCopy.retry}
                       </button>
                       {showRetryWithQualityForEntry(entry) ? (
                         <button
@@ -1468,7 +1475,7 @@ export default function InsightsPane({
                           disabled={retryActionsDisabled}
                           onClick={() => onRetryInsightEntryWithQuality?.(entry.id)}
                         >
-                          Retry with Quality
+                          {insightsCopy.retryQuality}
                         </button>
                       ) : null}
                     </div>
@@ -1603,29 +1610,31 @@ export default function InsightsPane({
                         onClick={() => onToggleDiagramChangeHighlight?.(entry.id)}
                       >
                         {entry.id === diagramChangeHighlightEntryId
-                          ? 'Clear canvas highlights'
-                          : 'Highlight on canvas'}
+                          ? insightsCopy.clearHighlights
+                          : insightsCopy.highlightOnCanvas}
                       </button>
                       <button
                         type="button"
                         className="insights-entry-undo-btn"
                         disabled={diagramUndoDisabled}
-                        title="Jump the canvas back to this version of the diagram."
+                        title={insightsCopy.jumpToVersion}
                         onClick={() => onRestoreToEntry?.(entry.id)}
                       >
-                        Restore
+                        {insightsCopy.restore}
                       </button>
                     </div>
                     {entry.id === diagramChangeHighlightEntryId ? (
                       <DiagramDiffLegend
                         diff={diagramChangeHighlightSummary}
-                        ariaLabel="Highlighted changes on canvas"
+                        ariaLabel={insightsCopy.highlightedChanges}
                       />
                     ) : null}
                     {entry.id === diagramChangeHighlightEntryId &&
                     diagramChangeHighlightSummary?.removedIds?.length ? (
                       <p className="insights-change-highlight-note insights-change-highlight-removed">
-                        Removed from diagram: {diagramChangeHighlightSummary.removedIds.join(', ')}
+                        {formatLocale(insightsCopy.removedFromDiagram, {
+                          ids: diagramChangeHighlightSummary.removedIds.join(', ')
+                        })}
                       </p>
                     ) : null}
                     {entry.id === diagramChangeHighlightEntryId &&
@@ -1634,8 +1643,7 @@ export default function InsightsPane({
                         className="insights-change-highlight-note insights-change-highlight-empty"
                         aria-live="polite"
                       >
-                        No structural changes detected between this version and the diagram before
-                        this step.
+                        {insightsCopy.noStructuralChanges}
                       </p>
                     ) : null}
                   </div>
@@ -1643,7 +1651,11 @@ export default function InsightsPane({
 
                 {streamDebugEnabled && entry.streamDebugLog?.length ? (
                   <details className="insights-stream-debug">
-                    <summary>Raw stream events ({entry.streamDebugLog.length})</summary>
+                    <summary>
+                      {formatLocale(insightsCopy.rawStreamEvents, {
+                        count: entry.streamDebugLog.length
+                      })}
+                    </summary>
                     <pre className="insights-stream-debug-pre">
                       {entry.streamDebugLog.map((row) => JSON.stringify(row)).join('\n')}
                     </pre>
@@ -1656,7 +1668,7 @@ export default function InsightsPane({
       </div>
       {typeof onStopStreamingAgent === 'function' ? (
         <button type="button" className="insights-stop-stream-btn" onClick={onStopStreamingAgent}>
-          Stop request
+          {insightsCopy.stopRequest}
         </button>
       ) : null}
       {typeof onDismiss === 'function' ? (
@@ -1664,9 +1676,9 @@ export default function InsightsPane({
           type="button"
           className="insights-pane-dismiss overlay-button compact-button"
           onClick={onDismiss}
-          aria-label="Close thinking panel"
+          aria-label={insightsCopy.closeThinking}
         >
-          Hide
+          {insightsCopy.hide}
         </button>
       ) : null}
     </aside>

@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import AgentBadge from './AgentBadge.jsx';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
+  const { controls } = useUiCopy();
+  const handshakeCopy = controls.handshake;
   const [submitting, setSubmitting] = useState(null);
   if (!request) return null;
 
@@ -30,20 +33,17 @@ export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
     >
       <div className="agent-handshake-card">
         <h2 id="agent-handshake-title" className="agent-handshake-title">
-          An external agent wants to join your session
+          {handshakeCopy.title}
         </h2>
         <div className="agent-handshake-identity">
           <AgentBadge origin={previewOrigin} size="lg" />
         </div>
         {request.clientInfo ? (
           <p className="agent-handshake-client">
-            Reported client: <code>{request.clientInfo}</code>
+            {handshakeCopy.reportedClient} <code>{request.clientInfo}</code>
           </p>
         ) : null}
-        <p className="agent-handshake-explainer">
-          If you allow this, the agent can read your diagram, propose edits (you approve each one),
-          drop attributed notes, and react to revisions. It cannot apply edits directly.
-        </p>
+        <p className="agent-handshake-explainer">{handshakeCopy.explainer}</p>
         <div className="agent-handshake-actions">
           <button
             type="button"
@@ -51,7 +51,7 @@ export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
             disabled={Boolean(submitting)}
             onClick={() => handle('deny', onDeny)}
           >
-            {submitting === 'deny' ? 'Denying…' : 'Deny'}
+            {submitting === 'deny' ? handshakeCopy.denying : handshakeCopy.deny}
           </button>
           <button
             type="button"
@@ -59,7 +59,7 @@ export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
             disabled={Boolean(submitting)}
             onClick={() => handle('approve', onApprove)}
           >
-            {submitting === 'approve' ? 'Allowing…' : 'Allow agent'}
+            {submitting === 'approve' ? handshakeCopy.allowing : handshakeCopy.allow}
           </button>
         </div>
       </div>

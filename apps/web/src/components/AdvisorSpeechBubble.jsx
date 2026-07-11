@@ -7,6 +7,7 @@ import {
 } from '@archislop/shared';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
 const PERSONA_CLASS = {
@@ -80,6 +81,7 @@ export default function AdvisorSpeechBubble({
 }) {
   const { controls } = useUiCopy();
   const explainDumb = controls.explainDumb;
+  const advisorCopy = controls.advisor;
   if (!persona || !suggestion) return null;
   const meta = getVariantPersona(persona);
   const personaClass = PERSONA_CLASS[persona] || '';
@@ -122,7 +124,7 @@ export default function AdvisorSpeechBubble({
       onClick={handleBubbleClick}
       onPointerEnter={onPauseTimer}
       onPointerLeave={onResumeTimer}
-      title={isPinned ? 'Pinned — click to unpin' : 'Click to pin this comment'}
+      title={isPinned ? advisorCopy.pinTitle : advisorCopy.unpinTitle}
     >
       <StakeholderCastStrip
         variants={castVariants ?? []}
@@ -140,7 +142,7 @@ export default function AdvisorSpeechBubble({
             <span className="advisor-speech-persona">
               {meta.name}
               {isPinned ? (
-                <span className="advisor-speech-pin" aria-label="Pinned">
+                <span className="advisor-speech-pin" aria-label={advisorCopy.pinned}>
                   📌
                 </span>
               ) : null}
@@ -158,7 +160,7 @@ export default function AdvisorSpeechBubble({
         <div className="advisor-speech-footer">
           <nav
             className="advisor-speech-history-nav"
-            aria-label="Stakeholder suggestion navigation"
+            aria-label={advisorCopy.suggestionNav}
             onClick={(event) => event.stopPropagation()}
           >
             {showHistoryNav ? (
@@ -172,9 +174,11 @@ export default function AdvisorSpeechBubble({
                     onHistoryBack?.();
                   }}
                   aria-label={
-                    canGoBack ? `Older suggestion (${historyPositionLabel})` : 'Oldest suggestion'
+                    canGoBack
+                      ? formatLocale(advisorCopy.olderSuggestionAt, { pos: historyPositionLabel })
+                      : advisorCopy.oldestSuggestion
                   }
-                  title={canGoBack ? 'Older suggestion' : 'Oldest suggestion'}
+                  title={canGoBack ? advisorCopy.olderSuggestion : advisorCopy.oldestSuggestion}
                 >
                   <IconChevronLeft />
                 </button>
@@ -191,8 +195,8 @@ export default function AdvisorSpeechBubble({
                 event.stopPropagation();
                 onPromptNext?.();
               }}
-              aria-label="Next stakeholder comment"
-              title="Next stakeholder comment"
+              aria-label={advisorCopy.nextComment}
+              title={advisorCopy.nextComment}
             >
               <IconPromptNext />
             </button>
@@ -206,9 +210,9 @@ export default function AdvisorSpeechBubble({
                   event.stopPropagation();
                   onGo?.();
                 }}
-                aria-label={`Apply suggestion from ${meta.name}`}
+                aria-label={formatLocale(advisorCopy.applySuggestion, { name: meta.name })}
               >
-                Do it
+                {controls.prompt.doIt}
               </button>
             )}
             {showArchitectActions && onDumbDown ? (
@@ -251,10 +255,10 @@ export default function AdvisorSpeechBubble({
                   onDrillDeeper?.();
                 }}
                 disabled={isDumbingDown}
-                aria-label="Drill deeper — open the full architecture dissertation"
-                title="Open the full architecture deep-dive in the Thinking panel"
+                aria-label={advisorCopy.drillDeeperAria}
+                title={advisorCopy.drillDeeperTitle}
               >
-                Drill Deeper
+                {controls.radial.drillDeeper}
               </button>
             ) : null}
             <button

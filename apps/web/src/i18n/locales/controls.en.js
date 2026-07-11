@@ -174,6 +174,10 @@ export const CONTROLS_EN = {
     pickPersona: 'Pick a persona',
     personaMenu: 'Stakeholder personas',
     castGroup: 'Stakeholder cast',
+    castLabel: 'Stakeholders',
+    castOneOfMany: '{name} is one of {count} stakeholders',
+    castSpeaking: '{name} is speaking',
+    castAskCommentary: 'Ask {name} for commentary',
     align: 'Align'
   },
   invite: {
@@ -238,7 +242,23 @@ export const CONTROLS_EN = {
     levelLadder: 'Level ladder',
     earnXp: 'How to earn XP',
     trophyShelf: 'Trophy shelf',
-    closeLevelDetails: 'Close level details'
+    closeLevelDetails: 'Close level details',
+    patchPreview: 'Patch preview',
+    jumpToVersion: 'Jump the canvas back to this version of the diagram.',
+    closeThinking: 'Close thinking panel',
+    actionableImprovements: 'Actionable improvements',
+    restore: 'Restore',
+    retry: 'Retry',
+    retryQuality: 'Retry with Quality',
+    noStructuralChanges:
+      'No structural changes detected between this version and the diagram before this step.',
+    stopRequest: 'Stop request',
+    hide: 'Hide',
+    highlightOnCanvas: 'Highlight on canvas',
+    clearHighlights: 'Clear canvas highlights',
+    highlightedChanges: 'Highlighted changes on canvas',
+    removedFromDiagram: 'Removed from diagram: {ids}',
+    rawStreamEvents: 'Raw stream events ({count})'
   },
   editor: {
     doneEditing: 'Done editing',
@@ -270,5 +290,200 @@ export const CONTROLS_EN = {
     micDenied: 'Microphone permission denied for speech recognition.',
     voiceFailed: 'Voice input failed. Try again.',
     voiceUnavailable: 'Voice input is unavailable in this browser.'
+  },
+  errors: {
+    notifications: 'Error notifications',
+    dismiss: 'Dismiss error',
+    details: 'Error details',
+    chartFailed: 'Chart could not render.',
+    pageFailed: 'Page could not render.'
+  },
+  fullscreen: {
+    exit: 'Exit fullscreen'
+  },
+  presence: {
+    connected: 'Connected external agents',
+    invite: 'Invite agent',
+    moreAgents: '{count} more agents',
+    inviteTitle: 'Invite an external agent into the Co-Design session'
+  },
+  proposal: {
+    loadPreviewTitle:
+      'Load this proposal on the main canvas for a full-size preview. Does not accept the proposal.',
+    openFullPreview: 'Open full preview',
+    showSource: 'Show source',
+    proposedAria: 'Proposed {type} edit from {name}',
+    proposedEdit: 'proposed a {type} edit',
+    reject: 'Reject',
+    rejecting: 'Rejecting…',
+    accept: 'Accept & apply',
+    applying: 'Applying…',
+    statusPrefix: 'Status:'
+  },
+  handshake: {
+    title: 'An external agent wants to join your session',
+    reportedClient: 'Reported client:',
+    explainer:
+      'If you allow this, the agent can read your diagram, propose edits (you approve each one), drop attributed notes, and react to revisions. It cannot apply edits directly.',
+    deny: 'Deny',
+    denying: 'Denying…',
+    allow: 'Allow agent',
+    allowing: 'Allowing…'
+  },
+  appError: {
+    title: 'Something went wrong',
+    body: 'The app hit an unexpected error and stopped rendering. Reload to recover.',
+    reload: 'Reload app'
+  },
+  checklist: {
+    fixSelected: 'Fix selected',
+    fixAll: 'Fix all'
+  },
+  diagramCanvas: {
+    streamingSource: 'Streaming validated source…',
+    done: 'Done'
+  },
+  anythingCanvas: {
+    canvas: 'Anything canvas (sandboxed)',
+    dismissError: 'Dismiss runtime error'
+  },
+  embeddedPreview: {
+    infographic: 'Infographic preview (read-only)',
+    chart: 'Chart preview (read-only)',
+    metaphor3d: '3D metaphor preview (read-only)',
+    page: 'Page preview (read-only)',
+    mermaid: 'Mermaid preview (read-only)'
+  },
+  diagramSurface: {
+    controls: 'Diagram surface controls'
+  },
+  runFx: {
+    reviewing: 'REVIEWING'
+  },
+  advisor: {
+    pinned: 'Pinned',
+    suggestionNav: 'Stakeholder suggestion navigation',
+    nextComment: 'Next stakeholder comment',
+    drillDeeperAria: 'Drill deeper — open the full architecture dissertation',
+    drillDeeperTitle: 'Open the full architecture deep-dive in the Thinking panel',
+    pinTitle: 'Pinned — click to unpin',
+    unpinTitle: 'Click to pin this comment',
+    olderSuggestion: 'Older suggestion',
+    olderSuggestionAt: 'Older suggestion ({pos})',
+    oldestSuggestion: 'Oldest suggestion',
+    applySuggestion: 'Apply suggestion from {name}'
+  },
+  metaphor: {
+    legend: 'Legend',
+    type: 'Metaphor type',
+    viewAs: 'View as',
+    kinds: {
+      city: 'City',
+      layercake: 'Layer cake',
+      galaxy: 'Galaxy',
+      tree: 'Tree',
+      terrain: 'Terrain',
+      orrery: 'Orrery',
+      river: 'River',
+      garden: 'Garden'
+    }
+  },
+  styleEdits: {
+    region: 'Style edits',
+    title: 'Visual tweaks',
+    iconReplace: 'Icon replace',
+    colorShift: 'Color shift',
+    apply: 'Apply style tweaks'
+  },
+  runTimeline: {
+    summary: 'Run summary',
+    activity: 'Run activity timeline',
+    runActivity: 'Run activity',
+    intent: 'Intent',
+    triggeredBy: 'Triggered by',
+    validationFeedback: 'Validation feedback',
+    stepStartTitle: 'When this step started, relative to run start',
+    elapsedSoFar: 'Elapsed so far',
+    stepDuration: 'Step duration',
+    elapsedRunTime: 'Elapsed run time',
+    totalRunTime: 'Total run time',
+    timeInStepSoFar: 'Time in this step so far',
+    timeSpentInStep: 'Time spent in this step',
+    endedWithIssue: 'Ended with an issue',
+    stopped: 'Stopped',
+    done: 'Done',
+    phases: {
+      run_started: 'Start',
+      planning: 'Plan',
+      analyze: 'Analyze',
+      analyze_stream: 'Stream',
+      intent: 'Apply',
+      agent_run: 'Tools',
+      transform: 'Transform',
+      syntax_fixer: 'Syntax',
+      chart_syntax_fixer: 'Syntax',
+      metaphor_syntax_fixer: 'Syntax',
+      anything_syntax_fixer: 'Syntax',
+      syntax_repair: 'Repair',
+      patch_retry: 'Retry',
+      invoke: 'Generate',
+      invoke_fallback: 'Finalize',
+      repair_1: 'Repair',
+      repair_2: 'Repair',
+      chart_transform: 'Transform',
+      chart_style: 'Style',
+      chart_analyze: 'Analyze',
+      metaphor_transform: 'Transform',
+      metaphor_analyze: 'Analyze',
+      anything_transform: 'Transform',
+      anything_analyze: 'Analyze',
+      activity: 'Activity'
+    },
+    running: {
+      model: 'Reasoning…',
+      fixer: 'Repairing',
+      patch: 'Validating',
+      inspect: 'Reading context',
+      tool: 'Working'
+    },
+    doneLabels: {
+      model: 'Turn complete',
+      fixer: 'Repair complete',
+      patch: 'Update accepted',
+      inspect: 'Context loaded',
+      tool: 'Complete'
+    },
+    validationFailed: 'Validation failed',
+    interrupted: 'Interrupted',
+    queued: 'Queued',
+    kicker: {
+      live: 'Live activity',
+      issue: 'Run issue',
+      stopped: 'Run stopped',
+      activity: 'Run activity'
+    },
+    headline: {
+      working: 'Working…',
+      stoppedOnIssue: 'Stopped on an issue',
+      stoppedByYou: 'Stopped by you',
+      recovered: 'Recovered and completed',
+      allComplete: 'All steps complete'
+    },
+    units: {
+      phase: 'phase',
+      phases: 'phases',
+      modelTurn: 'model turn',
+      modelTurns: 'model turns',
+      toolRun: 'tool run',
+      toolRuns: 'tool runs',
+      planBeat: 'plan beat',
+      planBeats: 'plan beats',
+      repair: 'repair',
+      repairs: 'repairs',
+      issue: 'issue',
+      issues: 'issues',
+      technicalStep: 'technical step',
+      technicalSteps: 'technical steps'
+    }
   }
 };

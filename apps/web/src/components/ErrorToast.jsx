@@ -1,14 +1,16 @@
 import { useSyncExternalStore } from 'react';
 import { dismissError, getErrors, subscribe } from '../state/errorToastStore.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 export default function ErrorToast() {
+  const { controls } = useUiCopy();
   const toasts = useSyncExternalStore(subscribe, getErrors, getErrors);
   if (toasts.length === 0) return null;
   return (
     <div
       className="error-toast-root"
       role="region"
-      aria-label="Error notifications"
+      aria-label={controls.errors.notifications}
       aria-live="assertive"
     >
       {toasts.map((toast) => (
@@ -17,7 +19,7 @@ export default function ErrorToast() {
           <button
             type="button"
             className="error-toast-dismiss"
-            aria-label="Dismiss error"
+            aria-label={controls.errors.dismiss}
             onClick={() => dismissError(toast.id)}
           >
             ×

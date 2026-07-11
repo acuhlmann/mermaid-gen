@@ -11,6 +11,7 @@ import {
 } from '../utils/embeddedDiagramFocus.js';
 import { applyInfographicHighlight } from '@archislop/shared';
 import { renderMermaidPreviewSvg } from '../utils/renderMermaidPreview.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 function extractErrorMessage(error) {
   if (!error) return 'Unknown Mermaid error';
@@ -54,6 +55,7 @@ export default function InsightsEmbeddedDiagram({
   streamingPreview = false,
   highlight = null
 }) {
+  const { controls } = useUiCopy();
   const debounceRef = useRef(0);
   const requestRef = useRef(0);
   const outerRef = useRef(null);
@@ -186,7 +188,7 @@ export default function InsightsEmbeddedDiagram({
         ref={outerRef}
         className="insights-embedded-diagram insights-embedded-diagram--infographic"
         data-testid="insights-embedded-diagram"
-        aria-label="Infographic preview (read-only)"
+        aria-label={controls.embeddedPreview.infographic}
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <InfographicRenderer
@@ -205,7 +207,7 @@ export default function InsightsEmbeddedDiagram({
         ref={outerRef}
         className="insights-embedded-diagram insights-embedded-diagram--chart"
         data-testid="insights-embedded-diagram"
-        aria-label="Chart preview (read-only)"
+        aria-label={controls.embeddedPreview.chart}
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <ChartRenderer diagramSource={source} compact />
@@ -220,7 +222,7 @@ export default function InsightsEmbeddedDiagram({
         ref={outerRef}
         className="insights-embedded-diagram insights-embedded-diagram--metaphor3d"
         data-testid="insights-embedded-diagram"
-        aria-label="3D metaphor preview (read-only)"
+        aria-label={controls.embeddedPreview.metaphor3d}
       >
         <div className="insights-embedded-diagram-inner">
           {nearViewport ? (
@@ -237,7 +239,7 @@ export default function InsightsEmbeddedDiagram({
         ref={outerRef}
         className="insights-embedded-diagram insights-embedded-diagram--anything"
         data-testid="insights-embedded-diagram"
-        aria-label="Page preview (read-only)"
+        aria-label={controls.embeddedPreview.page}
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <AnythingRenderer diagramSource={source} streamingPreview={streamingPreview} />
@@ -251,7 +253,7 @@ export default function InsightsEmbeddedDiagram({
       ref={outerRef}
       className="insights-embedded-diagram insights-embedded-diagram--mermaid"
       data-testid="insights-embedded-diagram"
-      aria-label="Mermaid preview (read-only)"
+      aria-label={controls.embeddedPreview.mermaid}
     >
       <div className="insights-embedded-diagram-inner">
         {renderError ? (

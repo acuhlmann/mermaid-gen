@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 import AgentBadge from './AgentBadge.jsx';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 const MOBILE_VISIBLE_AGENT_CAP = 3;
 
 export default function AgentPresenceBar({ presence, onInvite }) {
+  const { controls } = useUiCopy();
   const agents = Array.isArray(presence) ? presence : [];
   const [narrowLayout, setNarrowLayout] = useState(
     () =>
@@ -32,7 +35,7 @@ export default function AgentPresenceBar({ presence, onInvite }) {
       : 0;
 
   return (
-    <div className="agent-presence-bar" aria-label="Connected external agents">
+    <div className="agent-presence-bar" aria-label={controls.presence.connected}>
       {visibleAgents.map((agent) => (
         <AgentBadge
           key={agent.agentId}
@@ -47,7 +50,10 @@ export default function AgentPresenceBar({ presence, onInvite }) {
         />
       ))}
       {overflowCount > 0 ? (
-        <span className="agent-presence-overflow" aria-label={`${overflowCount} more agents`}>
+        <span
+          className="agent-presence-overflow"
+          aria-label={formatLocale(controls.presence.moreAgents, { count: overflowCount })}
+        >
           +{overflowCount}
         </span>
       ) : null}
@@ -56,8 +62,8 @@ export default function AgentPresenceBar({ presence, onInvite }) {
           type="button"
           className="overlay-button compact-button agent-invite-button"
           onClick={onInvite}
-          aria-label="Invite agent"
-          title="Invite an external agent into the Co-Design session"
+          aria-label={controls.presence.invite}
+          title={controls.presence.inviteTitle}
         >
           <span className="agent-invite-emoji" aria-hidden="true">
             🤝

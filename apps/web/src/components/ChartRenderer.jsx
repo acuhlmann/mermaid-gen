@@ -4,6 +4,7 @@ import embed from 'vega-embed';
 import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartThemePresets.js';
 import { expressionInterpreter } from 'vega-interpreter';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -26,9 +27,10 @@ const EMBED_DEFAULT_OPTIONS = {
 };
 
 function ChartErrorState({ error }) {
+  const { controls } = useUiCopy();
   return (
     <div className="chart-error-state" role="alert">
-      <p>Chart could not render.</p>
+      <p>{controls.errors.chartFailed}</p>
       <pre className="chart-error-detail">{error}</pre>
     </div>
   );

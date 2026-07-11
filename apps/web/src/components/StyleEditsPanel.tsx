@@ -7,8 +7,10 @@ import {
   IconReplaceRow,
   ThemeVarPill
 } from '../utils/thinkingProseEnrich';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 function StyleEditCard({ edit, index }: { edit: StyleEdit; index: number }) {
+  const { controls } = useUiCopy();
   const step = edit.id ? `${edit.id}.` : `${index + 1}.`;
 
   if (edit.kind === 'icon_replace') {
@@ -18,7 +20,7 @@ function StyleEditCard({ edit, index }: { edit: StyleEdit; index: number }) {
           {step}
         </span>
         <div className="insights-style-edit-body">
-          <span className="insights-style-edit-label">Icon replace</span>
+          <span className="insights-style-edit-label">{controls.styleEdits.iconReplace}</span>
           <IconReplaceRow fromFa={edit.from} toEmoji={edit.to} keyPrefix={`se-${index}`} />
         </div>
       </li>
@@ -32,7 +34,7 @@ function StyleEditCard({ edit, index }: { edit: StyleEdit; index: number }) {
           {step}
         </span>
         <div className="insights-style-edit-body">
-          <span className="insights-style-edit-label">Color shift</span>
+          <span className="insights-style-edit-label">{controls.styleEdits.colorShift}</span>
           {edit.variable ? <ThemeVarPill name={edit.variable} keyPrefix={`se-${index}-v`} /> : null}
           {edit.to ? (
             <ColorRamp fromHex={edit.from} toHex={edit.to} keyPrefix={`se-${index}-r`} />
@@ -74,15 +76,16 @@ export default function StyleEditsPanel({
   onApply?: () => void;
   busy?: boolean;
 }) {
+  const { controls } = useUiCopy();
   if (!Array.isArray(styleEdits) || styleEdits.length === 0) return null;
 
   return (
     <section
       className="insights-section insights-style-edits-section"
-      aria-label="Style edits"
+      aria-label={controls.styleEdits.region}
       data-testid="style-edits-panel"
     >
-      <h4 className="insights-section-title">Visual tweaks</h4>
+      <h4 className="insights-section-title">{controls.styleEdits.title}</h4>
       <ul className="insights-style-edits-list">
         {styleEdits.map((edit, idx) => (
           <StyleEditCard key={`${edit.kind}-${edit.id ?? idx}`} edit={edit} index={idx} />
@@ -97,7 +100,7 @@ export default function StyleEditsPanel({
             onClick={onApply}
             data-testid="style-edits-apply-btn"
           >
-            Apply style tweaks
+            {controls.styleEdits.apply}
           </button>
         </div>
       ) : null}

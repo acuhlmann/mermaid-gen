@@ -51,6 +51,29 @@ export const ACTION_KINDS = {
 } as const;
 export type ActionKind = keyof typeof ACTION_KINDS;
 
+/**
+ * Localized copy for the run timeline (from `controls.runTimeline`). Every field
+ * is optional so the pure model keeps working with the English defaults when no
+ * copy is threaded (tests, SSR, or a missing key).
+ */
+export type RunTimelineCopy = {
+  phases?: Record<string, string>;
+  running?: Partial<Record<ActionKind, string>>;
+  doneLabels?: Partial<Record<ActionKind, string>>;
+  validationFailed?: string;
+  interrupted?: string;
+  queued?: string;
+  kicker?: { live?: string; issue?: string; stopped?: string; activity?: string };
+  headline?: {
+    working?: string;
+    stoppedOnIssue?: string;
+    stoppedByYou?: string;
+    recovered?: string;
+    allComplete?: string;
+  };
+  units?: Record<string, string>;
+};
+
 export type TimelineItem =
   | { kind: 'beat'; at: number; beat: InsightPlanBeat; beatIndex: number }
   | { kind: 'action'; at: number | null; action: InsightTechnicalAction; actionIndex: number };
@@ -129,12 +152,21 @@ const ACTION_DONE_LABELS: Record<ActionKind, string> = {
 export function actionStatusLabel(
   action: InsightTechnicalAction,
   kind: ActionKind,
-  runLive: boolean
+  runLive: boolean,
+  copy?: RunTimelineCopy
 ): string {
-  if (action.status === 'rejected') return 'Validation failed';
-  if (action.status === 'running') return runLive ? ACTION_RUNNING_LABELS[kind] : 'Interrupted';
-  if (action.status === 'done') return ACTION_DONE_LABELS[kind];
-  return 'Queued';
+  if (action.status === 'rejected') return copy?.validationFailed ?? 'Validation failed';
+  if (action.status === 'running') {
+    if (!runLive) return copy?.interrupted ?? 'Interrupted';
+    return copy?.running?.[kind] ?? ACTION_RUNNING_LABELS[kind];
+  }
+  if (action.status === 'done') return copy?.doneLabels?.[kind] ?? ACTION_DONE_LABELS[kind];
+  return copy?.queued ?? 'Queued';
+}
+
+/** Localized phase label from a phase id, falling back to English then the raw id. */
+export function phaseIdLabel(id: string, copy?: RunTimelineCopy): string {
+  return copy?.phases?.[id] ?? PHASE_ID_LABELS[id] ?? id;
 }
 
 export function truncateDetail(text: string, maxLen = 220): string {
@@ -308,56 +340,107 @@ function pluralize(count: number, singular: string, plural: string): string {
   return count === 1 ? singular : plural;
 }
 
-export function buildStatChips(segmentCount: number, stats: RunStats): StatChip[] {
+type UnitSpec = { singKey: string; plurKey: string; singular: string; plural: string };
+
+/**
+ * `<count> <unit>` where the unit is localized when copy is present. Chinese and
+ * other measure-word languages carry no plural inflection, so a locale simply
+ * provides the (identical) singular/plural forms; English keeps its own forms.
+ */
+function unitText(count: number, copy: RunTimelineCopy | undefined, spec: UnitSpec): string {
+  const units = copy?.units;
+  if (units) {
+    const localized =
+      count === 1 ? (units[spec.singKey] ?? spec.singular) : (units[spec.plurKey] ?? spec.plural);
+    return `${count} ${localized}`;
+  }
+  return `${count} ${pluralize(count, spec.singular, spec.plural)}`;
+}
+
+export function buildStatChips(
+  segmentCount: number,
+  stats: RunStats,
+  copy?: RunTimelineCopy
+): StatChip[] {
   const chips: StatChip[] = [];
   if (segmentCount > 0) {
     chips.push({
       key: 'phases',
-      text: `${segmentCount} ${pluralize(segmentCount, 'phase', 'phases')}`
+      text: unitText(segmentCount, copy, {
+        singKey: 'phase',
+        plurKey: 'phases',
+        singular: 'phase',
+        plural: 'phases'
+      })
     });
   }
   if (stats.modelTurns > 0) {
     chips.push({
       key: 'model',
       className: 'is-model',
-      text: `${stats.modelTurns} model ${pluralize(stats.modelTurns, 'turn', 'turns')}`
+      text: unitText(stats.modelTurns, copy, {
+        singKey: 'modelTurn',
+        plurKey: 'modelTurns',
+        singular: 'model turn',
+        plural: 'model turns'
+      })
     });
   }
   if (stats.toolRuns > 0) {
     chips.push({
       key: 'tools',
-      text: `${stats.toolRuns} tool ${pluralize(stats.toolRuns, 'run', 'runs')}`
+      text: unitText(stats.toolRuns, copy, {
+        singKey: 'toolRun',
+        plurKey: 'toolRuns',
+        singular: 'tool run',
+        plural: 'tool runs'
+      })
     });
   }
   if (stats.beats > 0) {
     chips.push({
       key: 'beats',
       className: 'is-beats',
-      text: `${stats.beats} plan ${pluralize(stats.beats, 'beat', 'beats')}`
+      text: unitText(stats.beats, copy, {
+        singKey: 'planBeat',
+        plurKey: 'planBeats',
+        singular: 'plan beat',
+        plural: 'plan beats'
+      })
     });
   }
   if (stats.repairs > 0) {
     chips.push({
       key: 'repairs',
       className: 'is-repair',
-      text: `${stats.repairs} ${pluralize(stats.repairs, 'repair', 'repairs')}`
+      text: unitText(stats.repairs, copy, {
+        singKey: 'repair',
+        plurKey: 'repairs',
+        singular: 'repair',
+        plural: 'repairs'
+      })
     });
   }
   if (stats.issues > 0) {
     chips.push({
       key: 'issues',
       className: 'is-warning',
-      text: `${stats.issues} ${pluralize(stats.issues, 'issue', 'issues')}`
+      text: unitText(stats.issues, copy, {
+        singKey: 'issue',
+        plurKey: 'issues',
+        singular: 'issue',
+        plural: 'issues'
+      })
     });
   }
   return chips;
 }
 
-export function runKicker(runStatus: RunStatus): string {
-  if (runStatus === 'running') return 'Live activity';
-  if (runStatus === 'failed') return 'Run issue';
-  if (runStatus === 'cancelled') return 'Run stopped';
-  return 'Run activity';
+export function runKicker(runStatus: RunStatus, copy?: RunTimelineCopy): string {
+  if (runStatus === 'running') return copy?.kicker?.live ?? 'Live activity';
+  if (runStatus === 'failed') return copy?.kicker?.issue ?? 'Run issue';
+  if (runStatus === 'cancelled') return copy?.kicker?.stopped ?? 'Run stopped';
+  return copy?.kicker?.activity ?? 'Run activity';
 }
 
 export function runHeadline({
@@ -366,7 +449,8 @@ export function runHeadline({
   responseTitle,
   activeSegment,
   variant,
-  issueCount
+  issueCount,
+  copy
 }: {
   runStatus: RunStatus;
   responseActive: boolean;
@@ -374,15 +458,19 @@ export function runHeadline({
   activeSegment: TimelineSegment | null;
   variant: string;
   issueCount: number;
+  copy?: RunTimelineCopy;
 }): string {
+  const headline = copy?.headline;
   if (runStatus === 'running') {
     if (responseActive) return `${responseTitle}…`;
     if (activeSegment) return ceremonyLabelFor(variant, activeSegment.id, activeSegment.label);
-    return 'Working…';
+    return headline?.working ?? 'Working…';
   }
-  if (runStatus === 'failed') return 'Stopped on an issue';
-  if (runStatus === 'cancelled') return 'Stopped by you';
-  return issueCount > 0 ? 'Recovered and completed' : 'All steps complete';
+  if (runStatus === 'failed') return headline?.stoppedOnIssue ?? 'Stopped on an issue';
+  if (runStatus === 'cancelled') return headline?.stoppedByYou ?? 'Stopped by you';
+  return issueCount > 0
+    ? (headline?.recovered ?? 'Recovered and completed')
+    : (headline?.allComplete ?? 'All steps complete');
 }
 
 export type ActionRowDetailData = {
@@ -446,13 +534,15 @@ export function deriveRunTimelineView(
     responseTitle,
     responseActive,
     hasResponse,
-    now
+    now,
+    copy
   }: {
     variant: string;
     responseTitle: string;
     responseActive: boolean;
     hasResponse: boolean;
     now: number;
+    copy?: RunTimelineCopy;
   }
 ): RunTimelineView {
   const runStatus = (entry.status ?? 'running') as RunStatus;
@@ -479,10 +569,11 @@ export function deriveRunTimelineView(
       responseTitle,
       activeSegment,
       variant,
-      issueCount: stats.issues
+      issueCount: stats.issues,
+      copy
     }),
     statusText,
-    statChips: buildStatChips(segments.length, stats),
+    statChips: buildStatChips(segments.length, stats, copy),
     empty: segments.length === 0 && !hasResponse && !runLive
   };
 }
@@ -491,7 +582,8 @@ export function deriveRunTimelineView(
 export function foldSummaryLabel(
   run: { action: InsightTechnicalAction }[],
   runLive: boolean,
-  now: number
+  now: number,
+  copy?: RunTimelineCopy
 ): string {
   const rejected = run.filter((item) => item.action.status === 'rejected').length;
   const totalMs = run.reduce(
@@ -500,8 +592,22 @@ export function foldSummaryLabel(
   );
   const durationLabel = formatActionDurationMs(totalMs);
   const bits = [
-    `${run.length} technical ${pluralize(run.length, 'step', 'steps')}`,
-    ...(rejected > 0 ? [`${rejected} ${pluralize(rejected, 'issue', 'issues')}`] : []),
+    unitText(run.length, copy, {
+      singKey: 'technicalStep',
+      plurKey: 'technicalSteps',
+      singular: 'technical step',
+      plural: 'technical steps'
+    }),
+    ...(rejected > 0
+      ? [
+          unitText(rejected, copy, {
+            singKey: 'issue',
+            plurKey: 'issues',
+            singular: 'issue',
+            plural: 'issues'
+          })
+        ]
+      : []),
     ...(durationLabel ? [durationLabel] : [])
   ];
   return bits.join(' · ');

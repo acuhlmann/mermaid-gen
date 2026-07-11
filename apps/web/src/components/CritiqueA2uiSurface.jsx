@@ -4,6 +4,7 @@ import { MessageProcessor } from '@a2ui/web_core/v0_9';
 import { A2uiSurface, basicCatalog, MarkdownContext } from '@a2ui/react/v0_9';
 import '@a2ui/react/styles';
 import { A2UI_CRITIQUE_SURFACE_ID } from '@archislop/shared';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 function readCheckboxMask(root) {
   if (!root) return [];
@@ -30,6 +31,7 @@ export default function CritiqueA2uiSurface({
   onFixSelected,
   onUnavailable
 }) {
+  const { controls } = useUiCopy();
   const callbacksRef = useRef({ onFixAll, onFixSelected, busy });
   callbacksRef.current = { onFixAll, onFixSelected, busy };
 
@@ -133,7 +135,7 @@ export default function CritiqueA2uiSurface({
     <MarkdownContext.Provider value={renderMarkdown}>
       <section
         className="insights-a2ui-block insights-prose-section insights-tone-actionable"
-        aria-label="Actionable improvements"
+        aria-label={controls.insights.actionableImprovements}
       >
         <div
           ref={rootRef}

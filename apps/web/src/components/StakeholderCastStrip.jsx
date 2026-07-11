@@ -1,4 +1,6 @@
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 function cssVariant(variant) {
   return variant === 'goMad' ? 'go-mad' : variant;
@@ -16,6 +18,8 @@ export default function StakeholderCastStrip({
   onSelectVariant,
   disabled = false
 }) {
+  const { controls } = useUiCopy();
+  const stk = controls.stakeholders;
   const cast = variants.filter(Boolean);
   if (cast.length < 2 || !activeVariant) return null;
 
@@ -33,15 +37,15 @@ export default function StakeholderCastStrip({
   return (
     <div
       className={rootClass}
-      aria-label={`${activeMeta.name} is one of ${cast.length} stakeholders`}
+      aria-label={formatLocale(stk.castOneOfMany, { name: activeMeta.name, count: cast.length })}
     >
       <span className="stakeholder-cast-strip-tag">
         <span className="stakeholder-cast-strip-icon" aria-hidden="true">
           👥
         </span>
-        <span className="stakeholder-cast-strip-label">Stakeholders</span>
+        <span className="stakeholder-cast-strip-label">{stk.castLabel}</span>
       </span>
-      <span className="stakeholder-cast-strip-avatars" role="group" aria-label="Stakeholder cast">
+      <span className="stakeholder-cast-strip-avatars" role="group" aria-label={stk.castGroup}>
         {cast.map((variant) => {
           const meta = getVariantPersona(variant);
           const isActive = variant === activeVariant;
@@ -63,9 +67,13 @@ export default function StakeholderCastStrip({
                 disabled={disabled || isActive}
                 aria-current={isActive ? 'true' : undefined}
                 aria-label={
-                  isActive ? `${meta.name} is speaking` : `Ask ${meta.name} for commentary`
+                  isActive
+                    ? formatLocale(stk.castSpeaking, { name: meta.name })
+                    : formatLocale(stk.castAskCommentary, { name: meta.name })
                 }
-                title={isActive ? meta.name : `Ask ${meta.name} for commentary`}
+                title={
+                  isActive ? meta.name : formatLocale(stk.castAskCommentary, { name: meta.name })
+                }
                 onClick={(event) => {
                   event.stopPropagation();
                   if (!isActive) onSelectVariant(variant);
