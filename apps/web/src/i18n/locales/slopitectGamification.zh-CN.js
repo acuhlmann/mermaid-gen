@@ -272,7 +272,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     firstSlop: {
       id: 'firstSlop',
-      title: '🥚 首次垃圾图',
+      title: '🥚 首次烂图',
       subtitle: '你的第一次运行！一块烂图诞生了。'
     },
     hatTrick: {
@@ -282,7 +282,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     },
     slopMarathon: {
       id: 'slopMarathon',
-      title: '🏃 垃圾图马拉松',
+      title: '🏃 烂图马拉松',
       subtitle: '一次会话中完成十次运行。记得喝水。'
     },
     comboKing: {
@@ -290,32 +290,32 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '⚡ 连击之王',
       subtitle: '连续链接五种不同的人设。'
     },
-    masterPolisher: {
+    refine: {
       id: 'masterPolisher',
       title: '👷 工程大师',
       subtitle: '已发布10次有效扩展。工地归你了。'
     },
-    serialDisruptor: {
+    innovate: {
       id: 'serialDisruptor',
       title: '⚡ 连续创新者',
       subtitle: '已完成10次大胆转型。C级高管的料。'
     },
-    distinguishedChaos: {
+    goMad: {
       id: 'distinguishedChaos',
       title: '🪖 杰出混沌院士',
       subtitle: '已完成10次疯狂运行。把安全帽裱起来。'
     },
-    auditTribunal: {
+    critique: {
       id: 'auditTribunal',
       title: '📋 审计法庭',
       subtitle: '已归档10次批评。合规部门爱死你了。'
     },
-    archivedStoryteller: {
+    explain: {
       id: 'archivedStoryteller',
       title: '🧙 典藏讲故事者',
       subtitle: '已有10次解说被架构传说收录。'
     },
-    serialAligner: {
+    exec: {
       id: 'serialAligner',
       title: '👔 连续协同设计者',
       subtitle: '已发布10次协同设计。董事会批准。'
