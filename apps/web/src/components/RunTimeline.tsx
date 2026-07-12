@@ -22,7 +22,6 @@ import {
   deriveActionDetails,
   deriveRunTimelineView,
   foldSummaryLabel,
-  formatRunOffset,
   phaseIdLabel,
   runKicker,
   segmentDurationMs,
@@ -376,7 +375,6 @@ function PhaseSegment({
   state,
   variant,
   showRawPhaseIds,
-  offsetLabel,
   durationLabel,
   statusText,
   runLive,
@@ -387,7 +385,6 @@ function PhaseSegment({
   state: SegmentState;
   variant: string;
   showRawPhaseIds: boolean;
-  offsetLabel: string;
   durationLabel: string;
   statusText: string;
   runLive: boolean;
@@ -418,11 +415,6 @@ function PhaseSegment({
           ) : (
             <span className="insights-visually-hidden">{seg.id}</span>
           )}
-          {offsetLabel ? (
-            <span className="run-timeline-segment-offset" title={copy.stepStartTitle}>
-              {offsetLabel}
-            </span>
-          ) : null}
           {durationLabel ? (
             <span
               className={`run-timeline-segment-duration ${isActive ? 'is-live' : ''}`}
@@ -529,8 +521,7 @@ export default function RunTimeline({
     now,
     copy
   });
-  const { runStatus, runLive, segments, startedAt, totalLabel, headline, statusText, statChips } =
-    view;
+  const { runStatus, runLive, segments, totalLabel, headline, statusText, statChips } = view;
 
   const planContentType = normalizePlanContentType(entry.contentType);
 
@@ -568,7 +559,6 @@ export default function RunTimeline({
               state={state}
               variant={variant}
               showRawPhaseIds={showRawPhaseIds}
-              offsetLabel={formatRunOffset(startedAt, seg.at)}
               durationLabel={formatActionDurationMs(
                 segmentDurationMs(seg, segments[idx + 1], entry, state === 'active', now)
               )}
