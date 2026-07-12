@@ -423,7 +423,6 @@ export const CONTROLS_ZH_CN = {
     intent: '意图',
     triggeredBy: '触发来源',
     validationFeedback: '校验反馈',
-    stepStartTitle: '此步骤相对于运行开始的启动时间',
     elapsedSoFar: '已用时',
     stepDuration: '步骤耗时',
     elapsedRunTime: '已运行时间',

@@ -327,13 +327,6 @@
   font-size: 0.57rem;
 }
 
-.run-timeline-segment-offset {
-  color: #8b87a0;
-  font-size: 0.6rem;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-}
-
 .run-timeline-segment-duration {
   margin-left: auto;
   padding: 0.1rem 0.34rem;

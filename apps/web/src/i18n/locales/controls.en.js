@@ -434,7 +434,6 @@ export const CONTROLS_EN = {
     intent: 'Intent',
     triggeredBy: 'Triggered by',
     validationFeedback: 'Validation feedback',
-    stepStartTitle: 'When this step started, relative to run start',
     elapsedSoFar: 'Elapsed so far',
     stepDuration: 'Step duration',
     elapsedRunTime: 'Elapsed run time',

@@ -423,7 +423,6 @@ export const CONTROLS_ZH_TW = {
     intent: '意圖',
     triggeredBy: '觸發來源',
     validationFeedback: '驗證回饋',
-    stepStartTitle: '此步驟相對於執行開始的啟動時間',
     elapsedSoFar: '已用時',
     stepDuration: '步驟耗時',
     elapsedRunTime: '已執行時間',
