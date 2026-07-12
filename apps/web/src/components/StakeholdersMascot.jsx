@@ -5,6 +5,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
+import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 
 const COLLAPSE_AFTER_MS = 6000;
 
@@ -48,7 +49,8 @@ export default function StakeholdersMascot({
   busy = false,
   bubbleProps = null,
   onSelectVariant = null,
-  castDisabled = false
+  castDisabled = false,
+  introProps = null
 }) {
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
@@ -124,6 +126,17 @@ export default function StakeholdersMascot({
     : 'var(--accent)';
   const style = { '--stakeholders-accent': accentStyle };
 
+  const advisorSurface = showThinking ? (
+    <AdvisorThinkingIndicator
+      persona={thinkingDisplayPersona}
+      castVariants={castVariants}
+      onSelectVariant={onSelectVariant}
+      castDisabled={castDisabled}
+    />
+  ) : bubbleReady ? (
+    <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} />
+  ) : null;
+
   return (
     <div
       className={['stakeholders-mascot-wrap', expanded ? 'is-menu-expanded' : '']
@@ -132,16 +145,17 @@ export default function StakeholdersMascot({
       ref={wrapperRef}
       style={style}
     >
-      {showThinking ? (
-        <AdvisorThinkingIndicator
-          persona={thinkingDisplayPersona}
-          castVariants={castVariants}
-          onSelectVariant={onSelectVariant}
-          castDisabled={castDisabled}
-        />
-      ) : bubbleReady ? (
-        <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} />
-      ) : null}
+      {/* First-run only: stack the intro spotlight above the live advisor surface
+          in a flex column. The no-intro path (the common case) renders the surface
+          exactly as before, so steady-state bubble positioning is untouched. */}
+      {introProps ? (
+        <div className="stakeholders-float-stack">
+          <StakeholderIntroSpotlight {...introProps} />
+          {advisorSurface}
+        </div>
+      ) : (
+        advisorSurface
+      )}
       <button
         type="button"
         className={mascotClass}

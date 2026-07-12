@@ -8,10 +8,18 @@ import RadialActionMenu from './components/RadialActionMenu.jsx';
 import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
+import TopicStarters from './components/TopicStarters.jsx';
+import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
+import { EXAMPLE_DIAGRAM_SOURCE } from './utils/exampleDiagram.js';
+import { useRotatingPlaceholder } from './hooks/useRotatingPlaceholder.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
 import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
 import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
+import {
+  readStakeholderIntroSeen,
+  writeStakeholderIntroSeen
+} from './utils/stakeholderIntroStorage.js';
 import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import {
   openSessionEventsStream,
@@ -2279,6 +2287,17 @@ function ArchiSlop() {
     await submitIntentWithPrompt(prompt.trim());
   }
 
+  // First-run topic starter chip: seed the visible prompt then submit, so the
+  // newcomer both sees the topic they picked and gets an immediate result.
+  // submitIntentWithPrompt owns the loading guard, so no extra busy check here.
+  async function handleStarterPick(text) {
+    const trimmed = (text ?? '').trim();
+    if (!trimmed) return;
+    setPrompt(trimmed);
+    hasInteractedRef.current = true;
+    await submitIntentWithPrompt(trimmed);
+  }
+
   async function handleSlopPromptSubmit(text) {
     const trimmed = (text ?? '').trim();
     if (!trimmed) return;
@@ -2812,6 +2831,56 @@ ${requirementsBlock}`;
       });
     }
   });
+
+  // First-run stakeholder spotlight: a once-ever onboarding beat that frames the
+  // stakeholder mechanic the first time the roundtable surfaces (a persona
+  // thinking, or a live comment). Persisted so it never fires again.
+  const stakeholderIntroSeenRef = useRef(readStakeholderIntroSeen());
+  const [stakeholderIntroActive, setStakeholderIntroActive] = useState(false);
+  const stakeholderIntroTimerRef = useRef(null);
+
+  const dismissStakeholderIntro = useCallback(() => {
+    if (stakeholderIntroTimerRef.current) {
+      clearTimeout(stakeholderIntroTimerRef.current);
+      stakeholderIntroTimerRef.current = null;
+    }
+    setStakeholderIntroActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (stakeholderIntroSeenRef.current) return;
+    if (advisor.isMuted) return;
+    if (!advisor.thinkingPersona && !advisor.suggestion) return;
+    stakeholderIntroSeenRef.current = true;
+    writeStakeholderIntroSeen();
+    setStakeholderIntroActive(true);
+    stakeholderIntroTimerRef.current = setTimeout(() => {
+      stakeholderIntroTimerRef.current = null;
+      setStakeholderIntroActive(false);
+    }, 14_000);
+  }, [advisor.thinkingPersona, advisor.suggestion, advisor.isMuted]);
+
+  // Muting mid-spotlight is an implicit "understood, go away".
+  useEffect(() => {
+    if (advisor.isMuted && stakeholderIntroActive) dismissStakeholderIntro();
+  }, [advisor.isMuted, stakeholderIntroActive, dismissStakeholderIntro]);
+
+  useEffect(
+    () => () => {
+      if (stakeholderIntroTimerRef.current) clearTimeout(stakeholderIntroTimerRef.current);
+    },
+    []
+  );
+
+  const stakeholderIntroProps = stakeholderIntroActive
+    ? {
+        eyebrow: controls.stakeholders.introEyebrow,
+        body: controls.stakeholders.introBody,
+        dismissLabel: controls.stakeholders.introDismiss,
+        ariaLabel: controls.stakeholders.introAria,
+        onDismiss: dismissStakeholderIntro
+      }
+    : null;
 
   const advisorBubbleProps = useMemo(() => {
     if (!advisor.suggestion) return null;
@@ -3406,6 +3475,17 @@ ${requirementsBlock}`;
   const hasDiagramText = Boolean(state.diagramSource?.trim());
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
+  // Verb-led placeholder that cycles while the empty-state entry input is shown,
+  // hinting at what to type. Falls back to the static "Your Topic" label.
+  const entryTopicPlaceholder = useRotatingPlaceholder(controls.prompt.topicExamples, {
+    active: !hasDiagramText
+  });
+
+  // First-run demo: show the read-only example only once we know the diagram slot
+  // is genuinely empty (gated on hydration to avoid a flash for returning users
+  // whose saved diagram is about to load), and never over the editor/insights.
+  const showEntryExample = sessionHydrated && !hasDiagramText && !editorOpen && !insightsOpen;
+
   const critiqueActionableSplit = useMemo(
     () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
     [latestCritique?.text]
@@ -3867,6 +3947,16 @@ ${requirementsBlock}`;
         isFullscreen={isFullscreen}
       />
 
+      {showEntryExample ? (
+        <ExampleDiagramPreview
+          source={EXAMPLE_DIAGRAM_SOURCE}
+          eyebrow={controls.prompt.exampleEyebrow}
+          caption={controls.prompt.exampleCaption}
+          ariaLabel={controls.prompt.exampleAria}
+          active={showEntryExample}
+        />
+      ) : null}
+
       <DiagramFullscreenOverlay
         isFullscreen={isFullscreen}
         host={diagramSurfaceRef.current}
@@ -4177,84 +4267,93 @@ ${requirementsBlock}`;
         }
         actions={
           !hasDiagramText && !insightsOpen ? (
-            <form className="prompt-control" onSubmit={runIntentChange}>
-              <label className="sr-only" htmlFor="diagram-change-prompt">
-                {controls.prompt.yourTopic}
-              </label>
-              <input
-                id="diagram-change-prompt"
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                placeholder={controls.prompt.yourTopic}
-                disabled={busy}
-                aria-invalid={error ? 'true' : 'false'}
-                aria-describedby={status ? 'app-status' : undefined}
+            <div className="entry-cluster">
+              <TopicStarters
+                hint={controls.prompt.starterHint}
+                ariaLabel={controls.prompt.starterAria}
+                starters={controls.prompt.starters}
+                busy={busy}
+                onPick={handleStarterPick}
               />
-              <div className="prompt-actions-main">
-                <button
-                  type="button"
-                  className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-                  disabled={!voiceSupported || busy}
-                  {...(narrowLayout
-                    ? {
-                        onPointerUp: (event) => {
-                          event.preventDefault();
-                          event.stopPropagation();
-                          handleMicToggleClick(event);
-                        }
-                      }
-                    : {
-                        onPointerDown: handleMicPointerDown,
-                        onPointerUp: handleMicPointerUp,
-                        onPointerCancel: handleMicPointerUp,
-                        onLostPointerCapture: () => stopVoiceInput(),
-                        onKeyDown: (event) => {
-                          if (event.repeat) return;
-                          if (event.key === ' ' || event.key === 'Enter') {
+              <form className="prompt-control" onSubmit={runIntentChange}>
+                <label className="sr-only" htmlFor="diagram-change-prompt">
+                  {controls.prompt.yourTopic}
+                </label>
+                <input
+                  id="diagram-change-prompt"
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  placeholder={entryTopicPlaceholder || controls.prompt.yourTopic}
+                  disabled={busy}
+                  aria-invalid={error ? 'true' : 'false'}
+                  aria-describedby={status ? 'app-status' : undefined}
+                />
+                <div className="prompt-actions-main">
+                  <button
+                    type="button"
+                    className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+                    disabled={!voiceSupported || busy}
+                    {...(narrowLayout
+                      ? {
+                          onPointerUp: (event) => {
                             event.preventDefault();
-                            startVoiceInput();
-                          }
-                        },
-                        onKeyUp: (event) => {
-                          if (event.key === ' ' || event.key === 'Enter') {
-                            event.preventDefault();
-                            stopVoiceInput();
+                            event.stopPropagation();
+                            handleMicToggleClick(event);
                           }
                         }
-                      })}
-                  aria-label={
-                    narrowLayout
-                      ? voiceListening
-                        ? controls.prompt.tapToStop
-                        : controls.prompt.tapToDictate
-                      : controls.prompt.holdToSpeak
-                  }
-                  aria-pressed={narrowLayout ? voiceListening : undefined}
-                  title={
-                    voiceSupported
-                      ? narrowLayout
+                      : {
+                          onPointerDown: handleMicPointerDown,
+                          onPointerUp: handleMicPointerUp,
+                          onPointerCancel: handleMicPointerUp,
+                          onLostPointerCapture: () => stopVoiceInput(),
+                          onKeyDown: (event) => {
+                            if (event.repeat) return;
+                            if (event.key === ' ' || event.key === 'Enter') {
+                              event.preventDefault();
+                              startVoiceInput();
+                            }
+                          },
+                          onKeyUp: (event) => {
+                            if (event.key === ' ' || event.key === 'Enter') {
+                              event.preventDefault();
+                              stopVoiceInput();
+                            }
+                          }
+                        })}
+                    aria-label={
+                      narrowLayout
                         ? voiceListening
                           ? controls.prompt.tapToStop
-                          : controls.prompt.tapToDictatePrompt
-                        : controls.prompt.holdToDictate
-                      : SpeechRecognitionCtor
-                        ? controls.prompt.voiceNeedsHttps
-                        : controls.prompt.voiceUnsupported
-                  }
-                >
-                  <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-                  <span className="button-label">{controls.prompt.mic}</span>
-                </button>
-                <button
-                  type="submit"
-                  className="overlay-button primary-button"
-                  disabled={busy || !prompt.trim()}
-                >
-                  <ButtonIcon>{'>'}</ButtonIcon>
-                  <span className="button-label">{controls.prompt.doIt}</span>
-                </button>
-              </div>
-            </form>
+                          : controls.prompt.tapToDictate
+                        : controls.prompt.holdToSpeak
+                    }
+                    aria-pressed={narrowLayout ? voiceListening : undefined}
+                    title={
+                      voiceSupported
+                        ? narrowLayout
+                          ? voiceListening
+                            ? controls.prompt.tapToStop
+                            : controls.prompt.tapToDictatePrompt
+                          : controls.prompt.holdToDictate
+                        : SpeechRecognitionCtor
+                          ? controls.prompt.voiceNeedsHttps
+                          : controls.prompt.voiceUnsupported
+                    }
+                  >
+                    <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
+                    <span className="button-label">{controls.prompt.mic}</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="overlay-button primary-button"
+                    disabled={busy || !prompt.trim()}
+                  >
+                    <ButtonIcon>{'>'}</ButtonIcon>
+                    <span className="button-label">{controls.prompt.doIt}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           ) : hasDiagramText && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
               <div className="button-group">
@@ -4316,6 +4415,7 @@ ${requirementsBlock}`;
                   bubbleProps={advisorBubbleProps}
                   onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                  introProps={stakeholderIntroProps}
                 />
                 <button
                   type="button"
@@ -4450,6 +4550,7 @@ ${requirementsBlock}`;
                   bubbleProps={advisorBubbleProps}
                   onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                  introProps={stakeholderIntroProps}
                 />
                 <button
                   type="button"

@@ -328,7 +328,7 @@ describe('App simplified controls', () => {
 
     render(<App />);
 
-    const input = await screen.findByPlaceholderText('Your Topic');
+    const input = await screen.findByLabelText('Your Topic');
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
     fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
@@ -348,6 +348,30 @@ describe('App simplified controls', () => {
     await screen.findByText('Read diagram snapshot');
     await screen.findByText('Apply diagram update');
     await screen.findAllByText('Done');
+  });
+
+  it('streams intent when a first-run topic starter chip is tapped', async () => {
+    // Starter chips only render in the empty state alongside the topic input.
+    fetchSessionDiagramStateMock.mockResolvedValueOnce({
+      activeContentType: 'mermaid',
+      mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
+      infographic: createInitialDiagramState('infographic')
+    });
+
+    render(<App />);
+
+    const chip = await screen.findByRole('button', { name: 'OAuth 2.0 flow' });
+    fireEvent.click(chip);
+
+    await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
+    expect(streamDiagramAgentMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        operation: 'intent',
+        prompt: 'Explain how the OAuth 2.0 authorization code flow works'
+      }),
+      expect.any(Function),
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
   });
 
   it('shows Fix after critique and applies critique-driven intent', async () => {
@@ -454,7 +478,7 @@ describe('App simplified controls', () => {
 
     render(<App />);
 
-    const input = await screen.findByPlaceholderText('Your Topic');
+    const input = await screen.findByLabelText('Your Topic');
     fireEvent.change(input, { target: { value: 'Tighten wording' } });
     fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
@@ -539,7 +563,7 @@ describe('App simplified controls', () => {
 
     render(<App />);
 
-    const input = await screen.findByPlaceholderText('Your Topic');
+    const input = await screen.findByLabelText('Your Topic');
     fireEvent.change(input, { target: { value: 'Long request' } });
     fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 

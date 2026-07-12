@@ -45,7 +45,25 @@ export const CONTROLS_ZH_CN = {
     slopNextTitle: '接下来要改什么？',
     slopNextPlaceholder: '告诉智能体要改什么…',
     slopNextLabel: '新提示',
-    closePrompt: '关闭提示'
+    closePrompt: '关闭提示',
+    topicExamples: [
+      '讲解 OAuth 2.0 的工作原理…',
+      '梳理我们的 CI/CD 部署流水线…',
+      '画一张微服务架构图…',
+      '拆解咖啡供应链…',
+      '设计一个短链接服务…'
+    ],
+    starterHint: '第一次来？点一个主题开始：',
+    starterAria: '用于快速开始的示例主题',
+    starters: [
+      { label: 'OAuth 2.0 流程', prompt: '讲解 OAuth 2.0 授权码流程的工作原理' },
+      { label: 'CI/CD 流水线', prompt: '梳理从提交到上线的 CI/CD 流水线' },
+      { label: '微服务', prompt: '画一张典型的微服务架构图' },
+      { label: '咖啡供应链', prompt: '拆解全球咖啡供应链' }
+    ],
+    exampleEyebrow: '实时示例',
+    exampleCaption: '这就是 archislop 的用途——在下方开始你自己的主题。',
+    exampleAria: '展示 archislop 工作方式的示例图'
   },
   settings: {
     label: '设置',
@@ -178,7 +196,12 @@ export const CONTROLS_ZH_CN = {
     castOneOfMany: '{name} 是 {count} 位相关方之一',
     castSpeaking: '{name} 正在发言',
     castAskCommentary: '请 {name} 点评',
-    align: '对齐'
+    align: '对齐',
+    introEyebrow: '👥 圆桌会议已召开',
+    introBody:
+      '一位相关方正在对你的图表发表意见——无论你是否询问，他们都会在你工作时插话。随时可用右侧按钮将其静音。',
+    introDismiss: '知道了',
+    introAria: '认识相关方'
   },
   invite: {
     title: '接入外部智能体',

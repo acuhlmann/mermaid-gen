@@ -45,7 +45,25 @@ export const CONTROLS_ZH_TW = {
     slopNextTitle: '接下來要改什麼？',
     slopNextPlaceholder: '告訴智慧代理要改什麼…',
     slopNextLabel: '新提示',
-    closePrompt: '關閉提示'
+    closePrompt: '關閉提示',
+    topicExamples: [
+      '講解 OAuth 2.0 的運作原理…',
+      '梳理我們的 CI/CD 部署流水線…',
+      '畫一張微服務架構圖…',
+      '拆解咖啡供應鏈…',
+      '設計一個短網址服務…'
+    ],
+    starterHint: '第一次來？點一個主題開始：',
+    starterAria: '用於快速開始的範例主題',
+    starters: [
+      { label: 'OAuth 2.0 流程', prompt: '講解 OAuth 2.0 授權碼流程的運作原理' },
+      { label: 'CI/CD 流水線', prompt: '梳理從提交到上線的 CI/CD 流水線' },
+      { label: '微服務', prompt: '畫一張典型的微服務架構圖' },
+      { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' }
+    ],
+    exampleEyebrow: '即時範例',
+    exampleCaption: '這就是 archislop 的用途——在下方開始你自己的主題。',
+    exampleAria: '展示 archislop 運作方式的範例圖'
   },
   settings: {
     label: '設定',
@@ -178,7 +196,12 @@ export const CONTROLS_ZH_TW = {
     castOneOfMany: '{name} 是 {count} 位相關方之一',
     castSpeaking: '{name} 正在發言',
     castAskCommentary: '請 {name} 點評',
-    align: '對齊'
+    align: '對齊',
+    introEyebrow: '👥 圓桌會議已召開',
+    introBody:
+      '一位相關方正在對你的圖表發表意見——無論你是否詢問，他們都會在你工作時插話。隨時可用右側按鈕將其靜音。',
+    introDismiss: '知道了',
+    introAria: '認識相關方'
   },
   invite: {
     title: '接入外部智慧代理',

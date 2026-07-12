@@ -104,4 +104,32 @@ describe('StakeholdersMascot', () => {
     expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
     expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
   });
+
+  it('does not render the first-run spotlight without introProps', () => {
+    render(<StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />);
+    expect(screen.queryByTestId('stakeholder-intro-spotlight')).toBeNull();
+    // Surface still renders on its own outside the float stack.
+    expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
+  });
+
+  it('stacks the first-run spotlight above the live advisor surface', () => {
+    const introProps = {
+      eyebrow: '👥 The roundtable has convened',
+      body: 'A stakeholder is weighing in.',
+      dismissLabel: 'Got it',
+      ariaLabel: 'Meet the stakeholders',
+      onDismiss: vi.fn()
+    };
+    const { container } = render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        thinkingPersona="refine"
+        introProps={introProps}
+      />
+    );
+    const stack = container.querySelector('.stakeholders-float-stack');
+    expect(stack).toBeTruthy();
+    expect(stack.querySelector('[data-testid="stakeholder-intro-spotlight"]')).toBeTruthy();
+    expect(stack.querySelector('[data-testid="advisor-thinking-indicator"]')).toBeTruthy();
+  });
 });

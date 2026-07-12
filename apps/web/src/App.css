@@ -5288,6 +5288,157 @@
   max-width: min(48rem, 100%);
 }
 
+/* Empty-state entry: topic starters stacked above the prompt input so the whole
+   cluster grows upward from the bottom dock instead of pushing the row up. */
+.entry-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.topic-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  animation: topic-starters-in 0.35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topic-starters {
+    animation: none;
+  }
+}
+
+@keyframes topic-starters-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.topic-starters-hint {
+  margin: 0;
+  padding-left: 0.15rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.topic-starters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.topic-starter-chip {
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  cursor: pointer;
+  backdrop-filter: blur(18px);
+  transition:
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.topic-starter-chip:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.55);
+  transform: translateY(-1px);
+}
+
+.topic-starter-chip:focus-visible {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.16),
+    var(--control-shadow);
+}
+
+.topic-starter-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* First-run read-only example, layered over the empty canvas above the bottom
+   dock. Non-interactive (pointer-events: none) so it never blocks the entry
+   input / starter chips; sits above the empty canvas but below .bottom-chrome. */
+.entry-example {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3.5rem 1.5rem 15rem;
+  pointer-events: none;
+  animation: topic-starters-in 0.45s ease both;
+}
+
+.entry-example-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  max-width: min(46rem, 100%);
+  max-height: 100%;
+  text-align: center;
+}
+
+.entry-example-eyebrow {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--accent-dark);
+  opacity: 0.75;
+}
+
+.entry-example-svg {
+  min-height: 0;
+  max-width: 100%;
+  opacity: 0.92;
+}
+
+.entry-example-svg svg {
+  max-width: 100%;
+  max-height: 46vh;
+  height: auto;
+}
+
+.entry-example-caption {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-example {
+    animation: none;
+  }
+}
+
+/* Not enough vertical room (short viewport / mobile keyboard) — drop the demo so
+   it never crowds the entry input. */
+@media (max-height: 620px) {
+  .entry-example {
+    display: none;
+  }
+}
+
 .prompt-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -12011,6 +12162,74 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.35rem;
   pointer-events: auto;
+}
+
+/* First-run only: column that stacks the intro spotlight above the live advisor
+   surface. Takes over the absolute anchor so the surface (which normally anchors
+   itself) flows inside the column instead of overlapping the spotlight. */
+.stakeholders-float-stack {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.55rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.stakeholders-float-stack > * {
+  pointer-events: auto;
+}
+
+.stakeholders-float-stack .advisor-speech-bubble,
+.stakeholders-float-stack .advisor-thinking-indicator,
+.prompt-actions--mobile .stakeholders-float-stack .advisor-speech-bubble,
+.prompt-actions--mobile .stakeholders-float-stack .advisor-thinking-indicator {
+  position: static;
+  inset: auto;
+}
+
+.stakeholder-intro-spotlight {
+  width: max-content;
+  max-width: min(28rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.94));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--accent) 18%, rgba(15, 23, 42, 0.18)),
+    0 2px 8px rgba(15, 23, 42, 0.1);
+  animation: topic-starters-in 0.35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stakeholder-intro-spotlight {
+    animation: none;
+  }
+}
+
+.stakeholder-intro-eyebrow {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.stakeholder-intro-body {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.stakeholder-intro-dismiss {
+  align-self: flex-end;
 }
 
 .stakeholders-mascot {

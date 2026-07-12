@@ -45,7 +45,33 @@ export const CONTROLS_EN = {
     slopNextTitle: 'What should we slop next?',
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
-    closePrompt: 'Close prompt'
+    closePrompt: 'Close prompt',
+    // First-run onboarding: verb-led placeholders cycle in the empty-state input
+    // to show *what* you can type; the starter chips below let a newcomer begin
+    // with one tap instead of a cold blank box.
+    topicExamples: [
+      'Explain how OAuth 2.0 works…',
+      'Map our CI/CD deploy pipeline…',
+      'Diagram a microservices architecture…',
+      'Break down the coffee supply chain…',
+      'Design a URL shortener…'
+    ],
+    starterHint: 'New here? Tap a topic to begin:',
+    starterAria: 'Example topics to get started',
+    starters: [
+      {
+        label: 'OAuth 2.0 flow',
+        prompt: 'Explain how the OAuth 2.0 authorization code flow works'
+      },
+      { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
+      { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' },
+      { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' }
+    ],
+    // Read-only demo shown on the empty canvas so newcomers see a finished
+    // diagram (and grasp the point) before typing.
+    exampleEyebrow: 'Live example',
+    exampleCaption: 'This is what archislop does — start your own below.',
+    exampleAria: 'Example diagram showing how archislop works'
   },
   settings: {
     label: 'Settings',
@@ -178,7 +204,13 @@ export const CONTROLS_EN = {
     castOneOfMany: '{name} is one of {count} stakeholders',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
-    align: 'Align'
+    align: 'Align',
+    // One-time first-run spotlight framing the stakeholder mechanic.
+    introEyebrow: '👥 The roundtable has convened',
+    introBody:
+      'A stakeholder is weighing in on your diagram — they chime in as you work, whether you asked or not. Mute them anytime with the button on the right.',
+    introDismiss: 'Got it',
+    introAria: 'Meet the stakeholders'
   },
   invite: {
     title: 'Onboard an external agent',
