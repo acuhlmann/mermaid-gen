@@ -252,6 +252,8 @@ gcloud run deploy mermaid-gen-main \
   --platform=managed \
   --allow-unauthenticated \
   --port=8080 \
+  --min-instances=0 \
+  --max-instances=1 \
   --set-secrets=OPENROUTER_API_KEY=openrouter-api-key:latest \
   --set-env-vars=OPENROUTER_SITE_URL=https://main-service-xxxxx.run.app
 ```
@@ -278,6 +280,8 @@ gcloud run deploy mermaid-gen-hackathon \
   --platform=managed \
   --allow-unauthenticated \
   --port=8080 \
+  --min-instances=0 \
+  --max-instances=1 \
   --set-secrets=OPENROUTER_API_KEY=openrouter-api-key:latest \
   --set-env-vars=OPENROUTER_SITE_URL=https://hackathon-service-yyyyy.run.app
 ```
@@ -319,7 +323,9 @@ Open the service URL in a browser and confirm the UI loads, Copilot traffic reac
 
 ### External agents on Cloud Run (MCP + pairing)
 
-- **MCP transport** (`/mcp`) keeps Streamable HTTP session state **in-process**. For reliable MCP without Redis, set **`--min-instances=1`** on the service so clients stay on one revision/instance, or accept occasional `400` after scale-out until the client re-initializes.
+- **Single instance (recommended for small teams):** Deploy scripts and CI set **`--max-instances=1`** so all in-memory session state (diagrams, proposals, MCP transport, `session-events`) stays on one container. ArchiSlop does not share diagram state across instances yet — multiple instances without Redis can split rooms.
+- **Scale to zero:** **`--min-instances=0`** (default) saves idle cost. After idle, the web UI shows a branded cold-start gate while `/api/health` succeeds (see [HTTP 429 `Rate exceeded.`](#http-429-rate-exceeded-plain-text) if the edge rejects the first request).
+- **MCP transport** (`/mcp`) keeps Streamable HTTP session state **in-process**. With `max-instances=1`, MCP clients stay on the same container; occasional `400` after deploy still means re-initialize.
 - **Pairing codes** can be shared across instances when **`REDIS_URL`** is set (see `.env.example`). Diagram/session collaboration state remains in-memory per instance unless you add further shared storage.
 - Set **`PUBLIC_BASE_URL`**, **`INVITE_TOKEN_SECRET`** (production), and optionally **`ARCHISLOP_WEB_URL`** for correct invite/deeplink and canvas URLs.
 
@@ -332,6 +338,47 @@ gcloud logging read 'resource.type="cloud_run_revision"' --limit=30 --freshness=
 ```
 
 ## Troubleshooting
+
+### HTTP 429 `Rate exceeded.` (plain text)
+
+If a browser or `curl` shows **`Rate exceeded.`** with **HTTP 429** and response header **`server: Google Frontend`**, the request was **rejected by Cloud Run’s edge** before your Express app ran. This is **not** the application IP rate limiter (that returns JSON: `{"error":"Too many requests. Try again later."}` from [`apps/server/src/middleware/apiRateLimit.ts`](../../apps/server/src/middleware/apiRateLimit.ts)).
+
+Cloud Run request logs usually include:
+
+```text
+The request was aborted because there was no available instance.
+```
+
+**Common causes:**
+
+| Cause                                 | What happens                                                                                                                                                          |
+| ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Scale to zero** (`min-instances=0`) | Service is idle; the first request(s) arrive while a container is still starting. Bursts (share link + crawler + retry) can all get 429 during the cold-start window. |
+| **Max instances reached**             | All containers are busy (long **`session-events`** SSE connections hold slots for ~5 minutes). New requests are rejected until capacity frees or scales up.           |
+| **Post-deploy cold start**            | A new revision needs a fresh instance; traffic during rollout can briefly see 429s.                                                                                   |
+
+**`/sessions/{uuid}` is not special** — it is a client-side SPA route; the server only serves `index.html`. A 429 on that path also appears on `/api/health` when no instance is ready.
+
+**Recommended production shape (small teams, in-memory state):**
+
+| Setting         | Value | Why                                                                |
+| --------------- | ----- | ------------------------------------------------------------------ |
+| `min-instances` | `0`   | Scale to zero when idle — no always-on compute bill                |
+| `max-instances` | `1`   | One container holds all session/diagram/MCP state (no split-brain) |
+
+Deploy scripts and CI default to this pair. Override with `MIN_INSTANCES` / `MAX_INSTANCES` env vars on manual deploys.
+
+**UX:** When the shell loads, the web app polls `/api/health` and shows branded cold-start copy instead of a blank wait. If Google Frontend returns plain **`Rate exceeded.`** before `index.html` arrives, refresh once — a service-worker fallback (after a prior successful visit) can show the same gate on later cold starts.
+
+**If 429s persist while an instance should be up**, check logs (unlikely with `max-instances=1` unless the lone container is saturated by long **`session-events`** SSE connections):
+
+```bash
+gcloud logging read \
+  'resource.type="cloud_run_revision" AND resource.labels.service_name="mermaid-gen-main" AND httpRequest.status=429' \
+  --limit=10 --freshness=1h --project=PROJECT_ID
+```
+
+**Alternative (cost vs convenience):** `--min-instances=1` avoids cold starts entirely but bills for a warm container 24/7.
 
 **GitHub Actions `Deploy Cloud Run` fails at `docker push` with billing disabled:**
 
