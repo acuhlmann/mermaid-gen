@@ -196,7 +196,12 @@ export const CONTROLS_ZH_CN = {
     castOneOfMany: '{name} 是 {count} 位相关方之一',
     castSpeaking: '{name} 正在发言',
     castAskCommentary: '请 {name} 点评',
-    align: '对齐'
+    align: '对齐',
+    introEyebrow: '👥 圆桌会议已召开',
+    introBody:
+      '一位相关方正在对你的图表发表意见——无论你是否询问，他们都会在你工作时插话。随时可用右侧按钮将其静音。',
+    introDismiss: '知道了',
+    introAria: '认识相关方'
   },
   invite: {
     title: '接入外部智能体',

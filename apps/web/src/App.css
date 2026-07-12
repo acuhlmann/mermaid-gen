@@ -12164,6 +12164,74 @@ body.slopitect-rainbow-tint::before {
   pointer-events: auto;
 }
 
+/* First-run only: column that stacks the intro spotlight above the live advisor
+   surface. Takes over the absolute anchor so the surface (which normally anchors
+   itself) flows inside the column instead of overlapping the spotlight. */
+.stakeholders-float-stack {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.55rem);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  pointer-events: none;
+}
+
+.stakeholders-float-stack > * {
+  pointer-events: auto;
+}
+
+.stakeholders-float-stack .advisor-speech-bubble,
+.stakeholders-float-stack .advisor-thinking-indicator,
+.prompt-actions--mobile .stakeholders-float-stack .advisor-speech-bubble,
+.prompt-actions--mobile .stakeholders-float-stack .advisor-thinking-indicator {
+  position: static;
+  inset: auto;
+}
+
+.stakeholder-intro-spotlight {
+  width: max-content;
+  max-width: min(28rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0.85rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.94));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--accent) 18%, rgba(15, 23, 42, 0.18)),
+    0 2px 8px rgba(15, 23, 42, 0.1);
+  animation: topic-starters-in 0.35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stakeholder-intro-spotlight {
+    animation: none;
+  }
+}
+
+.stakeholder-intro-eyebrow {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.stakeholder-intro-body {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.stakeholder-intro-dismiss {
+  align-self: flex-end;
+}
+
 .stakeholders-mascot {
   --slop-action-accent: var(--stakeholders-accent, #6366f1);
   --slop-action-accent-2: var(--stakeholders-accent, #8b5cf6);

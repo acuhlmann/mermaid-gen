@@ -196,7 +196,12 @@ export const CONTROLS_ZH_TW = {
     castOneOfMany: '{name} 是 {count} 位相關方之一',
     castSpeaking: '{name} 正在發言',
     castAskCommentary: '請 {name} 點評',
-    align: '對齊'
+    align: '對齊',
+    introEyebrow: '👥 圓桌會議已召開',
+    introBody:
+      '一位相關方正在對你的圖表發表意見——無論你是否詢問，他們都會在你工作時插話。隨時可用右側按鈕將其靜音。',
+    introDismiss: '知道了',
+    introAria: '認識相關方'
   },
   invite: {
     title: '接入外部智慧代理',

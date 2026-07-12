@@ -16,6 +16,10 @@ import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
 import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
 import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
+import {
+  readStakeholderIntroSeen,
+  writeStakeholderIntroSeen
+} from './utils/stakeholderIntroStorage.js';
 import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import {
   openSessionEventsStream,
@@ -2828,6 +2832,56 @@ ${requirementsBlock}`;
     }
   });
 
+  // First-run stakeholder spotlight: a once-ever onboarding beat that frames the
+  // stakeholder mechanic the first time the roundtable surfaces (a persona
+  // thinking, or a live comment). Persisted so it never fires again.
+  const stakeholderIntroSeenRef = useRef(readStakeholderIntroSeen());
+  const [stakeholderIntroActive, setStakeholderIntroActive] = useState(false);
+  const stakeholderIntroTimerRef = useRef(null);
+
+  const dismissStakeholderIntro = useCallback(() => {
+    if (stakeholderIntroTimerRef.current) {
+      clearTimeout(stakeholderIntroTimerRef.current);
+      stakeholderIntroTimerRef.current = null;
+    }
+    setStakeholderIntroActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (stakeholderIntroSeenRef.current) return;
+    if (advisor.isMuted) return;
+    if (!advisor.thinkingPersona && !advisor.suggestion) return;
+    stakeholderIntroSeenRef.current = true;
+    writeStakeholderIntroSeen();
+    setStakeholderIntroActive(true);
+    stakeholderIntroTimerRef.current = setTimeout(() => {
+      stakeholderIntroTimerRef.current = null;
+      setStakeholderIntroActive(false);
+    }, 14_000);
+  }, [advisor.thinkingPersona, advisor.suggestion, advisor.isMuted]);
+
+  // Muting mid-spotlight is an implicit "understood, go away".
+  useEffect(() => {
+    if (advisor.isMuted && stakeholderIntroActive) dismissStakeholderIntro();
+  }, [advisor.isMuted, stakeholderIntroActive, dismissStakeholderIntro]);
+
+  useEffect(
+    () => () => {
+      if (stakeholderIntroTimerRef.current) clearTimeout(stakeholderIntroTimerRef.current);
+    },
+    []
+  );
+
+  const stakeholderIntroProps = stakeholderIntroActive
+    ? {
+        eyebrow: controls.stakeholders.introEyebrow,
+        body: controls.stakeholders.introBody,
+        dismissLabel: controls.stakeholders.introDismiss,
+        ariaLabel: controls.stakeholders.introAria,
+        onDismiss: dismissStakeholderIntro
+      }
+    : null;
+
   const advisorBubbleProps = useMemo(() => {
     if (!advisor.suggestion) return null;
     return {
@@ -4361,6 +4415,7 @@ ${requirementsBlock}`;
                   bubbleProps={advisorBubbleProps}
                   onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                  introProps={stakeholderIntroProps}
                 />
                 <button
                   type="button"
@@ -4495,6 +4550,7 @@ ${requirementsBlock}`;
                   bubbleProps={advisorBubbleProps}
                   onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                  introProps={stakeholderIntroProps}
                 />
                 <button
                   type="button"

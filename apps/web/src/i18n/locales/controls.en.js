@@ -204,7 +204,13 @@ export const CONTROLS_EN = {
     castOneOfMany: '{name} is one of {count} stakeholders',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
-    align: 'Align'
+    align: 'Align',
+    // One-time first-run spotlight framing the stakeholder mechanic.
+    introEyebrow: '👥 The roundtable has convened',
+    introBody:
+      'A stakeholder is weighing in on your diagram — they chime in as you work, whether you asked or not. Mute them anytime with the button on the right.',
+    introDismiss: 'Got it',
+    introAria: 'Meet the stakeholders'
   },
   invite: {
     title: 'Onboard an external agent',
