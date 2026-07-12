@@ -367,7 +367,9 @@ export function resolveArchipelagoDaylightTheme(theme) {
     riverDeepColor: '#066a9c',
     treeMeadowColor: '#3cb86a',
     treeLeafColor: '#2f9e44',
-    districtPalette: theme?.districtPalette ?? ['#86efac', '#67e8f9', '#fde68a', '#fda4af'],
+    // Green family only — pastel cyan/pink chain tints made islands look industrial.
+    archipelagoGreenPalette: ['#3d9a4a', '#2f8f5b', '#4aa86a', '#287a48', '#5bb872'],
+    districtPalette: theme?.districtPalette ?? ['#3d9a4a', '#2f8f5b', '#4aa86a', '#287a48'],
     postfx: {
       ...(ocean.postfx ?? {}),
       bloomStrength: 0.14,

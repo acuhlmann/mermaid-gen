@@ -15,7 +15,6 @@ import {
 } from '../../utils/metaphorLayouts/archipelagoLayout.js';
 import { Glyph } from '../metaphorGlyphs/index.jsx';
 import {
-  GlowSprite,
   GradientSkySphere,
   HoverableItem,
   ItemLabel,
@@ -26,8 +25,15 @@ import { DaylightPollen, SkySunGlow, SoaringBirds } from './MetaphorSceneDecorat
 import { useMetaphorClock } from './metaphorClock.js';
 import { idHash2, shiftColor } from './sceneUtils.js';
 
+/** Chain tint stays in the green/teal family so islands read as land, not pastel blobs. */
 function chainTint(theme, index) {
-  const palette = theme.districtPalette ?? theme.clusterPalette ?? ['#86efac', '#67e8f9'];
+  const palette = theme.archipelagoGreenPalette ?? [
+    '#3d9a4a',
+    '#2f8f5b',
+    '#4aa86a',
+    '#287a48',
+    '#5bb872'
+  ];
   return palette[index % palette.length];
 }
 
@@ -107,113 +113,252 @@ function ShoreFoam({ radius, idSeed }) {
   );
 }
 
+/** Palm / broadleaf / shrub — keeps the silhouette leafy rather than geometric. */
+function IslandTree({ kind, trunkColor, leafColor, scale = 1 }) {
+  if (kind === 'palm') {
+    return (
+      <group scale={scale}>
+        <mesh position={[0, 0.55, 0]}>
+          <cylinderGeometry args={[0.035, 0.06, 1.1, 6]} />
+          <meshStandardMaterial color={trunkColor} roughness={0.92} />
+        </mesh>
+        {[0, 1, 2, 3, 4].map((i) => {
+          const a = (i / 5) * Math.PI * 2;
+          return (
+            <mesh
+              key={`frond-${i}`}
+              position={[Math.cos(a) * 0.22, 1.05, Math.sin(a) * 0.22]}
+              rotation={[0.55, -a, 0.15]}
+              scale={[0.55, 0.12, 0.22]}
+            >
+              <sphereGeometry args={[0.55, 8, 6]} />
+              <meshStandardMaterial color={leafColor} flatShading roughness={0.78} />
+            </mesh>
+          );
+        })}
+      </group>
+    );
+  }
+  if (kind === 'shrub') {
+    return (
+      <group scale={scale * 0.75}>
+        <mesh position={[0, 0.22, 0]}>
+          <icosahedronGeometry args={[0.28, 0]} />
+          <meshStandardMaterial color={leafColor} flatShading roughness={0.85} />
+        </mesh>
+        <mesh position={[0.14, 0.28, 0.08]}>
+          <icosahedronGeometry args={[0.18, 0]} />
+          <meshStandardMaterial
+            color={shiftColor(leafColor, { lightness: 0.08 })}
+            flatShading
+            roughness={0.85}
+          />
+        </mesh>
+      </group>
+    );
+  }
+  // Broadleaf canopy on a short trunk.
+  return (
+    <group scale={scale}>
+      <mesh position={[0, 0.32, 0]}>
+        <cylinderGeometry args={[0.045, 0.07, 0.64, 6]} />
+        <meshStandardMaterial color={trunkColor} roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.78, 0]}>
+        <icosahedronGeometry args={[0.38, 0]} />
+        <meshStandardMaterial color={leafColor} flatShading roughness={0.82} />
+      </mesh>
+      <mesh position={[0.18, 0.92, 0.1]}>
+        <icosahedronGeometry args={[0.24, 0]} />
+        <meshStandardMaterial
+          color={shiftColor(leafColor, { lightness: 0.06 })}
+          flatShading
+          roughness={0.82}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/**
+ * Natural green island: light sandy shore, squat verdant hills, palms/shrubs.
+ * Relief gently lifts the ridge and densifies canopy — never a reactor dome.
+ */
 function IslandBody({ island, theme, item }) {
-  const land = useMemo(
+  const grass = useMemo(
     () =>
       shiftColor(chainTint(theme, island.chainIndex), {
-        lightness: -0.08 + island.relief * 0.1,
-        satScale: 0.9
+        lightness: -0.02 + island.relief * 0.05,
+        satScale: 1.08
       }),
     [theme, island.chainIndex, island.relief]
   );
+  const canopy = useMemo(
+    () =>
+      shiftColor(theme.treeLeafColor ?? grass, {
+        lightness: 0.05,
+        satScale: 1.12,
+        hueShift: (idHash2(island.id, 'canopy-h') - 0.5) * 0.04
+      }),
+    [theme.treeLeafColor, grass, island.id]
+  );
   const cliff = useMemo(
-    () => shiftColor(theme.treeSoilColor ?? '#8b6843', { lightness: 0.05, satScale: 0.55 }),
+    () => shiftColor(theme.treeSoilColor ?? '#7a5a3a', { lightness: 0.1, satScale: 0.4 }),
     [theme.treeSoilColor]
   );
   const sand = useMemo(
-    () => shiftColor(theme.treeSoilColor ?? '#c4a574', { lightness: 0.28, satScale: 0.45 }),
-    [theme.treeSoilColor]
+    () => shiftColor('#edd9a6', { lightness: (idHash2(island.id, 'sand') - 0.5) * 0.05 }),
+    [island.id]
   );
-  const peakColor = island.relief > 0.7 ? '#f8fafc' : land;
-  const trees = useMemo(() => {
-    const count = Math.round(2 + island.massHint * 0.35);
-    return Array.from({ length: Math.min(7, count) }, (_, i) => {
-      const a = idHash2(island.id, `t-a${i}`) * Math.PI * 2;
-      const d = island.radius * (0.25 + idHash2(island.id, `t-d${i}`) * 0.45);
+  const trunkColor = theme.treeTrunkColor ?? '#6b4423';
+
+  // Low overlapping hills — heavily squashed so they read as land, not domes.
+  const lobes = useMemo(() => {
+    const count = 2 + Math.round(idHash2(island.id, 'lobes') * 2);
+    return Array.from({ length: count }, (_, i) => {
+      const a = (i / count) * Math.PI * 2 + idHash2(island.id, `lobe-a${i}`) * 0.5;
+      const dist = island.radius * (0.06 + idHash2(island.id, `lobe-d${i}`) * 0.2);
+      const r = island.radius * (0.58 + idHash2(island.id, `lobe-r${i}`) * 0.3);
+      const h =
+        island.height * (0.32 + island.relief * 0.25 + idHash2(island.id, `lobe-h${i}`) * 0.1);
+      return {
+        x: Math.cos(a) * dist,
+        z: Math.sin(a) * dist,
+        r,
+        h,
+        squash: 0.24 + island.relief * 0.12 + idHash2(island.id, `lobe-s${i}`) * 0.05
+      };
+    });
+  }, [island]);
+
+  const bushes = useMemo(() => {
+    const count = Math.max(
+      7,
+      Math.min(18, Math.round(6 + island.massHint * 0.65 + island.relief * 5))
+    );
+    return Array.from({ length: count }, (_, i) => {
+      const a = idHash2(island.id, `b-a${i}`) * Math.PI * 2;
+      const d = island.radius * (0.08 + idHash2(island.id, `b-d${i}`) * 0.68);
+      const kindRoll = idHash2(island.id, `b-k${i}`);
       return {
         x: Math.cos(a) * d,
         z: Math.sin(a) * d,
-        h: 0.45 + idHash2(island.id, `t-h${i}`) * 0.55,
-        conifer: idHash2(island.id, `t-k${i}`) > 0.45
+        y: 0.14 + island.height * (0.1 + idHash2(island.id, `b-y${i}`) * 0.18) * island.relief,
+        scale: 0.48 + idHash2(island.id, `b-s${i}`) * 0.7,
+        kind: kindRoll > 0.52 ? 'palm' : kindRoll > 0.26 ? 'broadleaf' : 'shrub',
+        tint: shiftColor(canopy, {
+          lightness: (idHash2(island.id, `b-l${i}`) - 0.5) * 0.12,
+          hueShift: (idHash2(island.id, `b-hh${i}`) - 0.5) * 0.05
+        })
       };
     });
-  }, [island.id, island.radius, island.massHint]);
+  }, [island, canopy]);
+
+  const rocks = useMemo(() => {
+    const count = 3 + Math.round(idHash2(island.id, 'rocks') * 3);
+    return Array.from({ length: count }, (_, i) => {
+      const a = idHash2(island.id, `rk-a${i}`) * Math.PI * 2;
+      const d = island.radius * (0.8 + idHash2(island.id, `rk-d${i}`) * 0.28);
+      return {
+        x: Math.cos(a) * d,
+        z: Math.sin(a) * d,
+        r: 0.09 + idHash2(island.id, `rk-r${i}`) * 0.14,
+        spin: idHash2(island.id, `rk-s${i}`) * Math.PI
+      };
+    });
+  }, [island]);
+
+  const hillTop = island.height * (0.36 + island.relief * 0.2);
+  const labelY = hillTop + 1.45;
 
   return (
     <group position={island.position}>
-      {/* Submerged shelf */}
-      <mesh position={[0, -0.12, 0]} scale={[1.18, 0.35, 1.18]}>
-        <icosahedronGeometry args={[island.radius, 1]} />
-        <meshStandardMaterial color={cliff} flatShading roughness={0.95} />
+      {/* Underwater rock shelf — mostly hidden so it doesn't read as a dark pad */}
+      <mesh position={[0, -0.16, 0]} scale={[1.3, 0.16, 1.24]}>
+        <icosahedronGeometry args={[island.radius * 1.04, 1]} />
+        <meshStandardMaterial color={cliff} flatShading roughness={0.97} />
       </mesh>
-      {/* Beach ring */}
-      <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[island.radius * 0.78, island.radius * 1.02, 28]} />
-        <meshStandardMaterial color={sand} roughness={1} side={THREE.DoubleSide} />
+      {/* Tropical sand beach — the main shoreline cue */}
+      <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[island.radius * 1.1, 36]} />
+        <meshStandardMaterial color={sand} roughness={1} />
       </mesh>
-      {/* Main landmass */}
-      <mesh position={[0, island.height * 0.28, 0]} scale={[1, 0.55 + island.relief * 0.45, 1]}>
-        <icosahedronGeometry args={[island.radius * 0.92, 1]} />
-        <meshStandardMaterial color={land} flatShading roughness={0.82} />
+      {/* Green grass plateau inset from the beach */}
+      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[island.radius * 0.82, 32]} />
+        <meshStandardMaterial color={grass} roughness={0.92} />
       </mesh>
-      {/* Peak */}
-      <mesh position={[0, island.height * 0.78, 0]}>
-        <coneGeometry
-          args={[island.radius * (0.28 + island.relief * 0.18), island.height * 0.55, 7]}
+      <mesh position={[0, 0.055, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry
+          args={[island.radius * (0.55 + idHash2(island.id, 'inner-grass') * 0.18), 24]}
         />
-        <meshStandardMaterial color={peakColor} flatShading roughness={0.78} />
+        <meshStandardMaterial color={shiftColor(grass, { lightness: 0.06 })} roughness={0.9} />
       </mesh>
-      <ShoreFoam radius={island.radius} idSeed={island.id} />
-      {trees.map((t, i) => (
-        <group
-          key={`tree-${i}`}
-          position={[t.x, island.height * 0.42, t.z]}
-          scale={0.7 + t.h * 0.4}
+      {/* Soft low hills */}
+      {lobes.map((lobe, i) => (
+        <mesh
+          key={`lobe-${i}`}
+          position={[lobe.x, lobe.h * 0.18, lobe.z]}
+          scale={[1.08, lobe.squash, 1.08]}
         >
-          <mesh position={[0, 0.28, 0]}>
-            <cylinderGeometry args={[0.04, 0.06, 0.55, 5]} />
-            <meshStandardMaterial color={theme.treeTrunkColor ?? '#70451f'} roughness={0.9} />
-          </mesh>
-          {t.conifer ? (
-            <mesh position={[0, 0.72, 0]}>
-              <coneGeometry args={[0.28, 0.7, 6]} />
-              <meshStandardMaterial
-                color={theme.treeLeafColor ?? '#36a852'}
-                flatShading
-                roughness={0.85}
-              />
-            </mesh>
-          ) : (
-            <mesh position={[0, 0.7, 0]}>
-              <icosahedronGeometry args={[0.28, 0]} />
-              <meshStandardMaterial
-                color={theme.treeLeafColor ?? '#36a852'}
-                flatShading
-                roughness={0.85}
-              />
-            </mesh>
-          )}
+          <icosahedronGeometry args={[lobe.r, 1]} />
+          <meshStandardMaterial
+            color={i === 0 ? grass : shiftColor(grass, { lightness: i % 2 === 0 ? 0.05 : -0.04 })}
+            flatShading
+            roughness={0.9}
+          />
+        </mesh>
+      ))}
+      {/* Leafy canopy pillows — flatter and wider than before */}
+      {lobes.map((lobe, i) => (
+        <mesh
+          key={`canopy-${i}`}
+          position={[lobe.x * 0.65, lobe.h * (0.32 + island.relief * 0.1), lobe.z * 0.65]}
+          scale={[1.25, 0.32, 1.25]}
+        >
+          <icosahedronGeometry args={[lobe.r * 0.58, 0]} />
+          <meshStandardMaterial
+            color={shiftColor(canopy, { lightness: (i % 2) * 0.04 })}
+            flatShading
+            roughness={0.78}
+          />
+        </mesh>
+      ))}
+      <ShoreFoam radius={island.radius * 1.04} idSeed={island.id} />
+      {rocks.map((rk, i) => (
+        <mesh
+          key={`rock-${i}`}
+          position={[rk.x, 0.05, rk.z]}
+          rotation={[0.12, rk.spin, 0.06]}
+          scale={[1.15, 0.5, 1.25]}
+        >
+          <icosahedronGeometry args={[rk.r, 0]} />
+          <meshStandardMaterial
+            color={shiftColor(cliff, { lightness: 0.12 })}
+            flatShading
+            roughness={0.95}
+          />
+        </mesh>
+      ))}
+      {bushes.map((b, i) => (
+        <group key={`bush-${i}`} position={[b.x, b.y, b.z]}>
+          <IslandTree kind={b.kind} trunkColor={trunkColor} leafColor={b.tint} scale={b.scale} />
         </group>
       ))}
       {item.glyph ? (
-        <Billboard position={[0, island.height + 1.15, 0]}>
-          <group scale={0.9}>
+        <Billboard position={[0, labelY, 0]}>
+          <group scale={0.85}>
             <Glyph kind={item.glyph} theme={theme} />
           </group>
         </Billboard>
       ) : null}
       <ItemLabel
         text={item.label}
-        position={[0, island.height + (item.glyph ? 1.95 : 1.15), 0]}
+        position={[0, labelY + (item.glyph ? 0.85 : 0), 0]}
         fontSize={0.58}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
       />
-      {island.relief > 0.75 ? (
-        <group position={[0, island.height + 0.35, 0]}>
-          <GlowSprite size={1.4} color="#ffffff" opacity={0.12} />
-        </group>
-      ) : null}
     </group>
   );
 }
@@ -309,7 +454,8 @@ export function ArchipelagoScene({ dsl, theme }) {
   const anchors = useMemo(() => {
     const map = new Map();
     for (const isle of enriched) {
-      map.set(isle.id, [isle.position[0], isle.height + 0.6, isle.position[2]]);
+      const top = isle.height * (0.36 + isle.relief * 0.2);
+      map.set(isle.id, [isle.position[0], top + 0.9, isle.position[2]]);
     }
     return map;
   }, [enriched]);
