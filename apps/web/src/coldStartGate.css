@@ -51,6 +51,10 @@
   color: #475569;
 }
 
+.cold-start-gate-hint[hidden] {
+  display: none;
+}
+
 .cold-start-gate-retry {
   margin-top: 1rem;
   padding: 0.55rem 0.9rem;

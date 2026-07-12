@@ -74,9 +74,11 @@ describe('isHealthReadyResponse', () => {
 });
 
 describe('COLD_START_COPY', () => {
-  it('uses on-brand corporate slop voice', () => {
-    expect(COLD_START_COPY.waking).toMatch(/synergy plane/i);
-    expect(COLD_START_COPY.timeout).toMatch(/architecture slop/i);
-    expect(COLD_START_COPY.retryLabel).toMatch(/wake-up/i);
+  it('leads with plain language and keeps slop flavor in hints', () => {
+    expect(COLD_START_COPY.waking.title).toMatch(/Starting the server/i);
+    expect(COLD_START_COPY.waking.hint).toMatch(/synergy plane/i);
+    expect(COLD_START_COPY.timeout.title).toMatch(/Still starting/i);
+    expect(COLD_START_COPY.timeout.hint).toMatch(/architecture slop/i);
+    expect(COLD_START_COPY.retryLabel).toBe('Try again');
   });
 });

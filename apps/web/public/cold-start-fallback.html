@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ArchiSlop — waking the synergy plane</title>
+    <title>ArchiSlop — starting up</title>
     <style>
       :root {
         font-family:
@@ -75,25 +75,29 @@
   </head>
   <body>
     <div class="card" role="status" aria-live="polite">
-      <p class="eyebrow">🏗️ ArchiSlop · Corporate IT</p>
+      <p class="eyebrow">🏗️ ArchiSlop</p>
       <p class="title" id="title">
-        Spinning up the synergy plane… budget-tier compute usually needs 10–30 seconds after idle.
+        Starting the server — this usually takes 10–30 seconds when nobody has used the app lately.
       </p>
       <p class="hint" id="hint">
-        Mandatory architecture compliance: please stand by while we wake a container from its
-        carbon-neutral offsite.
+        Nothing is wrong: the app scales down when idle to save cost. (Internally we call this
+        “spinning up the synergy plane.”)
       </p>
-      <button type="button" id="retry" hidden>Retry the wake-up call</button>
+      <button type="button" id="retry" hidden>Try again</button>
     </div>
     <script>
       (function () {
         var COPY = {
-          waking:
-            'Spinning up the synergy plane… budget-tier compute usually needs 10–30 seconds after idle.',
-          hint: 'Mandatory architecture compliance: please stand by while we wake a container from its carbon-neutral offsite.',
-          timeout:
-            'Still booting the architecture slop stack — retry, or escalate to your imaginary platform team.',
-          retry: 'Retry the wake-up call'
+          waking: {
+            title:
+              'Starting the server — this usually takes 10–30 seconds when nobody has used the app lately.',
+            hint: 'Nothing is wrong: the app scales down when idle to save cost. (Internally we call this “spinning up the synergy plane.”)'
+          },
+          timeout: {
+            title: 'Still starting — the server has not responded yet.',
+            hint: 'Try again in a moment. If you are feeling corporate, escalate to your imaginary platform team and mention the architecture slop stack.'
+          },
+          retry: 'Try again'
         };
 
         function healthUrl() {
@@ -119,8 +123,8 @@
         var timeoutMs = 90000;
 
         function showTimeout() {
-          title.textContent = COPY.timeout;
-          hint.textContent = COPY.hint;
+          title.textContent = COPY.timeout.title;
+          hint.textContent = COPY.timeout.hint;
           retry.hidden = false;
         }
 
@@ -148,8 +152,9 @@
           retry.disabled = true;
           started = Date.now();
           delay = 1500;
-          title.textContent = COPY.waking;
+          title.textContent = COPY.waking.title;
           retry.hidden = true;
+          hint.textContent = COPY.waking.hint;
           poll();
           setTimeout(function () {
             retry.disabled = false;

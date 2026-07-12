@@ -17,7 +17,7 @@ function ensureGateElement() {
   gate.setAttribute('aria-live', 'polite');
   gate.innerHTML = `
     <div class="cold-start-gate-card">
-      <p class="cold-start-gate-eyebrow" aria-hidden="true">🏗️ ArchiSlop · Corporate IT</p>
+      <p class="cold-start-gate-eyebrow" aria-hidden="true">🏗️ ${COLD_START_COPY.eyebrow}</p>
       <p class="cold-start-gate-title" id="${TITLE_ID}"></p>
       <p class="cold-start-gate-hint" id="${HINT_ID}"></p>
       <button type="button" class="cold-start-gate-retry" id="${RETRY_ID}" hidden>
@@ -36,21 +36,24 @@ function setGatePhase(phase) {
   if (!title || !hint || !retry) return;
 
   if (phase === 'checking') {
-    title.textContent = COLD_START_COPY.checking;
-    hint.textContent = '';
+    title.textContent = COLD_START_COPY.checking.title;
+    hint.textContent = COLD_START_COPY.checking.hint;
+    hint.hidden = !COLD_START_COPY.checking.hint;
     retry.hidden = true;
     return;
   }
 
   if (phase === 'waking') {
-    title.textContent = COLD_START_COPY.waking;
-    hint.textContent = COLD_START_COPY.wakingHint;
+    title.textContent = COLD_START_COPY.waking.title;
+    hint.textContent = COLD_START_COPY.waking.hint;
+    hint.hidden = false;
     retry.hidden = true;
     return;
   }
 
-  title.textContent = COLD_START_COPY.timeout;
-  hint.textContent = COLD_START_COPY.wakingHint;
+  title.textContent = COLD_START_COPY.timeout.title;
+  hint.textContent = COLD_START_COPY.timeout.hint;
+  hint.hidden = false;
   retry.hidden = false;
 }
 

@@ -1,16 +1,23 @@
 /**
- * Cold-start gate copy — corporate IT / architecture-slop voice.
- * Shown while Cloud Run scales up from idle (plain-text 429 at the edge).
+ * Cold-start gate copy.
+ * Lead with plain language for new users; Slopitect flavor lives in `hint` lines.
  */
 
 export const COLD_START_COPY = {
-  checking: 'Checking if Corporate IT left a server in the Co-Design room…',
-  waking:
-    'Spinning up the synergy plane… budget-tier compute usually needs 10–30 seconds after idle.',
-  wakingHint:
-    'Mandatory architecture compliance: please stand by while we wake a container from its carbon-neutral offsite.',
-  timeout:
-    'Still booting the architecture slop stack — retry, or escalate to your imaginary platform team.',
-  retryLabel: 'Retry the wake-up call',
-  retryAria: 'Retry connecting to the ArchiSlop server'
+  eyebrow: 'ArchiSlop',
+  checking: {
+    title: 'Connecting to the server…',
+    hint: ''
+  },
+  waking: {
+    title:
+      'Starting the server — this usually takes 10–30 seconds when nobody has used the app lately.',
+    hint: 'Nothing is wrong: the app scales down when idle to save cost. (Internally we call this “spinning up the synergy plane.”)'
+  },
+  timeout: {
+    title: 'Still starting — the server has not responded yet.',
+    hint: 'Try again in a moment. If you are feeling corporate, escalate to your imaginary platform team and mention the architecture slop stack.'
+  },
+  retryLabel: 'Try again',
+  retryAria: 'Try connecting to ArchiSlop again'
 };
