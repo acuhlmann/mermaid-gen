@@ -674,3 +674,52 @@ test('sanitizeMetaphorDsl clamps garden metrics and repairs health values', () =
   assert.ok(result.applied.includes('normalize-garden-health-case'));
   assert.ok(result.applied.includes('drop-invalid-garden-health'));
 });
+
+test('MetaphorDslSchema parses an archipelago with mass, relief, and chain', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'archipelago',
+    scene: {
+      title: 'Commerce domains',
+      legend: {
+        mass: 'weekly orders',
+        relief: 'domain maturity',
+        chain: 'region'
+      }
+    },
+    items: [
+      {
+        id: 'checkout-eu',
+        label: 'Checkout EU',
+        mass: 14,
+        relief: 0.85,
+        chain: 'Europe'
+      }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'archipelago');
+  if (dsl.metaphor === 'archipelago') {
+    assert.equal(dsl.items[0].mass, 14);
+    assert.equal(dsl.items[0].relief, 0.85);
+    assert.equal(dsl.scene.legend?.chain, 'region');
+  }
+});
+
+test('sanitizeMetaphorDsl clamps archipelago mass and relief', () => {
+  const input = JSON.stringify({
+    metaphor: 'archipelago',
+    items: [
+      { id: 'huge', label: 'Huge', mass: 99, relief: 2 },
+      { id: 'tiny', label: 'Tiny', mass: 0.01, relief: -1 }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'archipelago') {
+    assert.equal(result.dsl.items[0].mass, 20);
+    assert.equal(result.dsl.items[0].relief, 1);
+    assert.equal(result.dsl.items[1].mass, 0.5);
+    assert.equal(result.dsl.items[1].relief, 0);
+  }
+  assert.ok(result.applied.includes('clamp-mass'));
+  assert.ok(result.applied.includes('clamp-relief'));
+});

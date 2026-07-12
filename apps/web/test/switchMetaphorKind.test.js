@@ -95,4 +95,19 @@ describe('switchMetaphorKind', () => {
     });
     expect(dsl.items[1].maturity).toBeGreaterThan(dsl.items[0].maturity);
   });
+
+  it('remaps city items to an archipelago while preserving topic groupings', () => {
+    const result = switchMetaphorKind(CITY_DSL, 'archipelago');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const dsl = JSON.parse(result.text);
+    expect(dsl.metaphor).toBe('archipelago');
+    expect(dsl.items[0]).toMatchObject({
+      id: 'auth',
+      mass: 12,
+      chain: 'Core'
+    });
+    expect(dsl.items[0].relief).toBeGreaterThanOrEqual(0);
+    expect(dsl.items[0].relief).toBeLessThanOrEqual(1);
+  });
 });

@@ -9,7 +9,8 @@ export const METAPHOR_KIND_LABELS = {
   terrain: 'Terrain',
   orrery: 'Orrery',
   river: 'River',
-  garden: 'Garden'
+  garden: 'Garden',
+  archipelago: 'Archipelago'
 };
 
 function isObject(value) {
@@ -39,6 +40,8 @@ function primaryMagnitude(item, kind) {
       return finiteNumber(item.flow, 5);
     case 'garden':
       return finiteNumber(item.impact, 3);
+    case 'archipelago':
+      return finiteNumber(item.mass, 4);
     default:
       return 10;
   }
@@ -53,6 +56,8 @@ function secondaryMagnitude(item, kind) {
       return finiteNumber(item.intensity, 3);
     case 'orrery':
       return finiteNumber(item.orbit, 3);
+    case 'archipelago':
+      return finiteNumber(item.relief, 0.45);
     default:
       return null;
   }
@@ -67,6 +72,9 @@ function groupingLabel(item, kind) {
   }
   if (kind === 'garden' && typeof item.bed === 'string' && item.bed.trim()) {
     return item.bed.trim();
+  }
+  if (kind === 'archipelago' && typeof item.chain === 'string' && item.chain.trim()) {
+    return item.chain.trim();
   }
   return '';
 }
@@ -134,6 +142,14 @@ function mapItemToKind(item, fromKind, toKind, index) {
       next.impact = Math.max(0.1, Math.min(10, primary));
       next.health = 'steady';
       if (group) next.bed = group;
+      break;
+    case 'archipelago':
+      next.mass = Math.max(0.5, Math.min(20, primary));
+      next.relief =
+        secondary != null
+          ? Math.max(0, Math.min(1, secondary > 1 ? secondary / 12 : secondary))
+          : 0.35 + (index % 5) * 0.12;
+      if (group) next.chain = group;
       break;
     default:
       break;

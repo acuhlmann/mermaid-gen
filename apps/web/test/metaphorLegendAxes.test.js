@@ -39,6 +39,7 @@ describe('legendAxesFor', () => {
 
   it('covers every metaphor kind in the axis map', () => {
     expect(Object.keys(METAPHOR_LEGEND_AXES).sort()).toEqual([
+      'archipelago',
       'city',
       'galaxy',
       'garden',
@@ -75,6 +76,19 @@ describe('legendAxesFor', () => {
       { key: 'impact', label: 'Impact', text: 'customer impact' },
       { key: 'bed', label: 'Bed', text: 'strategic theme' },
       { key: 'health', label: 'Health', text: 'delivery health' }
+    ]);
+  });
+
+  it('exposes archipelago mass, relief, and chain axes', () => {
+    const axes = legendAxesFor('archipelago', {
+      mass: 'weekly orders',
+      relief: 'domain maturity',
+      chain: 'region'
+    });
+    expect(axes).toEqual([
+      { key: 'mass', label: 'Mass', text: 'weekly orders' },
+      { key: 'relief', label: 'Relief', text: 'domain maturity' },
+      { key: 'chain', label: 'Chain', text: 'region' }
     ]);
   });
 });
@@ -138,6 +152,19 @@ describe('formatItemMetric', () => {
       { label: 'Customer impact', value: '8' },
       { label: 'Bed', value: 'Customer care' },
       { label: 'Health', value: 'thriving' }
+    ]);
+  });
+
+  it('formats archipelago mass, relief, and chain', () => {
+    const out = formatItemMetric(
+      'archipelago',
+      { label: 'Checkout EU', mass: 14, relief: 0.85, chain: 'Europe' },
+      { mass: 'weekly orders', relief: 'domain maturity' }
+    );
+    expect(out.rows).toEqual([
+      { label: 'Weekly orders', value: '14' },
+      { label: 'Domain maturity', value: '0.9' },
+      { label: 'Chain', value: 'Europe' }
     ]);
   });
 });

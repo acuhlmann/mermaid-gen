@@ -98,7 +98,7 @@ flowchart TB
 ```
 
 - **Sanitizer** (`packages/shared/src/metaphorSanitizer.ts`) strips code fences, normalises JSON, and coerces obvious type mismatches. On an unrecoverable input it returns a **root-cause `error`** — the verbatim `JSON.parse` message, or the failing Zod issues formatted path-by-path (`items.0.height: …`), mirroring `parseChartDsl` — instead of a generic notice. `validateAndPrepareMetaphorPatch` / `validateMetaphorStrict` relay it verbatim, so the fixer and repair prompts see exactly which field failed (upholds the "parser errors are verbatim" principle above).
-- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union (city / layercake / galaxy / tree / terrain / orrery / river / garden) and all item/link/scene fields; failures surface as the formatted Zod issues described above.
+- **Schema check** (`packages/shared/src/metaphorSchema.ts`) validates the discriminated `metaphor` union (city / layercake / galaxy / tree / terrain / orrery / river / garden / archipelago) and all item/link/scene fields; failures surface as the formatted Zod issues described above.
 - **Single-shot syntax fixer** (`apps/server/src/agents/metaphorSyntaxFixer.js`) — one LLM call with the schema error and broken DSL; references `metaphorSyntaxGuard.js`.
 - **Agent repair turns** — bounded by `METAPHOR_REPAIR_MAX_ATTEMPTS` env var.
 

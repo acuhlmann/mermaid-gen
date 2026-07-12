@@ -358,6 +358,29 @@ export function resolveGardenDaylightTheme(theme) {
   };
 }
 
+/** Tropical daylight ocean palette for the archipelago metaphor. */
+export function resolveArchipelagoDaylightTheme(theme) {
+  const ocean = resolveRiverDaylightTheme(theme);
+  return {
+    ...ocean,
+    waterColor: blendHexColors('#1aa7d6', theme?.waterColor ?? '#1aa7d6', 0.15),
+    riverDeepColor: '#066a9c',
+    treeMeadowColor: '#3cb86a',
+    treeLeafColor: '#2f9e44',
+    // Green family only — pastel cyan/pink chain tints made islands look industrial.
+    archipelagoGreenPalette: ['#3d9a4a', '#2f8f5b', '#4aa86a', '#287a48', '#5bb872'],
+    districtPalette: theme?.districtPalette ?? ['#3d9a4a', '#2f8f5b', '#4aa86a', '#287a48'],
+    postfx: {
+      ...(ocean.postfx ?? {}),
+      bloomStrength: 0.14,
+      bloomThreshold: 0.9,
+      vignette: 0.16,
+      shadowOpacity: 0.28,
+      shadowColor: '#1e4d5c'
+    }
+  };
+}
+
 /** Galaxy-specific tuning layered on the resolved scene theme. */
 export function resolveGalaxyVividTheme(theme) {
   return {

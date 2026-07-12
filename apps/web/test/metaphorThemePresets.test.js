@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   METAPHOR_THEME_PRESETS,
+  resolveArchipelagoDaylightTheme,
   resolveGalaxyVividTheme,
   resolveGardenDaylightTheme,
   resolveRiverDaylightTheme,
@@ -57,5 +58,13 @@ describe('outdoor daylight themes', () => {
     expect(garden.gardenBloomPalette.length).toBeGreaterThan(2);
     expect(garden.gardenThrivingColor).toBeTruthy();
     expect(garden.gardenRiskColor).toBeTruthy();
+  });
+
+  it('gives archipelago scenes a sunny tropical ocean palette', () => {
+    const arch = resolveArchipelagoDaylightTheme(METAPHOR_THEME_PRESETS.noir);
+    expect(arch.environment).toBeNull();
+    expect(arch.skyTopColor).toBe('#258fce');
+    expect(arch.waterColor).toBeTruthy();
+    expect(arch.ambientIntensity).toBeGreaterThan(0.7);
   });
 });

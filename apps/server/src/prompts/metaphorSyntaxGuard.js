@@ -6,7 +6,7 @@ export const METAPHOR_RULE_PACK = METAPHOR_SYSTEM_PROMPT;
 
 export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_patch:
 - Valid JSON object (no trailing commas, double-quoted keys/strings).
-- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", or "garden".
+- "metaphor" is exactly "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", "garden", or "archipelago".
 - Every item has unique "id" (kebab-case) and non-empty "label".
 - City items: numeric height and footprint; meaningful district when >6 items. Optional lighting (lit/dim/dark), condition (new/aging/crumbling).
 - Layercake items: thickness + components[]. Optional cracks (0-1) and tilt (0-15).
@@ -23,7 +23,7 @@ export const METAPHOR_SELF_CHECK = `Self-check before calling apply_metaphor_pat
 - scene.theme is whiteboard|noir|arcade|blueprint; scene.camera is orbit|isometric|cinematic when present.
 - The title and item labels preserve concrete user-topic nouns; at least half of recognisable concrete items have a glyph, and headline items have factual notes.
 - Numeric encodings are proportional to facts from the prompt, or explicitly named as relative/inferred in the legend when facts are absent.
-- River and garden scenes prefer whiteboard and always render as sunny daylight outdoors.`;
+- River, garden, and archipelago scenes prefer whiteboard and always render as sunny daylight outdoors.`;
 
 /**
  * Build repair instructions after a failed metaphor patch tool call.

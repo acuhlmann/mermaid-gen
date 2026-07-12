@@ -414,7 +414,8 @@ export const CONTROLS_ZH_CN = {
       terrain: '地形',
       orrery: '天体仪',
       river: '河流',
-      garden: '花园'
+      garden: '花园',
+      archipelago: '群岛'
     }
   },
   styleEdits: {

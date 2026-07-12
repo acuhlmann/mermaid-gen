@@ -8,7 +8,8 @@ export const METAPHOR_KINDS = [
   'terrain',
   'orrery',
   'river',
-  'garden'
+  'garden',
+  'archipelago'
 ] as const;
 export const MetaphorKindSchema = z.enum(METAPHOR_KINDS);
 
@@ -70,7 +71,10 @@ export const MetaphorLegendSchema = z
     maturity: z.string().max(80).optional(),
     impact: z.string().max(80).optional(),
     bed: z.string().max(80).optional(),
-    health: z.string().max(80).optional()
+    health: z.string().max(80).optional(),
+    mass: z.string().max(80).optional(),
+    relief: z.string().max(80).optional(),
+    chain: z.string().max(80).optional()
   })
   .strict();
 
@@ -260,6 +264,23 @@ export const GardenMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+export const ARCHIPELAGO_MAX_ITEMS = 40;
+export const ArchipelagoItemSchema = MetaphorItemBase.extend({
+  /** Island footprint / domain mass — drives island radius. */
+  mass: z.number().positive().max(20).default(4),
+  /** 0–1 vertical prominence — drives peak height and cliff drama. */
+  relief: z.number().min(0).max(1).default(0.45),
+  /** Island-chain grouping (region, bounded context family, product line). */
+  chain: z.string().max(64).optional()
+});
+
+export const ArchipelagoMetaphorSchema = z.object({
+  metaphor: z.literal('archipelago'),
+  scene: MetaphorSceneSchema,
+  items: z.array(ArchipelagoItemSchema).max(ARCHIPELAGO_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
 export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   CityMetaphorSchema,
   LayercakeMetaphorSchema,
@@ -268,7 +289,8 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   TerrainMetaphorSchema,
   OrreryMetaphorSchema,
   RiverMetaphorSchema,
-  GardenMetaphorSchema
+  GardenMetaphorSchema,
+  ArchipelagoMetaphorSchema
 ]);
 
 export type MetaphorKind = z.infer<typeof MetaphorKindSchema>;
@@ -290,6 +312,7 @@ export type TerrainItem = z.infer<typeof TerrainItemSchema>;
 export type OrreryItem = z.infer<typeof OrreryItemSchema>;
 export type RiverItem = z.infer<typeof RiverItemSchema>;
 export type GardenItem = z.infer<typeof GardenItemSchema>;
+export type ArchipelagoItem = z.infer<typeof ArchipelagoItemSchema>;
 export type CityMetaphor = z.infer<typeof CityMetaphorSchema>;
 export type LayercakeMetaphor = z.infer<typeof LayercakeMetaphorSchema>;
 export type GalaxyMetaphor = z.infer<typeof GalaxyMetaphorSchema>;
@@ -298,4 +321,5 @@ export type TerrainMetaphor = z.infer<typeof TerrainMetaphorSchema>;
 export type OrreryMetaphor = z.infer<typeof OrreryMetaphorSchema>;
 export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
 export type GardenMetaphor = z.infer<typeof GardenMetaphorSchema>;
+export type ArchipelagoMetaphor = z.infer<typeof ArchipelagoMetaphorSchema>;
 export type MetaphorDsl = z.infer<typeof MetaphorDslSchema>;
