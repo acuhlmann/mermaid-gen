@@ -45,7 +45,22 @@ export const CONTROLS_ZH_TW = {
     slopNextTitle: '接下來要改什麼？',
     slopNextPlaceholder: '告訴智慧代理要改什麼…',
     slopNextLabel: '新提示',
-    closePrompt: '關閉提示'
+    closePrompt: '關閉提示',
+    topicExamples: [
+      '講解 OAuth 2.0 的運作原理…',
+      '梳理我們的 CI/CD 部署流水線…',
+      '畫一張微服務架構圖…',
+      '拆解咖啡供應鏈…',
+      '設計一個短網址服務…'
+    ],
+    starterHint: '第一次來？點一個主題開始：',
+    starterAria: '用於快速開始的範例主題',
+    starters: [
+      { label: 'OAuth 2.0 流程', prompt: '講解 OAuth 2.0 授權碼流程的運作原理' },
+      { label: 'CI/CD 流水線', prompt: '梳理從提交到上線的 CI/CD 流水線' },
+      { label: '微服務', prompt: '畫一張典型的微服務架構圖' },
+      { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' }
+    ]
   },
   settings: {
     label: '設定',

@@ -5288,6 +5288,90 @@
   max-width: min(48rem, 100%);
 }
 
+/* Empty-state entry: topic starters stacked above the prompt input so the whole
+   cluster grows upward from the bottom dock instead of pushing the row up. */
+.entry-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.topic-starters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  animation: topic-starters-in 0.35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topic-starters {
+    animation: none;
+  }
+}
+
+@keyframes topic-starters-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.topic-starters-hint {
+  margin: 0;
+  padding-left: 0.15rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.topic-starters-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.topic-starter-chip {
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  cursor: pointer;
+  backdrop-filter: blur(18px);
+  transition:
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease;
+}
+
+.topic-starter-chip:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.55);
+  transform: translateY(-1px);
+}
+
+.topic-starter-chip:focus-visible {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.16),
+    var(--control-shadow);
+}
+
+.topic-starter-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .prompt-control {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
