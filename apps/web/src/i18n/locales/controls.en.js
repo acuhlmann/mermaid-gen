@@ -71,7 +71,10 @@ export const CONTROLS_EN = {
     // diagram (and grasp the point) before typing.
     exampleEyebrow: 'Live example',
     exampleCaption: 'This is what archislop does — start your own below.',
-    exampleAria: 'Example diagram showing how archislop works'
+    exampleAria: 'Example diagram showing how archislop works',
+    // "try this one" CTA on the empty-canvas example — seeds a real topic and
+    // runs it so the newcomer's first result is a live diagram, not the meta demo.
+    exampleCta: 'Try this one →'
   },
   settings: {
     label: 'Settings',
@@ -107,6 +110,15 @@ export const CONTROLS_EN = {
     anythingSubtitle: 'HTML/CSS/JS sandbox',
     anotherMode: 'another mode',
     renderMenu: 'Target render mode'
+  },
+  // First-run mode reveal — promotes the render modes out of Settings once the
+  // newcomer has their first diagram. Fires once, ever.
+  modeReveal: {
+    eyebrow: 'One topic, many forms',
+    body: "There's more than a diagram in here. Re-render the same topic as a 3D scene, a chart, an infographic, or a freeform page.",
+    pickPrefix: 'Render as',
+    dismiss: 'Got it',
+    aria: 'Try rendering your topic in another mode'
   },
   hotkeys: {
     title: 'Keyboard shortcuts',

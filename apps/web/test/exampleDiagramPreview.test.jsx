@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/utils/renderMermaidPreview.js', () => ({
@@ -45,5 +45,21 @@ describe('ExampleDiagramPreview', () => {
     const { container } = render(<ExampleDiagramPreview source={SOURCE} active />);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(container.querySelector('[data-testid="entry-example"]')).toBeNull();
+  });
+
+  it('renders the "try this one" CTA and fires onTry when tapped', async () => {
+    const onTry = vi.fn();
+    render(
+      <ExampleDiagramPreview source={SOURCE} ctaLabel="Try this one →" onTry={onTry} active />
+    );
+    await waitFor(() => expect(screen.getByTestId('entry-example-try')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('entry-example-try'));
+    expect(onTry).toHaveBeenCalledTimes(1);
+  });
+
+  it('omits the CTA when onTry is not supplied', async () => {
+    render(<ExampleDiagramPreview source={SOURCE} ctaLabel="Try this one →" active />);
+    await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
+    expect(screen.queryByTestId('entry-example-try')).toBeNull();
   });
 });

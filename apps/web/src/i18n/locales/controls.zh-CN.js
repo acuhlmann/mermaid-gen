@@ -63,7 +63,8 @@ export const CONTROLS_ZH_CN = {
     ],
     exampleEyebrow: '实时示例',
     exampleCaption: '这就是 archislop 的用途——在下方开始你自己的主题。',
-    exampleAria: '展示 archislop 工作方式的示例图'
+    exampleAria: '展示 archislop 工作方式的示例图',
+    exampleCta: '试试这个 →'
   },
   settings: {
     label: '设置',
@@ -99,6 +100,13 @@ export const CONTROLS_ZH_CN = {
     anythingSubtitle: 'HTML/CSS/JS 沙箱',
     anotherMode: '其他模式',
     renderMenu: '目标渲染模式'
+  },
+  modeReveal: {
+    eyebrow: '一个主题，多种形态',
+    body: '这里不止有流程图。把同一个主题重新渲染成 3D 场景、图表、信息图，或一个自由页面。',
+    pickPrefix: '渲染为',
+    dismiss: '知道了',
+    aria: '用另一种模式渲染你的主题'
   },
   hotkeys: {
     title: '键盘快捷键',

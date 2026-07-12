@@ -12,12 +12,20 @@ import { renderMermaidPreviewSvg } from '../utils/renderMermaidPreview.js';
  *
  * The caller mounts this only in the empty state; `active` additionally gates the
  * async render so it does no work while hidden.
+ *
+ * When `onTry` is supplied, a "try this one" call-to-action renders inside the
+ * card. The card wrapper is `pointer-events:none` decoration behind the entry
+ * input, so the button re-enables pointer events on itself; tapping it seeds and
+ * submits a curated demo topic through the caller so the newcomer sees the loop
+ * run for real without inventing a prompt.
  */
 export default function ExampleDiagramPreview({
   source,
   eyebrow,
   caption,
   ariaLabel,
+  ctaLabel,
+  onTry,
   active = true
 }) {
   const [svgMarkup, setSvgMarkup] = useState('');
@@ -53,6 +61,16 @@ export default function ExampleDiagramPreview({
           dangerouslySetInnerHTML={{ __html: svgMarkup }}
         />
         {caption ? <p className="entry-example-caption">{caption}</p> : null}
+        {onTry && ctaLabel ? (
+          <button
+            type="button"
+            className="overlay-button primary-button entry-example-try"
+            onClick={onTry}
+            data-testid="entry-example-try"
+          >
+            {ctaLabel}
+          </button>
+        ) : null}
       </div>
     </div>
   );

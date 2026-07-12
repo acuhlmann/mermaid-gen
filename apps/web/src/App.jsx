@@ -10,7 +10,8 @@ import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import TopicStarters from './components/TopicStarters.jsx';
 import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
-import { EXAMPLE_DIAGRAM_SOURCE } from './utils/exampleDiagram.js';
+import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
+import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
 import { useRotatingPlaceholder } from './hooks/useRotatingPlaceholder.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
@@ -20,6 +21,7 @@ import {
   readStakeholderIntroSeen,
   writeStakeholderIntroSeen
 } from './utils/stakeholderIntroStorage.js';
+import { readModeRevealSeen, writeModeRevealSeen } from './utils/modeRevealStorage.js';
 import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import {
   openSessionEventsStream,
@@ -2839,6 +2841,10 @@ ${requirementsBlock}`;
   const [stakeholderIntroActive, setStakeholderIntroActive] = useState(false);
   const stakeholderIntroTimerRef = useRef(null);
 
+  const modeRevealSeenRef = useRef(readModeRevealSeen());
+  const [modeRevealActive, setModeRevealActive] = useState(false);
+  const modeRevealTimerRef = useRef(null);
+
   const dismissStakeholderIntro = useCallback(() => {
     if (stakeholderIntroTimerRef.current) {
       clearTimeout(stakeholderIntroTimerRef.current);
@@ -3486,6 +3492,47 @@ ${requirementsBlock}`;
   // whose saved diagram is about to load), and never over the editor/insights.
   const showEntryExample = sessionHydrated && !hasDiagramText && !editorOpen && !insightsOpen;
 
+  // First-run mode reveal: once the newcomer has generated their first diagram,
+  // promote the render modes out of the Settings drawer with a one-time, floating
+  // spotlight. It is a once-ever onboarding beat (persisted), stays out of the way
+  // of the stakeholder intro, and dismisses on pick / close / timeout.
+  const dismissModeReveal = useCallback(() => {
+    if (modeRevealTimerRef.current) {
+      clearTimeout(modeRevealTimerRef.current);
+      modeRevealTimerRef.current = null;
+    }
+    setModeRevealActive(false);
+  }, []);
+
+  useEffect(() => {
+    if (modeRevealSeenRef.current) return;
+    if (!hasDiagramText) return;
+    // Don't stack onto the stakeholder intro or a busy editing surface.
+    if (stakeholderIntroActive || editorOpen || insightsOpen) return;
+    modeRevealSeenRef.current = true;
+    writeModeRevealSeen();
+    setModeRevealActive(true);
+    modeRevealTimerRef.current = setTimeout(() => {
+      modeRevealTimerRef.current = null;
+      setModeRevealActive(false);
+    }, 18_000);
+  }, [hasDiagramText, stakeholderIntroActive, editorOpen, insightsOpen]);
+
+  useEffect(
+    () => () => {
+      if (modeRevealTimerRef.current) clearTimeout(modeRevealTimerRef.current);
+    },
+    []
+  );
+
+  const handleModeRevealPick = useCallback(
+    (nextMode) => {
+      handleSelectContentMode(nextMode);
+      dismissModeReveal();
+    },
+    [handleSelectContentMode, dismissModeReveal]
+  );
+
   const critiqueActionableSplit = useMemo(
     () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
     [latestCritique?.text]
@@ -3953,7 +4000,23 @@ ${requirementsBlock}`;
           eyebrow={controls.prompt.exampleEyebrow}
           caption={controls.prompt.exampleCaption}
           ariaLabel={controls.prompt.exampleAria}
+          ctaLabel={controls.prompt.exampleCta}
+          onTry={() => handleStarterPick(EXAMPLE_TRY_PROMPT)}
           active={showEntryExample}
+        />
+      ) : null}
+
+      {modeRevealActive ? (
+        <ModeRevealSpotlight
+          eyebrow={controls.modeReveal.eyebrow}
+          body={controls.modeReveal.body}
+          modes={contentModeOptions}
+          currentMode={contentMode}
+          onPickMode={handleModeRevealPick}
+          pickPrefix={controls.modeReveal.pickPrefix}
+          dismissLabel={controls.modeReveal.dismiss}
+          ariaLabel={controls.modeReveal.aria}
+          onDismiss={dismissModeReveal}
         />
       ) : null}
 
