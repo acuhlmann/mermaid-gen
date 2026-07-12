@@ -9,6 +9,8 @@ import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import TopicStarters from './components/TopicStarters.jsx';
+import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
+import { EXAMPLE_DIAGRAM_SOURCE } from './utils/exampleDiagram.js';
 import { useRotatingPlaceholder } from './hooks/useRotatingPlaceholder.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
@@ -3425,6 +3427,11 @@ ${requirementsBlock}`;
     active: !hasDiagramText
   });
 
+  // First-run demo: show the read-only example only once we know the diagram slot
+  // is genuinely empty (gated on hydration to avoid a flash for returning users
+  // whose saved diagram is about to load), and never over the editor/insights.
+  const showEntryExample = sessionHydrated && !hasDiagramText && !editorOpen && !insightsOpen;
+
   const critiqueActionableSplit = useMemo(
     () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
     [latestCritique?.text]
@@ -3885,6 +3892,16 @@ ${requirementsBlock}`;
         diagramSurfaceRef={diagramSurfaceRef}
         isFullscreen={isFullscreen}
       />
+
+      {showEntryExample ? (
+        <ExampleDiagramPreview
+          source={EXAMPLE_DIAGRAM_SOURCE}
+          eyebrow={controls.prompt.exampleEyebrow}
+          caption={controls.prompt.exampleCaption}
+          ariaLabel={controls.prompt.exampleAria}
+          active={showEntryExample}
+        />
+      ) : null}
 
       <DiagramFullscreenOverlay
         isFullscreen={isFullscreen}

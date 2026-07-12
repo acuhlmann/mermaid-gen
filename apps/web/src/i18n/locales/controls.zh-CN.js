@@ -60,7 +60,10 @@ export const CONTROLS_ZH_CN = {
       { label: 'CI/CD 流水线', prompt: '梳理从提交到上线的 CI/CD 流水线' },
       { label: '微服务', prompt: '画一张典型的微服务架构图' },
       { label: '咖啡供应链', prompt: '拆解全球咖啡供应链' }
-    ]
+    ],
+    exampleEyebrow: '实时示例',
+    exampleCaption: '这就是 archislop 的用途——在下方开始你自己的主题。',
+    exampleAria: '展示 archislop 工作方式的示例图'
   },
   settings: {
     label: '设置',

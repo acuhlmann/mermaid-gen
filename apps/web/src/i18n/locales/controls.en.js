@@ -66,7 +66,12 @@ export const CONTROLS_EN = {
       { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
       { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' },
       { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' }
-    ]
+    ],
+    // Read-only demo shown on the empty canvas so newcomers see a finished
+    // diagram (and grasp the point) before typing.
+    exampleEyebrow: 'Live example',
+    exampleCaption: 'This is what archislop does — start your own below.',
+    exampleAria: 'Example diagram showing how archislop works'
   },
   settings: {
     label: 'Settings',
