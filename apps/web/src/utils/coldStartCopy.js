@@ -1,22 +1,21 @@
 /**
  * Cold-start gate copy.
- * Lead with plain language for new users; Slopitect flavor lives in `hint` lines.
+ * Branded `title` (Slopitect / corporate IT voice) + plain `hint` so new users know what is happening.
  */
 
 export const COLD_START_COPY = {
-  eyebrow: 'ArchiSlop',
+  eyebrow: 'ArchiSlop · Corporate IT',
   checking: {
-    title: 'Connecting to the server…',
-    hint: ''
+    title: 'Checking if Corporate IT left a server in the Co-Design room…',
+    hint: 'Connecting while the app wakes from idle — this is normal.'
   },
   waking: {
-    title:
-      'Starting the server — this usually takes 10–30 seconds when nobody has used the app lately.',
-    hint: 'Nothing is wrong: the app scales down when idle to save cost. (Internally we call this “spinning up the synergy plane.”)'
+    title: 'Spinning up the synergy plane…',
+    hint: 'Starting the server — usually 10–30 seconds when nobody has used the app lately. We scale down when idle to save cost.'
   },
   timeout: {
-    title: 'Still starting — the server has not responded yet.',
-    hint: 'Try again in a moment. If you are feeling corporate, escalate to your imaginary platform team and mention the architecture slop stack.'
+    title: 'Still booting the architecture slop stack…',
+    hint: 'The server has not responded yet. Try again in a moment — or escalate to your imaginary platform team.'
   },
   retryLabel: 'Try again',
   retryAria: 'Try connecting to ArchiSlop again'

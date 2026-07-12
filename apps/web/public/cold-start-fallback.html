@@ -75,13 +75,11 @@
   </head>
   <body>
     <div class="card" role="status" aria-live="polite">
-      <p class="eyebrow">🏗️ ArchiSlop</p>
-      <p class="title" id="title">
-        Starting the server — this usually takes 10–30 seconds when nobody has used the app lately.
-      </p>
+      <p class="eyebrow">🏗️ ArchiSlop · Corporate IT</p>
+      <p class="title" id="title">Spinning up the synergy plane…</p>
       <p class="hint" id="hint">
-        Nothing is wrong: the app scales down when idle to save cost. (Internally we call this
-        “spinning up the synergy plane.”)
+        Starting the server — usually 10–30 seconds when nobody has used the app lately. We scale
+        down when idle to save cost.
       </p>
       <button type="button" id="retry" hidden>Try again</button>
     </div>
@@ -89,13 +87,12 @@
       (function () {
         var COPY = {
           waking: {
-            title:
-              'Starting the server — this usually takes 10–30 seconds when nobody has used the app lately.',
-            hint: 'Nothing is wrong: the app scales down when idle to save cost. (Internally we call this “spinning up the synergy plane.”)'
+            title: 'Spinning up the synergy plane…',
+            hint: 'Starting the server — usually 10–30 seconds when nobody has used the app lately. We scale down when idle to save cost.'
           },
           timeout: {
-            title: 'Still starting — the server has not responded yet.',
-            hint: 'Try again in a moment. If you are feeling corporate, escalate to your imaginary platform team and mention the architecture slop stack.'
+            title: 'Still booting the architecture slop stack…',
+            hint: 'The server has not responded yet. Try again in a moment — or escalate to your imaginary platform team.'
           },
           retry: 'Try again'
         };
