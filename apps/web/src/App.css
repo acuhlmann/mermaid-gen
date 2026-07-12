@@ -5425,6 +5425,13 @@
   color: var(--muted);
 }
 
+/* The example card is pointer-events:none decoration behind the entry input;
+   the CTA opts back in so a newcomer can tap it to run a live demo topic. */
+.entry-example-try {
+  pointer-events: auto;
+  margin-top: 0.35rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .entry-example {
     animation: none;
@@ -12230,6 +12237,110 @@ body.slopitect-rainbow-tint::before {
 
 .stakeholder-intro-dismiss {
   align-self: flex-end;
+}
+
+/* First-run mode reveal — floats top-center over the freshly generated canvas to
+   promote the render modes out of the Settings drawer. Non-blocking: only the
+   card itself takes pointer events, so the canvas underneath stays interactive. */
+.mode-reveal-spotlight {
+  position: absolute;
+  top: 4.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 45;
+  width: max-content;
+  max-width: min(30rem, calc(100vw - 2rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.8rem 0.95rem;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.94));
+  border: 1.5px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow:
+    0 12px 32px color-mix(in srgb, var(--accent) 18%, rgba(15, 23, 42, 0.18)),
+    0 2px 8px rgba(15, 23, 42, 0.1);
+  /* Dedicated keyframe keeps the translateX(-50%) centering — the shared
+     topic-starters-in animates `transform`, which would clobber it. */
+  animation: mode-reveal-in 0.35s ease both;
+}
+
+@keyframes mode-reveal-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-reveal-spotlight {
+    animation: none;
+  }
+}
+
+.mode-reveal-eyebrow {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.mode-reveal-body {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.mode-reveal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mode-reveal-chip {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent-dark);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.mode-reveal-chip:hover {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  transform: translateY(-1px);
+}
+
+.mode-reveal-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.mode-reveal-chip.is-current {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.mode-reveal-dismiss {
+  align-self: flex-end;
+}
+
+@media (max-height: 620px) {
+  .mode-reveal-spotlight {
+    top: 3.25rem;
+  }
 }
 
 .stakeholders-mascot {

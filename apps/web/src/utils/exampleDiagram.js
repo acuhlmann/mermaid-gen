@@ -21,3 +21,11 @@ export const EXAMPLE_DIAGRAM_SOURCE = `flowchart TD
     F --> G
     G --> H["💡 Now you get it"]
 `;
+
+/**
+ * Curated topic the empty-state example's "try this one" call-to-action seeds
+ * and submits. It is a concrete, broadly interesting subject (not the meta loop
+ * the preview draws) so the newcomer's very first result is a real archislop
+ * diagram of something recognisable rather than a diagram about the app itself.
+ */
+export const EXAMPLE_TRY_PROMPT = 'Explain how the OAuth 2.0 authorization code flow works';
