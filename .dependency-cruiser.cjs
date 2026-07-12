@@ -100,7 +100,9 @@ module.exports = {
           '/shims/',
           // packages/eslint-config inlines guidance into formatter.cjs by
           // design (CJS / ESM split), so guidance.js looks like an orphan.
-          '^packages/eslint-config/'
+          '^packages/eslint-config/',
+          // Service worker registered by URL in coldStartBootstrap (not an import graph edge).
+          'apps/web/public/cold-start-sw\\.js'
         ]
       },
       to: {}

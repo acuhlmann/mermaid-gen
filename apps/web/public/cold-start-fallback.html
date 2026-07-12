@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ArchiSlop — waking the synergy plane</title>
+    <style>
+      :root {
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        color: #1a202c;
+        background: #f3f6fb;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 1.5rem;
+      }
+      .card {
+        width: min(28rem, 100%);
+        padding: 1.5rem 1.35rem;
+        border-radius: 1rem;
+        border: 1px solid rgba(26, 32, 44, 0.08);
+        background: rgba(255, 255, 255, 0.92);
+        box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+      }
+      .eyebrow {
+        margin: 0 0 0.65rem;
+        font-size: 0.78rem;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+      }
+      .title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 600;
+        line-height: 1.45;
+      }
+      .hint {
+        margin: 0.75rem 0 0;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        color: #475569;
+      }
+      button {
+        margin-top: 1rem;
+        padding: 0.55rem 0.9rem;
+        border: 1px solid rgba(26, 32, 44, 0.14);
+        border-radius: 0.65rem;
+        background: #fff;
+        color: #1a202c;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        border-color: rgba(147, 51, 234, 0.35);
+        background: #faf5ff;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" role="status" aria-live="polite">
+      <p class="eyebrow">🏗️ ArchiSlop · Corporate IT</p>
+      <p class="title" id="title">
+        Spinning up the synergy plane… budget-tier compute usually needs 10–30 seconds after idle.
+      </p>
+      <p class="hint" id="hint">
+        Mandatory architecture compliance: please stand by while we wake a container from its
+        carbon-neutral offsite.
+      </p>
+      <button type="button" id="retry" hidden>Retry the wake-up call</button>
+    </div>
+    <script>
+      (function () {
+        var COPY = {
+          waking:
+            'Spinning up the synergy plane… budget-tier compute usually needs 10–30 seconds after idle.',
+          hint: 'Mandatory architecture compliance: please stand by while we wake a container from its carbon-neutral offsite.',
+          timeout:
+            'Still booting the architecture slop stack — retry, or escalate to your imaginary platform team.',
+          retry: 'Retry the wake-up call'
+        };
+
+        function healthUrl() {
+          var origin = location.origin.replace(/\/+$/, '');
+          if (
+            (location.hostname === 'localhost' || location.hostname === '127.0.0.1') &&
+            location.port &&
+            location.port !== '4000' &&
+            location.port !== '8080'
+          ) {
+            return 'http://' + location.hostname + ':4000/api/health';
+          }
+          return origin + '/api/health';
+        }
+
+        var title = document.getElementById('title');
+        var hint = document.getElementById('hint');
+        var retry = document.getElementById('retry');
+        var params = new URLSearchParams(location.search);
+        var target = params.get('returnTo') || '/';
+        var delay = 1500;
+        var started = Date.now();
+        var timeoutMs = 90000;
+
+        function showTimeout() {
+          title.textContent = COPY.timeout;
+          hint.textContent = COPY.hint;
+          retry.hidden = false;
+        }
+
+        function poll() {
+          if (Date.now() - started > timeoutMs) {
+            showTimeout();
+            return;
+          }
+          fetch(healthUrl(), { cache: 'no-store', credentials: 'same-origin' })
+            .then(function (res) {
+              if (res.ok) {
+                location.replace(target);
+                return;
+              }
+              setTimeout(poll, delay);
+              delay = Math.min(8000, Math.round(delay * 1.35));
+            })
+            .catch(function () {
+              setTimeout(poll, delay);
+              delay = Math.min(8000, Math.round(delay * 1.35));
+            });
+        }
+
+        retry.addEventListener('click', function () {
+          retry.disabled = true;
+          started = Date.now();
+          delay = 1500;
+          title.textContent = COPY.waking;
+          retry.hidden = true;
+          poll();
+          setTimeout(function () {
+            retry.disabled = false;
+          }, 500);
+        });
+
+        poll();
+      })();
+    </script>
+  </body>
+</html>
