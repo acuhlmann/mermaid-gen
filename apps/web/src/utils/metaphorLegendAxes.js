@@ -41,6 +41,11 @@ export const METAPHOR_LEGEND_AXES = {
     ['impact', 'Impact'],
     ['bed', 'Bed'],
     ['health', 'Health']
+  ],
+  archipelago: [
+    ['mass', 'Mass'],
+    ['relief', 'Relief'],
+    ['chain', 'Chain']
   ]
 };
 
@@ -79,6 +84,11 @@ const ITEM_METRICS = {
     { key: 'impact', label: 'Impact', type: 'number' },
     { key: 'bed', label: 'Bed', type: 'text' },
     { key: 'health', label: 'Health', type: 'text' }
+  ],
+  archipelago: [
+    { key: 'mass', label: 'Mass', type: 'number' },
+    { key: 'relief', label: 'Relief', type: 'number' },
+    { key: 'chain', label: 'Chain', type: 'text' }
   ]
 };
 

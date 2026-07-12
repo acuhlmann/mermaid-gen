@@ -1,4 +1,5 @@
 import {
+  ARCHIPELAGO_MAX_ITEMS,
   CITY_CONDITION,
   CITY_LIGHTING,
   CITY_MAX_ITEMS,
@@ -44,7 +45,8 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   terrain: TERRAIN_MAX_ITEMS,
   orrery: ORRERY_MAX_ITEMS,
   river: RIVER_MAX_ITEMS,
-  garden: GARDEN_MAX_ITEMS
+  garden: GARDEN_MAX_ITEMS,
+  archipelago: ARCHIPELAGO_MAX_ITEMS
 };
 
 const LIGHTING_SET = new Set<string>(CITY_LIGHTING);
@@ -257,6 +259,23 @@ function rescueNumericRanges(working: Record<string, unknown>, applied: string[]
         }
       }
     }
+
+    if (kind === 'archipelago') {
+      if (typeof item.mass === 'number' && Number.isFinite(item.mass)) {
+        const clamped = clampNumber(item.mass, 0.5, 20);
+        if (clamped !== item.mass) {
+          item.mass = clamped;
+          applied.push('clamp-mass');
+        }
+      }
+      if (typeof item.relief === 'number' && Number.isFinite(item.relief)) {
+        const clamped = clampNumber(item.relief, 0, 1);
+        if (clamped !== item.relief) {
+          item.relief = clamped;
+          applied.push('clamp-relief');
+        }
+      }
+    }
   }
 }
 
@@ -329,7 +348,10 @@ function rescueSceneLegend(working: Record<string, unknown>, applied: string[]):
     'maturity',
     'impact',
     'bed',
-    'health'
+    'health',
+    'mass',
+    'relief',
+    'chain'
   ];
   const kept: Record<string, string> = {};
   let droppedUnknown = false;

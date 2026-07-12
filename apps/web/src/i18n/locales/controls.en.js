@@ -417,7 +417,8 @@ export const CONTROLS_EN = {
       terrain: 'Terrain',
       orrery: 'Orrery',
       river: 'River',
-      garden: 'Garden'
+      garden: 'Garden',
+      archipelago: 'Archipelago'
     }
   },
   styleEdits: {

@@ -11,6 +11,7 @@ import {
   resolveMetaphorThemePreset,
   resolveMetaphorPostfx,
   resolveDistrictColor,
+  resolveArchipelagoDaylightTheme,
   resolveGardenDaylightTheme,
   resolveRiverDaylightTheme
 } from '../utils/metaphorThemePresets.js';
@@ -54,6 +55,7 @@ import { GalaxyScene, GalaxySky } from './metaphorScenes/GalaxyScene.jsx';
 import { OrreryScene } from './metaphorScenes/OrreryScene.jsx';
 import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
+import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoScene.jsx';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -69,7 +71,8 @@ const BOUNDS_MARGIN_BY_KIND = {
   terrain: 1.04,
   orrery: 1.08,
   river: 0.84,
-  garden: 1.12
+  garden: 1.12,
+  archipelago: 1.05
 };
 
 /** Advances the shared scene clock; gated off (frozen at 0) during streaming. */
@@ -1035,6 +1038,7 @@ function MetaphorScene({ dsl, theme }) {
   if (dsl.metaphor === 'orrery') return <OrreryScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'river') return <RiverScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'garden') return <GardenScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'archipelago') return <ArchipelagoScene dsl={dsl} theme={theme} />;
   return null;
 }
 
@@ -1174,6 +1178,7 @@ function MetaphorRendererImpl(
     const base = resolveMetaphorThemePreset(themeId);
     if (dsl?.metaphor === 'river') return resolveRiverDaylightTheme(base);
     if (dsl?.metaphor === 'garden') return resolveGardenDaylightTheme(base);
+    if (dsl?.metaphor === 'archipelago') return resolveArchipelagoDaylightTheme(base);
     return base;
   }, [dsl?.metaphor, themeId]);
   const postfx = resolveMetaphorPostfx(theme);
@@ -1229,6 +1234,7 @@ function MetaphorRendererImpl(
           {dsl.metaphor === 'tree' ? <TreeSky theme={theme} /> : null}
           {dsl.metaphor === 'river' ? <RiverSky theme={theme} /> : null}
           {dsl.metaphor === 'garden' ? <GardenSky theme={theme} /> : null}
+          {dsl.metaphor === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>

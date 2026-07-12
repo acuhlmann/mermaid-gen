@@ -69,10 +69,13 @@ export function riverPathLayout(items) {
   // widening run-out toward the mouth.
   const controls = [];
   const stationControlIndex = [];
+  const firstWidth = riverWidthForFlow(flowValue(ordered[0]));
+  // Soft lead-in (not a needle point) — abrupt width collapse at the source
+  // flipped ribbon normals and produced flicker against the spring stones.
   controls.push({
     x: -halfExtent - 3.5,
     z: (hash01Salted('river', 'lead-z') - 0.5) * amplitude * 0.6,
-    width: riverWidthForFlow(flowValue(ordered[0])) * 0.35
+    width: firstWidth * 0.72
   });
   ordered.forEach((item, i) => {
     const t = count === 1 ? 0.5 : i / (count - 1);
@@ -88,11 +91,17 @@ export function riverPathLayout(items) {
     controls.push({ x, z, width: riverWidthForFlow(flowValue(item)) });
   });
   const last = controls[controls.length - 1];
+  // Intermediate flare sample keeps the mouth widen gradual (no hard kink).
+  controls.push({
+    x: halfExtent + 1.6,
+    z: last.z * 0.72,
+    width: last.width * 1.25
+  });
   controls.push({
     x: halfExtent + 4,
     z: last.z * 0.5,
     // The mouth flares into a delta so the story has a visible destination.
-    width: last.width * 1.7
+    width: last.width * 1.55
   });
 
   // Catmull-Rom through the controls (endpoints duplicated for clamped ends).

@@ -63,7 +63,9 @@ function TerrainWaterPlane({ halfExtent, theme }) {
   useFrame(() => {
     if (!animated || !matRef.current) return;
     const t = getTime();
-    matRef.current.opacity = 0.4 + 0.05 * Math.sin(t * 0.8);
+    // Prefer emissive shimmer over opacity pulse — alpha flicker fights the
+    // heightmap shoreline where water and terrain share a near-zero Y.
+    matRef.current.emissiveIntensity = 0.08 + 0.05 * Math.sin(t * 0.8);
   });
   return (
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
@@ -72,9 +74,12 @@ function TerrainWaterPlane({ halfExtent, theme }) {
         ref={matRef}
         color={theme.waterColor ?? '#7dd3fc'}
         transparent
-        opacity={0.4}
-        roughness={0.3}
-        metalness={0.2}
+        opacity={0.42}
+        roughness={0.28}
+        metalness={0.22}
+        emissive={theme.waterColor ?? '#7dd3fc'}
+        emissiveIntensity={0.1}
+        depthWrite={false}
       />
     </mesh>
   );

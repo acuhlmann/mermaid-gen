@@ -9,7 +9,7 @@ const SYSTEM_PROMPT = `You are a Metaphor DSL JSON syntax repair function. Given
 CRITICAL output rules:
 - Output ONLY the corrected JSON between a single \`\`\`json fenced block. No prose before or after.
 - Preserve the user's metaphor choice and item labels wherever possible.
-- Valid metaphors: "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", "garden".
+- Valid metaphors: "city", "layercake", "galaxy", "tree", "terrain", "orrery", "river", "garden", "archipelago".
 - Never call tools; never wrap output in a JSON envelope; never explain.`;
 
 function extractJsonFromResponse(text) {

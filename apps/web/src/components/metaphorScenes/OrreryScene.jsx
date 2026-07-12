@@ -31,19 +31,57 @@ function planetRadius(item) {
 /** Blazing core star: layered corona sprites + a breathing emissive surface. */
 function SunCore({ item, position, color, theme }) {
   const matRef = useRef(null);
+  const flareRef = useRef(null);
   const { getTime, animated } = useMetaphorClock();
   const radius = item ? 1.05 + Math.sqrt(clampedSize(item)) * 0.32 : 1.0;
   const phase = useMemo(() => idHash(item?.id ?? 'core') * Math.PI * 2, [item]);
+  const flares = useMemo(
+    () =>
+      Array.from({ length: 6 }, (_, i) => ({
+        angle: (i / 6) * Math.PI * 2 + phase * 0.1,
+        len: radius * (1.6 + idHash2(item?.id ?? 'core', `flare${i}`) * 0.9),
+        phase: idHash2(item?.id ?? 'core', `fp${i}`) * Math.PI * 2
+      })),
+    [item, radius, phase]
+  );
   useFrame(() => {
     if (!animated || !matRef.current) return;
     const t = getTime();
     matRef.current.emissiveIntensity = 1.5 + 0.35 * Math.sin(t * 1.4 + phase);
+    if (flareRef.current) {
+      flareRef.current.rotation.y = t * 0.15;
+      flareRef.current.children.forEach((child, i) => {
+        const f = flares[i];
+        if (!f || !child.material) return;
+        child.material.opacity = 0.18 + 0.12 * Math.abs(Math.sin(t * 1.8 + f.phase));
+      });
+    }
   });
   const surface = useMemo(() => shiftColor(color, { lightness: 0.18, satScale: 0.9 }), [color]);
   return (
     <group position={position}>
       <GlowSprite size={radius * 7.5} color={color} opacity={0.3} />
       <GlowSprite size={radius * 4} color={surface} opacity={0.5} />
+      <group ref={flareRef}>
+        {flares.map((f, i) => (
+          <mesh
+            key={`flare-${i}`}
+            rotation={[0, 0, f.angle]}
+            position={[Math.cos(f.angle) * radius * 0.2, 0, Math.sin(f.angle) * radius * 0.2]}
+          >
+            <planeGeometry args={[f.len, radius * 0.18]} />
+            <meshBasicMaterial
+              color={surface}
+              transparent
+              opacity={0.22}
+              depthWrite={false}
+              blending={THREE.AdditiveBlending}
+              toneMapped={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        ))}
+      </group>
       <mesh>
         <sphereGeometry args={[radius, 24, 24]} />
         <meshStandardMaterial

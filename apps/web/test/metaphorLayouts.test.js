@@ -14,6 +14,10 @@ import {
   riverWidthForFlow
 } from '../src/utils/metaphorLayouts/riverPathLayout.js';
 import { gardenBedLayout } from '../src/utils/metaphorLayouts/gardenBedLayout.js';
+import {
+  archipelagoLayout,
+  islandRadiusForMass
+} from '../src/utils/metaphorLayouts/archipelagoLayout.js';
 
 describe('metaphorLayouts', () => {
   it('gridPosition centers a single item at origin', () => {
@@ -217,6 +221,26 @@ describe('metaphorLayouts', () => {
     expect(positions.size).toBe(3);
     expect(beds.map((bed) => bed.name).sort()).toEqual(['Growth', 'Trust']);
     expect(bounds.radius).toBeGreaterThan(0);
+    const a = positions.get('a');
+    const c = positions.get('c');
+    const b = positions.get('b');
+    expect(Math.hypot(a[0] - c[0], a[2] - c[2])).toBeLessThan(Math.hypot(a[0] - b[0], a[2] - b[2]));
+  });
+
+  it('archipelagoLayout groups islands by chain and sizes by mass', () => {
+    const items = [
+      { id: 'a', label: 'A', chain: 'Europe', mass: 12, relief: 0.8 },
+      { id: 'b', label: 'B', chain: 'Americas', mass: 4, relief: 0.3 },
+      { id: 'c', label: 'C', chain: 'Europe', mass: 8, relief: 0.5 }
+    ];
+    const { islands, chains, positions, bounds } = archipelagoLayout(items);
+    expect(positions.size).toBe(3);
+    expect(chains.map((c) => c.name).sort()).toEqual(['Americas', 'Europe']);
+    expect(bounds.radius).toBeGreaterThan(0);
+    const big = islands.find((i) => i.id === 'a');
+    const small = islands.find((i) => i.id === 'b');
+    expect(big.radius).toBeGreaterThan(small.radius);
+    expect(big.radius).toBeCloseTo(islandRadiusForMass(12), 5);
     const a = positions.get('a');
     const c = positions.get('c');
     const b = positions.get('b');

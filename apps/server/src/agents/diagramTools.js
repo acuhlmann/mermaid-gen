@@ -276,7 +276,7 @@ export function createMetaphorTools({ stateStore }) {
     {
       name: 'get_metaphor_dsl',
       description:
-        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain/orrery/river/garden), including revision id and source.',
+        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain/orrery/river/garden/archipelago), including revision id and source.',
       schema: z.object({})
     }
   );
@@ -295,7 +295,7 @@ export function createMetaphorTools({ stateStore }) {
       name: 'apply_metaphor_patch',
       description:
         'Validate and apply a complete 3D metaphor DSL update. The DSL is a JSON object: ' +
-        '{"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
+        '{"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden|archipelago","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
         'For city: items are {id, label, height (1-100), footprint (1-20), district?, lighting?, condition?}. ' +
         'For layercake: items are {id, label, thickness (1-10), components?: string[], cracks?, tilt?}. ' +
         'For galaxy: items are {id, label, magnitude (1-20), cluster?, binary?}. ' +
@@ -304,6 +304,7 @@ export function createMetaphorTools({ stateStore }) {
         'For orrery: items are {id, label, orbit (0-12; 0 = central sun), size (0.1-10), moon?}. ' +
         'For river: items are {id, label, stage (0-100, source→mouth order), flow (0.1-20, channel width), hazard? (0-1, rapids)}. ' +
         'For garden: items are {id, label, maturity (0-1), impact (0.1-10), bed?, health? (thriving|steady|at-risk)}. ' +
+        'For archipelago: items are {id, label, mass (0.5-20, island size), relief (0-1, peak height), chain?}. ' +
         'Item ids must be stable lowercase-kebab strings (e.g. auth-service). Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
         diagramSource: z

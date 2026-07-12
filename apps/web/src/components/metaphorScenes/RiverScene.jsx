@@ -84,18 +84,17 @@ function RiverChannel({ samples, normals, theme }) {
     () => shiftColor(theme.treeSoilColor ?? '#8a6f47', { lightness: 0.16, satScale: 0.7 }),
     [theme.treeSoilColor]
   );
+  const meshRef = useRef(null);
   const matRef = useRef(null);
+  const basePositionsRef = useRef(null);
   const { getTime, animated } = useMetaphorClock();
-  useFrame(() => {
-    if (!animated || !matRef.current) return;
-    matRef.current.opacity = 0.82 + 0.06 * Math.sin(getTime() * 0.9);
-  });
 
   const { waterGeom, bedGeom, edges } = useMemo(() => {
     const deep = new THREE.Color(theme.riverDeepColor ?? '#168fc7');
     const light = new THREE.Color(waterColor).lerp(new THREE.Color('#ffffff'), 0.26);
     const water = buildRibbonGeometry(samples, normals, {
-      y: 0.06,
+      // Keep water clearly above the bed so DoubleSide ribbons never z-fight.
+      y: 0.09,
       widthScale: 1,
       pad: 0,
       colorFor: (s) => {
@@ -107,39 +106,73 @@ function RiverChannel({ samples, normals, theme }) {
     const bed = buildRibbonGeometry(samples, normals, { y: 0, widthScale: 1.15, pad: 0.5 });
     const left = samples.map((s, i) => [
       s.x + normals[i][0] * s.width * 0.96,
-      0.085,
+      0.11,
       s.z + normals[i][1] * s.width * 0.96
     ]);
     const right = samples.map((s, i) => [
       s.x - normals[i][0] * s.width * 0.96,
-      0.085,
+      0.11,
       s.z - normals[i][1] * s.width * 0.96
     ]);
     return { waterGeom: water, bedGeom: bed, edges: [left, right] };
   }, [samples, normals, waterColor, theme.riverDeepColor]);
 
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    basePositionsRef.current = Float32Array.from(waterGeom.attributes.position.array);
+    return () => {
       waterGeom.dispose();
       bedGeom.dispose();
-    },
-    [waterGeom, bedGeom]
-  );
+    };
+  }, [waterGeom, bedGeom]);
+
+  useFrame(() => {
+    if (!animated || !meshRef.current || !matRef.current || !basePositionsRef.current) return;
+    const t = getTime();
+    // Constant opacity — pulsing alpha caused transparent sorting flicker at the
+    // source/mouth where the ribbon overlaps the spring glow and delta lagoon.
+    matRef.current.opacity = 0.88;
+    matRef.current.emissiveIntensity = 0.08 + 0.05 * Math.sin(t * 1.1);
+    const pos = meshRef.current.geometry.attributes.position;
+    const base = basePositionsRef.current;
+    const count = pos.count;
+    for (let i = 0; i < count; i += 1) {
+      const bx = base[i * 3];
+      const by = base[i * 3 + 1];
+      const bz = base[i * 3 + 2];
+      // Gentle travelling ripples — amplitude stays tiny so framing stays stable.
+      const wave = Math.sin(bx * 0.55 + t * 2.2) * 0.018 + Math.sin(bz * 0.7 + t * 1.6) * 0.012;
+      pos.setY(i, by + wave);
+    }
+    pos.needsUpdate = true;
+  });
 
   return (
     <group>
       <mesh geometry={bedGeom} position={[0, 0.02, 0]}>
-        <meshStandardMaterial color={sandColor} roughness={0.95} side={THREE.DoubleSide} />
+        <meshStandardMaterial
+          color={sandColor}
+          roughness={0.95}
+          side={THREE.DoubleSide}
+          polygonOffset
+          polygonOffsetFactor={1}
+          polygonOffsetUnits={1}
+        />
       </mesh>
-      <mesh geometry={waterGeom}>
+      <mesh ref={meshRef} geometry={waterGeom}>
         <meshStandardMaterial
           ref={matRef}
           vertexColors
           transparent
-          opacity={0.9}
-          roughness={0.25}
-          metalness={0.15}
+          opacity={0.88}
+          roughness={0.22}
+          metalness={0.18}
+          emissive={theme.riverDeepColor ?? '#168fc7'}
+          emissiveIntensity={0.1}
           side={THREE.DoubleSide}
+          depthWrite
+          polygonOffset
+          polygonOffsetFactor={-1}
+          polygonOffsetUnits={-1}
         />
       </mesh>
       {edges.map((pts, i) => (
@@ -161,11 +194,17 @@ function CurrentMotes({ samples, normals, theme }) {
   const groupRef = useRef(null);
   const { getTime, animated } = useMetaphorClock();
   const lanes = useMemo(() => {
+    // Skip the extreme lead-in / mouth samples so motes never collide with the
+    // spring stones or delta lagoon (a common source of end-point flicker).
+    const lo = Math.floor(samples.length * 0.06);
+    const hi = Math.max(lo + 2, Math.ceil(samples.length * 0.94));
+    const slice = samples.slice(lo, hi);
+    const nSlice = normals.slice(lo, hi);
     const build = (lateral) =>
-      samples.map((s, i) => [
-        s.x + normals[i][0] * s.width * lateral,
-        0.16,
-        s.z + normals[i][1] * s.width * lateral
+      slice.map((s, i) => [
+        s.x + nSlice[i][0] * s.width * lateral,
+        0.18,
+        s.z + nSlice[i][1] * s.width * lateral
       ]);
     return [build(-0.42), build(0), build(0.42)];
   }, [samples, normals]);
@@ -186,9 +225,14 @@ function CurrentMotes({ samples, normals, theme }) {
       if (!mote) return;
       const progress = (mote.phase + t * mote.speed) % 1;
       const lane = lanes[mote.lane];
+      if (!lane?.length) return;
       const idx = Math.min(lane.length - 1, Math.floor(progress * (lane.length - 1)));
       const p = lane[idx];
       child.position.set(p[0], p[1], p[2]);
+      // Fade at both ends of the lap so the wrap-around teleport is invisible.
+      const edge = Math.min(progress, 1 - progress);
+      const fade = THREE.MathUtils.smoothstep(edge, 0, 0.08);
+      if (child.material) child.material.opacity = 0.85 * fade;
     });
   });
   const moteColor = theme.binaryGlowColor ?? '#e0f2fe';
@@ -197,7 +241,13 @@ function CurrentMotes({ samples, normals, theme }) {
       {motes.map((_, i) => (
         <mesh key={`mote-${i}`}>
           <sphereGeometry args={[0.09, 8, 8]} />
-          <meshBasicMaterial color={moteColor} toneMapped={false} transparent opacity={0.85} />
+          <meshBasicMaterial
+            color={moteColor}
+            toneMapped={false}
+            transparent
+            opacity={0.85}
+            depthWrite={false}
+          />
         </mesh>
       ))}
     </group>
@@ -382,14 +432,24 @@ function SourceAndMouth({ samples, theme }) {
     () => shiftColor(theme.treeSoilColor ?? '#5b4226', { lightness: 0.22, satScale: 0.3 }),
     [theme.treeSoilColor]
   );
+  const lagoonMatRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  useFrame(() => {
+    if (!animated || !lagoonMatRef.current) return;
+    // Soft shimmer without changing transparency (avoids lagoon/channel flicker).
+    lagoonMatRef.current.emissiveIntensity = 0.12 + 0.06 * Math.sin(getTime() * 0.85);
+  });
   if (samples.length < 2) return null;
-  const head = samples[0];
-  const mouth = samples[samples.length - 1];
+  // Use interior samples so spring/lagoon sit on stable channel geometry, not the
+  // extreme lead-in/run-out tips where the ribbon normals can flip.
+  const head = samples[Math.min(4, samples.length - 1)];
+  const mouth = samples[Math.max(0, samples.length - 5)];
   const stones = [0, 1, 2, 3, 4].map((i) => ({
     x: head.x + (idHash2('spring', `x${i}`) - 0.5) * 1.6,
     z: head.z + (idHash2('spring', `z${i}`) - 0.5) * 1.6,
     r: 0.18 + idHash2('spring', `r${i}`) * 0.2
   }));
+  const lagoonR = Math.min(4.2, Math.max(2.4, mouth.width * 1.4));
   return (
     <group>
       {stones.map((s, i) => (
@@ -398,19 +458,41 @@ function SourceAndMouth({ samples, theme }) {
           <meshStandardMaterial color={stoneColor} flatShading roughness={0.95} />
         </mesh>
       ))}
-      <group position={[head.x, 0.5, head.z]}>
-        <GlowSprite size={2.2} color="#ffffff" opacity={0.16} />
+      <group position={[head.x, 0.55, head.z]}>
+        <GlowSprite size={2.2} color="#ffffff" opacity={0.14} />
       </group>
-      <mesh position={[mouth.x, 0.045, mouth.z]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[Math.min(4.2, Math.max(2.4, mouth.width * 1.4)), 48]} />
+      {/* Lagoon sits slightly *below* the animated water ribbon and uses
+          depthWrite:false so overlapping triangles never fight for the pixel. */}
+      <mesh position={[mouth.x, 0.035, mouth.z]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[lagoonR, 48]} />
         <meshStandardMaterial
+          ref={lagoonMatRef}
           color={theme.waterColor ?? '#38bdf8'}
           transparent
-          opacity={0.55}
-          roughness={0.3}
-          metalness={0.15}
+          opacity={0.42}
+          roughness={0.28}
+          metalness={0.2}
+          emissive={theme.riverDeepColor ?? '#168fc7'}
+          emissiveIntensity={0.14}
+          depthWrite={false}
         />
       </mesh>
+      {[0.55, 0.78].map((scale, i) => (
+        <mesh
+          key={`lagoon-ring-${i}`}
+          position={[mouth.x, 0.04 + i * 0.01, mouth.z]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <ringGeometry args={[lagoonR * scale, lagoonR * (scale + 0.06), 48]} />
+          <meshBasicMaterial
+            color="#e0f2fe"
+            transparent
+            opacity={0.16 - i * 0.04}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+      ))}
     </group>
   );
 }
