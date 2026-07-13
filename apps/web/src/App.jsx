@@ -34,10 +34,12 @@ import {
 } from './state/sessionEventsClient.js';
 import {
   buildIntentPeerContext,
+  CONTENT_MODES,
   createEmptyCrossModeSyncMarkers,
   createSessionId,
   fallbackState,
   fetchSessionDiagramState,
+  isSlotCustomized,
   isSlotInSyncForTopic,
   needsModeSwitchPeerSync,
   normalizeSessionId,
@@ -57,6 +59,7 @@ import {
   submitDiagramStyle,
   writeDiagramCache
 } from './state/diagramStore.js';
+import { buildFormsSeedDoc } from '@archislop/shared';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
 import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
 import {
@@ -368,6 +371,12 @@ function ArchiSlop() {
 
   /** Single session topic; seeded from hydrate and updated on successful intent revisions. */
   const sessionTopicRef = useRef(null);
+
+  /**
+   * True when any sibling slot already has customized content. Used to keep the first-run
+   * empty intro from reclaiming the chrome when switching into an empty sibling mode.
+   */
+  const [sessionHasPeerContent, setSessionHasPeerContent] = useState(false);
 
   /**
    * Per target mode: revision ids of the last successful peer→target mode-switch translation.
@@ -910,6 +919,9 @@ function ArchiSlop() {
     // Capture the textarea state at the moment the user toggled mode. Used below to gate
     // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
     const promptAtSwitch = promptRef.current;
+    // Keep loading true across the hydrate → auto-submit microtask gap so an empty sibling
+    // slot never flashes the first-run intro between those two phases.
+    let keepLoadingForModeSwitch = false;
     setSessionHydrated(false);
     setLoading(true);
     setActiveRequest('hydrate');
@@ -933,6 +945,9 @@ function ArchiSlop() {
         }
         stateRef.current = data;
         setState(data);
+        setSessionHasPeerContent(
+          CONTENT_MODES.some((mode) => mode !== contentMode && isSlotCustomized(session?.[mode]))
+        );
 
         const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
         let candidate = resolveModeSwitchCandidate({
@@ -973,6 +988,7 @@ function ArchiSlop() {
         const pendingRenderModeRequest = pendingRenderModeRequestRef.current;
         if (pendingRenderModeRequest?.targetMode === contentMode) {
           pendingRenderModeRequestRef.current = null;
+          keepLoadingForModeSwitch = true;
           Promise.resolve().then(async () => {
             if (cancelled) return;
             try {
@@ -1004,6 +1020,7 @@ function ArchiSlop() {
           })
         ) {
           const peerRevisionAtSubmit = peerSlot?.revisionId ?? 0;
+          keepLoadingForModeSwitch = true;
           // Defer to a microtask so React has committed the state update before the auto
           // submit kicks off; pass the override anyway so revisionId is correct regardless.
           Promise.resolve().then(async () => {
@@ -1033,7 +1050,11 @@ function ArchiSlop() {
                 modeSwitchPeerMode: primaryPeerMode
               });
             } catch (err) {
-              if (!cancelled) setError(err.message);
+              if (!cancelled) {
+                setError(err.message);
+                setLoading(false);
+                setActiveRequest(null);
+              }
             }
           });
         }
@@ -1050,6 +1071,7 @@ function ArchiSlop() {
           setLiveDraftContentType(null);
           setGoMadStreak(0);
           sessionTopicRef.current = null;
+          setSessionHasPeerContent(false);
           crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
           cacheRef.current = null;
           sessionIdFromUrlRef.current = false;
@@ -1096,6 +1118,11 @@ function ArchiSlop() {
                   sessionId: targetId
                 }),
                 syncClientDiagramState({
+                  contentType: 'forms',
+                  diagramSource: '',
+                  sessionId: targetId
+                }),
+                syncClientDiagramState({
                   contentType: 'anything',
                   diagramSource: '',
                   sessionId: targetId
@@ -1126,6 +1153,10 @@ function ArchiSlop() {
         if (cancelled) return;
         sessionIdFromUrlRef.current = false;
         setSessionHydrated(true);
+        if (keepLoadingForModeSwitch) {
+          // submitIntentWithPrompt owns loading for the follow-on mode-switch run.
+          return;
+        }
         loadingRef.current = false;
         setLoading(false);
         setActiveRequest(null);
@@ -2339,6 +2370,22 @@ function ArchiSlop() {
         : 'They submitted it with no fields filled in.',
       'Now issue the NEXT form in the endless corporate gauntlet: acknowledge these answers with bureaucratic non-sequiturs, invent a fresh reason more information is needed, bump the form code, and add new tedium. Never declare the process complete — there is always another form.'
     ].join(' ');
+    // The empty forms canvas renders a client-only seed. Persist it before the
+    // next-form intent so the agent sees the form the user actually completed.
+    if (!stateRef.current.diagramSource?.trim()) {
+      try {
+        const seeded = await syncClientDiagramState({
+          contentType: 'forms',
+          diagramSource: buildFormsSeedDoc(),
+          sessionId: activeSessionId
+        });
+        stateRef.current = seeded;
+        setState(seeded);
+      } catch (err) {
+        setError(err.message);
+        return;
+      }
+    }
     await submitIntentWithPrompt(nextPrompt, {
       contentTypeOverride: 'forms',
       variantOverride: 'intent'
@@ -3105,12 +3152,14 @@ ${requirementsBlock}`;
         syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: nid }),
         syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: nid }),
         syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: nid }),
+        syncClientDiagramState({ contentType: 'forms', diagramSource: '', sessionId: nid }),
         syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: nid })
       ]);
       freshlyMintedSessionIdsRef.current.delete(nid);
       const fresh = createInitialDiagramState(contentMode);
       stateRef.current = fresh;
       setState(fresh);
+      setSessionHasPeerContent(false);
       cacheRef.current = null;
       window.history.replaceState({}, '', sessionPathFor(nid));
       setActiveSessionId(nid);
@@ -3561,18 +3610,21 @@ ${requirementsBlock}`;
     [loading, insightsEntries]
   );
   const hasDiagramText = Boolean(state.diagramSource?.trim());
+  // Forms always has a client-side seed canvas, and switching into an empty sibling
+  // after peer content exists must not dump the user back on the first-run intro.
+  const hasCanvasContent = hasDiagramText || contentMode === 'forms' || sessionHasPeerContent;
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
   // Verb-led placeholder that cycles while the empty-state entry input is shown,
   // hinting at what to type. Falls back to the static "Your Topic" label.
   const entryTopicPlaceholder = useRotatingPlaceholder(controls.prompt.topicExamples, {
-    active: !hasDiagramText
+    active: !hasCanvasContent
   });
 
   // First-run demo: show the read-only example only once we know the diagram slot
   // is genuinely empty (gated on hydration to avoid a flash for returning users
   // whose saved diagram is about to load), and never over the editor/insights.
-  const showEntryExample = sessionHydrated && !hasDiagramText && !editorOpen && !insightsOpen;
+  const showEntryExample = sessionHydrated && !hasCanvasContent && !editorOpen && !insightsOpen;
 
   // First-run mode reveal: after the first diagram, remind newcomers that modes
   // also live in Settings (empty-state already surfaces Render as). Skipped when
@@ -4030,7 +4082,7 @@ ${requirementsBlock}`;
 
   return (
     <main
-      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasDiagramText || editorOpen ? ' has-edit-control' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
+      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -4305,7 +4357,7 @@ ${requirementsBlock}`;
           ) : null}
         </div>
 
-        {fullscreenSupported || hasDiagramText || editorOpen ? (
+        {fullscreenSupported || hasCanvasContent || editorOpen ? (
           <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
             {fullscreenSupported ? (
               <DiagramFullscreenButton
@@ -4314,7 +4366,7 @@ ${requirementsBlock}`;
                 onToggle={toggleFullscreen}
               />
             ) : null}
-            {hasDiagramText || editorOpen ? (
+            {hasCanvasContent || editorOpen ? (
               <button
                 type="button"
                 className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
@@ -4392,7 +4444,7 @@ ${requirementsBlock}`;
           ) : null
         }
         promptPopover={
-          hasDiagramText && slopPromptExpanded && slopPromptSource === 'chrome' ? (
+          hasCanvasContent && slopPromptExpanded && slopPromptSource === 'chrome' ? (
             <div className="bottom-row-popover bottom-row-popover--prompt">
               <SlopNextPrompt
                 layout="chrome"
@@ -4419,7 +4471,7 @@ ${requirementsBlock}`;
           ) : null
         }
         actions={
-          !hasDiagramText && !insightsOpen ? (
+          !hasCanvasContent && !insightsOpen ? (
             <div className="entry-cluster">
               <EntryRenderAs
                 label={controls.prompt.renderAsLabel}
@@ -4517,7 +4569,7 @@ ${requirementsBlock}`;
                 </div>
               </form>
             </div>
-          ) : hasDiagramText && !narrowLayout ? (
+          ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
               <div className="button-group">
                 <button
@@ -4654,7 +4706,7 @@ ${requirementsBlock}`;
                 </button>
               </div>
             </div>
-          ) : hasDiagramText && narrowLayout ? (
+          ) : hasCanvasContent && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
                 <button
@@ -4790,8 +4842,9 @@ ${requirementsBlock}`;
         aiControls={
           // Empty intro: modes live in the Render as strip; Settings (brain /
           // invite / mode) only clutter the first screen. Keep the gear once a
-          // diagram exists, or whenever a handshake needs the panel.
-          hasDiagramText || pendingHandshake ? (
+          // diagram exists, or whenever a handshake needs the panel. Forms always
+          // has a seed canvas; peer content also keeps chrome after a mode switch.
+          hasCanvasContent || pendingHandshake ? (
             <AiCornerControlsInner
               contentMode={contentMode}
               contentModeOptions={contentModeOptions}

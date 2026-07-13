@@ -199,7 +199,9 @@
 }
 
 /* Forms mode: the A2UI surface renders native controls and owns its own
-   scrolling — fill the viewport, no pan/zoom padding, default cursor. */
+   scrolling — fill the viewport, no pan/zoom padding, default cursor.
+   Override the canvas grab/touch-action/user-select so TextField inputs
+   stay selectable and buttons remain clickable on touch devices. */
 .diagram-viewport.is-forms {
   padding: 0;
   height: 100%;
@@ -207,6 +209,8 @@
 
 .diagram-output.is-forms {
   cursor: auto;
+  touch-action: auto;
+  user-select: text;
 }
 
 .forms-renderer-root {
@@ -216,6 +220,8 @@
   display: flex;
   justify-content: center;
   padding: clamp(1rem, 4vw, 3rem) 1rem;
+  touch-action: auto;
+  user-select: text;
   background:
     repeating-linear-gradient(
       0deg,

@@ -20,8 +20,20 @@ describe('renderModeAction helpers', () => {
       'AntV narrative layout',
       'Three.js spatial scene',
       'Vega-Lite data view',
-      'HTML/CSS/JS sandbox',
-      'Endless A2UI intake forms'
+      'Endless A2UI intake forms',
+      'HTML/CSS/JS sandbox'
+    ]);
+  });
+
+  it('places forms after chart and before anything', () => {
+    const options = selectableRenderModes('mermaid');
+    expect(options.map((option) => option.id)).toEqual([
+      'mermaid',
+      'infographic',
+      'metaphor3d',
+      'chart',
+      'forms',
+      'anything'
     ]);
   });
 

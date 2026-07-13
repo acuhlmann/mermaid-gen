@@ -10,8 +10,8 @@ export const ContentTypeSchema = z.enum([
   'infographic',
   'metaphor3d',
   'chart',
-  'anything',
-  'forms'
+  'forms',
+  'anything'
 ]);
 
 /**
@@ -21,12 +21,12 @@ export const ContentTypeSchema = z.enum([
  */
 export function normalizeContentType(
   value: unknown
-): 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything' | 'forms' {
+): 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'forms' | 'anything' {
   if (value === 'infographic') return 'infographic';
   if (value === 'metaphor3d') return 'metaphor3d';
   if (value === 'chart') return 'chart';
-  if (value === 'anything') return 'anything';
   if (value === 'forms') return 'forms';
+  if (value === 'anything') return 'anything';
   return 'mermaid';
 }
 
@@ -303,8 +303,8 @@ export function createInitialSessionState() {
     infographic: createInitialDiagramState('infographic'),
     metaphor3d: createInitialDiagramState('metaphor3d'),
     chart: createInitialDiagramState('chart'),
-    anything: createInitialDiagramState('anything'),
-    forms: createInitialDiagramState('forms')
+    forms: createInitialDiagramState('forms'),
+    anything: createInitialDiagramState('anything')
   };
 }
 

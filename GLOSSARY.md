@@ -18,7 +18,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 ## State
 
-**Slot.** One of the six independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (Vega-Lite wrapper), `anything` (freeform HTML in a sandboxed iframe), or `forms` (model-authored A2UI JSON rendered as interactive forms). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
+**Slot.** One of the six independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (Vega-Lite wrapper), `forms` (model-authored A2UI JSON rendered as interactive forms), or `anything` (freeform HTML in a sandboxed iframe). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
 
 **`activeContentType`.** Session-level pointer at the currently-active [[slot]]. Defaults to `mermaid`; persisted in `localStorage` under `archislop:content-mode`.
 

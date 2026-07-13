@@ -44,6 +44,7 @@ const CONTENT_TYPES = new Set<ContentType>([
   'infographic',
   'metaphor3d',
   'chart',
+  'forms',
   'anything'
 ]);
 

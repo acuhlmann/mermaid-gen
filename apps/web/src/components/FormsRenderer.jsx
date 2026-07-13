@@ -116,6 +116,7 @@ export default function FormsRenderer({
   }
 
   const [surfaces, setSurfaces] = useState([]);
+  const [processError, setProcessError] = useState(null);
 
   useLayoutEffect(() => {
     const p = processorRef.current;
@@ -126,14 +127,21 @@ export default function FormsRenderer({
     const existing = p.model.getSurface(FORMS_A2UI_SURFACE_ID);
     if (existing) p.model.deleteSurface(FORMS_A2UI_SURFACE_ID);
 
+    setProcessError(null);
     if (parsed.ok) {
       try {
         p.processMessages(parsed.doc.messages);
+        sync();
+        if (p.model.surfacesMap.size === 0) {
+          setProcessError('Form surface failed to mount after processing A2UI messages.');
+        }
       } catch (err) {
-        // Validation already ran server-side; a runtime processing error here is rare.
+        // Validation already ran server-side; a runtime processing error here is rare
+        // but must surface — an empty canvas looks like a blank/broken mode.
         console.error('FormsRenderer: A2UI processing failed', err);
+        setSurfaces([]);
+        setProcessError(err instanceof Error ? err.message : String(err));
       }
-      sync();
     }
 
     return () => {
@@ -144,6 +152,10 @@ export default function FormsRenderer({
 
   if (!parsed.ok) {
     return <FormsErrorState error={parsed.error ?? 'Invalid form.'} />;
+  }
+
+  if (processError) {
+    return <FormsErrorState error={processError} />;
   }
 
   return (

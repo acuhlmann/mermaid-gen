@@ -6,14 +6,14 @@ flowchart LR
   Toggle -->|"contentType: infographic"| IS["Infographic slot\ndiagramSource = AntV DSL"]
   Toggle -->|"contentType: metaphor3d"| ME["Metaphor3D slot\ndiagramSource = Metaphor DSL JSON"]
   Toggle -->|"contentType: chart"| CS["Chart slot\ndiagramSource = Vega-Lite DSL"]
-  Toggle -->|"contentType: anything"| AS["Anything slot\ndiagramSource = freeform HTML/CSS/JS"]
   Toggle -->|"contentType: forms"| FS["Forms slot\ndiagramSource = model-authored A2UI JSON"]
+  Toggle -->|"contentType: anything"| AS["Anything slot\ndiagramSource = freeform HTML/CSS/JS"]
   MS --> MR["Mermaid.js renderer\n(SVG via JSDOM)"]
   IS --> IR["@antv/infographic renderer\n(InfographicRenderer.jsx)"]
   ME --> R3F["React Three Fiber renderer\n(MetaphorRenderer.jsx)"]
   CS --> VR["Vega-Embed renderer\n(ChartRenderer.jsx)"]
-  AS --> AR["Sandboxed iframe renderer\n(AnythingRenderer.jsx)"]
   FS --> FR["A2UI surface renderer\n(FormsRenderer.jsx)"]
+  AS --> AR["Sandboxed iframe renderer\n(AnythingRenderer.jsx)"]
 ```
 
 Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, Anything, or Forms service transparently; routes and stream events are otherwise identical from the client's perspective.
@@ -100,8 +100,9 @@ The document is a JSON wrapper `{ archislopFormsVersion, formTitle, formCode?, m
 - Validation: `validateAndPrepareFormsPatch` in `apps/server/src/tools/formsA2uiTool.js` (wraps the shared parser; no A2UI runtime on the server).
 - Agent service: `apps/server/src/agents/formsLangChainAgent.js` (intent/transform/analyze; no Style support). Mutations use `apply_forms_patch`. Repair turns re-prompt with the exact validator error (bounded by `FORMS_REPAIR_MAX_ATTEMPTS`); there is no sanitizer or dedicated fixer model on day one.
 - System prompt: `apps/server/src/prompts/formsSystemPrompt.js` (the bureaucratic-parody voice + the A2UI authoring contract). Repair/analyze prompts: `formsSyntaxGuard.js`.
-- Renderer + submit loop: `apps/web/src/components/FormsRenderer.jsx` (`@a2ui/react` + `basicCatalog`; `onFormSubmit` → the next-form intent). The empty canvas shows a client-side seed form (`buildFormsSeedDoc`) so the gauntlet is interactive immediately.
-- The canvas disables pan/zoom in this mode — the A2UI surface owns scrolling and native form interaction (same treatment as `anything`).
+- Renderer + submit loop: `apps/web/src/components/FormsRenderer.jsx` (`@a2ui/react` + `basicCatalog`; `onFormSubmit` → the next-form intent). The empty canvas shows a client-side seed form (`buildFormsSeedDoc`) so the gauntlet is interactive immediately; submitting the seed persists it into the slot before asking for the next form.
+- The canvas disables pan/zoom in this mode and opts back into normal `touch-action` / text selection — the A2UI surface owns scrolling and native form interaction (same treatment as `anything`).
+- Forms sits after Chart and before Anything in the mode picker.
 - Forms mode is **web-only and not persisted** in `localStorage`; a page reload returns to Mermaid, and MCP hosts do not render it.
 
 See also [Agents](agents.md) and [Validation & repair](validation.md).
