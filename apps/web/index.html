@@ -8,8 +8,24 @@
       content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
     />
     <title>ArchiSlop</title>
+    <link rel="stylesheet" href="/cold-start-gate-shell.css" />
   </head>
   <body>
+    <div id="cold-start-gate" class="cold-start-gate" role="status" aria-live="polite">
+      <div class="cold-start-gate-card">
+        <p class="cold-start-gate-eyebrow" aria-hidden="true">🏗️ ArchiSlop · Corporate IT</p>
+        <p class="cold-start-gate-title" id="cold-start-gate-title">
+          Spinning up the synergy plane…
+        </p>
+        <p class="cold-start-gate-hint" id="cold-start-gate-hint">
+          Starting the server — usually 10–30 seconds when nobody has used the app lately. We scale
+          down when idle to save cost.
+        </p>
+        <button type="button" class="cold-start-gate-retry" id="cold-start-gate-retry" hidden>
+          Try again
+        </button>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/coldStartBootstrap.js"></script>
   </body>

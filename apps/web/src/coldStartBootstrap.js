@@ -66,7 +66,7 @@ function hideGate() {
 
 async function waitForServerReady() {
   ensureGateElement();
-  setGatePhase('checking');
+  setGatePhase('waking');
 
   const runPoll = async () => {
     const result = await pollHealthUntilReady({ onPhase: setGatePhase });
@@ -102,6 +102,6 @@ async function registerColdStartServiceWorker() {
   }
 }
 
-await waitForServerReady();
 await registerColdStartServiceWorker();
+await waitForServerReady();
 await import('./main.jsx');
