@@ -1,31 +1,21 @@
 /**
- * First-run example diagram. Rendered read-only in the empty-state canvas so a
- * newcomer sees a finished archislop diagram — and grasps what the app is for —
- * before typing anything. It is deliberately a *meta* diagram: it explains the
- * core loop (pick a topic, AI drafts, refine / go mad / switch modes) and lands
- * the corporate-stakeholder gag, all while demonstrating the actual output.
+ * First-run demo shown on the empty canvas. Intentionally a *tiny real topic*
+ * (OAuth), not a meta flowchart about the app — newcomers learn by seeing a
+ * finished result they can immediately generate, not by reading a large
+ * explainer graph that crowds mobile and disconnects from the CTA.
  *
- * Labels are single-line (the shared preview init uses htmlLabels:false, so
- * `<br/>` would render literally) and quoted for parser safety. This is
- * illustrative content, not user data — it does not live in a diagram slot and
- * never syncs to the server.
+ * Labels are single-line (the shared preview init uses htmlLabels:false) and
+ * quoted for parser safety. Illustrative only — never lives in a diagram slot.
  */
-export const EXAMPLE_DIAGRAM_SOURCE = `flowchart TD
-    A["🎯 Pick any topic"] --> B["🤖 AI drafts a diagram"]
-    B --> C{"Make it yours"}
-    C -->|Refine| D["✨ Polish it"]
-    C -->|Go Mad| E["🌀 Chaos redesign"]
-    C -->|As 3D / Chart| F["🎨 Switch modes"]
-    D --> G["👔 Stakeholders chime in"]
-    E --> G
-    F --> G
-    G --> H["💡 Now you get it"]
+export const EXAMPLE_DIAGRAM_SOURCE = `flowchart LR
+    A["Browser"] --> B["Authorize"]
+    B --> C["Get token"]
+    C --> D["Call API"]
 `;
 
 /**
- * Curated topic the empty-state example's "try this one" call-to-action seeds
- * and submits. It is a concrete, broadly interesting subject (not the meta loop
- * the preview draws) so the newcomer's very first result is a real archislop
- * diagram of something recognisable rather than a diagram about the app itself.
+ * Fallback English topic the empty-state CTA seeds when locale starters are
+ * unavailable. Prefer `controls.prompt.starters[0].prompt` at the call site so
+ * the generated request matches the UI language.
  */
 export const EXAMPLE_TRY_PROMPT = 'Explain how the OAuth 2.0 authorization code flow works';

@@ -5480,17 +5480,18 @@
   opacity: 0.55;
 }
 
-/* First-run read-only example, layered over the empty canvas above the bottom
-   dock. Non-interactive (pointer-events: none) so it never blocks the entry
-   input / starter chips; sits above the empty canvas but below .bottom-chrome. */
+/* First-run purpose card: compact copy + tiny matching sample above the bottom
+   dock. Non-interactive except the CTA (pointer-events re-enabled on the button).
+   Anchored to the top of the canvas safe area so it never stacks on top of the
+   entry input / starter chips / Render as strip. */
 .entry-example {
   position: absolute;
-  inset: 0;
+  inset: 0 0 auto 0;
   z-index: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 3.5rem 1.5rem 15rem;
+  padding: 4.75rem 1.25rem 0;
   pointer-events: none;
   animation: topic-starters-in 0.45s ease both;
 }
@@ -5499,9 +5500,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  max-width: min(46rem, 100%);
-  max-height: 100%;
+  gap: 0.55rem;
+  max-width: min(34rem, 100%);
   text-align: center;
 }
 
@@ -5515,6 +5515,34 @@
   opacity: 0.75;
 }
 
+.entry-example-headline {
+  margin: 0;
+  font-size: clamp(1.15rem, 2.6vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.entry-example-body {
+  margin: 0;
+  max-width: 32rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.entry-example-demo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  max-width: 100%;
+}
+
 .entry-example-svg {
   min-height: 0;
   max-width: 100%;
@@ -5522,22 +5550,23 @@
 }
 
 .entry-example-svg svg {
-  max-width: 100%;
-  max-height: 46vh;
+  max-width: min(100%, 28rem);
+  max-height: 18vh;
   height: auto;
 }
 
-.entry-example-caption {
+.entry-example-topic {
   margin: 0;
-  font-size: 0.9rem;
-  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.8;
 }
 
-/* The example card is pointer-events:none decoration behind the entry input;
-   the CTA opts back in so a newcomer can tap it to run a live demo topic. */
+/* The example card is pointer-events:none decoration; the CTA opts back in. */
 .entry-example-try {
   pointer-events: auto;
-  margin-top: 0.35rem;
+  margin-top: 0.2rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5546,11 +5575,126 @@
   }
 }
 
-/* Not enough vertical room (short viewport / mobile keyboard) — drop the demo so
-   it never crowds the entry input. */
-@media (max-height: 620px) {
+/* Narrow phones: tighter type, smaller sample, keep CTA readable. */
+@media (max-width: 640px) {
+  .entry-example {
+    padding: 4.25rem 1rem 0;
+  }
+
+  .entry-example-card {
+    gap: 0.45rem;
+    max-width: 100%;
+  }
+
+  .entry-example-headline {
+    font-size: 1.1rem;
+  }
+
+  .entry-example-body {
+    font-size: 0.85rem;
+  }
+
+  .entry-example-svg svg {
+    max-height: 14vh;
+  }
+}
+
+/* Not enough vertical room — keep headline + CTA, drop the sample graphic so it
+   never crowds the entry input / Render as strip. */
+@media (max-height: 720px) {
+  .entry-example-demo {
+    display: none;
+  }
+}
+
+@media (max-height: 560px) {
   .entry-example {
     display: none;
+  }
+}
+
+/* Empty-state Render as — promote modes out of Settings before first generate. */
+.entry-render-as {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  animation: topic-starters-in 0.35s ease both;
+}
+
+.entry-render-as-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  padding-left: 0.15rem;
+}
+
+.entry-render-as-label {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.entry-render-as-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.entry-render-as-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.entry-render-as-chip {
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  cursor: pointer;
+  backdrop-filter: blur(18px);
+  transition:
+    border-color 0.15s ease,
+    transform 0.1s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
+
+.entry-render-as-chip:hover:not(:disabled) {
+  border-color: rgba(37, 99, 235, 0.55);
+  transform: translateY(-1px);
+}
+
+.entry-render-as-chip:focus-visible {
+  outline: none;
+  border-color: rgba(37, 99, 235, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(37, 99, 235, 0.16),
+    var(--control-shadow);
+}
+
+.entry-render-as-chip.is-current {
+  border-style: solid;
+  border-color: rgba(37, 99, 235, 0.7);
+  background: rgba(37, 99, 235, 0.1);
+  font-weight: 600;
+}
+
+.entry-render-as-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry-render-as {
+    animation: none;
   }
 }
 

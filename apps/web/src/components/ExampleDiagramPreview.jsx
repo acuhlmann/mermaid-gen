@@ -2,27 +2,22 @@ import { useEffect, useState } from 'react';
 import { renderMermaidPreviewSvg } from '../utils/renderMermaidPreview.js';
 
 /**
- * Read-only first-run example rendered on the empty canvas. Draws a pre-baked
- * Mermaid diagram to SVG (via the shared preview renderer) with a caption, so a
- * newcomer sees a finished archislop diagram before typing.
+ * Compact first-run purpose card on the empty canvas. States what archislop is
+ * for, shows a small finished sample that matches the CTA topic, and offers one
+ * clear action ("Generate this") so "try" is never ambiguous.
  *
- * Fails silent: if the render throws (or is skipped while inactive), it renders
- * nothing rather than a broken state — the entry input and starter chips below
- * remain the working path. It never touches session/diagram state.
+ * Fails silent on Mermaid errors: the headline + CTA still render so a broken
+ * preview never blocks the entry path. Never touches session/diagram state.
  *
- * The caller mounts this only in the empty state; `active` additionally gates the
- * async render so it does no work while hidden.
- *
- * When `onTry` is supplied, a "try this one" call-to-action renders inside the
- * card. The card wrapper is `pointer-events:none` decoration behind the entry
- * input, so the button re-enables pointer events on itself; tapping it seeds and
- * submits a curated demo topic through the caller so the newcomer sees the loop
- * run for real without inventing a prompt.
+ * The card wrapper is mostly decorative (`pointer-events: none`) behind the
+ * bottom chrome; the CTA re-enables pointer events on itself.
  */
 export default function ExampleDiagramPreview({
   source,
   eyebrow,
-  caption,
+  headline,
+  body,
+  topicLabel,
   ariaLabel,
   ctaLabel,
   onTry,
@@ -40,7 +35,6 @@ export default function ExampleDiagramPreview({
         if (!cancelled) setSvgMarkup(svg);
       })
       .catch(() => {
-        // Illustrative content only — never surface a render error to a newcomer.
         if (!cancelled) setSvgMarkup('');
       });
 
@@ -49,18 +43,25 @@ export default function ExampleDiagramPreview({
     };
   }, [active, source]);
 
-  if (!active || !svgMarkup) return null;
+  if (!active) return null;
+  if (!headline && !body && !svgMarkup && !onTry) return null;
 
   return (
-    <div className="entry-example" data-testid="entry-example" aria-label={ariaLabel} role="img">
+    <div className="entry-example" data-testid="entry-example" aria-label={ariaLabel}>
       <div className="entry-example-card">
         {eyebrow ? <p className="entry-example-eyebrow">{eyebrow}</p> : null}
-        <div
-          className="entry-example-svg"
-          aria-hidden="true"
-          dangerouslySetInnerHTML={{ __html: svgMarkup }}
-        />
-        {caption ? <p className="entry-example-caption">{caption}</p> : null}
+        {headline ? <h2 className="entry-example-headline">{headline}</h2> : null}
+        {body ? <p className="entry-example-body">{body}</p> : null}
+        {svgMarkup ? (
+          <div className="entry-example-demo">
+            <div
+              className="entry-example-svg"
+              aria-hidden="true"
+              dangerouslySetInnerHTML={{ __html: svgMarkup }}
+            />
+            {topicLabel ? <p className="entry-example-topic">{topicLabel}</p> : null}
+          </div>
+        ) : null}
         {onTry && ctaLabel ? (
           <button
             type="button"

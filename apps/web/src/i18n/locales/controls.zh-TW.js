@@ -61,10 +61,16 @@ export const CONTROLS_ZH_TW = {
       { label: '微服務', prompt: '畫一張典型的微服務架構圖' },
       { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' }
     ],
-    exampleEyebrow: '即時範例',
-    exampleCaption: '這就是 archislop 的用途——在下方開始你自己的主題。',
-    exampleAria: '展示 archislop 運作方式的範例圖',
-    exampleCta: '試試這個 →'
+    exampleEyebrow: '這是什麼？',
+    exampleHeadline: '把任意主題變成可演進的視覺化',
+    exampleBody:
+      'AI 先起草流程圖、資訊圖、3D 場景、圖表或自由頁面——然後你繼續打磨，虛構的相關方還會插話點評。',
+    exampleTopic: 'OAuth 2.0 授權碼流程',
+    exampleAria: '可立即產生的 archislop 視覺化範例',
+    exampleCta: '產生這個 →',
+    renderAsLabel: '渲染為',
+    renderAsHint: '先選形態，再輸入主題',
+    renderAsAria: '選擇主題的渲染形態'
   },
   settings: {
     label: '設定',
@@ -105,8 +111,8 @@ export const CONTROLS_ZH_TW = {
     renderMenu: '目標渲染模式'
   },
   modeReveal: {
-    eyebrow: '一個主題，多種形態',
-    body: '這裡不只有流程圖。把同一個主題重新渲染成 3D 場景、圖表、資訊圖，或一個自由頁面。',
+    eyebrow: '同一主題，另一種形態',
+    body: '隨時可在設定裡切換模式——把同一個想法渲染成 3D 場景、圖表、資訊圖或自由頁面。',
     pickPrefix: '渲染為',
     dismiss: '知道了',
     aria: '用另一種模式渲染你的主題'

@@ -9,7 +9,7 @@ vi.mock('../src/utils/renderMermaidPreview.js', () => ({
 import ExampleDiagramPreview from '../src/components/ExampleDiagramPreview.jsx';
 import { renderMermaidPreviewSvg } from '../src/utils/renderMermaidPreview.js';
 
-const SOURCE = 'flowchart TD\n  A-->B';
+const SOURCE = 'flowchart LR\n  A-->B';
 
 describe('ExampleDiagramPreview', () => {
   afterEach(() => {
@@ -17,40 +17,62 @@ describe('ExampleDiagramPreview', () => {
     vi.clearAllMocks();
   });
 
-  it('renders the seeded SVG with eyebrow and caption when active', async () => {
+  it('renders purpose copy, matching topic, and sample SVG when active', async () => {
     render(
       <ExampleDiagramPreview
         source={SOURCE}
-        eyebrow="Live example"
-        caption="This is what archislop does"
-        ariaLabel="Example diagram"
+        eyebrow="What is this?"
+        headline="Turn any topic into a living visualization"
+        body="AI drafts a diagram you can refine."
+        topicLabel="OAuth 2.0 authorization code flow"
+        ariaLabel="Example visualization"
         active
       />
     );
 
     await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
-    expect(screen.getByText('Live example')).toBeTruthy();
-    expect(screen.getByText('This is what archislop does')).toBeTruthy();
+    expect(screen.getByText('What is this?')).toBeTruthy();
+    expect(screen.getByText('Turn any topic into a living visualization')).toBeTruthy();
+    expect(screen.getByText('OAuth 2.0 authorization code flow')).toBeTruthy();
     expect(renderMermaidPreviewSvg).toHaveBeenCalledWith('entry-example', SOURCE);
   });
 
-  it('renders nothing (and does no render work) when inactive', () => {
-    const { container } = render(<ExampleDiagramPreview source={SOURCE} active={false} />);
+  it('renders nothing when inactive', () => {
+    const { container } = render(
+      <ExampleDiagramPreview source={SOURCE} headline="Hidden" active={false} />
+    );
     expect(container.querySelector('[data-testid="entry-example"]')).toBeNull();
     expect(renderMermaidPreviewSvg).not.toHaveBeenCalled();
   });
 
-  it('fails silent — renders nothing when the Mermaid render rejects', async () => {
+  it('still shows purpose copy when Mermaid render rejects', async () => {
     renderMermaidPreviewSvg.mockRejectedValueOnce(new Error('boom'));
-    const { container } = render(<ExampleDiagramPreview source={SOURCE} active />);
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(container.querySelector('[data-testid="entry-example"]')).toBeNull();
+    render(
+      <ExampleDiagramPreview
+        source={SOURCE}
+        headline="Turn any topic into a living visualization"
+        ctaLabel="Generate this →"
+        onTry={vi.fn()}
+        active
+      />
+    );
+    await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
+    expect(screen.getByText('Turn any topic into a living visualization')).toBeTruthy();
+    expect(screen.getByTestId('entry-example-try')).toBeTruthy();
+    expect(screen.queryByText('demo')).toBeNull();
   });
 
-  it('renders the "try this one" CTA and fires onTry when tapped', async () => {
+  it('renders the generate CTA and fires onTry when tapped', async () => {
     const onTry = vi.fn();
     render(
-      <ExampleDiagramPreview source={SOURCE} ctaLabel="Try this one →" onTry={onTry} active />
+      <ExampleDiagramPreview
+        source={SOURCE}
+        headline="Turn any topic into a living visualization"
+        topicLabel="OAuth 2.0 authorization code flow"
+        ctaLabel="Generate this →"
+        onTry={onTry}
+        active
+      />
     );
     await waitFor(() => expect(screen.getByTestId('entry-example-try')).toBeTruthy());
     fireEvent.click(screen.getByTestId('entry-example-try'));
@@ -58,7 +80,14 @@ describe('ExampleDiagramPreview', () => {
   });
 
   it('omits the CTA when onTry is not supplied', async () => {
-    render(<ExampleDiagramPreview source={SOURCE} ctaLabel="Try this one →" active />);
+    render(
+      <ExampleDiagramPreview
+        source={SOURCE}
+        headline="Turn any topic into a living visualization"
+        ctaLabel="Generate this →"
+        active
+      />
+    );
     await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
     expect(screen.queryByTestId('entry-example-try')).toBeNull();
   });

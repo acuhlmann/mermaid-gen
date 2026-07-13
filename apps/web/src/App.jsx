@@ -9,6 +9,7 @@ import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import TopicStarters from './components/TopicStarters.jsx';
+import EntryRenderAs from './components/EntryRenderAs.jsx';
 import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
@@ -2897,6 +2898,23 @@ ${requirementsBlock}`;
   const [modeRevealActive, setModeRevealActive] = useState(false);
   const modeRevealTimerRef = useRef(null);
 
+  // Empty-state Render as: selecting a mode here teaches the headline feature
+  // before Settings, and marks the post-first-diagram mode reveal as seen so we
+  // don't re-teach the same beat.
+  const handleEntryRenderAsPick = useCallback(
+    (nextMode) => {
+      handleSelectContentMode(nextMode);
+      if (!modeRevealSeenRef.current) {
+        modeRevealSeenRef.current = true;
+        writeModeRevealSeen();
+      }
+    },
+    [handleSelectContentMode]
+  );
+
+  const entryDemoPrompt =
+    controls.prompt.starters?.[0]?.prompt?.trim() || EXAMPLE_TRY_PROMPT;
+
   const dismissStakeholderIntro = useCallback(() => {
     if (stakeholderIntroTimerRef.current) {
       clearTimeout(stakeholderIntroTimerRef.current);
@@ -3544,10 +3562,10 @@ ${requirementsBlock}`;
   // whose saved diagram is about to load), and never over the editor/insights.
   const showEntryExample = sessionHydrated && !hasDiagramText && !editorOpen && !insightsOpen;
 
-  // First-run mode reveal: once the newcomer has generated their first diagram,
-  // promote the render modes out of the Settings drawer with a one-time, floating
-  // spotlight. It is a once-ever onboarding beat (persisted), stays out of the way
-  // of the stakeholder intro, and dismisses on pick / close / timeout.
+  // First-run mode reveal: after the first diagram, remind newcomers that modes
+  // also live in Settings (empty-state already surfaces Render as). Skipped when
+  // they already picked a mode on entry. Once-ever, persisted; stays clear of the
+  // stakeholder intro; dismisses on pick / close / timeout.
   const dismissModeReveal = useCallback(() => {
     if (modeRevealTimerRef.current) {
       clearTimeout(modeRevealTimerRef.current);
@@ -4051,10 +4069,12 @@ ${requirementsBlock}`;
         <ExampleDiagramPreview
           source={EXAMPLE_DIAGRAM_SOURCE}
           eyebrow={controls.prompt.exampleEyebrow}
-          caption={controls.prompt.exampleCaption}
+          headline={controls.prompt.exampleHeadline}
+          body={controls.prompt.exampleBody}
+          topicLabel={controls.prompt.exampleTopic}
           ariaLabel={controls.prompt.exampleAria}
           ctaLabel={controls.prompt.exampleCta}
-          onTry={() => handleStarterPick(EXAMPLE_TRY_PROMPT)}
+          onTry={() => handleStarterPick(entryDemoPrompt)}
           active={showEntryExample}
         />
       ) : null}
@@ -4386,6 +4406,16 @@ ${requirementsBlock}`;
         actions={
           !hasDiagramText && !insightsOpen ? (
             <div className="entry-cluster">
+              <EntryRenderAs
+                label={controls.prompt.renderAsLabel}
+                hint={controls.prompt.renderAsHint}
+                ariaLabel={controls.prompt.renderAsAria}
+                modes={contentModeOptions}
+                currentMode={contentMode}
+                onPickMode={handleEntryRenderAsPick}
+                pickPrefix={controls.modeReveal.pickPrefix}
+                disabled={busy || loading || streamingPreview}
+              />
               <TopicStarters
                 hint={controls.prompt.starterHint}
                 ariaLabel={controls.prompt.starterAria}
@@ -4743,22 +4773,27 @@ ${requirementsBlock}`;
           ) : null
         }
         aiControls={
-          <AiCornerControlsInner
-            contentMode={contentMode}
-            contentModeOptions={contentModeOptions}
-            controls={controls.settings}
-            onSelectContentMode={handleSelectContentMode}
-            modelProfile={modelProfile}
-            onSelectModelProfile={setModelProfile}
-            modeSwitchDisabled={loading || streamingPreview}
-            pendingHandshake={pendingHandshake}
-            externalAgentPresence={externalAgentPresence}
-            onInviteAgent={() => setInviteDialogOpen(true)}
-            agentThinkingChrome={agentThinkingChrome}
-            insightsOpen={insightsOpen}
-            onToggleInsights={() => setInsightsOpen((v) => !v)}
-            includeThinkingToggle={insightsEntries.length > 0}
-          />
+          // Empty intro: modes live in the Render as strip; Settings (brain /
+          // invite / mode) only clutter the first screen. Keep the gear once a
+          // diagram exists, or whenever a handshake needs the panel.
+          hasDiagramText || pendingHandshake ? (
+            <AiCornerControlsInner
+              contentMode={contentMode}
+              contentModeOptions={contentModeOptions}
+              controls={controls.settings}
+              onSelectContentMode={handleSelectContentMode}
+              modelProfile={modelProfile}
+              onSelectModelProfile={setModelProfile}
+              modeSwitchDisabled={loading || streamingPreview}
+              pendingHandshake={pendingHandshake}
+              externalAgentPresence={externalAgentPresence}
+              onInviteAgent={() => setInviteDialogOpen(true)}
+              agentThinkingChrome={agentThinkingChrome}
+              insightsOpen={insightsOpen}
+              onToggleInsights={() => setInsightsOpen((v) => !v)}
+              includeThinkingToggle={insightsEntries.length > 0}
+            />
+          ) : null
         }
       />
     </main>

@@ -67,14 +67,20 @@ export const CONTROLS_EN = {
       { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' },
       { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' }
     ],
-    // Read-only demo shown on the empty canvas so newcomers see a finished
-    // diagram (and grasp the point) before typing.
-    exampleEyebrow: 'Live example',
-    exampleCaption: 'This is what archislop does — start your own below.',
-    exampleAria: 'Example diagram showing how archislop works',
-    // "try this one" CTA on the empty-canvas example — seeds a real topic and
-    // runs it so the newcomer's first result is a live diagram, not the meta demo.
-    exampleCta: 'Try this one →'
+    // Compact purpose card on the empty canvas: say what the app is for, show a
+    // tiny finished sample that matches the CTA, then let the newcomer generate it.
+    exampleEyebrow: 'What is this?',
+    exampleHeadline: 'Turn any topic into a living visualization',
+    exampleBody:
+      'AI drafts a diagram, infographic, 3D scene, chart, or freeform page — then you refine it while fictional stakeholders chime in.',
+    exampleTopic: 'OAuth 2.0 authorization code flow',
+    exampleAria: 'Example of an archislop visualization you can generate',
+    // CTA names the sample above so it is obvious what will be generated.
+    exampleCta: 'Generate this →',
+    // Empty-state Render as strip — introduce modes before Settings.
+    renderAsLabel: 'Render as',
+    renderAsHint: 'Pick a form, then enter a topic',
+    renderAsAria: 'Choose how to render your topic'
   },
   settings: {
     label: 'Settings',
@@ -114,11 +120,11 @@ export const CONTROLS_EN = {
     anotherMode: 'another mode',
     renderMenu: 'Target render mode'
   },
-  // First-run mode reveal — promotes the render modes out of Settings once the
-  // newcomer has their first diagram. Fires once, ever.
+  // First-run mode reveal — after the first result, reminds newcomers they can
+  // switch forms from Settings. Skipped if they already used empty-state Render as.
   modeReveal: {
-    eyebrow: 'One topic, many forms',
-    body: "There's more than a diagram in here. Re-render the same topic as a 3D scene, a chart, an infographic, or a freeform page.",
+    eyebrow: 'Same topic, another form',
+    body: 'You can switch modes anytime in Settings — try the same idea as a 3D scene, chart, infographic, or freeform page.',
     pickPrefix: 'Render as',
     dismiss: 'Got it',
     aria: 'Try rendering your topic in another mode'

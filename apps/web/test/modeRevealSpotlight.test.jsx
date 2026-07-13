@@ -23,8 +23,8 @@ describe('ModeRevealSpotlight', () => {
   it('renders eyebrow, body, mode chips, and dismiss', () => {
     render(
       <ModeRevealSpotlight
-        eyebrow="One topic, many forms"
-        body="Re-render the same topic another way."
+        eyebrow="Same topic, another form"
+        body="You can switch modes anytime in Settings."
         modes={MODES}
         currentMode="mermaid"
         onPickMode={vi.fn()}
@@ -33,7 +33,7 @@ describe('ModeRevealSpotlight', () => {
         onDismiss={vi.fn()}
       />
     );
-    expect(screen.getByText('One topic, many forms')).toBeTruthy();
+    expect(screen.getByText('Same topic, another form')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Chart' })).toBeTruthy();
     expect(screen.getByRole('button', { name: '3D' })).toBeTruthy();
   });
@@ -43,8 +43,8 @@ describe('ModeRevealSpotlight', () => {
     const onDismiss = vi.fn();
     render(
       <ModeRevealSpotlight
-        eyebrow="One topic, many forms"
-        body="Re-render the same topic another way."
+        eyebrow="Same topic, another form"
+        body="You can switch modes anytime in Settings."
         modes={MODES}
         currentMode="mermaid"
         onPickMode={onPickMode}
