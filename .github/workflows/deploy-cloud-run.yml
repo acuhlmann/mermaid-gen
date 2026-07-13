@@ -88,8 +88,8 @@ jobs:
           VL="${VERTEX_LOCATION:-us-central1}"
           VF="${VERTEX_MODEL_FAST:-gemini-2.5-flash}"
           VQ="${VERTEX_MODEL_QUALITY:-gemini-2.5-pro}"
-          VEV="VERTEX_LOCATION=${VL},VERTEX_MODEL_FAST=${VF},VERTEX_MODEL_QUALITY=${VQ},PUBLIC_BASE_URL=${{ env.PUBLIC_BASE_URL }}"
-          if [[ -n "${VERTEX_PROJECT_ID:-}" ]]; then VEV="${VEV},VERTEX_PROJECT_ID=${VERTEX_PROJECT_ID}"; fi
+          VP="${VERTEX_PROJECT_ID:-${PROJECT_ID}}"
+          VEV="VERTEX_LOCATION=${VL},VERTEX_MODEL_FAST=${VF},VERTEX_MODEL_QUALITY=${VQ},VERTEX_PROJECT_ID=${VP},PUBLIC_BASE_URL=${{ env.PUBLIC_BASE_URL }}"
           if [[ -n "${LLM_PROVIDER:-}" ]]; then VEV="${VEV},LLM_PROVIDER=${LLM_PROVIDER}"; fi
           if [[ -n "${OPENROUTER_PREFERRED:-}" ]]; then VEV="${VEV},OPENROUTER_PREFERRED=${OPENROUTER_PREFERRED}"; fi
           ARGS+=(--set-env-vars="${VEV}")

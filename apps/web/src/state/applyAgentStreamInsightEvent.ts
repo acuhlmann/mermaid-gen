@@ -2,6 +2,7 @@ import {
   LEGACY_STREAM_TYPE_A2UI,
   normalizeContentType,
   resolveCritiqueAnalyzeFinalText,
+  formatModelUsageDetail,
   formatModelUsageWithCost,
   type AgentCostEstimatesPayload,
   type A2uiV09Message,
@@ -472,7 +473,7 @@ export function applyAgentStreamInsightEvent(
       outputTokens?: number;
     };
     const costConfig = ctx.agentCostEstimates?.enabled ? ctx.agentCostEstimates : null;
-    const { detail: usageDetail, costUsd } = formatModelUsageWithCost(
+    const { costUsd } = formatModelUsageWithCost(
       {
         inputTokens: callEvt.inputTokens,
         outputTokens: callEvt.outputTokens,
@@ -480,6 +481,10 @@ export function applyAgentStreamInsightEvent(
       },
       costConfig?.rates ?? null
     );
+    const usageDetail = formatModelUsageDetail({
+      inputTokens: callEvt.inputTokens,
+      outputTokens: callEvt.outputTokens
+    });
     finalizeTechnicalActionResult(sectionId, 'model_call', {
       status: 'done',
       ...(callEvt.callId ? { toolCallId: callEvt.callId } : {}),

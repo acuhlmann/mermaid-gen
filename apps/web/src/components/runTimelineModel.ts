@@ -4,7 +4,7 @@
  * and prepares display copy. No React — `RunTimeline.tsx` is the view.
  */
 
-import { formatEstimatedCostUsd } from '@archislop/shared';
+import { formatRunEstimatedCostUsd } from '@archislop/shared';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { phaseCeremonyLabel } from '../utils/slopitectCopy.js';
@@ -441,13 +441,6 @@ export function buildStatChips(
       })
     });
   }
-  if (stats.estimatedCostUsd != null) {
-    chips.push({
-      key: 'cost',
-      className: 'is-cost',
-      text: formatEstimatedCostUsd(stats.estimatedCostUsd)
-    });
-  }
   return chips;
 }
 
@@ -537,6 +530,7 @@ export type RunTimelineView = {
   headline: string;
   statusText: string;
   statChips: StatChip[];
+  runCostLabel: string;
   /** Nothing to show: no segments, no response, run already over. */
   empty: boolean;
 };
@@ -589,6 +583,8 @@ export function deriveRunTimelineView(
     }),
     statusText,
     statChips: buildStatChips(segments.length, stats, copy),
+    runCostLabel:
+      stats.estimatedCostUsd != null ? formatRunEstimatedCostUsd(stats.estimatedCostUsd) : '',
     empty: segments.length === 0 && !hasResponse && !runLive
   };
 }

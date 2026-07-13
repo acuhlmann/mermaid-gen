@@ -325,7 +325,8 @@ function TimelineOverview({
   hasResponse,
   headline,
   totalLabel,
-  statChips
+  statChips,
+  runCostLabel
 }: {
   segments: TimelineSegment[];
   runStatus: RunStatus;
@@ -335,6 +336,7 @@ function TimelineOverview({
   headline: string;
   totalLabel: string;
   statChips: StatChip[];
+  runCostLabel: string;
 }) {
   const copy = useUiCopy().controls.runTimeline;
   return (
@@ -345,6 +347,16 @@ function TimelineOverview({
           {runKicker(runStatus, copy)}
         </span>
         <strong className="run-timeline-headline">{headline}</strong>
+        {runCostLabel ? (
+          <span
+            className="run-timeline-run-cost is-header"
+            data-testid="run-timeline-run-cost-header"
+            title={copy.runCostEstimateTitle}
+          >
+            <span className="run-timeline-run-cost-label">{copy.runCostEstimateLabel}</span>
+            <span className="run-timeline-run-cost-value">{runCostLabel}</span>
+          </span>
+        ) : null}
       </div>
       {totalLabel ? (
         <span
@@ -482,7 +494,15 @@ function ResponseSegment({
   );
 }
 
-function TerminalRow({ runStatus, totalLabel }: { runStatus: RunStatus; totalLabel: string }) {
+function TerminalRow({
+  runStatus,
+  totalLabel,
+  runCostLabel
+}: {
+  runStatus: RunStatus;
+  totalLabel: string;
+  runCostLabel: string;
+}) {
   const copy = useUiCopy().controls.runTimeline;
   const state: SegmentState =
     runStatus === 'failed' ? 'failed-at' : runStatus === 'cancelled' ? 'stopped-at' : 'complete';
@@ -497,9 +517,21 @@ function TerminalRow({ runStatus, totalLabel }: { runStatus: RunStatus; totalLab
       <span className="run-timeline-node" aria-hidden="true">
         {segmentGlyph(state)}
       </span>
-      <span className="run-timeline-terminal-label">
-        {label}
-        {totalLabel ? <em> · {totalLabel}</em> : null}
+      <span className="run-timeline-terminal-body">
+        <span className="run-timeline-terminal-label">
+          {label}
+          {totalLabel ? <em> · {totalLabel}</em> : null}
+        </span>
+        {runCostLabel && runStatus !== 'running' ? (
+          <span
+            className="run-timeline-run-cost is-footer"
+            data-testid="run-timeline-run-cost-footer"
+            title={copy.runCostEstimateTitle}
+          >
+            <span className="run-timeline-run-cost-label">{copy.runCostTotalLabel}</span>
+            <span className="run-timeline-run-cost-value">{runCostLabel}</span>
+          </span>
+        ) : null}
       </span>
     </li>
   );
@@ -535,7 +567,16 @@ export default function RunTimeline({
     now,
     copy
   });
-  const { runStatus, runLive, segments, totalLabel, headline, statusText, statChips } = view;
+  const {
+    runStatus,
+    runLive,
+    segments,
+    totalLabel,
+    headline,
+    statusText,
+    statChips,
+    runCostLabel
+  } = view;
 
   const planContentType = normalizePlanContentType(entry.contentType);
 
@@ -556,6 +597,7 @@ export default function RunTimeline({
         headline={headline}
         totalLabel={totalLabel}
         statChips={statChips}
+        runCostLabel={runCostLabel}
       />
 
       <ol className="run-timeline-track">
@@ -594,7 +636,9 @@ export default function RunTimeline({
           </ResponseSegment>
         ) : null}
 
-        {!runLive ? <TerminalRow runStatus={runStatus} totalLabel={totalLabel} /> : null}
+        {!runLive ? (
+          <TerminalRow runStatus={runStatus} totalLabel={totalLabel} runCostLabel={runCostLabel} />
+        ) : null}
       </ol>
     </section>
   );

@@ -186,6 +186,20 @@ export function formatEstimatedCostUsd(usd: number): string {
   return '~<$0.0001';
 }
 
+/**
+ * Prominent run-total label for the thinking-panel header/footer.
+ * Uses cents for sub-dollar amounts so small per-turn fees read clearly when summed.
+ */
+export function formatRunEstimatedCostUsd(usd: number): string {
+  if (!Number.isFinite(usd) || usd <= 0) return '';
+  if (usd >= 1) return `~$${usd.toFixed(2)} est.`;
+  if (usd >= 0.01) return `~$${usd.toFixed(2)} est.`;
+  const cents = usd * 100;
+  if (cents >= 1) return `~${cents.toFixed(1)}¢ est.`;
+  if (cents >= 0.1) return `~${cents.toFixed(2)}¢ est.`;
+  return `~${Math.max(0.01, Math.ceil(cents * 100) / 100)}¢ est.`;
+}
+
 export type LifetimeLlmCostFlavor = {
   headline: string;
   quip: string;
