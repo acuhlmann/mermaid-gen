@@ -47,27 +47,27 @@ export const CONTROLS_ZH_TW = {
     slopNextLabel: '新提示',
     closePrompt: '關閉提示',
     topicExamples: [
+      '拆解咖啡供應鏈…',
       '講解 OAuth 2.0 的運作原理…',
       '梳理我們的 CI/CD 部署流水線…',
       '畫一張微服務架構圖…',
-      '拆解咖啡供應鏈…',
       '設計一個短網址服務…'
     ],
     starterHint: '第一次來？點一個主題開始：',
     starterAria: '用於快速開始的範例主題',
     starters: [
+      { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' },
       { label: 'OAuth 2.0 流程', prompt: '講解 OAuth 2.0 授權碼流程的運作原理' },
       { label: 'CI/CD 流水線', prompt: '梳理從提交到上線的 CI/CD 流水線' },
-      { label: '微服務', prompt: '畫一張典型的微服務架構圖' },
-      { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' }
+      { label: '微服務', prompt: '畫一張典型的微服務架構圖' }
     ],
     exampleEyebrow: '這是什麼？',
     exampleHeadline: '把任意主題變成可演進的視覺化',
     exampleBody:
       'AI 先起草流程圖、資訊圖、3D 場景、圖表或自由頁面——然後你繼續打磨，虛構的相關方還會插話點評。',
-    exampleTopic: 'OAuth 2.0 授權碼流程',
+    exampleTopic: '全球咖啡供應鏈',
     exampleAria: '可立即產生的 archislop 視覺化範例',
-    exampleCta: '產生：OAuth 2.0 流程 →',
+    exampleCta: '產生：咖啡供應鏈 →',
     renderAsLabel: '渲染為',
     renderAsHint: '先選形態，再輸入主題',
     renderAsAria: '選擇主題的渲染形態'

@@ -23,6 +23,8 @@ export const PROPOSAL_HISTORY_CAP = 15;
 const SUGGEST_TIMEOUT_MS = 12_000;
 const HOVER_FOCUS_DEBOUNCE_MS = 600;
 const SELECT_FOCUS_DEBOUNCE_MS = 60;
+/** Keep a freshly surfaced bubble visible through post-render focus churn. */
+const FOCUS_CLEAR_GRACE_MS = 3000;
 
 function pickNextPersona(previous) {
   const pool = previous ? ADVISOR_ORDER.filter((p) => p !== previous) : ADVISOR_ORDER;
@@ -135,6 +137,7 @@ export function useAdvisorOrchestrator(params) {
   const activePersonaRef = useRef(activePersona);
   /** Focus key the live bubble was fetched for — used to skip stale focus restarts. */
   const suggestionFocusKeyRef = useRef(/** @type {string | null} */ (null));
+  const suggestionShownAtRef = useRef(0);
 
   // Imperative loop API, populated by the setup effect.
   const scheduleNextRef = useRef(() => {});
@@ -406,6 +409,7 @@ export function useAdvisorOrchestrator(params) {
         setSuggestion(text);
         suggestionRef.current = text;
         suggestionFocusKeyRef.current = focusKeyRef.current;
+        suggestionShownAtRef.current = Date.now();
         setSuggestionKind(kind);
         setHighlightIds(highlight);
         startDismissTimer();
@@ -577,6 +581,15 @@ export function useAdvisorOrchestrator(params) {
         scheduledFocusKey === suggestionFocusKeyRef.current &&
         suggestionRef.current &&
         activePersonaRef.current
+      ) {
+        return;
+      }
+      // Fresh suggestions need a short grace window so diagram highlights/selection
+      // churn right after the first render does not flash the bubble away.
+      if (
+        suggestionRef.current &&
+        activePersonaRef.current &&
+        Date.now() - suggestionShownAtRef.current < FOCUS_CLEAR_GRACE_MS
       ) {
         return;
       }

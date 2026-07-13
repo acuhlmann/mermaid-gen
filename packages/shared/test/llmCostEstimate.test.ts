@@ -4,6 +4,7 @@ import {
   buildAgentCostEstimatesPayload,
   estimateLlmCostUsd,
   formatEstimatedCostUsd,
+  formatLifetimeEstimatedCostUsd,
   formatRunEstimatedCostUsd,
   formatModelUsageWithCost,
   isAgentCostEstimateEnabled,
@@ -76,9 +77,16 @@ test('formatRunEstimatedCostUsd uses cents for sub-dollar run totals', () => {
   assert.equal(formatRunEstimatedCostUsd(0.0008), '~0.08¢ est.');
 });
 
+test('formatLifetimeEstimatedCostUsd mirrors run totals without the est suffix', () => {
+  assert.equal(formatLifetimeEstimatedCostUsd(1.42), '~$1.42');
+  assert.equal(formatLifetimeEstimatedCostUsd(0.008), '~0.80¢');
+  assert.equal(formatLifetimeEstimatedCostUsd(0.0008), '~0.08¢');
+});
+
 test('lifetimeLlmCostFlavor returns parody tiers', () => {
   assert.match(lifetimeLlmCostFlavor(0).quip, /CFO/i);
   assert.equal(lifetimeLlmCostFlavor(0.02).severity, 'petty');
+  assert.equal(lifetimeLlmCostFlavor(0.008).headline, '~0.80¢');
   assert.equal(lifetimeLlmCostFlavor(2.5).severity, 'expense');
   assert.equal(lifetimeLlmCostFlavor(30).severity, 'incident');
 });

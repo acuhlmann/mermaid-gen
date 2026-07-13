@@ -50,22 +50,25 @@ export const CONTROLS_EN = {
     // to show *what* you can type; the starter chips below let a newcomer begin
     // with one tap instead of a cold blank box.
     topicExamples: [
+      'Break down the coffee supply chain…',
       'Explain how OAuth 2.0 works…',
       'Map our CI/CD deploy pipeline…',
       'Diagram a microservices architecture…',
-      'Break down the coffee supply chain…',
       'Design a URL shortener…'
     ],
     starterHint: 'New here? Tap a topic to begin:',
     starterAria: 'Example topics to get started',
     starters: [
       {
+        label: 'Coffee supply chain',
+        prompt: 'Break down the global coffee supply chain'
+      },
+      {
         label: 'OAuth 2.0 flow',
         prompt: 'Explain how the OAuth 2.0 authorization code flow works'
       },
       { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
-      { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' },
-      { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' }
+      { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' }
     ],
     // Compact purpose card on the empty canvas: say what the app is for, show a
     // tiny finished sample that matches the CTA, then let the newcomer generate it.
@@ -73,10 +76,10 @@ export const CONTROLS_EN = {
     exampleHeadline: 'Turn any topic into a living visualization',
     exampleBody:
       'AI drafts a diagram, infographic, 3D scene, chart, or freeform page — then you refine it while fictional stakeholders chime in.',
-    exampleTopic: 'OAuth 2.0 authorization code flow',
+    exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualization you can generate',
     // CTA names the sample topic so it stays clear even when the preview is hidden.
-    exampleCta: 'Generate: OAuth 2.0 flow →',
+    exampleCta: 'Generate: Coffee supply chain →',
     // Empty-state Render as strip — introduce modes before Settings.
     renderAsLabel: 'Render as',
     renderAsHint: 'Pick a form, then enter a topic',

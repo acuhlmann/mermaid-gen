@@ -129,6 +129,9 @@ describe('StakeholdersMascot', () => {
     );
     const stack = container.querySelector('.stakeholders-float-stack');
     expect(stack).toBeTruthy();
+    expect(
+      stack.closest('.stakeholders-mascot-wrap')?.classList.contains('has-float-surface')
+    ).toBe(true);
     expect(stack.querySelector('[data-testid="stakeholder-intro-spotlight"]')).toBeTruthy();
     expect(stack.querySelector('[data-testid="advisor-thinking-indicator"]')).toBeTruthy();
   });
