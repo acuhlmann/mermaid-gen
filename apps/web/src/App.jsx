@@ -2912,8 +2912,7 @@ ${requirementsBlock}`;
     [handleSelectContentMode]
   );
 
-  const entryDemoPrompt =
-    controls.prompt.starters?.[0]?.prompt?.trim() || EXAMPLE_TRY_PROMPT;
+  const entryDemoPrompt = controls.prompt.starters?.[0]?.prompt?.trim() || EXAMPLE_TRY_PROMPT;
 
   const dismissStakeholderIntro = useCallback(() => {
     if (stakeholderIntroTimerRef.current) {
