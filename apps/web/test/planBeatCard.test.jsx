@@ -53,6 +53,53 @@ describe('PlanBeatCard', () => {
     expect(screen.queryByText(/"whiteboard"/)).toBeNull();
   });
 
+  it('renders metaphor3d source context preview when converting to anything', () => {
+    const metaphor = {
+      metaphor: 'river',
+      scene: { theme: 'whiteboard', camera: 'cinematic', title: 'OAuth 2.0' },
+      items: [{ id: 'auth', label: 'Auth', elevation: 8 }],
+      links: []
+    };
+    const text = `Emit a fresh, complete HTML document. The user is converting from metaphor3d. Use this as the subject context (do NOT translate 1:1):\n\n\`\`\`\n${JSON.stringify(metaphor, null, 2)}\n\`\`\``;
+    render(
+      <ul>
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="refine"
+          index={0}
+          contentType="anything"
+        />
+      </ul>
+    );
+
+    const preview = screen.getByTestId('insights-embedded-diagram');
+    expect(preview.getAttribute('aria-label')).toBe('3D metaphor preview (read-only)');
+    expect(screen.getByTestId('plan-source-context-badge')).toBeTruthy();
+    expect(screen.getByText('Source context')).toBeTruthy();
+    expect(screen.queryByText(/"metaphor"/)).toBeNull();
+  });
+
+  it('renders anything source context preview when converting to chart', () => {
+    const html = `<!DOCTYPE html>
+<html><body><h1>Sales dashboard</h1><canvas id="chart"></canvas></body></html>`;
+    const text = `Build a Vega-Lite chart from this page. Converting from anything — subject context:\n\n\`\`\`html\n${html}\n\`\`\``;
+    render(
+      <ul>
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="exec"
+          index={0}
+          contentType="chart"
+        />
+      </ul>
+    );
+
+    const preview = screen.getByTestId('insights-embedded-diagram');
+    expect(preview.getAttribute('aria-label')).toBe('Page preview (read-only)');
+    expect(screen.getByTestId('plan-source-context-badge')).toBeTruthy();
+    expect(screen.queryByText(/<!DOCTYPE html>/)).toBeNull();
+  });
+
   it('still renders plain multi-step beats as an ordered list', () => {
     const text = '1. Inventory the services\n2. Group them by domain\n3. Draw the flows';
     render(
@@ -91,7 +138,7 @@ describe('PlanBeatCard', () => {
     expect(screen.queryByText(/<!DOCTYPE html>/)).toBeNull();
   });
 
-  it('does not render a mermaid preview for peer-context prose during a 3D run', () => {
+  it('renders a mermaid preview for peer-context prose during a 3D run', () => {
     const text = `Using the Mermaid diagram as subject context for this view.
 
 flowchart LR
@@ -108,7 +155,21 @@ flowchart LR
       </ul>
     );
 
-    expect(screen.queryByTestId('insights-embedded-diagram')).toBeNull();
+    expect(screen.getByTestId('insights-embedded-diagram')).toBeTruthy();
+    expect(screen.getByTestId('plan-source-context-badge')).toBeTruthy();
     expect(screen.getByText(/Using the Mermaid diagram as subject context/)).toBeTruthy();
+  });
+
+  it('syntax-highlights fenced code that is not a diagram preview', () => {
+    const text = `Here is the config stub.\n\n\`\`\`json\n{"retry": true, "max": 3}\n\`\`\``;
+    render(
+      <ul>
+        <PlanBeatCard beat={{ text, source: 'server' }} index={2} contentType="chart" />
+      </ul>
+    );
+
+    expect(screen.queryByTestId('insights-embedded-diagram')).toBeNull();
+    expect(screen.getByTestId('thinking-syntax-code')).toBeTruthy();
+    expect(screen.getByText('Here is the config stub.')).toBeTruthy();
   });
 });

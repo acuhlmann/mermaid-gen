@@ -733,6 +733,46 @@ flowchart TB
     expect(screen.getByText('2.4s')).toBeTruthy();
   });
 
+  it('shows LLM vs Code badges on technical action rows', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-exec-mode',
+            title: 'Refine — diagram',
+            status: 'done',
+            content: 'Done.',
+            technicalActions: [
+              {
+                id: 'm1',
+                name: 'model_call',
+                label: 'Model reasoning turn',
+                status: 'done',
+                modelName: 'deepseek-chat'
+              },
+              {
+                id: 't1',
+                name: 'apply_mermaid_patch',
+                label: 'Apply diagram update',
+                status: 'done'
+              },
+              {
+                id: 'f1',
+                name: 'syntax_fixer',
+                label: 'Quick syntax pass',
+                status: 'done'
+              }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getAllByText('LLM').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Code')).toBeTruthy();
+  });
+
   it('renders patch duration and outcome detail in technical actions', () => {
     render(
       <InsightsPane

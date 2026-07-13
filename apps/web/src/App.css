@@ -2075,6 +2075,36 @@
   margin: 0;
 }
 
+.insights-plan-diagram-preview-wrap {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.insights-plan-source-context-badge {
+  align-self: start;
+  padding: 0.12rem 0.42rem;
+  border-radius: 999px;
+  color: #6d28d9;
+  background: rgba(139, 92, 246, 0.12);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.insights-plan-code-block {
+  margin-top: 0.25rem;
+  min-width: 0;
+}
+
+.insights-plan-card-fenced {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .insights-content-ordered.is-diagram-preview {
   display: grid;
   gap: 0.45rem;

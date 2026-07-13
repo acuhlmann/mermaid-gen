@@ -275,6 +275,7 @@ export const CONTROLS_ZH_TW = {
     trophyShelf: '獎盃架',
     closeLevelDetails: '關閉等級詳情',
     patchPreview: '修補預覽',
+    sourceContext: '來源情境',
     jumpToVersion: '將畫布跳回圖表的此版本。',
     closeThinking: '關閉思考面板',
     actionableImprovements: '可執行的改進',
@@ -485,6 +486,10 @@ export const CONTROLS_ZH_TW = {
     validationFailed: '驗證失敗',
     interrupted: '已中斷',
     queued: '排隊中',
+    executionMode: {
+      llm: 'LLM',
+      code: '程式'
+    },
     kicker: {
       live: '即時活動',
       issue: '執行問題',

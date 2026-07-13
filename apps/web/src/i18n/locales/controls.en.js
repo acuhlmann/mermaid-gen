@@ -288,6 +288,7 @@ export const CONTROLS_EN = {
     trophyShelf: 'Trophy shelf',
     closeLevelDetails: 'Close level details',
     patchPreview: 'Patch preview',
+    sourceContext: 'Source context',
     jumpToVersion: 'Jump the canvas back to this version of the diagram.',
     closeThinking: 'Close thinking panel',
     actionableImprovements: 'Actionable improvements',
@@ -500,6 +501,10 @@ export const CONTROLS_EN = {
     validationFailed: 'Validation failed',
     interrupted: 'Interrupted',
     queued: 'Queued',
+    executionMode: {
+      llm: 'LLM',
+      code: 'Code'
+    },
     kicker: {
       live: 'Live activity',
       issue: 'Run issue',

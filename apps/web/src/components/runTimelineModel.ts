@@ -63,6 +63,7 @@ export type RunTimelineCopy = {
   validationFailed?: string;
   interrupted?: string;
   queued?: string;
+  executionMode?: { llm?: string; code?: string };
   kicker?: { live?: string; issue?: string; stopped?: string; activity?: string };
   headline?: {
     working?: string;
@@ -131,6 +132,21 @@ export function actionKind(action: InsightTechnicalAction): ActionKind {
   if (/patch/i.test(name)) return 'patch';
   if (/diagram|state|get_/i.test(name)) return 'inspect';
   return 'tool';
+}
+
+export const ACTION_EXECUTION_MODES = {
+  llm: 'llm',
+  code: 'code'
+} as const;
+export type ActionExecutionMode = keyof typeof ACTION_EXECUTION_MODES;
+
+/** Whether a technical step invokes an LLM or only deterministic server code. */
+export function actionExecutionMode(
+  _action: InsightTechnicalAction,
+  kind: ActionKind
+): ActionExecutionMode {
+  if (kind === 'model' || kind === 'fixer') return 'llm';
+  return 'code';
 }
 
 const ACTION_RUNNING_LABELS: Record<ActionKind, string> = {
