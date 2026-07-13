@@ -160,6 +160,7 @@ describe('applyAgentStreamInsightEvent model_call', () => {
       entry = fn(entry);
       return entry;
     });
+    const streamAcc = { text: '', estimatedCostUsd: 0 };
     const ctx = createCtx({
       finalizeTechnicalActionResult,
       patchInsightEntry,
@@ -171,7 +172,7 @@ describe('applyAgentStreamInsightEvent model_call', () => {
         }
       }
     });
-    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+    applyAgentStreamInsightEvent(streamAcc, ctx, {
       type: 'model_call_end',
       callId: 'run-99',
       model: 'gemini-2.5-flash',
@@ -184,6 +185,44 @@ describe('applyAgentStreamInsightEvent model_call', () => {
       outcomeDetail: '1000000 tokens in · 0 tokens out'
     });
     expect(entry.estimatedCostUsd).toBeCloseTo(0.3, 5);
+    expect(streamAcc.estimatedCostUsd).toBeCloseTo(0.3, 5);
+  });
+
+  it('passes stream accumulator cost to completion delight even when insight state is stale', () => {
+    const triggerCompletionDelight = vi.fn();
+    let entry = { technicalActions: [], planBeats: [], estimatedCostUsd: 0 };
+    const patchInsightEntry = vi.fn(() => {
+      // Simulate React setState: model_call_end patch is not visible to the final handler yet.
+    });
+    const streamAcc = { text: '', estimatedCostUsd: 0 };
+    const ctx = createCtx({
+      triggerCompletionDelight,
+      patchInsightEntry,
+      variant: 'refine',
+      agentCostEstimates: {
+        enabled: true,
+        pricingUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing',
+        rates: {
+          'gemini-2.5-flash': { inputPerM: 0.3, outputPerM: 2.5 }
+        }
+      }
+    });
+    applyAgentStreamInsightEvent(streamAcc, ctx, {
+      type: 'model_call_end',
+      callId: 'run-99',
+      model: 'gemini-2.5-flash',
+      inputTokens: 1_000_000,
+      outputTokens: 0
+    });
+    applyAgentStreamInsightEvent(streamAcc, ctx, {
+      type: 'final',
+      revisionChanged: true,
+      message: 'Done'
+    });
+    expect(streamAcc.estimatedCostUsd).toBeCloseTo(0.3, 5);
+    expect(triggerCompletionDelight).toHaveBeenCalledWith('sec-1', 'refine', {
+      runCostUsd: expect.closeTo(0.3, 5)
+    });
   });
 
   it('finalizes a model-call action without usage when the provider reports none', () => {

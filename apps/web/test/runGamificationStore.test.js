@@ -3,6 +3,7 @@ import {
   applyCompletedRun,
   createInitialState,
   loadFromStorage,
+  reconcileLifetimeLlmCostUsd,
   serializeForStorage,
   COMBO_WINDOW_MS,
   HAT_TRICK_WINDOW_MS,
@@ -225,6 +226,22 @@ describe('runGamificationStore', () => {
     expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);
     const reloaded = loadFromStorage(serializeForStorage(s));
     expect(reloaded.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);
+  });
+
+  it('reconciles lifetime LLM cost from persisted insight entry totals', () => {
+    const state = applyCompletedRun(createInitialState(), {
+      variant: 'refine',
+      now: 1,
+      runCostUsd: 0.01
+    }).state;
+    const insightsEntries = [
+      { status: 'done', estimatedCostUsd: 0.05 },
+      { status: 'done', estimatedCostUsd: 0.03 },
+      { status: 'running', estimatedCostUsd: 0.99 }
+    ];
+    const reconciled = reconcileLifetimeLlmCostUsd(state, insightsEntries);
+    expect(reconciled.lifetimeLlmCostUsd).toBeCloseTo(0.08, 5);
+    expect(reconcileLifetimeLlmCostUsd(reconciled, insightsEntries)).toBe(reconciled);
   });
 
   it('unlocks per-variant mastery at 10 runs of that variant', () => {

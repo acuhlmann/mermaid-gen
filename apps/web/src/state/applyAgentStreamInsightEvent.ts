@@ -49,7 +49,7 @@ function shouldAppendFinalInsightEcho(
   return true;
 }
 
-export type InsightStreamAccumulator = { text: string };
+export type InsightStreamAccumulator = { text: string; estimatedCostUsd: number };
 
 type InsightPhaseRecord = {
   id?: unknown;
@@ -176,6 +176,7 @@ export function applyAgentStreamInsightEvent(
   evt: LegacyStreamEvent | null | undefined
 ): void {
   if (!evt || typeof evt !== 'object') return;
+  if (!Number.isFinite(streamAcc.estimatedCostUsd)) streamAcc.estimatedCostUsd = 0;
 
   const {
     sectionId,
@@ -525,6 +526,7 @@ export function applyAgentStreamInsightEvent(
       ...(usageDetail ? { outcomeDetail: usageDetail } : {})
     });
     if (costUsd != null && costUsd > 0) {
+      streamAcc.estimatedCostUsd += costUsd;
       patchInsightEntry(sectionId, (entry) => ({
         ...entry,
         estimatedCostUsd:
@@ -689,38 +691,36 @@ export function applyAgentStreamInsightEvent(
           message: finalEvt.message
         })
       : null;
-    let runCostUsd = 0;
-    patchInsightEntry(sectionId, (entry) => {
-      if (typeof entry.estimatedCostUsd === 'number' && Number.isFinite(entry.estimatedCostUsd)) {
-        runCostUsd = entry.estimatedCostUsd;
-      }
-      return {
-        ...entry,
-        status: mutationBlocked ? 'failed' : 'done',
-        statusText: mutationBlocked && failureStatus ? failureStatus.statusText : 'Done',
-        ...(mutationBlocked && failureStatus
-          ? {
-              failureClass: failureStatus.failureClass,
-              failureDetail: failureStatus.detail
-            }
-          : {}),
-        completedAt: Date.now(),
-        phases: closeOpenInsightPhases(
-          entry.phases,
-          Date.now(),
-          typeof evt.timestamp === 'number' ? evt.timestamp : undefined
-        ),
-        ...(finalEvt.revisionChanged && finalState && entry.diagramUndoBaseline
-          ? {
-              diagramRevisionApplied: true,
-              diagramAfterSource:
-                typeof finalState.diagramSource === 'string' ? finalState.diagramSource : null,
-              diagramAfterContentType: finalState.contentType ?? null,
-              diagramAfterRevisionId: finalState.revisionId ?? null
-            }
-          : {})
-      };
-    });
+    const runCostUsd =
+      streamAcc.estimatedCostUsd > 0 && Number.isFinite(streamAcc.estimatedCostUsd)
+        ? streamAcc.estimatedCostUsd
+        : 0;
+    patchInsightEntry(sectionId, (entry) => ({
+      ...entry,
+      status: mutationBlocked ? 'failed' : 'done',
+      statusText: mutationBlocked && failureStatus ? failureStatus.statusText : 'Done',
+      ...(mutationBlocked && failureStatus
+        ? {
+            failureClass: failureStatus.failureClass,
+            failureDetail: failureStatus.detail
+          }
+        : {}),
+      completedAt: Date.now(),
+      phases: closeOpenInsightPhases(
+        entry.phases,
+        Date.now(),
+        typeof evt.timestamp === 'number' ? evt.timestamp : undefined
+      ),
+      ...(finalEvt.revisionChanged && finalState && entry.diagramUndoBaseline
+        ? {
+            diagramRevisionApplied: true,
+            diagramAfterSource:
+              typeof finalState.diagramSource === 'string' ? finalState.diagramSource : null,
+            diagramAfterContentType: finalState.contentType ?? null,
+            diagramAfterRevisionId: finalState.revisionId ?? null
+          }
+        : {})
+    }));
     if (!mutationBlocked) {
       triggerCompletionDelight(sectionId, variant, { runCostUsd });
     } else if (typeof playFailureChime === 'function') {
