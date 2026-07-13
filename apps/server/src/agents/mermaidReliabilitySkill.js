@@ -1,4 +1,5 @@
 import { JSDOM } from 'jsdom';
+import { patchGaxiosNativeFetch } from '../config/patchGaxiosNativeFetch.js';
 
 const DIAGRAM_PREFIX_PATTERN =
   /^(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram-v2|stateDiagram|erDiagram|gantt|journey|mindmap|timeline|gitGraph|pie|quadrantChart|requirementDiagram|block-beta|C4Context|C4Container|C4Component|C4Dynamic|C4Deployment|kanban|zenuml|sankey-beta|xychart-beta)\b/m;
@@ -31,6 +32,8 @@ export async function ensureMermaidInitialized() {
   const dom = new JSDOM('<!doctype html><html><body></body></html>');
   globalThis.window = dom.window;
   globalThis.document = dom.window.document;
+  // Jsdom window has no fetch; restore native fetch for Vertex / google-auth-library.
+  patchGaxiosNativeFetch();
   Object.defineProperty(globalThis, 'navigator', {
     value: dom.window.navigator,
     configurable: true,
