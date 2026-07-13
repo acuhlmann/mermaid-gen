@@ -4,6 +4,7 @@ const DEFAULT_INITIAL_DELAY_MS = 1_500;
 const DEFAULT_MAX_DELAY_MS = 8_000;
 const DEFAULT_TIMEOUT_MS = 90_000;
 const DEFAULT_BACKOFF_FACTOR = 1.35;
+const DEFAULT_FETCH_TIMEOUT_MS = 8_000;
 
 /**
  * Resolve `/api/health` for same-origin production and local Vite dev (API on :4000).
@@ -34,12 +35,23 @@ export function resolveHealthCheckUrl({ location = globalThis.location, apiBaseM
 /**
  * @param {Response} response
  */
-export function isHealthReadyResponse(response) {
-  return response.ok;
+export async function isHealthReadyResponse(response) {
+  if (!response.ok) return false;
+
+  try {
+    const body = await response.json();
+    return body?.status === 'ok' && body?.runtimeReady !== false;
+  } catch {
+    return false;
+  }
 }
 
 /**
  * Poll health until ready or timeout. Invokes `onPhase` when the user-facing message changes.
+ *
+ * The static `index.html` shell already shows the waking (loading) copy before JS runs.
+ * This poll keeps that message visible through scale-to-zero cold starts and only skips
+ * the gate quickly when health is already warm.
  *
  * @param {{
  *   fetchImpl?: typeof fetch;
@@ -48,6 +60,7 @@ export function isHealthReadyResponse(response) {
  *   maxDelayMs?: number;
  *   timeoutMs?: number;
  *   backoffFactor?: number;
+ *   fetchTimeoutMs?: number;
  *   onPhase?: (phase: 'checking' | 'waking' | 'timeout') => void;
  *   signal?: AbortSignal;
  * }} [options]
@@ -59,6 +72,7 @@ export async function pollHealthUntilReady({
   maxDelayMs = DEFAULT_MAX_DELAY_MS,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   backoffFactor = DEFAULT_BACKOFF_FACTOR,
+  fetchTimeoutMs = DEFAULT_FETCH_TIMEOUT_MS,
   onPhase,
   signal
 } = {}) {
@@ -66,7 +80,13 @@ export async function pollHealthUntilReady({
   let delayMs = initialDelayMs;
   let announcedWaking = false;
 
-  onPhase?.('checking');
+  const announceWaking = () => {
+    if (announcedWaking) return;
+    announcedWaking = true;
+    onPhase?.('waking');
+  };
+
+  announceWaking();
 
   while (Date.now() - startedAt < timeoutMs) {
     if (signal?.aborted) {
@@ -74,26 +94,13 @@ export async function pollHealthUntilReady({
     }
 
     try {
-      const response = await fetchImpl(healthUrl, {
-        method: 'GET',
-        cache: 'no-store',
-        credentials: 'same-origin',
-        signal
-      });
+      const response = await fetchWithTimeout(fetchImpl, healthUrl, fetchTimeoutMs, signal);
 
-      if (isHealthReadyResponse(response)) {
+      if (await isHealthReadyResponse(response)) {
         return { ok: true, elapsedMs: Date.now() - startedAt };
       }
-
-      if (!announcedWaking) {
-        announcedWaking = true;
-        onPhase?.('waking');
-      }
     } catch {
-      if (!announcedWaking) {
-        announcedWaking = true;
-        onPhase?.('waking');
-      }
+      // Retry after backoff — typical while Cloud Run scales from zero.
     }
 
     await sleep(delayMs, signal);
@@ -102,6 +109,32 @@ export async function pollHealthUntilReady({
 
   onPhase?.('timeout');
   return { ok: false, elapsedMs: Date.now() - startedAt };
+}
+
+/**
+ * @param {typeof fetch} fetchImpl
+ * @param {string} healthUrl
+ * @param {number} timeoutMs
+ * @param {AbortSignal | undefined} signal
+ */
+async function fetchWithTimeout(fetchImpl, healthUrl, timeoutMs, signal) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const onParentAbort = () => controller.abort();
+  signal?.addEventListener('abort', onParentAbort, { once: true });
+
+  try {
+    return await fetchImpl(healthUrl, {
+      method: 'GET',
+      cache: 'no-store',
+      credentials: 'same-origin',
+      signal: controller.signal
+    });
+  } finally {
+    clearTimeout(timeoutId);
+    signal?.removeEventListener('abort', onParentAbort);
+  }
 }
 
 /**
