@@ -126,7 +126,8 @@ import {
   clearStorage as clearGamificationStorage,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
-  writeToStorage as writeGamificationToStorage
+  writeToStorage as writeGamificationToStorage,
+  reconcileLifetimeLlmCostUsd
 } from './state/runGamificationStore.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
@@ -332,6 +333,7 @@ function ArchiSlop() {
   /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
   const streamAgentAbortRef = useRef(null);
   const agentCostEstimatesRef = useRef(getCachedAgentCostEstimates());
+  const lifetimeCostBackfillDoneRef = useRef(false);
   const autoCloseActiveEntryIdRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
@@ -434,6 +436,19 @@ function ArchiSlop() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!costTrackingEnabled || lifetimeCostBackfillDoneRef.current) return;
+    lifetimeCostBackfillDoneRef.current = true;
+    setGamification((current) => {
+      const reconciled = reconcileLifetimeLlmCostUsd(current, insightsEntries);
+      if (reconciled.lifetimeLlmCostUsd === current.lifetimeLlmCostUsd) return current;
+      if (typeof window !== 'undefined') {
+        writeGamificationToStorage(window.localStorage, reconciled);
+      }
+      return reconciled;
+    });
+  }, [costTrackingEnabled, insightsEntries]);
 
   const closeSlopPrompt = useCallback(() => {
     setSlopPromptExpanded(false);
@@ -1885,7 +1900,7 @@ function ArchiSlop() {
       else tryAgentSound(playStreamStartChime);
       lastTokenSoundAtRef.current = 0;
       goMadTokenTickIndexRef.current = 0;
-      const streamAcc = { text: '' };
+      const streamAcc = { text: '', estimatedCostUsd: 0 };
       const abortCtrl = new AbortController();
       streamAgentAbortRef.current = abortCtrl;
       const streamCtx = buildAgentStreamInsightContext(

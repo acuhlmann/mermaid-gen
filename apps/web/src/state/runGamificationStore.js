@@ -335,6 +335,26 @@ export function writeToStorage(storage, state) {
   }
 }
 
+/**
+ * Reconcile persisted lifetime LLM cost with summed per-run estimates from the
+ * diagram cache. Repairs sessions where run totals were shown in the thinking
+ * panel but never reached gamification due to async insight state batching.
+ */
+export function reconcileLifetimeLlmCostUsd(state, insightsEntries) {
+  if (!state || !Array.isArray(insightsEntries) || insightsEntries.length === 0) {
+    return state;
+  }
+  const fromInsights = insightsEntries.reduce((sum, entry) => {
+    if (entry?.status !== 'done') return sum;
+    const cost = entry?.estimatedCostUsd;
+    return sum + (typeof cost === 'number' && Number.isFinite(cost) && cost > 0 ? cost : 0);
+  }, 0);
+  const stored = state.lifetimeLlmCostUsd ?? 0;
+  const next = Math.max(stored, fromInsights);
+  if (!Number.isFinite(next) || next <= stored) return state;
+  return { ...state, lifetimeLlmCostUsd: next };
+}
+
 // Re-export so callers building UI from this store can derive level info
 // without importing the copy module directly.
 export { levelForXp };
