@@ -26,7 +26,7 @@ export function extractFencedCodeBlock(
   const codeLines: string[] = [];
   let cursor = startIndex + 1;
   while (cursor < lines.length) {
-    const line = lines[cursor];
+    const line = lines[cursor] ?? '';
     if (line.trim() === '```') {
       return { language, code: codeLines.join('\n'), nextIndex: cursor + 1 };
     }
