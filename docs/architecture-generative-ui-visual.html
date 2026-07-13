@@ -792,9 +792,10 @@
         <p class="eyebrow">archislop &middot; docs &middot; generative ui</p>
         <h1>One system, three questions</h1>
         <p class="dek">
-          ArchiSlop uses several generative-UI technologies at once — AG-UI, A2UI, five content-slot
-          languages, MCP Apps. They are not competitors. Each answers a different question, and
-          conflating the questions is the main way to get confused.
+          ArchiSlop uses several generative-UI technologies at once — AG-UI, A2UI (server-built
+          <em>and</em> model-authored), six content-slot languages, MCP Apps. They are not
+          competitors. Each answers a different question, and conflating the questions is the main
+          way to get confused.
         </p>
         <p class="small muted">
           Companion to
@@ -985,7 +986,7 @@
                   </div>
                 </div>
                 <div class="spec-card" style="--sc: var(--c-a2ui)">
-                  <div class="name">A2UI v0.9</div>
+                  <div class="name">A2UI v0.9 — server-built</div>
                   <div class="kind">UI DSL — components + actions</div>
                   <div class="row">
                     <span class="k">model writes</span
@@ -998,6 +999,25 @@
                   <div class="row">
                     <span class="k">example</span
                     ><span class="v">Critique checklist, style-edit apply</span>
+                  </div>
+                </div>
+                <div class="spec-card" style="--sc: var(--c-a2ui)">
+                  <div class="name">A2UI v0.9 — model-authored</div>
+                  <div class="kind">UI DSL — the agent designs the interface</div>
+                  <div class="row">
+                    <span class="k">model writes</span
+                    ><span class="v">the A2UI JSON <em>itself</em> (the slot content)</span>
+                  </div>
+                  <div class="row">
+                    <span class="k">safety</span
+                    ><span class="v"
+                      ><code>parseFormsA2ui</code> allowlist gate; every button → one
+                      capability</span
+                    >
+                  </div>
+                  <div class="row">
+                    <span class="k">example</span
+                    ><span class="v">Forms slot (endless intake-form parody)</span>
                   </div>
                 </div>
                 <div class="spec-card" style="--sc: var(--c-chart)">
@@ -1166,11 +1186,16 @@
           >
           The content DSLs describe <em>things</em> (a diagram, a chart, a scene); the renderer owns
           all interactivity. A2UI describes <em>interfaces</em>: a component tree plus
-          <em>actions</em> wired back to the agent. In ArchiSlop the actions are pinned to two
-          intent routes (<code>archislop_fixSelected</code>, <code>archislop_fixAll</code>), and the
-          model never authors A2UI JSON directly — it writes critique markdown, and
-          <code>buildCritiqueActionableA2uiMessages</code> builds the UI deterministically on the
-          server. Same spectrum, different column: content language vs. UI language.
+          <em>actions</em> wired back to the agent. ArchiSlop uses A2UI two ways. In
+          <strong>critique</strong> the model never authors A2UI JSON directly — it writes critique
+          markdown, and <code>buildCritiqueActionableA2uiMessages</code> builds the UI
+          deterministically on the server, with actions pinned to two intent routes
+          (<code>archislop_fixSelected</code>, <code>archislop_fixAll</code>). In the
+          <strong>Forms</strong> slot the model authors the A2UI document <em>directly</em> — A2UI
+          as intended — and safety shifts from a builder to a validation gate
+          (<code>parseFormsA2ui</code>): a component allowlist plus a single collapsed capability
+          ("generate the next form"), so a model-drawn interface still cannot reach anything but the
+          next form. Same spectrum, different column: content language vs. UI language.
         </div>
       </section>
 
@@ -1371,7 +1396,10 @@
                     >guide/content-types.md</a
                   >
                 </td>
-                <td>The five slots and their renderers, including the anything sandbox contract</td>
+                <td>
+                  The six slots and their renderers, including the anything sandbox contract and the
+                  model-authored Forms A2UI slot
+                </td>
               </tr>
               <tr>
                 <td>

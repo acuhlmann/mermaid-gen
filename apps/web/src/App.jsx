@@ -206,6 +206,14 @@ const AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS = 7000;
 
 const SpeechRecognitionCtor = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
 
+/** Render a forms-mode field value for the next-form prompt (booleans, arrays, blanks). */
+function formatFormAnswer(value) {
+  if (value == null || value === '') return '(left blank)';
+  if (typeof value === 'boolean') return value ? 'checked' : 'unchecked';
+  if (Array.isArray(value)) return value.length ? value.join(', ') : '(none selected)';
+  return `"${String(value).slice(0, 120)}"`;
+}
+
 function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
@@ -2289,6 +2297,32 @@ function ArchiSlop() {
     await submitIntentWithPrompt(prompt.trim());
   }
 
+  // Forms mode: the user submitted the current form. Summarize their answers and
+  // ask the agent for the NEXT form — the endless corporate gauntlet. The prompt
+  // is structured (like Fix) and does not touch the visible prompt bar.
+  async function handleFormSubmit({ formTitle, formCode, buttonLabel, answers } = {}) {
+    if (loadingRef.current || streamingPreviewRef.current) return;
+    hasInteractedRef.current = true;
+    const codeStr = formCode ? ` (${formCode})` : '';
+    const summarized = Array.isArray(answers)
+      ? answers
+          .map(({ label, value }) => `${label}: ${formatFormAnswer(value)}`)
+          .filter(Boolean)
+          .join('; ')
+      : '';
+    const nextPrompt = [
+      `The user completed the form "${formTitle}"${codeStr} and clicked "${buttonLabel || 'Submit'}".`,
+      summarized
+        ? `Their answers were — ${summarized}.`
+        : 'They submitted it with no fields filled in.',
+      'Now issue the NEXT form in the endless corporate gauntlet: acknowledge these answers with bureaucratic non-sequiturs, invent a fresh reason more information is needed, bump the form code, and add new tedium. Never declare the process complete — there is always another form.'
+    ].join(' ');
+    await submitIntentWithPrompt(nextPrompt, {
+      contentTypeOverride: 'forms',
+      variantOverride: 'intent'
+    });
+  }
+
   // First-run topic starter chip: seed the visible prompt then submit, so the
   // newcomer both sees the topic they picked and gets an immediate result.
   // submitIntentWithPrompt owns the loading guard, so no extra busy check here.
@@ -3992,6 +4026,7 @@ ${requirementsBlock}`;
         }}
         diagramSurfaceRef={diagramSurfaceRef}
         isFullscreen={isFullscreen}
+        onFormSubmit={handleFormSubmit}
       />
 
       {showEntryExample ? (

@@ -13,9 +13,17 @@ import { validateAndPrepareInfographicPatch } from '../tools/infographicDslTool.
 import { validateAndPrepareMetaphorPatch } from '../tools/metaphorDslTool.js';
 import { validateAndPrepareChartPatch } from '../tools/chartDslTool.js';
 import { validateAndPrepareAnythingPatch } from '../tools/anythingHtmlTool.js';
+import { validateAndPrepareFormsPatch } from '../tools/formsA2uiTool.js';
 import { validateMermaidStrict } from '../agents/mermaidReliabilitySkill.js';
 
-const VALID_CONTENT_TYPES = new Set(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']);
+const VALID_CONTENT_TYPES = new Set([
+  'mermaid',
+  'infographic',
+  'metaphor3d',
+  'chart',
+  'anything',
+  'forms'
+]);
 
 function assertContentType(contentType: string): asserts contentType is ContentType {
   if (!VALID_CONTENT_TYPES.has(contentType)) {
@@ -475,6 +483,86 @@ export function createDiagramStateStore(
     };
   }
 
+  async function syncFormsSlot({ diagramSource }: { diagramSource: string }) {
+    const slot = session.forms;
+    const candidate = diagramSource ?? '';
+    if (!candidate.trim()) {
+      if (slot.diagramSource === '') {
+        return { accepted: true, state: slot };
+      }
+      const next = {
+        ...slot,
+        revisionId: slot.revisionId + 1,
+        diagramSource: '',
+        updatedAt: new Date().toISOString()
+      };
+      replaceSlot('forms', next);
+      return { accepted: true, state: next };
+    }
+
+    if (candidate === slot.diagramSource) {
+      return { accepted: true, state: slot };
+    }
+
+    const prepared = await validateAndPrepareFormsPatch({
+      currentState: slot,
+      proposedDiagramSource: candidate,
+      reason: 'client sync'
+    });
+    if (!prepared.accepted) {
+      return prepared;
+    }
+
+    const next = {
+      ...slot,
+      revisionId: slot.revisionId + 1,
+      diagramSource: prepared.patch!.diagramSource,
+      styleConfig: null,
+      updatedAt: new Date().toISOString()
+    };
+    replaceSlot('forms', next);
+    return { accepted: true, state: next };
+  }
+
+  async function applyToFormsSlot({
+    diagramSource,
+    reason,
+    origin
+  }: {
+    diagramSource: string;
+    reason: string;
+    origin?: DiagramState['history'][number]['origin'];
+  }) {
+    const slot = session.forms;
+    const prepared = await validateAndPrepareFormsPatch({
+      currentState: slot,
+      proposedDiagramSource: diagramSource,
+      reason
+    });
+    if (!prepared.accepted) {
+      return prepared;
+    }
+    const ok = prepared as {
+      accepted: true;
+      patch: Parameters<typeof applyPatch>[1];
+      metadata?: unknown;
+    };
+
+    const patchWithOrigin = origin ? { ...ok.patch, origin } : ok.patch;
+    const applied = applyPatch(slot, patchWithOrigin);
+    if (!applied.accepted) {
+      return applied;
+    }
+    replaceSlot('forms', applied.state!);
+
+    return {
+      accepted: true,
+      patch: patchWithOrigin,
+      state: applied.state,
+      metadata: ok.metadata
+    };
+  }
+
   return {
     /** Whole session (both slots + active pointer). */
     getSessionState() {
@@ -552,6 +640,9 @@ export function createDiagramStateStore(
       if (contentType === 'anything') {
         return syncAnythingSlot({ diagramSource });
       }
+      if (contentType === 'forms') {
+        return syncFormsSlot({ diagramSource });
+      }
       return syncInfographicSlot({ diagramSource });
     },
 
@@ -578,6 +669,9 @@ export function createDiagramStateStore(
       }
       if (contentType === 'anything') {
         return applyToAnythingSlot({ diagramSource, reason, origin });
+      }
+      if (contentType === 'forms') {
+        return applyToFormsSlot({ diagramSource, reason, origin });
       }
       return applyToInfographicSlot({ diagramSource, reason, origin });
     },

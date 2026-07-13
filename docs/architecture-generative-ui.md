@@ -4,11 +4,14 @@
 
 ArchiSlop uses **three different UI strategies** on purpose. They share session state but use different wires, trust boundaries, and hosts. This doc is the map; deep dives live in the linked files below.
 
-| Strategy                | Wire                                                      | Primary host                                | Model authors UI?                                          |
-| ----------------------- | --------------------------------------------------------- | ------------------------------------------- | ---------------------------------------------------------- |
-| **AG-UI** (SSE)         | `POST /api/copilotkit/agent-stream`                       | ArchiSlop web (built-in agents)             | No — server emits phases, tokens, tool calls, state deltas |
-| **A2UI v0.9**           | AG-UI `CUSTOM` `name: "a2ui"`                             | Web **Thinking** pane (Critique only today) | No — server builds messages from critique markdown         |
-| **MCP Apps** (SEP-1865) | MCP tool `_meta.ui.resourceUri` → `ui://archislop/*.html` | Cursor, VS Code, Claude Desktop, …          | No — static HTML bundles; tools return JSON payloads       |
+| Strategy                       | Wire                                                      | Primary host                            | Model authors UI?                                                       |
+| ------------------------------ | --------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------- |
+| **AG-UI** (SSE)                | `POST /api/copilotkit/agent-stream`                       | ArchiSlop web (built-in agents)         | No — server emits phases, tokens, tool calls, state deltas              |
+| **A2UI v0.9 — server-built**   | AG-UI `CUSTOM` `name: "a2ui"`                             | Web **Thinking** pane (Critique, Style) | No — server builds messages from critique markdown                      |
+| **A2UI v0.9 — model-authored** | `forms` slot `diagramSource` (validated JSON)             | Web **Forms** canvas                    | **Yes** — the agent writes the A2UI document; gated by `parseFormsA2ui` |
+| **MCP Apps** (SEP-1865)        | MCP tool `_meta.ui.resourceUri` → `ui://archislop/*.html` | Cursor, VS Code, Claude Desktop, …      | No — static HTML bundles; tools return JSON payloads                    |
+
+Both A2UI rows use the same `basicCatalog` allowlist and the same client renderer library; they differ only in **who writes the JSON** and **what it can trigger**. See [`architecture-a2ui.md`](architecture-a2ui.md) for the full two-strategy split.
 
 **Not generative UI (but often confused with it):** `GET /api/copilotkit/session-events` — collaboration sync (handshakes, proposals, presence). React components in `apps/web` render those events; external hosts use MCP Apps or the same SSE URL.
 
@@ -36,7 +39,7 @@ flowchart TB
   end
 
   subgraph server ["apps/server"]
-    State[("Five-slot diagram state\n+ proposals · handshakes")]
+    State[("Six-slot diagram state\n+ proposals · handshakes")]
   end
 
   SSE --> State
@@ -71,15 +74,17 @@ Implementation spine: `createAgentStreamEmitter` (`packages/shared`) → `diagra
 
 **Implemented extensions:** `CUSTOM` artifact `explain_sections` (server-parsed Explain ## headings → structured Thinking pane); `CUSTOM` artifact `style_edits` (numbered style/critique lines → visual tweak cards); client-side **prose micro-viz** in [`thinkingProseEnrich.jsx`](../apps/web/src/utils/thinkingProseEnrich.jsx) (hex swatches, color ramps, icon replace rows, theme variable pills); shared `enrichProposalForReview` (web proposal cards + MCP `proposal-review` diff parity). **Still open:** infographic-specific A2UI templates, CopilotKit frontend tools for focus picking — today focus is React + canvas clicks.
 
-## A2UI (critique checklists only)
+## A2UI (two strategies)
 
 Full contract: [`architecture-a2ui.md`](architecture-a2ui.md).
 
-**Design choice:** the LLM outputs **Markdown** with an `## Actionable …` section; the server deterministically builds A2UI messages (`buildCritiqueActionableA2uiMessages`). The client allowlists `basicCatalog` only and maps two actions to **intent** (`archislop_fixSelected`, `archislop_fixAll`).
+**Server-built (critique, style edits):** the LLM outputs **Markdown** with an `## Actionable …` section; the server deterministically builds A2UI messages (`buildCritiqueActionableA2uiMessages`). The client allowlists `basicCatalog` only and maps two actions to **intent** (`archislop_fixSelected`, `archislop_fixAll`). The model never touches UI JSON, so the component/action set is structurally inescapable.
 
-**Why not model-authored A2UI everywhere?** Safety and consistency — diagram editing stays on validated tool paths, not arbitrary UI actions.
+**Model-authored (Forms mode):** the **Forms** slot uses A2UI as intended — the agent authors the A2UI document directly and it becomes the slot content. Safety comes from a shared validation gate (`parseFormsA2ui`: basic-catalog allowlist, action allowlist, size caps) rather than a builder, and every button collapses to one capability — "generate the next form." This is the app's corporate-IT-forms parody: fill the controls, submit, get an even more tedious form.
 
-**Parity for MCP:** `drop_insight` + `open_critique_review` → **critique-map** MCP App; humans use `request_critique_fix` → `critique_fix_request` on session-events → web **Fix** flow.
+**Why model-authored is safe _here_ but not for diagram editing:** diagram edits stay on validated tool paths (mermaid/chart/etc.) because a wrong action there mutates real content. In Forms, the only capability any action can reach is "ask for another form" — there is nothing to corrupt, so letting the model draw the UI is both safe and the entire point of the mode.
+
+**Parity for MCP:** `drop_insight` + `open_critique_review` → **critique-map** MCP App; humans use `request_critique_fix` → `critique_fix_request` on session-events → web **Fix** flow. (Forms is a web-only interactive mode; MCP hosts do not render it.)
 
 ## MCP connectivity (transport and session binding)
 
@@ -160,7 +165,7 @@ These are gaps worth knowing when extending the project — not bugs.
 
 1. **Unify human approval UX further** — Web proposal cards and MCP `proposal-review` now share `enrichProposalForReview` / `buildDiagramDiffSummary` from `@archislop/shared`; full A2UI proposal surface in the web app remains optional.
 2. **Infographic MCP preview** — Canvas and proposal Apps render Mermaid well; infographic slots show DSL text, not AntV output, in iframes.
-3. **Richer AG-UI artifacts** — Only critique uses A2UI; explain/transform could emit structured sections (still server-built) without new transports.
+3. **Richer AG-UI artifacts** — Server-built A2UI is used by critique and style edits (model-authored A2UI powers the Forms slot); explain/transform could emit structured sections (still server-built) without new transports.
 4. **MCP App actions in Cursor** — Hybrid **web-companion** is the current answer; upstream host support for `visibility: ['app']` tool calls from iframes may improve over time.
 5. **Cross-instance collaboration** — Redis covers pairing only; proposals/handshakes on another instance won’t see events until shared stores exist.
 6. **CopilotKit frontend tools** — Runtime path exists; ArchiSlop UI uses custom routes first — frontend tools could expose focus/clear/accept to chat UIs without MCP.

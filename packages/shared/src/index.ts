@@ -9,6 +9,7 @@ export * from './mermaidStyle.js';
 export * from './mermaidSanitizer.js';
 export * from './critiqueActionable.js';
 export * from './critiqueA2uiMessages.js';
+export * from './formsA2ui.js';
 export * from './infographicDiff.js';
 export * from './chartDiff.js';
 export * from './metaphorDiff.js';

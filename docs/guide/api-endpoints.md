@@ -4,7 +4,7 @@
 | ------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`  | `/api/health`                                   | Liveness + `llmConfigured`, `runtimeReady`                                                                                                      |
 | `GET`  | `/api/copilotkit/state`                         | Current diagram state for session (active slot by default; pass `contentType` for a specific slot)                                              |
-| `GET`  | `/api/copilotkit/session-state`                 | Full session payload (all five slots + `activeContentType`)                                                                                     |
+| `GET`  | `/api/copilotkit/session-state`                 | Full session payload (all six slots + `activeContentType`)                                                                                      |
 | `POST` | `/api/copilotkit/state`                         | Client sync of editor source into server state (`contentType` selects the slot)                                                                 |
 | `POST` | `/api/copilotkit/intent`                        | **Intent** path: prompt-bar **Go**, **Fix from critique**, and syntax **auto-fix** (JSON; `contentType` routes to the matching agent service)   |
 | `POST` | `/api/copilotkit/transform`                     | Refine / innovate / goMad (JSON response; `contentType` forwarded)                                                                              |

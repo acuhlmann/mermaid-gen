@@ -53,7 +53,7 @@ Tune via [Configuration](configuration.md) (`MERMAID_REPAIR_*`, `MERMAID_METRICS
 
 ## Run budgets, deadlines, and root-cause errors
 
-All five mode agents share the same budget discipline (`packages/shared/src/agentRunBudget.ts`):
+All six mode agents share the same budget discipline (`packages/shared/src/agentRunBudget.ts`):
 
 - **Absolute deadline.** Each mutation run builds a deadline-capped `AbortSignal` (`apps/server/src/agents/_lib/agentRunDeadline.js`) that combines the caller's stop signal with `AbortSignal.timeout(budget)`. In-flight model turns abort _at_ the budget instead of overrunning it and getting killed later by the client's stream watchdog.
 - **Don't start what can't finish.** Before another full-agent repair turn the loop requires `MIN_AGENT_REPAIR_TURN_BUDGET_MS` (12 s) of remaining budget, and before a single-shot fixer call `MIN_SYNTAX_FIXER_BUDGET_MS` (4 s). When the remainder is too small the run fails fast instead of burning a model call that will be cut off anyway.
@@ -126,24 +126,26 @@ After acceptance the client closes the loop: `AnythingRenderer` expands `@lib:` 
 
 Both Mermaid render errors and Anything load-phase errors take a **fast-path repair endpoint** first: `POST /api/diagram/render-error` (`apps/server/src/routes/diagramRepair.js`) runs only the single-shot syntax fixer (one LLM call, no agent loop) against the still-current slot, applies the result through the normal state-store pipeline (so the Anything runtime check still runs), and returns `{repaired}`. It accepts a `contentType` of `mermaid` (default) or `anything`; `runAutoFix` (`App.jsx`) only falls back to the full intent ladder when the fast path rejects.
 
-## Session state: five-slot model
+## Session state: six-slot model
 
 ```mermaid
 flowchart TB
-  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart · anything"]
+  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart · anything · forms"]
   Session --> MS["mermaid slot\nrevisionId · diagramSource · styleConfig · history"]
   Session --> IS["infographic slot\nrevisionId · diagramSource · history"]
   Session --> MES["metaphor3d slot\nrevisionId · diagramSource · history"]
   Session --> CS["chart slot\nrevisionId · diagramSource · history"]
   Session --> AS["anything slot\nrevisionId · diagramSource · history"]
+  Session --> FS["forms slot\nrevisionId · diagramSource · history"]
   MS -->|applyPatch| MV["Mermaid validator"]
   IS -->|applyPatch| IV["Infographic validator"]
   MES -->|applyPatch| MEV["Metaphor3D validator"]
   CS -->|applyPatch| CV["Chart validator"]
   AS -->|applyPatch| AV["Anything validator"]
+  FS -->|applyPatch| FV["Forms A2UI validator"]
 ```
 
-All five slots are fully independent — switching modes does not touch the other slots' revision histories. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
+All six slots are fully independent — switching modes does not touch the other slots' revision histories. `applyPatch` in `packages/shared` enforces that a patch's `contentType` matches the slot it targets.
 
 ## Session alignment (REST vs CopilotKit)
 

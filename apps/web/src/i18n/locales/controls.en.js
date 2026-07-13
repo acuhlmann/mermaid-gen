@@ -108,6 +108,9 @@ export const CONTROLS_EN = {
     anything: 'Anything page',
     anythingShort: 'Anything',
     anythingSubtitle: 'HTML/CSS/JS sandbox',
+    forms: 'Forms',
+    formsShort: 'Forms',
+    formsSubtitle: 'Endless A2UI intake forms',
     anotherMode: 'another mode',
     renderMenu: 'Target render mode'
   },
@@ -341,7 +344,8 @@ export const CONTROLS_EN = {
     dismiss: 'Dismiss error',
     details: 'Error details',
     chartFailed: 'Chart could not render.',
-    pageFailed: 'Page could not render.'
+    pageFailed: 'Page could not render.',
+    formFailed: 'This form could not be rendered.'
   },
   fullscreen: {
     exit: 'Exit fullscreen'

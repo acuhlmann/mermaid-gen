@@ -198,6 +198,84 @@
   opacity: 0.85;
 }
 
+/* Forms mode: the A2UI surface renders native controls and owns its own
+   scrolling — fill the viewport, no pan/zoom padding, default cursor. */
+.diagram-viewport.is-forms {
+  padding: 0;
+  height: 100%;
+}
+
+.diagram-output.is-forms {
+  cursor: auto;
+}
+
+.forms-renderer-root {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  display: flex;
+  justify-content: center;
+  padding: clamp(1rem, 4vw, 3rem) 1rem;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.015),
+      rgba(0, 0, 0, 0.015) 1px,
+      transparent 1px,
+      transparent 28px
+    ),
+    #f4f2ec;
+}
+
+.forms-renderer-root.is-busy {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.forms-a2ui-surface-root {
+  width: 100%;
+  max-width: 46rem;
+  height: max-content;
+  background: #fffdf8;
+  border: 1px solid rgba(60, 50, 30, 0.18);
+  border-radius: 6px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
+  padding: clamp(1.1rem, 3vw, 2rem);
+  color: #23201a;
+  font-variant-numeric: tabular-nums;
+}
+
+.forms-a2ui-surface-root .a2ui-text.h3 {
+  letter-spacing: -0.01em;
+}
+
+.forms-a2ui-surface-root input[type='text'],
+.forms-a2ui-surface-root input[type='number'],
+.forms-a2ui-surface-root input[type='password'],
+.forms-a2ui-surface-root input[type='date'],
+.forms-a2ui-surface-root input[type='time'],
+.forms-a2ui-surface-root input[type='datetime-local'],
+.forms-a2ui-surface-root textarea,
+.forms-a2ui-surface-root select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.forms-error-state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  max-width: 42rem;
+}
+
+.forms-error-detail {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
 /* Which vendored libraries the page opted into (@lib: markers). Injection is
    deliberately invisible in the document — the badge is what makes it
    observable. Tooltip carries the provenance story. */

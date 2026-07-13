@@ -10,7 +10,8 @@ export const ContentTypeSchema = z.enum([
   'infographic',
   'metaphor3d',
   'chart',
-  'anything'
+  'anything',
+  'forms'
 ]);
 
 /**
@@ -20,11 +21,12 @@ export const ContentTypeSchema = z.enum([
  */
 export function normalizeContentType(
   value: unknown
-): 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything' {
+): 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything' | 'forms' {
   if (value === 'infographic') return 'infographic';
   if (value === 'metaphor3d') return 'metaphor3d';
   if (value === 'chart') return 'chart';
   if (value === 'anything') return 'anything';
+  if (value === 'forms') return 'forms';
   return 'mermaid';
 }
 
@@ -77,7 +79,8 @@ export const SessionDiagramStateSchema = z.object({
   infographic: DiagramStateSchema,
   metaphor3d: DiagramStateSchema,
   chart: DiagramStateSchema,
-  anything: DiagramStateSchema
+  anything: DiagramStateSchema,
+  forms: DiagramStateSchema
 });
 
 export const FocusNodeSchema = z
@@ -268,7 +271,8 @@ export function createInitialDiagramState(contentType = 'mermaid'): DiagramState
     contentType === 'infographic' ||
     contentType === 'metaphor3d' ||
     contentType === 'chart' ||
-    contentType === 'anything'
+    contentType === 'anything' ||
+    contentType === 'forms'
   ) {
     return {
       revisionId: 0,
@@ -299,7 +303,8 @@ export function createInitialSessionState() {
     infographic: createInitialDiagramState('infographic'),
     metaphor3d: createInitialDiagramState('metaphor3d'),
     chart: createInitialDiagramState('chart'),
-    anything: createInitialDiagramState('anything')
+    anything: createInitialDiagramState('anything'),
+    forms: createInitialDiagramState('forms')
   };
 }
 

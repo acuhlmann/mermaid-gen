@@ -21,7 +21,7 @@ import { emitIntentTransformStreamResult } from './diagramAgentStreamResult.js';
  * the streaming protocol.
  *
  * @param {{
- *   contentType: 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything',
+ *   contentType: 'mermaid' | 'infographic' | 'metaphor3d' | 'chart' | 'anything' | 'forms',
  *   stateStore: { getSlot: Function, setLastUserPrompt: Function, mirrorLastUserPromptToSibling: Function },
  *   env: NodeJS.ProcessEnv,
  *   buildService: () => Record<string, Function>,

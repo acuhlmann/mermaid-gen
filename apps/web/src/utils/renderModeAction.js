@@ -33,6 +33,12 @@ export function buildContentModeOptions(controls) {
       label: m.anything,
       shortLabel: m.anythingShort,
       subtitle: m.anythingSubtitle
+    },
+    {
+      id: 'forms',
+      label: m.forms,
+      shortLabel: m.formsShort,
+      subtitle: m.formsSubtitle
     }
   ];
 }

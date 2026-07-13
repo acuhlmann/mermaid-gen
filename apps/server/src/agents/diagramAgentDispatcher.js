@@ -3,6 +3,7 @@ import { createLazyInfographicAgentService } from './infographicLangChainAgent.j
 import { createLazyMetaphorAgentService } from './metaphorLangChainAgent.js';
 import { createLazyChartAgentService } from './chartLangChainAgent.js';
 import { createLazyAnythingAgentService } from './anythingLangChainAgent.js';
+import { createLazyFormsAgentService } from './formsLangChainAgent.js';
 
 /**
  * @typedef {import('@archislop/shared').DiagramAgentService} DiagramAgentService
@@ -21,12 +22,14 @@ export function createDiagramAgentDispatcher({ stateStore, env = process.env } =
   const metaphorService = createLazyMetaphorAgentService({ stateStore, env });
   const chartService = createLazyChartAgentService({ stateStore, env });
   const anythingService = createLazyAnythingAgentService({ stateStore, env });
+  const formsService = createLazyFormsAgentService({ stateStore, env });
 
   function agentFor(contentType) {
     if (contentType === 'infographic') return infographicService;
     if (contentType === 'metaphor3d') return metaphorService;
     if (contentType === 'chart') return chartService;
     if (contentType === 'anything') return anythingService;
+    if (contentType === 'forms') return formsService;
     return mermaidService;
   }
 
@@ -62,7 +65,8 @@ export function createDiagramAgentDispatcher({ stateStore, env = process.env } =
       infographic: infographicService,
       metaphor3d: metaphorService,
       chart: chartService,
-      anything: anythingService
+      anything: anythingService,
+      forms: formsService
     }
   };
 }
