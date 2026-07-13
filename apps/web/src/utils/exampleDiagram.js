@@ -7,7 +7,7 @@
  * Labels are single-line (the shared preview init uses htmlLabels:false) and
  * quoted for parser safety. Illustrative only — never lives in a diagram slot.
  */
-export const EXAMPLE_DIAGRAM_SOURCE = `flowchart LR
+export const EXAMPLE_DIAGRAM_SOURCE = `flowchart TD
     A["Browser"] --> B["Authorize"]
     B --> C["Get token"]
     C --> D["Call API"]

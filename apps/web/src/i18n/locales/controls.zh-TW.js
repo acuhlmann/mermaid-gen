@@ -67,7 +67,7 @@ export const CONTROLS_ZH_TW = {
       'AI 先起草流程圖、資訊圖、3D 場景、圖表或自由頁面——然後你繼續打磨，虛構的相關方還會插話點評。',
     exampleTopic: 'OAuth 2.0 授權碼流程',
     exampleAria: '可立即產生的 archislop 視覺化範例',
-    exampleCta: '產生這個 →',
+    exampleCta: '產生：OAuth 2.0 流程 →',
     renderAsLabel: '渲染為',
     renderAsHint: '先選形態，再輸入主題',
     renderAsAria: '選擇主題的渲染形態'

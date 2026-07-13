@@ -67,7 +67,7 @@ export const CONTROLS_ZH_CN = {
       'AI 先起草流程图、信息图、3D 场景、图表或自由页面——然后你继续打磨，虚构的相关方还会插话点评。',
     exampleTopic: 'OAuth 2.0 授权码流程',
     exampleAria: '可立即生成的 archislop 可视化示例',
-    exampleCta: '生成这个 →',
+    exampleCta: '生成：OAuth 2.0 流程 →',
     renderAsLabel: '渲染为',
     renderAsHint: '先选形态，再输入主题',
     renderAsAria: '选择主题的渲染形态'

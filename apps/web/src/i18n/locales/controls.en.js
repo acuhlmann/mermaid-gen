@@ -75,8 +75,8 @@ export const CONTROLS_EN = {
       'AI drafts a diagram, infographic, 3D scene, chart, or freeform page — then you refine it while fictional stakeholders chime in.',
     exampleTopic: 'OAuth 2.0 authorization code flow',
     exampleAria: 'Example of an archislop visualization you can generate',
-    // CTA names the sample above so it is obvious what will be generated.
-    exampleCta: 'Generate this →',
+    // CTA names the sample topic so it stays clear even when the preview is hidden.
+    exampleCta: 'Generate: OAuth 2.0 flow →',
     // Empty-state Render as strip — introduce modes before Settings.
     renderAsLabel: 'Render as',
     renderAsHint: 'Pick a form, then enter a topic',

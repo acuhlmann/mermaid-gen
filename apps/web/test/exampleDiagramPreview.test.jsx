@@ -9,7 +9,7 @@ vi.mock('../src/utils/renderMermaidPreview.js', () => ({
 import ExampleDiagramPreview from '../src/components/ExampleDiagramPreview.jsx';
 import { renderMermaidPreviewSvg } from '../src/utils/renderMermaidPreview.js';
 
-const SOURCE = 'flowchart LR\n  A-->B';
+const SOURCE = 'flowchart TD\n  A-->B';
 
 describe('ExampleDiagramPreview', () => {
   afterEach(() => {
