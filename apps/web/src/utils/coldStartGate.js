@@ -4,6 +4,8 @@ const DEFAULT_INITIAL_DELAY_MS = 1_500;
 const DEFAULT_MAX_DELAY_MS = 8_000;
 const DEFAULT_TIMEOUT_MS = 90_000;
 const DEFAULT_BACKOFF_FACTOR = 1.35;
+/** Brief "checking" copy before showing the longer cold-start / loading message. */
+const DEFAULT_CHECKING_GRACE_MS = 1_200;
 
 /**
  * Resolve `/api/health` for same-origin production and local Vite dev (API on :4000).
@@ -48,6 +50,7 @@ export function isHealthReadyResponse(response) {
  *   maxDelayMs?: number;
  *   timeoutMs?: number;
  *   backoffFactor?: number;
+ *   checkingGraceMs?: number;
  *   onPhase?: (phase: 'checking' | 'waking' | 'timeout') => void;
  *   signal?: AbortSignal;
  * }} [options]
@@ -59,49 +62,63 @@ export async function pollHealthUntilReady({
   maxDelayMs = DEFAULT_MAX_DELAY_MS,
   timeoutMs = DEFAULT_TIMEOUT_MS,
   backoffFactor = DEFAULT_BACKOFF_FACTOR,
+  checkingGraceMs = DEFAULT_CHECKING_GRACE_MS,
   onPhase,
   signal
 } = {}) {
   const startedAt = Date.now();
   let delayMs = initialDelayMs;
   let announcedWaking = false;
+  let settled = false;
+
+  const announceWaking = () => {
+    if (announcedWaking || settled) return;
+    announcedWaking = true;
+    onPhase?.('waking');
+  };
+
+  const finish = (result) => {
+    settled = true;
+    clearTimeout(graceTimer);
+    return result;
+  };
 
   onPhase?.('checking');
+  const graceTimer = setTimeout(announceWaking, checkingGraceMs);
 
-  while (Date.now() - startedAt < timeoutMs) {
-    if (signal?.aborted) {
-      throw new DOMException('Cold start poll aborted', 'AbortError');
+  try {
+    while (Date.now() - startedAt < timeoutMs) {
+      if (signal?.aborted) {
+        throw new DOMException('Cold start poll aborted', 'AbortError');
+      }
+
+      try {
+        const response = await fetchImpl(healthUrl, {
+          method: 'GET',
+          cache: 'no-store',
+          credentials: 'same-origin',
+          signal
+        });
+
+        if (isHealthReadyResponse(response)) {
+          return finish({ ok: true, elapsedMs: Date.now() - startedAt });
+        }
+
+        announceWaking();
+      } catch {
+        announceWaking();
+      }
+
+      await sleep(delayMs, signal);
+      delayMs = Math.min(maxDelayMs, Math.round(delayMs * backoffFactor));
     }
 
-    try {
-      const response = await fetchImpl(healthUrl, {
-        method: 'GET',
-        cache: 'no-store',
-        credentials: 'same-origin',
-        signal
-      });
-
-      if (isHealthReadyResponse(response)) {
-        return { ok: true, elapsedMs: Date.now() - startedAt };
-      }
-
-      if (!announcedWaking) {
-        announcedWaking = true;
-        onPhase?.('waking');
-      }
-    } catch {
-      if (!announcedWaking) {
-        announcedWaking = true;
-        onPhase?.('waking');
-      }
-    }
-
-    await sleep(delayMs, signal);
-    delayMs = Math.min(maxDelayMs, Math.round(delayMs * backoffFactor));
+    onPhase?.('timeout');
+    return finish({ ok: false, elapsedMs: Date.now() - startedAt });
+  } catch (error) {
+    finish();
+    throw error;
   }
-
-  onPhase?.('timeout');
-  return { ok: false, elapsedMs: Date.now() - startedAt };
 }
 
 /**

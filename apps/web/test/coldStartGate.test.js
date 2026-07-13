@@ -64,6 +64,35 @@ describe('pollHealthUntilReady', () => {
     expect(phases).toContain('waking');
     expect(phases).toContain('timeout');
   });
+
+  it('shows waking copy while the first health fetch is still pending', async () => {
+    vi.useFakeTimers();
+    const phases = [];
+    let resolveFetch;
+    const fetchImpl = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+    );
+
+    const pollPromise = pollHealthUntilReady({
+      fetchImpl,
+      healthUrl: 'https://example.com/api/health',
+      checkingGraceMs: 15,
+      initialDelayMs: 5_000,
+      timeoutMs: 60_000,
+      onPhase: (phase) => phases.push(phase)
+    });
+
+    await vi.advanceTimersByTimeAsync(20);
+    expect(phases).toEqual(['checking', 'waking']);
+
+    resolveFetch({ ok: true });
+    const result = await pollPromise;
+    expect(result.ok).toBe(true);
+    vi.useRealTimers();
+  });
 });
 
 describe('isHealthReadyResponse', () => {

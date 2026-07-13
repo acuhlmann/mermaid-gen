@@ -66,6 +66,7 @@ function hideGate() {
 
 async function waitForServerReady() {
   ensureGateElement();
+  setGatePhase('checking');
 
   const runPoll = async () => {
     const result = await pollHealthUntilReady({ onPhase: setGatePhase });
