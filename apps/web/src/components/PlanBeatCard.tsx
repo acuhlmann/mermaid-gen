@@ -197,6 +197,7 @@ export default function PlanBeatCard({
   /** Run target slot — used only to label cross-mode source-context previews. */
   contentType?: ContentType | null;
 }) {
+  const { controls } = useUiCopy();
   const source = beat?.source === 'agent' ? 'agent' : 'server';
   const text = String(beat?.text ?? '').trim();
   if (!text) return null;
@@ -223,7 +224,7 @@ export default function PlanBeatCard({
       </span>
       <div className="insights-plan-card-body">
         <span className={`insights-plan-card-badge is-${source}`}>
-          {source === 'agent' ? 'Agent' : 'Plan'}
+          {source === 'agent' ? controls.planBeat.agent : controls.planBeat.plan}
         </span>
         {wholePreview ? (
           <div className="insights-plan-card-preview">

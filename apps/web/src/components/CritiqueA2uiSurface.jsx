@@ -11,12 +11,12 @@ function readCheckboxMask(root) {
   return [...root.querySelectorAll('input[type="checkbox"]')].map((el) => el.checked);
 }
 
-function findFixSelectedButton(root) {
+function findFixSelectedButton(root, label) {
   if (!root) return null;
+  const matchLabel = label?.trim();
   return (
-    [...root.querySelectorAll('button')].find(
-      (btn) => btn.textContent?.trim() === 'Fix selected'
-    ) ?? null
+    [...root.querySelectorAll('button')].find((btn) => btn.textContent?.trim() === matchLabel) ??
+    null
   );
 }
 
@@ -64,13 +64,13 @@ export default function CritiqueA2uiSurface({
 
   const syncFixSelectedDisabled = useCallback(() => {
     const root = rootRef.current;
-    const fixSelectedBtn = findFixSelectedButton(root);
+    const fixSelectedBtn = findFixSelectedButton(root, controls.checklist.fixSelected);
     if (!fixSelectedBtn) return;
     const mask = readCheckboxMask(root);
     const anySelected = mask.some(Boolean);
     const isBusy = callbacksRef.current.busy;
     fixSelectedBtn.disabled = isBusy || !anySelected;
-  }, []);
+  }, [controls.checklist.fixSelected]);
 
   useLayoutEffect(() => {
     const p = processorRef.current;

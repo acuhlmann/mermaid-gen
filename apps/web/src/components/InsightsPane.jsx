@@ -58,15 +58,6 @@ const SLOPITECT_VARIANT_CLASS = {
 const TIP_ROTATION_MS = 7000;
 const PERSONA_QUOTE_ROTATION_MS = 3200;
 
-const VARIANT_ACTION_LABELS = {
-  refine: 'Refine',
-  innovate: 'Innovate',
-  goMad: 'Go Mad',
-  critique: 'Critique',
-  explain: 'Explain',
-  exec: 'Exec'
-};
-
 /** Streaming UI for agent runs: extend `applyAgentStreamInsightEvent` + `InsightsPane` entries for new phases; add A2UI via shared builders + `createLegacyA2uiStreamEvent` (see `critiqueA2uiMessages.js`). */
 
 const BOTTOM_SNAP_THRESHOLD_PX = 72;
@@ -384,18 +375,24 @@ function EntryStatusIcon({ status, variant }) {
   return <IconThinking />;
 }
 
-const CONTENT_TYPE_META = {
-  mermaid: { label: 'Mermaid', emoji: '🧜‍♀️' },
-  infographic: { label: 'Infographic', Icon: AntVModeIcon },
-  metaphor3d: { label: '3D', Icon: ThreeJsModeIcon },
-  chart: { label: 'Chart', Icon: VegaLiteModeIcon },
-  anything: { label: 'Anything', emoji: '🪄' }
-};
+function contentTypeMeta(controls) {
+  const m = controls.contentModes;
+  return {
+    mermaid: { label: m.mermaidShort, emoji: '🧜‍♀️' },
+    infographic: { label: m.infographicShort, Icon: AntVModeIcon },
+    metaphor3d: { label: m.metaphor3dShort, Icon: ThreeJsModeIcon },
+    chart: { label: m.chartShort, Icon: VegaLiteModeIcon },
+    anything: { label: m.anythingShort, emoji: '🪄' }
+  };
+}
 
-const MODEL_PROFILE_META = {
-  fast: { label: 'Fast', emoji: '⚡' },
-  quality: { label: 'Quality', emoji: '🧠' }
-};
+function modelProfileMeta(controls) {
+  const s = controls.settings;
+  return {
+    fast: { label: s.fast, emoji: '⚡' },
+    quality: { label: s.quality, emoji: '🧠' }
+  };
+}
 
 function formatElapsedDuration(ms) {
   if (!Number.isFinite(ms) || ms < 0) return '';
@@ -424,8 +421,10 @@ function useElapsedNow(running) {
 
 function EntryRunMeta({ entry }) {
   const { controls } = useUiCopy();
-  const contentMeta = entry?.contentType ? CONTENT_TYPE_META[entry.contentType] : null;
-  const brainMeta = entry?.modelProfile ? MODEL_PROFILE_META[entry.modelProfile] : null;
+  const modeMeta = contentTypeMeta(controls);
+  const brainMetaMap = modelProfileMeta(controls);
+  const contentMeta = entry?.contentType ? modeMeta[entry.contentType] : null;
+  const brainMeta = entry?.modelProfile ? brainMetaMap[entry.modelProfile] : null;
   const startedAt = Number.isFinite(entry?.startedAt) ? entry.startedAt : null;
   const completedAt = Number.isFinite(entry?.completedAt) ? entry.completedAt : null;
   const isRunning = startedAt != null && completedAt == null;
@@ -436,7 +435,10 @@ function EntryRunMeta({ entry }) {
   return (
     <div className="insights-entry-meta" aria-label={controls.insights.runDetails}>
       {contentMeta ? (
-        <span className="insights-entry-meta-chip is-mode" title={`${contentMeta.label} mode`}>
+        <span
+          className="insights-entry-meta-chip is-mode"
+          title={`${contentMeta.label} ${controls.insights.modeSuffix}`}
+        >
           <span className="insights-entry-meta-emoji" aria-hidden="true">
             {contentMeta.Icon ? <contentMeta.Icon /> : contentMeta.emoji}
           </span>
@@ -444,7 +446,10 @@ function EntryRunMeta({ entry }) {
         </span>
       ) : null}
       {brainMeta ? (
-        <span className="insights-entry-meta-chip is-brain" title={`${brainMeta.label} brain`}>
+        <span
+          className="insights-entry-meta-chip is-brain"
+          title={`${brainMeta.label} ${controls.insights.brainSuffix}`}
+        >
           <span className="insights-entry-meta-emoji" aria-hidden="true">
             {brainMeta.emoji}
           </span>
@@ -1215,16 +1220,16 @@ export default function InsightsPane({
                         <AgentBadge origin={entry.origin} size="sm" />
                         <span className="insights-entry-note-variant">
                           {noteVariant === 'critique'
-                            ? 'Critique'
+                            ? controls.insights.critique
                             : noteVariant === 'suggestion'
-                              ? 'Suggestion'
-                              : 'Note'}
+                              ? controls.insights.suggestion
+                              : controls.insights.note}
                         </span>
                       </>
                     )}
                     {entry.origin?.agentName ? (
                       <span className="insights-entry-note-agent" title={entry.origin.agentName}>
-                        via {entry.origin.agentName}
+                        {controls.insights.via} {entry.origin.agentName}
                       </span>
                     ) : null}
                   </header>

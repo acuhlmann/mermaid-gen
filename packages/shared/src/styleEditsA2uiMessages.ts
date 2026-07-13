@@ -7,13 +7,28 @@ export const A2UI_STYLE_EDITS_SURFACE_ID = 'style-edits';
 
 export const ACTION_APPLY_STYLE_EDITS = 'archislop_applyStyleEdits';
 
+export type StyleEditsA2uiLabels = {
+  heading?: string;
+  apply?: string;
+};
+
+const DEFAULT_STYLE_LABELS: Required<StyleEditsA2uiLabels> = {
+  heading: 'Visual tweaks',
+  apply: 'Apply style tweaks'
+};
+
 /**
  * A2UI v0.9 messages for style edit cards (read-only rows + optional Apply).
  *
  * @param edits Parsed style edit rows from critique/style prose.
+ * @param labels Optional localized button/heading copy.
  */
-export function buildStyleEditsA2uiMessages(edits: StyleEdit[]): A2uiV09Message[] {
+export function buildStyleEditsA2uiMessages(
+  edits: StyleEdit[],
+  labels?: StyleEditsA2uiLabels
+): A2uiV09Message[] {
   if (!Array.isArray(edits) || edits.length === 0) return [];
+  const copy = { ...DEFAULT_STYLE_LABELS, ...labels };
 
   const rowIds = edits.map((_, i) => `row_${i}`);
   const components: Array<Record<string, unknown>> = [
@@ -22,10 +37,10 @@ export function buildStyleEditsA2uiMessages(edits: StyleEdit[]): A2uiV09Message[
       component: 'Column',
       children: ['hdr', 'rows_col', 'div1', 'btn_apply']
     },
-    { id: 'hdr', component: 'Text', text: 'Visual tweaks', variant: 'h3' },
+    { id: 'hdr', component: 'Text', text: copy.heading, variant: 'h3' },
     { id: 'rows_col', component: 'Column', children: rowIds },
     { id: 'div1', component: 'Divider' },
-    { id: 'btn_apply_txt', component: 'Text', text: 'Apply style tweaks', variant: 'body' },
+    { id: 'btn_apply_txt', component: 'Text', text: copy.apply, variant: 'body' },
     {
       id: 'btn_apply',
       component: 'Button',

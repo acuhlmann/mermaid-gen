@@ -54,7 +54,10 @@ export default function LiveRunHud({ variant, streaming = false, streak = 0 }) {
       <span className="live-run-hud-label">{variantLabel}</span>
       <span className="live-run-hud-clock">{formatElapsed(elapsedMs)}</span>
       {streak >= 2 ? (
-        <span className="live-run-hud-streak" title={`${variantLabel} streak`}>
+        <span
+          className="live-run-hud-streak"
+          title={`${variantLabel} ${controls.gamificationHud.streak}`}
+        >
           🔥 ×{streak}
         </span>
       ) : null}

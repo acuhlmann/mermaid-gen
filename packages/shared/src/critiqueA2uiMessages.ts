@@ -15,21 +15,38 @@ export const A2UI_CRITIQUE_SURFACE_ID = 'critique-actionables';
 const ACTION_FIX_ALL = 'archislop_fixAll';
 const ACTION_FIX_SELECTED = 'archislop_fixSelected';
 
+export type CritiqueA2uiLabels = {
+  heading?: string;
+  fixSelected?: string;
+  fixAll?: string;
+};
+
+const DEFAULT_LABELS: Required<CritiqueA2uiLabels> = {
+  heading: 'Actionable improvements',
+  fixSelected: 'Fix selected',
+  fixAll: 'Fix all'
+};
+
 /**
  * Builds A2UI v0.9 messages for the "## Actionable …" checklist + Fix controls.
  * Returns [] when the critique has no actionable section (same gate as legacy UI).
  *
  * @param {string} critiqueMarkdown
+ * @param {CritiqueA2uiLabels} [labels]
  * @returns {object[]}
  */
-export function buildCritiqueActionableA2uiMessages(critiqueMarkdown: string | null | undefined) {
+export function buildCritiqueActionableA2uiMessages(
+  critiqueMarkdown: string | null | undefined,
+  labels?: CritiqueA2uiLabels
+) {
+  const copy = { ...DEFAULT_LABELS, ...labels };
   const split = splitCritiqueActionableSections(critiqueMarkdown);
   if (!split.hasSection || split.items.length === 0) return [];
 
   const items = split.items;
   const n = items.length;
   const checksChildren = items.map((_, i) => `cb_${i}`);
-  const heading = split.headingText?.trim() || 'Actionable improvements';
+  const heading = split.headingText?.trim() || copy.heading;
 
   const checksData = items.map((label) => ({ label, value: false }));
 
@@ -70,7 +87,7 @@ export function buildCritiqueActionableA2uiMessages(critiqueMarkdown: string | n
   }
 
   components.push(
-    { id: 'btn_fix_sel_txt', component: 'Text', text: 'Fix selected', variant: 'body' },
+    { id: 'btn_fix_sel_txt', component: 'Text', text: copy.fixSelected, variant: 'body' },
     {
       id: 'btn_fix_sel',
       component: 'Button',
@@ -78,7 +95,7 @@ export function buildCritiqueActionableA2uiMessages(critiqueMarkdown: string | n
       variant: 'default',
       action: { event: { name: ACTION_FIX_SELECTED, context: {} } }
     },
-    { id: 'btn_fix_all_txt', component: 'Text', text: 'Fix all', variant: 'body' },
+    { id: 'btn_fix_all_txt', component: 'Text', text: copy.fixAll, variant: 'body' },
     {
       id: 'btn_fix_all',
       component: 'Button',

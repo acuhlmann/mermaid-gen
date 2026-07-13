@@ -312,7 +312,10 @@ export const CONTROLS_EN = {
     clearHighlights: 'Clear canvas highlights',
     highlightedChanges: 'Highlighted changes on canvas',
     removedFromDiagram: 'Removed from diagram: {ids}',
-    rawStreamEvents: 'Raw stream events ({count})'
+    rawStreamEvents: 'Raw stream events ({count})',
+    via: 'via',
+    modeSuffix: 'mode',
+    brainSuffix: 'brain'
   },
   editor: {
     doneEditing: 'Done editing',
@@ -354,7 +357,33 @@ export const CONTROLS_EN = {
     formFailed: 'This form could not be rendered.'
   },
   fullscreen: {
+    enter: 'Enter fullscreen',
     exit: 'Exit fullscreen'
+  },
+  advisorThinking: {
+    refine: 'is polishing',
+    innovate: 'is disrupting',
+    goMad: 'IS LOSING IT',
+    critique: 'is auditing',
+    explain: 'is musing',
+    default: 'is thinking'
+  },
+  planBeat: {
+    agent: 'Agent',
+    plan: 'Plan'
+  },
+  gamificationHud: {
+    bonus: 'bonus',
+    streak: 'streak',
+    combo: 'COMBO',
+    levelUp: 'LEVEL UP',
+    lvlPrefix: 'Lvl',
+    max: 'MAX'
+  },
+  brand: {
+    totalSlopRuns: '{count} total slop runs',
+    tapToShowXp: 'tap to show XP',
+    tapToHideXp: 'tap to hide XP'
   },
   presence: {
     connected: 'Connected external agents',

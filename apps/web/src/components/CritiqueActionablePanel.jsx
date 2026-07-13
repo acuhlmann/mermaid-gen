@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { buildCritiqueActionableA2uiMessages } from '@archislop/shared';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 import CritiqueA2uiSurface from './CritiqueA2uiSurface.jsx';
 import CritiqueActionableChecklist from './CritiqueActionableChecklist.jsx';
 
@@ -16,12 +17,18 @@ export default function CritiqueActionablePanel({
   onFixAll,
   onFixSelected
 }) {
+  const { controls } = useUiCopy();
   const [a2uiUnavailable, setA2uiUnavailable] = useState(false);
   const handleA2uiUnavailable = useCallback(() => setA2uiUnavailable(true), []);
-  const messages = useMemo(() => {
-    if (Array.isArray(a2uiMessages) && a2uiMessages.length > 0) return a2uiMessages;
-    return buildCritiqueActionableA2uiMessages(critiqueText);
-  }, [a2uiMessages, critiqueText]);
+  const messages = useMemo(
+    () =>
+      buildCritiqueActionableA2uiMessages(critiqueText, {
+        heading: controls.insights.actionableImprovements,
+        fixSelected: controls.checklist.fixSelected,
+        fixAll: controls.checklist.fixAll
+      }),
+    [critiqueText, controls]
+  );
 
   if (a2uiUnavailable || !messages.length) {
     return (

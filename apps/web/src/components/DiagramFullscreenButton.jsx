@@ -1,3 +1,5 @@
+import { useUiCopy } from '../i18n/useUiLocale.js';
+
 function FullscreenEnterIcon() {
   return (
     <svg
@@ -45,12 +47,14 @@ export default function DiagramFullscreenButton({
   disabled = false,
   onToggle
 }) {
+  const { controls } = useUiCopy();
+  const label = isFullscreen ? controls.fullscreen.exit : controls.fullscreen.enter;
   return (
     <button
       type="button"
       className="diagram-fullscreen-btn"
-      title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-      aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+      title={label}
+      aria-label={label}
       aria-pressed={isFullscreen}
       disabled={disabled}
       onClick={() => {
