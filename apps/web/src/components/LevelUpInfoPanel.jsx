@@ -188,6 +188,22 @@ export default function LevelUpInfoPanel({
         </div>
       </header>
 
+      {costTrackingEnabled ? (
+        <section
+          className={`levelup-info-section levelup-info-damage is-${damage.severity}`}
+          aria-label={panel.damageTitle ?? 'Stakeholder Damage Report'}
+          data-testid="levelup-damage-report"
+        >
+          <h3 className="levelup-info-section-title">{panel.damageTitle}</h3>
+          <p className="levelup-info-section-lede">{panel.damageLede}</p>
+          <div className="levelup-info-damage-hero">
+            <span className="levelup-info-damage-amount">{damage.headline}</span>
+            <span className="levelup-info-damage-quip">{damage.quip}</span>
+          </div>
+          <p className="levelup-info-damage-footnote">{panel.damageFootnote}</p>
+        </section>
+      ) : null}
+
       <section className="levelup-info-section" aria-label={controls.insights.levelLadder}>
         <h3 className="levelup-info-section-title">{panel.ladderTitle}</h3>
         <ol className="levelup-info-ladder">
@@ -282,22 +298,6 @@ export default function LevelUpInfoPanel({
           <p className="levelup-info-empty">{panel.trophyEmpty}</p>
         )}
       </section>
-
-      {costTrackingEnabled ? (
-        <section
-          className={`levelup-info-section levelup-info-damage is-${damage.severity}`}
-          aria-label={panel.damageTitle ?? 'Stakeholder Damage Report'}
-          data-testid="levelup-damage-report"
-        >
-          <h3 className="levelup-info-section-title">{panel.damageTitle}</h3>
-          <p className="levelup-info-section-lede">{panel.damageLede}</p>
-          <div className="levelup-info-damage-hero">
-            <span className="levelup-info-damage-amount">{damage.headline}</span>
-            <span className="levelup-info-damage-quip">{damage.quip}</span>
-          </div>
-          <p className="levelup-info-damage-footnote">{panel.damageFootnote}</p>
-        </section>
-      ) : null}
 
       <aside className="levelup-info-tip" data-testid="levelup-info-tip">
         <span className="levelup-info-tip-label">{panel.tipLabel}</span>

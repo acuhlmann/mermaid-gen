@@ -90,7 +90,7 @@ describe('LevelUpInfoPanel', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('shows stakeholder damage report when cost tracking is enabled', () => {
+  it('shows stakeholder damage report near the top when cost tracking is enabled', () => {
     render(
       <LevelUpInfoPanel
         {...baseProps}
@@ -100,7 +100,11 @@ describe('LevelUpInfoPanel', () => {
       />
     );
     const panel = screen.getByTestId('levelup-info-panel');
-    expect(screen.getByTestId('levelup-damage-report')).toBeTruthy();
+    const damage = screen.getByTestId('levelup-damage-report');
+    const ladder = panel.querySelector('.levelup-info-ladder');
+    expect(damage).toBeTruthy();
+    expect(ladder).toBeTruthy();
+    expect(damage.compareDocumentPosition(ladder) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(panel.textContent).toContain('Stakeholder Damage Report');
     expect(panel.textContent).toMatch(/~\$1\.42/);
     expect(panel.textContent).toMatch(/Expense-report/i);

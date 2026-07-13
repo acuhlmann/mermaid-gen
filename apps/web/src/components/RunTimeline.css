@@ -97,6 +97,49 @@
   white-space: nowrap;
 }
 
+.run-timeline-run-cost {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.12rem;
+  padding: 0.22rem 0.48rem;
+  border: 1px solid rgba(128, 242, 221, 0.28);
+  border-radius: 0.55rem;
+  background: rgba(8, 48, 56, 0.42);
+  color: #d7fff8;
+  font-size: 0.68rem;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.run-timeline-run-cost.is-header {
+  width: fit-content;
+}
+
+.run-timeline-run-cost.is-footer {
+  margin-top: 0.08rem;
+  font-size: 0.64rem;
+}
+
+.run-timeline-run-cost-label {
+  color: rgba(215, 255, 248, 0.72);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.run-timeline-run-cost-value {
+  color: #9ef7e8;
+  font-size: 0.82rem;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
+}
+
+.run-timeline-run-cost.is-footer .run-timeline-run-cost-value {
+  font-size: 0.76rem;
+}
+
 .run-timeline-total {
   position: relative;
   z-index: 1;
@@ -676,8 +719,28 @@
 /* ---------- Terminal row ---------- */
 
 .run-timeline-terminal {
-  align-items: center;
+  align-items: flex-start;
   padding-bottom: 0.1rem;
+}
+
+.run-timeline-terminal-body {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.run-timeline-terminal .run-timeline-run-cost {
+  border-color: rgba(31, 157, 104, 0.22);
+  background: rgba(236, 253, 245, 0.92);
+  color: #065f46;
+}
+
+.run-timeline-terminal .run-timeline-run-cost-label {
+  color: rgba(6, 95, 70, 0.72);
+}
+
+.run-timeline-terminal .run-timeline-run-cost-value {
+  color: #047857;
 }
 
 .run-timeline-terminal .run-timeline-node {
