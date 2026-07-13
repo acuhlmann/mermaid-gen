@@ -271,8 +271,8 @@ export function createInitialDiagramState(contentType = 'mermaid'): DiagramState
     contentType === 'infographic' ||
     contentType === 'metaphor3d' ||
     contentType === 'chart' ||
-    contentType === 'anything' ||
-    contentType === 'forms'
+    contentType === 'forms' ||
+    contentType === 'anything'
   ) {
     return {
       revisionId: 0,
