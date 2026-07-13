@@ -130,7 +130,7 @@ Both Mermaid render errors and Anything load-phase errors take a **fast-path rep
 
 ```mermaid
 flowchart TB
-  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart · anything · forms"]
+  Session["Session activeContentType\nmermaid · infographic · metaphor3d · chart · forms · anything"]
   Session --> MS["mermaid slot\nrevisionId · diagramSource · styleConfig · history"]
   Session --> IS["infographic slot\nrevisionId · diagramSource · history"]
   Session --> MES["metaphor3d slot\nrevisionId · diagramSource · history"]

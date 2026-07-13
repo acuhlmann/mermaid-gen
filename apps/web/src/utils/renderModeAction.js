@@ -29,16 +29,16 @@ export function buildContentModeOptions(controls) {
       subtitle: m.chartSubtitle
     },
     {
-      id: 'anything',
-      label: m.anything,
-      shortLabel: m.anythingShort,
-      subtitle: m.anythingSubtitle
-    },
-    {
       id: 'forms',
       label: m.forms,
       shortLabel: m.formsShort,
       subtitle: m.formsSubtitle
+    },
+    {
+      id: 'anything',
+      label: m.anything,
+      shortLabel: m.anythingShort,
+      subtitle: m.anythingSubtitle
     }
   ];
 }

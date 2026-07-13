@@ -314,7 +314,7 @@ export function splitEmbeddedDiagramDsl(text, expectedKind = null) {
  * expectedKind), but no detector ever emits a `forms` split — forms content is
  * tool-authored JSON, never embedded in agent prose — so an expectedKind of
  * `forms` simply filters every candidate out (no embedded preview).
- * @typedef {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' | 'forms'} DiagramPreviewKind
+ * @typedef {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'forms' | 'anything'} DiagramPreviewKind
  */
 
 /**

@@ -1553,7 +1553,7 @@ export default function DiagramCanvas({
                 key={`forms-${rendererRefreshKey}`}
                 diagramSource={editorSource}
                 streamingPreview={streamingPreview}
-                busy={agentThinking}
+                busy={Boolean(streamingPreview || agentThinking)}
                 onFormSubmit={onFormSubmit}
               />
             ) : (

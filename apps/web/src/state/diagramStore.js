@@ -286,7 +286,7 @@ export function slotLastTopic(slot) {
   return typeof p === 'string' && p.trim() ? p.trim() : null;
 }
 
-export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything', 'forms'];
+export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart', 'forms', 'anything'];
 
 export function createEmptyCrossModeSyncMarkers() {
   return {
@@ -294,8 +294,8 @@ export function createEmptyCrossModeSyncMarkers() {
     infographic: null,
     metaphor3d: null,
     chart: null,
-    anything: null,
-    forms: null
+    forms: null,
+    anything: null
   };
 }
 
