@@ -113,6 +113,7 @@ export function useAdvisorOrchestrator(params) {
   const [isPinned, setIsPinned] = useState(false);
   const [activePersona, setActivePersona] = useState(null);
   const [thinkingPersona, setThinkingPersona] = useState(null);
+  const thinkingPersonaRef = useRef(null);
   const [suggestion, setSuggestion] = useState(null);
   const [suggestionKind, setSuggestionKind] = useState('suggestion');
   const [highlightIds, setHighlightIds] = useState([]);
@@ -165,6 +166,7 @@ export function useAdvisorOrchestrator(params) {
       activePersonaRef.current = null;
     }
     setThinkingPersona(null);
+    thinkingPersonaRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -181,6 +183,7 @@ export function useAdvisorOrchestrator(params) {
     setHighlightIds(entry.highlightIds ?? []);
     setArchitectDumbLevel(0);
     setThinkingPersona(null);
+    thinkingPersonaRef.current = null;
     suggestionFocusKeyRef.current = null;
   }, []);
 
@@ -286,10 +289,16 @@ export function useAdvisorOrchestrator(params) {
       }, SHOW_MS);
     }
 
+    /** @param {string | null} persona */
+    const setThinking = (persona) => {
+      thinkingPersonaRef.current = persona;
+      setThinkingPersona(persona);
+    };
+
     /** @param {number} gen */
     const abandonTick = (gen) => {
       if (!alive) {
-        setThinkingPersona(null);
+        setThinking(null);
         return true;
       }
       if (gen !== generation) return true;
@@ -321,7 +330,7 @@ export function useAdvisorOrchestrator(params) {
       const timeoutId = setTimeout(() => cancelInFlight('timeout'), SUGGEST_TIMEOUT_MS);
       // Visually announce who is about to speak — the UI shows "<persona> is
       // thinking…" until the fetch resolves and the real bubble takes over.
-      setThinkingPersona(persona);
+      setThinking(persona);
 
       try {
         const headers = { 'content-type': 'application/json' };
@@ -342,7 +351,7 @@ export function useAdvisorOrchestrator(params) {
         clearTimeout(timeoutId);
         if (abandonTick(gen)) return;
         if (!response.ok) {
-          setThinkingPersona(null);
+          setThinking(null);
           failureUntil = Date.now() + FAILURE_BACKOFF_MS;
           setError(`advisor ${response.status}`);
           scheduleNext(GAP_MS);
@@ -358,22 +367,27 @@ export function useAdvisorOrchestrator(params) {
         const kind = persona === 'explain' || rawKind === 'comment' ? 'comment' : 'suggestion';
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
-          setThinkingPersona(null);
+          setThinking(null);
           setActivePersona(null);
           scheduleNext(GAP_MS);
           return;
         }
         if (pinnedRef.current) {
           // Fetch finished after pin — keep the pinned bubble, skip rotation.
-          setThinkingPersona(null);
+          setThinking(null);
           return;
         }
         if (focusKeyRef.current !== focusKeyAtTick) {
-          // Focus moved while the LLM was thinking — discard this stale reply and
-          // immediately re-tick for the new focus so the bubble never flashes then vanishes.
-          setThinkingPersona(null);
-          scheduleNext(0);
-          return;
+          // Discard only when an explicit selection changed mid-flight — hover
+          // focus flickers constantly over the canvas and used to abort every
+          // completed reply, leaving thinking → blank → thinking with no bubble.
+          const tickSelected = String(focusKeyAtTick ?? '').startsWith('selected:');
+          const nowSelected = String(focusKeyRef.current ?? '').startsWith('selected:');
+          if (tickSelected || nowSelected) {
+            setThinking(null);
+            scheduleNext(0);
+            return;
+          }
         }
         const highlight =
           replyIds.length > 0 ? replyIds : focusId ? [focusId] : visibleIds.slice(0, 4);
@@ -390,9 +404,9 @@ export function useAdvisorOrchestrator(params) {
         setProposalHistoryRef.current?.(nextHistory);
         previousPersona = persona;
         setError(null);
-        setThinkingPersona(null);
         if (!atLiveEnd) {
           // User is browsing older proposals — queue the new one without swapping the bubble.
+          setThinking(null);
           const currentEntry = nextHistory.entries[nextHistory.index];
           if (currentEntry) {
             applyHistoryEntry(currentEntry);
@@ -403,6 +417,8 @@ export function useAdvisorOrchestrator(params) {
         // New suggestion clears any prior pin — each persona gets a fresh window.
         setIsPinned(false);
         pinnedRef.current = false;
+        // Set persona + suggestion BEFORE clearing thinking so the mascot never
+        // paints a blank gap between the thinking indicator and the speech bubble.
         setActivePersona(persona);
         activePersonaRef.current = persona;
         setArchitectDumbLevel(0);
@@ -412,6 +428,7 @@ export function useAdvisorOrchestrator(params) {
         suggestionShownAtRef.current = Date.now();
         setSuggestionKind(kind);
         setHighlightIds(highlight);
+        setThinking(null);
         startDismissTimer();
       } catch (err) {
         clearTimeout(timeoutId);
@@ -421,14 +438,14 @@ export function useAdvisorOrchestrator(params) {
           const reason = lastAbortReason;
           lastAbortReason = null;
           if (reason === 'timeout' && gen === generation) {
-            setThinkingPersona(null);
+            setThinking(null);
             failureUntil = Date.now() + FAILURE_BACKOFF_MS;
             setError('advisor timeout');
             scheduleNext(GAP_MS);
           }
           return;
         }
-        if (gen === generation) setThinkingPersona(null);
+        if (gen === generation) setThinking(null);
         failureUntil = Date.now() + FAILURE_BACKOFF_MS;
         setError(err?.message || 'advisor error');
         scheduleNext(GAP_MS);
@@ -566,11 +583,16 @@ export function useAdvisorOrchestrator(params) {
   // new part of the diagram, cancel any active bubble and trigger a fresh tick
   // targeting that focus. Hover debounces (avoid spam during rapid pointer
   // travel); click is near-instant (explicit intent).
+  //
+  // Hover must NOT cancel an in-flight think or a freshly shown bubble — pointer
+  // travel over the canvas would otherwise eat the speech bubble right after
+  // "is polishing…" resolves. Only explicit selection retargets aggressively.
   useEffect(() => {
     if (!focusKey) return undefined;
     if (mutedRef.current || pauseRef.current) return undefined;
     const debounce = focusSource === 'hover' ? HOVER_FOCUS_DEBOUNCE_MS : SELECT_FOCUS_DEBOUNCE_MS;
     const scheduledFocusKey = focusKey;
+    const scheduledFocusSource = focusSource;
     const id = setTimeout(() => {
       if (pinnedRef.current) return;
       // If the in-flight fetch already landed for this same focus while we were
@@ -592,6 +614,12 @@ export function useAdvisorOrchestrator(params) {
         Date.now() - suggestionShownAtRef.current < FOCUS_CLEAR_GRACE_MS
       ) {
         return;
+      }
+      // Hover retarget: if a suggestion is already on screen (past grace) or a
+      // think is in flight, leave it alone — only seed a tick when idle.
+      if (scheduledFocusSource === 'hover') {
+        if (suggestionRef.current && activePersonaRef.current) return;
+        if (thinkingPersonaRef.current) return;
       }
       cancelPendingRef.current?.();
       clearAdvisorSurface({ clearPersona: true });

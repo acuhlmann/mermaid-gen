@@ -72,13 +72,22 @@ export default function FormsRenderer({
   onFormSubmit
 }) {
   const { controls } = useUiCopy();
+  const lastGoodDocRef = useRef(null);
 
   const parsed = useMemo(() => {
     const source = diagramSource && diagramSource.trim() ? diagramSource : buildFormsSeedDoc();
     const result = parseFormsA2ui(source);
-    if (!result.ok) return { ok: false, error: result.error };
+    if (!result.ok) {
+      // During typewriter / draft flashes, incomplete JSON is expected — keep the
+      // last good form mounted instead of swapping to the error/"garbled" state.
+      if (streamingPreview && lastGoodDocRef.current) {
+        return { ok: true, doc: lastGoodDocRef.current, stale: true };
+      }
+      return { ok: false, error: result.error };
+    }
+    lastGoodDocRef.current = result.doc;
     return { ok: true, doc: result.doc };
-  }, [diagramSource]);
+  }, [diagramSource, streamingPreview]);
 
   // Live refs so the (stable) action handler always sees the current form + guards.
   const stateRef = useRef({ parsed, busy, streamingPreview, onFormSubmit });
@@ -117,6 +126,7 @@ export default function FormsRenderer({
 
   const [surfaces, setSurfaces] = useState([]);
   const [processError, setProcessError] = useState(null);
+  const lastProcessedDocRef = useRef(null);
 
   useLayoutEffect(() => {
     const p = processorRef.current;
@@ -124,24 +134,41 @@ export default function FormsRenderer({
     const subA = p.onSurfaceCreated(() => sync());
     const subB = p.onSurfaceDeleted(() => sync());
 
+    if (!parsed.ok) {
+      lastProcessedDocRef.current = null;
+      return () => {
+        subA.unsubscribe();
+        subB.unsubscribe();
+      };
+    }
+
+    // Skip remount when streaming is holding the previous good doc — reprocessing
+    // the same messages every incomplete JSON tick would flicker the form.
+    if (parsed.doc === lastProcessedDocRef.current) {
+      return () => {
+        subA.unsubscribe();
+        subB.unsubscribe();
+      };
+    }
+
     const existing = p.model.getSurface(FORMS_A2UI_SURFACE_ID);
     if (existing) p.model.deleteSurface(FORMS_A2UI_SURFACE_ID);
 
     setProcessError(null);
-    if (parsed.ok) {
-      try {
-        p.processMessages(parsed.doc.messages);
-        sync();
-        if (p.model.surfacesMap.size === 0) {
-          setProcessError('Form surface failed to mount after processing A2UI messages.');
-        }
-      } catch (err) {
-        // Validation already ran server-side; a runtime processing error here is rare
-        // but must surface — an empty canvas looks like a blank/broken mode.
-        console.error('FormsRenderer: A2UI processing failed', err);
-        setSurfaces([]);
-        setProcessError(err instanceof Error ? err.message : String(err));
+    try {
+      p.processMessages(parsed.doc.messages);
+      lastProcessedDocRef.current = parsed.doc;
+      sync();
+      if (p.model.surfacesMap.size === 0) {
+        setProcessError('Form surface failed to mount after processing A2UI messages.');
       }
+    } catch (err) {
+      // Validation already ran server-side; a runtime processing error here is rare
+      // but must surface — an empty canvas looks like a blank/broken mode.
+      console.error('FormsRenderer: A2UI processing failed', err);
+      setSurfaces([]);
+      lastProcessedDocRef.current = null;
+      setProcessError(err instanceof Error ? err.message : String(err));
     }
 
     return () => {

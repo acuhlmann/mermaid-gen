@@ -21,6 +21,7 @@ import {
 } from '../utils/infographicHitTest.js';
 import { buildChartDescriptorFromDomHit, findChartTapTarget } from '../utils/chartHitTest.js';
 import { formatChartDslForEditor } from '../utils/formatChartDsl.js';
+import { formatFormsA2uiForEditor } from '../utils/formatFormsA2ui.js';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
@@ -164,6 +165,7 @@ function resolveEditorPanelShortTitle(contentType) {
 
 function formatEditorSource(source, contentType) {
   if (contentType === 'chart') return formatChartDslForEditor(source);
+  if (contentType === 'forms') return formatFormsA2uiForEditor(source);
   return source ?? '';
 }
 

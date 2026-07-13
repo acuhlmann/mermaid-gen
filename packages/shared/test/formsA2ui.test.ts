@@ -171,3 +171,20 @@ test('parseFormsA2ui rejects invalid JSON and oversized documents', () => {
   assert.ok(!parseFormsA2ui('x'.repeat(FORMS_A2UI_MAX_LENGTH + 1)).ok);
   assert.ok(!parseFormsA2ui(42 as unknown as string).ok);
 });
+
+test('parseFormsA2ui serializes pretty-printed A2UI for the editor/slot', () => {
+  const r = parseFormsA2ui(validDoc());
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.match(r.text, /\n/);
+  assert.match(r.text, /"archislopFormsVersion": 1/);
+  // Round-trip the pretty form.
+  const again = parseFormsA2ui(r.text);
+  assert.ok(again.ok);
+});
+
+test('buildFormsSeedDoc returns formatted A2UI JSON', () => {
+  const seed = buildFormsSeedDoc();
+  assert.match(seed, /\n {2}"formTitle"/);
+  assert.ok(parseFormsA2ui(seed).ok);
+});

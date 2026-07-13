@@ -55,13 +55,18 @@ export default function StakeholdersMascot({
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
   const bubbleReady = Boolean(
-    bubbleProps?.persona &&
-    typeof bubbleProps.suggestion === 'string' &&
+    (bubbleProps?.persona || activeAdvisorVariant) &&
+    typeof bubbleProps?.suggestion === 'string' &&
     bubbleProps.suggestion.trim().length > 0
   );
   const thinkingDisplayPersona = thinkingPersona ?? activeAdvisorVariant;
+  // Keep the thinking indicator up until the speech bubble has both persona + text.
+  // Falling back to activeAdvisorVariant prevents a blank gap when suggestion
+  // text arrives a tick before persona is wired into bubbleProps.
   const showThinking = Boolean(thinkingDisplayPersona) && !bubbleReady;
-  const stagePersona = bubbleReady ? bubbleProps.persona : thinkingDisplayPersona;
+  const stagePersona = bubbleReady
+    ? (bubbleProps?.persona ?? activeAdvisorVariant)
+    : thinkingDisplayPersona;
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
   const wrapperRef = useRef(null);
@@ -134,7 +139,11 @@ export default function StakeholdersMascot({
       castDisabled={castDisabled}
     />
   ) : bubbleReady ? (
-    <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} />
+    <AdvisorSpeechBubble
+      {...bubbleProps}
+      persona={bubbleProps?.persona ?? activeAdvisorVariant}
+      castVariants={castVariants}
+    />
   ) : null;
   const hasFloatSurface = Boolean(introProps || advisorSurface);
 

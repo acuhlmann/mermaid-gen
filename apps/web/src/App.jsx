@@ -1490,8 +1490,12 @@ function ArchiSlop() {
     const reduceMotion =
       typeof globalThis.matchMedia === 'function' &&
       globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Forms A2UI is a single JSON document — character-sliced typewriter
+    // previews are invalid mid-stream and flash the error/"garbled" canvas.
+    // Apply the next form atomically (same as reduced-motion).
+    const skipTypewriter = reduceMotion || nextState.contentType === 'forms';
 
-    if (reduceMotion) {
+    if (skipTypewriter) {
       setState(nextState);
       setStreamingPreview(false);
       setLoading(false);
