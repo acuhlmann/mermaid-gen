@@ -282,10 +282,15 @@ export function parseFormsA2ui(source: unknown): ParseFormsA2uiResult {
     doc.agencyName = obj.agencyName.trim().slice(0, 120);
   }
 
+  const pretty = `${JSON.stringify(doc, null, 2)}\n`;
+  // Prefer readable A2UI in the slot/editor; fall back to compact only if pretty
+  // would exceed the byte cap (round-trip safety).
+  const serialized = pretty.length <= FORMS_A2UI_MAX_LENGTH ? pretty : JSON.stringify(doc);
+
   return {
     ok: true,
     doc,
-    text: JSON.stringify(doc),
+    text: serialized,
     meta: { componentCount, buttonCount, inputCount }
   };
 }
@@ -425,5 +430,5 @@ export function buildFormsSeedDoc(): string {
       }
     ]
   };
-  return JSON.stringify(doc);
+  return `${JSON.stringify(doc, null, 2)}\n`;
 }

@@ -654,6 +654,76 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestionKind).toBe('comment');
   });
 
+  it('does not wipe a thinking fetch when hover focus flickers', async () => {
+    mockPersonaPick('refine');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'refine',
+                suggestion: 'Rename the gateway node.',
+                highlightIds: ['A']
+              })
+            });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey
+                ? {
+                    id: focusKey.split(':')[1] || 'A',
+                    label: 'A',
+                    source: focusSource ?? 'hover'
+                  }
+                : null
+          })
+        ),
+      { initialProps: { focusKey: null, focusSource: null } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    // Pointer travel over nodes while the LLM is thinking — must not cancel.
+    rerender({ focusKey: 'hover:A', focusSource: 'hover' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+    expect(result.current.suggestion).toBeNull();
+
+    rerender({ focusKey: 'hover:B', focusSource: 'hover' });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(700);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('Rename the gateway node.');
+    expect(result.current.activePersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBeNull();
+  });
+
   it('keeps a fresh suggestion visible through immediate post-render focus churn', async () => {
     mockPersonaPick('explain');
     fetchMock.mockResolvedValue({

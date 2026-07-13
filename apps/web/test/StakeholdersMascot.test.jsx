@@ -105,6 +105,26 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
   });
 
+  it('uses activeAdvisorVariant when bubbleProps.persona is briefly missing', () => {
+    const bubbleProps = {
+      persona: null,
+      suggestion: 'Ship the comment even if persona wiring lags a tick.',
+      kind: 'comment',
+      onDismiss: vi.fn()
+    };
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        activeAdvisorVariant="refine"
+        thinkingPersona={null}
+        bubbleProps={bubbleProps}
+      />
+    );
+    expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
+    expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
+    expect(screen.getByText(/Ship the comment/i)).toBeTruthy();
+  });
+
   it('does not render the first-run spotlight without introProps', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />);
     expect(screen.queryByTestId('stakeholder-intro-spotlight')).toBeNull();

@@ -47,4 +47,24 @@ describe('FormsRenderer', () => {
     );
     await waitFor(() => expect(container.querySelector('.forms-error-state')).toBeTruthy());
   });
+
+  it('keeps the last good form during streamingPreview of incomplete JSON', async () => {
+    const good = buildFormsSeedDoc();
+    const { rerender, container } = render(
+      <FormsRenderer diagramSource={good} onFormSubmit={vi.fn()} />
+    );
+    expect(await screen.findByRole('button', { name: /Submit & Proceed/i })).toBeTruthy();
+
+    rerender(
+      <FormsRenderer
+        diagramSource='{"archislopFormsVersion":1,"formTitle":"Partial'
+        streamingPreview
+        onFormSubmit={vi.fn()}
+      />
+    );
+
+    // Incomplete JSON must not flash the error state while streaming.
+    expect(container.querySelector('.forms-error-state')).toBeNull();
+    expect(screen.getByRole('button', { name: /Submit & Proceed/i })).toBeTruthy();
+  });
 });
