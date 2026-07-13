@@ -21,8 +21,7 @@ type PairingEntry = {
 export type PairingResolveReason = 'invalid' | 'unknown' | 'expired' | 'exhausted';
 
 export type PairingResolveResult =
-  | { ok: true; sessionId: string }
-  | { ok: false; reason: PairingResolveReason };
+  { ok: true; sessionId: string } | { ok: false; reason: PairingResolveReason };
 
 export type PairingCodeStore = ReturnType<typeof createPairingCodeStore>;
 

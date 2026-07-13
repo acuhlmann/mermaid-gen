@@ -35,7 +35,7 @@ export function stripInvalidThemeKeys(text: string) {
   const out = [];
   let stripped = false;
 
-  for (let i = 0; i < lines.length; ) {
+  for (let i = 0; i < lines.length;) {
     const line = lines[i];
     const trimmed = line.trim();
     if (/^theme\s*$/i.test(trimmed) && leadingIndent(line) === 0) {

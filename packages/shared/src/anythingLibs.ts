@@ -106,8 +106,7 @@ export interface AnythingLibMarkerLintFailure {
 }
 
 export type AnythingLibMarkerLintResult =
-  | AnythingLibMarkerLintSuccess
-  | AnythingLibMarkerLintFailure;
+  AnythingLibMarkerLintSuccess | AnythingLibMarkerLintFailure;
 
 /**
  * Validate the `@lib:` markers themselves (the vendored source is trusted and

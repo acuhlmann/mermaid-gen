@@ -128,9 +128,7 @@ const SIMPLIFIED_MARKERS = new Set(SCRIPT_PAIRS.map(([s]) => s));
 const TRADITIONAL_MARKERS = new Set(SCRIPT_PAIRS.map(([, t]) => t));
 
 export type PromptLanguageHint =
-  | 'Simplified Chinese (zh-CN)'
-  | 'Traditional Chinese (zh-TW)'
-  | 'Chinese (zh)';
+  'Simplified Chinese (zh-CN)' | 'Traditional Chinese (zh-TW)' | 'Chinese (zh)';
 
 function classifyChineseVariant(text: string): PromptLanguageHint {
   let simplified = 0;

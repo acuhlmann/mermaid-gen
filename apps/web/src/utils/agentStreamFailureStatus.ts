@@ -1,12 +1,7 @@
 import { extractLastValidationError } from '@archislop/shared';
 
 export type AgentStreamFailureClass =
-  | 'syntax_exhausted'
-  | 'no_patch'
-  | 'stale_revision'
-  | 'timeout'
-  | 'network'
-  | 'generic';
+  'syntax_exhausted' | 'no_patch' | 'stale_revision' | 'timeout' | 'network' | 'generic';
 
 const MAX_DETAIL_LENGTH = 240;
 

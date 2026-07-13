@@ -51,9 +51,7 @@ export type DiagramDiffSummary = {
   linesChanged: number;
   unified: { kind: string; text: string }[];
   graphDiff:
-    | ReturnType<typeof buildMermaidGraphDiff>
-    | ReturnType<typeof diffInfographicSources>
-    | null;
+    ReturnType<typeof buildMermaidGraphDiff> | ReturnType<typeof diffInfographicSources> | null;
   nodesAdded: string[];
   nodesRemoved: string[];
   nodesUnchanged: number;
