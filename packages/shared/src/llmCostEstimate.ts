@@ -200,6 +200,16 @@ export function formatRunEstimatedCostUsd(usd: number): string {
   return `~${Math.max(0.01, Math.ceil(cents * 100) / 100)}¢ est.`;
 }
 
+/**
+ * Lifetime total for the Slopitect damage report — same cent-aware precision as
+ * per-run totals so summed micro-fees do not collapse to ~$0.00.
+ */
+export function formatLifetimeEstimatedCostUsd(usd: number): string {
+  const runLabel = formatRunEstimatedCostUsd(usd);
+  if (!runLabel) return '';
+  return runLabel.replace(/ est\.$/, '');
+}
+
 export type LifetimeLlmCostFlavor = {
   headline: string;
   quip: string;
@@ -216,7 +226,7 @@ export function lifetimeLlmCostFlavor(usd: number): LifetimeLlmCostFlavor {
       severity: 'idle'
     };
   }
-  const headline = formatEstimatedCostUsd(safe) || '~$0.00';
+  const headline = formatLifetimeEstimatedCostUsd(safe) || '~$0.00';
   if (safe < 0.05) {
     return {
       headline,

@@ -360,14 +360,14 @@ describe('App simplified controls', () => {
 
     render(<App />);
 
-    const chip = await screen.findByRole('button', { name: 'OAuth 2.0 flow' });
+    const chip = await screen.findByRole('button', { name: 'Coffee supply chain' });
     fireEvent.click(chip);
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
     expect(streamDiagramAgentMock).toHaveBeenCalledWith(
       expect.objectContaining({
         operation: 'intent',
-        prompt: 'Explain how the OAuth 2.0 authorization code flow works'
+        prompt: 'Break down the global coffee supply chain'
       }),
       expect.any(Function),
       expect.objectContaining({ signal: expect.any(AbortSignal) })

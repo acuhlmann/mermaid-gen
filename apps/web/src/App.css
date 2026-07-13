@@ -5077,8 +5077,10 @@
   /* Stakeholders dock: collapse the wrapper when idle so the mascot button sits in
      the row like its neighbors. When expanded, the wrap becomes the positioning
      anchor for the roster popover that floats UP onto the canvas — the row stays
-     put. Speech bubble/thinking overlay the bar (see below). */
-  .prompt-actions--mobile .stakeholders-mascot-wrap:not(.is-menu-expanded) {
+     put. Speech bubble/thinking overlay the bar (see below). Keep a real box when
+     the intro spotlight or advisor bubble is floating so absolute children stay
+     anchored to the mascot. */
+  .prompt-actions--mobile .stakeholders-mascot-wrap:not(.is-menu-expanded):not(.has-float-surface) {
     display: contents;
   }
 
@@ -5473,6 +5475,13 @@
   box-shadow:
     0 0 0 3px rgba(37, 99, 235, 0.16),
     var(--control-shadow);
+}
+
+.topic-starter-chip.is-default {
+  border-style: solid;
+  border-color: rgba(37, 99, 235, 0.7);
+  background: rgba(37, 99, 235, 0.1);
+  font-weight: 600;
 }
 
 .topic-starter-chip:disabled {
@@ -12624,8 +12633,11 @@ body.slopitect-rainbow-tint::before {
 }
 
 .mode-reveal-chip.is-current {
-  border-style: dashed;
-  opacity: 0.7;
+  border-style: solid;
+  border-color: rgba(37, 99, 235, 0.7);
+  background: rgba(37, 99, 235, 0.1);
+  font-weight: 600;
+  opacity: 1;
 }
 
 .mode-reveal-dismiss {

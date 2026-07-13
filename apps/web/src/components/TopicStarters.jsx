@@ -15,14 +15,15 @@ export default function TopicStarters({ hint, ariaLabel, starters, busy = false,
     <div className="topic-starters" data-testid="topic-starters">
       {hint ? <p className="topic-starters-hint">{hint}</p> : null}
       <div className="topic-starters-chips" role="group" aria-label={ariaLabel}>
-        {items.map((item) => (
+        {items.map((item, index) => (
           <button
             key={item.label}
             type="button"
-            className="topic-starter-chip"
+            className={`topic-starter-chip${index === 0 ? ' is-default' : ''}`}
             disabled={busy}
             onClick={() => onPick?.(item.prompt)}
             title={item.prompt}
+            aria-pressed={index === 0}
           >
             {item.label}
           </button>

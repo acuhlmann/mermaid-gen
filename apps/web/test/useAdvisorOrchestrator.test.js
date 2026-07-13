@@ -654,6 +654,47 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestionKind).toBe('comment');
   });
 
+  it('keeps a fresh suggestion visible through immediate post-render focus churn', async () => {
+    mockPersonaPick('explain');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        persona: 'explain',
+        suggestion: 'Stakeholders have convened.',
+        highlightIds: [],
+        kind: 'comment'
+      })
+    });
+
+    const { result, rerender } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey ? { id: 'A', label: 'A', source: focusSource ?? 'selected' } : null
+          })
+        ),
+      { initialProps: { focusKey: null, focusSource: null } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toBe('Stakeholders have convened.');
+
+    rerender({ focusKey: 'selected:A', focusSource: 'selected' });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60);
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('Stakeholders have convened.');
+  });
+
   it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
     mockPersonaPick('explain');
     fetchMock

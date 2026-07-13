@@ -136,10 +136,15 @@ export default function StakeholdersMascot({
   ) : bubbleReady ? (
     <AdvisorSpeechBubble {...bubbleProps} castVariants={castVariants} />
   ) : null;
+  const hasFloatSurface = Boolean(introProps || advisorSurface);
 
   return (
     <div
-      className={['stakeholders-mascot-wrap', expanded ? 'is-menu-expanded' : '']
+      className={[
+        'stakeholders-mascot-wrap',
+        expanded ? 'is-menu-expanded' : '',
+        hasFloatSurface ? 'has-float-surface' : ''
+      ]
         .filter(Boolean)
         .join(' ')}
       ref={wrapperRef}
