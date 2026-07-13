@@ -7,7 +7,7 @@ Human-readable documentation split into focused pages so GitHub preview stays fa
 | [Quick start](quick-start.md)               | Install, run locally, health check, first diagram                    |
 | [Product & web UI](product.md)              | Vision, toolbar modes, Insights pane, Slopitect                      |
 | [System overview](system-overview.md)       | How web, server, and external agents connect; Gen UI layers          |
-| [Content types](content-types.md)           | Five slots: Mermaid, Infographic, Metaphor3D, Chart, Anything        |
+| [Content types](content-types.md)           | Six slots: Mermaid, Infographic, Metaphor3D, Chart, Anything, Forms  |
 | [Agents](agents.md)                         | Intent vs transform vs analysis; user-facing modes; interaction flow |
 | [Validation & repair](validation.md)        | Mermaid four-layer ladder, Infographic pipeline, session slots       |
 | [External agents (MCP)](external-agents.md) | Pairing, join flow, MCP Apps table, hybrid web workflow              |

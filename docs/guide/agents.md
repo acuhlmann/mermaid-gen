@@ -1,6 +1,6 @@
 # Agents
 
-Orchestration is **not** a separate workflow engine. It is **one or two LangChain agents per content type** (intent + optional transform, plus a shared read-only analysis path) over shared session state, wrapped in repair logic when patches fail validation. Five content types are dispatched: `mermaid`, `infographic`, `metaphor3d`, `chart`, and `anything`.
+Orchestration is **not** a separate workflow engine. It is **one or two LangChain agents per content type** (intent + optional transform, plus a shared read-only analysis path) over shared session state, wrapped in repair logic when patches fail validation. Six content types are dispatched: `mermaid`, `infographic`, `metaphor3d`, `chart`, `anything`, and `forms` (the one agent that authors A2UI JSON directly — see [Content types](content-types.md#forms) and [`architecture-a2ui.md`](../architecture-a2ui.md)).
 
 ## Dispatcher and agent services
 

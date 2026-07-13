@@ -18,7 +18,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 ## State
 
-**Slot.** One of the five independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (Vega-Lite wrapper), or `anything` (freeform HTML in a sandboxed iframe). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
+**Slot.** One of the six independent diagram canvases per session: `mermaid` (Mermaid text), `infographic` (AntV DSL), `metaphor3d` (spatial JSON DSL), `chart` (Vega-Lite wrapper), `anything` (freeform HTML in a sandboxed iframe), or `forms` (model-authored A2UI JSON rendered as interactive forms). Each slot has its own `diagramSource`, `revisionId`, and history. Switching the active slot in the UI does **not** touch the others. See [Content types](docs/guide/content-types.md).
 
 **`activeContentType`.** Session-level pointer at the currently-active [[slot]]. Defaults to `mermaid`; persisted in `localStorage` under `archislop:content-mode`.
 
@@ -44,7 +44,7 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **AG-UI.** Server-sent events on `agent-stream` (`POST /api/copilotkit/agent-stream`): tokens, tool calls, draft previews, final state. See `docs/architecture-ag-ui.md`. The shared emitter lives in `packages/shared/src/agentStreamEmitter.ts` and the wire constants in `agUiWireConstants.ts` / `agUiEventTypes.ts`.
 
-**A2UI.** A checklist rendering protocol used inside AG-UI `CUSTOM` events (name `"a2ui"`) when a critique includes `## Actionable …`. The model emits Markdown; the server builds A2UI v0.9 messages from it via `critiqueA2uiMessages.js`. The web surface is `CritiqueA2uiSurface.jsx` / `CritiqueActionableChecklist.jsx`.
+**A2UI.** An agent-to-UI rendering protocol (v0.9, `basicCatalog` allowlist) used two ways in ArchiSlop. **Server-built:** inside AG-UI `CUSTOM` events (name `"a2ui"`) when a critique includes `## Actionable …` — the model emits Markdown and the server builds the messages via `critiqueA2uiMessages.js` (surface: `CritiqueA2uiSurface.jsx`). **Model-authored:** the **Forms** slot, where the agent writes the A2UI document itself and it becomes the slot content, gated by `parseFormsA2ui` (surface: `FormsRenderer.jsx`). See [`docs/architecture-a2ui.md`](docs/architecture-a2ui.md) for the two-strategy split.
 
 **MCP Apps (SEP-1865).** Interactive HTML at `ui://archislop/*.html` returned by MCP tools (e.g. `propose_diagram_edit` returns `archislop/web-companion.html`). Hosts that don't support Apps (Cursor in some flows) fall back to text. Bundles in `apps/server/src/mcp/apps/`.
 

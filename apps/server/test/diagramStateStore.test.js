@@ -98,6 +98,53 @@ test('store applies infographic DSL via dispatcher', async () => {
   assert.equal(store.getSlot('mermaid').revisionId, 0);
 });
 
+test('store applies a valid forms A2UI document to the forms slot', async () => {
+  const store = createDiagramStateStore();
+  const { buildFormsSeedDoc } = await import('@archislop/shared');
+
+  const result = await store.applyDiagramSource({
+    contentType: 'forms',
+    diagramSource: buildFormsSeedDoc(),
+    reason: 'forms update'
+  });
+
+  assert.equal(result.accepted, true);
+  assert.equal(result.patch.contentType, 'forms');
+  assert.equal(result.state.styleConfig, null);
+  assert.equal(result.state.contentType, 'forms');
+  assert.equal(store.getSlot('forms').revisionId, 1);
+  assert.equal(store.getSlot('mermaid').revisionId, 0);
+  assert.equal(result.metadata.validator, 'forms-a2ui-allowlist');
+});
+
+test('store rejects a forms document with a disallowed component', async () => {
+  const store = createDiagramStateStore();
+
+  const result = await store.applyDiagramSource({
+    contentType: 'forms',
+    diagramSource: JSON.stringify({
+      archislopFormsVersion: 1,
+      formTitle: 'Bad form',
+      messages: [
+        { createSurface: {} },
+        {
+          updateComponents: {
+            components: [
+              { id: 'root', component: 'Column', children: ['x'] },
+              { id: 'x', component: 'ScriptTag' }
+            ]
+          }
+        }
+      ]
+    }),
+    reason: 'bad component'
+  });
+
+  assert.equal(result.accepted, false);
+  assert.match(result.error, /ScriptTag/);
+  assert.equal(store.getSlot('forms').revisionId, 0);
+});
+
 test('store rejects infographic DSL with unknown template', async () => {
   const store = createDiagramStateStore();
   const before = store.getSlot('infographic');

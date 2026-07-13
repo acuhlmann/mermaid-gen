@@ -144,7 +144,8 @@ export function isServerSessionPristine(session) {
     isSlotPristine(session.infographic) &&
     isSlotPristine(session.metaphor3d) &&
     isSlotPristine(session.chart) &&
-    isSlotPristine(session.anything)
+    isSlotPristine(session.anything) &&
+    isSlotPristine(session.forms)
   );
 }
 
@@ -178,7 +179,8 @@ export async function mintFreshServerSession() {
     syncClientDiagramState({ contentType: 'infographic', diagramSource: '', sessionId: targetId }),
     syncClientDiagramState({ contentType: 'metaphor3d', diagramSource: '', sessionId: targetId }),
     syncClientDiagramState({ contentType: 'chart', diagramSource: '', sessionId: targetId }),
-    syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: targetId })
+    syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: targetId }),
+    syncClientDiagramState({ contentType: 'forms', diagramSource: '', sessionId: targetId })
   ]);
   return targetId;
 }
@@ -236,11 +238,13 @@ export function normalizeFetchedSessionDiagram(payload) {
   const p = payload.metaphor3d;
   const c = payload.chart;
   const a = payload.anything;
+  const f = payload.forms;
   const activeFromPayload =
     payload.activeContentType === 'infographic' ||
     payload.activeContentType === 'metaphor3d' ||
     payload.activeContentType === 'chart' ||
-    payload.activeContentType === 'anything'
+    payload.activeContentType === 'anything' ||
+    payload.activeContentType === 'forms'
       ? payload.activeContentType
       : base.activeContentType;
   return {
@@ -251,7 +255,8 @@ export function normalizeFetchedSessionDiagram(payload) {
     metaphor3d:
       p && typeof p === 'object' && typeof p.diagramSource === 'string' ? p : base.metaphor3d,
     chart: c && typeof c === 'object' && typeof c.diagramSource === 'string' ? c : base.chart,
-    anything: a && typeof a === 'object' && typeof a.diagramSource === 'string' ? a : base.anything
+    anything: a && typeof a === 'object' && typeof a.diagramSource === 'string' ? a : base.anything,
+    forms: f && typeof f === 'object' && typeof f.diagramSource === 'string' ? f : base.forms
   };
 }
 
@@ -281,10 +286,17 @@ export function slotLastTopic(slot) {
   return typeof p === 'string' && p.trim() ? p.trim() : null;
 }
 
-export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything'];
+export const CONTENT_MODES = ['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything', 'forms'];
 
 export function createEmptyCrossModeSyncMarkers() {
-  return { mermaid: null, infographic: null, metaphor3d: null, chart: null, anything: null };
+  return {
+    mermaid: null,
+    infographic: null,
+    metaphor3d: null,
+    chart: null,
+    anything: null,
+    forms: null
+  };
 }
 
 export function siblingContentModes(contentMode) {
@@ -332,6 +344,9 @@ export function defaultModeSwitchPrompt(contentMode, peerMode = null) {
   if (contentMode === 'anything') {
     return 'Re-create the current diagram as an interactive freeform HTML page that brings the subject to life.';
   }
+  if (contentMode === 'forms') {
+    return 'Turn the current subject into the tediously bureaucratic intake form the corporate-IT process would spawn for it.';
+  }
   if (peerMode === 'metaphor3d') {
     return 'Convert the current 3D metaphor into an equivalent Mermaid architecture diagram.';
   }
@@ -340,6 +355,9 @@ export function defaultModeSwitchPrompt(contentMode, peerMode = null) {
   }
   if (peerMode === 'anything') {
     return 'Convert the current freeform page into an equivalent Mermaid architecture diagram.';
+  }
+  if (peerMode === 'forms') {
+    return 'Convert the current intake form into an equivalent Mermaid architecture diagram of the process it describes.';
   }
   return 'Convert the current infographic into an equivalent Mermaid architecture diagram.';
 }
@@ -352,7 +370,8 @@ export function isSlotCustomized(slot) {
     slot.contentType === 'infographic' ||
     slot.contentType === 'metaphor3d' ||
     slot.contentType === 'chart' ||
-    slot.contentType === 'anything'
+    slot.contentType === 'anything' ||
+    slot.contentType === 'forms'
       ? slot.contentType
       : 'mermaid';
   const trimmed = slot.diagramSource.trim();

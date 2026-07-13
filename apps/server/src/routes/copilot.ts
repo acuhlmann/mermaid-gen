@@ -842,13 +842,15 @@ export function createCopilotRouter({
     const metaphor3dRevision = stateStore.getSlot('metaphor3d').revisionId;
     const chartRevision = stateStore.getSlot('chart').revisionId;
     const anythingRevision = stateStore.getSlot('anything').revisionId;
+    const formsRevision = stateStore.getSlot('forms').revisionId;
     const pending = proposalStore.listPending({
       currentRevisionByContentType: {
         mermaid: mermaidRevision,
         infographic: infographicRevision,
         metaphor3d: metaphor3dRevision,
         chart: chartRevision,
-        anything: anythingRevision
+        anything: anythingRevision,
+        forms: formsRevision
       }
     });
     res.setHeader(SESSION_HEADER, sessionId);
@@ -1032,13 +1034,15 @@ export function createCopilotRouter({
     const metaphor3dRevision = stateStore.getSlot('metaphor3d').revisionId;
     const chartRevision = stateStore.getSlot('chart').revisionId;
     const anythingRevision = stateStore.getSlot('anything').revisionId;
+    const formsRevision = stateStore.getSlot('forms').revisionId;
     const pending = proposalStore.listPending({
       currentRevisionByContentType: {
         mermaid: mermaidRevision,
         infographic: infographicRevision,
         metaphor3d: metaphor3dRevision,
         chart: chartRevision,
-        anything: anythingRevision
+        anything: anythingRevision,
+        forms: formsRevision
       }
     });
     const { latestSeq } = eventBus.getSessionMeta(sessionId);

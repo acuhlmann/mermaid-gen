@@ -1,6 +1,6 @@
 # System overview
 
-The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **five independent slots** — Mermaid source, AntV Infographic DSL, Metaphor3D DSL JSON, Vega-Lite Chart DSL, and freeform Anything HTML — plus an `activeContentType` pointer.
+The browser owns the editor and renderer; the server owns authoritative diagram state, validation, and LLM calls. Each browser tab gets a stable `x-session-id` header so concurrent users do not share state. The server session carries **six independent slots** — Mermaid source, AntV Infographic DSL, Metaphor3D DSL JSON, Vega-Lite Chart DSL, freeform Anything HTML, and model-authored Forms A2UI — plus an `activeContentType` pointer.
 
 Three **parallel channels** serve different participants (guest-agent detail: [`docs/architecture-external-agents.md`](../architecture-external-agents.md)):
 
@@ -22,7 +22,7 @@ flowchart TB
     MCP["/mcp Streamable HTTP\n+ MCP Apps"]
     CK["CopilotKit runtime\n(AG-UI fallback)"]
     Reg["Session registry"]
-    SS[("Five-slot state\n+ proposals · presence")]
+    SS[("Six-slot state\n+ proposals · presence")]
     Dispatcher["DiagramAgentDispatcher"]
     MA[Mermaid agents]
     IA[Infographic agents]

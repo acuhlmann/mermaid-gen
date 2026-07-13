@@ -25,6 +25,7 @@ import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
 import AnythingRenderer from './AnythingRenderer.jsx';
+import FormsRenderer from './FormsRenderer.jsx';
 import DiagramRunFx from './DiagramRunFx.jsx';
 import { measureViewportForDiagram } from '../utils/diagramViewportFit.js';
 import { computeViewportFocusForChangeHighlight } from '../utils/focusDiagramHighlightIds.js';
@@ -139,6 +140,7 @@ function resolveEditorLanguage(contentType) {
   if (contentType === 'metaphor3d') return 'json';
   if (contentType === 'chart') return 'json';
   if (contentType === 'anything') return 'html';
+  if (contentType === 'forms') return 'json';
   return 'infographic';
 }
 
@@ -147,6 +149,7 @@ function resolveEditorPanelLabel(contentType) {
   if (contentType === 'metaphor3d') return '3D DSL editor';
   if (contentType === 'chart') return 'Chart DSL editor';
   if (contentType === 'anything') return 'HTML editor';
+  if (contentType === 'forms') return 'Forms A2UI editor';
   return 'Infographic DSL editor';
 }
 
@@ -155,6 +158,7 @@ function resolveEditorPanelShortTitle(contentType) {
   if (contentType === 'metaphor3d') return '3D DSL';
   if (contentType === 'chart') return 'Chart DSL';
   if (contentType === 'anything') return 'HTML';
+  if (contentType === 'forms') return 'Forms A2UI';
   return 'Infographic DSL';
 }
 
@@ -222,7 +226,9 @@ export default function DiagramCanvas({
   /** Ref to `.diagram-output` for fullscreen (button lives in App top-corner controls). */
   diagramSurfaceRef = null,
   /** True while the surface is in native fullscreen — gates the metaphor3d title/legend overlays. */
-  isFullscreen = false
+  isFullscreen = false,
+  /** Forms mode: fired when the user submits a form; App turns it into the next-form intent. */
+  onFormSubmit = null
 }) {
   const { controls } = useUiCopy();
   const { mounted: editorMounted, closing: editorClosing } = useDelayedUnmount(editorOpen, 240);
@@ -933,7 +939,8 @@ export default function DiagramCanvas({
 
   const handleWheel = useCallback(
     (event) => {
-      if (contentType === 'metaphor3d' || contentType === 'anything') return;
+      if (contentType === 'metaphor3d' || contentType === 'anything' || contentType === 'forms')
+        return;
       event.preventDefault();
       const rect = event.currentTarget.getBoundingClientRect();
       const pointerX = event.clientX - rect.left;
@@ -1163,7 +1170,8 @@ export default function DiagramCanvas({
   }
 
   function handlePointerDown(event) {
-    if (contentType === 'metaphor3d' || contentType === 'anything') return;
+    if (contentType === 'metaphor3d' || contentType === 'anything' || contentType === 'forms')
+      return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
 
     const rect = event.currentTarget.getBoundingClientRect();
@@ -1276,7 +1284,8 @@ export default function DiagramCanvas({
   }
 
   function handlePointerMove(event) {
-    if (contentType === 'metaphor3d' || contentType === 'anything') return;
+    if (contentType === 'metaphor3d' || contentType === 'anything' || contentType === 'forms')
+      return;
     const tap = tapCandidateRef.current;
     if (tap && tap.pointerId === event.pointerId) {
       if (!tap.passiveNativeText && !tap.passiveChartMark) {
@@ -1462,9 +1471,11 @@ export default function DiagramCanvas({
         ? 'Vega-Lite chart renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap a mark, axis, legend, or title to select. Press question mark for keyboard shortcuts.'
         : contentType === 'anything'
           ? 'Sandboxed page renderer. Interact with the page directly.'
-          : contentType === 'infographic'
-            ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
-            : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
+          : contentType === 'forms'
+            ? 'Interactive form renderer. Fill in the controls and submit to receive the next form.'
+            : contentType === 'infographic'
+              ? 'AntV Infographic renderer. Drag to pan from anywhere. Pinch or wheel to zoom. Tap an element to select. Press question mark for keyboard shortcuts.'
+              : 'Mermaid renderer. Drag to pan from anywhere including nodes, edges, and subgraphs. Pinch or wheel to zoom. Tap a node, edge, or subgraph to select. Press question mark for keyboard shortcuts.';
   const streamingLabel =
     contentType === 'infographic'
       ? 'Updating infographic…'
@@ -1474,7 +1485,9 @@ export default function DiagramCanvas({
           ? 'Updating chart…'
           : contentType === 'anything'
             ? 'Updating page…'
-            : 'Updating diagram…';
+            : contentType === 'forms'
+              ? 'Issuing next form…'
+              : 'Updating diagram…';
   const zoomLayerStyle = {
     transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.scale})`
   };
@@ -1485,7 +1498,7 @@ export default function DiagramCanvas({
         {ceremonySlot}
         <div
           ref={bindDiagramSurfaceRef}
-          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
+          className={`diagram-output${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}${contentType === 'forms' ? ' is-forms' : ''}${isPanning ? ' is-panning' : ''}${agentThinking ? ' is-agent-thinking' : ''}`}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endPointerGesture}
@@ -1510,7 +1523,7 @@ export default function DiagramCanvas({
           {displayedRenderError ? <p className="diagram-error">{displayedRenderError}</p> : null}
           <div
             ref={viewportRef}
-            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}`}
+            className={`diagram-viewport${revisionTransition ? ' is-revision-transition' : ''}${contentType === 'metaphor3d' ? ' is-metaphor3d' : ''}${contentType === 'chart' ? ' is-chart' : ''}${contentType === 'anything' ? ' is-anything' : ''}${contentType === 'forms' ? ' is-forms' : ''}`}
           >
             {contentType === 'metaphor3d' ? (
               <>
@@ -1532,6 +1545,16 @@ export default function DiagramCanvas({
                 diagramSource={editorSource}
                 streamingPreview={streamingPreview}
                 onRuntimeError={handleAnythingRuntimeError}
+              />
+            ) : contentType === 'forms' ? (
+              // The A2UI surface renders native form controls and owns its own
+              // scrolling — no pan/zoom transform layer over interactive inputs.
+              <FormsRenderer
+                key={`forms-${rendererRefreshKey}`}
+                diagramSource={editorSource}
+                streamingPreview={streamingPreview}
+                busy={agentThinking}
+                onFormSubmit={onFormSubmit}
               />
             ) : (
               <div ref={zoomLayerRef} className="diagram-zoom-layer" style={zoomLayerStyle}>

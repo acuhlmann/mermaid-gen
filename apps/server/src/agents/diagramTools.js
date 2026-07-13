@@ -263,6 +263,55 @@ export function createAnythingTools({ stateStore }) {
   return [getAnythingHtml, applyAnythingPatch, applyAnythingEdit];
 }
 
+export function createFormsTools({ stateStore }) {
+  const getFormsDoc = tool(
+    async () => {
+      const state = stateStore.getSlot('forms');
+      return JSON.stringify({
+        revisionId: state.revisionId,
+        diagramSource: state.diagramSource,
+        updatedAt: state.updatedAt
+      });
+    },
+    {
+      name: 'get_forms_doc',
+      description:
+        'Read the current forms document (a model-authored A2UI v0.9 JSON document rendered as an interactive form), including revision id and source.',
+      schema: z.object({})
+    }
+  );
+
+  const applyFormsPatch = tool(
+    async ({ diagramSource, reason }) => {
+      const result = await stateStore.applyDiagramSource({
+        contentType: 'forms',
+        diagramSource,
+        reason: reason || 'LangChain agent update'
+      });
+
+      return encodeApplyResult(result);
+    },
+    {
+      name: 'apply_forms_patch',
+      description:
+        'Validate and apply a complete forms document. The source is a JSON object you author directly: ' +
+        '{"archislopFormsVersion":1,"formTitle":"…","formCode":"…","messages":[…A2UI v0.9 messages…]}. ' +
+        'The messages array must contain exactly one createSurface message, then updateComponents (one ' +
+        'component MUST have id "root"), then updateDataModel with the initial field values. Only basic-catalog ' +
+        'components are allowed (Text, Column, Row, Card, Divider, TextField, CheckBox, ChoicePicker, Slider, ' +
+        'DateTimeInput, Button, Image, Icon, List, Tabs, Modal). Every Button needs action:{"event":{"name":"…"}} ' +
+        '(no functionCall). Include at least one input control and at least one Button. Returns {accepted, revisionId} ' +
+        'or {accepted:false, error}.',
+      schema: z.object({
+        diagramSource: z.string().min(1).describe('The full forms document as a JSON string.'),
+        reason: z.string().min(1).describe('Short reason for this update.')
+      })
+    }
+  );
+
+  return [getFormsDoc, applyFormsPatch];
+}
+
 export function createMetaphorTools({ stateStore }) {
   const getMetaphorDsl = tool(
     async () => {

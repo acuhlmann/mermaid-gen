@@ -7,16 +7,18 @@ flowchart LR
   Toggle -->|"contentType: metaphor3d"| ME["Metaphor3D slot\ndiagramSource = Metaphor DSL JSON"]
   Toggle -->|"contentType: chart"| CS["Chart slot\ndiagramSource = Vega-Lite DSL"]
   Toggle -->|"contentType: anything"| AS["Anything slot\ndiagramSource = freeform HTML/CSS/JS"]
+  Toggle -->|"contentType: forms"| FS["Forms slot\ndiagramSource = model-authored A2UI JSON"]
   MS --> MR["Mermaid.js renderer\n(SVG via JSDOM)"]
   IS --> IR["@antv/infographic renderer\n(InfographicRenderer.jsx)"]
   ME --> R3F["React Three Fiber renderer\n(MetaphorRenderer.jsx)"]
   CS --> VR["Vega-Embed renderer\n(ChartRenderer.jsx)"]
   AS --> AR["Sandboxed iframe renderer\n(AnythingRenderer.jsx)"]
+  FS --> FR["A2UI surface renderer\n(FormsRenderer.jsx)"]
 ```
 
-Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, or Anything service transparently; routes and stream events are otherwise identical from the client's perspective.
+Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, Anything, or Forms service transparently; routes and stream events are otherwise identical from the client's perspective.
 
-The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Mermaid, Infographic, and Metaphor3D** are persisted across page reloads; **Chart** and **Anything** modes are session-only (revert to Mermaid on reload).
+The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Mermaid, Infographic, and Metaphor3D** are persisted across page reloads; **Chart**, **Anything**, and **Forms** modes are session-only (revert to Mermaid on reload).
 
 ## metaphor3d kinds
 
@@ -86,5 +88,20 @@ Server-side validation is deterministic (`parseAnythingHtml` shape check, `lintA
 - Anything mode is **not persisted** in `localStorage` (diagram source is omitted from the client cache when active); a page reload returns to Mermaid.
 
 **MCP / external agents:** session state and MCP resources expose raw Anything HTML in JSON — in marker form (`@lib:` markers are NOT expanded; call `expandAnythingLibs` from `@archislop/shared/anythingLibVendor.js` if you must execute the page). Treat it as untrusted — never execute outside the same sandbox + CSP wrapper.
+
+## forms
+
+The `forms` slot is the one mode where an ArchiSlop agent **authors A2UI directly** — the slot's `diagramSource` is a model-written A2UI v0.9 document rendered as a live, interactive form. It is the app's corporate-IT-bureaucracy parody: endless, tedious intake forms. The user fills the controls; on submit, the agent issues the next (worse) form.
+
+This is deliberately the opposite of the **critique** A2UI checklist, where the model writes Markdown and the _server_ builds the A2UI deterministically. Here the model writes the UI JSON, so safety comes from a validation gate, not a builder. The full two-strategy comparison — including the trust table — is in [`architecture-a2ui.md`](../architecture-a2ui.md).
+
+The document is a JSON wrapper `{ archislopFormsVersion, formTitle, formCode?, messages: [...] }`. `parseFormsA2ui` (`packages/shared/src/formsA2ui.ts`) is the whole trust boundary: it enforces the `basicCatalog` component allowlist, requires every Button action to be an `event` (never a client `functionCall`), normalizes `surfaceId`/`catalogId` to fixed values, caps size/component/message counts, and requires at least one input and one Button. Every button, whatever its event name, collapses on the client to a single capability — capture the answers and ask for the next form — so a form can never route to a diagram edit or navigation.
+
+- Validation: `validateAndPrepareFormsPatch` in `apps/server/src/tools/formsA2uiTool.js` (wraps the shared parser; no A2UI runtime on the server).
+- Agent service: `apps/server/src/agents/formsLangChainAgent.js` (intent/transform/analyze; no Style support). Mutations use `apply_forms_patch`. Repair turns re-prompt with the exact validator error (bounded by `FORMS_REPAIR_MAX_ATTEMPTS`); there is no sanitizer or dedicated fixer model on day one.
+- System prompt: `apps/server/src/prompts/formsSystemPrompt.js` (the bureaucratic-parody voice + the A2UI authoring contract). Repair/analyze prompts: `formsSyntaxGuard.js`.
+- Renderer + submit loop: `apps/web/src/components/FormsRenderer.jsx` (`@a2ui/react` + `basicCatalog`; `onFormSubmit` → the next-form intent). The empty canvas shows a client-side seed form (`buildFormsSeedDoc`) so the gauntlet is interactive immediately.
+- The canvas disables pan/zoom in this mode — the A2UI surface owns scrolling and native form interaction (same treatment as `anything`).
+- Forms mode is **web-only and not persisted** in `localStorage`; a page reload returns to Mermaid, and MCP hosts do not render it.
 
 See also [Agents](agents.md) and [Validation & repair](validation.md).

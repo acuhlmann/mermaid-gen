@@ -4,75 +4,78 @@ Look up a concept here before grepping. Paths are repo-relative.
 
 ## Server
 
-| Concept                                                | File(s)                                                          |
-| ------------------------------------------------------ | ---------------------------------------------------------------- |
-| Server entrypoint, app wiring                          | `apps/server/src/index.js`                                       |
-| Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.ts`                              |
-| Advisor companion routes                               | `apps/server/src/routes/advisor.js`                              |
-| Diagram repair route (render-error fast path)          | `apps/server/src/routes/diagramRepair.js`                        |
-| Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`               |
-| Mermaid agent service                                  | `apps/server/src/agents/mermaidLangChainAgent.js`                |
-| Infographic agent service                              | `apps/server/src/agents/infographicLangChainAgent.js`            |
-| Metaphor3D agent service                               | `apps/server/src/agents/metaphorLangChainAgent.js`               |
-| Chart agent service                                    | `apps/server/src/agents/chartLangChainAgent.js`                  |
-| Anything agent service                                 | `apps/server/src/agents/anythingLangChainAgent.js`               |
-| Mermaid syntax fixer (single-shot, no tools)           | `apps/server/src/agents/mermaidSyntaxFixer.js`                   |
-| Infographic syntax fixer                               | `apps/server/src/agents/infographicSyntaxFixer.js`               |
-| Mermaid diagram-type rule packs                        | `apps/server/src/prompts/mermaidSyntaxGuard.js`                  |
-| Infographic rule packs                                 | `apps/server/src/prompts/infographicSyntaxGuard.js`              |
-| Anything design craft rule pack                        | `apps/server/src/prompts/anythingDesignGuide.js`                 |
-| Anything search/replace edit application               | `apps/server/src/agents/_lib/searchReplaceEdits.js`              |
-| Advisor prompts (Slopitect persona)                    | `apps/server/src/agents/advisorPrompts.js`                       |
-| Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.ts`                   |
-| Analyze finalize (critique / explain / style emits)    | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts`           |
-| AG-UI stream emitter + wire types (shared)             | `packages/shared/src/agentStreamEmitter.ts`, `agUiEventTypes.ts` |
-| LangGraph ReAct config knobs                           | `apps/server/src/agents/agentGraphConfig.js`                     |
-| LLM backend selection (Vertex / OpenRouter / DeepSeek) | `apps/server/src/agents/llmProvider.js`                          |
-| CopilotKit runtime wrapper                             | `apps/server/src/agents/copilotRuntimeAgent.js`                  |
-| Diagram tools registry (LangChain `Tool[]`)            | `apps/server/src/agents/diagramTools.js`                         |
-| Mermaid validate + sanitizer rescue tool               | `apps/server/src/tools/mermaidDiffTool.js`                       |
-| Infographic validate + sanitizer rescue tool           | `apps/server/src/tools/infographicDslTool.js`                    |
-| Chart validate + Vega-Lite compile tool                | `apps/server/src/tools/chartDslTool.js`                          |
-| Anything validate + policy/quality lint tool           | `apps/server/src/tools/anythingHtmlTool.js`                      |
-| Session services registry                              | `apps/server/src/state/sessionServices.js`                       |
-| Per-session diagram store (five slots)                 | `apps/server/src/state/diagramStateStore.ts`                     |
-| Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.ts`                       |
-| Pairing code store factory (in-memory / Redis)         | `apps/server/src/state/pairingCodeStoreFactory.js`               |
-| Agent token store                                      | `apps/server/src/state/agentTokenStore.js`                       |
-| MCP server + tool registration                         | `apps/server/src/mcp/mcpServer.js`                               |
-| MCP App HTML bundles (Gen UI)                          | `apps/server/src/mcp/apps/`                                      |
-| MCP rate limiting                                      | `apps/server/src/mcp/mcpRateLimit.js`                            |
-| Production CSP                                         | `apps/server/src/security/productionCsp.js`                      |
-| Invite token HMAC                                      | `apps/server/src/utils/inviteToken.js`                           |
-| Mermaid run-budget shared timer                        | `packages/shared/src/agentRunBudget.ts`                          |
-| Agent turn metrics emitter                             | `apps/server/src/metrics/agentTurnMetrics.js`                    |
+| Concept                                                | File(s)                                                                      |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| Server entrypoint, app wiring                          | `apps/server/src/index.js`                                                   |
+| Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.ts`                                          |
+| Advisor companion routes                               | `apps/server/src/routes/advisor.js`                                          |
+| Diagram repair route (render-error fast path)          | `apps/server/src/routes/diagramRepair.js`                                    |
+| Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`                           |
+| Mermaid agent service                                  | `apps/server/src/agents/mermaidLangChainAgent.js`                            |
+| Infographic agent service                              | `apps/server/src/agents/infographicLangChainAgent.js`                        |
+| Metaphor3D agent service                               | `apps/server/src/agents/metaphorLangChainAgent.js`                           |
+| Chart agent service                                    | `apps/server/src/agents/chartLangChainAgent.js`                              |
+| Anything agent service                                 | `apps/server/src/agents/anythingLangChainAgent.js`                           |
+| Forms agent service (model-authored A2UI)              | `apps/server/src/agents/formsLangChainAgent.js`                              |
+| Mermaid syntax fixer (single-shot, no tools)           | `apps/server/src/agents/mermaidSyntaxFixer.js`                               |
+| Infographic syntax fixer                               | `apps/server/src/agents/infographicSyntaxFixer.js`                           |
+| Mermaid diagram-type rule packs                        | `apps/server/src/prompts/mermaidSyntaxGuard.js`                              |
+| Infographic rule packs                                 | `apps/server/src/prompts/infographicSyntaxGuard.js`                          |
+| Anything design craft rule pack                        | `apps/server/src/prompts/anythingDesignGuide.js`                             |
+| Forms parody prompt + A2UI authoring contract          | `apps/server/src/prompts/formsSystemPrompt.js`, `formsSyntaxGuard.js`        |
+| Anything search/replace edit application               | `apps/server/src/agents/_lib/searchReplaceEdits.js`                          |
+| Advisor prompts (Slopitect persona)                    | `apps/server/src/agents/advisorPrompts.js`                                   |
+| Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.ts`                               |
+| Analyze finalize (critique / explain / style emits)    | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts`                       |
+| AG-UI stream emitter + wire types (shared)             | `packages/shared/src/agentStreamEmitter.ts`, `agUiEventTypes.ts`             |
+| LangGraph ReAct config knobs                           | `apps/server/src/agents/agentGraphConfig.js`                                 |
+| LLM backend selection (Vertex / OpenRouter / DeepSeek) | `apps/server/src/agents/llmProvider.js`                                      |
+| CopilotKit runtime wrapper                             | `apps/server/src/agents/copilotRuntimeAgent.js`                              |
+| Diagram tools registry (LangChain `Tool[]`)            | `apps/server/src/agents/diagramTools.js`                                     |
+| Mermaid validate + sanitizer rescue tool               | `apps/server/src/tools/mermaidDiffTool.js`                                   |
+| Infographic validate + sanitizer rescue tool           | `apps/server/src/tools/infographicDslTool.js`                                |
+| Chart validate + Vega-Lite compile tool                | `apps/server/src/tools/chartDslTool.js`                                      |
+| Anything validate + policy/quality lint tool           | `apps/server/src/tools/anythingHtmlTool.js`                                  |
+| Forms validate (A2UI allowlist parser)                 | `apps/server/src/tools/formsA2uiTool.js`, `packages/shared/src/formsA2ui.ts` |
+| Session services registry                              | `apps/server/src/state/sessionServices.js`                                   |
+| Per-session diagram store (six slots)                  | `apps/server/src/state/diagramStateStore.ts`                                 |
+| Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.ts`                                   |
+| Pairing code store factory (in-memory / Redis)         | `apps/server/src/state/pairingCodeStoreFactory.js`                           |
+| Agent token store                                      | `apps/server/src/state/agentTokenStore.js`                                   |
+| MCP server + tool registration                         | `apps/server/src/mcp/mcpServer.js`                                           |
+| MCP App HTML bundles (Gen UI)                          | `apps/server/src/mcp/apps/`                                                  |
+| MCP rate limiting                                      | `apps/server/src/mcp/mcpRateLimit.js`                                        |
+| Production CSP                                         | `apps/server/src/security/productionCsp.js`                                  |
+| Invite token HMAC                                      | `apps/server/src/utils/inviteToken.js`                                       |
+| Mermaid run-budget shared timer                        | `packages/shared/src/agentRunBudget.ts`                                      |
+| Agent turn metrics emitter                             | `apps/server/src/metrics/agentTurnMetrics.js`                                |
 
 ## Web
 
-| Concept                                                        | File(s)                                                                                                                                                                                                                                     |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Web entry                                                      | `apps/web/src/main.jsx`                                                                                                                                                                                                                     |
-| Root app component                                             | `apps/web/src/App.jsx`                                                                                                                                                                                                                      |
-| Mermaid / Infographic / Metaphor3D / Chart / Anything renderer | `apps/web/src/components/DiagramCanvas.jsx`, `apps/web/src/components/InfographicRenderer.jsx`, `apps/web/src/components/MetaphorRenderer.jsx`, `apps/web/src/components/ChartRenderer.jsx`, `apps/web/src/components/AnythingRenderer.jsx` |
-| Insights / Thinking pane                                       | `apps/web/src/components/InsightsPane.jsx`                                                                                                                                                                                                  |
-| Radial action menu (mobile)                                    | `apps/web/src/components/RadialActionMenu.jsx`                                                                                                                                                                                              |
-| Critique checklist (A2UI surface)                              | `apps/web/src/components/CritiqueA2uiSurface.jsx`, `apps/web/src/components/CritiqueActionableChecklist.jsx`                                                                                                                                |
-| Agent presence + handshake + proposal cards                    | `apps/web/src/components/AgentPresenceBar.jsx`, `AgentHandshakeDialog.jsx`, `AgentProposalCard.jsx`                                                                                                                                         |
-| Invite agent dialog (pairing code, QR, deeplinks)              | `apps/web/src/components/InviteAgentDialog.jsx`                                                                                                                                                                                             |
-| Slopitect companion overlays                                   | `apps/web/src/components/Slopitect*.jsx`, `LevelUpInfoPanel.jsx`, `RunCeremonyOverlays.jsx`, `StakeholdersMascot.jsx`                                                                                                                       |
-| Hotkey overlay                                                 | `apps/web/src/components/HotkeyOverlay.jsx`                                                                                                                                                                                                 |
-| Embedded diagram preview in insights                           | `apps/web/src/components/InsightsEmbeddedDiagram.jsx`                                                                                                                                                                                       |
-| Web store (intent / stream / sync / cache)                     | `apps/web/src/state/diagramStore.js`                                                                                                                                                                                                        |
-| Session-events SSE client                                      | `apps/web/src/state/sessionEventsClient.js`                                                                                                                                                                                                 |
-| AG-UI stream → insight mapper                                  | `apps/web/src/state/applyAgentStreamInsightEvent.ts`, `agUiTranslator.ts`                                                                                                                                                                   |
-| Run gamification store (XP, streaks)                           | `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                |
-| Mermaid render init / preview / source-locate                  | `apps/web/src/utils/mermaidRenderInit.js`, `renderMermaidPreview.js`, `mermaidSourceLocate.js`                                                                                                                                              |
-| Infographic hit-testing                                        | `apps/web/src/utils/infographicHitTest.js`                                                                                                                                                                                                  |
-| Diagram SVG selection + highlight                              | `apps/web/src/utils/diagramSvgSelection.js`, `applyDiagramHighlightToSvg.js`                                                                                                                                                                |
-| Agent chimes (audio)                                           | `apps/web/src/utils/agentChimes.js`                                                                                                                                                                                                         |
-| Advisor orchestration hook                                     | `apps/web/src/hooks/useAdvisorOrchestrator.js`                                                                                                                                                                                              |
-| Hotkey hook                                                    | `apps/web/src/hooks/useDiagramHotkeys.js`                                                                                                                                                                                                   |
-| Monaco language registration                                   | `apps/web/src/utils/registerMermaidMonacoOnce.js`, `registerInfographicMonacoOnce.js`                                                                                                                                                       |
+| Concept                                                                | File(s)                                                                                                                                                                                                                                                                                  |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web entry                                                              | `apps/web/src/main.jsx`                                                                                                                                                                                                                                                                  |
+| Root app component                                                     | `apps/web/src/App.jsx`                                                                                                                                                                                                                                                                   |
+| Mermaid / Infographic / Metaphor3D / Chart / Anything / Forms renderer | `apps/web/src/components/DiagramCanvas.jsx`, `apps/web/src/components/InfographicRenderer.jsx`, `apps/web/src/components/MetaphorRenderer.jsx`, `apps/web/src/components/ChartRenderer.jsx`, `apps/web/src/components/AnythingRenderer.jsx`, `apps/web/src/components/FormsRenderer.jsx` |
+| Insights / Thinking pane                                               | `apps/web/src/components/InsightsPane.jsx`                                                                                                                                                                                                                                               |
+| Radial action menu (mobile)                                            | `apps/web/src/components/RadialActionMenu.jsx`                                                                                                                                                                                                                                           |
+| Critique checklist (A2UI surface)                                      | `apps/web/src/components/CritiqueA2uiSurface.jsx`, `apps/web/src/components/CritiqueActionableChecklist.jsx`                                                                                                                                                                             |
+| Agent presence + handshake + proposal cards                            | `apps/web/src/components/AgentPresenceBar.jsx`, `AgentHandshakeDialog.jsx`, `AgentProposalCard.jsx`                                                                                                                                                                                      |
+| Invite agent dialog (pairing code, QR, deeplinks)                      | `apps/web/src/components/InviteAgentDialog.jsx`                                                                                                                                                                                                                                          |
+| Slopitect companion overlays                                           | `apps/web/src/components/Slopitect*.jsx`, `LevelUpInfoPanel.jsx`, `RunCeremonyOverlays.jsx`, `StakeholdersMascot.jsx`                                                                                                                                                                    |
+| Hotkey overlay                                                         | `apps/web/src/components/HotkeyOverlay.jsx`                                                                                                                                                                                                                                              |
+| Embedded diagram preview in insights                                   | `apps/web/src/components/InsightsEmbeddedDiagram.jsx`                                                                                                                                                                                                                                    |
+| Web store (intent / stream / sync / cache)                             | `apps/web/src/state/diagramStore.js`                                                                                                                                                                                                                                                     |
+| Session-events SSE client                                              | `apps/web/src/state/sessionEventsClient.js`                                                                                                                                                                                                                                              |
+| AG-UI stream → insight mapper                                          | `apps/web/src/state/applyAgentStreamInsightEvent.ts`, `agUiTranslator.ts`                                                                                                                                                                                                                |
+| Run gamification store (XP, streaks)                                   | `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                             |
+| Mermaid render init / preview / source-locate                          | `apps/web/src/utils/mermaidRenderInit.js`, `renderMermaidPreview.js`, `mermaidSourceLocate.js`                                                                                                                                                                                           |
+| Infographic hit-testing                                                | `apps/web/src/utils/infographicHitTest.js`                                                                                                                                                                                                                                               |
+| Diagram SVG selection + highlight                                      | `apps/web/src/utils/diagramSvgSelection.js`, `applyDiagramHighlightToSvg.js`                                                                                                                                                                                                             |
+| Agent chimes (audio)                                                   | `apps/web/src/utils/agentChimes.js`                                                                                                                                                                                                                                                      |
+| Advisor orchestration hook                                             | `apps/web/src/hooks/useAdvisorOrchestrator.js`                                                                                                                                                                                                                                           |
+| Hotkey hook                                                            | `apps/web/src/hooks/useDiagramHotkeys.js`                                                                                                                                                                                                                                                |
+| Monaco language registration                                           | `apps/web/src/utils/registerMermaidMonacoOnce.js`, `registerInfographicMonacoOnce.js`                                                                                                                                                                                                    |
 
 ## Shared (`packages/shared`)
 
@@ -117,7 +120,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | ------------------------------------- | ------------------------------------------------------------------- |
 | Guide index                           | `docs/guide/README.md`                                              |
 | Quick start, product, system overview | `docs/guide/quick-start.md`, `product.md`, `system-overview.md`     |
-| Content types (five slots)            | `docs/guide/content-types.md`                                       |
+| Content types (six slots)             | `docs/guide/content-types.md`                                       |
 | Agents, validation, MCP quick start   | `docs/guide/agents.md`, `validation.md`, `external-agents.md`       |
 | Config, API routes, development       | `docs/guide/configuration.md`, `api-endpoints.md`, `development.md` |
 | Coding agents (verification, PR)      | `docs/guide/coding-agents.md`                                       |

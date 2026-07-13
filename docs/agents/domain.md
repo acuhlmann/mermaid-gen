@@ -34,4 +34,4 @@ When output names a domain concept (issue title, refactor proposal, hypothesis, 
 
 If your output contradicts an existing ADR under `docs/decisions/`, surface it explicitly rather than silently overriding:
 
-> _Contradicts [0001 dual-slot](docs/decisions/0001-dual-slot-mermaid-infographic.md) (historical — session state now has five slots) — but worth reopening because…_
+> _Contradicts [0001 dual-slot](docs/decisions/0001-dual-slot-mermaid-infographic.md) (historical — session state now has six slots) — but worth reopening because…_

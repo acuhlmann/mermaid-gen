@@ -20,12 +20,14 @@ describe('renderModeAction helpers', () => {
       'AntV narrative layout',
       'Three.js spatial scene',
       'Vega-Lite data view',
-      'HTML/CSS/JS sandbox'
+      'HTML/CSS/JS sandbox',
+      'Endless A2UI intake forms'
     ]);
   });
 
   it('validates supported content modes', () => {
     expect(isContentMode('anything')).toBe(true);
+    expect(isContentMode('forms')).toBe(true);
     expect(isContentMode('slides')).toBe(false);
   });
 

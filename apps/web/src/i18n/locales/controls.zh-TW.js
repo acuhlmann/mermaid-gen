@@ -98,6 +98,9 @@ export const CONTROLS_ZH_TW = {
     anything: '任意頁面',
     anythingShort: '任意',
     anythingSubtitle: 'HTML/CSS/JS 沙箱',
+    forms: '表單',
+    formsShort: '表單',
+    formsSubtitle: '無盡的 A2UI 表單',
     anotherMode: '其他模式',
     renderMenu: '目標渲染模式'
   },
@@ -326,7 +329,8 @@ export const CONTROLS_ZH_TW = {
     dismiss: '關閉錯誤',
     details: '錯誤詳情',
     chartFailed: '圖表無法渲染。',
-    pageFailed: '頁面無法渲染。'
+    pageFailed: '頁面無法渲染。',
+    formFailed: '此表單無法渲染。'
   },
   fullscreen: {
     exit: '退出全螢幕'
