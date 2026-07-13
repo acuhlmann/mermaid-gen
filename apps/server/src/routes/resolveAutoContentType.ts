@@ -5,9 +5,9 @@
 
 import {
   AUTO_CONTENT_TYPE,
-  createLegacyContentTypeStreamEvent,
-  type ContentType,
-  type LegacyStreamEvent
+  AGUI_CUSTOM_NAME_CONTENT_TYPE,
+  customEvent,
+  type ContentType
 } from '@archislop/shared';
 import { inferContentTypeFromPrompt } from '../agents/inferContentType.js';
 
@@ -40,7 +40,7 @@ export async function resolveAutoIntentContentType<
   getSlot: (contentType: ContentType) => ResolvedSlotState;
   env?: NodeJS.ProcessEnv;
   abortSignal?: AbortSignal;
-  onResolved?: (evt: LegacyStreamEvent) => void;
+  onResolved?: (evt: ReturnType<typeof customEvent>) => void;
 }): Promise<T & { contentType: ContentType }> {
   if (payload.contentType !== AUTO_CONTENT_TYPE) {
     return payload as T & { contentType: ContentType };
@@ -53,7 +53,15 @@ export async function resolveAutoIntentContentType<
     abortSignal
   });
 
-  onResolved?.(createLegacyContentTypeStreamEvent({ contentType, reason }));
+  onResolved?.(
+    customEvent({
+      name: AGUI_CUSTOM_NAME_CONTENT_TYPE,
+      value: {
+        contentType,
+        ...(reason ? { reason } : {})
+      }
+    })
+  );
 
   const slot = getSlot(contentType);
   return {

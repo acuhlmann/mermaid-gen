@@ -7,12 +7,10 @@ import FormsRenderer from '../src/components/FormsRenderer.jsx';
 describe('FormsRenderer', () => {
   afterEach(() => cleanup());
 
-  it('renders the seed form when the slot is empty', async () => {
+  it('renders nothing when the slot is empty', () => {
     const { container } = render(<FormsRenderer diagramSource="" onFormSubmit={vi.fn()} />);
-    // The seed form has a text field, a choice picker, a consent checkbox, and a submit button.
-    expect(await screen.findByRole('button', { name: /Submit & Proceed/i })).toBeTruthy();
-    expect(screen.getByRole('checkbox')).toBeTruthy();
-    expect(container.querySelector('.forms-a2ui-surface-root')).toBeTruthy();
+    expect(container.querySelector('.forms-a2ui-surface-root')).toBeNull();
+    expect(container.querySelector('.forms-error-state')).toBeNull();
   });
 
   it('fires onFormSubmit with the form title and answers when a button is clicked', async () => {
