@@ -178,13 +178,11 @@ describe('applyAgentStreamInsightEvent model_call', () => {
       inputTokens: 1_000_000,
       outputTokens: 0
     });
-    expect(finalizeTechnicalActionResult).toHaveBeenCalledWith(
-      'sec-1',
-      'model_call',
-      expect.objectContaining({
-        outcomeDetail: expect.stringContaining('~$0.30')
-      })
-    );
+    expect(finalizeTechnicalActionResult).toHaveBeenCalledWith('sec-1', 'model_call', {
+      status: 'done',
+      toolCallId: 'run-99',
+      outcomeDetail: '1000000 tokens in · 0 tokens out'
+    });
     expect(entry.estimatedCostUsd).toBeCloseTo(0.3, 5);
   });
 
