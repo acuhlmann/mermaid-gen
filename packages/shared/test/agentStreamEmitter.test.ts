@@ -3,8 +3,10 @@ import assert from 'node:assert/strict';
 import { createAgentStreamEmitter } from '../src/agentStreamEmitter.js';
 import {
   AGUI_CUSTOM_NAME_A2UI,
+  AGUI_CUSTOM_NAME_CONTENT_TYPE,
   AGUI_CUSTOM_NAME_MODEL_CALL,
-  AGUI_CUSTOM_NAME_PLAN_BEAT
+  AGUI_CUSTOM_NAME_PLAN_BEAT,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE
 } from '../src/agUiWireConstants.js';
 
 test('createAgentStreamEmitter emit.planBeat maps to CUSTOM plan_beat', () => {
@@ -24,6 +26,28 @@ test('createAgentStreamEmitter emit.planBeat maps to CUSTOM plan_beat', () => {
     'Adding an auth boundary for the login flow.'
   );
   assert.equal((captured[0].value as Record<string, unknown>).source, 'agent');
+});
+
+test('createAgentStreamEmitter maps content_type legacy to CUSTOM content_type', () => {
+  const captured: Array<Record<string, unknown>> = [];
+  const emit = createAgentStreamEmitter({
+    rawEmit: (e) => captured.push(e),
+    threadId: 'thr_test',
+    runId: 'run_test',
+    contentType: 'mermaid'
+  });
+  emit({
+    type: LEGACY_STREAM_TYPE_CONTENT_TYPE,
+    contentType: 'chart',
+    reason: 'numeric comparison ask'
+  });
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].type, 'CUSTOM');
+  assert.equal(captured[0].name, AGUI_CUSTOM_NAME_CONTENT_TYPE);
+  assert.deepEqual(captured[0].value, {
+    contentType: 'chart',
+    reason: 'numeric comparison ask'
+  });
 });
 
 test('createAgentStreamEmitter emit.a2ui maps to CUSTOM a2ui', () => {

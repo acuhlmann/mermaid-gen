@@ -3,6 +3,7 @@ import type { LegacyStreamEvent } from './legacyStreamEvents.js';
 import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
+  AGUI_CUSTOM_NAME_CONTENT_TYPE,
   AGUI_CUSTOM_NAME_LEGACY,
   AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
@@ -11,6 +12,7 @@ import {
   AGUI_CUSTOM_NAME_SYNTAX_FIXER,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE,
   LEGACY_STREAM_TYPE_PLAN_BEAT,
   agUiDraftSourcePath,
   agUiRevisionPath
@@ -226,6 +228,20 @@ export function createAgentStreamEmitter({
         if (!text) return;
         const source = evt.source === 'agent' ? 'agent' : 'server';
         return rawEmit(customEvent({ name: AGUI_CUSTOM_NAME_PLAN_BEAT, value: { text, source } }));
+      }
+      case LEGACY_STREAM_TYPE_CONTENT_TYPE: {
+        const contentType = String(evt.contentType ?? '').trim();
+        if (!contentType) return;
+        const reason = typeof evt.reason === 'string' ? evt.reason.trim() : '';
+        return rawEmit(
+          customEvent({
+            name: AGUI_CUSTOM_NAME_CONTENT_TYPE,
+            value: {
+              contentType,
+              ...(reason ? { reason } : {})
+            }
+          })
+        );
       }
       case 'token': {
         const delta = typeof evt.text === 'string' ? evt.text : '';

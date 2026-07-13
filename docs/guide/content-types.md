@@ -1,5 +1,13 @@
 # Content types
 
+The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Auto**, **Mermaid**, **Infographic**, **Metaphor3D**, **Chart**, **Anything**, and **Forms** are all persisted across page reloads.
+
+## Auto mode
+
+**Auto** is a seventh picker option (not a seventh slot). On **Go** / intent only, the client sends `contentType: "auto"`. The server runs a fast LLM classifier (`apps/server/src/agents/inferContentType.ts`), emits an AG-UI `CUSTOM` event `content_type` with the chosen slot, then dispatches the usual per-slot agent against that slot's current revision. The web client switches the mode picker to the resolved slot and keeps it there for Refine / Critique / follow-ups. Transform and analyze reject `auto` on the wire — they need a concrete canvas.
+
+Chart vs infographic guidance in the classifier matches the product boundary: **chart** for data-driven marks/encodings; **infographic** for narrative KPI / story layouts.
+
 ```mermaid
 flowchart LR
   Toggle["Mode toggle\n(UI)"] -->|"contentType: mermaid"| MS["Mermaid slot\ndiagramSource = Mermaid text"]
@@ -8,6 +16,13 @@ flowchart LR
   Toggle -->|"contentType: chart"| CS["Chart slot\ndiagramSource = Vega-Lite DSL"]
   Toggle -->|"contentType: forms"| FS["Forms slot\ndiagramSource = model-authored A2UI JSON"]
   Toggle -->|"contentType: anything"| AS["Anything slot\ndiagramSource = freeform HTML/CSS/JS"]
+  Toggle -->|"contentType: auto"| Auto["LLM classifier\ninferContentType"]
+  Auto -->|"resolved slot"| MS
+  Auto --> IS
+  Auto --> ME
+  Auto --> CS
+  Auto --> FS
+  Auto --> AS
   MS --> MR["Mermaid.js renderer\n(SVG via JSDOM)"]
   IS --> IR["@antv/infographic renderer\n(InfographicRenderer.jsx)"]
   ME --> R3F["React Three Fiber renderer\n(MetaphorRenderer.jsx)"]
@@ -16,9 +31,7 @@ flowchart LR
   AS --> AR["Sandboxed iframe renderer\n(AnythingRenderer.jsx)"]
 ```
 
-Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher`. The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, Anything, or Forms service transparently; routes and stream events are otherwise identical from the client's perspective.
-
-The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Mermaid, Infographic, and Metaphor3D** are persisted across page reloads; **Chart**, **Anything**, and **Forms** modes are session-only (revert to Mermaid on reload).
+Each HTTP request and SSE payload carries `contentType`, which is forwarded from the UI to the `DiagramAgentDispatcher` (after Auto resolution when applicable). The dispatcher selects the Mermaid, Infographic, Metaphor3D, Chart, Anything, or Forms service transparently; routes and stream events are otherwise identical from the client's perspective.
 
 ## metaphor3d kinds
 

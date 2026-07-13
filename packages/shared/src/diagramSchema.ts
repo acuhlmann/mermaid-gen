@@ -15,9 +15,26 @@ export const ContentTypeSchema = z.enum([
 ]);
 
 /**
+ * Wire-level selection for intent/Go: real slots plus `auto` (server LLM picks a slot).
+ * Transform/analyze stay on `ContentTypeSchema` — they need a concrete canvas.
+ */
+export const ContentTypeSelectionSchema = z.enum([
+  'mermaid',
+  'infographic',
+  'metaphor3d',
+  'chart',
+  'forms',
+  'anything',
+  'auto'
+]);
+
+export const AUTO_CONTENT_TYPE = 'auto' as const;
+
+/**
  * Coerce an unknown value to a known ContentType, defaulting to 'mermaid'. Use this in
  * defensive ternaries that previously assumed a two-value union (mermaid|infographic);
  * adding a third type without this helper silently routed the new type to mermaid.
+ * `auto` is not a slot — callers that receive it should resolve before dispatch.
  */
 export function normalizeContentType(
   value: unknown
@@ -28,6 +45,13 @@ export function normalizeContentType(
   if (value === 'forms') return 'forms';
   if (value === 'anything') return 'anything';
   return 'mermaid';
+}
+
+/** True when the value is a real diagram slot (not the Auto picker sentinel). */
+export function isConcreteContentType(
+  value: unknown
+): value is z.infer<typeof ContentTypeSchema> {
+  return ContentTypeSchema.safeParse(value).success;
 }
 
 /**
@@ -150,7 +174,8 @@ export const DiagramIntentSchema = z
     revisionId: z.number().int().nonnegative(),
     /** Empty string is allowed when starting from a cleared canvas; agent applies a full diagram patch. */
     diagramSource: z.string(),
-    contentType: ContentTypeSchema.default('mermaid'),
+    /** Real slot or `auto` (server classifies before dispatch). */
+    contentType: ContentTypeSelectionSchema.default('mermaid'),
     settings: IntentSettingsSchema,
     focusNode: FocusNodeSchema.optional(),
     modelProfile: ModelProfileSchema.optional(),
@@ -159,6 +184,14 @@ export const DiagramIntentSchema = z
   })
   .superRefine((val, ctx) => {
     if (!val.peerContext) return;
+    if (val.contentType === AUTO_CONTENT_TYPE) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'peerContext is not allowed when contentType is auto',
+        path: ['peerContext']
+      });
+      return;
+    }
     if (val.peerContext.contentType === val.contentType) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -218,7 +251,8 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
       prompt: z.string().min(1),
       revisionId: z.number().int().nonnegative(),
       diagramSource: z.string(),
-      contentType: ContentTypeSchema.default('mermaid'),
+      /** Real slot or `auto` (server classifies before dispatch). */
+      contentType: ContentTypeSelectionSchema.default('mermaid'),
       settings: IntentSettingsSchema,
       focusNode: FocusNodeSchema.optional(),
       modelProfile: ModelProfileSchema.optional(),
@@ -227,6 +261,14 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
     })
     .superRefine((val, ctx) => {
       if (!val.peerContext) return;
+      if (val.contentType === AUTO_CONTENT_TYPE) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'peerContext is not allowed when contentType is auto',
+          path: ['peerContext']
+        });
+        return;
+      }
       if (val.peerContext.contentType === val.contentType) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -259,10 +301,30 @@ export const AgentStreamPayloadSchema = z.discriminatedUnion('operation', [
 ]);
 
 /** Style intents are supported by Mermaid and Chart slots. The route handler should reject
- *  contentType not in ('mermaid', 'chart'). */
-export const StyleIntentSchema = DiagramIntentSchema.extend({
-  stylePrompt: z.string().min(1).optional()
-});
+ *  contentType not in ('mermaid', 'chart'). Auto is not allowed — style needs a concrete canvas. */
+export const StyleIntentSchema = z
+  .object({
+    prompt: z.string().min(1),
+    revisionId: z.number().int().nonnegative(),
+    diagramSource: z.string(),
+    contentType: ContentTypeSchema.default('mermaid'),
+    settings: IntentSettingsSchema,
+    focusNode: FocusNodeSchema.optional(),
+    modelProfile: ModelProfileSchema.optional(),
+    peerContext: IntentPeerContextSchema.optional(),
+    transformPersona: TransformPersonaSchema.optional(),
+    stylePrompt: z.string().min(1).optional()
+  })
+  .superRefine((val, ctx) => {
+    if (!val.peerContext) return;
+    if (val.peerContext.contentType === val.contentType) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'peerContext.contentType must differ from intent contentType',
+        path: ['peerContext', 'contentType']
+      });
+    }
+  });
 
 export function createInitialDiagramState(contentType = 'mermaid'): DiagramState {
   const now = new Date().toISOString();
@@ -426,6 +488,7 @@ export const AgentInsightSchema = z.object({
 });
 
 export type ContentType = z.infer<typeof ContentTypeSchema>;
+export type ContentTypeSelection = z.infer<typeof ContentTypeSelectionSchema>;
 export type Origin = z.infer<typeof OriginSchema>;
 export type IntentPeerContext = z.infer<typeof IntentPeerContextSchema>;
 export type DiagramPatch = z.infer<typeof DiagramPatchSchema>;

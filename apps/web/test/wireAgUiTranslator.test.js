@@ -5,12 +5,14 @@ import { describe, expect, it } from 'vitest';
 import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
+  AGUI_CUSTOM_NAME_CONTENT_TYPE,
   AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
   AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
   AGUI_CUSTOM_NAME_SYNTAX_FIXER,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE,
   LEGACY_STREAM_TYPE_PLAN_BEAT
 } from '@archislop/shared';
 import { createAgUiTranslator } from '../src/state/agUiTranslator.js';
@@ -42,6 +44,20 @@ describe('wire AG-UI translator fixtures', () => {
     expect(out?.type).toBe(LEGACY_STREAM_TYPE_PLAN_BEAT);
     expect(out.text).toBe(legacy.text);
     expect(out.source).toBe('agent');
+  });
+
+  it('translates CUSTOM content_type wire back to legacy content_type', () => {
+    const translate = createAgUiTranslator();
+    const legacy = fixture('content_type_chart');
+    expect(legacy.type).toBe(LEGACY_STREAM_TYPE_CONTENT_TYPE);
+    const out = translate({
+      type: 'CUSTOM',
+      name: AGUI_CUSTOM_NAME_CONTENT_TYPE,
+      value: { contentType: legacy.contentType, reason: legacy.reason }
+    });
+    expect(out?.type).toBe(LEGACY_STREAM_TYPE_CONTENT_TYPE);
+    expect(out.contentType).toBe('chart');
+    expect(out.reason).toBe('numeric comparison ask');
   });
 
   it('translates STATE_DELTA patch_summary wire to legacy artifact', () => {

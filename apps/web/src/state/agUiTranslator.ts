@@ -1,6 +1,7 @@
 import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
+  AGUI_CUSTOM_NAME_CONTENT_TYPE,
   AGUI_CUSTOM_NAME_HEARTBEAT,
   AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
@@ -9,6 +10,7 @@ import {
   AGUI_CUSTOM_NAME_SYNTAX_FIXER,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE,
   agUiDraftSourcePath,
   type DiagramState,
   type LegacyFinalEvent,
@@ -165,6 +167,17 @@ export function createAgUiTranslator(): (
           const text = typeof value?.text === 'string' ? value.text : '';
           const source = value?.source === 'agent' ? 'agent' : 'server';
           return text.trim() ? { type: 'plan_beat', text: text.trim(), source } : null;
+        }
+        if (name === AGUI_CUSTOM_NAME_CONTENT_TYPE && value && typeof value === 'object') {
+          const contentType =
+            typeof value.contentType === 'string' ? value.contentType.trim() : '';
+          if (!contentType) return null;
+          const reason = typeof value.reason === 'string' ? value.reason.trim() : '';
+          return {
+            type: LEGACY_STREAM_TYPE_CONTENT_TYPE,
+            contentType,
+            ...(reason ? { reason } : {})
+          };
         }
         if (name === AGUI_CUSTOM_NAME_A2UI && Array.isArray(value?.messages)) {
           return { type: LEGACY_STREAM_TYPE_A2UI, messages: value.messages };

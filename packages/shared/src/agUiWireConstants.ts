@@ -15,6 +15,11 @@ export const AGUI_CUSTOM_NAME_SYNTAX_FIXER = 'syntax_fixer';
 /** LLM turn start/end inside a run (`{ phase: 'start' | 'end', callId, model, … }`). */
 export const AGUI_CUSTOM_NAME_MODEL_CALL = 'model_call';
 /**
+ * Auto mode resolved a concrete slot from the user prompt.
+ * Value: `{ contentType, reason? }` — client switches the mode picker to that slot.
+ */
+export const AGUI_CUSTOM_NAME_CONTENT_TYPE = 'content_type';
+/**
  * Route-level keep-alive on `/agent-stream`. Carries no payload the UI renders —
  * it exists so the client's stream idle timer resets during server-side quiet
  * windows the agent-level heartbeats don't cover (syntax-fixer model calls,
@@ -26,6 +31,7 @@ export const AGUI_CUSTOM_NAME_LEGACY = 'legacy';
 /** Legacy stream `{ type }` consumed by `createAgentStreamEmitter` / web translator. */
 export const LEGACY_STREAM_TYPE_A2UI = 'a2ui';
 export const LEGACY_STREAM_TYPE_PLAN_BEAT = 'plan_beat';
+export const LEGACY_STREAM_TYPE_CONTENT_TYPE = 'content_type';
 
 /** RFC 6902 paths on AG-UI STATE_DELTA / STATE_SNAPSHOT. */
 export const AGUI_STATE_PATH_LAST_PATCH_SUMMARY = '/lastPatchSummary';
@@ -80,5 +86,24 @@ export function createLegacyPlanBeatStreamEvent({
     type: LEGACY_STREAM_TYPE_PLAN_BEAT,
     text: String(text ?? ''),
     source: source === 'agent' ? 'agent' : 'server'
+  };
+}
+
+/**
+ * Auto-mode classification result for the Thinking pane / mode picker.
+ *
+ * @param {{ contentType: string, reason?: string }} payload
+ */
+export function createLegacyContentTypeStreamEvent({
+  contentType,
+  reason
+}: {
+  contentType: string;
+  reason?: string | null;
+}) {
+  return {
+    type: LEGACY_STREAM_TYPE_CONTENT_TYPE,
+    contentType: String(contentType ?? ''),
+    ...(typeof reason === 'string' && reason.trim() ? { reason: reason.trim() } : {})
   };
 }

@@ -89,6 +89,9 @@ export const CONTROLS_ZH_CN = {
     aiCluster: 'AI 模型与思考'
   },
   contentModes: {
+    auto: '自动',
+    autoShort: '自动',
+    autoSubtitle: '根据主题自动选择最合适的模式',
     mermaid: '图表',
     mermaidShort: '图表',
     mermaidSubtitle: 'Mermaid 架构图',

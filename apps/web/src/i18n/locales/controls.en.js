@@ -102,6 +102,9 @@ export const CONTROLS_EN = {
     aiCluster: 'AI model and thinking'
   },
   contentModes: {
+    auto: 'Auto',
+    autoShort: 'Auto',
+    autoSubtitle: 'Pick the best mode for your topic',
     mermaid: 'Diagram',
     mermaidShort: 'Diagram',
     mermaidSubtitle: 'Mermaid architecture graph',

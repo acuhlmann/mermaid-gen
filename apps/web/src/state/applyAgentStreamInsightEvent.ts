@@ -1,5 +1,6 @@
 import {
   LEGACY_STREAM_TYPE_A2UI,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE,
   normalizeContentType,
   resolveCritiqueAnalyzeFinalText,
   formatModelUsageDetail,
@@ -159,6 +160,12 @@ export type InsightEventContext = {
   ) => void;
   onFinal?: (args: { evt: LegacyStreamEvent; finalText: string; sectionId: string }) => void;
   onA2uiMessages?: (messages: A2uiV09Message[], sectionId: string) => void;
+  /** Auto mode: server resolved a concrete slot — switch the UI mode picker. */
+  onContentTypeResolved?: (args: {
+    contentType: string;
+    reason?: string;
+    sectionId: string;
+  }) => void;
   agentCostEstimates?: AgentCostEstimatesPayload | null;
 };
 
@@ -216,8 +223,35 @@ export function applyAgentStreamInsightEvent(
     pendingAutoDiagramHighlightRef,
     pendingAutoDiagramHighlightTimeoutRef,
     triggerCompletionDelight,
-    onFinal
+    onFinal,
+    onContentTypeResolved
   } = ctx;
+
+  if (evt.type === LEGACY_STREAM_TYPE_CONTENT_TYPE) {
+    const contentType =
+      typeof (evt as { contentType?: unknown }).contentType === 'string'
+        ? String((evt as { contentType: string }).contentType).trim()
+        : '';
+    if (!contentType) return;
+    const reason =
+      typeof (evt as { reason?: unknown }).reason === 'string'
+        ? String((evt as { reason: string }).reason).trim()
+        : '';
+    patchInsightEntry(sectionId, (entry) => ({
+      ...entry,
+      contentType: normalizeContentType(contentType),
+      ...(reason
+        ? {
+            statusText: reason,
+            autoModeReason: reason
+          }
+        : {})
+    }));
+    if (typeof onContentTypeResolved === 'function') {
+      onContentTypeResolved({ contentType, reason: reason || undefined, sectionId });
+    }
+    return;
+  }
 
   if (evt.type === 'phase' && 'id' in evt && evt.id && 'label' in evt && evt.label) {
     const now = Date.now();

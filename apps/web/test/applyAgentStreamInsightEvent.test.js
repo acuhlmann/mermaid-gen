@@ -244,3 +244,28 @@ describe('applyAgentStreamInsightEvent syntax_fixer', () => {
     });
   });
 });
+
+describe('applyAgentStreamInsightEvent content_type', () => {
+  it('updates the insight entry and notifies the UI callback', () => {
+    const onContentTypeResolved = vi.fn();
+    const patchInsightEntry = vi.fn((id, fn) => fn({ technicalActions: [], planBeats: [] }));
+    const ctx = createCtx({ onContentTypeResolved, patchInsightEntry });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'content_type',
+      contentType: 'chart',
+      reason: 'numeric comparison ask'
+    });
+    expect(onContentTypeResolved).toHaveBeenCalledWith({
+      contentType: 'chart',
+      reason: 'numeric comparison ask',
+      sectionId: 'sec-1'
+    });
+    expect(patchInsightEntry).toHaveBeenCalled();
+    const patched = patchInsightEntry.mock.calls[0][1]({
+      technicalActions: [],
+      planBeats: []
+    });
+    expect(patched.contentType).toBe('chart');
+    expect(patched.autoModeReason).toBe('numeric comparison ask');
+  });
+});

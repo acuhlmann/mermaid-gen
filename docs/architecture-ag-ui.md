@@ -72,6 +72,7 @@ From [`packages/shared/src/agUiWireConstants.js`](../packages/shared/src/agUiWir
 | `model_call`        | `{ phase:'start'\|'end', callId, model, inputTokens?, outputTokens? }` | `{ type:'model_call_start' \| 'model_call_end', ... }` — one LLM turn inside the run; timeline shows the turn live with duration + usage   |
 | `tool_apply_result` | `{ name, accepted, toolCallId?, error?, revisionId?, … }`              | `{ type:'tool_apply_result', ... }` — patch validation outcome enriching the matching tool step                                            |
 | `syntax_fixer`      | `{ phase:'start'\|'result', contentType, outcome?, … }`                | `{ type:'syntax_fixer_start' \| 'syntax_fixer_result', ... }` — single-shot fixer pass in the timeline                                     |
+| `content_type`      | `{ contentType, reason? }`                                             | `{ type:'content_type', contentType, reason? }` — Auto mode resolved a concrete slot; web switches the mode picker                         |
 | `heartbeat`         | `{ ts }`                                                               | dropped — route-level keep-alive so the client's stream idle timer resets during quiet windows (syntax-fixer calls, lazy-agent cold start) |
 | `legacy`            | unknown                                                                | dropped                                                                                                                                    |
 

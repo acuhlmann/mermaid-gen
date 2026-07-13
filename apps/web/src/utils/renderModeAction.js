@@ -5,6 +5,12 @@ export function buildContentModeOptions(controls) {
   const m = controls.contentModes;
   return [
     {
+      id: 'auto',
+      label: m.auto,
+      shortLabel: m.autoShort,
+      subtitle: m.autoSubtitle
+    },
+    {
       id: 'mermaid',
       label: m.mermaid,
       shortLabel: m.mermaidShort,
@@ -50,15 +56,30 @@ export function isContentMode(value, options = CONTENT_MODE_OPTIONS) {
   return options.some((option) => option.id === value);
 }
 
+/** Real diagram slots only — excludes the Auto picker sentinel. */
+export function isConcreteContentMode(value) {
+  return (
+    value === 'mermaid' ||
+    value === 'infographic' ||
+    value === 'metaphor3d' ||
+    value === 'chart' ||
+    value === 'forms' ||
+    value === 'anything'
+  );
+}
+
 export function contentModeLabel(value, options = CONTENT_MODE_OPTIONS) {
   return options.find((option) => option.id === value)?.label ?? 'another mode';
 }
 
+/** Sibling modes for "Render as…" — never offers Auto (that is Go-only classification). */
 export function selectableRenderModes(currentMode, options = CONTENT_MODE_OPTIONS) {
-  return options.map((option) => ({
-    ...option,
-    disabled: option.id === currentMode
-  }));
+  return options
+    .filter((option) => option.id !== 'auto')
+    .map((option) => ({
+      ...option,
+      disabled: option.id === currentMode
+    }));
 }
 
 export function buildRenderSelectionPrompt({

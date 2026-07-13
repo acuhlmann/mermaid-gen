@@ -20,9 +20,17 @@ import {
   DiagramIntentSchema,
   DiagramStyleSchema,
   DiagramTransformIntentSchema,
-  StyleIntentSchema
+  StyleIntentSchema,
+  AGUI_CUSTOM_NAME_HEARTBEAT,
+  createAgentStreamEmitter,
+  customEvent,
+  newRunIds,
+  runStarted,
+  runError,
+  stepStarted
 } from '@archislop/shared';
 import { LlmNotConfiguredError } from '../agents/mermaidLangChainAgent.js';
+import { resolveAutoIntentContentType } from './resolveAutoContentType.js';
 import {
   SESSION_HEADER,
   resolveSessionIdFromRequest,
@@ -40,15 +48,6 @@ import {
 import { approveHandshake, denyHandshake } from '../mcp/mcpCollaborationActions.js';
 import { buildWebCanvasUrl } from '../mcp/diagramDiffSummary.js';
 import { normalizePairingCode, type PairingCodeStore } from '../state/pairingCodeStore.js';
-import {
-  AGUI_CUSTOM_NAME_HEARTBEAT,
-  createAgentStreamEmitter,
-  customEvent,
-  newRunIds,
-  runStarted,
-  runError,
-  stepStarted
-} from '@archislop/shared';
 import {
   apiLlmRateLimitIfNeeded,
   createApiRateLimitMiddleware
@@ -194,9 +193,35 @@ export async function handleDiagramIntent({
     };
   }
 
-  const intent = parsedIntent.data;
+  let intent;
+  try {
+    intent = await resolveAutoIntentContentType({
+      payload: parsedIntent.data,
+      getSlot: (contentType) => stateStore.getSlot(contentType),
+      abortSignal
+    });
+  } catch (error) {
+    if (error instanceof LlmNotConfiguredError) {
+      return {
+        status: error.statusCode,
+        body: { error: safeErrorMessage(error) }
+      };
+    }
+    return {
+      status: 500,
+      body: {
+        error: 'Failed to resolve content mode',
+        details: safeErrorMessage(error)
+      }
+    };
+  }
+
   const state = stateStore.getSlot(intent.contentType);
-  if (intent.revisionId !== state.revisionId) {
+  // Auto adopts the server slot revision above; for concrete types enforce client freshness.
+  if (
+    parsedIntent.data.contentType !== 'auto' &&
+    intent.revisionId !== state.revisionId
+  ) {
     return {
       status: 409,
       body: {
@@ -249,7 +274,10 @@ export async function handleDiagramIntent({
         metadata: {
           llm: true,
           agent: 'intent',
-          contentType: intent.contentType
+          contentType: intent.contentType,
+          ...(parsedIntent.data.contentType === 'auto'
+            ? { resolvedFromAuto: true }
+            : {})
         }
       }
     };
@@ -739,7 +767,84 @@ export function createCopilotRouter({
     }
 
     const payload = parsed.data;
-    const state = stateStore.getSlot(payload.contentType);
+    const requestedAuto =
+      payload.operation === 'intent' && payload.contentType === 'auto';
+
+    // Auto is intent-only on the wire; transform/analyze schemas reject it.
+    if (requestedAuto && payload.operation === 'intent') {
+      // Open the SSE stream before classification so the client gets the
+      // content_type event and heartbeats during the classifier call.
+      res.status(200);
+      res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-transform');
+      res.setHeader('Connection', 'keep-alive');
+      if (typeof res.flushHeaders === 'function') {
+        res.flushHeaders();
+      }
+
+      const abortController = new AbortController();
+      const cleanup = () => {
+        abortController.abort();
+      };
+      req.on('aborted', cleanup);
+      res.on('close', cleanup);
+
+      const rawEmit = (evt: LegacyStreamEvent | Record<string, unknown>) => {
+        if (!res.destroyed) writeSseData(res, evt);
+      };
+
+      const PLANNING_STEP = 'planning\x1fPlanning the approach…';
+      const ids = newRunIds();
+      rawEmit(runStarted({ ...ids, parentRunId: undefined }));
+      rawEmit(stepStarted({ stepName: PLANNING_STEP }));
+
+      const heartbeat = setInterval(() => {
+        rawEmit(customEvent({ name: AGUI_CUSTOM_NAME_HEARTBEAT, value: { ts: Date.now() } }));
+      }, AGENT_STREAM_HEARTBEAT_MS);
+      heartbeat.unref?.();
+
+      try {
+        const resolved = await resolveAutoIntentContentType({
+          payload,
+          getSlot: (contentType) => stateStore.getSlot(contentType),
+          abortSignal: abortController.signal,
+          onResolved: (evt) => rawEmit(evt)
+        });
+
+        const state = stateStore.getSlot(resolved.contentType);
+        const revisionBefore = state.revisionId;
+        const streamPayload = {
+          ...resolved,
+          revisionId: state.revisionId,
+          diagramSource: state.diagramSource,
+          _revisionBefore: revisionBefore,
+          abortSignal: abortController.signal
+        } as DiagramAgentStreamPayload;
+
+        const emit = createAgentStreamEmitter({
+          rawEmit: rawEmit as (evt: unknown) => void,
+          threadId: ids.threadId,
+          runId: ids.runId,
+          contentType: resolved.contentType,
+          initialStep: PLANNING_STEP
+        });
+
+        await agentService.runAgentStream('intent', streamPayload, emit as AgentStreamEmit);
+      } catch (error) {
+        const message = safeErrorMessage(error);
+        rawEmit(runError({ message, code: undefined }));
+      } finally {
+        clearInterval(heartbeat);
+        req.off?.('aborted', cleanup);
+        res.off?.('close', cleanup);
+      }
+
+      if (!res.destroyed) res.end();
+      return undefined;
+    }
+
+    const concreteContentType = ContentTypeSchema.parse(payload.contentType);
+    const state = stateStore.getSlot(concreteContentType);
     if (payload.revisionId !== state.revisionId) {
       return res.status(409).json({
         error: 'State revision is stale. Refresh state and retry.',
@@ -781,7 +886,7 @@ export function createCopilotRouter({
       rawEmit: rawEmit as (evt: unknown) => void,
       threadId: ids.threadId,
       runId: ids.runId,
-      contentType: payload.contentType,
+      contentType: concreteContentType,
       initialStep: PLANNING_STEP
     });
 
@@ -799,7 +904,12 @@ export function createCopilotRouter({
     try {
       await agentService.runAgentStream(
         payload.operation,
-        { ...payload, _revisionBefore: revisionBefore, abortSignal: abortController.signal },
+        {
+          ...payload,
+          contentType: concreteContentType,
+          _revisionBefore: revisionBefore,
+          abortSignal: abortController.signal
+        } as DiagramAgentStreamPayload,
         emit as AgentStreamEmit
       );
     } catch (error) {
