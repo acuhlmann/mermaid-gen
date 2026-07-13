@@ -14,6 +14,9 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.actions.refine).toBe('精修');
     expect(bundle.controls.radial.drillDeeper).toBe('深入挖掘');
     expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('发表意见');
+    expect(bundle.controls.advisorThinking.goMad).toBe('正在癫狂');
+    expect(bundle.controls.planBeat.agent).toBe('智能体');
+    expect(bundle.controls.checklist.fixSelected).toBe('修复所选');
   });
 
   it('resolves explicit UI locale requests from weigh-in prompts', () => {

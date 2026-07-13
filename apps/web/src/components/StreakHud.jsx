@@ -1,3 +1,5 @@
+import { useUiCopy } from '../i18n/useUiLocale.js';
+
 const VARIANT_CLASS = {
   refine: 'is-variant-refine',
   innovate: 'is-variant-innovate',
@@ -6,29 +8,32 @@ const VARIANT_CLASS = {
   explain: 'is-variant-explain'
 };
 
-function formatVariantName(variant) {
-  if (variant === 'goMad') return 'Go Mad';
+function formatVariantName(variant, actions) {
   if (!variant) return '';
-  return variant.charAt(0).toUpperCase() + variant.slice(1);
+  return actions[variant] ?? variant.charAt(0).toUpperCase() + variant.slice(1);
 }
 
-function renderToastContent(toast) {
+function renderToastContent(toast, actions, hud) {
   if (toast.kind === 'xp') {
-    const variantName = formatVariantName(toast.variant);
+    const variantName = formatVariantName(toast.variant, actions);
     return (
       <>
         <span className="streak-hud-toast-amount">+{toast.amount} XP</span>
         {variantName ? <span className="streak-hud-toast-source">{variantName}</span> : null}
         {toast.bonus > 0 ? (
-          <span className="streak-hud-toast-bonus">⚡ +{toast.bonus} bonus</span>
+          <span className="streak-hud-toast-bonus">
+            ⚡ +{toast.bonus} {hud.bonus}
+          </span>
         ) : null}
       </>
     );
   }
-  if (toast.kind === 'streak')
-    return `🔥 ${formatVariantName(toast.variant)} streak ×${toast.streak}`;
+  if (toast.kind === 'streak') {
+    const variantName = formatVariantName(toast.variant, actions);
+    return `🔥 ${variantName} ${hud.streak} ×${toast.streak}`;
+  }
   if (toast.kind === 'combo') {
-    return toast.label ? toast.label : `⚡ COMBO ×${toast.combo}`;
+    return toast.label ? toast.label : `⚡ ${hud.combo} ×${toast.combo}`;
   }
   if (toast.kind === 'text') return toast.label || '';
   if (toast.kind === 'tip') return toast.label || '';
@@ -43,6 +48,9 @@ function renderToastContent(toast) {
  * doesn't blend in with achievement unlocks.
  */
 export default function StreakHud({ toasts = [], achievement = null, levelUp = null }) {
+  const { controls } = useUiCopy();
+  const hud = controls.gamificationHud;
+  const actions = controls.actions;
   if (toasts.length === 0 && !achievement && !levelUp) return null;
   return (
     <div className="streak-hud-root" aria-hidden="true">
@@ -56,7 +64,7 @@ export default function StreakHud({ toasts = [], achievement = null, levelUp = n
           if (toast.variant && VARIANT_CLASS[toast.variant]) cls.push(VARIANT_CLASS[toast.variant]);
           return (
             <span key={toast.id} className={cls.join(' ')} data-testid={`streak-hud-${toast.kind}`}>
-              {renderToastContent(toast)}
+              {renderToastContent(toast, actions, hud)}
             </span>
           );
         })}
@@ -70,14 +78,12 @@ export default function StreakHud({ toasts = [], achievement = null, levelUp = n
         >
           <span className="streak-hud-level-up-stripe" aria-hidden="true" />
           <div className="streak-hud-level-up-body">
-            <div className="streak-hud-level-up-eyebrow">
-              {levelUp.bannerTitle || '⬆️ LEVEL UP'}
-            </div>
+            <div className="streak-hud-level-up-eyebrow">{levelUp.bannerTitle || hud.levelUp}</div>
             <div className="streak-hud-level-up-title">
               <span className="streak-hud-level-up-flair" aria-hidden="true">
                 {levelUp.flair || '✨'}
               </span>
-              {`Lvl ${levelUp.to}`}
+              {`${hud.lvlPrefix} ${levelUp.to}`}
               <span className="streak-hud-level-up-name"> · {levelUp.title}</span>
             </div>
             {levelUp.bannerSubtitle ? (

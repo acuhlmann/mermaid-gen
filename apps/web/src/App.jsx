@@ -651,12 +651,12 @@ function ArchiSlop() {
         window.history.replaceState({}, '', `${nextPath}${url.search}${url.hash}`);
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message ?? 'Invalid or expired room code.');
+        if (!cancelled) setError(err?.message ?? controls.loading.invalidRoom);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [controls.loading.invalidRoom]);
 
   useEffect(() => {
     if (syncTimerRef.current) {
@@ -792,12 +792,12 @@ function ArchiSlop() {
                     status: 'done',
                     statusText:
                       payload.status === 'accepted'
-                        ? 'Proposal applied.'
+                        ? controls.loading.proposalApplied
                         : payload.status === 'rejected'
-                          ? 'Proposal rejected.'
+                          ? controls.loading.proposalRejected
                           : payload.status === 'stale'
-                            ? 'Proposal stale.'
-                            : 'Proposal resolved.',
+                            ? controls.loading.proposalStale
+                            : controls.loading.proposalResolved,
                     completedAt: Date.now()
                   }
                 : entry
@@ -842,7 +842,7 @@ function ArchiSlop() {
     });
 
     return close;
-  }, [activeSessionId, sessionHydrated]);
+  }, [activeSessionId, sessionHydrated, controls.loading]);
 
   const handleApproveHandshake = useCallback(async () => {
     if (!pendingHandshake) return;
@@ -880,7 +880,7 @@ function ArchiSlop() {
       patchProposalInsightEntry(proposalId, {
         proposalStatus: 'accepted',
         status: 'done',
-        statusText: 'Proposal applied.',
+        statusText: controls.loading.proposalApplied,
         completedAt: Date.now()
       });
       if (body?.state?.diagramSource != null) {
@@ -888,7 +888,7 @@ function ArchiSlop() {
         setState(body.state);
       }
     },
-    [activeSessionId, contentMode, patchProposalInsightEntry]
+    [activeSessionId, contentMode, controls.loading.proposalApplied, patchProposalInsightEntry]
   );
 
   const handleRejectProposal = useCallback(
@@ -898,11 +898,11 @@ function ArchiSlop() {
       patchProposalInsightEntry(proposalId, {
         proposalStatus: 'rejected',
         status: 'done',
-        statusText: 'Proposal rejected.',
+        statusText: controls.loading.proposalRejected,
         completedAt: Date.now()
       });
     },
-    [activeSessionId, patchProposalInsightEntry]
+    [activeSessionId, controls.loading.proposalRejected, patchProposalInsightEntry]
   );
 
   useEffect(() => {
@@ -1477,43 +1477,46 @@ function ArchiSlop() {
     streamTimerRef.current = requestAnimationFrame(pump);
   }, []);
 
-  const appendInsightEntry = useCallback((title, variant = 'general', options = {}) => {
-    const { diagramUndoBaseline, topic, retryDescriptor, contentType, modelProfile } = options;
-    const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
-    setInsightsEntries((prev) => [
-      ...prev,
-      {
-        id,
-        title,
-        variant,
-        topic: topic ?? null,
-        content: '',
-        statusText: 'Working on your request...',
-        status: 'running',
-        technicalActions: [],
-        phases: [],
-        planBeats: [],
-        artifacts: [],
-        streamDebugLog: [],
-        startedAt: Date.now(),
-        completedAt: null,
-        contentType: contentType ?? null,
-        modelProfile: modelProfile ?? null,
-        ...(retryDescriptor ? { retryDescriptor } : {}),
-        ...(diagramUndoBaseline
-          ? {
-              diagramUndoBaseline: { ...diagramUndoBaseline },
-              diagramRevisionApplied: false,
-              diagramUndoConsumed: false,
-              diagramAfterSource: null,
-              diagramAfterContentType: null,
-              diagramAfterRevisionId: null
-            }
-          : {})
-      }
-    ]);
-    return id;
-  }, []);
+  const appendInsightEntry = useCallback(
+    (title, variant = 'general', options = {}) => {
+      const { diagramUndoBaseline, topic, retryDescriptor, contentType, modelProfile } = options;
+      const id = globalThis.crypto?.randomUUID?.() ?? `ins-${Date.now()}`;
+      setInsightsEntries((prev) => [
+        ...prev,
+        {
+          id,
+          title,
+          variant,
+          topic: topic ?? null,
+          content: '',
+          statusText: controls.loading.working,
+          status: 'running',
+          technicalActions: [],
+          phases: [],
+          planBeats: [],
+          artifacts: [],
+          streamDebugLog: [],
+          startedAt: Date.now(),
+          completedAt: null,
+          contentType: contentType ?? null,
+          modelProfile: modelProfile ?? null,
+          ...(retryDescriptor ? { retryDescriptor } : {}),
+          ...(diagramUndoBaseline
+            ? {
+                diagramUndoBaseline: { ...diagramUndoBaseline },
+                diagramRevisionApplied: false,
+                diagramUndoConsumed: false,
+                diagramAfterSource: null,
+                diagramAfterContentType: null,
+                diagramAfterRevisionId: null
+              }
+            : {})
+        }
+      ]);
+      return id;
+    },
+    [controls.loading.working]
+  );
 
   const patchInsightEntry = useCallback((id, patcher) => {
     setInsightsEntries((prev) => prev.map((entry) => (entry.id === id ? patcher(entry) : entry)));
@@ -1874,7 +1877,7 @@ function ArchiSlop() {
           patchInsightEntry(sectionId, (entry) => ({
             ...entry,
             status: 'cancelled',
-            statusText: 'Stopped.',
+            statusText: controls.loading.stopped,
             completedAt: Date.now(),
             phases: closeOpenInsightPhases(entry.phases, Date.now())
           }));
@@ -2045,7 +2048,7 @@ function ArchiSlop() {
       } catch (err) {
         setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: currentLevel }));
         if (err?.name !== 'AbortError') {
-          setError(err?.message || 'Could not simplify explanation.');
+          setError(err?.message || controls.loading.simplifyFailed);
         }
       } finally {
         setExplainDumbLoadingEntryId(null);
@@ -2498,10 +2501,10 @@ function ArchiSlop() {
       recognition.onerror = (event) => {
         if (event?.error === 'no-speech' || event?.error === 'aborted') return;
         if (event?.error === 'not-allowed') {
-          setVoiceError('Microphone permission denied for speech recognition.');
+          setVoiceError(controls.loading.micDenied);
           return;
         }
-        setVoiceError('Voice input failed. Try again.');
+        setVoiceError(controls.loading.voiceFailed);
       };
       recognition.onend = () => {
         if (sessionAtStart !== micSessionRef.current) return;
@@ -2532,10 +2535,10 @@ function ArchiSlop() {
       setVoiceListening(true);
     } catch {
       micSessionRef.current += 1;
-      setVoiceError('Voice input is unavailable in this browser.');
+      setVoiceError(controls.loading.voiceUnavailable);
       voicePressedRef.current = false;
     }
-  }, [appendActivePromptText, voiceSupported]);
+  }, [appendActivePromptText, controls.loading, voiceSupported]);
 
   function handleMicPointerDown(event) {
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
@@ -2606,10 +2609,17 @@ function ArchiSlop() {
 
     try {
       const syncedState = await syncDiagramOrThrow();
-      const labels = { refine: 'Refine', innovate: 'Innovate', goMad: 'Go Mad', exec: 'Co-Design' };
+      const labels = {
+        refine: controls.actions.refine,
+        innovate: controls.actions.innovate,
+        goMad: controls.actions.goMad,
+        exec: controls.actions.coDesign
+      };
       const goMadDepth = mode === 'goMad' ? goMadStreak + 1 : undefined;
       const transformTitleVerb =
-        mode === 'goMad' && goMadDepth > 1 ? `Go Mad (×${goMadDepth})` : labels[mode];
+        mode === 'goMad' && goMadDepth > 1
+          ? `${controls.actions.goMad} (×${goMadDepth})`
+          : labels[mode];
       await runStreamingAgent({
         operation: 'transform',
         payload: {
@@ -2664,7 +2674,10 @@ function ArchiSlop() {
 
     try {
       const syncedState = await syncDiagramOrThrow();
-      const labels = { critique: 'Critique', explain: 'Explain' };
+      const labels = {
+        critique: controls.actions.critique,
+        explain: controls.actions.explain
+      };
       await runStreamingAgent({
         operation: 'analyze',
         payload: {
@@ -4180,7 +4193,7 @@ ${requirementsBlock}`;
                   <button
                     type="button"
                     className="brand-prestige-badge"
-                    title={`${gamification.totalRuns ?? 0} total slop runs · tap to ${xpBarMobileOpen ? 'hide' : 'show'} XP`}
+                    title={`${controls.brand.totalSlopRuns.replace('{count}', String(gamification.totalRuns ?? 0))} · ${xpBarMobileOpen ? controls.brand.tapToHideXp : controls.brand.tapToShowXp}`}
                     data-testid="brand-prestige-badge"
                     aria-expanded={xpBarMobileOpen}
                     aria-controls="brand-xp-mobile-slot"
@@ -4194,7 +4207,10 @@ ${requirementsBlock}`;
                 ) : (
                   <span
                     className="brand-prestige-badge"
-                    title={`${gamification.totalRuns ?? 0} total slop runs`}
+                    title={controls.brand.totalSlopRuns.replace(
+                      '{count}',
+                      String(gamification.totalRuns ?? 0)
+                    )}
                     data-testid="brand-prestige-badge"
                   >
                     {gamification.prestigeShortLabel}

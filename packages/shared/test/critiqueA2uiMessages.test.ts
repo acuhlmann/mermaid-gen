@@ -24,3 +24,17 @@ test('buildCritiqueActionableA2uiMessages returns createSurface, updateComponent
   assert.equal(msgs[2].updateDataModel.value.checks[0].label, 'Fix A');
   assert.equal(msgs[2].updateDataModel.value.checks[0].value, false);
 });
+
+test('buildCritiqueActionableA2uiMessages accepts localized button labels', () => {
+  const md = `## Actionable improvements\n\n- Fix A\n`;
+  const msgs = buildCritiqueActionableA2uiMessages(md, {
+    heading: '可执行的改进',
+    fixSelected: '修复所选',
+    fixAll: '全部修复'
+  }) as Array<Record<string, any>>;
+  const components = msgs[1].updateComponents.components as Array<Record<string, string>>;
+  const fixSelected = components.find((c) => c.id === 'btn_fix_sel_txt');
+  const fixAll = components.find((c) => c.id === 'btn_fix_all_txt');
+  assert.equal(fixSelected?.text, '修复所选');
+  assert.equal(fixAll?.text, '全部修复');
+});

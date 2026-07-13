@@ -298,7 +298,10 @@ export const CONTROLS_ZH_CN = {
     clearHighlights: '清除画布高亮',
     highlightedChanges: '画布上已高亮的变化',
     removedFromDiagram: '已从图表移除：{ids}',
-    rawStreamEvents: '原始流事件（{count}）'
+    rawStreamEvents: '原始流事件（{count}）',
+    via: '来自',
+    modeSuffix: '模式',
+    brainSuffix: '模型'
   },
   editor: {
     doneEditing: '完成编辑',
@@ -340,7 +343,33 @@ export const CONTROLS_ZH_CN = {
     formFailed: '此表单无法渲染。'
   },
   fullscreen: {
+    enter: '进入全屏',
     exit: '退出全屏'
+  },
+  advisorThinking: {
+    refine: '正在打磨',
+    innovate: '正在颠覆',
+    goMad: '正在癫狂',
+    critique: '正在审计',
+    explain: '正在思索',
+    default: '正在思考'
+  },
+  planBeat: {
+    agent: '智能体',
+    plan: '计划'
+  },
+  gamificationHud: {
+    bonus: '奖励',
+    streak: '连击',
+    combo: '连击',
+    levelUp: '等级提升',
+    lvlPrefix: '等级',
+    max: '满级'
+  },
+  brand: {
+    totalSlopRuns: '累计 {count} 次烂图运行',
+    tapToShowXp: '点击显示经验',
+    tapToHideXp: '点击隐藏经验'
   },
   presence: {
     connected: '已连接的外部智能体',

@@ -1,4 +1,5 @@
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 
 const PERSONA_CLASS = {
@@ -7,14 +8,6 @@ const PERSONA_CLASS = {
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain'
-};
-
-const THINKING_VERB = {
-  refine: 'is polishing',
-  innovate: 'is disrupting',
-  goMad: 'IS LOSING IT',
-  critique: 'is auditing',
-  explain: 'is musing'
 };
 
 /**
@@ -28,12 +21,14 @@ export default function AdvisorThinkingIndicator({
   onSelectVariant = null,
   castDisabled = false
 }) {
+  const { controls } = useUiCopy();
+  const thinkingCopy = controls.advisorThinking;
   if (!persona) return null;
   const meta = getVariantPersona(persona);
   const personaClass = PERSONA_CLASS[persona] || '';
   const accent = meta.accentColorVar || 'var(--accent)';
   const accentStyle = accent.startsWith('--') ? `var(${accent})` : accent;
-  const verb = THINKING_VERB[persona] ?? 'is thinking';
+  const verb = thinkingCopy[persona] ?? thinkingCopy.default;
   return (
     <div
       className={`advisor-thinking-indicator ${personaClass}`}

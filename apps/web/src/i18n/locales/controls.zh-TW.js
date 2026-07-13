@@ -298,7 +298,10 @@ export const CONTROLS_ZH_TW = {
     clearHighlights: '清除畫布醒目顯示',
     highlightedChanges: '畫布上已醒目顯示的變化',
     removedFromDiagram: '已從圖表移除：{ids}',
-    rawStreamEvents: '原始串流事件（{count}）'
+    rawStreamEvents: '原始串流事件（{count}）',
+    via: '來自',
+    modeSuffix: '模式',
+    brainSuffix: '模型'
   },
   editor: {
     doneEditing: '完成編輯',
@@ -340,7 +343,33 @@ export const CONTROLS_ZH_TW = {
     formFailed: '此表單無法渲染。'
   },
   fullscreen: {
+    enter: '進入全螢幕',
     exit: '退出全螢幕'
+  },
+  advisorThinking: {
+    refine: '正在打磨',
+    innovate: '正在顛覆',
+    goMad: '正在癲狂',
+    critique: '正在審計',
+    explain: '正在思索',
+    default: '正在思考'
+  },
+  planBeat: {
+    agent: '智慧代理',
+    plan: '計畫'
+  },
+  gamificationHud: {
+    bonus: '獎勵',
+    streak: '連擊',
+    combo: '連擊',
+    levelUp: '等級提升',
+    lvlPrefix: '等級',
+    max: '滿級'
+  },
+  brand: {
+    totalSlopRuns: '累計 {count} 次爛圖執行',
+    tapToShowXp: '點擊顯示經驗',
+    tapToHideXp: '點擊隱藏經驗'
   },
   presence: {
     connected: '已連線的外部智慧代理',
