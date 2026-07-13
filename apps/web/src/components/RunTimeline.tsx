@@ -16,6 +16,7 @@ import { PatchLinesBar } from '../utils/thinkingProseEnrich';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
 import {
   actionDurationMs,
+  actionExecutionMode,
   actionKind,
   actionStatusLabel,
   ceremonyLabelFor,
@@ -135,6 +136,7 @@ function ActionRow({
 }) {
   const copy = useUiCopy().controls.runTimeline;
   const kind = actionKind(action);
+  const executionMode = actionExecutionMode(action, kind);
   const isRunning = action.status === 'running' && runLive;
   const durationLabel = formatActionDurationMs(actionDurationMs(action, runLive, now));
 
@@ -157,6 +159,18 @@ function ActionRow({
       <span className="run-timeline-action-body">
         <span className="run-timeline-action-head">
           <strong className="run-timeline-action-label">{action.label ?? action.name}</strong>
+          <span
+            className={`run-timeline-action-execution is-${executionMode}`}
+            title={
+              executionMode === 'llm'
+                ? (copy.executionMode?.llm ?? 'LLM')
+                : (copy.executionMode?.code ?? 'Code')
+            }
+          >
+            {executionMode === 'llm'
+              ? (copy.executionMode?.llm ?? 'LLM')
+              : (copy.executionMode?.code ?? 'Code')}
+          </span>
           {action.modelName ? (
             <code className="run-timeline-action-model" title={action.modelName}>
               {action.modelName}

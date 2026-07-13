@@ -275,6 +275,7 @@ export const CONTROLS_ZH_CN = {
     trophyShelf: '奖杯架',
     closeLevelDetails: '关闭等级详情',
     patchPreview: '补丁预览',
+    sourceContext: '来源上下文',
     jumpToVersion: '将画布跳回图表的此版本。',
     closeThinking: '关闭思考面板',
     actionableImprovements: '可执行的改进',
@@ -485,6 +486,10 @@ export const CONTROLS_ZH_CN = {
     validationFailed: '校验失败',
     interrupted: '已中断',
     queued: '排队中',
+    executionMode: {
+      llm: 'LLM',
+      code: '代码'
+    },
     kicker: {
       live: '实时活动',
       issue: '运行问题',

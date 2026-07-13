@@ -4,7 +4,10 @@
 
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { tryExtractDiagramPreviewFromText } from '../utils/insightsEmbeddedDiagramSplit.js';
+import { extractFirstFencedBlockFromText } from '../utils/thinkingFencedBlock';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
+import { ThinkingSyntaxCodeBlock } from '../utils/thinkingSyntaxCode';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 import type { ContentType } from '@archislop/shared';
 
 const VARIANT_ICONS: Record<string, string> = {
@@ -24,17 +27,21 @@ type PlanBeat = {
   source?: 'agent' | 'server';
 };
 
-function splitPlanSteps(text: string, contentType: ContentType | null = null): string[] {
+type DiagramPreviewMeta = NonNullable<ReturnType<typeof tryExtractDiagramPreviewFromText>>;
+
+function splitPlanSteps(text: string): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
 
   // Keep fenced diagram/HTML blocks intact — line splitting would show ```html and tags as plain text.
   if (/```/.test(trimmed)) {
-    const preview = tryExtractDiagramPreviewFromText(trimmed, { expectedKind: contentType });
+    const preview = tryExtractDiagramPreviewFromText(trimmed);
     if (preview) {
       const prose = preview.prose?.trim();
-      return prose ? splitPlanSteps(prose, contentType) : [];
+      return prose ? splitPlanSteps(prose) : [];
     }
+    const fenced = extractFirstFencedBlockFromText(trimmed);
+    if (fenced?.prose?.trim()) return [fenced.prose.trim()];
     const proseOnly = trimmed.replace(/```[\s\S]*$/s, '').trim();
     return proseOnly ? [proseOnly] : [trimmed];
   }
@@ -63,18 +70,63 @@ function splitPlanSteps(text: string, contentType: ContentType | null = null): s
   return [trimmed];
 }
 
+function PlanDiagramPreview({
+  preview,
+  idPrefix,
+  targetContentType = null
+}: {
+  preview: DiagramPreviewMeta;
+  idPrefix: string;
+  targetContentType?: ContentType | null;
+}) {
+  const { controls } = useUiCopy();
+  const isSourceContext = Boolean(
+    targetContentType && preview.kind && preview.kind !== targetContentType
+  );
+
+  return (
+    <div className="insights-plan-diagram-preview-wrap">
+      {isSourceContext ? (
+        <span
+          className="insights-plan-source-context-badge"
+          data-testid="plan-source-context-badge"
+        >
+          {controls.insights.sourceContext}
+        </span>
+      ) : null}
+      <InsightsEmbeddedDiagram idPrefix={idPrefix} source={preview.source} kind={preview.kind} />
+    </div>
+  );
+}
+
+function PlanCodeBlock({
+  code,
+  language,
+  keyPrefix
+}: {
+  code: string;
+  language?: string;
+  keyPrefix: string;
+}) {
+  return (
+    <div className="insights-plan-code-block">
+      <ThinkingSyntaxCodeBlock code={code} language={language ?? ''} keyPrefix={keyPrefix} />
+    </div>
+  );
+}
+
 function PlanStepBody({
   step,
   cardIndex,
   stepIndex,
-  contentType = null
+  targetContentType = null
 }: {
   step: string;
   cardIndex: number;
   stepIndex: number;
-  contentType?: ContentType | null;
+  targetContentType?: ContentType | null;
 }) {
-  const preview = tryExtractDiagramPreviewFromText(step, { expectedKind: contentType });
+  const preview = tryExtractDiagramPreviewFromText(step);
   const keyBase = `plan-${cardIndex}-${stepIndex}`;
 
   if (preview) {
@@ -85,12 +137,52 @@ function PlanStepBody({
             {enrichInline(preview.prose, `${keyBase}-prose`)}
           </p>
         ) : null}
-        <InsightsEmbeddedDiagram idPrefix={keyBase} source={preview.source} kind={preview.kind} />
+        <PlanDiagramPreview
+          preview={preview}
+          idPrefix={keyBase}
+          targetContentType={targetContentType}
+        />
       </div>
     );
   }
 
+  const fenced = extractFirstFencedBlockFromText(step);
+  if (fenced?.code?.trim()) {
+    return (
+      <>
+        {fenced.prose?.trim() ? enrichInline(fenced.prose, `${keyBase}-prose`) : null}
+        <PlanCodeBlock
+          code={fenced.code}
+          language={fenced.language}
+          keyPrefix={`${keyBase}-code`}
+        />
+      </>
+    );
+  }
+
   return <>{enrichInline(step, keyBase)}</>;
+}
+
+function PlanBeatFallbackBody({ text, index }: { text: string; index: number }) {
+  const fenced = extractFirstFencedBlockFromText(text);
+  if (!fenced?.code?.trim()) {
+    return <p className="insights-plan-card-text">{enrichInline(text, `plan-${index}`)}</p>;
+  }
+
+  return (
+    <div className="insights-plan-card-fenced">
+      {fenced.prose?.trim() ? (
+        <p className="insights-plan-card-text">
+          {enrichInline(fenced.prose, `plan-${index}-prose`)}
+        </p>
+      ) : null}
+      <PlanCodeBlock
+        code={fenced.code}
+        language={fenced.language}
+        keyPrefix={`plan-${index}-fence`}
+      />
+    </div>
+  );
 }
 
 export default function PlanBeatCard({
@@ -102,6 +194,7 @@ export default function PlanBeatCard({
   beat?: PlanBeat;
   variant?: string;
   index?: number;
+  /** Run target slot — used only to label cross-mode source-context previews. */
   contentType?: ContentType | null;
 }) {
   const source = beat?.source === 'agent' ? 'agent' : 'server';
@@ -113,10 +206,10 @@ export default function PlanBeatCard({
   // Detect an embedded diagram DSL across the whole beat before splitting it into
   // steps: multi-line DSL (metaphor/chart JSON, HTML, Mermaid) would otherwise be
   // shredded into one "step" per line and shown as raw code instead of a preview.
-  const wholePreview = tryExtractDiagramPreviewFromText(text, { expectedKind: contentType });
-  const steps = wholePreview
-    ? splitPlanSteps(wholePreview.prose ?? '', contentType)
-    : splitPlanSteps(text, contentType);
+  // Plan beats may embed peer-slot source context during mode conversion — do not
+  // filter previews by the run's target contentType here.
+  const wholePreview = tryExtractDiagramPreviewFromText(text);
+  const steps = wholePreview ? splitPlanSteps(wholePreview.prose ?? '') : splitPlanSteps(text);
   const multiStep = steps.length > 1;
 
   return (
@@ -162,16 +255,16 @@ export default function PlanBeatCard({
                 </p>
               )
             ) : null}
-            <InsightsEmbeddedDiagram
+            <PlanDiagramPreview
+              preview={wholePreview}
               idPrefix={`plan-${index}`}
-              source={wholePreview.source}
-              kind={wholePreview.kind}
+              targetContentType={contentType}
             />
           </div>
         ) : multiStep ? (
           <ol className="insights-plan-card-steps">
             {steps.map((step, stepIndex) => {
-              const preview = tryExtractDiagramPreviewFromText(step, { expectedKind: contentType });
+              const preview = tryExtractDiagramPreviewFromText(step);
               return (
                 <li
                   key={`plan-${index}-step-${stepIndex}`}
@@ -191,7 +284,7 @@ export default function PlanBeatCard({
                       step={step}
                       cardIndex={index}
                       stepIndex={stepIndex}
-                      contentType={contentType}
+                      targetContentType={contentType}
                     />
                   </span>
                 </li>
@@ -199,7 +292,7 @@ export default function PlanBeatCard({
             })}
           </ol>
         ) : (
-          <p className="insights-plan-card-text">{enrichInline(text, `plan-${index}`)}</p>
+          <PlanBeatFallbackBody text={text} index={index} />
         )}
       </div>
     </li>

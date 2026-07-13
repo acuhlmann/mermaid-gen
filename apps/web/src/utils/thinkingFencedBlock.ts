@@ -26,7 +26,7 @@ export function extractFencedCodeBlock(
   const codeLines: string[] = [];
   let cursor = startIndex + 1;
   while (cursor < lines.length) {
-    const line = lines[cursor];
+    const line = lines[cursor] ?? '';
     if (line.trim() === '```') {
       return { language, code: codeLines.join('\n'), nextIndex: cursor + 1 };
     }
@@ -35,4 +35,31 @@ export function extractFencedCodeBlock(
   }
 
   return { language, code: codeLines.join('\n'), nextIndex: lines.length };
+}
+
+function joinProseSegments(before: string, after: string): string {
+  const head = before.trimEnd();
+  const tail = after.trim();
+  if (head && tail) return `${head}\n\n${tail}`;
+  return head || tail;
+}
+
+/**
+ * First fenced block in a plan beat or prose chunk, with surrounding prose preserved.
+ */
+export function extractFirstFencedBlockFromText(
+  text: string
+): { prose: string; language: string; code: string } | null {
+  if (typeof text !== 'string' || !text.includes('```')) return null;
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const block = extractFencedCodeBlock(lines, i);
+    if (!block) continue;
+    const prose = joinProseSegments(
+      lines.slice(0, i).join('\n'),
+      lines.slice(block.nextIndex).join('\n')
+    );
+    return { prose, language: block.language, code: block.code };
+  }
+  return null;
 }
