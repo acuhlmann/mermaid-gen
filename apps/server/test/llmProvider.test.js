@@ -10,6 +10,7 @@ import {
   isLlmConfigured,
   isVertexEnvConfigured,
   createDeepSeekChatModel,
+  createVertexChatModel,
   resolveDeepSeekModelId,
   resolveDeepSeekThinkingKwargs,
   resolveLlmBackend,
@@ -170,6 +171,14 @@ test('resolveDeepSeekThinkingKwargs disables thinking by default', () => {
 test('createDeepSeekChatModel passes thinking disabled for tool-agent compatibility', () => {
   const model = createDeepSeekChatModel({ DEEPSEEK_API_KEY: 'k' }, { model: 'deepseek-v4-flash' });
   assert.deepEqual(model.modelKwargs, { thinking: { type: 'disabled' } });
+});
+
+test('createVertexChatModel converts stacked system messages for Gemini compatibility', () => {
+  const model = createVertexChatModel(
+    { GOOGLE_CLOUD_PROJECT: 'p' },
+    { model: 'gemini-2.5-flash-lite' }
+  );
+  assert.equal(model.convertSystemMessageToHumanContent, true);
 });
 
 test('isLlmConfigured reflects any usable backend', () => {

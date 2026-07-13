@@ -307,7 +307,10 @@ export function createVertexChatModel(env, overrides = {}) {
   const fields = {
     ...rest,
     location,
-    project
+    project,
+    // LangChain Gemini uses a single systemInstruction at index 0. Diagram agents stack
+    // several system-role context messages (mutation mode, syntax pack, current source).
+    convertSystemMessageToHumanContent: true
   };
   if (explicitModel !== undefined) {
     fields.model = explicitModel;
