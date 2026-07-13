@@ -185,6 +185,56 @@ test('intent payloads accept empty diagramSource for cleared canvas', () => {
   );
 });
 
+test('intent payloads accept contentType auto for Go classification', () => {
+  const intent = {
+    prompt: 'Bar chart of quarterly revenue',
+    revisionId: 0,
+    diagramSource: '',
+    contentType: 'auto',
+    settings: {}
+  };
+  assert.equal(DiagramIntentSchema.safeParse(intent).success, true);
+  assert.equal(
+    AgentStreamPayloadSchema.safeParse({ operation: 'intent', ...intent }).success,
+    true
+  );
+});
+
+test('intent payloads reject peerContext when contentType is auto', () => {
+  const intent = {
+    prompt: 'x',
+    revisionId: 0,
+    diagramSource: '',
+    contentType: 'auto',
+    settings: {},
+    peerContext: { contentType: 'mermaid', diagramSource: 'flowchart TD\n  A --> B' }
+  };
+  assert.equal(DiagramIntentSchema.safeParse(intent).success, false);
+});
+
+test('transform/analyze stream payloads reject contentType auto', () => {
+  assert.equal(
+    AgentStreamPayloadSchema.safeParse({
+      operation: 'transform',
+      mode: 'refine',
+      revisionId: 0,
+      diagramSource: 'flowchart TD\n  A',
+      contentType: 'auto'
+    }).success,
+    false
+  );
+  assert.equal(
+    AgentStreamPayloadSchema.safeParse({
+      operation: 'analyze',
+      kind: 'critique',
+      revisionId: 0,
+      diagramSource: 'flowchart TD\n  A',
+      contentType: 'auto'
+    }).success,
+    false
+  );
+});
+
 test('intent payloads reject peerContext when contentType matches intent slot', () => {
   const base = {
     prompt: 'x',

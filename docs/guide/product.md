@@ -6,7 +6,7 @@
 - **Refine**, **Innovate**, and **Go Mad** reuse the same tools but run under a **transform** agent with mode-specific prompts and sampling (hotter for bolder modes).
 - **Critique** / **Explain** run read-only analysis into an insights pane; **Fix** turns critique into a diagram edit by reusing the **intent** path (the web app sends a long structured prompt as if it were a user request); **Show Thinking** streams agent telemetry into the same pane (SSE). **Show Thinking** button and icon are hidden until the first thinking event occurs in the session.
 - Optional focus on a diagram node or edge narrows transforms, explanations, and critique-driven fixes to that subgraph.
-- Switching between **Diagram**, **Infographic**, **3D**, **Chart**, **Anything**, and **Forms** modes preserves all canvases independently; the active content type is forwarded in every agent call so the right agent and validator handles the request. **Forms** is the parody mode where the agent authors interactive A2UI intake forms directly (fill controls → submit → the next, worse form); see [Content types](content-types.md#forms).
+- Switching between **Auto**, **Diagram**, **Infographic**, **3D**, **Chart**, **Anything**, and **Forms** modes preserves all canvases independently; **Auto** classifies the topic with a fast LLM on Go and switches into the best concrete mode. The active content type is forwarded in every agent call so the right agent and validator handles the request. **Forms** is the parody mode where the agent authors interactive A2UI intake forms directly (fill controls → submit → the next, worse form); see [Content types](content-types.md#forms).
 
 ## Web UI (what you see)
 

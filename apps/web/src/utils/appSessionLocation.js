@@ -77,6 +77,15 @@ export function readStoredModelProfile() {
 export function readStoredContentMode() {
   if (typeof window === 'undefined') return 'mermaid';
   const raw = window.localStorage.getItem(CONTENT_MODE_STORAGE_KEY);
-  if (raw === 'infographic' || raw === 'metaphor3d') return raw;
+  if (
+    raw === 'auto' ||
+    raw === 'infographic' ||
+    raw === 'metaphor3d' ||
+    raw === 'chart' ||
+    raw === 'forms' ||
+    raw === 'anything'
+  ) {
+    return raw;
+  }
   return 'mermaid';
 }

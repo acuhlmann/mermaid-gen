@@ -201,6 +201,7 @@ import {
   buildContentModeOptions,
   buildRenderSelectionPrompt,
   goMadShapeLabel,
+  isConcreteContentMode,
   isContentMode,
   selectableRenderModes
 } from './utils/renderModeAction.js';
@@ -390,6 +391,11 @@ function ArchiSlop() {
    * clobbering the just-restored snapshot.
    */
   const suppressNextModeSwitchRerunRef = useRef(false);
+  /**
+   * Skip one hydrate when Auto mode resolves mid-stream — changing contentMode must not
+   * abort the in-flight agent run or overwrite live draft state.
+   */
+  const skipHydrateOnceRef = useRef(false);
   const pendingRenderModeRequestRef = useRef(null);
 
   const clearPendingAutoDiagramHighlight = useCallback(() => {
@@ -922,6 +928,31 @@ function ArchiSlop() {
     // Keep loading true across the hydrate → auto-submit microtask gap so an empty sibling
     // slot never flashes the first-run intro between those two phases.
     let keepLoadingForModeSwitch = false;
+
+    // Auto is not a server slot — keep a blank local canvas and skip mode-switch auto-intent.
+    if (contentMode === 'auto') {
+      if (skipHydrateOnceRef.current) {
+        skipHydrateOnceRef.current = false;
+        setSessionHydrated(true);
+        return undefined;
+      }
+      const empty = createInitialDiagramState('mermaid');
+      stateRef.current = empty;
+      setState(empty);
+      setSessionHasPeerContent(false);
+      setSessionHydrated(true);
+      setLoading(false);
+      setActiveRequest(null);
+      return undefined;
+    }
+
+    // Mid-stream Auto → concrete resolve: update the picker without re-hydrating.
+    if (skipHydrateOnceRef.current) {
+      skipHydrateOnceRef.current = false;
+      setSessionHydrated(true);
+      return undefined;
+    }
+
     setSessionHydrated(false);
     setLoading(true);
     setActiveRequest('hydrate');
@@ -1746,6 +1777,7 @@ function ArchiSlop() {
   const handleSelectContentMode = useCallback(
     (nextMode) => {
       if (nextMode === contentMode) return;
+      if (!isContentMode(nextMode)) return;
       stopStreamingAgentRequest();
       setLiveDraftSource('');
       setLiveDraftContentType(null);
@@ -1763,8 +1795,22 @@ function ArchiSlop() {
     [contentMode, stopStreamingAgentRequest]
   );
 
+  /** Auto-mode mid-stream: switch the picker without aborting the agent run. */
+  const applyResolvedContentMode = useCallback(
+    (nextMode) => {
+      if (!isConcreteContentMode(nextMode) || nextMode === contentMode) return;
+      skipHydrateOnceRef.current = true;
+      suppressNextModeSwitchRerunRef.current = true;
+      setLiveDraftContentType(nextMode);
+      setContentMode(nextMode);
+      setRendererRefreshKey((n) => n + 1);
+    },
+    [contentMode]
+  );
+
   async function renderSelectionInMode(targetMode, descriptor) {
-    if (!isContentMode(targetMode) || targetMode === contentMode) return;
+    if (!isConcreteContentMode(targetMode) || targetMode === contentMode) return;
+    if (contentMode === 'auto') return;
     if (loadingRef.current || streamingPreviewRef.current) return;
     if (!stateRef.current.diagramSource.trim()) return;
 
@@ -1886,6 +1932,9 @@ function ArchiSlop() {
           pendingAutoDiagramHighlightTimeoutRef,
           triggerCompletionDelight,
           onFinal,
+          onContentTypeResolved: ({ contentType }) => {
+            applyResolvedContentMode(contentType);
+          },
           agentCostEstimates: agentCostEstimatesRef.current
         }
       );
@@ -1942,6 +1991,7 @@ function ArchiSlop() {
       enrichTechnicalActionDetail,
       appendToInsight,
       activeSessionId,
+      applyResolvedContentMode,
       contentMode,
       modelProfile,
       patchInsightEntry,
@@ -2263,6 +2313,15 @@ function ArchiSlop() {
     if (syncTimerRef.current) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
+    }
+
+    // Auto is not a server slot — send placeholders; the server adopts the
+    // classified slot's revision/source after LLM classification.
+    if (contentMode === 'auto') {
+      const empty = createInitialDiagramState('mermaid');
+      stateRef.current = empty;
+      setState(empty);
+      return empty;
     }
 
     const currentState = stateRef.current;
@@ -2630,6 +2689,8 @@ function ArchiSlop() {
     const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
+    if (contentMode === 'auto') return;
+    if (!isConcreteContentMode(contentMode)) return;
     if (!stateRef.current.diagramSource.trim()) return;
 
     if (mode !== 'goMad') setGoMadStreak(0);
@@ -2697,6 +2758,8 @@ function ArchiSlop() {
     const useDiagramFocus = Boolean(options.useDiagramFocus);
     hasInteractedRef.current = true;
     if (loadingRef.current || streamingPreviewRef.current) return;
+    if (contentMode === 'auto') return;
+    if (!isConcreteContentMode(contentMode)) return;
     if (!stateRef.current.diagramSource.trim()) return;
 
     const focusOverride = options.focusTarget ?? null;
@@ -3156,7 +3219,9 @@ ${requirementsBlock}`;
         syncClientDiagramState({ contentType: 'anything', diagramSource: '', sessionId: nid })
       ]);
       freshlyMintedSessionIdsRef.current.delete(nid);
-      const fresh = createInitialDiagramState(contentMode);
+      const fresh = createInitialDiagramState(
+        isConcreteContentMode(contentMode) ? contentMode : 'mermaid'
+      );
       stateRef.current = fresh;
       setState(fresh);
       setSessionHasPeerContent(false);
@@ -4094,7 +4159,7 @@ ${requirementsBlock}`;
             ? liveDraftSource
             : state.diagramSource
         }
-        contentType={contentMode}
+        contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
         rendererRefreshKey={rendererRefreshKey}
         onManualEdit={handleManualEdit}
         onValidationChange={handleValidationChange}
@@ -4147,7 +4212,7 @@ ${requirementsBlock}`;
         <ModeRevealSpotlight
           eyebrow={controls.modeReveal.eyebrow}
           body={controls.modeReveal.body}
-          modes={contentModeOptions}
+          modes={contentModeOptions.filter((m) => m.id !== 'auto')}
           currentMode={contentMode}
           onPickMode={handleModeRevealPick}
           pickPrefix={controls.modeReveal.pickPrefix}
@@ -4169,7 +4234,7 @@ ${requirementsBlock}`;
           actions={radialActions}
           busy={busy}
           diagramSource={state.diagramSource}
-          contentType={contentMode}
+          contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
           sessionId={activeSessionId}
           slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
           onSlopPromptClose={closeSlopPrompt}

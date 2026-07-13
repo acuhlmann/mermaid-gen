@@ -6,7 +6,11 @@
 import type { ExplainContentType, ExplainSection } from './explainSections.js';
 import type { StyleEdit } from './styleEdits.js';
 import type { DiagramState } from './diagramSchema.js';
-import { LEGACY_STREAM_TYPE_A2UI, LEGACY_STREAM_TYPE_PLAN_BEAT } from './agUiWireConstants.js';
+import {
+  LEGACY_STREAM_TYPE_A2UI,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE,
+  LEGACY_STREAM_TYPE_PLAN_BEAT
+} from './agUiWireConstants.js';
 
 /** A2UI v0.9 wire message (surface create / component update). */
 export type A2uiV09Message = {
@@ -57,6 +61,14 @@ export type LegacyPlanBeatEvent = {
   type: typeof LEGACY_STREAM_TYPE_PLAN_BEAT;
   text: string;
   source?: 'server' | 'agent';
+  timestamp?: number;
+};
+
+/** Auto mode resolved a concrete contentType for this intent run. */
+export type LegacyContentTypeEvent = {
+  type: typeof LEGACY_STREAM_TYPE_CONTENT_TYPE;
+  contentType: string;
+  reason?: string;
   timestamp?: number;
 };
 
@@ -202,6 +214,7 @@ export type LegacyStreamEvent =
   | LegacyModelCallEndEvent
   | LegacyStatusEvent
   | LegacyPlanBeatEvent
+  | LegacyContentTypeEvent
   | LegacyTokenEvent
   | LegacyA2uiEvent
   | LegacyArtifactEvent

@@ -9,6 +9,11 @@
     "text": "Tightening edge labels on the auth subgraph.",
     "source": "agent"
   },
+  "content_type_chart": {
+    "type": "content_type",
+    "contentType": "chart",
+    "reason": "numeric comparison ask"
+  },
   "patch_summary": {
     "type": "artifact",
     "kind": "patch_summary",
