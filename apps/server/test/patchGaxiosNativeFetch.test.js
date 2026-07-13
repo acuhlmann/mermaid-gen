@@ -1,31 +1,34 @@
 import assert from 'node:assert/strict';
-import { afterEach, beforeEach, test } from 'node:test';
-import { instance as gaxiosInstance } from 'gaxios';
+import { test } from 'node:test';
+import { JSDOM } from 'jsdom';
+import { Gaxios, instance as gaxiosInstance } from 'gaxios';
 import { patchGaxiosNativeFetch } from '../src/config/patchGaxiosNativeFetch.js';
-
-const originalWindow = globalThis.window;
-const originalFetchImpl = gaxiosInstance.defaults.fetchImplementation;
-
-beforeEach(() => {
-  delete globalThis.window;
-  delete gaxiosInstance.defaults.fetchImplementation;
-});
-
-afterEach(() => {
-  if (originalWindow === undefined) {
-    delete globalThis.window;
-  } else {
-    globalThis.window = originalWindow;
-  }
-  if (originalFetchImpl === undefined) {
-    delete gaxiosInstance.defaults.fetchImplementation;
-  } else {
-    gaxiosInstance.defaults.fetchImplementation = originalFetchImpl;
-  }
-});
 
 test('patchGaxiosNativeFetch wires Gaxios to native fetch on Node', () => {
   patchGaxiosNativeFetch();
   assert.equal(typeof globalThis.window?.fetch, 'function');
   assert.equal(typeof gaxiosInstance.defaults.fetchImplementation, 'function');
+});
+
+test('patchGaxiosNativeFetch survives jsdom replacing globalThis.window', async () => {
+  patchGaxiosNativeFetch();
+
+  const dom = new JSDOM('<!doctype html><html><body></body></html>');
+  globalThis.window = dom.window;
+  assert.equal(typeof dom.window.fetch, 'undefined');
+
+  patchGaxiosNativeFetch();
+  assert.equal(typeof globalThis.window.fetch, 'function');
+
+  const client = new Gaxios();
+
+  try {
+    await client.request({
+      url: 'https://www.googleapis.com/oauth2/v4/token',
+      method: 'POST',
+      data: {}
+    });
+  } catch (error) {
+    assert.notEqual(error.message, 'fetchImpl is not a function');
+  }
 });
