@@ -315,9 +315,9 @@ function validateButtonAction(action: unknown, id: string): string | null {
 }
 
 /**
- * The intro form shown on the empty forms canvas and used as a hard fallback if
- * the model never produces a valid document. Fits the corporate-IT parody: a
- * self-assessment for permission to begin a self-assessment.
+ * Optional intro form document for tests and offline fixtures. The live UI no
+ * longer auto-renders this on an empty slot — users start from the same empty
+ * canvas as other modes and ask the agent for the first form.
  */
 export function buildFormsSeedDoc(): string {
   const doc: FormsA2uiDoc = {

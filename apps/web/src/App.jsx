@@ -59,7 +59,6 @@ import {
   submitDiagramStyle,
   writeDiagramCache
 } from './state/diagramStore.js';
-import { buildFormsSeedDoc } from '@archislop/shared';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
 import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
 import {
@@ -2448,22 +2447,6 @@ function ArchiSlop() {
         : 'They submitted it with no fields filled in.',
       'Now issue the NEXT form in the endless corporate gauntlet: acknowledge these answers with bureaucratic non-sequiturs, invent a fresh reason more information is needed, bump the form code, and add new tedium. Never declare the process complete — there is always another form.'
     ].join(' ');
-    // The empty forms canvas renders a client-only seed. Persist it before the
-    // next-form intent so the agent sees the form the user actually completed.
-    if (!stateRef.current.diagramSource?.trim()) {
-      try {
-        const seeded = await syncClientDiagramState({
-          contentType: 'forms',
-          diagramSource: buildFormsSeedDoc(),
-          sessionId: activeSessionId
-        });
-        stateRef.current = seeded;
-        setState(seeded);
-      } catch (err) {
-        setError(err.message);
-        return;
-      }
-    }
     await submitIntentWithPrompt(nextPrompt, {
       contentTypeOverride: 'forms',
       variantOverride: 'intent'
@@ -3694,9 +3677,9 @@ ${requirementsBlock}`;
     [loading, insightsEntries]
   );
   const hasDiagramText = Boolean(state.diagramSource?.trim());
-  // Forms always has a client-side seed canvas, and switching into an empty sibling
-  // after peer content exists must not dump the user back on the first-run intro.
-  const hasCanvasContent = hasDiagramText || contentMode === 'forms' || sessionHasPeerContent;
+  // Peer content in another slot keeps chrome visible after a mode switch into an
+  // empty target slot — do not dump the user back on the first-run intro.
+  const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
   // Verb-led placeholder that cycles while the empty-state entry input is shown,
@@ -4926,8 +4909,8 @@ ${requirementsBlock}`;
         aiControls={
           // Empty intro: modes live in the Render as strip; Settings (brain /
           // invite / mode) only clutter the first screen. Keep the gear once a
-          // diagram exists, or whenever a handshake needs the panel. Forms always
-          // has a seed canvas; peer content also keeps chrome after a mode switch.
+          // diagram exists, or whenever a handshake needs the panel. Peer content
+          // also keeps chrome after a mode switch into an empty slot.
           hasCanvasContent || pendingHandshake ? (
             <AiCornerControlsInner
               contentMode={contentMode}

@@ -3,7 +3,7 @@ import { renderMarkdown } from '@a2ui/markdown-it';
 import { MessageProcessor } from '@a2ui/web_core/v0_9';
 import { A2uiSurface, basicCatalog, MarkdownContext } from '@a2ui/react/v0_9';
 import '@a2ui/react/styles';
-import { buildFormsSeedDoc, FORMS_A2UI_SURFACE_ID, parseFormsA2ui } from '@archislop/shared';
+import { FORMS_A2UI_SURFACE_ID, parseFormsA2ui } from '@archislop/shared';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
@@ -19,8 +19,8 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  * (`onFormSubmit`). No button can route anywhere else — that is the whole
  * trust model for letting the model draw the UI.
  *
- * When the slot is empty, the seed form (`buildFormsSeedDoc`) is shown so the
- * gauntlet is interactive from the first paint.
+ * When the slot is empty, nothing is rendered — the first-run entry chrome in
+ * `App.jsx` owns the empty canvas, same as Mermaid/Anything.
  */
 function FormsErrorState({ error }) {
   const { controls } = useUiCopy();
@@ -75,8 +75,10 @@ export default function FormsRenderer({
   const lastGoodDocRef = useRef(null);
 
   const parsed = useMemo(() => {
-    const source = diagramSource && diagramSource.trim() ? diagramSource : buildFormsSeedDoc();
-    const result = parseFormsA2ui(source);
+    if (!diagramSource?.trim()) {
+      return { ok: false, empty: true };
+    }
+    const result = parseFormsA2ui(diagramSource);
     if (!result.ok) {
       // During typewriter / draft flashes, incomplete JSON is expected — keep the
       // last good form mounted instead of swapping to the error/"garbled" state.
@@ -176,6 +178,10 @@ export default function FormsRenderer({
       subB.unsubscribe();
     };
   }, [parsed]);
+
+  if (!parsed.ok && parsed.empty) {
+    return null;
+  }
 
   if (!parsed.ok) {
     return <FormsErrorState error={parsed.error ?? 'Invalid form.'} />;
