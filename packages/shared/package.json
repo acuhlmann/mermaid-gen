@@ -31,7 +31,7 @@
     "test:wire": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/wireRoundTrip.test.ts",
     "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && mkdir -p dist/data && cp src/data/llm-token-rates.json dist/data/",
     "vendor:anything-libs": "node scripts/vendorAnythingLibs.mjs",
     "prepare": "npm run build"
   },

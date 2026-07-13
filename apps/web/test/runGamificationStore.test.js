@@ -217,6 +217,16 @@ describe('runGamificationStore', () => {
     expect(unlockedAt).toBe(SLOP_MARATHON_SESSION_THRESHOLD - 1);
   });
 
+  it('accumulates lifetime LLM cost estimates across completed runs', () => {
+    let s = createInitialState();
+    expect(s.lifetimeLlmCostUsd).toBe(0);
+    s = applyCompletedRun(s, { variant: 'refine', now: 1, runCostUsd: 0.012 }).state;
+    s = applyCompletedRun(s, { variant: 'innovate', now: 2, runCostUsd: 0.008 }).state;
+    expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);
+    const reloaded = loadFromStorage(serializeForStorage(s));
+    expect(reloaded.lifetimeLlmCostUsd).toBeCloseTo(0.02, 5);
+  });
+
   it('unlocks per-variant mastery at 10 runs of that variant', () => {
     let s = createInitialState();
     let unlockedAt = -1;

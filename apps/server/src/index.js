@@ -9,6 +9,11 @@ import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
 import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
 import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
+import { isAgentCostEstimateEnabled } from '@archislop/shared';
+import {
+  getCachedLlmCostRates,
+  scheduleLlmCostRatesRefresh
+} from './config/llmCostRatesRefresh.js';
 import { ensureMermaidInitialized } from './agents/mermaidReliabilitySkill.js';
 import { createCopilotRouter } from './routes/copilot.js';
 import { createAdvisorRouter } from './routes/advisor.js';
@@ -27,6 +32,8 @@ import { assertProductionInviteSecret } from './utils/inviteToken.js';
 const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
 dotenv.config({ path: envPath });
 assertProductionInviteSecret();
+
+scheduleLlmCostRatesRefresh(process.env);
 
 const { store: pairingCodeStore, backend: pairingStoreBackend } =
   await createPairingCodeStoreFromEnv();
@@ -124,11 +131,20 @@ app.use(
 );
 
 app.get('/api/health', (_req, res) => {
+  const ratesSnapshot = getCachedLlmCostRates(process.env);
   res.json({
     status: 'ok',
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
     llmBackend: resolveLlmBackend() ?? 'none',
+    agentCostEstimates: {
+      enabled: isAgentCostEstimateEnabled(process.env),
+      pricingUrl: ratesSnapshot.pricingUrl,
+      rates: ratesSnapshot.rates,
+      ratesVersion: ratesSnapshot.version,
+      ratesUpdatedAt: ratesSnapshot.updatedAtMs,
+      ratesSources: ratesSnapshot.sources
+    },
     pairingStore: pairingStoreBackend,
     mcpSessionAffinity: 'in-process',
     hint:

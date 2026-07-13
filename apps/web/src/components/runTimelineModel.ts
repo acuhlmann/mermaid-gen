@@ -4,6 +4,7 @@
  * and prepares display copy. No React — `RunTimeline.tsx` is the view.
  */
 
+import { formatEstimatedCostUsd } from '@archislop/shared';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { phaseCeremonyLabel } from '../utils/slopitectCopy.js';
@@ -113,6 +114,7 @@ export type RunStats = {
   beats: number;
   repairs: number;
   issues: number;
+  estimatedCostUsd: number | null;
 };
 
 export function finiteOrNull(value: unknown): number | null {
@@ -327,12 +329,16 @@ export function buildRunStats(entry: InsightEntry): RunStats {
   const actions = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
   const modelTurns = actions.filter((action) => actionKind(action) === 'model').length;
   const repairs = actions.filter((action) => actionKind(action) === 'fixer').length;
+  const rawCost = entry.estimatedCostUsd;
+  const estimatedCostUsd =
+    typeof rawCost === 'number' && Number.isFinite(rawCost) && rawCost > 0 ? rawCost : null;
   return {
     modelTurns,
     repairs,
     issues: actions.filter((action) => action.status === 'rejected').length,
     toolRuns: actions.length - modelTurns - repairs,
-    beats: Array.isArray(entry.planBeats) ? entry.planBeats.length : 0
+    beats: Array.isArray(entry.planBeats) ? entry.planBeats.length : 0,
+    estimatedCostUsd
   };
 }
 
@@ -433,6 +439,13 @@ export function buildStatChips(
         singular: 'issue',
         plural: 'issues'
       })
+    });
+  }
+  if (stats.estimatedCostUsd != null) {
+    chips.push({
+      key: 'cost',
+      className: 'is-cost',
+      text: formatEstimatedCostUsd(stats.estimatedCostUsd)
     });
   }
   return chips;

@@ -70,5 +70,7 @@ export type InsightEntry = {
   styleEdits?: StyleEdit[];
   a2uiMessages?: A2uiV09Message[];
   styleEditsA2uiMessages?: A2uiV09Message[];
+  /** Rolling sum of per-model-call USD estimates when deployed cost tracking is on. */
+  estimatedCostUsd?: number;
   [key: string]: unknown;
 };

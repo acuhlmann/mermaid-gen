@@ -409,7 +409,10 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     trophyEmpty: '还没有奖杯。30秒内帽子戏法三种人设来破封。',
     tipLabel: 'Slopitect小贴士™',
     tierLabel: '等级：',
-    progressAriaLabel: '等级进度'
+    progressAriaLabel: '等级进度',
+    damageTitle: '利益相关方损失报告™',
+    damageLede: '你通过智能体运行向云端释放的累计预估花费。',
+    damageFootnote: '不是真实账单。按令牌数 × 部署端定期刷新的目录价估算。财务仍握有真账单。'
   },
   PRESTIGE_PROMOTION: {
     titlePrefix: '晋升',

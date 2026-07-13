@@ -90,6 +90,22 @@ describe('LevelUpInfoPanel', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it('shows stakeholder damage report when cost tracking is enabled', () => {
+    render(
+      <LevelUpInfoPanel
+        {...baseProps}
+        lifetimeLlmCostUsd={1.42}
+        costTrackingEnabled
+        onClose={() => {}}
+      />
+    );
+    const panel = screen.getByTestId('levelup-info-panel');
+    expect(screen.getByTestId('levelup-damage-report')).toBeTruthy();
+    expect(panel.textContent).toContain('Stakeholder Damage Report');
+    expect(panel.textContent).toMatch(/~\$1\.42/);
+    expect(panel.textContent).toMatch(/Expense-report/i);
+  });
+
   it('highlights the current row inside the ladder', () => {
     const { container } = render(<LevelUpInfoPanel {...baseProps} onClose={() => {}} />);
     const current = container.querySelector('.levelup-info-ladder-row.is-current');

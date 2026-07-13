@@ -687,6 +687,40 @@ flowchart TB
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
 
+  it('shows run-level estimated cost in the timeline stat chips', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-cost',
+            title: 'Go — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: '',
+            startedAt: Date.now() - 8000,
+            completedAt: Date.now(),
+            estimatedCostUsd: 0.052,
+            phases: [{ id: 'agent_run', label: 'Planning and executing tools…', at: 1000 }],
+            technicalActions: [
+              {
+                id: 'm1',
+                name: 'model_call',
+                label: 'Model reasoning turn',
+                status: 'done',
+                durationMs: 1200,
+                modelName: 'gemini-2.5-flash',
+                outcomeDetail: '812 tokens in · 96 tokens out · ~$0.0003'
+              }
+            ]
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    expect(screen.getByText('~$0.05')).toBeTruthy();
+  });
+
   it('renders model reasoning turns with model name and usage in the timeline', () => {
     render(
       <InsightsPane

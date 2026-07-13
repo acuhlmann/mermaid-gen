@@ -63,6 +63,7 @@ import {
   closeOpenInsightPhases
 } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
+import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
 import './App.css';
 import './components/RunTimeline.css';
 import {
@@ -290,6 +291,7 @@ function ArchiSlop() {
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   /** Click-to-open level/XP info popover anchored to the XP bar. */
   const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
+  const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
   const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
@@ -324,6 +326,7 @@ function ArchiSlop() {
   const streamTimerRef = useRef(null);
   /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
   const streamAgentAbortRef = useRef(null);
+  const agentCostEstimatesRef = useRef(getCachedAgentCostEstimates());
   const autoCloseActiveEntryIdRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
@@ -402,6 +405,19 @@ function ArchiSlop() {
   useEffect(() => {
     slopPromptSourceRef.current = slopPromptSource;
   }, [slopPromptSource]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAgentCostEstimates().then((payload) => {
+      if (!cancelled) {
+        agentCostEstimatesRef.current = payload;
+        setCostTrackingEnabled(payload.enabled === true);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const closeSlopPrompt = useCallback(() => {
     setSlopPromptExpanded(false);
@@ -1287,7 +1303,8 @@ function ArchiSlop() {
             variant,
             now,
             goMadDepth: extras?.goMadDepth ?? inferredGoMadDepth,
-            critiquePerfect: extras?.critiquePerfect
+            critiquePerfect: extras?.critiquePerfect,
+            runCostUsd: extras?.runCostUsd
           });
           if (typeof window !== 'undefined') {
             writeGamificationToStorage(window.localStorage, state);
@@ -1833,7 +1850,8 @@ function ArchiSlop() {
           pendingAutoDiagramHighlightRef,
           pendingAutoDiagramHighlightTimeoutRef,
           triggerCompletionDelight,
-          onFinal
+          onFinal,
+          agentCostEstimates: agentCostEstimatesRef.current
         }
       );
       try {
@@ -4226,6 +4244,8 @@ ${requirementsBlock}`;
                 totalRuns={gamification.totalRuns}
                 runsByVariant={gamification.runsByVariant}
                 achievements={gamification.achievements}
+                lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
+                costTrackingEnabled={costTrackingEnabled}
                 onClose={() => setXpInfoPanelOpen(false)}
               />
             </div>
