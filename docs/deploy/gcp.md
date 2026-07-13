@@ -146,7 +146,7 @@ When the API server runs on **Cloud Run**, it can call **Vertex AI** (Gemini / G
    ```
 
 3. **Configure routing** (see [`.env.example`](../../.env.example)):
-   - **`LLM_PROVIDER=auto`** (default): on Cloud Run (`K_SERVICE` is set), prefer Vertex when project and region resolve; otherwise use OpenRouter if `OPENROUTER_API_KEY` is set. Set **`OPENROUTER_PREFERRED=1`** to use OpenRouter first whenever the key is present (including on Cloud Run).
+   - **`LLM_PROVIDER=auto`** (default): on Cloud Run (`K_SERVICE` is set), prefer Vertex when **`VERTEX_PROJECT_ID`** (set automatically by deploy scripts from `GCP_PROJECT_ID`) and region resolve; otherwise use OpenRouter if `OPENROUTER_API_KEY` is set. Set **`OPENROUTER_PREFERRED=1`** to use OpenRouter first whenever the key is present (including on Cloud Run).
    - **`LLM_PROVIDER=vertex`**: Vertex only (requires a resolvable GCP project and region).
    - **`LLM_PROVIDER=openrouter`**: OpenRouter only (requires Secret Manager or env key).
 

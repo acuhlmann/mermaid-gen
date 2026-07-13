@@ -687,7 +687,7 @@ flowchart TB
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
 
-  it('shows run-level estimated cost in the timeline stat chips', () => {
+  it('shows run-level estimated cost in the timeline header and footer', () => {
     render(
       <InsightsPane
         entries={[
@@ -709,7 +709,7 @@ flowchart TB
                 status: 'done',
                 durationMs: 1200,
                 modelName: 'gemini-2.5-flash',
-                outcomeDetail: '812 tokens in · 96 tokens out · ~$0.0003'
+                outcomeDetail: '812 tokens in · 96 tokens out'
               }
             ]
           }
@@ -718,7 +718,9 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText('~$0.05')).toBeTruthy();
+    expect(screen.getAllByText('~$0.05 est.').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByTestId('run-timeline-run-cost-header')).toBeTruthy();
+    expect(screen.getByTestId('run-timeline-run-cost-footer')).toBeTruthy();
   });
 
   it('renders model reasoning turns with model name and usage in the timeline', () => {

@@ -4,6 +4,7 @@ import {
   buildAgentCostEstimatesPayload,
   estimateLlmCostUsd,
   formatEstimatedCostUsd,
+  formatRunEstimatedCostUsd,
   formatModelUsageWithCost,
   isAgentCostEstimateEnabled,
   lifetimeLlmCostFlavor,
@@ -67,6 +68,12 @@ test('formatModelUsageWithCost appends USD label when enabled', () => {
 test('formatEstimatedCostUsd scales precision for small amounts', () => {
   assert.equal(formatEstimatedCostUsd(0.052), '~$0.05');
   assert.equal(formatEstimatedCostUsd(0.0042), '~$0.004');
+});
+
+test('formatRunEstimatedCostUsd uses cents for sub-dollar run totals', () => {
+  assert.equal(formatRunEstimatedCostUsd(0.052), '~$0.05 est.');
+  assert.equal(formatRunEstimatedCostUsd(0.008), '~0.80¢ est.');
+  assert.equal(formatRunEstimatedCostUsd(0.0008), '~0.08¢ est.');
 });
 
 test('lifetimeLlmCostFlavor returns parody tiers', () => {

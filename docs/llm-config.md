@@ -147,8 +147,8 @@ LLM_PROVIDER=openrouter
 **Cloud Run production** (Vertex by default):
 
 ```env
-# Automatic — GOOGLE_CLOUD_PROJECT + K_SERVICE are set by Cloud Run.
-# Optionally pin region:
+# Deploy scripts set VERTEX_PROJECT_ID from GCP_PROJECT_ID automatically.
+# Optionally pin region and models:
 VERTEX_LOCATION=us-central1
 ```
 
