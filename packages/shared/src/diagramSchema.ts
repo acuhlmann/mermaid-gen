@@ -48,9 +48,7 @@ export function normalizeContentType(
 }
 
 /** True when the value is a real diagram slot (not the Auto picker sentinel). */
-export function isConcreteContentType(
-  value: unknown
-): value is z.infer<typeof ContentTypeSchema> {
+export function isConcreteContentType(value: unknown): value is z.infer<typeof ContentTypeSchema> {
   return ContentTypeSchema.safeParse(value).success;
 }
 

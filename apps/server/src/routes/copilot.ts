@@ -218,10 +218,7 @@ export async function handleDiagramIntent({
 
   const state = stateStore.getSlot(intent.contentType);
   // Auto adopts the server slot revision above; for concrete types enforce client freshness.
-  if (
-    parsedIntent.data.contentType !== 'auto' &&
-    intent.revisionId !== state.revisionId
-  ) {
+  if (parsedIntent.data.contentType !== 'auto' && intent.revisionId !== state.revisionId) {
     return {
       status: 409,
       body: {
@@ -275,9 +272,7 @@ export async function handleDiagramIntent({
           llm: true,
           agent: 'intent',
           contentType: intent.contentType,
-          ...(parsedIntent.data.contentType === 'auto'
-            ? { resolvedFromAuto: true }
-            : {})
+          ...(parsedIntent.data.contentType === 'auto' ? { resolvedFromAuto: true } : {})
         }
       }
     };
@@ -767,8 +762,7 @@ export function createCopilotRouter({
     }
 
     const payload = parsed.data;
-    const requestedAuto =
-      payload.operation === 'intent' && payload.contentType === 'auto';
+    const requestedAuto = payload.operation === 'intent' && payload.contentType === 'auto';
 
     // Auto is intent-only on the wire; transform/analyze schemas reject it.
     if (requestedAuto && payload.operation === 'intent') {

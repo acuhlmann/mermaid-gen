@@ -4,11 +4,7 @@
  */
 
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import {
-  AUTO_CONTENT_TYPE,
-  ContentTypeSchema,
-  type ContentType
-} from '@archislop/shared';
+import { AUTO_CONTENT_TYPE, ContentTypeSchema, type ContentType } from '@archislop/shared';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -98,8 +94,7 @@ export function parseContentTypeClassification(raw: string): {
       };
       const ct = ContentTypeSchema.safeParse(parsed.contentType);
       if (ct.success) {
-        const reason =
-          typeof parsed.reason === 'string' ? parsed.reason.trim().slice(0, 120) : '';
+        const reason = typeof parsed.reason === 'string' ? parsed.reason.trim().slice(0, 120) : '';
         return {
           contentType: ct.data,
           reason: reason || `Selected ${ct.data} mode`
@@ -162,7 +157,9 @@ export async function inferContentTypeFromPrompt({
   const user = [
     'Pick the best contentType for this user request:',
     '---',
-    String(prompt ?? '').trim().slice(0, 2000),
+    String(prompt ?? '')
+      .trim()
+      .slice(0, 2000),
     '---'
   ].join('\n');
 
@@ -171,9 +168,7 @@ export async function inferContentTypeFromPrompt({
       [new SystemMessage(SYSTEM_PROMPT), new HumanMessage(user)],
       abortSignal ? { signal: abortSignal } : undefined
     );
-    const raw = extractTextContent(
-      (response as { content?: unknown })?.content ?? response
-    );
+    const raw = extractTextContent((response as { content?: unknown })?.content ?? response);
     const parsed = parseContentTypeClassification(raw);
     return { ...parsed, classified: true };
   } catch (error) {

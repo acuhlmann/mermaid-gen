@@ -22,12 +22,14 @@ export type ResolvedSlotState = {
  * When the client sends Auto, classify the prompt and adopt the target slot's
  * server-side revision/source (client placeholders are not meaningful for Auto).
  */
-export async function resolveAutoIntentContentType<T extends {
-  contentType: string;
-  prompt: string;
-  revisionId: number;
-  diagramSource: string;
-}>({
+export async function resolveAutoIntentContentType<
+  T extends {
+    contentType: string;
+    prompt: string;
+    revisionId: number;
+    diagramSource: string;
+  }
+>({
   payload,
   getSlot,
   env = process.env,

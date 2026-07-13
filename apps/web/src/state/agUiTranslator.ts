@@ -169,8 +169,7 @@ export function createAgUiTranslator(): (
           return text.trim() ? { type: 'plan_beat', text: text.trim(), source } : null;
         }
         if (name === AGUI_CUSTOM_NAME_CONTENT_TYPE && value && typeof value === 'object') {
-          const contentType =
-            typeof value.contentType === 'string' ? value.contentType.trim() : '';
+          const contentType = typeof value.contentType === 'string' ? value.contentType.trim() : '';
           if (!contentType) return null;
           const reason = typeof value.reason === 'string' ? value.reason.trim() : '';
           return {
