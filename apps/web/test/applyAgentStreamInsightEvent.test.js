@@ -153,6 +153,41 @@ describe('applyAgentStreamInsightEvent model_call', () => {
     });
   });
 
+  it('accumulates USD estimate when agent cost config is enabled', () => {
+    const finalizeTechnicalActionResult = vi.fn();
+    let entry = { technicalActions: [], planBeats: [], estimatedCostUsd: 0 };
+    const patchInsightEntry = vi.fn((id, fn) => {
+      entry = fn(entry);
+      return entry;
+    });
+    const ctx = createCtx({
+      finalizeTechnicalActionResult,
+      patchInsightEntry,
+      agentCostEstimates: {
+        enabled: true,
+        pricingUrl: 'https://cloud.google.com/vertex-ai/generative-ai/pricing',
+        rates: {
+          'gemini-2.5-flash': { inputPerM: 0.3, outputPerM: 2.5 }
+        }
+      }
+    });
+    applyAgentStreamInsightEvent({ text: '' }, ctx, {
+      type: 'model_call_end',
+      callId: 'run-99',
+      model: 'gemini-2.5-flash',
+      inputTokens: 1_000_000,
+      outputTokens: 0
+    });
+    expect(finalizeTechnicalActionResult).toHaveBeenCalledWith(
+      'sec-1',
+      'model_call',
+      expect.objectContaining({
+        outcomeDetail: expect.stringContaining('~$0.30')
+      })
+    );
+    expect(entry.estimatedCostUsd).toBeCloseTo(0.3, 5);
+  });
+
   it('finalizes a model-call action without usage when the provider reports none', () => {
     const finalizeTechnicalActionResult = vi.fn();
     const ctx = createCtx({ finalizeTechnicalActionResult });

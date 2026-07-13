@@ -9,6 +9,7 @@ import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
 import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
 import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
+import { buildAgentCostEstimatesPayload } from '@archislop/shared';
 import { ensureMermaidInitialized } from './agents/mermaidReliabilitySkill.js';
 import { createCopilotRouter } from './routes/copilot.js';
 import { createAdvisorRouter } from './routes/advisor.js';
@@ -129,6 +130,7 @@ app.get('/api/health', (_req, res) => {
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
     llmBackend: resolveLlmBackend() ?? 'none',
+    agentCostEstimates: buildAgentCostEstimatesPayload(process.env),
     pairingStore: pairingStoreBackend,
     mcpSessionAffinity: 'in-process',
     hint:

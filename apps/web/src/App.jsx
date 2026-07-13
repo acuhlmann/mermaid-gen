@@ -63,6 +63,7 @@ import {
   closeOpenInsightPhases
 } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
+import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
 import './App.css';
 import './components/RunTimeline.css';
 import {
@@ -316,6 +317,7 @@ function ArchiSlop() {
   const streamTimerRef = useRef(null);
   /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
   const streamAgentAbortRef = useRef(null);
+  const agentCostEstimatesRef = useRef(getCachedAgentCostEstimates());
   const autoCloseActiveEntryIdRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
@@ -394,6 +396,16 @@ function ArchiSlop() {
   useEffect(() => {
     slopPromptSourceRef.current = slopPromptSource;
   }, [slopPromptSource]);
+
+  useEffect(() => {
+    let cancelled = false;
+    loadAgentCostEstimates().then((payload) => {
+      if (!cancelled) agentCostEstimatesRef.current = payload;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const closeSlopPrompt = useCallback(() => {
     setSlopPromptExpanded(false);
@@ -1825,7 +1837,8 @@ function ArchiSlop() {
           pendingAutoDiagramHighlightRef,
           pendingAutoDiagramHighlightTimeoutRef,
           triggerCompletionDelight,
-          onFinal
+          onFinal,
+          agentCostEstimates: agentCostEstimatesRef.current
         }
       );
       try {

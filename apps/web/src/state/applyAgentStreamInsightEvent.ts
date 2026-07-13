@@ -2,6 +2,8 @@ import {
   LEGACY_STREAM_TYPE_A2UI,
   normalizeContentType,
   resolveCritiqueAnalyzeFinalText,
+  formatModelUsageWithCost,
+  type AgentCostEstimatesPayload,
   type A2uiV09Message,
   type DiagramState,
   type LegacyErrorEvent,
@@ -69,13 +71,6 @@ export function closeOpenInsightPhases(
       ? { ...phase, endAt, ...(serverEndAt != null ? { serverEndAt } : {}) }
       : phase
   );
-}
-
-function formatModelUsageDetail(evt: { inputTokens?: number; outputTokens?: number }): string {
-  const parts: string[] = [];
-  if (Number.isFinite(evt.inputTokens)) parts.push(`${evt.inputTokens} tokens in`);
-  if (Number.isFinite(evt.outputTokens)) parts.push(`${evt.outputTokens} tokens out`);
-  return parts.join(' · ');
 }
 
 export type InsightEventContext = {
@@ -159,6 +154,7 @@ export type InsightEventContext = {
   triggerCompletionDelight: (sectionId: string, variant: string | undefined) => void;
   onFinal?: (args: { evt: LegacyStreamEvent; finalText: string; sectionId: string }) => void;
   onA2uiMessages?: (messages: A2uiV09Message[], sectionId: string) => void;
+  agentCostEstimates?: AgentCostEstimatesPayload | null;
 };
 
 /** Reduces post-translator legacy stream events into insights/draft/sound updates. */
@@ -467,15 +463,33 @@ export function applyAgentStreamInsightEvent(
     const callEvt = evt as {
       type: 'model_call_end';
       callId?: string;
+      model?: string;
       inputTokens?: number;
       outputTokens?: number;
     };
-    const usageDetail = formatModelUsageDetail(callEvt);
+    const costConfig = ctx.agentCostEstimates?.enabled ? ctx.agentCostEstimates : null;
+    const { detail: usageDetail, costUsd } = formatModelUsageWithCost(
+      {
+        inputTokens: callEvt.inputTokens,
+        outputTokens: callEvt.outputTokens,
+        model: callEvt.model
+      },
+      costConfig?.rates ?? null
+    );
     finalizeTechnicalActionResult(sectionId, 'model_call', {
       status: 'done',
       ...(callEvt.callId ? { toolCallId: callEvt.callId } : {}),
       ...(usageDetail ? { outcomeDetail: usageDetail } : {})
     });
+    if (costUsd != null && costUsd > 0) {
+      patchInsightEntry(sectionId, (entry) => ({
+        ...entry,
+        estimatedCostUsd:
+          (typeof entry.estimatedCostUsd === 'number' && Number.isFinite(entry.estimatedCostUsd)
+            ? entry.estimatedCostUsd
+            : 0) + costUsd
+      }));
+    }
   } else if (evt.type === 'syntax_fixer_start') {
     const startEvt = evt as { type: 'syntax_fixer_start'; triggerError?: string };
     const triggerError =
