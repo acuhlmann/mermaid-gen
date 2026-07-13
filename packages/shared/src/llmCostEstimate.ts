@@ -3,6 +3,8 @@
  * Gemini list prices; override per model via env on the server (see docs/llm-config.md).
  */
 
+import bundledRatesDocument from './data/llm-token-rates.json' with { type: 'json' };
+
 export type LlmTokenRates = {
   inputPerM: number;
   outputPerM: number;
@@ -14,22 +16,40 @@ export type AgentCostEstimatesPayload = {
   pricingUrl: string;
   /** Normalized model slug → USD per 1M tokens (input/output). */
   rates: Record<string, LlmTokenRates>;
+  ratesVersion?: string | null;
+  ratesUpdatedAt?: number;
+  ratesSources?: string[];
 };
 
-/** Vertex Gemini list prices (USD per 1M tokens) as of July 2026. */
-export const DEFAULT_LLM_TOKEN_RATES: Record<string, LlmTokenRates> = {
-  'gemini-2.5-flash': { inputPerM: 0.3, outputPerM: 2.5 },
-  'gemini-2.5-flash-lite': { inputPerM: 0.1, outputPerM: 0.4 },
-  'gemini-2.5-pro': { inputPerM: 1.25, outputPerM: 10 },
-  'gemini-3.5-flash': { inputPerM: 0.5, outputPerM: 3 },
-  'gemini-3.1-pro-preview': { inputPerM: 1.25, outputPerM: 10 },
-  'google-gemini-2.5-flash-lite': { inputPerM: 0.1, outputPerM: 0.4 },
-  'deepseek-v4-flash': { inputPerM: 0.27, outputPerM: 1.1 },
-  'deepseek-v4-pro': { inputPerM: 0.55, outputPerM: 2.19 },
-  'deepseek-chat': { inputPerM: 0.27, outputPerM: 1.1 }
-};
+function parseBundledRatesDocument(doc: unknown): Record<string, LlmTokenRates> {
+  if (!doc || typeof doc !== 'object') return {};
+  const rates = (doc as { rates?: unknown }).rates;
+  if (!rates || typeof rates !== 'object') return {};
+  const out: Record<string, LlmTokenRates> = {};
+  for (const [model, value] of Object.entries(rates as Record<string, unknown>)) {
+    if (!value || typeof value !== 'object') continue;
+    const inputPerM = Number((value as LlmTokenRates).inputPerM);
+    const outputPerM = Number((value as LlmTokenRates).outputPerM);
+    if (!Number.isFinite(inputPerM) || !Number.isFinite(outputPerM)) continue;
+    out[normalizeLlmModelSlug(model)] = { inputPerM, outputPerM };
+  }
+  return out;
+}
 
-export const VERTEX_GEMINI_PRICING_URL = 'https://cloud.google.com/vertex-ai/generative-ai/pricing';
+/** Bundled Vertex/OpenRouter list prices (USD per 1M tokens). Update `src/data/llm-token-rates.json`. */
+export const DEFAULT_LLM_TOKEN_RATES: Record<string, LlmTokenRates> =
+  parseBundledRatesDocument(bundledRatesDocument);
+
+export const BUNDLED_LLM_RATES_VERSION =
+  typeof (bundledRatesDocument as { version?: unknown }).version === 'string'
+    ? (bundledRatesDocument as { version: string }).version
+    : null;
+
+export const VERTEX_GEMINI_PRICING_URL =
+  typeof (bundledRatesDocument as { pricingUrl?: unknown }).pricingUrl === 'string' &&
+  (bundledRatesDocument as { pricingUrl: string }).pricingUrl.trim()
+    ? (bundledRatesDocument as { pricingUrl: string }).pricingUrl.trim()
+    : 'https://cloud.google.com/vertex-ai/generative-ai/pricing';
 
 function envTruthy(value: unknown): boolean {
   if (value == null) return false;
@@ -164,6 +184,58 @@ export function formatEstimatedCostUsd(usd: number): string {
   if (usd >= 0.001) return `~$${usd.toFixed(3)}`;
   if (usd >= 0.0001) return `~$${usd.toFixed(4)}`;
   return '~<$0.0001';
+}
+
+export type LifetimeLlmCostFlavor = {
+  headline: string;
+  quip: string;
+  severity: 'idle' | 'petty' | 'expense' | 'budget' | 'incident';
+};
+
+/** Parody tier copy for the Slopitect level panel damage report. */
+export function lifetimeLlmCostFlavor(usd: number): LifetimeLlmCostFlavor {
+  const safe = Number.isFinite(usd) && usd > 0 ? usd : 0;
+  if (safe <= 0) {
+    return {
+      headline: '$0.00',
+      quip: 'No billable chaos yet. Your CFO still believes this is "just a diagram tool."',
+      severity: 'idle'
+    };
+  }
+  const headline = formatEstimatedCostUsd(safe) || '~$0.00';
+  if (safe < 0.05) {
+    return {
+      headline,
+      quip: 'Petty-cash tier. Finance will round this to zero and move on.',
+      severity: 'petty'
+    };
+  }
+  if (safe < 0.5) {
+    return {
+      headline,
+      quip: 'Enough to buy one (1) artisanal oat-milk latte for the platform team.',
+      severity: 'petty'
+    };
+  }
+  if (safe < 5) {
+    return {
+      headline,
+      quip: 'Expense-report energy. Someone will ask which cost center owns "Go Mad."',
+      severity: 'expense'
+    };
+  }
+  if (safe < 25) {
+    return {
+      headline,
+      quip: 'A respectable pilot budget — if the pilot never ends.',
+      severity: 'budget'
+    };
+  }
+  return {
+    headline,
+    quip: 'FinOps has opened a war room. Congratulations, you are the incident.',
+    severity: 'incident'
+  };
 }
 
 export function formatModelUsageDetail(evt: {

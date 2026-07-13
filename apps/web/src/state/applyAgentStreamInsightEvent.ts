@@ -151,7 +151,11 @@ export type InsightEventContext = {
   ) => void;
   pendingAutoDiagramHighlightRef: { current: { entryId: string; revisionId: number } | null };
   pendingAutoDiagramHighlightTimeoutRef: { current: ReturnType<typeof setTimeout> | null };
-  triggerCompletionDelight: (sectionId: string, variant: string | undefined) => void;
+  triggerCompletionDelight: (
+    sectionId: string,
+    variant: string | undefined,
+    extras?: { runCostUsd?: number }
+  ) => void;
   onFinal?: (args: { evt: LegacyStreamEvent; finalText: string; sectionId: string }) => void;
   onA2uiMessages?: (messages: A2uiV09Message[], sectionId: string) => void;
   agentCostEstimates?: AgentCostEstimatesPayload | null;
@@ -646,34 +650,40 @@ export function applyAgentStreamInsightEvent(
           message: finalEvt.message
         })
       : null;
-    patchInsightEntry(sectionId, (entry) => ({
-      ...entry,
-      status: mutationBlocked ? 'failed' : 'done',
-      statusText: mutationBlocked && failureStatus ? failureStatus.statusText : 'Done',
-      ...(mutationBlocked && failureStatus
-        ? {
-            failureClass: failureStatus.failureClass,
-            failureDetail: failureStatus.detail
-          }
-        : {}),
-      completedAt: Date.now(),
-      phases: closeOpenInsightPhases(
-        entry.phases,
-        Date.now(),
-        typeof evt.timestamp === 'number' ? evt.timestamp : undefined
-      ),
-      ...(finalEvt.revisionChanged && finalState && entry.diagramUndoBaseline
-        ? {
-            diagramRevisionApplied: true,
-            diagramAfterSource:
-              typeof finalState.diagramSource === 'string' ? finalState.diagramSource : null,
-            diagramAfterContentType: finalState.contentType ?? null,
-            diagramAfterRevisionId: finalState.revisionId ?? null
-          }
-        : {})
-    }));
+    let runCostUsd = 0;
+    patchInsightEntry(sectionId, (entry) => {
+      if (typeof entry.estimatedCostUsd === 'number' && Number.isFinite(entry.estimatedCostUsd)) {
+        runCostUsd = entry.estimatedCostUsd;
+      }
+      return {
+        ...entry,
+        status: mutationBlocked ? 'failed' : 'done',
+        statusText: mutationBlocked && failureStatus ? failureStatus.statusText : 'Done',
+        ...(mutationBlocked && failureStatus
+          ? {
+              failureClass: failureStatus.failureClass,
+              failureDetail: failureStatus.detail
+            }
+          : {}),
+        completedAt: Date.now(),
+        phases: closeOpenInsightPhases(
+          entry.phases,
+          Date.now(),
+          typeof evt.timestamp === 'number' ? evt.timestamp : undefined
+        ),
+        ...(finalEvt.revisionChanged && finalState && entry.diagramUndoBaseline
+          ? {
+              diagramRevisionApplied: true,
+              diagramAfterSource:
+                typeof finalState.diagramSource === 'string' ? finalState.diagramSource : null,
+              diagramAfterContentType: finalState.contentType ?? null,
+              diagramAfterRevisionId: finalState.revisionId ?? null
+            }
+          : {})
+      };
+    });
     if (!mutationBlocked) {
-      triggerCompletionDelight(sectionId, variant);
+      triggerCompletionDelight(sectionId, variant, { runCostUsd });
     } else if (typeof playFailureChime === 'function') {
       tryAgentSound(playFailureChime);
     }

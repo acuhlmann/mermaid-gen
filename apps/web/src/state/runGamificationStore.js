@@ -26,7 +26,7 @@ export const HAT_TRICK_WINDOW_MS = 30_000;
 export const SLOP_MARATHON_SESSION_THRESHOLD = 10;
 export const COMBO_KING_THRESHOLD = 5;
 export const STORAGE_KEY = 'archislop:slopitect-progress';
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 const VARIANTS = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 
@@ -57,7 +57,8 @@ export function createInitialState() {
     variantsSeenInSession: [],
     sessionRuns: 0,
     recentVariantTimeline: [], // [{ variant, at }] for hat-trick window
-    achievements: {} // id -> true
+    achievements: {},
+    lifetimeLlmCostUsd: 0
   };
 }
 
@@ -79,7 +80,7 @@ function pruneTimeline(timeline, now) {
  * sounds and rendering toasts.
  *
  * @param {ReturnType<typeof createInitialState>} state
- * @param {{ variant: string, now?: number, goMadDepth?: number, critiquePerfect?: boolean }} input
+ * @param {{ variant: string, now?: number, goMadDepth?: number, critiquePerfect?: boolean, runCostUsd?: number }} input
  */
 export function applyCompletedRun(state, input) {
   const variant = input?.variant;
@@ -209,6 +210,14 @@ export function applyCompletedRun(state, input) {
     });
   }
 
+  const runCostUsd =
+    typeof input.runCostUsd === 'number' &&
+    Number.isFinite(input.runCostUsd) &&
+    input.runCostUsd > 0
+      ? input.runCostUsd
+      : 0;
+  const lifetimeLlmCostUsd = (state.lifetimeLlmCostUsd ?? 0) + runCostUsd;
+
   return {
     state: {
       runsByVariant,
@@ -229,7 +238,8 @@ export function applyCompletedRun(state, input) {
       variantsSeenInSession: variantsSeen,
       sessionRuns,
       recentVariantTimeline,
-      achievements
+      achievements,
+      lifetimeLlmCostUsd
     },
     emissions
   };
@@ -247,7 +257,8 @@ export function serializeForStorage(state) {
     runsByVariant: state.runsByVariant,
     totalRuns: state.totalRuns,
     xp: state.xp ?? 0,
-    achievements: state.achievements
+    achievements: state.achievements,
+    lifetimeLlmCostUsd: state.lifetimeLlmCostUsd ?? 0
   });
 }
 
@@ -257,6 +268,9 @@ function rehydrateFromParsed(parsed) {
   const totalRuns = Number.isFinite(parsed.totalRuns) ? parsed.totalRuns : 0;
   const xp = Number.isFinite(parsed.xp) ? parsed.xp : 0;
   const levelInfo = levelForXp(xp);
+  const lifetimeLlmCostUsd = Number.isFinite(parsed.lifetimeLlmCostUsd)
+    ? parsed.lifetimeLlmCostUsd
+    : 0;
   return {
     ...initial,
     runsByVariant,
@@ -273,7 +287,8 @@ function rehydrateFromParsed(parsed) {
     achievements:
       parsed.achievements && typeof parsed.achievements === 'object'
         ? { ...parsed.achievements }
-        : {}
+        : {},
+    lifetimeLlmCostUsd
   };
 }
 
@@ -289,7 +304,7 @@ export function loadFromStorage(rawJson) {
   // Forward-compat: accept legacy v1 records (no xp yet) and rehydrate the
   // surviving fields with xp=0 so returning users keep their unlocked
   // achievements and run totals.
-  if (parsed.v === 1 || parsed.v === SCHEMA_VERSION) {
+  if (parsed.v === 1 || parsed.v === 2 || parsed.v === SCHEMA_VERSION) {
     return rehydrateFromParsed(parsed);
   }
   return null;

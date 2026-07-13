@@ -420,7 +420,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     trophyEmpty: '尚無獎盃。在 30 秒內帽子戲法三個角色來破封。',
     tipLabel: '爛圖建築師祕訣™',
     tierLabel: '等階：',
-    progressAriaLabel: '等級進度'
+    progressAriaLabel: '等級進度',
+    damageTitle: '利害關係人損失報告™',
+    damageLede: '你透過智慧體執行向雲端釋放的累計預估花費。',
+    damageFootnote: '不是真實帳單。按 token 數 × 部署端定期刷新的牌價估算。財務仍握有真帳單。'
   },
 
   PRESTIGE_PROMOTION: {

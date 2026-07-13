@@ -283,6 +283,7 @@ function ArchiSlop() {
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   /** Click-to-open level/XP info popover anchored to the XP bar. */
   const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
+  const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
   const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
@@ -400,7 +401,10 @@ function ArchiSlop() {
   useEffect(() => {
     let cancelled = false;
     loadAgentCostEstimates().then((payload) => {
-      if (!cancelled) agentCostEstimatesRef.current = payload;
+      if (!cancelled) {
+        agentCostEstimatesRef.current = payload;
+        setCostTrackingEnabled(payload.enabled === true);
+      }
     });
     return () => {
       cancelled = true;
@@ -1291,7 +1295,8 @@ function ArchiSlop() {
             variant,
             now,
             goMadDepth: extras?.goMadDepth ?? inferredGoMadDepth,
-            critiquePerfect: extras?.critiquePerfect
+            critiquePerfect: extras?.critiquePerfect,
+            runCostUsd: extras?.runCostUsd
           });
           if (typeof window !== 'undefined') {
             writeGamificationToStorage(window.localStorage, state);
@@ -4204,6 +4209,8 @@ ${requirementsBlock}`;
                 totalRuns={gamification.totalRuns}
                 runsByVariant={gamification.runsByVariant}
                 achievements={gamification.achievements}
+                lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
+                costTrackingEnabled={costTrackingEnabled}
                 onClose={() => setXpInfoPanelOpen(false)}
               />
             </div>

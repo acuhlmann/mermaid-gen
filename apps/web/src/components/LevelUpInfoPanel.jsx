@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
+import { lifetimeLlmCostFlavor } from '@archislop/shared';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { getVariantPersona, tipForIndex } from '../utils/slopitectCopy.js';
 
@@ -49,6 +50,8 @@ export default function LevelUpInfoPanel({
   totalRuns = 0,
   runsByVariant = {},
   achievements = {},
+  lifetimeLlmCostUsd = 0,
+  costTrackingEnabled = false,
   onClose
 }) {
   const { slopitect, controls } = useUiCopy();
@@ -100,6 +103,7 @@ export default function LevelUpInfoPanel({
     [panel.nextLevelTaunts, level, totalXp]
   );
   const tip = useMemo(() => tipForIndex(level + (unlocked.length % 7)), [level, unlocked.length]);
+  const damage = useMemo(() => lifetimeLlmCostFlavor(lifetimeLlmCostUsd), [lifetimeLlmCostUsd]);
 
   useEffect(() => {
     if (typeof onClose !== 'function') return undefined;
@@ -278,6 +282,22 @@ export default function LevelUpInfoPanel({
           <p className="levelup-info-empty">{panel.trophyEmpty}</p>
         )}
       </section>
+
+      {costTrackingEnabled ? (
+        <section
+          className={`levelup-info-section levelup-info-damage is-${damage.severity}`}
+          aria-label={panel.damageTitle ?? 'Stakeholder Damage Report'}
+          data-testid="levelup-damage-report"
+        >
+          <h3 className="levelup-info-section-title">{panel.damageTitle}</h3>
+          <p className="levelup-info-section-lede">{panel.damageLede}</p>
+          <div className="levelup-info-damage-hero">
+            <span className="levelup-info-damage-amount">{damage.headline}</span>
+            <span className="levelup-info-damage-quip">{damage.quip}</span>
+          </div>
+          <p className="levelup-info-damage-footnote">{panel.damageFootnote}</p>
+        </section>
+      ) : null}
 
       <aside className="levelup-info-tip" data-testid="levelup-info-tip">
         <span className="levelup-info-tip-label">{panel.tipLabel}</span>

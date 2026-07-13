@@ -49,7 +49,11 @@ export const SLOPITECT_GAMIFICATION_EN = {
     trophyEmpty: 'No trophies yet. Hat-trick three personas in 30s to break the seal.',
     tipLabel: 'Slopitect Tip™',
     tierLabel: 'Tier:',
-    progressAriaLabel: 'Level progress'
+    progressAriaLabel: 'Level progress',
+    damageTitle: 'Stakeholder Damage Report™',
+    damageLede: 'Lifetime estimated cloud spend you have personally unleashed via agent runs.',
+    damageFootnote:
+      'Not a real invoice. Token math × list prices that refresh from the deployed rate table. Finance still owns the actual bill.'
   },
   PRESTIGE_PROMOTION: {
     titlePrefix: 'PROMOTION',

@@ -10089,6 +10089,44 @@ button {
   color: rgba(15, 23, 42, 0.76);
 }
 
+.levelup-info-damage-hero {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.16), rgba(244, 63, 94, 0.08));
+  border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+.levelup-info-damage.is-incident .levelup-info-damage-hero {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.18), rgba(168, 85, 247, 0.12));
+  border-color: rgba(244, 63, 94, 0.45);
+}
+
+.levelup-info-damage-amount {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #9a3412;
+}
+
+.levelup-info-damage.is-incident .levelup-info-damage-amount {
+  color: #b91c1c;
+}
+
+.levelup-info-damage-quip {
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: rgba(15, 23, 42, 0.78);
+  font-style: italic;
+}
+
+.levelup-info-damage-footnote {
+  margin: 0.45rem 0 0;
+  font-size: 0.64rem;
+  color: rgba(15, 23, 42, 0.5);
+}
+
 .levelup-info-ladder {
   margin: 0;
   padding: 0;

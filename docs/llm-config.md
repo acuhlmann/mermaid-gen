@@ -96,21 +96,22 @@ When deployed on Cloud Run, the thinking panel shows **approximate** LLM spend p
 
 Estimates are **not** billed amounts — they multiply reported input/output tokens by a rate table. Defaults match published [Vertex Gemini list prices](https://cloud.google.com/vertex-ai/generative-ai/pricing) for the built-in models (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.5-flash-lite`, plus common OpenRouter/DeepSeek slugs when `OPENROUTER_PREFERRED=1`).
 
-### Keeping rates current after a deploy
+### Automatic rate refresh (deployed)
 
-1. Open the [Vertex generative AI pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) page (or your OpenRouter model page if prod uses `OPENROUTER_PREFERRED=1`).
-2. Note **input** and **output** USD per 1M tokens for the models in `VERTEX_MODEL_FAST` / `VERTEX_MODEL_QUALITY` (built-in defaults: `gemini-2.5-flash` and `gemini-2.5-pro`).
-3. Either:
-   - **Ship a code update** — edit `DEFAULT_LLM_TOKEN_RATES` in [`packages/shared/src/llmCostEstimate.ts`](../packages/shared/src/llmCostEstimate.ts), or
-   - **Override without redeploying app logic** — set Cloud Run env vars:
-     ```bash
-     gcloud run services update mermaid-gen-main \
-       --region=us-central1 \
-       --update-env-vars=LLM_COST_USD_PER_M_GEMINI_2_5_FLASH_INPUT=0.30,LLM_COST_USD_PER_M_GEMINI_2_5_FLASH_OUTPUT=2.50
-     ```
-4. Confirm: `curl -sS "$PUBLIC_BASE_URL/api/health" | jq '.agentCostEstimates.enabled'` → `true` on Cloud Run; `false` locally unless `LLM_COST_ESTIMATES=1`.
+On Cloud Run the server merges rates from several sources (see `ratesSources` in `/api/health`):
 
-The web client reads `agentCostEstimates` from `/api/health` once at load (includes the merged rate table).
+1. **Bundled JSON** — [`packages/shared/src/data/llm-token-rates.json`](../packages/shared/src/data/llm-token-rates.json) ships with the build.
+2. **Remote JSON (default on Cloud Run)** — every 24h (override with `LLM_COST_RATES_REFRESH_MS`) the server fetches `LLM_COST_RATES_URL`, which defaults to the `main` branch raw GitHub URL for that JSON file. **Update prices by merging a PR to that file** — running pods pick it up on the next refresh without redeploying app code.
+3. **OpenRouter catalog** — when `OPENROUTER_API_KEY` is set, configured model slugs are refreshed from `GET https://openrouter.ai/api/v1/models`.
+4. **Env overrides** — `LLM_COST_USD_PER_M_<MODEL>_INPUT` / `_OUTPUT` win last.
+
+### Keeping rates current manually
+
+1. Open [Vertex generative AI pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) (or OpenRouter if `OPENROUTER_PREFERRED=1`).
+2. Edit `packages/shared/src/data/llm-token-rates.json` (`version` + per-model `inputPerM` / `outputPerM` in USD per 1M tokens) and deploy, **or** hot-patch Cloud Run env vars.
+3. Confirm: `curl -sS "$PUBLIC_BASE_URL/api/health" | jq '{enabled:.agentCostEstimates.enabled, version:.agentCostEstimates.ratesVersion, sources:.agentCostEstimates.ratesSources}'`.
+
+The web client reads `agentCostEstimates` from `/api/health` at load. Lifetime totals accumulate in the Slopitect level panel (**Stakeholder Damage Report™**) when cost tracking is enabled.
 
 ## Health check
 

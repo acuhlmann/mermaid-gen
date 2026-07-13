@@ -6,6 +6,7 @@ import {
   formatEstimatedCostUsd,
   formatModelUsageWithCost,
   isAgentCostEstimateEnabled,
+  lifetimeLlmCostFlavor,
   mergeLlmTokenRates,
   normalizeLlmModelSlug,
   readLlmCostEnvOverrides,
@@ -66,6 +67,13 @@ test('formatModelUsageWithCost appends USD label when enabled', () => {
 test('formatEstimatedCostUsd scales precision for small amounts', () => {
   assert.equal(formatEstimatedCostUsd(0.052), '~$0.05');
   assert.equal(formatEstimatedCostUsd(0.0042), '~$0.004');
+});
+
+test('lifetimeLlmCostFlavor returns parody tiers', () => {
+  assert.match(lifetimeLlmCostFlavor(0).quip, /CFO/i);
+  assert.equal(lifetimeLlmCostFlavor(0.02).severity, 'petty');
+  assert.equal(lifetimeLlmCostFlavor(2.5).severity, 'expense');
+  assert.equal(lifetimeLlmCostFlavor(30).severity, 'incident');
 });
 
 test('buildAgentCostEstimatesPayload disables locally by default', () => {
