@@ -304,10 +304,13 @@ export function createVertexChatModel(env, overrides = {}) {
   }
   const location = resolveVertexLocation(env);
   const { temperature, model: explicitModel, maxTokens, maxOutputTokens, ...rest } = overrides;
+  const restAuthOptions =
+    rest.authOptions && typeof rest.authOptions === 'object' ? rest.authOptions : {};
   const fields = {
     ...rest,
     location,
-    project,
+    // LangChain builds Vertex URLs via GoogleAuth.getProjectId(), which does not read VERTEX_PROJECT_ID.
+    authOptions: { ...restAuthOptions, projectId: project },
     // LangChain Gemini uses a single systemInstruction at index 0. Diagram agents stack
     // several system-role context messages (mutation mode, syntax pack, current source).
     convertSystemMessageToHumanContent: true

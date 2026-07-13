@@ -31,6 +31,11 @@ import { assertProductionInviteSecret } from './utils/inviteToken.js';
 
 const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
 dotenv.config({ path: envPath });
+// google-auth-library resolves project from GOOGLE_CLOUD_PROJECT, not VERTEX_PROJECT_ID.
+const vertexProjectId = process.env.VERTEX_PROJECT_ID?.trim();
+if (vertexProjectId && !process.env.GOOGLE_CLOUD_PROJECT?.trim()) {
+  process.env.GOOGLE_CLOUD_PROJECT = vertexProjectId;
+}
 assertProductionInviteSecret();
 
 scheduleLlmCostRatesRefresh(process.env);

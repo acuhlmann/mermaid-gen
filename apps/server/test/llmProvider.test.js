@@ -181,6 +181,14 @@ test('createVertexChatModel converts stacked system messages for Gemini compatib
   assert.equal(model.convertSystemMessageToHumanContent, true);
 });
 
+test('createVertexChatModel passes VERTEX_PROJECT_ID to GoogleAuth via authOptions', async () => {
+  const model = createVertexChatModel(
+    { VERTEX_PROJECT_ID: 'mermaidgen' },
+    { model: 'gemini-2.5-flash-lite' }
+  );
+  assert.equal(await model.connection.client.getProjectId(), 'mermaidgen');
+});
+
 test('isLlmConfigured reflects any usable backend', () => {
   assert.equal(isLlmConfigured({}), false);
   assert.equal(isLlmConfigured({ DEEPSEEK_API_KEY: 'k' }), true);
