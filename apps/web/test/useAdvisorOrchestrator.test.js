@@ -130,6 +130,50 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestionKind).toBe('comment');
   });
 
+  it('reports token usage to onUsage so advisor spend can be billed', async () => {
+    mockPersonaPick('exec');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        persona: 'exec',
+        suggestion: 'Three boxes total.',
+        highlightIds: [],
+        usage: { inputTokens: 180, outputTokens: 24 },
+        model: 'gemini-2.5-flash'
+      })
+    });
+    const onUsage = vi.fn();
+    renderHook(() => useAdvisorOrchestrator(defaultParams({ onUsage })));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+
+    expect(onUsage).toHaveBeenCalledWith({
+      inputTokens: 180,
+      outputTokens: 24,
+      model: 'gemini-2.5-flash'
+    });
+  });
+
+  it('does not call onUsage when the server reported no usage', async () => {
+    mockPersonaPick('exec');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ persona: 'exec', suggestion: 'No usage here.', highlightIds: [] })
+    });
+    const onUsage = vi.fn();
+    renderHook(() => useAdvisorOrchestrator(defaultParams({ onUsage })));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+
+    expect(onUsage).not.toHaveBeenCalled();
+  });
+
   it('coerces explain persona to comment even when API says suggestion', async () => {
     mockPersonaPick('explain');
     fetchMock.mockResolvedValue({
