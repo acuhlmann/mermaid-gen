@@ -26,6 +26,33 @@ const SELECT_FOCUS_DEBOUNCE_MS = 60;
 /** Keep a freshly surfaced bubble visible through post-render focus churn. */
 const FOCUS_CLEAR_GRACE_MS = 3000;
 
+/** @param {string | null | undefined} focusKey */
+function focusNodeId(focusKey) {
+  if (!focusKey || typeof focusKey !== 'string') return null;
+  const idx = focusKey.indexOf(':');
+  return idx >= 0 ? focusKey.slice(idx + 1) : focusKey;
+}
+
+/**
+ * Discard an in-flight or completed reply only when an existing explicit
+ * selection moves to a different target — not for hover→selected on the same
+ * node, hover flicker, or the first click that engages the diagram.
+ *
+ * @param {string | null | undefined} previousFocusKey
+ * @param {string | null | undefined} nextFocusKey
+ */
+export function shouldDiscardForFocusChange(previousFocusKey, nextFocusKey) {
+  if (previousFocusKey === nextFocusKey) return false;
+  const prevId = focusNodeId(previousFocusKey);
+  const nextId = focusNodeId(nextFocusKey);
+  if (prevId && nextId && prevId === nextId) return false;
+  const prevSelected = String(previousFocusKey ?? '').startsWith('selected:');
+  const nextSelected = String(nextFocusKey ?? '').startsWith('selected:');
+  if (prevSelected && nextSelected && prevId !== nextId) return true;
+  if (prevSelected && !nextSelected) return true;
+  return false;
+}
+
 function pickNextPersona(previous) {
   const pool = previous ? ADVISOR_ORDER.filter((p) => p !== previous) : ADVISOR_ORDER;
   const index = Math.floor(Math.random() * pool.length);
@@ -377,17 +404,11 @@ export function useAdvisorOrchestrator(params) {
           setThinking(null);
           return;
         }
-        if (focusKeyRef.current !== focusKeyAtTick) {
-          // Discard only when an explicit selection changed mid-flight — hover
-          // focus flickers constantly over the canvas and used to abort every
-          // completed reply, leaving thinking → blank → thinking with no bubble.
-          const tickSelected = String(focusKeyAtTick ?? '').startsWith('selected:');
-          const nowSelected = String(focusKeyRef.current ?? '').startsWith('selected:');
-          if (tickSelected || nowSelected) {
-            setThinking(null);
-            scheduleNext(0);
-            return;
-          }
+        if (shouldDiscardForFocusChange(focusKeyAtTick, focusKeyRef.current)) {
+          // Selection moved to a different node mid-flight — discard and re-tick.
+          setThinking(null);
+          scheduleNext(0);
+          return;
         }
         const highlight =
           replyIds.length > 0 ? replyIds : focusId ? [focusId] : visibleIds.slice(0, 4);
@@ -595,6 +616,16 @@ export function useAdvisorOrchestrator(params) {
     const scheduledFocusSource = focusSource;
     const id = setTimeout(() => {
       if (pinnedRef.current) return;
+      // Never abort an in-flight "is polishing…" chip — pointer/selection churn
+      // used to flash thinking away before the speech bubble could land.
+      if (thinkingPersonaRef.current) return;
+      // Hover→selected on the same node is a stronger signal, not a new target.
+      if (
+        focusNodeId(scheduledFocusKey) &&
+        focusNodeId(scheduledFocusKey) === focusNodeId(focusKeyRef.current)
+      ) {
+        return;
+      }
       // If the in-flight fetch already landed for this same focus while we were
       // debouncing, do not wipe the bubble — a common regression path for the
       // Wise Architect "is musing…" → vanished comment transition.
@@ -615,11 +646,10 @@ export function useAdvisorOrchestrator(params) {
       ) {
         return;
       }
-      // Hover retarget: if a suggestion is already on screen (past grace) or a
-      // think is in flight, leave it alone — only seed a tick when idle.
+      // Hover retarget: if a suggestion is already on screen (past grace), leave
+      // it alone — only seed a tick when idle.
       if (scheduledFocusSource === 'hover') {
         if (suggestionRef.current && activePersonaRef.current) return;
-        if (thinkingPersonaRef.current) return;
       }
       cancelPendingRef.current?.();
       clearAdvisorSurface({ clearPersona: true });
