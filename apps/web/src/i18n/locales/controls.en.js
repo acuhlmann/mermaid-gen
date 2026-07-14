@@ -501,7 +501,10 @@ export const CONTROLS_EN = {
       garden: 'Garden',
       archipelago: 'Archipelago',
       composite: 'Composite'
-    }
+    },
+    compositeHintTitle: 'Composite mode',
+    compositeHintBody:
+      'This scene has one layer, so it still looks like the original metaphor. Prompt the agent to combine scenes — e.g. “city and river side by side”.'
   },
   styleEdits: {
     region: 'Style edits',

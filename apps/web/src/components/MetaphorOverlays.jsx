@@ -62,6 +62,22 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
  * Fullscreen-only segmented control for switching the spatial metaphor kind
  * (city, layer cake, galaxy, tree, terrain) without leaving the canvas.
  */
+/**
+ * Fullscreen-only note when composite has a single layer — the UI switcher wraps
+ * the current scene, which looks identical to the base metaphor until the agent
+ * adds more layers via prompt.
+ */
+export function MetaphorCompositeHint({ layerCount = 0 }) {
+  const { controls } = useUiCopy();
+  if (layerCount >= 2) return null;
+  return (
+    <div className="metaphor-overlay metaphor-composite-hint" role="status">
+      <p className="metaphor-composite-hint-title">{controls.metaphor.compositeHintTitle}</p>
+      <p className="metaphor-composite-hint-body">{controls.metaphor.compositeHintBody}</p>
+    </div>
+  );
+}
+
 export function MetaphorKindSwitcher({ metaphor, disabled = false, onSelectKind }) {
   const { controls } = useUiCopy();
   if (!metaphor) return null;

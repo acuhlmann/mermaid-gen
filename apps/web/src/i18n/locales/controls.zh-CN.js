@@ -483,7 +483,10 @@ export const CONTROLS_ZH_CN = {
       garden: '花园',
       archipelago: '群岛',
       composite: '组合'
-    }
+    },
+    compositeHintTitle: '组合模式',
+    compositeHintBody:
+      '当前场景只有一层，看起来仍与原来的隐喻相同。请让智能体组合多个场景，例如“城市与河流并排展示”。'
   },
   styleEdits: {
     region: '样式编辑',

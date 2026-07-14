@@ -483,7 +483,10 @@ export const CONTROLS_ZH_TW = {
       garden: '花園',
       archipelago: '群島',
       composite: '組合'
-    }
+    },
+    compositeHintTitle: '組合模式',
+    compositeHintBody:
+      '目前場景只有一層，看起來仍與原本的隱喻相同。請讓智慧代理組合多個場景，例如「城市與河流並排展示」。'
   },
   styleEdits: {
     region: '樣式編輯',

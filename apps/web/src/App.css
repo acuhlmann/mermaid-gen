@@ -8048,6 +8048,33 @@ button {
   opacity: 0.92;
 }
 
+.metaphor-composite-hint {
+  bottom: 18px;
+  left: 50%;
+  right: auto;
+  top: auto;
+  max-width: min(92%, 520px);
+  transform: translateX(-50%);
+  pointer-events: auto;
+  text-align: center;
+}
+
+.metaphor-composite-hint-title {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #bfdbfe;
+}
+
+.metaphor-composite-hint-body {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #e2e8f0;
+}
+
 .metaphor-hover-tooltip {
   position: fixed;
   z-index: 6;
