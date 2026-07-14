@@ -315,7 +315,13 @@ export const CONTROLS_ZH_TW = {
     rawStreamEvents: '原始串流事件（{count}）',
     via: '來自',
     modeSuffix: '模式',
-    brainSuffix: '模型'
+    brainSuffix: '模型',
+    phaseStep: '階段 {step}',
+    streakTitle: '{name} 連擊',
+    diffAdded: '+{count} 新增',
+    diffChanged: '~{count} 修改',
+    diffRemoved: '−{count} 移除',
+    changesSincePrevious: '相對上一版本的變化'
   },
   editor: {
     doneEditing: '完成編輯',
@@ -378,7 +384,12 @@ export const CONTROLS_ZH_TW = {
     combo: '連擊',
     levelUp: '等級提升',
     lvlPrefix: '等級',
-    max: '滿級'
+    max: '滿級',
+    xpLabel: '經驗',
+    tapForDetails: ' — 點擊查看詳情',
+    levelAriaMax: '等級 {level}，已滿級，累計 {totalXp} {xpLabel}',
+    levelAriaProgress: '等級 {level}，距下一級還需 {xpInto}/{xpForNext} {xpLabel}',
+    levelFallbackTitle: '爛圖建築師'
   },
   brand: {
     totalSlopRuns: '累計 {count} 次爛圖執行',
@@ -575,6 +586,7 @@ export const CONTROLS_ZH_TW = {
       issues: '個問題',
       technicalStep: '個技術步驟',
       technicalSteps: '個技術步驟'
-    }
+    },
+    patchLines: '+{added} / −{removed} 行'
   }
 };

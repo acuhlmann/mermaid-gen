@@ -199,7 +199,14 @@ function personaBannerClass(variant) {
 }
 
 /** Live-run chips in the pane header (replaces top-right LiveRunHud when Thinking is open). */
-function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0, actionLabels = {} }) {
+function InsightsPaneLiveRunMeta({
+  variant,
+  phases,
+  startedAt,
+  streak = 0,
+  actionLabels = {},
+  insightsCopy = {}
+}) {
   const now = useElapsedNow(true);
   const started = Number.isFinite(startedAt) ? startedAt : null;
   const elapsedLabel = started != null ? formatElapsedDuration(now - started) : '';
@@ -208,6 +215,7 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0, actio
     latestPhase?.id != null ? phaseCeremonyLabel(variant, latestPhase.id, latestPhase.label) : null;
   const actionLabel = actionLabels[variant] || null;
   const phaseStep = phases?.length ? phases.length : 0;
+  const streakName = actionLabel || variant;
 
   if (!actionLabel && !ceremonyLabel && !elapsedLabel && streak < 2) return null;
 
@@ -228,7 +236,7 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0, actio
       ) : null}
       {phaseStep > 0 ? (
         <span className="insights-pane-live-chip is-step" aria-hidden={!phaseStep}>
-          Phase {phaseStep}
+          {formatLocale(insightsCopy.phaseStep ?? 'Phase {step}', { step: phaseStep })}
         </span>
       ) : null}
       {elapsedLabel ? (
@@ -237,7 +245,7 @@ function InsightsPaneLiveRunMeta({ variant, phases, startedAt, streak = 0, actio
       {streak >= 2 ? (
         <span
           className="insights-pane-live-chip is-streak"
-          title={`${actionLabel || variant} streak`}
+          title={formatLocale(insightsCopy.streakTitle ?? '{name} streak', { name: streakName })}
         >
           🔥 ×{streak}
         </span>
@@ -830,23 +838,26 @@ function resultingPreviewLabel(afterKind, insightsCopy) {
   return insightsCopy.resultingDiagram;
 }
 
-function DiagramDiffLegend({ diff, ariaLabel }) {
+function DiagramDiffLegend({ diff, ariaLabel, insightsCopy }) {
   if (!diff || (!diff.addedIds?.length && !diff.modifiedIds?.length && !diff.removedIds?.length)) {
     return null;
   }
+  const copy = insightsCopy ?? {};
   return (
     <p className="insights-after-section-meta" aria-label={ariaLabel}>
       {diff.addedIds?.length ? (
-        <span className="insights-after-meta-chip is-added">+{diff.addedIds.length} added</span>
+        <span className="insights-after-meta-chip is-added">
+          {formatLocale(copy.diffAdded ?? '+{count} added', { count: diff.addedIds.length })}
+        </span>
       ) : null}
       {diff.modifiedIds?.length ? (
         <span className="insights-after-meta-chip is-modified">
-          ~{diff.modifiedIds.length} changed
+          {formatLocale(copy.diffChanged ?? '~{count} changed', { count: diff.modifiedIds.length })}
         </span>
       ) : null}
       {diff.removedIds?.length ? (
         <span className="insights-after-meta-chip is-removed">
-          −{diff.removedIds.length} removed
+          {formatLocale(copy.diffRemoved ?? '−{count} removed', { count: diff.removedIds.length })}
         </span>
       ) : null}
     </p>
@@ -1165,6 +1176,7 @@ export default function InsightsPane({
               startedAt={liveEntry.startedAt}
               streak={liveStreak}
               actionLabels={controls.actions}
+              insightsCopy={insightsCopy}
             />
             <InsightsPanePersonaQuote variant={liveEntry.variant} streaming />
           </div>
@@ -1589,7 +1601,8 @@ export default function InsightsPane({
                     </h4>
                     <DiagramDiffLegend
                       diff={afterDiff}
-                      ariaLabel="Changes since previous version"
+                      ariaLabel={insightsCopy.changesSincePrevious}
+                      insightsCopy={insightsCopy}
                     />
                     <InsightsEmbeddedDiagram
                       idPrefix={`${entry.id}-after`}
@@ -1600,7 +1613,9 @@ export default function InsightsPane({
                     />
                     {afterRemovedIds.length > 0 ? (
                       <p className="insights-after-removed-note">
-                        Removed: {afterRemovedIds.join(', ')}
+                        {formatLocale(insightsCopy.removedFromDiagram, {
+                          ids: afterRemovedIds.join(', ')
+                        })}
                       </p>
                     ) : null}
                   </section>
@@ -1634,6 +1649,7 @@ export default function InsightsPane({
                       <DiagramDiffLegend
                         diff={diagramChangeHighlightSummary}
                         ariaLabel={insightsCopy.highlightedChanges}
+                        insightsCopy={insightsCopy}
                       />
                     ) : null}
                     {entry.id === diagramChangeHighlightEntryId &&

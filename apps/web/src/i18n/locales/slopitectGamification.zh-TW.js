@@ -421,6 +421,20 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     tipLabel: '爛圖建築師祕訣™',
     tierLabel: '等階：',
     progressAriaLabel: '等級進度',
+    levelDialogAria: '等級 {level} 進度',
+    xpLabel: '經驗',
+    baseXp: '基礎',
+    runsOnRecord: '已記錄 {count} 次 {name} 執行',
+    runsOnRecordOne: '已記錄 {count} 次 {name} 執行',
+    defaultTitle: '爛圖建築師',
+    damageQuips: {
+      idle: '尚無可計費的混亂。你的 CFO 仍相信這只是「畫圖工具」。',
+      pettyLow: '零花等級。財務會四捨五入為零然後翻頁。',
+      pettyMid: '夠平台團隊買一杯（1）手工燕麥拿鐵。',
+      expense: '報帳單能量。有人會問「極致瘋狂」歸哪個成本中心。',
+      budget: '體面的試點預算——如果試點永不結束的話。',
+      incident: 'FinOps 已開啟戰情室。恭喜，你就是事件本身。'
+    },
     damageTitle: '利害關係人損失報告™',
     damageLede: '你透過智慧體執行向雲端釋放的累計預估花費。',
     damageFootnote: '不是真實帳單。按 token 數 × 部署端定期刷新的牌價估算。財務仍握有真帳單。'

@@ -432,7 +432,7 @@ function PhaseSegment({
       <div className="run-timeline-segment-body">
         <div className="run-timeline-segment-head">
           <span className="run-timeline-segment-label">
-            {ceremonyLabelFor(variant, seg.id, seg.label)}
+            {ceremonyLabelFor(variant, seg.id, phaseIdLabel(seg.id, copy))}
           </span>
           <span className="run-timeline-segment-chip" aria-hidden="true">
             {phaseIdLabel(seg.id, copy)}

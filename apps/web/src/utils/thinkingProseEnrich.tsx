@@ -5,6 +5,8 @@
 
 import type { ReactNode } from 'react';
 import { DEFAULT_THEME_VARIABLES } from '@archislop/shared';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 const THEME_VAR_KEYS = Object.keys(DEFAULT_THEME_VARIABLES);
 
@@ -244,17 +246,18 @@ export function PatchLinesBar({
   removed?: number;
   keyPrefix?: string;
 }) {
+  const { controls } = useUiCopy();
   const a = Math.max(0, Number(added) || 0);
   const r = Math.max(0, Number(removed) || 0);
   const total = a + r || 1;
   const addPct = (a / total) * 100;
   const remPct = (r / total) * 100;
+  const label = formatLocale(controls.runTimeline.patchLines ?? '+{added} / −{removed} lines', {
+    added: a,
+    removed: r
+  });
   return (
-    <span
-      className="insights-patch-lines-bar"
-      data-testid="thinking-patch-bar"
-      title={`+${a} / −${r} lines`}
-    >
+    <span className="insights-patch-lines-bar" data-testid="thinking-patch-bar" title={label}>
       <span className="insights-patch-lines-bar-track" aria-hidden="true">
         {a > 0 ? (
           <span className="insights-patch-lines-bar-add" style={{ width: `${addPct}%` }} />
@@ -263,9 +266,7 @@ export function PatchLinesBar({
           <span className="insights-patch-lines-bar-rem" style={{ width: `${remPct}%` }} />
         ) : null}
       </span>
-      <span className="insights-patch-lines-bar-label">
-        +{a} / −{r} lines
-      </span>
+      <span className="insights-patch-lines-bar-label">{label}</span>
     </span>
   );
 }

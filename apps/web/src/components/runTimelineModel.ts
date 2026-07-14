@@ -471,7 +471,9 @@ export function runHeadline({
   const headline = copy?.headline;
   if (runStatus === 'running') {
     if (responseActive) return `${responseTitle}…`;
-    if (activeSegment) return ceremonyLabelFor(variant, activeSegment.id, activeSegment.label);
+    if (activeSegment) {
+      return ceremonyLabelFor(variant, activeSegment.id, phaseIdLabel(activeSegment.id, copy));
+    }
     return headline?.working ?? 'Working…';
   }
   if (runStatus === 'failed') return headline?.stoppedOnIssue ?? 'Stopped on an issue';

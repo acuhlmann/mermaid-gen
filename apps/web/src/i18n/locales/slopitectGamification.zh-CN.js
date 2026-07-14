@@ -410,6 +410,20 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     tipLabel: '烂图建筑师小贴士™',
     tierLabel: '等级：',
     progressAriaLabel: '等级进度',
+    levelDialogAria: '等级 {level} 进度',
+    xpLabel: '经验',
+    baseXp: '基础',
+    runsOnRecord: '已记录 {count} 次 {name} 运行',
+    runsOnRecordOne: '已记录 {count} 次 {name} 运行',
+    defaultTitle: '烂图建筑师',
+    damageQuips: {
+      idle: '尚无账单级混乱。你的 CFO 仍相信这只是「画图工具」。',
+      pettyLow: '零花级别。财务会四舍五入为零然后翻页。',
+      pettyMid: '够平台团队买一杯（1）手工燕麦拿铁。',
+      expense: '报销单能量。有人会问「放飞」归哪个成本中心。',
+      budget: '体面的试点预算——如果试点永不结束的话。',
+      incident: 'FinOps 已开启战情室。恭喜，你就是事件本身。'
+    },
     damageTitle: '利益相关方损失报告™',
     damageLede: '你通过智能体运行向云端释放的累计预估花费。',
     damageFootnote: '不是真实账单。按令牌数 × 部署端定期刷新的目录价估算。财务仍握有真账单。'
