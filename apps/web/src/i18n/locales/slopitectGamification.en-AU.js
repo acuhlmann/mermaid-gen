@@ -258,7 +258,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     perfectInspection: {
       id: 'perfectInspection',
       title: '🧐 PERFECT INSPECTION',
-      subtitle: 'No weaknesses found. (Suspicious.) She\'ll be right… or not.'
+      subtitle: "No weaknesses found. (Suspicious.) She'll be right… or not."
     },
     fullStackSlopitect: {
       id: 'fullStackSlopitect',
@@ -334,7 +334,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     '  \\___________/ ',
     '       |||      ',
     '       |||      ',
-    '   ArchiSlop v∞ · Slopitect Engine warmed up. G\'day.',
+    "   ArchiSlop v∞ · Slopitect Engine warmed up. G'day.",
     '   Powered by Synergy™ & Co-Design™ — please file a JIRA ticket.'
   ],
   PROMPT_EASTER_EGGS: [
@@ -365,7 +365,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
   },
   LEVEL_PANEL: {
     levelFlavor: [
-      'The Slopitect notices you exist. G\'day.',
+      "The Slopitect notices you exist. G'day.",
       'Promoted to "knows where the Confluence is".',
       'Your name is now spelled correctly in stand-ups.',
       'Eligible to lead a Co-Design workshop. Bring snacks. And snags.',
@@ -391,7 +391,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       'fewer naps, more Co-Design.'
     ],
     closeLevelDetails: 'Close level details',
-    maxLevelCaption: 'Max level. The slop is forever. She\'ll be right.',
+    maxLevelCaption: "Max level. The slop is forever. She'll be right.",
     xpToNextPrefix: 'to',
     nextTierFallback: 'next tier',
     ladderTitle: 'Slopitect Ladder™',

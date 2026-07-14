@@ -153,7 +153,7 @@ export const CONTROLS_EN_AU = {
       },
       {
         title: '🏗️ Wrecking ball on standby',
-        body: "You sure, mate? Once we tear this down, the stakeholders are gonna want a post-mortem and at least one re-org."
+        body: 'You sure, mate? Once we tear this down, the stakeholders are gonna want a post-mortem and at least one re-org.'
       },
       {
         title: '⛏️ Ready to grind it to gravel?',
@@ -235,7 +235,7 @@ export const CONTROLS_EN_AU = {
     align: 'Align',
     introEyebrow: '👥 The roundtable has convened, mate',
     introBody:
-      "A stakeholder is weighing in on your diagram — they chip in as you work, whether you asked or not. Shut them up anytime with the button on the right.",
+      'A stakeholder is weighing in on your diagram — they chip in as you work, whether you asked or not. Shut them up anytime with the button on the right.',
     introDismiss: 'Gotcha',
     introAria: 'Meet the mob'
   },
