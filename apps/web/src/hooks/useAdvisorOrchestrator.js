@@ -572,9 +572,15 @@ export function useAdvisorOrchestrator(params) {
     const handleVisibility = () => {
       if (shouldPauseNow()) {
         clearPhaseTimer();
+        // Never abort an in-flight proposal or wipe a landed bubble on brief
+        // mobile visibility flickers (control center, banner, tab switch). Pause
+        // still blocks new ticks via shouldPauseNow / scheduleNext.
+        if (proposalInFlightRef.current || suggestionRef.current) {
+          return;
+        }
         cancelInFlight();
         clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
-      } else if (phaseTimer == null && !abortController) {
+      } else if (phaseTimer == null && !abortController && !proposalInFlightRef.current) {
         scheduleNext(GAP_MS);
       }
     };

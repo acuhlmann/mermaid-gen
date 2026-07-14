@@ -8,8 +8,8 @@ import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 
 const COLLAPSE_AFTER_MS = 6000;
-/** Keep the float anchor latched briefly so mobile `display:contents` does not eat the chip. */
-const SURFACE_LATCH_MS = 800;
+/** Keep the float anchor latched briefly across thinking→bubble handoff gaps. */
+const SURFACE_LATCH_MS = 1200;
 
 const VARIANT_CLASS = {
   refine: 'is-refine',

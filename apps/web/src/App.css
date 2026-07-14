@@ -5292,25 +5292,32 @@
     display: none;
   }
 
-  /* Stakeholders dock: collapse the wrapper when idle so the mascot button sits in
-     the row like its neighbors. When expanded, the wrap becomes the positioning
-     anchor for the roster popover that floats UP onto the canvas — the row stays
-     put. Speech bubble/thinking overlay the bar (see below). Keep a real box when
-     the intro spotlight or advisor bubble is floating so absolute children stay
-     anchored to the mascot. */
-  .prompt-actions--mobile .stakeholders-mascot-wrap:not(.is-menu-expanded):not(.has-float-surface) {
-    display: contents;
-  }
-
-  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded {
+  /* Stakeholders dock: always keep a real positioning box on mobile. We used to
+     collapse the idle wrap with `display: contents` so the stamp sat in the row
+     like its neighbors, but that ate the containing block for the absolutely
+     positioned thinking chip / speech bubble during handoff — on narrow viewports
+     the popup flashed then vanished. The wrap shrink-wraps a single stamp, so it
+     already matches neighbor sizing without `display: contents`. */
+  .prompt-actions--mobile .stakeholders-mascot-wrap {
     position: relative;
     display: inline-flex;
     align-items: center;
+    align-self: flex-end;
+    flex: 0 0 auto;
+    /* Float surfaces must paint above neighboring stamps / mute without being
+       clipped by the row's nowrap flex formatting context. */
+    overflow: visible;
+    z-index: 1;
+  }
+
+  .prompt-actions--mobile .stakeholders-mascot-wrap.has-float-surface,
+  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded {
+    z-index: 45;
   }
 
   /* Keep the mascot stamp at its row position — don't stretch to full width
      (overlay-button centers content, which reads as "icon jumped to center"). */
-  .prompt-actions--mobile .stakeholders-mascot-wrap.is-menu-expanded .stakeholders-mascot {
+  .prompt-actions--mobile .stakeholders-mascot-wrap .stakeholders-mascot {
     width: auto;
     align-self: flex-start;
     justify-content: flex-start;
@@ -5346,7 +5353,9 @@
 
   /* Speech bubble / thinking chip: float above the action bar without shifting buttons.
      Size to content but allow it to extend toward the viewport edges so the cast
-     strip avatars stay on one row instead of wrapping into a squashed grid. */
+     strip avatars stay on one row instead of wrapping into a squashed grid.
+     Anchor to the mascot wrap and clamp width so a wide cast strip cannot push the
+     chip off-screen on narrow viewports. */
   .prompt-actions--mobile .advisor-speech-bubble,
   .prompt-actions--mobile .advisor-thinking-indicator {
     position: absolute;
@@ -5355,11 +5364,11 @@
     bottom: calc(100% + 0.35rem);
     width: max-content;
     min-width: 0;
-    max-width: calc(100vw - 2rem);
+    max-width: min(22rem, calc(100vw - 1.25rem));
     margin: 0;
     flex: none;
     order: unset;
-    z-index: 40;
+    z-index: 50;
   }
 
   .prompt-actions--mobile .advisor-speech-bubble::after,
@@ -7646,6 +7655,12 @@ button {
     align-items: stretch;
     justify-content: flex-end;
     gap: 0.55rem;
+    overflow: visible;
+  }
+
+  .bottom-row,
+  .bottom-row-actions {
+    overflow: visible;
   }
 
   .app-shell.is-insights-open .bottom-chrome {
