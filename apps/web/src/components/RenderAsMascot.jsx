@@ -11,12 +11,7 @@ const RENDER_MODE_EMOJI = '🔄';
  * newcomers do not have to dig into Settings. Mirrors the circular menu's
  * render-mode tray (heading + mode rows) and StakeholdersMascot expand/collapse.
  */
-export default function RenderAsMascot({
-  modes,
-  currentMode,
-  onPickMode,
-  disabled = false
-}) {
+export default function RenderAsMascot({ modes, currentMode, onPickMode, disabled = false }) {
   const { controls } = useUiCopy();
   const actions = controls.actions;
   const radial = controls.radial;
@@ -72,7 +67,9 @@ export default function RenderAsMascot({
 
   return (
     <div
-      className={['render-as-mascot-wrap', expanded ? 'is-menu-expanded' : ''].filter(Boolean).join(' ')}
+      className={['render-as-mascot-wrap', expanded ? 'is-menu-expanded' : '']
+        .filter(Boolean)
+        .join(' ')}
       ref={wrapperRef}
     >
       {expanded ? (
