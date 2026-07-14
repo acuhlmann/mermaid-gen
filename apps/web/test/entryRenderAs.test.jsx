@@ -14,12 +14,7 @@ describe('EntryRenderAs', () => {
 
   it('renders label and mode chips', () => {
     render(
-      <EntryRenderAs
-        label="Render as"
-        modes={MODES}
-        currentMode="mermaid"
-        onPickMode={vi.fn()}
-      />
+      <EntryRenderAs label="Render as" modes={MODES} currentMode="mermaid" onPickMode={vi.fn()} />
     );
     expect(screen.getByTestId('entry-render-as')).toBeTruthy();
     expect(screen.getByText('Render as')).toBeTruthy();

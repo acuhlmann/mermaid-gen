@@ -21,8 +21,7 @@ export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
     'zh-TW': copy.zhTw
   };
 
-  const current =
-    LOCALE_OPTIONS.find((option) => option.id === locale) ?? LOCALE_OPTIONS[0];
+  const current = LOCALE_OPTIONS.find((option) => option.id === locale) ?? LOCALE_OPTIONS[0];
   const alternatives = LOCALE_OPTIONS.filter((option) => option.id !== current.id);
 
   useEffect(() => {
