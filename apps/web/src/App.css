@@ -4767,6 +4767,62 @@
   margin-left: auto;
 }
 
+/* Intro-only language picker — compact pill beside top chrome. */
+.intro-locale-toggle {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid var(--control-border);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--control-shadow);
+  padding: 2px;
+  gap: 1px;
+}
+
+.intro-locale-option {
+  appearance: none;
+  border: none;
+  margin: 0;
+  min-width: 1.85rem;
+  padding: 0.22rem 0.42rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: var(--muted);
+  background: transparent;
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+}
+
+.intro-locale-option:hover {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.intro-locale-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.intro-locale-option.is-selected {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+@media (max-width: 480px) {
+  .intro-locale-option {
+    min-width: 1.65rem;
+    padding: 0.2rem 0.34rem;
+    font-size: 0.64rem;
+  }
+}
+
 /* Escape the default top-shell stacking context (z-index 25) so the level-up
    panel renders above bottom-row chrome (z-index 26–31). */
 .top-shell:has(.brand-control.is-info-panel-open) {

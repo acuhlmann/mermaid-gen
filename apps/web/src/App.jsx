@@ -11,6 +11,7 @@ import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import TopicStarters from './components/TopicStarters.jsx';
 import EntryRenderAs from './components/EntryRenderAs.jsx';
 import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
+import IntroLocaleToggle from './components/IntroLocaleToggle.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
 import { useRotatingPlaceholder } from './hooks/useRotatingPlaceholder.js';
@@ -221,7 +222,7 @@ function formatFormAnswer(value) {
 }
 
 function ArchiSlop() {
-  const { controls, slopitect, applyLocaleFromText } = useUiCopy();
+  const { controls, slopitect, locale, setLocale, applyLocaleFromText } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
@@ -3693,6 +3694,8 @@ ${requirementsBlock}`;
   // whose saved diagram is about to load), and never over the editor/insights.
   const showEntryExample = sessionHydrated && !hasCanvasContent && !editorOpen && !insightsOpen;
 
+  const showIntroLocaleToggle = showEntryExample;
+
   // First-run mode reveal: after the first diagram, remind newcomers that modes
   // also live in Settings (empty-state already surfaces Render as). Skipped when
   // they already picked a mode on entry. Once-ever, persisted; stays clear of the
@@ -4198,7 +4201,7 @@ ${requirementsBlock}`;
 
       {showEntryExample ? (
         <ExampleDiagramPreview
-          source={EXAMPLE_DIAGRAM_SOURCE}
+          source={controls.prompt.exampleDiagramSource ?? EXAMPLE_DIAGRAM_SOURCE}
           eyebrow={controls.prompt.exampleEyebrow}
           headline={controls.prompt.exampleHeadline}
           body={controls.prompt.exampleBody}
@@ -4417,15 +4420,22 @@ ${requirementsBlock}`;
               }}
             >
               <span className="slopitect-tip-chip-label" aria-hidden="true">
-                Slopitect Tip™
+                {controls.insights.tipLabel}
               </span>
               <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
             </div>
           ) : null}
         </div>
 
-        {fullscreenSupported || hasCanvasContent || editorOpen ? (
+        {fullscreenSupported || hasCanvasContent || editorOpen || showIntroLocaleToggle ? (
           <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
+            {showIntroLocaleToggle ? (
+              <IntroLocaleToggle
+                locale={locale}
+                copy={controls.introLocale}
+                onSelectLocale={setLocale}
+              />
+            ) : null}
             {fullscreenSupported ? (
               <DiagramFullscreenButton
                 isFullscreen={isFullscreen}
@@ -4504,7 +4514,7 @@ ${requirementsBlock}`;
                   className="overlay-button compact-button overlay-status-stop"
                   onClick={stopStreamingAgentRequest}
                 >
-                  Stop request
+                  {controls.insights.stopRequest}
                 </button>
               ) : null}
             </div>

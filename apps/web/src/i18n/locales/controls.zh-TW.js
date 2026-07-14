@@ -66,11 +66,21 @@ export const CONTROLS_ZH_TW = {
     exampleBody:
       'AI 先起草流程圖、資訊圖、3D 場景、圖表或自由頁面——然後你繼續打磨，虛構的相關方還會插話點評。',
     exampleTopic: '全球咖啡供應鏈',
-    exampleAria: '可立即產生的 archislop 視覺化範例',
+    exampleAria: '可立即產生的視覺化範例',
     exampleCta: '產生：咖啡供應鏈 →',
+    exampleDiagramSource: `flowchart TD
+    A["農場"] --> B["烘焙廠"]
+    B --> C["經銷商"]
+    C --> D["咖啡館"]`,
     renderAsLabel: '渲染為',
     renderAsHint: '先選形態，再輸入主題',
     renderAsAria: '選擇主題的渲染形態'
+  },
+  introLocale: {
+    aria: '介面語言',
+    en: 'English',
+    zhCn: '簡體中文',
+    zhTw: '繁體中文'
   },
   settings: {
     label: '設定',
@@ -92,24 +102,24 @@ export const CONTROLS_ZH_TW = {
     auto: '自動',
     autoShort: '自動',
     autoSubtitle: '依主題自動選擇最合適的模式',
-    mermaid: '圖表',
-    mermaidShort: '圖表',
-    mermaidSubtitle: 'Mermaid 架構圖',
+    mermaid: '架構圖',
+    mermaidShort: '架構圖',
+    mermaidSubtitle: 'Mermaid 架構關係圖',
     infographic: '資訊圖',
     infographicShort: '資訊圖',
     infographicSubtitle: 'AntV 敘事版面',
     metaphor3d: '3D 隱喻',
     metaphor3dShort: '3D',
     metaphor3dSubtitle: 'Three.js 空間場景',
-    chart: '圖表',
-    chartShort: '圖表',
+    chart: '數據圖',
+    chartShort: '數據圖',
     chartSubtitle: 'Vega-Lite 資料檢視',
     anything: '任意頁面',
     anythingShort: '任意',
     anythingSubtitle: 'HTML/CSS/JS 沙箱',
     forms: '表單',
     formsShort: '表單',
-    formsSubtitle: '無盡的 A2UI 表單',
+    formsSubtitle: '無盡的互動表單',
     anotherMode: '其他模式',
     renderMenu: '目標渲染模式'
   },
@@ -270,11 +280,11 @@ export const CONTROLS_ZH_TW = {
     contentMadMode: '放飛模式',
     contentUpdates: '內容更新',
     resultingInfographic: '產生的資訊圖',
-    resultingChart: '產生的圖表',
+    resultingChart: '產生的數據圖',
     resulting3d: '產生的 3D 場景',
     resultingPage: '產生的頁面',
     resultingForm: '產生的表單',
-    resultingDiagram: '產生的圖表',
+    resultingDiagram: '產生的架構圖',
     loadOntoCanvas: '將此圖表載入到畫布。',
     patchFromTool: '來自智慧代理工具的圖表修補',
     runDetails: '執行詳情',
@@ -425,7 +435,7 @@ export const CONTROLS_ZH_TW = {
     chart: '圖表預覽（唯讀）',
     metaphor3d: '3D 隱喻預覽（唯讀）',
     page: '頁面預覽（唯讀）',
-    mermaid: 'Mermaid 預覽（唯讀）',
+    mermaid: 'Mermaid 架構圖預覽（唯讀）',
     forms: '表單預覽（唯讀）'
   },
   diagramSurface: {

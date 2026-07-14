@@ -80,10 +80,20 @@ export const CONTROLS_EN = {
     exampleAria: 'Example of an archislop visualization you can generate',
     // CTA names the sample topic so it stays clear even when the preview is hidden.
     exampleCta: 'Generate: Coffee supply chain →',
+    exampleDiagramSource: `flowchart TD
+    A["Farm"] --> B["Roaster"]
+    B --> C["Distributor"]
+    C --> D["Cafe"]`,
     // Empty-state Render as strip — introduce modes before Settings.
     renderAsLabel: 'Render as',
     renderAsHint: 'Pick a form, then enter a topic',
     renderAsAria: 'Choose how to render your topic'
+  },
+  introLocale: {
+    aria: 'Interface language',
+    en: 'English',
+    zhCn: 'Simplified Chinese',
+    zhTw: 'Traditional Chinese'
   },
   settings: {
     label: 'Settings',
