@@ -9,6 +9,12 @@
   --danger: #b91c1c;
   --app-vvh: 100dvh;
 
+  /* Forms mode: reserve space for fixed top brand + bottom action row so the
+     A2UI card and submit button stay visible and tappable. Mobile overrides
+     --forms-bottom-chrome-est via --mobile-bottom-chrome-est below. */
+  --forms-top-chrome-est: 5rem;
+  --forms-bottom-chrome-est: 5.5rem;
+
   /* Modal / overlay shared tokens. */
   --modal-backdrop: rgba(20, 14, 36, 0.55);
   --modal-backdrop-strong: rgba(20, 14, 36, 0.65);
@@ -200,6 +206,8 @@
 
 /* Forms mode: the A2UI surface renders native controls and owns its own
    scrolling — fill the viewport, no pan/zoom padding, default cursor.
+   Chrome insets (logo + bottom dock) live on .forms-renderer-root so the
+   form card and submit row stay visible and tappable.
    Override the canvas grab/touch-action/user-select so TextField inputs
    stay selectable and buttons remain clickable on touch devices. */
 .diagram-viewport.is-forms {
@@ -219,7 +227,13 @@
   overflow: auto;
   display: flex;
   justify-content: center;
-  padding: clamp(1rem, 4vw, 3rem) 1rem;
+  padding:
+    calc(var(--forms-top-chrome-est) + env(safe-area-inset-top, 0px))
+    1rem
+    calc(var(--forms-bottom-chrome-est) + env(safe-area-inset-bottom, 0px) + 0.75rem);
+  scroll-padding-bottom: calc(
+    var(--forms-bottom-chrome-est) + env(safe-area-inset-bottom, 0px) + 0.75rem
+  );
   touch-action: auto;
   user-select: text;
   background:
@@ -7660,6 +7674,11 @@ button {
 
   .diagram-viewport {
     padding: 5.25rem 1rem var(--mobile-bottom-chrome-est);
+  }
+
+  .forms-renderer-root {
+    --forms-top-chrome-est: 5.25rem;
+    --forms-bottom-chrome-est: var(--mobile-bottom-chrome-est);
   }
 
   .streak-hud-toast-column {
