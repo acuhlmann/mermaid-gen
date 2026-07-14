@@ -55,6 +55,37 @@
   display: none;
 }
 
+.cold-start-gate-progress {
+  margin-top: 1rem;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(147, 51, 234, 0.12);
+  overflow: hidden;
+}
+
+.cold-start-gate-progress[hidden] {
+  display: none;
+}
+
+.cold-start-gate-progress::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: 40%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(147, 51, 234, 0.35), rgba(147, 51, 234, 0.9));
+  animation: cold-start-gate-indeterminate 1.15s ease-in-out infinite;
+}
+
+@keyframes cold-start-gate-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
 .cold-start-gate-retry {
   margin-top: 1rem;
   padding: 0.55rem 0.9rem;

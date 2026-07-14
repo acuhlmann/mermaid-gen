@@ -162,6 +162,8 @@ describe('COLD_START_COPY', () => {
     expect(COLD_START_COPY.checking.hint).toMatch(/wakes from idle/i);
     expect(COLD_START_COPY.waking.title).toMatch(/synergy plane/i);
     expect(COLD_START_COPY.waking.hint).toMatch(/Starting the server/i);
+    expect(COLD_START_COPY.loadingApp.title).toMatch(/workspace/i);
+    expect(COLD_START_COPY.loadingApp.hint).toMatch(/editor/i);
     expect(COLD_START_COPY.timeout.title).toMatch(/architecture slop/i);
     expect(COLD_START_COPY.timeout.hint).toMatch(/not responded yet/i);
   });

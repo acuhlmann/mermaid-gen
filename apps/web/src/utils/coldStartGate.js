@@ -1,4 +1,5 @@
 import { COLD_START_COPY } from './coldStartCopy.js';
+import { waitForAppReady } from './appReadySignal.js';
 
 const DEFAULT_INITIAL_DELAY_MS = 1_500;
 const DEFAULT_MAX_DELAY_MS = 8_000;
@@ -159,4 +160,4 @@ function sleep(ms, signal) {
   });
 }
 
-export { COLD_START_COPY };
+export { COLD_START_COPY, waitForAppReady };
