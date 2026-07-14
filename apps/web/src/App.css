@@ -5734,7 +5734,7 @@
   bottom: min(48vh, 22rem);
   z-index: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 4.75rem 1.25rem 0.75rem;
   overflow: hidden;

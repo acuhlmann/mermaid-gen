@@ -9,6 +9,7 @@ import { CopilotStreamHttpAgent } from './copilotStreamHttpAgent.js';
 import { createAgUiTranslator } from './agUiTranslator.js';
 import {
   API_BASE_URL,
+  BROWSER_SESSION_STORAGE_KEY,
   SESSION_HEADER,
   clearBrowserBackupSessionId,
   clearInMemoryBrowserSessionId,
@@ -16,6 +17,11 @@ import {
   getOrCreateBrowserSessionId,
   normalizeSessionId
 } from './diagramSession.js';
+import {
+  CONTENT_MODE_STORAGE_KEY,
+  MODEL_PROFILE_STORAGE_KEY
+} from '../utils/appSessionLocation.js';
+import { STORAGE_KEY as SLOPITECT_PROGRESS_STORAGE_KEY } from './runGamificationStore.js';
 
 export { createAgUiTranslator } from './agUiTranslator.js';
 export {
@@ -107,6 +113,23 @@ export function clearAllDiagramCachesFromStorage() {
   }
 }
 
+/** User-global keys that survive room rotation / server restarts. */
+export const PERSISTENT_ARCHISLOP_STORAGE_KEYS = new Set([
+  SLOPITECT_PROGRESS_STORAGE_KEY,
+  'archislop:stakeholder-intro-seen',
+  'archislop:mode-reveal-seen',
+  'archislop:advisor-muted',
+  'archislop.uiLocale',
+  'archislop:mermaid-vite-reload'
+]);
+
+function isSessionScopedArchislopStorageKey(key) {
+  if (!key) return false;
+  if (key === 'archislop' || key.startsWith('archislop-')) return true;
+  if (!key.startsWith('archislop:')) return false;
+  return !PERSISTENT_ARCHISLOP_STORAGE_KEYS.has(key);
+}
+
 /** Drops every `archislop` / `archislop:*` key (diagram caches, gamification, prefs, etc.). */
 export function clearAllArchislopAppStorage() {
   if (typeof window === 'undefined') return;
@@ -128,12 +151,40 @@ export function clearAllArchislopAppStorage() {
 }
 
 /**
+ * Drop session-scoped client payloads after the server reports a room is gone (404/410).
+ * Preserves user-global progress (Slopitect level/XP, lifetime cost, achievements, etc.).
+ */
+export function clearSessionScopedArchislopStorage() {
+  if (typeof window === 'undefined') return;
+  try {
+    clearAllDiagramCachesFromStorage();
+    const keys = [
+      BROWSER_SESSION_STORAGE_KEY,
+      MODEL_PROFILE_STORAGE_KEY,
+      CONTENT_MODE_STORAGE_KEY,
+      'archislop-stream-debug'
+    ];
+    for (const k of keys) {
+      window.localStorage.removeItem(k);
+    }
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const k = window.localStorage.key(i);
+      if (isSessionScopedArchislopStorageKey(k)) {
+        window.localStorage.removeItem(k);
+      }
+    }
+  } catch {
+    // Ignore privacy / access errors.
+  }
+}
+
+/**
  * After the server reports the session is gone (404/410), drop all client-side session payloads
  * so a new room id does not resurrect stale diagrams, insights, or backup session headers.
  */
 export function wipeClientCachesAfterLostServerSession() {
   clearInMemoryBrowserSessionId();
-  clearAllArchislopAppStorage();
+  clearSessionScopedArchislopStorage();
 }
 
 /** True when every slot is still the default empty seed (server restart / new room). */
