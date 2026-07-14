@@ -6,6 +6,7 @@ import {
 } from '@archislop/shared';
 import { getUiLocaleBundle } from './getUiLocaleBundle.js';
 import { readStoredUiLocale, writeStoredUiLocale } from './uiLocaleStorage.js';
+import { setActiveControlsCopy } from './activeControlsCopy.js';
 import { setActiveSlopitectBundle } from '../utils/slopitectCopy.js';
 import { UiLocaleContext } from './uiLocaleContext.js';
 
@@ -18,6 +19,7 @@ export function UiLocaleProvider({ children, initialLocale }) {
   const bundle = useMemo(() => getUiLocaleBundle(locale), [locale]);
 
   useEffect(() => {
+    setActiveControlsCopy(bundle.controls);
     setActiveSlopitectBundle(bundle.slopitect);
     if (typeof document !== 'undefined') {
       document.documentElement.lang = locale === 'en' ? 'en' : locale;

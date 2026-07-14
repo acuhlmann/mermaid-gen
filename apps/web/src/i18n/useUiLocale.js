@@ -1,10 +1,12 @@
 import { useContext } from 'react';
 import { DEFAULT_UI_LOCALE } from '@archislop/shared';
 import { getUiLocaleBundle } from './getUiLocaleBundle.js';
+import { setActiveControlsCopy } from './activeControlsCopy.js';
 import { UiLocaleContext } from './uiLocaleContext.js';
 
 function buildFallbackUiLocaleValue() {
   const bundle = getUiLocaleBundle(DEFAULT_UI_LOCALE);
+  setActiveControlsCopy(bundle.controls);
   return {
     locale: DEFAULT_UI_LOCALE,
     bundle,

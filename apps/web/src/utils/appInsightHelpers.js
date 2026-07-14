@@ -1,14 +1,16 @@
 import { enrichProposalForReview, normalizeContentType } from '@archislop/shared';
+import { getActiveControlsCopy } from '../i18n/activeControlsCopy.js';
 import { partKindLabel } from './partKindLabel.js';
 
 /** Build an insight-pane entry from a freshly-received proposal. */
 export function proposalToInsightEntry(proposal) {
+  const insights = getActiveControlsCopy().insights;
   return {
     id: proposal.proposalId,
     kind: 'proposal',
     variant: 'general',
     status: 'running',
-    statusText: 'Awaiting your decision.',
+    statusText: insights?.awaitingDecision ?? 'Awaiting your decision.',
     createdAt: proposal.createdAt ?? new Date().toISOString(),
     proposal,
     proposalStatus: 'pending'
@@ -28,12 +30,13 @@ export function enrichProposalForInsight(proposal, session, sessionId) {
 
 /** Build an insight-pane entry for an attributed insight posted by an external agent. */
 export function attributedInsightToInsightEntry(insight) {
+  const insights = getActiveControlsCopy().insights;
   return {
     id: insight.insightId,
     kind: 'attributed-note',
     variant: insight.variant === 'critique' ? 'critique' : 'general',
     status: 'done',
-    statusText: 'Note',
+    statusText: insights?.attributedNoteStatus ?? 'Note',
     createdAt: insight.createdAt ?? new Date().toISOString(),
     content: insight.text ?? '',
     origin: insight.origin ?? null

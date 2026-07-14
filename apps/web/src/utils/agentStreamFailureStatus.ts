@@ -1,9 +1,23 @@
 import { extractLastValidationError } from '@archislop/shared';
+import { getActiveControlsCopy } from '../i18n/activeControlsCopy.js';
 
 export type AgentStreamFailureClass =
   'syntax_exhausted' | 'no_patch' | 'stale_revision' | 'timeout' | 'network' | 'generic';
 
 const MAX_DETAIL_LENGTH = 240;
+
+type StreamFailureCopy = {
+  staleRevision?: string;
+  timeout?: string;
+  network?: string;
+  syntaxExhausted?: string;
+  noPatch?: string;
+  generic?: string;
+};
+
+function failureCopy(copy?: StreamFailureCopy): StreamFailureCopy {
+  return copy ?? getActiveControlsCopy().insights?.streamFailures ?? {};
+}
 
 function truncateDetail(text: string): string {
   return text.length > MAX_DETAIL_LENGTH ? `${text.slice(0, MAX_DETAIL_LENGTH - 1)}…` : text;
@@ -45,12 +59,15 @@ function stripFailurePrefix(message: string): string {
 /** User-facing status for failed intent/transform agent streams. */
 export function resolveAgentStreamFailureStatus({
   code,
-  message
+  message,
+  copy
 }: {
   operation?: string;
   code?: string;
   message?: string;
+  copy?: StreamFailureCopy;
 }): { failureClass: AgentStreamFailureClass; statusText: string; detail: string | null } {
+  const localized = failureCopy(copy);
   const msg = String(message ?? '').trim();
   const lower = msg.toLowerCase();
 
@@ -61,7 +78,7 @@ export function resolveAgentStreamFailureStatus({
   ) {
     return {
       failureClass: 'stale_revision',
-      statusText: 'Diagram changed elsewhere — refresh and retry.',
+      statusText: localized.staleRevision ?? 'Diagram changed elsewhere — refresh and retry.',
       detail: null
     };
   }
@@ -71,11 +88,9 @@ export function resolveAgentStreamFailureStatus({
     lower.includes('time limit') ||
     lower.includes('budget exceeded')
   ) {
-    // The server appends the last validator diagnostic to budget-exceeded messages —
-    // surface it so a timeout still explains what was invalid in the DSL.
     return {
       failureClass: 'timeout',
-      statusText: 'Run timed out — try Fast or retry.',
+      statusText: localized.timeout ?? 'Run timed out — try Fast or retry.',
       detail: extractRootCauseDetail(msg)
     };
   }
@@ -90,7 +105,7 @@ export function resolveAgentStreamFailureStatus({
   ) {
     return {
       failureClass: 'network',
-      statusText: 'Connection or stream timed out. Retry.',
+      statusText: localized.network ?? 'Connection or stream timed out. Retry.',
       detail: null
     };
   }
@@ -124,7 +139,7 @@ export function resolveAgentStreamFailureStatus({
       extractFirstErrorLine(msg);
     return {
       failureClass: 'syntax_exhausted',
-      statusText: "Couldn't apply a valid result.",
+      statusText: localized.syntaxExhausted ?? "Couldn't apply a valid result.",
       detail
     };
   }
@@ -137,14 +152,14 @@ export function resolveAgentStreamFailureStatus({
   ) {
     return {
       failureClass: 'no_patch',
-      statusText: 'No diagram patch was applied. Retry or try Quality.',
+      statusText: localized.noPatch ?? 'No diagram patch was applied. Retry or try Quality.',
       detail: extractRootCauseDetail(msg)
     };
   }
 
   return {
     failureClass: 'generic',
-    statusText: 'Something failed. You can retry.',
+    statusText: localized.generic ?? 'Something failed. You can retry.',
     detail: extractRootCauseDetail(msg) ?? extractFirstErrorLine(msg)
   };
 }

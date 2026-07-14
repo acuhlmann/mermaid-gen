@@ -1,3 +1,5 @@
+import { getActiveControlsCopy } from '../i18n/activeControlsCopy.js';
+import { localizeInsightNowStatusText, INSIGHT_NOW_STATUS_ALIASES } from './insightStatusLocale.js';
 import {
   splitEmbeddedDiagramDsl,
   stripEmbeddedDslFromThinkingText,
@@ -44,30 +46,37 @@ function truncateStatus(text, max = NOW_STATUS_MAX) {
   return `${t.slice(0, max - 1)}…`;
 }
 
-function fallbackNowStatus(entry = {}) {
+function insightsNowCopy(copy) {
+  return copy?.nowStatus ?? getActiveControlsCopy().insights?.nowStatus ?? {};
+}
+
+function fallbackNowStatus(entry = {}, copy) {
+  const nowStatus = insightsNowCopy(copy);
   const raw = String(entry.statusText ?? '');
-  if (/repair/i.test(raw)) return 'Repairing diagram syntax…';
-  if (/still working/i.test(raw)) return 'Still working…';
-  if (/thinking/i.test(raw)) return 'Thinking…';
+  if (/repair/i.test(raw)) return nowStatus.repairingSyntax ?? 'Repairing diagram syntax…';
+  if (/still working/i.test(raw)) return nowStatus.stillWorking ?? 'Still working…';
+  if (/thinking/i.test(raw)) return nowStatus.thinking ?? 'Thinking…';
 
   const phases = Array.isArray(entry.phases) ? entry.phases : [];
   const lastPhase = phases.length > 0 ? phases[phases.length - 1] : null;
   const phaseId = lastPhase?.id;
 
-  if (phaseId === 'repair') return 'Repairing diagram syntax…';
-  if (phaseId === 'agent_run') return 'Applying diagram patch…';
-  if (phaseId === 'invoke' || phaseId === 'intent') return 'Planning the update…';
+  if (phaseId === 'repair') return nowStatus.repairingSyntax ?? 'Repairing diagram syntax…';
+  if (phaseId === 'agent_run') return nowStatus.applyingPatch ?? 'Applying diagram patch…';
+  if (phaseId === 'invoke' || phaseId === 'intent') {
+    return nowStatus.planningUpdate ?? 'Planning the update…';
+  }
 
   const variant = entry.variant;
-  if (variant === 'refine') return 'Polishing the diagram…';
-  if (variant === 'innovate') return 'Restructuring the diagram…';
-  if (variant === 'critique') return 'Reviewing the diagram…';
-  if (variant === 'explain') return 'Explaining the diagram…';
-  if (variant === 'goMad') return 'Going off-script…';
-  if (variant === 'style') return 'Updating visual style…';
-  if (variant === 'exec') return 'Simplifying for executives…';
+  if (variant === 'refine') return nowStatus.polishing ?? 'Polishing the diagram…';
+  if (variant === 'innovate') return nowStatus.restructuring ?? 'Restructuring the diagram…';
+  if (variant === 'critique') return nowStatus.reviewing ?? 'Reviewing the diagram…';
+  if (variant === 'explain') return nowStatus.explaining ?? 'Explaining the diagram…';
+  if (variant === 'goMad') return nowStatus.goingOffScript ?? 'Going off-script…';
+  if (variant === 'style') return nowStatus.updatingStyle ?? 'Updating visual style…';
+  if (variant === 'exec') return nowStatus.simplifyingExec ?? 'Simplifying for executives…';
 
-  return 'Working on the diagram…';
+  return nowStatus.workingOnDiagram ?? 'Working on the diagram…';
 }
 
 /**
@@ -76,26 +85,36 @@ function fallbackNowStatus(entry = {}) {
  *
  * @param {string | undefined | null} statusText
  * @param {Record<string, unknown>} [entry]
+ * @param {import('../i18n/locales/controls.en.js').CONTROLS_EN['insights']} [copy]
  * @returns {string}
  */
-export function summarizeInsightNowStatus(statusText, entry = {}) {
+export function summarizeInsightNowStatus(statusText, entry = {}, copy) {
+  const insightsCopy = copy ?? getActiveControlsCopy().insights;
+  const nowStatus = insightsCopy?.nowStatus ?? {};
   const raw = String(statusText ?? '').trim();
   if (!raw) return '';
+
+  const localizedRaw = localizeInsightNowStatusText(raw, nowStatus);
+  if (localizedRaw !== raw) return localizedRaw;
 
   const isCuratedShort =
     raw.length <= 96 &&
     !raw.includes('```') &&
     !looksLikeCode(raw) &&
     !tryExtractDiagramPreviewFromText(raw);
-  if (isCuratedShort) return raw;
+  if (isCuratedShort) {
+    const aliasKey = INSIGHT_NOW_STATUS_ALIASES[raw];
+    if (aliasKey && nowStatus[aliasKey]) return nowStatus[aliasKey];
+    return raw;
+  }
 
   let prose = stripEmbeddedDslFromThinkingText(raw, null);
   prose = stripFencedBlocks(prose);
   prose = firstProseSentence(prose);
 
   if (!prose || looksLikeCode(prose)) {
-    return fallbackNowStatus({ ...entry, statusText: raw });
+    return fallbackNowStatus({ ...entry, statusText: raw }, insightsCopy);
   }
 
-  return truncateStatus(prose);
+  return truncateStatus(localizeInsightNowStatusText(prose, nowStatus));
 }
