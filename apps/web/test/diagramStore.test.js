@@ -457,16 +457,21 @@ describe('lost server session cache wipe', () => {
     expect(window.localStorage.getItem('unrelated-key')).toBe('keep');
   });
 
-  it('wipeClientCachesAfterLostServerSession clears all archislop app storage keys', () => {
+  it('wipeClientCachesAfterLostServerSession clears session payloads but keeps user progress', () => {
     writeDiagramCache({ diagramSource: 'x' }, 's1');
     window.localStorage.setItem('archislop:session-id', 'legacy-backup');
     window.localStorage.setItem('archislop:model-profile', 'quality');
     window.localStorage.setItem('archislop-stream-debug', '1');
+    window.localStorage.setItem(
+      'archislop:slopitect-progress',
+      JSON.stringify({ v: 3, totalRuns: 4, xp: 120, lifetimeLlmCostUsd: 0.42 })
+    );
     wipeClientCachesAfterLostServerSession();
     expect(readDiagramCache('s1')).toBeNull();
     expect(window.localStorage.getItem('archislop:session-id')).toBeNull();
     expect(window.localStorage.getItem('archislop:model-profile')).toBeNull();
     expect(window.localStorage.getItem('archislop-stream-debug')).toBeNull();
+    expect(window.localStorage.getItem('archislop:slopitect-progress')).toContain('0.42');
   });
 
   it('clearAllArchislopAppStorage removes archislop-prefixed keys only', () => {

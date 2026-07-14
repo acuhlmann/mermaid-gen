@@ -129,7 +129,6 @@ import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
   applyCompletedRun,
-  clearStorage as clearGamificationStorage,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage,
@@ -339,7 +338,6 @@ function ArchiSlop() {
   /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
   const streamAgentAbortRef = useRef(null);
   const agentCostEstimatesRef = useRef(getCachedAgentCostEstimates());
-  const lifetimeCostBackfillDoneRef = useRef(false);
   const autoCloseActiveEntryIdRef = useRef(null);
   const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
@@ -446,17 +444,18 @@ function ArchiSlop() {
   }, []);
 
   useEffect(() => {
-    if (!costTrackingEnabled || lifetimeCostBackfillDoneRef.current) return;
-    lifetimeCostBackfillDoneRef.current = true;
+    if (!costTrackingEnabled) return;
     setGamification((current) => {
       const reconciled = reconcileLifetimeLlmCostUsd(current, insightsEntries);
       if (reconciled.lifetimeLlmCostUsd === current.lifetimeLlmCostUsd) return current;
-      if (typeof window !== 'undefined') {
-        writeGamificationToStorage(window.localStorage, reconciled);
-      }
       return reconciled;
     });
   }, [costTrackingEnabled, insightsEntries]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    writeGamificationToStorage(window.localStorage, gamification);
+  }, [gamification]);
 
   const closeSlopPrompt = useCallback(() => {
     setSlopPromptExpanded(false);
@@ -1144,8 +1143,6 @@ function ArchiSlop() {
           crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
           cacheRef.current = null;
           sessionIdFromUrlRef.current = false;
-          clearGamificationStorage(window.localStorage);
-          setGamification(createInitialGamificationState());
           setModelProfile('fast');
           setContentMode('mermaid');
           // Two cases:
