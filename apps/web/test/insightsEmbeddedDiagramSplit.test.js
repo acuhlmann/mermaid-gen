@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { buildFormsSeedDoc } from '@archislop/shared';
 import {
   classifyDiagramStartLine,
   mermaidDslStartIndex,
@@ -203,15 +204,30 @@ flowchart TB
     expect(r.prose.trim()).toBe('Applied patch.');
   });
 
-  it('splits a short streaming HTML stub after prose', () => {
-    const html = `<!DOCTYPE html>
-<html>`;
-    const text = `Current HTML document:\n\n\`\`\`html\n${html}`;
+  it('splits prose then fenced forms JSON DSL', () => {
+    const forms = buildFormsSeedDoc();
+    const text = `Issuing the intake form.\n\n\`\`\`json\n${forms}\n\`\`\``;
     const r = splitEmbeddedDiagramDsl(text);
     expect(r).not.toBeNull();
-    expect(r.kind).toBe('anything');
-    expect(r.prose.trim()).toBe('Current HTML document:');
-    expect(r.dsl).toContain('<!DOCTYPE html>');
+    expect(r.kind).toBe('forms');
+    expect(r.prose.trim()).toBe('Issuing the intake form.');
+    expect(r.dsl).toContain('"archislopFormsVersion"');
+  });
+
+  it('splits mermaid inside an untagged fence after prose', () => {
+    const text = `Using the Mermaid diagram as subject context for this view.
+
+\`\`\`
+flowchart LR
+  Auth --> API
+  API --> DB
+\`\`\``;
+    const r = splitEmbeddedDiagramDsl(text);
+    expect(r).not.toBeNull();
+    expect(r.kind).toBe('mermaid');
+    expect(r.prose).toContain('Using the Mermaid diagram');
+    expect(r.dsl).toContain('flowchart LR');
+    expect(r.dsl).not.toContain('```');
   });
 });
 
@@ -261,7 +277,22 @@ describe('tryExtractDiagramPreviewFromText', () => {
     expect(preview.source).toContain('<!DOCTYPE html>');
   });
 
-  it('skips mermaid previews when the run targets metaphor3d', () => {
+  it('returns forms preview metadata for a valid forms document in a plan step', () => {
+    const preview = tryExtractDiagramPreviewFromText(buildFormsSeedDoc());
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('forms');
+    expect(preview.source).toContain('"formTitle"');
+  });
+
+  it('does not return forms preview for invalid partial JSON', () => {
+    expect(
+      tryExtractDiagramPreviewFromText(
+        '{"archislopFormsVersion":1,"formTitle":"Partial","messages":['
+      )
+    ).toBeNull();
+  });
+
+  it('keeps cross-mode mermaid previews when the run targets metaphor3d', () => {
     const text = `Translating the source diagram.
 
 flowchart LR
@@ -269,7 +300,9 @@ flowchart LR
   API --> DB
 `;
     expect(tryExtractDiagramPreviewFromText(text)).not.toBeNull();
-    expect(tryExtractDiagramPreviewFromText(text, { expectedKind: 'metaphor3d' })).toBeNull();
+    const preview = tryExtractDiagramPreviewFromText(text, { expectedKind: 'metaphor3d' });
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('mermaid');
   });
 
   it('keeps metaphor3d previews when the run targets metaphor3d', () => {

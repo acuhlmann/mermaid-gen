@@ -109,24 +109,31 @@ function peerContextPlanBeat(peerContext: IntentPeerContext | null | undefined):
     return null;
   }
   const peerType = peerContext.contentType;
+  const source = peerContext.diagramSource.trim();
+  if (!source) return null;
+
+  let lead: string | null = null;
   if (peerType === 'infographic') {
-    const lines = peerContext.diagramSource.split('\n').filter((l) => l.trim()).length;
-    if (lines < 2) return 'Using the infographic slot as context for this Mermaid update.';
-    return 'Cross-checking the infographic view so the Mermaid update stays aligned.';
+    const lines = source.split('\n').filter((l) => l.trim()).length;
+    lead =
+      lines < 2
+        ? 'Using the infographic slot as context for this update.'
+        : 'Cross-checking the infographic view so the update stays aligned.';
+  } else if (peerType === 'mermaid') {
+    lead = 'Using the Mermaid diagram as subject context for this view.';
+  } else if (peerType === 'metaphor3d') {
+    lead = 'Using the 3D metaphor as subject context — surfacing a fresh spatial insight.';
+  } else if (peerType === 'chart') {
+    lead = 'Using the chart as subject context — pulling the data story into this view.';
+  } else if (peerType === 'anything') {
+    lead = 'Using the freeform page as subject context for this view.';
+  } else if (peerType === 'forms') {
+    lead = 'Using the intake form as subject context for this view.';
   }
-  if (peerType === 'mermaid') {
-    return 'Using the Mermaid diagram as subject context for this view.';
-  }
-  if (peerType === 'metaphor3d') {
-    return 'Using the 3D metaphor as subject context — surfacing a fresh spatial insight.';
-  }
-  if (peerType === 'chart') {
-    return 'Using the chart as subject context — pulling the data story into this view.';
-  }
-  if (peerType === 'anything') {
-    return 'Using the freeform page as subject context for this view.';
-  }
-  return null;
+  if (!lead) return null;
+
+  // Unfenced DSL so the Thinking pane can render a read-only preview in the Plan lane.
+  return `${lead}\n\n${source}`;
 }
 
 /** Emit early server-authored plan beats (diagram why, not tool how). */

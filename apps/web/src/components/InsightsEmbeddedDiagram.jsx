@@ -259,7 +259,7 @@ export default function InsightsEmbeddedDiagram({
         aria-label={controls.embeddedPreview.forms}
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
-          <FormsRenderer diagramSource={source} streamingPreview={streamingPreview} preview />
+          <FormsRenderer diagramSource={source} streamingPreview preview />
         </div>
       </div>
     );

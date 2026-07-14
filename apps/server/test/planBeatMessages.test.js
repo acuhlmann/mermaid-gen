@@ -25,6 +25,23 @@ test('emitServerMutationPlanBeats emits diagram-focused server beats', () => {
   assert.ok(captured.some((e) => e.text.includes('flowchart') || e.text.includes('Keeping')));
 });
 
+test('emitServerMutationPlanBeats embeds peer mermaid DSL when converting to forms', () => {
+  const captured = [];
+  const emit = (e) => captured.push(e);
+  emitServerMutationPlanBeats({
+    emit,
+    stateStore: { getSlot: () => ({ diagramSource: 'flowchart TD\n  A --> B' }) },
+    mode: 'intent',
+    messages: [{ role: 'user', content: 'User request:\nOAuth flow' }],
+    peerContext: { contentType: 'mermaid', diagramSource: 'flowchart LR\n  Auth --> API' },
+    contentType: 'forms'
+  });
+  const peerBeat = captured.find((e) => e.text.includes('Using the Mermaid diagram'));
+  assert.ok(peerBeat);
+  assert.ok(peerBeat.text.includes('flowchart LR'));
+  assert.ok(peerBeat.text.includes('Auth --> API'));
+});
+
 test('emitServerMutationPlanBeats skips goMad intent line but keeps focus', () => {
   const captured = [];
   const emit = (e) => captured.push(e);

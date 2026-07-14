@@ -633,6 +633,7 @@ function renderFencedOrDiagramBlock(code, language, keyPrefix, embedOpts) {
         showRestore={embedOpts?.showEmbeddedRestore && !embedOpts?.streamingPreview}
         restoreDisabled={embedOpts?.restoreDisabled}
         onRestoreDiagramSnapshot={embedOpts?.onRestoreDiagramSnapshot}
+        targetContentType={embedOpts?.targetPreviewKind ?? null}
       />
     );
   }
@@ -666,6 +667,7 @@ function renderEmbeddedBodyContent(body, keyPrefix, useSectionTypography, embedO
           showRestore={showRestore}
           restoreDisabled={embedOpts?.restoreDisabled}
           onRestoreDiagramSnapshot={embedOpts?.onRestoreDiagramSnapshot}
+          targetContentType={embedOpts?.targetPreviewKind ?? null}
         />
       </>
     );
@@ -758,6 +760,7 @@ function renderBodyLines(body, keyPrefix, useSectionTypography, embedOpts = null
               showRestore={embedOpts?.showEmbeddedRestore && !embedOpts?.streamingPreview}
               restoreDisabled={embedOpts?.restoreDisabled}
               onRestoreDiagramSnapshot={embedOpts?.onRestoreDiagramSnapshot}
+              targetContentType={embedOpts?.targetPreviewKind ?? null}
             />
           ) : null}
         </div>
@@ -873,11 +876,21 @@ function EmbeddedDiagramBlock({
   highlight,
   showRestore,
   restoreDisabled,
-  onRestoreDiagramSnapshot
+  onRestoreDiagramSnapshot,
+  targetContentType = null
 }) {
   const { controls } = useUiCopy();
+  const isSourceContext = Boolean(targetContentType && kind && kind !== targetContentType);
   return (
     <div className="insights-embedded-diagram-block">
+      {isSourceContext ? (
+        <span
+          className="insights-plan-source-context-badge"
+          data-testid="insights-source-context-badge"
+        >
+          {controls.insights.sourceContext}
+        </span>
+      ) : null}
       <InsightsEmbeddedDiagram
         idPrefix={idPrefix}
         source={source}
@@ -927,6 +940,7 @@ function renderTextWithEmbeddedDsl(text, richOpts, embedOpts) {
         showRestore={showRestore}
         restoreDisabled={embedOpts.restoreDisabled}
         onRestoreDiagramSnapshot={embedOpts.onRestoreDiagramSnapshot}
+        targetContentType={embedOpts.targetPreviewKind ?? null}
       />
     </>
   );
@@ -1109,6 +1123,7 @@ export default function InsightsPane({
       ...base,
       showEmbeddedRestore,
       expectedPreviewKind,
+      targetPreviewKind: expectedPreviewKind,
       restoreDisabled: diagramUndoDisabled,
       onRestoreDiagramSnapshot,
       patchCalloutAria: insightsCopy.patchFromTool,
