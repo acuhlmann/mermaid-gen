@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ADVISOR_IDLE_PAUSE_MS,
   pushProposalHistory,
+  shouldDiscardForFocusChange,
   useAdvisorOrchestrator
 } from '../src/hooks/useAdvisorOrchestrator.js';
 import { ADVISOR_MUTED_STORAGE_KEY } from '../src/utils/advisorMuteStorage.js';
@@ -22,6 +23,20 @@ function defaultParams(overrides = {}) {
 
 describe('useAdvisorOrchestrator', () => {
   let fetchMock;
+
+  describe('shouldDiscardForFocusChange', () => {
+    it('ignores hover→selected on the same node', () => {
+      expect(shouldDiscardForFocusChange('hover:Auth', 'selected:Auth')).toBe(false);
+    });
+
+    it('discards when selection moves to a different node', () => {
+      expect(shouldDiscardForFocusChange('selected:Auth', 'selected:Payment')).toBe(true);
+    });
+
+    it('keeps viewport replies when the user first selects a node mid-fetch', () => {
+      expect(shouldDiscardForFocusChange(null, 'selected:Auth')).toBe(false);
+    });
+  });
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -586,34 +601,24 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestion).toMatch(/bounded context/i);
   });
 
-  it('discards a stale suggestion when focus changes during fetch and re-ticks', async () => {
+  it('keeps a viewport reply when the user first selects a node mid-fetch', async () => {
     mockPersonaPick('explain');
     let resolveFirst;
-    fetchMock
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveFirst = () =>
-              resolve({
-                ok: true,
-                json: async () => ({
-                  persona: 'explain',
-                  suggestion: 'Viewport-era wisdom that should never flash.',
-                  highlightIds: [],
-                  kind: 'comment'
-                })
-              });
-          })
-      )
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          persona: 'explain',
-          suggestion: 'Focused wisdom for node A.',
-          highlightIds: ['A'],
-          kind: 'comment'
+    fetchMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'explain',
+                suggestion: 'Viewport-era wisdom that should stay visible.',
+                highlightIds: [],
+                kind: 'comment'
+              })
+            });
         })
-      });
+    );
 
     const { result, rerender } = renderHook(
       ({ focusKey, focusSource }) =>
@@ -637,6 +642,79 @@ describe('useAdvisorOrchestrator', () => {
     rerender({ focusKey: 'selected:A', focusSource: 'selected' });
 
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(60 + 50);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('explain');
+
+    await act(async () => {
+      resolveFirst();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('Viewport-era wisdom that should stay visible.');
+    expect(result.current.suggestionKind).toBe('comment');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('discards and re-ticks when explicit selection moves to a different node mid-fetch', async () => {
+    mockPersonaPick('explain');
+    let resolveFirst;
+    fetchMock
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirst = () =>
+              resolve({
+                ok: true,
+                json: async () => ({
+                  persona: 'explain',
+                  suggestion: 'Wisdom for node A that should never flash.',
+                  highlightIds: ['A'],
+                  kind: 'comment'
+                })
+              });
+          })
+      )
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          persona: 'explain',
+          suggestion: 'Focused wisdom for node B.',
+          highlightIds: ['B'],
+          kind: 'comment'
+        })
+      });
+
+    const { result, rerender } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey
+                ? {
+                    id: focusKey.split(':')[1] || 'A',
+                    label: focusKey.split(':')[1] || 'A',
+                    source: focusSource ?? 'selected'
+                  }
+                : null
+          })
+        ),
+      { initialProps: { focusKey: 'selected:A', focusSource: 'selected' } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('explain');
+
+    rerender({ focusKey: 'selected:B', focusSource: 'selected' });
+
+    await act(async () => {
       resolveFirst();
       await Promise.resolve();
       await Promise.resolve();
@@ -650,7 +728,7 @@ describe('useAdvisorOrchestrator', () => {
       await Promise.resolve();
     });
 
-    expect(result.current.suggestion).toBe('Focused wisdom for node A.');
+    expect(result.current.suggestion).toBe('Focused wisdom for node B.');
     expect(result.current.suggestionKind).toBe('comment');
   });
 
@@ -763,6 +841,113 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     expect(result.current.suggestion).toBe('Stakeholders have convened.');
+  });
+
+  it('keeps thinking visible when selection debounce fires during an in-flight fetch', async () => {
+    mockPersonaPick('refine');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'refine',
+                suggestion: 'Tighten the gateway label.',
+                highlightIds: ['Gateway']
+              })
+            });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey
+                ? { id: 'Gateway', label: 'Gateway', source: focusSource ?? 'selected' }
+                : null
+          })
+        ),
+      { initialProps: { focusKey: null, focusSource: null } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    rerender({ focusKey: 'selected:Gateway', focusSource: 'selected' });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60 + 50);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.thinkingPersona).toBeNull();
+    expect(result.current.suggestion).toBe('Tighten the gateway label.');
+  });
+
+  it('keeps a reply when hover upgrades to selected on the same node mid-fetch', async () => {
+    mockPersonaPick('explain');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'explain',
+                suggestion: 'The gateway mediates trust.',
+                highlightIds: ['Gateway'],
+                kind: 'comment'
+              })
+            });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ focusKey, focusSource }) =>
+        useAdvisorOrchestrator(
+          defaultParams({
+            focusKey,
+            focusSource,
+            getFocusDescriptor: () =>
+              focusKey ? { id: 'Gateway', label: 'Gateway', source: focusSource ?? 'hover' } : null
+          })
+        ),
+      { initialProps: { focusKey: 'hover:Gateway', focusSource: 'hover' } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('explain');
+
+    rerender({ focusKey: 'selected:Gateway', focusSource: 'selected' });
+
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('The gateway mediates trust.');
+    expect(result.current.suggestionKind).toBe('comment');
   });
 
   it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
