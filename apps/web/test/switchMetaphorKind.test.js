@@ -111,17 +111,48 @@ describe('switchMetaphorKind', () => {
     expect(dsl.items[0].relief).toBeLessThanOrEqual(1);
   });
 
-  it('wraps a city scene into a single-layer composite', () => {
+  it('wraps a city scene into a two-layer composite with a complementary companion', () => {
     const result = switchMetaphorKind(CITY_DSL, 'composite');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const dsl = JSON.parse(result.text);
     expect(dsl.metaphor).toBe('composite');
     expect(dsl.layout).toBe('adjacent');
-    expect(dsl.layers).toHaveLength(1);
-    expect(dsl.layers[0]).toMatchObject({ as: 'city', id: 'layer-1' });
+    expect(dsl.layers).toHaveLength(2);
+    expect(dsl.layers[0]).toMatchObject({ as: 'city', id: 'layer-primary' });
     expect(dsl.layers[0].items[0].id).toBe('auth');
+    expect(dsl.layers[1].as).toBe('river');
+    expect(dsl.layers[1].items[0]).toMatchObject({ id: 'companion-auth', stage: 0 });
     expect(dsl.items).toEqual([]);
+  });
+
+  it('keeps an existing multi-layer composite when switching to composite again', () => {
+    const composite = JSON.stringify({
+      metaphor: 'composite',
+      scene: { title: 'Montage' },
+      layout: 'adjacent',
+      layers: [
+        {
+          id: 'skyline',
+          as: 'city',
+          items: [{ id: 'auth', label: 'Auth', height: 12, footprint: 3, district: 'Core' }]
+        },
+        {
+          id: 'flow',
+          as: 'river',
+          items: [{ id: 'signup', label: 'Signup', stage: 0, flow: 8 }]
+        }
+      ],
+      items: [],
+      links: []
+    });
+    const result = switchMetaphorKind(composite, 'composite');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const dsl = JSON.parse(result.text);
+    expect(dsl.layers).toHaveLength(2);
+    expect(dsl.layers[0].id).toBe('skyline');
+    expect(dsl.layers[1].as).toBe('river');
   });
 
   it('flattens a composite back to a base kind via the first layer', () => {

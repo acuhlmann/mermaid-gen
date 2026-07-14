@@ -504,7 +504,7 @@ export const CONTROLS_EN = {
     },
     compositeHintTitle: 'Composite mode',
     compositeHintBody:
-      'This scene has one layer, so it still looks like the original metaphor. Prompt the agent to combine scenes — e.g. “city and river side by side”.'
+      'This montage still has one layer. Ask Go for a richer scene, or switch away and back to Composite to invent a companion view.'
   },
   styleEdits: {
     region: 'Style edits',

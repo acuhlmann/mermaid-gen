@@ -486,7 +486,7 @@ export const CONTROLS_ZH_CN = {
     },
     compositeHintTitle: '组合模式',
     compositeHintBody:
-      '当前场景只有一层，看起来仍与原来的隐喻相同。请让智能体组合多个场景，例如“城市与河流并排展示”。'
+      '当前蒙太奇仍只有一层。请用 Go 生成更丰富的场景，或先切到其他隐喻再切回「组合」以生成伴生视图。'
   },
   styleEdits: {
     region: '样式编辑',

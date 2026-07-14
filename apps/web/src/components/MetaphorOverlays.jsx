@@ -63,9 +63,8 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
  * (city, layer cake, galaxy, tree, terrain) without leaving the canvas.
  */
 /**
- * Fullscreen-only note when composite has a single layer — the UI switcher wraps
- * the current scene, which looks identical to the base metaphor until the agent
- * adds more layers via prompt.
+ * Fullscreen-only note when composite has a single layer — rare after the
+ * kind switcher invents a companion; kept for agent-authored one-layer docs.
  */
 export function MetaphorCompositeHint({ layerCount = 0 }) {
   const { controls } = useUiCopy();
