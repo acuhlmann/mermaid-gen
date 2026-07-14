@@ -5354,8 +5354,13 @@
   /* Speech bubble / thinking chip: float above the action bar without shifting buttons.
      Size to content but allow it to extend toward the viewport edges so the cast
      strip avatars stay on one row instead of wrapping into a squashed grid.
-     Anchor to the mascot wrap and clamp width so a wide cast strip cannot push the
-     chip off-screen on narrow viewports. */
+     The chip is anchored to the mascot wrap's LEFT edge, and the mascot sits a
+     few buttons into the row — so `calc(100vw - …)` alone (which assumes a
+     screen-left origin) let a wide chip run off the right edge and hide the
+     "Do it" button. Reserve the width taken up by the leading buttons (Prompt +
+     Render-as) so the chip stays fully on-screen from wherever the mascot sits;
+     narrow viewports just wrap it taller, which is fine now that nothing clips
+     it vertically. */
   .prompt-actions--mobile .advisor-speech-bubble,
   .prompt-actions--mobile .advisor-thinking-indicator {
     position: absolute;
@@ -5364,7 +5369,7 @@
     bottom: calc(100% + 0.35rem);
     width: max-content;
     min-width: 0;
-    max-width: min(22rem, calc(100vw - 1.25rem));
+    max-width: min(22rem, calc(100vw - 7.5rem));
     margin: 0;
     flex: none;
     order: unset;
@@ -10099,14 +10104,31 @@ button {
   }
 }
 
-/* Keep the thinking pane, thinking toggle, and bottom chrome on their own
-   GPU layers. Without this the variant ::after overlays (especially the
-   `inset 0` rules on critique / explain / goMad) trigger a full-window
-   repaint on every paint tick, which on a foldable's lower-power
-   compositor is what the user sees as flicker. */
+/* Keep the thinking pane and thinking toggle on their own GPU layers. Without
+   this the variant ::after overlays (especially the `inset 0` rules on
+   critique / explain / goMad) trigger a full-window repaint on every paint
+   tick, which on a foldable's lower-power compositor is what the user sees as
+   flicker. */
 .insights-pane,
-.thinking-toggle-button,
-.bottom-chrome {
+.thinking-toggle-button {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+/* Promote the bottom chrome to its own GPU layer ONLY while a stream is live.
+   That is the only time the `.app-shell[data-streaming]::after` variant overlays
+   exist and paint over the chrome, so it is the only time the layer is needed to
+   avoid the foldable flicker (PR #93).
+
+   It must NOT be promoted permanently: `.bottom-chrome` is `position: fixed`
+   (via `.corner-control`), and a transform on a fixed element makes it the
+   containing/compositing box for its descendants. The advisor speech bubble is
+   an absolutely-positioned descendant that floats ABOVE the chrome box
+   (`bottom: calc(100% + …)`), so on mobile WebKit it gets clipped to the layer
+   bounds — it flashed in, then vanished as the layer settled. The advisor loop
+   is paused while streaming (`advisorPause`), so the bubble and this layer never
+   need to be live at the same time. */
+.app-shell[data-streaming='true'] .bottom-chrome {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
