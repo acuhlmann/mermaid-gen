@@ -382,7 +382,7 @@ export function buildAdvisorUserPrompt({
     .join('\n');
 }
 
-function resolveAdvisorModelId(env, backend) {
+export function resolveAdvisorModelId(env = process.env, backend = resolveLlmBackend(env)) {
   if (backend === 'vertex') {
     return resolveVertexModelId(env, 'fast') || DEFAULT_VERTEX_MODEL_FAST;
   }
@@ -390,6 +390,18 @@ function resolveAdvisorModelId(env, backend) {
     return resolveDeepSeekModelId(env, 'fast') || DEFAULT_DEEPSEEK_MODEL_FAST;
   }
   return resolveOpenRouterModelId(env, 'fast') || DEFAULT_OPENROUTER_MODEL_FAST;
+}
+
+/** Pull `{ inputTokens, outputTokens }` from a LangChain reply, when the provider reports usage. */
+export function advisorUsageFromReply(reply) {
+  const usage = reply?.usage_metadata ?? reply?.response_metadata?.tokenUsage ?? null;
+  if (!usage || typeof usage !== 'object') return null;
+  const inputTokens = usage.input_tokens ?? usage.promptTokens;
+  const outputTokens = usage.output_tokens ?? usage.completionTokens;
+  const out = {};
+  if (Number.isFinite(inputTokens)) out.inputTokens = inputTokens;
+  if (Number.isFinite(outputTokens)) out.outputTokens = outputTokens;
+  return out.inputTokens != null || out.outputTokens != null ? out : null;
 }
 
 const advisorModelCache = new Map();
@@ -410,8 +422,20 @@ export function createAdvisorChatModel(env = process.env, persona = 'refine') {
   const overrides = {
     model: modelId,
     temperature: spec.temperature,
-    maxOutputTokens: 90
+    // The advisor emits a tiny JSON one-liner, but on Gemini 2.5 (the default fast
+    // model) `maxOutputTokens` is shared with the model's internal reasoning tokens.
+    // The old 90-token cap was swallowed whole by "thinking", so the response came
+    // back with an empty candidate — surfacing as {suggestion:null} (200) or an SDK
+    // TypeError ("...reading 'message'") turned into a 502. A truncated reply is
+    // fatal here because the JSON must parse in full (unlike the plain-text label
+    // explainer). Give the answer real headroom.
+    maxOutputTokens: 512
   };
+  if (backend === 'vertex') {
+    // Gemini: budget 0 disables the thinking stage so the entire output budget goes
+    // to the JSON answer. The advisor is decorative and needs no chain-of-thought.
+    overrides.thinkingBudget = 0;
+  }
   const model = createLlmChatModel(env, overrides);
   advisorModelCache.set(key, model);
   return model;

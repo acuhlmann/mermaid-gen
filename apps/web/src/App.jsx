@@ -128,6 +128,7 @@ import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
 import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
+  addAdvisorLlmCostUsd,
   applyCompletedRun,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
@@ -170,7 +171,8 @@ import {
   styleEditsToPrompt,
   isLabelExplainGiveUpLevel,
   LABEL_EXPLAIN_GIBBERISH_LEVEL,
-  MAX_LABEL_EXPLAIN_DUMB_LEVEL
+  MAX_LABEL_EXPLAIN_DUMB_LEVEL,
+  estimateLlmCostUsd
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
@@ -3044,6 +3046,23 @@ ${requirementsBlock}`;
         variantOverride: persona,
         transformPersona: persona,
         ...advisorCtx
+      });
+    },
+    // Fold stakeholder /suggest spend into the same estimated-cost tally as agent
+    // runs so it shows up in the Stakeholder Damage Report.
+    onUsage: ({ inputTokens, outputTokens, model }) => {
+      if (!costTrackingEnabled) return;
+      const rates = agentCostEstimatesRef.current?.rates;
+      if (!rates) return;
+      const usd = estimateLlmCostUsd({ inputTokens, outputTokens, model, rates });
+      if (!(typeof usd === 'number' && Number.isFinite(usd) && usd > 0)) return;
+      setGamification((current) => {
+        const next = addAdvisorLlmCostUsd(current, usd);
+        if (next === current) return current;
+        if (typeof window !== 'undefined') {
+          writeGamificationToStorage(window.localStorage, next);
+        }
+        return next;
       });
     }
   });

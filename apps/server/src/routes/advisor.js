@@ -7,11 +7,13 @@ import { redactSecrets } from '../utils/redactSecrets.js';
 import { createApiRateLimitMiddleware } from '../middleware/apiRateLimit.js';
 import {
   ADVISOR_PERSONAS,
+  advisorUsageFromReply,
   buildAdvisorSystemPrompt,
   buildAdvisorUserPrompt,
   createAdvisorChatModel,
   isAdvisorPersona,
-  parseAdvisorReply
+  parseAdvisorReply,
+  resolveAdvisorModelId
 } from '../agents/advisorPrompts.js';
 import { explainLabelOnce } from '../agents/labelExplainer.js';
 import { explainDumbDownOnce } from '../agents/explainDumbDown.js';
@@ -120,8 +122,14 @@ export function createAdvisorRouter() {
       style: payload.style
     });
 
+    // Reported to the client so the stakeholder /suggest spend joins the rest of
+    // the estimated LLM cost in the "Stakeholder Damage Report" (see
+    // apps/web/src/state/runGamificationStore.js). Tokens are billed whether or
+    // not the reply parsed, so this rides on every post-invoke response.
+    const advisorModel = resolveAdvisorModelId(process.env);
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
+      const usage = advisorUsageFromReply(reply);
       const raw = extractTextContent(reply?.content ?? reply);
       let parsedReply = parseAdvisorReply(raw, { persona: payload.persona });
       if (
@@ -143,16 +151,21 @@ export function createAdvisorRouter() {
         };
       }
       if (!parsedReply) {
-        res
-          .status(200)
-          .json({ persona: payload.persona, suggestion: null, highlightIds: [], kind: 'comment' });
+        res.status(200).json({
+          persona: payload.persona,
+          suggestion: null,
+          highlightIds: [],
+          kind: 'comment',
+          ...(usage ? { usage, model: advisorModel } : {})
+        });
         return;
       }
       res.status(200).json({
         persona: payload.persona,
         suggestion: parsedReply.suggestion,
         highlightIds: parsedReply.highlightIds,
-        kind: parsedReply.kind
+        kind: parsedReply.kind,
+        ...(usage ? { usage, model: advisorModel } : {})
       });
     } catch (error) {
       res.status(502).json({ error: safeErrorMessage(error) });

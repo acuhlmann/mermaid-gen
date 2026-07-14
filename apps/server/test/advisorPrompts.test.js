@@ -2,10 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ADVISOR_PERSONAS,
+  advisorUsageFromReply,
   buildAdvisorDumbDownOverride,
   buildAdvisorSystemPrompt,
   buildAdvisorUserPrompt,
-  parseAdvisorReply
+  createAdvisorChatModel,
+  parseAdvisorReply,
+  resolveAdvisorModelId
 } from '../src/agents/advisorPrompts.js';
 
 test('every advisor persona has a non-trivial persona prompt', () => {
@@ -169,4 +172,41 @@ test('buildAdvisorDumbDownOverride steps through audience levels', () => {
   const babble = buildAdvisorDumbDownOverride({ style: 'gibberish' });
   assert.match(babble, /BABBLE MODE/);
   assert.doesNotMatch(babble, /grown-up/);
+});
+
+test('advisor Vertex model gives the JSON real headroom and disables reasoning', () => {
+  // Regression: the old maxOutputTokens:90 was consumed by Gemini 2.5 thinking
+  // tokens, returning an empty candidate (→ suggestion:null / 502). The advisor
+  // needs no chain-of-thought, so reasoning is off and the budget goes to the JSON.
+  const env = {
+    LLM_PROVIDER: 'vertex',
+    VERTEX_PROJECT_ID: 'test-proj',
+    VERTEX_LOCATION: 'us-central1'
+  };
+  const model = createAdvisorChatModel(env, 'refine');
+  assert.ok(model, 'model constructed for a Vertex env');
+  assert.equal(model.maxOutputTokens, 512);
+  assert.equal(model.maxReasoningTokens, 0, 'thinkingBudget 0 → no reasoning tokens');
+});
+
+test('resolveAdvisorModelId returns the fast slug per backend', () => {
+  assert.equal(resolveAdvisorModelId({}, 'vertex'), 'gemini-2.5-flash');
+  assert.equal(resolveAdvisorModelId({ VERTEX_MODEL_FAST: 'gemini-x' }, 'vertex'), 'gemini-x');
+  assert.equal(resolveAdvisorModelId({}, 'deepseek'), 'deepseek-v4-flash');
+  assert.equal(resolveAdvisorModelId({}, 'openrouter'), 'google/gemini-2.5-flash-lite');
+});
+
+test('advisorUsageFromReply reads standardized and legacy usage shapes', () => {
+  assert.deepEqual(
+    advisorUsageFromReply({ usage_metadata: { input_tokens: 120, output_tokens: 30 } }),
+    { inputTokens: 120, outputTokens: 30 }
+  );
+  assert.deepEqual(
+    advisorUsageFromReply({
+      response_metadata: { tokenUsage: { promptTokens: 5, completionTokens: 7 } }
+    }),
+    { inputTokens: 5, outputTokens: 7 }
+  );
+  assert.equal(advisorUsageFromReply({ content: 'no usage here' }), null);
+  assert.equal(advisorUsageFromReply(null), null);
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  addAdvisorLlmCostUsd,
   applyCompletedRun,
   createInitialState,
   loadFromStorage,
@@ -242,6 +243,38 @@ describe('runGamificationStore', () => {
     const reconciled = reconcileLifetimeLlmCostUsd(state, insightsEntries);
     expect(reconciled.lifetimeLlmCostUsd).toBeCloseTo(0.08, 5);
     expect(reconcileLifetimeLlmCostUsd(reconciled, insightsEntries)).toBe(reconciled);
+  });
+
+  it('adds stakeholder advisor cost to the lifetime total and survives runs + reload', () => {
+    let s = createInitialState();
+    s = addAdvisorLlmCostUsd(s, 0.0004);
+    s = addAdvisorLlmCostUsd(s, 0.0006);
+    expect(s.advisorLlmCostUsd).toBeCloseTo(0.001, 6);
+    expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.001, 6);
+    // A completed run must not wipe the separately-tracked advisor tally.
+    s = applyCompletedRun(s, { variant: 'refine', now: 1, runCostUsd: 0.01 }).state;
+    expect(s.advisorLlmCostUsd).toBeCloseTo(0.001, 6);
+    expect(s.lifetimeLlmCostUsd).toBeCloseTo(0.011, 6);
+    // Persistence round-trips the advisor tally.
+    const reloaded = loadFromStorage(serializeForStorage(s));
+    expect(reloaded.advisorLlmCostUsd).toBeCloseTo(0.001, 6);
+    expect(reloaded.lifetimeLlmCostUsd).toBeCloseTo(0.011, 6);
+    // Non-positive charges are ignored.
+    expect(addAdvisorLlmCostUsd(s, 0)).toBe(s);
+    expect(addAdvisorLlmCostUsd(s, -1)).toBe(s);
+    expect(addAdvisorLlmCostUsd(s, NaN)).toBe(s);
+  });
+
+  it('reconcile folds advisor cost on top of run-cost insight totals (never drops it)', () => {
+    let state = addAdvisorLlmCostUsd(createInitialState(), 0.02);
+    // Simulate the repair path where run costs recorded in insights exceed the
+    // stored run total — advisor spend must ride on top, not be rewound out.
+    const insightsEntries = [
+      { status: 'done', estimatedCostUsd: 0.05 },
+      { status: 'done', estimatedCostUsd: 0.03 }
+    ];
+    const reconciled = reconcileLifetimeLlmCostUsd(state, insightsEntries);
+    expect(reconciled.lifetimeLlmCostUsd).toBeCloseTo(0.1, 5); // 0.08 runs + 0.02 advisor
   });
 
   it('unlocks per-variant mastery at 10 runs of that variant', () => {

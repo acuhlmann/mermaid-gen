@@ -58,7 +58,11 @@ export function createInitialState() {
     sessionRuns: 0,
     recentVariantTimeline: [], // [{ variant, at }] for hat-trick window
     achievements: {},
-    lifetimeLlmCostUsd: 0
+    lifetimeLlmCostUsd: 0,
+    // Stakeholder advisor (/api/advisor/suggest) spend. Tracked apart from run
+    // costs because it never produces an insights entry, so the reconcile below
+    // must fold it back in explicitly (otherwise a run-cost repair could drop it).
+    advisorLlmCostUsd: 0
   };
 }
 
@@ -239,7 +243,8 @@ export function applyCompletedRun(state, input) {
       sessionRuns,
       recentVariantTimeline,
       achievements,
-      lifetimeLlmCostUsd
+      lifetimeLlmCostUsd,
+      advisorLlmCostUsd: state.advisorLlmCostUsd ?? 0
     },
     emissions
   };
@@ -258,7 +263,8 @@ export function serializeForStorage(state) {
     totalRuns: state.totalRuns,
     xp: state.xp ?? 0,
     achievements: state.achievements,
-    lifetimeLlmCostUsd: state.lifetimeLlmCostUsd ?? 0
+    lifetimeLlmCostUsd: state.lifetimeLlmCostUsd ?? 0,
+    advisorLlmCostUsd: state.advisorLlmCostUsd ?? 0
   });
 }
 
@@ -270,6 +276,9 @@ function rehydrateFromParsed(parsed) {
   const levelInfo = levelForXp(xp);
   const lifetimeLlmCostUsd = Number.isFinite(parsed.lifetimeLlmCostUsd)
     ? parsed.lifetimeLlmCostUsd
+    : 0;
+  const advisorLlmCostUsd = Number.isFinite(parsed.advisorLlmCostUsd)
+    ? parsed.advisorLlmCostUsd
     : 0;
   return {
     ...initial,
@@ -288,7 +297,8 @@ function rehydrateFromParsed(parsed) {
       parsed.achievements && typeof parsed.achievements === 'object'
         ? { ...parsed.achievements }
         : {},
-    lifetimeLlmCostUsd
+    lifetimeLlmCostUsd,
+    advisorLlmCostUsd
   };
 }
 
@@ -350,9 +360,26 @@ export function reconcileLifetimeLlmCostUsd(state, insightsEntries) {
     return sum + (typeof cost === 'number' && Number.isFinite(cost) && cost > 0 ? cost : 0);
   }, 0);
   const stored = state.lifetimeLlmCostUsd ?? 0;
-  const next = Math.max(stored, fromInsights);
+  // Advisor spend has no insights entry — add it on top of the run total so the
+  // repair never rewinds it back out of the lifetime figure.
+  const advisor = state.advisorLlmCostUsd ?? 0;
+  const next = Math.max(stored, fromInsights + advisor);
   if (!Number.isFinite(next) || next <= stored) return state;
   return { ...state, lifetimeLlmCostUsd: next };
+}
+
+/**
+ * Add a stakeholder-advisor LLM charge to both the dedicated advisor tally and the
+ * lifetime total shown in the Stakeholder Damage Report. No-op for non-positive USD.
+ */
+export function addAdvisorLlmCostUsd(state, usd) {
+  if (!state) return state;
+  if (!(typeof usd === 'number' && Number.isFinite(usd) && usd > 0)) return state;
+  return {
+    ...state,
+    advisorLlmCostUsd: (state.advisorLlmCostUsd ?? 0) + usd,
+    lifetimeLlmCostUsd: (state.lifetimeLlmCostUsd ?? 0) + usd
+  };
 }
 
 // Re-export so callers building UI from this store can derive level info

@@ -5376,9 +5376,14 @@
     z-index: 50;
   }
 
+  /* Point the tail at the mascot, not its neighbour. On mobile the mascot stamp
+     is icon-only (~2.25rem wide) and the bubble is anchored to its left edge, so
+     the tail must sit near the stamp's centre. The old 2.6rem overshot the whole
+     stamp and landed on the Mute button beside it — the bubble looked like it
+     belonged to Mute. ~0.7rem centres the tail under the mascot. */
   .prompt-actions--mobile .advisor-speech-bubble::after,
   .prompt-actions--mobile .advisor-thinking-indicator::after {
-    left: 2.6rem;
+    left: 0.7rem;
     bottom: -7px;
   }
 

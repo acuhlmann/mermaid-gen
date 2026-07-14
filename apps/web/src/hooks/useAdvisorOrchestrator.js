@@ -57,6 +57,27 @@ export function shouldDiscardForFocusChange(previousFocusKey, nextFocusKey) {
   return false;
 }
 
+/**
+ * Forward reported token usage to the cost sink (App wires it into the Stakeholder
+ * Damage Report). Fires whenever the server reported usage, even when the reply had
+ * no usable suggestion — the tokens were billed either way.
+ *
+ * @param {{ current?: ((usage: { inputTokens: number, outputTokens: number, model: string | null }) => void) | null }} onUsageRef
+ * @param {any} payload
+ */
+function reportAdvisorUsage(onUsageRef, payload) {
+  const usage = payload?.usage;
+  if (!usage || typeof usage !== 'object') return;
+  const inputTokens = Number(usage.inputTokens);
+  const outputTokens = Number(usage.outputTokens);
+  if (!Number.isFinite(inputTokens) && !Number.isFinite(outputTokens)) return;
+  onUsageRef.current?.({
+    inputTokens: Number.isFinite(inputTokens) ? inputTokens : 0,
+    outputTokens: Number.isFinite(outputTokens) ? outputTokens : 0,
+    model: typeof payload.model === 'string' ? payload.model : null
+  });
+}
+
 function pickNextPersona(previous) {
   const pool = previous ? ADVISOR_ORDER.filter((p) => p !== previous) : ADVISOR_ORDER;
   const index = Math.floor(Math.random() * pool.length);
@@ -138,7 +159,14 @@ export function lastSuggestionTexts(entries) {
  * }} params
  */
 export function useAdvisorOrchestrator(params) {
-  const { pause, onAccept, initialMuted = false, focusKey = null, focusSource = null } = params;
+  const {
+    pause,
+    onAccept,
+    onUsage,
+    initialMuted = false,
+    focusKey = null,
+    focusSource = null
+  } = params;
 
   const [isMuted, setIsMuted] = useState(initialMuted);
   const [isPinned, setIsPinned] = useState(false);
@@ -162,6 +190,7 @@ export function useAdvisorOrchestrator(params) {
   const pauseRef = useRef(pause);
   const pinnedRef = useRef(false);
   const onAcceptRef = useRef(onAccept);
+  const onUsageRef = useRef(onUsage);
   const lastActivityAtRef = useRef(Date.now());
   const idlePausedRef = useRef(false);
   const focusKeyRef = useRef(focusKey);
@@ -261,6 +290,9 @@ export function useAdvisorOrchestrator(params) {
   useEffect(() => {
     onAcceptRef.current = onAccept;
   }, [onAccept]);
+  useEffect(() => {
+    onUsageRef.current = onUsage;
+  }, [onUsage]);
   useEffect(() => {
     focusKeyRef.current = focusKey;
   }, [focusKey]);
@@ -407,6 +439,9 @@ export function useAdvisorOrchestrator(params) {
           return;
         }
         const payload = await response.json();
+        // Bill the tokens before the abandon check — they were spent regardless of
+        // whether this tick is still the live one.
+        reportAdvisorUsage(onUsageRef, payload);
         if (abandonTick(gen)) return;
         const text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
         const replyIds = Array.isArray(payload?.highlightIds) ? payload.highlightIds : [];
@@ -833,6 +868,7 @@ export function useAdvisorOrchestrator(params) {
         return;
       }
       const payload = await response.json();
+      reportAdvisorUsage(onUsageRef, payload);
       let text = typeof payload?.suggestion === 'string' ? payload.suggestion.trim() : '';
       if (!text && isGibberish) {
         text = fallbackLabelGibberish(focusDescriptor?.label || labels?.[0] || previous);
