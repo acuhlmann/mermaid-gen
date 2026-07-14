@@ -2,9 +2,11 @@ import { DEFAULT_UI_LOCALE, normalizeUiLocale } from '@archislop/shared';
 import * as slopitectEn from '../utils/slopitectCopy.js';
 import { deepMergeLocale } from './deepMergeLocale.js';
 import { CONTROLS_EN } from './locales/controls.en.js';
+import { CONTROLS_EN_AU } from './locales/controls.en-AU.js';
 import { CONTROLS_ZH_CN } from './locales/controls.zh-CN.js';
 import { CONTROLS_ZH_TW } from './locales/controls.zh-TW.js';
 import { SLOPITECT_GAMIFICATION_EN } from './locales/slopitectGamification.en.js';
+import { SLOPITECT_EN_AU } from './locales/slopitect.en-AU.js';
 import { SLOPITECT_ZH_CN } from './locales/slopitect.zh-CN.js';
 import { SLOPITECT_ZH_TW } from './locales/slopitect.zh-TW.js';
 
@@ -42,6 +44,10 @@ function buildEnglishBundle() {
 const EN_BUNDLE = buildEnglishBundle();
 
 const LOCALE_OVERRIDES = {
+  'en-AU': {
+    controls: CONTROLS_EN_AU,
+    slopitect: SLOPITECT_EN_AU
+  },
   'zh-CN': {
     controls: CONTROLS_ZH_CN,
     slopitect: SLOPITECT_ZH_CN

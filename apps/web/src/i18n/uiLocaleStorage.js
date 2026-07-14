@@ -7,7 +7,7 @@ export function readStoredUiLocale() {
   if (typeof window === 'undefined') return null;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw === 'en' || raw === 'zh-CN' || raw === 'zh-TW') return raw;
+    if (raw === 'en' || raw === 'en-AU' || raw === 'zh-CN' || raw === 'zh-TW') return raw;
   } catch {
     // ignore quota / private mode
   }

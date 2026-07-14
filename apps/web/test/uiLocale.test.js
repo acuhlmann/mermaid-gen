@@ -30,8 +30,23 @@ describe('ui locale bundles', () => {
     expect(bundle.slopitect.LEVEL_PANEL.damageQuips.idle).not.toMatch(/^No billable/);
   });
 
+  it('returns Aussie slang controls when locale is en-AU', () => {
+    const bundle = getUiLocaleBundle('en-AU');
+    expect(bundle.controls.actions.refine).toBe('Polish');
+    expect(bundle.controls.actions.goMad).toBe('Go troppo');
+    expect(bundle.controls.actions.stakeholders).toBe('The Mob');
+    expect(bundle.controls.prompt.doIt).toBe('Have a go');
+    expect(bundle.controls.introLocale.enAu).toBe('Aussie Slang');
+    expect(bundle.controls.advisorThinking.goMad).toBe('IS LOSING THE PLOT');
+    expect(bundle.controls.appError.title).toMatch(/pear-shaped/);
+    expect(bundle.slopitect.PROMPT_ACTION_COPY.label).toBe('Have a say');
+    expect(bundle.slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('The Mob');
+    expect(bundle.slopitect.LEVEL_PANEL.damageQuips.pettyMid).toMatch(/flat white/);
+  });
+
   it('resolves explicit UI locale requests from weigh-in prompts', () => {
     expect(resolveUiLocaleFromExplicitRequest('switch UI to Chinese')).toBe('zh-CN');
+    expect(resolveUiLocaleFromExplicitRequest('switch UI to Aussie slang')).toBe('en-AU');
     expect(resolveUiLocaleFromExplicitRequest('画一个登录流程图')).toBeNull();
   });
 
@@ -49,7 +64,7 @@ describe('ui locale bundles', () => {
   // (masterPolisher, …) instead of the variant key (refine, …). Mis-keying
   // adds extra ACHIEVEMENTS entries on merge — inflating the trophy total and
   // leaving the mastery copy in English.
-  it.each(['zh-CN', 'zh-TW'])(
+  it.each(['zh-CN', 'zh-TW', 'en-AU'])(
     'keeps ACHIEVEMENTS keys aligned with English and translates mastery entries (%s)',
     (locale) => {
       const en = getUiLocaleBundle('en').slopitect.ACHIEVEMENTS;
@@ -57,7 +72,7 @@ describe('ui locale bundles', () => {
       expect(Object.keys(localized).sort()).toEqual(Object.keys(en).sort());
       for (const variant of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
         expect(localized[variant].id).toBe(en[variant].id);
-        expect(localized[variant].title).not.toBe(en[variant].title);
+        expect(localized[variant].subtitle).not.toBe(en[variant].subtitle);
       }
     }
   );

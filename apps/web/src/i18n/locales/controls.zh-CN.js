@@ -72,6 +72,7 @@ export const CONTROLS_ZH_CN = {
   introLocale: {
     aria: '界面语言',
     en: 'English',
+    enAu: 'Aussie Slang',
     zhCn: '简体中文',
     zhTw: '繁体中文'
   },

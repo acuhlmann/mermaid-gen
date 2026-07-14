@@ -1,53 +1,53 @@
-/** English UI chrome — menus, controls, dialogs, settings. */
-export const CONTROLS_EN = {
+/** Aussie slang UI chrome — corporate IT parody, fair dinkum edition. */
+export const CONTROLS_EN_AU = {
   actions: {
-    definition: 'What is this?',
-    definitionPersona: 'Quick Reference',
-    definitionTitle: 'Quick Reference · What does this element mean?',
-    stakeholders: 'Stakeholders',
-    stakeholdersTitle: 'Stakeholders · Tap to summon the roundtable',
-    renderMode: 'Render as...',
+    definition: "What's this then?",
+    definitionPersona: 'Quick Squizz',
+    definitionTitle: "Quick Squizz · What's this bit on about?",
+    stakeholders: 'The Mob',
+    stakeholdersTitle: 'The Mob · Tap to round up the peanut gallery',
+    renderMode: 'Knock it out as...',
     renderModePersona: 'Mode Shifter',
     renderModeTitle: 'Mode Shifter · Re-render this selection in another mode',
-    refine: 'Refine',
-    innovate: 'Innovate',
-    goMad: 'Go Mad',
-    goMadder: 'Go Madder',
-    goMaddest: 'Go Maddest',
-    maxMadness: 'Max madness',
+    refine: 'Polish',
+    innovate: 'Have a crack',
+    goMad: 'Go troppo',
+    goMadder: 'Go madder',
+    goMaddest: 'Go full mad',
+    maxMadness: 'Absolute unit of madness',
     coDesign: 'Co-Design',
-    critique: 'Critique',
+    critique: 'Tear strips',
     fix: 'Fix',
     fixPersona: 'Site Foreman',
-    fixTitle: 'Site Foreman · Fixing the slop',
+    fixTitle: 'Site Foreman · Sorting this slop',
     explain: 'Explain',
-    clear: 'Clear',
-    clearTitle: 'Clear · Demolish the slop and start fresh',
+    clear: 'Chuck it',
+    clearTitle: 'Chuck it · Demolish the slop and start fresh',
     demolish: 'Demolish',
-    mute: 'Mute',
+    mute: 'Shut it',
     unmute: 'Unmute',
-    muteAria: 'Mute stakeholders',
-    unmuteAria: 'Unmute stakeholders',
-    muteTitle: 'Stakeholders watching · click to mute',
-    unmuteTitle: 'Stakeholders muted · click to unmute'
+    muteAria: 'Mute the mob',
+    unmuteAria: 'Unmute the mob',
+    muteTitle: 'The mob is watching · click to shut them up',
+    unmuteTitle: 'The mob is muted · click to unmute'
   },
   prompt: {
-    yourTopic: 'Your Topic',
-    doIt: 'Do it',
+    yourTopic: 'Your topic, mate',
+    doIt: 'Have a go',
     mic: 'Mic',
-    holdToSpeak: 'Hold to speak',
+    holdToSpeak: 'Hold to yak',
     holdToDictate: 'Hold to dictate prompt',
     tapToDictate: 'Tap to dictate',
     tapToDictatePrompt: 'Tap to dictate prompt',
     tapToStop: 'Tap to stop dictation',
     voiceNeedsHttps: 'Voice input needs a secure connection (HTTPS), except on localhost',
-    voiceUnsupported: 'Voice input not supported in this browser',
+    voiceUnsupported: 'Voice input not supported in this browser, cobber',
     slopNextTitle: 'What should we slop next?',
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
     topicPlaceholder: 'Or type your own topic…',
-    starterHint: 'New here?',
+    starterHint: 'New around here?',
     starterAria: 'Example topics to get started',
     starters: [
       {
@@ -61,22 +61,18 @@ export const CONTROLS_EN = {
       { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
       { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' }
     ],
-    // Compact purpose card on the empty canvas: say what the app is for, show a
-    // tiny finished sample that matches the CTA, then let the newcomer generate it.
-    exampleEyebrow: 'What is this?',
-    exampleHeadline: 'Turn any topic into a living visualization',
+    exampleEyebrow: "What's this then?",
+    exampleHeadline: 'Turn any topic into a living visualisation, no worries',
     exampleBody:
-      'AI drafts a diagram, infographic, 3D scene, chart, or freeform page — then you refine it while fictional stakeholders chime in.',
+      'AI knocks up a diagram, infographic, 3D scene, chart, or freeform page — then you polish it while fictional stakeholders chip in whether you asked or not.',
     exampleTopic: 'Global coffee supply chain',
-    exampleAria: 'Example of an archislop visualization you can generate',
-    // CTA names the sample topic so it stays clear even when the preview is hidden.
+    exampleAria: 'Example of an archislop visualisation you can generate',
     exampleCta: 'Generate: Coffee supply chain →',
     exampleDiagramSource: `flowchart TD
     A["Farm"] --> B["Roaster"]
     B --> C["Distributor"]
     C --> D["Cafe"]`,
-    // Empty-state Render as strip — introduce modes before Settings.
-    renderAsLabel: 'Render as',
+    renderAsLabel: 'Knock it out as',
     renderAsAria: 'Choose how to render your topic'
   },
   introLocale: {
@@ -127,24 +123,22 @@ export const CONTROLS_EN = {
     anotherMode: 'another mode',
     renderMenu: 'Target render mode'
   },
-  // First-run mode reveal — after the first result, reminds newcomers they can
-  // switch forms from the bottom-bar Render as control. Skipped if they already
   modeReveal: {
     eyebrow: 'Same topic, another form',
-    body: 'You can switch modes anytime from the Render as button in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
-    pickPrefix: 'Render as',
-    dismiss: 'Got it',
+    body: 'You can switch modes anytime from the Knock it out as button in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
+    pickPrefix: 'Knock it out as',
+    dismiss: 'Gotcha',
     aria: 'Try rendering your topic in another mode'
   },
   hotkeys: {
     title: 'Keyboard shortcuts',
     close: 'Close keyboard shortcuts',
     hint: 'Single-letter hotkeys fire when a diagram element is selected. Hotkeys are ignored while typing.',
-    refine: 'Refine — polish labels & structure',
-    innovate: 'Innovate — bolder redesign',
-    goMad: 'Go Mad — chaos transformation',
+    refine: 'Polish — tidy labels & structure',
+    innovate: 'Have a crack — bolder redesign',
+    goMad: 'Go troppo — chaos transformation',
     exec: 'Exec — boil it down',
-    critique: 'Critique — structured review',
+    critique: 'Tear strips — structured review',
     explain: 'Explain — what does this mean?',
     toggleHelp: 'Toggle this help',
     esc: 'Close menus / dialogs',
@@ -155,11 +149,11 @@ export const CONTROLS_EN = {
     prompts: [
       {
         title: '🚧 Demolition permit requested',
-        body: 'Sure you want to bulldoze this masterpiece? The slop will live on only in our memories (and probably in three other Confluence pages).'
+        body: "Sure you want to bulldoze this ripper? The slop'll live on only in our memories (and probably in three other Confluence pages)."
       },
       {
         title: '🏗️ Wrecking ball on standby',
-        body: 'Are you sure? Once we tear this down, the stakeholders are going to want a post-mortem and at least one re-org.'
+        body: 'You sure, mate? Once we tear this down, the stakeholders are gonna want a post-mortem and at least one re-org.'
       },
       {
         title: '⛏️ Ready to grind it to gravel?',
@@ -197,17 +191,17 @@ export const CONTROLS_EN = {
     wiseArchitectOn: 'The Wise Architect on',
     thisElement: 'this element',
     closeExplanation: 'Close explanation',
-    drillDeeper: 'Drill Deeper',
+    drillDeeper: 'Dig deeper',
     drillDeeperTitle: 'Spin up a full architecture deep-dive in the Thinking panel',
-    explanationMissing: 'No explanation came back — try again in a moment.',
-    explanationFailed: 'Could not fetch explanation.',
-    stakeholdersForElement: 'Stakeholders for this element',
-    stakeholdersHeading: 'Stakeholders',
-    stakeholdersWithName: 'Stakeholders · {name}',
-    closeStakeholders: 'Close stakeholders',
+    explanationMissing: 'No explanation came back — have another crack in a moment.',
+    explanationFailed: 'Could not fetch explanation, mate.',
+    stakeholdersForElement: 'The mob for this element',
+    stakeholdersHeading: 'The Mob',
+    stakeholdersWithName: 'The Mob · {name}',
+    closeStakeholders: 'Close the mob',
     renderSelectedInMode: 'Render selected item in another mode',
-    renderAsHeading: 'Render this as...',
-    renderNameAs: 'Render {name} as...',
+    renderAsHeading: 'Knock this out as...',
+    renderNameAs: 'Knock {name} out as...',
     closeRenderPicker: 'Close render mode picker',
     currentMode: 'Current mode',
     currentModeIs: '{mode} is the current mode',
@@ -220,38 +214,37 @@ export const CONTROLS_EN = {
     deprecated: 'DEPRECATED'
   },
   renderAsDock: {
-    openRenderAs: 'Open Render as · {mode}',
+    openRenderAs: 'Open Knock it out as · {mode}',
     tapToHide: 'Tap to hide',
-    tapToOpen: '{mode} · tap to open Render as',
+    tapToOpen: '{mode} · tap to open Knock it out as',
     pickMode: 'Pick a mode'
   },
   stakeholders: {
-    theStakeholders: 'The Stakeholders',
-    hideActions: 'Hide stakeholders actions',
-    openStakeholders: 'Open the Stakeholders · {name}',
+    theStakeholders: 'The Mob',
+    hideActions: 'Hide mob actions',
+    openStakeholders: 'Open the Mob · {name}',
     tapToHide: 'Tap to hide',
-    tapToOpen: '{name} · tap to open the Stakeholders',
+    tapToOpen: '{name} · tap to open the Mob',
     pickPersona: 'Pick a persona',
     personaMenu: 'Stakeholder personas',
     castGroup: 'Stakeholder cast',
-    castLabel: 'Stakeholders',
+    castLabel: 'The Mob',
     castOneOfMany: '{name} is one of {count} stakeholders',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
     align: 'Align',
-    // One-time first-run spotlight framing the stakeholder mechanic.
-    introEyebrow: '👥 The roundtable has convened',
+    introEyebrow: '👥 The roundtable has convened, mate',
     introBody:
-      'A stakeholder is weighing in on your diagram — they chime in as you work, whether you asked or not. Mute them anytime with the button on the right.',
-    introDismiss: 'Got it',
-    introAria: 'Meet the stakeholders'
+      'A stakeholder is weighing in on your diagram — they chip in as you work, whether you asked or not. Shut them up anytime with the button on the right.',
+    introDismiss: 'Gotcha',
+    introAria: 'Meet the mob'
   },
   invite: {
     title: 'Onboard an external agent',
     subtitle: 'Bring another LLM into the Co-Design roundtable.',
     close: 'Close',
     explainer:
-      "External agents join over MCP — they can see the diagram, propose changes, and weigh in alongside the Stakeholders. Scan the QR or hit Connect now to pair an IDE-side agent in one tap; you'll still approve the handshake before anyone touches the slop. For a long-lived setup, use the stable URL under Advanced.",
+      "External agents join over MCP — they can see the diagram, propose changes, and weigh in alongside the Mob. Scan the QR or hit Connect now to pair an IDE-side agent in one tap; you'll still approve the handshake before anyone touches the slop. For a long-lived setup, use the stable URL under Advanced.",
     loading: 'Loading invite…',
     loadFailed: 'Failed to load invite.',
     rotateFailed: 'Failed to rotate pairing code.',
@@ -278,7 +271,7 @@ export const CONTROLS_EN = {
     paneLabel: 'Thoughts and analysis',
     title: 'Thinking',
     live: 'Live',
-    empty: 'Agent thoughts and critique responses appear here.',
+    empty: 'Agent thoughts and critique responses rock up here.',
     tipLabel: 'Slopitect Tip™',
     statusIssue: 'Issue',
     statusStopped: 'Stopped',
@@ -288,9 +281,9 @@ export const CONTROLS_EN = {
     now: 'Now',
     contentAnalysis: 'Analysis',
     contentExplanation: 'Explanation',
-    contentRefinement: 'Refinement',
-    contentInnovation: 'Innovation',
-    contentMadMode: 'Mad mode',
+    contentRefinement: 'Polish',
+    contentInnovation: 'Having a crack',
+    contentMadMode: 'Troppo mode',
     contentUpdates: 'Content updates',
     resultingInfographic: 'Resulting infographic',
     resultingChart: 'Resulting chart',
@@ -316,7 +309,7 @@ export const CONTROLS_EN = {
     closeThinking: 'Close thinking panel',
     actionableImprovements: 'Actionable improvements',
     restore: 'Restore',
-    retry: 'Retry',
+    retry: 'Have another crack',
     retryQuality: 'Retry with Quality',
     noStructuralChanges:
       'No structural changes detected between this version and the diagram before this step.',
@@ -341,13 +334,13 @@ export const CONTROLS_EN = {
     showThinkingPanel: 'Show {thinking} panel',
     hideThinkingPanel: 'Hide {thinking} panel',
     streamDone: 'Done',
-    awaitingDecision: 'Awaiting your decision.',
+    awaitingDecision: 'Awaiting your call, mate.',
     attributedNoteStatus: 'Note',
     errorPrefix: 'Error',
     nowStatus: {
       repairingSyntax: 'Repairing diagram syntax…',
-      stillWorking: 'Still working…',
-      thinking: 'Thinking…',
+      stillWorking: 'Still cracking on…',
+      thinking: 'Having a think…',
       applyingPatch: 'Applying diagram patch…',
       planningUpdate: 'Planning the update…',
       polishing: 'Polishing the diagram…',
@@ -379,12 +372,12 @@ export const CONTROLS_EN = {
       element: 'Element'
     },
     streamFailures: {
-      staleRevision: 'Diagram changed elsewhere — refresh and retry.',
+      staleRevision: 'Diagram changed elsewhere — refresh and have another crack.',
       timeout: 'Run timed out — try Fast or retry.',
       network: 'Connection or stream timed out. Retry.',
       syntaxExhausted: "Couldn't apply a valid result.",
       noPatch: 'No diagram patch was applied. Retry or try Quality.',
-      generic: 'Something failed. You can retry.'
+      generic: 'Something went pear-shaped. You can retry.'
     },
     syntaxFixer: {
       repaired: 'Repaired invalid DSL and applied the patch.',
@@ -437,7 +430,7 @@ export const CONTROLS_EN = {
     invalidRoom: 'Invalid or expired room code.',
     simplifyFailed: 'Could not simplify explanation.',
     micDenied: 'Microphone permission denied for speech recognition.',
-    voiceFailed: 'Voice input failed. Try again.',
+    voiceFailed: 'Voice input failed. Have another crack.',
     voiceUnavailable: 'Voice input is unavailable in this browser.'
   },
   errors: {
@@ -455,7 +448,7 @@ export const CONTROLS_EN = {
   advisorThinking: {
     refine: 'is polishing',
     innovate: 'is disrupting',
-    goMad: 'IS LOSING IT',
+    goMad: 'IS LOSING THE PLOT',
     critique: 'is auditing',
     explain: 'is musing',
     default: 'is thinking'
@@ -512,13 +505,13 @@ export const CONTROLS_EN = {
     allowing: 'Allowing…'
   },
   appError: {
-    title: 'Something went wrong',
+    title: 'Something went pear-shaped',
     body: 'The app hit an unexpected error and stopped rendering. Reload to recover.',
     reload: 'Reload app'
   },
   checklist: {
     fixSelected: 'Fix selected',
-    fixAll: 'Fix all'
+    fixAll: 'Fix the lot'
   },
   diagramCanvas: {
     streamingSource: 'Streaming validated source…',
@@ -547,7 +540,7 @@ export const CONTROLS_EN = {
     pinned: 'Pinned',
     suggestionNav: 'Stakeholder suggestion navigation',
     nextComment: 'Next stakeholder comment',
-    drillDeeperAria: 'Drill deeper — open the full architecture dissertation',
+    drillDeeperAria: 'Dig deeper — open the full architecture dissertation',
     drillDeeperTitle: 'Open the full architecture deep-dive in the Thinking panel',
     pinTitle: 'Pinned — click to unpin',
     unpinTitle: 'Click to pin this comment',
@@ -657,7 +650,7 @@ export const CONTROLS_EN = {
       activity: 'Run activity'
     },
     headline: {
-      working: 'Working…',
+      working: 'Cracking on…',
       stoppedOnIssue: 'Stopped on an issue',
       stoppedByYou: 'Stopped by you',
       recovered: 'Recovered and completed',

@@ -5,11 +5,11 @@ import {
 } from './promptLanguage.js';
 
 /** BCP-47-ish locale codes the web UI can render. */
-export type UiLocale = 'en' | 'zh-CN' | 'zh-TW';
+export type UiLocale = 'en' | 'en-AU' | 'zh-CN' | 'zh-TW';
 
 export const DEFAULT_UI_LOCALE: UiLocale = 'en';
 
-const UI_LOCALE_SET = new Set<UiLocale>(['en', 'zh-CN', 'zh-TW']);
+const UI_LOCALE_SET = new Set<UiLocale>(['en', 'en-AU', 'zh-CN', 'zh-TW']);
 
 /** Map agent prompt-language hints to a UI locale. */
 export function promptHintToUiLocale(hint: PromptLanguageHint | null): UiLocale | null {
@@ -36,6 +36,15 @@ type ExplicitLocaleRule = { locale: UiLocale; re: RegExp };
 
 /** Weigh-in / prompt phrases that explicitly request a UI language change. */
 const EXPLICIT_UI_LOCALE_RULES: ExplicitLocaleRule[] = [
+  {
+    locale: 'en-AU',
+    re: /\b(?:switch|change|use|show|display|set)\b[^.\n]{0,48}\b(?:to\s+)?(?:aussie(?:\s+slang)?|straya|australian(?:\s+slang)?|en[- ]?au)\b/i
+  },
+  {
+    locale: 'en-AU',
+    re: /\b(?:aussie(?:\s+slang)?|straya)\s+(?:mode|ui|interface|locale|language)\b/i
+  },
+  { locale: 'en-AU', re: /\bg['’]?day\s+(?:mate|mode|ui)\b/i },
   {
     locale: 'zh-TW',
     re: /\b(?:switch|change|use|show|display|set)\b[^.\n]{0,48}\b(?:traditional|taiwan(?:ese)?)\s+chinese\b/i

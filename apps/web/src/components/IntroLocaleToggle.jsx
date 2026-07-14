@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 
 const LOCALE_OPTIONS = [
   { id: 'en', label: 'EN' },
+  { id: 'en-AU', label: 'Aussie' },
   { id: 'zh-CN', label: '简' },
   { id: 'zh-TW', label: '繁' }
 ];
@@ -10,6 +11,7 @@ const LOCALE_OPTIONS = [
 /**
  * Compact language picker for the empty-state intro only. Shows the active
  * locale as a single pill; other choices expand in a small menu on tap.
+ * Menu rows use the full name from copy so options like Aussie Slang stay clear.
  */
 export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
   const [open, setOpen] = useState(false);
@@ -17,6 +19,7 @@ export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
 
   const optionLabels = {
     en: copy.en,
+    'en-AU': copy.enAu,
     'zh-CN': copy.zhCn,
     'zh-TW': copy.zhTw
   };
@@ -71,7 +74,8 @@ export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
               title={optionLabels[option.id]}
               onClick={() => handleSelect(/** @type {UiLocale} */ (option.id))}
             >
-              {option.label}
+              <span className="intro-locale-option-short">{option.label}</span>
+              <span className="intro-locale-option-name">{optionLabels[option.id]}</span>
             </button>
           ))}
         </div>
