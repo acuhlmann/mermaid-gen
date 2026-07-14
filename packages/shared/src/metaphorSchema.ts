@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
-export const METAPHOR_KINDS = [
+/** Spatial stories that own their own item encodings and scene modules. */
+export const METAPHOR_BASE_KINDS = [
   'city',
   'layercake',
   'galaxy',
@@ -11,6 +12,13 @@ export const METAPHOR_KINDS = [
   'garden',
   'archipelago'
 ] as const;
+export const MetaphorBaseKindSchema = z.enum(METAPHOR_BASE_KINDS);
+
+/**
+ * All metaphor discriminators, including the experimental `composite` kind that
+ * mounts one or more base scenes as layers at runtime. Base kinds are unchanged.
+ */
+export const METAPHOR_KINDS = [...METAPHOR_BASE_KINDS, 'composite'] as const;
 export const MetaphorKindSchema = z.enum(METAPHOR_KINDS);
 
 export const METAPHOR_THEMES = ['whiteboard', 'noir', 'arcade', 'blueprint'] as const;
@@ -281,6 +289,99 @@ export const ArchipelagoMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+/**
+ * Experimental runtime montage: mount existing base metaphor scenes as layers
+ * without changing those scenes. `layout: "adjacent"` parks layers side-by-side
+ * (safer visually); `overlay` stacks them at the origin (more experimental).
+ */
+export const COMPOSITE_MAX_LAYERS = 4;
+export const COMPOSITE_LAYOUTS = ['adjacent', 'overlay'] as const;
+export const CompositeLayoutSchema = z.enum(COMPOSITE_LAYOUTS).default('adjacent');
+
+export const MetaphorLayerTransformSchema = z.object({
+  position: MetaphorPositionSchema.optional(),
+  scale: z.number().positive().max(4).default(1)
+});
+
+/** Loose item bag — per-layer `as` re-validates against that kind's item schema. */
+export const CompositeLayerItemSchema = MetaphorItemBase.passthrough();
+
+export const MetaphorCompositeLayerSchema = z.object({
+  id: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9][a-z0-9-_]*$/i, 'id must be alphanumeric with dashes/underscores'),
+  /** Which existing metaphor scene module to mount for this layer. */
+  as: MetaphorBaseKindSchema,
+  label: z.string().max(80).optional(),
+  transform: MetaphorLayerTransformSchema.optional(),
+  items: z.array(CompositeLayerItemSchema).max(CITY_MAX_ITEMS).default([])
+});
+
+const BASE_METAPHOR_SCHEMA_BY_KIND = {
+  city: CityMetaphorSchema,
+  layercake: LayercakeMetaphorSchema,
+  galaxy: GalaxyMetaphorSchema,
+  tree: TreeMetaphorSchema,
+  terrain: TerrainMetaphorSchema,
+  orrery: OrreryMetaphorSchema,
+  river: RiverMetaphorSchema,
+  garden: GardenMetaphorSchema,
+  archipelago: ArchipelagoMetaphorSchema
+} as const;
+
+export const CompositeMetaphorSchema = z
+  .object({
+    metaphor: z.literal('composite'),
+    scene: MetaphorSceneSchema,
+    layout: CompositeLayoutSchema,
+    layers: z.array(MetaphorCompositeLayerSchema).min(1).max(COMPOSITE_MAX_LAYERS),
+    /** Composite keeps items on layers; top-level stays empty for wire uniformity. */
+    items: z.array(MetaphorItemBase).max(0).default([]),
+    links: MetaphorLinksField
+  })
+  .superRefine((data, ctx) => {
+    const seenIds = new Set<string>();
+    for (let i = 0; i < data.layers.length; i += 1) {
+      const layer = data.layers[i];
+      if (seenIds.has(layer.id)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `duplicate layer id "${layer.id}"`,
+          path: ['layers', i, 'id']
+        });
+      }
+      seenIds.add(layer.id);
+
+      const mini = {
+        metaphor: layer.as,
+        scene: {},
+        items: layer.items,
+        links: []
+      };
+      const parsed = BASE_METAPHOR_SCHEMA_BY_KIND[layer.as].safeParse(mini);
+      if (!parsed.success) {
+        for (const issue of parsed.error.issues) {
+          // Remap item paths under layers[i]; skip the synthetic metaphor/scene/links roots.
+          if (issue.path[0] === 'items') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: issue.message,
+              path: ['layers', i, ...issue.path]
+            });
+          } else if (issue.path[0] !== 'metaphor' && issue.path[0] !== 'scene') {
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              message: issue.message,
+              path: ['layers', i, ...issue.path]
+            });
+          }
+        }
+      }
+    }
+  });
+
 export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   CityMetaphorSchema,
   LayercakeMetaphorSchema,
@@ -290,10 +391,12 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   OrreryMetaphorSchema,
   RiverMetaphorSchema,
   GardenMetaphorSchema,
-  ArchipelagoMetaphorSchema
+  ArchipelagoMetaphorSchema,
+  CompositeMetaphorSchema
 ]);
 
 export type MetaphorKind = z.infer<typeof MetaphorKindSchema>;
+export type MetaphorBaseKind = z.infer<typeof MetaphorBaseKindSchema>;
 export type MetaphorTheme = z.infer<typeof MetaphorThemeSchema>;
 export type MetaphorCamera = z.infer<typeof MetaphorCameraSchema>;
 export type MetaphorGlyph = z.infer<typeof MetaphorGlyphSchema>;
@@ -322,4 +425,7 @@ export type OrreryMetaphor = z.infer<typeof OrreryMetaphorSchema>;
 export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
 export type GardenMetaphor = z.infer<typeof GardenMetaphorSchema>;
 export type ArchipelagoMetaphor = z.infer<typeof ArchipelagoMetaphorSchema>;
+export type CompositeLayout = z.infer<typeof CompositeLayoutSchema>;
+export type MetaphorCompositeLayer = z.infer<typeof MetaphorCompositeLayerSchema>;
+export type CompositeMetaphor = z.infer<typeof CompositeMetaphorSchema>;
 export type MetaphorDsl = z.infer<typeof MetaphorDslSchema>;

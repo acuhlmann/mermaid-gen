@@ -470,7 +470,8 @@ export const CONTROLS_ZH_CN = {
       orrery: '天体仪',
       river: '河流',
       garden: '花园',
-      archipelago: '群岛'
+      archipelago: '群岛',
+      composite: '组合'
     }
   },
   styleEdits: {

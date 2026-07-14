@@ -48,6 +48,7 @@ The `metaphor3d` slot stores a JSON DSL with a `metaphor` discriminator picking 
 | `river`       | ≤ 30      | Winding waterway, source → mouth: `stage` orders stations along the channel, `flow` sets the channel width at each station, optional `hazard` (0–1) renders whitewater rapids.                                  |
 | `garden`      | ≤ 40      | Living portfolio: `maturity` grows each plant, `impact` sizes its bloom, `bed` groups strategic themes, and `health` (`thriving` / `steady` / `at-risk`) changes colour and posture.                            |
 | `archipelago` | ≤ 40      | Peer domains as islands: `mass` sizes each island, `relief` (0–1) raises its peak, `chain` clusters related islands; `links` span as bridges across the ocean.                                                  |
+| `composite`   | ≤ 4 layers | **Experimental.** Mounts 1–4 existing base metaphor scenes as `layers` (`as` + per-layer `items`). `layout: "adjacent"` (default) parks layers side-by-side; `"overlay"` stacks them. Base metaphors are unchanged. |
 
 Scene-level options (apply to every kind):
 

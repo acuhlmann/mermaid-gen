@@ -470,7 +470,8 @@ export const CONTROLS_ZH_TW = {
       orrery: '天體儀',
       river: '河流',
       garden: '花園',
-      archipelago: '群島'
+      archipelago: '群島',
+      composite: '組合'
     }
   },
   styleEdits: {

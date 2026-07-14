@@ -110,4 +110,45 @@ describe('switchMetaphorKind', () => {
     expect(dsl.items[0].relief).toBeGreaterThanOrEqual(0);
     expect(dsl.items[0].relief).toBeLessThanOrEqual(1);
   });
+
+  it('wraps a city scene into a single-layer composite', () => {
+    const result = switchMetaphorKind(CITY_DSL, 'composite');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const dsl = JSON.parse(result.text);
+    expect(dsl.metaphor).toBe('composite');
+    expect(dsl.layout).toBe('adjacent');
+    expect(dsl.layers).toHaveLength(1);
+    expect(dsl.layers[0]).toMatchObject({ as: 'city', id: 'layer-1' });
+    expect(dsl.layers[0].items[0].id).toBe('auth');
+    expect(dsl.items).toEqual([]);
+  });
+
+  it('flattens a composite back to a base kind via the first layer', () => {
+    const composite = JSON.stringify({
+      metaphor: 'composite',
+      scene: { title: 'Montage' },
+      layout: 'adjacent',
+      layers: [
+        {
+          id: 'skyline',
+          as: 'city',
+          items: [{ id: 'auth', label: 'Auth', height: 12, footprint: 3, district: 'Core' }]
+        },
+        {
+          id: 'flow',
+          as: 'river',
+          items: [{ id: 'signup', label: 'Signup', stage: 0, flow: 8 }]
+        }
+      ],
+      items: [],
+      links: []
+    });
+    const result = switchMetaphorKind(composite, 'galaxy');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const dsl = JSON.parse(result.text);
+    expect(dsl.metaphor).toBe('galaxy');
+    expect(dsl.items[0]).toMatchObject({ id: 'auth', magnitude: 12, cluster: 'Core' });
+  });
 });

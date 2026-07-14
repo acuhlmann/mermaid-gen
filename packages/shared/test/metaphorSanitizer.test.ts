@@ -723,3 +723,90 @@ test('sanitizeMetaphorDsl clamps archipelago mass and relief', () => {
   assert.ok(result.applied.includes('clamp-mass'));
   assert.ok(result.applied.includes('clamp-relief'));
 });
+
+test('MetaphorDslSchema parses an experimental composite with city + river layers', () => {
+  const input = {
+    metaphor: 'composite',
+    scene: { theme: 'whiteboard', title: 'Platform + journey' },
+    layout: 'adjacent',
+    layers: [
+      {
+        id: 'skyline',
+        as: 'city',
+        label: 'Systems',
+        items: [{ id: 'api', label: 'API', height: 12, footprint: 3, district: 'Edge' }]
+      },
+      {
+        id: 'flow',
+        as: 'river',
+        label: 'Journey',
+        items: [{ id: 'signup', label: 'Signup', stage: 0, flow: 10 }]
+      }
+    ],
+    items: [],
+    links: [{ from: 'api', to: 'signup', kind: 'flow' }]
+  };
+  const dsl = MetaphorDslSchema.parse(input);
+  assert.equal(dsl.metaphor, 'composite');
+  if (dsl.metaphor === 'composite') {
+    assert.equal(dsl.layout, 'adjacent');
+    assert.equal(dsl.layers.length, 2);
+    assert.equal(dsl.layers[0].as, 'city');
+    assert.equal(dsl.layers[1].as, 'river');
+    assert.equal(dsl.links.length, 1);
+  }
+});
+
+test('sanitizeMetaphorDsl rescues composite layers and keeps cross-layer links', () => {
+  const input = JSON.stringify({
+    metaphor: 'composite',
+    layout: 'Adjacent',
+    layers: [
+      {
+        id: 'a',
+        as: 'City',
+        items: [{ id: 'tower', label: 'Tower', height: 8, footprint: 2 }]
+      },
+      {
+        id: 'b',
+        as: 'garden',
+        items: [
+          {
+            id: 'bloom',
+            label: 'Bloom',
+            maturity: 0.7,
+            impact: 4,
+            health: 'thriving',
+            bed: 'Core'
+          }
+        ]
+      }
+    ],
+    links: [
+      { from: 'tower', to: 'bloom', kind: 'Dependency' },
+      { from: 'tower', to: 'missing', kind: 'flow' }
+    ]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl, result.error);
+  assert.equal(result.dsl?.metaphor, 'composite');
+  if (result.dsl?.metaphor === 'composite') {
+    assert.equal(result.dsl.layout, 'adjacent');
+    assert.equal(result.dsl.layers[0].as, 'city');
+    assert.equal(result.dsl.layers.length, 2);
+    assert.equal(result.dsl.items.length, 0);
+    assert.equal(result.dsl.links.length, 1);
+    assert.equal(result.dsl.links[0].kind, 'dependency');
+  }
+  assert.ok(result.applied.includes('normalize-composite-layout'));
+  assert.ok(result.applied.includes('normalize-composite-layer-as'));
+});
+
+test('sanitizeMetaphorDsl rejects nested composite layers (as must be a base kind)', () => {
+  const input = JSON.stringify({
+    metaphor: 'composite',
+    layers: [{ id: 'bad', as: 'composite', items: [] }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.equal(result.dsl, null);
+});

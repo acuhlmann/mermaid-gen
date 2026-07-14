@@ -488,7 +488,8 @@ export const CONTROLS_EN = {
       orrery: 'Orrery',
       river: 'River',
       garden: 'Garden',
-      archipelago: 'Archipelago'
+      archipelago: 'Archipelago',
+      composite: 'Composite'
     }
   },
   styleEdits: {
