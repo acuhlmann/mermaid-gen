@@ -21,6 +21,11 @@
           Starting the server — usually 10–30 seconds when nobody has used the app lately. We scale
           down when idle to save cost.
         </p>
+        <div
+          class="cold-start-gate-progress"
+          id="cold-start-gate-progress"
+          aria-hidden="true"
+        ></div>
         <button type="button" class="cold-start-gate-retry" id="cold-start-gate-retry" hidden>
           Try again
         </button>

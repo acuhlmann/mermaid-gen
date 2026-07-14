@@ -1,7 +1,13 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Editor from '@monaco-editor/react';
-import registerMermaidMonacoOnce from '../utils/registerMermaidMonacoOnce.js';
-import registerInfographicMonacoOnce from '../utils/registerInfographicMonacoOnce.js';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from 'react';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
@@ -35,6 +41,8 @@ import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { renderMermaidSvg } from '../utils/renderMermaidPreview.js';
 import { switchMetaphorKind } from '../utils/switchMetaphorKind.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+
+const MonacoCodeEditor = lazy(() => import('./MonacoCodeEditor.jsx'));
 
 const TAP_MOVE_THRESHOLD_PX = 14;
 /** Debounce before clearing diagram hover when the pointer leaves a node hit area. */
@@ -295,16 +303,13 @@ export default function DiagramCanvas({
     return () => mq.removeEventListener('change', sync);
   }, []);
 
-  const handleEditorBeforeMount = useCallback((monaco) => {
-    registerMermaidMonacoOnce(monaco);
-    registerInfographicMonacoOnce(monaco);
-  }, []);
-
   const handleEditorMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;
     setMonacoBind({ editor, monaco });
   }, []);
+
+  const monacoLoadingLabel = controls.diagramCanvas.loadingEditor;
 
   const monacoEditorOptions = useMemo(
     () => ({
@@ -1619,30 +1624,42 @@ export default function DiagramCanvas({
                 </div>
               </div>
               <div className="diagram-monaco-wrap mobile-monaco-wrap">
-                <Editor
-                  height="100%"
-                  language={editorLanguage}
-                  theme="vs-dark"
-                  value={editorSource}
-                  beforeMount={handleEditorBeforeMount}
-                  onMount={handleEditorMount}
-                  onChange={handleEditorChange}
-                  options={monacoEditorOptions}
-                />
+                <Suspense
+                  fallback={
+                    <div className="monaco-editor-loading" role="status">
+                      {monacoLoadingLabel}
+                    </div>
+                  }
+                >
+                  <MonacoCodeEditor
+                    language={editorLanguage}
+                    value={editorSource}
+                    onMount={handleEditorMount}
+                    onChange={handleEditorChange}
+                    options={monacoEditorOptions}
+                    loadingLabel={monacoLoadingLabel}
+                  />
+                </Suspense>
               </div>
             </div>
           ) : (
             <div className="diagram-monaco-wrap">
-              <Editor
-                height="100%"
-                language={editorLanguage}
-                theme="vs-dark"
-                value={editorSource}
-                beforeMount={handleEditorBeforeMount}
-                onMount={handleEditorMount}
-                onChange={handleEditorChange}
-                options={monacoEditorOptions}
-              />
+              <Suspense
+                fallback={
+                  <div className="monaco-editor-loading" role="status">
+                    {monacoLoadingLabel}
+                  </div>
+                }
+              >
+                <MonacoCodeEditor
+                  language={editorLanguage}
+                  value={editorSource}
+                  onMount={handleEditorMount}
+                  onChange={handleEditorChange}
+                  options={monacoEditorOptions}
+                  loadingLabel={monacoLoadingLabel}
+                />
+              </Suspense>
             </div>
           )}
         </aside>

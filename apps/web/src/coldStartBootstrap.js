@@ -1,10 +1,11 @@
 import './coldStartGate.css';
-import { COLD_START_COPY, pollHealthUntilReady } from './utils/coldStartGate.js';
+import { COLD_START_COPY, pollHealthUntilReady, waitForAppReady } from './utils/coldStartGate.js';
 
 const GATE_ID = 'cold-start-gate';
 const TITLE_ID = 'cold-start-gate-title';
 const HINT_ID = 'cold-start-gate-hint';
 const RETRY_ID = 'cold-start-gate-retry';
+const PROGRESS_ID = 'cold-start-gate-progress';
 
 function ensureGateElement() {
   let gate = document.getElementById(GATE_ID);
@@ -20,6 +21,7 @@ function ensureGateElement() {
       <p class="cold-start-gate-eyebrow" aria-hidden="true">🏗️ ${COLD_START_COPY.eyebrow}</p>
       <p class="cold-start-gate-title" id="${TITLE_ID}"></p>
       <p class="cold-start-gate-hint" id="${HINT_ID}"></p>
+      <div class="cold-start-gate-progress" id="${PROGRESS_ID}" aria-hidden="true"></div>
       <button type="button" class="cold-start-gate-retry" id="${RETRY_ID}" hidden>
         ${COLD_START_COPY.retryLabel}
       </button>
@@ -29,11 +31,17 @@ function ensureGateElement() {
   return gate;
 }
 
+/**
+ * @param {'checking' | 'waking' | 'loadingApp' | 'timeout'} phase
+ */
 function setGatePhase(phase) {
   const title = document.getElementById(TITLE_ID);
   const hint = document.getElementById(HINT_ID);
   const retry = document.getElementById(RETRY_ID);
+  const progress = document.getElementById(PROGRESS_ID);
   if (!title || !hint || !retry) return;
+
+  if (progress) progress.hidden = phase === 'timeout';
 
   if (phase === 'checking') {
     title.textContent = COLD_START_COPY.checking.title;
@@ -46,6 +54,14 @@ function setGatePhase(phase) {
   if (phase === 'waking') {
     title.textContent = COLD_START_COPY.waking.title;
     hint.textContent = COLD_START_COPY.waking.hint;
+    hint.hidden = false;
+    retry.hidden = true;
+    return;
+  }
+
+  if (phase === 'loadingApp') {
+    title.textContent = COLD_START_COPY.loadingApp.title;
+    hint.textContent = COLD_START_COPY.loadingApp.hint;
     hint.hidden = false;
     retry.hidden = true;
     return;
@@ -89,8 +105,7 @@ async function waitForServerReady() {
     });
   };
 
-  await runPoll();
-  hideGate();
+  return runPoll();
 }
 
 async function registerColdStartServiceWorker() {
@@ -102,6 +117,27 @@ async function registerColdStartServiceWorker() {
   }
 }
 
-await registerColdStartServiceWorker();
-await waitForServerReady();
-await import('./main.jsx');
+async function bootstrap() {
+  ensureGateElement();
+  setGatePhase('waking');
+
+  // Download the heavy app bundle in parallel while the server wakes from idle.
+  const appBundlePromise = import('./main.jsx');
+
+  await registerColdStartServiceWorker();
+
+  const serverReady = await waitForServerReady();
+  if (!serverReady) return;
+
+  setGatePhase('loadingApp');
+
+  const { mountArchislopApp } = await appBundlePromise;
+  await mountArchislopApp();
+  await waitForAppReady();
+  hideGate();
+}
+
+bootstrap().catch((err) => {
+  console.error('[archislop] cold-start bootstrap failed', err);
+  setGatePhase('timeout');
+});

@@ -73,6 +73,7 @@ import {
 } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
+import { markAppReady } from './utils/appReadySignal.js';
 import './App.css';
 import './components/RunTimeline.css';
 import {
@@ -731,6 +732,21 @@ function ArchiSlop() {
     setExternalAgentPresence([]);
     setAgentReactions([]);
   }, [activeSessionId, clearPendingAutoDiagramHighlight]);
+
+  // Let the cold-start gate dismiss only after the shell has painted real UI.
+  useEffect(() => {
+    if (!sessionHydrated) return undefined;
+    let cancelled = false;
+    const frame = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) markAppReady();
+      });
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
+  }, [sessionHydrated]);
 
   // External-agent session events: handshake requests, proposals, presence, reactions, attributed insights.
   // One always-open SSE stream per active session (after hydrate so SSE cannot register a phantom room).

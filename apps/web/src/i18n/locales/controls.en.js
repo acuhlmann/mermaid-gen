@@ -453,7 +453,8 @@ export const CONTROLS_EN = {
   },
   diagramCanvas: {
     streamingSource: 'Streaming validated source…',
-    done: 'Done'
+    done: 'Done',
+    loadingEditor: 'Loading code editor…'
   },
   anythingCanvas: {
     canvas: 'Anything canvas (sandboxed)',
