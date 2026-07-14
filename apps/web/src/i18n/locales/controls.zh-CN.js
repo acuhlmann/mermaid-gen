@@ -315,7 +315,13 @@ export const CONTROLS_ZH_CN = {
     rawStreamEvents: '原始流事件（{count}）',
     via: '来自',
     modeSuffix: '模式',
-    brainSuffix: '模型'
+    brainSuffix: '模型',
+    phaseStep: '阶段 {step}',
+    streakTitle: '{name} 连击',
+    diffAdded: '+{count} 新增',
+    diffChanged: '~{count} 修改',
+    diffRemoved: '−{count} 移除',
+    changesSincePrevious: '相对上一版本的变化'
   },
   editor: {
     doneEditing: '完成编辑',
@@ -378,7 +384,12 @@ export const CONTROLS_ZH_CN = {
     combo: '连击',
     levelUp: '等级提升',
     lvlPrefix: '等级',
-    max: '满级'
+    max: '满级',
+    xpLabel: '经验',
+    tapForDetails: ' — 点击查看详情',
+    levelAriaMax: '等级 {level}，已满级，累计 {totalXp} {xpLabel}',
+    levelAriaProgress: '等级 {level}，距下一级还需 {xpInto}/{xpForNext} {xpLabel}',
+    levelFallbackTitle: '烂图建筑师'
   },
   brand: {
     totalSlopRuns: '累计 {count} 次烂图运行',
@@ -576,6 +587,7 @@ export const CONTROLS_ZH_CN = {
       issues: '个问题',
       technicalStep: '个技术步骤',
       technicalSteps: '个技术步骤'
-    }
+    },
+    patchLines: '+{added} / −{removed} 行'
   }
 };

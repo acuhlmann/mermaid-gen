@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { lifetimeLlmCostFlavor } from '@archislop/shared';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona, tipForIndex } from '../utils/slopitectCopy.js';
 
 const VARIANT_ROW_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
@@ -31,6 +32,18 @@ function nextPrestigeMilestone(prestigeTiers, totalRuns) {
   return null;
 }
 
+function localizedDamageFlavor(usd, quips) {
+  const base = lifetimeLlmCostFlavor(usd);
+  if (!quips) return base;
+  const safe = Number.isFinite(usd) && usd > 0 ? usd : 0;
+  if (safe <= 0) return { ...base, quip: quips.idle ?? base.quip };
+  if (safe < 0.05) return { ...base, quip: quips.pettyLow ?? base.quip };
+  if (safe < 0.5) return { ...base, quip: quips.pettyMid ?? base.quip };
+  if (safe < 5) return { ...base, quip: quips.expense ?? base.quip };
+  if (safe < 25) return { ...base, quip: quips.budget ?? base.quip };
+  return { ...base, quip: quips.incident ?? base.quip };
+}
+
 /**
  * Popover anchored to the XP progress bar in the brand chrome. Surfaces the
  * full level ladder, the XP rules that drive the bar, achievement progress,
@@ -55,6 +68,7 @@ export default function LevelUpInfoPanel({
   onClose
 }) {
   const { slopitect, controls } = useUiCopy();
+  const hud = controls.gamificationHud;
   const levels = slopitect.LEVELS ?? [];
   const prestigeTiers = slopitect.PRESTIGE_TIERS ?? [];
   const achievementCopy = slopitect.ACHIEVEMENTS ?? {};
@@ -103,7 +117,12 @@ export default function LevelUpInfoPanel({
     [panel.nextLevelTaunts, level, totalXp]
   );
   const tip = useMemo(() => tipForIndex(level + (unlocked.length % 7)), [level, unlocked.length]);
-  const damage = useMemo(() => lifetimeLlmCostFlavor(lifetimeLlmCostUsd), [lifetimeLlmCostUsd]);
+  const damage = useMemo(
+    () => localizedDamageFlavor(lifetimeLlmCostUsd, panel.damageQuips),
+    [lifetimeLlmCostUsd, panel.damageQuips]
+  );
+  const xpLabel = panel.xpLabel ?? hud.xpLabel ?? 'XP';
+  const dialogAria = formatLocale(panel.levelDialogAria ?? 'Level {level} progress', { level });
 
   useEffect(() => {
     if (typeof onClose !== 'function') return undefined;
@@ -141,7 +160,7 @@ export default function LevelUpInfoPanel({
       className="levelup-info-panel"
       role="dialog"
       aria-modal="false"
-      aria-label={`Level ${level} ${panel.progressAriaLabel ?? 'progress'}`}
+      aria-label={dialogAria}
       data-testid="levelup-info-panel"
     >
       <header className="levelup-info-head">
@@ -151,10 +170,14 @@ export default function LevelUpInfoPanel({
           </span>
           <div className="levelup-info-head-text">
             <div className="levelup-info-eyebrow">
-              {levelShortLabel || `Lvl ${level}`} ·{' '}
-              <span className="levelup-info-eyebrow-xp">{Math.round(totalXp)} XP</span>
+              {levelShortLabel || `${hud.lvlPrefix} ${level}`} ·{' '}
+              <span className="levelup-info-eyebrow-xp">
+                {Math.round(totalXp)} {xpLabel}
+              </span>
             </div>
-            <h2 className="levelup-info-title">{levelTitle || 'Slopitect'}</h2>
+            <h2 className="levelup-info-title">
+              {levelTitle || panel.defaultTitle || hud.levelFallbackTitle}
+            </h2>
             <p className="levelup-info-flavor">{levelFlavorFor(panel.levelFlavor, level)}</p>
           </div>
           {typeof onClose === 'function' ? (
@@ -162,7 +185,7 @@ export default function LevelUpInfoPanel({
               type="button"
               className="levelup-info-close"
               onClick={onClose}
-              aria-label={panel.closeLevelDetails ?? 'Close level details'}
+              aria-label={panel.closeLevelDetails ?? controls.insights.closeLevelDetails}
             >
               ✕
             </button>
@@ -178,7 +201,10 @@ export default function LevelUpInfoPanel({
             </p>
           ) : (
             <p className="levelup-info-progress-caption">
-              <strong>{xpRemaining} XP</strong> {panel.xpToNextPrefix}{' '}
+              <strong>
+                {xpRemaining} {xpLabel}
+              </strong>{' '}
+              {panel.xpToNextPrefix}{' '}
               <span className="levelup-info-next-name">
                 {nextLevelEntry?.flair} {nextLevelEntry?.title || panel.nextTierFallback}
               </span>
@@ -191,7 +217,7 @@ export default function LevelUpInfoPanel({
       {costTrackingEnabled ? (
         <section
           className={`levelup-info-section levelup-info-damage is-${damage.severity}`}
-          aria-label={panel.damageTitle ?? 'Stakeholder Damage Report'}
+          aria-label={panel.damageTitle}
           data-testid="levelup-damage-report"
         >
           <h3 className="levelup-info-section-title">{panel.damageTitle}</h3>
@@ -220,7 +246,9 @@ export default function LevelUpInfoPanel({
                 </span>
                 <span className="levelup-info-ladder-label">
                   <span className="levelup-info-ladder-title">{tier.title}</span>
-                  <span className="levelup-info-ladder-xp">{tier.xp} XP</span>
+                  <span className="levelup-info-ladder-xp">
+                    {tier.xp} {xpLabel}
+                  </span>
                 </span>
                 {current ? (
                   <span className="levelup-info-ladder-pin" aria-hidden="true">
@@ -253,13 +281,19 @@ export default function LevelUpInfoPanel({
                 <span className="levelup-info-variant-text">
                   <span className="levelup-info-variant-name">{persona.name}</span>
                   <span className="levelup-info-variant-meta">
-                    +{persona.xpAward} base · +{persona.xpStreakBonus} {panel.variantMetaSuffix}
+                    +{persona.xpAward} {panel.baseXp ?? 'base'} · +{persona.xpStreakBonus}{' '}
+                    {panel.variantMetaSuffix}
                     {id === 'goMad' ? ` ${panel.goMadDepthBonus}` : ''}
                   </span>
                 </span>
                 <span
                   className="levelup-info-variant-runs"
-                  title={`${runs} ${id} run${runs === 1 ? '' : 's'} on record`}
+                  title={formatLocale(
+                    runs === 1
+                      ? (panel.runsOnRecordOne ?? '{count} {name} run on record')
+                      : (panel.runsOnRecord ?? '{count} {name} runs on record'),
+                    { count: runs, name: persona.name }
+                  )}
                 >
                   ×{runs}
                 </span>

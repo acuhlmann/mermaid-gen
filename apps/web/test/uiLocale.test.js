@@ -21,6 +21,10 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.contentModes.chartShort).toBe('数据图');
     expect(bundle.controls.prompt.exampleDiagramSource).toContain('农场');
     expect(bundle.controls.insights.tipLabel).not.toBe('Slopitect Tip™');
+    expect(bundle.controls.insights.phaseStep).toBe('阶段 {step}');
+    expect(bundle.controls.insights.diffAdded).toBe('+{count} 新增');
+    expect(bundle.controls.gamificationHud.xpLabel).toBe('经验');
+    expect(bundle.slopitect.LEVEL_PANEL.damageQuips.idle).not.toMatch(/^No billable/);
   });
 
   it('resolves explicit UI locale requests from weigh-in prompts', () => {

@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 /**
  * Compact "Lvl X · XP/Next" pill rendered in the brand chrome.
@@ -26,9 +28,12 @@ export default function XpProgressBar({
   expanded = false,
   controlsId = null
 }) {
+  const { controls } = useUiCopy();
+  const hud = controls.gamificationHud;
+  const xpLabel = hud.xpLabel ?? 'XP';
   const ratio = Number.isFinite(progressRatio) ? Math.max(0, Math.min(1, progressRatio)) : 0;
   const fillWidth = `${Math.round(ratio * 1000) / 10}%`;
-  const widthLabel = isMaxLevel ? 'MAX' : `${Math.round(xpInto)}/${Math.round(xpForNext ?? 0)}`;
+  const widthLabel = isMaxLevel ? hud.max : `${Math.round(xpInto)}/${Math.round(xpForNext ?? 0)}`;
   const previousFlashKey = useRef(flashKey);
   const [flashing, setFlashing] = useState(false);
   useEffect(() => {
@@ -50,16 +55,29 @@ export default function XpProgressBar({
     .filter(Boolean)
     .join(' ');
 
+  const tapSuffix = onClick ? (hud.tapForDetails ?? '') : '';
   const ariaLabel = isMaxLevel
-    ? `Level ${level}, max level, ${Math.round(totalXp)} XP total${onClick ? ' — tap for details' : ''}`
-    : `Level ${level}, ${Math.round(xpInto)} of ${Math.round(xpForNext ?? 0)} XP to next level${onClick ? ' — tap for details' : ''}`;
+    ? formatLocale(hud.levelAriaMax ?? 'Level {level}, max level, {totalXp} {xpLabel} total', {
+        level,
+        totalXp: Math.round(totalXp),
+        xpLabel
+      }) + tapSuffix
+    : formatLocale(
+        hud.levelAriaProgress ?? 'Level {level}, {xpInto} of {xpForNext} {xpLabel} to next level',
+        {
+          level,
+          xpInto: Math.round(xpInto),
+          xpForNext: Math.round(xpForNext ?? 0),
+          xpLabel
+        }
+      ) + tapSuffix;
 
   const sharedChildren = (
     <>
       <span className="xp-progress-bar-flair" aria-hidden="true">
         {flair || '⭐'}
       </span>
-      <span className="xp-progress-bar-level">{short || `Lvl ${level}`}</span>
+      <span className="xp-progress-bar-level">{short || `${hud.lvlPrefix} ${level}`}</span>
       <span className="xp-progress-bar-track" aria-hidden="true">
         <span className="xp-progress-bar-fill" style={{ width: fillWidth }} />
         <span className="xp-progress-bar-spark" />

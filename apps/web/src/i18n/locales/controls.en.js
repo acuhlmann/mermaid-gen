@@ -332,7 +332,13 @@ export const CONTROLS_EN = {
     rawStreamEvents: 'Raw stream events ({count})',
     via: 'via',
     modeSuffix: 'mode',
-    brainSuffix: 'brain'
+    brainSuffix: 'brain',
+    phaseStep: 'Phase {step}',
+    streakTitle: '{name} streak',
+    diffAdded: '+{count} added',
+    diffChanged: '~{count} changed',
+    diffRemoved: '−{count} removed',
+    changesSincePrevious: 'Changes since previous version'
   },
   editor: {
     doneEditing: 'Done editing',
@@ -395,7 +401,12 @@ export const CONTROLS_EN = {
     combo: 'COMBO',
     levelUp: 'LEVEL UP',
     lvlPrefix: 'Lvl',
-    max: 'MAX'
+    max: 'MAX',
+    xpLabel: 'XP',
+    tapForDetails: ' — tap for details',
+    levelAriaMax: 'Level {level}, max level, {totalXp} {xpLabel} total',
+    levelAriaProgress: 'Level {level}, {xpInto} of {xpForNext} {xpLabel} to next level',
+    levelFallbackTitle: 'Slopitect'
   },
   brand: {
     totalSlopRuns: '{count} total slop runs',
@@ -594,6 +605,7 @@ export const CONTROLS_EN = {
       issues: 'issues',
       technicalStep: 'technical step',
       technicalSteps: 'technical steps'
-    }
+    },
+    patchLines: '+{added} / −{removed} lines'
   }
 };

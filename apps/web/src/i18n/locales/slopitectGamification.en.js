@@ -50,6 +50,20 @@ export const SLOPITECT_GAMIFICATION_EN = {
     tipLabel: 'Slopitect Tip™',
     tierLabel: 'Tier:',
     progressAriaLabel: 'Level progress',
+    levelDialogAria: 'Level {level} progress',
+    xpLabel: 'XP',
+    baseXp: 'base',
+    runsOnRecord: '{count} {name} runs on record',
+    runsOnRecordOne: '{count} {name} run on record',
+    defaultTitle: 'Slopitect',
+    damageQuips: {
+      idle: 'No billable chaos yet. Your CFO still believes this is "just a diagram tool."',
+      pettyLow: 'Petty-cash tier. Finance will round this to zero and move on.',
+      pettyMid: 'Enough to buy one (1) artisanal oat-milk latte for the platform team.',
+      expense: 'Expense-report energy. Someone will ask which cost center owns "Go Mad."',
+      budget: 'A respectable pilot budget — if the pilot never ends.',
+      incident: 'FinOps has opened a war room. Congratulations, you are the incident.'
+    },
     damageTitle: 'Stakeholder Damage Report™',
     damageLede: 'Lifetime estimated cloud spend you have personally unleashed via agent runs.',
     damageFootnote:

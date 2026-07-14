@@ -564,7 +564,9 @@ flowchart TB
     );
 
     expect(screen.getAllByTestId('run-timeline-segment').length).toBe(2);
-    expect(screen.getByText('Applying your request…')).toBeTruthy();
+    // Phase segment titles use localized phase ids, not raw English server labels.
+    expect(screen.getAllByText('Apply').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Tools').length).toBeGreaterThan(0);
     expect(screen.getByText('Live')).toBeTruthy();
     expect(screen.getAllByText('Working…').length).toBeGreaterThan(0);
     expect(screen.getByText('+3 / −1 lines')).toBeTruthy();
