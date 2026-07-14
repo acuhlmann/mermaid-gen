@@ -72,6 +72,12 @@ export const CONTROLS_ZH_CN = {
     renderAsHint: '先选形态，再输入主题',
     renderAsAria: '选择主题的渲染形态'
   },
+  introLocale: {
+    aria: '界面语言',
+    en: 'English',
+    zhCn: '简体中文',
+    zhTw: '繁体中文'
+  },
   settings: {
     label: '设置',
     show: '显示设置',

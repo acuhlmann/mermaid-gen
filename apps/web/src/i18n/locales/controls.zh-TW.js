@@ -72,6 +72,12 @@ export const CONTROLS_ZH_TW = {
     renderAsHint: '先選形態，再輸入主題',
     renderAsAria: '選擇主題的渲染形態'
   },
+  introLocale: {
+    aria: '介面語言',
+    en: 'English',
+    zhCn: '簡體中文',
+    zhTw: '繁體中文'
+  },
   settings: {
     label: '設定',
     show: '顯示設定',

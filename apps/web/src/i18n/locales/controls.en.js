@@ -85,6 +85,12 @@ export const CONTROLS_EN = {
     renderAsHint: 'Pick a form, then enter a topic',
     renderAsAria: 'Choose how to render your topic'
   },
+  introLocale: {
+    aria: 'Interface language',
+    en: 'English',
+    zhCn: 'Simplified Chinese',
+    zhTw: 'Traditional Chinese'
+  },
   settings: {
     label: 'Settings',
     show: 'Show settings',
