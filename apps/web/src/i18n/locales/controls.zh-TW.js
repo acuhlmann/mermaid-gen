@@ -46,14 +46,8 @@ export const CONTROLS_ZH_TW = {
     slopNextPlaceholder: '告訴智慧代理要改什麼…',
     slopNextLabel: '新提示',
     closePrompt: '關閉提示',
-    topicExamples: [
-      '拆解咖啡供應鏈…',
-      '講解 OAuth 2.0 的運作原理…',
-      '梳理我們的 CI/CD 部署流水線…',
-      '畫一張微服務架構圖…',
-      '設計一個短網址服務…'
-    ],
-    starterHint: '第一次來？點一個主題開始：',
+    topicPlaceholder: '或輸入你自己的主題…',
+    starterHint: '第一次來？',
     starterAria: '用於快速開始的範例主題',
     starters: [
       { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' },
@@ -73,7 +67,6 @@ export const CONTROLS_ZH_TW = {
     B --> C["經銷商"]
     C --> D["咖啡館"]`,
     renderAsLabel: '渲染為',
-    renderAsHint: '先選形態，再輸入主題',
     renderAsAria: '選擇主題的渲染形態'
   },
   introLocale: {

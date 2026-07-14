@@ -14,7 +14,6 @@ import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
 import IntroLocaleToggle from './components/IntroLocaleToggle.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
-import { useRotatingPlaceholder } from './hooks/useRotatingPlaceholder.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
 import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
@@ -3714,12 +3713,6 @@ ${requirementsBlock}`;
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
   const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
 
-  // Verb-led placeholder that cycles while the empty-state entry input is shown,
-  // hinting at what to type. Falls back to the static "Your Topic" label.
-  const entryTopicPlaceholder = useRotatingPlaceholder(controls.prompt.topicExamples, {
-    active: !hasCanvasContent
-  });
-
   // First-run demo: show the read-only example only once we know the diagram slot
   // is genuinely empty (gated on hydration to avoid a flash for returning users
   // whose saved diagram is about to load), and never over the editor/insights.
@@ -4581,16 +4574,6 @@ ${requirementsBlock}`;
         actions={
           !hasCanvasContent && !insightsOpen ? (
             <div className="entry-cluster">
-              <EntryRenderAs
-                label={controls.prompt.renderAsLabel}
-                hint={controls.prompt.renderAsHint}
-                ariaLabel={controls.prompt.renderAsAria}
-                modes={contentModeOptions}
-                currentMode={contentMode}
-                onPickMode={handleEntryRenderAsPick}
-                pickPrefix={controls.modeReveal.pickPrefix}
-                disabled={busy || loading || streamingPreview}
-              />
               <TopicStarters
                 hint={controls.prompt.starterHint}
                 ariaLabel={controls.prompt.starterAria}
@@ -4606,7 +4589,7 @@ ${requirementsBlock}`;
                   id="diagram-change-prompt"
                   value={prompt}
                   onChange={(event) => setPrompt(event.target.value)}
-                  placeholder={entryTopicPlaceholder || controls.prompt.yourTopic}
+                  placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
                   disabled={busy}
                   aria-invalid={error ? 'true' : 'false'}
                   aria-describedby={status ? 'app-status' : undefined}
@@ -4676,6 +4659,15 @@ ${requirementsBlock}`;
                   </button>
                 </div>
               </form>
+              <EntryRenderAs
+                label={controls.prompt.renderAsLabel}
+                ariaLabel={controls.prompt.renderAsAria}
+                modes={contentModeOptions}
+                currentMode={contentMode}
+                onPickMode={handleEntryRenderAsPick}
+                pickPrefix={controls.modeReveal.pickPrefix}
+                disabled={busy || loading || streamingPreview}
+              />
             </div>
           ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
