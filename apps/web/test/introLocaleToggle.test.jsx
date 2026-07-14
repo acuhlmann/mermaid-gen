@@ -13,21 +13,20 @@ const COPY = {
 describe('IntroLocaleToggle', () => {
   afterEach(() => cleanup());
 
-  it('renders compact EN / 简 / 繁 options and marks the active locale', () => {
+  it('shows only the active locale until expanded', () => {
     render(<IntroLocaleToggle locale="zh-CN" copy={COPY} onSelectLocale={vi.fn()} />);
     expect(screen.getByTestId('intro-locale-toggle')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'English' }).textContent).toBe('EN');
-    expect(screen.getByRole('button', { name: 'Simplified Chinese' }).textContent).toBe('简');
-    expect(screen.getByRole('button', { name: 'Traditional Chinese' }).textContent).toBe('繁');
-    expect(screen.getByRole('button', { name: 'Simplified Chinese' }).className).toContain(
-      'is-selected'
-    );
+    expect(screen.getByRole('button', { name: 'Interface language' }).textContent).toContain('简');
+    expect(screen.queryByRole('option', { name: 'English' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Traditional Chinese' })).toBeNull();
   });
 
-  it('fires onSelectLocale when a different option is picked', () => {
+  it('expands alternate locales and fires onSelectLocale', () => {
     const onSelectLocale = vi.fn();
     render(<IntroLocaleToggle locale="en" copy={COPY} onSelectLocale={onSelectLocale} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Traditional Chinese' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Interface language' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Traditional Chinese' }));
     expect(onSelectLocale).toHaveBeenCalledWith('zh-TW');
+    expect(screen.queryByRole('option', { name: 'Traditional Chinese' })).toBeNull();
   });
 });

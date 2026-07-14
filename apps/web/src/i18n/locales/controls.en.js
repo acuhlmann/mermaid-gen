@@ -46,17 +46,8 @@ export const CONTROLS_EN = {
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
-    // First-run onboarding: verb-led placeholders cycle in the empty-state input
-    // to show *what* you can type; the starter chips below let a newcomer begin
-    // with one tap instead of a cold blank box.
-    topicExamples: [
-      'Break down the coffee supply chain…',
-      'Explain how OAuth 2.0 works…',
-      'Map our CI/CD deploy pipeline…',
-      'Diagram a microservices architecture…',
-      'Design a URL shortener…'
-    ],
-    starterHint: 'New here? Tap a topic to begin:',
+    topicPlaceholder: 'Or type your own topic…',
+    starterHint: 'New here?',
     starterAria: 'Example topics to get started',
     starters: [
       {
@@ -86,7 +77,6 @@ export const CONTROLS_EN = {
     C --> D["Cafe"]`,
     // Empty-state Render as strip — introduce modes before Settings.
     renderAsLabel: 'Render as',
-    renderAsHint: 'Pick a form, then enter a topic',
     renderAsAria: 'Choose how to render your topic'
   },
   introLocale: {

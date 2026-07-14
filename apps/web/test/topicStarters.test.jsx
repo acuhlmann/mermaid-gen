@@ -11,10 +11,13 @@ const STARTERS = [
 describe('TopicStarters', () => {
   afterEach(() => cleanup());
 
-  it('highlights the first starter chip as the default', () => {
+  it('places the hint beside the default starter chip', () => {
     const { container } = render(
       <TopicStarters hint="New here?" ariaLabel="Examples" starters={STARTERS} onPick={vi.fn()} />
     );
+    const lead = container.querySelector('.topic-starters-lead');
+    expect(lead).toBeTruthy();
+    expect(lead?.querySelector('.topic-starters-hint')?.textContent).toBe('New here?');
     const chips = container.querySelectorAll('.topic-starter-chip');
     expect(chips[0].classList.contains('is-default')).toBe(true);
     expect(chips[1].classList.contains('is-default')).toBe(false);

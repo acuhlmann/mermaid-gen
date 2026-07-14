@@ -12,19 +12,12 @@ const MODES = [
 describe('EntryRenderAs', () => {
   afterEach(() => cleanup());
 
-  it('renders label, hint, and mode chips', () => {
+  it('renders label and mode chips', () => {
     render(
-      <EntryRenderAs
-        label="Render as"
-        hint="Pick a form, then enter a topic"
-        modes={MODES}
-        currentMode="mermaid"
-        onPickMode={vi.fn()}
-      />
+      <EntryRenderAs label="Render as" modes={MODES} currentMode="mermaid" onPickMode={vi.fn()} />
     );
     expect(screen.getByTestId('entry-render-as')).toBeTruthy();
     expect(screen.getByText('Render as')).toBeTruthy();
-    expect(screen.getByText('Pick a form, then enter a topic')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Chart' })).toBeTruthy();
   });
 

@@ -46,14 +46,8 @@ export const CONTROLS_ZH_CN = {
     slopNextPlaceholder: '告诉智能体要改什么…',
     slopNextLabel: '新提示',
     closePrompt: '关闭提示',
-    topicExamples: [
-      '拆解咖啡供应链…',
-      '讲解 OAuth 2.0 的工作原理…',
-      '梳理我们的 CI/CD 部署流水线…',
-      '画一张微服务架构图…',
-      '设计一个短链接服务…'
-    ],
-    starterHint: '第一次来？点一个主题开始：',
+    topicPlaceholder: '或输入你自己的主题…',
+    starterHint: '第一次来？',
     starterAria: '用于快速开始的示例主题',
     starters: [
       { label: '咖啡供应链', prompt: '拆解全球咖啡供应链' },
@@ -73,7 +67,6 @@ export const CONTROLS_ZH_CN = {
     B --> C["分销商"]
     C --> D["咖啡馆"]`,
     renderAsLabel: '渲染为',
-    renderAsHint: '先选形态，再输入主题',
     renderAsAria: '选择主题的渲染形态'
   },
   introLocale: {

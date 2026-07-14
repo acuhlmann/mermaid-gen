@@ -4778,24 +4778,79 @@
   margin-left: auto;
 }
 
-/* Intro-only language picker — compact pill beside top chrome. */
+/* Intro-only language picker — single pill that expands on tap. */
 .intro-locale-toggle {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
+}
+
+.intro-locale-trigger {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
   border: 1px solid var(--control-border);
+  border-radius: 999px;
+  margin: 0;
+  min-width: 2.35rem;
+  padding: 0.22rem 0.5rem;
   background: rgba(255, 255, 255, 0.72);
   box-shadow: var(--control-shadow);
-  padding: 2px;
-  gap: 1px;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
+}
+
+.intro-locale-trigger:hover {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.intro-locale-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.intro-locale-chevron {
+  font-size: 0.58rem;
+  line-height: 1;
+  color: var(--muted);
+  transition: transform 120ms ease;
+}
+
+.intro-locale-toggle.is-open .intro-locale-chevron {
+  transform: rotate(180deg);
+}
+
+.intro-locale-menu {
+  position: absolute;
+  top: calc(100% + 0.28rem);
+  right: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 2.35rem;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--control-border);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--control-shadow);
 }
 
 .intro-locale-option {
   appearance: none;
   border: none;
   margin: 0;
-  min-width: 1.85rem;
-  padding: 0.22rem 0.42rem;
+  min-width: 2rem;
+  padding: 0.28rem 0.5rem;
   border-radius: 999px;
   font: inherit;
   font-size: 0.68rem;
@@ -4820,16 +4875,16 @@
   outline-offset: 1px;
 }
 
-.intro-locale-option.is-selected {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
 @media (max-width: 480px) {
+  .intro-locale-trigger {
+    min-width: 2.15rem;
+    padding: 0.2rem 0.42rem;
+    font-size: 0.64rem;
+  }
+
   .intro-locale-option {
-    min-width: 1.65rem;
-    padding: 0.2rem 0.34rem;
+    min-width: 1.85rem;
+    padding: 0.24rem 0.42rem;
     font-size: 0.64rem;
   }
 }
@@ -5523,21 +5578,18 @@
   max-width: min(48rem, 100%);
 }
 
-/* Empty-state entry: topic starters stacked above the prompt input so the whole
-   cluster grows upward from the bottom dock instead of pushing the row up. */
+/* Empty-state entry: starters, custom topic input, then Render as — stacked
+   above the bottom dock so the cluster grows upward. */
 .entry-cluster {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.55rem;
   flex: 1 1 auto;
   min-width: 0;
   align-items: stretch;
 }
 
 .topic-starters {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
   animation: topic-starters-in 0.35s ease both;
 }
 
@@ -5560,14 +5612,23 @@
 
 .topic-starters-hint {
   margin: 0;
-  padding-left: 0.15rem;
   font-size: 0.82rem;
   color: var(--muted);
+  white-space: nowrap;
+}
+
+.topic-starters-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .topic-starters-chips {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
 }
 
@@ -5765,14 +5826,13 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.35rem 0.65rem;
-  padding-left: 0.15rem;
 }
 
 .entry-render-as-label {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
-  color: var(--text);
+  color: var(--muted);
 }
 
 .entry-render-as-hint {
@@ -5834,6 +5894,31 @@
 @media (prefers-reduced-motion: reduce) {
   .entry-render-as {
     animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .entry-cluster {
+    gap: 0.45rem;
+  }
+
+  .topic-starters-lead {
+    flex-wrap: wrap;
+    gap: 0.3rem 0.45rem;
+  }
+
+  .topic-starters-hint {
+    font-size: 0.78rem;
+  }
+
+  .topic-starter-chip,
+  .entry-render-as-chip {
+    padding: 0.38rem 0.72rem;
+    font-size: 0.82rem;
+  }
+
+  .entry-render-as-chips {
+    gap: 0.3rem;
   }
 }
 
