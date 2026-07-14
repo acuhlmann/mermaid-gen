@@ -1,0 +1,83 @@
+/** Aussie slang overrides for Slopitect flavor copy. */
+import { SLOPITECT_GAMIFICATION_EN_AU } from './slopitectGamification.en-AU.js';
+
+export const SLOPITECT_EN_AU = {
+  PROMPT_ACTION_COPY: {
+    label: 'Have a say',
+    roleTag: 'Just spit it',
+    roleEmoji: '🗣️',
+    title: 'Have a say · Share your thoughts on the matter, mate'
+  },
+  STAKEHOLDERS_MUTE_COPY: {
+    stakeholdersTag: 'The Mob',
+    watchingEmoji: '👀',
+    stakeholdersEmoji: '👥'
+  },
+  VARIANT_PERSONAS: {
+    refine: {
+      name: 'THE Engineer',
+      title: 'Builder of useful next steps',
+      tagline: 'One careful, useful extension at a time. No worries.',
+      entryLine: 'Engineering the next step…',
+      exitLine: 'Shipped a useful bit 🧰'
+    },
+    innovate: {
+      name: 'Chief Innovation Officer',
+      title: 'Disruptor at Large',
+      tagline: 'Courageous moves on the subject at hand. Have a crack.',
+      entryLine: 'Pivot incoming…',
+      exitLine: 'Disrupted 🚀'
+    },
+    goMad: {
+      name: 'THE SLOPITECT',
+      title: 'Distinguished Chaos Fellow',
+      tagline: 'GENIUS LOOSE 🚨 Absolute unit.',
+      entryLine: 'THE SLOPITECT HAS ENTERED THE BUILDING',
+      exitLine: 'BUILT IT BACK BETTER 🛠'
+    },
+    critique: {
+      name: 'The Auditor',
+      title: 'Compliance Inspector',
+      tagline: 'Co-Design review in session. Tear strips time.',
+      entryLine: 'Audit commenced.',
+      exitLine: 'Filed. Stamped. 🔴'
+    },
+    explain: {
+      name: 'The Wise Architect',
+      title: 'Principal Tech Evangelist',
+      tagline: 'Co-Design story time — gather round, mates.',
+      entryLine: 'Picture, if you will…',
+      exitLine: 'Architecture explained 📜'
+    },
+    exec: {
+      name: 'The VP',
+      title: 'SVP of Synergy & Co-Design',
+      tagline: 'Synergy and Co-Design — boiled down for the board.',
+      entryLine: 'Co-Designing the north star…',
+      exitLine: 'Synergy Co-Designed ✅'
+    }
+  },
+  VARIANT_TAGLINES: {
+    refine: 'Slopitect: THE Engineer extends the build',
+    innovate: 'Slopitect: CIO pitches the bold move',
+    goMad: 'Slopitect: GENIUS LOOSE 🚨',
+    critique: 'Slopitect: Co-Design compliance review',
+    explain: 'Slopitect: Co-Design story time',
+    exec: 'Slopitect: Synergy and Co-Design mode',
+    fix: 'Slopitect: site foreman fixing the slop'
+  },
+  VARIANT_BOOT_HEADLINES: {
+    refine: 'Engineering the next useful step…',
+    innovate: 'CIO pitching the bold pivot…',
+    goMad: 'BONK! THE SLOPITECT IS HERE',
+    critique: 'CO-DESIGN REVIEW INCOMING',
+    explain: 'Co-Design story time — gather round',
+    exec: 'Synergy and Co-Design in progress…'
+  },
+  ACTION_PERSONA_SHORT_NAMES: {
+    refine: 'Engineer',
+    innovate: 'Innovator',
+    explain: 'Architect'
+  },
+  ...SLOPITECT_GAMIFICATION_EN_AU
+};

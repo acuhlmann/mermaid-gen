@@ -1,0 +1,439 @@
+/** Aussie slang gamification overrides — deep-merged onto the English slopitect bundle. */
+export const SLOPITECT_GAMIFICATION_EN_AU = {
+  VARIANT_QUOTES: {
+    refine: [
+      'One useful next step at a time, mate.',
+      'Small piece, well-fitted. Fair dinkum.',
+      'Extending the idea — gently, yeah?',
+      "What belongs here that isn't here yet?",
+      'A step is missing between these two.',
+      'Tightening the joint, not the whole frame.',
+      "Build on what's working.",
+      'One more block. The right one.',
+      'Adds up over time. No worries.'
+    ],
+    innovate: [
+      'What if we chucked this further?',
+      "There's a bolder shape hiding in here.",
+      'Half a step too far — on purpose.',
+      'New angle on the same subject.',
+      'Reframe before you redraw.',
+      'Two ideas, one canvas — have a crack.',
+      'Push the edge case, see what falls out.',
+      'Disrupt or be disrupted, cobber.',
+      'A flywheel could fit here.',
+      "It's giving Series B, mate."
+    ],
+    goMad: [
+      'WHAT IF THERE WERE TWELVE OF THIS THING, MATE',
+      'ROTATE EVERYTHING 90° AND CALL IT INSIGHT',
+      'GIVE EACH BOX A RIVAL THAT DOES THE OPPOSITE',
+      'MERGE THE FIRST AND LAST STEP INTO A SECRET LOOP',
+      'REWRITE EVERY LABEL IN BACKWARDS LATIN',
+      'ADD A SECRET TUNNEL BETWEEN UNRELATED BOXES',
+      'WHAT IF THE WHOLE DIAGRAM WAS A PUB SONG',
+      'EVERY ARROW IS NOW A QUESTION',
+      'WHY IS THERE ONLY ONE DATABASE',
+      'I AM THE ARCHITECTURE NOW',
+      'THE DIAGRAM WAS THE MATES WE MADE',
+      'JUST WRAP IT IN A LAMBDA'
+    ],
+    critique: [
+      "I'm raising a P2 about this, mate.",
+      'No accountability assigned. Classic.',
+      'Where is the runbook?',
+      'Risk is unowned. Filing it.',
+      'Cite your sources.',
+      'Two undefined edge cases, minimum.',
+      'This will not survive contact with the user.',
+      'Flagging in the next review.',
+      'Did you know: most diagrams fail on the second viewer.',
+      'Why is this not in Confluence?'
+    ],
+    explain: [
+      'Picture, if you will…',
+      'Notice the symmetry few people see.',
+      'There is a named pattern here. There always is.',
+      'Did you know: every diagram is a small theory of the world.',
+      'A diagram is a frozen argument.',
+      "In a perfect world, you'd never draw it like this.",
+      'This is the shape of an idea, not the idea.',
+      'Allow me to gesture vaguely.',
+      'The path of least confusion is forward.',
+      'Every box is a verb in disguise.',
+      'Fun fact nobody asked for, incoming.',
+      'Legend has it this has a name. It does.',
+      'Let me over-explain exactly one detail…',
+      'Beautiful in theory, awkward in practice — my favourite kind.',
+      'Strange but true: this shape is older than the software.'
+    ],
+    exec: [
+      'Boil this down for the board, mate.',
+      "Where's the north star here?",
+      'Just three bullets, please.',
+      'Ladder it up to the OKR.',
+      'Send me the one-pager.',
+      'What does this mean for the customer journey?',
+      'MVP slice only.',
+      'Did you know I have a hard stop in four minutes?',
+      'Synergise the redundancies.',
+      'Circle back at the 30,000-foot view.',
+      'Kill your darlings. Ship the headline.',
+      'This box needs a workshop, not a diagram.',
+      'Are we deciding or just drawing boxes?',
+      'The board wants the headline, not the subgraph.',
+      "Three boxes. That's the slide."
+    ]
+  },
+  PHASE_CEREMONIES: {
+    analyze: {
+      refine: 'Reading the diagram…',
+      innovate: 'Scoping the pivot…',
+      goMad: 'Eyeballing the slop 👀',
+      critique: 'Opening JIRA…',
+      explain: 'Pondering the diagram…',
+      exec: 'Skimming the deck…'
+    },
+    analyze_stream: {
+      refine: 'Sketching the next step…',
+      innovate: 'Storming the boardroom…',
+      goMad: 'Yelling at it 📣',
+      critique: 'Drafting findings…',
+      explain: 'Composing the saga…',
+      exec: 'Drafting the one-pager…'
+    },
+    intent: {
+      refine: 'Aligning intent…',
+      innovate: 'Aligning intent…',
+      goMad: 'Skipping the meeting',
+      critique: 'Citing the SOC 2 controls',
+      explain: 'Aligning intent…',
+      exec: 'Pointing at the north star…'
+    },
+    agent_run: {
+      refine: 'Engineering the next piece…',
+      innovate: 'Pitching the bold move…',
+      goMad: 'GOING TROPPO ON YOUR TOPIC',
+      critique: 'Filing tickets…',
+      explain: 'Annotating the architecture…',
+      exec: 'Boiling it down for the board…'
+    },
+    transform: {
+      refine: 'Adding the useful bit…',
+      innovate: 'Reshaping the layout…',
+      goMad: 'Adding wonderfully strange things 🔥',
+      exec: 'Killing the darlings…'
+    },
+    run_started: {
+      refine: 'Kicking off…',
+      innovate: 'Kicking off…',
+      goMad: 'OK NOW HOLD ON 🪖',
+      critique: 'Inspector inbound…',
+      explain: 'Clearing the throat…',
+      exec: 'Hard stop in four minutes…'
+    },
+    planning: {
+      refine: 'Drafting deltas…',
+      innovate: 'Drafting deltas…',
+      goMad: 'Throwing darts at the diagram 🎯',
+      exec: 'Drafting the headline…'
+    },
+    syntax_fixer: {
+      refine: 'Mending syntax…',
+      innovate: 'Mending syntax…',
+      goMad: 'Duct-taping it back together',
+      exec: 'Tightening the deck…'
+    },
+    syntax_repair: {
+      refine: 'Re-mending syntax…',
+      innovate: 'Re-mending syntax…',
+      goMad: 'More duct tape',
+      exec: 'Re-drafting the deck…'
+    },
+    patch_retry: {
+      refine: 'Awaiting CAB approval…',
+      innovate: 'Awaiting CAB approval…',
+      goMad: 'Bribing the CAB',
+      exec: 'Asking the board for a redraft…'
+    },
+    invoke: {
+      refine: 'Patching prod 🛠',
+      innovate: 'Shipping it 🚀',
+      goMad: 'Setting buildings on fire 🔥',
+      exec: 'Boarding the jet 🛩️'
+    },
+    invoke_fallback: {
+      refine: 'Hotfix in flight…',
+      innovate: 'Hotfix in flight…',
+      goMad: 'WE PIVOT',
+      exec: 'Rerouting the one-pager…'
+    },
+    repair_1: {
+      refine: 'Hotfix in flight…',
+      innovate: 'Hotfix in flight…',
+      goMad: 'More hard hats! 🪖🪖',
+      exec: 'Sliding the deadline 🗓️'
+    },
+    repair_2: {
+      refine: 'Second hotfix in flight…',
+      innovate: 'Second hotfix in flight…',
+      goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
+      exec: 'Sliding the deadline again 🗓️🗓️'
+    }
+  },
+  IDLE_TIPS: [
+    'Always over-engineer, mate. The microservices love a good Co-Design session.',
+    'If in doubt, add another abstraction layer — then Co-Design it away.',
+    'A diagram is just a Jira ticket with arrows and a Co-Design workshop.',
+    'Compliance is synergy with paperwork and a mandatory Co-Design sign-off.',
+    "A monolith is a microservice that hasn't lawyered up yet.",
+    'Synergy is the second-strongest force in the enterprise. Co-Design is the third. Politics is the first.',
+    'When the diagram gets confusing, schedule a Co-Design retro and add a Kafka.',
+    'Slopitect Tip™: every box is a stakeholder waiting for Co-Design.',
+    'If two teams agree on the architecture, one of them skipped Co-Design.',
+    "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
+    'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
+    'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
+    'The VP runs on synergy, Co-Design, and a hard stop in four minutes. Fair dinkum.'
+  ],
+  PRESTIGE_TIERS: [
+    { threshold: 0, label: 'Slop Trainee', short: 'Trainee' },
+    { threshold: 5, label: 'Junior Slopitect', short: 'Junior' },
+    { threshold: 10, label: 'Senior Slopitect', short: 'Senior' },
+    { threshold: 25, label: 'Principal Slopitect', short: 'Principal' },
+    { threshold: 50, label: 'Distinguished Slopitect Fellow™', short: 'Fellow' }
+  ],
+  LEVELS: [
+    { level: 1, xp: 0, title: 'Intern Architect', short: 'Lvl 1', flair: '🪜' },
+    { level: 2, xp: 50, title: 'Associate Slopitect', short: 'Lvl 2', flair: '📐' },
+    { level: 3, xp: 120, title: 'Junior Slopitect', short: 'Lvl 3', flair: '✏️' },
+    { level: 4, xp: 220, title: 'Mid-level Slopitect', short: 'Lvl 4', flair: '🪧' },
+    { level: 5, xp: 360, title: 'Senior Slopitect', short: 'Lvl 5', flair: '🎯' },
+    { level: 6, xp: 540, title: 'Staff Slopitect', short: 'Lvl 6', flair: '🛠️' },
+    { level: 7, xp: 760, title: 'Principal Slopitect', short: 'Lvl 7', flair: '🏗️' },
+    { level: 8, xp: 1020, title: 'Distinguished Slopitect', short: 'Lvl 8', flair: '🌟' },
+    { level: 9, xp: 1320, title: 'Slopitect Fellow', short: 'Lvl 9', flair: '🪐' },
+    { level: 10, xp: 1700, title: 'Chief Slopitect Officer', short: 'Lvl 10', flair: '👑' },
+    { level: 11, xp: 2200, title: 'Mythic Slopitect', short: 'Lvl 11', flair: '🌈' },
+    { level: 12, xp: 2900, title: 'Slopitect, Lord of Synergy', short: 'Lvl 12', flair: '🔮' }
+  ],
+  VARIANT_MASTERY_ACHIEVEMENTS: {
+    refine: {
+      id: 'masterPolisher',
+      title: '👷 MASTER ENGINEER',
+      subtitle: '10 useful extensions shipped. The site is yours, mate.'
+    },
+    innovate: {
+      id: 'serialDisruptor',
+      title: '⚡ SERIAL INNOVATOR',
+      subtitle: '10 bold pivots on-subject. Absolute C-suite material, cobber.'
+    },
+    goMad: {
+      id: 'distinguishedChaos',
+      title: '🪖 DISTINGUISHED CHAOS FELLOW',
+      subtitle: '10 mad runs. Frame the helmet. Fair dinkum.'
+    },
+    critique: {
+      id: 'auditTribunal',
+      title: '📋 AUDIT TRIBUNAL',
+      subtitle: '10 critiques filed. Compliance loves you, you stickybeak.'
+    },
+    explain: {
+      id: 'archivedStoryteller',
+      title: '🧙 ARCHIVED STORYTELLER',
+      subtitle: '10 explanations canonised in the architecture lore. Ripper yarns.'
+    },
+    exec: {
+      id: 'serialAligner',
+      title: '👔 SERIAL CO-DESIGNER',
+      subtitle: '10 synergy Co-Designs shipped. The board approves. Good on ya.'
+    }
+  },
+  ACHIEVEMENTS: {
+    slopitectCertified: {
+      id: 'slopitectCertified',
+      title: '🏗️ SLOPITECT CERTIFIED',
+      subtitle: 'You completed Max Madness. Frame the badge, cobber.'
+    },
+    perfectInspection: {
+      id: 'perfectInspection',
+      title: '🧐 PERFECT INSPECTION',
+      subtitle: 'No weaknesses found. (Suspicious.) She\'ll be right… or not.'
+    },
+    fullStackSlopitect: {
+      id: 'fullStackSlopitect',
+      title: '🥞 FULL-STACK SLOPITECT',
+      subtitle: 'All five personas in one session. Synergy and Co-Design maximised, mate.'
+    },
+    prestige: {
+      id: 'prestige',
+      title: 'PROMOTION',
+      subtitle: 'You have ascended a prestige tier. Crack open a cold one.'
+    },
+    firstSlop: {
+      id: 'firstSlop',
+      title: '🥚 FIRST SLOP',
+      subtitle: 'Your first run! A piece of slop has been born. Ripper.'
+    },
+    hatTrick: {
+      id: 'hatTrick',
+      title: '🎩 HAT TRICK',
+      subtitle: 'Three different personas inside 30 seconds. Absolute unit.'
+    },
+    slopMarathon: {
+      id: 'slopMarathon',
+      title: '🏃 SLOP MARATHON',
+      subtitle: 'Ten runs in one session. Hydrate, mate.'
+    },
+    comboKing: {
+      id: 'comboKing',
+      title: '⚡ COMBO KING',
+      subtitle: 'Five different personas chained in a row. Bloody legend.'
+    },
+    refine: {
+      id: 'masterPolisher',
+      title: '👷 MASTER ENGINEER',
+      subtitle: '10 useful extensions shipped. The site is yours, mate.'
+    },
+    innovate: {
+      id: 'serialDisruptor',
+      title: '⚡ SERIAL INNOVATOR',
+      subtitle: '10 bold pivots on-subject. Absolute C-suite material, cobber.'
+    },
+    goMad: {
+      id: 'distinguishedChaos',
+      title: '🪖 DISTINGUISHED CHAOS FELLOW',
+      subtitle: '10 mad runs. Frame the helmet. Fair dinkum.'
+    },
+    critique: {
+      id: 'auditTribunal',
+      title: '📋 AUDIT TRIBUNAL',
+      subtitle: '10 critiques filed. Compliance loves you, you stickybeak.'
+    },
+    explain: {
+      id: 'archivedStoryteller',
+      title: '🧙 ARCHIVED STORYTELLER',
+      subtitle: '10 explanations canonised in the architecture lore. Ripper yarns.'
+    },
+    exec: {
+      id: 'serialAligner',
+      title: '👔 SERIAL CO-DESIGNER',
+      subtitle: '10 synergy Co-Designs shipped. The board approves. Good on ya.'
+    }
+  },
+  LEVEL_UP_BANNER: {
+    title: '⬆️ LEVEL UP',
+    subtitle: 'The Slopitect Stakeholders recognise your synergy and Co-Design. Good on ya.'
+  },
+  CONSOLE_STAMP_LINES: [
+    '                ',
+    '       ___      ',
+    '   ___/   \\___  ',
+    '  /             \\',
+    ' |   🏗️ ARCHISLOP |',
+    '  \\___________/ ',
+    '       |||      ',
+    '       |||      ',
+    '   ArchiSlop v∞ · Slopitect Engine warmed up. G\'day.',
+    '   Powered by Synergy™ & Co-Design™ — please file a JIRA ticket.'
+  ],
+  PROMPT_EASTER_EGGS: [
+    { match: /\bblockchain\b/i, toast: '🔗 Slopitect approves. Fair dinkum.' },
+    { match: /\bco[- ]?design/i, toast: '👔 Synergy and Co-Design detected. The VP nods.' },
+    { match: /\bsynergy\b/i, toast: '🤝 Synergy detected. +1 Co-Design alignment.' },
+    { match: /\bmicroservice/i, toast: '🛎️ One microservice added to the slop, mate.' },
+    { match: /\bkubernetes\b|\bk8s\b/i, toast: '☸️ The container has been deployed to your soul.' },
+    { match: /\bAI\b|\bGPT\b|\bLLM\b/i, toast: '🧠 Bold of you to mention us.' },
+    { match: /\bagile\b/i, toast: '📈 Story points are vibes.' },
+    { match: /\bscrum\b/i, toast: '🧎 STAND UP.' },
+    { match: /\bstakeholder/i, toast: '✅ Stakeholder Co-Designed and aligned.' },
+    { match: /\bleverage\b/i, toast: '🤝 Synergised through Co-Design.' },
+    { match: /\bdevops\b/i, toast: "👨‍🍳 *chef's kiss*" },
+    { match: /\bcloud[- ]?native\b/i, toast: '☁️ Born in the cloud.' },
+    { match: /\bSaaS\b/i, toast: '💸 SaaS-ified. Onwards.' },
+    { match: /\benterprise\b/i, toast: '🏢 Enterprise readiness ×10.' },
+    { match: /\brefactor/i, toast: '🛠 Architecture rotation initiated.' },
+    { match: /\bsprint\b/i, toast: '🏃 +2 velocity.' },
+    { match: /\bMVP\b/i, toast: '🚀 Minimum viable slop accepted.' },
+    { match: /\bbarbie\b|\bshrimp\b/i, toast: '🦐 Throw another shrimp on the architecture.' },
+    { match: /\bmate\b/i, toast: '🤝 Mate detected. Synergy unlocked.' }
+  ],
+  KONAMI_ACHIEVEMENT: {
+    id: 'slopitectAwakened',
+    title: '🌈 SLOPITECT AWAKENED',
+    subtitle: 'You speak the ancient cheat. Synergy and Co-Design now flow freely. Absolute unit.'
+  },
+  LEVEL_PANEL: {
+    levelFlavor: [
+      'The Slopitect notices you exist. G\'day.',
+      'Promoted to "knows where the Confluence is".',
+      'Your name is now spelled correctly in stand-ups.',
+      'Eligible to lead a Co-Design workshop. Bring snacks. And snags.',
+      'You may now title slides without manager review.',
+      'The board uses your diagram in a slide. No credit.',
+      'You have a reserved seat at the architecture review.',
+      'A junior asks how you "see the whole system". Smile.',
+      'HR has approved a new title card. It says SLOPITECT.',
+      'The CTO follows you on the org chart. Reluctantly.',
+      'Mythic synergy unlocked. Recruiters appear in dreams.',
+      'You ARE the architecture now. Frame this in HR.'
+    ],
+    nextLevelTaunts: [
+      'so close the synergy can taste it.',
+      'one good Co-Design away.',
+      'a single stand-up could push you over.',
+      'the gap is mostly vibes at this point.',
+      'a microservice or two would do it.',
+      'go bribe a stakeholder.',
+      'just ship something. anything.',
+      'stop reading this and slop, mate.',
+      "you're basically already there. legally.",
+      'fewer naps, more Co-Design.'
+    ],
+    closeLevelDetails: 'Close level details',
+    maxLevelCaption: 'Max level. The slop is forever. She\'ll be right.',
+    xpToNextPrefix: 'to',
+    nextTierFallback: 'next tier',
+    ladderTitle: 'Slopitect Ladder™',
+    youAreHere: 'you are here',
+    cleared: 'cleared',
+    engineTitle: 'Slop Engine',
+    engineLede:
+      'Every completed run pays XP. Stack streaks, combos and Go Troppo depth to mint extra.',
+    variantMetaSuffix: 'per streak',
+    goMadDepthBonus: '· +35 depth ≥ 3',
+    comboLine: 'chain two personas in a row inside 6s for +8 (+4 per extra link).',
+    comboChip: 'Combo',
+    trophyTitle: 'Trophy Shelf',
+    trophyLedeUnlocked: 'unlocked.',
+    trophyNextPrestige: 'Next:',
+    trophyRunsGap: 'run',
+    trophyRunsGapPlural: 'runs',
+    trophyEmpty: 'No trophies yet. Hat-trick three personas in 30s to break the seal.',
+    tipLabel: 'Slopitect Tip™',
+    tierLabel: 'Tier:',
+    progressAriaLabel: 'Level progress',
+    levelDialogAria: 'Level {level} progress',
+    xpLabel: 'XP',
+    baseXp: 'base',
+    runsOnRecord: '{count} {name} runs on record',
+    runsOnRecordOne: '{count} {name} run on record',
+    defaultTitle: 'Slopitect',
+    damageQuips: {
+      idle: 'No billable chaos yet. Your CFO still believes this is "just a diagram tool." She\'ll be right.',
+      pettyLow: 'Petty-cash tier. Finance will round this to zero and move on.',
+      pettyMid: 'Enough to buy one (1) flat white for the platform team.',
+      expense: 'Expense-report energy. Someone will ask which cost center owns "Go Troppo."',
+      budget: 'A respectable pilot budget — if the pilot never ends.',
+      incident: 'FinOps has opened a war room. Congratulations, you are the incident.'
+    },
+    damageTitle: 'Stakeholder Damage Report™',
+    damageLede: 'Lifetime estimated cloud spend you have personally unleashed via agent runs.',
+    damageFootnote:
+      'Not a real invoice. Token math × list prices that refresh from the deployed rate table. Finance still owns the actual bill.'
+  },
+  PRESTIGE_PROMOTION: {
+    titlePrefix: 'PROMOTION',
+    subtitle: 'You have ascended a prestige tier. Update your LinkedIn, mate.'
+  }
+};

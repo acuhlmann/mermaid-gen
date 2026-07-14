@@ -42,6 +42,12 @@ describe('resolveUiLocaleFromExplicitRequest', () => {
     assert.equal(resolveUiLocaleFromExplicitRequest('切换到繁體中文'), 'zh-TW');
   });
 
+  it('returns en-AU for explicit Aussie slang UI requests', () => {
+    assert.equal(resolveUiLocaleFromExplicitRequest('switch UI to Aussie slang'), 'en-AU');
+    assert.equal(resolveUiLocaleFromExplicitRequest('use straya mode'), 'en-AU');
+    assert.equal(resolveUiLocaleFromExplicitRequest("g'day mate"), 'en-AU');
+  });
+
   it('returns en for explicit English UI requests', () => {
     assert.equal(resolveUiLocaleFromExplicitRequest('switch to English'), 'en');
     assert.equal(resolveUiLocaleFromExplicitRequest('界面改成英文'), 'en');
@@ -56,6 +62,7 @@ describe('resolveUiLocaleFromExplicitRequest', () => {
 describe('normalizeUiLocale', () => {
   it('passes through supported locales', () => {
     assert.equal(normalizeUiLocale('zh-TW'), 'zh-TW');
+    assert.equal(normalizeUiLocale('en-AU'), 'en-AU');
   });
 
   it('falls back to English', () => {

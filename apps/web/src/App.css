@@ -4837,7 +4837,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
-  min-width: 2.35rem;
+  min-width: 9.5rem;
   padding: 0.2rem;
   border-radius: 0.75rem;
   border: 1px solid var(--control-border);
@@ -4847,11 +4847,15 @@
 
 .intro-locale-option {
   appearance: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.55rem;
   border: none;
   margin: 0;
   min-width: 2rem;
-  padding: 0.28rem 0.5rem;
-  border-radius: 999px;
+  padding: 0.32rem 0.55rem;
+  border-radius: 0.55rem;
   font: inherit;
   font-size: 0.68rem;
   font-weight: 700;
@@ -4860,14 +4864,32 @@
   color: var(--muted);
   background: transparent;
   cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
   transition:
     background 120ms ease,
     color 120ms ease;
 }
 
+.intro-locale-option-short {
+  flex: 0 0 auto;
+  color: var(--text);
+}
+
+.intro-locale-option-name {
+  flex: 1 1 auto;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--muted);
+}
+
 .intro-locale-option:hover {
   color: var(--text);
   background: rgba(15, 23, 42, 0.06);
+}
+
+.intro-locale-option:hover .intro-locale-option-name {
+  color: var(--text);
 }
 
 .intro-locale-option:focus-visible {
@@ -4882,9 +4904,13 @@
     font-size: 0.64rem;
   }
 
+  .intro-locale-menu {
+    min-width: 8.75rem;
+  }
+
   .intro-locale-option {
     min-width: 1.85rem;
-    padding: 0.24rem 0.42rem;
+    padding: 0.28rem 0.48rem;
     font-size: 0.64rem;
   }
 }
