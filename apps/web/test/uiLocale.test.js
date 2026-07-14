@@ -23,6 +23,9 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.insights.tipLabel).not.toBe('Slopitect Tip™');
     expect(bundle.controls.insights.phaseStep).toBe('阶段 {step}');
     expect(bundle.controls.insights.diffAdded).toBe('+{count} 新增');
+    expect(bundle.controls.insights.nowStatus.stillWorking).toBe('仍在处理…');
+    expect(bundle.controls.insights.goIntent.goDiagram).toBe('开始 — 图表');
+    expect(bundle.controls.insights.streamFailures.generic).toMatch(/重试/);
     expect(bundle.controls.gamificationHud.xpLabel).toBe('经验');
     expect(bundle.slopitect.LEVEL_PANEL.damageQuips.idle).not.toMatch(/^No billable/);
   });

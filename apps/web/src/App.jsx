@@ -2035,9 +2035,16 @@ function ArchiSlop() {
             phases: closeOpenInsightPhases(entry.phases, Date.now())
           }));
         } else {
-          appendToInsight(sectionId, `\n\n**Error:** ${err.message}\n`);
+          appendToInsight(
+            sectionId,
+            `\n\n**${controls.insights?.errorPrefix ?? 'Error'}:** ${err.message}\n`
+          );
           tryAgentSound(playFailureChime);
-          const failure = resolveAgentStreamFailureStatus({ operation, message: err.message });
+          const failure = resolveAgentStreamFailureStatus({
+            operation,
+            message: err.message,
+            copy: controls.insights?.streamFailures
+          });
           patchInsightEntry(sectionId, (entry) => ({
             ...entry,
             status: 'failed',
@@ -2455,7 +2462,7 @@ function ArchiSlop() {
           ...(options.peerContext ? { peerContext: options.peerContext } : {}),
           ...(options.transformPersona ? { transformPersona: options.transformPersona } : {})
         },
-        title: goIntentInsightTitle(trimmed, titleSelection),
+        title: goIntentInsightTitle(trimmed, titleSelection, controls.insights?.goIntent),
         variant: options.variantOverride ?? 'intent',
         diagramUndoBaseline: { ...syncedState },
         topic: topicFromDescriptor(titleSelection),
@@ -4960,6 +4967,7 @@ ${requirementsBlock}`;
           hasCanvasContent || pendingHandshake ? (
             <AiCornerControlsInner
               controls={controls.settings}
+              insightsCopy={controls.insights}
               modelProfile={modelProfile}
               onSelectModelProfile={setModelProfile}
               pendingHandshake={pendingHandshake}

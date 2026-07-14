@@ -18,6 +18,7 @@ import {
   type LegacyToolApplyResultEvent
 } from '@archislop/shared';
 import { resolveAgentStreamFailureStatus } from '../utils/agentStreamFailureStatus.js';
+import { getActiveControlsCopy } from '../i18n/activeControlsCopy.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import {
   coercePatchApplyDisplayStats,
@@ -431,7 +432,14 @@ export function applyAgentStreamInsightEvent(
   } else if (evt.type === 'status') {
     const statusEvt = evt as LegacyStatusEvent;
     if (!statusEvt.text) return;
-    setInsightStatus(sectionId, statusEvt.text);
+    setInsightStatus(
+      sectionId,
+      summarizeInsightNowStatus(
+        statusEvt.text,
+        { statusText: statusEvt.text },
+        getActiveControlsCopy().insights
+      )
+    );
   } else if (evt.type === 'plan_beat' && evt.text) {
     const text = String(evt.text).trim();
     const source = evt.source === 'agent' ? 'agent' : 'server';
@@ -452,7 +460,10 @@ export function applyAgentStreamInsightEvent(
       }
       return { ...entry, planBeats: beats };
     });
-    setInsightStatus(sectionId, summarizeInsightNowStatus(text, { statusText: text }));
+    setInsightStatus(
+      sectionId,
+      summarizeInsightNowStatus(text, { statusText: text }, getActiveControlsCopy().insights)
+    );
   } else if (evt.type === 'tool_start') {
     const toolEvt = evt as LegacyToolStartEvent;
     if (!toolEvt.name) return;
@@ -550,19 +561,22 @@ export function applyAgentStreamInsightEvent(
       detail?: string;
     };
     if (resultEvt.outcome === 'repaired') {
+      const syntaxCopy = getActiveControlsCopy().insights?.syntaxFixer;
       finalizeTechnicalActionResult(sectionId, 'syntax_fixer', {
         status: 'done',
         outcomeDetail:
           (typeof resultEvt.detail === 'string' && resultEvt.detail.trim()) ||
+          syntaxCopy?.repaired ||
           'Repaired invalid DSL and applied the patch.'
       });
       return;
     }
+    const syntaxCopy = getActiveControlsCopy().insights?.syntaxFixer;
     const errorText =
       (typeof resultEvt.error === 'string' && resultEvt.error.trim()) ||
       (resultEvt.outcome === 'store_rejected'
-        ? 'Syntax fixer output was rejected by validation.'
-        : 'Syntax fixer could not repair the source.');
+        ? syntaxCopy?.rejected || 'Syntax fixer output was rejected by validation.'
+        : syntaxCopy?.failed || 'Syntax fixer could not repair the source.');
     finalizeTechnicalActionResult(sectionId, 'syntax_fixer', {
       status: 'rejected',
       validationError: errorText
@@ -592,16 +606,21 @@ export function applyAgentStreamInsightEvent(
   } else if (evt.type === 'error') {
     const errEvt = evt as LegacyErrorEvent;
     if (!errEvt.message) return;
-    appendToInsight(sectionId, `\n\n**Error:** ${errEvt.message}\n\n`);
+    appendToInsight(
+      sectionId,
+      `\n\n**${getActiveControlsCopy().insights?.errorPrefix ?? 'Error'}:** ${errEvt.message}\n\n`
+    );
     if (errEvt.code !== 'no_mutation_revision' && typeof playFailureChime === 'function') {
       tryAgentSound(playFailureChime);
     }
     setLiveDraftSource('');
     setLiveDraftContentType(null);
+    const failureCopy = getActiveControlsCopy().insights?.streamFailures;
     const failure = resolveAgentStreamFailureStatus({
       operation,
       code: errEvt.code,
-      message: errEvt.message
+      message: errEvt.message,
+      copy: failureCopy
     });
     patchInsightEntry(sectionId, (entry) => ({
       ...entry,
@@ -688,7 +707,8 @@ export function applyAgentStreamInsightEvent(
       ? resolveAgentStreamFailureStatus({
           operation,
           code: 'no_mutation_revision',
-          message: finalEvt.message
+          message: finalEvt.message,
+          copy: getActiveControlsCopy().insights?.streamFailures
         })
       : null;
     const runCostUsd =
@@ -698,7 +718,10 @@ export function applyAgentStreamInsightEvent(
     patchInsightEntry(sectionId, (entry) => ({
       ...entry,
       status: mutationBlocked ? 'failed' : 'done',
-      statusText: mutationBlocked && failureStatus ? failureStatus.statusText : 'Done',
+      statusText:
+        mutationBlocked && failureStatus
+          ? failureStatus.statusText
+          : (getActiveControlsCopy().insights?.streamDone ?? 'Done'),
       ...(mutationBlocked && failureStatus
         ? {
             failureClass: failureStatus.failureClass,

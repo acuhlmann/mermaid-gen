@@ -74,6 +74,8 @@ export type RunTimelineCopy = {
     allComplete?: string;
   };
   units?: Record<string, string>;
+  insightsNow?: Record<string, string>;
+  runActivity?: string;
 };
 
 export type TimelineItem =
@@ -217,7 +219,7 @@ function sortSegmentItems(seg: TimelineSegment): void {
  * time. Entries persisted before phases carried timestamps fall back to a
  * single synthetic "Run activity" segment appended after the phases.
  */
-export function buildSegments(entry: InsightEntry): TimelineSegment[] {
+export function buildSegments(entry: InsightEntry, copy?: RunTimelineCopy): TimelineSegment[] {
   const phases = Array.isArray(entry.phases) ? entry.phases : [];
   const beats = Array.isArray(entry.planBeats) ? entry.planBeats : [];
   const actions = Array.isArray(entry.technicalActions) ? entry.technicalActions : [];
@@ -229,7 +231,7 @@ export function buildSegments(entry: InsightEntry): TimelineSegment[] {
     syntheticSegment ??= {
       key: 'activity',
       id: 'activity',
-      label: 'Run activity',
+      label: copy?.runActivity ?? 'Run activity',
       at: null,
       endAt: null,
       serverAt: null,
@@ -558,7 +560,7 @@ export function deriveRunTimelineView(
 ): RunTimelineView {
   const runStatus = (entry.status ?? 'running') as RunStatus;
   const runLive = runStatus === 'running';
-  const segments = buildSegments(entry);
+  const segments = buildSegments(entry, copy);
   const startedAt = finiteOrNull(entry.startedAt);
   const completedAt = finiteOrNull(entry.completedAt);
   const totalMs = startedAt != null ? Math.max(0, (completedAt ?? now) - startedAt) : null;
@@ -566,7 +568,8 @@ export function deriveRunTimelineView(
   const activeSegment = runLive && !responseActive ? (segments[segments.length - 1] ?? null) : null;
   const statusText: string = summarizeInsightNowStatus(
     typeof entry.statusText === 'string' ? entry.statusText : '',
-    entry
+    entry,
+    copy?.insightsNow ? { nowStatus: copy.insightsNow } : undefined
   );
   return {
     runStatus,

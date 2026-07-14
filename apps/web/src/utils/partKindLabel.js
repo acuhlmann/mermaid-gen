@@ -1,3 +1,5 @@
+import { getActiveControlsCopy } from '../i18n/activeControlsCopy.js';
+
 const PART_KIND_LABELS = {
   label: 'Label',
   node: 'Node',
@@ -15,6 +17,8 @@ const PART_KIND_LABELS = {
   legend: 'Legend'
 };
 
-export function partKindLabel(partKind) {
-  return PART_KIND_LABELS[partKind] || 'Element';
+export function partKindLabel(partKind, copy) {
+  const kinds = copy?.selectionKinds ?? getActiveControlsCopy().insights?.selectionKinds;
+  if (kinds?.[partKind]) return kinds[partKind];
+  return PART_KIND_LABELS[partKind] || kinds?.element || PART_KIND_LABELS.item || 'Element';
 }

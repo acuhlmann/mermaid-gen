@@ -264,10 +264,11 @@ function findInsightStatusEntry(entries) {
   );
 }
 
-function buildInsightNowStatusStrip(entry) {
+function buildInsightNowStatusStrip(entry, insightsCopy) {
   if (!entry) return null;
   const rawStatus = entry.status ?? 'running';
-  const nowStatusCopy = entry.statusText && summarizeInsightNowStatus(entry.statusText, entry);
+  const nowStatusCopy =
+    entry.statusText && summarizeInsightNowStatus(entry.statusText, entry, insightsCopy);
   if (
     !nowStatusCopy ||
     !(rawStatus === 'running' || rawStatus === 'failed' || rawStatus === 'cancelled') ||
@@ -280,7 +281,7 @@ function buildInsightNowStatusStrip(entry) {
 
 /** Pinned "Now" summary — stays visible while scrolling the thinking body. */
 function InsightsPaneNowStatusStrip({ entry, insightsCopy }) {
-  const strip = buildInsightNowStatusStrip(entry);
+  const strip = buildInsightNowStatusStrip(entry, insightsCopy);
   if (!strip) return null;
   const { rawStatus, nowStatusCopy, failureDetail } = strip;
   return (

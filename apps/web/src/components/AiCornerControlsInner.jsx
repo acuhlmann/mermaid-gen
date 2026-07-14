@@ -2,6 +2,7 @@ import { useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
 import { ButtonIcon, BrainIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 
@@ -15,6 +16,7 @@ const DEFAULT_CONTROLS = CONTROLS_EN.settings;
  */
 export function AiCornerControlsInner({
   controls = DEFAULT_CONTROLS,
+  insightsCopy = CONTROLS_EN.insights,
   modelProfile,
   onSelectModelProfile,
   pendingHandshake,
@@ -107,9 +109,23 @@ export function AiCornerControlsInner({
           type="button"
           className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}${insightsOpen ? ' is-open' : ''}`}
           onClick={onToggleInsights}
-          aria-label={insightsOpen ? `Hide ${controls.thinking}` : `Show ${controls.thinking}`}
+          aria-label={
+            insightsOpen
+              ? formatLocale(insightsCopy.hideThinking ?? 'Hide {thinking}', {
+                  thinking: controls.thinking
+                })
+              : formatLocale(insightsCopy.showThinking ?? 'Show {thinking}', {
+                  thinking: controls.thinking
+                })
+          }
           title={
-            insightsOpen ? `Hide ${controls.thinking} panel` : `Show ${controls.thinking} panel`
+            insightsOpen
+              ? formatLocale(insightsCopy.hideThinkingPanel ?? 'Hide {thinking} panel', {
+                  thinking: controls.thinking
+                })
+              : formatLocale(insightsCopy.showThinkingPanel ?? 'Show {thinking} panel', {
+                  thinking: controls.thinking
+                })
           }
         >
           <ButtonIcon>

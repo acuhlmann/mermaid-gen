@@ -558,7 +558,8 @@ export default function RunTimeline({
   responseActive?: boolean;
   children?: ReactNode;
 }) {
-  const copy = useUiCopy().controls.runTimeline;
+  const { controls } = useUiCopy();
+  const copy = controls.runTimeline;
   const now = useNowTicker((entry.status ?? 'running') === 'running');
   const view = deriveRunTimelineView(entry, {
     variant,
@@ -566,7 +567,7 @@ export default function RunTimeline({
     responseActive,
     hasResponse,
     now,
-    copy
+    copy: { ...copy, insightsNow: controls.insights?.nowStatus }
   });
   const {
     runStatus,

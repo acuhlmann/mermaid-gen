@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getUiLocaleBundle } from '../src/i18n/getUiLocaleBundle.js';
 import { summarizeInsightNowStatus } from '../src/utils/insightNowStatus.js';
 
 describe('summarizeInsightNowStatus', () => {
@@ -52,5 +53,20 @@ flowchart TD
     const out = summarizeInsightNowStatus(long);
     expect(out.length).toBeLessThanOrEqual(140);
     expect(out.endsWith('…')).toBe(true);
+  });
+
+  it('localizes known English status strings for zh-CN', () => {
+    const bundle = getUiLocaleBundle('zh-CN');
+    expect(summarizeInsightNowStatus('Still working…', {}, bundle.controls.insights)).toBe(
+      '仍在处理…'
+    );
+    expect(summarizeInsightNowStatus('Thinking…', {}, bundle.controls.insights)).toBe('思考中…');
+    expect(
+      summarizeInsightNowStatus(
+        '{ "archislopVersion": 1 }',
+        { variant: 'refine', phases: [{ id: 'agent_run' }] },
+        bundle.controls.insights
+      )
+    ).toBe('正在应用图表补丁…');
   });
 });
