@@ -435,7 +435,8 @@ export const CONTROLS_ZH_CN = {
   },
   diagramCanvas: {
     streamingSource: '正在流式传输已校验的源码…',
-    done: '完成'
+    done: '完成',
+    loadingEditor: '正在加载代码编辑器…'
   },
   anythingCanvas: {
     canvas: '任意画布（沙箱）',

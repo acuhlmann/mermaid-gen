@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { useLayoutEffect } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DiagramCanvas from '../src/components/DiagramCanvas.jsx';
 
@@ -30,12 +29,9 @@ const editorHarness = vi.hoisted(() => ({
   deltaDecorations: vi.fn(() => ['dec-1'])
 }));
 
-vi.mock('../src/utils/registerMermaidMonacoOnce.js', () => ({
-  default: vi.fn()
-}));
-
-vi.mock('@monaco-editor/react', () => ({
-  default: function EditorMock({ value, onChange, beforeMount, onMount, language }) {
+const EditorMock = vi.hoisted(() => {
+  const { useLayoutEffect } = require('react');
+  return function EditorMock({ value, onChange, beforeMount, onMount, language }) {
     useLayoutEffect(() => {
       const monaco = {
         Range: class Range {
@@ -63,7 +59,19 @@ vi.mock('@monaco-editor/react', () => ({
         onChange={(event) => onChange(event.target.value)}
       />
     );
-  }
+  };
+});
+
+vi.mock('../src/utils/registerMermaidMonacoOnce.js', () => ({
+  default: vi.fn()
+}));
+
+vi.mock('../src/components/MonacoCodeEditor.jsx', () => ({
+  default: EditorMock
+}));
+
+vi.mock('@monaco-editor/react', () => ({
+  default: EditorMock
 }));
 
 describe('DiagramCanvas', () => {
