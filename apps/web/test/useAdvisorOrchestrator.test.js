@@ -1045,6 +1045,52 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestion).toBe('Keep me after loading owns the canvas.');
   });
 
+  it('keeps an in-flight proposal across a brief document.hidden flicker', async () => {
+    mockPersonaPick('refine');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'refine',
+                suggestion: 'Survived the mobile visibility flicker.',
+                highlightIds: ['A']
+              })
+            });
+        })
+    );
+
+    const { result } = renderHook(() => useAdvisorOrchestrator(defaultParams()));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    await act(async () => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      await Promise.resolve();
+    });
+    // In-flight thinking must survive — wiping here was the mobile "flash then gone" path.
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    await act(async () => {
+      Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+      document.dispatchEvent(new Event('visibilitychange'));
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('Survived the mobile visibility flicker.');
+    expect(result.current.thinkingPersona).toBeNull();
+  });
+
   it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
     mockPersonaPick('explain');
     fetchMock

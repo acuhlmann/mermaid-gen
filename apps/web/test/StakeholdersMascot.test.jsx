@@ -149,10 +149,23 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(900);
+      await vi.advanceTimersByTimeAsync(1300);
     });
     expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
     vi.useRealTimers();
+  });
+
+  it('keeps a real positioning box while the advisor surface is up (no display:contents)', () => {
+    const { container } = render(
+      <div className="prompt-actions prompt-actions--mobile">
+        <StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />
+      </div>
+    );
+    const wrap = container.querySelector('.stakeholders-mascot-wrap');
+    expect(wrap?.classList.contains('has-float-surface')).toBe(true);
+    // JSDOM won't compute CSS, but the class hook must be present so the
+    // mobile stylesheet can keep position:relative instead of display:contents.
+    expect(wrap?.className).toMatch(/has-float-surface/);
   });
 
   it('stacks the first-run spotlight above the live advisor surface', () => {
