@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholdersMascot from '../src/components/StakeholdersMascot.jsx';
 
@@ -130,6 +130,29 @@ describe('StakeholdersMascot', () => {
     expect(screen.queryByTestId('stakeholder-intro-spotlight')).toBeNull();
     // Surface still renders on its own outside the float stack.
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
+  });
+
+  it('holds the last advisor surface briefly across handoff gaps', async () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <StakeholdersMascot personas={TEST_PERSONAS} thinkingPersona="refine" />
+    );
+    expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
+
+    rerender(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        thinkingPersona={null}
+        activeAdvisorVariant={null}
+      />
+    );
+    expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+    expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
+    vi.useRealTimers();
   });
 
   it('stacks the first-run spotlight above the live advisor surface', () => {
