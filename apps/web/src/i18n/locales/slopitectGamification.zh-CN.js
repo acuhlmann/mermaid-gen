@@ -407,7 +407,7 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
     trophyRunsGap: '次',
     trophyRunsGapPlural: '次',
     trophyEmpty: '还没有奖杯。30秒内帽子戏法三种人设来破封。',
-    tipLabel: 'Slopitect小贴士™',
+    tipLabel: '烂图建筑师小贴士™',
     tierLabel: '等级：',
     progressAriaLabel: '等级进度',
     damageTitle: '利益相关方损失报告™',

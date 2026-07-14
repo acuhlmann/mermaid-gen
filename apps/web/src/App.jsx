@@ -4201,7 +4201,7 @@ ${requirementsBlock}`;
 
       {showEntryExample ? (
         <ExampleDiagramPreview
-          source={EXAMPLE_DIAGRAM_SOURCE}
+          source={controls.prompt.exampleDiagramSource ?? EXAMPLE_DIAGRAM_SOURCE}
           eyebrow={controls.prompt.exampleEyebrow}
           headline={controls.prompt.exampleHeadline}
           body={controls.prompt.exampleBody}
@@ -4420,7 +4420,7 @@ ${requirementsBlock}`;
               }}
             >
               <span className="slopitect-tip-chip-label" aria-hidden="true">
-                Slopitect Tip™
+                {controls.insights.tipLabel}
               </span>
               <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
             </div>
@@ -4514,7 +4514,7 @@ ${requirementsBlock}`;
                   className="overlay-button compact-button overlay-status-stop"
                   onClick={stopStreamingAgentRequest}
                 >
-                  Stop request
+                  {controls.insights.stopRequest}
                 </button>
               ) : null}
             </div>

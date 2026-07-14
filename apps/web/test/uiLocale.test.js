@@ -17,6 +17,10 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.advisorThinking.goMad).toBe('正在癫狂');
     expect(bundle.controls.planBeat.agent).toBe('智能体');
     expect(bundle.controls.checklist.fixSelected).toBe('修复所选');
+    expect(bundle.controls.contentModes.mermaidShort).toBe('架构图');
+    expect(bundle.controls.contentModes.chartShort).toBe('数据图');
+    expect(bundle.controls.prompt.exampleDiagramSource).toContain('农场');
+    expect(bundle.controls.insights.tipLabel).not.toBe('Slopitect Tip™');
   });
 
   it('resolves explicit UI locale requests from weigh-in prompts', () => {

@@ -25,7 +25,7 @@ export const SLOPITECT_ZH_CN = {
       name: '首席创新官',
       title: '首席颠覆官',
       tagline: '围绕当前主题的大胆动作。',
-      entryLine: '转折 incoming…',
+      entryLine: '颠覆性转折来了…',
       exitLine: '已颠覆 🚀'
     },
     goMad: {
