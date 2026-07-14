@@ -77,6 +77,20 @@ describe('parseDiagramPatchToolCall', () => {
     expect(p?.kind).toBe('metaphor3d');
     expect(p?.source).toContain('"metaphor"');
   });
+
+  it('parses apply_forms_patch as forms', () => {
+    const j = JSON.stringify({
+      name: 'apply_forms_patch',
+      arguments: {
+        diagramSource:
+          '{"archislopFormsVersion":1,"formTitle":"OAuth Intake","messages":[{"createSurface":{}}]}',
+        reason: 'initial form'
+      }
+    });
+    const p = parseDiagramPatchToolCall(j);
+    expect(p?.kind).toBe('forms');
+    expect(p?.source).toContain('"archislopFormsVersion"');
+  });
 });
 
 describe('partitionDiagramToolJsonBlocks', () => {

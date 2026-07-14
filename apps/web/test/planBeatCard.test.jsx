@@ -100,6 +100,70 @@ describe('PlanBeatCard', () => {
     expect(screen.queryByText(/<!DOCTYPE html>/)).toBeNull();
   });
 
+  it('renders mermaid source context preview when converting to forms', () => {
+    const text = `Using the Mermaid diagram as subject context for this view.
+
+flowchart LR
+  Auth --> API
+  API --> DB`;
+    render(
+      <ul>
+        <PlanBeatCard
+          beat={{ text, source: 'server' }}
+          variant="intent"
+          index={0}
+          contentType="forms"
+        />
+      </ul>
+    );
+
+    expect(screen.getByTestId('insights-embedded-diagram')).toBeTruthy();
+    expect(screen.getByTestId('plan-source-context-badge')).toBeTruthy();
+    expect(screen.queryByText(/flowchart LR/)).toBeNull();
+  });
+
+  it('renders forms preview for a fenced forms JSON plan beat', () => {
+    const forms = JSON.stringify({
+      archislopFormsVersion: 1,
+      formTitle: 'OAuth Intake',
+      messages: [
+        { createSurface: {} },
+        {
+          updateComponents: {
+            components: [
+              { id: 'root', component: 'Column', children: ['name', 'bt', 'b'] },
+              { id: 'name', component: 'TextField', label: 'Name', value: { path: '/name' } },
+              { id: 'bt', component: 'Text', text: 'Submit' },
+              {
+                id: 'b',
+                component: 'Button',
+                child: 'bt',
+                action: { event: { name: 'archislop_submitForm' } }
+              }
+            ]
+          }
+        },
+        { updateDataModel: { path: '/', value: { name: '' } } }
+      ]
+    });
+    const text = `Drafting the intake paperwork.\n\n\`\`\`json\n${forms}\n\`\`\``;
+    render(
+      <ul>
+        <PlanBeatCard
+          beat={{ text, source: 'agent' }}
+          variant="intent"
+          index={0}
+          contentType="forms"
+        />
+      </ul>
+    );
+
+    const preview = screen.getByTestId('insights-embedded-diagram');
+    expect(preview.getAttribute('aria-label')).toBe('Form preview (read-only)');
+    expect(screen.queryByText(/"archislopFormsVersion"/)).toBeNull();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
   it('still renders plain multi-step beats as an ordered list', () => {
     const text = '1. Inventory the services\n2. Group them by domain\n3. Draw the flows';
     render(

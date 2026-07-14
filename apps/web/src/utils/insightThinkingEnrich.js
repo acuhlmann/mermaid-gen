@@ -59,7 +59,7 @@ export function stripInsightStreamDelimiters(text) {
 
 /**
  * @param {string} jsonSlice
- * @returns {{ kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything', source: string, toolName: string, reason?: string } | null}
+ * @returns {{ kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' | 'forms', source: string, toolName: string, reason?: string } | null}
  */
 export function parseDiagramPatchToolCall(jsonSlice) {
   let obj;
@@ -104,12 +104,18 @@ export function parseDiagramPatchToolCall(jsonSlice) {
     if (!source.trim()) return null;
     return { kind: 'anything', source, toolName: rawName, reason };
   }
+  const formsish = n.includes('forms') && n.includes('patch');
+  if (formsish) {
+    const source = typeof args.diagramSource === 'string' ? args.diagramSource : '';
+    if (!source.trim()) return null;
+    return { kind: 'forms', source, toolName: rawName, reason };
+  }
   return null;
 }
 
 /**
  * @param {string} text
- * @returns {Array<{ type: 'text', value: string } | { type: 'diagram_patch', kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything', source: string, toolName: string, reason?: string }>}
+ * @returns {Array<{ type: 'text', value: string } | { type: 'diagram_patch', kind: 'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' | 'forms', source: string, toolName: string, reason?: string }>}
  */
 export function partitionDiagramToolJsonBlocks(text) {
   if (typeof text !== 'string' || !text) return [{ type: 'text', value: text ?? '' }];

@@ -4,13 +4,21 @@
  * instead of monospace paragraphs.
  */
 
-import { parseAnythingHtml, parseChartDsl, sanitizeMetaphorDsl } from '@archislop/shared';
+import {
+  parseAnythingHtml,
+  parseChartDsl,
+  parseFormsA2ui,
+  sanitizeMetaphorDsl
+} from '@archislop/shared';
 import { findBalancedBraceEnd } from './insightThinkingEnrich.js';
 
 const CHART_MARKER = '"archislopVersion"';
 const METAPHOR_MARKER = '"metaphor"';
+const FORMS_MARKER = '"archislopFormsVersion"';
 const JSON_FENCE_START = /```(?:json)?\s*\n?/gi;
 const HTML_FENCE_START = /```(?:html)?\s*\n?/gi;
+/** Untagged or mermaid-tagged fences (peer context often omits a language tag). */
+const GENERIC_DIAGRAM_FENCE_START = /```(?!\s*json\b)(?!\s*html\b)[^\n]*\n?/gi;
 
 const HTML_DOCUMENT_START =
   /^(?:<!DOCTYPE\s+html|<html\b|<head\b|<body\b|<div\b|<section\b|<main\b|<canvas\b|<svg\b)/i;
@@ -107,6 +115,13 @@ function tryParseMetaphorDsl(candidate) {
   return result.dsl ? result.text : null;
 }
 
+/** @param {string} candidate */
+function tryParseFormsDsl(candidate) {
+  if (!candidate?.includes(FORMS_MARKER)) return null;
+  const result = parseFormsA2ui(candidate);
+  return result.ok ? result.text : null;
+}
+
 /**
  * Shared shape for the two JSON-object DSLs (chart, metaphor3d): find the DSL in a
  * ```json fence first, then as a bare `{ … }` object located via its marker key.
@@ -161,6 +176,79 @@ function splitEmbeddedMetaphorDsl(text) {
   return splitEmbeddedJsonDsl(text, METAPHOR_MARKER, tryParseMetaphorDsl, 'metaphor3d');
 }
 
+function splitEmbeddedFormsDsl(text) {
+  return splitEmbeddedJsonDsl(text, FORMS_MARKER, tryParseFormsDsl, 'forms');
+}
+
+/**
+ * Line-started Mermaid / Infographic DSL (no fence handling).
+ *
+ * @param {string} text
+ * @returns {{ prose: string, dsl: string, kind: 'mermaid' | 'infographic' } | null}
+ */
+function splitLineStartedDiagramDsl(text) {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (!trimmed) continue;
+
+    const kind = classifyDiagramStartLine(trimmed);
+    if (!kind) continue;
+
+    const dslStart = kind === 'mermaid' ? mermaidDslStartIndex(lines, i) : i;
+    const dsl = lines.slice(dslStart).join('\n').trim();
+    if (!isSubstantialDsl(dsl, kind)) continue;
+
+    if (
+      kind === 'mermaid' &&
+      MERMAID_BARE_FLOW.test(trimmed) &&
+      !MERMAID_FIRST_LINE.test(trimmed)
+    ) {
+      const looksLikeFlowchartBody =
+        /-->|---/.test(dsl) ||
+        dsl.includes('[') ||
+        dsl.includes('(') ||
+        nonEmptyLineCount(dsl) >= 3;
+      if (!looksLikeFlowchartBody) continue;
+    }
+
+    return { prose: lines.slice(0, dslStart).join('\n'), dsl, kind };
+  }
+  return null;
+}
+
+/**
+ * Mermaid / infographic inside an untagged ``` fence (common in peer-context prompts).
+ *
+ * @param {string} text
+ * @returns {{ prose: string, dsl: string, kind: DiagramPreviewKind } | null}
+ */
+function splitGenericFencedDiagramDsl(text) {
+  GENERIC_DIAGRAM_FENCE_START.lastIndex = 0;
+  let fenceMatch;
+  while ((fenceMatch = GENERIC_DIAGRAM_FENCE_START.exec(text)) !== null) {
+    const contentStart = fenceMatch.index + fenceMatch[0].length;
+    const closeIdx = text.indexOf('```', contentStart);
+    const inner = (
+      closeIdx >= 0 ? text.slice(contentStart, closeIdx) : text.slice(contentStart)
+    ).trim();
+    if (!inner) continue;
+
+    const innerSplit = splitLineStartedDiagramDsl(inner);
+    if (!innerSplit) continue;
+
+    return {
+      prose: joinProseSegments(
+        text.slice(0, fenceMatch.index),
+        closeIdx >= 0 ? text.slice(closeIdx + 3) : ''
+      ),
+      dsl: innerSplit.dsl,
+      kind: innerSplit.kind
+    };
+  }
+  return null;
+}
+
 /**
  * @param {string} text
  * @returns {{ prose: string, dsl: string, kind: 'anything' } | null}
@@ -206,7 +294,7 @@ function splitEmbeddedAnythingHtml(text) {
  * is shown separately (avoids duplicate raw ```json / ```html in the content lane).
  *
  * @param {string} text
- * @param {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'anything' | null} [kind]
+ * @param {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'forms' | 'anything' | null} [kind]
  * @returns {string}
  */
 export function stripEmbeddedDslFromThinkingText(text, kind = null) {
@@ -225,8 +313,13 @@ export function stripEmbeddedDslFromThinkingText(text, kind = null) {
     }
   };
 
-  if (!kind || kind === 'chart' || kind === 'metaphor3d') stripFence(JSON_FENCE_START);
+  if (!kind || kind === 'chart' || kind === 'metaphor3d' || kind === 'forms') {
+    stripFence(JSON_FENCE_START);
+  }
   if (!kind || kind === 'anything') stripFence(HTML_FENCE_START);
+  if (!kind || kind === 'mermaid' || kind === 'infographic') {
+    stripFence(GENERIC_DIAGRAM_FENCE_START);
+  }
 
   const stripBareJsonObject = (marker) => {
     const markerIdx = next.indexOf(marker);
@@ -240,6 +333,7 @@ export function stripEmbeddedDslFromThinkingText(text, kind = null) {
 
   if (!kind || kind === 'chart') stripBareJsonObject(CHART_MARKER);
   if (!kind || kind === 'metaphor3d') stripBareJsonObject(METAPHOR_MARKER);
+  if (!kind || kind === 'forms') stripBareJsonObject(FORMS_MARKER);
 
   if (!kind || kind === 'anything') {
     const lines = next.split('\n');
@@ -265,8 +359,11 @@ export function stripEmbeddedDslFromThinkingText(text, kind = null) {
 export function splitEmbeddedDiagramDsl(text, expectedKind = null) {
   if (typeof text !== 'string' || !text.trim()) return null;
 
-  const acceptSplit = (split) =>
-    split && (!expectedKind || split.kind === expectedKind) ? split : null;
+  const acceptSplit = (split) => {
+    if (!split) return null;
+    if (!expectedKind || split.kind === expectedKind) return split;
+    return split;
+  };
 
   const chartSplit = acceptSplit(splitEmbeddedChartDsl(text));
   if (chartSplit) return chartSplit;
@@ -274,46 +371,22 @@ export function splitEmbeddedDiagramDsl(text, expectedKind = null) {
   const metaphorSplit = acceptSplit(splitEmbeddedMetaphorDsl(text));
   if (metaphorSplit) return metaphorSplit;
 
+  const formsSplit = acceptSplit(splitEmbeddedFormsDsl(text));
+  if (formsSplit) return formsSplit;
+
   const anythingSplit = acceptSplit(splitEmbeddedAnythingHtml(text));
   if (anythingSplit) return anythingSplit;
 
-  const lines = text.split('\n');
-  for (let i = 0; i < lines.length; i++) {
-    const trimmed = lines[i].trim();
-    if (!trimmed) continue;
+  const fencedSplit = acceptSplit(splitGenericFencedDiagramDsl(text));
+  if (fencedSplit) return fencedSplit;
 
-    const kind = classifyDiagramStartLine(trimmed);
-    if (!kind) continue;
+  const lineSplit = acceptSplit(splitLineStartedDiagramDsl(text));
+  if (lineSplit) return lineSplit;
 
-    const dslStart = kind === 'mermaid' ? mermaidDslStartIndex(lines, i) : i;
-    const dsl = lines.slice(dslStart).join('\n').trim();
-    if (!isSubstantialDsl(dsl, kind)) continue;
-
-    if (
-      kind === 'mermaid' &&
-      MERMAID_BARE_FLOW.test(trimmed) &&
-      !MERMAID_FIRST_LINE.test(trimmed)
-    ) {
-      const looksLikeFlowchartBody =
-        /-->|---/.test(dsl) ||
-        dsl.includes('[') ||
-        dsl.includes('(') ||
-        nonEmptyLineCount(dsl) >= 3;
-      if (!looksLikeFlowchartBody) continue;
-    }
-
-    const prose = lines.slice(0, dslStart).join('\n');
-    const split = { prose, dsl, kind };
-    return acceptSplit(split);
-  }
   return null;
 }
 
 /**
- * `forms` is accepted for call-site type parity (contentType flows through as
- * expectedKind), but no detector ever emits a `forms` split — forms content is
- * tool-authored JSON, never embedded in agent prose — so an expectedKind of
- * `forms` simply filters every candidate out (no embedded preview).
  * @typedef {'mermaid' | 'infographic' | 'chart' | 'metaphor3d' | 'forms' | 'anything'} DiagramPreviewKind
  */
 
@@ -333,7 +406,9 @@ export function splitEmbeddedDiagramDsl(text, expectedKind = null) {
 export function filterDiagramPreviewForContentType(preview, expectedKind) {
   if (!preview) return null;
   if (!expectedKind || preview.kind === expectedKind) return preview;
-  return null;
+  // Cross-mode peer context during mode conversion — still previewable; callers
+  // label it via the source-context badge when kinds differ.
+  return preview;
 }
 
 /**
@@ -384,6 +459,11 @@ export function tryExtractDiagramPreviewFromText(text, options = {}) {
       { kind: 'anything', source: anythingHtml },
       expectedKind
     );
+  }
+
+  const formsDsl = tryParseFormsDsl(trimmed);
+  if (formsDsl) {
+    return filterDiagramPreviewForContentType({ kind: 'forms', source: formsDsl }, expectedKind);
   }
 
   return null;
