@@ -107,6 +107,20 @@ async function waitForControlsReady(buttonName = 'Refine') {
   });
 }
 
+function openRenderAsMenu() {
+  if (screen.queryByRole('menu', { name: 'Target render mode' })) return;
+  fireEvent.click(screen.getByRole('button', { name: /open render as/i }));
+}
+
+function pickContentMode(modeLabel) {
+  openRenderAsMenu();
+  fireEvent.click(
+    screen.getByRole('button', {
+      name: new RegExp(`Render selected item as ${modeLabel}`, 'i')
+    })
+  );
+}
+
 describe('App simplified controls', () => {
   beforeEach(() => {
     vi.useRealTimers();
@@ -785,7 +799,7 @@ describe('App simplified controls', () => {
     render(<App />);
     await waitForControlsReady();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Infographic' }));
+    pickContentMode('Infographic');
 
     await waitFor(() => {
       const intentCalls = streamDiagramAgentMock.mock.calls.filter(
@@ -804,7 +818,7 @@ describe('App simplified controls', () => {
 
     streamDiagramAgentMock.mockClear();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Diagram' }));
+    pickContentMode('Diagram');
     await waitForControlsReady('Refine');
 
     const intentCalls = streamDiagramAgentMock.mock.calls.filter(
@@ -851,7 +865,7 @@ describe('App simplified controls', () => {
     render(<App />);
     await waitForControlsReady();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Infographic' }));
+    pickContentMode('Infographic');
 
     await waitFor(() => {
       const intentCalls = streamDiagramAgentMock.mock.calls.filter(
@@ -889,7 +903,7 @@ describe('App simplified controls', () => {
     render(<App />);
     await waitForControlsReady();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Diagram' }));
+    pickContentMode('Diagram');
 
     await waitFor(() => {
       const intentCalls = streamDiagramAgentMock.mock.calls.filter(
@@ -945,7 +959,7 @@ describe('App simplified controls', () => {
     render(<App />);
     await waitForControlsReady();
 
-    fireEvent.click(screen.getByRole('button', { name: '3D' }));
+    pickContentMode('3D metaphor');
 
     await waitFor(() => {
       const intentCalls = streamDiagramAgentMock.mock.calls.filter(

@@ -2,10 +2,8 @@ import { useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
 import { ButtonIcon, BrainIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
-import { buildContentModeOptions } from '../utils/renderModeAction.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
-const DEFAULT_MODE_OPTIONS = buildContentModeOptions(CONTROLS_EN);
 
 /**
  * Right-cluster of the bottom row: emoji-style Settings (⚙️) and Thinking (🧠)
@@ -16,13 +14,9 @@ const DEFAULT_MODE_OPTIONS = buildContentModeOptions(CONTROLS_EN);
  * accidentally dismiss it by clicking off-canvas.
  */
 export function AiCornerControlsInner({
-  contentMode,
-  contentModeOptions = DEFAULT_MODE_OPTIONS,
   controls = DEFAULT_CONTROLS,
-  onSelectContentMode,
   modelProfile,
   onSelectModelProfile,
-  modeSwitchDisabled,
   pendingHandshake,
   externalAgentPresence,
   onInviteAgent,
@@ -104,23 +98,6 @@ export function AiCornerControlsInner({
               >
                 {controls.quality}
               </button>
-            </div>
-          </div>
-          <div className="model-profile-toggle" role="group" aria-label={controls.mode}>
-            <span className="model-profile-label">{controls.mode}</span>
-            <div className="model-profile-segment">
-              {contentModeOptions.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={`model-profile-option ${contentMode === option.id ? 'is-selected' : ''}`}
-                  aria-pressed={contentMode === option.id}
-                  disabled={modeSwitchDisabled}
-                  onClick={() => onSelectContentMode(option.id)}
-                >
-                  {option.shortLabel}
-                </button>
-              ))}
             </div>
           </div>
         </div>

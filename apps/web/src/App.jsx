@@ -17,6 +17,7 @@ import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagr
 import { useRotatingPlaceholder } from './hooks/useRotatingPlaceholder.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
+import RenderAsMascot from './components/RenderAsMascot.jsx';
 import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
 import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
 import {
@@ -3728,9 +3729,9 @@ ${requirementsBlock}`;
   const showIntroLocaleToggle = showEntryExample;
 
   // First-run mode reveal: after the first diagram, remind newcomers that modes
-  // also live in Settings (empty-state already surfaces Render as). Skipped when
-  // they already picked a mode on entry. Once-ever, persisted; stays clear of the
-  // stakeholder intro; dismisses on pick / close / timeout.
+  // also live in the bottom-bar Render as control (empty-state already surfaces
+  // Render as). Skipped when they already picked a mode on entry. Once-ever,
+  // persisted; stays clear of the stakeholder intro; dismisses on pick / close / timeout.
   const dismissModeReveal = useCallback(() => {
     if (modeRevealTimerRef.current) {
       clearTimeout(modeRevealTimerRef.current);
@@ -4680,30 +4681,6 @@ ${requirementsBlock}`;
           ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
               <div className="button-group">
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                  disabled={busy}
-                  onClick={toggleChromeSlopPrompt}
-                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                  title={slopitect.PROMPT_ACTION_COPY.title}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">
-                      💬
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                    </span>
-                    {slopitect.PROMPT_ACTION_COPY.roleTag}
-                  </span>
-                </button>
-              </div>
-              <div className="button-group">
                 <StakeholdersMascot
                   personas={[
                     {
@@ -4740,6 +4717,36 @@ ${requirementsBlock}`;
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
                   introProps={stakeholderIntroProps}
                 />
+                <RenderAsMascot
+                  modes={contentModeOptions}
+                  currentMode={contentMode}
+                  onPickMode={handleSelectContentMode}
+                  disabled={loading || streamingPreview}
+                />
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
+                  disabled={busy}
+                  onClick={toggleChromeSlopPrompt}
+                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
+                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                  title={slopitect.PROMPT_ACTION_COPY.title}
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">
+                      💬
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
+                    </span>
+                    {slopitect.PROMPT_ACTION_COPY.roleTag}
+                  </span>
+                </button>
+              </div>
+              <div className="button-group">
                 <button
                   type="button"
                   className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
@@ -4817,28 +4824,6 @@ ${requirementsBlock}`;
           ) : hasCanvasContent && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                  disabled={busy}
-                  onClick={toggleChromeSlopPrompt}
-                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                  title={slopitect.PROMPT_ACTION_COPY.title}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">
-                      💬
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                    </span>
-                    {slopitect.PROMPT_ACTION_COPY.roleTag}
-                  </span>
-                </button>
                 <StakeholdersMascot
                   personas={[
                     {
@@ -4875,6 +4860,34 @@ ${requirementsBlock}`;
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
                   introProps={stakeholderIntroProps}
                 />
+                <RenderAsMascot
+                  modes={contentModeOptions}
+                  currentMode={contentMode}
+                  onPickMode={handleSelectContentMode}
+                  disabled={loading || streamingPreview}
+                />
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
+                  disabled={busy}
+                  onClick={toggleChromeSlopPrompt}
+                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
+                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                  title={slopitect.PROMPT_ACTION_COPY.title}
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">
+                      💬
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
+                    </span>
+                    {slopitect.PROMPT_ACTION_COPY.roleTag}
+                  </span>
+                </button>
                 <button
                   type="button"
                   className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
@@ -4949,18 +4962,14 @@ ${requirementsBlock}`;
         }
         aiControls={
           // Empty intro: modes live in the Render as strip; Settings (brain /
-          // invite / mode) only clutter the first screen. Keep the gear once a
+          // invite) only clutter the first screen. Keep the gear once a
           // diagram exists, or whenever a handshake needs the panel. Peer content
           // also keeps chrome after a mode switch into an empty slot.
           hasCanvasContent || pendingHandshake ? (
             <AiCornerControlsInner
-              contentMode={contentMode}
-              contentModeOptions={contentModeOptions}
               controls={controls.settings}
-              onSelectContentMode={handleSelectContentMode}
               modelProfile={modelProfile}
               onSelectModelProfile={setModelProfile}
-              modeSwitchDisabled={loading || streamingPreview}
               pendingHandshake={pendingHandshake}
               externalAgentPresence={externalAgentPresence}
               onInviteAgent={() => setInviteDialogOpen(true)}
