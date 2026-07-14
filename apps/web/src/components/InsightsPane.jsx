@@ -826,6 +826,7 @@ function resultingPreviewLabel(afterKind, insightsCopy) {
   if (afterKind === 'chart') return insightsCopy.resultingChart;
   if (afterKind === 'metaphor3d') return insightsCopy.resulting3d;
   if (afterKind === 'anything') return insightsCopy.resultingPage;
+  if (afterKind === 'forms') return insightsCopy.resultingForm;
   return insightsCopy.resultingDiagram;
 }
 
@@ -1295,7 +1296,8 @@ export default function InsightsPane({
                 afterKind === 'infographic' ||
                 afterKind === 'chart' ||
                 afterKind === 'metaphor3d' ||
-                afterKind === 'anything');
+                afterKind === 'anything' ||
+                afterKind === 'forms');
             const afterDiff = hasAfterPreview ? (entryDiagramDiffById?.[entry.id] ?? null) : null;
             const afterRemovedIds = afterDiff?.removedIds ?? [];
             // Restore is a per-version bookmark: click to jump the canvas back to this entry's

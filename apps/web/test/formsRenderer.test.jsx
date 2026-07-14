@@ -4,6 +4,43 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { buildFormsSeedDoc } from '@archislop/shared';
 import FormsRenderer from '../src/components/FormsRenderer.jsx';
 
+/** Minimal doc whose caption Text echoes the /name field via formatString (live cross-reference). */
+function echoDoc() {
+  return JSON.stringify({
+    archislopFormsVersion: 1,
+    formTitle: 'Echo Intake',
+    messages: [
+      { createSurface: {} },
+      {
+        updateComponents: {
+          components: [
+            { id: 'root', component: 'Column', children: ['name', 'echo', 'bt', 'b'] },
+            { id: 'name', component: 'TextField', label: 'Your name', value: { path: '/name' } },
+            {
+              id: 'echo',
+              component: 'Text',
+              variant: 'caption',
+              text: {
+                call: 'formatString',
+                args: { value: 'Noted, ${/name}. This will be held against you.' },
+                returnType: 'string'
+              }
+            },
+            { id: 'bt', component: 'Text', text: 'Submit & Proceed' },
+            {
+              id: 'b',
+              component: 'Button',
+              child: 'bt',
+              action: { event: { name: 'archislop_submitForm' } }
+            }
+          ]
+        }
+      },
+      { updateDataModel: { path: '/', value: { name: '' } } }
+    ]
+  });
+}
+
 describe('FormsRenderer', () => {
   afterEach(() => cleanup());
 
@@ -44,6 +81,28 @@ describe('FormsRenderer', () => {
       <FormsRenderer diagramSource="{not valid json" onFormSubmit={vi.fn()} />
     );
     await waitFor(() => expect(container.querySelector('.forms-error-state')).toBeTruthy());
+  });
+
+  it('live-echoes one field into another via formatString (cross-reference)', async () => {
+    render(<FormsRenderer diagramSource={echoDoc()} onFormSubmit={vi.fn()} />);
+    const input = await screen.findByLabelText('Your name');
+    fireEvent.change(input, { target: { value: 'Ada' } });
+    // The formatString Text re-renders reactively as the bound field changes.
+    await waitFor(() =>
+      expect(screen.getByText(/Noted, Ada\. This will be held against you\./)).toBeTruthy()
+    );
+  });
+
+  it('does not fire onFormSubmit in preview mode (read-only thumbnail)', async () => {
+    const onFormSubmit = vi.fn();
+    const { container } = render(
+      <FormsRenderer diagramSource={buildFormsSeedDoc()} preview onFormSubmit={onFormSubmit} />
+    );
+    expect(container.querySelector('.forms-renderer-root--preview')).toBeTruthy();
+    const submit = await screen.findByRole('button', { name: /Submit & Proceed/i });
+    fireEvent.click(submit);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onFormSubmit).not.toHaveBeenCalled();
   });
 
   it('keeps the last good form during streamingPreview of incomplete JSON', async () => {
