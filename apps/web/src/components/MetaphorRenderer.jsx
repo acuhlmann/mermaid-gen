@@ -25,6 +25,7 @@ import { Glyph } from './metaphorGlyphs/index.jsx';
 import {
   MetaphorTitleOverlay,
   MetaphorLegendOverlay,
+  MetaphorCompositeHint,
   MetaphorKindSwitcher,
   MetaphorHoverTooltip
 } from './MetaphorOverlays.jsx';
@@ -1287,6 +1288,11 @@ function MetaphorRendererImpl(
                 disabled={metaphorKindSwitchDisabled || !onMetaphorKindChange}
                 onSelectKind={onMetaphorKindChange}
               />
+              {dsl.metaphor === 'composite' ? (
+                <MetaphorCompositeHint
+                  layerCount={Array.isArray(dsl.layers) ? dsl.layers.length : 0}
+                />
+              ) : null}
               <MetaphorTitleOverlay scene={dsl.scene} />
               <MetaphorLegendOverlay metaphor={dsl.metaphor} legend={dsl.scene?.legend} />
             </>

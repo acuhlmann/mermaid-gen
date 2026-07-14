@@ -484,7 +484,10 @@ export const CONTROLS_ZH_CN = {
       garden: '花园',
       archipelago: '群岛',
       composite: '组合'
-    }
+    },
+    compositeHintTitle: '组合模式',
+    compositeHintBody:
+      '当前蒙太奇仍只有一层。请用 Go 生成更丰富的场景，或先切到其他隐喻再切回「组合」以生成伴生视图。'
   },
   styleEdits: {
     region: '样式编辑',

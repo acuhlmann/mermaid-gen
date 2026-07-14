@@ -502,7 +502,10 @@ export const CONTROLS_EN = {
       garden: 'Garden',
       archipelago: 'Archipelago',
       composite: 'Composite'
-    }
+    },
+    compositeHintTitle: 'Composite mode',
+    compositeHintBody:
+      'This montage still has one layer. Ask Go for a richer scene, or switch away and back to Composite to invent a companion view.'
   },
   styleEdits: {
     region: 'Style edits',

@@ -159,22 +159,110 @@ function mapItemToKind(item, fromKind, toKind, index) {
   return next;
 }
 
+/** Default companion kind when expanding a single scene into a visible montage. */
+const COMPOSITE_COMPANION_BY_KIND = {
+  city: 'river',
+  layercake: 'terrain',
+  galaxy: 'orrery',
+  tree: 'garden',
+  terrain: 'city',
+  orrery: 'city',
+  river: 'city',
+  garden: 'archipelago',
+  archipelago: 'city'
+};
+
+const COMPOSITE_LAYER_LABELS = {
+  city: 'Systems',
+  layercake: 'Stack',
+  galaxy: 'Network',
+  tree: 'Hierarchy',
+  terrain: 'Risk field',
+  orrery: 'Hub & spokes',
+  river: 'Journey',
+  garden: 'Portfolio',
+  archipelago: 'Domains'
+};
+
+/**
+ * Prefer a complementary companion so the montage shows two spatial stories.
+ * Falls back to river when the source kind is unknown.
+ */
+function pickCompositeCompanionKind(primaryKind, items, links) {
+  const list = Array.isArray(items) ? items : [];
+  const edgeCount = Array.isArray(links) ? links.length : 0;
+
+  if (primaryKind === 'city') {
+    const hasFlowLinks = Array.isArray(links)
+      ? links.some((link) => link?.kind === 'flow' || link?.kind === 'dependency')
+      : false;
+    if (hasFlowLinks || edgeCount >= 2) return 'river';
+    const districts = new Set(
+      list
+        .map((item) => (typeof item.district === 'string' ? item.district.trim() : ''))
+        .filter(Boolean)
+    );
+    if (districts.size >= 3) return 'archipelago';
+    return 'river';
+  }
+
+  if (primaryKind === 'orrery' || primaryKind === 'galaxy') {
+    return list.length >= 6 ? 'city' : (COMPOSITE_COMPANION_BY_KIND[primaryKind] ?? 'river');
+  }
+
+  return COMPOSITE_COMPANION_BY_KIND[primaryKind] ?? 'river';
+}
+
+/**
+ * Expand a base (or already-composite) scene into a multi-layer montage.
+ * Single-layer wraps look identical to the base metaphor, so we always invent a
+ * complementary companion layer from the same items when starting from a base kind.
+ */
 function wrapAsComposite(dsl) {
-  const as = METAPHOR_BASE_KINDS.includes(dsl.metaphor) ? dsl.metaphor : 'city';
+  if (dsl.metaphor === 'composite' && Array.isArray(dsl.layers) && dsl.layers.length >= 2) {
+    return {
+      metaphor: 'composite',
+      scene: isObject(dsl.scene) ? { ...dsl.scene } : {},
+      layout: dsl.layout === 'overlay' ? 'overlay' : 'adjacent',
+      layers: dsl.layers.map((layer) => ({ ...layer })),
+      items: [],
+      links: Array.isArray(dsl.links) ? [...dsl.links] : []
+    };
+  }
+
+  const source = dsl.metaphor === 'composite' ? flattenComposite(dsl) : dsl;
+  const primaryAs = METAPHOR_BASE_KINDS.includes(source.metaphor) ? source.metaphor : 'city';
+  const primaryItems = Array.isArray(source.items) ? source.items.map((item) => ({ ...item })) : [];
+  const links = Array.isArray(source.links) ? [...source.links] : [];
+  const companionAs = pickCompositeCompanionKind(primaryAs, primaryItems, links);
+  // Distinct ids so CompositeScene link anchors (keyed by item id) don't collide
+  // when the companion remaps the same actors into a second spatial story.
+  const companionItems = primaryItems.map((item, index) => {
+    const mapped = mapItemToKind(item, primaryAs, companionAs, index);
+    return { ...mapped, id: `companion-${mapped.id}` };
+  });
+
   return {
     metaphor: 'composite',
-    scene: isObject(dsl.scene) ? { ...dsl.scene } : {},
+    scene: isObject(source.scene) ? { ...source.scene } : {},
     layout: 'adjacent',
     layers: [
       {
-        id: 'layer-1',
-        as,
-        label: METAPHOR_KIND_LABELS[as] ?? as,
-        items: Array.isArray(dsl.items) ? dsl.items.map((item) => ({ ...item })) : []
+        id: 'layer-primary',
+        as: primaryAs,
+        label: COMPOSITE_LAYER_LABELS[primaryAs] ?? METAPHOR_KIND_LABELS[primaryAs] ?? primaryAs,
+        items: primaryItems
+      },
+      {
+        id: 'layer-companion',
+        as: companionAs,
+        label:
+          COMPOSITE_LAYER_LABELS[companionAs] ?? METAPHOR_KIND_LABELS[companionAs] ?? companionAs,
+        items: companionItems
       }
     ],
     items: [],
-    links: Array.isArray(dsl.links) ? [...dsl.links] : []
+    links
   };
 }
 

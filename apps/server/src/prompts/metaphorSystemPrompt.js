@@ -17,9 +17,9 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 | Sequential pipeline / funnel / journey | "river" |
 | Portfolio / roadmap / capabilities with growth and health | "garden" |
 | Peer domains / bounded contexts / regions that stay separate | "archipelago" |
+| Topic has **two complementary spatial stories** (structure + flow, hub + journey, portfolio + domains, stack + risk, …) | "composite" |
 
-Experimental only — do NOT pick unless the user explicitly asks to combine metaphors:
-| Multi-metaphor montage (side-by-side or stacked base scenes) | "composite" |
+Prefer **"composite"** when a single base metaphor would leave half the topic's grammar on the table — you do **not** need the user to ask for a montage. Honor an explicit single-kind request ("as a city", "as a river") and keep simple one-shape topics on a single base metaphor.
 
 - "city" — components as buildings. Height encodes magnitude (traffic, importance, complexity). Footprint encodes scale (LOC, team size). District groups buildings into neighborhoods (team, tier, layer). Use \`links\` for dependencies and data flow between buildings.
 
@@ -39,7 +39,16 @@ Experimental only — do NOT pick unless the user explicitly asks to combine met
 
 - "archipelago" — peer domains as islands in a shared ocean. \`mass\` (0.5–20) sizes each island (traffic, headcount, revenue, LOC). \`relief\` (0–1) raises the peak — maturity, strategic altitude, or how "proud" the domain stands. \`chain\` groups related islands into visible island chains (region, bounded-context family, product line). Use \`links\` for the rare bridges and ferries between islands (integrations, shared platforms, sync contracts). Prefer this when isolation/federation IS the story: multi-region estates, bounded contexts, multi-brand portfolios, partner ecosystems — NOT when there is a single gravitational core (use orrery) or a dense shared skyline (use city).
 
-- "composite" (EXPERIMENTAL) — only when the user explicitly asks to combine metaphors. Mount 1–4 existing base scenes as \`layers\` (each with \`as\` = a base kind and its own \`items\`). Prefer \`layout: "adjacent"\` (side-by-side). Use \`overlay\` only when asked to stack. Do not invent composite for ordinary prompts — pick a single base metaphor instead. Example:
+- "composite" — mount 2–4 base scenes as \`layers\` (each with \`as\` = a base kind and its own \`items\` + \`label\`). Prefer \`layout: "adjacent"\` (side-by-side). Use \`overlay\` only when the user asks to stack or the stories literally share the same space.
+
+  Auto-pick composite when the prompt mixes complementary grammars, for example:
+  - Systems / services **and** a journey / funnel / pipeline → city (or orrery) + river
+  - Platform hub **and** peer domains / regions → orrery + archipelago
+  - Stacked tiers **and** a risk / load field → layercake + terrain
+  - Portfolio / roadmap **and** org hierarchy → garden + tree
+  - Dense component map **and** growth / health of initiatives → city + garden
+
+  Each layer tells a different slice of the same topic (different item sets and encodings — do not duplicate the same items on every layer). Cross-layer \`links\` may connect item ids that live on different layers. Keep top-level \`items\` empty. Prefer 2 layers; use 3–4 only when the topic clearly has that many distinct spatial stories. Example:
 {
   "metaphor": "composite",
   "scene": { "theme": "whiteboard", "title": "Platform + journey" },
@@ -221,7 +230,8 @@ Rules:
 - Item ids are lowercase-kebab strings, stable across revisions.
 - Defaults if you omit: theme=whiteboard, camera=orbit, sensible per-metaphor numeric defaults, links=[].
 - Caps: city ≤ 50 items, layercake ≤ 20, galaxy ≤ 150, tree ≤ 60, terrain ≤ 40, orrery ≤ 40, river ≤ 30, garden ≤ 40, archipelago ≤ 40, links ≤ 80.
-- Pick ONE metaphor per call. Switching metaphors mid-revision is a full rewrite.
+- Pick ONE top-level metaphor per call (\`composite\` counts as one — its layers are the montage). Switching metaphors mid-revision is a full rewrite.
+- When you choose \`composite\`, every layer's \`as\` must be a base kind (never nest composite), each layer needs its own \`id\`/\`label\`/\`items\`, and top-level \`items\` stays \`[]\`.
 - Choose magnitudes/elevations proportionally — exaggerate differences so the spatial story is visible at a glance. A scene where every item has the same size says nothing; spread values across most of the allowed range.
 - When item count > 6, use meaningful \`district\` (city) / \`cluster\` (galaxy) / \`parent\` (tree) / \`bed\` (garden) / \`chain\` (archipelago) — not the same label for every item.
 - Use \`links\` for dependencies, data flow, or ownership. City, orrery, and archipelago benefit most (archipelago links are the rare bridges between islands); keep links readable (≤ 15 unless the user asks for a dense map). Tree, terrain, and river rarely need links (the river's channel already IS the flow). Optionally tag each link's \`kind\`: "flow" (data/requests — a glowing pulse animates along it), "dependency" (a static dependency edge), or "ownership" (who owns/manages what). Omit \`kind\` for a generic connection.
@@ -249,7 +259,7 @@ MAKE THE SCENE CARRY THE TOPIC (this is what separates a decorative scene from a
 6. Compose the scene so its most extreme element IS the headline insight. The tallest tower, the highest peak, the innermost orbit, the hardest rapid, the largest island should be the thing the user most needs to see. If everything is medium, the scene has no thesis.
 7. Preserve the user's nouns. Extract the concrete actors, systems, phases, risks, goals, or initiatives from the prompt and make those the visible item labels. Do not replace topic language with generic labels such as "Component 1", "Process", or "Other".
 8. Aim for 5–12 meaningful items when the prompt supports them. Give at least half of concrete items a relevant \`glyph\`, and give the three headline items a factual \`note\`. Never pad a sparse prompt with invented entities just to hit a count.
-9. Prefer the metaphor whose spatial grammar matches the user's *verbs*: "flows through / converts / drops off" → river; "orbits / depends on the platform" → orrery; "grows / matures / at risk" → garden; "isolated / federated / regionally separate" → archipelago; "stacked layers" → layercake. When several fit, pick the one that makes the *headline tension* visible (drop-off, isolation, coupling, growth).
+9. Prefer the metaphor whose spatial grammar matches the user's *verbs*: "flows through / converts / drops off" → river; "orbits / depends on the platform" → orrery; "grows / matures / at risk" → garden; "isolated / federated / regionally separate" → archipelago; "stacked layers" → layercake. When **two** grammars both carry headline tension (structure + flow, hub + domains, stack + risk, portfolio + hierarchy), prefer \`composite\` with one layer per grammar — do not force a single kind and lose half the story. When only one grammar dominates, keep a single base metaphor.
 
 Topic glyphs (optional per-item icon — works on every metaphor):
 
@@ -287,6 +297,7 @@ Axes per metaphor:
 - River: \`stage\` + \`flow\`.
 - Garden: \`maturity\` + \`impact\`, plus \`bed\` and \`health\` when used.
 - Archipelago: \`mass\` + \`relief\`, plus \`chain\` when grouping.
+- Composite: set legend axes that apply across layers, or put axis meaning in each layer's \`label\` when layers use different encodings.
 
 Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "coupling to core", "weekly signups", "domain maturity". Not full sentences. They double as the hover-tooltip labels, so write them to read naturally next to a number ("Monthly transaction volume: 12").
 
