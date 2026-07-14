@@ -289,6 +289,7 @@ export const CONTROLS_EN = {
     resultingChart: 'Resulting chart',
     resulting3d: 'Resulting 3D scene',
     resultingPage: 'Resulting page',
+    resultingForm: 'Resulting form',
     resultingDiagram: 'Resulting diagram',
     loadOntoCanvas: 'Load this diagram onto the canvas.',
     patchFromTool: 'Diagram patch from agent tool',
@@ -442,7 +443,8 @@ export const CONTROLS_EN = {
     chart: 'Chart preview (read-only)',
     metaphor3d: '3D metaphor preview (read-only)',
     page: 'Page preview (read-only)',
-    mermaid: 'Mermaid preview (read-only)'
+    mermaid: 'Mermaid preview (read-only)',
+    forms: 'Form preview (read-only)'
   },
   diagramSurface: {
     controls: 'Diagram surface controls'

@@ -273,6 +273,7 @@ export const CONTROLS_ZH_TW = {
     resultingChart: '產生的圖表',
     resulting3d: '產生的 3D 場景',
     resultingPage: '產生的頁面',
+    resultingForm: '產生的表單',
     resultingDiagram: '產生的圖表',
     loadOntoCanvas: '將此圖表載入到畫布。',
     patchFromTool: '來自智慧代理工具的圖表修補',
@@ -424,7 +425,8 @@ export const CONTROLS_ZH_TW = {
     chart: '圖表預覽（唯讀）',
     metaphor3d: '3D 隱喻預覽（唯讀）',
     page: '頁面預覽（唯讀）',
-    mermaid: 'Mermaid 預覽（唯讀）'
+    mermaid: 'Mermaid 預覽（唯讀）',
+    forms: '表單預覽（唯讀）'
   },
   diagramSurface: {
     controls: '圖表介面控制項'

@@ -2238,6 +2238,53 @@
   display: none;
 }
 
+/* Forms thumbnail: show the top of the live A2UI surface (masthead + first fields)
+   as a static, non-interactive preview. The whole surface is absolutely positioned
+   for the full canvas, so re-anchor it into the bounded thumbnail box. */
+.insights-embedded-diagram--forms {
+  max-height: min(20rem, 42vh);
+}
+
+.insights-embedded-diagram--forms .insights-embedded-diagram-inner {
+  position: relative;
+  height: min(20rem, 42vh);
+  min-height: 12rem;
+  overflow: hidden;
+  padding: 0;
+  align-items: flex-start;
+}
+
+.forms-renderer-root--preview {
+  position: relative;
+  inset: auto;
+  width: 100%;
+  height: 100%;
+  padding: 0.75rem;
+  overflow: hidden;
+  justify-content: center;
+  align-items: flex-start;
+  pointer-events: none;
+}
+
+.forms-renderer-root--preview .forms-a2ui-surface-root {
+  max-width: 100%;
+  padding: 0.85rem 1rem;
+  box-shadow: none;
+  font-size: 0.82rem;
+}
+
+/* Fade the clipped bottom edge so the thumbnail reads as "more below". */
+.insights-embedded-diagram--forms .insights-embedded-diagram-inner::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3rem;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgba(255, 253, 248, 0), rgba(255, 253, 248, 0.9));
+}
+
 .insights-patch-summary-viz {
   flex-direction: column;
   align-items: stretch;

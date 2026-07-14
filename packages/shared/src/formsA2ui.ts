@@ -232,6 +232,15 @@ export function parseFormsA2ui(source: unknown): ParseFormsA2uiResult {
         componentCount += 1;
         if (FORMS_INPUT_COMPONENTS.has(name)) inputCount += 1;
         if (name === 'Button') {
+          // A2UI disables a Button whose own checks fail. Every forms Button is the
+          // "submit → next form" escape hatch, so a failing check would soft-lock the
+          // gauntlet. Keep validation on inputs (where it renders as an inline message
+          // and never blocks submission); forbid it on Buttons.
+          if (Array.isArray(c.checks) && c.checks.length > 0) {
+            return fail(
+              `Button "${id}" must not carry "checks" — a failing check disables the button and traps the user. Put validation on the input fields instead.`
+            );
+          }
           const actionError = validateButtonAction(c.action, id);
           if (actionError) return fail(actionError);
           buttonCount += 1;
@@ -315,9 +324,18 @@ function validateButtonAction(action: unknown, id: string): string | null {
 }
 
 /**
- * Optional intro form document for tests and offline fixtures. The live UI no
- * longer auto-renders this on an empty slot — users start from the same empty
- * canvas as other modes and ask the agent for the first form.
+ * Canonical intro form document — the reference shape every generated form should
+ * resemble, used by tests and offline fixtures. The live UI no longer auto-renders
+ * this on an empty slot (users start from the same empty canvas as other modes),
+ * but it demonstrates the three things a good archislop form does beyond "valid
+ * A2UI": it (1) reads as a real form (masthead, sections, labelled inputs, submit
+ * row), (2) visualizes its subject (emoji stamps + a hero stat tile — emoji, not
+ * the basic catalog's named `Icon`s, which need a Material font the app does not
+ * load and would render as raw text), and (3) makes its fields talk to each other —
+ * a live `formatString` echo of `/applicantName` and a self-cancelling `checks`
+ * rule that cross-references `/consent`. Both cross-refs are safe: the echo is
+ * display-only, and the check renders as an inline message on an input (never on
+ * the submit Button), so it can never block the gauntlet.
  */
 export function buildFormsSeedDoc(): string {
   const doc: FormsA2uiDoc = {
@@ -339,21 +357,68 @@ export function buildFormsSeedDoc(): string {
               id: 'root',
               component: 'Column',
               children: [
-                'title',
+                'masthead',
+                'hero_card',
                 'blurb',
                 'div0',
+                'sec1_hdr',
                 'q_name',
+                'echo_name',
                 'q_reason',
-                'q_consent',
+                'q_urgency',
+                'urgency_note',
                 'div1',
+                'sec2_hdr',
+                'q_consent',
+                'q_ack',
+                'div2',
                 'submit_row'
               ]
             },
             {
-              id: 'title',
+              id: 'masthead',
+              component: 'Row',
+              justify: 'start',
+              align: 'center',
+              children: ['mast_icon', 'mast_col']
+            },
+            { id: 'mast_icon', component: 'Text', text: '🗂️', variant: 'h2' },
+            {
+              id: 'mast_col',
+              component: 'Column',
+              children: ['agency_txt', 'title_txt', 'code_txt']
+            },
+            {
+              id: 'agency_txt',
+              component: 'Text',
+              text: 'Office of Forms, Sub-Forms & Ancillary Documentation',
+              variant: 'caption'
+            },
+            {
+              id: 'title_txt',
               component: 'Text',
               text: 'Form 0-A/pre — Pre-Intake Eligibility Self-Assessment',
               variant: 'h3'
+            },
+            {
+              id: 'code_txt',
+              component: 'Text',
+              text: 'Form code INTK-0000-PRE · rev. 3 · supersedes nothing',
+              variant: 'caption'
+            },
+            { id: 'hero_card', component: 'Card', child: 'hero_col' },
+            {
+              id: 'hero_col',
+              component: 'Column',
+              align: 'center',
+              children: ['hero_num', 'hero_cap']
+            },
+            { id: 'hero_num', component: 'Text', text: '0042', variant: 'h1' },
+            {
+              id: 'hero_cap',
+              component: 'Text',
+              text: 'forms ahead of you in the queue (approximate; steadily increasing)',
+              variant: 'caption'
             },
             {
               id: 'blurb',
@@ -363,10 +428,29 @@ export function buildFormsSeedDoc(): string {
             },
             { id: 'div0', component: 'Divider' },
             {
+              id: 'sec1_hdr',
+              component: 'Text',
+              text: '🪪 Section 1 — Identity (provisional)',
+              variant: 'h5'
+            },
+            {
               id: 'q_name',
               component: 'TextField',
               label: 'Full legal name, as it appears on a document you do not yet have (required)',
-              value: { path: '/name' }
+              value: { path: '/applicantName' }
+            },
+            {
+              id: 'echo_name',
+              component: 'Text',
+              variant: 'caption',
+              text: {
+                call: 'formatString',
+                args: {
+                  value:
+                    'Noted. We will address you as “${/applicantName}” in all future correspondence, none of which will be sent.'
+                },
+                returnType: 'string'
+              }
             },
             {
               id: 'q_reason',
@@ -384,13 +468,58 @@ export function buildFormsSeedDoc(): string {
               value: { path: '/reason' }
             },
             {
+              id: 'q_urgency',
+              component: 'Slider',
+              label: 'Perceived urgency (non-binding; will be ignored)',
+              min: 0,
+              max: 5,
+              value: { path: '/urgency' }
+            },
+            {
+              id: 'urgency_note',
+              component: 'Text',
+              variant: 'caption',
+              text: {
+                call: 'formatString',
+                args: {
+                  value:
+                    'Urgency logged at ${/urgency} of 5. This value has been recorded and disregarded.'
+                },
+                returnType: 'string'
+              }
+            },
+            { id: 'div1', component: 'Divider' },
+            {
+              id: 'sec2_hdr',
+              component: 'Text',
+              text: '✒️ Section 2 — Attestations',
+              variant: 'h5'
+            },
+            {
               id: 'q_consent',
               component: 'CheckBox',
               label:
                 'I acknowledge that acknowledging this does not constitute acknowledgement (required)',
               value: { path: '/consent' }
             },
-            { id: 'div1', component: 'Divider' },
+            {
+              id: 'q_ack',
+              component: 'CheckBox',
+              label: 'I have NOT read the guidelines (mandatory)',
+              value: { path: '/guidelinesUnread' },
+              checks: [
+                {
+                  condition: {
+                    call: 'not',
+                    args: { value: { path: '/consent' } },
+                    returnType: 'boolean'
+                  },
+                  message:
+                    'This attestation is only valid while the box above remains unchecked. Please reconcile with the box above, then this box, then the box above.'
+                }
+              ]
+            },
+            { id: 'div2', component: 'Divider' },
             {
               id: 'submit_row',
               component: 'Row',
@@ -425,7 +554,13 @@ export function buildFormsSeedDoc(): string {
         updateDataModel: {
           surfaceId: FORMS_A2UI_SURFACE_ID,
           path: '/',
-          value: { name: '', reason: '', consent: false }
+          value: {
+            applicantName: '',
+            reason: '',
+            urgency: 0,
+            consent: false,
+            guidelinesUnread: false
+          }
         }
       }
     ]

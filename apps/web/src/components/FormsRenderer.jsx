@@ -69,7 +69,8 @@ export default function FormsRenderer({
   diagramSource,
   streamingPreview = false,
   busy = false,
-  onFormSubmit
+  onFormSubmit,
+  preview = false
 }) {
   const { controls } = useUiCopy();
   const lastGoodDocRef = useRef(null);
@@ -92,14 +93,15 @@ export default function FormsRenderer({
   }, [diagramSource, streamingPreview]);
 
   // Live refs so the (stable) action handler always sees the current form + guards.
-  const stateRef = useRef({ parsed, busy, streamingPreview, onFormSubmit });
-  stateRef.current = { parsed, busy, streamingPreview, onFormSubmit };
+  const stateRef = useRef({ parsed, busy, streamingPreview, onFormSubmit, preview });
+  stateRef.current = { parsed, busy, streamingPreview, onFormSubmit, preview };
 
   const processorRef = useRef(null);
   if (!processorRef.current) {
     processorRef.current = new MessageProcessor([basicCatalog], async (action) => {
       const current = stateRef.current;
-      if (current.busy || current.streamingPreview) return;
+      // The thinking-pane preview is a read-only mirror — never advance the gauntlet from it.
+      if (current.busy || current.streamingPreview || current.preview) return;
       if (!current.parsed.ok) return;
       const p = processorRef.current;
       const surface = p?.model.getSurface(FORMS_A2UI_SURFACE_ID);
@@ -193,7 +195,11 @@ export default function FormsRenderer({
 
   return (
     <MarkdownContext.Provider value={renderMarkdown}>
-      <div className={`forms-renderer-root${busy || streamingPreview ? ' is-busy' : ''}`}>
+      <div
+        className={`forms-renderer-root${busy || streamingPreview ? ' is-busy' : ''}${
+          preview ? ' forms-renderer-root--preview' : ''
+        }`}
+      >
         <div
           className="forms-a2ui-surface-root a2ui-surface a2ui-light"
           aria-label={controls.contentModes?.forms ?? 'Forms'}

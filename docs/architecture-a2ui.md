@@ -94,6 +94,11 @@ Streaming prose also passes through [`thinkingProseEnrich.jsx`](../apps/web/src/
 
 **Forms** is the sixth diagram slot and the one place where an ArchiSlop agent authors A2UI JSON directly. It exists to use A2UI _as intended_ — the agent designs a live, interactive interface — inside the app's corporate-IT parody: endless, tedious, faintly menacing intake forms. The user fills the controls in place; when they submit, the agent issues the **next** form. There is always another form.
 
+Two properties make a forms document more than "valid A2UI" (the system prompt and the seed doc in `buildFormsSeedDoc` both model them):
+
+- **It visualizes its subject.** The form is unmistakably _about_ the user's topic — themed agency name / form code / section titles / options / microcopy, plus emoji "stamps" and a "hero stat" tile (a `Card` around an absurd `h1` number). Visuals come from emoji + typography only: external `Image` URLs are avoided (they won't load), and the basic catalog's named `Icon` needs a Material icon font the app doesn't ship, so a named Icon renders as raw text — the prompt steers to emoji (or an `Icon` with an explicit `svgPath`).
+- **Its fields cross-reference each other.** A2UI's client-evaluated functions make controls interact live: a `Text` whose `text` is a `formatString` call (`${/field}`) echoes an earlier answer as the user types; an input's `checks` rule can watch _another_ field (`not`/`and`/`or` over `{path}`) and render a self-cancelling complaint inline. These functions (`formatString`, `format*`, `pluralize`, `required`, `regex`, `and`, `or`, `not`) are pure and local — they read the surface's own data model, never the network — so enabling them adds no trust surface. `checks` are allowed on **inputs only**: a failing check disables the component that carries it, and every forms Button is the "submit → next form" escape hatch, so `parseFormsA2ui` rejects `checks` on a Button to keep the gauntlet from soft-locking.
+
 Because the model writes the UI, the slot content **is** an A2UI document (not a chart DSL, not HTML). It is stored as the `forms` slot's `diagramSource`, a JSON wrapper:
 
 ```json
@@ -138,13 +143,17 @@ sequenceDiagram
 | Inline catalog             | `catalogId` is normalized to the fixed basic-catalog id; the model cannot ship its own catalog                                                                                                                                                                         |
 | Surface confusion          | Every message's `surfaceId` is normalized to `FORMS_A2UI_SURFACE_ID` so the renderer always knows what to read                                                                                                                                                         |
 | Untrusted text in labels   | Rendered as A2UI text/markdown — same CSP/sanitization as the critique checklist                                                                                                                                                                                       |
+| Button soft-lock           | `checks` are forbidden on Buttons — a failing check disables the component, and every Button is the only way to advance the endless-forms loop                                                                                                                         |
+| Client-evaluated functions | Only the basic-catalog functions run, and they are pure/local (read the surface data model, no network). `functionCall` actions stay forbidden; the interpolation/logic functions in `text`/`checks` cannot route or fetch                                             |
 | Payload / component blowup | JSON ≤ `FORMS_A2UI_MAX_LENGTH`, components ≤ `MAX_FORM_COMPONENTS`, messages ≤ `MAX_FORM_MESSAGES`; must have ≥1 input and ≥1 Button                                                                                                                                   |
 
 There is deliberately **no A2UI runtime on the server** — that would pull `@a2ui/web_core` into the backend. The structural allowlist is the server-side gate; the client's `MessageProcessor` is the render-time check. This mirrors chart, where the shared parser precedes the `vega-lite/compile()` gate.
 
 ### The endless-forms loop
 
-Any button click routes through `FormsRenderer` → `onFormSubmit` → `App.handleFormSubmit`, which summarizes the user's answers into a structured prompt (like **Fix**) and re-enters the **intent** path with `contentType: forms`. The agent acknowledges the answers with bureaucratic non-sequiturs, bumps the form code, and issues a fresh form. The visible prompt bar is untouched. On the empty canvas, `FormsRenderer` shows a client-side seed form (`buildFormsSeedDoc`) so the gauntlet is interactive from the first paint.
+Any button click routes through `FormsRenderer` → `onFormSubmit` → `App.handleFormSubmit`, which summarizes the user's answers into a structured prompt (like **Fix**) and re-enters the **intent** path with `contentType: forms`. The agent acknowledges the answers with bureaucratic non-sequiturs (often echoing them back via `formatString`), bumps the form code, and issues a fresh form. The visible prompt bar is untouched. The empty canvas shows the same first-run entry chrome as other modes (`FormsRenderer` renders nothing when the slot is empty); `buildFormsSeedDoc` is the reference/fixture shape, not an auto-render.
+
+**Thinking-pane preview.** The forms slot renders in the Thinking pane like every other mode: `InsightsEmbeddedDiagram` has a `forms` branch that mounts `FormsRenderer` with `preview` (a compact, non-interactive mirror — the submit handler is inert and the container is `pointer-events: none`), and `InsightsPane` lists `forms` in `hasAfterPreview` / `resultingPreviewLabel` so the "Resulting form" thumbnail appears after a run. There is no live _draft_ preview — partial forms JSON is meaningless to render, so `apply_forms_patch` streams with `emitDraftPreview: false` and the canvas updates atomically when the patch validates.
 
 ### Validation ladder (Forms)
 
@@ -159,7 +168,8 @@ Any button click routes through `FormsRenderer` → `onFormSubmit` → `App.hand
 | Agent + lazy service         | [`apps/server/src/agents/formsLangChainAgent.js`](../apps/server/src/agents/formsLangChainAgent.js)                                                                        |
 | Tools (`apply_forms_patch`)  | [`apps/server/src/agents/diagramTools.js`](../apps/server/src/agents/diagramTools.js)                                                                                      |
 | System prompt / repair guide | [`apps/server/src/prompts/formsSystemPrompt.js`](../apps/server/src/prompts/formsSystemPrompt.js), [`formsSyntaxGuard.js`](../apps/server/src/prompts/formsSyntaxGuard.js) |
-| Web renderer + submit loop   | [`apps/web/src/components/FormsRenderer.jsx`](../apps/web/src/components/FormsRenderer.jsx)                                                                                |
+| Web renderer + submit loop   | [`apps/web/src/components/FormsRenderer.jsx`](../apps/web/src/components/FormsRenderer.jsx) (`preview` prop = read-only thumbnail)                                         |
+| Thinking-pane preview        | [`apps/web/src/components/InsightsEmbeddedDiagram.jsx`](../apps/web/src/components/InsightsEmbeddedDiagram.jsx) (`kind: 'forms'`)                                          |
 
 ---
 

@@ -188,3 +188,100 @@ test('buildFormsSeedDoc returns formatted A2UI JSON', () => {
   assert.match(seed, /\n {2}"formTitle"/);
   assert.ok(parseFormsA2ui(seed).ok);
 });
+
+test('buildFormsSeedDoc demonstrates a live cross-reference and a cross-field check', () => {
+  const seed = buildFormsSeedDoc();
+  // A formatString echo that reads back another field, and a check on an input.
+  assert.match(seed, /"formatString"/);
+  assert.match(seed, /\$\{\/applicantName\}/);
+  assert.match(seed, /"checks"/);
+  assert.ok(parseFormsA2ui(seed).ok);
+});
+
+test('parseFormsA2ui accepts formatString Text and cross-field checks on inputs', () => {
+  const doc = validDoc({
+    messages: [
+      { createSurface: {} },
+      {
+        updateComponents: {
+          components: [
+            { id: 'root', component: 'Column', children: ['echo', 't', 'c', 'bt', 'b'] },
+            {
+              id: 'echo',
+              component: 'Text',
+              text: {
+                call: 'formatString',
+                args: { value: 'Noted, ${/t}.' },
+                returnType: 'string'
+              }
+            },
+            { id: 't', component: 'TextField', label: 'Name', value: { path: '/t' } },
+            {
+              id: 'c',
+              component: 'CheckBox',
+              label: 'Attest',
+              value: { path: '/c' },
+              checks: [
+                {
+                  condition: {
+                    call: 'not',
+                    args: { value: { path: '/c' } },
+                    returnType: 'boolean'
+                  },
+                  message: 'Only valid while unchecked.'
+                }
+              ]
+            },
+            { id: 'bt', component: 'Text', text: 'Submit' },
+            {
+              id: 'b',
+              component: 'Button',
+              child: 'bt',
+              action: { event: { name: 'archislop_submitForm' } }
+            }
+          ]
+        }
+      },
+      { updateDataModel: { path: '/', value: { t: '', c: false } } }
+    ]
+  });
+  const r = parseFormsA2ui(doc);
+  assert.ok(r.ok);
+});
+
+test('parseFormsA2ui rejects checks on a Button (would disable the escape hatch)', () => {
+  const bad = validDoc({
+    messages: [
+      { createSurface: {} },
+      {
+        updateComponents: {
+          components: [
+            { id: 'root', component: 'Column', children: ['t', 'bt', 'b'] },
+            { id: 't', component: 'TextField', label: 'Name', value: { path: '/t' } },
+            { id: 'bt', component: 'Text', text: 'Submit' },
+            {
+              id: 'b',
+              component: 'Button',
+              child: 'bt',
+              action: { event: { name: 'archislop_submitForm' } },
+              checks: [
+                {
+                  condition: {
+                    call: 'not',
+                    args: { value: { path: '/t' } },
+                    returnType: 'boolean'
+                  },
+                  message: 'nope'
+                }
+              ]
+            }
+          ]
+        }
+      },
+      { updateDataModel: { path: '/', value: { t: '' } } }
+    ]
+  });
+  const r = parseFormsA2ui(bad);
+  assert.ok(!r.ok);
+  assert.match((r as { error: string }).error, /checks/);
+});

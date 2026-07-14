@@ -8,11 +8,15 @@ export const FORMS_SELF_CHECK = `Self-check before calling apply_forms_patch:
 - messages has exactly one createSurface, then updateComponents, then updateDataModel.
 - Exactly one component has "id": "root".
 - Only basic-catalog component names are used (Text, Column, Row, Card, List, Tabs, Modal, Divider, Image, Icon, TextField, CheckBox, ChoicePicker, Slider, DateTimeInput, Button).
-- Children are arrays of id strings; every referenced id exists in the tree.
-- At least one input control and at least one Button.
-- Every Button has a "child" (a Text id) and action: { "event": { "name": "…" } } — never functionCall.
+- Children are arrays of id strings; every referenced id exists in the tree. Card uses one "child" id; Tabs uses "tabs":[{title,child}].
+- It reads as a FORM, not a wall of text: a masthead, ≥2 section headers, and ≥3 labelled inputs of mixed types.
+- At least one input control and at least one Button; it visualizes the subject (emoji stamps + hero-stat Card + themed copy).
+- At least one cross-reference: a formatString Text echoing a \${/field}, and/or a "checks" rule on an input referencing another /field.
+- Every Button has a "child" (a Text id) and action: { "event": { "name": "…" } } — never functionCall, and NO "checks" on any Button.
 - Every input value binds { "path": "/field" } and that field is seeded in updateDataModel.
-- Slider has "max"; ChoicePicker has "options"; CheckBox/DateTimeInput values are seeded (false / "").`;
+- Slider has "max"; ChoicePicker has "options"; CheckBox/DateTimeInput values are seeded (false / "").
+- Iconography is emoji in Text/labels; no named Icon component (no icon font) and no Image with an invented URL.
+- Every formatString/logic function call sets "returnType" (string / boolean); only these functions are used: formatString, formatNumber, formatCurrency, formatDate, pluralize, required, regex, and, or, not.`;
 
 /** Build repair instructions after a failed forms patch tool call. */
 export function buildFormsRepairInstruction({ errorMessage, brokenSource, originalRequest }) {

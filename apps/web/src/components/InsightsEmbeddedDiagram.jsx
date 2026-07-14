@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import AnythingRenderer from './AnythingRenderer.jsx';
 import ChartRenderer from './ChartRenderer.jsx';
+import FormsRenderer from './FormsRenderer.jsx';
 import InfographicRenderer from './InfographicRenderer.jsx';
 import MetaphorRenderer from './MetaphorRenderer.jsx';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
@@ -46,7 +47,8 @@ function useNearViewport(hostRef) {
 
 /**
  * Small, non-interactive diagram preview for the thinking pane (Mermaid SVG, Infographic
- * canvas, Vega-Lite chart, sandboxed Anything page, or Three.js metaphor scene).
+ * canvas, Vega-Lite chart, sandboxed Anything page, Three.js metaphor scene, or a
+ * read-only A2UI Forms surface).
  */
 export default function InsightsEmbeddedDiagram({
   source,
@@ -243,6 +245,21 @@ export default function InsightsEmbeddedDiagram({
       >
         <div ref={svgHostRef} className="insights-embedded-diagram-inner">
           <AnythingRenderer diagramSource={source} streamingPreview={streamingPreview} />
+        </div>
+      </div>
+    );
+  }
+
+  if (kind === 'forms') {
+    return (
+      <div
+        ref={outerRef}
+        className="insights-embedded-diagram insights-embedded-diagram--forms"
+        data-testid="insights-embedded-diagram"
+        aria-label={controls.embeddedPreview.forms}
+      >
+        <div ref={svgHostRef} className="insights-embedded-diagram-inner">
+          <FormsRenderer diagramSource={source} streamingPreview={streamingPreview} preview />
         </div>
       </div>
     );
