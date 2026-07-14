@@ -227,9 +227,7 @@
   overflow: auto;
   display: flex;
   justify-content: center;
-  padding:
-    calc(var(--forms-top-chrome-est) + env(safe-area-inset-top, 0px))
-    1rem
+  padding: calc(var(--forms-top-chrome-est) + env(safe-area-inset-top, 0px)) 1rem
     calc(var(--forms-bottom-chrome-est) + env(safe-area-inset-bottom, 0px) + 0.75rem);
   scroll-padding-bottom: calc(
     var(--forms-bottom-chrome-est) + env(safe-area-inset-bottom, 0px) + 0.75rem
