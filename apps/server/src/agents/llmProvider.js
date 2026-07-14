@@ -24,7 +24,7 @@ export const DEFAULT_OPENROUTER_MODEL_QUALITY = 'qwen/qwen3-235b-a22b';
 export class LlmNotConfiguredError extends Error {
   constructor() {
     super(
-      'No LLM backend is configured. For local dev set DEEPSEEK_API_KEY or OPENROUTER_API_KEY in .env, or configure Vertex (VERTEX_PROJECT_ID / GOOGLE_CLOUD_PROJECT + VERTEX_LOCATION + IAM). On Cloud Run attach Secret Manager secret openrouter-api-key and/or enable Vertex with roles/aiplatform.user (see docs/deploy/gcp.md).'
+      'No LLM backend is configured. For local dev set DEEPSEEK_API_KEY or OPENROUTER_API_KEY in .env, or configure Vertex (VERTEX_PROJECT_ID / GOOGLE_CLOUD_PROJECT + VERTEX_LOCATION + IAM). On Cloud Run enable Vertex with roles/aiplatform.user and optionally attach Secret Manager secrets deepseek-api-key (Brain Quality) and/or openrouter-api-key (see docs/deploy/gcp.md).'
     );
     this.name = 'LlmNotConfiguredError';
     this.statusCode = 503;
@@ -168,7 +168,7 @@ export function resolveDeepSeekModelId(env = process.env, profile = 'fast') {
 export function resolveModelId(
   env = process.env,
   profile = 'fast',
-  backend = resolveLlmBackend(env)
+  backend = resolveLlmBackend(env, profile)
 ) {
   if (backend === 'vertex') return resolveVertexModelId(env, profile);
   if (backend === 'deepseek') return resolveDeepSeekModelId(env, profile);
@@ -176,10 +176,23 @@ export function resolveModelId(
 }
 
 /**
+ * True when auto mode can split Brain profiles across Vertex (Fast) and DeepSeek (Quality).
  * @param {NodeJS.ProcessEnv} [env]
+ */
+export function isHybridVertexDeepseek(env = process.env) {
+  return isVertexEnvConfigured(env) && Boolean(env.DEEPSEEK_API_KEY);
+}
+
+/**
+ * Resolve LLM backend. Optional `profile` enables hybrid Brain routing in `auto` mode:
+ * when Vertex and DeepSeek are both configured, Fast → Vertex (Gemini Flash) and
+ * Quality → DeepSeek (V4 Pro). Callers without a profile get the Fast/primary backend.
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @param {'fast' | 'quality'} [profile]
  * @returns {LlmBackend | null}
  */
-export function resolveLlmBackend(env = process.env) {
+export function resolveLlmBackend(env = process.env, profile) {
   const raw = typeof env.LLM_PROVIDER === 'string' ? env.LLM_PROVIDER.trim().toLowerCase() : '';
   const mode = raw === 'vertex' || raw === 'openrouter' || raw === 'deepseek' ? raw : 'auto';
 
@@ -196,6 +209,13 @@ export function resolveLlmBackend(env = process.env) {
   if (envTruthy(env.OPENROUTER_PREFERRED) && env.OPENROUTER_API_KEY) {
     return 'openrouter';
   }
+
+  // Hybrid Brain: Fast = low-latency Gemini Flash on Vertex; Quality = DeepSeek V4 Pro.
+  if (isHybridVertexDeepseek(env)) {
+    const p = profile != null ? normalizeModelProfile(profile) : 'fast';
+    return p === 'quality' ? 'deepseek' : 'vertex';
+  }
+
   if (env.K_SERVICE && isVertexEnvConfigured(env)) {
     return 'vertex';
   }
@@ -351,15 +371,20 @@ export function createChatModelForBackend(env, backend, overrides = {}) {
 
 /**
  * Unified factory: Vertex, DeepSeek, or OpenRouter from `resolveLlmBackend`.
+ * Pass `backend` and/or `modelProfile` in overrides when the Brain tier should
+ * pick a different provider (hybrid Fast=Vertex / Quality=DeepSeek).
  * @param {NodeJS.ProcessEnv} env
  * @param {Record<string, unknown>} [overrides]
  */
 export function createLlmChatModel(env = process.env, overrides = {}) {
-  const backend = resolveLlmBackend(env);
+  const { backend: explicitBackend, modelProfile, ...rest } = overrides;
+  const backend =
+    (typeof explicitBackend === 'string' && explicitBackend) ||
+    resolveLlmBackend(env, /** @type {'fast' | 'quality' | undefined} */ (modelProfile));
   if (!backend) {
     throw new LlmNotConfiguredError();
   }
-  return createChatModelForBackend(env, backend, overrides);
+  return createChatModelForBackend(env, /** @type {LlmBackend} */ (backend), rest);
 }
 
 /**

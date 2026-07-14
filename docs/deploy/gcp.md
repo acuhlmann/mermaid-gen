@@ -76,7 +76,7 @@ Set **`GCP_PROJECT_ID`** (`mermaidgen`) plus Workload Identity secrets as below.
    | `GCP_WORKLOAD_IDENTITY_PROVIDER` | Full provider resource name from `gcloud iam workload-identity-pools providers describe …` |
    | `GCP_SERVICE_ACCOUNT`            | Deployer SA email, e.g. `github-deploy-mermaid-gen@PROJECT_ID.iam.gserviceaccount.com`     |
 
-6. Optional: create Secret Manager secret **`openrouter-api-key`** for LLM features; grant the **runtime** SA `secretAccessor` on it (see below).
+6. Optional: create Secret Manager secrets **`deepseek-api-key`** (Brain Quality / hybrid) and/or **`openrouter-api-key`** (backup / OpenRouter-preferred); grant the **runtime** SA `secretAccessor` on them (see below).
 
 ## Two Cloud Run URLs (recommended): main vs hackathon snapshot
 
@@ -93,7 +93,7 @@ export GCP_PROJECT_ID=mermaidgen   # example
 ./scripts/deploy-hackathon-cloud-run.sh   # optional second URL; uses current tree / checkout
 ```
 
-Optional env overrides: `REGION` (default `us-central1`), `AR_REPO` (default `mermaid-gen`). Create Secret Manager secret **`openrouter-api-key`** if you want LLM features (see below).
+Optional env overrides: `REGION` (default `us-central1`), `AR_REPO` (default `mermaid-gen`). Create Secret Manager secret **`deepseek-api-key`** for Brain Quality (hybrid with Vertex) and optionally **`openrouter-api-key`** (see below).
 
 ### Legacy: one hostname with `/` and `/hackathon/` paths
 
@@ -146,17 +146,29 @@ When the API server runs on **Cloud Run**, it can call **Vertex AI** (Gemini / G
    ```
 
 3. **Configure routing** (see [`.env.example`](../../.env.example)):
-   - **`LLM_PROVIDER=auto`** (default): on Cloud Run (`K_SERVICE` is set), prefer Vertex when **`VERTEX_PROJECT_ID`** (set automatically by deploy scripts from `GCP_PROJECT_ID`) and region resolve; otherwise use OpenRouter if `OPENROUTER_API_KEY` is set. Set **`OPENROUTER_PREFERRED=1`** to use OpenRouter first whenever the key is present (including on Cloud Run).
+   - **`LLM_PROVIDER=auto`** (default): on Cloud Run (`K_SERVICE` is set), prefer Vertex when **`VERTEX_PROJECT_ID`** (set automatically by deploy scripts from `GCP_PROJECT_ID`) and region resolve. When **`DEEPSEEK_API_KEY`** is also attached, Brain **Fast** stays on Vertex Gemini Flash and Brain **Quality** uses DeepSeek V4 Pro (`deepseek-v4-pro`). Set **`OPENROUTER_PREFERRED=1`** to use OpenRouter first whenever the key is present (including on Cloud Run).
    - **`LLM_PROVIDER=vertex`**: Vertex only (requires a resolvable GCP project and region).
+   - **`LLM_PROVIDER=deepseek`**: DeepSeek only (requires Secret Manager or env key).
    - **`LLM_PROVIDER=openrouter`**: OpenRouter only (requires Secret Manager or env key).
 
-Keep the **`openrouter-api-key`** secret attached if you want **OpenRouter as backup** (analyze streaming retries once on OpenRouter after a Vertex stream error) or when using **`OPENROUTER_PREFERRED=1`**. Local development typically uses OpenRouter from `.env`; Vertex locally needs `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, and Application Default Credentials (for example `gcloud auth application-default login`).
+Keep the **`deepseek-api-key`** secret attached for hybrid Brain Quality. Keep **`openrouter-api-key`** if you want **OpenRouter as backup** (analyze streaming retries once on OpenRouter after a Vertex stream error) or when using **`OPENROUTER_PREFERRED=1`**. Local development typically uses DeepSeek and/or OpenRouter from `.env`; Vertex locally needs `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, and Application Default Credentials (for example `gcloud auth application-default login`).
 
-## Secrets (OpenRouter optional on Cloud Run; common for local dev)
+## Secrets (DeepSeek for Brain Quality; OpenRouter optional)
 
-`.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put the key in **Secret Manager** and expose it as env var **`OPENROUTER_API_KEY`** on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
+`.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put keys in **Secret Manager** and expose them as env vars on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
 
-### One command (recommended)
+### DeepSeek (recommended for hybrid Brain Quality)
+
+```bash
+chmod +x scripts/push-deepseek-secret-cloud-run.sh
+export DEEPSEEK_API_KEY='your-key-here'   # paste from local .env (never commit)
+GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-deepseek-secret-cloud-run.sh
+# or: npm run secret:deepseek:cloud-run
+```
+
+That creates or updates secret **`deepseek-api-key`**, grants the default Cloud Run runtime service account **`secretAccessor`**, and attaches **`DEEPSEEK_API_KEY`** to **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**.
+
+### OpenRouter (optional backup / preferred)
 
 From the repo root, with the same key you use locally:
 

@@ -157,16 +157,16 @@ export function createFormsLangChainAgent({
   const tools = createFormsTools({ stateStore });
 
   function buildAgent(profile) {
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, profile);
     const modelId = resolveModelId(env, profile, backend);
-    const llm = createChatModel(env, { model: modelId });
+    const llm = createChatModel(env, { model: modelId, backend, modelProfile: profile });
     return createAgentImpl({ model: llm, tools, systemPrompt: FORMS_SYSTEM_PROMPT });
   }
 
   function buildAnalysisModel(profile) {
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, profile);
     const modelId = resolveModelId(env, profile, backend);
-    return createChatModel(env, { model: modelId });
+    return createChatModel(env, { model: modelId, backend, modelProfile: profile });
   }
 
   async function invokeAgentStream({ agent, messages, abortSignal, emit }) {
@@ -233,7 +233,7 @@ export function createFormsLangChainAgent({
     let invokeErrored = false;
     const agent = buildAgent(runProfile);
 
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, runProfile);
     const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
     let repairAttempts = 0;
     const finishTurn = (sample) => {

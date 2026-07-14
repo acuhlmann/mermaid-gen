@@ -79,6 +79,9 @@ jobs:
           if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/null; then
             CLOUD_RUN_SECRETS+=("OPENROUTER_API_KEY=openrouter-api-key:latest")
           fi
+          if gcloud secrets describe deepseek-api-key --project="${PROJECT_ID}" &>/dev/null; then
+            CLOUD_RUN_SECRETS+=("DEEPSEEK_API_KEY=deepseek-api-key:latest")
+          fi
           if gcloud secrets describe invite-token-secret --project="${PROJECT_ID}" &>/dev/null; then
             CLOUD_RUN_SECRETS+=("INVITE_TOKEN_SECRET=invite-token-secret:latest")
           fi

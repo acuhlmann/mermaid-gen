@@ -37,15 +37,15 @@ export function createDiagramAgentCache({
   const agentExtras = middleware && middleware.length > 0 ? { middleware } : {};
 
   function chatModelFor(modelProfile, extraOptions = {}) {
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, modelProfile);
     const modelId = resolveModelId(env, modelProfile, backend);
-    return chatModelFactory(env, { model: modelId, ...extraOptions });
+    return chatModelFactory(env, { model: modelId, backend, modelProfile, ...extraOptions });
   }
 
   function resolveModelLabel(modelProfile) {
-    const backend = resolveLlmBackend(env);
-    if (!backend) return null;
     const p = normalizeModelProfile(modelProfile);
+    const backend = resolveLlmBackend(env, p);
+    if (!backend) return null;
     const modelId = resolveModelId(env, p, backend);
     return `${backend}:${modelId}`;
   }
@@ -53,7 +53,7 @@ export function createDiagramAgentCache({
   /** Default intent / Go agent — no transform sampling. */
   function getDefaultAgent(profile = 'fast') {
     const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, p);
     const modelId = resolveModelId(env, p, backend);
     const key = `default:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
@@ -73,7 +73,7 @@ export function createDiagramAgentCache({
   /** Refine / Innovate / Go Mad / Align / exec agent. */
   function getTransformAgent(mode, profile = 'fast', goMadDepth) {
     const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, p);
     const modelId = resolveModelId(env, p, backend);
     const madDepth = mode === 'goMad' ? clampGoMadDepth(goMadDepth) : null;
     const key =
@@ -102,7 +102,7 @@ export function createDiagramAgentCache({
    */
   function getCustomAgent({ keyPrefix, profile = 'fast', modelOptions = {} }) {
     const p = normalizeModelProfile(profile);
-    const backend = resolveLlmBackend(env);
+    const backend = resolveLlmBackend(env, p);
     const modelId = resolveModelId(env, p, backend);
     const key = `${keyPrefix}:${backend}:${modelId}`;
     if (!agentCache.has(key)) {
@@ -127,6 +127,7 @@ export function createDiagramAgentCache({
         key,
         chatModelFactory(env, {
           model: modelId,
+          backend,
           temperature: kind === 'critique' ? 0.52 : 0.42,
           maxTokens: 1800,
           maxOutputTokens: 1800

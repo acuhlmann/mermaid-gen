@@ -56,18 +56,19 @@ Backends are selected in `apps/server/src/agents/llmProvider.js` via `LLM_PROVID
 
 **`auto` resolution order:**
 
-1. `OPENROUTER_PREFERRED=1` and `OPENROUTER_API_KEY` set → OpenRouter
-2. Cloud Run (`K_SERVICE` set) with Vertex env → Vertex
-3. `DEEPSEEK_API_KEY` set → DeepSeek
-4. `OPENROUTER_API_KEY` set → OpenRouter
-5. Vertex env configured → Vertex
-6. Otherwise → `llmConfigured: false` (503 from intent/transform/analyze)
+1. `OPENROUTER_PREFERRED=1` and `OPENROUTER_API_KEY` set → OpenRouter (both Brain profiles)
+2. Vertex env **and** `DEEPSEEK_API_KEY` set → hybrid: Brain **Fast** = Vertex Gemini Flash, Brain **Quality** = DeepSeek V4 Pro
+3. Cloud Run (`K_SERVICE` set) with Vertex env → Vertex
+4. `DEEPSEEK_API_KEY` set → DeepSeek
+5. `OPENROUTER_API_KEY` set → OpenRouter
+6. Vertex env configured → Vertex
+7. Otherwise → `llmConfigured: false` (503 from intent/transform/analyze)
 
-**DeepSeek** (local dev default when key is set):
+**DeepSeek** (local default when key alone; Cloud Run Brain Quality when hybrid with Vertex):
 
-- `DEEPSEEK_API_KEY`: required when `LLM_PROVIDER=deepseek` or when `auto` chooses DeepSeek.
+- `DEEPSEEK_API_KEY`: required when `LLM_PROVIDER=deepseek`, when `auto` chooses DeepSeek, or for hybrid Quality. On Cloud Run: Secret Manager `deepseek-api-key` via `npm run secret:deepseek:cloud-run`.
 - `DEEPSEEK_MODEL_FAST` / `DEEPSEEK_MODEL_QUALITY`: slugs for the UI **Fast** / **Quality** toggles. If either tier is unset, **`DEEPSEEK_MODEL`** can supply a single slug for both.
-- **Built-in defaults** when all of the above are empty: **Fast** = `deepseek-v4-flash`; **Quality** = `deepseek-v4-pro`.
+- **Built-in defaults** when all of the above are empty: **Fast** = `deepseek-v4-flash`; **Quality** = `deepseek-v4-pro` (best DeepSeek tier).
 
 **OpenRouter** (any host with a key):
 
@@ -79,6 +80,6 @@ Backends are selected in `apps/server/src/agents/llmProvider.js` via `LLM_PROVID
 
 - `VERTEX_PROJECT_ID` or `GOOGLE_CLOUD_PROJECT`, plus `VERTEX_LOCATION` (default `us-central1`).
 - `VERTEX_MODEL_FAST` / `VERTEX_MODEL_QUALITY` / `VERTEX_MODEL`: same "per tier + optional shared" pattern as OpenRouter.
-- **Built-in defaults** when unset: **Fast** = `gemini-2.5-flash`, **Quality** = `gemini-2.5-pro` (latest GA on this GCP project; override to `gemini-3.5-flash` / `gemini-3.1-pro-preview` when Vertex exposes them — see [`docs/llm-config.md`](../llm-config.md)).
+- **Built-in defaults** when unset: **Fast** = `gemini-2.5-flash`, **Quality** = `gemini-2.5-pro` (latest GA on this GCP project; override to `gemini-3.5-flash` / `gemini-3.1-pro-preview` when Vertex exposes them — see [`docs/llm-config.md`](../llm-config.md)). With hybrid auto (Vertex + DeepSeek), Brain Quality uses DeepSeek instead of `VERTEX_MODEL_QUALITY`.
 
 The web client never sends raw model ids — only `modelProfile: "fast" | "quality"`; the server resolves slugs.

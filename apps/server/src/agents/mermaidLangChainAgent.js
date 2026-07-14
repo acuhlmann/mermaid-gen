@@ -1027,7 +1027,7 @@ ${prompt}${focusScope}`,
       );
 
       const profile = normalizeModelProfile(modelProfile);
-      const backend = resolveLlmBackend(env);
+      const backend = resolveLlmBackend(env, profile);
       const modelId = resolveModelId(env, profile, backend);
       let analysisModel = getAnalysisModel(backend, modelId, kind);
 

@@ -143,6 +143,10 @@ app.get('/api/health', (_req, res) => {
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
     llmBackend: resolveLlmBackend() ?? 'none',
+    llmBackendsByProfile: {
+      fast: resolveLlmBackend(process.env, 'fast') ?? 'none',
+      quality: resolveLlmBackend(process.env, 'quality') ?? 'none'
+    },
     agentCostEstimates: {
       enabled: isAgentCostEstimateEnabled(process.env),
       pricingUrl: ratesSnapshot.pricingUrl,

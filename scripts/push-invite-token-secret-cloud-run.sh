@@ -17,6 +17,7 @@ REGION="${REGION:-us-central1}"
 SECRET_NAME="${INVITE_TOKEN_SECRET_NAME:-invite-token-secret}"
 SERVICES=(mermaid-gen-main mermaid-gen-hackathon)
 OPENROUTER_SECRET="${OPENROUTER_SECRET_NAME:-openrouter-api-key}"
+DEEPSEEK_SECRET="${DEEPSEEK_SECRET_NAME:-deepseek-api-key}"
 
 if [[ -z "${INVITE_TOKEN_SECRET:-}" ]]; then
   INVITE_TOKEN_SECRET="$(openssl rand -base64 32)"
@@ -48,6 +49,9 @@ for svc in "${SERVICES[@]}"; do
   SECRETS="INVITE_TOKEN_SECRET=${SECRET_NAME}:latest"
   if gcloud secrets describe "${OPENROUTER_SECRET}" --project="${PROJECT_ID}" &>/dev/null; then
     SECRETS="OPENROUTER_API_KEY=${OPENROUTER_SECRET}:latest,${SECRETS}"
+  fi
+  if gcloud secrets describe "${DEEPSEEK_SECRET}" --project="${PROJECT_ID}" &>/dev/null; then
+    SECRETS="DEEPSEEK_API_KEY=${DEEPSEEK_SECRET}:latest,${SECRETS}"
   fi
   echo "Updating ${svc} …"
   gcloud run services update "${svc}" \

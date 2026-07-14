@@ -4,33 +4,43 @@ Single source of truth for which LLM backend the server picks, which model id ea
 
 ## Three backends
 
-| Backend                | Used for                                | Configure with                                                      |
-| ---------------------- | --------------------------------------- | ------------------------------------------------------------------- |
-| **Vertex AI (Gemini)** | Cloud Run production by default         | `VERTEX_PROJECT_ID` (or `GOOGLE_CLOUD_PROJECT`) + `VERTEX_LOCATION` |
-| **OpenRouter**         | Local dev secondary, Cloud Run with key | `OPENROUTER_API_KEY`                                                |
-| **DeepSeek**           | Local dev default when set              | `DEEPSEEK_API_KEY`                                                  |
+| Backend                | Used for                                                              | Configure with                                                      |
+| ---------------------- | --------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Vertex AI (Gemini)** | Cloud Run Fast (default); sole backend when DeepSeek is unset         | `VERTEX_PROJECT_ID` (or `GOOGLE_CLOUD_PROJECT`) + `VERTEX_LOCATION` |
+| **DeepSeek**           | Local default when set alone; **Brain Quality** in hybrid with Vertex | `DEEPSEEK_API_KEY` (Secret Manager `deepseek-api-key` on Cloud Run) |
+| **OpenRouter**         | Local secondary; Cloud Run with `OPENROUTER_PREFERRED=1`              | `OPENROUTER_API_KEY`                                                |
+
+## Brain profiles (Fast vs Quality)
+
+| UI Brain setting   | Typical Cloud Run (`auto` + Vertex + DeepSeek secret) | Model id           |
+| ------------------ | ----------------------------------------------------- | ------------------ |
+| **Fast** (default) | Vertex Gemini Flash — low latency                     | `gemini-2.5-flash` |
+| **Quality**        | DeepSeek V4 Pro — best DeepSeek tier                  | `deepseek-v4-pro`  |
+
+When Vertex and `DEEPSEEK_API_KEY` are both available in `auto` mode, the server **splits** backends by profile (hybrid). If DeepSeek is missing, Quality falls back to Vertex `gemini-2.5-pro`. If only DeepSeek is configured (common local setup), both profiles stay on DeepSeek (`deepseek-v4-flash` / `deepseek-v4-pro`).
 
 ## Backend selection: `LLM_PROVIDER`
 
-| Value            | Behavior                                                           |
-| ---------------- | ------------------------------------------------------------------ |
-| `auto` (default) | Resolution order below                                             |
-| `vertex`         | Force Vertex; returns null if env not configured (503 from routes) |
-| `openrouter`     | Force OpenRouter; returns null if no key                           |
-| `deepseek`       | Force DeepSeek; returns null if no key                             |
+| Value            | Behavior                                                                                |
+| ---------------- | --------------------------------------------------------------------------------------- |
+| `auto` (default) | Resolution order below                                                                  |
+| `vertex`         | Force Vertex for **all** profiles; returns null if env not configured (503 from routes) |
+| `openrouter`     | Force OpenRouter for all profiles; returns null if no key                               |
+| `deepseek`       | Force DeepSeek for all profiles; returns null if no key                                 |
 
 ### `auto` resolution order
 
 ```
-1. If OPENROUTER_PREFERRED=1 and OPENROUTER_API_KEY set     → openrouter
-2. If running on Cloud Run (K_SERVICE set) and Vertex env set → vertex
-3. If DEEPSEEK_API_KEY set                                  → deepseek
-4. If OPENROUTER_API_KEY set                                → openrouter
-5. If Vertex env set                                        → vertex
-6. Otherwise                                                → null (llmConfigured=false; 503 from intent/transform/analyze)
+1. If OPENROUTER_PREFERRED=1 and OPENROUTER_API_KEY set     → openrouter (both profiles)
+2. If Vertex env set AND DEEPSEEK_API_KEY set (hybrid)      → Fast=vertex, Quality=deepseek
+3. If running on Cloud Run (K_SERVICE set) and Vertex env set → vertex
+4. If DEEPSEEK_API_KEY set                                  → deepseek
+5. If OPENROUTER_API_KEY set                                → openrouter
+6. If Vertex env set                                        → vertex
+7. Otherwise                                                → null (llmConfigured=false; 503 from intent/transform/analyze)
 ```
 
-`K_SERVICE` is set automatically inside a Cloud Run container, so step 2 captures "production" without us needing a flag.
+`K_SERVICE` is set automatically inside a Cloud Run container, so step 3 captures "production" without us needing a flag when DeepSeek is not attached.
 
 ## Model resolution per backend
 
@@ -85,7 +95,7 @@ The single-shot syntax fixer (Layer 3 of the Mermaid validation ladder) runs on 
 | `OPENROUTER_PREFERRED`                                 | unset                                 | When truthy and an OpenRouter key exists, auto mode picks OpenRouter before DeepSeek/Vertex                                                                                      |
 | `OPENROUTER_SITE_NAME` / `OPENROUTER_SITE_URL`         | `ArchiSlop` / `http://localhost:5173` | OpenRouter analytics headers                                                                                                                                                     |
 | `LLM_COST_ESTIMATES`                                   | auto on Cloud Run                     | When `1`/`true`, thinking panel shows **estimated** USD per agent run. Auto-enabled when `K_SERVICE` is set; set `0`/`false` to hide on Cloud Run. Local dev defaults to off.    |
-| `LLM_COST_USD_PER_M_<MODEL>_INPUT` / `_OUTPUT`         | built-in Vertex table                 | Override USD per 1M tokens for a model slug, e.g. `LLM_COST_USD_PER_M_GEMINI_2_5_FLASH_INPUT=0.30` and `…_OUTPUT=2.50`. Model key is uppercased with `.` → `_`.                  |
+| `LLM_COST_USD_PER_M_<MODEL>_INPUT` / `_OUTPUT`         | built-in rate table                   | Override USD per 1M tokens for a model slug, e.g. `LLM_COST_USD_PER_M_DEEPSEEK_V4_PRO_INPUT=0.435`. Model key is uppercased with `.` → `_`.                                      |
 
 ## Agent run cost estimates (thinking panel)
 
@@ -94,7 +104,7 @@ When deployed on Cloud Run, the thinking panel shows **approximate** LLM spend p
 - Each **Model reasoning turn** line appends `~$0.003` (etc.) next to the token counts when the provider reports usage.
 - The run timeline header gets a total chip summing every model turn in that entry.
 
-Estimates are **not** billed amounts — they multiply reported input/output tokens by a rate table. Defaults match published [Vertex Gemini list prices](https://cloud.google.com/vertex-ai/generative-ai/pricing) for the built-in models (`gemini-2.5-flash`, `gemini-2.5-pro`, `gemini-2.5-flash-lite`, plus common OpenRouter/DeepSeek slugs when `OPENROUTER_PREFERRED=1`).
+Estimates are **not** billed amounts — they multiply reported input/output tokens by a rate table. Defaults match published [Vertex Gemini list prices](https://cloud.google.com/vertex-ai/generative-ai/pricing) and [DeepSeek API list prices](https://api-docs.deepseek.com/quick_start/pricing) (cache-miss input + output) for the built-in model slugs.
 
 ### Automatic rate refresh (deployed)
 
@@ -107,15 +117,17 @@ On Cloud Run the server merges rates from several sources (see `ratesSources` in
 
 ### Keeping rates current manually
 
-1. Open [Vertex generative AI pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) (or OpenRouter if `OPENROUTER_PREFERRED=1`).
+1. Open [Vertex generative AI pricing](https://cloud.google.com/vertex-ai/generative-ai/pricing) and/or [DeepSeek Models & Pricing](https://api-docs.deepseek.com/quick_start/pricing).
 2. Edit `packages/shared/src/data/llm-token-rates.json` (`version` + per-model `inputPerM` / `outputPerM` in USD per 1M tokens) and deploy, **or** hot-patch Cloud Run env vars.
-3. Confirm: `curl -sS "$PUBLIC_BASE_URL/api/health" | jq '{enabled:.agentCostEstimates.enabled, version:.agentCostEstimates.ratesVersion, sources:.agentCostEstimates.ratesSources}'`.
+3. Confirm: `curl -sS "$PUBLIC_BASE_URL/api/health" | jq '{enabled:.agentCostEstimates.enabled, version:.agentCostEstimates.ratesVersion, sources:.agentCostEstimates.ratesSources, backends:.llmBackendsByProfile}'`.
 
 The web client reads `agentCostEstimates` from `/api/health` at load. Lifetime totals accumulate in the Slopitect level panel (**Stakeholder Damage Report™**) when cost tracking is enabled.
 
 ## Health check
 
-`GET /api/health` returns `{ status, llmConfigured, runtimeReady, llmBackend, agentCostEstimates, … }`. `llmConfigured: true` means `resolveLlmBackend(env)` returned a non-null backend — i.e. at least one of the three providers is usable with the current env. When `false`, the app still loads and renders diagrams but `intent`, `transform`, `analyze`, and `agent-stream` return 503.
+`GET /api/health` returns `{ status, llmConfigured, runtimeReady, llmBackend, llmBackendsByProfile, agentCostEstimates, … }`. `llmConfigured: true` means `resolveLlmBackend(env)` returned a non-null backend — i.e. at least one of the three providers is usable with the current env. When `false`, the app still loads and renders diagrams but `intent`, `transform`, `analyze`, and `agent-stream` return 503.
+
+`llmBackend` is the Fast/primary backend; `llmBackendsByProfile` shows `{ fast, quality }` so hybrid splits are visible.
 
 `agentCostEstimates` shape:
 
@@ -124,17 +136,34 @@ The web client reads `agentCostEstimates` from `/api/health` at load. Lifetime t
   "enabled": true,
   "pricingUrl": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
   "rates": {
-    "gemini-2.5-flash": { "inputPerM": 0.3, "outputPerM": 2.5 }
+    "gemini-2.5-flash": { "inputPerM": 0.3, "outputPerM": 2.5 },
+    "deepseek-v4-pro": { "inputPerM": 0.435, "outputPerM": 0.87 }
   }
 }
 ```
 
 ## Common configurations
 
-**Local dev with DeepSeek** (lowest cost, fastest tool loops):
+**Local dev with DeepSeek** (both Brain tiers on DeepSeek):
 
 ```env
 DEEPSEEK_API_KEY=sk-…
+```
+
+**Local / Cloud Run hybrid** (Fast = Gemini Flash, Quality = DeepSeek Pro):
+
+```env
+# Vertex via ADC locally, or VERTEX_* on Cloud Run from deploy scripts
+VERTEX_PROJECT_ID=mermaidgen
+VERTEX_LOCATION=us-central1
+DEEPSEEK_API_KEY=sk-…
+```
+
+On Cloud Run, attach the key via Secret Manager:
+
+```bash
+export DEEPSEEK_API_KEY=sk-…   # from local .env — never commit
+npm run secret:deepseek:cloud-run
 ```
 
 **Local dev with OpenRouter** (choice of upstream models):
@@ -144,7 +173,7 @@ OPENROUTER_API_KEY=sk-or-…
 LLM_PROVIDER=openrouter
 ```
 
-**Cloud Run production** (Vertex by default):
+**Cloud Run production** (Vertex Fast by default; add DeepSeek secret for Quality):
 
 ```env
 # Deploy scripts set VERTEX_PROJECT_ID from GCP_PROJECT_ID automatically.

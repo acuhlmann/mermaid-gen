@@ -252,7 +252,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   let stableAgentTried = false;
   let invokeErrored = false;
 
-  const backend = resolveLlmBackend(env);
+  const backend = resolveLlmBackend(env, runProfile);
   const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
   let repairAttempts = 0;
   /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
@@ -760,7 +760,7 @@ export function createInfographicLangChainAgent({
       const task = kind === 'critique' ? INFOGRAPHIC_CRITIQUE_TASK : INFOGRAPHIC_EXPLAIN_TASK;
 
       const profile = normalizeModelProfile(modelProfile);
-      const backend = resolveLlmBackend(env);
+      const backend = resolveLlmBackend(env, profile);
       const modelId = resolveModelId(env, profile, backend);
       const analysisModel = getAnalysisModel(backend, modelId, kind);
 

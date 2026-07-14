@@ -46,6 +46,7 @@
     "deploy:cloud-run": "bash scripts/deploy-cloud-run.sh",
     "deploy:cloud-run:hackathon": "bash scripts/deploy-hackathon-cloud-run.sh",
     "secret:openrouter:cloud-run": "bash scripts/push-openrouter-secret-cloud-run.sh",
+    "secret:deepseek:cloud-run": "bash scripts/push-deepseek-secret-cloud-run.sh",
     "secret:invite-token:cloud-run": "bash scripts/push-invite-token-secret-cloud-run.sh",
     "prepare": "husky || true"
   },

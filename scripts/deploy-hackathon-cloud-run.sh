@@ -60,6 +60,11 @@ if gcloud secrets describe openrouter-api-key --project="${PROJECT_ID}" &>/dev/n
 else
   echo "Warning: Secret openrouter-api-key not found; deploy without LLM until you create it." >&2
 fi
+if gcloud secrets describe deepseek-api-key --project="${PROJECT_ID}" &>/dev/null; then
+  CLOUD_RUN_SECRETS+=("DEEPSEEK_API_KEY=deepseek-api-key:latest")
+else
+  echo "Note: Secret deepseek-api-key not found; Brain Quality stays on Vertex until you run npm run secret:deepseek:cloud-run." >&2
+fi
 if gcloud secrets describe invite-token-secret --project="${PROJECT_ID}" &>/dev/null; then
   CLOUD_RUN_SECRETS+=("INVITE_TOKEN_SECRET=invite-token-secret:latest")
 else

@@ -117,6 +117,45 @@ test('resolveLlmBackend auto uses Vertex when only Vertex is configured', () => 
   assert.equal(resolveLlmBackend({ GOOGLE_CLOUD_PROJECT: 'p' }), 'vertex');
 });
 
+test('resolveLlmBackend hybrid Fast=Vertex Quality=DeepSeek when both are configured', () => {
+  const env = {
+    K_SERVICE: 'svc',
+    GOOGLE_CLOUD_PROJECT: 'proj',
+    DEEPSEEK_API_KEY: 'k'
+  };
+  assert.equal(resolveLlmBackend(env), 'vertex');
+  assert.equal(resolveLlmBackend(env, 'fast'), 'vertex');
+  assert.equal(resolveLlmBackend(env, 'quality'), 'deepseek');
+  assert.equal(resolveModelId(env, 'fast'), DEFAULT_VERTEX_MODEL_FAST);
+  assert.equal(resolveModelId(env, 'quality'), DEFAULT_DEEPSEEK_MODEL_QUALITY);
+});
+
+test('resolveLlmBackend hybrid also applies locally when Vertex and DeepSeek are both set', () => {
+  const env = { GOOGLE_CLOUD_PROJECT: 'p', DEEPSEEK_API_KEY: 'k' };
+  assert.equal(resolveLlmBackend(env, 'fast'), 'vertex');
+  assert.equal(resolveLlmBackend(env, 'quality'), 'deepseek');
+});
+
+test('resolveLlmBackend hybrid is skipped when OPENROUTER_PREFERRED pins OpenRouter', () => {
+  const env = {
+    GOOGLE_CLOUD_PROJECT: 'p',
+    DEEPSEEK_API_KEY: 'd',
+    OPENROUTER_API_KEY: 'o',
+    OPENROUTER_PREFERRED: '1'
+  };
+  assert.equal(resolveLlmBackend(env, 'fast'), 'openrouter');
+  assert.equal(resolveLlmBackend(env, 'quality'), 'openrouter');
+});
+
+test('resolveLlmBackend pinned LLM_PROVIDER ignores hybrid profile split', () => {
+  const env = {
+    LLM_PROVIDER: 'vertex',
+    GOOGLE_CLOUD_PROJECT: 'p',
+    DEEPSEEK_API_KEY: 'k'
+  };
+  assert.equal(resolveLlmBackend(env, 'quality'), 'vertex');
+});
+
 test('resolveDeepSeekModelId mirrors tier env keys', () => {
   const base = { DEEPSEEK_API_KEY: 'k', DEEPSEEK_MODEL: 'shared' };
   assert.equal(resolveDeepSeekModelId(base, 'fast'), 'shared');

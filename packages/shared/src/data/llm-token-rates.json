@@ -1,5 +1,5 @@
 {
-  "version": "2026-07-13",
+  "version": "2026-07-15",
   "pricingUrl": "https://cloud.google.com/vertex-ai/generative-ai/pricing",
   "rates": {
     "gemini-2.5-flash": { "inputPerM": 0.3, "outputPerM": 2.5 },
@@ -8,8 +8,8 @@
     "gemini-3.5-flash": { "inputPerM": 0.5, "outputPerM": 3 },
     "gemini-3.1-pro-preview": { "inputPerM": 1.25, "outputPerM": 10 },
     "google-gemini-2.5-flash-lite": { "inputPerM": 0.1, "outputPerM": 0.4 },
-    "deepseek-v4-flash": { "inputPerM": 0.27, "outputPerM": 1.1 },
-    "deepseek-v4-pro": { "inputPerM": 0.55, "outputPerM": 2.19 },
-    "deepseek-chat": { "inputPerM": 0.27, "outputPerM": 1.1 }
+    "deepseek-v4-flash": { "inputPerM": 0.14, "outputPerM": 0.28 },
+    "deepseek-v4-pro": { "inputPerM": 0.435, "outputPerM": 0.87 },
+    "deepseek-chat": { "inputPerM": 0.14, "outputPerM": 0.28 }
   }
 }

@@ -35,15 +35,26 @@ test('readLlmCostEnvOverrides parses per-model env keys', () => {
   assert.deepEqual(overrides['gemini-2.5-flash'], { inputPerM: 0.42, outputPerM: 3 });
 });
 
-test('estimateLlmCostUsd uses Vertex flash defaults', () => {
+test('estimateLlmCostUsd uses DeepSeek V4 Pro list rates (cache-miss)', () => {
   const rates = mergeLlmTokenRates({});
   const usd = estimateLlmCostUsd({
     inputTokens: 1_000_000,
     outputTokens: 1_000_000,
-    model: 'gemini-2.5-flash',
+    model: 'deepseek-v4-pro',
     rates
   });
-  assert.equal(usd, 0.3 + 2.5);
+  assert.equal(usd, 0.435 + 0.87);
+});
+
+test('estimateLlmCostUsd uses DeepSeek V4 Flash list rates (cache-miss)', () => {
+  const rates = mergeLlmTokenRates({});
+  const usd = estimateLlmCostUsd({
+    inputTokens: 1_000_000,
+    outputTokens: 1_000_000,
+    model: 'deepseek-v4-flash',
+    rates
+  });
+  assert.equal(usd, 0.42);
 });
 
 test('resolveLlmTokenRates falls back to flash tier for unknown flash slugs', () => {
