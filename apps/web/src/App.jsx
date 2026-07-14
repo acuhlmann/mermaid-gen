@@ -24,6 +24,11 @@ import {
   writeStakeholderIntroSeen
 } from './utils/stakeholderIntroStorage.js';
 import { readModeRevealSeen, writeModeRevealSeen } from './utils/modeRevealStorage.js';
+import {
+  extractSpeechResultSnapshot,
+  sliceInterimBeyondFinals,
+  sliceNewSpeechText
+} from './utils/voiceInputCommit.js';
 import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import {
   openSessionEventsStream,
@@ -355,6 +360,8 @@ function ArchiSlop() {
   const promptRef = useRef('');
   const voiceCapturedAnyRef = useRef(false);
   const voiceAccumulatedRef = useRef('');
+  const voiceFinalsTextRef = useRef('');
+  const voiceFinalsCommittedLengthRef = useRef(0);
   const micSessionRef = useRef(0);
   const slopPromptExpandedRef = useRef(false);
   const slopPromptSourceRef = useRef(null);
@@ -1313,6 +1320,37 @@ function ArchiSlop() {
       return next;
     });
   }, []);
+
+  const commitVoiceSessionDelta = useCallback(
+    ({ finalsText, interim }) => {
+      const delta = sliceNewSpeechText(finalsText, voiceFinalsCommittedLengthRef.current);
+      if (delta) {
+        voiceCapturedAnyRef.current = true;
+        voiceAccumulatedRef.current = voiceAccumulatedRef.current
+          ? `${voiceAccumulatedRef.current.trimEnd()} ${delta}`
+          : delta;
+        appendActivePromptText(delta);
+        voiceFinalsCommittedLengthRef.current = finalsText.length;
+      }
+      voiceFinalsTextRef.current = finalsText;
+      lastSpeechInterimRef.current = interim;
+    },
+    [appendActivePromptText]
+  );
+
+  const flushVoiceInterim = useCallback(() => {
+    const delta = sliceInterimBeyondFinals(
+      voiceFinalsTextRef.current,
+      lastSpeechInterimRef.current
+    );
+    lastSpeechInterimRef.current = '';
+    if (!delta) return;
+    voiceCapturedAnyRef.current = true;
+    voiceAccumulatedRef.current = voiceAccumulatedRef.current
+      ? `${voiceAccumulatedRef.current.trimEnd()} ${delta}`
+      : delta;
+    appendActivePromptText(delta);
+  }, [appendActivePromptText]);
 
   const tryAgentSound = useCallback(
     (playFn) => {
@@ -2500,6 +2538,8 @@ function ArchiSlop() {
       if (immediate) {
         micSessionRef.current += 1;
         lastSpeechInterimRef.current = '';
+        voiceFinalsTextRef.current = '';
+        voiceFinalsCommittedLengthRef.current = 0;
         try {
           recognition.abort();
         } catch {
@@ -2529,14 +2569,7 @@ function ArchiSlop() {
           recInstance.stop();
         } catch {
           micSessionRef.current += 1;
-          const interimFlush = lastSpeechInterimRef.current?.trim();
-          lastSpeechInterimRef.current = '';
-          if (interimFlush) {
-            voiceAccumulatedRef.current = voiceAccumulatedRef.current
-              ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
-              : interimFlush;
-            appendActivePromptText(interimFlush);
-          }
+          flushVoiceInterim();
           try {
             recInstance.onresult = null;
             recInstance.onerror = null;
@@ -2549,7 +2582,7 @@ function ArchiSlop() {
         }
       }, 220);
     },
-    [appendActivePromptText]
+    [flushVoiceInterim]
   );
 
   const startVoiceInput = useCallback(() => {
@@ -2577,6 +2610,8 @@ function ArchiSlop() {
     const sessionAtStart = micSessionRef.current;
     voiceCapturedAnyRef.current = false;
     voiceAccumulatedRef.current = '';
+    voiceFinalsTextRef.current = '';
+    voiceFinalsCommittedLengthRef.current = 0;
 
     hasInteractedRef.current = true;
     setVoiceError('');
@@ -2589,23 +2624,11 @@ function ArchiSlop() {
       recognition.continuous = true;
       recognition.maxAlternatives = 1;
       recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcript = result[0]?.transcript ?? '';
-          if (transcript.trim()) voiceCapturedAnyRef.current = true;
-          if (result.isFinal) {
-            const trimmed = transcript.trim();
-            if (trimmed) {
-              voiceAccumulatedRef.current = voiceAccumulatedRef.current
-                ? `${voiceAccumulatedRef.current.trimEnd()} ${trimmed}`
-                : trimmed;
-              appendActivePromptText(trimmed);
-            }
-            lastSpeechInterimRef.current = '';
-          } else {
-            lastSpeechInterimRef.current = transcript;
-          }
+        const snapshot = extractSpeechResultSnapshot(event.results);
+        if (snapshot.finalsText || snapshot.interim?.trim()) {
+          voiceCapturedAnyRef.current = true;
         }
+        commitVoiceSessionDelta(snapshot);
       };
       recognition.onerror = (event) => {
         if (event?.error === 'no-speech' || event?.error === 'aborted') return;
@@ -2618,15 +2641,7 @@ function ArchiSlop() {
       recognition.onend = () => {
         if (sessionAtStart !== micSessionRef.current) return;
 
-        const interimFlush = lastSpeechInterimRef.current?.trim();
-        lastSpeechInterimRef.current = '';
-        if (interimFlush) {
-          voiceCapturedAnyRef.current = true;
-          voiceAccumulatedRef.current = voiceAccumulatedRef.current
-            ? `${voiceAccumulatedRef.current.trimEnd()} ${interimFlush}`
-            : interimFlush;
-          appendActivePromptText(interimFlush);
-        }
+        flushVoiceInterim();
 
         try {
           recognition.onresult = null;
@@ -2647,7 +2662,7 @@ function ArchiSlop() {
       setVoiceError(controls.loading.voiceUnavailable);
       voicePressedRef.current = false;
     }
-  }, [appendActivePromptText, controls.loading, voiceSupported]);
+  }, [commitVoiceSessionDelta, controls.loading, flushVoiceInterim, voiceSupported]);
 
   function handleMicPointerDown(event) {
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
@@ -4436,7 +4451,7 @@ ${requirementsBlock}`;
                 onSelectLocale={setLocale}
               />
             ) : null}
-            {fullscreenSupported ? (
+            {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
               <DiagramFullscreenButton
                 isFullscreen={isFullscreen}
                 disabled={streamingPreview}
