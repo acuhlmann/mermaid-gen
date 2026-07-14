@@ -25,6 +25,10 @@ const HOVER_FOCUS_DEBOUNCE_MS = 600;
 const SELECT_FOCUS_DEBOUNCE_MS = 60;
 /** Keep a freshly surfaced bubble visible through post-render focus churn. */
 const FOCUS_CLEAR_GRACE_MS = 3000;
+/** Ignore brief loading/streaming flicker so the chip is not wiped mid-proposal. */
+const PAUSE_CLEAR_DEBOUNCE_MS = 450;
+/** Minimum time the "is polishing…" chip stays up before an external clear may run. */
+export const THINKING_MIN_DWELL_MS = 600;
 
 /** @param {string | null | undefined} focusKey */
 function focusNodeId(focusKey) {
@@ -166,6 +170,10 @@ export function useAdvisorOrchestrator(params) {
   /** Focus key the live bubble was fetched for — used to skip stale focus restarts. */
   const suggestionFocusKeyRef = useRef(/** @type {string | null} */ (null));
   const suggestionShownAtRef = useRef(0);
+  const thinkingStartedAtRef = useRef(0);
+  /** True from the first thinking frame until the bubble lands or the cycle hard-fails. */
+  const proposalInFlightRef = useRef(false);
+  const pauseClearTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
 
   // Imperative loop API, populated by the setup effect.
   const scheduleNextRef = useRef(() => {});
@@ -180,7 +188,15 @@ export function useAdvisorOrchestrator(params) {
     /** @type {(opts?: { clearPersona?: boolean }) => void} */ (() => {})
   );
 
-  const clearAdvisorSurface = useCallback(({ clearPersona = true } = {}) => {
+  const clearAdvisorSurface = useCallback(({ clearPersona = true, force = false } = {}) => {
+    if (
+      !force &&
+      proposalInFlightRef.current &&
+      thinkingPersonaRef.current &&
+      Date.now() - thinkingStartedAtRef.current < THINKING_MIN_DWELL_MS
+    ) {
+      return;
+    }
     pauseTimerRef.current?.();
     setSuggestion(null);
     suggestionRef.current = null;
@@ -188,6 +204,7 @@ export function useAdvisorOrchestrator(params) {
     setSuggestionKind('suggestion');
     setHighlightIds([]);
     setArchitectDumbLevel(0);
+    proposalInFlightRef.current = false;
     if (clearPersona) {
       setActivePersona(null);
       activePersonaRef.current = null;
@@ -289,7 +306,7 @@ export function useAdvisorOrchestrator(params) {
       idlePausedRef.current = true;
       clearPhaseTimer();
       cancelInFlight();
-      clearAdvisorSurfaceRef.current?.({ clearPersona: true });
+      clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
     };
 
     const shouldPauseNow = () => {
@@ -311,7 +328,7 @@ export function useAdvisorOrchestrator(params) {
       phaseTimer = setTimeout(() => {
         phaseTimer = null;
         if (pinnedRef.current) return; // pinned during the countdown — leave bubble up
-        clearAdvisorSurfaceRef.current?.({ clearPersona: true });
+        clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
         scheduleNext(GAP_MS);
       }, SHOW_MS);
     }
@@ -319,6 +336,10 @@ export function useAdvisorOrchestrator(params) {
     /** @param {string | null} persona */
     const setThinking = (persona) => {
       thinkingPersonaRef.current = persona;
+      if (persona) {
+        thinkingStartedAtRef.current = Date.now();
+        proposalInFlightRef.current = true;
+      }
       setThinkingPersona(persona);
     };
 
@@ -379,6 +400,7 @@ export function useAdvisorOrchestrator(params) {
         if (abandonTick(gen)) return;
         if (!response.ok) {
           setThinking(null);
+          proposalInFlightRef.current = false;
           failureUntil = Date.now() + FAILURE_BACKOFF_MS;
           setError(`advisor ${response.status}`);
           scheduleNext(GAP_MS);
@@ -395,6 +417,7 @@ export function useAdvisorOrchestrator(params) {
         const focusId = focusDescriptor?.id ? String(focusDescriptor.id) : null;
         if (!text) {
           setThinking(null);
+          proposalInFlightRef.current = false;
           setActivePersona(null);
           scheduleNext(GAP_MS);
           return;
@@ -402,11 +425,18 @@ export function useAdvisorOrchestrator(params) {
         if (pinnedRef.current) {
           // Fetch finished after pin — keep the pinned bubble, skip rotation.
           setThinking(null);
+          proposalInFlightRef.current = false;
+          return;
+        }
+        if (pauseRef.current) {
+          // Generation/loading owns the canvas — finish the cycle quietly and retry later.
+          setThinking(null);
+          proposalInFlightRef.current = false;
+          scheduleNext(GAP_MS);
           return;
         }
         if (shouldDiscardForFocusChange(focusKeyAtTick, focusKeyRef.current)) {
-          // Selection moved to a different node mid-flight — discard and re-tick.
-          setThinking(null);
+          // Selection moved to a different node mid-flight — re-tick without blanking the chip.
           scheduleNext(0);
           return;
         }
@@ -450,6 +480,7 @@ export function useAdvisorOrchestrator(params) {
         setSuggestionKind(kind);
         setHighlightIds(highlight);
         setThinking(null);
+        proposalInFlightRef.current = false;
         startDismissTimer();
       } catch (err) {
         clearTimeout(timeoutId);
@@ -460,13 +491,17 @@ export function useAdvisorOrchestrator(params) {
           lastAbortReason = null;
           if (reason === 'timeout' && gen === generation) {
             setThinking(null);
+            proposalInFlightRef.current = false;
             failureUntil = Date.now() + FAILURE_BACKOFF_MS;
             setError('advisor timeout');
             scheduleNext(GAP_MS);
           }
           return;
         }
-        if (gen === generation) setThinking(null);
+        if (gen === generation) {
+          setThinking(null);
+          proposalInFlightRef.current = false;
+        }
         failureUntil = Date.now() + FAILURE_BACKOFF_MS;
         setError(err?.message || 'advisor error');
         scheduleNext(GAP_MS);
@@ -524,7 +559,7 @@ export function useAdvisorOrchestrator(params) {
       clearPhaseTimer();
       setIsPinned(false);
       pinnedRef.current = false;
-      clearAdvisorSurfaceRef.current?.({ clearPersona: true });
+      clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
       setProposalHistory((prev) => {
         if (prev.entries.length === 0) return prev;
         const index = prev.entries.length - 1;
@@ -542,7 +577,7 @@ export function useAdvisorOrchestrator(params) {
       if (shouldPauseNow()) {
         clearPhaseTimer();
         cancelInFlight();
-        clearAdvisorSurfaceRef.current?.({ clearPersona: true });
+        clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
       } else if (phaseTimer == null && !abortController) {
         scheduleNext(GAP_MS);
       }
@@ -587,18 +622,43 @@ export function useAdvisorOrchestrator(params) {
   }, []);
 
   useEffect(() => {
-    const id = setTimeout(() => {
-      if (mutedRef.current || pauseRef.current) {
-        clearAdvisorSurface({ clearPersona: true });
-        setIsPinned(false);
-        pinnedRef.current = false;
-        cancelLoopRef.current?.({ resetStreak: false });
-      } else {
-        scheduleNextRef.current?.(GAP_MS);
+    if (pauseClearTimerRef.current != null) {
+      clearTimeout(pauseClearTimerRef.current);
+      pauseClearTimerRef.current = null;
+    }
+
+    if (isMuted) {
+      clearAdvisorSurface({ clearPersona: true, force: true });
+      setIsPinned(false);
+      pinnedRef.current = false;
+      cancelLoopRef.current?.({ resetStreak: false });
+      return undefined;
+    }
+
+    if (!pause) {
+      scheduleNextRef.current?.(GAP_MS);
+      return undefined;
+    }
+
+    // Loading/streaming can flicker for a frame or two after a patch lands — debounce
+    // the wipe so a freshly surfaced "is polishing…" chip is not eaten instantly.
+    pauseClearTimerRef.current = setTimeout(() => {
+      pauseClearTimerRef.current = null;
+      if (!pauseRef.current || mutedRef.current) return;
+      if (proposalInFlightRef.current) return;
+      clearAdvisorSurface({ clearPersona: true, force: true });
+      setIsPinned(false);
+      pinnedRef.current = false;
+      cancelLoopRef.current?.({ resetStreak: false });
+    }, PAUSE_CLEAR_DEBOUNCE_MS);
+
+    return () => {
+      if (pauseClearTimerRef.current != null) {
+        clearTimeout(pauseClearTimerRef.current);
+        pauseClearTimerRef.current = null;
       }
-    }, 0);
-    return () => clearTimeout(id);
-  }, [pause, isMuted]);
+    };
+  }, [pause, isMuted, clearAdvisorSurface]);
 
   // Focus-change watcher: when the user clicks (selected) or hovers (hover) a
   // new part of the diagram, cancel any active bubble and trigger a fresh tick
@@ -651,17 +711,18 @@ export function useAdvisorOrchestrator(params) {
       if (scheduledFocusSource === 'hover') {
         if (suggestionRef.current && activePersonaRef.current) return;
       }
-      cancelPendingRef.current?.();
-      clearAdvisorSurface({ clearPersona: true });
-      setIsPinned(false);
-      pinnedRef.current = false;
+      if (suggestionRef.current || activePersonaRef.current) {
+        clearAdvisorSurface({ clearPersona: true, force: true });
+        setIsPinned(false);
+        pinnedRef.current = false;
+      }
       scheduleNextRef.current?.(0);
     }, debounce);
     return () => clearTimeout(id);
   }, [focusKey, focusSource, clearAdvisorSurface]);
 
   const dismiss = useCallback(() => {
-    clearAdvisorSurface({ clearPersona: true });
+    clearAdvisorSurface({ clearPersona: true, force: true });
     setIsPinned(false);
     pinnedRef.current = false;
     cancelLoopRef.current?.({ userDismissed: true });
@@ -674,7 +735,7 @@ export function useAdvisorOrchestrator(params) {
     if (suggestionKind === 'comment') return;
     const text = suggestion;
     const persona = activePersona;
-    clearAdvisorSurface({ clearPersona: true });
+    clearAdvisorSurface({ clearPersona: true, force: true });
     setIsPinned(false);
     pinnedRef.current = false;
     try {

@@ -950,6 +950,52 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestionKind).toBe('comment');
   });
 
+  it('does not clear thinking on a brief loading pause flicker', async () => {
+    mockPersonaPick('refine');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'refine',
+                suggestion: 'Still here after the flicker.',
+                highlightIds: ['A']
+              })
+            });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ pause }) => useAdvisorOrchestrator(defaultParams({ pause })),
+      { initialProps: { pause: false } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    rerender({ pause: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    rerender({ pause: false });
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('Still here after the flicker.');
+  });
+
   it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
     mockPersonaPick('explain');
     fetchMock

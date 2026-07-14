@@ -8,6 +8,8 @@ import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 
 const COLLAPSE_AFTER_MS = 6000;
+/** Keep the float anchor latched briefly so mobile `display:contents` does not eat the chip. */
+const SURFACE_LATCH_MS = 500;
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
@@ -54,6 +56,8 @@ export default function StakeholdersMascot({
 }) {
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
+  const castVariants = personas.map((p) => p.variant).filter(Boolean);
+
   const bubbleReady = Boolean(
     (bubbleProps?.persona || activeAdvisorVariant) &&
     typeof bubbleProps?.suggestion === 'string' &&
@@ -67,10 +71,43 @@ export default function StakeholdersMascot({
   const stagePersona = bubbleReady
     ? (bubbleProps?.persona ?? activeAdvisorVariant)
     : thinkingDisplayPersona;
+
+  const liveAdvisorSurface = showThinking ? (
+    <AdvisorThinkingIndicator
+      persona={thinkingDisplayPersona}
+      castVariants={castVariants}
+      onSelectVariant={onSelectVariant}
+      castDisabled={castDisabled}
+    />
+  ) : bubbleReady ? (
+    <AdvisorSpeechBubble
+      {...bubbleProps}
+      persona={bubbleProps?.persona ?? activeAdvisorVariant}
+      castVariants={castVariants}
+    />
+  ) : null;
+
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
+  const [surfaceLatch, setSurfaceLatch] = useState(false);
+  const heldSurfaceRef = useRef(/** @type {import('react').ReactNode} */ (null));
+  if (liveAdvisorSurface) {
+    heldSurfaceRef.current = liveAdvisorSurface;
+  }
+  const advisorSurface = liveAdvisorSurface ?? (surfaceLatch ? heldSurfaceRef.current : null);
+  const hasFloatSurface = Boolean(introProps || advisorSurface || surfaceLatch);
+
   const wrapperRef = useRef(null);
   const collapseTimerRef = useRef(null);
+
+  useEffect(() => {
+    if (introProps || liveAdvisorSurface) {
+      setSurfaceLatch(true);
+      return undefined;
+    }
+    const id = setTimeout(() => setSurfaceLatch(false), SURFACE_LATCH_MS);
+    return () => clearTimeout(id);
+  }, [introProps, liveAdvisorSurface]);
 
   const armCollapseTimer = () => {
     if (collapseTimerRef.current != null) clearTimeout(collapseTimerRef.current);
@@ -101,7 +138,6 @@ export default function StakeholdersMascot({
     };
   }, [expanded]);
 
-  const castVariants = personas.map((p) => p.variant).filter(Boolean);
   const stageMeta = stagePersona ? getVariantPersona(stagePersona) : null;
   const mascotEmoji = expanded ? '👥' : (stageMeta?.avatarEmoji ?? '👥');
   const mascotName = expanded
@@ -130,22 +166,6 @@ export default function StakeholdersMascot({
       : accentVar
     : 'var(--accent)';
   const style = { '--stakeholders-accent': accentStyle };
-
-  const advisorSurface = showThinking ? (
-    <AdvisorThinkingIndicator
-      persona={thinkingDisplayPersona}
-      castVariants={castVariants}
-      onSelectVariant={onSelectVariant}
-      castDisabled={castDisabled}
-    />
-  ) : bubbleReady ? (
-    <AdvisorSpeechBubble
-      {...bubbleProps}
-      persona={bubbleProps?.persona ?? activeAdvisorVariant}
-      castVariants={castVariants}
-    />
-  ) : null;
-  const hasFloatSurface = Boolean(introProps || advisorSurface);
 
   return (
     <div
