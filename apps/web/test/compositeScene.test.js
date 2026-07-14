@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolveCompositeLayerTransform } from '../src/components/metaphorScenes/CompositeScene.jsx';
+import { resolveCompositeLayerTransform } from '../src/components/metaphorScenes/compositeLayerTransform.js';
 
 describe('resolveCompositeLayerTransform', () => {
   it('fans adjacent layers along +X around the origin', () => {

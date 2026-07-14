@@ -1,8 +1,4 @@
-import {
-  METAPHOR_BASE_KINDS,
-  METAPHOR_KINDS,
-  sanitizeMetaphorDsl
-} from '@archislop/shared';
+import { METAPHOR_BASE_KINDS, METAPHOR_KINDS, sanitizeMetaphorDsl } from '@archislop/shared';
 
 /** Human-readable labels for the fullscreen metaphor switcher. */
 export const METAPHOR_KIND_LABELS = {
@@ -188,8 +184,7 @@ function flattenComposite(dsl) {
     Array.isArray(dsl.layers) && dsl.layers.length > 0 && isObject(dsl.layers[0])
       ? dsl.layers[0]
       : null;
-  const as =
-    layer && METAPHOR_BASE_KINDS.includes(layer.as) ? layer.as : METAPHOR_BASE_KINDS[0];
+  const as = layer && METAPHOR_BASE_KINDS.includes(layer.as) ? layer.as : METAPHOR_BASE_KINDS[0];
   return {
     metaphor: as,
     scene: isObject(dsl.scene) ? { ...dsl.scene } : {},

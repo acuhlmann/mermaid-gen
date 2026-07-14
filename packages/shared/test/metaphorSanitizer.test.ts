@@ -788,7 +788,7 @@ test('sanitizeMetaphorDsl rescues composite layers and keeps cross-layer links',
     ]
   });
   const result = sanitizeMetaphorDsl(input);
-  assert.ok(result.dsl, result.error);
+  assert.ok(result.dsl, result.error ?? 'expected composite dsl');
   assert.equal(result.dsl?.metaphor, 'composite');
   if (result.dsl?.metaphor === 'composite') {
     assert.equal(result.dsl.layout, 'adjacent');
