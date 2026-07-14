@@ -5100,7 +5100,8 @@
      stamp is the tap target — strip outer pill chrome so we don't get a
      background/padding shell around the icon. */
   .prompt-actions--mobile .overlay-button.slop-action-button,
-  .prompt-actions--mobile .stakeholders-mascot.slop-action-button {
+  .prompt-actions--mobile .stakeholders-mascot.slop-action-button,
+  .prompt-actions--mobile .render-as-mascot.slop-action-button {
     flex: 0 0 auto;
     min-width: 0;
     width: auto;
@@ -5118,14 +5119,17 @@
   }
 
   .prompt-actions--mobile .overlay-button.slop-action-button::before,
-  .prompt-actions--mobile .stakeholders-mascot.slop-action-button::before {
+  .prompt-actions--mobile .stakeholders-mascot.slop-action-button::before,
+  .prompt-actions--mobile .render-as-mascot.slop-action-button::before {
     content: none;
   }
 
   .prompt-actions--mobile .overlay-button.slop-action-button:hover:not(:disabled),
   .prompt-actions--mobile .overlay-button.slop-action-button:focus-visible:not(:disabled),
   .prompt-actions--mobile .stakeholders-mascot:hover:not(:disabled),
-  .prompt-actions--mobile .stakeholders-mascot:focus-visible:not(:disabled) {
+  .prompt-actions--mobile .stakeholders-mascot:focus-visible:not(:disabled),
+  .prompt-actions--mobile .render-as-mascot:hover:not(:disabled),
+  .prompt-actions--mobile .render-as-mascot:focus-visible:not(:disabled) {
     border: none;
     background: transparent;
     box-shadow: none;
@@ -5179,7 +5183,8 @@
   }
 
   .prompt-actions--mobile .overlay-button .button-label,
-  .prompt-actions--mobile .slop-action-role {
+  .prompt-actions--mobile .slop-action-role,
+  .prompt-actions--mobile .render-as-mascot-role {
     display: none;
   }
 
@@ -13029,6 +13034,80 @@ body.slopitect-rainbow-tint::before {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+ * Render as — bottom-row mode dock (mirrors radial render-mode tray)
+ * ────────────────────────────────────────────────────────────────── */
+.render-as-mascot-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: auto;
+}
+
+.render-as-mascot-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 0.45rem);
+  z-index: 35;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  width: min(18rem, calc(100vw - 2rem));
+  min-width: min(13.5rem, calc(100vw - 2rem));
+  max-width: calc(100vw - 2rem);
+  max-height: min(50vh, 24rem);
+  overflow: hidden;
+  padding: 0.55rem 0.55rem 0.6rem;
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid color-mix(in srgb, #7c3aed 36%, transparent);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.2);
+  animation: stakeholders-roster-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
+  color: var(--text);
+  overscroll-behavior: contain;
+}
+
+.render-as-mascot-menu .radial-render-mode-head {
+  cursor: default;
+  touch-action: auto;
+  user-select: auto;
+}
+
+.render-as-mascot-menu .radial-render-mode-list {
+  max-height: min(42vh, 18rem);
+}
+
+.render-as-mascot.render-as-mascot--active {
+  --slop-action-accent: #7c3aed;
+}
+
+.prompt-actions--desktop .render-as-mascot-wrap.is-menu-expanded {
+  position: relative;
+  align-items: flex-start;
+}
+
+.prompt-actions--mobile .render-as-mascot-wrap:not(.is-menu-expanded) {
+  display: contents;
+}
+
+.prompt-actions--mobile .render-as-mascot-wrap.is-menu-expanded {
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  z-index: 2;
+}
+
+.prompt-actions--mobile .render-as-mascot-wrap.is-menu-expanded .render-as-mascot {
+  position: relative;
+  z-index: 1;
+}
+
+.prompt-actions--mobile .render-as-mascot-menu {
+  bottom: calc(100% + 0.5rem);
 }
 
 /* Cast strip — "one of N stakeholders" while a persona is speaking */

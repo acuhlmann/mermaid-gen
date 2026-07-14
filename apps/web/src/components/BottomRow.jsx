@@ -11,8 +11,8 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  *                       it with the bottom-row-popover classes so it floats
  *                       upward into the canvas anchored to the Prompt button.
  * - `actions`        — left side: PromptControlForm (empty-state) OR the
- *                       prompt-actions icon row (Prompt, Stakeholders, Mute,
- *                       Fix, Clear).
+ *                       prompt-actions icon row (Stakeholders, Render as,
+ *                       Prompt, Mute, Fix, Clear).
  * - `aiControls`     — right side: AiCornerControlsInner (Settings + Thinking).
  *
  * `narrowLayout` toggles mobile class hooks so the right cluster keeps the

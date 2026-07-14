@@ -86,7 +86,7 @@ export const CONTROLS_ZH_TW = {
     label: '設定',
     show: '顯示設定',
     hide: '隱藏設定',
-    title: '設定 · 邀請智慧代理、模式、模型',
+    title: '設定 · 邀請智慧代理、模型',
     region: '工作階段設定',
     externalAgents: '外部智慧代理',
     waitingHandshake: '等待握手：',
@@ -125,7 +125,7 @@ export const CONTROLS_ZH_TW = {
   },
   modeReveal: {
     eyebrow: '同一主題，另一種形態',
-    body: '隨時可在設定裡切換模式——把同一個想法渲染成 3D 場景、圖表、資訊圖或自由頁面。',
+    body: '隨時可在底部列的「渲染為」按鈕切換模式——把同一個想法渲染成 3D 場景、圖表、資訊圖或自由頁面。',
     pickPrefix: '渲染為',
     dismiss: '知道了',
     aria: '用另一種模式渲染你的主題'
@@ -212,6 +212,12 @@ export const CONTROLS_ZH_TW = {
     wontFix: '不修',
     toBacklog: '→ 待辦',
     deprecated: '已下線'
+  },
+  renderAsDock: {
+    openRenderAs: '開啟渲染為 · {mode}',
+    tapToHide: '點擊收起',
+    tapToOpen: '{mode} · 點擊開啟渲染為',
+    pickMode: '選擇模式'
   },
   stakeholders: {
     theStakeholders: '相關方',

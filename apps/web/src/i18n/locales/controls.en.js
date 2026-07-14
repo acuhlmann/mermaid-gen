@@ -99,7 +99,7 @@ export const CONTROLS_EN = {
     label: 'Settings',
     show: 'Show settings',
     hide: 'Hide settings',
-    title: 'Settings · invite agent, mode, brain',
+    title: 'Settings · invite agent, brain',
     region: 'Session settings',
     externalAgents: 'External agents',
     waitingHandshake: 'Waiting for handshake:',
@@ -137,10 +137,10 @@ export const CONTROLS_EN = {
     renderMenu: 'Target render mode'
   },
   // First-run mode reveal — after the first result, reminds newcomers they can
-  // switch forms from Settings. Skipped if they already used empty-state Render as.
+  // switch forms from the bottom-bar Render as control. Skipped if they already
   modeReveal: {
     eyebrow: 'Same topic, another form',
-    body: 'You can switch modes anytime in Settings — try the same idea as a 3D scene, chart, infographic, or freeform page.',
+    body: 'You can switch modes anytime from the Render as button in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
     pickPrefix: 'Render as',
     dismiss: 'Got it',
     aria: 'Try rendering your topic in another mode'
@@ -227,6 +227,12 @@ export const CONTROLS_EN = {
     wontFix: "WON'T FIX",
     toBacklog: '→ BACKLOG',
     deprecated: 'DEPRECATED'
+  },
+  renderAsDock: {
+    openRenderAs: 'Open Render as · {mode}',
+    tapToHide: 'Tap to hide',
+    tapToOpen: '{mode} · tap to open Render as',
+    pickMode: 'Pick a mode'
   },
   stakeholders: {
     theStakeholders: 'The Stakeholders',

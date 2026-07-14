@@ -86,7 +86,7 @@ export const CONTROLS_ZH_CN = {
     label: '设置',
     show: '显示设置',
     hide: '隐藏设置',
-    title: '设置 · 邀请智能体、模式、模型',
+    title: '设置 · 邀请智能体、模型',
     region: '会话设置',
     externalAgents: '外部智能体',
     waitingHandshake: '等待握手：',
@@ -125,7 +125,7 @@ export const CONTROLS_ZH_CN = {
   },
   modeReveal: {
     eyebrow: '同一主题，另一种形态',
-    body: '随时可在设置里切换模式——把同一个想法渲染成 3D 场景、图表、信息图或自由页面。',
+    body: '随时可在底部栏的「渲染为」按钮切换模式——把同一个想法渲染成 3D 场景、图表、信息图或自由页面。',
     pickPrefix: '渲染为',
     dismiss: '知道了',
     aria: '用另一种模式渲染你的主题'
@@ -212,6 +212,12 @@ export const CONTROLS_ZH_CN = {
     wontFix: '不修',
     toBacklog: '→ 待办',
     deprecated: '已下线'
+  },
+  renderAsDock: {
+    openRenderAs: '打开渲染为 · {mode}',
+    tapToHide: '点击收起',
+    tapToOpen: '{mode} · 点击打开渲染为',
+    pickMode: '选择模式'
   },
   stakeholders: {
     theStakeholders: '相关方',
