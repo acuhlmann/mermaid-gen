@@ -996,6 +996,55 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.suggestion).toBe('Still here after the flicker.');
   });
 
+  it('surfaces the speech bubble when the reply lands while still paused', async () => {
+    mockPersonaPick('refine');
+    let resolveFetch;
+    fetchMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveFetch = () =>
+            resolve({
+              ok: true,
+              json: async () => ({
+                persona: 'refine',
+                suggestion: 'Keep me after loading owns the canvas.',
+                highlightIds: ['A']
+              })
+            });
+        })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ pause }) => useAdvisorOrchestrator(defaultParams({ pause })),
+      { initialProps: { pause: false } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.thinkingPersona).toBe('refine');
+
+    // Loading/streaming flips pause true while the advisor fetch is still in flight.
+    rerender({ pause: true });
+    await act(async () => {
+      resolveFetch();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(result.current.suggestion).toBe('Keep me after loading owns the canvas.');
+    expect(result.current.activePersona).toBe('refine');
+    expect(result.current.thinkingPersona).toBeNull();
+
+    // Sustained pause must not wipe a landed proposal (only blocks new ticks).
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(800);
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toBe('Keep me after loading owns the canvas.');
+  });
+
   it('dumbDown steps simpleLevel through the shared ladder and requests gibberish at the end', async () => {
     mockPersonaPick('explain');
     fetchMock

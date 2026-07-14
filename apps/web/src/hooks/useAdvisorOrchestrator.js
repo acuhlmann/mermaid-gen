@@ -428,13 +428,9 @@ export function useAdvisorOrchestrator(params) {
           proposalInFlightRef.current = false;
           return;
         }
-        if (pauseRef.current) {
-          // Generation/loading owns the canvas — finish the cycle quietly and retry later.
-          setThinking(null);
-          proposalInFlightRef.current = false;
-          scheduleNext(GAP_MS);
-          return;
-        }
+        // Surface even when pause flipped true mid-flight (loading/streaming flicker).
+        // Dropping the reply here left only the brief "is polishing…" chip — the speech
+        // bubble never landed. Pause still blocks *new* ticks via shouldPauseNow.
         if (shouldDiscardForFocusChange(focusKeyAtTick, focusKeyRef.current)) {
           // Selection moved to a different node mid-flight — re-tick without blanking the chip.
           scheduleNext(0);
@@ -642,10 +638,14 @@ export function useAdvisorOrchestrator(params) {
 
     // Loading/streaming can flicker for a frame or two after a patch lands — debounce
     // the wipe so a freshly surfaced "is polishing…" chip is not eaten instantly.
+    // Once a speech bubble has landed, leave it up: pause only blocks new ticks.
+    // Clearing landed proposals here made the chip flash during think then vanish
+    // when the reply arrived while loading/streaming was still true.
     pauseClearTimerRef.current = setTimeout(() => {
       pauseClearTimerRef.current = null;
       if (!pauseRef.current || mutedRef.current) return;
       if (proposalInFlightRef.current) return;
+      if (suggestionRef.current) return;
       clearAdvisorSurface({ clearPersona: true, force: true });
       setIsPinned(false);
       pinnedRef.current = false;
