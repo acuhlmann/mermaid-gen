@@ -3,10 +3,13 @@ import {
   CITY_CONDITION,
   CITY_LIGHTING,
   CITY_MAX_ITEMS,
+  COMPOSITE_LAYOUTS,
+  COMPOSITE_MAX_LAYERS,
   GALAXY_MAX_ITEMS,
   GARDEN_HEALTH,
   GARDEN_MAX_ITEMS,
   LAYERCAKE_MAX_ITEMS,
+  METAPHOR_BASE_KINDS,
   METAPHOR_GLYPH_KINDS,
   METAPHOR_KINDS,
   METAPHOR_LINK_KINDS,
@@ -16,6 +19,7 @@ import {
   RIVER_MAX_ITEMS,
   TERRAIN_MAX_ITEMS,
   TREE_MAX_ITEMS,
+  type MetaphorBaseKind,
   type MetaphorDsl,
   type MetaphorKind
 } from './metaphorSchema.js';
@@ -46,8 +50,13 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   orrery: ORRERY_MAX_ITEMS,
   river: RIVER_MAX_ITEMS,
   garden: GARDEN_MAX_ITEMS,
-  archipelago: ARCHIPELAGO_MAX_ITEMS
+  archipelago: ARCHIPELAGO_MAX_ITEMS,
+  // Composite stores items on layers; top-level items stay empty.
+  composite: 0
 };
+
+const BASE_KIND_SET = new Set<string>(METAPHOR_BASE_KINDS);
+const COMPOSITE_LAYOUT_SET = new Set<string>(COMPOSITE_LAYOUTS);
 
 const LIGHTING_SET = new Set<string>(CITY_LIGHTING);
 const CONDITION_SET = new Set<string>(CITY_CONDITION);
@@ -556,12 +565,21 @@ function rescueLinksField(
   }
   if (!allowStructureRewrite) return;
 
-  const itemIds = new Set(
-    (Array.isArray(working.items) ? working.items : [])
-      .filter(isObject)
-      .map((item) => (item as Record<string, unknown>).id)
-      .filter((id): id is string => typeof id === 'string')
-  );
+  const itemIds = new Set<string>();
+  if (working.metaphor === 'composite' && Array.isArray(working.layers)) {
+    for (const layer of working.layers) {
+      if (!isObject(layer) || !Array.isArray(layer.items)) continue;
+      for (const item of layer.items) {
+        if (isObject(item) && typeof item.id === 'string') itemIds.add(item.id);
+      }
+    }
+  } else {
+    for (const item of Array.isArray(working.items) ? working.items : []) {
+      if (isObject(item) && typeof (item as Record<string, unknown>).id === 'string') {
+        itemIds.add((item as Record<string, unknown>).id as string);
+      }
+    }
+  }
 
   const seen = new Set<string>();
   const filtered = (working.links as unknown[]).filter((link) => {
@@ -584,6 +602,133 @@ function rescueLinksField(
     applied.push('cap-links');
   }
   working.links = filtered;
+}
+
+/**
+ * Rescue the experimental composite document: normalize layout, cap layers, and
+ * run each layer's items through the same rescues the target base kind would get.
+ */
+function rescueCompositeDocument(
+  working: Record<string, unknown>,
+  applied: string[],
+  allowStructureRewrite: boolean
+): void {
+  working.items = [];
+
+  if (typeof working.layout === 'string') {
+    const layout = working.layout.trim().toLowerCase();
+    if (COMPOSITE_LAYOUT_SET.has(layout)) {
+      if (working.layout !== layout) {
+        working.layout = layout;
+        applied.push('normalize-composite-layout');
+      }
+    } else if (allowStructureRewrite) {
+      working.layout = 'adjacent';
+      applied.push('default-composite-layout');
+    }
+  } else if (allowStructureRewrite) {
+    working.layout = 'adjacent';
+    applied.push('default-composite-layout');
+  }
+
+  if (!Array.isArray(working.layers)) {
+    if (!allowStructureRewrite) return;
+    working.layers = [];
+    applied.push('default-composite-layers');
+    return;
+  }
+
+  const rescuedLayers: Record<string, unknown>[] = [];
+  const seenLayerIds = new Set<string>();
+
+  for (const raw of working.layers as unknown[]) {
+    if (!isObject(raw)) {
+      if (allowStructureRewrite) applied.push('drop-malformed-composite-layer');
+      continue;
+    }
+
+    const layer: Record<string, unknown> = { ...raw };
+    const asRaw = typeof layer.as === 'string' ? layer.as.trim().toLowerCase() : '';
+    if (!BASE_KIND_SET.has(asRaw)) {
+      if (allowStructureRewrite) applied.push('drop-invalid-composite-layer-as');
+      continue;
+    }
+    if (layer.as !== asRaw) {
+      layer.as = asRaw;
+      applied.push('normalize-composite-layer-as');
+    }
+
+    if (typeof layer.id !== 'string' || !layer.id.trim()) {
+      if (!allowStructureRewrite) continue;
+      layer.id = `layer-${rescuedLayers.length + 1}`;
+      applied.push('default-composite-layer-id');
+    } else {
+      const id = layer.id.trim();
+      if (seenLayerIds.has(id)) {
+        if (!allowStructureRewrite) continue;
+        layer.id = `${id}-${rescuedLayers.length + 1}`;
+        applied.push('dedupe-composite-layer-id');
+      } else {
+        layer.id = id;
+      }
+    }
+    seenLayerIds.add(layer.id as string);
+
+    if (isObject(layer.transform)) {
+      const transform: Record<string, unknown> = { ...layer.transform };
+      if (typeof transform.scale === 'number' && Number.isFinite(transform.scale)) {
+        const clamped = clampNumber(transform.scale, 0.1, 4);
+        if (clamped !== transform.scale) {
+          transform.scale = clamped;
+          applied.push('clamp-composite-layer-scale');
+        }
+      }
+      if (Array.isArray(transform.position)) {
+        const coords = transform.position as unknown[];
+        if (coords.length === 3) {
+          const x = clampPositionAxis(coords[0]);
+          const y = clampPositionAxis(coords[1]);
+          const z = clampPositionAxis(coords[2]);
+          if (x != null && y != null && z != null) {
+            transform.position = [x, y, z];
+          } else {
+            delete transform.position;
+            applied.push('drop-invalid-composite-layer-position');
+          }
+        } else {
+          delete transform.position;
+          applied.push('drop-invalid-composite-layer-position');
+        }
+      }
+      layer.transform = transform;
+    }
+
+    const layerWorking: Record<string, unknown> = {
+      metaphor: asRaw as MetaphorBaseKind,
+      items: Array.isArray(layer.items) ? layer.items : []
+    };
+    rescueItemsField(layerWorking, applied, allowStructureRewrite);
+    rescueItemPositions(layerWorking, applied);
+    rescueNumericRanges(layerWorking, applied);
+    rescueCityEnumCase(layerWorking, applied);
+    rescueGardenHealth(layerWorking, applied);
+    rescueGlyphField(layerWorking, applied);
+    rescueItemNotes(layerWorking, applied);
+    rescueTreeStructure(layerWorking, applied);
+    rescueGalaxyBinary(layerWorking, applied);
+    rescueOrreryMoons(layerWorking, applied);
+    layer.items = layerWorking.items;
+
+    rescuedLayers.push(layer);
+    if (rescuedLayers.length >= COMPOSITE_MAX_LAYERS) {
+      if ((working.layers as unknown[]).length > COMPOSITE_MAX_LAYERS) {
+        applied.push('cap-composite-layers');
+      }
+      break;
+    }
+  }
+
+  working.layers = rescuedLayers;
 }
 
 function rescueLinkKinds(working: Record<string, unknown>, applied: string[]): void {
@@ -659,17 +804,21 @@ export function sanitizeMetaphorDsl(
     applied.push('default-scene');
   }
 
-  rescueItemsField(working, applied, allowStructureRewrite);
-  rescueItemPositions(working, applied);
-  rescueNumericRanges(working, applied);
-  rescueCityEnumCase(working, applied);
-  rescueGardenHealth(working, applied);
-  rescueGlyphField(working, applied);
-  rescueItemNotes(working, applied);
+  if (working.metaphor === 'composite') {
+    rescueCompositeDocument(working, applied, allowStructureRewrite);
+  } else {
+    rescueItemsField(working, applied, allowStructureRewrite);
+    rescueItemPositions(working, applied);
+    rescueNumericRanges(working, applied);
+    rescueCityEnumCase(working, applied);
+    rescueGardenHealth(working, applied);
+    rescueGlyphField(working, applied);
+    rescueItemNotes(working, applied);
+    rescueTreeStructure(working, applied);
+    rescueGalaxyBinary(working, applied);
+    rescueOrreryMoons(working, applied);
+  }
   rescueSceneLegend(working, applied);
-  rescueTreeStructure(working, applied);
-  rescueGalaxyBinary(working, applied);
-  rescueOrreryMoons(working, applied);
   rescueLinksField(working, applied, allowStructureRewrite);
   rescueLinkKinds(working, applied);
 

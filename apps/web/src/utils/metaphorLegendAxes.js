@@ -46,7 +46,9 @@ export const METAPHOR_LEGEND_AXES = {
     ['mass', 'Mass'],
     ['relief', 'Relief'],
     ['chain', 'Chain']
-  ]
+  ],
+  // Composite layers keep their own encodings; no shared legend axes yet.
+  composite: []
 };
 
 /**
@@ -89,7 +91,8 @@ const ITEM_METRICS = {
     { key: 'mass', label: 'Mass', type: 'number' },
     { key: 'relief', label: 'Relief', type: 'number' },
     { key: 'chain', label: 'Chain', type: 'text' }
-  ]
+  ],
+  composite: []
 };
 
 function capitalizeFirst(text) {

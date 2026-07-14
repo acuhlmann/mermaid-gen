@@ -1,4 +1,4 @@
-import { METAPHOR_KINDS, sanitizeMetaphorDsl } from '@archislop/shared';
+import { METAPHOR_BASE_KINDS, METAPHOR_KINDS, sanitizeMetaphorDsl } from '@archislop/shared';
 
 /** Human-readable labels for the fullscreen metaphor switcher. */
 export const METAPHOR_KIND_LABELS = {
@@ -10,7 +10,8 @@ export const METAPHOR_KIND_LABELS = {
   orrery: 'Orrery',
   river: 'River',
   garden: 'Garden',
-  archipelago: 'Archipelago'
+  archipelago: 'Archipelago',
+  composite: 'Composite'
 };
 
 function isObject(value) {
@@ -158,6 +159,40 @@ function mapItemToKind(item, fromKind, toKind, index) {
   return next;
 }
 
+function wrapAsComposite(dsl) {
+  const as = METAPHOR_BASE_KINDS.includes(dsl.metaphor) ? dsl.metaphor : 'city';
+  return {
+    metaphor: 'composite',
+    scene: isObject(dsl.scene) ? { ...dsl.scene } : {},
+    layout: 'adjacent',
+    layers: [
+      {
+        id: 'layer-1',
+        as,
+        label: METAPHOR_KIND_LABELS[as] ?? as,
+        items: Array.isArray(dsl.items) ? dsl.items.map((item) => ({ ...item })) : []
+      }
+    ],
+    items: [],
+    links: Array.isArray(dsl.links) ? [...dsl.links] : []
+  };
+}
+
+/** Flatten a composite to its first layer (or empty city) before remapping. */
+function flattenComposite(dsl) {
+  const layer =
+    Array.isArray(dsl.layers) && dsl.layers.length > 0 && isObject(dsl.layers[0])
+      ? dsl.layers[0]
+      : null;
+  const as = layer && METAPHOR_BASE_KINDS.includes(layer.as) ? layer.as : METAPHOR_BASE_KINDS[0];
+  return {
+    metaphor: as,
+    scene: isObject(dsl.scene) ? { ...dsl.scene } : {},
+    items: layer && Array.isArray(layer.items) ? layer.items.map((item) => ({ ...item })) : [],
+    links: Array.isArray(dsl.links) ? [...dsl.links] : []
+  };
+}
+
 /**
  * Switch a metaphor DSL to another spatial kind, remapping item encodings and
  * re-validating through the shared sanitizer.
@@ -182,12 +217,27 @@ export function switchMetaphorKind(source, nextKind) {
     return { ok: true, text: sanitized.text };
   }
 
-  const working = {
-    metaphor: kind,
-    scene: isObject(sanitized.dsl.scene) ? { ...sanitized.dsl.scene } : {},
-    items: sanitized.dsl.items.map((item, index) => mapItemToKind(item, currentKind, kind, index)),
-    links: Array.isArray(sanitized.dsl.links) ? [...sanitized.dsl.links] : []
-  };
+  let working;
+  if (kind === 'composite') {
+    working = wrapAsComposite(sanitized.dsl);
+  } else if (currentKind === 'composite') {
+    const flat = flattenComposite(sanitized.dsl);
+    working = {
+      metaphor: kind,
+      scene: flat.scene,
+      items: flat.items.map((item, index) => mapItemToKind(item, flat.metaphor, kind, index)),
+      links: flat.links
+    };
+  } else {
+    working = {
+      metaphor: kind,
+      scene: isObject(sanitized.dsl.scene) ? { ...sanitized.dsl.scene } : {},
+      items: sanitized.dsl.items.map((item, index) =>
+        mapItemToKind(item, currentKind, kind, index)
+      ),
+      links: Array.isArray(sanitized.dsl.links) ? [...sanitized.dsl.links] : []
+    };
+  }
 
   const next = sanitizeMetaphorDsl(JSON.stringify(working), { allowStructureRewrite: true });
   if (!next.dsl) {
@@ -197,4 +247,4 @@ export function switchMetaphorKind(source, nextKind) {
   return { ok: true, text: next.text };
 }
 
-export { METAPHOR_KINDS };
+export { METAPHOR_KINDS, METAPHOR_BASE_KINDS };

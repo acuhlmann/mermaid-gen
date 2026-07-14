@@ -56,6 +56,7 @@ import { OrreryScene } from './metaphorScenes/OrreryScene.jsx';
 import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
 import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoScene.jsx';
+import { CompositeScene } from './metaphorScenes/CompositeScene.jsx';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -72,7 +73,8 @@ const BOUNDS_MARGIN_BY_KIND = {
   orrery: 1.08,
   river: 0.84,
   garden: 1.12,
-  archipelago: 1.05
+  archipelago: 1.05,
+  composite: 1.1
 };
 
 /** Advances the shared scene clock; gated off (frozen at 0) during streaming. */
@@ -1029,7 +1031,7 @@ function LayercakeScene({ dsl, theme }) {
   );
 }
 
-function MetaphorScene({ dsl, theme }) {
+function MetaphorBaseScene({ dsl, theme }) {
   if (dsl.metaphor === 'city') return <CityScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'layercake') return <LayercakeScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'galaxy') return <GalaxyScene dsl={dsl} theme={theme} />;
@@ -1040,6 +1042,21 @@ function MetaphorScene({ dsl, theme }) {
   if (dsl.metaphor === 'garden') return <GardenScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'archipelago') return <ArchipelagoScene dsl={dsl} theme={theme} />;
   return null;
+}
+
+function MetaphorScene({ dsl, theme }) {
+  if (dsl.metaphor === 'composite') {
+    return (
+      <CompositeScene
+        dsl={dsl}
+        theme={theme}
+        renderBaseScene={(childDsl, childTheme) => (
+          <MetaphorBaseScene dsl={childDsl} theme={childTheme} />
+        )}
+      />
+    );
+  }
+  return <MetaphorBaseScene dsl={dsl} theme={theme} />;
 }
 
 /**
@@ -1174,15 +1191,20 @@ function MetaphorRendererImpl(
   const renderError = !streamingPreview && hasSource && !dsl ? finalResolved.renderError : '';
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
+  const primaryLayerKind =
+    dsl?.metaphor === 'composite' && Array.isArray(dsl.layers) && dsl.layers[0]?.as
+      ? dsl.layers[0].as
+      : dsl?.metaphor;
   const theme = useMemo(() => {
     const base = resolveMetaphorThemePreset(themeId);
-    if (dsl?.metaphor === 'river') return resolveRiverDaylightTheme(base);
-    if (dsl?.metaphor === 'garden') return resolveGardenDaylightTheme(base);
-    if (dsl?.metaphor === 'archipelago') return resolveArchipelagoDaylightTheme(base);
+    if (primaryLayerKind === 'river') return resolveRiverDaylightTheme(base);
+    if (primaryLayerKind === 'garden') return resolveGardenDaylightTheme(base);
+    if (primaryLayerKind === 'archipelago') return resolveArchipelagoDaylightTheme(base);
     return base;
-  }, [dsl?.metaphor, themeId]);
+  }, [primaryLayerKind, themeId]);
   const postfx = resolveMetaphorPostfx(theme);
   const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.08;
+  const skyKind = primaryLayerKind;
 
   return (
     <div
@@ -1196,7 +1218,7 @@ function MetaphorRendererImpl(
           <color attach="background" args={[theme.background]} />
           {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
               far enough out that Bounds framing never greys the subject. */}
-          {dsl.metaphor === 'city' ? (
+          {skyKind === 'city' ? (
             <fog attach="fog" args={[theme.skyHorizonColor ?? theme.background, 42, 150]} />
           ) : null}
           <ambientLight intensity={theme.ambientIntensity} />
@@ -1223,18 +1245,16 @@ function MetaphorRendererImpl(
           {theme.environment ? <Environment preset={theme.environment} /> : null}
           {/* Layercake shares the city's calm gradient backdrop so the cake
               doesn't float against a flat void. */}
-          {dsl.metaphor === 'city' || dsl.metaphor === 'layercake' ? (
-            <CitySky theme={theme} />
-          ) : null}
+          {skyKind === 'city' || skyKind === 'layercake' ? <CitySky theme={theme} /> : null}
           {/* Orrery shares the galaxy's deep-space backdrop — same star-field
               vocabulary, different spatial story. */}
-          {dsl.metaphor === 'galaxy' || dsl.metaphor === 'orrery' ? (
+          {skyKind === 'galaxy' || skyKind === 'orrery' ? (
             <GalaxySky theme={theme} animated={!streamingPreview} />
           ) : null}
-          {dsl.metaphor === 'tree' ? <TreeSky theme={theme} /> : null}
-          {dsl.metaphor === 'river' ? <RiverSky theme={theme} /> : null}
-          {dsl.metaphor === 'garden' ? <GardenSky theme={theme} /> : null}
-          {dsl.metaphor === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
+          {skyKind === 'tree' ? <TreeSky theme={theme} /> : null}
+          {skyKind === 'river' ? <RiverSky theme={theme} /> : null}
+          {skyKind === 'garden' ? <GardenSky theme={theme} /> : null}
+          {skyKind === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={!streamingPreview}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>

@@ -18,6 +18,9 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 | Portfolio / roadmap / capabilities with growth and health | "garden" |
 | Peer domains / bounded contexts / regions that stay separate | "archipelago" |
 
+Experimental only — do NOT pick unless the user explicitly asks to combine metaphors:
+| Multi-metaphor montage (side-by-side or stacked base scenes) | "composite" |
+
 - "city" — components as buildings. Height encodes magnitude (traffic, importance, complexity). Footprint encodes scale (LOC, team size). District groups buildings into neighborhoods (team, tier, layer). Use \`links\` for dependencies and data flow between buildings.
 
 - "layercake" — strata as physical layers (e.g. database → app → edge; L4 → L7; org levels). Thickness encodes prominence. Components within each layer are listed and rendered as chips on the slab rim.
@@ -35,6 +38,19 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 - "garden" — initiatives, products, capabilities, or investments as living plants in named beds. \`maturity\` (0–1) controls growth from seedling to full bloom. \`impact\` (0.1–10) controls blossom/canopy size. \`bed\` groups items by portfolio, domain, team, or strategic theme. \`health\` ("thriving" / "steady" / "at-risk") changes colour and posture. Use for roadmaps, product portfolios, capability maps, transformation programs, innovation pipelines, and any topic where growth + health matter more than sequence.
 
 - "archipelago" — peer domains as islands in a shared ocean. \`mass\` (0.5–20) sizes each island (traffic, headcount, revenue, LOC). \`relief\` (0–1) raises the peak — maturity, strategic altitude, or how "proud" the domain stands. \`chain\` groups related islands into visible island chains (region, bounded-context family, product line). Use \`links\` for the rare bridges and ferries between islands (integrations, shared platforms, sync contracts). Prefer this when isolation/federation IS the story: multi-region estates, bounded contexts, multi-brand portfolios, partner ecosystems — NOT when there is a single gravitational core (use orrery) or a dense shared skyline (use city).
+
+- "composite" (EXPERIMENTAL) — only when the user explicitly asks to combine metaphors. Mount 1–4 existing base scenes as \`layers\` (each with \`as\` = a base kind and its own \`items\`). Prefer \`layout: "adjacent"\` (side-by-side). Use \`overlay\` only when asked to stack. Do not invent composite for ordinary prompts — pick a single base metaphor instead. Example:
+{
+  "metaphor": "composite",
+  "scene": { "theme": "whiteboard", "title": "Platform + journey" },
+  "layout": "adjacent",
+  "layers": [
+    { "id": "skyline", "as": "city", "label": "Systems", "items": [{ "id": "api", "label": "API", "height": 12, "footprint": 3 }] },
+    { "id": "flow", "as": "river", "label": "Journey", "items": [{ "id": "signup", "label": "Signup", "stage": 0, "flow": 10 }] }
+  ],
+  "items": [],
+  "links": []
+}
 
 DSL shape (emit via apply_metaphor_patch):
 

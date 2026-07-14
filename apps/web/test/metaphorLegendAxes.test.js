@@ -41,6 +41,7 @@ describe('legendAxesFor', () => {
     expect(Object.keys(METAPHOR_LEGEND_AXES).sort()).toEqual([
       'archipelago',
       'city',
+      'composite',
       'galaxy',
       'garden',
       'layercake',
