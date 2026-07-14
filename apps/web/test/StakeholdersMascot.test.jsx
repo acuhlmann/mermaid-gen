@@ -149,7 +149,7 @@ describe('StakeholdersMascot', () => {
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
+      await vi.advanceTimersByTimeAsync(900);
     });
     expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
     vi.useRealTimers();

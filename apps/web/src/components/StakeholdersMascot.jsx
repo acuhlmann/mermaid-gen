@@ -9,7 +9,7 @@ import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 
 const COLLAPSE_AFTER_MS = 6000;
 /** Keep the float anchor latched briefly so mobile `display:contents` does not eat the chip. */
-const SURFACE_LATCH_MS = 500;
+const SURFACE_LATCH_MS = 800;
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
@@ -87,6 +87,8 @@ export default function StakeholdersMascot({
     />
   ) : null;
 
+  const hasLiveSurface = showThinking || bubbleReady;
+
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
   const [surfaceLatch, setSurfaceLatch] = useState(false);
@@ -100,14 +102,16 @@ export default function StakeholdersMascot({
   const wrapperRef = useRef(null);
   const collapseTimerRef = useRef(null);
 
+  // Depend on a stable boolean — not the React element — so parent re-renders
+  // do not reset the latch timer while the surface is already gone.
   useEffect(() => {
-    if (introProps || liveAdvisorSurface) {
+    if (introProps || hasLiveSurface) {
       setSurfaceLatch(true);
       return undefined;
     }
     const id = setTimeout(() => setSurfaceLatch(false), SURFACE_LATCH_MS);
     return () => clearTimeout(id);
-  }, [introProps, liveAdvisorSurface]);
+  }, [introProps, hasLiveSurface]);
 
   const armCollapseTimer = () => {
     if (collapseTimerRef.current != null) clearTimeout(collapseTimerRef.current);

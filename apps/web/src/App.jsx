@@ -4680,6 +4680,34 @@ ${requirementsBlock}`;
           ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
               <div className="button-group">
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
+                  disabled={busy}
+                  onClick={toggleChromeSlopPrompt}
+                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
+                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                  title={slopitect.PROMPT_ACTION_COPY.title}
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">
+                      💬
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
+                    </span>
+                    {slopitect.PROMPT_ACTION_COPY.roleTag}
+                  </span>
+                </button>
+                <RenderAsMascot
+                  modes={contentModeOptions}
+                  currentMode={contentMode}
+                  onPickMode={handleSelectContentMode}
+                  disabled={loading || streamingPreview}
+                />
                 <StakeholdersMascot
                   personas={[
                     {
@@ -4716,34 +4744,6 @@ ${requirementsBlock}`;
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
                   introProps={stakeholderIntroProps}
                 />
-                <RenderAsMascot
-                  modes={contentModeOptions}
-                  currentMode={contentMode}
-                  onPickMode={handleSelectContentMode}
-                  disabled={loading || streamingPreview}
-                />
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                  disabled={busy}
-                  onClick={toggleChromeSlopPrompt}
-                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                  title={slopitect.PROMPT_ACTION_COPY.title}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">
-                      💬
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                    </span>
-                    {slopitect.PROMPT_ACTION_COPY.roleTag}
-                  </span>
-                </button>
               </div>
               <div className="button-group">
                 <button
@@ -4823,6 +4823,34 @@ ${requirementsBlock}`;
           ) : hasCanvasContent && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
+                  disabled={busy}
+                  onClick={toggleChromeSlopPrompt}
+                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
+                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                  title={slopitect.PROMPT_ACTION_COPY.title}
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-prompt" aria-hidden="true">
+                      💬
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
+                  <span className="slop-action-role">
+                    <span className="slop-action-role-emoji" aria-hidden="true">
+                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
+                    </span>
+                    {slopitect.PROMPT_ACTION_COPY.roleTag}
+                  </span>
+                </button>
+                <RenderAsMascot
+                  modes={contentModeOptions}
+                  currentMode={contentMode}
+                  onPickMode={handleSelectContentMode}
+                  disabled={loading || streamingPreview}
+                />
                 <StakeholdersMascot
                   personas={[
                     {
@@ -4859,34 +4887,6 @@ ${requirementsBlock}`;
                   castDisabled={busy || Boolean(advisor.thinkingPersona)}
                   introProps={stakeholderIntroProps}
                 />
-                <RenderAsMascot
-                  modes={contentModeOptions}
-                  currentMode={contentMode}
-                  onPickMode={handleSelectContentMode}
-                  disabled={loading || streamingPreview}
-                />
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                  disabled={busy}
-                  onClick={toggleChromeSlopPrompt}
-                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                  title={slopitect.PROMPT_ACTION_COPY.title}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">
-                      💬
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                    </span>
-                    {slopitect.PROMPT_ACTION_COPY.roleTag}
-                  </span>
-                </button>
                 <button
                   type="button"
                   className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
