@@ -43,12 +43,14 @@ describe('StakeholdersMascot', () => {
     expect(onRefine).toHaveBeenCalledTimes(1);
   });
 
-  it('shows speech bubble after thinking completes for the Wise Architect', () => {
+  it('shows Wise Architect comment controls after thinking completes', () => {
     const bubbleProps = {
       persona: 'explain',
       suggestion: 'Consider the saga between Order and Payment.',
       kind: 'comment',
-      onDismiss: vi.fn()
+      onDismiss: vi.fn(),
+      onDumbDown: vi.fn(),
+      onDrillDeeper: vi.fn()
     };
     const { rerender } = render(
       <StakeholdersMascot
@@ -58,7 +60,6 @@ describe('StakeholdersMascot', () => {
       />
     );
     expect(screen.getByTestId('advisor-thinking-indicator')).toBeTruthy();
-    expect(screen.queryByTestId('advisor-speech-bubble')).toBeNull();
 
     rerender(
       <StakeholdersMascot
@@ -69,7 +70,11 @@ describe('StakeholdersMascot', () => {
       />
     );
     expect(screen.queryByTestId('advisor-thinking-indicator')).toBeNull();
-    expect(screen.getByTestId('advisor-speech-bubble')).toBeTruthy();
+    const bubble = screen.getByTestId('advisor-speech-bubble');
+    expect(bubble).toBeTruthy();
+    expect(bubble.classList.contains('is-explain')).toBe(true);
+    expect(screen.getByRole('button', { name: /Dumb it Down/i })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Drill Deeper/i })).toBeTruthy();
     expect(screen.getByText(/Consider the saga/i)).toBeTruthy();
   });
 
