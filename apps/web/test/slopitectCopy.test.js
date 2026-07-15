@@ -19,8 +19,8 @@ import {
 } from '../src/utils/slopitectCopy.js';
 
 describe('slopitectCopy', () => {
-  it('has a ceremony label for every real phase id × all mutator variants', () => {
-    const mutatorVariants = ['refine', 'innovate', 'goMad', 'exec'];
+  it('has a ceremony label for every real phase id × all stakeholder variants', () => {
+    const stakeholderVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
     const mutationPhases = [
       'analyze',
       'analyze_stream',
@@ -30,13 +30,15 @@ describe('slopitectCopy', () => {
       'planning',
       'syntax_fixer',
       'syntax_repair',
+      'style',
       'patch_retry',
       'invoke',
+      'invoke_fallback',
       'repair_1',
       'repair_2'
     ];
     for (const phase of mutationPhases) {
-      for (const variant of mutatorVariants) {
+      for (const variant of stakeholderVariants) {
         expect(PHASE_CEREMONIES[phase]?.[variant], `${phase} × ${variant}`).toBeDefined();
       }
     }
@@ -49,9 +51,21 @@ describe('slopitectCopy', () => {
   });
 
   it('falls back to canonical label when no override exists', () => {
-    expect(phaseCeremonyLabel('explain', 'transform', 'Transform')).toBe('Transform');
+    expect(phaseCeremonyLabel('explain', 'transform', 'Transform')).toBe('Tracing the reshape…');
     expect(phaseCeremonyLabel('refine', 'totally-unknown-phase', 'Fallback')).toBe('Fallback');
     expect(phaseCeremonyLabel(undefined, 'analyze', 'Analyze')).toBe('Analyze');
+  });
+
+  it('maps slot-prefixed phase ids to base stakeholder ceremonies', () => {
+    expect(phaseCeremonyLabel('exec', 'chart_invoke', 'chart_invoke')).toBe('Boarding the jet 🛩️');
+    expect(phaseCeremonyLabel('exec', 'chart_transform', 'Transform')).toBe(
+      'Killing the darlings…'
+    );
+    expect(phaseCeremonyLabel('goMad', 'anything_invoke', 'anything_invoke')).toMatch(/fire/);
+    expect(phaseCeremonyLabel('critique', 'forms_repair_3', 'forms_repair_3')).toMatch(
+      /Second escalation/
+    );
+    expect(phaseCeremonyLabel('explain', 'chart_style', 'Style')).toMatch(/history of this hue/);
   });
 
   it('returns a tagline for every variant', () => {

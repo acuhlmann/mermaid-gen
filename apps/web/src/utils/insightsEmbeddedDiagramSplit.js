@@ -13,6 +13,7 @@ import {
 import { findBalancedBraceEnd } from './insightThinkingEnrich.js';
 
 const CHART_MARKER = '"archislopVersion"';
+const VEGA_LITE_SCHEMA_MARKER = 'vega.github.io/schema/vega-lite';
 const METAPHOR_MARKER = '"metaphor"';
 const FORMS_MARKER = '"archislopFormsVersion"';
 const JSON_FENCE_START = /```(?:json)?\s*\n?/gi;
@@ -103,9 +104,36 @@ function joinProseSegments(before, after) {
 
 /** @param {string} candidate */
 function tryParseChartDsl(candidate) {
-  if (!candidate?.includes(CHART_MARKER)) return null;
-  const result = parseChartDsl(candidate);
-  return result.ok ? result.text : null;
+  if (!candidate?.trim()) return null;
+  if (candidate.includes(CHART_MARKER)) {
+    const result = parseChartDsl(candidate);
+    return result.ok ? result.text : null;
+  }
+  if (!candidate.includes(VEGA_LITE_SCHEMA_MARKER) && !candidate.includes('"spec"')) {
+    return null;
+  }
+  let raw;
+  try {
+    raw = JSON.parse(candidate);
+  } catch {
+    return null;
+  }
+  if (!raw || typeof raw !== 'object') return null;
+  const schema = raw.$schema;
+  if (typeof schema === 'string' && schema.includes('vega-lite')) {
+    const wrapped = { archislopVersion: 1, theme: 'whiteboard', spec: raw };
+    const result = parseChartDsl(JSON.stringify(wrapped));
+    return result.ok ? result.text : null;
+  }
+  if (raw.spec && typeof raw.spec === 'object' && !raw.archislopVersion) {
+    const schemaInSpec = raw.spec.$schema;
+    if (typeof schemaInSpec === 'string' && schemaInSpec.includes('vega-lite')) {
+      const wrapped = { archislopVersion: 1, theme: raw.theme ?? 'whiteboard', spec: raw.spec };
+      const result = parseChartDsl(JSON.stringify(wrapped));
+      return result.ok ? result.text : null;
+    }
+  }
+  return null;
 }
 
 /** @param {string} candidate */
@@ -169,7 +197,10 @@ function splitEmbeddedJsonDsl(text, marker, tryParse, kind) {
 }
 
 function splitEmbeddedChartDsl(text) {
-  return splitEmbeddedJsonDsl(text, CHART_MARKER, tryParseChartDsl, 'chart');
+  const wrapped = splitEmbeddedJsonDsl(text, CHART_MARKER, tryParseChartDsl, 'chart');
+  if (wrapped) return wrapped;
+  if (!text.includes(VEGA_LITE_SCHEMA_MARKER)) return null;
+  return splitEmbeddedJsonDsl(text, VEGA_LITE_SCHEMA_MARKER, tryParseChartDsl, 'chart');
 }
 
 function splitEmbeddedMetaphorDsl(text) {
@@ -436,13 +467,17 @@ export function tryExtractDiagramPreviewFromText(text, options = {}) {
   }
 
   const trimmed = text.trim();
-  if (trimmed.includes(CHART_MARKER)) {
+  if (trimmed.includes(CHART_MARKER) || trimmed.includes(VEGA_LITE_SCHEMA_MARKER)) {
     const result = parseChartDsl(trimmed);
     if (result.ok) {
       return filterDiagramPreviewForContentType(
         { kind: 'chart', source: result.text },
         expectedKind
       );
+    }
+    const bare = tryParseChartDsl(trimmed);
+    if (bare) {
+      return filterDiagramPreviewForContentType({ kind: 'chart', source: bare }, expectedKind);
     }
   }
   const metaphorDsl = tryParseMetaphorDsl(trimmed);

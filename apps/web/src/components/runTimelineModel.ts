@@ -8,6 +8,10 @@ import { formatRunEstimatedCostUsd } from '@archislop/shared';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { phaseCeremonyLabel } from '../utils/slopitectCopy.js';
+import {
+  basePhaseId,
+  resolvePhaseIdLabel as resolveSharedPhaseIdLabel
+} from '../utils/phaseLabelResolution.js';
 import type {
   InsightEntry,
   InsightPhase,
@@ -36,12 +40,20 @@ export const PHASE_ID_LABELS: Record<string, string> = {
   chart_transform: 'Transform',
   chart_style: 'Style',
   chart_analyze: 'Analyze',
+  chart_invoke: 'Generate',
   metaphor_transform: 'Transform',
   metaphor_analyze: 'Analyze',
+  metaphor_invoke: 'Generate',
   anything_transform: 'Transform',
   anything_analyze: 'Analyze',
+  anything_invoke: 'Generate',
+  forms_transform: 'Transform',
+  forms_analyze: 'Analyze',
+  forms_invoke: 'Generate',
   activity: 'Activity'
 };
+
+export { basePhaseId };
 
 export const ACTION_KINDS = {
   model: 'model',
@@ -186,7 +198,7 @@ export function actionStatusLabel(
 
 /** Localized phase label from a phase id, falling back to English then the raw id. */
 export function phaseIdLabel(id: string, copy?: RunTimelineCopy): string {
-  return copy?.phases?.[id] ?? PHASE_ID_LABELS[id] ?? id;
+  return resolveSharedPhaseIdLabel(PHASE_ID_LABELS, id, copy?.phases);
 }
 
 export function truncateDetail(text: string, maxLen = 220): string {

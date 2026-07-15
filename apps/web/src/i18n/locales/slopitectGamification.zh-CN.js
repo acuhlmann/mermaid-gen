@@ -122,6 +122,8 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       refine: '添加有用的部分……',
       innovate: '重塑布局……',
       goMad: '添加美妙奇异的东西 🔥',
+      critique: '红笔标注布局中……',
+      explain: '追溯重塑过程……',
       exec: '砍掉心头肉……'
     },
     run_started: {
@@ -136,48 +138,72 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       refine: '起草变更清单……',
       innovate: '起草变更清单……',
       goMad: '对着图表扔飞镖 🎯',
+      critique: '构建发现大纲……',
+      explain: '起草章节计划……',
       exec: '起草头条……'
     },
     syntax_fixer: {
       refine: '修复语法……',
       innovate: '修复语法……',
       goMad: '用胶带把它粘回去',
+      critique: '修复语法——审计轨迹已更新……',
+      explain: '润色粗糙段落……',
       exec: '精简幻灯片……'
     },
     syntax_repair: {
       refine: '再次修复语法……',
       innovate: '再次修复语法……',
       goMad: '更多胶带',
+      critique: '重新打开语法发现……',
+      explain: '修订粗糙草稿……',
       exec: '重新起草幻灯片……'
+    },
+    style: {
+      refine: '调整调色板……',
+      innovate: '重塑样式以提升冲击力……',
+      goMad: '混乱配色方案 🔥',
+      critique: '标记对比度违规……',
+      explain: '讲述这种色调的历史……',
+      exec: '只用一种品牌色。'
     },
     patch_retry: {
       refine: '等待变更委员会审批……',
       innovate: '等待变更委员会审批……',
       goMad: '贿赂变更委员会',
+      critique: '等待重新审查签核……',
+      explain: '再做一轮……',
       exec: '请求董事会重新起草……'
     },
     invoke: {
       refine: '修补生产环境 🛠',
       innovate: '发布中 🚀',
       goMad: '让大楼燃起来 🔥',
+      critique: '记录生成工单……',
+      explain: '叙述草稿……',
       exec: '登机中 🛩️'
     },
     invoke_fallback: {
       refine: '热修复进行中……',
       innovate: '热修复进行中……',
       goMad: '我们转型了',
+      critique: '归档备用发现……',
+      explain: '优雅地结束本章……',
       exec: '重新规划单页报告……'
     },
     repair_1: {
       refine: '热修复进行中……',
       innovate: '热修复进行中……',
       goMad: '更多安全帽！ 🪖🪖',
+      critique: '升级至P1修复……',
+      explain: '倒回羊皮纸……',
       exec: '推迟截止日期 🗓️'
     },
     repair_2: {
       refine: '第二次热修复进行中……',
       innovate: '第二次热修复进行中……',
       goMad: '更更多安全帽 🪖🪖🪖',
+      critique: '二次升级——仍不合规……',
+      explain: '修订脚注……',
       exec: '再次推迟截止日期 🗓️🗓️'
     }
   },
