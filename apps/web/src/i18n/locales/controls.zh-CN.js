@@ -608,10 +608,16 @@ export const CONTROLS_ZH_CN = {
       chart_transform: '变换',
       chart_style: '样式',
       chart_analyze: '分析',
+      chart_invoke: '生成',
       metaphor_transform: '变换',
       metaphor_analyze: '分析',
+      metaphor_invoke: '生成',
       anything_transform: '变换',
       anything_analyze: '分析',
+      anything_invoke: '生成',
+      forms_transform: '变换',
+      forms_analyze: '分析',
+      forms_invoke: '生成',
       activity: '活动'
     },
     running: {

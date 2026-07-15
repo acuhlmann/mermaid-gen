@@ -76,4 +76,54 @@ describe('ui locale bundles', () => {
       }
     }
   );
+
+  it.each(['zh-CN', 'zh-TW'])(
+    'translates phase ceremony labels for all mutation phases × stakeholders (%s)',
+    (locale) => {
+      const en = getUiLocaleBundle('en').slopitect.PHASE_CEREMONIES;
+      const localized = getUiLocaleBundle(locale).slopitect.PHASE_CEREMONIES;
+      const stakeholderVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
+      const mutationPhases = [
+        'analyze',
+        'analyze_stream',
+        'intent',
+        'agent_run',
+        'transform',
+        'planning',
+        'syntax_fixer',
+        'syntax_repair',
+        'style',
+        'patch_retry',
+        'invoke',
+        'invoke_fallback',
+        'repair_1',
+        'repair_2'
+      ];
+      for (const phase of mutationPhases) {
+        for (const variant of stakeholderVariants) {
+          expect(localized[phase]?.[variant], `${locale} ${phase} × ${variant}`).toBeDefined();
+          expect(localized[phase][variant]).not.toBe(en[phase][variant]);
+        }
+      }
+    }
+  );
+
+  it.each(['zh-CN', 'zh-TW'])(
+    'translates run timeline phase short labels for slot-prefixed ids (%s)',
+    (locale) => {
+      const en = getUiLocaleBundle('en').controls.runTimeline.phases;
+      const localized = getUiLocaleBundle(locale).controls.runTimeline.phases;
+      for (const key of [
+        'chart_invoke',
+        'metaphor_invoke',
+        'anything_invoke',
+        'forms_transform',
+        'forms_analyze',
+        'forms_invoke'
+      ]) {
+        expect(localized[key], `${locale} ${key}`).toBeDefined();
+        expect(localized[key]).not.toBe(en[key]);
+      }
+    }
+  );
 });

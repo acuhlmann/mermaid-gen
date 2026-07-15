@@ -123,6 +123,8 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       refine: '添加有用的部分……',
       innovate: '重塑版面配置……',
       goMad: '添加美妙奇異的事物 🔥',
+      critique: '紅筆標註版面配置中……',
+      explain: '追溯重塑過程……',
       exec: '捨棄珍愛之物……'
     },
     run_started: {
@@ -137,48 +139,72 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       refine: '起草差異清單……',
       innovate: '起草差異清單……',
       goMad: '對圖表丟飛鏢 🎯',
+      critique: '建構發現大綱……',
+      explain: '起草章節計畫……',
       exec: '起草標題……'
     },
     syntax_fixer: {
       refine: '修復語法……',
       innovate: '修復語法……',
       goMad: '用膠帶把它黏回去',
+      critique: '修復語法——稽核軌跡已更新……',
+      explain: '潤飾粗糙段落……',
       exec: '緊縮簡報……'
     },
     syntax_repair: {
       refine: '再次修復語法……',
       innovate: '再次修復語法……',
       goMad: '再多一點膠帶',
+      critique: '重新開啟語法發現……',
+      explain: '修訂粗糙草稿……',
       exec: '重新起草簡報……'
+    },
+    style: {
+      refine: '調整調色盤……',
+      innovate: '重塑樣式以提升衝擊力……',
+      goMad: '混亂配色方案 🔥',
+      critique: '標記對比度違規……',
+      explain: '講述這種色調的歷史……',
+      exec: '只用一種品牌色。'
     },
     patch_retry: {
       refine: '等待 CAB 核准……',
       innovate: '等待 CAB 核准……',
       goMad: '賄賂 CAB',
+      critique: '等待重新審查簽核……',
+      explain: '再做一輪……',
       exec: '請求董事會重新起草……'
     },
     invoke: {
       refine: '修補正式環境 🛠',
       innovate: '出貨了 🚀',
       goMad: '點燃大樓 🔥',
+      critique: '記錄生成工單……',
+      explain: '敘述草稿……',
       exec: '登上私人飛機 🛩️'
     },
     invoke_fallback: {
       refine: '緊急修補飛行中……',
       innovate: '緊急修補飛行中……',
       goMad: '我們轉型了',
+      critique: '歸檔備用發現……',
+      explain: '優雅地結束本章……',
       exec: '重新路由一頁報告……'
     },
     repair_1: {
       refine: '緊急修補飛行中……',
       innovate: '緊急修補飛行中……',
       goMad: '更多安全帽！ 🪖🪖',
+      critique: '升級至 P1 修復……',
+      explain: '倒回羊皮紙……',
       exec: '滑動截止日期 🗓️'
     },
     repair_2: {
       refine: '第二次緊急修補飛行中……',
       innovate: '第二次緊急修補飛行中……',
       goMad: '更更多安全帽 🪖🪖🪖',
+      critique: '二次升級——仍不合規……',
+      explain: '修訂註腳……',
       exec: '再次滑動截止日期 🗓️🗓️'
     }
   },
