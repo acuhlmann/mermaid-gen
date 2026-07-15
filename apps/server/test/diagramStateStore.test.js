@@ -216,6 +216,9 @@ test('mirrorLastUserPromptToSibling copies topic to sibling without changing dia
 
   assert.equal(store.getSlot('infographic').lastUserPrompt, 'Solar system');
   assert.equal(store.getSlot('mermaid').lastUserPrompt, 'Solar system');
+  assert.equal(store.getSlot('chart').lastUserPrompt, 'Solar system');
+  assert.equal(store.getSlot('forms').lastUserPrompt, 'Solar system');
+  assert.equal(store.getSlot('anything').lastUserPrompt, 'Solar system');
   assert.equal(store.getSlot('mermaid').diagramSource, mermaidBefore);
   assert.equal(store.getSlot('infographic').diagramSource, infographicBefore);
 });

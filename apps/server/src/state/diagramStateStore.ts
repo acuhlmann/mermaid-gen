@@ -709,7 +709,14 @@ export function createDiagramStateStore(
       const trimmed = typeof prompt === 'string' ? prompt.trim() : '';
       if (!trimmed) return session[contentType];
       const value = trimmed.slice(0, 4000);
-      const allSlots = ['mermaid', 'infographic', 'metaphor3d'] as const;
+      const allSlots = [
+        'mermaid',
+        'infographic',
+        'metaphor3d',
+        'chart',
+        'forms',
+        'anything'
+      ] as const;
       for (const slotKey of allSlots) {
         if (slotKey === contentType) continue;
         const siblingSlot = session[slotKey];

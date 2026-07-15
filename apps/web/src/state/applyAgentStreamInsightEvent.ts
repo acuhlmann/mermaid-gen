@@ -665,6 +665,7 @@ export function applyAgentStreamInsightEvent(
           infographic: null,
           metaphor3d: null,
           chart: null,
+          forms: null,
           anything: null
         };
       }
