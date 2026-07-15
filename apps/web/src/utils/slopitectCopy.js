@@ -11,6 +11,7 @@
  */
 
 import { SLOPITECT_GAMIFICATION_EN } from '../i18n/locales/slopitectGamification.en.js';
+import { resolvePhaseCeremonyRow } from './phaseLabelResolution.js';
 
 let activeSlopitectBundle = null;
 
@@ -323,6 +324,8 @@ export const PHASE_CEREMONIES = {
     refine: 'Adding the useful bit…',
     innovate: 'Reshaping the layout…',
     goMad: 'Adding wonderfully strange things 🔥',
+    critique: 'Red-penning the layout…',
+    explain: 'Tracing the reshape…',
     exec: 'Killing the darlings…'
   },
   run_started: {
@@ -337,48 +340,72 @@ export const PHASE_CEREMONIES = {
     refine: 'Drafting deltas…',
     innovate: 'Drafting deltas…',
     goMad: 'Throwing darts at the diagram 🎯',
+    critique: 'Building the findings outline…',
+    explain: 'Drafting the chapter plan…',
     exec: 'Drafting the headline…'
   },
   syntax_fixer: {
     refine: 'Mending syntax…',
     innovate: 'Mending syntax…',
     goMad: 'Duct-taping it back together',
+    critique: 'Fixing syntax — audit trail updated…',
+    explain: 'Smoothing a rough passage…',
     exec: 'Tightening the deck…'
   },
   syntax_repair: {
     refine: 'Re-mending syntax…',
     innovate: 'Re-mending syntax…',
     goMad: 'More duct tape',
+    critique: 'Re-opening the syntax finding…',
+    explain: 'Revising the rough draft…',
     exec: 'Re-drafting the deck…'
+  },
+  style: {
+    refine: 'Tuning the palette…',
+    innovate: 'Restyling for impact…',
+    goMad: 'CHAOTIC COLOR SCHEMES 🔥',
+    critique: 'Flagging contrast violations…',
+    explain: 'On the history of this hue…',
+    exec: 'One brand color only.'
   },
   patch_retry: {
     refine: 'Awaiting CAB approval…',
     innovate: 'Awaiting CAB approval…',
     goMad: 'Bribing the CAB',
+    critique: 'Awaiting re-review sign-off…',
+    explain: 'Taking another pass…',
     exec: 'Asking the board for a redraft…'
   },
   invoke: {
     refine: 'Patching prod 🛠',
     innovate: 'Shipping it 🚀',
     goMad: 'Setting buildings on fire 🔥',
+    critique: 'Logging the generation ticket…',
+    explain: 'Narrating the draft…',
     exec: 'Boarding the jet 🛩️'
   },
   invoke_fallback: {
     refine: 'Hotfix in flight…',
     innovate: 'Hotfix in flight…',
     goMad: 'WE PIVOT',
+    critique: 'Filing a fallback finding…',
+    explain: 'Closing the chapter gracefully…',
     exec: 'Rerouting the one-pager…'
   },
   repair_1: {
     refine: 'Hotfix in flight…',
     innovate: 'Hotfix in flight…',
     goMad: 'More hard hats! 🪖🪖',
+    critique: 'Escalating to P1 repair…',
+    explain: 'Rewinding the parchment…',
     exec: 'Sliding the deadline 🗓️'
   },
   repair_2: {
     refine: 'Second hotfix in flight…',
     innovate: 'Second hotfix in flight…',
     goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
+    critique: 'Second escalation — still non-compliant…',
+    explain: 'Revising the footnotes…',
     exec: 'Sliding the deadline again 🗓️🗓️'
   }
 };
@@ -390,12 +417,8 @@ export const PHASE_CEREMONIES = {
  */
 export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
   if (!phaseId) return fallbackLabel || '';
-  const baseId = phaseId.replace(/^(chart|anything|metaphor|forms|infographic)_/, '');
-  const row =
-    slop()?.PHASE_CEREMONIES?.[phaseId] ??
-    PHASE_CEREMONIES[phaseId] ??
-    slop()?.PHASE_CEREMONIES?.[baseId] ??
-    PHASE_CEREMONIES[baseId];
+  const ceremonies = slop()?.PHASE_CEREMONIES ?? PHASE_CEREMONIES;
+  const row = resolvePhaseCeremonyRow(ceremonies, phaseId);
   if (!row) return fallbackLabel || '';
   return row[variant] || fallbackLabel || '';
 }

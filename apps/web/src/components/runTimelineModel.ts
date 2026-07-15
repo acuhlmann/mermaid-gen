@@ -8,6 +8,10 @@ import { formatRunEstimatedCostUsd } from '@archislop/shared';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
 import { phaseCeremonyLabel } from '../utils/slopitectCopy.js';
+import {
+  basePhaseId,
+  resolvePhaseIdLabel as resolveSharedPhaseIdLabel
+} from '../utils/phaseLabelResolution.js';
 import type {
   InsightEntry,
   InsightPhase,
@@ -49,37 +53,7 @@ export const PHASE_ID_LABELS: Record<string, string> = {
   activity: 'Activity'
 };
 
-const CONTENT_SLOT_PHASE_PREFIX = /^(chart|anything|metaphor|forms|infographic)_(.+)$/;
-
-/** Strip a slot prefix (`chart_invoke` → `invoke`) for ceremony + label lookup. */
-export function basePhaseId(id: string): string {
-  const match = id.match(CONTENT_SLOT_PHASE_PREFIX);
-  return match ? match[2] : id;
-}
-
-const SLOT_PHASE_NOUN: Record<string, string> = {
-  chart: 'chart',
-  anything: 'page',
-  metaphor: 'metaphor',
-  metaphor3d: 'metaphor',
-  forms: 'form',
-  infographic: 'infographic'
-};
-
-/** Human label for slot-prefixed phase ids when no explicit map exists. */
-function humanizePrefixedPhaseId(id: string): string {
-  const match = id.match(CONTENT_SLOT_PHASE_PREFIX);
-  if (!match) return id.replaceAll('_', ' ');
-  const slot = match[1];
-  const tail = match[2];
-  const noun = SLOT_PHASE_NOUN[slot] ?? slot;
-  if (tail === 'invoke') return `Generate ${noun}`;
-  if (tail === 'transform') return `Transform ${noun}`;
-  if (tail === 'analyze') return `Analyze ${noun}`;
-  if (tail.startsWith('repair')) return `Repair ${noun}`;
-  if (tail === 'style') return `Style ${noun}`;
-  return `${tail.replaceAll('_', ' ')} ${noun}`;
-}
+export { basePhaseId };
 
 export const ACTION_KINDS = {
   model: 'model',
@@ -224,9 +198,7 @@ export function actionStatusLabel(
 
 /** Localized phase label from a phase id, falling back to English then the raw id. */
 export function phaseIdLabel(id: string, copy?: RunTimelineCopy): string {
-  const fromCopy = copy?.phases?.[id] ?? copy?.phases?.[basePhaseId(id)];
-  if (fromCopy) return fromCopy;
-  return PHASE_ID_LABELS[id] ?? PHASE_ID_LABELS[basePhaseId(id)] ?? humanizePrefixedPhaseId(id);
+  return resolveSharedPhaseIdLabel(PHASE_ID_LABELS, id, copy?.phases);
 }
 
 export function truncateDetail(text: string, maxLen = 220): string {
