@@ -455,18 +455,59 @@ const STRICT_JSON_RE = /\{[\s\S]*\}/;
  * @param {string} raw
  * @param {{ persona?: string }} [opts]
  */
+/**
+ * Last-resort salvage when the model returned prose (or broken JSON) instead of the
+ * strict advisor envelope. The Wise Architect is the main offender — the ivory-tower
+ * voice fights the JSON-only rule more often than the action personas.
+ *
+ * @param {string} raw
+ * @param {{ persona?: string }} [opts]
+ */
+export function rescueAdvisorReplyFromPlainText(raw, opts = {}) {
+  if (typeof raw !== 'string') return null;
+  let text = raw.replace(/\r/g, '').trim();
+  if (!text) return null;
+  text = text
+    .replace(/^```(?:json)?\s*\n?/im, '')
+    .replace(/\n?```\s*$/m, '')
+    .trim();
+  const embeddedSuggestion = text.match(/"suggestion"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  if (embeddedSuggestion) {
+    try {
+      text = JSON.parse(`"${embeddedSuggestion[1]}"`);
+    } catch {
+      text = embeddedSuggestion[1];
+    }
+  } else if (text.startsWith('{') || text.startsWith('[')) {
+    return null;
+  }
+  text = String(text).split(/\n+/, 1)[0]?.trim() ?? '';
+  text = text.replace(/^["'`“”‘’]+|["'`“”‘’]+$/g, '').trim();
+  if (!text) return null;
+  let kind = 'suggestion';
+  if (opts.persona === 'explain') kind = 'comment';
+  if (opts.persona === 'refine') kind = 'suggestion';
+  return {
+    suggestion: clampPunchy(text, 110),
+    highlightIds: [],
+    kind
+  };
+}
+
 export function parseAdvisorReply(raw, opts = {}) {
   if (typeof raw !== 'string') return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
   const match = trimmed.match(STRICT_JSON_RE);
-  if (!match) return null;
+  if (!match) {
+    return opts.persona === 'explain' ? rescueAdvisorReplyFromPlainText(trimmed, opts) : null;
+  }
   let parsed;
   try {
     parsed = JSON.parse(match[0]);
   } catch (err) {
     console.warn('advisorPrompts: advisor reply JSON parse failed:', err?.message ?? err);
-    return null;
+    return opts.persona === 'explain' ? rescueAdvisorReplyFromPlainText(trimmed, opts) : null;
   }
   if (!parsed || typeof parsed !== 'object') return null;
   const suggestion = typeof parsed.suggestion === 'string' ? parsed.suggestion.trim() : '';

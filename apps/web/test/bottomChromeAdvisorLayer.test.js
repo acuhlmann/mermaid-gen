@@ -53,4 +53,12 @@ describe('bottom-chrome advisor-bubble layer gating', () => {
       ).toBe(true);
     }
   });
+
+  it('caps advisor speech bubble height so Wise Architect controls stay inside the viewport', () => {
+    const bubble = ruleBody('.advisor-speech-bubble');
+    expect(bubble, 'expected base .advisor-speech-bubble rule').toBeTruthy();
+    expect(bubble).toMatch(/max-height:/);
+    expect(bubble).toMatch(/overflow-y:\s*auto/);
+    expect(css).toMatch(/\.advisor-speech-bubble\.is-explain[\s\S]*max-height:/);
+  });
 });

@@ -45,6 +45,20 @@ test('parseAdvisorReply coerces explain persona to comment regardless of model o
   assert.equal(reply.kind, 'comment');
 });
 
+test('parseAdvisorReply salvages plain-text explain replies when JSON envelope is missing', () => {
+  const reply = parseAdvisorReply(
+    'Picture, if you will, a saga shape from Order to Payment — choreography, not orchestration.',
+    { persona: 'explain' }
+  );
+  assert.ok(reply);
+  assert.equal(reply.kind, 'comment');
+  assert.match(reply.suggestion, /saga shape/i);
+});
+
+test('parseAdvisorReply does not salvage plain text for non-explain personas', () => {
+  assert.equal(parseAdvisorReply('Just rename the gateway node.', { persona: 'refine' }), null);
+});
+
 test('parseAdvisorReply coerces refine persona to suggestion regardless of model output', () => {
   // THE Engineer is action-only — even if the model emits kind:"comment", the bubble
   // must always offer a Do-it button so the user gets a concrete next step.
