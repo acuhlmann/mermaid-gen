@@ -276,6 +276,10 @@ function ArchiSlop() {
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   const [contentMode, setContentMode] = useState(() => readStoredContentMode());
+  /** Mode the user switched from — drives peer takeover vs cached-slot reuse on hydrate. */
+  const previousContentModeRef = useRef(contentMode);
+  /** Per-mode revision id when the user last left that mode — detects unchanged source on return. */
+  const sourceRevisionAtViewRef = useRef({});
   /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
   const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
@@ -964,6 +968,13 @@ function ArchiSlop() {
     // Capture the textarea state at the moment the user toggled mode. Used below to gate
     // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
     const promptAtSwitch = promptRef.current;
+    const sourceMode =
+      previousContentModeRef.current !== contentMode &&
+      isConcreteContentMode(previousContentModeRef.current)
+        ? previousContentModeRef.current
+        : null;
+    const sourceRevisionAtLastView =
+      sourceMode != null ? (sourceRevisionAtViewRef.current[sourceMode] ?? null) : null;
     // Keep loading true across the hydrate → auto-submit microtask gap so an empty sibling
     // slot never flashes the first-run intro between those two phases.
     let keepLoadingForModeSwitch = false;
@@ -1024,14 +1035,20 @@ function ArchiSlop() {
           contentMode,
           session,
           sessionTopic: sessionTopicRef.current,
-          promptAtSwitch: trimmedAtSwitch
+          promptAtSwitch: trimmedAtSwitch,
+          sourceMode
         });
 
         if (candidate) {
           sessionTopicRef.current = candidate;
         }
 
-        const primaryPeerMode = pickPrimaryPeerMode({ contentMode, session, candidate });
+        const primaryPeerMode = pickPrimaryPeerMode({
+          contentMode,
+          session,
+          candidate,
+          sourceMode
+        });
         const peerSlot = primaryPeerMode ? session?.[primaryPeerMode] : null;
 
         const newSlotInSync = isSlotInSyncForTopic(data, candidate);
@@ -1040,13 +1057,17 @@ function ArchiSlop() {
           contentMode,
           session,
           candidate,
-          syncMarkers: crossModeSyncRef.current
+          syncMarkers: crossModeSyncRef.current,
+          sourceMode,
+          sourceRevisionAtLastView
         });
         const needsPeerSync = needsModeSwitchPeerSync({
           contentMode,
           session,
           candidate,
-          syncMarkers: crossModeSyncRef.current
+          syncMarkers: crossModeSyncRef.current,
+          sourceMode,
+          sourceRevisionAtLastView
         });
 
         if (candidate && !textareaDirty) {
@@ -1054,7 +1075,7 @@ function ArchiSlop() {
           promptRef.current = candidate;
         }
 
-        const peerContext = buildIntentPeerContext(contentMode, session, candidate);
+        const peerContext = buildIntentPeerContext(contentMode, session, candidate, sourceMode);
         const pendingRenderModeRequest = pendingRenderModeRequestRef.current;
         if (pendingRenderModeRequest?.targetMode === contentMode) {
           pendingRenderModeRequestRef.current = null;
@@ -1128,6 +1149,10 @@ function ArchiSlop() {
             }
           });
         }
+        if (isConcreteContentMode(contentMode)) {
+          sourceRevisionAtViewRef.current[contentMode] = data.revisionId ?? 0;
+        }
+        previousContentModeRef.current = contentMode;
       })
       .catch(async (err) => {
         if (cancelled) return;
@@ -1143,6 +1168,7 @@ function ArchiSlop() {
           sessionTopicRef.current = null;
           setSessionHasPeerContent(false);
           crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
+          sourceRevisionAtViewRef.current = {};
           cacheRef.current = null;
           sessionIdFromUrlRef.current = false;
           setModelProfile('fast');
@@ -1850,6 +1876,9 @@ function ArchiSlop() {
     (nextMode) => {
       if (nextMode === contentMode) return;
       if (!isContentMode(nextMode)) return;
+      if (isConcreteContentMode(contentMode)) {
+        sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
+      }
       stopStreamingAgentRequest();
       setLiveDraftSource('');
       setLiveDraftContentType(null);
@@ -3245,6 +3274,7 @@ ${requirementsBlock}`;
     setCritiqueActionableSelected([]);
     sessionTopicRef.current = null;
     crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
+    sourceRevisionAtViewRef.current = {};
     if (diagramAutoHighlightTimerRef.current != null) {
       window.clearTimeout(diagramAutoHighlightTimerRef.current);
       diagramAutoHighlightTimerRef.current = null;

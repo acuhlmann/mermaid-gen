@@ -13,6 +13,7 @@ import {
   isSlotInSyncForTopic,
   needsModeSwitchPeerSync,
   peerRequiresModeSwitchTranslation,
+  pickPrimaryPeerMode,
   resolveModeSwitchCandidate,
   shouldAutoSubmitModeSwitchIntent,
   slotLastTopic,
@@ -887,5 +888,169 @@ describe('mode switch peer context', () => {
         syncMarkers: { mermaid: null, infographic: null, metaphor3d: null }
       })
     ).toBe(true);
+  });
+
+  it('pickPrimaryPeerMode prefers sourceMode when switching from a customized sibling', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  A --> B',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:00:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const newerInfographic = {
+      ...i,
+      revisionId: 5,
+      diagramSource: 'infographic list\n  items\n    - Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const session = { mermaid: customMermaid, infographic: newerInfographic };
+    expect(
+      pickPrimaryPeerMode({
+        contentMode: 'chart',
+        session,
+        candidate: 'Solar system',
+        sourceMode: 'mermaid'
+      })
+    ).toBe('mermaid');
+  });
+
+  it('peerRequiresModeSwitchTranslation keeps cache when source revision unchanged since last view', () => {
+    const m = createInitialDiagramState('mermaid');
+    const cachedMermaid = {
+      ...m,
+      revisionId: 5,
+      diagramSource: 'flowchart TD\n  Sun --> Planets',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const syncedInfographic = {
+      ...i,
+      revisionId: 3,
+      diagramSource: 'infographic sequence-diagram\n  title Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+    const session = { mermaid: cachedMermaid, infographic: syncedInfographic };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'mermaid',
+        session,
+        candidate: 'Solar system',
+        syncMarkers: { mermaid: null, infographic: null },
+        sourceMode: 'infographic',
+        sourceRevisionAtLastView: 3
+      })
+    ).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation keeps cached mermaid when switching from chart unchanged', () => {
+    const m = createInitialDiagramState('mermaid');
+    const cachedMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Sun --> Planets',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const syncedInfographic = {
+      ...i,
+      revisionId: 5,
+      diagramSource: 'infographic sequence-diagram\n  title Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:00:00.000Z'
+    };
+    const c = createInitialDiagramState('chart');
+    const chartFromInfographic = {
+      ...c,
+      revisionId: 1,
+      diagramSource: '{"spec":{}}',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:30:00.000Z'
+    };
+    const session = {
+      mermaid: cachedMermaid,
+      infographic: syncedInfographic,
+      chart: chartFromInfographic
+    };
+    const syncMarkers = {
+      mermaid: null,
+      infographic: { peerMode: 'mermaid', peerRevisionId: 2, targetRevisionId: 5 },
+      chart: { peerMode: 'infographic', peerRevisionId: 5, targetRevisionId: 1 }
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'mermaid',
+        session,
+        candidate: 'Solar system',
+        syncMarkers,
+        sourceMode: 'chart',
+        sourceRevisionAtLastView: chartFromInfographic.revisionId
+      })
+    ).toBe(false);
+  });
+
+  it('peerRequiresModeSwitchTranslation still updates mermaid when infographic peer advanced', () => {
+    const m = createInitialDiagramState('mermaid');
+    const staleMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Old',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T08:30:00.000Z'
+    };
+    const i = createInitialDiagramState('infographic');
+    const refinedInfographic = {
+      ...i,
+      revisionId: 6,
+      diagramSource: 'infographic sequence-diagram\n  title Solar v2',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T09:30:00.000Z'
+    };
+    const session = { mermaid: staleMermaid, infographic: refinedInfographic };
+    const syncMarkers = {
+      mermaid: null,
+      infographic: { peerMode: 'mermaid', peerRevisionId: 2, targetRevisionId: 5 }
+    };
+    expect(
+      peerRequiresModeSwitchTranslation({
+        contentMode: 'mermaid',
+        session,
+        candidate: 'Solar system',
+        syncMarkers,
+        sourceMode: 'infographic',
+        sourceRevisionAtLastView: 5
+      })
+    ).toBe(true);
+  });
+
+  it('buildIntentPeerContext uses sourceMode when target slot is empty', () => {
+    const m = createInitialDiagramState('mermaid');
+    const customMermaid = {
+      ...m,
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  A --> B',
+      lastUserPrompt: 'Solar system'
+    };
+    const i = createInitialDiagramState('infographic');
+    const newerInfographic = {
+      ...i,
+      revisionId: 5,
+      diagramSource: 'infographic list\n  items\n    - Solar',
+      lastUserPrompt: 'Solar system',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const session = {
+      mermaid: customMermaid,
+      infographic: newerInfographic,
+      chart: createInitialDiagramState('chart')
+    };
+    const peer = buildIntentPeerContext('chart', session, 'Solar system', 'mermaid');
+    expect(peer).toEqual({ contentType: 'mermaid', diagramSource: customMermaid.diagramSource });
   });
 });
