@@ -5,7 +5,8 @@ const PHASE_BY_CONTENT_TYPE = {
   chart: { id: 'chart_syntax_fixer', label: 'Chart syntax fixer…' },
   infographic: { id: 'syntax_fixer', label: 'Infographic syntax fixer…' },
   metaphor3d: { id: 'metaphor_syntax_fixer', label: 'Metaphor syntax fixer…' },
-  anything: { id: 'anything_syntax_fixer', label: 'Page syntax fixer…' }
+  anything: { id: 'anything_syntax_fixer', label: 'Page syntax fixer…' },
+  forms: { id: 'forms_syntax_fixer', label: 'Forms syntax fixer…' }
 };
 
 const PLAN_BEAT_BY_CONTENT_TYPE = {
@@ -18,7 +19,9 @@ const PLAN_BEAT_BY_CONTENT_TYPE = {
   metaphor3d:
     'Metaphor DSL failed validation — climbing the syntax-fixer ladder (lite → flash → quality) before retrying.',
   anything:
-    'Page failed validation — climbing the syntax-fixer ladder (lite → flash → quality) before retrying.'
+    'Page failed validation — climbing the syntax-fixer ladder (lite → flash → quality) before retrying.',
+  forms:
+    'Forms document failed validation — climbing the syntax-fixer ladder (lite → flash → quality) before retrying.'
 };
 
 function resolvePhase(contentType) {

@@ -108,7 +108,15 @@ Chart validation runs through `validateAndPrepareChartPatch` (`apps/server/src/t
 
 1. **DSL parse** — `parseChartDsl` (shared package) strips the `chart <type>` header and parses JSON.
 2. **Vega-Lite schema check** — validates the extracted spec.
-3. **Repair** — same single-shot fixer + agent repair pattern as the other slots.
+3. **Repair** — syntax fixer ladder (`chartSyntaxFixer.js`, lite → flash → DeepSeek) then agent repair.
+
+## Forms validation pipeline
+
+Forms validation runs through `validateAndPrepareFormsPatch` (`apps/server/src/tools/formsA2uiTool.js`):
+
+1. **Allowlist gate** — `parseFormsA2ui` (shared): JSON wrapper shape, `basicCatalog` components, Button event-only actions, size/count caps, ≥1 input + ≥1 Button.
+2. **Syntax fixer ladder** — `formsSyntaxFixer.js` (same lite → flash → DeepSeek climb as chart; higher `maxOutputTokens` for large A2UI docs).
+3. **Agent repair** — bounded by `FORMS_REPAIR_MAX_ATTEMPTS` (attempt 2+ uses Quality). Deliberately **no sanitizer pack** — allowlist diagnostics are precise enough without mechanical rewrite rules.
 
 ## Anything validation pipeline
 

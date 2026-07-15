@@ -586,13 +586,18 @@ const syntaxFixerModelCache = new Map();
  *
  * @param {NodeJS.ProcessEnv} [env]
  * @param {{ backend: LlmBackend, modelId: string }} target
+ * @param {{ maxOutputTokens?: number }} [options]
  */
-export function createSyntaxFixerModelForTarget(env = process.env, target) {
+export function createSyntaxFixerModelForTarget(env = process.env, target, options = {}) {
   if (!target?.backend || !target?.modelId || !backendUsable(env, target.backend)) return null;
-  const key = `${target.backend}:${target.modelId}`;
+  const maxOutputTokens =
+    Number.isFinite(options.maxOutputTokens) && options.maxOutputTokens > 0
+      ? Math.floor(options.maxOutputTokens)
+      : 1400;
+  const key = `${target.backend}:${target.modelId}:out${maxOutputTokens}`;
   const cached = syntaxFixerModelCache.get(key);
   if (cached) return cached;
-  const overrides = { model: target.modelId, temperature: 0.1, maxOutputTokens: 1400 };
+  const overrides = { model: target.modelId, temperature: 0.1, maxOutputTokens };
   const model = createChatModelForBackend(env, target.backend, overrides);
   syntaxFixerModelCache.set(key, model);
   return model;

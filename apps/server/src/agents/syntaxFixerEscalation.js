@@ -31,7 +31,8 @@ import {
  *     target: { backend: string, modelId: string, tier: string },
  *     index: number,
  *     ladderSize: number
- *   ) => void
+ *   ) => void,
+ *   maxOutputTokens?: number
  * }} args
  */
 export async function escalateSyntaxFixerRepair({
@@ -40,7 +41,8 @@ export async function escalateSyntaxFixerRepair({
   modelOverride = undefined,
   brokenSource = '',
   repairOnce,
-  onRung
+  onRung,
+  maxOutputTokens
 } = {}) {
   if (typeof repairOnce !== 'function') {
     return { accepted: false, error: 'Syntax fixer repairOnce callback is required.' };
@@ -62,9 +64,12 @@ export async function escalateSyntaxFixerRepair({
     error: 'Syntax fixer could not repair the source.'
   };
 
+  const modelOptions =
+    Number.isFinite(maxOutputTokens) && maxOutputTokens > 0 ? { maxOutputTokens } : {};
+
   for (let i = 0; i < ladder.length; i += 1) {
     const target = ladder[i];
-    const model = createSyntaxFixerModelForTarget(env, target);
+    const model = createSyntaxFixerModelForTarget(env, target, modelOptions);
     if (!model) continue;
     if (typeof onRung === 'function') onRung(target, i, ladder.length);
 
