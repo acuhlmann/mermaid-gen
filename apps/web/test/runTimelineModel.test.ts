@@ -11,7 +11,7 @@ import {
   PHASE_ID_LABELS,
   ceremonyLabelFor,
   phaseIdLabel
-} from '../src/components/runTimelineModel.ts';
+} from '../src/components/runTimelineModel.js';
 
 const STAKEHOLDER_VARIANTS = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
 
@@ -111,7 +111,7 @@ describe('runTimelineModel phase labels (all slots × stakeholders)', () => {
   });
 
   it('resolvePhaseIdLabel maps repair_3+ to repair bucket labels', () => {
-    expect(resolvePhaseIdLabel(PHASE_ID_LABELS, 'chart_repair_3')).toBe('Repair');
-    expect(resolvePhaseIdLabel(PHASE_ID_LABELS, 'forms_repair_4')).toBe('Repair');
+    expect(resolvePhaseIdLabel(PHASE_ID_LABELS, 'chart_repair_3', undefined)).toBe('Repair');
+    expect(resolvePhaseIdLabel(PHASE_ID_LABELS, 'forms_repair_4', undefined)).toBe('Repair');
   });
 });
