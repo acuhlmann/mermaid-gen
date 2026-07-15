@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createInitialDiagramState } from '@archislop/shared';
+import { createInitialDiagramState, resolveAgentRunBudgetMs } from '@archislop/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildIntentPeerContext,
@@ -163,9 +163,11 @@ describe('submitDiagramTransform', () => {
         'Transform agent request timed out. Please try again.'
       );
 
-      // Timeout mirrors the server run budget for the mode/profile (Go Mad fast: 105s)
-      // plus the client grace window, instead of a flat 60s.
-      await vi.advanceTimersByTimeAsync(121_000);
+      // Timeout mirrors the server run budget for the mode/profile (Go Mad fast) plus the
+      // client grace window — keep in sync with agentMutationTimeoutMs in diagramStore.js.
+      const clientGraceMs = 15_000;
+      const timeoutMs = resolveAgentRunBudgetMs('fast', {}, 'goMad') + clientGraceMs;
+      await vi.advanceTimersByTimeAsync(timeoutMs + 1_000);
       await assertion;
     } finally {
       globalThis.fetch = originalFetch;
