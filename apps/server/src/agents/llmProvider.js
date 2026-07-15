@@ -9,6 +9,8 @@ import { ChatVertexAI } from '@langchain/google-vertexai';
  */
 export const DEFAULT_VERTEX_MODEL_FAST = 'gemini-2.5-flash';
 export const DEFAULT_VERTEX_MODEL_QUALITY = 'gemini-2.5-pro';
+/** Ultra-low-latency Vertex fixer rung (optional; skipped when unavailable at runtime). */
+export const DEFAULT_VERTEX_MODEL_LITE = 'gemini-2.5-flash-lite';
 
 /** Default DeepSeek API model ids (OpenAI-compatible https://api.deepseek.com). */
 export const DEFAULT_DEEPSEEK_MODEL_FAST = 'deepseek-v4-flash';
@@ -17,6 +19,7 @@ export const DEFAULT_DEEPSEEK_API_BASE = 'https://api.deepseek.com';
 
 /** Default OpenRouter slugs when OPENROUTER_MODEL* are unset. */
 export const DEFAULT_OPENROUTER_MODEL_FAST = 'google/gemini-2.5-flash-lite';
+export const DEFAULT_OPENROUTER_MODEL_FLASH = 'google/gemini-2.5-flash';
 export const DEFAULT_OPENROUTER_MODEL_QUALITY = 'qwen/qwen3-235b-a22b';
 
 /** @typedef {'vertex' | 'openrouter' | 'deepseek'} LlmBackend */
@@ -406,33 +409,171 @@ function resolveFastDefaultForBackend(env, backend) {
 }
 
 /**
- * Resolve the model used by the syntax fixer. Independent of the intent/transform model so
- * repair runs on a small, fast model regardless of the request profile.
- *
- *   MERMAID_REPAIR_BACKEND=vertex|openrouter|deepseek  — pick the backend explicitly.
- *   MERMAID_REPAIR_MODEL=<slug-or-model-id>   — override the model id.
- *   (default: same backend as resolveLlmBackend(), fast profile)
- *
  * @param {NodeJS.ProcessEnv} [env]
- * @returns {{ backend: LlmBackend, modelId: string } | null}
+ * @returns {boolean}
  */
-export function resolveSyntaxFixerTarget(env = process.env) {
+export function isSyntaxFixerEscalationEnabled(env = process.env) {
+  const raw = env.SYNTAX_FIXER_ESCALATION;
+  if (raw == null || raw === '') return true;
+  const s = String(raw).trim().toLowerCase();
+  return s !== '0' && s !== 'false' && s !== 'no' && s !== 'off';
+}
+
+/**
+ * @param {NodeJS.ProcessEnv} env
+ * @param {LlmBackend} backend
+ */
+function backendUsable(env, backend) {
+  if (backend === 'vertex') return isVertexEnvConfigured(env);
+  if (backend === 'openrouter') return Boolean(env.OPENROUTER_API_KEY);
+  if (backend === 'deepseek') return Boolean(env.DEEPSEEK_API_KEY);
+  return false;
+}
+
+/**
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {LlmBackend | null}
+ */
+function resolvePinnedRepairBackend(env = process.env) {
   const requested =
     typeof env.MERMAID_REPAIR_BACKEND === 'string'
       ? env.MERMAID_REPAIR_BACKEND.trim().toLowerCase()
       : '';
-  const backend =
-    requested === 'vertex' || requested === 'openrouter' || requested === 'deepseek'
-      ? requested
-      : resolveLlmBackend(env);
-  if (!backend) return null;
-  if (backend === 'vertex' && !isVertexEnvConfigured(env)) return null;
-  if (backend === 'openrouter' && !env.OPENROUTER_API_KEY) return null;
-  if (backend === 'deepseek' && !env.DEEPSEEK_API_KEY) return null;
+  if (requested === 'vertex' || requested === 'openrouter' || requested === 'deepseek') {
+    return backendUsable(env, requested) ? requested : null;
+  }
+  return null;
+}
 
-  const explicit =
+/**
+ * @param {NodeJS.ProcessEnv} env
+ * @param {LlmBackend} backend
+ * @param {'lite' | 'flash' | 'quality'} tier
+ */
+function resolveModelIdForFixerTier(env, backend, tier) {
+  if (backend === 'vertex') {
+    if (tier === 'lite') {
+      const lite = typeof env.VERTEX_MODEL_LITE === 'string' ? env.VERTEX_MODEL_LITE.trim() : '';
+      return lite || DEFAULT_VERTEX_MODEL_LITE;
+    }
+    if (tier === 'quality') return resolveVertexModelId(env, 'quality');
+    return resolveVertexModelId(env, 'fast');
+  }
+  if (backend === 'deepseek') {
+    if (tier === 'quality') return resolveDeepSeekModelId(env, 'quality');
+    // DeepSeek has no separate lite slug — flash/lite share the fast id.
+    return resolveDeepSeekModelId(env, 'fast');
+  }
+  // openrouter
+  if (tier === 'lite') {
+    const lite =
+      typeof env.OPENROUTER_MODEL_LITE === 'string' ? env.OPENROUTER_MODEL_LITE.trim() : '';
+    return lite || DEFAULT_OPENROUTER_MODEL_FAST;
+  }
+  if (tier === 'quality') return resolveOpenRouterModelId(env, 'quality');
+  const flash =
+    typeof env.OPENROUTER_MODEL_FLASH === 'string' ? env.OPENROUTER_MODEL_FLASH.trim() : '';
+  return flash || DEFAULT_OPENROUTER_MODEL_FLASH;
+}
+
+/**
+ * Latency-first syntax-fixer ladder, independent of Brain Fast/Quality.
+ *
+ * Default order when credentials allow:
+ *   1. flash-lite (super-fast salvage)
+ *   2. flash
+ *   3. DeepSeek Pro (or Vertex/OpenRouter quality when DeepSeek is absent)
+ *
+ * Env:
+ *   SYNTAX_FIXER_ESCALATION=0 — collapse to a single fast-tier target
+ *   MERMAID_REPAIR_BACKEND / MERMAID_REPAIR_MODEL — pin first rung (still escalates unless disabled)
+ *   VERTEX_MODEL_LITE / OPENROUTER_MODEL_LITE / OPENROUTER_MODEL_FLASH — tier overrides
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {Array<{ backend: LlmBackend, modelId: string, tier: 'lite' | 'flash' | 'quality' }>}
+ */
+export function resolveSyntaxFixerEscalationLadder(env = process.env) {
+  /** @type {Array<{ backend: LlmBackend, modelId: string, tier: 'lite' | 'flash' | 'quality' }>} */
+  const rungs = [];
+  const seen = new Set();
+
+  /**
+   * @param {LlmBackend | null | undefined} backend
+   * @param {string} modelId
+   * @param {'lite' | 'flash' | 'quality'} tier
+   */
+  const push = (backend, modelId, tier) => {
+    if (!backend || !modelId || !backendUsable(env, backend)) return;
+    const key = `${backend}:${modelId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    rungs.push({ backend, modelId, tier });
+  };
+
+  const pinnedBackend = resolvePinnedRepairBackend(env);
+  const explicitModel =
     typeof env.MERMAID_REPAIR_MODEL === 'string' ? env.MERMAID_REPAIR_MODEL.trim() : '';
-  return { backend, modelId: explicit || resolveFastDefaultForBackend(env, backend) };
+
+  if (explicitModel) {
+    const backend =
+      pinnedBackend ||
+      resolveLlmBackend(env) ||
+      (backendUsable(env, 'vertex')
+        ? 'vertex'
+        : backendUsable(env, 'deepseek')
+          ? 'deepseek'
+          : backendUsable(env, 'openrouter')
+            ? 'openrouter'
+            : null);
+    if (backend) push(backend, explicitModel, 'flash');
+  }
+
+  if (!isSyntaxFixerEscalationEnabled(env)) {
+    if (rungs.length > 0) return rungs;
+    const backend = pinnedBackend || resolveLlmBackend(env);
+    if (!backend) return [];
+    push(backend, resolveFastDefaultForBackend(env, backend), 'flash');
+    return rungs;
+  }
+
+  // Prefer Vertex lite→flash when Vertex is configured; otherwise OpenRouter; else DeepSeek flash.
+  const latencyBackend =
+    pinnedBackend ||
+    (backendUsable(env, 'vertex')
+      ? 'vertex'
+      : backendUsable(env, 'openrouter')
+        ? 'openrouter'
+        : backendUsable(env, 'deepseek')
+          ? 'deepseek'
+          : null);
+
+  if (latencyBackend) {
+    push(latencyBackend, resolveModelIdForFixerTier(env, latencyBackend, 'lite'), 'lite');
+    push(latencyBackend, resolveModelIdForFixerTier(env, latencyBackend, 'flash'), 'flash');
+  }
+
+  // Quality rung: DeepSeek Pro when available (even if latency rungs were Vertex/OpenRouter).
+  if (backendUsable(env, 'deepseek') && (!pinnedBackend || pinnedBackend === 'deepseek')) {
+    push('deepseek', resolveModelIdForFixerTier(env, 'deepseek', 'quality'), 'quality');
+  } else if (latencyBackend) {
+    push(latencyBackend, resolveModelIdForFixerTier(env, latencyBackend, 'quality'), 'quality');
+  }
+
+  return rungs;
+}
+
+/**
+ * Resolve the first syntax-fixer target (lite when escalation is on). Independent of Brain.
+ *
+ *   MERMAID_REPAIR_BACKEND=vertex|openrouter|deepseek  — pick the backend explicitly.
+ *   MERMAID_REPAIR_MODEL=<slug-or-model-id>   — override the model id for the first rung.
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {{ backend: LlmBackend, modelId: string, tier?: string } | null}
+ */
+export function resolveSyntaxFixerTarget(env = process.env) {
+  const ladder = resolveSyntaxFixerEscalationLadder(env);
+  return ladder[0] ?? null;
 }
 
 // Cache fixer chat models per (backend, modelId) so repeated repair turns don't reconstruct the
@@ -440,14 +581,14 @@ export function resolveSyntaxFixerTarget(env = process.env) {
 const syntaxFixerModelCache = new Map();
 
 /**
- * Build a tool-less, low-temperature chat model suited for the syntax fixer single-shot call.
- * Returns null when no backend is configured.
+ * Build a tool-less, low-temperature chat model for one fixer ladder rung.
+ * Returns null when the target is missing or the backend cannot be constructed.
  *
  * @param {NodeJS.ProcessEnv} [env]
+ * @param {{ backend: LlmBackend, modelId: string }} target
  */
-export function createSyntaxFixerModel(env = process.env) {
-  const target = resolveSyntaxFixerTarget(env);
-  if (!target) return null;
+export function createSyntaxFixerModelForTarget(env = process.env, target) {
+  if (!target?.backend || !target?.modelId || !backendUsable(env, target.backend)) return null;
   const key = `${target.backend}:${target.modelId}`;
   const cached = syntaxFixerModelCache.get(key);
   if (cached) return cached;
@@ -455,4 +596,16 @@ export function createSyntaxFixerModel(env = process.env) {
   const model = createChatModelForBackend(env, target.backend, overrides);
   syntaxFixerModelCache.set(key, model);
   return model;
+}
+
+/**
+ * Build a tool-less, low-temperature chat model suited for the syntax fixer single-shot call.
+ * Returns the first ladder rung (lite when escalation is enabled).
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ */
+export function createSyntaxFixerModel(env = process.env) {
+  const target = resolveSyntaxFixerTarget(env);
+  if (!target) return null;
+  return createSyntaxFixerModelForTarget(env, target);
 }

@@ -45,6 +45,7 @@ import {
   MIN_AGENT_REPAIR_TURN_BUDGET_MS,
   MIN_SYNTAX_FIXER_BUDGET_MS,
   refineInfographicDsl,
+  resolveAgentRepairAttemptProfile,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
@@ -222,6 +223,7 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
     requirePatch = false,
     emit,
     stableAgent = null,
+    resolveRepairAgent = null,
     profile,
     abortSignal,
     mode = null,
@@ -324,14 +326,23 @@ async function invokeWithRepair(agent, userMessages, opts, stateStore, env) {
   }
 
   for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-    if (attempt > 0) repairAttempts += 1;
+    if (attempt > 0) {
+      repairAttempts += 1;
+      const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+      if (typeof resolveRepairAgent === 'function') {
+        const escalated = resolveRepairAgent(repairProfile, attempt);
+        if (escalated) currentAgent = escalated;
+      }
+    }
     const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
     if (stop) return finishStoppedRun(stop);
     if (typeof emit === 'function') {
       if (attempt > 0) {
+        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+        const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
         emitPlanBeat(
           emit,
-          `Previous infographic patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
+          `Previous infographic patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
           'server'
         );
       }
@@ -674,6 +685,7 @@ export function createInfographicLangChainAgent({
             requirePatch: true,
             emit,
             stableAgent,
+            resolveRepairAgent: (p) => getDefaultAgent(p),
             profile: normalizeModelProfile(modelProfile),
             abortSignal,
             mode: personaMode ?? 'go',
@@ -743,6 +755,7 @@ export function createInfographicLangChainAgent({
             requirePatch: true,
             emit,
             stableAgent,
+            resolveRepairAgent: (p) => getDefaultAgent(p),
             profile: normalizeModelProfile(modelProfile),
             abortSignal,
             mode,

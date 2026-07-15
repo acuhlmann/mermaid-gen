@@ -18,7 +18,11 @@ import {
   resolveOpenRouterModelId,
   resolveVertexLocation,
   resolveVertexModelId,
-  resolveVertexProjectId
+  resolveVertexProjectId,
+  DEFAULT_VERTEX_MODEL_LITE,
+  DEFAULT_OPENROUTER_MODEL_FLASH,
+  resolveSyntaxFixerEscalationLadder,
+  resolveSyntaxFixerTarget
 } from '../src/agents/llmProvider.js';
 
 test('resolveVertexProjectId prefers explicit VERTEX_PROJECT_ID', () => {
@@ -233,4 +237,58 @@ test('isLlmConfigured reflects any usable backend', () => {
   assert.equal(isLlmConfigured({ DEEPSEEK_API_KEY: 'k' }), true);
   assert.equal(isLlmConfigured({ OPENROUTER_API_KEY: 'k' }), true);
   assert.equal(isLlmConfigured({ GOOGLE_CLOUD_PROJECT: 'p' }), true);
+});
+
+test('resolveSyntaxFixerEscalationLadder climbs lite→flash→DeepSeek on hybrid Vertex+DeepSeek', () => {
+  const ladder = resolveSyntaxFixerEscalationLadder({
+    GOOGLE_CLOUD_PROJECT: 'p',
+    DEEPSEEK_API_KEY: 'k'
+  });
+  assert.deepEqual(
+    ladder.map((r) => `${r.tier}:${r.backend}:${r.modelId}`),
+    [
+      `lite:vertex:${DEFAULT_VERTEX_MODEL_LITE}`,
+      `flash:vertex:${DEFAULT_VERTEX_MODEL_FAST}`,
+      `quality:deepseek:${DEFAULT_DEEPSEEK_MODEL_QUALITY}`
+    ]
+  );
+});
+
+test('resolveSyntaxFixerEscalationLadder uses OpenRouter lite→flash→quality when only OR is set', () => {
+  const ladder = resolveSyntaxFixerEscalationLadder({ OPENROUTER_API_KEY: 'k' });
+  assert.equal(ladder[0].tier, 'lite');
+  assert.equal(ladder[0].backend, 'openrouter');
+  assert.equal(ladder[0].modelId, DEFAULT_OPENROUTER_MODEL_FAST);
+  assert.equal(ladder[1].tier, 'flash');
+  assert.equal(ladder[1].modelId, DEFAULT_OPENROUTER_MODEL_FLASH);
+  assert.equal(ladder[2].tier, 'quality');
+  assert.equal(ladder[2].modelId, DEFAULT_OPENROUTER_MODEL_QUALITY);
+});
+
+test('resolveSyntaxFixerEscalationLadder DeepSeek-only collapses lite/flash to one flash id then Pro', () => {
+  const ladder = resolveSyntaxFixerEscalationLadder({ DEEPSEEK_API_KEY: 'k' });
+  assert.deepEqual(
+    ladder.map((r) => `${r.tier}:${r.modelId}`),
+    [`lite:${DEFAULT_DEEPSEEK_MODEL_FAST}`, `quality:${DEFAULT_DEEPSEEK_MODEL_QUALITY}`]
+  );
+});
+
+test('resolveSyntaxFixerEscalationLadder can be disabled to a single rung', () => {
+  const ladder = resolveSyntaxFixerEscalationLadder({
+    GOOGLE_CLOUD_PROJECT: 'p',
+    DEEPSEEK_API_KEY: 'k',
+    SYNTAX_FIXER_ESCALATION: '0'
+  });
+  assert.equal(ladder.length, 1);
+  assert.equal(ladder[0].backend, 'vertex');
+  assert.equal(ladder[0].modelId, DEFAULT_VERTEX_MODEL_FAST);
+});
+
+test('resolveSyntaxFixerTarget returns the first ladder rung', () => {
+  const target = resolveSyntaxFixerTarget({
+    GOOGLE_CLOUD_PROJECT: 'p',
+    DEEPSEEK_API_KEY: 'k'
+  });
+  assert.equal(target?.tier, 'lite');
+  assert.equal(target?.modelId, DEFAULT_VERTEX_MODEL_LITE);
 });

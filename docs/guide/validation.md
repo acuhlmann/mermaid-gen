@@ -12,7 +12,7 @@ sequenceDiagram
   participant L as LangChain agent
   participant T as Diagram tools
   participant VRP as validateAndPreparePatch
-  participant Fix as Syntax fixer (fast LLM)
+  participant Fix as Syntax fixer ladder (lite→flash→DeepSeek)
 
   C->>R: intent / transform / agent-stream (SSE)
   R->>S: applyIntent / applyTransformIntent / runAgentStream
@@ -30,13 +30,13 @@ sequenceDiagram
   else rejected
     VRP-->>T: error JSON in tool result
     L-->>S: no revision change
-    S->>Fix: brokenSource + parser error + rule pack
-    Fix-->>S: corrected source (single-shot, no tools)
+    S->>Fix: brokenSource + parser error + rule pack (escalating models)
+    Fix-->>S: corrected source (ladder until accept, no tools)
     alt fixer accepted
       S->>VRP: re-validate fixer output
       VRP-->>S: patch accepted
-    else fixer failed or unavailable
-      S->>L: full-agent syntax-repair turn
+    else fixer ladder exhausted
+      S->>L: full-agent syntax-repair turn (attempt 2+ uses Quality)
       L->>T: apply_mermaid_patch (repair turn, up to MERMAID_REPAIR_MAX_ATTEMPTS)
     end
   end
@@ -46,8 +46,8 @@ sequenceDiagram
 
 1. **Heuristic prefix check** — instant. Rejects source that doesn't start with a known diagram type.
 2. **Deterministic sanitizer rescue** (`packages/shared/src/mermaidSanitizer.ts`, also used for thinking-pane Mermaid previews) — ~1–10 ms. Composable fixers (smart quotes, header typos, malformed init JSON, reserved-word node IDs, parens/colons/slashes in labels, **quoted labels with embedded `"` / newlines**, unbalanced subgraphs, stray semicolons).
-3. **Single-shot syntax fixer** (`apps/server/src/agents/mermaidSyntaxFixer.js`) — one LLM call, no tools, low temperature, fast model. Includes the parser error, broken source, and a diagram-type-specific rule pack (`apps/server/src/prompts/mermaidSyntaxGuard.js`, 15+ packs).
-4. **Full-agent syntax-repair turns** — the original loop, kept as a fallback. Enriched with the same rule pack and broken-source block. Bounded by `MERMAID_REPAIR_MAX_ATTEMPTS` (default **2** per profile when unset; see `resolveAgentRepairMaxAttempts` in `packages/shared/src/agentRunBudget.ts`).
+3. **Syntax fixer ladder** (`apps/server/src/agents/mermaidSyntaxFixer.js` + `syntaxFixerEscalation.js`) — tool-less, low temperature. Tries **lite → flash → DeepSeek Pro** (independent of Brain) until a rung validates. Includes the parser error, broken source, and a diagram-type-specific rule pack (`apps/server/src/prompts/mermaidSyntaxGuard.js`, 15+ packs). Disable with `SYNTAX_FIXER_ESCALATION=0`.
+4. **Full-agent syntax-repair turns** — the original loop, kept as a fallback. Enriched with the same rule pack and broken-source block. Bounded by `MERMAID_REPAIR_MAX_ATTEMPTS` (default **2** per profile when unset; see `resolveAgentRepairMaxAttempts` in `packages/shared/src/agentRunBudget.ts`). Attempt 2+ climbs to the Quality model via `resolveAgentRepairAttemptProfile`, regardless of Brain.
 
 Tune via [Configuration](configuration.md) (`MERMAID_REPAIR_*`, `MERMAID_METRICS`, run budgets).
 
@@ -56,7 +56,7 @@ Tune via [Configuration](configuration.md) (`MERMAID_REPAIR_*`, `MERMAID_METRICS
 All six mode agents share the same budget discipline (`packages/shared/src/agentRunBudget.ts`):
 
 - **Absolute deadline.** Each mutation run builds a deadline-capped `AbortSignal` (`apps/server/src/agents/_lib/agentRunDeadline.js`) that combines the caller's stop signal with `AbortSignal.timeout(budget)`. In-flight model turns abort _at_ the budget instead of overrunning it and getting killed later by the client's stream watchdog.
-- **Don't start what can't finish.** Before another full-agent repair turn the loop requires `MIN_AGENT_REPAIR_TURN_BUDGET_MS` (12 s) of remaining budget, and before a single-shot fixer call `MIN_SYNTAX_FIXER_BUDGET_MS` (4 s). When the remainder is too small the run fails fast instead of burning a model call that will be cut off anyway.
+- **Don't start what can't finish.** Before another full-agent repair turn the loop requires `MIN_AGENT_REPAIR_TURN_BUDGET_MS` (12 s) of remaining budget, and before the syntax-fixer ladder `MIN_SYNTAX_FIXER_BUDGET_MS` (18 s). When the remainder is too small the run fails fast instead of burning a model call that will be cut off anyway.
 - **Root cause survives the timeout.** When a run stops on budget, `appendLastValidationError` attaches the most recent validator diagnostic to the `run_budget_exceeded` error (`Last validation error: …`). Exhausted repair loops likewise return `<Mode> update failed: <validator error>` rather than model prose. The web client (`apps/web/src/utils/agentStreamFailureStatus.ts`) extracts that marker and renders it as the failure detail, so the UI shows _what was invalid in the DSL_ (e.g. `Parse error on line 3: … Expecting 'SQE', got 'PS'`) even for timeouts.
 - **Parser errors are verbatim.** The server-side Mermaid validator parses without `suppressErrors`, so failures carry Mermaid's real diagnostic (line number, caret, expected tokens) instead of a generic "parser rejected source". Those diagnostics also feed the syntax fixer and repair prompts, which measurably improves first-repair success.
 - **Client/server budget alignment.** The web client mirrors `resolveAgentRunBudgetMs(profile, {}, mode)` (including Go Mad headroom) plus a 15 s grace before force-aborting a stream, and REST intent/transform requests use the same budget-derived timeout.
@@ -73,9 +73,9 @@ flowchart TB
   L1 -->|fail| R["Repair path"]
   L2 -->|valid| P["Patch accepted"]
   L2 -->|errors| R
-  R --> F["Single-shot syntax fixer once"]
+  R --> F["Syntax fixer ladder (lite→flash→DeepSeek)"]
   F -->|accepted| P
-  F -->|fail| A["Agent repair up to 2 attempts"]
+  F -->|fail| A["Agent repair up to 2 attempts (attempt 2+ = Quality)"]
 ```
 
 - **Sanitizer** runs first (`strip-code-fence`, `tabs-to-spaces`, `smart-quotes-to-ascii`, `strip-leading-prose`).

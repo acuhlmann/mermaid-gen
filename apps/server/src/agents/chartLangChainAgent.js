@@ -43,6 +43,7 @@ import {
   buildAgentRunBudgetExceededMessage,
   MIN_AGENT_REPAIR_TURN_BUDGET_MS,
   MIN_SYNTAX_FIXER_BUDGET_MS,
+  resolveAgentRepairAttemptProfile,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
@@ -275,7 +276,7 @@ export function createChartLangChainAgent({
     let lastBrokenSource = null;
     let syntaxFixerTried = false;
     let invokeErrored = false;
-    const agent = buildAgent(runProfile);
+    let agent = buildAgent(runProfile);
 
     const backend = resolveLlmBackend(env, runProfile);
     const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
@@ -349,14 +350,20 @@ export function createChartLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      if (attempt > 0) repairAttempts += 1;
+      if (attempt > 0) {
+        repairAttempts += 1;
+        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+        agent = buildAgent(repairProfile);
+      }
       const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
         if (attempt > 0) {
+          const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+          const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
           emitPlanBeat(
             emit,
-            `Previous chart patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
+            `Previous chart patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
             'server'
           );
         }

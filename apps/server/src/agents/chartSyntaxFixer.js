@@ -1,5 +1,6 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { createSyntaxFixerModel, resolveSyntaxFixerTarget } from './llmProvider.js';
+import { resolveSyntaxFixerTarget } from './llmProvider.js';
+import { escalateSyntaxFixerRepair } from './syntaxFixerEscalation.js';
 import { validateChartStrict } from '../tools/chartDslTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
 import { CHART_RULE_PACK, CHART_SELF_CHECK } from '../prompts/chartSyntaxGuard.js';
@@ -28,22 +29,9 @@ function extractJsonFromResponse(text) {
 }
 
 /**
- * Single-shot chart DSL repair using the fast syntax-fixer model.
- *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, model: unknown, abortSignal?: AbortSignal | null }} args
  */
-export async function repairChartWithFixer({
-  brokenSource,
-  parseError,
-  originalRequest,
-  env,
-  modelOverride,
-  abortSignal
-} = {}) {
-  if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
-    return { accepted: false, error: 'No broken source provided.' };
-  }
-  const model = modelOverride ?? createSyntaxFixerModel(env ?? process.env);
+async function repairChartOnce({ brokenSource, parseError, originalRequest, model, abortSignal }) {
   if (!model) {
     return { accepted: false, error: 'Syntax fixer model is not configured.' };
   }
@@ -85,7 +73,11 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
 
   const validation = validateChartStrict(candidate);
   if (!validation.valid) {
-    return { accepted: false, error: validation.error ?? 'Fixer output failed validation.' };
+    return {
+      accepted: false,
+      error: validation.error ?? 'Fixer output failed validation.',
+      attemptedSource: candidate
+    };
   }
 
   return {
@@ -96,6 +88,38 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
       theme: validation.theme
     }
   };
+}
+
+/**
+ * Chart DSL repair with latency→quality fixer escalation (lite → flash → DeepSeek).
+ *
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ */
+export async function repairChartWithFixer({
+  brokenSource,
+  parseError,
+  originalRequest,
+  env,
+  modelOverride,
+  abortSignal
+} = {}) {
+  if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
+    return { accepted: false, error: 'No broken source provided.' };
+  }
+
+  return escalateSyntaxFixerRepair({
+    env: env ?? process.env,
+    modelOverride,
+    brokenSource,
+    repairOnce: (model) =>
+      repairChartOnce({
+        brokenSource,
+        parseError,
+        originalRequest,
+        model,
+        abortSignal
+      })
+  });
 }
 
 export function isChartSyntaxFixerAvailable(env = process.env) {

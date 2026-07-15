@@ -64,29 +64,39 @@ VERTEX_MODEL_FAST=gemini-3.5-flash
 VERTEX_MODEL_QUALITY=gemini-3.1-pro-preview
 ```
 
-Optional cost saver for the syntax fixer only (single-shot, no tool loop): `MERMAID_REPAIR_MODEL=gemini-2.5-flash-lite` or `gemini-3.1-flash-lite` when that ID becomes available.
+Optional first-rung override for the syntax fixer: `MERMAID_REPAIR_MODEL=gemini-2.5-flash-lite` (or `gemini-3.1-flash-lite` when available). The fixer still escalates to flash and DeepSeek Pro unless `SYNTAX_FIXER_ESCALATION=0`.
 
-## Syntax fixer (separate from intent model)
+## Syntax fixer ladder (separate from Brain)
 
-The single-shot syntax fixer (Layer 3 of the Mermaid validation ladder) runs on a small, fast model regardless of the request profile. By default it uses the resolved backend's fast tier; override with:
+Layer 3 of the validation ladder is a **latency-first model climb**, independent of the UI Brain Fast/Quality setting:
 
-| Env var                  | Effect                                                                                     |
-| ------------------------ | ------------------------------------------------------------------------------------------ |
-| `MERMAID_REPAIR_MODEL`   | Override the model id used by the fixer (Mermaid _and_ Infographic)                        |
-| `MERMAID_REPAIR_BACKEND` | Pin the fixer to `vertex`, `openrouter`, or `deepseek` independently of the intent backend |
+1. **Lite** — `gemini-2.5-flash-lite` (Vertex) or OpenRouter flash-lite (super-fast salvage)
+2. **Flash** — `gemini-2.5-flash` / OpenRouter flash
+3. **Quality** — DeepSeek V4 Pro when `DEEPSEEK_API_KEY` is set; otherwise Vertex/OpenRouter quality
+
+Each rejected rung feeds its diagnostic into the next. Full-agent repair (Layer 4) then climbs Brain→Quality on attempt 2+ via `resolveAgentRepairAttemptProfile`.
+
+| Env var                   | Effect                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------------ |
+| `MERMAID_REPAIR_MODEL`    | Override the model id for the **first** fixer rung (Mermaid _and_ other slot fixers) |
+| `MERMAID_REPAIR_BACKEND`  | Pin latency rungs to `vertex`, `openrouter`, or `deepseek`                           |
+| `SYNTAX_FIXER_ESCALATION` | Default on; set `0`/`false` to collapse to a single fast-tier target                 |
+| `VERTEX_MODEL_LITE`       | Override Vertex lite rung (default `gemini-2.5-flash-lite`)                          |
+| `OPENROUTER_MODEL_LITE`   | Override OpenRouter lite rung                                                        |
+| `OPENROUTER_MODEL_FLASH`  | Override OpenRouter flash rung (default `google/gemini-2.5-flash`)                   |
 
 ## Other relevant env vars
 
 | Var                                                    | Default                               | Effect                                                                                                                                                                           |
 | ------------------------------------------------------ | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MERMAID_REPAIR_MAX_ATTEMPTS`                          | Fast 2, Quality 2                     | Full-agent repair attempts (Mermaid)                                                                                                                                             |
+| `MERMAID_REPAIR_MAX_ATTEMPTS`                          | Fast 2, Quality 2                     | Full-agent repair attempts (Mermaid); attempt 2+ uses Quality model regardless of Brain                                                                                          |
 | `MERMAID_REPAIR_MAX_ATTEMPTS_FAST` / `_QUALITY`        | —                                     | Per-profile overrides                                                                                                                                                            |
 | `INFOGRAPHIC_REPAIR_MAX_ATTEMPTS` (+ profile variants) | Fast 2, Quality 2                     | Same, for Infographic                                                                                                                                                            |
 | `CHART_REPAIR_MAX_ATTEMPTS` (+ profile variants)       | Fast 2, Quality 2                     | Same, for Chart                                                                                                                                                                  |
 | `METAPHOR_REPAIR_MAX_ATTEMPTS` (+ profile variants)    | Fast 2, Quality 2                     | Same, for Metaphor3D                                                                                                                                                             |
 | `ANYTHING_REPAIR_MAX_ATTEMPTS` (+ profile variants)    | Fast 2, Quality 2                     | Same, for Anything                                                                                                                                                               |
 | `ANYTHING_RUNTIME_CHECK`                               | `1`                                   | Anything jsdom runtime check (`0`/`false`/`off` to skip)                                                                                                                         |
-| `MERMAID_AGENT_RUN_BUDGET_MS_FAST` / `_QUALITY`        | 75000 / 150000                        | Absolute agent-stream run budget (ms), deadline-enforced; Go Mad gets extra headroom (105000 / 180000)                                                                           |
+| `MERMAID_AGENT_RUN_BUDGET_MS_FAST` / `_QUALITY`        | 120000 / 210000                       | Absolute agent-stream run budget (ms), deadline-enforced; Go Mad gets extra headroom (150000 / 240000)                                                                           |
 | `MERMAID_AGENT_RECURSION_LIMIT`                        | 50 (clamped 25–200)                   | LangGraph ReAct step budget per run                                                                                                                                              |
 | `MERMAID_AGENT_MAX_TOOL_CALLS_PER_RUN`                 | 10                                    | Cap tool invocations per run (`0` disables; clamped 4–40)                                                                                                                        |
 | `MERMAID_STREAM_HEARTBEAT_MS`                          | 6000 (clamped 1000–60000)             | SSE heartbeat when no normalized events                                                                                                                                          |
