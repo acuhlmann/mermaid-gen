@@ -54,6 +54,14 @@ describe('slopitectCopy', () => {
     expect(phaseCeremonyLabel(undefined, 'analyze', 'Analyze')).toBe('Analyze');
   });
 
+  it('maps slot-prefixed phase ids to base stakeholder ceremonies', () => {
+    expect(phaseCeremonyLabel('exec', 'chart_invoke', 'chart_invoke')).toBe('Boarding the jet 🛩️');
+    expect(phaseCeremonyLabel('exec', 'chart_transform', 'Transform')).toBe(
+      'Killing the darlings…'
+    );
+    expect(phaseCeremonyLabel('goMad', 'anything_invoke', 'anything_invoke')).toMatch(/fire/);
+  });
+
   it('returns a tagline for every variant', () => {
     for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
       expect(VARIANT_TAGLINES[v]).toBeTruthy();

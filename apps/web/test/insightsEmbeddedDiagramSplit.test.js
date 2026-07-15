@@ -252,6 +252,22 @@ describe('tryExtractDiagramPreviewFromText', () => {
     expect(preview.source).toContain('"archislopVersion"');
   });
 
+  it('returns chart preview metadata for bare Vega-Lite spec JSON (no archislop wrapper)', () => {
+    const spec = {
+      $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+      data: { values: [{ category: 'A', value: 1 }] },
+      mark: 'bar',
+      encoding: {
+        x: { field: 'category', type: 'nominal' },
+        y: { field: 'value', type: 'quantitative' }
+      }
+    };
+    const preview = tryExtractDiagramPreviewFromText(JSON.stringify(spec));
+    expect(preview).not.toBeNull();
+    expect(preview.kind).toBe('chart');
+    expect(preview.source).toContain('"archislopVersion"');
+  });
+
   it('returns null for plain prose steps', () => {
     expect(
       tryExtractDiagramPreviewFromText('Add a session boundary before the API tier.')

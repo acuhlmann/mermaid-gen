@@ -12795,6 +12795,18 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
   gap: 0.35rem;
   pointer-events: auto;
+  overflow: visible;
+}
+
+@media (min-width: 1025px) {
+  .prompt-actions--desktop .stakeholders-mascot-wrap.has-float-surface {
+    overflow: visible;
+    z-index: 45;
+  }
+
+  .prompt-actions--desktop .button-group {
+    overflow: visible;
+  }
 }
 
 /* First-run only: column that stacks the intro spotlight above the live advisor
@@ -13484,6 +13496,21 @@ body.slopitect-rainbow-tint::before {
     color-mix(in srgb, var(--advisor-accent, var(--accent)) 55%, transparent);
   transform: rotate(45deg);
   box-shadow: 4px 4px 8px rgba(15, 23, 42, 0.08);
+}
+
+.advisor-speech-bubble.is-explain .advisor-speech-footer {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.advisor-speech-bubble.is-explain .advisor-speech-actions {
+  flex-wrap: wrap;
+  max-width: 100%;
+}
+
+.advisor-speech-bubble.is-explain .advisor-speech-main {
+  width: 100%;
+  max-width: min(32rem, calc(100vw - 2rem));
 }
 
 .advisor-speech-pin {

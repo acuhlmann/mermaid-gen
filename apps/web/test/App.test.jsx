@@ -388,7 +388,30 @@ describe('App simplified controls', () => {
     );
   });
 
-  it('shows Fix after critique and applies critique-driven intent', async () => {
+  it('shows Fix after critique with actionable items and applies critique-driven intent', async () => {
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'intent') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Applied.'
+        });
+      } else if (payload.operation === 'analyze') {
+        const analyzeBody =
+          '## Summary\n\nOk.\n\n## Actionable improvements\n\n- Use clearer labels and simplify branching.\n';
+        onEvent?.({ type: 'token', text: analyzeBody });
+        onEvent?.({ type: 'final', revisionChanged: false, analyzeText: analyzeBody });
+      } else {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: updatedState,
+          message: 'Transformed.'
+        });
+      }
+    });
+
     render(<App />);
     await waitForControlsReady('Critique');
 

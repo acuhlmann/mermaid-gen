@@ -3735,7 +3735,18 @@ ${requirementsBlock}`;
   // Peer content in another slot keeps chrome visible after a mode switch into an
   // empty target slot — do not dump the user back on the first-run intro.
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
-  const canFixFromCritique = Boolean(latestCritique?.text) && !busy;
+
+  const critiqueActionableSplit = useMemo(
+    () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
+    [latestCritique?.text]
+  );
+
+  const canFixFromCritique =
+    Boolean(
+      latestCritique?.text &&
+      critiqueActionableSplit?.hasSection &&
+      critiqueActionableSplit.items.length > 0
+    ) && !busy;
 
   // First-run demo: show the read-only example only once we know the diagram slot
   // is genuinely empty (gated on hydration to avoid a flash for returning users
@@ -3783,11 +3794,6 @@ ${requirementsBlock}`;
       dismissModeReveal();
     },
     [handleSelectContentMode, dismissModeReveal]
-  );
-
-  const critiqueActionableSplit = useMemo(
-    () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
-    [latestCritique?.text]
   );
 
   const critiqueActionableUi = useMemo(() => {
@@ -4112,7 +4118,7 @@ ${requirementsBlock}`;
         persona: a.fixPersona,
         personaEmoji: '🛠️',
         personaTitle: a.fixTitle,
-        hidden: !latestCritique?.text,
+        hidden: !canFixFromCritique,
         disabled: !canFixFromCritique
       },
       {

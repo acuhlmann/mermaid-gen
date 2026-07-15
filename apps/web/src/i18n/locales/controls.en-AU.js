@@ -616,10 +616,16 @@ export const CONTROLS_EN_AU = {
       chart_transform: 'Transform',
       chart_style: 'Style',
       chart_analyze: 'Analyze',
+      chart_invoke: 'Generate',
       metaphor_transform: 'Transform',
       metaphor_analyze: 'Analyze',
+      metaphor_invoke: 'Generate',
       anything_transform: 'Transform',
       anything_analyze: 'Analyze',
+      anything_invoke: 'Generate',
+      forms_transform: 'Transform',
+      forms_analyze: 'Analyze',
+      forms_invoke: 'Generate',
       activity: 'Activity'
     },
     running: {

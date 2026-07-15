@@ -390,7 +390,12 @@ export const PHASE_CEREMONIES = {
  */
 export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
   if (!phaseId) return fallbackLabel || '';
-  const row = slop()?.PHASE_CEREMONIES?.[phaseId] ?? PHASE_CEREMONIES[phaseId];
+  const baseId = phaseId.replace(/^(chart|anything|metaphor|forms|infographic)_/, '');
+  const row =
+    slop()?.PHASE_CEREMONIES?.[phaseId] ??
+    PHASE_CEREMONIES[phaseId] ??
+    slop()?.PHASE_CEREMONIES?.[baseId] ??
+    PHASE_CEREMONIES[baseId];
   if (!row) return fallbackLabel || '';
   return row[variant] || fallbackLabel || '';
 }

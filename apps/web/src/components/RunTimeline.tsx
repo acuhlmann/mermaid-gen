@@ -420,6 +420,9 @@ function PhaseSegment({
 }) {
   const copy = useUiCopy().controls.runTimeline;
   const isActive = state === 'active';
+  const segmentLabel = ceremonyLabelFor(variant, seg.id, phaseIdLabel(seg.id, copy));
+  const chipLabel = phaseIdLabel(seg.id, copy);
+  const showChip = chipLabel.trim().toLowerCase() !== segmentLabel.trim().toLowerCase();
   return (
     <li
       className={`run-timeline-segment is-${state}`}
@@ -431,12 +434,12 @@ function PhaseSegment({
       </span>
       <div className="run-timeline-segment-body">
         <div className="run-timeline-segment-head">
-          <span className="run-timeline-segment-label">
-            {ceremonyLabelFor(variant, seg.id, phaseIdLabel(seg.id, copy))}
-          </span>
-          <span className="run-timeline-segment-chip" aria-hidden="true">
-            {phaseIdLabel(seg.id, copy)}
-          </span>
+          <span className="run-timeline-segment-label">{segmentLabel}</span>
+          {showChip ? (
+            <span className="run-timeline-segment-chip" aria-hidden="true">
+              {chipLabel}
+            </span>
+          ) : null}
           {showRawPhaseIds ? (
             <code className="run-timeline-segment-id">{seg.id}</code>
           ) : (
