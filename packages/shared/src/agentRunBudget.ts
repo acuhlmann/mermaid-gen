@@ -1,11 +1,13 @@
-export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST = 75_000;
-export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY = 150_000;
+// Headroom covers the latency-first syntax-fixer ladder (lite→flash→DeepSeek) plus
+// a quality full-agent repair turn when Brain Fast was used for the first pass.
+export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST = 120_000;
+export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY = 210_000;
 // Go Mad output fails validation more often than other modes (exotic diagram
 // types, prompt-driven chaos) and may need a recovery or repair turn after the
 // first pass; give it extra headroom so the fallback turn doesn't get cut off
 // mid-stream ("BodyStreamBuffer aborted").
-export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD = 105_000;
-export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD = 180_000;
+export const DEFAULT_AGENT_RUN_BUDGET_MS_FAST_GO_MAD = 150_000;
+export const DEFAULT_AGENT_RUN_BUDGET_MS_QUALITY_GO_MAD = 240_000;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_FAST = 2;
 export const DEFAULT_AGENT_REPAIR_ATTEMPTS_QUALITY = 2;
 
@@ -15,9 +17,10 @@ export const DEFAULT_AGENT_REPAIR_ATTEMPTS_QUALITY = 2;
 // the actual validation error. Failing fast with the last validator diagnostic is both
 // quicker and more informative.
 export const MIN_AGENT_REPAIR_TURN_BUDGET_MS = 12_000;
-export const MIN_SYNTAX_FIXER_BUDGET_MS = 4_000;
+/** Enough room to start the multi-rung fixer ladder (lite → flash → quality). */
+export const MIN_SYNTAX_FIXER_BUDGET_MS = 18_000;
 
-const BUDGET_CLAMP = Object.freeze({ min: 30_000, max: 180_000 });
+const BUDGET_CLAMP = Object.freeze({ min: 30_000, max: 300_000 });
 const REPAIR_ATTEMPTS_CLAMP = Object.freeze({ min: 0, max: 6 });
 
 export function normalizeAgentModelProfile(profile?: string) {
@@ -81,6 +84,16 @@ export function resolveAgentRepairMaxAttempts(profile = 'fast', env = {}, conten
               : 'MERMAID_REPAIR_MAX_ATTEMPTS';
   const configured = readProfileEnv(env, baseName, p);
   return clampInteger(configured ?? fallback, REPAIR_ATTEMPTS_CLAMP);
+}
+
+/**
+ * Full-agent repair model profile for attempt `attempt` (1-based).
+ * Attempt 1 follows Brain; attempt 2+ always climbs to Quality so Fast runs
+ * still get a stronger salvage pass independent of the UI Brain setting.
+ */
+export function resolveAgentRepairAttemptProfile(profile = 'fast', attempt = 1) {
+  if (Number(attempt) >= 2) return 'quality';
+  return normalizeAgentModelProfile(profile);
 }
 
 export function buildAgentRunBudgetExceededMessage(

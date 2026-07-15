@@ -36,10 +36,14 @@ import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
 import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
 import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
+import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
+import { isFormsSyntaxFixerAvailable, repairFormsWithFixer } from './formsSyntaxFixer.js';
 import {
   appendLastValidationError,
   buildAgentRunBudgetExceededMessage,
   MIN_AGENT_REPAIR_TURN_BUDGET_MS,
+  MIN_SYNTAX_FIXER_BUDGET_MS,
+  resolveAgentRepairAttemptProfile,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
@@ -230,8 +234,9 @@ export function createFormsLangChainAgent({
     let lastResult = null;
     let lastError = null;
     let lastBrokenSource = null;
+    let syntaxFixerTried = false;
     let invokeErrored = false;
-    const agent = buildAgent(runProfile);
+    let agent = buildAgent(runProfile);
 
     const backend = resolveLlmBackend(env, runProfile);
     const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
@@ -298,14 +303,20 @@ export function createFormsLangChainAgent({
     }
 
     for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      if (attempt > 0) repairAttempts += 1;
+      if (attempt > 0) {
+        repairAttempts += 1;
+        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+        agent = buildAgent(repairProfile);
+      }
       const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
       if (stop) return finishStoppedRun(stop);
       if (typeof emit === 'function') {
         if (attempt > 0) {
+          const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+          const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
           emitPlanBeat(
             emit,
-            `Previous form did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
+            `Previous form did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
             'server'
           );
         }
@@ -384,6 +395,55 @@ export function createFormsLangChainAgent({
         lastError = failureError;
         lastBrokenSource =
           extractLastAttemptedToolSource(result, 'apply_forms_patch') || lastBrokenSource;
+
+        if (!syntaxFixerTried && lastBrokenSource && isFormsSyntaxFixerAvailable(env)) {
+          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
+          if (fixerStop) return finishStoppedRun(fixerStop);
+          syntaxFixerTried = true;
+          repairAttempts += 1;
+          emitSyntaxFixerStart(emit, { contentType: 'forms', triggerError: failureError });
+          const fixerOutcome = await repairFormsWithFixer({
+            brokenSource: lastBrokenSource,
+            parseError: failureError,
+            originalRequest,
+            env,
+            abortSignal: runSignal
+          });
+          if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
+            const applied = await stateStore.applyDiagramSource({
+              contentType: 'forms',
+              diagramSource: fixerOutcome.diagramSource,
+              reason: 'syntax-fixer repair'
+            });
+            if (applied.accepted) {
+              emitSyntaxFixerResult(emit, {
+                contentType: 'forms',
+                outcome: 'repaired',
+                detail: 'Repaired invalid forms document and applied the patch.'
+              });
+              finishTurn({ accepted: true, validator: 'syntax-fixer' });
+              return {
+                message: 'Form issued (repaired by syntax fixer).',
+                raw: result,
+                metadata: { agent: 'forms', validator: 'syntax-fixer' }
+              };
+            }
+            lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'forms',
+              outcome: 'store_rejected',
+              error: applied.error ?? 'Forms validation failed after syntax fixer.'
+            });
+          } else {
+            lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
+            emitSyntaxFixerResult(emit, {
+              contentType: 'forms',
+              outcome: 'fixer_failed',
+              error: fixerOutcome.error ?? 'Syntax fixer could not repair the forms document.'
+            });
+          }
+        }
+
         messages = [
           ...initialMessages,
           new SystemMessage(

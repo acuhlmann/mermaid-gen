@@ -1,5 +1,6 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { createSyntaxFixerModel, resolveSyntaxFixerTarget } from './llmProvider.js';
+import { resolveSyntaxFixerTarget } from './llmProvider.js';
+import { escalateSyntaxFixerRepair } from './syntaxFixerEscalation.js';
 import { inferDiagramType } from './inferDiagramType.js';
 import { getRulePack } from '../prompts/mermaidSyntaxGuard.js';
 import { sanitizeMermaid } from '@archislop/shared';
@@ -37,27 +38,18 @@ function formatPreviousAttempts(previousAttempts) {
 }
 
 /**
- * Single-shot, tool-less Mermaid syntax repair using a dedicated fast model. Independent
- * of the LangChain react-agent loop so it doesn't pay tool plumbing / system-prompt overhead.
+ * Single model call for Mermaid syntax repair (one ladder rung).
  *
- * Returns `{ accepted: true, diagramSource }` when a corrected diagram passes
- * `validateMermaidStrict`, otherwise `{ accepted: false, error }`.
- *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, model: unknown, abortSignal?: AbortSignal | null }} args
  */
-export async function repairMermaidWithFixer({
+async function repairMermaidOnce({
   brokenSource,
   parseError,
   originalRequest,
   previousAttempts,
-  env,
-  modelOverride,
+  model,
   abortSignal
-} = {}) {
-  if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
-    return { accepted: false, error: 'No broken source provided.' };
-  }
-  const model = modelOverride ?? createSyntaxFixerModel(env ?? process.env);
+}) {
   if (!model) {
     return { accepted: false, error: 'Syntax fixer model is not configured.' };
   }
@@ -104,7 +96,11 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
 
   const validation = await validateMermaidStrict(candidate);
   if (!validation.valid) {
-    return { accepted: false, error: validation.error ?? 'Fixer output failed validation.' };
+    return {
+      accepted: false,
+      error: validation.error ?? 'Fixer output failed validation.',
+      attemptedSource: candidate
+    };
   }
 
   return {
@@ -116,6 +112,43 @@ Output the corrected Mermaid source between a single \`\`\`mermaid fenced block.
       sanitizerApplied: sanitized.applied
     }
   };
+}
+
+/**
+ * Tool-less Mermaid syntax repair. Climbs the latency→quality fixer ladder
+ * (flash-lite → flash → DeepSeek) until a rung accepts, independent of Brain.
+ * Pass `modelOverride` to pin a single model (tests / callers that already chose one).
+ *
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, previousAttempts?: Array<{source: string, error: string}>, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ */
+export async function repairMermaidWithFixer({
+  brokenSource,
+  parseError,
+  originalRequest,
+  previousAttempts,
+  env,
+  modelOverride,
+  abortSignal
+} = {}) {
+  if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
+    return { accepted: false, error: 'No broken source provided.' };
+  }
+
+  return escalateSyntaxFixerRepair({
+    env: env ?? process.env,
+    previousAttempts,
+    modelOverride,
+    brokenSource,
+    repairOnce: (model, prior) =>
+      repairMermaidOnce({
+        brokenSource,
+        parseError,
+        originalRequest,
+        previousAttempts: prior,
+        model,
+        abortSignal
+      })
+  });
 }
 
 /** Returns true when a syntax-fixer model can be instantiated for the current environment. */

@@ -1,5 +1,6 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
-import { createSyntaxFixerModel, resolveSyntaxFixerTarget } from './llmProvider.js';
+import { resolveSyntaxFixerTarget } from './llmProvider.js';
+import { escalateSyntaxFixerRepair } from './syntaxFixerEscalation.js';
 import {
   getInfographicRulePack,
   inferInfographicTemplate
@@ -26,32 +27,15 @@ function extractDslFromResponse(text) {
 }
 
 /**
- * Single-shot, tool-less Infographic DSL repair using a dedicated fast model. Mirrors
- * `repairMermaidWithFixer` so it sits BEFORE the full agent retry loop and skips the
- * tool-plumbing / system-prompt overhead that often costs us a successful first attempt
- * after a tool rejection.
- *
- * Returns `{ accepted: true, diagramSource, metadata }` when the corrected DSL passes
- * `validateInfographicStrict`, otherwise `{ accepted: false, error }`.
- *
- * The fixer uses the same env config as Mermaid (`MERMAID_REPAIR_BACKEND` / `MERMAID_REPAIR_MODEL`)
- * because both fixers want the same kind of model — a fast, cheap, deterministic-ish
- * model that's good at following narrow syntactic instructions.
- *
- * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, model: unknown, abortSignal?: AbortSignal | null }} args
  */
-export async function repairInfographicWithFixer({
+async function repairInfographicOnce({
   brokenSource,
   parseError,
   originalRequest,
-  env,
-  modelOverride,
+  model,
   abortSignal
-} = {}) {
-  if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
-    return { accepted: false, error: 'No broken source provided.' };
-  }
-  const model = modelOverride ?? createSyntaxFixerModel(env ?? process.env);
+}) {
   if (!model) {
     return { accepted: false, error: 'Syntax fixer model is not configured.' };
   }
@@ -91,11 +75,13 @@ Output the corrected DSL between a single \`\`\` fenced block. No prose.`;
     return { accepted: false, error: 'Syntax fixer returned empty output.' };
   }
 
-  // `validateInfographicStrict` runs sanitize + lint + parseSyntax, so it catches any
-  // residual fence/quote/tab/template issues the fixer may have introduced.
   const validation = validateInfographicStrict(candidate);
   if (!validation.valid) {
-    return { accepted: false, error: validation.error ?? 'Fixer output failed validation.' };
+    return {
+      accepted: false,
+      error: validation.error ?? 'Fixer output failed validation.',
+      attemptedSource: candidate
+    };
   }
 
   return {
@@ -106,6 +92,39 @@ Output the corrected DSL between a single \`\`\` fenced block. No prose.`;
       template: validation.template ?? templateName
     }
   };
+}
+
+/**
+ * Tool-less Infographic DSL repair with latency→quality fixer escalation
+ * (same ladder as Mermaid: lite → flash → DeepSeek), independent of Brain.
+ *
+ * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
+ */
+export async function repairInfographicWithFixer({
+  brokenSource,
+  parseError,
+  originalRequest,
+  env,
+  modelOverride,
+  abortSignal
+} = {}) {
+  if (typeof brokenSource !== 'string' || !brokenSource.trim()) {
+    return { accepted: false, error: 'No broken source provided.' };
+  }
+
+  return escalateSyntaxFixerRepair({
+    env: env ?? process.env,
+    modelOverride,
+    brokenSource,
+    repairOnce: (model) =>
+      repairInfographicOnce({
+        brokenSource,
+        parseError,
+        originalRequest,
+        model,
+        abortSignal
+      })
+  });
 }
 
 /** Returns true when a syntax-fixer model can be instantiated for the current environment. */

@@ -12,9 +12,10 @@ test('emitSyntaxFixerStart emits plan beat, phase, and syntax_fixer_start', () =
   });
   assert.equal(captured.length, 3);
   assert.equal(captured[0].type, 'plan_beat');
-  assert.match(captured[0].text, /quick syntax pass/i);
+  assert.match(captured[0].text, /syntax-fixer ladder/i);
   assert.equal(captured[1].type, 'phase');
   assert.equal(captured[1].id, 'chart_syntax_fixer');
+  assert.match(captured[1].label, /ladder/i);
   assert.equal(captured[2].type, 'syntax_fixer_start');
   assert.equal(captured[2].contentType, 'chart');
   assert.equal(captured[2].triggerError, 'Vega-Lite compile failed: missing field');

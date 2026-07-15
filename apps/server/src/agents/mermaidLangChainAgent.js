@@ -102,6 +102,7 @@ import {
   isMermaidTransformConstraintError,
   MIN_AGENT_REPAIR_TURN_BUDGET_MS,
   MIN_SYNTAX_FIXER_BUDGET_MS,
+  resolveAgentRepairAttemptProfile,
   resolveAgentRepairMaxAttempts,
   resolveAgentRunBudgetMs
 } from '@archislop/shared';
@@ -419,6 +420,7 @@ async function invokeWithRepair(
     profile,
     modelLabel,
     stableAgent,
+    resolveRepairAgent = null,
     peerContext,
     abortSignal,
     focusNode = null
@@ -748,19 +750,29 @@ async function invokeWithRepair(
   }
 
   const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'mermaid');
-  const repairAgent = stableAgent ?? agent;
 
   const repairHistory = [];
   for (let attempt = 1; attempt <= maxRepairAttempts; attempt += 1) {
     repairAttempts += 1;
+    const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
+    // Attempt 1 prefers the stable/fast agent; attempt 2+ climbs to Quality regardless of Brain.
+    let repairAgent = stableAgent ?? agent;
+    if (typeof resolveRepairAgent === 'function') {
+      const escalated = resolveRepairAgent(repairProfile, attempt);
+      if (escalated) repairAgent = escalated;
+    } else if (repairProfile === 'quality' && stableAgent && stableAgent !== agent) {
+      // No resolver — stay on the incoming agent when climbing isn't possible.
+      repairAgent = agent;
+    }
     let retryResult;
     try {
       const repairStop = stopReason(MIN_AGENT_REPAIR_TURN_BUDGET_MS);
       if (repairStop) return finishStoppedRun(repairStop, latestResult, latestError);
       if (typeof emit === 'function') {
+        const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
         emitPlanBeat(
           emit,
-          `Repairing invalid Mermaid while keeping your intent (attempt ${attempt} of ${maxRepairAttempts}).`,
+          `Repairing invalid Mermaid while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
           'server'
         );
         emit({
@@ -770,7 +782,7 @@ async function invokeWithRepair(
         });
         emit({
           type: 'status',
-          text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})…`
+          text: `Repairing Mermaid syntax (attempt ${attempt} of ${maxRepairAttempts})${tierNote}…`
         });
       }
       retryResult = await runAgentTurn({
@@ -925,6 +937,7 @@ ${prompt}${focusScope}`,
           profile: normalizeModelProfile(modelProfile),
           modelLabel: resolveModelLabel(modelProfile),
           stableAgent: getDefaultAgent('fast'),
+          resolveRepairAgent: (profile) => getDefaultAgent(profile),
           peerContext,
           abortSignal,
           focusNode
@@ -976,6 +989,7 @@ ${prompt}${focusScope}`,
             // high-entropy token soup at deeper tiers. Fall back to the stable fast non-transform
             // agent for the patch_retry turn so we're not just rolling the same dice twice.
             stableAgent: getDefaultAgent('fast'),
+            resolveRepairAgent: (profile) => getDefaultAgent(profile),
             abortSignal,
             focusNode
           },
@@ -1001,6 +1015,7 @@ ${prompt}${focusScope}`,
           mode: 'style',
           profile: 'fast',
           modelLabel: resolveModelLabel('fast'),
+          resolveRepairAgent: (profile) => getDefaultAgent(profile),
           abortSignal
         },
         stateStore,

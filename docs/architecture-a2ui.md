@@ -157,7 +157,7 @@ Any button click routes through `FormsRenderer` → `onFormSubmit` → `App.hand
 
 ### Validation ladder (Forms)
 
-`JSON.parse` → wrapper shape → catalog/component/action allowlist + caps (`parseFormsA2ui`, shared) → single-shot repair turns bounded by `FORMS_REPAIR_MAX_ATTEMPTS` (the agent re-prompts with the exact validator error). There is intentionally no deterministic sanitizer and no dedicated syntax-fixer model on day one — the allowlist errors are precise enough that agent repair turns carry the load. Add either layer only when bench data shows a recurring failure class.
+`JSON.parse` → wrapper shape → catalog/component/action allowlist + caps (`parseFormsA2ui`, shared) → **syntax fixer ladder** (`formsSyntaxFixer.js`, lite → flash → DeepSeek, same as chart) → full-agent repair turns bounded by `FORMS_REPAIR_MAX_ATTEMPTS` (attempt 2+ climbs to Quality). There is intentionally **no deterministic sanitizer** — allowlist errors are precise enough without mechanical rewrite rules. The fixer only chases `parseFormsA2ui` failures and preserves parody copy/title intent; its output re-enters the same allowlist gate.
 
 ### Forms code map
 
@@ -166,6 +166,7 @@ Any button click routes through `FormsRenderer` → `onFormSubmit` → `App.hand
 | Parser / validator / seed    | [`packages/shared/src/formsA2ui.ts`](../packages/shared/src/formsA2ui.ts)                                                                                                  |
 | Server validation gate       | [`apps/server/src/tools/formsA2uiTool.js`](../apps/server/src/tools/formsA2uiTool.js)                                                                                      |
 | Agent + lazy service         | [`apps/server/src/agents/formsLangChainAgent.js`](../apps/server/src/agents/formsLangChainAgent.js)                                                                        |
+| Syntax fixer ladder          | [`apps/server/src/agents/formsSyntaxFixer.js`](../apps/server/src/agents/formsSyntaxFixer.js)                                                                              |
 | Tools (`apply_forms_patch`)  | [`apps/server/src/agents/diagramTools.js`](../apps/server/src/agents/diagramTools.js)                                                                                      |
 | System prompt / repair guide | [`apps/server/src/prompts/formsSystemPrompt.js`](../apps/server/src/prompts/formsSystemPrompt.js), [`formsSyntaxGuard.js`](../apps/server/src/prompts/formsSyntaxGuard.js) |
 | Web renderer + submit loop   | [`apps/web/src/components/FormsRenderer.jsx`](../apps/web/src/components/FormsRenderer.jsx) (`preview` prop = read-only thumbnail)                                         |

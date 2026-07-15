@@ -1,20 +1,25 @@
 import { SystemMessage, HumanMessage } from '@langchain/core/messages';
 import { resolveSyntaxFixerTarget } from './llmProvider.js';
 import { escalateSyntaxFixerRepair } from './syntaxFixerEscalation.js';
-import { validateChartStrict } from '../tools/chartDslTool.js';
+import { validateFormsStrict } from '../tools/formsA2uiTool.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
-import { CHART_RULE_PACK, CHART_SELF_CHECK } from '../prompts/chartSyntaxGuard.js';
+import { FORMS_CORE_RULES } from '../prompts/formsSystemPrompt.js';
+import { FORMS_SELF_CHECK } from '../prompts/formsSyntaxGuard.js';
 
-const SYSTEM_PROMPT = `You are a Chart DSL JSON syntax repair function. Given broken JSON (an archislop chart wrapper containing a Vega-Lite spec) and a validation error, output the smallest fix that yields a valid wrapper + spec for the same intent.
+/** Forms A2UI docs can be large; fixer output needs more headroom than chart/metaphor. */
+const FORMS_FIXER_MAX_OUTPUT_TOKENS = 8192;
+
+const SYSTEM_PROMPT = `You are a Forms-mode A2UI JSON syntax repair function. Given a broken forms document (archislopFormsVersion wrapper + A2UI v0.9 messages) and a validation error, output the smallest fix that yields a valid document for the same intent.
 
 CRITICAL output rules:
 - Output ONLY the corrected JSON between a single \`\`\`json fenced block. No prose before or after.
-- Preserve the user's mark choice, data values, and encodings wherever possible.
-- The wrapper has exactly: "archislopVersion": 1, "theme", "spec".
-- Themes: "whiteboard", "noir", "arcade", "blueprint".
-- Inside spec, keep "$schema" at "https://vega.github.io/schema/vega-lite/v5.json".
-- Every encoding must have both "field" and "type" ("quantitative" | "ordinal" | "nominal" | "temporal").
-- Never call tools; never wrap output in a JSON envelope; never explain.`;
+- Preserve formTitle, formCode, agencyName, parody voice, field labels, and microcopy wherever possible.
+- Keep archislopFormsVersion: 1 and a non-empty formTitle.
+- messages order: createSurface → updateComponents (≥1) → updateDataModel.
+- Exactly one component with id "root". Only basic-catalog component names.
+- ≥1 input (TextField/CheckBox/ChoicePicker/Slider/DateTimeInput) and ≥1 Button.
+- Every Button uses action { "event": { "name": "…" } } — never functionCall; never put "checks" on a Button.
+- Never call tools; never explain.`;
 
 function extractJsonFromResponse(text) {
   if (typeof text !== 'string') return '';
@@ -31,21 +36,23 @@ function extractJsonFromResponse(text) {
 /**
  * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, model: unknown, abortSignal?: AbortSignal | null }} args
  */
-async function repairChartOnce({ brokenSource, parseError, originalRequest, model, abortSignal }) {
+async function repairFormsOnce({ brokenSource, parseError, originalRequest, model, abortSignal }) {
   if (!model) {
     return { accepted: false, error: 'Syntax fixer model is not configured.' };
   }
 
-  const errorText = (parseError ?? '').toString().trim() || 'Chart DSL did not pass validation.';
+  const errorText =
+    (parseError ?? '').toString().trim() ||
+    'Forms document did not pass A2UI allowlist validation.';
 
-  const userContent = `${CHART_RULE_PACK}
+  const userContent = `${FORMS_CORE_RULES}
 
-${CHART_SELF_CHECK}
+${FORMS_SELF_CHECK}
 
 Validation error:
 ${errorText}
 
-${originalRequest ? `Original user request (for intent only — do not echo):\n${originalRequest}\n\n` : ''}Broken Chart DSL:
+${originalRequest ? `Original user request (for intent only — do not echo):\n${originalRequest}\n\n` : ''}Broken forms document:
 \`\`\`json
 ${brokenSource.trim()}
 \`\`\`
@@ -71,7 +78,7 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
     return { accepted: false, error: 'Syntax fixer returned empty output.' };
   }
 
-  const validation = validateChartStrict(candidate);
+  const validation = validateFormsStrict(candidate);
   if (!validation.valid) {
     return {
       accepted: false,
@@ -84,18 +91,19 @@ Output the corrected JSON between a single \`\`\`json fenced block. No prose.`;
     accepted: true,
     diagramSource: validation.diagramSource,
     metadata: {
-      validator: 'chart-syntax-fixer',
-      theme: validation.theme
+      validator: 'forms-syntax-fixer',
+      formTitle: validation.formTitle
     }
   };
 }
 
 /**
- * Chart DSL repair with latency→quality fixer escalation (lite → flash → DeepSeek).
+ * Forms A2UI repair with latency→quality fixer escalation (lite → flash → DeepSeek).
+ * Same ladder as chart/metaphor; higher maxOutputTokens for large form documents.
  *
  * @param {{ brokenSource: string, parseError?: string | null, originalRequest?: string | null, env?: NodeJS.ProcessEnv, modelOverride?: unknown, abortSignal?: AbortSignal | null }} args
  */
-export async function repairChartWithFixer({
+export async function repairFormsWithFixer({
   brokenSource,
   parseError,
   originalRequest,
@@ -111,8 +119,9 @@ export async function repairChartWithFixer({
     env: env ?? process.env,
     modelOverride,
     brokenSource,
+    maxOutputTokens: FORMS_FIXER_MAX_OUTPUT_TOKENS,
     repairOnce: (model) =>
-      repairChartOnce({
+      repairFormsOnce({
         brokenSource,
         parseError,
         originalRequest,
@@ -122,6 +131,6 @@ export async function repairChartWithFixer({
   });
 }
 
-export function isChartSyntaxFixerAvailable(env = process.env) {
+export function isFormsSyntaxFixerAvailable(env = process.env) {
   return resolveSyntaxFixerTarget(env) != null;
 }
