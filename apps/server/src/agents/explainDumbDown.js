@@ -23,7 +23,7 @@ import {
   resolveOpenRouterModelId,
   resolveVertexModelId
 } from './llmProvider.js';
-import { advisorUsageFromReply } from './advisorPrompts.js';
+import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 
 const GIBBERISH_SYSTEM_PROMPT = [
   'You are a baby who cannot speak yet, "explaining" an architecture write-up.',
@@ -233,6 +233,6 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
   }
 
   const explainSections = buildExplainSectionsArtifact(markdown, contentType);
-  const usage = advisorUsageFromReply(reply);
+  const usage = llmUsageFromReply(reply);
   return { markdown, explainSections, usage, model: modelId };
 }

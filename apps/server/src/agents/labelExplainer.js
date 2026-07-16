@@ -26,7 +26,7 @@ import {
   resolveVertexModelId
 } from './llmProvider.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
-import { advisorUsageFromReply } from './advisorPrompts.js';
+import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 
 const SYSTEM_PROMPT = [
   'You are a concise diagram-label glossary.',
@@ -243,7 +243,7 @@ export async function explainLabelOnce({ env = process.env, payload }) {
   const raw = extractTextContent(reply?.content ?? reply);
   const cleaned =
     style === 'gibberish' ? sanitizeLabelGibberish(raw) : sanitizeLabelExplanation(raw);
-  const usage = advisorUsageFromReply(reply);
+  const usage = llmUsageFromReply(reply);
   if (cleaned) return { explanation: cleaned, usage, model: modelId };
   if (style === 'gibberish') {
     return {

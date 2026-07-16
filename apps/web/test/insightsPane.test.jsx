@@ -1093,7 +1093,7 @@ flowchart TB
     expect(screen.getByText(/For a smart 10-year-old/i)).toBeTruthy();
   });
 
-  it('folds completed technical steps behind a summary for explain variant', () => {
+  it('keeps completed technical steps expanded for explain variant', () => {
     render(
       <InsightsPane
         entries={[
@@ -1104,7 +1104,7 @@ flowchart TB
             status: 'done',
             content: '## Explanation\n\nDone.',
             technicalActions: [
-              { id: 't1', name: 'get_diagram_state', label: 'Read snapshot', status: 'done' }
+              { id: 't1', name: 'model_call', label: 'Model reasoning turn', status: 'done' }
             ]
           }
         ]}
@@ -1112,9 +1112,8 @@ flowchart TB
       />
     );
 
-    expect(screen.getByText(/1 technical step/)).toBeTruthy();
-    expect(screen.queryByText('Technical actions')).toBeNull();
-    expect(screen.getByText('Read snapshot')).toBeTruthy();
+    expect(screen.queryByText(/1 technical step/)).toBeNull();
+    expect(screen.getByText('Model reasoning turn')).toBeTruthy();
   });
 
   it('renders chart DSL preview in Refinement instead of raw JSON', () => {
