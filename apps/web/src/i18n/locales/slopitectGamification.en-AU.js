@@ -316,6 +316,26 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '⚡ COMBO KING',
       subtitle: 'Five different personas chained in a row. Bloody legend.'
     },
+    inboxZero: {
+      id: 'inboxZero',
+      title: '📭 INBOX ZERO',
+      subtitle: "Every email read. HR reckons that's sus, mate."
+    },
+    survivedTheSync: {
+      id: 'survivedTheSync',
+      title: '📅 SURVIVED THE SYNC',
+      subtitle: 'Sat through a whole working-group meeting. Deserves a cold one.'
+    },
+    coffeeConnoisseur: {
+      id: 'coffeeConnoisseur',
+      title: '☕ THIRD SHIFT',
+      subtitle: 'Three coffee breaks in one session. The machine knows your order, legend.'
+    },
+    replyGuy: {
+      id: 'replyGuy',
+      title: '💬 REPLY GUY',
+      subtitle: '"Circling back" five times in one session. Yeah nah, it\'s a lifestyle.'
+    },
     refine: {
       id: 'masterPolisher',
       title: '👷 MASTER ENGINEER',

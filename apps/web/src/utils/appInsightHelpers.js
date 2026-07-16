@@ -1,5 +1,6 @@
 import { enrichProposalForReview, normalizeContentType } from '@archislop/shared';
 import { getActiveControlsCopy } from '../i18n/activeControlsCopy.js';
+import { officeSenderInfo } from './officeCast.js';
 import { partKindLabel } from './partKindLabel.js';
 
 /** Build an insight-pane entry from a freshly-received proposal. */
@@ -40,6 +41,42 @@ export function attributedInsightToInsightEntry(insight) {
     createdAt: insight.createdAt ?? new Date().toISOString(),
     content: insight.text ?? '',
     origin: insight.origin ?? null
+  };
+}
+
+/**
+ * Build an insight-pane entry from WG meeting minutes (office-parody layer).
+ * Reuses the attributed-note rendering path — the "external agent" here is the
+ * meeting itself, so InsightsPane needs no office-specific branch.
+ */
+export function officeMinutesToInsightEntry({ title, minutes, completed }) {
+  const items = (minutes ?? []).map((beat) => {
+    const speaker = officeSenderInfo(beat.speakerId);
+    const action = beat.actionPrompt ? ` — _action item:_ ${beat.actionPrompt}` : '';
+    return `- ${speaker.avatarEmoji} **${speaker.name}**: ${beat.text}${action}`;
+  });
+  const content = [
+    `**${title}**${completed ? '' : ' _(left early)_'}`,
+    '',
+    items.length > 0
+      ? items.join('\n')
+      : '_No action items. A perfect meeting, by corporate standards._'
+  ].join('\n');
+  return {
+    id: `office-minutes-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+    kind: 'attributed-note',
+    variant: 'general',
+    status: 'done',
+    statusText: 'Meeting minutes',
+    createdAt: new Date().toISOString(),
+    content,
+    origin: {
+      kind: 'external-agent',
+      agentId: 'office-meeting',
+      agentName: 'WG Meeting',
+      color: '#0ea5e9',
+      emoji: '📅'
+    }
   };
 }
 

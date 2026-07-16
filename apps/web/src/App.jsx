@@ -129,11 +129,13 @@ import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
   applyCompletedRun,
+  applyOfficeEvent,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage,
   reconcileLifetimeLlmCostUsd
 } from './state/runGamificationStore.js';
+import OfficeLayer from './components/OfficeLayer.jsx';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
@@ -1404,6 +1406,101 @@ function ArchiSlop() {
     [soundEnabled]
   );
 
+  // Shared gamification-emission pipeline (XP toasts, streak/combo stingers,
+  // level-up banners, achievement fanfares). Fed by both completed runs
+  // (applyCompletedRun) and office ambience events (applyOfficeEvent).
+  const processSlopEmissions = useCallback(
+    (emissions, now) => {
+      if (!Array.isArray(emissions) || emissions.length === 0) return;
+      const reduceMotion =
+        typeof globalThis.matchMedia === 'function' &&
+        globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const stamped = emissions.map((e) => {
+        const seq = streakEmissionSeqRef.current + 1;
+        streakEmissionSeqRef.current = seq;
+        return { ...e, id: `slop-${now}-${seq}` };
+      });
+      const toasts = stamped.filter(
+        (e) => e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
+      );
+      const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
+      const levelUpEmission = stamped.find((e) => e.kind === 'levelUp');
+      if (toasts.length > 0) {
+        setStreakHudToasts((q) => [...q, ...toasts]);
+        for (const t of toasts) {
+          setTimeout(() => {
+            setStreakHudToasts((q) => q.filter((x) => x.id !== t.id));
+          }, 1800);
+        }
+      }
+      if (levelUpEmission) {
+        setStreakHudLevelUp(levelUpEmission);
+        setXpBarFlashKey((n) => n + 1);
+        setTimeout(() => {
+          setStreakHudLevelUp((current) => (current?.id === levelUpEmission.id ? null : current));
+        }, 5200);
+      }
+      if (banner) {
+        setStreakHudAchievement(banner);
+        setTimeout(() => {
+          setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
+        }, 3200);
+      }
+      // Audio: xp pickup / streak / combo / level-up / achievement.
+      for (const e of emissions) {
+        if (e.kind === 'xp') {
+          tryAgentSound(playXpPickup);
+        } else if (e.kind === 'streak' && e.streak >= 2) {
+          tryAgentSound((ctx) => playStreakStinger(ctx, e.streak));
+        } else if (e.kind === 'combo') {
+          tryAgentSound((ctx) => playComboStinger(ctx, e.combo));
+        } else if (e.kind === 'levelUp') {
+          tryAgentSound(playLevelUpFanfare);
+          if (!reduceMotion && canvasConfettiAvailable()) {
+            try {
+              // Two-side burst so level-ups feel different from achievements.
+              confetti({
+                particleCount: 110,
+                spread: 75,
+                startVelocity: 55,
+                ticks: 220,
+                origin: { x: 0.18, y: 0.55 },
+                colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7']
+              });
+              confetti({
+                particleCount: 110,
+                spread: 75,
+                startVelocity: 55,
+                ticks: 220,
+                origin: { x: 0.82, y: 0.55 },
+                colors: ['#22d3ee', '#60a5fa', '#a855f7', '#f472b6', '#fde68a']
+              });
+            } catch {
+              // ignore
+            }
+          }
+        } else if (e.kind === 'achievement' || e.kind === 'prestige') {
+          tryAgentSound(playAchievementFanfare);
+          if (!reduceMotion && canvasConfettiAvailable()) {
+            try {
+              confetti({
+                particleCount: 160,
+                spread: 110,
+                startVelocity: 60,
+                ticks: 240,
+                origin: { x: 0.5, y: 0.35 },
+                colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7', '#22d3ee']
+              });
+            } catch {
+              // ignore
+            }
+          }
+        }
+      }
+    },
+    [tryAgentSound]
+  );
+
   const triggerCompletionDelight = useCallback(
     (entryId, variant = 'general', extras = {}) => {
       setCelebratingEntryId(entryId);
@@ -1465,98 +1562,29 @@ function ArchiSlop() {
           if (typeof window !== 'undefined') {
             writeGamificationToStorage(window.localStorage, state);
           }
-          if (emissions.length > 0) {
-            const stamped = emissions.map((e) => {
-              const seq = streakEmissionSeqRef.current + 1;
-              streakEmissionSeqRef.current = seq;
-              return { ...e, id: `slop-${now}-${seq}` };
-            });
-            const toasts = stamped.filter(
-              (e) =>
-                e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
-            );
-            const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
-            const levelUpEmission = stamped.find((e) => e.kind === 'levelUp');
-            if (toasts.length > 0) {
-              setStreakHudToasts((q) => [...q, ...toasts]);
-              for (const t of toasts) {
-                setTimeout(() => {
-                  setStreakHudToasts((q) => q.filter((x) => x.id !== t.id));
-                }, 1800);
-              }
-            }
-            if (levelUpEmission) {
-              setStreakHudLevelUp(levelUpEmission);
-              setXpBarFlashKey((n) => n + 1);
-              setTimeout(() => {
-                setStreakHudLevelUp((current) =>
-                  current?.id === levelUpEmission.id ? null : current
-                );
-              }, 5200);
-            }
-            if (banner) {
-              setStreakHudAchievement(banner);
-              setTimeout(() => {
-                setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
-              }, 3200);
-            }
-            // Audio: xp pickup / streak / combo / level-up / achievement.
-            for (const e of emissions) {
-              if (e.kind === 'xp') {
-                tryAgentSound(playXpPickup);
-              } else if (e.kind === 'streak' && e.streak >= 2) {
-                tryAgentSound((ctx) => playStreakStinger(ctx, e.streak));
-              } else if (e.kind === 'combo') {
-                tryAgentSound((ctx) => playComboStinger(ctx, e.combo));
-              } else if (e.kind === 'levelUp') {
-                tryAgentSound(playLevelUpFanfare);
-                if (!reduceMotion && canvasConfettiAvailable()) {
-                  try {
-                    // Two-side burst so level-ups feel different from achievements.
-                    confetti({
-                      particleCount: 110,
-                      spread: 75,
-                      startVelocity: 55,
-                      ticks: 220,
-                      origin: { x: 0.18, y: 0.55 },
-                      colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7']
-                    });
-                    confetti({
-                      particleCount: 110,
-                      spread: 75,
-                      startVelocity: 55,
-                      ticks: 220,
-                      origin: { x: 0.82, y: 0.55 },
-                      colors: ['#22d3ee', '#60a5fa', '#a855f7', '#f472b6', '#fde68a']
-                    });
-                  } catch {
-                    // ignore
-                  }
-                }
-              } else if (e.kind === 'achievement' || e.kind === 'prestige') {
-                tryAgentSound(playAchievementFanfare);
-                if (!reduceMotion && canvasConfettiAvailable()) {
-                  try {
-                    confetti({
-                      particleCount: 160,
-                      spread: 110,
-                      startVelocity: 60,
-                      ticks: 240,
-                      origin: { x: 0.5, y: 0.35 },
-                      colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7', '#22d3ee']
-                    });
-                  } catch {
-                    // ignore
-                  }
-                }
-              }
-            }
-          }
+          processSlopEmissions(emissions, now);
           return state;
         });
       }
     },
-    [tryAgentSound, goMadStreak]
+    [tryAgentSound, goMadStreak, processSlopEmissions]
+  );
+
+  // Office ambience events (email read, coffee break, meeting attended…)
+  // reuse the same reducer + emission pipeline as completed runs.
+  const handleOfficeEvent = useCallback(
+    (kind, extras = {}) => {
+      const now = Date.now();
+      setGamification((current) => {
+        const { state, emissions } = applyOfficeEvent(current, { kind, now, ...extras });
+        if (typeof window !== 'undefined') {
+          writeGamificationToStorage(window.localStorage, state);
+        }
+        processSlopEmissions(emissions, now);
+        return state;
+      });
+    },
+    [processSlopEmissions]
   );
 
   const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
@@ -4384,6 +4412,22 @@ ${requirementsBlock}`;
 
       {ceremonyOverlays}
       <ErrorToast />
+      <OfficeLayer
+        pause={advisorPause}
+        advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
+        getDiagramSource={() => stateRef.current?.diagramSource ?? ''}
+        getContentType={() => contentMode}
+        getSessionId={() => activeSessionId}
+        getSvgRoot={() => (typeof document !== 'undefined' ? document : null)}
+        getUserTitle={() => gamification.levelTitle}
+        onUsage={reportAdvisorUsage}
+        onAdoptPrompt={(text) => {
+          void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {});
+        }}
+        onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
+        onOfficeEvent={handleOfficeEvent}
+        playChime={tryAgentSound}
+      />
       <HotkeyOverlay
         open={hotkeyOverlayOpen}
         onClose={() => setHotkeyOverlayOpen(false)}

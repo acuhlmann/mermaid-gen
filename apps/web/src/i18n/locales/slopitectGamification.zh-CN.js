@@ -316,6 +316,26 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       title: '⚡ 连击之王',
       subtitle: '连续链接五种不同的人设。'
     },
+    inboxZero: {
+      id: 'inboxZero',
+      title: '📭 收件箱清零',
+      subtitle: '每封邮件都已读。HR觉得这很可疑。'
+    },
+    survivedTheSync: {
+      id: 'survivedTheSync',
+      title: '📅 熬过了对齐会',
+      subtitle: '完整参加了一场工作组会议。行动项毫发无损。'
+    },
+    coffeeConnoisseur: {
+      id: 'coffeeConnoisseur',
+      title: '☕ 第三班',
+      subtitle: '一次会话中喝了三次咖啡。咖啡机已记住你的口味。'
+    },
+    replyGuy: {
+      id: 'replyGuy',
+      title: '💬 秒回达人',
+      subtitle: '一次会话中快捷回复五次。"稍后跟进"是一种生活方式。'
+    },
     refine: {
       id: 'masterPolisher',
       title: '👷 工程大师',
