@@ -18,13 +18,43 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
 /** @typedef {'mermaid'|'infographic'|'metaphor3d'|'chart'|'forms'|'anything'} ExportContentType */
 
 /**
+ * @typedef {'text' | 'image'} ExportDeliveryKind
+ */
+
+/**
  * @typedef {object} ExportFormat
  * @property {string} id
  * @property {string} ext
  * @property {string} mime
  * @property {string} labelKey — key under controls.settings
+ * @property {ExportDeliveryKind} [delivery] — defaults to text
  * @property {(source: string) => boolean} [isAvailable]
  */
+
+/**
+ * @typedef {object} ExportPayload
+ * @property {string} filename
+ * @property {string} mime
+ * @property {string} ext
+ * @property {string} [body] — UTF-8 text when delivery is text
+ * @property {Blob} [blob] — binary body (e.g. PNG)
+ * @property {ExportDeliveryKind} delivery
+ */
+
+/**
+ * @typedef {'download' | 'share-file' | 'share-text' | 'clipboard-text' | 'clipboard-image'} ExportDeliveryMethod
+ */
+
+/**
+ * @typedef {object} ExportDeliveryResult
+ * @property {ExportDeliveryMethod} method
+ * @property {string} filename
+ * @property {string | null} previewUrl
+ * @property {ExportPayload} payload
+ */
+
+/** How long an in-browser preview blob URL stays valid after export. */
+export const EXPORT_PREVIEW_URL_TTL_MS = 120_000;
 
 /** @type {Record<ExportContentType, ExportFormat[]>} */
 export const EXPORT_FORMATS_BY_MODE = {
@@ -40,6 +70,13 @@ export const EXPORT_FORMATS_BY_MODE = {
       ext: 'svg',
       mime: 'image/svg+xml;charset=utf-8',
       labelKey: 'exportMermaidSvg'
+    },
+    {
+      id: 'mermaid-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportMermaidPng',
+      delivery: 'image'
     }
   ],
   infographic: [
@@ -188,7 +225,7 @@ export function prettyJsonOrRaw(source) {
 /**
  * Build download payload for a format (without triggering the browser download).
  * @param {{ contentType: string, diagramSource: string, formatId: string }} args
- * @returns {Promise<{ filename: string, mime: string, body: string, ext: string }>}
+ * @returns {Promise<ExportPayload>}
  */
 export async function buildExportPayload({ contentType, diagramSource, formatId }) {
   const source = (diagramSource ?? '').trim();
@@ -206,13 +243,15 @@ export async function buildExportPayload({ contentType, diagramSource, formatId 
     throw new Error(`Export format unavailable for current content: ${formatId}`);
   }
 
-  const body = await buildExportBody(contentType, formatId, source);
+  const built = await buildExportBody(contentType, formatId, source);
   const stamp = exportTimestamp();
+  const delivery = format.delivery ?? 'text';
   return {
     filename: `archislop-${contentType}-${stamp}.${format.ext}`,
     mime: format.mime,
-    body,
-    ext: format.ext
+    ext: format.ext,
+    delivery,
+    ...(built.blob ? { blob: built.blob } : { body: built.body ?? '' })
   };
 }
 
@@ -220,38 +259,307 @@ export async function buildExportPayload({ contentType, diagramSource, formatId 
  * @param {ExportContentType} contentType
  * @param {string} formatId
  * @param {string} source
- * @returns {Promise<string>}
+ * @returns {Promise<{ body?: string, blob?: Blob }>}
  */
 async function buildExportBody(contentType, formatId, source) {
   switch (formatId) {
     case 'mermaid-source':
-      return source.endsWith('\n') ? source : `${source}\n`;
+      return { body: source.endsWith('\n') ? source : `${source}\n` };
     case 'mermaid-svg': {
       const id = `export-mermaid-${Date.now().toString(36)}`;
       const { svg } = await renderMermaidPreviewSvg(id, source);
-      return svg.startsWith('<?xml') ? svg : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`;
+      const markup = svg.startsWith('<?xml')
+        ? svg
+        : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`;
+      return { body: markup };
+    }
+    case 'mermaid-png': {
+      const id = `export-mermaid-png-${Date.now().toString(36)}`;
+      const { svg } = await renderMermaidPreviewSvg(id, source);
+      const markup = svg.startsWith('<?xml')
+        ? svg
+        : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`;
+      const blob = await svgMarkupToPngBlob(markup);
+      return { blob };
     }
     case 'infographic-dsl':
-      return source.endsWith('\n') ? source : `${source}\n`;
+      return { body: source.endsWith('\n') ? source : `${source}\n` };
     case 'metaphor-json':
     case 'forms-json':
     case 'chart-json':
-      return prettyJsonOrRaw(source);
+      return { body: prettyJsonOrRaw(source) };
     case 'chart-vl': {
       const parsed = parseChartDsl(source);
       if (!parsed.ok) throw new Error(parsed.error);
-      return `${JSON.stringify(parsed.dsl.spec, null, 2)}\n`;
+      return { body: `${JSON.stringify(parsed.dsl.spec, null, 2)}\n` };
     }
     case 'chart-csv': {
       const rows = chartDataValues(source);
       if (!rows) throw new Error('Chart has no tabular data.values to export');
-      return rowsToCsv(rows);
+      return { body: rowsToCsv(rows) };
     }
     case 'anything-html':
-      return expandAnythingStandaloneHtml(source);
+      return { body: await expandAnythingStandaloneHtml(source) };
     default:
       throw new Error(`Unhandled export format: ${formatId}`);
   }
+}
+
+/**
+ * Rasterize SVG markup to a PNG blob (client-side canvas).
+ * @param {string} svgMarkup
+ * @param {{ scale?: number, background?: string }} [options]
+ * @returns {Promise<Blob>}
+ */
+export async function svgMarkupToPngBlob(svgMarkup, { scale = 2, background = '#ffffff' } = {}) {
+  if (typeof document === 'undefined') {
+    throw new Error('PNG export requires a browser canvas');
+  }
+  const { width, height } = readSvgDimensions(svgMarkup);
+  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
+  const objectUrl = URL.createObjectURL(svgBlob);
+  try {
+    const image = await loadImageElement(objectUrl);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.ceil(width * scale));
+    canvas.height = Math.max(1, Math.ceil(height * scale));
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas 2D context unavailable');
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const pngBlob = await canvasToBlob(canvas, 'image/png');
+    if (!pngBlob) throw new Error('PNG encode failed');
+    return pngBlob;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+/**
+ * @param {string} svgMarkup
+ * @returns {{ width: number, height: number }}
+ */
+export function readSvgDimensions(svgMarkup) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
+  const root = doc.documentElement;
+  if (!root || root.nodeName.toLowerCase() === 'parsererror') {
+    return { width: 800, height: 600 };
+  }
+  let width = parseSvgLength(root.getAttribute('width'));
+  let height = parseSvgLength(root.getAttribute('height'));
+  const viewBox = root.getAttribute('viewBox');
+  if ((!width || !height) && viewBox) {
+    const parts = viewBox
+      .trim()
+      .split(/[\s,]+/)
+      .map(Number);
+    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
+      if (!width) width = parts[2];
+      if (!height) height = parts[3];
+    }
+  }
+  return {
+    width: width > 0 ? width : 800,
+    height: height > 0 ? height : 600
+  };
+}
+
+/**
+ * @param {string | null} raw
+ * @returns {number}
+ */
+function parseSvgLength(raw) {
+  if (!raw) return 0;
+  const n = Number.parseFloat(String(raw).replace(/px$/i, '').trim());
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * @param {string} url
+ * @returns {Promise<HTMLImageElement>}
+ */
+function loadImageElement(url) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Failed to load SVG for PNG export'));
+    image.src = url;
+  });
+}
+
+/**
+ * @param {HTMLCanvasElement} canvas
+ * @param {string} type
+ * @returns {Promise<Blob | null>}
+ */
+function canvasToBlob(canvas, type) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), type);
+  });
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {Blob}
+ */
+export function exportPayloadToBlob(payload) {
+  if (payload.blob) return payload.blob;
+  return new Blob([payload.body ?? ''], { type: payload.mime });
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {boolean}
+ */
+export function isPreviewableExportPayload(payload) {
+  const mime = payload.mime.toLowerCase();
+  return (
+    mime.startsWith('image/') ||
+    mime.startsWith('text/html') ||
+    mime.startsWith('text/plain') ||
+    mime.includes('json') ||
+    mime.includes('csv')
+  );
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {string}
+ */
+export function createExportPreviewUrl(payload) {
+  return URL.createObjectURL(exportPayloadToBlob(payload));
+}
+
+/**
+ * @returns {boolean}
+ */
+export function isWebShareAvailable() {
+  return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {boolean}
+ */
+export function canShareExportPayload(payload) {
+  if (!isWebShareAvailable()) return false;
+  const file = exportPayloadToFile(payload);
+  if (navigator.canShare?.({ files: [file] })) return true;
+  if (payload.delivery === 'text' && navigator.canShare?.({ text: payload.body ?? '' })) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {boolean}
+ */
+export function canCopyExportPayload(payload) {
+  if (payload.delivery === 'image') {
+    return Boolean(
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard?.write &&
+      typeof ClipboardItem !== 'undefined'
+    );
+  }
+  return Boolean(typeof navigator !== 'undefined' && navigator.clipboard?.writeText);
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {File}
+ */
+export function exportPayloadToFile(payload) {
+  const blob = exportPayloadToBlob(payload);
+  return new File([blob], payload.filename, { type: payload.mime });
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {Promise<ExportDeliveryMethod>}
+ */
+export async function copyExportPayload(payload) {
+  if (payload.delivery === 'image') {
+    const blob = payload.blob ?? exportPayloadToBlob(payload);
+    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
+      throw new Error('Image copy is not supported in this browser');
+    }
+    const item = new ClipboardItem({ [blob.type]: blob });
+    await navigator.clipboard.write([item]);
+    return 'clipboard-image';
+  }
+  if (!navigator.clipboard?.writeText) {
+    throw new Error('Clipboard is not available');
+  }
+  await navigator.clipboard.writeText(payload.body ?? '');
+  return 'clipboard-text';
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {Promise<ExportDeliveryMethod>}
+ */
+export async function shareExportPayload(payload) {
+  if (!isWebShareAvailable()) {
+    throw new Error('Share is not available on this device');
+  }
+  const file = exportPayloadToFile(payload);
+  if (navigator.canShare?.({ files: [file] })) {
+    await navigator.share({ files: [file], title: payload.filename });
+    return 'share-file';
+  }
+  if (payload.delivery === 'text' && navigator.canShare?.({ text: payload.body ?? '' })) {
+    await navigator.share({ text: payload.body ?? '', title: payload.filename });
+    return 'share-text';
+  }
+  throw new Error('Share is not available for this format');
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @param {{ createObjectURL?: typeof URL.createObjectURL, revokeObjectURL?: typeof URL.revokeObjectURL, document?: Document }} [deps]
+ */
+export function triggerBrowserDownload(payload, deps = {}) {
+  const createObjectURL = deps.createObjectURL ?? URL.createObjectURL.bind(URL);
+  const revokeObjectURL = deps.revokeObjectURL ?? URL.revokeObjectURL.bind(URL);
+  const doc = deps.document ?? document;
+  const blob = exportPayloadToBlob(payload);
+  const url = createObjectURL(blob);
+  const anchor = doc.createElement('a');
+  anchor.href = url;
+  anchor.download = payload.filename;
+  anchor.rel = 'noopener';
+  doc.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => revokeObjectURL(url), 0);
+}
+
+/**
+ * Deliver an export via download, clipboard, or Web Share.
+ * @param {ExportPayload} payload
+ * @param {'download' | 'copy' | 'share'} action
+ * @param {{ createObjectURL?: typeof URL.createObjectURL, revokeObjectURL?: typeof URL.revokeObjectURL, document?: Document }} [deps]
+ * @returns {Promise<ExportDeliveryResult>}
+ */
+export async function deliverExportPayload(payload, action, deps = {}) {
+  /** @type {ExportDeliveryMethod} */
+  let method;
+  if (action === 'copy') {
+    method = await copyExportPayload(payload);
+  } else if (action === 'share') {
+    method = await shareExportPayload(payload);
+  } else {
+    triggerBrowserDownload(payload, deps);
+    method = 'download';
+  }
+  const previewUrl = isPreviewableExportPayload(payload)
+    ? (deps.createObjectURL ?? URL.createObjectURL.bind(URL))(exportPayloadToBlob(payload))
+    : null;
+  return { method, filename: payload.filename, previewUrl, payload };
 }
 
 /**
@@ -285,28 +593,6 @@ function exportTimestamp() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
   return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
-}
-
-/**
- * Trigger a browser file download for a UTF-8 text/binary string body.
- * @param {{ body: string, mime: string, filename: string }} payload
- * @param {{ createObjectURL?: typeof URL.createObjectURL, revokeObjectURL?: typeof URL.revokeObjectURL, document?: Document }} [deps]
- */
-export function triggerBrowserDownload(payload, deps = {}) {
-  const createObjectURL = deps.createObjectURL ?? URL.createObjectURL.bind(URL);
-  const revokeObjectURL = deps.revokeObjectURL ?? URL.revokeObjectURL.bind(URL);
-  const doc = deps.document ?? document;
-  const blob = new Blob([payload.body], { type: payload.mime });
-  const url = createObjectURL(blob);
-  const anchor = doc.createElement('a');
-  anchor.href = url;
-  anchor.download = payload.filename;
-  anchor.rel = 'noopener';
-  doc.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  // Defer revoke so Safari finishes the download navigation.
-  setTimeout(() => revokeObjectURL(url), 0);
 }
 
 /**

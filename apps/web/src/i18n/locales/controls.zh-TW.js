@@ -103,7 +103,21 @@ export const CONTROLS_ZH_TW = {
     exportChartJson: '圖表 JSON (.json)',
     exportChartVegaLite: 'Vega-Lite 規格 (.vl.json)',
     exportAnythingHtml: '獨立 HTML (.html)',
-    exportFormsJson: '表單 JSON (.json)'
+    exportFormsJson: '表單 JSON (.json)',
+    exportMermaidPng: 'PNG 圖像 (.png)',
+    exportSave: '儲存',
+    exportCopy: '複製',
+    exportShare: '分享',
+    exportActionsFor: '{label} 的操作',
+    exportSaved: '已儲存到裝置',
+    exportShared: '已分享',
+    exportCopiedText: '已複製到剪貼簿',
+    exportCopiedImage: '已複製圖像到剪貼簿',
+    exportOpenPreview: '開啟預覽',
+    exportCopyAgain: '再次複製',
+    exportShareAgain: '再次分享',
+    exportDismiss: '關閉',
+    exportDownloadHint: '請查看通知列或 檔案 → 下載。'
   },
   contentModes: {
     auto: '自動',

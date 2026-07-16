@@ -1,11 +1,23 @@
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
 import { ButtonIcon, BrainIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 import { formatLocale } from '../i18n/formatLocale.js';
-import { exportDiagram, listExportFormats } from '../utils/exportDiagram.js';
+import {
+  EXPORT_PREVIEW_URL_TTL_MS,
+  buildExportPayload,
+  canCopyExportPayload,
+  canShareExportPayload,
+  deliverExportPayload,
+  isWebShareAvailable,
+  listExportFormats
+} from '../utils/exportDiagram.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
+
+/**
+ * @typedef {import('../utils/exportDiagram.js').ExportDeliveryResult} ExportDeliveryResult
+ */
 
 /**
  * Right-cluster of the bottom row: emoji-style Settings (⚙️) and Thinking (🧠)
@@ -36,6 +48,11 @@ export function AiCornerControlsInner({
   const [exportOpen, setExportOpen] = useState(startExpanded);
   const [exportBusyId, setExportBusyId] = useState(null);
   const [exportError, setExportError] = useState(null);
+  const [exportFeedback, setExportFeedback] = useState(
+    /** @type {ExportDeliveryResult | null} */ (null)
+  );
+  const previewRevokeTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
+  const previewUrlRef = useRef(/** @type {string | null} */ (null));
   const exportListId = useId();
   const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
   const renderAsPopover = popoverMode && !pendingHandshake;
@@ -44,13 +61,52 @@ export function AiCornerControlsInner({
     : 'ai-corner-settings-panel';
   const hasSource = Boolean((diagramSource ?? '').trim());
   const exportFormats = hasSource ? listExportFormats(contentType, diagramSource) : [];
+  const shareAvailable = isWebShareAvailable();
 
-  async function handleExport(formatId) {
+  function revokePreviewUrl() {
+    if (previewRevokeTimerRef.current) {
+      clearTimeout(previewRevokeTimerRef.current);
+      previewRevokeTimerRef.current = null;
+    }
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  }
+
+  function schedulePreviewRevoke(url) {
+    revokePreviewUrl();
+    previewUrlRef.current = url;
+    previewRevokeTimerRef.current = setTimeout(() => {
+      if (previewUrlRef.current === url) {
+        URL.revokeObjectURL(url);
+        previewUrlRef.current = null;
+      }
+      previewRevokeTimerRef.current = null;
+      setExportFeedback((prev) =>
+        prev?.previewUrl === url ? { ...prev, previewUrl: null } : prev
+      );
+    }, EXPORT_PREVIEW_URL_TTL_MS);
+  }
+
+  useEffect(() => () => revokePreviewUrl(), []);
+
+  /**
+   * @param {string} formatId
+   * @param {'download' | 'copy' | 'share'} action
+   */
+  async function handleExport(formatId, action) {
     if (!hasSource || exportBusyId) return;
     setExportError(null);
     setExportBusyId(formatId);
     try {
-      await exportDiagram({ contentType, diagramSource, formatId });
+      const payload = await buildExportPayload({ contentType, diagramSource, formatId });
+      const result = await deliverExportPayload(payload, action);
+      revokePreviewUrl();
+      if (result.previewUrl) {
+        schedulePreviewRevoke(result.previewUrl);
+      }
+      setExportFeedback({ ...result, formatId });
     } catch (err) {
       setExportError(
         err instanceof Error ? err.message : (controls.exportFailed ?? 'Export failed')
@@ -59,6 +115,32 @@ export function AiCornerControlsInner({
       setExportBusyId(null);
     }
   }
+
+  function dismissExportFeedback() {
+    revokePreviewUrl();
+    setExportFeedback(null);
+  }
+
+  function exportSuccessMessage(method) {
+    switch (method) {
+      case 'download':
+        return controls.exportSaved ?? 'Saved to your device';
+      case 'share-file':
+      case 'share-text':
+        return controls.exportShared ?? 'Shared';
+      case 'clipboard-text':
+        return controls.exportCopiedText ?? 'Copied to clipboard';
+      case 'clipboard-image':
+        return controls.exportCopiedImage ?? 'Copied image to clipboard';
+      default:
+        return controls.exportSaved ?? 'Saved to your device';
+    }
+  }
+
+  const showDownloadHint =
+    exportFeedback?.method === 'download' &&
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(pointer: coarse)')?.matches;
 
   return (
     <>
@@ -144,22 +226,117 @@ export function AiCornerControlsInner({
             {!hasSource ? <p className="settings-export-empty">{controls.exportEmpty}</p> : null}
             {hasSource && exportOpen ? (
               <ul id={exportListId} className="settings-export-list" role="list">
-                {exportFormats.map((format) => (
-                  <li key={format.id}>
+                {exportFormats.map((format) => {
+                  const busy = exportBusyId === format.id;
+                  const label = controls[format.labelKey] ?? format.id;
+                  const payloadPreview = { delivery: format.delivery ?? 'text', mime: format.mime };
+                  const canCopy =
+                    (format.delivery ?? 'text') === 'text' ||
+                    (typeof navigator !== 'undefined' &&
+                      navigator.clipboard?.write &&
+                      typeof ClipboardItem !== 'undefined');
+                  const canShare = shareAvailable;
+                  return (
+                    <li key={format.id} className="settings-export-item">
+                      <span className="settings-export-format-label">{label}</span>
+                      <div
+                        className="settings-export-row-actions"
+                        role="group"
+                        aria-label={formatLocale(
+                          controls.exportActionsFor ?? 'Actions for {label}',
+                          {
+                            label
+                          }
+                        )}
+                      >
+                        <button
+                          type="button"
+                          className="settings-export-action"
+                          disabled={Boolean(exportBusyId)}
+                          aria-busy={busy}
+                          title={controls.exportSave ?? 'Save'}
+                          onClick={() => handleExport(format.id, 'download')}
+                        >
+                          {busy ? (controls.exportWorking ?? '…') : (controls.exportSave ?? 'Save')}
+                        </button>
+                        {canCopy ? (
+                          <button
+                            type="button"
+                            className="settings-export-action"
+                            disabled={Boolean(exportBusyId)}
+                            title={controls.exportCopy ?? 'Copy'}
+                            onClick={() => handleExport(format.id, 'copy')}
+                          >
+                            {controls.exportCopy ?? 'Copy'}
+                          </button>
+                        ) : null}
+                        {canShare ? (
+                          <button
+                            type="button"
+                            className="settings-export-action"
+                            disabled={Boolean(exportBusyId)}
+                            title={controls.exportShare ?? 'Share'}
+                            onClick={() => handleExport(format.id, 'share')}
+                          >
+                            {controls.exportShare ?? 'Share'}
+                          </button>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+            {exportFeedback ? (
+              <div className="settings-export-feedback" role="status" aria-live="polite">
+                <p className="settings-export-feedback-title">
+                  {exportSuccessMessage(exportFeedback.method)}
+                </p>
+                <p className="settings-export-feedback-filename">{exportFeedback.filename}</p>
+                {showDownloadHint ? (
+                  <p className="settings-export-feedback-hint">
+                    {controls.exportDownloadHint ??
+                      'Check your notification shade or Files → Downloads.'}
+                  </p>
+                ) : null}
+                <div className="settings-export-feedback-actions">
+                  {exportFeedback.previewUrl ? (
+                    <a
+                      className="settings-export-feedback-link"
+                      href={exportFeedback.previewUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {controls.exportOpenPreview ?? 'Open preview'}
+                    </a>
+                  ) : null}
+                  {canCopyExportPayload(exportFeedback.payload) ? (
                     <button
                       type="button"
-                      className="settings-export-option"
-                      disabled={Boolean(exportBusyId)}
-                      aria-busy={exportBusyId === format.id}
-                      onClick={() => handleExport(format.id)}
+                      className="settings-export-feedback-button"
+                      onClick={() => handleExport(exportFeedback.formatId, 'copy')}
                     >
-                      {exportBusyId === format.id
-                        ? (controls.exportWorking ?? 'Exporting…')
-                        : (controls[format.labelKey] ?? format.id)}
+                      {controls.exportCopyAgain ?? 'Copy again'}
                     </button>
-                  </li>
-                ))}
-              </ul>
+                  ) : null}
+                  {canShareExportPayload(exportFeedback.payload) ? (
+                    <button
+                      type="button"
+                      className="settings-export-feedback-button"
+                      onClick={() => handleExport(exportFeedback.formatId, 'share')}
+                    >
+                      {controls.exportShareAgain ?? 'Share again'}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="settings-export-feedback-button is-muted"
+                    onClick={dismissExportFeedback}
+                  >
+                    {controls.exportDismiss ?? 'Dismiss'}
+                  </button>
+                </div>
+              </div>
             ) : null}
             {exportError ? (
               <p className="settings-export-error" role="alert">

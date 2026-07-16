@@ -109,7 +109,21 @@ export const CONTROLS_EN_AU = {
     exportChartJson: 'Chart JSON (.json)',
     exportChartVegaLite: 'Vega-Lite spec (.vl.json)',
     exportAnythingHtml: 'Standalone HTML (.html)',
-    exportFormsJson: 'Forms JSON (.json)'
+    exportFormsJson: 'Forms JSON (.json)',
+    exportMermaidPng: 'PNG image (.png)',
+    exportSave: 'Save',
+    exportCopy: 'Copy',
+    exportShare: 'Share',
+    exportActionsFor: 'Actions for {label}',
+    exportSaved: 'Saved to your device',
+    exportShared: 'Shared',
+    exportCopiedText: 'Copied to clipboard',
+    exportCopiedImage: 'Copied image to clipboard',
+    exportOpenPreview: 'Open preview',
+    exportCopyAgain: 'Copy again',
+    exportShareAgain: 'Share again',
+    exportDismiss: 'Dismiss',
+    exportDownloadHint: 'Check your notification shade or Files → Downloads.'
   },
   contentModes: {
     auto: 'Auto',
