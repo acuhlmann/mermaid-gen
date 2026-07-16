@@ -14,6 +14,7 @@ import {
   rowsToCsv,
   shareExportPayload,
   startWebShare,
+  resolveWebShareMode,
   isShareUserGestureError,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
@@ -284,8 +285,44 @@ describe('shareExportPayload', () => {
   });
 });
 
+describe('resolveWebShareMode', () => {
+  it('prefers text share for text delivery when both modes are supported', () => {
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    expect(
+      resolveWebShareMode({
+        filename: 'diagram.svg',
+        mime: 'image/svg+xml;charset=utf-8',
+        ext: 'svg',
+        delivery: 'text',
+        body: '<svg></svg>'
+      })
+    ).toBe('text');
+  });
+
+  it('uses file share for image delivery', () => {
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: (data) => Boolean(data.files)
+    });
+
+    expect(
+      resolveWebShareMode({
+        filename: 'diagram.png',
+        mime: 'image/png',
+        ext: 'png',
+        delivery: 'image',
+        blob: new Blob(['x'], { type: 'image/png' })
+      })
+    ).toBe('file');
+  });
+});
+
 describe('startWebShare', () => {
-  it('invokes navigator.share synchronously and returns share-file', async () => {
+  it('invokes navigator.share synchronously and returns share-text for text delivery', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'share', {
       configurable: true,
@@ -304,8 +341,36 @@ describe('startWebShare', () => {
       body: 'hello'
     });
 
-    expect(method).toBe('share-file');
-    expect(share).toHaveBeenCalled();
+    expect(method).toBe('share-text');
+    expect(share).toHaveBeenCalledWith({ text: 'hello', title: 'x.txt' });
+  });
+
+  it('does not retry text share after an async file-share rejection', async () => {
+    const share = vi
+      .fn()
+      .mockRejectedValueOnce(
+        Object.assign(new Error('file share failed'), { name: 'NotSupportedError' })
+      )
+      .mockResolvedValueOnce(undefined);
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: share
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: (data) => Boolean(data.files)
+    });
+
+    await expect(
+      startWebShare({
+        filename: 'diagram.png',
+        mime: 'image/png',
+        ext: 'png',
+        delivery: 'image',
+        blob: new Blob(['x'], { type: 'image/png' })
+      })
+    ).rejects.toThrow('file share failed');
+    expect(share).toHaveBeenCalledTimes(1);
   });
 });
 

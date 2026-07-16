@@ -591,6 +591,30 @@ export async function copyExportPayload(payload) {
 }
 
 /**
+ * Pick a Web Share mode synchronously so navigator.share runs in the click turn.
+ * Text delivery prefers share({ text }) — mobile often accepts SVG/CSV/JSON as
+ * text but rejects the same payload as a file, and an async file→text fallback
+ * loses the user-gesture activation.
+ * @param {ExportPayload} payload
+ * @returns {'text' | 'file' | null}
+ */
+export function resolveWebShareMode(payload) {
+  if (!isWebShareAvailable()) return null;
+
+  if (payload.delivery === 'text') {
+    const text = payload.body ?? '';
+    const canShareText = !navigator.canShare || navigator.canShare({ text });
+    if (canShareText) return 'text';
+  }
+
+  const file = exportPayloadToFile(payload);
+  const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+  if (canShareFiles) return 'file';
+
+  return null;
+}
+
+/**
  * Invoke Web Share synchronously from a click handler (returns a Promise).
  * Call this in the same turn as the user gesture — do not await async export
  * builds before calling it.
@@ -601,19 +625,17 @@ export function startWebShare(payload) {
   if (!isWebShareAvailable()) {
     return Promise.reject(new Error('Share is not available on this device'));
   }
-  const file = exportPayloadToFile(payload);
-  const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
-  if (canShareFiles) {
+  const mode = resolveWebShareMode(payload);
+  if (mode === 'text') {
+    return shareTextPayload(payload);
+  }
+  if (mode === 'file') {
+    const file = exportPayloadToFile(payload);
     return navigator
       .share({ files: [file], title: payload.filename })
-      .then(() => /** @type {ExportDeliveryMethod} */ ('share-file'))
-      .catch((err) => {
-        if (isExportUserAbortError(err)) throw err;
-        if (payload.delivery !== 'text') throw err;
-        return shareTextPayload(payload);
-      });
+      .then(() => /** @type {ExportDeliveryMethod} */ ('share-file'));
   }
-  return shareTextPayload(payload);
+  return Promise.reject(new Error('Share is not available for this format'));
 }
 
 /**
