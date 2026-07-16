@@ -1,9 +1,14 @@
+// @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildExportPayload,
   chartDataValues,
+  deliverExportPayload,
+  exportPayloadToBlob,
+  isPreviewableExportPayload,
   listExportFormats,
   prettyJsonOrRaw,
+  readSvgDimensions,
   rowsToCsv,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
@@ -26,7 +31,8 @@ describe('listExportFormats', () => {
   it('returns mode-specific formats', () => {
     expect(listExportFormats('mermaid', 'flowchart TD\nA-->B').map((f) => f.id)).toEqual([
       'mermaid-source',
-      'mermaid-svg'
+      'mermaid-svg',
+      'mermaid-png'
     ]);
     expect(listExportFormats('anything', '<!DOCTYPE html><html></html>').map((f) => f.id)).toEqual([
       'anything-html'
@@ -126,7 +132,13 @@ describe('triggerBrowserDownload', () => {
     };
 
     triggerBrowserDownload(
-      { body: 'hello', mime: 'text/plain', filename: 'x.txt' },
+      {
+        body: 'hello',
+        mime: 'text/plain',
+        filename: 'x.txt',
+        ext: 'txt',
+        delivery: 'text'
+      },
       {
         createObjectURL: (blob) => {
           created.push(blob);
@@ -141,5 +153,39 @@ describe('triggerBrowserDownload', () => {
     expect(fakeDoc.body.appendChild).toHaveBeenCalledWith(fakeAnchor);
     expect(clicks).toEqual([{ href: 'blob:mock', download: 'x.txt' }]);
     expect(fakeAnchor.remove).toHaveBeenCalled();
+  });
+});
+
+describe('readSvgDimensions', () => {
+  it('reads width and height from svg attributes', () => {
+    expect(readSvgDimensions('<svg width="120" height="80" viewBox="0 0 120 80"></svg>')).toEqual({
+      width: 120,
+      height: 80
+    });
+  });
+});
+
+describe('deliverExportPayload', () => {
+  it('returns a preview URL for text exports', async () => {
+    const payload = {
+      filename: 'archislop-mermaid.txt',
+      mime: 'text/plain;charset=utf-8',
+      ext: 'txt',
+      delivery: 'text',
+      body: 'flowchart TD\nA-->B\n'
+    };
+    const createObjectURL = vi.fn(() => 'blob:preview');
+    const result = await deliverExportPayload(payload, 'download', {
+      createObjectURL,
+      revokeObjectURL: vi.fn(),
+      document: {
+        createElement: () => ({ click: vi.fn(), remove: vi.fn() }),
+        body: { appendChild: vi.fn() }
+      }
+    });
+    expect(result.method).toBe('download');
+    expect(result.previewUrl).toBe('blob:preview');
+    expect(isPreviewableExportPayload(payload)).toBe(true);
+    expect(exportPayloadToBlob(payload).type).toContain('text/plain');
   });
 });
