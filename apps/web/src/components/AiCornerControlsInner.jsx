@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
 import { ButtonIcon, BrainIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { exportDiagram, listExportFormats } from '../utils/exportDiagram.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 
@@ -26,15 +27,39 @@ export function AiCornerControlsInner({
   insightsOpen,
   onToggleInsights,
   includeThinkingToggle = true,
-  popoverMode = true
+  popoverMode = true,
+  contentType = null,
+  diagramSource = ''
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
+  const [exportOpen, setExportOpen] = useState(startExpanded);
+  const [exportBusyId, setExportBusyId] = useState(null);
+  const [exportError, setExportError] = useState(null);
+  const exportListId = useId();
   const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
   const renderAsPopover = popoverMode && !pendingHandshake;
   const panelClass = renderAsPopover
     ? 'ai-corner-settings-panel bottom-row-popover bottom-row-popover--settings'
     : 'ai-corner-settings-panel';
+  const hasSource = Boolean((diagramSource ?? '').trim());
+  const exportFormats = hasSource ? listExportFormats(contentType, diagramSource) : [];
+
+  async function handleExport(formatId) {
+    if (!hasSource || exportBusyId) return;
+    setExportError(null);
+    setExportBusyId(formatId);
+    try {
+      await exportDiagram({ contentType, diagramSource, formatId });
+    } catch (err) {
+      setExportError(
+        err instanceof Error ? err.message : (controls.exportFailed ?? 'Export failed')
+      );
+    } finally {
+      setExportBusyId(null);
+    }
+  }
+
   return (
     <>
       <div className="ai-corner-settings-anchor">
@@ -101,6 +126,46 @@ export function AiCornerControlsInner({
                 {controls.quality}
               </button>
             </div>
+          </div>
+          <div className="settings-export" role="group" aria-label={controls.export}>
+            <button
+              type="button"
+              className={`settings-export-toggle${exportOpen ? ' is-open' : ''}`}
+              aria-expanded={exportOpen}
+              aria-controls={exportListId}
+              disabled={!hasSource || exportFormats.length === 0}
+              onClick={() => setExportOpen((v) => !v)}
+            >
+              <span className="settings-export-toggle-label">{controls.export}</span>
+              <span className="settings-export-chevron" aria-hidden="true">
+                {exportOpen ? '▴' : '▾'}
+              </span>
+            </button>
+            {!hasSource ? <p className="settings-export-empty">{controls.exportEmpty}</p> : null}
+            {hasSource && exportOpen ? (
+              <ul id={exportListId} className="settings-export-list" role="list">
+                {exportFormats.map((format) => (
+                  <li key={format.id}>
+                    <button
+                      type="button"
+                      className="settings-export-option"
+                      disabled={Boolean(exportBusyId)}
+                      aria-busy={exportBusyId === format.id}
+                      onClick={() => handleExport(format.id)}
+                    >
+                      {exportBusyId === format.id
+                        ? (controls.exportWorking ?? 'Exporting…')
+                        : (controls[format.labelKey] ?? format.id)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            {exportError ? (
+              <p className="settings-export-error" role="alert">
+                {exportError}
+              </p>
+            ) : null}
           </div>
         </div>
       </div>

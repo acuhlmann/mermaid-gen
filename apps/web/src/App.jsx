@@ -5037,6 +5037,10 @@ ${requirementsBlock}`;
               insightsOpen={insightsOpen}
               onToggleInsights={() => setInsightsOpen((v) => !v)}
               includeThinkingToggle={insightsEntries.length > 0}
+              contentType={
+                isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
+              }
+              diagramSource={state.diagramSource}
             />
           ) : null
         }
