@@ -132,7 +132,8 @@ export default function RadialActionMenu({
   onHoverHold,
   onHoverRelease,
   onBackdropPointerDown,
-  onClose
+  onClose,
+  onAdvisorUsage
 }) {
   const { controls } = useUiCopy();
   const radial = controls.radial;
@@ -339,8 +340,9 @@ export default function RadialActionMenu({
       simpleLevel: dumbLevel > 0 && !isGibberish ? dumbLevel : undefined,
       signal: controller.signal
     })
-      .then((text) => {
+      .then(({ explanation: text, usage, model }) => {
         if (!alive) return;
+        onAdvisorUsage?.({ usage, model });
         const resolved = text || (isGibberish ? fallbackLabelGibberish(explainTarget) : '');
         if (resolved) {
           setExplanation({ status: 'ready', text: resolved, error: '' });
@@ -375,7 +377,8 @@ export default function RadialActionMenu({
     explainTarget,
     explainerSurrendering,
     radial.explanationMissing,
-    radial.explanationFailed
+    radial.explanationFailed,
+    onAdvisorUsage
   ]);
 
   const dumbChipLabel = labelExplainDumbChipLabel(dumbLevel);

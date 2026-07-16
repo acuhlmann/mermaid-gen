@@ -508,7 +508,8 @@ export const CONTROLS_ZH_TW = {
   diagramCanvas: {
     streamingSource: '正在串流已驗證的原始碼…',
     done: '完成',
-    loadingEditor: '正在載入程式碼編輯器…'
+    loadingEditor: '正在載入程式碼編輯器…',
+    selectAll: '全選'
   },
   anythingCanvas: {
     canvas: '任意畫布（沙箱）',

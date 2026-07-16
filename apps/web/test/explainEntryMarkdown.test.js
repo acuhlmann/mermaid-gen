@@ -2,13 +2,43 @@ import { describe, expect, it } from 'vitest';
 import { explainEntryMarkdown } from '../src/utils/explainEntryMarkdown.js';
 
 describe('explainEntryMarkdown', () => {
-  it('prefers entry.content when present', () => {
+  it('prefers explainSections when structured sections are shown', () => {
     expect(
       explainEntryMarkdown({
-        content: '## Explanation\n\nFrom content.',
-        explainSections: { sections: [{ heading: 'Explanation', body: 'Artifact.' }] }
+        content: '## Explanation\n\nStale partial content.',
+        explainSections: {
+          preamble: 'Lead-in.',
+          sections: [
+            { heading: 'Explanation', body: 'Overview.' },
+            { heading: 'Takeaways', body: 'Remember.' }
+          ]
+        }
       })
-    ).toBe('## Explanation\n\nFrom content.');
+    ).toMatch(/Lead-in/);
+    expect(
+      explainEntryMarkdown({
+        content: '## Explanation\n\nStale partial content.',
+        explainSections: {
+          preamble: 'Lead-in.',
+          sections: [
+            { heading: 'Explanation', body: 'Overview.' },
+            { heading: 'Takeaways', body: 'Remember.' }
+          ]
+        }
+      })
+    ).toMatch(/## Takeaways/);
+    expect(
+      explainEntryMarkdown({
+        content: '## Explanation\n\nStale partial content.',
+        explainSections: {
+          preamble: 'Lead-in.',
+          sections: [
+            { heading: 'Explanation', body: 'Overview.' },
+            { heading: 'Takeaways', body: 'Remember.' }
+          ]
+        }
+      })
+    ).not.toMatch(/Stale partial/);
   });
 
   it('reconstructs markdown from explainSections when content is empty', () => {

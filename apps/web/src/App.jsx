@@ -128,7 +128,6 @@ import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
 import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
-  addAdvisorLlmCostUsd,
   applyCompletedRun,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
@@ -171,8 +170,7 @@ import {
   styleEditsToPrompt,
   isLabelExplainGiveUpLevel,
   LABEL_EXPLAIN_GIBBERISH_LEVEL,
-  MAX_LABEL_EXPLAIN_DUMB_LEVEL,
-  estimateLlmCostUsd
+  MAX_LABEL_EXPLAIN_DUMB_LEVEL
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
@@ -181,6 +179,7 @@ import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatu
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
+import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import { buildAdvisorIntentPrompt, resolveAdvisorFocusNode } from './utils/advisorActionContext.js';
 import { useCompactBrandLayout, useNarrowLayout } from './hooks/useAppLayoutMedia.js';
@@ -2182,6 +2181,26 @@ function ArchiSlop() {
     [contentMode, modelProfile, runStreamingAgent, syncDiagramOrThrow]
   );
 
+  const reportAdvisorUsage = useCallback(
+    ({ usage, model, inputTokens, outputTokens }) => {
+      const resolvedUsage =
+        usage && typeof usage === 'object'
+          ? usage
+          : {
+              ...(Number.isFinite(inputTokens) ? { inputTokens } : {}),
+              ...(Number.isFinite(outputTokens) ? { outputTokens } : {})
+            };
+      reportAdvisorLlmUsage({
+        costTrackingEnabled,
+        rates: agentCostEstimatesRef.current?.rates,
+        usage: resolvedUsage,
+        model,
+        setGamification
+      });
+    },
+    [costTrackingEnabled]
+  );
+
   const handleExplainDumbDown = useCallback(
     async (entryId) => {
       const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
@@ -2210,13 +2229,14 @@ function ArchiSlop() {
       setExplainDumbLoadingEntryId(entryId);
 
       try {
-        const { markdown, explainSections } = await fetchExplainDumbDown({
+        const { markdown, explainSections, usage, model } = await fetchExplainDumbDown({
           previousExplain,
           contentType: entry.contentType ?? contentMode,
           sessionId: activeSessionId,
           style: isGibberish ? 'gibberish' : 'simple',
           simpleLevel: isGibberish ? undefined : nextLevel
         });
+        reportAdvisorUsage({ usage, model });
         if (!markdown) {
           setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: currentLevel }));
           return;
@@ -2248,7 +2268,8 @@ function ArchiSlop() {
       contentMode,
       explainDumbLevelByEntryId,
       explainDumbLoadingEntryId,
-      explainDumbSurrenderedEntryIds
+      explainDumbSurrenderedEntryIds,
+      reportAdvisorUsage
     ]
   );
 
@@ -3079,21 +3100,7 @@ ${requirementsBlock}`;
     },
     // Fold stakeholder /suggest spend into the same estimated-cost tally as agent
     // runs so it shows up in the Stakeholder Damage Report.
-    onUsage: ({ inputTokens, outputTokens, model }) => {
-      if (!costTrackingEnabled) return;
-      const rates = agentCostEstimatesRef.current?.rates;
-      if (!rates) return;
-      const usd = estimateLlmCostUsd({ inputTokens, outputTokens, model, rates });
-      if (!(typeof usd === 'number' && Number.isFinite(usd) && usd > 0)) return;
-      setGamification((current) => {
-        const next = addAdvisorLlmCostUsd(current, usd);
-        if (next === current) return current;
-        if (typeof window !== 'undefined') {
-          writeGamificationToStorage(window.localStorage, next);
-        }
-        return next;
-      });
-    }
+    onUsage: reportAdvisorUsage
   });
 
   // First-run stakeholder spotlight: a once-ever onboarding beat that frames the
@@ -4371,6 +4378,7 @@ ${requirementsBlock}`;
             dismissRadialMenu();
           }}
           onClose={closeRadialMenu}
+          onAdvisorUsage={reportAdvisorUsage}
         />
       </DiagramFullscreenOverlay>
 

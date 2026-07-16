@@ -516,7 +516,8 @@ export const CONTROLS_EN_AU = {
   diagramCanvas: {
     streamingSource: 'Streaming validated source…',
     done: 'Done',
-    loadingEditor: 'Loading code editor…'
+    loadingEditor: 'Loading code editor…',
+    selectAll: 'Select all'
   },
   anythingCanvas: {
     canvas: 'Anything canvas (sandboxed)',

@@ -4613,6 +4613,14 @@
   flex-shrink: 0;
 }
 
+.diagram-editor-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem 0.25rem;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+}
+
 .mobile-code-editor-actions .overlay-button {
   min-height: 2.2rem;
   padding: 0.42rem 0.7rem;

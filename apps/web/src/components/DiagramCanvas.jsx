@@ -307,6 +307,18 @@ export default function DiagramCanvas({
     editorRef.current = editor;
     monacoRef.current = monaco;
     setMonacoBind({ editor, monaco });
+    if (monaco?.KeyMod?.CtrlCmd != null && monaco?.KeyCode?.KeyA != null) {
+      editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyA, () => {
+        editor.trigger('keyboard', 'editor.action.selectAll', null);
+      });
+    }
+  }, []);
+
+  const handleSelectAllEditor = useCallback(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.trigger('keyboard', 'editor.action.selectAll', null);
+    editor.focus();
   }, []);
 
   const monacoLoadingLabel = controls.diagramCanvas.loadingEditor;
@@ -1612,6 +1624,13 @@ export default function DiagramCanvas({
               <div className="mobile-code-editor-toolbar">
                 <span className="mobile-code-editor-title">{editorPanelShortTitle}</span>
                 <div className="mobile-code-editor-actions">
+                  <button
+                    type="button"
+                    className="overlay-button compact-button"
+                    onClick={handleSelectAllEditor}
+                  >
+                    {controls.diagramCanvas.selectAll}
+                  </button>
                   {onEditorClose ? (
                     <button
                       type="button"
@@ -1644,6 +1663,15 @@ export default function DiagramCanvas({
             </div>
           ) : (
             <div className="diagram-monaco-wrap">
+              <div className="diagram-editor-toolbar">
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  onClick={handleSelectAllEditor}
+                >
+                  {controls.diagramCanvas.selectAll}
+                </button>
+              </div>
               <Suspense
                 fallback={
                   <div className="monaco-editor-loading" role="status">

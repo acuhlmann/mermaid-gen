@@ -22,7 +22,9 @@ import {
   extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
+  invokeChatModelToClient,
   normalizeAgentStreamEvent,
+  streamChatModelToClient,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import { createLlmChatModel, resolveLlmBackend, resolveModelId } from './llmProvider.js';
@@ -793,8 +795,10 @@ export function createInfographicLangChainAgent({
       if (typeof emit === 'function') {
         emit({ type: 'phase', id: 'analyze_stream', label: 'Streaming analysis…' });
         try {
-          const stream = await analysisModel.stream(messages);
-          const full = await emitTokens(stream, emit);
+          const full = await streamChatModelToClient(analysisModel, messages, emit, {
+            modelId,
+            callId: `analyze-infographic-${kind}`
+          });
           return { message: full.trim() || 'Done.', raw: null };
         } catch (error) {
           emit({

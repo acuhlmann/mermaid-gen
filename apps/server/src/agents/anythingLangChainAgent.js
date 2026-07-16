@@ -22,6 +22,7 @@ import {
   extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
+  invokeChatModelToClient,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -568,6 +569,8 @@ export function createAnythingLangChainAgent({
         return { message: 'Nothing to analyze — generate a page first.', raw: null };
       }
       const profile = normalizeModelProfile(modelProfile);
+      const backend = resolveLlmBackend(env, profile);
+      const modelId = resolveModelId(env, profile, backend);
       const model = buildAnalysisModel(profile);
       const messages = [
         new HumanMessage(
@@ -585,6 +588,12 @@ export function createAnythingLangChainAgent({
       }
 
       try {
+        if (typeof emit === 'function') {
+          return await invokeChatModelToClient(model, messages, emit, {
+            modelId,
+            callId: `analyze-anything-${kind}`
+          });
+        }
         const response = await model.invoke(messages);
         const text = extractTextContent(response.content).trim() || 'Done.';
         return { message: text, raw: response };
