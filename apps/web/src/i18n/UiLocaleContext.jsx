@@ -7,6 +7,7 @@ import {
 import { getUiLocaleBundle } from './getUiLocaleBundle.js';
 import { readStoredUiLocale, writeStoredUiLocale } from './uiLocaleStorage.js';
 import { setActiveControlsCopy } from './activeControlsCopy.js';
+import { setActiveOfficeBundle } from '../utils/officeCast.js';
 import { setActiveSlopitectBundle } from '../utils/slopitectCopy.js';
 import { UiLocaleContext } from './uiLocaleContext.js';
 
@@ -21,6 +22,7 @@ export function UiLocaleProvider({ children, initialLocale }) {
   useEffect(() => {
     setActiveControlsCopy(bundle.controls);
     setActiveSlopitectBundle(bundle.slopitect);
+    setActiveOfficeBundle(bundle.office);
     if (typeof document !== 'undefined') {
       document.documentElement.lang = locale === 'en' ? 'en' : locale;
     }
@@ -46,6 +48,7 @@ export function UiLocaleProvider({ children, initialLocale }) {
       bundle,
       controls: bundle.controls,
       slopitect: bundle.slopitect,
+      office: bundle.office,
       setLocale,
       applyLocaleFromText
     }),

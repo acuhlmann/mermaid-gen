@@ -7,6 +7,7 @@ import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
+import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
 import {
   acceptOfficeCoffee,
   dismissOfficeCoffee,
@@ -18,6 +19,7 @@ import {
   markOfficeEmailRead,
   pushOfficeEmail,
   setOfficeFocusTime,
+  setOfficeSoundscape,
   subscribe
 } from '../state/officeMomentStore.js';
 import { playImPing, playMailChime, playMeetingJoinBlip } from '../utils/agentChimes.js';
@@ -69,6 +71,10 @@ export default function OfficeLayer({
     getUserTitle,
     onUsage
   });
+
+  // Room tone (keyboard clatter, the printer, the espresso machine) — its own
+  // sparse cadence, muted by Focus Time and the dock's Soundscape toggle.
+  useOfficeSoundscape({ playChime });
 
   // Office SFX: mail ding on new email, pop on new IM, blip when a meeting
   // starts playing. playChime is App's sound gate (soundEnabled + gesture).
@@ -173,7 +179,9 @@ export default function OfficeLayer({
         emails={snapshot.emails}
         unreadCount={snapshot.unreadCount}
         focusTime={snapshot.focusTime}
+        soundscape={snapshot.soundscape}
         onToggleFocusTime={setOfficeFocusTime}
+        onToggleSoundscape={setOfficeSoundscape}
         onMarkRead={handleMarkRead}
         onMarkAllRead={markAllOfficeEmailsRead}
         onAdoptPrompt={handleAdopt}

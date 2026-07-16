@@ -1,4 +1,5 @@
-import { OFFICE_IM_QUICK_REPLIES, officeSenderInfo } from '../utils/officeCast.js';
+import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../utils/officeCast.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 /**
  * Slop Chat™ — stacked IM ping bubbles (docs/office-parody.md). Auto-expire is
@@ -7,8 +8,15 @@ import { OFFICE_IM_QUICK_REPLIES, officeSenderInfo } from '../utils/officeCast.j
  */
 export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
   if (!pings || pings.length === 0) return null;
+  const copy = officeChromeCopy();
+  const quickReplies = officeImQuickReplies();
   return (
-    <div className="office-im-stack" role="region" aria-label="Instant messages" aria-live="polite">
+    <div
+      className="office-im-stack"
+      role="region"
+      aria-label={copy.im.regionAria}
+      aria-live="polite"
+    >
       {pings.map((ping) => {
         const sender = officeSenderInfo(ping.colleagueId);
         return (
@@ -20,7 +28,7 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
               <span className="office-im-sender">{sender.name}</span>
               <p className="office-im-body">{ping.body}</p>
               <div className="office-im-replies">
-                {OFFICE_IM_QUICK_REPLIES.map((reply) => (
+                {quickReplies.map((reply) => (
                   <button
                     key={reply}
                     type="button"
@@ -35,7 +43,7 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
             <button
               type="button"
               className="office-im-dismiss"
-              aria-label={`Dismiss message from ${sender.name}`}
+              aria-label={formatLocale(copy.im.dismissAria, { name: sender.name })}
               onClick={() => onDismiss?.(ping.id)}
             >
               ×

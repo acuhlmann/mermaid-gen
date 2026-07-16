@@ -1,10 +1,14 @@
 import { DEFAULT_UI_LOCALE, normalizeUiLocale } from '@archislop/shared';
+import * as officeEn from '../utils/officeCast.js';
 import * as slopitectEn from '../utils/slopitectCopy.js';
 import { deepMergeLocale } from './deepMergeLocale.js';
 import { CONTROLS_EN } from './locales/controls.en.js';
 import { CONTROLS_EN_AU } from './locales/controls.en-AU.js';
 import { CONTROLS_ZH_CN } from './locales/controls.zh-CN.js';
 import { CONTROLS_ZH_TW } from './locales/controls.zh-TW.js';
+import { OFFICE_EN_AU } from './locales/office.en-AU.js';
+import { OFFICE_ZH_CN } from './locales/office.zh-CN.js';
+import { OFFICE_ZH_TW } from './locales/office.zh-TW.js';
 import { SLOPITECT_GAMIFICATION_EN } from './locales/slopitectGamification.en.js';
 import { SLOPITECT_EN_AU } from './locales/slopitect.en-AU.js';
 import { SLOPITECT_ZH_CN } from './locales/slopitect.zh-CN.js';
@@ -37,6 +41,17 @@ function buildEnglishBundle() {
         explain: 'Architect'
       },
       ...SLOPITECT_GAMIFICATION_EN
+    },
+    office: {
+      OFFICE_COLLEAGUES: officeEn.OFFICE_COLLEAGUES,
+      OFFICE_SLOT_FALLBACKS: officeEn.OFFICE_SLOT_FALLBACKS,
+      OFFICE_EMAIL_TEMPLATES: officeEn.OFFICE_EMAIL_TEMPLATES,
+      OFFICE_IM_TEMPLATES: officeEn.OFFICE_IM_TEMPLATES,
+      OFFICE_WALKBY_FALLBACKS: officeEn.OFFICE_WALKBY_FALLBACKS,
+      OFFICE_COFFEE_SCENES: officeEn.OFFICE_COFFEE_SCENES,
+      OFFICE_MEETING_COPY: officeEn.OFFICE_MEETING_COPY,
+      OFFICE_IM_QUICK_REPLIES: officeEn.OFFICE_IM_QUICK_REPLIES,
+      OFFICE_CHROME_COPY: officeEn.OFFICE_CHROME_COPY
     }
   };
 }
@@ -46,15 +61,18 @@ const EN_BUNDLE = buildEnglishBundle();
 const LOCALE_OVERRIDES = {
   'en-AU': {
     controls: CONTROLS_EN_AU,
-    slopitect: SLOPITECT_EN_AU
+    slopitect: SLOPITECT_EN_AU,
+    office: OFFICE_EN_AU
   },
   'zh-CN': {
     controls: CONTROLS_ZH_CN,
-    slopitect: SLOPITECT_ZH_CN
+    slopitect: SLOPITECT_ZH_CN,
+    office: OFFICE_ZH_CN
   },
   'zh-TW': {
     controls: CONTROLS_ZH_TW,
-    slopitect: SLOPITECT_ZH_TW
+    slopitect: SLOPITECT_ZH_TW,
+    office: OFFICE_ZH_TW
   }
 };
 
@@ -66,7 +84,8 @@ export function getUiLocaleBundle(locale) {
   return {
     locale: normalized,
     controls: deepMergeLocale(EN_BUNDLE.controls, overrides.controls),
-    slopitect: deepMergeLocale(EN_BUNDLE.slopitect, overrides.slopitect)
+    slopitect: deepMergeLocale(EN_BUNDLE.slopitect, overrides.slopitect),
+    office: deepMergeLocale(EN_BUNDLE.office, overrides.office)
   };
 }
 

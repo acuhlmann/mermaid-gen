@@ -1,4 +1,5 @@
-import { officeSenderInfo } from '../utils/officeCast.js';
+import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 /**
  * Over-the-shoulder walk-by (docs/office-parody.md): a colleague slides in
@@ -8,6 +9,7 @@ import { officeSenderInfo } from '../utils/officeCast.js';
  */
 export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
   if (!walkBy) return null;
+  const copy = officeChromeCopy();
   const sender = officeSenderInfo(walkBy.colleagueId);
   return (
     <div className="office-walkby" role="status" aria-live="polite">
@@ -30,14 +32,14 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
             className="office-do-it"
             onClick={() => onAdoptPrompt?.(walkBy.actionPrompt, walkBy.colleagueId)}
           >
-            Do it
+            {copy.doIt}
           </button>
         ) : null}
       </div>
       <button
         type="button"
         className="office-walkby-dismiss"
-        aria-label={`Wave off ${sender.name}`}
+        aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
         onClick={() => onDismiss?.(walkBy.id)}
       >
         ×
