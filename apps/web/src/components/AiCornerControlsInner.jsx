@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
 import { ButtonIcon, BrainIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
@@ -10,8 +10,10 @@ import {
   canShareExportPayload,
   deliverExportPayload,
   isExportUserAbortError,
+  isShareUserGestureError,
   isWebShareAvailable,
-  listExportFormats
+  listExportFormats,
+  startWebShare
 } from '../utils/exportDiagram.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
@@ -32,7 +34,7 @@ function isQuickToastMethod(method) {
 
 /**
  * Right-cluster of the bottom row: emoji-style Settings (⚙️) and Thinking (🧠)
- * toggles. The Settings panel renders as a floating popover above the gear
+ * toggles. The Settings panel renders as a floating popover below the gear
  * when `popoverMode` is true (default, desktop) and inline as a flex sibling
  * when false (narrow viewports keep the existing stacked layout). A pending
  * handshake force-opens the panel inline regardless of mode so the user can't
@@ -56,7 +58,7 @@ export function AiCornerControlsInner({
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
-  const [exportOpen, setExportOpen] = useState(startExpanded);
+  const [exportOpen, setExportOpen] = useState(false);
   const [exportBusyId, setExportBusyId] = useState(null);
   const [exportError, setExportError] = useState(null);
   const [exportFeedback, setExportFeedback] = useState(
@@ -65,6 +67,9 @@ export function AiCornerControlsInner({
   const previewRevokeTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
   const previewUrlRef = useRef(/** @type {string | null} */ (null));
   const copyToastTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
+  /** @type {import('react').MutableRefObject<Map<string, { payload?: import('../utils/exportDiagram.js').ExportPayload, promise?: Promise<import('../utils/exportDiagram.js').ExportPayload> }>>} */
+  const exportPayloadCacheRef = useRef(new Map());
+  const [exportReadyIds, setExportReadyIds] = useState(() => new Set());
   const exportListId = useId();
   const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
   const renderAsPopover = popoverMode && !pendingHandshake;
@@ -72,7 +77,10 @@ export function AiCornerControlsInner({
     ? 'ai-corner-settings-panel bottom-row-popover bottom-row-popover--settings'
     : 'ai-corner-settings-panel';
   const hasSource = Boolean((diagramSource ?? '').trim());
-  const exportFormats = hasSource ? listExportFormats(contentType, diagramSource) : [];
+  const exportFormats = useMemo(
+    () => (hasSource ? listExportFormats(contentType, diagramSource) : []),
+    [hasSource, contentType, diagramSource]
+  );
   const shareAvailable = isWebShareAvailable();
 
   function revokePreviewUrl() {
@@ -124,6 +132,87 @@ export function AiCornerControlsInner({
     []
   );
 
+  useEffect(() => {
+    exportPayloadCacheRef.current.clear();
+    setExportReadyIds(new Set());
+    if (!exportOpen || !hasSource || exportFormats.length === 0 || !shareAvailable) {
+      return undefined;
+    }
+    let cancelled = false;
+    for (const format of exportFormats) {
+      const promise = buildExportPayload({
+        contentType,
+        diagramSource,
+        formatId: format.id
+      })
+        .then((payload) => {
+          if (!cancelled) {
+            exportPayloadCacheRef.current.set(format.id, { payload, promise });
+            setExportReadyIds((prev) => new Set(prev).add(format.id));
+          }
+          return payload;
+        })
+        .catch(() => {
+          if (!cancelled) {
+            exportPayloadCacheRef.current.delete(format.id);
+            setExportReadyIds((prev) => {
+              const next = new Set(prev);
+              next.delete(format.id);
+              return next;
+            });
+          }
+        });
+      exportPayloadCacheRef.current.set(format.id, { promise });
+    }
+    return () => {
+      cancelled = true;
+      exportPayloadCacheRef.current.clear();
+    };
+  }, [exportOpen, hasSource, contentType, diagramSource, exportFormats, shareAvailable]);
+
+  function getCachedExportPayload(formatId) {
+    return exportPayloadCacheRef.current.get(formatId)?.payload ?? null;
+  }
+
+  function isExportPayloadReady(formatId) {
+    return exportReadyIds.has(formatId);
+  }
+
+  /**
+   * @param {import('../utils/exportDiagram.js').ExportPayload} payload
+   * @param {string} formatId
+   * @param {import('../utils/exportDiagram.js').ExportDeliveryMethod} method
+   */
+  function applyExportSuccess(payload, formatId, method) {
+    revokePreviewUrl();
+    setExportFeedback({
+      method,
+      filename: payload.filename,
+      previewUrl: null,
+      payload,
+      formatId
+    });
+    if (isQuickToastMethod(method)) {
+      scheduleCopyToastDismiss();
+    }
+  }
+
+  /**
+   * @param {unknown} err
+   * @param {'share' | 'export'} context
+   */
+  function handleExportFailure(err, context) {
+    if (isExportUserAbortError(err)) return;
+    if (context === 'share' && isShareUserGestureError(err)) {
+      setExportError(
+        controls.exportShareGesture ??
+          'Share expired — expand Export, wait a moment, then tap Share again.'
+      );
+      return;
+    }
+    setExportError(err instanceof Error ? err.message : (controls.exportFailed ?? 'Export failed'));
+  }
+
   /**
    * @param {string} formatId
    * @param {'download' | 'copy' | 'share'} action
@@ -133,7 +222,13 @@ export function AiCornerControlsInner({
     setExportError(null);
     setExportBusyId(formatId);
     try {
-      const payload = await buildExportPayload({ contentType, diagramSource, formatId });
+      const cached = getCachedExportPayload(formatId);
+      const payload =
+        cached ?? (await buildExportPayload({ contentType, diagramSource, formatId }));
+      if (!cached) {
+        exportPayloadCacheRef.current.set(formatId, { payload });
+        setExportReadyIds((prev) => new Set(prev).add(formatId));
+      }
       const result = await deliverExportPayload(payload, action);
       revokePreviewUrl();
       if (result.previewUrl) {
@@ -144,13 +239,47 @@ export function AiCornerControlsInner({
         scheduleCopyToastDismiss();
       }
     } catch (err) {
-      if (isExportUserAbortError(err)) return;
-      setExportError(
-        err instanceof Error ? err.message : (controls.exportFailed ?? 'Export failed')
-      );
+      handleExportFailure(err, 'export');
     } finally {
       setExportBusyId(null);
     }
+  }
+
+  /**
+   * Web Share must run in the same turn as the click — use a pre-warmed payload.
+   * @param {string} formatId
+   * @param {import('../utils/exportDiagram.js').ExportPayload} [payloadOverride]
+   */
+  function handleShare(formatId, payloadOverride) {
+    if (!hasSource || exportBusyId) return;
+    const payload = payloadOverride ?? getCachedExportPayload(formatId);
+    if (!payload) {
+      setExportError(
+        controls.exportSharePreparing ??
+          'Still preparing export — wait a moment, then tap Share again.'
+      );
+      return;
+    }
+    setExportError(null);
+    setExportBusyId(formatId);
+    let sharePromise;
+    try {
+      sharePromise = startWebShare(payload);
+    } catch (err) {
+      handleExportFailure(err, 'share');
+      setExportBusyId(null);
+      return;
+    }
+    void sharePromise
+      .then((method) => {
+        applyExportSuccess(payload, formatId, method);
+      })
+      .catch((err) => {
+        handleExportFailure(err, 'share');
+      })
+      .finally(() => {
+        setExportBusyId(null);
+      });
   }
 
   function dismissExportFeedback() {
@@ -323,11 +452,17 @@ export function AiCornerControlsInner({
                           <button
                             type="button"
                             className="settings-export-action"
-                            disabled={Boolean(exportBusyId)}
-                            title={controls.exportShare ?? 'Share'}
-                            onClick={() => handleExport(format.id, 'share')}
+                            disabled={Boolean(exportBusyId) || !isExportPayloadReady(format.id)}
+                            title={
+                              isExportPayloadReady(format.id)
+                                ? (controls.exportShare ?? 'Share')
+                                : (controls.exportSharePreparing ?? 'Preparing…')
+                            }
+                            onClick={() => handleShare(format.id)}
                           >
-                            {controls.exportShare ?? 'Share'}
+                            {isExportPayloadReady(format.id)
+                              ? (controls.exportShare ?? 'Share')
+                              : (controls.exportSharePreparing ?? '…')}
                           </button>
                         ) : null}
                       </div>
@@ -368,7 +503,7 @@ export function AiCornerControlsInner({
                       <button
                         type="button"
                         className="settings-export-feedback-button"
-                        onClick={() => handleExport(exportFeedback.formatId, 'share')}
+                        onClick={() => handleShare(exportFeedback.formatId, exportFeedback.payload)}
                       >
                         {controls.exportShareAgain ?? 'Share again'}
                       </button>

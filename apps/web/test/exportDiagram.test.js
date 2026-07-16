@@ -13,6 +13,8 @@ import {
   readSvgDimensions,
   rowsToCsv,
   shareExportPayload,
+  startWebShare,
+  isShareUserGestureError,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
 
@@ -279,5 +281,45 @@ describe('shareExportPayload', () => {
     expect(
       isExportUserAbortError(Object.assign(new Error('aborted'), { name: 'AbortError' }))
     ).toBe(true);
+  });
+});
+
+describe('startWebShare', () => {
+  it('invokes navigator.share synchronously and returns share-file', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: share
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    const method = await startWebShare({
+      filename: 'x.txt',
+      mime: 'text/plain',
+      ext: 'txt',
+      delivery: 'text',
+      body: 'hello'
+    });
+
+    expect(method).toBe('share-file');
+    expect(share).toHaveBeenCalled();
+  });
+});
+
+describe('isShareUserGestureError', () => {
+  it('detects Web Share user-gesture NotAllowedError', () => {
+    const err = Object.assign(
+      new Error(
+        "Failed to execute 'share' on 'Navigator': Must be handling a user gesture to perform a share request."
+      ),
+      {
+        name: 'NotAllowedError'
+      }
+    );
+    expect(isShareUserGestureError(err)).toBe(true);
+    expect(isShareUserGestureError(new Error('nope'))).toBe(false);
   });
 });

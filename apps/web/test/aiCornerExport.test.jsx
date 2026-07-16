@@ -19,16 +19,20 @@ vi.mock('../src/utils/exportDiagram.js', async (importOriginal) => {
       method: action === 'copy' ? 'clipboard-text' : action === 'share' ? 'share-file' : 'download',
       filename: payload.filename,
       previewUrl: action === 'download' ? 'blob:preview-mock' : null,
-      payload,
-      formatId: 'chart-csv'
+      payload
     })),
+    startWebShare: vi.fn(async (payload) => 'share-file'),
     isWebShareAvailable: vi.fn(() => true),
     canCopyExportPayload: vi.fn(() => true),
     canShareExportPayload: vi.fn(() => true)
   };
 });
 
-import { buildExportPayload, deliverExportPayload } from '../src/utils/exportDiagram.js';
+import {
+  buildExportPayload,
+  deliverExportPayload,
+  startWebShare
+} from '../src/utils/exportDiagram.js';
 
 const chartSource = JSON.stringify({
   archislopVersion: 1,
@@ -38,6 +42,10 @@ const chartSource = JSON.stringify({
     data: { values: [{ a: 'x', b: 1 }] }
   }
 });
+
+function openExportList() {
+  fireEvent.click(screen.getByRole('button', { name: /^Export$/i }));
+}
 
 describe('AiCornerControlsInner export', () => {
   afterEach(() => {
@@ -63,10 +71,14 @@ describe('AiCornerControlsInner export', () => {
       />
     );
 
+    openExportList();
+
     expect(screen.getByText(/Spreadsheet CSV/i)).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /^Save$/i }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole('button', { name: /^Copy$/i }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('button', { name: /^Share$/i }).length).toBeGreaterThan(0);
+    await waitFor(() => {
+      expect(screen.getAllByRole('button', { name: /^Share$/i }).length).toBeGreaterThan(0);
+    });
 
     fireEvent.click(screen.getAllByRole('button', { name: /^Save$/i })[0]);
     await waitFor(() => {
@@ -83,6 +95,43 @@ describe('AiCornerControlsInner export', () => {
     expect(screen.getByRole('link', { name: /Open preview/i }).getAttribute('href')).toBe(
       'blob:preview-mock'
     );
+  });
+
+  it('uses pre-warmed payload for share without rebuilding on click', async () => {
+    render(
+      <AiCornerControlsInner
+        controls={CONTROLS_EN.settings}
+        modelProfile="fast"
+        onSelectModelProfile={() => {}}
+        pendingHandshake={null}
+        externalAgentPresence={[]}
+        onInviteAgent={() => {}}
+        agentThinkingChrome={false}
+        insightsOpen={false}
+        onToggleInsights={() => {}}
+        includeThinkingToggle={false}
+        contentType="chart"
+        diagramSource={chartSource}
+      />
+    );
+
+    openExportList();
+
+    await waitFor(() => {
+      expect(buildExportPayload).toHaveBeenCalled();
+    });
+
+    const shareButtons = screen.getAllByRole('button', { name: /^Share$/i });
+    const callsBeforeShare = buildExportPayload.mock.calls.length;
+    fireEvent.click(shareButtons[0]);
+
+    await waitFor(() => {
+      expect(startWebShare).toHaveBeenCalledWith(
+        expect.objectContaining({ filename: 'archislop-chart-20260716-120000.csv' })
+      );
+    });
+    expect(buildExportPayload.mock.calls.length).toBe(callsBeforeShare);
+    expect(deliverExportPayload).not.toHaveBeenCalledWith(expect.any(Object), 'share');
   });
 
   it('shows a brief copy toast without action buttons', async () => {
@@ -103,6 +152,8 @@ describe('AiCornerControlsInner export', () => {
         diagramSource={chartSource}
       />
     );
+
+    openExportList();
 
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: /^Copy$/i })[0]);
