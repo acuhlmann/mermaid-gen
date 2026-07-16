@@ -9,11 +9,22 @@ import {
   canCopyExportPayload,
   canShareExportPayload,
   deliverExportPayload,
+  isExportUserAbortError,
   isWebShareAvailable,
   listExportFormats
 } from '../utils/exportDiagram.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
+const COPY_TOAST_TTL_MS = 2000;
+
+/**
+ * Brief auto-dismiss feedback for copy/share; download keeps the fuller panel.
+ * @param {import('../utils/exportDiagram.js').ExportDeliveryMethod} method
+ * @returns {boolean}
+ */
+function isQuickToastMethod(method) {
+  return method !== 'download';
+}
 
 /**
  * @typedef {import('../utils/exportDiagram.js').ExportDeliveryResult} ExportDeliveryResult
@@ -53,6 +64,7 @@ export function AiCornerControlsInner({
   );
   const previewRevokeTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
   const previewUrlRef = useRef(/** @type {string | null} */ (null));
+  const copyToastTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
   const exportListId = useId();
   const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
   const renderAsPopover = popoverMode && !pendingHandshake;
@@ -89,7 +101,28 @@ export function AiCornerControlsInner({
     }, EXPORT_PREVIEW_URL_TTL_MS);
   }
 
-  useEffect(() => () => revokePreviewUrl(), []);
+  function clearCopyToastTimer() {
+    if (copyToastTimerRef.current) {
+      clearTimeout(copyToastTimerRef.current);
+      copyToastTimerRef.current = null;
+    }
+  }
+
+  function scheduleCopyToastDismiss() {
+    clearCopyToastTimer();
+    copyToastTimerRef.current = setTimeout(() => {
+      dismissExportFeedback();
+      copyToastTimerRef.current = null;
+    }, COPY_TOAST_TTL_MS);
+  }
+
+  useEffect(
+    () => () => {
+      revokePreviewUrl();
+      clearCopyToastTimer();
+    },
+    []
+  );
 
   /**
    * @param {string} formatId
@@ -107,7 +140,11 @@ export function AiCornerControlsInner({
         schedulePreviewRevoke(result.previewUrl);
       }
       setExportFeedback({ ...result, formatId });
+      if (isQuickToastMethod(result.method)) {
+        scheduleCopyToastDismiss();
+      }
     } catch (err) {
+      if (isExportUserAbortError(err)) return;
       setExportError(
         err instanceof Error ? err.message : (controls.exportFailed ?? 'Export failed')
       );
@@ -117,6 +154,7 @@ export function AiCornerControlsInner({
   }
 
   function dismissExportFeedback() {
+    clearCopyToastTimer();
     revokePreviewUrl();
     setExportFeedback(null);
   }
@@ -230,11 +268,22 @@ export function AiCornerControlsInner({
                   const busy = exportBusyId === format.id;
                   const label = controls[format.labelKey] ?? format.id;
                   const payloadPreview = { delivery: format.delivery ?? 'text', mime: format.mime };
+                  const delivery = format.delivery ?? 'text';
                   const canCopy =
-                    (format.delivery ?? 'text') === 'text' ||
-                    (typeof navigator !== 'undefined' &&
-                      navigator.clipboard?.write &&
-                      typeof ClipboardItem !== 'undefined');
+                    delivery === 'text'
+                      ? canCopyExportPayload({
+                          delivery: 'text',
+                          mime: format.mime,
+                          body: 'x',
+                          filename: 'preview',
+                          ext: format.ext
+                        })
+                      : Boolean(
+                          (typeof navigator !== 'undefined' &&
+                            navigator.clipboard?.write &&
+                            typeof ClipboardItem !== 'undefined') ||
+                          shareAvailable
+                        );
                   const canShare = shareAvailable;
                   return (
                     <li key={format.id} className="settings-export-item">
@@ -288,55 +337,52 @@ export function AiCornerControlsInner({
               </ul>
             ) : null}
             {exportFeedback ? (
-              <div className="settings-export-feedback" role="status" aria-live="polite">
-                <p className="settings-export-feedback-title">
+              isQuickToastMethod(exportFeedback.method) ? (
+                <div className="settings-export-toast" role="status" aria-live="polite">
                   {exportSuccessMessage(exportFeedback.method)}
-                </p>
-                <p className="settings-export-feedback-filename">{exportFeedback.filename}</p>
-                {showDownloadHint ? (
-                  <p className="settings-export-feedback-hint">
-                    {controls.exportDownloadHint ??
-                      'Check your notification shade or Files → Downloads.'}
-                  </p>
-                ) : null}
-                <div className="settings-export-feedback-actions">
-                  {exportFeedback.previewUrl ? (
-                    <a
-                      className="settings-export-feedback-link"
-                      href={exportFeedback.previewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {controls.exportOpenPreview ?? 'Open preview'}
-                    </a>
-                  ) : null}
-                  {canCopyExportPayload(exportFeedback.payload) ? (
-                    <button
-                      type="button"
-                      className="settings-export-feedback-button"
-                      onClick={() => handleExport(exportFeedback.formatId, 'copy')}
-                    >
-                      {controls.exportCopyAgain ?? 'Copy again'}
-                    </button>
-                  ) : null}
-                  {canShareExportPayload(exportFeedback.payload) ? (
-                    <button
-                      type="button"
-                      className="settings-export-feedback-button"
-                      onClick={() => handleExport(exportFeedback.formatId, 'share')}
-                    >
-                      {controls.exportShareAgain ?? 'Share again'}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="settings-export-feedback-button is-muted"
-                    onClick={dismissExportFeedback}
-                  >
-                    {controls.exportDismiss ?? 'Dismiss'}
-                  </button>
                 </div>
-              </div>
+              ) : (
+                <div className="settings-export-feedback" role="status" aria-live="polite">
+                  <p className="settings-export-feedback-title">
+                    {exportSuccessMessage(exportFeedback.method)}
+                  </p>
+                  <p className="settings-export-feedback-filename">{exportFeedback.filename}</p>
+                  {showDownloadHint ? (
+                    <p className="settings-export-feedback-hint">
+                      {controls.exportDownloadHint ??
+                        'Check your notification shade or Files → Downloads.'}
+                    </p>
+                  ) : null}
+                  <div className="settings-export-feedback-actions">
+                    {exportFeedback.previewUrl ? (
+                      <a
+                        className="settings-export-feedback-link"
+                        href={exportFeedback.previewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {controls.exportOpenPreview ?? 'Open preview'}
+                      </a>
+                    ) : null}
+                    {canShareExportPayload(exportFeedback.payload) ? (
+                      <button
+                        type="button"
+                        className="settings-export-feedback-button"
+                        onClick={() => handleExport(exportFeedback.formatId, 'share')}
+                      >
+                        {controls.exportShareAgain ?? 'Share again'}
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="settings-export-feedback-button is-muted"
+                      onClick={dismissExportFeedback}
+                    >
+                      {controls.exportDismiss ?? 'Dismiss'}
+                    </button>
+                  </div>
+                </div>
+              )
             ) : null}
             {exportError ? (
               <p className="settings-export-error" role="alert">

@@ -440,14 +440,77 @@ export function isWebShareAvailable() {
 }
 
 /**
+ * User dismissed the native share sheet — not an export failure.
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+export function isExportUserAbortError(err) {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
+/**
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+function isClipboardPermissionError(err) {
+  return err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+}
+
+/**
+ * @param {string} text
+ * @param {Document} [doc]
+ */
+function copyTextWithExecCommand(text, doc = document) {
+  const textarea = doc.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  textarea.style.top = '0';
+  doc.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    if (!doc.execCommand('copy')) {
+      throw new Error('Clipboard is not available');
+    }
+  } finally {
+    textarea.remove();
+  }
+}
+
+/**
+ * Copy UTF-8 text: Clipboard API first, then execCommand fallback.
+ * @param {string} text
+ */
+async function copyTextWithFallback(text) {
+  if (navigator.clipboard?.writeText) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch (err) {
+      if (!isClipboardPermissionError(err)) throw err;
+    }
+  }
+  if (typeof document !== 'undefined') {
+    copyTextWithExecCommand(text);
+    return;
+  }
+  throw new Error('Clipboard is not available');
+}
+
+/**
  * @param {ExportPayload} payload
  * @returns {boolean}
  */
 export function canShareExportPayload(payload) {
   if (!isWebShareAvailable()) return false;
   const file = exportPayloadToFile(payload);
-  if (navigator.canShare?.({ files: [file] })) return true;
-  if (payload.delivery === 'text' && navigator.canShare?.({ text: payload.body ?? '' })) {
+  if (!navigator.canShare) {
+    return payload.delivery === 'text' || Boolean(payload.blob ?? payload.body);
+  }
+  if (navigator.canShare({ files: [file] })) return true;
+  if (payload.delivery === 'text' && navigator.canShare({ text: payload.body ?? '' })) {
     return true;
   }
   return false;
@@ -459,13 +522,15 @@ export function canShareExportPayload(payload) {
  */
 export function canCopyExportPayload(payload) {
   if (payload.delivery === 'image') {
-    return Boolean(
+    const hasClipboard = Boolean(
       typeof navigator !== 'undefined' &&
       navigator.clipboard?.write &&
       typeof ClipboardItem !== 'undefined'
     );
+    return hasClipboard || canShareExportPayload(payload);
   }
-  return Boolean(typeof navigator !== 'undefined' && navigator.clipboard?.writeText);
+  const hasClipboard = Boolean(typeof navigator !== 'undefined' && navigator.clipboard?.writeText);
+  return hasClipboard || canShareExportPayload(payload);
 }
 
 /**
@@ -484,18 +549,34 @@ export function exportPayloadToFile(payload) {
 export async function copyExportPayload(payload) {
   if (payload.delivery === 'image') {
     const blob = payload.blob ?? exportPayloadToBlob(payload);
-    if (!navigator.clipboard?.write || typeof ClipboardItem === 'undefined') {
-      throw new Error('Image copy is not supported in this browser');
+    const file = exportPayloadToFile(payload);
+    if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+      try {
+        const item = new ClipboardItem({ [blob.type]: blob });
+        await navigator.clipboard.write([item]);
+        return 'clipboard-image';
+      } catch (err) {
+        if (!isClipboardPermissionError(err)) throw err;
+      }
     }
-    const item = new ClipboardItem({ [blob.type]: blob });
-    await navigator.clipboard.write([item]);
-    return 'clipboard-image';
+    if (isWebShareAvailable() && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      await navigator.share({ files: [file], title: payload.filename });
+      return 'share-file';
+    }
+    throw new Error('Image copy is not supported in this browser');
   }
-  if (!navigator.clipboard?.writeText) {
-    throw new Error('Clipboard is not available');
+
+  const text = payload.body ?? '';
+  try {
+    await copyTextWithFallback(text);
+    return 'clipboard-text';
+  } catch (clipboardErr) {
+    if (isWebShareAvailable() && (!navigator.canShare || navigator.canShare({ text }))) {
+      await navigator.share({ text, title: payload.filename });
+      return 'share-text';
+    }
+    throw clipboardErr;
   }
-  await navigator.clipboard.writeText(payload.body ?? '');
-  return 'clipboard-text';
 }
 
 /**
@@ -507,13 +588,23 @@ export async function shareExportPayload(payload) {
     throw new Error('Share is not available on this device');
   }
   const file = exportPayloadToFile(payload);
-  if (navigator.canShare?.({ files: [file] })) {
-    await navigator.share({ files: [file], title: payload.filename });
-    return 'share-file';
+  const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+  if (canShareFiles) {
+    try {
+      await navigator.share({ files: [file], title: payload.filename });
+      return 'share-file';
+    } catch (err) {
+      if (isExportUserAbortError(err)) throw err;
+      if (payload.delivery !== 'text') throw err;
+    }
   }
-  if (payload.delivery === 'text' && navigator.canShare?.({ text: payload.body ?? '' })) {
-    await navigator.share({ text: payload.body ?? '', title: payload.filename });
-    return 'share-text';
+  if (payload.delivery === 'text') {
+    const text = payload.body ?? '';
+    const canShareText = !navigator.canShare || navigator.canShare({ text });
+    if (canShareText) {
+      await navigator.share({ text, title: payload.filename });
+      return 'share-text';
+    }
   }
   throw new Error('Share is not available for this format');
 }
