@@ -1,5 +1,5 @@
 import { estimateLlmCostUsd } from '@archislop/shared';
-import { addAdvisorLlmCostUsd, writeGamificationToStorage } from '../state/runGamificationStore.js';
+import { addAdvisorLlmCostUsd, writeToStorage } from '../state/runGamificationStore.js';
 
 /**
  * Fold a stakeholder-advisor or explain-dumb LLM charge into the lifetime total
@@ -33,7 +33,7 @@ export function reportAdvisorLlmUsage({
     const next = addAdvisorLlmCostUsd(current, usd);
     if (next === current) return current;
     if (typeof window !== 'undefined') {
-      writeGamificationToStorage(window.localStorage, next);
+      writeToStorage(window.localStorage, next);
     }
     return next;
   });
