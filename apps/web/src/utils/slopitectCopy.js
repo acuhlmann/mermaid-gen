@@ -626,6 +626,26 @@ export const ACHIEVEMENTS = {
     title: '⚡ COMBO KING',
     subtitle: 'Five different personas chained in a row.'
   },
+  inboxZero: {
+    id: 'inboxZero',
+    title: '📭 INBOX ZERO',
+    subtitle: 'Every email read. HR finds this suspicious.'
+  },
+  survivedTheSync: {
+    id: 'survivedTheSync',
+    title: '📅 SURVIVED THE SYNC',
+    subtitle: 'Attended a full working-group meeting. No action items were harmed.'
+  },
+  coffeeConnoisseur: {
+    id: 'coffeeConnoisseur',
+    title: '☕ THIRD SHIFT',
+    subtitle: 'Three coffee breaks in one session. The machine knows your order.'
+  },
+  replyGuy: {
+    id: 'replyGuy',
+    title: '💬 REPLY GUY',
+    subtitle: '"Circling back" five times in one session. It\'s a lifestyle.'
+  },
   ...VARIANT_MASTERY_ACHIEVEMENTS
 };
 

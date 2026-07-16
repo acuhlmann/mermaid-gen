@@ -738,3 +738,59 @@ export function playGoMadCompletionChime(audioContextRef) {
     offset += note.dur * 0.68;
   }
 }
+
+/** Office ambience: soft two-note "new mail" ding (docs/office-parody.md). */
+export function playMailChime(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const notes = [
+    { freq: 659.25, dur: 0.09, peak: 0.03 },
+    { freq: 987.77, dur: 0.14, peak: 0.026 }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = 'sine';
+    const t0 = now + offset;
+    oscillator.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(t0);
+    oscillator.stop(t0 + note.dur + 0.02);
+    offset += 0.07;
+  }
+}
+
+/** Office ambience: single IM "pop" ping. */
+export function playImPing(audioContextRef) {
+  playShortTone(audioContextRef, {
+    type: 'sine',
+    freqHz: 880,
+    freqEndHz: 740,
+    durationSec: 0.07,
+    peakGain: 0.03
+  });
+}
+
+/** Office ambience: meeting-join blip (rising, conferencey). */
+export function playMeetingJoinBlip(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const freqs = [440, 554.37, 659.25];
+  freqs.forEach((freq, i) => {
+    const oscillator = context.createOscillator();
+    const gainNode = context.createGain();
+    oscillator.type = 'sine';
+    const t0 = now + i * 0.09;
+    oscillator.frequency.setValueAtTime(freq, t0);
+    applyGainEnvelope(gainNode, t0, 0.028, 0.1);
+    oscillator.connect(gainNode);
+    gainNode.connect(context.destination);
+    oscillator.start(t0);
+    oscillator.stop(t0 + 0.12);
+  });
+}

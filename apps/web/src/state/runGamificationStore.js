@@ -382,6 +382,99 @@ export function addAdvisorLlmCostUsd(state, usd) {
   };
 }
 
+/** XP for participating in office life (docs/office-parody.md). Deliberately
+ * small — attending meetings must never out-earn actually shipping slop. */
+export const OFFICE_XP_AWARDS = {
+  emailRead: 1,
+  imReply: 2,
+  coffeeBreak: 10,
+  meetingLeftEarly: 5,
+  meetingSurvived: 25
+};
+export const OFFICE_COFFEE_ACHIEVEMENT_THRESHOLD = 3;
+export const OFFICE_REPLY_ACHIEVEMENT_THRESHOLD = 5;
+
+/**
+ * Apply an office ambience event (email read, IM quick reply, coffee break,
+ * meeting attended/left). Same `{ state, emissions }` contract as
+ * applyCompletedRun so App's emission pipeline (toasts, fanfares, banners)
+ * handles both. Session-only counters (`officeCoffeeBreaksInSession`,
+ * `officeImRepliesInSession`) are not serialized, so they reset per session.
+ *
+ * @param {ReturnType<typeof createInitialState>} state
+ * @param {{ kind: keyof typeof OFFICE_XP_AWARDS, now?: number, inboxZero?: boolean }} input
+ */
+export function applyOfficeEvent(state, input) {
+  const kind = input?.kind;
+  const xpGained = OFFICE_XP_AWARDS[kind];
+  if (!xpGained) {
+    return { state, emissions: [] };
+  }
+  const totalXp = (state.xp ?? 0) + xpGained;
+  const previousLevelInfo = levelForXp(state.xp ?? 0);
+  const nextLevelInfo = levelForXp(totalXp);
+
+  const emissions = [{ kind: 'xp', variant: 'office', amount: xpGained, streak: 0, bonus: 0 }];
+
+  const officeCoffeeBreaksInSession =
+    (state.officeCoffeeBreaksInSession ?? 0) + (kind === 'coffeeBreak' ? 1 : 0);
+  const officeImRepliesInSession =
+    (state.officeImRepliesInSession ?? 0) + (kind === 'imReply' ? 1 : 0);
+
+  const achievements = { ...(state.achievements || {}) };
+  const achievementCopy = getAchievements();
+  function unlock(id, copy) {
+    if (!copy || achievements[id]) return;
+    achievements[id] = true;
+    emissions.push({ kind: 'achievement', id, title: copy.title, subtitle: copy.subtitle });
+  }
+  if (kind === 'meetingSurvived') {
+    unlock('survivedTheSync', achievementCopy.survivedTheSync);
+  }
+  if (kind === 'emailRead' && input.inboxZero) {
+    unlock('inboxZero', achievementCopy.inboxZero);
+  }
+  if (officeCoffeeBreaksInSession >= OFFICE_COFFEE_ACHIEVEMENT_THRESHOLD) {
+    unlock('coffeeConnoisseur', achievementCopy.coffeeConnoisseur);
+  }
+  if (officeImRepliesInSession >= OFFICE_REPLY_ACHIEVEMENT_THRESHOLD) {
+    unlock('replyGuy', achievementCopy.replyGuy);
+  }
+
+  if (nextLevelInfo.level > previousLevelInfo.level) {
+    const levelUpBanner = getLevelUpBanner();
+    emissions.push({
+      kind: 'levelUp',
+      from: previousLevelInfo.level,
+      to: nextLevelInfo.level,
+      title: nextLevelInfo.title,
+      flair: nextLevelInfo.flair,
+      short: nextLevelInfo.short,
+      totalXp,
+      bannerTitle: levelUpBanner.title,
+      bannerSubtitle: levelUpBanner.subtitle
+    });
+  }
+
+  return {
+    state: {
+      ...state,
+      xp: totalXp,
+      level: nextLevelInfo.level,
+      levelTitle: nextLevelInfo.title,
+      levelShortLabel: nextLevelInfo.short,
+      levelFlair: nextLevelInfo.flair,
+      levelProgressRatio: nextLevelInfo.progressRatio,
+      xpIntoLevel: nextLevelInfo.xpInto,
+      xpForNextLevel: nextLevelInfo.xpForNext,
+      achievements,
+      officeCoffeeBreaksInSession,
+      officeImRepliesInSession
+    },
+    emissions
+  };
+}
+
 // Re-export so callers building UI from this store can derive level info
 // without importing the copy module directly.
 export { levelForXp };

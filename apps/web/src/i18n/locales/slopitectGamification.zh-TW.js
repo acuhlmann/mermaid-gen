@@ -322,6 +322,26 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '⚡ 連擊之王',
       subtitle: '連續串接五個不同角色。'
     },
+    inboxZero: {
+      id: 'inboxZero',
+      title: '📭 收件匣清零',
+      subtitle: '每封郵件都已讀。HR 覺得這很可疑。'
+    },
+    survivedTheSync: {
+      id: 'survivedTheSync',
+      title: '📅 熬過了對齊會',
+      subtitle: '完整參加了一場工作小組會議。行動項毫髮無損。'
+    },
+    coffeeConnoisseur: {
+      id: 'coffeeConnoisseur',
+      title: '☕ 第三班',
+      subtitle: '一個會話喝了三次咖啡。咖啡機已記住你的口味。'
+    },
+    replyGuy: {
+      id: 'replyGuy',
+      title: '💬 秒回達人',
+      subtitle: '一個會話快速回覆五次。「稍後跟進」是一種生活方式。'
+    },
     refine: {
       id: 'masterPolisher',
       title: '👷 首席工程師',

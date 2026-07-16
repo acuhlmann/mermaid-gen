@@ -18,6 +18,7 @@ import {
 import { ensureMermaidInitialized } from './agents/mermaidReliabilitySkill.js';
 import { createCopilotRouter } from './routes/copilot.js';
 import { createAdvisorRouter } from './routes/advisor.js';
+import { createOfficeRouter } from './routes/office.js';
 import { createDiagramRepairRouter } from './routes/diagramRepair.js';
 import {
   createSessionServicesRegistry,
@@ -112,6 +113,7 @@ app.use(
   })
 );
 app.use('/api/advisor', createAdvisorRouter());
+app.use('/api/office', createOfficeRouter());
 app.use(
   '/api/diagram',
   createDiagramRepairRouter({

@@ -9,6 +9,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Server entrypoint, app wiring                          | `apps/server/src/index.js`                                                   |
 | Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.ts`                                          |
 | Advisor companion routes                               | `apps/server/src/routes/advisor.js`                                          |
+| Office-parody moment + meeting routes                  | `apps/server/src/routes/office.js`                                           |
 | Diagram repair route (render-error fast path)          | `apps/server/src/routes/diagramRepair.js`                                    |
 | Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`                           |
 | Mermaid agent service                                  | `apps/server/src/agents/mermaidLangChainAgent.js`                            |
@@ -25,6 +26,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Forms parody prompt + A2UI authoring contract          | `apps/server/src/prompts/formsSystemPrompt.js`, `formsSyntaxGuard.js`        |
 | Anything search/replace edit application               | `apps/server/src/agents/_lib/searchReplaceEdits.js`                          |
 | Advisor prompts (Slopitect persona)                    | `apps/server/src/agents/advisorPrompts.js`                                   |
+| Office colleague voices + meeting script prompts       | `apps/server/src/agents/officePersonas.js`                                   |
 | Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.ts`                               |
 | Analyze finalize (critique / explain / style emits)    | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts`                       |
 | AG-UI stream emitter + wire types (shared)             | `packages/shared/src/agentStreamEmitter.ts`, `agUiEventTypes.ts`             |
@@ -63,6 +65,7 @@ Look up a concept here before grepping. Paths are repo-relative.
 | Agent presence + handshake + proposal cards                            | `apps/web/src/components/AgentPresenceBar.jsx`, `AgentHandshakeDialog.jsx`, `AgentProposalCard.jsx`                                                                                                                                                                                      |
 | Invite agent dialog (pairing code, QR, deeplinks)                      | `apps/web/src/components/InviteAgentDialog.jsx`                                                                                                                                                                                                                                          |
 | Slopitect companion overlays                                           | `apps/web/src/components/Slopitect*.jsx`, `LevelUpInfoPanel.jsx`, `RunCeremonyOverlays.jsx`, `StakeholdersMascot.jsx`                                                                                                                                                                    |
+| Office-parody ambience chrome (inbox, IMs, walk-bys, meetings)         | `apps/web/src/components/OfficeLayer.jsx` (+ `Office*.jsx`, `CoffeeBreakOverlay.jsx`, `Meeting*.jsx`), `apps/web/src/hooks/useOfficeAmbience.js`, `useMeetingPlayback.js`, `apps/web/src/state/officeMomentStore.js`, `apps/web/src/utils/officeCast.js`, `officeCadence.js`             |
 | Hotkey overlay                                                         | `apps/web/src/components/HotkeyOverlay.jsx`                                                                                                                                                                                                                                              |
 | Embedded diagram preview in insights                                   | `apps/web/src/components/InsightsEmbeddedDiagram.jsx`                                                                                                                                                                                                                                    |
 | Web store (intent / stream / sync / cache)                             | `apps/web/src/state/diagramStore.js`                                                                                                                                                                                                                                                     |

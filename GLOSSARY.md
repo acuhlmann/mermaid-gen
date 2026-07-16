@@ -71,3 +71,5 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 **Slopitect.** Cosmetic companion avatar / HUD / achievements layer in the web app. Not a separate backend — it's purely feedback on agent runs. Lives in the `Slopitect*` components and `runGamificationStore.js`.
 
 **Stakeholders mascot.** The "advisor council" overlay (renamed from "council" mid-development; the name lives on as the file name `StakeholdersMascot.jsx`).
+
+**Office Update™ / office colleagues.** The office-parody ambience layer (`docs/office-parody.md`): fictional colleagues (Chad the Intern, Pam the Agile Coach, Ticket Bot Dave, Gary from Facilities, Linda from People Ops, Ulrich the Greybeard) who send emails/IMs, walk by the canvas, host coffee breaks, and run WG meetings about the current diagram. Distinct from the Stakeholders (they never appear in the radial menu) and from real external MCP agents.
