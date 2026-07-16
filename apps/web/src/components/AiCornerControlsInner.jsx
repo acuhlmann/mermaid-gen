@@ -58,7 +58,7 @@ export function AiCornerControlsInner({
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
-  const [exportOpen, setExportOpen] = useState(startExpanded);
+  const [exportOpen, setExportOpen] = useState(false);
   const [exportBusyId, setExportBusyId] = useState(null);
   const [exportError, setExportError] = useState(null);
   const [exportFeedback, setExportFeedback] = useState(
@@ -135,7 +135,7 @@ export function AiCornerControlsInner({
   useEffect(() => {
     exportPayloadCacheRef.current.clear();
     setExportReadyIds(new Set());
-    if (!exportOpen || !hasSource || exportFormats.length === 0) {
+    if (!exportOpen || !hasSource || exportFormats.length === 0 || !shareAvailable) {
       return undefined;
     }
     let cancelled = false;
@@ -168,7 +168,7 @@ export function AiCornerControlsInner({
       cancelled = true;
       exportPayloadCacheRef.current.clear();
     };
-  }, [exportOpen, hasSource, contentType, diagramSource, exportFormats]);
+  }, [exportOpen, hasSource, contentType, diagramSource, exportFormats, shareAvailable]);
 
   function getCachedExportPayload(formatId) {
     return exportPayloadCacheRef.current.get(formatId)?.payload ?? null;

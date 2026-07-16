@@ -43,6 +43,10 @@ const chartSource = JSON.stringify({
   }
 });
 
+function openExportList() {
+  fireEvent.click(screen.getByRole('button', { name: /^Export$/i }));
+}
+
 describe('AiCornerControlsInner export', () => {
   afterEach(() => {
     cleanup();
@@ -66,6 +70,8 @@ describe('AiCornerControlsInner export', () => {
         diagramSource={chartSource}
       />
     );
+
+    openExportList();
 
     expect(screen.getByText(/Spreadsheet CSV/i)).toBeTruthy();
     expect(screen.getAllByRole('button', { name: /^Save$/i }).length).toBeGreaterThan(0);
@@ -109,6 +115,8 @@ describe('AiCornerControlsInner export', () => {
       />
     );
 
+    openExportList();
+
     await waitFor(() => {
       expect(buildExportPayload).toHaveBeenCalled();
     });
@@ -144,6 +152,8 @@ describe('AiCornerControlsInner export', () => {
         diagramSource={chartSource}
       />
     );
+
+    openExportList();
 
     await act(async () => {
       fireEvent.click(screen.getAllByRole('button', { name: /^Copy$/i })[0]);
