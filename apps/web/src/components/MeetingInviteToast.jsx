@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { officeChromeCopy, officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
 
 const PROPOSE_GAG_MS = 2600;
 
@@ -18,6 +18,7 @@ export default function MeetingInviteToast({ invite, onAccept, onDecline }) {
   }, [proposedNewTime, onDecline]);
 
   if (!invite) return null;
+  const copy = officeChromeCopy();
   const organizer = officeSenderInfo(invite.colleagueId);
 
   return (
@@ -27,7 +28,8 @@ export default function MeetingInviteToast({ invite, onAccept, onDecline }) {
         <span className="office-meeting-invite-title">{invite.title}</span>
       </div>
       <div className="office-meeting-invite-meta">
-        Organizer: {organizer.avatarEmoji} {organizer.name} · Attendees:{' '}
+        {copy.meetingInvite.organizerLabel} {organizer.avatarEmoji} {organizer.name} ·{' '}
+        {copy.meetingInvite.attendeesLabel}{' '}
         {invite.attendees.map((id) => officeSenderInfo(id).avatarEmoji).join(' ')}
       </div>
       <p className="office-meeting-invite-body">{invite.body}</p>
@@ -36,17 +38,17 @@ export default function MeetingInviteToast({ invite, onAccept, onDecline }) {
       ) : (
         <div className="office-meeting-invite-actions">
           <button type="button" className="office-meeting-accept" onClick={onAccept}>
-            Accept
+            {copy.meetingInvite.accept}
           </button>
           <button type="button" className="office-meeting-decline" onClick={onDecline}>
-            Decline
+            {copy.meetingInvite.decline}
           </button>
           <button
             type="button"
             className="office-meeting-propose"
             onClick={() => setProposedNewTime(true)}
           >
-            Propose new time
+            {copy.meetingInvite.proposeNewTime}
           </button>
         </div>
       )}

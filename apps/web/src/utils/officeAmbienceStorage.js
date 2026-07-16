@@ -6,6 +6,7 @@
  */
 
 export const OFFICE_FOCUS_TIME_STORAGE_KEY = 'archislop:office-focus-time';
+export const OFFICE_SOUNDSCAPE_STORAGE_KEY = 'archislop:office-soundscape';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 
 const SEEN_TEMPLATE_CAP = 60;
@@ -27,6 +28,33 @@ export function writeOfficeFocusTime(enabled) {
       window.localStorage.setItem(OFFICE_FOCUS_TIME_STORAGE_KEY, '1');
     } else {
       window.localStorage.removeItem(OFFICE_FOCUS_TIME_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @returns {boolean} True unless the user switched the soundscape off — the
+ * room tone defaults ON (it is quiet, sparse, and behind the global sound
+ * toggle) and only stores the opt-out.
+ */
+export function readOfficeSoundscapeEnabled() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(OFFICE_SOUNDSCAPE_STORAGE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+export function writeOfficeSoundscapeEnabled(enabled) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (enabled) {
+      window.localStorage.removeItem(OFFICE_SOUNDSCAPE_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(OFFICE_SOUNDSCAPE_STORAGE_KEY, '0');
     }
   } catch {
     // Ignore quota / privacy errors.

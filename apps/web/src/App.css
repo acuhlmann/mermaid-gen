@@ -14662,7 +14662,8 @@ body.slopitect-rainbow-tint::before {
 .office-inbox-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   padding: 10px 12px;
   border-bottom: 1px solid var(--control-border);
 }
@@ -14680,6 +14681,10 @@ body.slopitect-rainbow-tint::before {
   color: var(--muted);
   cursor: pointer;
   user-select: none;
+}
+/* Second toggle rides next to Focus Time — only the first pushes right. */
+.office-soundscape-toggle {
+  margin-left: 0;
 }
 .office-inbox-close {
   appearance: none;

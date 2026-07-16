@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { officeSenderInfo } from '../utils/officeCast.js';
+import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 export const COFFEE_BREAK_DURATION_MS = 15_000;
 
@@ -19,6 +20,7 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
   }, [accepted, onDone]);
 
   if (!coffee) return null;
+  const copy = officeChromeCopy();
 
   if (!accepted) {
     const inviter = officeSenderInfo(coffee.lines[0]?.speakerId ?? 'facilities');
@@ -26,23 +28,23 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
       <div className="office-coffee-invite" role="status" aria-live="polite">
         <span aria-hidden="true">☕</span>
         <span className="office-coffee-invite-text">
-          Coffee break? {inviter.name} is holding court at the machine.
+          {formatLocale(copy.coffee.inviteLine, { name: inviter.name })}
         </span>
         <button type="button" className="office-coffee-accept" onClick={onAccept}>
-          Take 5
+          {copy.coffee.accept}
         </button>
         <button type="button" className="office-coffee-decline" onClick={onDecline}>
-          Deadline
+          {copy.coffee.decline}
         </button>
       </div>
     );
   }
 
   return (
-    <div className="office-coffee-scene" role="dialog" aria-label="Coffee break">
+    <div className="office-coffee-scene" role="dialog" aria-label={copy.coffee.sceneAria}>
       <div className="office-coffee-card">
         <div className="office-coffee-head">
-          <span aria-hidden="true">☕</span> The Watercooler
+          <span aria-hidden="true">☕</span> {copy.coffee.sceneTitle}
         </div>
         <ul className="office-coffee-lines">
           {coffee.lines.map((line, index) => {
@@ -62,7 +64,7 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
         <div className="office-coffee-footer">
           <span className="office-coffee-timer" aria-hidden="true" />
           <button type="button" className="office-coffee-done" onClick={onDone}>
-            Back to it
+            {copy.coffee.done}
           </button>
         </div>
       </div>

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { meetingMinutes, MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
-import { officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { officeChromeCopy, officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
-function speakerInfo(speakerId) {
+function speakerInfo(speakerId, chrome) {
   if (speakerId === MEETING_USER_SPEAKER) {
     return {
       id: MEETING_USER_SPEAKER,
-      name: 'You',
+      name: chrome.meeting.youName,
       title: '',
       avatarEmoji: '🙋',
       accentColor: 'var(--accent)'
@@ -25,6 +26,7 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
   const [handText, setHandText] = useState('');
   const transcriptRef = useRef(null);
   const copy = officeMeetingCopy();
+  const chrome = officeChromeCopy();
 
   const transcriptLength = meeting?.transcript.length ?? 0;
   useEffect(() => {
@@ -62,12 +64,12 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
             className="office-meeting-leave"
             onClick={ended ? onClose : onLeave}
           >
-            {ended ? 'Close' : copy.leaveLabel}
+            {ended ? chrome.meeting.close : copy.leaveLabel}
           </button>
         </div>
         <div className="office-meeting-seats" aria-hidden="true">
           {meeting.attendees.map((id) => {
-            const seat = speakerInfo(id);
+            const seat = speakerInfo(id, chrome);
             return (
               <span
                 key={id}
@@ -87,7 +89,7 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
         ) : (
           <div className="office-meeting-transcript" ref={transcriptRef}>
             {meeting.transcript.map((beat, index) => {
-              const speaker = speakerInfo(beat.speakerId);
+              const speaker = speakerInfo(beat.speakerId, chrome);
               const isUser = beat.speakerId === MEETING_USER_SPEAKER;
               return (
                 <div
@@ -106,7 +108,7 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
                         className="office-do-it"
                         onClick={() => onAdoptPrompt?.(beat.actionPrompt, beat.speakerId)}
                       >
-                        Do it
+                        {chrome.doIt}
                       </button>
                     ) : null}
                   </div>
@@ -124,13 +126,11 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
           <div className="office-meeting-minutes">
             <div className="office-meeting-minutes-title">{copy.minutesTitle}</div>
             {minutes.length === 0 ? (
-              <p className="office-meeting-minutes-empty">
-                No action items. A perfect meeting, by corporate standards.
-              </p>
+              <p className="office-meeting-minutes-empty">{chrome.meeting.noMinutes}</p>
             ) : (
               <ul>
                 {minutes.map((beat, index) => {
-                  const speaker = speakerInfo(beat.speakerId);
+                  const speaker = speakerInfo(beat.speakerId, chrome);
                   return (
                     <li key={index} className="office-meeting-minute">
                       <span>
@@ -142,7 +142,7 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
                           className="office-do-it"
                           onClick={() => onAdoptPrompt?.(beat.actionPrompt, beat.speakerId)}
                         >
-                          Do it
+                          {chrome.doIt}
                         </button>
                       ) : null}
                     </li>
@@ -162,13 +162,12 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
               }
               disabled={meeting.interjectionsLeft <= 0}
               maxLength={400}
-              aria-label="Raise hand"
+              aria-label={chrome.meeting.raiseHandAria}
             />
             <button type="submit" disabled={meeting.interjectionsLeft <= 0 || !handText.trim()}>
-              ✋{' '}
               {meeting.interjectionsLeft > 0
-                ? `Raise hand (${meeting.interjectionsLeft})`
-                : 'At time'}
+                ? formatLocale(chrome.meeting.raiseHand, { count: meeting.interjectionsLeft })
+                : chrome.meeting.atTime}
             </button>
           </form>
         ) : null}

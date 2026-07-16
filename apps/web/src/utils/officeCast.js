@@ -16,7 +16,11 @@ import { getVariantPersona } from './slopitectCopy.js';
 
 let activeOfficeBundle = null;
 
-/** Future locale override hook — mirrors setActiveSlopitectBundle. */
+/**
+ * Locale override hook — mirrors setActiveSlopitectBundle. UiLocaleContext
+ * feeds the merged `office` bundle from getUiLocaleBundle here; every accessor
+ * below falls back to the English constants in this file.
+ */
 export function setActiveOfficeBundle(bundle) {
   activeOfficeBundle = bundle;
 }
@@ -102,7 +106,10 @@ export function isOfficeColleagueId(value) {
  */
 export function officeSenderInfo(id) {
   const colleague = OFFICE_COLLEAGUES[id];
-  if (colleague) return colleague;
+  if (colleague) {
+    const localized = office()?.OFFICE_COLLEAGUES?.[id];
+    return localized ? { ...colleague, ...localized } : colleague;
+  }
   const persona = getVariantPersona(id);
   const accent = persona?.accentColorVar ?? '--accent';
   return {
@@ -156,13 +163,20 @@ export function pickMeetingAttendees(random = Math.random) {
   return seats;
 }
 
+/** Localized safe defaults for empty `{label}` / `{userTitle}` slot fills. */
+export const OFFICE_SLOT_FALLBACKS = {
+  label: 'the diagram',
+  userTitle: 'Intern Architect'
+};
+
 /** Replace `{label}` / `{userTitle}` slots; drops in safe defaults when missing. */
 export function fillOfficeSlots(text, { label, userTitle } = {}) {
+  const fallbacks = office()?.OFFICE_SLOT_FALLBACKS ?? OFFICE_SLOT_FALLBACKS;
   return String(text ?? '')
-    .replaceAll('{label}', label && String(label).trim() ? String(label).trim() : 'the diagram')
+    .replaceAll('{label}', label && String(label).trim() ? String(label).trim() : fallbacks.label)
     .replaceAll(
       '{userTitle}',
-      userTitle && String(userTitle).trim() ? String(userTitle).trim() : 'Intern Architect'
+      userTitle && String(userTitle).trim() ? String(userTitle).trim() : fallbacks.userTitle
     );
 }
 
@@ -421,6 +435,62 @@ export const OFFICE_MEETING_COPY = {
 /** Quick canned replies offered under an IM ping (pure local flavor + tiny XP). */
 export const OFFICE_IM_QUICK_REPLIES = ['👍', 'in a meeting', 'circling back'];
 
+/**
+ * Static chrome strings for the office surfaces (inbox dock, IM stack,
+ * walk-bys, coffee breaks, meeting room). Templated strings use `{name}` /
+ * `{count}` slots — render with formatLocale.
+ */
+export const OFFICE_CHROME_COPY = {
+  doIt: 'Do it',
+  inbox: {
+    buttonTitle: 'Corporate inbox',
+    unreadAria: 'Inbox — {count} unread emails',
+    noUnreadAria: 'Inbox — no unread email',
+    title: '📥 Inbox',
+    focusTimeLabel: 'Focus Time',
+    focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
+    soundscapeLabel: 'Soundscape',
+    soundscapeTitle: 'Ambient office noise — keyboards, the printer, the espresso machine',
+    closeAria: 'Close inbox',
+    back: '← Back',
+    emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',
+    markAllRead: 'Mark all read',
+    callMeeting: '📅 Call a meeting',
+    callMeetingTitle: 'Summon a working-group meeting about the current diagram',
+    callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda'
+  },
+  im: {
+    regionAria: 'Instant messages',
+    dismissAria: 'Dismiss message from {name}'
+  },
+  walkby: {
+    dismissAria: 'Wave off {name}'
+  },
+  coffee: {
+    inviteLine: 'Coffee break? {name} is holding court at the machine.',
+    accept: 'Take 5',
+    decline: 'Deadline',
+    sceneAria: 'Coffee break',
+    sceneTitle: 'The Watercooler',
+    done: 'Back to it'
+  },
+  meetingInvite: {
+    organizerLabel: 'Organizer:',
+    attendeesLabel: 'Attendees:',
+    accept: 'Accept',
+    decline: 'Decline',
+    proposeNewTime: 'Propose new time'
+  },
+  meeting: {
+    youName: 'You',
+    close: 'Close',
+    noMinutes: 'No action items. A perfect meeting, by corporate standards.',
+    raiseHandAria: 'Raise hand',
+    raiseHand: '✋ Raise hand ({count})',
+    atTime: '✋ At time'
+  }
+};
+
 export function officeEmailTemplates() {
   return office()?.OFFICE_EMAIL_TEMPLATES ?? OFFICE_EMAIL_TEMPLATES;
 }
@@ -439,6 +509,14 @@ export function officeCoffeeScenes() {
 
 export function officeMeetingCopy() {
   return office()?.OFFICE_MEETING_COPY ?? OFFICE_MEETING_COPY;
+}
+
+export function officeImQuickReplies() {
+  return office()?.OFFICE_IM_QUICK_REPLIES ?? OFFICE_IM_QUICK_REPLIES;
+}
+
+export function officeChromeCopy() {
+  return office()?.OFFICE_CHROME_COPY ?? OFFICE_CHROME_COPY;
 }
 
 /**

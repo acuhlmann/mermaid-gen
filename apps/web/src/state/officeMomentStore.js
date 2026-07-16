@@ -8,7 +8,12 @@
  * useSyncExternalStore(subscribe, getOfficeSnapshot).
  */
 
-import { readOfficeFocusTime, writeOfficeFocusTime } from '../utils/officeAmbienceStorage.js';
+import {
+  readOfficeFocusTime,
+  readOfficeSoundscapeEnabled,
+  writeOfficeFocusTime,
+  writeOfficeSoundscapeEnabled
+} from '../utils/officeAmbienceStorage.js';
 
 export const IM_PING_TTL_MS = 9000;
 export const IM_PING_MAX_VISIBLE = 2;
@@ -17,6 +22,7 @@ export const WALKBY_TTL_MS = 11_000;
 function initialState() {
   return {
     focusTime: readOfficeFocusTime(),
+    soundscape: readOfficeSoundscapeEnabled(),
     /** @type {Array<{id: string, colleagueId: string, subject: string, body: string, actionPrompt?: string, createdAt: number, read: boolean}>} */
     emails: [],
     unreadCount: 0,
@@ -86,6 +92,11 @@ export function getOfficeSnapshot() {
 export function setOfficeFocusTime(enabled) {
   writeOfficeFocusTime(Boolean(enabled));
   update({ focusTime: Boolean(enabled) });
+}
+
+export function setOfficeSoundscape(enabled) {
+  writeOfficeSoundscapeEnabled(Boolean(enabled));
+  update({ soundscape: Boolean(enabled) });
 }
 
 /** True when any interruptive office surface is currently on screen. */

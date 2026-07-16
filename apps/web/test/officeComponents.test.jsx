@@ -96,6 +96,30 @@ describe('OfficeInboxDock', () => {
     expect(onToggleFocusTime).toHaveBeenCalledWith(true);
     expect(screen.getByRole('button', { name: /Call a meeting/ }).disabled).toBe(true);
   });
+
+  it('toggles the office soundscape', () => {
+    const onToggleSoundscape = vi.fn();
+    render(
+      <OfficeInboxDock
+        emails={[]}
+        unreadCount={0}
+        focusTime={false}
+        soundscape
+        onToggleFocusTime={vi.fn()}
+        onToggleSoundscape={onToggleSoundscape}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={vi.fn()}
+        canCallMeeting={false}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
+    const toggle = screen.getByLabelText(/Soundscape/i);
+    expect(toggle.checked).toBe(true);
+    fireEvent.click(toggle);
+    expect(onToggleSoundscape).toHaveBeenCalledWith(false);
+  });
 });
 
 describe('CoffeeBreakOverlay', () => {

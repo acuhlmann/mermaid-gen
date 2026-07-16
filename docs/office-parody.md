@@ -124,6 +124,17 @@ the pure cadence brain (`officeCadence.js`) on a 15 s tick:
   `{userTitle}` slot fills; seen-template memory prevents repeats across sessions).
 - LLM failure → 30 s backoff + canned fallback. Offline sessions keep a fully-functional office.
 
+### Soundscape (room tone)
+
+A second, sound-only cadence: sporadic synthesized cues — **keyboard clatter** from the next desk
+(the workhorse), the **distant printer**, and the **espresso machine** (set pieces, never
+back-to-back) — in `agentChimes.js`, all quieter than any event chime. The pure brain
+(`officeSoundscape.js`, mirroring `officeCadence.js`) enforces a ~45 s quiet start and a jittered
+35–75 s gap; the `useOfficeSoundscape` director holds while the tab is hidden or Focus Time is on
+and plays through App's sound gate (global sound toggle + user gesture). Defaults ON with a
+persisted opt-out toggle ("Soundscape") next to Focus Time in the inbox dock. Zero LLM, zero
+assets, zero network.
+
 ## 7. Gamification
 
 `applyOfficeEvent` (same reducer/emission contract as `applyCompletedRun`): email read +1, IM
@@ -156,22 +167,24 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 
 ## 9. Code map
 
-| Piece                                                        | Path                                                                                                                                                          |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared schemas                                               | `packages/shared/src/officeScript.ts`                                                                                                                         |
-| Colleague voices + prompt builders + parsers + model factory | `apps/server/src/agents/officePersonas.js`                                                                                                                    |
-| Routes                                                       | `apps/server/src/routes/office.js` (mounted at `/api/office`)                                                                                                 |
-| Cast + canned template banks                                 | `apps/web/src/utils/officeCast.js`                                                                                                                            |
-| Pure cadence brain                                           | `apps/web/src/utils/officeCadence.js`                                                                                                                         |
-| DND + cadence persistence                                    | `apps/web/src/utils/officeAmbienceStorage.js`                                                                                                                 |
-| Ambience store (useSyncExternalStore)                        | `apps/web/src/state/officeMomentStore.js`                                                                                                                     |
-| Director hook                                                | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                     |
-| Meeting playback state machine                               | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                    |
-| Chrome                                                       | `apps/web/src/components/OfficeLayer.jsx` (+ `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `MeetingInviteToast`, `MeetingOverlay`) |
-| Office XP reducer                                            | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                            |
-| Minutes → Thinking pane                                      | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                    |
-| SFX                                                          | `playMailChime` / `playImPing` / `playMeetingJoinBlip` in `apps/web/src/utils/agentChimes.js`                                                                 |
-| App integration                                              | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                  |
+| Piece                                                        | Path                                                                                                                                                                                   |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared schemas                                               | `packages/shared/src/officeScript.ts`                                                                                                                                                  |
+| Colleague voices + prompt builders + parsers + model factory | `apps/server/src/agents/officePersonas.js`                                                                                                                                             |
+| Routes                                                       | `apps/server/src/routes/office.js` (mounted at `/api/office`)                                                                                                                          |
+| Cast + canned template banks + chrome copy                   | `apps/web/src/utils/officeCast.js`                                                                                                                                                     |
+| Locale bundles (en-AU, zh-CN, zh-TW office copy)             | `apps/web/src/i18n/locales/office.*.js` → merged in `getUiLocaleBundle.js`, applied via `setActiveOfficeBundle` (UiLocaleContext)                                                      |
+| Pure cadence brain                                           | `apps/web/src/utils/officeCadence.js`                                                                                                                                                  |
+| Soundscape brain (pure) + director hook                      | `apps/web/src/utils/officeSoundscape.js`, `apps/web/src/hooks/useOfficeSoundscape.js`                                                                                                  |
+| DND + soundscape + cadence persistence                       | `apps/web/src/utils/officeAmbienceStorage.js`                                                                                                                                          |
+| Ambience store (useSyncExternalStore)                        | `apps/web/src/state/officeMomentStore.js`                                                                                                                                              |
+| Director hook                                                | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                              |
+| Meeting playback state machine                               | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                                             |
+| Chrome                                                       | `apps/web/src/components/OfficeLayer.jsx` (+ `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `MeetingInviteToast`, `MeetingOverlay`)                          |
+| Office XP reducer                                            | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                     |
+| Minutes → Thinking pane                                      | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                             |
+| SFX                                                          | `playMailChime` / `playImPing` / `playMeetingJoinBlip` + soundscape cues (`playKeyboardClatter` / `playDistantPrinter` / `playEspressoMachine`) in `apps/web/src/utils/agentChimes.js` |
+| App integration                                              | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                                           |
 
 ## 10. Future roadmap (beyond v1)
 
@@ -183,8 +196,8 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 4. **All-hands** — CEO cameo meeting; everyone attends; nothing is decided; confetti.
 5. **The Re-org** — stakeholder titles/accents reshuffle for one session; the org chart renders as
    an actual Mermaid diagram in-canvas.
-6. **Office soundscape** — ambient keyboard clatter, distant printer, espresso machine in
-   `agentChimes.js`.
+6. ~~**Office soundscape**~~ — ✅ shipped: keyboard clatter, distant printer, espresso machine
+   (see §6 "Soundscape").
 7. **Seasonal events** — Q4 budget freeze (Auditor rampant), Hackathon week (SLOPITECT rampant),
    "no-meeting Wednesday" (meetings double).
 8. **Multiplayer watercooler** — real external MCP agents (System B) join coffee breaks alongside
@@ -193,5 +206,9 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 10. **Meeting escalation ladder** — WG → steering committee → CAB hearing; CAB approval achievement.
 11. **The Consultant's invoice** — while the Consultant is in any meeting, the Damage Report ticks
     visibly per minute.
-12. **Locale bundles** — `setActiveOfficeBundle` hook exists in `officeCast.js`; office copy is
-    English-first today.
+12. ~~**Locale bundles**~~ — ✅ shipped: the full office copy bank (colleague titles, canned
+    emails/IMs/walk-bys/coffee scenes, meeting copy, chrome strings, quick replies, `{label}` slot
+    fallbacks) localizes to en-AU / zh-CN / zh-TW via `office.*.js` bundles merged in
+    `getUiLocaleBundle.js` and applied through `setActiveOfficeBundle`. Template ids stay aligned
+    across locales so the seen-template memory survives locale switches. Server-side (LLM) moments
+    remain English-first — a persona-prompt locale hint is the natural follow-up.

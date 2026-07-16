@@ -1,17 +1,20 @@
 import { useState } from 'react';
-import { officeSenderInfo } from '../utils/officeCast.js';
+import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { formatLocale } from '../i18n/formatLocale.js';
 
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
  * unread badge, opening a popover with the email list, a reading pane,
- * the Focus Time (office DND) toggle, and the "Call a meeting" shortcut.
- * Pure props — OfficeLayer owns the store subscription.
+ * the Focus Time (office DND) + Soundscape toggles, and the "Call a meeting"
+ * shortcut. Pure props — OfficeLayer owns the store subscription.
  */
 export default function OfficeInboxDock({
   emails,
   unreadCount,
   focusTime,
+  soundscape,
   onToggleFocusTime,
+  onToggleSoundscape,
   onMarkRead,
   onMarkAllRead,
   onAdoptPrompt,
@@ -21,6 +24,7 @@ export default function OfficeInboxDock({
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const selected = emails.find((email) => email.id === selectedId) ?? null;
+  const copy = officeChromeCopy();
 
   const toggleOpen = () => {
     setOpen((prev) => {
@@ -40,10 +44,12 @@ export default function OfficeInboxDock({
         type="button"
         className={`office-inbox-button${open ? ' is-open' : ''}${focusTime ? ' is-focus-time' : ''}`}
         aria-label={
-          unreadCount > 0 ? `Inbox — ${unreadCount} unread emails` : 'Inbox — no unread email'
+          unreadCount > 0
+            ? formatLocale(copy.inbox.unreadAria, { count: unreadCount })
+            : copy.inbox.noUnreadAria
         }
         aria-expanded={open}
-        title="Corporate inbox"
+        title={copy.inbox.buttonTitle}
         onClick={toggleOpen}
       >
         <span aria-hidden="true">{focusTime ? '📪' : '📥'}</span>
@@ -54,21 +60,32 @@ export default function OfficeInboxDock({
         ) : null}
       </button>
       {open ? (
-        <div className="office-inbox-popover" role="dialog" aria-label="Corporate inbox">
+        <div className="office-inbox-popover" role="dialog" aria-label={copy.inbox.buttonTitle}>
           <div className="office-inbox-header">
-            <span className="office-inbox-title">📥 Inbox</span>
-            <label className="office-focus-toggle" title="Colleagues (mostly) respect Focus Time">
+            <span className="office-inbox-title">{copy.inbox.title}</span>
+            <label className="office-focus-toggle" title={copy.inbox.focusTimeTitle}>
               <input
                 type="checkbox"
                 checked={focusTime}
                 onChange={() => onToggleFocusTime?.(!focusTime)}
               />
-              <span>Focus Time</span>
+              <span>{copy.inbox.focusTimeLabel}</span>
+            </label>
+            <label
+              className="office-focus-toggle office-soundscape-toggle"
+              title={copy.inbox.soundscapeTitle}
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(soundscape)}
+                onChange={() => onToggleSoundscape?.(!soundscape)}
+              />
+              <span>{copy.inbox.soundscapeLabel}</span>
             </label>
             <button
               type="button"
               className="office-inbox-close"
-              aria-label="Close inbox"
+              aria-label={copy.inbox.closeAria}
               onClick={toggleOpen}
             >
               ×
@@ -81,7 +98,7 @@ export default function OfficeInboxDock({
                 className="office-email-back"
                 onClick={() => setSelectedId(null)}
               >
-                ← Back
+                {copy.inbox.back}
               </button>
               <OfficeEmailHeader email={selected} />
               <p className="office-email-body">{selected.body}</p>
@@ -91,7 +108,7 @@ export default function OfficeInboxDock({
                   className="office-do-it"
                   onClick={() => onAdoptPrompt?.(selected.actionPrompt, selected.colleagueId)}
                 >
-                  Do it
+                  {copy.doIt}
                 </button>
               ) : null}
             </div>
@@ -99,9 +116,7 @@ export default function OfficeInboxDock({
             <>
               <ul className="office-email-list">
                 {emails.length === 0 ? (
-                  <li className="office-email-empty">
-                    Inbox zero. HR finds this suspicious. Enjoy it while it lasts.
-                  </li>
+                  <li className="office-email-empty">{copy.inbox.emptyLine}</li>
                 ) : (
                   emails.map((email) => {
                     const sender = officeSenderInfo(email.colleagueId);
@@ -132,7 +147,7 @@ export default function OfficeInboxDock({
                     className="office-inbox-footer-action"
                     onClick={onMarkAllRead}
                   >
-                    Mark all read
+                    {copy.inbox.markAllRead}
                   </button>
                 ) : null}
                 <button
@@ -142,11 +157,11 @@ export default function OfficeInboxDock({
                   disabled={!canCallMeeting}
                   title={
                     canCallMeeting
-                      ? 'Summon a working-group meeting about the current diagram'
-                      : 'Draw something first — even this meeting needs an agenda'
+                      ? copy.inbox.callMeetingTitle
+                      : copy.inbox.callMeetingDisabledTitle
                   }
                 >
-                  📅 Call a meeting
+                  {copy.inbox.callMeeting}
                 </button>
               </div>
             </>

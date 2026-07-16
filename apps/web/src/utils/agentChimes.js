@@ -794,3 +794,145 @@ export function playMeetingJoinBlip(audioContextRef) {
     oscillator.stop(t0 + 0.12);
   });
 }
+
+/** ────────────────────────────────────────────────────────────────
+ *  Office soundscape — sporadic room-tone cues (docs/office-parody.md):
+ *  keyboard clatter from the next desk, the distant printer, the espresso
+ *  machine. All synthesized, all deliberately quieter than any event chime;
+ *  useOfficeSoundscape schedules them sparsely and the caller gates with
+ *  soundEnabled + user gesture (Focus Time mutes the whole office).
+ *  ──────────────────────────────────────────────────────────────── */
+
+const noiseBuffers = new WeakMap();
+
+/** Half a second of cached white noise per context — raw material for hiss,
+ * paper feeds, and key taps. */
+function getNoiseBuffer(context) {
+  let buffer = noiseBuffers.get(context);
+  if (buffer) return buffer;
+  const length = Math.floor(context.sampleRate * 0.5);
+  buffer = context.createBuffer(1, length, context.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < length; i += 1) data[i] = Math.random() * 2 - 1;
+  noiseBuffers.set(context, buffer);
+  return buffer;
+}
+
+/** Band-passed noise burst with the shared gain envelope. */
+function playNoiseBurst(context, { at, durationSec, freqHz, freqEndHz, q = 1.2, peakGain }) {
+  const source = context.createBufferSource();
+  source.buffer = getNoiseBuffer(context);
+  source.loop = true;
+  const filter = context.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.setValueAtTime(freqHz, at);
+  if (freqEndHz && freqEndHz !== freqHz) {
+    filter.frequency.linearRampToValueAtTime(freqEndHz, at + durationSec * 0.9);
+  }
+  filter.Q.setValueAtTime(q, at);
+  const gainNode = context.createGain();
+  applyGainEnvelope(gainNode, at, peakGain, durationSec);
+  source.connect(filter);
+  filter.connect(gainNode);
+  gainNode.connect(context.destination);
+  source.start(at, Math.random() * 0.3);
+  source.stop(at + durationSec + 0.05);
+}
+
+/** A colleague typing at the next desk: 5–9 irregular key taps, ~1.5 s. */
+export function playKeyboardClatter(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const taps = 5 + Math.floor(Math.random() * 5);
+  let offset = 0.02;
+  for (let i = 0; i < taps; i += 1) {
+    playNoiseBurst(context, {
+      at: now + offset,
+      durationSec: 0.018 + Math.random() * 0.012,
+      freqHz: 1900 + Math.random() * 1600,
+      q: 2.2,
+      peakGain: 0.009 + Math.random() * 0.005
+    });
+    // Human typing rhythm: quick runs with the occasional thinking pause.
+    offset += Math.random() < 0.2 ? 0.28 + Math.random() * 0.22 : 0.07 + Math.random() * 0.09;
+  }
+}
+
+/** The printer down the hall: motor hum plus three muffled head passes. */
+export function playDistantPrinter(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const motor = context.createOscillator();
+  const motorGain = context.createGain();
+  motor.type = 'sawtooth';
+  motor.frequency.setValueAtTime(92, now);
+  motor.frequency.linearRampToValueAtTime(78, now + 1.3);
+  applyGainEnvelope(motorGain, now, 0.006, 1.35);
+  motor.connect(motorGain);
+  motorGain.connect(context.destination);
+  motor.start(now);
+  motor.stop(now + 1.4);
+  for (let pass = 0; pass < 3; pass += 1) {
+    const t0 = now + 0.25 + pass * 0.34;
+    playNoiseBurst(context, {
+      at: t0,
+      durationSec: 0.14,
+      freqHz: pass % 2 === 0 ? 1050 : 1350,
+      freqEndHz: pass % 2 === 0 ? 1350 : 1050,
+      q: 1.6,
+      peakGain: 0.007
+    });
+  }
+}
+
+/** The espresso machine: grinder growl, steam-wand hiss, cup clink. */
+export function playEspressoMachine(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  // Grinder: low detuned growl with a slow wobble.
+  for (const detune of [-9, 9]) {
+    const grinder = context.createOscillator();
+    const grinderGain = context.createGain();
+    grinder.type = 'sawtooth';
+    grinder.frequency.setValueAtTime(58, now);
+    grinder.frequency.linearRampToValueAtTime(50, now + 0.4);
+    grinder.frequency.linearRampToValueAtTime(60, now + 0.8);
+    grinder.detune.setValueAtTime(detune, now);
+    applyGainEnvelope(grinderGain, now, 0.008, 0.85);
+    grinder.connect(grinderGain);
+    grinderGain.connect(context.destination);
+    grinder.start(now);
+    grinder.stop(now + 0.9);
+  }
+  playNoiseBurst(context, {
+    at: now,
+    durationSec: 0.85,
+    freqHz: 320,
+    q: 0.8,
+    peakGain: 0.008
+  });
+  // Steam wand: rising hiss once the grind stops.
+  playNoiseBurst(context, {
+    at: now + 0.95,
+    durationSec: 0.75,
+    freqHz: 3200,
+    freqEndHz: 4600,
+    q: 0.9,
+    peakGain: 0.007
+  });
+  // Cup on saucer, after the steam.
+  const clink = context.createOscillator();
+  const clinkGain = context.createGain();
+  clink.type = 'triangle';
+  const clinkAt = now + 1.78;
+  clink.frequency.setValueAtTime(1980, clinkAt);
+  clink.frequency.linearRampToValueAtTime(1760, clinkAt + 0.045);
+  applyGainEnvelope(clinkGain, clinkAt, 0.012, 0.05);
+  clink.connect(clinkGain);
+  clinkGain.connect(context.destination);
+  clink.start(clinkAt);
+  clink.stop(clinkAt + 0.07);
+}
