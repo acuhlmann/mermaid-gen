@@ -3,13 +3,16 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   buildExportPayload,
   chartDataValues,
+  copyExportPayload,
   deliverExportPayload,
   exportPayloadToBlob,
+  isExportUserAbortError,
   isPreviewableExportPayload,
   listExportFormats,
   prettyJsonOrRaw,
   readSvgDimensions,
   rowsToCsv,
+  shareExportPayload,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
 
@@ -187,5 +190,94 @@ describe('deliverExportPayload', () => {
     expect(result.previewUrl).toBe('blob:preview');
     expect(isPreviewableExportPayload(payload)).toBe(true);
     expect(exportPayloadToBlob(payload).type).toContain('text/plain');
+  });
+});
+
+describe('copyExportPayload', () => {
+  it('falls back to execCommand when clipboard.writeText is denied', async () => {
+    const writeText = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('denied'), { name: 'NotAllowedError' }));
+    const execCommand = vi.fn(() => true);
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText }
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: execCommand
+    });
+
+    const method = await copyExportPayload({
+      filename: 'x.txt',
+      mime: 'text/plain',
+      ext: 'txt',
+      delivery: 'text',
+      body: 'hello'
+    });
+
+    expect(method).toBe('clipboard-text');
+    expect(writeText).toHaveBeenCalledWith('hello');
+    expect(execCommand).toHaveBeenCalledWith('copy');
+  });
+
+  it('falls back to Web Share when clipboard copy is unavailable', async () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined
+    });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn(() => false)
+    });
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: share
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    const method = await copyExportPayload({
+      filename: 'x.txt',
+      mime: 'text/plain',
+      ext: 'txt',
+      delivery: 'text',
+      body: 'hello'
+    });
+
+    expect(method).toBe('share-text');
+    expect(share).toHaveBeenCalledWith({ text: 'hello', title: 'x.txt' });
+  });
+});
+
+describe('shareExportPayload', () => {
+  it('treats AbortError as user cancellation', async () => {
+    const share = vi
+      .fn()
+      .mockRejectedValue(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: share
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    await expect(
+      shareExportPayload({
+        filename: 'x.txt',
+        mime: 'text/plain',
+        ext: 'txt',
+        delivery: 'text',
+        body: 'hello'
+      })
+    ).rejects.toMatchObject({ name: 'AbortError' });
+    expect(
+      isExportUserAbortError(Object.assign(new Error('aborted'), { name: 'AbortError' }))
+    ).toBe(true);
   });
 });

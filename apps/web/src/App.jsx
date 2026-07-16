@@ -5037,6 +5037,7 @@ ${requirementsBlock}`;
               insightsOpen={insightsOpen}
               onToggleInsights={() => setInsightsOpen((v) => !v)}
               includeThinkingToggle={insightsEntries.length > 0}
+              popoverMode={!narrowLayout}
               contentType={
                 isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
               }

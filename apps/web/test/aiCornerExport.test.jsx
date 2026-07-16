@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AiCornerControlsInner } from '../src/components/AiCornerControlsInner.jsx';
 import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
@@ -18,7 +18,7 @@ vi.mock('../src/utils/exportDiagram.js', async (importOriginal) => {
     deliverExportPayload: vi.fn(async (payload, action) => ({
       method: action === 'copy' ? 'clipboard-text' : action === 'share' ? 'share-file' : 'download',
       filename: payload.filename,
-      previewUrl: 'blob:preview-mock',
+      previewUrl: action === 'download' ? 'blob:preview-mock' : null,
       payload,
       formatId: 'chart-csv'
     })),
@@ -83,6 +83,43 @@ describe('AiCornerControlsInner export', () => {
     expect(screen.getByRole('link', { name: /Open preview/i }).getAttribute('href')).toBe(
       'blob:preview-mock'
     );
+  });
+
+  it('shows a brief copy toast without action buttons', async () => {
+    vi.useFakeTimers();
+    render(
+      <AiCornerControlsInner
+        controls={CONTROLS_EN.settings}
+        modelProfile="fast"
+        onSelectModelProfile={() => {}}
+        pendingHandshake={null}
+        externalAgentPresence={[]}
+        onInviteAgent={() => {}}
+        agentThinkingChrome={false}
+        insightsOpen={false}
+        onToggleInsights={() => {}}
+        includeThinkingToggle={false}
+        contentType="chart"
+        diagramSource={chartSource}
+      />
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getAllByRole('button', { name: /^Copy$/i })[0]);
+      await Promise.resolve();
+    });
+
+    const toast = screen.getByRole('status');
+    expect(toast.className).toContain('settings-export-toast');
+    expect(toast.textContent).toMatch(/Copied to clipboard/i);
+    expect(screen.queryByRole('button', { name: /Dismiss/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Copy again/i })).toBeNull();
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(screen.queryByText(/Copied to clipboard/i)).toBeNull();
+    vi.useRealTimers();
   });
 
   it('disables export when there is no source', () => {
