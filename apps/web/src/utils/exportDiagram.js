@@ -449,6 +449,17 @@ export function isExportUserAbortError(err) {
 }
 
 /**
+ * Web Share rejected because the click activation expired (async export build).
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+export function isShareUserGestureError(err) {
+  if (!(err instanceof Error)) return false;
+  if (err.name !== 'NotAllowedError' && err.name !== 'SecurityError') return false;
+  return /user gesture/i.test(err.message);
+}
+
+/**
  * @param {unknown} err
  * @returns {boolean}
  */
@@ -580,33 +591,55 @@ export async function copyExportPayload(payload) {
 }
 
 /**
+ * Invoke Web Share synchronously from a click handler (returns a Promise).
+ * Call this in the same turn as the user gesture — do not await async export
+ * builds before calling it.
  * @param {ExportPayload} payload
  * @returns {Promise<ExportDeliveryMethod>}
  */
-export async function shareExportPayload(payload) {
+export function startWebShare(payload) {
   if (!isWebShareAvailable()) {
-    throw new Error('Share is not available on this device');
+    return Promise.reject(new Error('Share is not available on this device'));
   }
   const file = exportPayloadToFile(payload);
   const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
   if (canShareFiles) {
-    try {
-      await navigator.share({ files: [file], title: payload.filename });
-      return 'share-file';
-    } catch (err) {
-      if (isExportUserAbortError(err)) throw err;
-      if (payload.delivery !== 'text') throw err;
-    }
+    return navigator
+      .share({ files: [file], title: payload.filename })
+      .then(() => /** @type {ExportDeliveryMethod} */ ('share-file'))
+      .catch((err) => {
+        if (isExportUserAbortError(err)) throw err;
+        if (payload.delivery !== 'text') throw err;
+        return shareTextPayload(payload);
+      });
   }
-  if (payload.delivery === 'text') {
-    const text = payload.body ?? '';
-    const canShareText = !navigator.canShare || navigator.canShare({ text });
-    if (canShareText) {
-      await navigator.share({ text, title: payload.filename });
-      return 'share-text';
-    }
+  return shareTextPayload(payload);
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {Promise<ExportDeliveryMethod>}
+ */
+function shareTextPayload(payload) {
+  if (payload.delivery !== 'text') {
+    return Promise.reject(new Error('Share is not available for this format'));
   }
-  throw new Error('Share is not available for this format');
+  const text = payload.body ?? '';
+  const canShareText = !navigator.canShare || navigator.canShare({ text });
+  if (!canShareText) {
+    return Promise.reject(new Error('Share is not available for this format'));
+  }
+  return navigator
+    .share({ text, title: payload.filename })
+    .then(() => /** @type {ExportDeliveryMethod} */ ('share-text'));
+}
+
+/**
+ * @param {ExportPayload} payload
+ * @returns {Promise<ExportDeliveryMethod>}
+ */
+export async function shareExportPayload(payload) {
+  return startWebShare(payload);
 }
 
 /**

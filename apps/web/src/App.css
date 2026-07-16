@@ -5059,13 +5059,17 @@
 .bottom-row-popover--settings {
   right: 0;
   left: auto;
+  bottom: auto;
+  top: calc(100% + 0.55rem);
   /* Match the settings panel's existing column layout so its inline behavior
      and popover behavior look identical aside from positioning. */
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 0.42rem;
-  max-width: min(28rem, calc(100vw - 2rem));
+  width: max-content;
+  min-width: 0;
+  max-width: min(22rem, calc(100vw - 2rem));
 }
 
 /* Wraps the Settings button + its panel so the popover variant can anchor
@@ -5077,11 +5081,15 @@
   align-items: flex-end;
   gap: 0.42rem;
   position: relative;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .ai-corner-settings-toggle {
   align-self: flex-end;
   position: relative;
+  width: auto;
+  flex: 0 0 auto;
 }
 
 .ai-corner-settings-toggle.has-pending::after {
@@ -5106,8 +5114,15 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 0.42rem;
-  width: 100%;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+  min-width: 0;
   animation: ai-corner-settings-reveal 180ms ease-out;
+}
+
+.ai-corner-settings-panel.bottom-row-popover--settings {
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
 }
 
 .ai-corner-settings-panel[hidden] {
@@ -5117,7 +5132,7 @@
 @keyframes ai-corner-settings-reveal {
   from {
     opacity: 0;
-    transform: translateY(-4px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
@@ -5149,7 +5164,8 @@
 
   /* On mobile the gear icon alone is enough — drop the "Settings" word to save space. */
   .bottom-row-ai.is-narrow .ai-corner-settings-toggle {
-    align-self: stretch;
+    align-self: flex-end;
+    width: auto;
     padding-left: 0.55rem;
     padding-right: 0.55rem;
   }
@@ -5163,7 +5179,7 @@
   .bottom-row-ai.is-narrow .settings-export-toast,
   .bottom-row-ai.is-narrow .settings-export-feedback {
     width: 100%;
-    max-width: 100%;
+    max-width: min(16rem, 100%);
     min-width: 0;
     align-self: stretch;
   }
@@ -5589,9 +5605,11 @@
 .settings-export {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: stretch;
   gap: 0.28rem;
   width: 100%;
+  max-width: 16rem;
+  min-width: 0;
 }
 
 .settings-export-toggle {
@@ -5600,6 +5618,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  width: 100%;
+  max-width: 16rem;
   min-width: 9.5rem;
   margin: 0;
   padding: 0.38rem 0.7rem;
@@ -5637,8 +5657,10 @@
   flex-direction: column;
   align-items: stretch;
   gap: 0.18rem;
-  min-width: 12.5rem;
-  max-width: 18rem;
+  width: 100%;
+  max-width: 16rem;
+  min-width: 0;
+  box-sizing: border-box;
   border-radius: 0.85rem;
   border: 1px solid var(--control-border);
   background: var(--control-bg);
@@ -5659,6 +5681,7 @@
   font-weight: 650;
   line-height: 1.3;
   color: var(--text);
+  overflow-wrap: anywhere;
 }
 
 .settings-export-row-actions {
