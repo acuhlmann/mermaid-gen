@@ -141,9 +141,7 @@ export function AiCornerControlsInner({
                 {exportOpen ? '▴' : '▾'}
               </span>
             </button>
-            {!hasSource ? (
-              <p className="settings-export-empty">{controls.exportEmpty}</p>
-            ) : null}
+            {!hasSource ? <p className="settings-export-empty">{controls.exportEmpty}</p> : null}
             {hasSource && exportOpen ? (
               <ul id={exportListId} className="settings-export-list" role="list">
                 {exportFormats.map((format) => (

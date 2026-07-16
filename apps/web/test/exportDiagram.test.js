@@ -39,10 +39,7 @@ describe('listExportFormats', () => {
       theme: 'noir',
       spec: { mark: 'bar', data: { url: 'https://example.com/data.json' } }
     });
-    expect(listExportFormats('chart', noData).map((f) => f.id)).toEqual([
-      'chart-json',
-      'chart-vl'
-    ]);
+    expect(listExportFormats('chart', noData).map((f) => f.id)).toEqual(['chart-json', 'chart-vl']);
     expect(listExportFormats('chart', CHART_SOURCE).map((f) => f.id)).toEqual([
       'chart-csv',
       'chart-json',
