@@ -23,6 +23,7 @@ import {
   extractLastAttemptedToolSource,
   extractToolFailureError,
   normalizeAgentStreamEvent,
+  streamChatModelToClient,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
 import {
@@ -1056,17 +1057,10 @@ ${prompt}${focusScope}`,
         emit({ type: 'phase', id: 'analyze_stream', label: 'Streaming analysis…' });
         let fullText = '';
         try {
-          const stream = await analysisModel.stream(messages);
-          for await (const chunk of stream) {
-            const piece =
-              extractTextContent(chunk?.content) ||
-              extractTextContent(chunk?.kwargs?.content) ||
-              (typeof chunk?.text === 'string' ? chunk.text : '');
-            if (piece) {
-              fullText += piece;
-              emit({ type: 'token', text: piece });
-            }
-          }
+          fullText = await streamChatModelToClient(analysisModel, messages, emit, {
+            modelId,
+            callId: `analyze-mermaid-${kind}`
+          });
         } catch (error) {
           emit({
             type: 'error',
@@ -1080,19 +1074,11 @@ ${prompt}${focusScope}`,
               maxTokens: 1800
             });
             try {
-              const stream2 = await analysisModel.stream(messages);
-              let fullText2 = '';
-              for await (const chunk of stream2) {
-                const piece =
-                  extractTextContent(chunk?.content) ||
-                  extractTextContent(chunk?.kwargs?.content) ||
-                  (typeof chunk?.text === 'string' ? chunk.text : '');
-                if (piece) {
-                  fullText2 += piece;
-                  emit({ type: 'token', text: piece });
-                }
-              }
-              return { message: fullText2.trim() || 'Done.', raw: null };
+              fullText = await streamChatModelToClient(analysisModel, messages, emit, {
+                modelId: orModel,
+                callId: `analyze-mermaid-${kind}-fallback`
+              });
+              return { message: fullText.trim() || 'Done.', raw: null };
             } catch {
               // fall through to invoke attempts
             }

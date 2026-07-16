@@ -26,6 +26,7 @@ import {
   resolveVertexModelId
 } from './llmProvider.js';
 import { extractTextContent } from '../utils/extractTextContent.js';
+import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 
 const SYSTEM_PROMPT = [
   'You are a concise diagram-label glossary.',
@@ -225,11 +226,13 @@ export function sanitizeLabelGibberish(raw) {
  * @param {object} args
  * @param {NodeJS.ProcessEnv} [args.env]
  * @param {object} args.payload  Validated request body (see route schema).
- * @returns {Promise<string>}    Empty string when the model returned nothing usable.
+ * @returns {Promise<{ explanation: string, usage: object | null, model: string | null }>}
  */
 export async function explainLabelOnce({ env = process.env, payload }) {
   const model = createLabelExplainerChatModel(env);
-  if (!model) return '';
+  if (!model) return { explanation: '', usage: null, model: null };
+  const backend = resolveLlmBackend(env);
+  const modelId = resolveExplainerModelId(env, backend);
   const style =
     payload?.style === 'gibberish' ? 'gibberish' : payload?.style === 'simple' ? 'simple' : 'brief';
   const simpleLevel =
@@ -240,9 +243,14 @@ export async function explainLabelOnce({ env = process.env, payload }) {
   const raw = extractTextContent(reply?.content ?? reply);
   const cleaned =
     style === 'gibberish' ? sanitizeLabelGibberish(raw) : sanitizeLabelExplanation(raw);
-  if (cleaned) return cleaned;
+  const usage = llmUsageFromReply(reply);
+  if (cleaned) return { explanation: cleaned, usage, model: modelId };
   if (style === 'gibberish') {
-    return fallbackLabelGibberish(payload?.partName || payload?.label || '');
+    return {
+      explanation: fallbackLabelGibberish(payload?.partName || payload?.label || ''),
+      usage,
+      model: modelId
+    };
   }
-  return '';
+  return { explanation: '', usage, model: modelId };
 }

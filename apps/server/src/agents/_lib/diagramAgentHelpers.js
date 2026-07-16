@@ -229,7 +229,7 @@ function modelNameFromStreamEvent(event) {
 }
 
 /** Extract `{inputTokens, outputTokens}` from an on_chat_model_end output, when the provider reports usage. */
-function usageFromModelOutput(output) {
+export function usageFromModelOutput(output) {
   const usage =
     output?.usage_metadata ??
     output?.kwargs?.usage_metadata ??
@@ -409,6 +409,102 @@ export function extractOriginalRequest(userMessages) {
     if (text && text.trim()) return text.trim();
   }
   return null;
+}
+
+function pieceFromLangChainChunk(chunk) {
+  if (!chunk) return '';
+  const direct = tokenFromLangChainChunk(chunk);
+  if (direct) return direct;
+  return (
+    extractTextContent(chunk?.content) ||
+    extractTextContent(chunk?.kwargs?.content) ||
+    (typeof chunk?.text === 'string' ? chunk.text : '')
+  );
+}
+
+function usageFromChunkOrReply(chunkOrReply) {
+  const usage =
+    chunkOrReply?.usage_metadata ??
+    chunkOrReply?.kwargs?.usage_metadata ??
+    chunkOrReply?.response_metadata?.tokenUsage ??
+    chunkOrReply?.llmOutput?.tokenUsage ??
+    null;
+  return usageFromModelOutput(usage ? { usage_metadata: usage } : chunkOrReply);
+}
+
+/**
+ * Stream a one-shot analysis model to the client with model_call_* telemetry so
+ * the Thinking panel shows technical steps and estimated cost (Wise Architect explain).
+ *
+ * @param {object} model
+ * @param {import('@langchain/core/messages').BaseMessage[]} messages
+ * @param {(evt: object) => void} [emit]
+ * @param {{ modelId?: string, callId?: string }} [opts]
+ * @returns {Promise<string>}
+ */
+export async function streamChatModelToClient(model, messages, emit, opts = {}) {
+  const modelId = typeof opts.modelId === 'string' ? opts.modelId : '';
+  const callId = opts.callId ?? `analyze-${Date.now()}`;
+  if (typeof emit === 'function') {
+    emit({ type: 'model_call_start', callId, model: modelId });
+  }
+  let full = '';
+  let usage = {};
+  try {
+    const stream = await model.stream(messages);
+    for await (const chunk of stream) {
+      const chunkUsage = usageFromChunkOrReply(chunk);
+      if (chunkUsage.inputTokens != null || chunkUsage.outputTokens != null) {
+        usage = chunkUsage;
+      }
+      const piece = pieceFromLangChainChunk(chunk);
+      if (piece) {
+        full += piece;
+        emit?.({ type: 'token', text: piece });
+      }
+    }
+  } finally {
+    if (typeof emit === 'function') {
+      emit({ type: 'model_call_end', callId, model: modelId, ...usage });
+    }
+  }
+  return full;
+}
+
+/**
+ * Invoke a one-shot analysis model with model_call_* telemetry (non-streaming slots).
+ *
+ * @param {object} model
+ * @param {import('@langchain/core/messages').BaseMessage[]} messages
+ * @param {(evt: object) => void} [emit]
+ * @param {{ modelId?: string, callId?: string }} [opts]
+ * @returns {Promise<{ message: string, raw: object | null }>}
+ */
+export async function invokeChatModelToClient(model, messages, emit, opts = {}) {
+  const modelId = typeof opts.modelId === 'string' ? opts.modelId : '';
+  const callId = opts.callId ?? `analyze-${Date.now()}`;
+  if (typeof emit === 'function') {
+    emit({ type: 'model_call_start', callId, model: modelId });
+  }
+  let response = null;
+  let message = '';
+  try {
+    response = await model.invoke(messages);
+    message = extractTextContent(response?.content).trim() || 'Done.';
+    if (message && typeof emit === 'function') {
+      emit({ type: 'token', text: message });
+    }
+  } finally {
+    if (typeof emit === 'function') {
+      emit({
+        type: 'model_call_end',
+        callId,
+        model: modelId,
+        ...usageFromChunkOrReply(response)
+      });
+    }
+  }
+  return { message, raw: response };
 }
 
 /** Re-exported so callers don't need a second import for the common case. */

@@ -1,6 +1,7 @@
 import { useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef } from 'react';
 import { normalizeRootSvgElement, sanitizeInfographicDsl } from '@archislop/shared';
 import { Infographic, parseSyntax } from '@antv/infographic';
+import { injectInfographicShapeTitleLabels } from '../utils/injectInfographicShapeLabels.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -13,7 +14,11 @@ function normalizeInfographicSvgRoot(container) {
 function scheduleNormalizeInfographicSvgRoot(container) {
   queueMicrotask(() => {
     normalizeInfographicSvgRoot(container);
-    requestAnimationFrame(() => normalizeInfographicSvgRoot(container));
+    injectInfographicShapeTitleLabels(container);
+    requestAnimationFrame(() => {
+      normalizeInfographicSvgRoot(container);
+      injectInfographicShapeTitleLabels(container);
+    });
   });
 }
 

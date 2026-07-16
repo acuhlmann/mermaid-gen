@@ -8,6 +8,7 @@
 
 import { getLabelExplainDumbLevel } from '@archislop/shared';
 import { buildLabelExplainerSystemPrompt } from './labelExplainer.js';
+import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 import {
   createLlmChatModel,
   DEFAULT_DEEPSEEK_MODEL_FAST,
@@ -394,14 +395,7 @@ export function resolveAdvisorModelId(env = process.env, backend = resolveLlmBac
 
 /** Pull `{ inputTokens, outputTokens }` from a LangChain reply, when the provider reports usage. */
 export function advisorUsageFromReply(reply) {
-  const usage = reply?.usage_metadata ?? reply?.response_metadata?.tokenUsage ?? null;
-  if (!usage || typeof usage !== 'object') return null;
-  const inputTokens = usage.input_tokens ?? usage.promptTokens;
-  const outputTokens = usage.output_tokens ?? usage.completionTokens;
-  const out = {};
-  if (Number.isFinite(inputTokens)) out.inputTokens = inputTokens;
-  if (Number.isFinite(outputTokens)) out.outputTokens = outputTokens;
-  return out.inputTokens != null || out.outputTokens != null ? out : null;
+  return llmUsageFromReply(reply);
 }
 
 const advisorModelCache = new Map();

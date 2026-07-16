@@ -12,7 +12,7 @@ const EXPLAIN_DUMB_TIMEOUT_MS = 20_000;
  * @param {'simple'|'gibberish'} [args.style]
  * @param {number} [args.simpleLevel]  1–6 when style is 'simple'.
  * @param {AbortSignal} [args.signal]
- * @returns {Promise<{ markdown: string, explainSections: object | null }>}
+ * @returns {Promise<{ markdown: string, explainSections: object | null, usage?: object | null, model?: string | null }>}
  */
 export async function fetchExplainDumbDown({
   previousExplain,
@@ -61,7 +61,9 @@ export async function fetchExplainDumbDown({
       payload?.explainSections && typeof payload.explainSections === 'object'
         ? payload.explainSections
         : null;
-    return { markdown, explainSections };
+    const usage = payload?.usage && typeof payload.usage === 'object' ? payload.usage : null;
+    const model = typeof payload?.model === 'string' ? payload.model : null;
+    return { markdown, explainSections, usage, model };
   } finally {
     clearTimeout(timer);
     if (signal) signal.removeEventListener('abort', onCallerAbort);

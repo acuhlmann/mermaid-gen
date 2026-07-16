@@ -190,12 +190,17 @@ export function createAdvisorRouter() {
     try {
       const result = await explainDumbDownOnce({ payload });
       if (!result.markdown) {
-        res.status(200).json({ markdown: null, explainSections: null });
+        res.status(200).json({
+          markdown: null,
+          explainSections: null,
+          ...(result.usage ? { usage: result.usage, model: result.model } : {})
+        });
         return;
       }
       res.status(200).json({
         markdown: result.markdown,
-        explainSections: result.explainSections ?? null
+        explainSections: result.explainSections ?? null,
+        ...(result.usage ? { usage: result.usage, model: result.model } : {})
       });
     } catch (error) {
       if (error?.name === 'LlmNotConfiguredError') {
@@ -220,12 +225,18 @@ export function createAdvisorRouter() {
     }
 
     try {
-      const explanation = await explainLabelOnce({ payload });
-      if (!explanation) {
-        res.status(200).json({ explanation: null });
+      const result = await explainLabelOnce({ payload });
+      if (!result?.explanation) {
+        res.status(200).json({
+          explanation: null,
+          ...(result?.usage ? { usage: result.usage, model: result.model } : {})
+        });
         return;
       }
-      res.status(200).json({ explanation });
+      res.status(200).json({
+        explanation: result.explanation,
+        ...(result.usage ? { usage: result.usage, model: result.model } : {})
+      });
     } catch (error) {
       if (error?.name === 'LlmNotConfiguredError') {
         res.status(503).json({ error: safeErrorMessage(error) });

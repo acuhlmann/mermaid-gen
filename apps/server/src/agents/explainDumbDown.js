@@ -23,6 +23,7 @@ import {
   resolveOpenRouterModelId,
   resolveVertexModelId
 } from './llmProvider.js';
+import { llmUsageFromReply } from './_lib/llmUsageFromReply.js';
 
 const GIBBERISH_SYSTEM_PROMPT = [
   'You are a baby who cannot speak yet, "explaining" an architecture write-up.',
@@ -195,7 +196,7 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
   const previousExplain =
     typeof payload?.previousExplain === 'string' ? payload.previousExplain.trim() : '';
   if (!previousExplain) {
-    return { markdown: '', explainSections: null };
+    return { markdown: '', explainSections: null, usage: null, model: null };
   }
 
   const style = payload?.style === 'gibberish' ? 'gibberish' : 'simple';
@@ -205,8 +206,11 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
 
   const model = createExplainDumbDownChatModel(env);
   if (!model) {
-    return { markdown: '', explainSections: null };
+    return { markdown: '', explainSections: null, usage: null, model: null };
   }
+
+  const backend = resolveLlmBackend(env);
+  const modelId = resolveExplainerModelId(env, backend);
 
   const system =
     style === 'gibberish' ? GIBBERISH_SYSTEM_PROMPT : buildExplainDumbDownSystemPrompt(simpleLevel);
@@ -225,9 +229,10 @@ export async function explainDumbDownOnce({ env = process.env, payload }) {
     markdown = fallbackGibberishExplain(previousExplain, contentType);
   }
   if (!markdown) {
-    return { markdown: '', explainSections: null };
+    return { markdown: '', explainSections: null, usage: null, model: modelId };
   }
 
   const explainSections = buildExplainSectionsArtifact(markdown, contentType);
-  return { markdown, explainSections };
+  const usage = llmUsageFromReply(reply);
+  return { markdown, explainSections, usage, model: modelId };
 }

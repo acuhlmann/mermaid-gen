@@ -29,6 +29,7 @@ import {
   extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
+  invokeChatModelToClient,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -548,6 +549,8 @@ export function createFormsLangChainAgent({
         return { message: 'Nothing to analyze — generate a form first.', raw: null };
       }
       const profile = normalizeModelProfile(modelProfile);
+      const backend = resolveLlmBackend(env, profile);
+      const modelId = resolveModelId(env, profile, backend);
       const model = buildAnalysisModel(profile);
       const messages = [
         new SystemMessage(FORMS_ANALYSIS_SYSTEM_PROMPT),
@@ -566,6 +569,12 @@ export function createFormsLangChainAgent({
       }
 
       try {
+        if (typeof emit === 'function') {
+          return await invokeChatModelToClient(model, messages, emit, {
+            modelId,
+            callId: `analyze-forms-${kind}`
+          });
+        }
         const response = await model.invoke(messages);
         const text = extractTextContent(response.content).trim() || 'Done.';
         return { message: text, raw: response };

@@ -26,6 +26,7 @@ import {
   extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
+  invokeChatModelToClient,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -530,6 +531,8 @@ export function createMetaphorLangChainAgent({
         return { message: 'Nothing to analyze — generate a metaphor first.', raw: null };
       }
       const profile = normalizeModelProfile(modelProfile);
+      const backend = resolveLlmBackend(env, profile);
+      const modelId = resolveModelId(env, profile, backend);
       const model = buildAnalysisModel(profile);
       const focusScope = buildMetaphorAnalyzeFocusInstructions(focusNode, kind);
       const messages = [
@@ -549,6 +552,12 @@ export function createMetaphorLangChainAgent({
       }
 
       try {
+        if (typeof emit === 'function') {
+          return await invokeChatModelToClient(model, messages, emit, {
+            modelId,
+            callId: `analyze-metaphor-${kind}`
+          });
+        }
         const response = await model.invoke(messages);
         const text = extractTextContent(response.content).trim() || 'Done.';
         return { message: text, raw: response };

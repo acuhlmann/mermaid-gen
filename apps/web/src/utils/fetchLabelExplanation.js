@@ -18,7 +18,7 @@ const EXPLAIN_TIMEOUT_MS = 12_000;
  *   'simple' (progressive plain-language), or 'gibberish' (pre-verbal babble).
  * @param {number} [args.simpleLevel]  1–6 when style is 'simple' (younger = higher).
  * @param {AbortSignal} [args.signal]  Caller cancellation signal.
- * @returns {Promise<string>} The explanation, or an empty string if none came back.
+ * @returns {Promise<{ explanation: string, usage: object | null, model: string | null }>}
  */
 export async function fetchLabelExplanation({
   descriptor,
@@ -79,7 +79,10 @@ export async function fetchLabelExplanation({
       );
     }
     const payload = await response.json();
-    return typeof payload?.explanation === 'string' ? payload.explanation.trim() : '';
+    const explanation = typeof payload?.explanation === 'string' ? payload.explanation.trim() : '';
+    const usage = payload?.usage && typeof payload.usage === 'object' ? payload.usage : null;
+    const model = typeof payload?.model === 'string' ? payload.model : null;
+    return { explanation, usage, model };
   } finally {
     clearTimeout(timer);
     if (signal) signal.removeEventListener('abort', onCallerAbort);

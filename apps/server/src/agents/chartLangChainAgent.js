@@ -29,6 +29,7 @@ import {
   extractTextContent,
   extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
+  invokeChatModelToClient,
   normalizeAgentStreamEvent,
   toLangChainMessages
 } from './_lib/diagramAgentHelpers.js';
@@ -631,6 +632,8 @@ export function createChartLangChainAgent({
         return { message: 'Nothing to analyze — generate a chart first.', raw: null };
       }
       const profile = normalizeModelProfile(modelProfile);
+      const backend = resolveLlmBackend(env, profile);
+      const modelId = resolveModelId(env, profile, backend);
       const model = buildAnalysisModel(profile);
       const focusScope = buildChartAnalyzeFocusInstructions(focusNode, kind);
       const messages = [
@@ -651,6 +654,12 @@ export function createChartLangChainAgent({
       }
 
       try {
+        if (typeof emit === 'function') {
+          return await invokeChatModelToClient(model, messages, emit, {
+            modelId,
+            callId: `analyze-chart-${kind}`
+          });
+        }
         const response = await model.invoke(messages);
         const text = extractTextContent(response.content).trim() || 'Done.';
         return { message: text, raw: response };
