@@ -58,7 +58,9 @@ describe('bottom-chrome advisor-bubble layer gating', () => {
     const bubble = ruleBody('.advisor-speech-bubble');
     expect(bubble, 'expected base .advisor-speech-bubble rule').toBeTruthy();
     expect(bubble).toMatch(/max-height:/);
+    expect(bubble).toMatch(/--advisor-float-max-h/);
     expect(bubble).toMatch(/overflow-y:\s*auto/);
     expect(css).toMatch(/\.advisor-speech-bubble\.is-explain[\s\S]*max-height:/);
+    expect(css).toMatch(/\.advisor-thinking-indicator[\s\S]*--advisor-float-max-h/);
   });
 });

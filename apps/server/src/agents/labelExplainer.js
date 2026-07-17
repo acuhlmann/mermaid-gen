@@ -101,11 +101,19 @@ export function createLabelExplainerChatModel(env = process.env) {
   const key = `${backend}:${modelId}`;
   const cached = explainerModelCache.get(key);
   if (cached) return cached;
-  const model = createLlmChatModel(env, {
+  const overrides = {
     model: modelId,
     temperature: 0.3,
-    maxOutputTokens: 120
-  });
+    // Gemini 2.5 shares maxOutputTokens with internal reasoning tokens — the old
+    // 120-token cap could be swallowed whole by "thinking", yielding an empty
+    // candidate and an SDK TypeError ("...reading 'message'") → 502 on /explain.
+    maxOutputTokens: 256
+  };
+  if (backend === 'vertex') {
+    // Decorative one-liner — no chain-of-thought; keep the budget for the answer.
+    overrides.thinkingBudget = 0;
+  }
+  const model = createLlmChatModel(env, overrides);
   explainerModelCache.set(key, model);
   return model;
 }
