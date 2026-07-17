@@ -544,7 +544,8 @@ export const CONTROLS_EN_AU = {
     streamingSource: 'Streaming validated source…',
     done: 'Done',
     loadingEditor: 'Loading code editor…',
-    selectAll: 'Select all'
+    selectAll: 'Select all',
+    copy: 'Copy'
   },
   anythingCanvas: {
     canvas: 'Anything canvas (sandboxed)',

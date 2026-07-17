@@ -66,17 +66,17 @@ export const EXPORT_FORMATS_BY_MODE = {
       labelKey: 'exportMermaidSource'
     },
     {
-      id: 'mermaid-svg',
-      ext: 'svg',
-      mime: 'image/svg+xml;charset=utf-8',
-      labelKey: 'exportMermaidSvg'
-    },
-    {
       id: 'mermaid-png',
       ext: 'png',
       mime: 'image/png',
       labelKey: 'exportMermaidPng',
       delivery: 'image'
+    },
+    {
+      id: 'mermaid-svg',
+      ext: 'svg',
+      mime: 'image/svg+xml;charset=utf-8',
+      labelKey: 'exportMermaidSvg'
     }
   ],
   infographic: [
@@ -591,15 +591,33 @@ export async function copyExportPayload(payload) {
 }
 
 /**
+ * Visual exports (PNG, SVG) should share as files so mobile apps like WhatsApp
+ * receive an image attachment instead of raw markup in the message body.
+ * @param {ExportPayload} payload
+ * @returns {boolean}
+ */
+export function isVisualExportPayload(payload) {
+  if (payload.delivery === 'image') return true;
+  return (payload.mime ?? '').toLowerCase().startsWith('image/');
+}
+
+/**
  * Pick a Web Share mode synchronously so navigator.share runs in the click turn.
- * Text delivery prefers share({ text }) — mobile often accepts SVG/CSV/JSON as
- * text but rejects the same payload as a file, and an async file→text fallback
- * loses the user-gesture activation.
+ * Visual payloads prefer share({ files }) so chat apps attach an image; plain
+ * text formats (source, JSON, CSV) prefer share({ text }). An async fallback
+ * loses the user-gesture activation, so the choice must be synchronous.
  * @param {ExportPayload} payload
  * @returns {'text' | 'file' | null}
  */
 export function resolveWebShareMode(payload) {
   if (!isWebShareAvailable()) return null;
+
+  const file = exportPayloadToFile(payload);
+  const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+
+  if (isVisualExportPayload(payload) && canShareFiles) {
+    return 'file';
+  }
 
   if (payload.delivery === 'text') {
     const text = payload.body ?? '';
@@ -607,8 +625,6 @@ export function resolveWebShareMode(payload) {
     if (canShareText) return 'text';
   }
 
-  const file = exportPayloadToFile(payload);
-  const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
   if (canShareFiles) return 'file';
 
   return null;

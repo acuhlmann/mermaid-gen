@@ -497,6 +497,25 @@
   cursor: pointer;
 }
 
+/* Sequence diagrams: participants and lifelines are selectable for the radial menu. */
+.diagram-viewport svg [data-et='participant'] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.diagram-viewport svg [data-et='life-line'] {
+  pointer-events: stroke;
+  cursor: pointer;
+}
+
+.diagram-viewport svg .actor-top,
+.diagram-viewport svg .actor-bottom,
+.diagram-viewport svg rect.actor,
+.diagram-viewport svg text.actor {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
 /* AntV infographic SVG: not Mermaid — restore hits and allow native text selection on labels. */
 .diagram-viewport .infographic-canvas svg {
   pointer-events: auto;

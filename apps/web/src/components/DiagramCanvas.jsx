@@ -321,6 +321,31 @@ export default function DiagramCanvas({
     editor.focus();
   }, []);
 
+  const handleCopyEditor = useCallback(async () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    const text = editor.getValue();
+    if (!text) return;
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        textarea.remove();
+      }
+      editor.focus();
+    } catch {
+      // Clipboard denied — user can still use Select all + system copy.
+    }
+  }, []);
+
   const monacoLoadingLabel = controls.diagramCanvas.loadingEditor;
 
   const monacoEditorOptions = useMemo(
@@ -1627,6 +1652,13 @@ export default function DiagramCanvas({
                   <button
                     type="button"
                     className="overlay-button compact-button"
+                    onClick={handleCopyEditor}
+                  >
+                    {controls.diagramCanvas.copy}
+                  </button>
+                  <button
+                    type="button"
+                    className="overlay-button compact-button"
                     onClick={handleSelectAllEditor}
                   >
                     {controls.diagramCanvas.selectAll}
@@ -1664,6 +1696,13 @@ export default function DiagramCanvas({
           ) : (
             <div className="diagram-monaco-wrap">
               <div className="diagram-editor-toolbar">
+                <button
+                  type="button"
+                  className="overlay-button compact-button"
+                  onClick={handleCopyEditor}
+                >
+                  {controls.diagramCanvas.copy}
+                </button>
                 <button
                   type="button"
                   className="overlay-button compact-button"
