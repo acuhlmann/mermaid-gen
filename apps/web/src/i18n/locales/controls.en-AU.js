@@ -61,10 +61,9 @@ export const CONTROLS_EN_AU = {
       { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
       { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' }
     ],
-    exampleEyebrow: "What's this then?",
-    exampleHeadline: 'Turn any topic into a living visualisation, no worries',
-    exampleBody:
-      'AI knocks up a diagram, infographic, 3D scene, chart, or freeform page — then you polish it while fictional stakeholders chip in whether you asked or not.',
+    exampleEyebrow: 'ArchiSlop',
+    exampleHeadline: 'Any topic → a living visualisation',
+    exampleBody: 'Knock one out. Polish it. The office will have opinions, no worries.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualisation you can generate',
     exampleCta: 'Generate: Coffee supply chain →',
