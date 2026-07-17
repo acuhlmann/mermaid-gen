@@ -32,6 +32,10 @@ export const OFFICE_ZH_CN = {
     greybeard: {
       title: '资深工程师（荣休返聘）',
       blurb: '“2009 年我们试过。”维护着那台大型机。建议好得让人不安。'
+    },
+    ciso: {
+      title: '首席信息安全官 — “不行部”',
+      blurb: '万物皆攻击面，尤其是箭头。钓鱼演练由 TA 主持。谁都不信。'
     }
   },
   OFFICE_SLOT_FALLBACKS: { label: '这张图', userTitle: '实习架构师' },
@@ -39,7 +43,7 @@ export const OFFICE_ZH_CN = {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
     subject: '欢迎加入，{userTitle}！🎉（工牌照片：待定）',
-    body: '欢迎来到这层楼！非常高兴你的加入。在强制入职培训（已改期，时间待定）之前，先认识几位同事：\n\n📅 Pam（敏捷教练）主持所有会议。真的是所有。\n🧃 Chad（我们的实习生）马上会给你发消息。他没有恶意。\n🖥️ 工单机器人 Dave 是 IT。请勿回复，请勿来电，请勿。\n🧹 Gary 掌管冰箱和恒温器。请对两者保持敬意。\n🧓 Ulrich 见过你的架构。在 2009 年。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。收件箱 📥、专注时间和办公室音景开关都在角落里，想让我们安静点随时可用。\n\n暖暖的问候，\nLinda'
+    body: '欢迎来到这层楼！非常高兴你的加入。在强制入职培训（已改期，时间待定）之前，先认识几位同事：\n\n📅 Pam（敏捷教练）主持所有会议。真的是所有。\n🧃 Chad（我们的实习生）马上会给你发消息。他没有恶意。\n🖥️ 工单机器人 Dave 是 IT。请勿回复，请勿来电，请勿。\n🧹 Gary 掌管冰箱和恒温器。请对两者保持敬意。\n🧓 Ulrich 见过你的架构。在 2009 年。\n🔐 Sasha（我们的 CISO）已经开始怀疑你了。这是一种夸奖。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。收件箱 📥、专注时间和办公室音景开关都在角落里，想让我们安静点随时可用。\n\n暖暖的问候，\nLinda'
   },
   OFFICE_WELCOME_IM: {
     id: 'welcome-im-intern',
@@ -119,6 +123,54 @@ export const OFFICE_ZH_CN = {
       colleagueId: 'greybeard',
       subject: '你重新发明了批处理任务',
       body: '在共享盘上看到了你的图。这东西我们 2009 年就做过,靠一个 cron 任务和恐惧运行,2011 年把生产环境搞挂了一周。\n\n想知道细节就来问我。或者别问。它知道。\n\nUlrich'
+    },
+    {
+      id: 'email-ciso-phishing',
+      colleagueId: 'ciso',
+      subject: '你没有点击。我们注意到了。(钓鱼演练报告)',
+      body: '礼节性通知:上周的模拟钓鱼邮件(“免费架构评审 — 立即点击”)你没有点。统计上讲,人人都会点。不点属于可疑行为,已记入你的档案。\n\n我们会一直测,直到你点为止。\n\n什么都别信,\nSasha — 不行部'
+    },
+    {
+      id: 'email-ciso-password',
+      colleagueId: 'ciso',
+      subject: '密码策略更新(自昨日起生效)',
+      body: '密码现须包含 16 个字符、一个表情符号、一个质数,以及一个已弃用协议的亡魂。密码不得包含:单词、数字或字符。\n\n你当前的密码在 4 项检查中挂了 11 项。某种意义上,令人佩服。\n\nSasha'
+    },
+    {
+      id: 'email-helpdesk-printer-firmware',
+      colleagueId: 'helpdesk',
+      subject: '[工单 #48313] 打印机固件升级完成',
+      body: '三楼打印机已升级到固件 9.0.1。新特性包括:拒收 PDF、噪音更响,以及在不定期的时刻打印一(1)页写着“快了”的纸。这是预期行为。\n\n请勿开工单。它会被关闭为那台打印机的重复项。\n\n— Dave'
+    },
+    {
+      id: 'email-greybeard-cloud',
+      colleagueId: 'greybeard',
+      subject: '回复:云迁移启动会',
+      body: '云就是营销做得更好的大型机。我迁移过一次 — 2009 年,迁到“网格”上。2010 年我们又迁了回来。悄悄地。趁夜里。\n\n你的 {label} 放哪儿都能跑。东西大多都能跑,直到跑不动那天。\n\nUlrich'
+    },
+    {
+      id: 'email-scrum-retro-retro',
+      colleagueId: 'scrumMaster',
+      subject: '诚邀参加:回顾会的回顾会(强制,有趣)',
+      body: '各位!我们的回顾会在“能量”上拿了 4.2/5,但“可执行性”只有 2.9,所以我们要开一场回顾会的回顾会。请自备一个“开心”、一个“难过”、一个“愤怒”,外加一个备用“愤怒”。\n\n上次回顾会的行动项原封不动顺延,传统使然。\n\nPam'
+    },
+    {
+      id: 'email-hr-wellness-webinar',
+      colleagueId: 'hr',
+      subject: '健康星期三:“正念画图” 🧘',
+      body: '欢迎参加周三的引导课程:学习在方框之间呼吸,并放下那些不再滋养你的箭头。最后我们将为 {label} 举行感恩圈环节。\n\n出席记录匿名且被跟踪。\n\n近乎合十,\nLinda — 人力运营'
+    },
+    {
+      id: 'email-facilities-microwave',
+      colleagueId: 'facilities',
+      subject: '事故报告:微波炉',
+      body: '12:47,有人用微波炉热了鱼。大楼对此很有意见,我也是。微波炉现已归新管理层(我)管辖。门上贴了登记表:姓名、菜品、动机。\n\n先行致谢,\nGary'
+    },
+    {
+      id: 'email-intern-first-ship',
+      colleagueId: 'intern',
+      subject: '我上线东西啦!!!(小问题)',
+      body: '各位!!我的第一个改动上线了。就是 {label} 那个。不过小问题 — 如果所有东西都着火了,但火不大,该报告给谁?纯属假设。火是假设的。基本上。\n\nchad(实习生)'
     }
   ],
   OFFICE_IM_TEMPLATES: [
@@ -171,6 +223,41 @@ export const OFFICE_ZH_CN = {
       id: 'im-greybeard-mainframe',
       colleagueId: 'greybeard',
       body: '大型机问起你了。我说你忙着画图。它表示理解。'
+    },
+    {
+      id: 'im-ciso-password',
+      colleagueId: 'ciso',
+      body: '季度扫描把你的密码标记为“好记”。不可接受。请改成一个连你自己都猜不到的。'
+    },
+    {
+      id: 'im-ciso-arrows',
+      colleagueId: 'ciso',
+      body: '数了数 {label} 里的箭头。每一根都是攻击面。祝你睡个好觉。'
+    },
+    {
+      id: 'im-helpdesk-dns',
+      colleagueId: 'helpdesk',
+      body: '网络慢?是 DNS。不是 DNS。刚才是 DNS。工单已关闭。'
+    },
+    {
+      id: 'im-greybeard-gitblame',
+      colleagueId: 'greybeard',
+      body: '对那次故障跑了 git blame。结果是你。2019 年。大型机选择原谅,但会记日志。'
+    },
+    {
+      id: 'im-intern-regex',
+      colleagueId: 'intern',
+      body: '我写出人生第一个正则了!!它能匹配一切。这算坏事吗?感觉充满力量'
+    },
+    {
+      id: 'im-scrum-velocity',
+      colleagueId: 'scrumMaster',
+      body: '速率播报!你平均每小时画 4.2 个方框 — 太棒了!这事儿咱们别告诉财务。🙂'
+    },
+    {
+      id: 'im-facilities-elevator',
+      colleagueId: 'facilities',
+      body: '电梯又开始发出那个声音了。请走楼梯。楼梯也有声音,但是另一种。'
     }
   ],
   OFFICE_WALKBY_FALLBACKS: [
@@ -198,6 +285,21 @@ export const OFFICE_ZH_CN = {
       id: 'walkby-hr',
       colleagueId: 'hr',
       body: '大家围绕 {label} 的能量太棒了!考虑过在强制欢乐时光上展示它吗?😊'
+    },
+    {
+      id: 'walkby-ciso',
+      colleagueId: 'ciso',
+      body: '嗯。{label}。画出一个攻击面还替对方贴好标签,勇气可嘉。'
+    },
+    {
+      id: 'walkby-helpdesk',
+      colleagueId: 'helpdesk',
+      body: '{label} 那个框?我有个关于它的工单。曾经有。现在它是“已知问题”了。恭喜。'
+    },
+    {
+      id: 'walkby-greybeard-orchestrator',
+      colleagueId: 'greybeard',
+      body: '小心 {label}。上一个这种东西在 2011 年前后有了自我意识。我们现在不把“编排器”说出口。'
     }
   ],
   OFFICE_COFFEE_SCENES: [
@@ -257,6 +359,211 @@ export const OFFICE_ZH_CN = {
         },
         { speakerId: 'greybeard', text: '2009 年我们管它叫清单。它也没变过。' }
       ]
+    },
+    {
+      id: 'coffee-dns',
+      lines: [
+        {
+          speakerId: 'helpdesk',
+          text: '复盘报告发布了。根因:DNS。根因的根因:也是 DNS。'
+        },
+        {
+          speakerId: 'ciso',
+          text: '永远是 DNS。不是 DNS 的时候,就是有人在生产环境做测试。'
+        },
+        { speakerId: 'helpdesk', text: '那次也是走 DNS 解析的。所以官方结论:DNS。' }
+      ]
+    },
+    {
+      id: 'coffee-cloud-bill',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '财务又把云账单标红了。我已经安排了一场成本对齐仪式。'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '2009 年服务器就在我桌子底下。免费。暖和。吵。还是从前好。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-standing-desk',
+      lines: [
+        {
+          speakerId: 'hr',
+          text: '升降桌到货了!健康数据显示我们 94% 的时间仍然坐着,但坐得更高了。'
+        },
+        {
+          speakerId: 'facilities',
+          text: '它们夜里会自己升起来。桌子。我说得太多了。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-ai-half',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: '今天 AI 帮我写了一半的代码!!超酷。哪一半?不清楚'
+        },
+        {
+          speakerId: 'ciso',
+          text: '查清楚是哪一半。其中一半要进审计。'
+        }
+      ]
+    }
+  ],
+  OFFICE_BATTLE_SCENES: [
+    {
+      id: 'battle-tabs-spaces',
+      topic: 'Tab 还是空格',
+      lines: [
+        {
+          speakerId: 'greybeard',
+          text: 'Tab。一次击键,一个字符,宽度可配置。这事儿 2009 年就定论了。'
+        },
+        {
+          speakerId: 'intern',
+          text: '风格指南说用两个空格!!我通读了全文。花了整个周末'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '那份风格指南出自一个从没打开过终端的委员会。'
+        },
+        {
+          speakerId: 'intern',
+          text: 'linter 站在我这边!!!我可从来没赢过 linter'
+        }
+      ],
+      verdicts: {
+        greybeard: '就用 Tab。linter 已被重新配置。实习生会缓过来的,假以时日。',
+        intern: '两个空格赢了!!ulrich 说这个行业完蛋了,不过这话他每天都说'
+      }
+    },
+    {
+      id: 'battle-friday-deploy',
+      topic: '周五上线',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '冲刺周五结束,所以周五上线。这是数学!大家能量满满!'
+        },
+        {
+          speakerId: 'ciso',
+          text: '周五什么都不许上。故障不过周末,我的手机也是。'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: '我们可以在周一加一场“上线回顾会”,消化各种情绪。以及故障。'
+        },
+        {
+          speakerId: 'ciso',
+          text: '我会在故障桥接会上消化我的。请带上你的情绪和一台笔记本。'
+        }
+      ],
+      verdicts: {
+        scrumMaster: '动议通过 — 周五上线!Sasha 已提前申报了这次事故,节省时间。',
+        ciso: '上线改到周一。周末在法律意义上保持无事发生。不用谢。'
+      }
+    },
+    {
+      id: 'battle-thermostat',
+      topic: '恒温器(据称 20.5°C)',
+      lines: [
+        {
+          speakerId: 'facilities',
+          text: '恒温器设定为 20.5°C。这个数字来自科学,而且是最终决定。'
+        },
+        {
+          speakerId: 'hr',
+          text: 'Gary,有三个人在室内戴手套。我这边健康工单都来了。'
+        },
+        {
+          speakerId: 'facilities',
+          text: '戴手套是个人成长。传感器继续上锁。冰袋的事我都知道。'
+        },
+        {
+          speakerId: 'hr',
+          text: '士气随温度上升!有研究为证。我打印了一份。摸上去冰凉。'
+        }
+      ],
+      verdicts: {
+        facilities: '20.5°C 不变。毛衣募集已经安排上了。士气现在是纺织品问题。',
+        hr: '我们将试行 21°C!Gary 管它叫“热带”,并已提交正式抗议。'
+      }
+    },
+    {
+      id: 'battle-monolith',
+      topic: '一个框还是十四个框(单体之问)',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '把 {label} 拆成微服务,每个团队都有自己的待办!自治!仪式!'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '你这是把一个问题变成一套分布式的问题,日志还更难查。'
+        },
+        { speakerId: 'scrumMaster', text: '我们会有服务网格!有个网络研讨会!' },
+        {
+          speakerId: 'greybeard',
+          text: '我参加过一次网络研讨会。2011 年。我和大型机至今还会聊起它。'
+        }
+      ],
+      verdicts: {
+        scrumMaster: '就拆微服务!我已经为十四个新仓库各订了一个例会。',
+        greybeard: '单体留下。十年后你会管它叫“恢弘的模块化单体”,并说是你的主意。'
+      }
+    },
+    {
+      id: 'battle-dns-postmortem',
+      topic: '那次故障的复盘',
+      lines: [
+        {
+          speakerId: 'helpdesk',
+          text: '根因:DNS。复盘关闭。永远是 DNS。'
+        },
+        {
+          speakerId: 'ciso',
+          text: '是我的防火墙规则,而且我的规则是正确且警觉的。它拦下了可疑流量:全部流量。'
+        },
+        { speakerId: 'helpdesk', text: '那些流量是走 DNS 解析的。工单维持原判。' },
+        {
+          speakerId: 'ciso',
+          text: '把一切都拦掉,是唯一零 CVE 的架构。不服去查。'
+        }
+      ],
+      verdicts: {
+        helpdesk: '“DNS”被采纳为根因,并预先批准为未来所有故障的根因。讲究效率。',
+        ciso: '裁定:防火墙是对的。“可用性”是销售部散布的谣言。'
+      }
+    },
+    {
+      id: 'battle-tupperware',
+      topic: '无标签饭盒',
+      lines: [
+        {
+          speakerId: 'facilities',
+          text: '一个无标签容器从二季度起就待在冰箱里。这已经是后勤事务了。'
+        },
+        {
+          speakerId: 'helpdesk',
+          text: '我贴过标签。工单 #48317:“容器,内容不明,请勿重启”。'
+        },
+        {
+          speakerId: 'facilities',
+          text: '工单号不是标签。标签要有名字和日期。我这儿有。乐意提供。'
+        },
+        {
+          speakerId: 'helpdesk',
+          text: '内容物已连续在线 94 天。全楼层运行时间最长的服务。请勿打扰。'
+        }
+      ],
+      verdicts: {
+        facilities: '容器没了。别问去哪儿了。冰箱恢复了安宁。标签机赢了。',
+        helpdesk: '容器留下。它已晋升为生产环境。Gary 现在得提变更申请。'
+      }
     }
   ],
   OFFICE_MEETING_COPY: {
@@ -299,7 +606,8 @@ export const OFFICE_ZH_CN = {
       focusTimeLabel: '专注时间',
       focusTimeTitle: '同事们(基本上)会尊重专注时间',
       soundscapeLabel: '办公室音景',
-      soundscapeTitle: '办公室环境音 — 键盘声、纸张、打印机、电话、饮水机、咖啡机',
+      soundscapeTitle:
+        '办公室环境音 — 键盘声、鼠标点击、纸张、椅子吱呀、打印机、电话、饮水机、咖啡机、自动售货机、电梯',
       closeAria: '关闭收件箱',
       back: '← 返回',
       emptyLine: '收件箱清零。HR 觉得这很可疑。且行且珍惜。',
@@ -322,6 +630,19 @@ export const OFFICE_ZH_CN = {
       sceneAria: '咖啡时间',
       sceneTitle: '茶水间',
       done: '回去干活'
+    },
+    battle: {
+      inviteLine: '🥊 {a} 和 {b} 又杠上了 — “{topic}”。全楼层都在围观。',
+      accept: '搬好小板凳',
+      decline: '与我无关',
+      sceneAria: '工位对决',
+      sceneTitle: '工位对决',
+      versus: 'vs',
+      settleLine: '双方你都听完了。总得有人是错的:',
+      sideLabel: '站 {name}',
+      walkAway: '上报 HR(离场)',
+      verdictHead: '全楼层裁定',
+      done: '回去搬砖'
     },
     meetingInvite: {
       organizerLabel: '组织者:',

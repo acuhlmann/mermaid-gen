@@ -336,6 +336,11 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '💬 REPLY GUY',
       subtitle: '"Circling back" five times in one session. Yeah nah, it\'s a lifestyle.'
     },
+    holyWarReferee: {
+      id: 'holyWarReferee',
+      title: '🥊 HOLY WAR REFEREE',
+      subtitle: 'Settled three cubicle barneys. Tabs, spaces and the thermostat all rate you.'
+    },
     refine: {
       id: 'masterPolisher',
       title: '👷 MASTER ENGINEER',

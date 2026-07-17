@@ -646,6 +646,11 @@ export const ACHIEVEMENTS = {
     title: '💬 REPLY GUY',
     subtitle: '"Circling back" five times in one session. It\'s a lifestyle.'
   },
+  holyWarReferee: {
+    id: 'holyWarReferee',
+    title: '🥊 HOLY WAR REFEREE',
+    subtitle: 'Settled three cubicle battles. Tabs, spaces, and the thermostat all fear you.'
+  },
   ...VARIANT_MASTERY_ACHIEVEMENTS
 };
 

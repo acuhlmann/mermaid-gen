@@ -30,7 +30,7 @@ The office layer is a **fourth character system**, orthogonal to the existing th
 | A. Stakeholders (advisor)         | 6 personas (`VARIANT_PERSONAS`)     | Proactive speech bubble, radial actions |
 | B. External agents (MCP)          | Real Cursor/Claude/VS Code guests   | session-events SSE, presence, proposals |
 | C. Run gamification               | XP/levels/achievements              | StreakHud, XP bar                       |
-| **D. Office ambience (this doc)** | **6 colleagues + the stakeholders** | **OfficeLayer chrome, `/api/office/*`** |
+| **D. Office ambience (this doc)** | **7 colleagues + the stakeholders** | **OfficeLayer chrome, `/api/office/*`** |
 
 Key boundary: **colleagues never appear in the radial action menu** — they live purely in the
 ambience layer. Stakeholders participate in office life (send emails, take meeting seats) by
@@ -41,19 +41,19 @@ minutes flow into the Thinking pane through System B's attributed-note rendering
 
 ### Shipped colleagues (v1)
 
-| id            | Name            | Title                             | Emoji | Bit                                                                                             |
-| ------------- | --------------- | --------------------------------- | ----- | ----------------------------------------------------------------------------------------------- |
-| `intern`      | Chad            | The Intern (Unpaid, Strategic)    | 🧃    | Replies-all; naive questions that are accidentally profound ~1 in 5                             |
-| `scrumMaster` | Pam             | Agile Coach — CSM, CSPO, SAFe 6.0 | 📅    | Everything is a ceremony; parking-lot enthusiast; facilitates every meeting                     |
-| `helpdesk`    | Ticket Bot Dave | IT Helpdesk — Tier 1 (of 1)       | 🖥️    | Closes tickets as duplicates of themselves; canned-email workhorse (zero LLM)                   |
-| `facilities`  | Gary            | Facilities & Fridge Czar          | 🧹    | ALL-CAPS fridge cleanouts; controls the thermostat with an iron fist                            |
-| `hr`          | Linda           | People Ops Business Partner       | 📎    | Weaponized cheerfulness; 847-days-overdue trainings; Craig's birthday card                      |
-| `greybeard`   | Ulrich          | Staff Engineer Emeritus           | 🧓    | "We tried that in 2009"; maintains the mainframe nobody admits exists; unsettlingly good advice |
+| id            | Name            | Title                             | Emoji | Bit                                                                                                  |
+| ------------- | --------------- | --------------------------------- | ----- | ---------------------------------------------------------------------------------------------------- |
+| `intern`      | Chad            | The Intern (Unpaid, Strategic)    | 🧃    | Replies-all; naive questions that are accidentally profound ~1 in 5                                  |
+| `scrumMaster` | Pam             | Agile Coach — CSM, CSPO, SAFe 6.0 | 📅    | Everything is a ceremony; parking-lot enthusiast; facilitates every meeting                          |
+| `helpdesk`    | Ticket Bot Dave | IT Helpdesk — Tier 1 (of 1)       | 🖥️    | Closes tickets as duplicates of themselves; canned-email workhorse (zero LLM)                        |
+| `facilities`  | Gary            | Facilities & Fridge Czar          | 🧹    | ALL-CAPS fridge cleanouts; controls the thermostat with an iron fist                                 |
+| `hr`          | Linda           | People Ops Business Partner       | 📎    | Weaponized cheerfulness; 847-days-overdue trainings; Craig's birthday card                           |
+| `greybeard`   | Ulrich          | Staff Engineer Emeritus           | 🧓    | "We tried that in 2009"; maintains the mainframe nobody admits exists; unsettlingly good advice      |
+| `ciso`        | Sasha           | CISO — The Department of No       | 🔐    | Everything is an attack surface, especially the arrows; runs the phishing sims; "noted in your file" |
 
 ### Future bench (roadmap)
 
 - **The Product Manager** 🗺️ — "quick question" that is never quick; scope creep as a love language.
-- **The CISO** 🔐 — phishing tests, "everything is an attack surface, especially the arrows".
 - **The Consultant** 💼 — external, billable in 6-minute increments; answers live on slide 87; while
   present, applies an hourly multiplier to the Stakeholder Damage Report™.
 - **The CEO** 🏆 — rare cameo; vague inspiration; suddenly cares deeply about AI.
@@ -70,14 +70,37 @@ A **moment** is one interruption: `{kind, colleague, channel, content source}`. 
 | `im`             | Slop Chat™ ping bubbles (TTL ~9 s, max 2) | Mostly canned with `{label}` slot fills                       | Low                         |
 | `walkby`         | Colleague slides in beside the canvas     | **Always LLM** (must reference a real label); canned fallback | Medium (~11 s)              |
 | `coffee`         | Invite pill → watercooler scene overlay   | Canned two-hander scenes                                      | Opt-in (+10 XP)             |
+| `battle`         | Invite pill → battle arena overlay        | Canned holy-war scenes; the user votes a winner               | Opt-in (+5 XP for settling) |
 | `meeting-invite` | Calendar-invite toast                     | Canned invite; the meeting itself is LLM                      | Opt-in (the flagship)       |
 
 Actionable moments carry an `actionPrompt` — a "Do it" button that feeds the normal intent-prompt
 path (same adopt flow as the stakeholder advisor).
 
 **Every surface shows who is talking**: name **and** role ride along on IM pings, inbox rows,
-meeting-invite attendee chips, meeting seats, transcript bubbles, and coffee scenes (tooltips
-where space is tight) — never a bare emoji.
+meeting-invite attendee chips, meeting seats, transcript bubbles, coffee scenes, and battle
+arenas (tooltips where space is tight) — never a bare emoji.
+
+### Cubicle battles (the holy-war system)
+
+From time to time two colleagues go to war over the eternal questions — tabs vs. spaces, the
+Friday deploy, the thermostat (20.5°C, allegedly), monolith vs. microservices, "it was DNS", the
+unlabeled tupperware. Three-phase flow, all in `OfficeBattleOverlay`:
+
+1. **Invite pill** — "🥊 {a} and {b} are at it again" with [Grab popcorn] / [Not my circus].
+2. **The arena** — both combatants' avatars face off under the topic; their lines **pace in one
+   by one** (`BATTLE_LINE_PACE_MS`) so the escalation lands like a live spat. The boxing bell
+   (`playBattleBell`) rings the match in.
+3. **The verdict** — the user settles the holy war by siding with someone ("You've heard both
+   sides. Someone has to be wrong."). The winner gets a closing zinger (per-side `verdicts` in
+   the scene bank), a victory sting plays, and settling is worth **+5 XP**. Walking away
+   ("Escalate to HR") costs nothing and resolves nothing, like real life.
+
+Battles are **pure canned theater** — zero LLM, fully offline-capable (`OFFICE_BATTLE_SCENES` in
+`officeCast.js`, localized like every other bank), never mean, and rare by design: weight 1.25 in
+the cadence mix and a hard cap of **2 per session** (`OFFICE_BATTLES_PER_SESSION`). Scenes may
+reference the diagram via `{label}` slots (the monolith battle argues about splitting the user's
+actual node). Store lifecycle mirrors coffee: invite → accept → vote → dismiss
+(`pushOfficeBattleInvite` / `acceptOfficeBattle` / `voteOfficeBattle` / `dismissOfficeBattle`).
 
 ### First-run onboarding (the office introduces itself)
 
@@ -115,8 +138,8 @@ drill (all surfaces evacuate for 30 s), the printer that prints one page reading
   with an `actionPrompt`). Server enforces: 6–14 beats, ≥1 substantive, speakers from the attendee
   list only, facilitator opens and closes.
 - **Attendees**: 3–4 seats — Pam always facilitates, plus a rotating mix of
-  {`exec`, `critique`, `goMad`, `intern`, `greybeard`}. Attendees react to each other by name and
-  bicker gently.
+  {`exec`, `critique`, `goMad`, `intern`, `greybeard`, `ciso`}. Attendees react to each other by
+  name and bicker gently.
 - **Interjections**: the user speaks up to 2× per meeting; `POST /api/office/meeting/interject`
   rewrites only the remaining beats to react to the user's point. On failure, Pam parks the point
   ("Great point — parking-lotting that.") and the meeting rolls on.
@@ -136,7 +159,8 @@ the pure cadence brain (`officeCadence.js`) on a 5 s tick:
 
 - Quiet first ~20 s of a session, then a **warm-up**: the first 2 moments arrive on a short
   45–75 s leash (the office notices the new arrival) before the cadence settles to the 3–5 min
-  jittered cruise gap; **hard cap ~10 moments/session**; 1 meeting invite/session.
+  jittered cruise gap; **hard cap ~10 moments/session**; 1 meeting invite/session; 2 cubicle
+  battles/session.
 - Never fires while: an agent run streams, the stakeholder advisor bubble is up, a meeting is
   open, another office surface is on screen, the tab is hidden, or **Focus Time** is on
   (persisted; colleagues mostly respect it).
@@ -148,9 +172,11 @@ the pure cadence brain (`officeCadence.js`) on a 5 s tick:
 
 ### Soundscape (room tone)
 
-A second, sound-only cadence: sporadic synthesized cues — the desk textures **keyboard clatter**
-and **paper shuffle** (may repeat), plus the set pieces **distant printer**, **desk phone**
-(nobody answers), **watercooler glugs**, and **espresso machine** (never back-to-back) — in
+A second, sound-only cadence: sporadic synthesized cues — the desk textures **keyboard clatter**,
+**mouse clicks** (with the occasional scroll-wheel ratchet), and **paper shuffle** (may repeat),
+plus the set pieces **distant printer**, **chair squeak** (with caster roll), **desk phone**
+(nobody answers), **watercooler glugs**, **espresso machine**, **vending machine** (coin, spiral
+motor, thunk), and **elevator ding** (nobody gets out) — never back-to-back — in
 `agentChimes.js`, all quieter than any event chime. The pure brain (`officeSoundscape.js`,
 mirroring `officeCadence.js`) enforces a ~6 s quiet start, a 12–26 s warm-up gap for the first
 ~2 min (the room fades in), then a jittered 35–75 s cruise gap; the `useOfficeSoundscape`
@@ -160,15 +186,17 @@ next to Focus Time in the inbox dock. Zero LLM, zero assets, zero network.
 
 Event SFX on top of the room tone: the session's first email plays **"You've got mail!"**
 (speech synthesis via the localized `mailAnnounce` line; plain chime fallback), walk-bys get
-approaching **footsteps**, meeting invites a **calendar bing-bong**, and accepting a coffee
-break fires the espresso machine.
+approaching **footsteps**, meeting invites a **calendar bing-bong**, accepting a coffee break
+fires the espresso machine, entering a cubicle battle rings the **boxing bell**, and settling
+one lands a small **victory sting**.
 
 ## 7. Gamification
 
 `applyOfficeEvent` (same reducer/emission contract as `applyCompletedRun`): email read +1, IM
-quick-reply +2, coffee break +10, meeting left early +5, meeting survived +25. Deliberately small —
-attending meetings must never out-earn shipping slop. Achievements: 📭 INBOX ZERO, 📅 SURVIVED THE
-SYNC, ☕ THIRD SHIFT, 💬 REPLY GUY.
+quick-reply +2, battle settled +5, coffee break +10, meeting left early +5, meeting survived +25.
+Deliberately small — attending meetings must never out-earn shipping slop. Achievements: 📭 INBOX
+ZERO, 📅 SURVIVED THE SYNC, ☕ THIRD SHIFT, 💬 REPLY GUY, 🥊 HOLY WAR REFEREE (three battles
+settled in one session).
 
 Roadmap: the **performance review** (quarterly A2UI self-assessment pre-filled from real XP/streak/
 Damage-Report stats), promotion ceremonies, "meeting-free day" streak bonuses (broken by the app
@@ -195,33 +223,35 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 
 ## 9. Code map
 
-| Piece                                                        | Path                                                                                                                                                                                                                                                                                                          |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared schemas                                               | `packages/shared/src/officeScript.ts`                                                                                                                                                                                                                                                                         |
-| Colleague voices + prompt builders + parsers + model factory | `apps/server/src/agents/officePersonas.js`                                                                                                                                                                                                                                                                    |
-| Routes                                                       | `apps/server/src/routes/office.js` (mounted at `/api/office`)                                                                                                                                                                                                                                                 |
-| Cast + canned template banks + chrome copy                   | `apps/web/src/utils/officeCast.js`                                                                                                                                                                                                                                                                            |
-| Locale bundles (en-AU, zh-CN, zh-TW office copy)             | `apps/web/src/i18n/locales/office.*.js` → merged in `getUiLocaleBundle.js`, applied via `setActiveOfficeBundle` (UiLocaleContext)                                                                                                                                                                             |
-| Pure cadence brain                                           | `apps/web/src/utils/officeCadence.js`                                                                                                                                                                                                                                                                         |
-| Soundscape brain (pure) + director hook                      | `apps/web/src/utils/officeSoundscape.js`, `apps/web/src/hooks/useOfficeSoundscape.js`                                                                                                                                                                                                                         |
-| DND + soundscape + cadence + welcome/directory persistence   | `apps/web/src/utils/officeAmbienceStorage.js`                                                                                                                                                                                                                                                                 |
-| First-run welcome sequence                                   | `apps/web/src/hooks/useOfficeWelcome.js` (beats: `OFFICE_WELCOME_EMAIL` / `OFFICE_WELCOME_IM` in `officeCast.js`)                                                                                                                                                                                             |
-| Entry-screen office directory                                | `apps/web/src/components/OfficeDirectory.jsx` (mounted in App's entry cluster; colleague `blurb`s in `officeCast.js`)                                                                                                                                                                                         |
-| Ambience store (useSyncExternalStore)                        | `apps/web/src/state/officeMomentStore.js`                                                                                                                                                                                                                                                                     |
-| Director hook                                                | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                                                                                                                                                     |
-| Meeting playback state machine                               | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                                                                                                                                                                    |
-| Chrome                                                       | `apps/web/src/components/OfficeLayer.jsx` (+ `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                 |
-| Office XP reducer                                            | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                            |
-| Minutes → Thinking pane                                      | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                    |
-| SFX                                                          | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` + soundscape cues (`playKeyboardClatter` / `playPaperShuffle` / `playDistantPrinter` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine`) in `apps/web/src/utils/agentChimes.js` |
-| App integration                                              | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                                                                                                                                                                  |
+| Piece                                                        | Path                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared schemas                                               | `packages/shared/src/officeScript.ts`                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Colleague voices + prompt builders + parsers + model factory | `apps/server/src/agents/officePersonas.js`                                                                                                                                                                                                                                                                                                                                                                                               |
+| Routes                                                       | `apps/server/src/routes/office.js` (mounted at `/api/office`)                                                                                                                                                                                                                                                                                                                                                                            |
+| Cast + canned template banks + chrome copy                   | `apps/web/src/utils/officeCast.js`                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Locale bundles (en-AU, zh-CN, zh-TW office copy)             | `apps/web/src/i18n/locales/office.*.js` → merged in `getUiLocaleBundle.js`, applied via `setActiveOfficeBundle` (UiLocaleContext)                                                                                                                                                                                                                                                                                                        |
+| Pure cadence brain                                           | `apps/web/src/utils/officeCadence.js`                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Soundscape brain (pure) + director hook                      | `apps/web/src/utils/officeSoundscape.js`, `apps/web/src/hooks/useOfficeSoundscape.js`                                                                                                                                                                                                                                                                                                                                                    |
+| DND + soundscape + cadence + welcome/directory persistence   | `apps/web/src/utils/officeAmbienceStorage.js`                                                                                                                                                                                                                                                                                                                                                                                            |
+| First-run welcome sequence                                   | `apps/web/src/hooks/useOfficeWelcome.js` (beats: `OFFICE_WELCOME_EMAIL` / `OFFICE_WELCOME_IM` in `officeCast.js`)                                                                                                                                                                                                                                                                                                                        |
+| Entry-screen office directory                                | `apps/web/src/components/OfficeDirectory.jsx` (mounted in App's entry cluster; colleague `blurb`s in `officeCast.js`)                                                                                                                                                                                                                                                                                                                    |
+| Ambience store (useSyncExternalStore)                        | `apps/web/src/state/officeMomentStore.js`                                                                                                                                                                                                                                                                                                                                                                                                |
+| Director hook                                                | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                                                                                                                                                                                                                                                                                |
+| Meeting playback state machine                               | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                                                                                                                                                                                                                                                                                               |
+| Chrome                                                       | `apps/web/src/components/OfficeLayer.jsx` (+ `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                                                                                                     |
+| Office XP reducer                                            | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                       |
+| Minutes → Thinking pane                                      | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                               |
+| SFX                                                          | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape cues (`playKeyboardClatter` / `playMouseClicks` / `playPaperShuffle` / `playDistantPrinter` / `playChairSqueak` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine` / `playVendingMachine` / `playElevatorDing`) in `apps/web/src/utils/agentChimes.js` |
+| App integration                                              | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                                                                                                                                                                                                                                                                                             |
 
 ## 10. Future roadmap (beyond v1)
 
 1. **Compliance-training minigame** — A2UI forms gauntlet ("Synergy & You: Module 3 of 11") reusing
    `FormsRenderer`; XP for completion; Linda sends the overdue notices.
 2. **Phishing test** — the CISO sends a too-good-to-be-true email; clicking it = achievement
-   ("Security Incident #1") + a mandatory training form.
+   ("Security Incident #1") + a mandatory training form. (Sasha the CISO ✅ shipped with the
+   ambience cast — including a phishing-_report_ email gag; the interactive click-bait minigame
+   is the part that remains.)
 3. **Performance review** — quarterly A2UI self-assessment pre-filled from real gamification stats.
 4. **All-hands** — CEO cameo meeting; everyone attends; nothing is decided; confetti.
 5. **The Re-org** — stakeholder titles/accents reshuffle for one session; the org chart renders as
@@ -237,8 +267,12 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 11. **The Consultant's invoice** — while the Consultant is in any meeting, the Damage Report ticks
     visibly per minute.
 12. ~~**Locale bundles**~~ — ✅ shipped: the full office copy bank (colleague titles, canned
-    emails/IMs/walk-bys/coffee scenes, meeting copy, chrome strings, quick replies, `{label}` slot
-    fallbacks) localizes to en-AU / zh-CN / zh-TW via `office.*.js` bundles merged in
-    `getUiLocaleBundle.js` and applied through `setActiveOfficeBundle`. Template ids stay aligned
-    across locales so the seen-template memory survives locale switches. Server-side (LLM) moments
-    remain English-first — a persona-prompt locale hint is the natural follow-up.
+    emails/IMs/walk-bys/coffee scenes/battle scenes, meeting copy, chrome strings, quick replies,
+    `{label}` slot fallbacks) localizes to en-AU / zh-CN / zh-TW via `office.*.js` bundles merged
+    in `getUiLocaleBundle.js` and applied through `setActiveOfficeBundle`. Template ids stay
+    aligned across locales so the seen-template memory survives locale switches. Server-side (LLM)
+    moments remain English-first — a persona-prompt locale hint is the natural follow-up.
+13. ~~**Cubicle battles**~~ — ✅ shipped (see §4 "Cubicle battles"). Future escalations: best-of-three
+    rematches with a running score, stakeholders wading in as tag-team partners, an LLM battle mode
+    that argues about the user's actual diagram, and betting XP on the outcome before the first line
+    lands.

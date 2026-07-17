@@ -7,8 +7,9 @@
  * Anti-annoyance policy: a brief quiet opening, a denser warm-up window (the
  * room "fades in" while the user settles), then a jittered multi-ten-second
  * cruise gap, and no back-to-back set pieces (the printer, espresso machine,
- * desk phone, and watercooler are events; only the desk textures — keyboard
- * clatter and paper shuffles — may repeat).
+ * desk phone, watercooler, chair squeak, vending machine, and elevator are
+ * events; only the desk textures — keyboard clatter, mouse clicks, and paper
+ * shuffles — may repeat).
  */
 
 export const SOUNDSCAPE_FIRST_CUE_MIN_MS = 6_000;
@@ -23,17 +24,21 @@ export const SOUNDSCAPE_GAP_JITTER_MS = 40_000;
 /** Relative frequency of each cue — typing is the office's heartbeat. */
 const CUE_WEIGHTS = [
   ['keyboard', 4],
+  ['mouse', 2.5],
   ['paper', 2],
   ['printer', 1.5],
+  ['chair', 1.3],
   ['phone', 1.2],
   ['watercooler', 1],
-  ['espresso', 1]
+  ['espresso', 1],
+  ['vending', 0.8],
+  ['elevator', 0.7]
 ];
 
 export const SOUNDSCAPE_CUES = CUE_WEIGHTS.map(([cue]) => cue);
 
 /** Desk textures that may play twice in a row; everything else is a set piece. */
-const REPEATABLE_CUES = new Set(['keyboard', 'paper']);
+const REPEATABLE_CUES = new Set(['keyboard', 'mouse', 'paper']);
 
 /**
  * @param {{
@@ -43,7 +48,7 @@ const REPEATABLE_CUES = new Set(['keyboard', 'paper']);
  *   lastCue?: string | null,
  *   random?: () => number
  * }} args
- * @returns {'keyboard'|'paper'|'printer'|'phone'|'watercooler'|'espresso'|null}
+ * @returns {'keyboard'|'mouse'|'paper'|'printer'|'chair'|'phone'|'watercooler'|'espresso'|'vending'|'elevator'|null}
  */
 export function pickNextSoundscapeCue({
   now,

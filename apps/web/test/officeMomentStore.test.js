@@ -2,7 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   _resetForTests,
+  acceptOfficeBattle,
   acceptOfficeCoffee,
+  dismissOfficeBattle,
   dismissOfficeCoffee,
   dismissOfficeImPing,
   dismissOfficeMeetingInvite,
@@ -13,6 +15,7 @@ import {
   IM_PING_TTL_MS,
   markAllOfficeEmailsRead,
   markOfficeEmailRead,
+  pushOfficeBattleInvite,
   pushOfficeCoffeeInvite,
   pushOfficeEmail,
   pushOfficeImPing,
@@ -20,6 +23,7 @@ import {
   pushOfficeWalkBy,
   setOfficeFocusTime,
   subscribe,
+  voteOfficeBattle,
   WALKBY_TTL_MS
 } from '../src/state/officeMomentStore.js';
 import { OFFICE_FOCUS_TIME_STORAGE_KEY } from '../src/utils/officeAmbienceStorage.js';
@@ -86,6 +90,38 @@ describe('officeMomentStore', () => {
     expect(getOfficeSnapshot().coffee.accepted).toBe(true);
     dismissOfficeCoffee();
     expect(getOfficeSnapshot().coffee).toBeNull();
+  });
+
+  it('runs the battle invite → accepted → voted → dismissed lifecycle', () => {
+    pushOfficeBattleInvite({
+      topic: 'Tabs vs. spaces',
+      lines: [
+        { speakerId: 'greybeard', text: 'Tabs.' },
+        { speakerId: 'intern', text: 'spaces!!' }
+      ],
+      verdicts: { greybeard: 'Tabs it is.', intern: 'spaces win!!' }
+    });
+    expect(getOfficeSnapshot().battle.accepted).toBe(false);
+    expect(hasActiveOfficeSurface()).toBe(true);
+
+    // Voting before entering the arena is ignored.
+    voteOfficeBattle('greybeard');
+    expect(getOfficeSnapshot().battle.votedFor).toBeNull();
+
+    acceptOfficeBattle();
+    expect(getOfficeSnapshot().battle.accepted).toBe(true);
+
+    // Unknown sides are ignored; the first valid vote settles it for good.
+    voteOfficeBattle('hr');
+    expect(getOfficeSnapshot().battle.votedFor).toBeNull();
+    voteOfficeBattle('intern');
+    expect(getOfficeSnapshot().battle.votedFor).toBe('intern');
+    voteOfficeBattle('greybeard');
+    expect(getOfficeSnapshot().battle.votedFor).toBe('intern');
+
+    dismissOfficeBattle();
+    expect(getOfficeSnapshot().battle).toBeNull();
+    expect(hasActiveOfficeSurface()).toBe(false);
   });
 
   it('reports active office surfaces so the director can hold fire', () => {

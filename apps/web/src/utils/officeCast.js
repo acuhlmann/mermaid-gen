@@ -95,6 +95,18 @@ export const OFFICE_COLLEAGUES = {
     emailFrom: 'ulrich@mainframe.archislop.corp',
     imHandle: '@ulrich',
     canJoinMeetings: true
+  },
+  ciso: {
+    id: 'ciso',
+    name: 'Sasha',
+    title: 'CISO — The Department of No',
+    blurb:
+      'Everything is an attack surface, especially the arrows. Runs the phishing tests. Trusts nothing.',
+    avatarEmoji: '🔐',
+    accentColor: '#dc2626',
+    emailFrom: 'secops@archislop.corp',
+    imHandle: '@sasha',
+    canJoinMeetings: true
   }
 };
 
@@ -128,7 +140,7 @@ export function officeSenderInfo(id) {
 }
 
 /** Default WG meeting seat pool: facilitator + a rotating mix of both casts. */
-export const MEETING_CAST_POOL = ['exec', 'critique', 'goMad', 'intern', 'greybeard'];
+export const MEETING_CAST_POOL = ['exec', 'critique', 'goMad', 'intern', 'greybeard', 'ciso'];
 export const MEETING_FACILITATOR = 'scrumMaster';
 
 /** Who can deliver an LLM-personalized moment of each kind (both casts). */
@@ -138,6 +150,7 @@ export const OFFICE_WALKBY_LLM_CAST = [
   'greybeard',
   'facilities',
   'hr',
+  'ciso',
   'critique',
   'exec',
   'explain'
@@ -148,9 +161,10 @@ export const OFFICE_EMAIL_LLM_CAST = [
   'scrumMaster',
   'greybeard',
   'hr',
-  'intern'
+  'intern',
+  'ciso'
 ];
-export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'goMad'];
+export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'goMad', 'ciso'];
 
 export function pickRandomFrom(list, random = Math.random) {
   if (!Array.isArray(list) || list.length === 0) return null;
@@ -263,6 +277,54 @@ export const OFFICE_EMAIL_TEMPLATES = [
     colleagueId: 'greybeard',
     subject: 'you have reinvented the batch job',
     body: "Saw your diagram on the shared drive. We built this in 2009. It ran on a cron job and fear. Took down prod for a week in 2011.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
+  },
+  {
+    id: 'email-ciso-phishing',
+    colleagueId: 'ciso',
+    subject: 'You did NOT click. We noticed. (Phishing Simulation Report)',
+    body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suspicious behavior and has been noted in your file.\n\nWe will keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
+  },
+  {
+    id: 'email-ciso-password',
+    colleagueId: 'ciso',
+    subject: 'Password policy update (effective yesterday)',
+    body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
+  },
+  {
+    id: 'email-helpdesk-printer-firmware',
+    colleagueId: 'helpdesk',
+    subject: '[Ticket #48313] Printer firmware update complete',
+    body: 'The third-floor printer is now on firmware 9.0.1. New features: refusing PDFs, a louder noise, and printing one (1) page reading "soon" at unscheduled intervals. This is expected behavior.\n\nDo not open a ticket. It will be closed as a duplicate of the printer.\n\n— Dave'
+  },
+  {
+    id: 'email-greybeard-cloud',
+    colleagueId: 'greybeard',
+    subject: 'RE: cloud migration kickoff',
+    body: "The cloud is the mainframe with better marketing. I migrated us once — 2009, to 'the grid'. We migrated back in 2010. Quietly. At night.\n\nYour {label} will run fine either way. Things mostly do, until they don't.\n\nUlrich"
+  },
+  {
+    id: 'email-scrum-retro-retro',
+    colleagueId: 'scrumMaster',
+    subject: 'Invite: Retro on the Retro (mandatory, fun)',
+    body: "Team! Our retro scored 4.2/5 on energy but only 2.9 on actionability, so we're holding a retro on the retro. Please bring one Glad, one Sad, one Mad, and a backup Mad.\n\nAction items from the previous retro carry over untouched, as tradition demands.\n\nPam"
+  },
+  {
+    id: 'email-hr-wellness-webinar',
+    colleagueId: 'hr',
+    subject: "Wellness Wednesday: 'Mindful Diagramming' 🧘",
+    body: 'Join us Wednesday for a guided session on breathing between boxes and letting go of arrows that no longer serve you. We will close with a gratitude circle for {label}.\n\nAttendance is anonymous and tracked.\n\nNamaste-ish,\nLinda — People Ops'
+  },
+  {
+    id: 'email-facilities-microwave',
+    colleagueId: 'facilities',
+    subject: 'INCIDENT REPORT: The Microwave',
+    body: 'At 12:47 someone microwaved fish. The building has feelings about this, and so do I. The microwave is now under new management (mine). A sign-up sheet is on the door: NAME, DISH, INTENTIONS.\n\nThanks in advance,\nGary'
+  },
+  {
+    id: 'email-intern-first-ship',
+    colleagueId: 'intern',
+    subject: 'i shipped something!!! (small question)',
+    body: "you guys!! my first change is LIVE. it's the {label} one. quick question though — if everything is on fire but in a small way, who do i tell? asking hypothetically. the fire is hypothetical. mostly.\n\nchad (intern)"
   }
 ];
 
@@ -275,7 +337,7 @@ export const OFFICE_WELCOME_EMAIL = {
   id: 'welcome-email-hr',
   colleagueId: 'hr',
   subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-  body: 'Welcome to the floor! So thrilled to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
+  body: 'Welcome to the floor! So thrilled to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) is already suspicious of you. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
 };
 
 export const OFFICE_WELCOME_IM = {
@@ -335,6 +397,41 @@ export const OFFICE_IM_TEMPLATES = [
     id: 'im-greybeard-mainframe',
     colleagueId: 'greybeard',
     body: 'The mainframe asked about you. I told it you were busy diagramming. It understood.'
+  },
+  {
+    id: 'im-ciso-password',
+    colleagueId: 'ciso',
+    body: "quarterly scan flagged your password as 'memorable'. unacceptable. rotate it to something even you can't guess."
+  },
+  {
+    id: 'im-ciso-arrows',
+    colleagueId: 'ciso',
+    body: 'counted the arrows in {label}. every one of them is an attack surface. sleep well.'
+  },
+  {
+    id: 'im-helpdesk-dns',
+    colleagueId: 'helpdesk',
+    body: "Network slow? It's DNS. It's not DNS. It was DNS. Ticket closed."
+  },
+  {
+    id: 'im-greybeard-gitblame',
+    colleagueId: 'greybeard',
+    body: 'Ran git blame on the outage. It says you. 2019. The mainframe forgives, but it logs.'
+  },
+  {
+    id: 'im-intern-regex',
+    colleagueId: 'intern',
+    body: 'wrote my first regex!! it matches everything. is that bad? it feels powerful'
+  },
+  {
+    id: 'im-scrum-velocity',
+    colleagueId: 'scrumMaster',
+    body: "Velocity check! You're averaging 4.2 boxes per hour — amazing! Let's not tell finance we measure this. 🙂"
+  },
+  {
+    id: 'im-facilities-elevator',
+    colleagueId: 'facilities',
+    body: 'The elevator is making the noise again. Take the stairs. The stairs also make a noise, but a different one.'
   }
 ];
 
@@ -364,6 +461,21 @@ export const OFFICE_WALKBY_FALLBACKS = [
     id: 'walkby-hr',
     colleagueId: 'hr',
     body: 'Love the energy around {label}! Have you considered presenting it at Mandatory Fun Hour? 😊'
+  },
+  {
+    id: 'walkby-ciso',
+    colleagueId: 'ciso',
+    body: 'Mm. {label}. Bold of you to draw an attack surface and then label it for them.'
+  },
+  {
+    id: 'walkby-helpdesk',
+    colleagueId: 'helpdesk',
+    body: "That {label} box? I have an open ticket about it. Had. It's a known issue now. Congratulations."
+  },
+  {
+    id: 'walkby-greybeard-orchestrator',
+    colleagueId: 'greybeard',
+    body: "Careful with {label}. The last one of those became self-aware around 2011. We don't say 'orchestrator' out loud anymore."
   }
 ];
 
@@ -437,6 +549,227 @@ export const OFFICE_COFFEE_SCENES = [
       },
       { speakerId: 'greybeard', text: "In 2009 we called it a list. It also didn't change." }
     ]
+  },
+  {
+    id: 'coffee-dns',
+    lines: [
+      {
+        speakerId: 'helpdesk',
+        text: "Postmortem's published. Root cause: DNS. Root cause of the root cause: also DNS."
+      },
+      {
+        speakerId: 'ciso',
+        text: "It's always DNS. Except when it's someone testing in prod."
+      },
+      { speakerId: 'helpdesk', text: 'That resolved through DNS. Officially it was DNS.' }
+    ]
+  },
+  {
+    id: 'coffee-cloud-bill',
+    lines: [
+      {
+        speakerId: 'scrumMaster',
+        text: "Finance flagged the cloud bill again. I've scheduled a cost-alignment ceremony."
+      },
+      {
+        speakerId: 'greybeard',
+        text: 'In 2009 the server lived under my desk. Free. Warm. Loud. Better days.'
+      }
+    ]
+  },
+  {
+    id: 'coffee-standing-desk',
+    lines: [
+      {
+        speakerId: 'hr',
+        text: 'The standing desks arrived! Wellness data says we now sit 94% of the time, but taller.'
+      },
+      {
+        speakerId: 'facilities',
+        text: "They rise on their own at night. The desks. I've said too much."
+      }
+    ]
+  },
+  {
+    id: 'coffee-ai-half',
+    lines: [
+      {
+        speakerId: 'intern',
+        text: 'the AI wrote half my code today!! so cool. which half? unclear'
+      },
+      {
+        speakerId: 'ciso',
+        text: 'Find out which half. One of them is going in the audit.'
+      }
+    ]
+  }
+];
+
+/**
+ * Cubicle battles (docs/office-parody.md): two colleagues locked in a holy
+ * war — tabs vs spaces, the Friday deploy, the thermostat. The user spectates
+ * (lines pace in one by one), then settles it by picking a winner; each side
+ * has a `verdicts` closing zinger delivered only when they win. Pure canned
+ * theater — zero LLM, works offline, never mean.
+ */
+export const OFFICE_BATTLE_SCENES = [
+  {
+    id: 'battle-tabs-spaces',
+    topic: 'Tabs vs. spaces',
+    lines: [
+      {
+        speakerId: 'greybeard',
+        text: 'Tabs. One keystroke, one character, configurable width. We settled this in 2009.'
+      },
+      {
+        speakerId: 'intern',
+        text: 'the style guide says two spaces!! i read the whole thing. it took my weekend'
+      },
+      {
+        speakerId: 'greybeard',
+        text: 'The style guide was written by a committee that has never opened a terminal.'
+      },
+      {
+        speakerId: 'intern',
+        text: 'the linter agrees with me!!! i have never once beaten the linter'
+      }
+    ],
+    verdicts: {
+      greybeard: 'Tabs it is. The linter has been reconfigured. The intern will recover, in time.',
+      intern:
+        'two spaces win!! ulrich says the industry is doomed, but he says that every day anyway'
+    }
+  },
+  {
+    id: 'battle-friday-deploy',
+    topic: 'The Friday deploy',
+    lines: [
+      {
+        speakerId: 'scrumMaster',
+        text: "The sprint ends Friday, so we deploy Friday. That's just math! Great energy, everyone."
+      },
+      {
+        speakerId: 'ciso',
+        text: "Nothing ships on Friday. Incidents don't respect weekends, and neither does my phone."
+      },
+      {
+        speakerId: 'scrumMaster',
+        text: "We'll add a Monday 'deploy retro' to process any feelings. And outages."
+      },
+      {
+        speakerId: 'ciso',
+        text: "I'll be processing mine from the incident bridge. Bring your feelings and a laptop."
+      }
+    ],
+    verdicts: {
+      scrumMaster:
+        'Motion carries — we ship Friday! Sasha has pre-declared the incident, to save time.',
+      ciso: 'Deploy moved to Monday. The weekend remains legally uneventful. You are welcome.'
+    }
+  },
+  {
+    id: 'battle-thermostat',
+    topic: 'The thermostat (20.5°C, allegedly)',
+    lines: [
+      {
+        speakerId: 'facilities',
+        text: 'The thermostat is set to 20.5°C. That number came from SCIENCE and it is FINAL.'
+      },
+      {
+        speakerId: 'hr',
+        text: "Gary, three people are wearing gloves indoors. I'm getting wellness tickets."
+      },
+      {
+        speakerId: 'facilities',
+        text: 'Gloves are PERSONAL GROWTH. The sensor stays locked. I know about the ice packs.'
+      },
+      {
+        speakerId: 'hr',
+        text: 'Morale rises with temperature! There are studies. I printed one. It was cold to the touch.'
+      }
+    ],
+    verdicts: {
+      facilities:
+        '20.5°C STANDS. A jumper drive has been organized. Morale is now a fabric problem.',
+      hr: "We're trialling 21°C! Gary calls it 'the tropics' and has filed a formal protest."
+    }
+  },
+  {
+    id: 'battle-monolith',
+    topic: 'One box or fourteen (the monolith question)',
+    lines: [
+      {
+        speakerId: 'scrumMaster',
+        text: 'Splitting {label} into microservices gives every team its own backlog! Autonomy! Ceremonies!'
+      },
+      {
+        speakerId: 'greybeard',
+        text: "You'd turn one problem into a distributed system of problems, with worse logging."
+      },
+      { speakerId: 'scrumMaster', text: "We'd get a service mesh! There's a webinar!" },
+      {
+        speakerId: 'greybeard',
+        text: 'I attended a webinar once. 2011. The mainframe and I still talk about it.'
+      }
+    ],
+    verdicts: {
+      scrumMaster:
+        "Microservices it is! I've booked a recurring sync for each of the fourteen new repos.",
+      greybeard:
+        "The monolith stays. In ten years you'll call it 'majestic' and claim it was your idea."
+    }
+  },
+  {
+    id: 'battle-dns-postmortem',
+    topic: 'The outage postmortem',
+    lines: [
+      {
+        speakerId: 'helpdesk',
+        text: "Root cause: DNS. Closing the postmortem. It's always DNS."
+      },
+      {
+        speakerId: 'ciso',
+        text: 'It was my firewall rule, and my firewall rule was CORRECT. It blocked something suspicious: all traffic.'
+      },
+      { speakerId: 'helpdesk', text: 'Which it resolved via DNS. The ticket stands.' },
+      {
+        speakerId: 'ciso',
+        text: 'Blocking everything is the only architecture with zero CVEs. Look it up.'
+      }
+    ],
+    verdicts: {
+      helpdesk:
+        "'DNS' is accepted as root cause, and pre-approved as root cause for all future incidents. Efficiency.",
+      ciso: 'Ruling: the firewall was right. Availability is a rumor started by sales.'
+    }
+  },
+  {
+    id: 'battle-tupperware',
+    topic: 'The unlabeled tupperware',
+    lines: [
+      {
+        speakerId: 'facilities',
+        text: 'An UNLABELED container has been in the fridge since Q2. This is now a FACILITIES matter.'
+      },
+      {
+        speakerId: 'helpdesk',
+        text: "I did label it. Ticket #48317: 'container, contents unknown, do not reboot'."
+      },
+      {
+        speakerId: 'facilities',
+        text: 'A ticket number is NOT a label. Labels have NAMES and DATES. I provide them. Willingly.'
+      },
+      {
+        speakerId: 'helpdesk',
+        text: 'The contents have 94 days of uptime. Longest-running service on this floor. Do not disturb.'
+      }
+    ],
+    verdicts: {
+      facilities:
+        'The container is GONE. Do not ask where. The fridge is at peace. The label maker won.',
+      helpdesk:
+        'The container stays. It has been promoted to production. Gary must now file a change request.'
+    }
   }
 ];
 
@@ -492,7 +825,7 @@ export const OFFICE_CHROME_COPY = {
     focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
     soundscapeLabel: 'Soundscape',
     soundscapeTitle:
-      'Ambient office noise — keyboards, paper, the printer, the desk phone, the watercooler, the espresso machine',
+      'Ambient office noise — keyboards, mouse clicks, paper, chair squeaks, the printer, the desk phone, the watercooler, the espresso machine, the vending machine, the elevator',
     closeAria: 'Close inbox',
     back: '← Back',
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',
@@ -515,6 +848,19 @@ export const OFFICE_CHROME_COPY = {
     sceneAria: 'Coffee break',
     sceneTitle: 'The Watercooler',
     done: 'Back to it'
+  },
+  battle: {
+    inviteLine: '🥊 {a} and {b} are at it again — "{topic}". The floor is watching.',
+    accept: 'Grab popcorn',
+    decline: 'Not my circus',
+    sceneAria: 'Cubicle battle',
+    sceneTitle: 'Cubicle Battle',
+    versus: 'vs',
+    settleLine: "You've heard both sides. Someone has to be wrong:",
+    sideLabel: 'Side with {name}',
+    walkAway: 'Escalate to HR (leave)',
+    verdictHead: 'The floor has ruled',
+    done: 'Back to work'
   },
   meetingInvite: {
     organizerLabel: 'Organizer:',
@@ -555,6 +901,10 @@ export function officeWalkbyFallbacks() {
 
 export function officeCoffeeScenes() {
   return office()?.OFFICE_COFFEE_SCENES ?? OFFICE_COFFEE_SCENES;
+}
+
+export function officeBattleScenes() {
+  return office()?.OFFICE_BATTLE_SCENES ?? OFFICE_BATTLE_SCENES;
 }
 
 export function officeMeetingCopy() {

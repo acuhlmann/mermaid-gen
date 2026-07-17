@@ -20,6 +20,7 @@ export const OFFICE_MIN_GAP_MS = 3 * 60_000;
 export const OFFICE_GAP_JITTER_MS = 2 * 60_000;
 export const OFFICE_SESSION_MOMENT_CAP = 10;
 export const OFFICE_MEETING_INVITES_PER_SESSION = 1;
+export const OFFICE_BATTLES_PER_SESSION = 2;
 export const OFFICE_LLM_MOMENT_CAP = 3;
 
 /** Relative frequency of each moment kind (before availability filters). */
@@ -28,6 +29,7 @@ const MOMENT_WEIGHTS = [
   ['im', 3],
   ['walkby', 2],
   ['coffee', 1.5],
+  ['battle', 1.25],
   ['meeting-invite', 1]
 ];
 
@@ -43,10 +45,11 @@ const IM_LLM_RATIO = 0.2;
  *   momentCount: number,
  *   llmMomentCount: number,
  *   meetingInviteCount: number,
+ *   battleCount?: number,
  *   hasDiagram: boolean,
  *   random?: () => number
  * }} args
- * @returns {{ kind: 'email'|'im'|'walkby'|'coffee'|'meeting-invite', useLlm: boolean } | null}
+ * @returns {{ kind: 'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite', useLlm: boolean } | null}
  */
 export function pickNextMoment({
   now,
@@ -55,6 +58,7 @@ export function pickNextMoment({
   momentCount,
   llmMomentCount,
   meetingInviteCount,
+  battleCount = 0,
   hasDiagram,
   random = Math.random
 }) {
@@ -72,6 +76,8 @@ export function pickNextMoment({
     if (kind === 'meeting-invite') {
       return hasDiagram && meetingInviteCount < OFFICE_MEETING_INVITES_PER_SESSION;
     }
+    // Battles are rare set pieces — needing no diagram (holy wars predate work).
+    if (kind === 'battle') return battleCount < OFFICE_BATTLES_PER_SESSION;
     return true;
   });
   if (eligible.length === 0) return null;

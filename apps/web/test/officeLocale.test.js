@@ -17,7 +17,8 @@ const TEMPLATE_BANKS = [
   'OFFICE_EMAIL_TEMPLATES',
   'OFFICE_IM_TEMPLATES',
   'OFFICE_WALKBY_FALLBACKS',
-  'OFFICE_COFFEE_SCENES'
+  'OFFICE_COFFEE_SCENES',
+  'OFFICE_BATTLE_SCENES'
 ];
 
 function deepKeys(value, prefix = '') {
@@ -54,6 +55,18 @@ describe('office locale bundles', () => {
         scene.lines.map((l) => l.speakerId)
       );
     }
+    // Battles additionally carry a verdict per side — the speakers and the
+    // pair of verdict keys must survive translation, or votes stop resolving.
+    for (const [index, scene] of en.OFFICE_BATTLE_SCENES.entries()) {
+      const localizedScene = localized.OFFICE_BATTLE_SCENES[index];
+      expect(localizedScene.lines.map((l) => l.speakerId)).toEqual(
+        scene.lines.map((l) => l.speakerId)
+      );
+      expect(Object.keys(localizedScene.verdicts).sort()).toEqual(
+        Object.keys(scene.verdicts).sort()
+      );
+      expect(Boolean(localizedScene.topic)).toBe(true);
+    }
   });
 
   // {label} is the "comedy from specificity" hook — a translation that drops
@@ -66,13 +79,17 @@ describe('office locale bundles', () => {
         const enTexts = [
           template.subject,
           template.body,
-          ...(template.lines?.map((l) => l.text) ?? [])
+          template.topic,
+          ...(template.lines?.map((l) => l.text) ?? []),
+          ...Object.values(template.verdicts ?? {})
         ];
         const localizedTemplate = localized[bank][index];
         const locTexts = [
           localizedTemplate.subject,
           localizedTemplate.body,
-          ...(localizedTemplate.lines?.map((l) => l.text) ?? [])
+          localizedTemplate.topic,
+          ...(localizedTemplate.lines?.map((l) => l.text) ?? []),
+          ...Object.values(localizedTemplate.verdicts ?? {})
         ];
         for (const slot of ['{label}', '{userTitle}']) {
           const enHasSlot = enTexts.some((text) => text?.includes(slot));

@@ -388,11 +388,13 @@ export const OFFICE_XP_AWARDS = {
   emailRead: 1,
   imReply: 2,
   coffeeBreak: 10,
+  battleSettled: 5,
   meetingLeftEarly: 5,
   meetingSurvived: 25
 };
 export const OFFICE_COFFEE_ACHIEVEMENT_THRESHOLD = 3;
 export const OFFICE_REPLY_ACHIEVEMENT_THRESHOLD = 5;
+export const OFFICE_BATTLE_ACHIEVEMENT_THRESHOLD = 3;
 
 /**
  * Apply an office ambience event (email read, IM quick reply, coffee break,
@@ -420,6 +422,8 @@ export function applyOfficeEvent(state, input) {
     (state.officeCoffeeBreaksInSession ?? 0) + (kind === 'coffeeBreak' ? 1 : 0);
   const officeImRepliesInSession =
     (state.officeImRepliesInSession ?? 0) + (kind === 'imReply' ? 1 : 0);
+  const officeBattlesSettledInSession =
+    (state.officeBattlesSettledInSession ?? 0) + (kind === 'battleSettled' ? 1 : 0);
 
   const achievements = { ...(state.achievements || {}) };
   const achievementCopy = getAchievements();
@@ -439,6 +443,9 @@ export function applyOfficeEvent(state, input) {
   }
   if (officeImRepliesInSession >= OFFICE_REPLY_ACHIEVEMENT_THRESHOLD) {
     unlock('replyGuy', achievementCopy.replyGuy);
+  }
+  if (officeBattlesSettledInSession >= OFFICE_BATTLE_ACHIEVEMENT_THRESHOLD) {
+    unlock('holyWarReferee', achievementCopy.holyWarReferee);
   }
 
   if (nextLevelInfo.level > previousLevelInfo.level) {
@@ -469,7 +476,8 @@ export function applyOfficeEvent(state, input) {
       xpForNextLevel: nextLevelInfo.xpForNext,
       achievements,
       officeCoffeeBreaksInSession,
-      officeImRepliesInSession
+      officeImRepliesInSession,
+      officeBattlesSettledInSession
     },
     emissions
   };
