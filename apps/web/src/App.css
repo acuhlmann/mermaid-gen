@@ -5406,9 +5406,12 @@
     max-width: min(22rem, calc(100vw - 7.5rem));
     max-height: min(
       24rem,
-      calc(
-        var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 8.75rem) -
-          env(safe-area-inset-bottom, 0px) - 1.5rem
+      var(
+        --advisor-float-max-h,
+        calc(
+          var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 8.75rem) -
+            env(safe-area-inset-bottom, 0px) - 1.5rem
+        )
       )
     );
     margin: 0;
@@ -5423,9 +5426,12 @@
   .prompt-actions--mobile .advisor-speech-bubble.is-explain {
     max-height: min(
       28rem,
-      calc(
-        var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 8.75rem) -
-          env(safe-area-inset-bottom, 0px) - 1.5rem
+      var(
+        --advisor-float-max-h,
+        calc(
+          var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 8.75rem) -
+            env(safe-area-inset-bottom, 0px) - 1.5rem
+        )
       )
     );
   }
@@ -13758,12 +13764,16 @@ body.slopitect-rainbow-tint::before {
   /* The Wise Architect bubble is taller (cast strip + comment + Dumb it Down / Drill
      Deeper). Without a viewport cap it can grow above the top edge and get clipped
      by `.app-shell { overflow: hidden }` — looks like the popup vanishes right
-     after the thinking chip hands off. */
+     after the thinking chip hands off. StakeholdersMascot also publishes
+     `--advisor-float-max-h` from the live anchor position for a tighter fit. */
   max-height: min(
     24rem,
-    calc(
-      var(--app-vvh, 100dvh) - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) -
-        6.5rem
+    var(
+      --advisor-float-max-h,
+      calc(
+        var(--app-vvh, 100dvh) - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) -
+          6.5rem
+      )
     )
   );
   box-sizing: border-box;
@@ -13824,14 +13834,18 @@ body.slopitect-rainbow-tint::before {
 .advisor-speech-bubble.is-explain {
   max-height: min(
     28rem,
-    calc(
-      var(--app-vvh, 100dvh) - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) -
-        6.5rem
+    var(
+      --advisor-float-max-h,
+      calc(
+        var(--app-vvh, 100dvh) - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) -
+          6.5rem
+      )
     )
   );
 }
 
 .advisor-speech-bubble.is-explain .advisor-speech-main {
+  min-height: 0;
   width: 100%;
   max-width: min(32rem, calc(100vw - 2rem));
 }
@@ -13852,6 +13866,7 @@ body.slopitect-rainbow-tint::before {
   row-gap: 0.35rem;
   align-items: start;
   min-width: 0;
+  min-height: 0;
 }
 
 .advisor-speech-cast {
@@ -13867,6 +13882,16 @@ body.slopitect-rainbow-tint::before {
   left: 0;
   bottom: calc(100% + 0.55rem);
   max-width: min(24rem, calc(100vw - 2rem));
+  max-height: min(
+    24rem,
+    var(
+      --advisor-float-max-h,
+      calc(
+        var(--app-vvh, 100dvh) - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px) -
+          6.5rem
+      )
+    )
+  );
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -13880,6 +13905,9 @@ body.slopitect-rainbow-tint::before {
     0 1px 4px rgba(15, 23, 42, 0.08);
   pointer-events: none;
   z-index: 30;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   animation: advisor-bubble-in 200ms cubic-bezier(0.22, 1.18, 0.62, 1);
 }
 

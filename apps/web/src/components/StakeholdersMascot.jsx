@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { useAdvisorFloatMaxHeight } from '../hooks/useAdvisorFloatMaxHeight.js';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
@@ -100,6 +101,7 @@ export default function StakeholdersMascot({
   const hasFloatSurface = Boolean(introProps || advisorSurface || surfaceLatch);
 
   const wrapperRef = useRef(null);
+  useAdvisorFloatMaxHeight(wrapperRef, hasFloatSurface);
   const collapseTimerRef = useRef(null);
 
   // Depend on a stable boolean — not the React element — so parent re-renders

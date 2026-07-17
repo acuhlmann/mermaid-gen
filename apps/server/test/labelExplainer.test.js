@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildLabelExplainerSystemPrompt,
   buildLabelExplainerUserPrompt,
+  createLabelExplainerChatModel,
   sanitizeLabelExplanation,
   sanitizeLabelGibberish
 } from '../src/agents/labelExplainer.js';
@@ -118,4 +119,16 @@ test('brief style remains the default when no style is passed', () => {
     contentType: 'mermaid'
   });
   assert.match(user, /max 30 words/i);
+});
+
+test('label explainer Vertex model gives plain-text headroom and disables reasoning', () => {
+  const env = {
+    LLM_PROVIDER: 'vertex',
+    VERTEX_PROJECT_ID: 'test-proj',
+    VERTEX_LOCATION: 'us-central1'
+  };
+  const model = createLabelExplainerChatModel(env);
+  assert.ok(model, 'model constructed for a Vertex env');
+  assert.equal(model.maxOutputTokens, 256);
+  assert.equal(model.maxReasoningTokens, 0, 'thinkingBudget 0 → no reasoning tokens');
 });
