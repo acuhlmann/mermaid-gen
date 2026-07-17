@@ -10,6 +10,7 @@ import {
   canShareExportPayload,
   deliverExportPayload,
   isExportUserAbortError,
+  isSharePermissionError,
   isShareUserGestureError,
   isWebShareAvailable,
   listExportFormats,
@@ -207,6 +208,13 @@ export function AiCornerControlsInner({
       setExportError(
         controls.exportShareGesture ??
           'Share expired — expand Export, wait a moment, then tap Share again.'
+      );
+      return;
+    }
+    if (context === 'share' && isSharePermissionError(err)) {
+      setExportError(
+        controls.exportShareDenied ??
+          'Share is blocked for this format on this device — use Save instead.'
       );
       return;
     }
@@ -414,7 +422,19 @@ export function AiCornerControlsInner({
                               typeof ClipboardItem !== 'undefined') ||
                             shareAvailable
                           );
-                  const canShare = shareAvailable;
+                  const canShare =
+                    shareAvailable &&
+                    (isExportPayloadReady(format.id)
+                      ? canShareExportPayload(
+                          getCachedExportPayload(format.id) ?? {
+                            delivery: format.delivery ?? 'text',
+                            mime: format.mime,
+                            body: 'x',
+                            filename: 'preview',
+                            ext: format.ext
+                          }
+                        )
+                      : true);
                   return (
                     <li key={format.id} className="settings-export-item">
                       <span className="settings-export-format-label">{label}</span>

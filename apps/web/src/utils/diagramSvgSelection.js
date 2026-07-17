@@ -124,13 +124,83 @@ export function resolveSequenceActorInteractionRoot(target) {
 
   const actorShape = el.closest?.('.actor-top, .actor-bottom, rect.actor, text.actor');
   if (actorShape) {
-    const host =
-      actorShape.closest?.('[data-et="participant"]') ?? actorShape.closest?.('[data-id]');
-    const dataId = host?.getAttribute?.('data-id');
-    if (dataId) return { groupEl: host, dataId };
+    let host =
+      actorShape.closest?.('[data-et="participant"]') ??
+      actorShape.closest?.('[data-id]') ??
+      actorShape.closest?.('g.actor-top, g.actor-bottom');
+    if (!host && actorShape.matches?.('g.actor-top, g.actor-bottom')) {
+      host = actorShape;
+    }
+    const dataId =
+      host?.getAttribute?.('data-id') ||
+      host?.getAttribute?.('name') ||
+      actorShape.getAttribute?.('name');
+    if (dataId) return { groupEl: host ?? actorShape, dataId };
   }
 
   return null;
+}
+
+/**
+ * Sequence message arrows render as `line`/`path` with `data-et="message"` and labels as
+ * `text.messageText` (not flowchart `g.edgeLabel`).
+ *
+ * @param {EventTarget | null | undefined} target
+ * @returns {{ lineEl: Element, dataId: string, from: string, to: string, label?: string } | null}
+ */
+export function resolveSequenceMessageInteractionRoot(target) {
+  if (!target || typeof target !== 'object') return null;
+  const el = /** @type {Element} */ (target);
+
+  const direct = el.closest?.('[data-et="message"]');
+  if (direct) {
+    const dataId = direct.getAttribute('data-id');
+    const from = direct.getAttribute('data-from');
+    const to = direct.getAttribute('data-to');
+    if (dataId && from && to) {
+      return {
+        lineEl: direct,
+        dataId,
+        from,
+        to,
+        label: sequenceMessageLabelText(direct)
+      };
+    }
+  }
+
+  const msgText = el.closest?.('text.messageText');
+  if (msgText) {
+    const host = msgText.parentElement;
+    const line = host?.querySelector?.('[data-et="message"]');
+    if (line) {
+      const dataId = line.getAttribute('data-id');
+      const from = line.getAttribute('data-from');
+      const to = line.getAttribute('data-to');
+      if (dataId && from && to) {
+        const label = msgText.textContent?.replace(/\s+/g, ' ')?.trim() ?? '';
+        return {
+          lineEl: line,
+          dataId,
+          from,
+          to,
+          ...(label ? { label } : {})
+        };
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * @param {Element} lineEl
+ * @returns {string}
+ */
+export function sequenceMessageLabelText(lineEl) {
+  const host = lineEl.parentElement;
+  const text = host?.querySelector?.('text.messageText');
+  const raw = text?.textContent?.replace(/\s+/g, ' ')?.trim() ?? '';
+  return raw.slice(0, 240);
 }
 
 export function flowchartEdgeLabelText(pathEl, edgeDataId) {

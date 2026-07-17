@@ -4,6 +4,7 @@ import {
   findFlowchartVertexRange,
   findMermaidSourceRange,
   findMermaidSourceRangeForDiagramSelection,
+  findSequenceMessageRange,
   findSequenceParticipantRange,
   findSubgraphBlockRange,
   peekDiagramDirective,
@@ -142,6 +143,17 @@ describe('collectLogicalIdCandidates', () => {
   it('adds hyphen segments from dom ids', () => {
     const c = collectLogicalIdCandidates({ elementId: 'flowchart-ProcessGate-2', kind: 'node' });
     expect(c).toContain('ProcessGate');
+  });
+});
+
+describe('findSequenceMessageRange', () => {
+  it('locates a message line by endpoints', () => {
+    const src = ['sequenceDiagram', '  Alice->>Bob: Hello world', '  Bob-->>Alice: Reply'].join(
+      '\n'
+    );
+    const r = findSequenceMessageRange(src, { from: 'Alice', to: 'Bob', label: 'Hello world' });
+    expect(r?.startLineNumber).toBe(2);
+    expect(r?.endLineNumber).toBe(2);
   });
 });
 

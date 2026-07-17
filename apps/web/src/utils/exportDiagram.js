@@ -56,6 +56,9 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
 /** How long an in-browser preview blob URL stays valid after export. */
 export const EXPORT_PREVIEW_URL_TTL_MS = 120_000;
 
+/** Cap rasterized / downloaded mermaid exports so wide sequence diagrams stay shareable. */
+export const MERMAID_EXPORT_MAX_WIDTH_PX = 1600;
+
 /** @type {Record<ExportContentType, ExportFormat[]>} */
 export const EXPORT_FORMATS_BY_MODE = {
   mermaid: [
@@ -275,17 +278,17 @@ async function buildExportBody(contentType, formatId, source) {
     case 'mermaid-svg': {
       const id = `export-mermaid-${Date.now().toString(36)}`;
       const { svg } = await renderMermaidPreviewSvg(id, source);
-      const markup = svg.startsWith('<?xml')
-        ? svg
-        : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`;
+      const markup = normalizeSvgMarkupForExport(
+        svg.startsWith('<?xml') ? svg : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`
+      );
       return { body: markup };
     }
     case 'mermaid-png': {
       const id = `export-mermaid-png-${Date.now().toString(36)}`;
       const { svg } = await renderMermaidPreviewSvg(id, source);
-      const markup = svg.startsWith('<?xml')
-        ? svg
-        : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`;
+      const markup = normalizeSvgMarkupForExport(
+        svg.startsWith('<?xml') ? svg : `<?xml version="1.0" encoding="UTF-8"?>\n${svg}`
+      );
       const blob = await svgMarkupToPngBlob(markup);
       return { blob };
     }
@@ -384,8 +387,35 @@ export function readSvgDimensions(svgMarkup) {
  */
 function parseSvgLength(raw) {
   if (!raw) return 0;
-  const n = Number.parseFloat(String(raw).replace(/px$/i, '').trim());
+  const text = String(raw).trim();
+  if (/%$/.test(text)) return 0;
+  const n = Number.parseFloat(text.replace(/px$/i, ''));
   return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Shrink oversized mermaid SVG roots for export/share (keeps viewBox, caps width).
+ * @param {string} svgMarkup
+ * @param {{ maxWidth?: number }} [options]
+ * @returns {string}
+ */
+export function normalizeSvgMarkupForExport(
+  svgMarkup,
+  { maxWidth = MERMAID_EXPORT_MAX_WIDTH_PX } = {}
+) {
+  if (typeof document === 'undefined') return svgMarkup;
+  const { width, height } = readSvgDimensions(svgMarkup);
+  if (!(width > maxWidth) || !(height > 0)) return svgMarkup;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
+  const root = doc.documentElement;
+  if (!root || root.nodeName.toLowerCase() === 'parsererror') return svgMarkup;
+
+  const nextHeight = Math.max(1, Math.round((height * maxWidth) / width));
+  root.setAttribute('width', String(maxWidth));
+  root.setAttribute('height', String(nextHeight));
+  return new XMLSerializer().serializeToString(doc);
 }
 
 /**
@@ -472,6 +502,18 @@ export function isShareUserGestureError(err) {
 }
 
 /**
+ * Web Share rejected for policy / capability reasons (not user cancel).
+ * @param {unknown} err
+ * @returns {boolean}
+ */
+export function isSharePermissionError(err) {
+  if (!(err instanceof Error)) return false;
+  if (err.name === 'NotSupportedError') return true;
+  if (err.name !== 'NotAllowedError' && err.name !== 'SecurityError') return false;
+  return !isShareUserGestureError(err);
+}
+
+/**
  * @param {unknown} err
  * @returns {boolean}
  */
@@ -527,16 +569,7 @@ async function copyTextWithFallback(text) {
  * @returns {boolean}
  */
 export function canShareExportPayload(payload) {
-  if (!isWebShareAvailable()) return false;
-  const file = exportPayloadToFile(payload);
-  if (!navigator.canShare) {
-    return payload.delivery === 'text' || Boolean(payload.blob ?? payload.body);
-  }
-  if (navigator.canShare({ files: [file] })) return true;
-  if (payload.delivery === 'text' && navigator.canShare({ text: payload.body ?? '' })) {
-    return true;
-  }
-  return false;
+  return resolveWebShareMode(payload) != null;
 }
 
 /**
@@ -633,7 +666,8 @@ export function resolveWebShareMode(payload) {
   if (!isWebShareAvailable()) return null;
 
   const file = exportPayloadToFile(payload);
-  const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
+  const canShareFiles =
+    typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
 
   if (canShareFiles) {
     return 'file';
@@ -641,7 +675,7 @@ export function resolveWebShareMode(payload) {
 
   if (payload.delivery === 'text') {
     const text = payload.body ?? '';
-    const canShareText = !navigator.canShare || navigator.canShare({ text });
+    const canShareText = typeof navigator.canShare !== 'function' || navigator.canShare({ text });
     if (canShareText) return 'text';
   }
 

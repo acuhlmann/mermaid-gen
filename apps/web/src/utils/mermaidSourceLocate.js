@@ -193,6 +193,42 @@ export function findVertexIdColumn(line, logicalId) {
  * @param {string} logicalId
  * @returns {SourceRange|null}
  */
+/**
+ * Locate a sequenceDiagram message line by endpoints (and optional label).
+ * @param {string} source
+ * @param {{ from: string, to: string, label?: string }} opts
+ * @returns {SourceRange|null}
+ */
+export function findSequenceMessageRange(source, { from, to, label }) {
+  if (!from || !to) return null;
+  const lines = source.split(/\r?\n/);
+  const fromEsc = escapeRegExp(from);
+  const toEsc = escapeRegExp(to);
+  const arrowRe = new RegExp(
+    `^\\s*${fromEsc}\\s*(?:->>?|-->>?|->>?\\+|-->>\\+|->>?-|x->>?|--)\\s*${toEsc}\\s*:\\s*(.+)$`,
+    'i'
+  );
+
+  const matches = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = stripLineComment(lines[i]);
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('%%')) continue;
+    const m = line.match(arrowRe);
+    if (!m) continue;
+    const messageText = m[1].trim();
+    matches.push({ lineIndex: i, line, messageText });
+  }
+  if (matches.length === 0) return null;
+
+  const wanted = typeof label === 'string' ? label.trim() : '';
+  const picked =
+    wanted.length > 0
+      ? (matches.find((entry) => entry.messageText === wanted) ?? matches[0])
+      : matches[0];
+  return rangeForLines(lines, picked.lineIndex, picked.lineIndex);
+}
+
 export function findSequenceParticipantRange(source, logicalId) {
   if (!logicalId) return null;
   const lines = source.split(/\r?\n/);

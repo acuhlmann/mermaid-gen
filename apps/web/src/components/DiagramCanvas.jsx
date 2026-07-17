@@ -10,7 +10,10 @@ import {
 } from 'react';
 import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
-import { findMermaidSourceRangeForDiagramSelection } from '../utils/mermaidSourceLocate.js';
+import {
+  findMermaidSourceRangeForDiagramSelection,
+  findSequenceMessageRange
+} from '../utils/mermaidSourceLocate.js';
 import { applyDiagramHighlightToSvg } from '../utils/applyDiagramHighlightToSvg.js';
 import { applyChartHighlight } from '../utils/applyChartHighlight.js';
 import { applyInfographicHighlight } from '@archislop/shared';
@@ -19,6 +22,7 @@ import {
   parseFlowchartEdgeDataId,
   resolveFlowchartEdgeInteractionRoot,
   resolveSequenceActorInteractionRoot,
+  resolveSequenceMessageInteractionRoot,
   resolveTimelineNodeInteractionRoot
 } from '../utils/diagramSvgSelection.js';
 import {
@@ -644,9 +648,53 @@ export default function DiagramCanvas({
     }
 
     if (selectedNode?.kind === 'edge') {
-      syncDecoIdsRef.current = editor.deltaDecorations(syncDecoIdsRef.current, []);
-      lastDiagramSyncKeyRef.current = '';
-      return undefined;
+      const rangePlain =
+        selectedNode.edgeFrom && selectedNode.edgeTo
+          ? findSequenceMessageRange(editorSource, {
+              from: selectedNode.edgeFrom,
+              to: selectedNode.edgeTo,
+              label: selectedNode.label
+            })
+          : null;
+      if (!rangePlain) {
+        syncDecoIdsRef.current = editor.deltaDecorations(syncDecoIdsRef.current, []);
+        lastDiagramSyncKeyRef.current = '';
+        return undefined;
+      }
+
+      const range = new monaco.Range(
+        rangePlain.startLineNumber,
+        rangePlain.startColumn,
+        rangePlain.endLineNumber,
+        rangePlain.endColumn
+      );
+      const syncKey = `${selectedNode.id}:${rangePlain.startLineNumber}:${rangePlain.startColumn}:${rangePlain.endLineNumber}:${rangePlain.endColumn}:${editorSource.length}`;
+      if (syncKey === lastDiagramSyncKeyRef.current) {
+        return undefined;
+      }
+      lastDiagramSyncKeyRef.current = syncKey;
+      diagramSyncRafRef.current = requestAnimationFrame(() => {
+        diagramSyncRafRef.current = 0;
+        const ed = editorRef.current;
+        const mc = monacoRef.current;
+        if (!ed || ed !== editor || !mc) return;
+        ed.revealRangeInCenter(range);
+        ed.setSelection(range);
+        syncDecoIdsRef.current = ed.deltaDecorations(syncDecoIdsRef.current, [
+          {
+            range,
+            options: {
+              className: 'mermaid-diagram-sync-highlight'
+            }
+          }
+        ]);
+      });
+      return () => {
+        if (diagramSyncRafRef.current) {
+          cancelAnimationFrame(diagramSyncRafRef.current);
+          diagramSyncRafRef.current = 0;
+        }
+      };
     }
 
     if (!selectedNode?.id) {
@@ -800,7 +848,10 @@ export default function DiagramCanvas({
     if (!selectedNode?.id) return;
     if (selectedNode.kind === 'edge') {
       try {
-        const pathEl = root.querySelector(`path[data-id="${CSS.escape(selectedNode.id)}"]`);
+        const pathEl =
+          root.querySelector(`path[data-id="${CSS.escape(selectedNode.id)}"]`) ??
+          root.querySelector(`line[data-id="${CSS.escape(selectedNode.id)}"]`) ??
+          root.querySelector(`[data-et="message"][data-id="${CSS.escape(selectedNode.id)}"]`);
         pathEl?.classList?.add('is-diagram-edge-selected');
       } catch {
         // ignore invalid ids for selector
@@ -820,7 +871,10 @@ export default function DiagramCanvas({
     if (!hoverDescriptor?.id) return;
     if (hoverDescriptor.kind === 'edge') {
       try {
-        const pathEl = root.querySelector(`path[data-id="${CSS.escape(hoverDescriptor.id)}"]`);
+        const pathEl =
+          root.querySelector(`path[data-id="${CSS.escape(hoverDescriptor.id)}"]`) ??
+          root.querySelector(`line[data-id="${CSS.escape(hoverDescriptor.id)}"]`) ??
+          root.querySelector(`[data-et="message"][data-id="${CSS.escape(hoverDescriptor.id)}"]`);
         pathEl?.classList?.add('is-diagram-hover');
       } catch {
         // ignore invalid ids for selector
@@ -865,7 +919,10 @@ export default function DiagramCanvas({
       let el = null;
       if (target.kind === 'edge') {
         try {
-          el = root.querySelector(`path[data-id="${CSS.escape(target.id)}"]`);
+          el =
+            root.querySelector(`path[data-id="${CSS.escape(target.id)}"]`) ??
+            root.querySelector(`line[data-id="${CSS.escape(target.id)}"]`) ??
+            root.querySelector(`[data-et="message"][data-id="${CSS.escape(target.id)}"]`);
         } catch {
           el = null;
         }
@@ -1007,6 +1064,7 @@ export default function DiagramCanvas({
     let clusterEl = null;
     let actorHit = null;
     let edgeHit = null;
+    let sequenceMessageHit = null;
     let infographicHit = null;
     let chartHit = null;
     let textHitEl = null;
@@ -1015,8 +1073,12 @@ export default function DiagramCanvas({
       nodeEl = target?.closest?.('g.node') ?? target?.closest?.('g.timeline-node') ?? null;
       clusterEl = nodeEl ? null : (target?.closest?.('g.cluster') ?? null);
       actorHit = !nodeEl && !clusterEl ? resolveSequenceActorInteractionRoot(target) : null;
+      sequenceMessageHit =
+        !nodeEl && !clusterEl && !actorHit ? resolveSequenceMessageInteractionRoot(target) : null;
       edgeHit =
-        !nodeEl && !clusterEl && !actorHit ? resolveFlowchartEdgeInteractionRoot(target) : null;
+        !nodeEl && !clusterEl && !actorHit && !sequenceMessageHit
+          ? resolveFlowchartEdgeInteractionRoot(target)
+          : null;
       const container = nodeEl || clusterEl || actorHit?.groupEl;
       if (container) {
         const hitText = target?.closest?.('text');
@@ -1033,7 +1095,16 @@ export default function DiagramCanvas({
         chartHit = findChartTapTarget(target, boundary);
       }
     }
-    return { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, chartHit, textHitEl };
+    return {
+      nodeEl,
+      clusterEl,
+      actorHit,
+      edgeHit,
+      sequenceMessageHit,
+      infographicHit,
+      chartHit,
+      textHitEl
+    };
   }
 
   function buildDescriptorFromHit({
@@ -1041,6 +1112,7 @@ export default function DiagramCanvas({
     clusterEl,
     actorHit,
     edgeHit,
+    sequenceMessageHit,
     infographicHit,
     chartHit,
     textHitEl
@@ -1098,6 +1170,19 @@ export default function DiagramCanvas({
         anchorEl: container
       };
     }
+    if (sequenceMessageHit) {
+      const { lineEl, dataId, from, to, label } = sequenceMessageHit;
+      return {
+        kind: 'edge',
+        id: dataId,
+        edgeFrom: from,
+        edgeTo: to,
+        ...(label ? { label } : {}),
+        partKind: 'edge',
+        partName: label || `${from} → ${to}`,
+        anchorEl: lineEl
+      };
+    }
     if (edgeHit) {
       const pathEl = edgeHit.pathEl;
       if (!pathEl || pathEl.tagName !== 'path') return null;
@@ -1148,6 +1233,9 @@ export default function DiagramCanvas({
   function descriptorFromTap(tap) {
     if (!tap?.targetEl) return null;
     if (tap.kind === 'edge') {
+      if (tap.sequenceMessage) {
+        return buildDescriptorFromHit({ sequenceMessageHit: tap.sequenceMessage });
+      }
       return buildDescriptorFromHit({ edgeHit: { pathEl: tap.targetEl } });
     }
     if (tap.kind === 'infographic-item') {
@@ -1222,8 +1310,16 @@ export default function DiagramCanvas({
     const localX = event.clientX - rect.left;
     const localY = event.clientY - rect.top;
 
-    const { nodeEl, clusterEl, actorHit, edgeHit, infographicHit, chartHit, textHitEl } =
-      resolveTargetUnder(event.target);
+    const {
+      nodeEl,
+      clusterEl,
+      actorHit,
+      edgeHit,
+      sequenceMessageHit,
+      infographicHit,
+      chartHit,
+      textHitEl
+    } = resolveTargetUnder(event.target);
 
     const prevPointers = getPointers(pointersRef.current);
     const passiveInfographicText =
@@ -1267,6 +1363,15 @@ export default function DiagramCanvas({
         targetEl: edgeHit.pathEl,
         kind: 'edge'
       };
+    } else if (sequenceMessageHit && prevPointers.length === 0) {
+      tapCandidateRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        targetEl: sequenceMessageHit.lineEl,
+        kind: 'edge',
+        sequenceMessage: sequenceMessageHit
+      };
     } else if (actorHit && prevPointers.length === 0) {
       tapCandidateRef.current = {
         pointerId: event.pointerId,
@@ -1306,7 +1411,14 @@ export default function DiagramCanvas({
       tapCandidateRef.current = null;
     }
 
-    const noTap = !nodeEl && !clusterEl && !actorHit && !edgeHit && !infographicHit && !chartHit;
+    const noTap =
+      !nodeEl &&
+      !clusterEl &&
+      !actorHit &&
+      !edgeHit &&
+      !sequenceMessageHit &&
+      !infographicHit &&
+      !chartHit;
     if (pointers.length === 1 && noTap && !passiveGesture) {
       backgroundTapRef.current = {
         pointerId: event.pointerId,
@@ -1472,6 +1584,7 @@ export default function DiagramCanvas({
             !event.target?.closest?.('g.timeline-node') &&
             !event.target?.closest?.('g.cluster') &&
             !resolveSequenceActorInteractionRoot(event.target) &&
+            !resolveSequenceMessageInteractionRoot(event.target) &&
             !resolveFlowchartEdgeInteractionRoot(event.target) &&
             !resolveTimelineNodeInteractionRoot(event.target);
         } else if (contentType === 'infographic') {

@@ -16,7 +16,10 @@ import {
   startWebShare,
   resolveWebShareMode,
   isShareUserGestureError,
+  isSharePermissionError,
   isVisualExportPayload,
+  normalizeSvgMarkupForExport,
+  MERMAID_EXPORT_MAX_WIDTH_PX,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
 import {
@@ -199,6 +202,24 @@ describe('readSvgDimensions', () => {
       width: 120,
       height: 80
     });
+  });
+
+  it('ignores percentage widths and uses viewBox instead', () => {
+    expect(
+      readSvgDimensions('<svg width="100%" height="100%" viewBox="0 0 320 160"></svg>')
+    ).toEqual({
+      width: 320,
+      height: 160
+    });
+  });
+});
+
+describe('normalizeSvgMarkupForExport', () => {
+  it('caps oversized mermaid svg width for export', () => {
+    const wide = `<svg viewBox="0 0 3200 400" width="3200" height="400"><rect width="10"/></svg>`;
+    const out = normalizeSvgMarkupForExport(wide, { maxWidth: MERMAID_EXPORT_MAX_WIDTH_PX });
+    expect(out).toContain(`width="${MERMAID_EXPORT_MAX_WIDTH_PX}"`);
+    expect(out).toContain('height="200"');
   });
 });
 
@@ -568,6 +589,12 @@ describe('isShareUserGestureError', () => {
       }
     );
     expect(isShareUserGestureError(err)).toBe(true);
+    expect(isSharePermissionError(err)).toBe(false);
     expect(isShareUserGestureError(new Error('nope'))).toBe(false);
+  });
+
+  it('detects permission-denied share failures', () => {
+    const err = Object.assign(new Error('Permission denied'), { name: 'NotAllowedError' });
+    expect(isSharePermissionError(err)).toBe(true);
   });
 });
