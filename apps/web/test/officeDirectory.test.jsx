@@ -6,6 +6,11 @@ import {
   readOfficeDirectorySeen,
   OFFICE_DIRECTORY_STORAGE_KEY
 } from '../src/utils/officeAmbienceStorage.js';
+import { OFFICE_COLLEAGUES } from '../src/utils/officeCast.js';
+
+// Derived from the live roster so this test doesn't need a manual update every
+// time a colleague is added or removed (see docs/office-parody.md roster).
+const COLLEAGUE_COUNT = Object.keys(OFFICE_COLLEAGUES).length;
 
 beforeEach(() => {
   window.localStorage.clear();
@@ -31,14 +36,17 @@ describe('OfficeDirectory', () => {
     fireEvent.click(screen.getByRole('button', { name: /Meet the floor/ }));
     expect(screen.getByTestId('office-directory-spotlight')).toBeTruthy();
     expect(screen.getByText('Chad')).toBeTruthy();
-    expect(screen.getByText('1 of 6')).toBeTruthy();
+    expect(screen.getByText(`1 of ${COLLEAGUE_COUNT}`)).toBeTruthy();
     expect(screen.queryByText('Pam')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: /Next/ }));
     expect(screen.getByText('Pam')).toBeTruthy();
-    expect(screen.getByText('2 of 6')).toBeTruthy();
+    expect(screen.getByText(`2 of ${COLLEAGUE_COUNT}`)).toBeTruthy();
 
-    for (let i = 0; i < 5; i += 1) {
+    // Two steps down already (welcome -> Chad -> Pam); click through the rest
+    // of the roster. The guard makes extra iterations harmless once the tour
+    // reaches its last step and the button becomes "Clock in".
+    for (let i = 0; i < COLLEAGUE_COUNT; i += 1) {
       const next = screen.queryByRole('button', { name: /Next/ });
       if (next) fireEvent.click(next);
     }
@@ -62,7 +70,7 @@ describe('OfficeDirectory', () => {
     expect(screen.queryByText(/Welcome to the office/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Meet the office/ }));
     expect(screen.getByTestId('office-directory-roster')).toBeTruthy();
-    for (const name of ['Chad', 'Pam', 'Ticket Bot Dave', 'Gary', 'Linda', 'Ulrich']) {
+    for (const name of ['Chad', 'Pam', 'Ticket Bot Dave', 'Gary', 'Linda', 'Ulrich', 'Sasha']) {
       expect(screen.getByText(name)).toBeTruthy();
     }
     expect(screen.getByText('Facilities & Fridge Czar')).toBeTruthy();
