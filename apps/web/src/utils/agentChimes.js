@@ -887,6 +887,151 @@ export function playDistantPrinter(audioContextRef) {
   }
 }
 
+/** Someone leafing through a stack of paper: two soft page sweeps. */
+export function playPaperShuffle(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let sweep = 0; sweep < 2; sweep += 1) {
+    playNoiseBurst(context, {
+      at: now + sweep * (0.26 + Math.random() * 0.1),
+      durationSec: 0.16 + Math.random() * 0.06,
+      freqHz: 900 + Math.random() * 300,
+      freqEndHz: 1500 + Math.random() * 400,
+      q: 0.7,
+      peakGain: 0.008
+    });
+  }
+}
+
+/** A desk phone ringing two cubicles over — classic 440+480 Hz pair, two
+ * muffled rings, nobody answers (that is the bit). */
+export function playDeskPhone(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let ring = 0; ring < 2; ring += 1) {
+    const t0 = now + ring * 0.85;
+    for (const freq of [440, 480]) {
+      const osc = context.createOscillator();
+      const gainNode = context.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t0);
+      // Tremolo via a stepped envelope — the classic ring warble.
+      gainNode.gain.setValueAtTime(0.0001, t0);
+      for (let i = 0; i < 8; i += 1) {
+        const seg = t0 + i * 0.055;
+        gainNode.gain.exponentialRampToValueAtTime(i % 2 === 0 ? 0.006 : 0.002, seg + 0.027);
+      }
+      gainNode.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.5);
+      osc.connect(gainNode);
+      gainNode.connect(context.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.55);
+    }
+  }
+}
+
+/** The watercooler down the hall: a few descending glugs and a tiny fizz. */
+export function playWaterCooler(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const glugs = 3 + Math.floor(Math.random() * 2);
+  let offset = 0.02;
+  for (let i = 0; i < glugs; i += 1) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'sine';
+    const t0 = now + offset;
+    const start = 260 + Math.random() * 80;
+    osc.frequency.setValueAtTime(start, t0);
+    osc.frequency.exponentialRampToValueAtTime(start * 0.45, t0 + 0.09);
+    applyGainEnvelope(gainNode, t0, 0.011, 0.1);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.12);
+    offset += 0.14 + Math.random() * 0.08;
+  }
+  // The big bubble rising back up the bottle.
+  playNoiseBurst(context, {
+    at: now + offset,
+    durationSec: 0.18,
+    freqHz: 500,
+    freqEndHz: 900,
+    q: 1.4,
+    peakGain: 0.006
+  });
+}
+
+/** Footsteps approaching on office carpet — heralds a walk-by. */
+export function playFootsteps(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const steps = 4;
+  let offset = 0.02;
+  for (let i = 0; i < steps; i += 1) {
+    playNoiseBurst(context, {
+      at: now + offset,
+      durationSec: 0.055,
+      freqHz: 150 + (i % 2 === 0 ? 0 : 35) + Math.random() * 25,
+      q: 0.9,
+      // Each step slightly louder — they are walking TOWARD you.
+      peakGain: 0.005 + i * 0.002
+    });
+    offset += 0.34 + Math.random() * 0.05;
+  }
+}
+
+/** Calendar-reminder "bing-bong" for an incoming meeting invite. */
+export function playCalendarDing(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const notes = [
+    { freq: 1318.5, dur: 0.09, peak: 0.026 },
+    { freq: 987.77, dur: 0.16, peak: 0.022 }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'sine';
+    const t0 = now + offset;
+    osc.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + note.dur + 0.02);
+    offset += 0.11;
+  }
+}
+
+/**
+ * The dial-up-era greeting: mail chime plus a spoken "You've got mail!" via
+ * the browser's speech synthesis (no assets). Falls back to the plain chime
+ * when speech synthesis is unavailable. Played once per session for the first
+ * email; `text`/`lang` come from the localized office chrome copy.
+ */
+export function playYouveGotMail(audioContextRef, { text = "You've got mail!", lang } = {}) {
+  playMailChime(audioContextRef);
+  try {
+    const synth = globalThis.speechSynthesis;
+    if (!synth || typeof globalThis.SpeechSynthesisUtterance !== 'function') return;
+    const utterance = new globalThis.SpeechSynthesisUtterance(text);
+    if (lang) utterance.lang = lang;
+    utterance.volume = 0.55;
+    utterance.rate = 1.02;
+    utterance.pitch = 0.85;
+    synth.speak(utterance);
+  } catch {
+    // Speech synthesis is a garnish — the chime already played.
+  }
+}
+
 /** The espresso machine: grinder growl, steam-wand hiss, cup clink. */
 export function playEspressoMachine(audioContextRef) {
   const context = getContext(audioContextRef);

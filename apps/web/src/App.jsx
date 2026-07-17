@@ -135,6 +135,7 @@ import {
   writeToStorage as writeGamificationToStorage,
   reconcileLifetimeLlmCostUsd
 } from './state/runGamificationStore.js';
+import OfficeDirectory from './components/OfficeDirectory.jsx';
 import OfficeLayer from './components/OfficeLayer.jsx';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
@@ -4686,6 +4687,7 @@ ${requirementsBlock}`;
         actions={
           !hasCanvasContent && !insightsOpen ? (
             <div className="entry-cluster">
+              <OfficeDirectory />
               <TopicStarters
                 hint={controls.prompt.starterHint}
                 ariaLabel={controls.prompt.starterAria}

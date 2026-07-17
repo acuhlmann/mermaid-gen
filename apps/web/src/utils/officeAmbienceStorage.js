@@ -8,6 +8,8 @@
 export const OFFICE_FOCUS_TIME_STORAGE_KEY = 'archislop:office-focus-time';
 export const OFFICE_SOUNDSCAPE_STORAGE_KEY = 'archislop:office-soundscape';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
+export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
+export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
 
 const SEEN_TEMPLATE_CAP = 60;
 
@@ -56,6 +58,51 @@ export function writeOfficeSoundscapeEnabled(enabled) {
     } else {
       window.localStorage.setItem(OFFICE_SOUNDSCAPE_STORAGE_KEY, '0');
     }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * True once the first-run office welcome sequence (Linda's email + Chad's IM)
+ * has been delivered. Once-ever, like the stakeholder intro spotlight; storage
+ * failures count as "already welcomed" so we never re-onboard in a loop.
+ */
+export function readOfficeWelcomeSeen() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(OFFICE_WELCOME_STORAGE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function writeOfficeWelcomeSeen() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(OFFICE_WELCOME_STORAGE_KEY, '1');
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * True once the entry-screen office directory has been dismissed — it then
+ * collapses to the "Meet the office" chip on later visits.
+ */
+export function readOfficeDirectorySeen() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(OFFICE_DIRECTORY_STORAGE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function writeOfficeDirectorySeen() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(OFFICE_DIRECTORY_STORAGE_KEY, '1');
   } catch {
     // Ignore quota / privacy errors.
   }

@@ -8,14 +8,44 @@
  */
 export const OFFICE_ZH_TW = {
   OFFICE_COLLEAGUES: {
-    intern: { title: '實習生(無薪 · 戰略級)' },
-    scrumMaster: { title: '敏捷教練 — CSM、CSPO、SAFe 6.0' },
-    helpdesk: { name: '工單機器人 Dave', title: 'IT 服務台 — 一線(僅此一線)' },
-    facilities: { title: '總務暨冰箱沙皇' },
-    hr: { title: '人資營運業務夥伴' },
-    greybeard: { title: '資深工程師(榮退回鍋)' }
+    intern: {
+      title: '實習生(無薪 · 戰略級)',
+      blurb: '愛按「回覆全部」。天真的問題偶爾一針見血。'
+    },
+    scrumMaster: {
+      title: '敏捷教練 — CSM、CSPO、SAFe 6.0',
+      blurb: '凡事皆儀式。連午餐都要設時間盒。所有會議由她主持。'
+    },
+    helpdesk: {
+      name: '工單機器人 Dave',
+      title: 'IT 服務台 — 一線(僅此一線)',
+      blurb: '把工單關閉為它自己的重複項。在他機器上沒問題。'
+    },
+    facilities: {
+      title: '總務暨冰箱沙皇',
+      blurb: '發全大寫的冰箱清理通知。以鐵腕掌控恆溫器。'
+    },
+    hr: {
+      title: '人資營運業務夥伴',
+      blurb: '武器化的熱情。你的訓練已逾期 847 天。記得幫 Craig 的卡片簽名。'
+    },
+    greybeard: {
+      title: '資深工程師(榮退回鍋)',
+      blurb: '「2009 年我們試過。」維護著那台大型主機。建議好得令人不安。'
+    }
   },
   OFFICE_SLOT_FALLBACKS: { label: '這張圖', userTitle: '實習架構師' },
+  OFFICE_WELCOME_EMAIL: {
+    id: 'welcome-email-hr',
+    colleagueId: 'hr',
+    subject: '歡迎加入,{userTitle}!🎉(識別證照片:待定)',
+    body: '歡迎來到這層樓!很開心你的加入。在強制新人訓練(已改期,時間待定)之前,先認識幾位同事:\n\n📅 Pam(敏捷教練)主持所有會議。真的是所有。\n🧃 Chad(我們的實習生)馬上會敲你。他沒有惡意。\n🖥️ 工單機器人 Dave 是 IT。請勿回覆,請勿來電,請勿。\n🧹 Gary 掌管冰箱和恆溫器。請對兩者保持敬意。\n🧓 Ulrich 看過你的架構。在 2009 年。\n\n我是 Linda — 人資營運!你的合規訓練已經逾期了,這實屬紀錄。收件匣 📥、專注時間和辦公室音景開關都在角落,想讓我們安靜點隨時可用。\n\n溫暖的問候,\nLinda'
+  },
+  OFFICE_WELCOME_IM: {
+    id: 'welcome-im-intern',
+    colleagueId: 'intern',
+    body: '嗨!!你就是新來的{userTitle}吧 — 歡迎!!咖啡機有十四顆按鈕,十二顆是裝飾。另外 gary 一定會寄冰箱信給你。別放在心上(要放在心上)'
+  },
   OFFICE_EMAIL_TEMPLATES: [
     {
       id: 'email-fridge-cleanout',
@@ -244,15 +274,25 @@ export const OFFICE_ZH_TW = {
   OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '晚點回'],
   OFFICE_CHROME_COPY: {
     doIt: '就這麼辦',
+    directory: {
+      title: '歡迎來到辦公室',
+      tagline: '你有一張座位、一張圖,和一群很有想法的同事。認識一下這層樓:',
+      expandLabel: '🏢 認識辦公室',
+      expandTitle: '到底是誰一直在打擾我?',
+      dismissLabel: '打卡上班',
+      closeAria: '關閉辦公室通訊錄'
+    },
     inbox: {
       buttonTitle: '公司信箱',
       unreadAria: '收件匣 — {count} 封未讀郵件',
       noUnreadAria: '收件匣 — 沒有未讀郵件',
       title: '📥 收件匣',
+      mailAnnounce: '您有新郵件!',
+      mailAnnounceLang: 'zh-TW',
       focusTimeLabel: '專注時間',
       focusTimeTitle: '同事們(大致上)會尊重專注時間',
       soundscapeLabel: '辦公室音景',
-      soundscapeTitle: '辦公室環境音 — 鍵盤聲、印表機、咖啡機',
+      soundscapeTitle: '辦公室環境音 — 鍵盤聲、紙張、印表機、電話、飲水機、咖啡機',
       closeAria: '關閉收件匣',
       back: '← 返回',
       emptyLine: '收件匣清空。HR 覺得這很可疑。好好珍惜。',

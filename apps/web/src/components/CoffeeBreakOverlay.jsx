@@ -27,7 +27,10 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
     return (
       <div className="office-coffee-invite" role="status" aria-live="polite">
         <span aria-hidden="true">☕</span>
-        <span className="office-coffee-invite-text">
+        <span
+          className="office-coffee-invite-text"
+          title={inviter.title ? `${inviter.name} · ${inviter.title}` : inviter.name}
+        >
           {formatLocale(copy.coffee.inviteLine, { name: inviter.name })}
         </span>
         <button type="button" className="office-coffee-accept" onClick={onAccept}>
@@ -51,11 +54,21 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
             const speaker = officeSenderInfo(line.speakerId);
             return (
               <li key={`${coffee.id}-${index}`} className="office-coffee-line">
-                <span className="office-coffee-avatar" aria-hidden="true">
+                <span
+                  className="office-coffee-avatar"
+                  aria-hidden="true"
+                  title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
+                >
                   {speaker.avatarEmoji}
                 </span>
                 <span>
-                  <span className="office-coffee-speaker">{speaker.name}:</span> {line.text}
+                  <span
+                    className="office-coffee-speaker"
+                    title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
+                  >
+                    {speaker.name}:
+                  </span>{' '}
+                  {line.text}
                 </span>
               </li>
             );

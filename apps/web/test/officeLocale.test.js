@@ -97,6 +97,34 @@ describe('office locale bundles', () => {
     expect(localized.OFFICE_SLOT_FALLBACKS.label).not.toBe(en.OFFICE_SLOT_FALLBACKS.label);
   });
 
+  // The welcome beats are pushed by id-less first-run code paths — casting and
+  // slot fills must stay aligned so the sequence reads the same in any locale.
+  it.each(LOCALES)('keeps the welcome beats aligned with English (%s)', (locale) => {
+    const en = getUiLocaleBundle('en').office;
+    const localized = getUiLocaleBundle(locale).office;
+    for (const key of ['OFFICE_WELCOME_EMAIL', 'OFFICE_WELCOME_IM']) {
+      expect(localized[key].id).toBe(en[key].id);
+      expect(localized[key].colleagueId).toBe(en[key].colleagueId);
+      for (const field of ['subject', 'body']) {
+        const enHasSlot = Boolean(en[key][field]?.includes('{userTitle}'));
+        const locHasSlot = Boolean(localized[key][field]?.includes('{userTitle}'));
+        expect(locHasSlot, `${locale} ${key} ${field} {userTitle}`).toBe(enHasSlot);
+      }
+    }
+  });
+
+  it.each(['zh-CN', 'zh-TW'])('translates the welcome beats and blurbs (%s)', (locale) => {
+    const en = getUiLocaleBundle('en').office;
+    const localized = getUiLocaleBundle(locale).office;
+    expect(localized.OFFICE_WELCOME_EMAIL.subject).not.toBe(en.OFFICE_WELCOME_EMAIL.subject);
+    expect(localized.OFFICE_WELCOME_EMAIL.body).not.toBe(en.OFFICE_WELCOME_EMAIL.body);
+    expect(localized.OFFICE_WELCOME_IM.body).not.toBe(en.OFFICE_WELCOME_IM.body);
+    for (const id of Object.keys(en.OFFICE_COLLEAGUES)) {
+      expect(localized.OFFICE_COLLEAGUES[id].blurb, `${locale} ${id} blurb`).toBeTruthy();
+      expect(localized.OFFICE_COLLEAGUES[id].blurb).not.toBe(en.OFFICE_COLLEAGUES[id].blurb);
+    }
+  });
+
   it.each(LOCALES)('keeps chrome copy structurally complete (%s)', (locale) => {
     const localized = getUiLocaleBundle(locale).office;
     expect(deepKeys(localized.OFFICE_CHROME_COPY).sort()).toEqual(

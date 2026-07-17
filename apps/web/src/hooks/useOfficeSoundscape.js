@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react';
 import {
+  playDeskPhone,
   playDistantPrinter,
   playEspressoMachine,
-  playKeyboardClatter
+  playKeyboardClatter,
+  playPaperShuffle,
+  playWaterCooler
 } from '../utils/agentChimes.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
 import { getOfficeSnapshot } from '../state/officeMomentStore.js';
@@ -11,7 +14,10 @@ export const SOUNDSCAPE_TICK_MS = 5_000;
 
 const CUE_PLAYERS = {
   keyboard: playKeyboardClatter,
+  paper: playPaperShuffle,
   printer: playDistantPrinter,
+  phone: playDeskPhone,
+  watercooler: playWaterCooler,
   espresso: playEspressoMachine
 };
 

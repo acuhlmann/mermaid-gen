@@ -73,11 +73,16 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
             return (
               <span
                 key={id}
-                className={`office-meeting-seat${id === lastSpeakerId ? ' is-speaking' : ''}`}
+                className={`office-meeting-seat-cell${id === lastSpeakerId ? ' is-speaking' : ''}`}
                 title={`${seat.name}${seat.title ? ` · ${seat.title}` : ''}`}
-                style={{ borderColor: seat.accentColor }}
               >
-                {seat.avatarEmoji}
+                <span
+                  className={`office-meeting-seat${id === lastSpeakerId ? ' is-speaking' : ''}`}
+                  style={{ borderColor: seat.accentColor }}
+                >
+                  {seat.avatarEmoji}
+                </span>
+                <span className="office-meeting-seat-name">{seat.name}</span>
               </span>
             );
           })}
@@ -100,7 +105,15 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
                     {speaker.avatarEmoji}
                   </span>
                   <div className="office-meeting-beat-bubble">
-                    <span className="office-meeting-beat-name">{speaker.name}</span>
+                    <span
+                      className="office-meeting-beat-name"
+                      title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
+                    >
+                      {speaker.name}
+                      {speaker.title ? (
+                        <span className="office-meeting-beat-role"> · {speaker.title}</span>
+                      ) : null}
+                    </span>
                     <p className="office-meeting-beat-text">{beat.text}</p>
                     {ended && beat.actionPrompt ? (
                       <button

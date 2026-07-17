@@ -25,7 +25,10 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
               {sender.avatarEmoji}
             </span>
             <div className="office-im-content">
-              <span className="office-im-sender">{sender.name}</span>
+              <span className="office-im-sender">
+                {sender.name}
+                {sender.title ? <span className="office-im-title"> · {sender.title}</span> : null}
+              </span>
               <p className="office-im-body">{ping.body}</p>
               <div className="office-im-replies">
                 {quickReplies.map((reply) => (

@@ -2,7 +2,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import CoffeeBreakOverlay from '../src/components/CoffeeBreakOverlay.jsx';
+import MeetingInviteToast from '../src/components/MeetingInviteToast.jsx';
 import MeetingOverlay from '../src/components/MeetingOverlay.jsx';
+import OfficeImPing from '../src/components/OfficeImPing.jsx';
 import OfficeInboxDock from '../src/components/OfficeInboxDock.jsx';
 
 afterEach(() => {
@@ -119,6 +121,80 @@ describe('OfficeInboxDock', () => {
     expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
     expect(onToggleSoundscape).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('office who-is-who chrome', () => {
+  it('shows the sender name AND role on inbox rows', () => {
+    render(
+      <OfficeInboxDock
+        emails={EMAILS}
+        unreadCount={1}
+        focusTime={false}
+        onToggleFocusTime={vi.fn()}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={vi.fn()}
+        canCallMeeting
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /1 unread/ }));
+    expect(screen.getByText(/Facilities & Fridge Czar/)).toBeTruthy();
+    expect(screen.getByText(/Agile Coach/)).toBeTruthy();
+  });
+
+  it('shows the sender name and role on IM pings', () => {
+    render(
+      <OfficeImPing
+        pings={[{ id: 'im-1', colleagueId: 'greybeard', body: 'We tried that in 2009.' }]}
+        onDismiss={vi.fn()}
+        onQuickReply={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Ulrich')).toBeTruthy();
+    expect(screen.getByText(/Staff Engineer Emeritus/)).toBeTruthy();
+  });
+
+  it('names every attendee on a meeting invite instead of bare emoji', () => {
+    render(
+      <MeetingInviteToast
+        invite={{
+          id: 'meeting-1',
+          colleagueId: 'scrumMaster',
+          title: 'WG: Diagram Alignment Sync (recurring)',
+          body: 'Agenda: alignment.',
+          attendees: ['scrumMaster', 'intern', 'greybeard']
+        }}
+        onAccept={vi.fn()}
+        onDecline={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Chad')).toBeTruthy();
+    expect(screen.getByText('Ulrich')).toBeTruthy();
+    expect(screen.getByTitle(/The Intern \(Unpaid, Strategic\)/)).toBeTruthy();
+  });
+
+  it('labels each meeting seat with the attendee name', () => {
+    render(
+      <MeetingOverlay
+        meeting={{
+          state: 'playing',
+          title: 'WG',
+          attendees: ['scrumMaster', 'greybeard'],
+          facilitatorId: 'scrumMaster',
+          completed: false,
+          interjectionsLeft: 2,
+          transcript: []
+        }}
+        onInterject={vi.fn()}
+        onLeave={vi.fn()}
+        onClose={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+      />
+    );
+    expect(screen.getByText('Pam')).toBeTruthy();
+    expect(screen.getByText('Ulrich')).toBeTruthy();
   });
 });
 

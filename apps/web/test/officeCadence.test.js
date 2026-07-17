@@ -4,6 +4,9 @@ import {
   OFFICE_LLM_MOMENT_CAP,
   OFFICE_MIN_GAP_MS,
   OFFICE_SESSION_MOMENT_CAP,
+  OFFICE_WARMUP_GAP_JITTER_MS,
+  OFFICE_WARMUP_MIN_GAP_MS,
+  OFFICE_WARMUP_MOMENT_COUNT,
   pickNextMoment
 } from '../src/utils/officeCadence.js';
 
@@ -19,7 +22,7 @@ const BASE = {
 };
 
 describe('pickNextMoment', () => {
-  it('stays quiet during the first stretch of a session', () => {
+  it('stays quiet during the (short) first stretch of a session', () => {
     expect(
       pickNextMoment({ ...BASE, now: OFFICE_FIRST_MOMENT_MIN_MS - 1, sessionStartedAt: 0 })
     ).toBeNull();
@@ -28,11 +31,24 @@ describe('pickNextMoment', () => {
     ).not.toBeNull();
   });
 
-  it('respects the jittered minimum gap between moments', () => {
-    const lastFiredAt = BASE.now - OFFICE_MIN_GAP_MS + 1;
-    expect(pickNextMoment({ ...BASE, lastFiredAt, random: () => 0 })).toBeNull();
-    const longAgo = BASE.now - OFFICE_MIN_GAP_MS * 3;
-    expect(pickNextMoment({ ...BASE, lastFiredAt: longAgo, random: () => 0 })).not.toBeNull();
+  it('uses the short warm-up gap for the first few moments', () => {
+    const warmup = { ...BASE, momentCount: OFFICE_WARMUP_MOMENT_COUNT - 1 };
+    const lastFiredAt = BASE.now - OFFICE_WARMUP_MIN_GAP_MS + 1;
+    expect(pickNextMoment({ ...warmup, lastFiredAt, random: () => 0 })).toBeNull();
+    const justPastWarmupGap = BASE.now - OFFICE_WARMUP_MIN_GAP_MS - 1;
+    expect(
+      pickNextMoment({ ...warmup, lastFiredAt: justPastWarmupGap, random: () => 0 })
+    ).not.toBeNull();
+  });
+
+  it('settles to the jittered cruise gap once warmed up', () => {
+    const settled = { ...BASE, momentCount: OFFICE_WARMUP_MOMENT_COUNT };
+    // The warm-up gap (even with max jitter) is no longer enough...
+    const warmupAgo = BASE.now - (OFFICE_WARMUP_MIN_GAP_MS + OFFICE_WARMUP_GAP_JITTER_MS) - 1;
+    expect(pickNextMoment({ ...settled, lastFiredAt: warmupAgo, random: () => 0 })).toBeNull();
+    // ...only the multi-minute cruise gap is.
+    const cruiseAgo = BASE.now - OFFICE_MIN_GAP_MS - 1;
+    expect(pickNextMoment({ ...settled, lastFiredAt: cruiseAgo, random: () => 0 })).not.toBeNull();
   });
 
   it('goes silent at the session cap', () => {

@@ -4,15 +4,21 @@
  * useOfficeAmbience hook ticks and calls `pickNextMoment`, making this fully
  * unit-testable with plain numbers.
  *
- * Anti-annoyance policy (docs/office-parody.md): a quiet first stretch, a
- * jittered multi-minute gap, hard session caps, one meeting invite per
- * session, and a small LLM budget — canned templates carry the rest.
+ * Anti-annoyance policy (docs/office-parody.md): a short quiet opening, a
+ * lively warm-up (the office "notices" the new arrival), then a jittered
+ * multi-minute cruise gap, hard session caps, one meeting invite per session,
+ * and a small LLM budget — canned templates carry the rest.
  */
 
-export const OFFICE_FIRST_MOMENT_MIN_MS = 90_000;
+export const OFFICE_FIRST_MOMENT_MIN_MS = 20_000;
+/** The first few moments arrive on a shorter leash so the office feels alive
+ * from the start; after that the cadence relaxes to the cruise gap. */
+export const OFFICE_WARMUP_MOMENT_COUNT = 2;
+export const OFFICE_WARMUP_MIN_GAP_MS = 45_000;
+export const OFFICE_WARMUP_GAP_JITTER_MS = 30_000;
 export const OFFICE_MIN_GAP_MS = 3 * 60_000;
 export const OFFICE_GAP_JITTER_MS = 2 * 60_000;
-export const OFFICE_SESSION_MOMENT_CAP = 8;
+export const OFFICE_SESSION_MOMENT_CAP = 10;
 export const OFFICE_MEETING_INVITES_PER_SESSION = 1;
 export const OFFICE_LLM_MOMENT_CAP = 3;
 
@@ -54,7 +60,10 @@ export function pickNextMoment({
 }) {
   if (momentCount >= OFFICE_SESSION_MOMENT_CAP) return null;
   if (now - sessionStartedAt < OFFICE_FIRST_MOMENT_MIN_MS) return null;
-  const requiredGap = OFFICE_MIN_GAP_MS + random() * OFFICE_GAP_JITTER_MS;
+  const warmingUp = momentCount < OFFICE_WARMUP_MOMENT_COUNT;
+  const requiredGap = warmingUp
+    ? OFFICE_WARMUP_MIN_GAP_MS + random() * OFFICE_WARMUP_GAP_JITTER_MS
+    : OFFICE_MIN_GAP_MS + random() * OFFICE_GAP_JITTER_MS;
   if (lastFiredAt > 0 && now - lastFiredAt < requiredGap) return null;
 
   const llmBudgetLeft = llmMomentCount < OFFICE_LLM_MOMENT_CAP;

@@ -4,23 +4,36 @@
  * officeCadence.js: no timers, no audio, no store access. The
  * useOfficeSoundscape hook ticks and calls `pickNextSoundscapeCue`.
  *
- * Anti-annoyance policy: a quiet opening stretch, a jittered multi-ten-second
- * gap, and no back-to-back set pieces (the printer and the espresso machine
- * are events; only keyboard clatter may repeat).
+ * Anti-annoyance policy: a brief quiet opening, a denser warm-up window (the
+ * room "fades in" while the user settles), then a jittered multi-ten-second
+ * cruise gap, and no back-to-back set pieces (the printer, espresso machine,
+ * desk phone, and watercooler are events; only the desk textures — keyboard
+ * clatter and paper shuffles — may repeat).
  */
 
-export const SOUNDSCAPE_FIRST_CUE_MIN_MS = 45_000;
+export const SOUNDSCAPE_FIRST_CUE_MIN_MS = 6_000;
+/** While the session is younger than this, cues arrive on the warm-up gap so
+ * the soundscape establishes itself quickly, then settles to the cruise gap. */
+export const SOUNDSCAPE_WARMUP_WINDOW_MS = 120_000;
+export const SOUNDSCAPE_WARMUP_MIN_GAP_MS = 12_000;
+export const SOUNDSCAPE_WARMUP_GAP_JITTER_MS = 14_000;
 export const SOUNDSCAPE_MIN_GAP_MS = 35_000;
 export const SOUNDSCAPE_GAP_JITTER_MS = 40_000;
 
 /** Relative frequency of each cue — typing is the office's heartbeat. */
 const CUE_WEIGHTS = [
   ['keyboard', 4],
+  ['paper', 2],
   ['printer', 1.5],
+  ['phone', 1.2],
+  ['watercooler', 1],
   ['espresso', 1]
 ];
 
 export const SOUNDSCAPE_CUES = CUE_WEIGHTS.map(([cue]) => cue);
+
+/** Desk textures that may play twice in a row; everything else is a set piece. */
+const REPEATABLE_CUES = new Set(['keyboard', 'paper']);
 
 /**
  * @param {{
@@ -30,7 +43,7 @@ export const SOUNDSCAPE_CUES = CUE_WEIGHTS.map(([cue]) => cue);
  *   lastCue?: string | null,
  *   random?: () => number
  * }} args
- * @returns {'keyboard'|'printer'|'espresso'|null}
+ * @returns {'keyboard'|'paper'|'printer'|'phone'|'watercooler'|'espresso'|null}
  */
 export function pickNextSoundscapeCue({
   now,
@@ -40,10 +53,13 @@ export function pickNextSoundscapeCue({
   random = Math.random
 }) {
   if (now - sessionStartedAt < SOUNDSCAPE_FIRST_CUE_MIN_MS) return null;
-  const requiredGap = SOUNDSCAPE_MIN_GAP_MS + random() * SOUNDSCAPE_GAP_JITTER_MS;
+  const warmingUp = now - sessionStartedAt < SOUNDSCAPE_WARMUP_WINDOW_MS;
+  const requiredGap = warmingUp
+    ? SOUNDSCAPE_WARMUP_MIN_GAP_MS + random() * SOUNDSCAPE_WARMUP_GAP_JITTER_MS
+    : SOUNDSCAPE_MIN_GAP_MS + random() * SOUNDSCAPE_GAP_JITTER_MS;
   if (lastPlayedAt > 0 && now - lastPlayedAt < requiredGap) return null;
 
-  const eligible = CUE_WEIGHTS.filter(([cue]) => cue === 'keyboard' || cue !== lastCue);
+  const eligible = CUE_WEIGHTS.filter(([cue]) => REPEATABLE_CUES.has(cue) || cue !== lastCue);
   const total = eligible.reduce((sum, [, weight]) => sum + weight, 0);
   let roll = random() * total;
   for (const [cue, weight] of eligible) {
