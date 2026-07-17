@@ -89,10 +89,12 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
    fallback — actually plays), with a 15 s no-interaction fallback.
 2. **Chad's welcome IM** ~8 s later.
 
-The entry screen additionally mounts the **office directory** (`OfficeDirectory`): a "meet the
-floor" card with every colleague's name, role, and bit. First run it's open ("Clock in" collapses
-it, persisted via `archislop:office-directory-seen`); afterwards it lives as a "🏢 Meet the
-office" chip.
+The entry screen additionally mounts the **office directory** (`OfficeDirectory`): a
+focused "meet the floor" tour. First run it opens as a stepped intro (welcome beat →
+one colleague at a time → Clock in), persisted via `archislop:office-directory-seen`;
+afterwards it lives as a "🏢 Meet the office" chip that reopens the full roster.
+Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an opaque
+`--office-surface-bg` so canvas ink underneath never bleeds through the copy.
 
 Roadmap moments: the desk phone nobody answers, desk-drop pastries from Facilities, the fire
 drill (all surfaces evacuate for 30 s), the printer that prints one page reading "soon".

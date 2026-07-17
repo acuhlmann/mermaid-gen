@@ -55,10 +55,9 @@ export const CONTROLS_ZH_CN = {
       { label: 'CI/CD 流水线', prompt: '梳理从提交到上线的 CI/CD 流水线' },
       { label: '微服务', prompt: '画一张典型的微服务架构图' }
     ],
-    exampleEyebrow: '这是什么？',
-    exampleHeadline: '把任意主题变成可演进的可视化',
-    exampleBody:
-      'AI 先起草流程图、信息图、3D 场景、图表或自由页面——然后你继续打磨，虚构的相关方还会插话点评。',
+    exampleEyebrow: 'ArchiSlop',
+    exampleHeadline: '任意主题 → 一张可演进的图',
+    exampleBody: '先生成，再打磨。办公室同事会有意见。',
     exampleTopic: '全球咖啡供应链',
     exampleAria: '可立即生成的可视化示例',
     exampleCta: '生成：咖啡供应链 →',

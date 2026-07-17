@@ -276,9 +276,16 @@ export const OFFICE_ZH_TW = {
     doIt: '就這麼辦',
     directory: {
       title: '歡迎來到辦公室',
-      tagline: '你有一張座位、一張圖,和一群很有想法的同事。認識一下這層樓:',
+      tagline: '你的圖有了工作場所——這層樓的人很有想法。',
+      tourHint: '一次認識一位。想安靜時打開「專注時間」。',
+      rosterTagline: '會寄信、傳訊息、路過插話的同事們：',
       expandLabel: '🏢 認識辦公室',
       expandTitle: '到底是誰一直在打擾我?',
+      startLabel: '認識這層樓 →',
+      nextLabel: '下一位 →',
+      backLabel: '← 返回',
+      skipLabel: '略過',
+      progressLabel: '{current} / {total}',
       dismissLabel: '打卡上班',
       closeAria: '關閉辦公室通訊錄'
     },
