@@ -1,5 +1,16 @@
-import type { MetaphorKind, MetaphorTheme, MetaphorCamera } from './metaphorSchema.js';
-import { METAPHOR_KINDS, METAPHOR_THEMES, METAPHOR_CAMERAS } from './metaphorSchema.js';
+import type {
+  CompositeLayout,
+  CompositeSeed,
+  MetaphorCamera,
+  MetaphorKind,
+  MetaphorTheme
+} from './metaphorSchema.js';
+import {
+  COMPOSITE_LAYOUTS,
+  METAPHOR_CAMERAS,
+  METAPHOR_KINDS,
+  METAPHOR_THEMES
+} from './metaphorSchema.js';
 
 export interface PartialMetaphorDsl {
   metaphor?: MetaphorKind;
@@ -8,6 +19,11 @@ export interface PartialMetaphorDsl {
     camera?: MetaphorCamera;
     title?: string;
   };
+  layout?: CompositeLayout;
+  seed?: CompositeSeed;
+  novelty?: number;
+  motionIntensity?: number;
+  layers?: Array<Record<string, unknown>>;
   items: Array<Record<string, unknown>>;
   links: Array<Record<string, unknown>>;
 }
@@ -22,6 +38,17 @@ function isCompleteLink(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
   const link = value as Record<string, unknown>;
   return typeof link.from === 'string' && typeof link.to === 'string';
+}
+
+function isCompleteLayer(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const layer = value as Record<string, unknown>;
+  return (
+    typeof layer.id === 'string' &&
+    typeof layer.as === 'string' &&
+    Array.isArray(layer.items) &&
+    layer.items.every(isCompleteItem)
+  );
 }
 
 function coerceMetaphorKind(raw: unknown): MetaphorKind | undefined {
@@ -48,6 +75,14 @@ function coerceCamera(raw: unknown): MetaphorCamera | undefined {
     : undefined;
 }
 
+function coerceCompositeLayout(raw: unknown): CompositeLayout | undefined {
+  if (typeof raw !== 'string') return undefined;
+  const normalized = raw.trim().toLowerCase();
+  return (COMPOSITE_LAYOUTS as readonly string[]).includes(normalized)
+    ? (normalized as CompositeLayout)
+    : undefined;
+}
+
 /** Extract top-level string property from partial JSON text. */
 function extractJsonStringField(source: string, key: string): string | undefined {
   const re = new RegExp(`"${key}"\\s*:\\s*"([^"\\\\]*(?:\\\\.[^"\\\\]*)*)"`);
@@ -60,84 +95,29 @@ function extractJsonStringField(source: string, key: string): string | undefined
   }
 }
 
-/**
- * Walk a partial JSON buffer and collect complete objects from `"items": [ ... ]`.
- * Incomplete trailing objects are skipped.
- */
-function extractCompleteItemsFromPartialJson(source: string): Array<Record<string, unknown>> {
-  const itemsKey = '"items"';
-  const start = source.indexOf(itemsKey);
-  if (start < 0) return [];
-
-  let i = start + itemsKey.length;
-  while (i < source.length && /[\s:]/.test(source[i] ?? '')) i += 1;
-  if (source[i] !== '[') return [];
-
-  i += 1;
-  const items: Array<Record<string, unknown>> = [];
-
-  while (i < source.length) {
-    while (i < source.length && /[\s,]/.test(source[i] ?? '')) i += 1;
-    if (source[i] === ']') break;
-    if (source[i] !== '{') break;
-
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-    const objStart = i;
-
-    for (; i < source.length; i += 1) {
-      const ch = source[i];
-      if (inString) {
-        if (escaped) {
-          escaped = false;
-          continue;
-        }
-        if (ch === '\\') {
-          escaped = true;
-          continue;
-        }
-        if (ch === '"') inString = false;
-        continue;
-      }
-      if (ch === '"') {
-        inString = true;
-        continue;
-      }
-      if (ch === '{') depth += 1;
-      if (ch === '}') {
-        depth -= 1;
-        if (depth === 0) {
-          i += 1;
-          const slice = source.slice(objStart, i);
-          try {
-            const parsed = JSON.parse(slice) as unknown;
-            if (isCompleteItem(parsed)) items.push(parsed);
-          } catch {
-            /* incomplete object — stop */
-          }
-          break;
-        }
-      }
-    }
-    if (depth !== 0) break;
-  }
-
-  return items;
+function extractJsonNumberField(source: string, key: string): number | undefined {
+  const match = source.match(new RegExp(`"${key}"\\s*:\\s*(-?(?:\\d+\\.?\\d*|\\.\\d+))`));
+  if (!match) return undefined;
+  const value = Number(match[1]);
+  return Number.isFinite(value) ? value : undefined;
 }
 
-/** Walk partial JSON and collect complete link objects from `"links": [ ... ]`. */
-function extractCompleteLinksFromPartialJson(source: string): Array<Record<string, unknown>> {
-  const linksKey = '"links"';
-  const start = source.indexOf(linksKey);
+/** Walk a partial JSON buffer and collect complete objects from a named array. */
+function extractCompleteObjectsFromPartialJson(
+  source: string,
+  key: string,
+  isComplete: (value: unknown) => value is Record<string, unknown>
+): Array<Record<string, unknown>> {
+  const arrayKey = `"${key}"`;
+  const start = source.indexOf(arrayKey);
   if (start < 0) return [];
 
-  let i = start + linksKey.length;
+  let i = start + arrayKey.length;
   while (i < source.length && /[\s:]/.test(source[i] ?? '')) i += 1;
   if (source[i] !== '[') return [];
 
   i += 1;
-  const links: Array<Record<string, unknown>> = [];
+  const values: Array<Record<string, unknown>> = [];
 
   while (i < source.length) {
     while (i < source.length && /[\s,]/.test(source[i] ?? '')) i += 1;
@@ -175,7 +155,7 @@ function extractCompleteLinksFromPartialJson(source: string): Array<Record<strin
           const slice = source.slice(objStart, i);
           try {
             const parsed = JSON.parse(slice) as unknown;
-            if (isCompleteLink(parsed)) links.push(parsed);
+            if (isComplete(parsed)) values.push(parsed);
           } catch {
             /* incomplete object — stop */
           }
@@ -186,7 +166,19 @@ function extractCompleteLinksFromPartialJson(source: string): Array<Record<strin
     if (depth !== 0) break;
   }
 
-  return links;
+  return values;
+}
+
+function extractCompleteItemsFromPartialJson(source: string): Array<Record<string, unknown>> {
+  return extractCompleteObjectsFromPartialJson(source, 'items', isCompleteItem);
+}
+
+function extractCompleteLinksFromPartialJson(source: string): Array<Record<string, unknown>> {
+  return extractCompleteObjectsFromPartialJson(source, 'links', isCompleteLink);
+}
+
+function extractCompleteLayersFromPartialJson(source: string): Array<Record<string, unknown>> {
+  return extractCompleteObjectsFromPartialJson(source, 'layers', isCompleteLayer);
 }
 
 function parseScenePartial(source: string): PartialMetaphorDsl['scene'] | undefined {
@@ -263,6 +255,21 @@ export function parsePartialMetaphorDsl(raw: string): PartialMetaphorDsl | null 
       const items = Array.isArray(parsed.items) ? parsed.items.filter(isCompleteItem) : [];
       const links = Array.isArray(parsed.links) ? parsed.links.filter(isCompleteLink) : [];
       const metaphor = coerceMetaphorKind(parsed.metaphor);
+      const layout = coerceCompositeLayout(parsed.layout);
+      const layers = Array.isArray(parsed.layers)
+        ? parsed.layers.filter(isCompleteLayer)
+        : undefined;
+      const seed =
+        (typeof parsed.seed === 'string' && parsed.seed.trim()) ||
+        (typeof parsed.seed === 'number' && Number.isFinite(parsed.seed) ? parsed.seed : undefined);
+      const novelty =
+        typeof parsed.novelty === 'number' && Number.isFinite(parsed.novelty)
+          ? parsed.novelty
+          : undefined;
+      const motionIntensity =
+        typeof parsed.motionIntensity === 'number' && Number.isFinite(parsed.motionIntensity)
+          ? parsed.motionIntensity
+          : undefined;
       const sceneRaw = parsed.scene;
       let scene: PartialMetaphorDsl['scene'];
       if (sceneRaw && typeof sceneRaw === 'object' && !Array.isArray(sceneRaw)) {
@@ -273,7 +280,17 @@ export function parsePartialMetaphorDsl(raw: string): PartialMetaphorDsl | null 
           ...(typeof s.title === 'string' ? { title: s.title } : {})
         };
       }
-      return { ...(metaphor ? { metaphor } : {}), ...(scene ? { scene } : {}), items, links };
+      return {
+        ...(metaphor ? { metaphor } : {}),
+        ...(scene ? { scene } : {}),
+        ...(layout ? { layout } : {}),
+        ...(seed !== undefined ? { seed } : {}),
+        ...(novelty !== undefined ? { novelty } : {}),
+        ...(motionIntensity !== undefined ? { motionIntensity } : {}),
+        ...(layers ? { layers } : {}),
+        items,
+        links
+      };
     }
   } catch {
     /* fall through to partial extraction */
@@ -289,11 +306,25 @@ export function parsePartialMetaphorDsl(raw: string): PartialMetaphorDsl | null 
   const scene = parseScenePartial(trimmed);
   const items = extractCompleteItemsFromPartialJson(trimmed);
   const links = extractCompleteLinksFromPartialJson(trimmed);
+  const layers = extractCompleteLayersFromPartialJson(trimmed);
+  const layout = coerceCompositeLayout(extractJsonStringField(trimmed, 'layout'));
+  const seedString = extractJsonStringField(trimmed, 'seed');
+  const seedNumber = extractJsonNumberField(trimmed, 'seed');
+  const seed = seedString ?? seedNumber;
+  const novelty = extractJsonNumberField(trimmed, 'novelty');
+  const motionIntensity = extractJsonNumberField(trimmed, 'motionIntensity');
 
-  if (!metaphor && !scene && items.length === 0 && links.length === 0) return null;
+  if (!metaphor && !scene && items.length === 0 && links.length === 0 && layers.length === 0) {
+    return null;
+  }
   return {
     ...(metaphor ? { metaphor } : {}),
     ...(scene ? { scene } : {}),
+    ...(layout ? { layout } : {}),
+    ...(seed !== undefined ? { seed } : {}),
+    ...(novelty !== undefined ? { novelty } : {}),
+    ...(motionIntensity !== undefined ? { motionIntensity } : {}),
+    ...(layers.length > 0 ? { layers } : {}),
     items,
     links
   };
@@ -306,6 +337,22 @@ export function partialToRenderableMetaphorDsl(
   partial: PartialMetaphorDsl
 ): Record<string, unknown> | null {
   if (!partial.metaphor) return null;
+  if (partial.metaphor === 'composite') {
+    if (!partial.layers?.length) return null;
+    return {
+      metaphor: 'composite',
+      scene: partial.scene ?? {},
+      layout: partial.layout ?? 'fused',
+      ...(partial.seed !== undefined ? { seed: partial.seed } : {}),
+      ...(partial.novelty !== undefined ? { novelty: partial.novelty } : {}),
+      ...(partial.motionIntensity !== undefined
+        ? { motionIntensity: partial.motionIntensity }
+        : {}),
+      layers: partial.layers,
+      items: [],
+      links: partial.links ?? []
+    };
+  }
   return {
     metaphor: partial.metaphor,
     scene: partial.scene ?? {},

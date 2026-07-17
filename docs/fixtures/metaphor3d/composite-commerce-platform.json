@@ -1,0 +1,113 @@
+{
+  "metaphor": "composite",
+  "scene": {
+    "theme": "whiteboard",
+    "camera": "orbit",
+    "title": "Commerce platform current",
+    "subtitle": "Domains, service landmarks, and order journey",
+    "legend": {
+      "mass": "relative domain scale from prompt",
+      "relief": "inferred operational maturity",
+      "height": "relative service importance from prompt",
+      "footprint": "relative ownership surface",
+      "stage": "order journey stage",
+      "flow": "relative activity from prompt"
+    }
+  },
+  "layout": "fused",
+  "seed": "commerce-platform-v2",
+  "novelty": 0.64,
+  "motionIntensity": 0.78,
+  "layers": [
+    {
+      "id": "commerce-domains",
+      "as": "archipelago",
+      "label": "Commerce domains",
+      "items": [
+        {
+          "id": "checkout-domain",
+          "label": "Checkout",
+          "mass": 15,
+          "relief": 0.86,
+          "chain": "Buy",
+          "glyph": "money"
+        },
+        {
+          "id": "catalog-domain",
+          "label": "Catalog",
+          "mass": 11,
+          "relief": 0.66,
+          "chain": "Discover",
+          "glyph": "filestore"
+        },
+        {
+          "id": "fulfillment-domain",
+          "label": "Fulfillment",
+          "mass": 13,
+          "relief": 0.58,
+          "chain": "Deliver",
+          "glyph": "queue"
+        }
+      ]
+    },
+    {
+      "id": "service-landmarks",
+      "as": "city",
+      "label": "Service landmarks",
+      "items": [
+        {
+          "id": "payments-api",
+          "label": "Payments API",
+          "height": 18,
+          "footprint": 3.2,
+          "district": "Checkout",
+          "glyph": "gateway",
+          "note": "Critical authorization landmark"
+        },
+        {
+          "id": "inventory-service",
+          "label": "Inventory Service",
+          "height": 12,
+          "footprint": 2.6,
+          "district": "Catalog",
+          "glyph": "database"
+        },
+        {
+          "id": "partner-gateway",
+          "label": "Partner Gateway",
+          "height": 9,
+          "footprint": 2.2,
+          "district": "Fulfillment",
+          "glyph": "network"
+        }
+      ]
+    },
+    {
+      "id": "order-current",
+      "as": "river",
+      "label": "Order journey",
+      "items": [
+        { "id": "browse", "label": "Browse", "stage": 0, "flow": 16, "glyph": "user" },
+        { "id": "basket", "label": "Basket", "stage": 25, "flow": 12, "glyph": "document" },
+        {
+          "id": "authorize",
+          "label": "Authorize",
+          "stage": 55,
+          "flow": 9,
+          "hazard": 0.45,
+          "glyph": "security"
+        },
+        { "id": "dispatch", "label": "Dispatch", "stage": 100, "flow": 7, "glyph": "target" }
+      ]
+    }
+  ],
+  "items": [],
+  "links": [
+    { "from": "checkout-domain", "to": "payments-api", "label": "owns", "kind": "ownership" },
+    { "from": "catalog-domain", "to": "inventory-service", "label": "owns", "kind": "ownership" },
+    { "from": "fulfillment-domain", "to": "partner-gateway", "label": "owns", "kind": "ownership" },
+    { "from": "basket", "to": "inventory-service", "label": "reserves", "kind": "flow" },
+    { "from": "authorize", "to": "payments-api", "label": "charges", "kind": "flow" },
+    { "from": "dispatch", "to": "partner-gateway", "label": "hands off", "kind": "flow" }
+  ]
+}

@@ -63,12 +63,11 @@ export function MetaphorLegendOverlay({ metaphor, legend }) {
  * (city, layer cake, galaxy, tree, terrain) without leaving the canvas.
  */
 /**
- * Fullscreen-only note when composite has a single layer — rare after the
- * kind switcher invents a companion; kept for agent-authored one-layer docs.
+ * Fullscreen-only note for an invalid/empty composite while a stream is forming.
  */
 export function MetaphorCompositeHint({ layerCount = 0 }) {
   const { controls } = useUiCopy();
-  if (layerCount >= 2) return null;
+  if (layerCount >= 1) return null;
   return (
     <div className="metaphor-overlay metaphor-composite-hint" role="status">
       <p className="metaphor-composite-hint-title">{controls.metaphor.compositeHintTitle}</p>

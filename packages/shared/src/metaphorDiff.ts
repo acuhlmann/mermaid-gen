@@ -15,7 +15,17 @@ type MetaphorItem = Record<string, unknown>;
 function parseMetaphorItems(source: string | null | undefined): MetaphorItem[] {
   if (typeof source !== 'string' || !source.trim()) return [];
   const sanitized = sanitizeMetaphorDsl(source, { allowStructureRewrite: true });
-  if (!sanitized.dsl?.items || !Array.isArray(sanitized.dsl.items)) return [];
+  if (!sanitized.dsl) return [];
+  if (sanitized.dsl.metaphor === 'composite') {
+    return sanitized.dsl.layers.flatMap((layer) =>
+      layer.items.map((item) => ({
+        ...item,
+        // Layer identity is part of an item's structural meaning in a composite.
+        __compositeLayer: layer.id,
+        __compositeAs: layer.as
+      }))
+    ) as MetaphorItem[];
+  }
   return sanitized.dsl.items as MetaphorItem[];
 }
 

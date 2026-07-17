@@ -89,7 +89,7 @@ export function MetaphorGroundShadow({ theme, y = 0.01, scale }) {
  * propagation so it coexists with OrbitControls (drag still rotates the view).
  * No-ops when hover is disabled (store is null during streaming).
  */
-export function HoverableItem({ item, metaphor, children }) {
+export function HoverableItem({ item, metaphor, children, onActiveIdChange }) {
   const store = useMetaphorHover();
   const highlightCategory = useMetaphorChangeHighlight(item?.id);
   const update = (event) => {
@@ -100,12 +100,14 @@ export function HoverableItem({ item, metaphor, children }) {
   const handleOver = (event) => {
     if (!store) return;
     update(event);
+    onActiveIdChange?.(item?.id ?? null);
     if (typeof document !== 'undefined') document.body.style.cursor = 'pointer';
   };
   const handleOut = (event) => {
     if (!store) return;
     event.stopPropagation();
     store.set(null);
+    onActiveIdChange?.(null);
     if (typeof document !== 'undefined') document.body.style.cursor = '';
   };
   return (

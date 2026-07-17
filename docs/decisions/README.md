@@ -12,6 +12,7 @@ Short prose records of non-obvious past decisions. Read these before re-litigati
 | [0006](0006-typescript-migration.md)          | TypeScript migration as a sliding ratchet                                              |
 | [0007](0007-sensors-for-coding-agents.md)     | Sensors for coding agents (lint guidance, dep-cruiser)                                 |
 | [0008](0008-anything-inline-libraries.md)     | Anything-mode inline libraries: markers stored, vendored bytes injected at render time |
+| [0009](0009-dynamic-composite-standards.md)   | Dynamic Composite v2: canonical semantic DSL, internal fused render plan               |
 
 ## Format
 

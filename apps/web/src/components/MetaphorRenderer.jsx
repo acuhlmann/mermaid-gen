@@ -31,7 +31,7 @@ import {
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
-import { MetaphorClockContext } from './metaphorScenes/metaphorClock.js';
+import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
   GradientSkySphere,
@@ -58,6 +58,10 @@ import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
 import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoScene.jsx';
 import { CompositeScene } from './metaphorScenes/CompositeScene.jsx';
+import {
+  resolveMetaphorMotionPolicy,
+  usePrefersReducedMotion
+} from './metaphorScenes/metaphorMotionPolicy.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -77,23 +81,6 @@ const BOUNDS_MARGIN_BY_KIND = {
   archipelago: 1.05,
   composite: 1.1
 };
-
-/** Advances the shared scene clock; gated off (frozen at 0) during streaming. */
-function MetaphorClockProvider({ enabled, children }) {
-  const timeRef = useRef(0);
-  useFrame((_, delta) => {
-    if (!enabled) return;
-    timeRef.current += delta;
-  });
-  const value = useMemo(
-    () => ({
-      getTime: () => (enabled ? timeRef.current : 0),
-      animated: enabled
-    }),
-    [enabled]
-  );
-  return <MetaphorClockContext.Provider value={value}>{children}</MetaphorClockContext.Provider>;
-}
 
 const LIGHTING_BOOST = { lit: 0.2, dim: 0.08, dark: 0 };
 const CONDITION_TILT = { new: 0, aging: 0.06, crumbling: 0.16 };
@@ -1141,6 +1128,7 @@ function MetaphorRendererImpl(
   const hoverStoreRef = useRef(null);
   if (hoverStoreRef.current === null) hoverStoreRef.current = createMetaphorHoverStore();
   const hoverStore = hoverStoreRef.current;
+  const reducedMotion = usePrefersReducedMotion();
 
   useImperativeHandle(ref, () => ({ getContainer: () => containerRef.current }), []);
 
@@ -1206,6 +1194,11 @@ function MetaphorRendererImpl(
   const postfx = resolveMetaphorPostfx(theme);
   const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.08;
   const skyKind = primaryLayerKind;
+  const motionPolicy = resolveMetaphorMotionPolicy({
+    streamingPreview,
+    reducedMotion,
+    motionIntensity: dsl?.metaphor === 'composite' ? dsl.motionIntensity : 1
+  });
 
   return (
     <div
@@ -1256,7 +1249,7 @@ function MetaphorRendererImpl(
           {skyKind === 'river' ? <RiverSky theme={theme} /> : null}
           {skyKind === 'garden' ? <GardenSky theme={theme} /> : null}
           {skyKind === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
-          <MetaphorClockProvider enabled={!streamingPreview}>
+          <MetaphorClockProvider enabled={motionPolicy.animated} intensity={motionPolicy.intensity}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>
                 <Bounds fit clip observe margin={boundsMargin}>

@@ -1,11 +1,11 @@
 /**
- * Experimental composite metaphor — mounts existing base metaphor scenes as
- * layers at runtime without modifying those scenes. `adjacent` parks layers
- * side-by-side; `overlay` stacks them near the origin (more collision-prone).
+ * Composite dispatcher. V2 `fused` plans one integrated kinetic world; explicit
+ * v1 `adjacent`/`overlay` documents still mount their original base scenes.
  */
 import { useMemo } from 'react';
 import { ItemLabel, MetaphorLinks } from './MetaphorSceneChrome.jsx';
 import { resolveCompositeLayerTransform } from './compositeLayerTransform.js';
+import { FusedCompositeScene } from './FusedCompositeScene.jsx';
 
 /**
  * @param {object} props
@@ -15,18 +15,16 @@ import { resolveCompositeLayerTransform } from './compositeLayerTransform.js';
  *        Renders one base metaphor scene (city/river/…) — supplied by MetaphorRenderer
  *        so City/Layercake stay local to that module without extraction.
  */
-export function CompositeScene({ dsl, theme, renderBaseScene }) {
-  const layers = Array.isArray(dsl.layers) ? dsl.layers : [];
+function LegacyCompositeScene({ dsl, theme, renderBaseScene }) {
   const layout = dsl.layout === 'overlay' ? 'overlay' : 'adjacent';
 
-  const layerWorld = useMemo(
-    () =>
-      layers.map((layer, index) => ({
-        layer,
-        transform: resolveCompositeLayerTransform(layer, index, layout, layers.length)
-      })),
-    [layers, layout]
-  );
+  const layerWorld = useMemo(() => {
+    const layers = Array.isArray(dsl.layers) ? dsl.layers : [];
+    return layers.map((layer, index) => ({
+      layer,
+      transform: resolveCompositeLayerTransform(layer, index, layout, layers.length)
+    }));
+  }, [dsl.layers, layout]);
 
   // Approximate cross-layer link anchors: layer origin + a small lift. Exact
   // per-item anchors would require each base scene to export them; good enough
@@ -77,4 +75,11 @@ export function CompositeScene({ dsl, theme, renderBaseScene }) {
       <MetaphorLinks links={dsl.links ?? []} anchors={anchors} theme={theme} />
     </group>
   );
+}
+
+export function CompositeScene({ dsl, theme, renderBaseScene }) {
+  if (dsl.layout !== 'adjacent' && dsl.layout !== 'overlay') {
+    return <FusedCompositeScene dsl={dsl} theme={theme} />;
+  }
+  return <LegacyCompositeScene dsl={dsl} theme={theme} renderBaseScene={renderBaseScene} />;
 }

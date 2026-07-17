@@ -15,8 +15,8 @@ export const METAPHOR_BASE_KINDS = [
 export const MetaphorBaseKindSchema = z.enum(METAPHOR_BASE_KINDS);
 
 /**
- * All metaphor discriminators, including the experimental `composite` kind that
- * mounts one or more base scenes as layers at runtime. Base kinds are unchanged.
+ * All metaphor discriminators, including `composite`, whose semantic layers are
+ * fused by a deterministic planner. Base kinds are unchanged.
  */
 export const METAPHOR_KINDS = [...METAPHOR_BASE_KINDS, 'composite'] as const;
 export const MetaphorKindSchema = z.enum(METAPHOR_KINDS);
@@ -290,13 +290,17 @@ export const ArchipelagoMetaphorSchema = z.object({
 });
 
 /**
- * Experimental runtime montage: mount existing base metaphor scenes as layers
- * without changing those scenes. `layout: "adjacent"` parks layers side-by-side
- * (safer visually); `overlay` stacks them at the origin (more experimental).
+ * Composite v2 fuses semantic layers into one planned world. The v1
+ * `adjacent` and `overlay` layouts remain accepted for authored compatibility.
  */
 export const COMPOSITE_MAX_LAYERS = 4;
-export const COMPOSITE_LAYOUTS = ['adjacent', 'overlay'] as const;
-export const CompositeLayoutSchema = z.enum(COMPOSITE_LAYOUTS).default('adjacent');
+export const COMPOSITE_LAYOUTS = ['fused', 'adjacent', 'overlay'] as const;
+export const CompositeLayoutSchema = z.enum(COMPOSITE_LAYOUTS).default('fused');
+export const CompositeSeedSchema = z
+  .union([z.string().trim().min(1).max(64), z.number().int().min(0).max(2_147_483_647)])
+  .default(0);
+export const CompositeNoveltySchema = z.number().min(0).max(1).default(0.55);
+export const CompositeMotionIntensitySchema = z.number().min(0).max(1).default(0.65);
 
 export const MetaphorLayerTransformSchema = z.object({
   position: MetaphorPositionSchema.optional(),
@@ -316,7 +320,9 @@ export const MetaphorCompositeLayerSchema = z.object({
   as: MetaphorBaseKindSchema,
   label: z.string().max(80).optional(),
   transform: MetaphorLayerTransformSchema.optional(),
-  items: z.array(CompositeLayerItemSchema).max(CITY_MAX_ITEMS).default([])
+  // The per-kind mini-schema below applies the tighter cap (for example city
+  // 50); this outer cap must allow the largest base kind (galaxy 150).
+  items: z.array(CompositeLayerItemSchema).max(GALAXY_MAX_ITEMS).default([])
 });
 
 const BASE_METAPHOR_SCHEMA_BY_KIND = {
@@ -336,23 +342,42 @@ export const CompositeMetaphorSchema = z
     metaphor: z.literal('composite'),
     scene: MetaphorSceneSchema,
     layout: CompositeLayoutSchema,
+    /** Stable planner input. Same document + seed produces the same world. */
+    seed: CompositeSeedSchema,
+    /** 0 = conservative topology, 1 = bounded maximum spatial variation. */
+    novelty: CompositeNoveltySchema,
+    /** Semantic motion amplitude/speed multiplier; reduced motion still freezes it. */
+    motionIntensity: CompositeMotionIntensitySchema,
     layers: z.array(MetaphorCompositeLayerSchema).min(1).max(COMPOSITE_MAX_LAYERS),
     /** Composite keeps items on layers; top-level stays empty for wire uniformity. */
     items: z.array(MetaphorItemBase).max(0).default([]),
     links: MetaphorLinksField
   })
   .superRefine((data, ctx) => {
-    const seenIds = new Set<string>();
+    const seenLayerIds = new Set<string>();
+    const seenItemIds = new Set<string>();
     for (let i = 0; i < data.layers.length; i += 1) {
       const layer = data.layers[i];
-      if (seenIds.has(layer.id)) {
+      if (seenLayerIds.has(layer.id)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: `duplicate layer id "${layer.id}"`,
           path: ['layers', i, 'id']
         });
       }
-      seenIds.add(layer.id);
+      seenLayerIds.add(layer.id);
+
+      for (let itemIndex = 0; itemIndex < layer.items.length; itemIndex += 1) {
+        const itemId = layer.items[itemIndex]?.id;
+        if (seenItemIds.has(itemId)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `duplicate composite item id "${itemId}"`,
+            path: ['layers', i, 'items', itemIndex, 'id']
+          });
+        }
+        seenItemIds.add(itemId);
+      }
 
       const mini = {
         metaphor: layer.as,
@@ -426,6 +451,7 @@ export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
 export type GardenMetaphor = z.infer<typeof GardenMetaphorSchema>;
 export type ArchipelagoMetaphor = z.infer<typeof ArchipelagoMetaphorSchema>;
 export type CompositeLayout = z.infer<typeof CompositeLayoutSchema>;
+export type CompositeSeed = z.infer<typeof CompositeSeedSchema>;
 export type MetaphorCompositeLayer = z.infer<typeof MetaphorCompositeLayerSchema>;
 export type CompositeMetaphor = z.infer<typeof CompositeMetaphorSchema>;
 export type MetaphorDsl = z.infer<typeof MetaphorDslSchema>;

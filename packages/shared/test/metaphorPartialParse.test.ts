@@ -86,3 +86,45 @@ test('parsePartialMetaphorDsl surfaces item.glyph on completed items during stre
   assert.equal((partial!.items[0] as { glyph?: string }).glyph, 'database');
   assert.equal((partial!.items[1] as { glyph?: string }).glyph, 'queue');
 });
+
+test('parsePartialMetaphorDsl streams complete composite layers and planner controls', () => {
+  const raw =
+    '{"metaphor":"composite","layout":"fused","seed":"festival-v1","novelty":0.7,"motionIntensity":0.6,"layers":[{"id":"grounds","as":"archipelago","items":[{"id":"main-stage","label":"Main Stage","mass":8}]},{"id":"flow","as":"river","items":[{"id":"arrival","label":"Arrival"';
+  const partial = parsePartialMetaphorDsl(raw);
+  assert.ok(partial);
+  assert.equal(partial!.metaphor, 'composite');
+  assert.equal(partial!.layout, 'fused');
+  assert.equal(partial!.seed, 'festival-v1');
+  assert.equal(partial!.novelty, 0.7);
+  assert.equal(partial!.motionIntensity, 0.6);
+  assert.equal(partial!.layers?.length, 1);
+  assert.equal(partial!.layers?.[0]?.id, 'grounds');
+
+  const renderable = partialToRenderableMetaphorDsl(partial!);
+  assert.ok(renderable);
+  assert.equal(renderable!.metaphor, 'composite');
+  assert.deepEqual(renderable!.items, []);
+  assert.equal((renderable!.layers as unknown[]).length, 1);
+});
+
+test('parsePartialMetaphorDsl preserves full composite layers instead of top-level empty items', () => {
+  const raw = JSON.stringify({
+    metaphor: 'composite',
+    layout: 'fused',
+    seed: 42,
+    layers: [
+      {
+        id: 'services',
+        as: 'city',
+        items: [{ id: 'api', label: 'API', height: 8 }]
+      }
+    ],
+    items: [],
+    links: []
+  });
+  const partial = parsePartialMetaphorDsl(raw);
+  assert.ok(partial);
+  assert.equal(partial!.items.length, 0);
+  assert.equal(partial!.layers?.length, 1);
+  assert.equal(partial!.seed, 42);
+});

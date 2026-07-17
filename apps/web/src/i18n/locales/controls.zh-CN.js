@@ -587,8 +587,7 @@ export const CONTROLS_ZH_CN = {
       composite: '组合'
     },
     compositeHintTitle: '组合模式',
-    compositeHintBody:
-      '当前蒙太奇仍只有一层。请用 Go 生成更丰富的场景，或先切到其他隐喻再切回「组合」以生成伴生视图。'
+    compositeHintBody: '融合世界正在等待至少一个语义层。请让 Go 完成场景。'
   },
   styleEdits: {
     region: '样式编辑',
