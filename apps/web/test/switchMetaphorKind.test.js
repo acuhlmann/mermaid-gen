@@ -111,18 +111,20 @@ describe('switchMetaphorKind', () => {
     expect(dsl.items[0].relief).toBeLessThanOrEqual(1);
   });
 
-  it('wraps a city scene into a two-layer composite with a complementary companion', () => {
+  it('wraps a city scene as one semantic layer in a fused world without duplicate actors', () => {
     const result = switchMetaphorKind(CITY_DSL, 'composite');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const dsl = JSON.parse(result.text);
     expect(dsl.metaphor).toBe('composite');
-    expect(dsl.layout).toBe('adjacent');
-    expect(dsl.layers).toHaveLength(2);
+    expect(dsl.layout).toBe('fused');
+    expect(dsl.seed).toBe(0);
+    expect(dsl.novelty).toBe(0.55);
+    expect(dsl.motionIntensity).toBe(0.65);
+    expect(dsl.layers).toHaveLength(1);
     expect(dsl.layers[0]).toMatchObject({ as: 'city', id: 'layer-primary' });
     expect(dsl.layers[0].items[0].id).toBe('auth');
-    expect(dsl.layers[1].as).toBe('river');
-    expect(dsl.layers[1].items[0]).toMatchObject({ id: 'companion-auth', stage: 0 });
+    expect(dsl.layers[0].items.map((item) => item.id)).toEqual(['auth', 'api']);
     expect(dsl.items).toEqual([]);
   });
 

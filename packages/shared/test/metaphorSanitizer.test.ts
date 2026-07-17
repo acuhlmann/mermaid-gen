@@ -810,3 +810,115 @@ test('sanitizeMetaphorDsl rejects nested composite layers (as must be a base kin
   const result = sanitizeMetaphorDsl(input);
   assert.equal(result.dsl, null);
 });
+
+test('Composite v2 defaults to fused with deterministic bounded planner controls', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'composite',
+    scene: {},
+    layers: [
+      {
+        id: 'services',
+        as: 'city',
+        items: [{ id: 'api', label: 'API', height: 8, footprint: 2 }]
+      }
+    ],
+    items: [],
+    links: []
+  });
+  assert.equal(dsl.metaphor, 'composite');
+  if (dsl.metaphor === 'composite') {
+    assert.equal(dsl.layout, 'fused');
+    assert.equal(dsl.seed, 0);
+    assert.equal(dsl.novelty, 0.55);
+    assert.equal(dsl.motionIntensity, 0.65);
+  }
+});
+
+test('sanitizeMetaphorDsl normalizes Composite v2 controls and defaults invalid values', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({
+      metaphor: 'composite',
+      layout: 'FUSED',
+      seed: 9.8,
+      novelty: 3,
+      motionIntensity: -2,
+      layers: [
+        {
+          id: 'services',
+          as: 'city',
+          items: [{ id: 'api', label: 'API' }]
+        }
+      ]
+    })
+  );
+  assert.ok(result.dsl, result.error ?? 'expected composite dsl');
+  if (result.dsl?.metaphor === 'composite') {
+    assert.equal(result.dsl.layout, 'fused');
+    assert.equal(result.dsl.seed, 10);
+    assert.equal(result.dsl.novelty, 1);
+    assert.equal(result.dsl.motionIntensity, 0);
+  }
+  assert.ok(result.applied.includes('normalize-composite-layout'));
+  assert.ok(result.applied.includes('clamp-composite-seed'));
+  assert.ok(result.applied.includes('clamp-composite-novelty'));
+  assert.ok(result.applied.includes('clamp-composite-motionIntensity'));
+});
+
+test('sanitizeMetaphorDsl deduplicates composite item ids so anchors stay unambiguous', () => {
+  const result = sanitizeMetaphorDsl(
+    JSON.stringify({
+      metaphor: 'composite',
+      layers: [
+        { id: 'domains', as: 'archipelago', items: [{ id: 'shared', label: 'Domain' }] },
+        { id: 'services', as: 'city', items: [{ id: 'shared', label: 'Service' }] }
+      ]
+    })
+  );
+  assert.ok(result.dsl, result.error ?? 'expected composite dsl');
+  if (result.dsl?.metaphor === 'composite') {
+    assert.equal(result.dsl.layers[0].items.length, 1);
+    assert.equal(result.dsl.layers[1].items.length, 0);
+  }
+  assert.ok(result.applied.includes('dedupe-composite-item-ids'));
+});
+
+test('Composite v1 explicit adjacent and overlay layouts remain valid', () => {
+  for (const layout of ['adjacent', 'overlay'] as const) {
+    const parsed = MetaphorDslSchema.safeParse({
+      metaphor: 'composite',
+      scene: {},
+      layout,
+      layers: [{ id: 'legacy', as: 'city', items: [{ id: 'api', label: 'API' }] }],
+      items: [],
+      links: []
+    });
+    assert.equal(parsed.success, true, `${layout} should remain compatible`);
+    if (parsed.success && parsed.data.metaphor === 'composite') {
+      assert.equal(parsed.data.layout, layout);
+    }
+  }
+});
+
+test('Composite layers retain each base kind item cap', () => {
+  const items = Array.from({ length: 51 }, (_, index) => ({
+    id: `item-${index}`,
+    label: `Item ${index}`
+  }));
+  const galaxy = MetaphorDslSchema.safeParse({
+    metaphor: 'composite',
+    scene: {},
+    layers: [{ id: 'stars', as: 'galaxy', items }],
+    items: [],
+    links: []
+  });
+  const city = MetaphorDslSchema.safeParse({
+    metaphor: 'composite',
+    scene: {},
+    layers: [{ id: 'buildings', as: 'city', items }],
+    items: [],
+    links: []
+  });
+
+  assert.equal(galaxy.success, true);
+  assert.equal(city.success, false);
+});

@@ -159,19 +159,6 @@ function mapItemToKind(item, fromKind, toKind, index) {
   return next;
 }
 
-/** Default companion kind when expanding a single scene into a visible montage. */
-const COMPOSITE_COMPANION_BY_KIND = {
-  city: 'river',
-  layercake: 'terrain',
-  galaxy: 'orrery',
-  tree: 'garden',
-  terrain: 'city',
-  orrery: 'city',
-  river: 'city',
-  garden: 'archipelago',
-  archipelago: 'city'
-};
-
 const COMPOSITE_LAYER_LABELS = {
   city: 'Systems',
   layercake: 'Stack',
@@ -185,45 +172,19 @@ const COMPOSITE_LAYER_LABELS = {
 };
 
 /**
- * Prefer a complementary companion so the montage shows two spatial stories.
- * Falls back to river when the source kind is unknown.
- */
-function pickCompositeCompanionKind(primaryKind, items, links) {
-  const list = Array.isArray(items) ? items : [];
-  const edgeCount = Array.isArray(links) ? links.length : 0;
-
-  if (primaryKind === 'city') {
-    const hasFlowLinks = Array.isArray(links)
-      ? links.some((link) => link?.kind === 'flow' || link?.kind === 'dependency')
-      : false;
-    if (hasFlowLinks || edgeCount >= 2) return 'river';
-    const districts = new Set(
-      list
-        .map((item) => (typeof item.district === 'string' ? item.district.trim() : ''))
-        .filter(Boolean)
-    );
-    if (districts.size >= 3) return 'archipelago';
-    return 'river';
-  }
-
-  if (primaryKind === 'orrery' || primaryKind === 'galaxy') {
-    return list.length >= 6 ? 'city' : (COMPOSITE_COMPANION_BY_KIND[primaryKind] ?? 'river');
-  }
-
-  return COMPOSITE_COMPANION_BY_KIND[primaryKind] ?? 'river';
-}
-
-/**
- * Expand a base (or already-composite) scene into a multi-layer montage.
- * Single-layer wraps look identical to the base metaphor, so we always invent a
- * complementary companion layer from the same items when starting from a base kind.
+ * Wrap a base scene in the generic fused planner without inventing duplicate
+ * actors or selecting from a pairwise metaphor matrix. The planner supplies a
+ * shared substrate and kinetic composition even for one semantic layer.
  */
 function wrapAsComposite(dsl) {
-  if (dsl.metaphor === 'composite' && Array.isArray(dsl.layers) && dsl.layers.length >= 2) {
+  if (dsl.metaphor === 'composite' && Array.isArray(dsl.layers) && dsl.layers.length >= 1) {
     return {
       metaphor: 'composite',
       scene: isObject(dsl.scene) ? { ...dsl.scene } : {},
-      layout: dsl.layout === 'overlay' ? 'overlay' : 'adjacent',
+      layout: ['fused', 'adjacent', 'overlay'].includes(dsl.layout) ? dsl.layout : 'fused',
+      seed: dsl.seed ?? 0,
+      novelty: finiteNumber(dsl.novelty, 0.55),
+      motionIntensity: finiteNumber(dsl.motionIntensity, 0.65),
       layers: dsl.layers.map((layer) => ({ ...layer })),
       items: [],
       links: Array.isArray(dsl.links) ? [...dsl.links] : []
@@ -234,31 +195,20 @@ function wrapAsComposite(dsl) {
   const primaryAs = METAPHOR_BASE_KINDS.includes(source.metaphor) ? source.metaphor : 'city';
   const primaryItems = Array.isArray(source.items) ? source.items.map((item) => ({ ...item })) : [];
   const links = Array.isArray(source.links) ? [...source.links] : [];
-  const companionAs = pickCompositeCompanionKind(primaryAs, primaryItems, links);
-  // Distinct ids so CompositeScene link anchors (keyed by item id) don't collide
-  // when the companion remaps the same actors into a second spatial story.
-  const companionItems = primaryItems.map((item, index) => {
-    const mapped = mapItemToKind(item, primaryAs, companionAs, index);
-    return { ...mapped, id: `companion-${mapped.id}` };
-  });
 
   return {
     metaphor: 'composite',
     scene: isObject(source.scene) ? { ...source.scene } : {},
-    layout: 'adjacent',
+    layout: 'fused',
+    seed: 0,
+    novelty: 0.55,
+    motionIntensity: 0.65,
     layers: [
       {
         id: 'layer-primary',
         as: primaryAs,
         label: COMPOSITE_LAYER_LABELS[primaryAs] ?? METAPHOR_KIND_LABELS[primaryAs] ?? primaryAs,
         items: primaryItems
-      },
-      {
-        id: 'layer-companion',
-        as: companionAs,
-        label:
-          COMPOSITE_LAYER_LABELS[companionAs] ?? METAPHOR_KIND_LABELS[companionAs] ?? companionAs,
-        items: companionItems
       }
     ],
     items: [],

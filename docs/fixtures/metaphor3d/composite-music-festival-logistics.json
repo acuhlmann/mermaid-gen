@@ -1,0 +1,134 @@
+{
+  "metaphor": "composite",
+  "scene": {
+    "theme": "arcade",
+    "camera": "orbit",
+    "title": "Night Orchard Festival",
+    "subtitle": "Venues, logistics landmarks, and the crowd journey",
+    "legend": {
+      "mass": "relative venue capacity from brief",
+      "relief": "inferred production readiness",
+      "height": "relative logistics criticality",
+      "footprint": "relative crew footprint",
+      "stage": "festival-day sequence",
+      "flow": "relative crowd volume from brief"
+    }
+  },
+  "layout": "fused",
+  "seed": "night-orchard-logistics",
+  "novelty": 0.76,
+  "motionIntensity": 0.84,
+  "layers": [
+    {
+      "id": "festival-grounds",
+      "as": "archipelago",
+      "label": "Festival grounds",
+      "items": [
+        {
+          "id": "moon-stage",
+          "label": "Moon Stage",
+          "mass": 16,
+          "relief": 0.88,
+          "chain": "Live music",
+          "glyph": "signal"
+        },
+        {
+          "id": "orchard-stage",
+          "label": "Orchard Stage",
+          "mass": 11,
+          "relief": 0.7,
+          "chain": "Live music",
+          "glyph": "channel"
+        },
+        {
+          "id": "quiet-camp",
+          "label": "Quiet Camp",
+          "mass": 7,
+          "relief": 0.38,
+          "chain": "Rest",
+          "glyph": "anchor"
+        }
+      ]
+    },
+    {
+      "id": "logistics-landmarks",
+      "as": "city",
+      "label": "Logistics landmarks",
+      "items": [
+        {
+          "id": "artist-check-in",
+          "label": "Artist Check-in",
+          "height": 11,
+          "footprint": 2.5,
+          "district": "Backstage",
+          "glyph": "identity"
+        },
+        {
+          "id": "medical-tent",
+          "label": "Medical Tent",
+          "height": 16,
+          "footprint": 3,
+          "district": "Safety",
+          "glyph": "security",
+          "note": "Must remain reachable from every venue"
+        },
+        {
+          "id": "shuttle-control",
+          "label": "Shuttle Control",
+          "height": 13,
+          "footprint": 2.8,
+          "district": "Transport",
+          "glyph": "network"
+        }
+      ]
+    },
+    {
+      "id": "crowd-current",
+      "as": "river",
+      "label": "Crowd journey",
+      "items": [
+        {
+          "id": "shuttle-arrival",
+          "label": "Shuttle Arrival",
+          "stage": 0,
+          "flow": 17,
+          "glyph": "user"
+        },
+        {
+          "id": "wristband-gate",
+          "label": "Wristband Gate",
+          "stage": 25,
+          "flow": 15,
+          "hazard": 0.35,
+          "glyph": "identity"
+        },
+        {
+          "id": "headline-set",
+          "label": "Headline Set",
+          "stage": 65,
+          "flow": 19,
+          "glyph": "signal"
+        },
+        { "id": "night-buses", "label": "Night Buses", "stage": 100, "flow": 12, "glyph": "time" }
+      ]
+    }
+  ],
+  "items": [],
+  "links": [
+    {
+      "from": "moon-stage",
+      "to": "medical-tent",
+      "label": "emergency route",
+      "kind": "dependency"
+    },
+    { "from": "orchard-stage", "to": "artist-check-in", "label": "artist route", "kind": "flow" },
+    { "from": "shuttle-arrival", "to": "shuttle-control", "label": "dispatch", "kind": "flow" },
+    {
+      "from": "wristband-gate",
+      "to": "medical-tent",
+      "label": "safety escalation",
+      "kind": "flow"
+    },
+    { "from": "night-buses", "to": "quiet-camp", "label": "late fallback", "kind": "dependency" }
+  ]
+}

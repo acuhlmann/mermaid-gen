@@ -596,7 +596,7 @@ export const CONTROLS_EN_AU = {
     },
     compositeHintTitle: 'Composite mode',
     compositeHintBody:
-      'This montage still has one layer. Ask Go for a richer scene, or switch away and back to Composite to invent a companion view.'
+      'The fused world is waiting for at least one semantic layer. Ask Go to complete the scene.'
   },
   styleEdits: {
     region: 'Style edits',

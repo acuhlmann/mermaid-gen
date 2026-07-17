@@ -605,8 +605,8 @@ function rescueLinksField(
 }
 
 /**
- * Rescue the experimental composite document: normalize layout, cap layers, and
- * run each layer's items through the same rescues the target base kind would get.
+ * Rescue a composite document: normalize planner controls, cap layers, and run
+ * each layer's items through the same rescues the target base kind would get.
  */
 function rescueCompositeDocument(
   working: Record<string, unknown>,
@@ -623,12 +623,48 @@ function rescueCompositeDocument(
         applied.push('normalize-composite-layout');
       }
     } else if (allowStructureRewrite) {
-      working.layout = 'adjacent';
+      working.layout = 'fused';
       applied.push('default-composite-layout');
     }
   } else if (allowStructureRewrite) {
-    working.layout = 'adjacent';
+    working.layout = 'fused';
     applied.push('default-composite-layout');
+  }
+
+  if (typeof working.seed === 'string') {
+    const seed = working.seed.trim();
+    if (seed) {
+      if (seed !== working.seed) {
+        working.seed = seed;
+        applied.push('normalize-composite-seed');
+      }
+    } else if (allowStructureRewrite) {
+      delete working.seed;
+      applied.push('default-composite-seed');
+    }
+  } else if (typeof working.seed === 'number' && Number.isFinite(working.seed)) {
+    const seed = Math.round(clampNumber(working.seed, 0, 2_147_483_647));
+    if (seed !== working.seed) {
+      working.seed = seed;
+      applied.push('clamp-composite-seed');
+    }
+  } else if (working.seed !== undefined && allowStructureRewrite) {
+    delete working.seed;
+    applied.push('default-composite-seed');
+  }
+
+  for (const key of ['novelty', 'motionIntensity'] as const) {
+    const value = working[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      const clamped = clampNumber(value, 0, 1);
+      if (clamped !== value) {
+        working[key] = clamped;
+        applied.push(`clamp-composite-${key}`);
+      }
+    } else if (value !== undefined && allowStructureRewrite) {
+      delete working[key];
+      applied.push(`default-composite-${key}`);
+    }
   }
 
   if (!Array.isArray(working.layers)) {
@@ -640,6 +676,7 @@ function rescueCompositeDocument(
 
   const rescuedLayers: Record<string, unknown>[] = [];
   const seenLayerIds = new Set<string>();
+  const seenItemIds = new Set<string>();
 
   for (const raw of working.layers as unknown[]) {
     if (!isObject(raw)) {
@@ -717,7 +754,20 @@ function rescueCompositeDocument(
     rescueTreeStructure(layerWorking, applied);
     rescueGalaxyBinary(layerWorking, applied);
     rescueOrreryMoons(layerWorking, applied);
-    layer.items = layerWorking.items;
+    if (allowStructureRewrite && Array.isArray(layerWorking.items)) {
+      const uniqueItems = (layerWorking.items as unknown[]).filter((item) => {
+        if (!isObject(item) || typeof item.id !== 'string') return false;
+        if (seenItemIds.has(item.id)) return false;
+        seenItemIds.add(item.id);
+        return true;
+      });
+      if (uniqueItems.length !== layerWorking.items.length) {
+        applied.push('dedupe-composite-item-ids');
+      }
+      layer.items = uniqueItems;
+    } else {
+      layer.items = layerWorking.items;
+    }
 
     rescuedLayers.push(layer);
     if (rescuedLayers.length >= COMPOSITE_MAX_LAYERS) {

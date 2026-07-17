@@ -1,0 +1,145 @@
+{
+  "metaphor": "composite",
+  "scene": {
+    "theme": "noir",
+    "camera": "orbit",
+    "title": "The Toaster's Memory Palace",
+    "subtitle": "Rooms of regret, appliance landmarks, and a looping recollection",
+    "legend": {
+      "mass": "relative emotional weight inferred from prompt",
+      "relief": "inferred memory vividness",
+      "height": "relative narrative importance",
+      "footprint": "relative consequence",
+      "stage": "recollection order",
+      "flow": "relative attention in the memory",
+      "magnitude": "relative persistence of thought"
+    }
+  },
+  "layout": "fused",
+  "seed": "regretful-toaster-remembers",
+  "novelty": 0.91,
+  "motionIntensity": 0.68,
+  "layers": [
+    {
+      "id": "memory-rooms",
+      "as": "archipelago",
+      "label": "Memory rooms",
+      "items": [
+        {
+          "id": "breakfast-that-burned",
+          "label": "Breakfast That Burned",
+          "mass": 18,
+          "relief": 0.96,
+          "chain": "Regret",
+          "glyph": "firewall",
+          "note": "The smoke alarm remembers too"
+        },
+        {
+          "id": "crumb-drawer-archive",
+          "label": "Crumb Drawer Archive",
+          "mass": 9,
+          "relief": 0.58,
+          "chain": "Evidence",
+          "glyph": "datalake"
+        },
+        {
+          "id": "unplugged-sunday",
+          "label": "Unplugged Sunday",
+          "mass": 7,
+          "relief": 0.32,
+          "chain": "Hope",
+          "glyph": "time"
+        }
+      ]
+    },
+    {
+      "id": "palace-landmarks",
+      "as": "city",
+      "label": "Appliance landmarks",
+      "items": [
+        {
+          "id": "chrome-throne",
+          "label": "Chrome Throne",
+          "height": 17,
+          "footprint": 3,
+          "district": "Self-image",
+          "lighting": "dim",
+          "glyph": "anchor"
+        },
+        {
+          "id": "forgiveness-lever",
+          "label": "Forgiveness Lever",
+          "height": 13,
+          "footprint": 2.2,
+          "district": "Agency",
+          "lighting": "lit",
+          "glyph": "decision"
+        }
+      ]
+    },
+    {
+      "id": "recollection-loop",
+      "as": "river",
+      "label": "Recollection loop",
+      "items": [
+        {
+          "id": "bread-enters",
+          "label": "Bread Enters",
+          "stage": 0,
+          "flow": 11,
+          "glyph": "document"
+        },
+        {
+          "id": "coil-hesitates",
+          "label": "Coil Hesitates",
+          "stage": 40,
+          "flow": 8,
+          "hazard": 0.75,
+          "glyph": "signal"
+        },
+        { "id": "toast-ejects", "label": "Toast Ejects", "stage": 75, "flow": 6, "glyph": "event" },
+        {
+          "id": "apology-rehearsed",
+          "label": "Apology Rehearsed",
+          "stage": 100,
+          "flow": 9,
+          "glyph": "channel"
+        }
+      ]
+    },
+    {
+      "id": "persistent-thoughts",
+      "as": "galaxy",
+      "label": "Persistent thoughts",
+      "items": [
+        {
+          "id": "was-it-my-fault",
+          "label": "Was It My Fault?",
+          "magnitude": 16,
+          "cluster": "Doubt",
+          "glyph": "decision"
+        },
+        {
+          "id": "try-bagel-mode",
+          "label": "Try Bagel Mode",
+          "magnitude": 8,
+          "cluster": "Repair",
+          "glyph": "target"
+        }
+      ]
+    }
+  ],
+  "items": [],
+  "links": [
+    { "from": "breakfast-that-burned", "to": "coil-hesitates", "label": "replays", "kind": "flow" },
+    { "from": "coil-hesitates", "to": "was-it-my-fault", "label": "asks", "kind": "flow" },
+    {
+      "from": "was-it-my-fault",
+      "to": "forgiveness-lever",
+      "label": "seeks",
+      "kind": "dependency"
+    },
+    { "from": "forgiveness-lever", "to": "apology-rehearsed", "label": "releases", "kind": "flow" },
+    { "from": "unplugged-sunday", "to": "try-bagel-mode", "label": "imagines", "kind": "ownership" }
+  ]
+}

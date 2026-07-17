@@ -5,7 +5,11 @@
  */
 import { createContext, useContext } from 'react';
 
-export const MetaphorClockContext = createContext({ getTime: () => 0, animated: false });
+export const MetaphorClockContext = createContext({
+  getTime: () => 0,
+  animated: false,
+  intensity: 0
+});
 
 export function useMetaphorClock() {
   return useContext(MetaphorClockContext);
