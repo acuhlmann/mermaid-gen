@@ -31,6 +31,7 @@ import {
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
+import { METAPHOR_GLTF_ROOT_NAME, MetaphorGltfExportBridge } from '../utils/metaphorGltfExport.js';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
@@ -1114,7 +1115,9 @@ function MetaphorRendererImpl(
     changeHighlight = null,
     isFullscreen = false,
     onMetaphorKindChange = null,
-    metaphorKindSwitchDisabled = false
+    metaphorKindSwitchDisabled = false,
+    /** Register live-canvas GLB export (disable for insights embeds). */
+    enableGltfExport = true
   },
   ref
 ) {
@@ -1254,7 +1257,17 @@ function MetaphorRendererImpl(
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>
                 <Bounds fit clip observe margin={boundsMargin}>
                   <Center disableY>
-                    <MetaphorScene dsl={dsl} theme={theme} />
+                    <group
+                      name={METAPHOR_GLTF_ROOT_NAME}
+                      userData={{
+                        archislop: {
+                          contentType: 'metaphor3d',
+                          metaphor: dsl.metaphor
+                        }
+                      }}
+                    >
+                      <MetaphorScene dsl={dsl} theme={theme} />
+                    </group>
                   </Center>
                 </Bounds>
               </MetaphorChangeHighlightProvider>
@@ -1263,6 +1276,13 @@ function MetaphorRendererImpl(
           <OrbitControls enableDamping makeDefault />
           <MetaphorIntro streamingPreview={streamingPreview} />
           {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
+          {!streamingPreview && enableGltfExport ? (
+            <MetaphorGltfExportBridge
+              diagramSource={diagramSource}
+              metaphor={dsl.metaphor}
+              enabled
+            />
+          ) : null}
         </Canvas>
       ) : null}
       {dsl && !streamingPreview ? (

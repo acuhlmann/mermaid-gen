@@ -228,7 +228,11 @@ export default function InsightsEmbeddedDiagram({
       >
         <div className="insights-embedded-diagram-inner">
           {nearViewport ? (
-            <MetaphorRenderer diagramSource={source} streamingPreview={streamingPreview} />
+            <MetaphorRenderer
+              diagramSource={source}
+              streamingPreview={streamingPreview}
+              enableGltfExport={false}
+            />
           ) : null}
         </div>
       </div>

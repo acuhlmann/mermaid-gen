@@ -98,6 +98,7 @@ export const CONTROLS_ZH_TW = {
     exportMermaidSvg: 'SVG 圖像 (.svg)',
     exportInfographicDsl: '資訊圖 DSL (.txt)',
     exportMetaphorJson: '場景 JSON (.json)',
+    exportMetaphorGltf: '3D 模型 (.glb)',
     exportChartCsv: '試算表 CSV (.csv)',
     exportChartJson: '圖表 JSON (.json)',
     exportChartVegaLite: 'Vega-Lite 規格 (.vl.json)',
