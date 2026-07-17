@@ -73,7 +73,7 @@ Composite v2 planner controls:
 - `novelty` (0–1, default `0.55`): bounded topology and placement variation. It never permits unbounded transforms or arbitrary code.
 - `motionIntensity` (0–1, default `0.65`): scales semantic pulse, sway, orbit, and flow. `prefers-reduced-motion: reduce` freezes the deterministic pose instead of removing the scene's meaning.
 
-The Composite JSON remains the canonical semantic document. `fusedCompositePlanner.js` produces an internal R3F render plan with stable bounds, anchors, transforms, motion styles, and estimated cost; that plan is not a public interchange format. Standards and migration rationale are recorded in [ADR-0009](../decisions/0009-dynamic-composite-standards.md).
+The Composite JSON remains the canonical semantic document. `fusedCompositePlanner.js` produces an internal R3F render plan with stable bounds, anchors, transforms, motion styles, and estimated cost; that plan is not a public interchange format. Standards and migration rationale are recorded in [ADR-0009](../decisions/0009-dynamic-composite-standards.md). Export offers **Scene JSON** (authoring round-trip) and a baked **glTF 2.0 `.glb`** (live canvas geometry with item ids/labels in node extras and the DSL in root extras) for DCC / viewer delivery.
 
 ## chart
 

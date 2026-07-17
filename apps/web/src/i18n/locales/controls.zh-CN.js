@@ -99,6 +99,7 @@ export const CONTROLS_ZH_CN = {
     exportMermaidSvg: 'SVG 图像 (.svg)',
     exportInfographicDsl: '信息图 DSL (.txt)',
     exportMetaphorJson: '场景 JSON (.json)',
+    exportMetaphorGltf: '3D 模型 (.glb)',
     exportChartCsv: '电子表格 CSV (.csv)',
     exportChartJson: '图表 JSON (.json)',
     exportChartVegaLite: 'Vega-Lite 规格 (.vl.json)',

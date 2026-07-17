@@ -109,6 +109,7 @@ export const CONTROLS_EN = {
     exportMermaidSvg: 'SVG image (.svg)',
     exportInfographicDsl: 'Infographic DSL (.txt)',
     exportMetaphorJson: 'Scene JSON (.json)',
+    exportMetaphorGltf: '3D model (.glb)',
     exportChartCsv: 'Spreadsheet CSV (.csv)',
     exportChartJson: 'Chart JSON (.json)',
     exportChartVegaLite: 'Vega-Lite spec (.vl.json)',

@@ -35,6 +35,8 @@ The migration path to an actual USD Stage is:
 4. Evaluate an official OpenUSD WASM build in a separate lazy worker/chunk: startup bytes, memory, CSP, cross-origin isolation, resolver cancellation, browser support, and Node parity are release gates. Three's USD loader may remain a rendering adapter, but not the conformance boundary.
 5. Offer glTF 2.0.1 as an optional baked delivery/export representation when needed, with stable ids/semantic metadata in a documented extension or sidecar. Re-evaluate glTF 2.1 only after ratification and production loader support.
 
+**Shipped (export only):** the web Export menu includes `metaphor-gltf` (`.glb`) which bakes the live R3F content root via Three's `GLTFExporter`. Item ids/labels are node `extras`; the Metaphor JSON DSL is attached as root `extras.archislop.diagramSource`. The JSON DSL remains canonical; GLB is not a round-trip authoring format.
+
 ## Consequences
 
 Positive:
@@ -64,6 +66,7 @@ Trade-offs:
 - Internal planner: `apps/web/src/components/metaphorScenes/fusedCompositePlanner.js`
 - R3F renderer: `apps/web/src/components/metaphorScenes/FusedCompositeScene.jsx`
 - Agent contract: `apps/server/src/prompts/metaphorSystemPrompt.js`
+- Optional baked export: `apps/web/src/utils/metaphorGltfExport.js` + `metaphor-gltf` in `apps/web/src/utils/exportDiagram.js`
 
 ## Evidence reviewed
 
