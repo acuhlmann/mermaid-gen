@@ -210,6 +210,9 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors }) {
       position[1] + (capability.role === 'accent' ? 0 : height),
       position[2]
     ];
+    const labelDx = position[0] - site.position[0];
+    const labelDz = position[2] - site.position[2];
+    const labelDistance = Math.hypot(labelDx, labelDz) || 1;
     anchors.set(item.id, anchor);
     return {
       id: item.id,
@@ -221,6 +224,7 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors }) {
       position,
       anchor,
       attachedTo: site.id,
+      labelOffset: [(labelDx / labelDistance) * 0.58, 0, (labelDz / labelDistance) * 0.58],
       radius,
       height,
       metric,
@@ -244,7 +248,7 @@ function orderedPathItems(layer) {
 
 function routePoint(site, worldKey, id, index) {
   const angle = seeded(worldKey, id, 'path-offset-angle') * TAU;
-  const distance = Math.min(site.radius * 0.32, 0.45 + index * 0.04);
+  const distance = Math.min(site.radius * 0.52, 0.75 + index * 0.06);
   return [
     site.position[0] + Math.cos(angle) * distance,
     site.anchor[1] + 0.16,
@@ -270,6 +274,9 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
       const site = sites[(index + rotation + layerIndex) % sites.length];
       const point = routePoint(site, worldKey, item.id, index);
       const anchor = [point[0], point[1] + 0.9, point[2]];
+      const labelDx = point[0] - site.position[0];
+      const labelDz = point[2] - site.position[2];
+      const labelDistance = Math.hypot(labelDx, labelDz) || 1;
       anchors.set(item.id, anchor);
       return {
         id: item.id,
@@ -277,6 +284,7 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
         point,
         anchor,
         attachedTo: site.id,
+        labelOffset: [(labelDx / labelDistance) * 0.72, 0, (labelDz / labelDistance) * 0.72],
         motion: makeMotion(worldKey, item.id, 'flow', novelty)
       };
     });
@@ -307,7 +315,7 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
         kind: layer.as,
         points: controls,
         stations,
-        width: clamp(0.28 + Math.sqrt(Math.max(0.1, averageFlow)) * 0.08, 0.3, 0.65),
+        width: clamp(0.16 + Math.sqrt(Math.max(0.1, averageFlow)) * 0.055, 0.2, 0.42),
         motion: makeMotion(worldKey, layer.id, 'flow', novelty),
         estimatedCost: getCompositePrimitive('waypoint').estimatedCost * stations.length + 8
       }
@@ -353,6 +361,22 @@ function makeLinks(dsl, layers, anchors) {
   });
 }
 
+function resolveGroundRadius(sites, nodes, paths) {
+  let extent = 0;
+  for (const site of sites) {
+    extent = Math.max(extent, Math.hypot(site.position[0], site.position[2]) + site.radius);
+  }
+  for (const node of nodes) {
+    extent = Math.max(extent, Math.hypot(node.position[0], node.position[2]) + node.radius);
+  }
+  for (const path of paths) {
+    for (const point of path.points) {
+      extent = Math.max(extent, Math.hypot(point[0], point[2]) + path.width);
+    }
+  }
+  return Math.max(7, extent + 1.4);
+}
+
 /**
  * Produce a deterministic, finite internal render plan from any valid 1–4 layer
  * Composite v2 document. The plan is deliberately not an interchange format.
@@ -385,6 +409,7 @@ export function planFusedCompositeWorld(dsl) {
   const nodes = makeNodes({ layers, sites, novelty, worldKey, anchors });
   const paths = makePaths({ layers, sites, novelty, worldKey, anchors });
   const links = makeLinks(dsl, layers, anchors);
+  const groundRadius = resolveGroundRadius(sites, nodes, paths);
   const estimatedCost =
     sites.reduce((sum, item) => sum + item.estimatedCost, 0) +
     nodes.reduce((sum, item) => sum + item.estimatedCost, 0) +
@@ -399,6 +424,7 @@ export function planFusedCompositeWorld(dsl) {
     novelty,
     motionIntensity,
     worldRadius,
+    groundRadius,
     sites,
     nodes,
     paths,

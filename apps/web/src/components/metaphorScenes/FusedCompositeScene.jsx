@@ -281,6 +281,11 @@ function PrimitiveBody({ entity, theme, emphasized }) {
 
 function PlannedNode({ entity, theme, emphasized, onActiveIdChange }) {
   const labelY = entity.role === 'accent' ? entity.radius + 0.8 : entity.height + 0.9;
+  const labelPosition = [
+    entity.labelOffset?.[0] ?? 0,
+    labelY + (entity.item.glyph ? 0.55 : 0),
+    entity.labelOffset?.[2] ?? 0
+  ];
   return (
     <group position={entity.position}>
       <HoverableItem item={entity.item} metaphor={entity.kind} onActiveIdChange={onActiveIdChange}>
@@ -288,8 +293,8 @@ function PlannedNode({ entity, theme, emphasized, onActiveIdChange }) {
         <TopicGlyph item={entity.item} theme={theme} position={[0, labelY - 0.3, 0]} scale={0.68} />
         <ItemLabel
           text={entity.item.label}
-          position={[0, labelY + (entity.item.glyph ? 0.55 : 0), 0]}
-          fontSize={0.5}
+          position={labelPosition}
+          fontSize={0.46}
           color={theme.labelColor}
           outlineColor={theme.labelOutline}
         />
@@ -303,14 +308,15 @@ function WorldGround({ plan, theme, hasIslands }) {
   const rim = hasIslands
     ? (theme.riverDeepColor ?? '#087fb8')
     : (theme.binaryGlowColor ?? '#64748b');
+  const radius = plan.groundRadius ?? plan.worldRadius;
   return (
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.28, 0]}>
-        <circleGeometry args={[plan.worldRadius * 1.15, 72]} />
+        <circleGeometry args={[radius * 1.05, 72]} />
         <meshStandardMaterial color={rim} roughness={0.68} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.22, 0]}>
-        <circleGeometry args={[plan.worldRadius * 1.08, 72]} />
+        <circleGeometry args={[radius, 72]} />
         <meshStandardMaterial
           color={color}
           emissive={rim}
@@ -321,7 +327,7 @@ function WorldGround({ plan, theme, hasIslands }) {
       </mesh>
       {[0.42, 0.72, 0.96].map((scale) => (
         <mesh key={scale} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.2, 0]}>
-          <ringGeometry args={[plan.worldRadius * scale, plan.worldRadius * scale + 0.055, 64]} />
+          <ringGeometry args={[radius * scale, radius * scale + 0.055, 64]} />
           <meshBasicMaterial color={theme.labelColor} transparent opacity={0.11} />
         </mesh>
       ))}
@@ -405,8 +411,12 @@ function FusedPath({ path, theme, activeId, onActiveIdChange }) {
               <TopicGlyph item={station.item} theme={theme} position={[0, 1.15, 0]} scale={0.6} />
               <ItemLabel
                 text={station.item.label}
-                position={[0, station.item.glyph ? 2 : 1.35, 0]}
-                fontSize={0.47}
+                position={[
+                  station.labelOffset?.[0] ?? 0,
+                  station.item.glyph ? 2 : 1.35,
+                  station.labelOffset?.[2] ?? 0
+                ]}
+                fontSize={0.41}
                 color={theme.labelColor}
                 outlineColor={theme.labelOutline}
               />
@@ -531,7 +541,11 @@ export function FusedCompositeScene({ dsl, theme }) {
         />
       ))}
       <FusedLinks links={plan.links} theme={theme} activeId={activeId} />
-      <MetaphorGroundShadow theme={theme} y={-0.31} scale={plan.worldRadius * 2.5} />
+      <MetaphorGroundShadow
+        theme={theme}
+        y={-0.31}
+        scale={(plan.groundRadius ?? plan.worldRadius) * 2.3}
+      />
     </group>
   );
 }

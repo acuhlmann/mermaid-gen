@@ -169,6 +169,8 @@ describe('planFusedCompositeWorld', () => {
         const plan = planFusedCompositeWorld(dsl);
         expect(Number.isFinite(plan.estimatedCost)).toBe(true);
         expect(plan.estimatedCost).toBeGreaterThan(0);
+        expect(Number.isFinite(plan.groundRadius)).toBe(true);
+        expect(plan.groundRadius).toBeGreaterThan(0);
         for (const site of plan.sites) {
           expectFiniteVector(site.position);
           expectFiniteVector(site.anchor);
@@ -176,9 +178,12 @@ describe('planFusedCompositeWorld', () => {
         for (const node of plan.nodes) {
           expectFiniteVector(node.position);
           expectFiniteVector(node.anchor);
+          expectFiniteVector(node.labelOffset);
         }
         for (const path of plan.paths) {
           for (const point of path.points) expectFiniteVector(point);
+          expect(path.width).toBeLessThanOrEqual(0.42);
+          for (const station of path.stations) expectFiniteVector(station.labelOffset);
         }
         for (const layer of dsl.layers) {
           for (const item of layer.items) {
