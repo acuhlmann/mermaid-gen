@@ -55,10 +55,9 @@ export const CONTROLS_ZH_TW = {
       { label: 'CI/CD 流水線', prompt: '梳理從提交到上線的 CI/CD 流水線' },
       { label: '微服務', prompt: '畫一張典型的微服務架構圖' }
     ],
-    exampleEyebrow: '這是什麼？',
-    exampleHeadline: '把任意主題變成可演進的視覺化',
-    exampleBody:
-      'AI 先起草流程圖、資訊圖、3D 場景、圖表或自由頁面——然後你繼續打磨，虛構的相關方還會插話點評。',
+    exampleEyebrow: 'ArchiSlop',
+    exampleHeadline: '任意主題 → 一張可演進的圖',
+    exampleBody: '先產生，再打磨。辦公室同事會有意見。',
     exampleTopic: '全球咖啡供應鏈',
     exampleAria: '可立即產生的視覺化範例',
     exampleCta: '產生：咖啡供應鏈 →',
@@ -99,6 +98,7 @@ export const CONTROLS_ZH_TW = {
     exportMermaidSvg: 'SVG 圖像 (.svg)',
     exportInfographicDsl: '資訊圖 DSL (.txt)',
     exportMetaphorJson: '場景 JSON (.json)',
+    exportMetaphorGltf: '3D 模型 (.glb)',
     exportChartCsv: '試算表 CSV (.csv)',
     exportChartJson: '圖表 JSON (.json)',
     exportChartVegaLite: 'Vega-Lite 規格 (.vl.json)',

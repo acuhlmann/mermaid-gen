@@ -592,9 +592,16 @@ export const OFFICE_EN_AU = {
     doIt: 'Have a go',
     directory: {
       title: 'Welcome to the office',
-      tagline: 'You’ve got a desk, a diagram, and colleagues with opinions. Meet the floor:',
+      tagline: 'Your diagram has a workplace — and the floor has opinions.',
+      tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
+      rosterTagline: 'The cast that emails, IMs, and walks by while you work:',
       expandLabel: '🏢 Meet the office',
       expandTitle: 'Who keeps interrupting me?',
+      startLabel: 'Meet the floor →',
+      nextLabel: 'Next →',
+      backLabel: '← Back',
+      skipLabel: 'Skip',
+      progressLabel: '{current} of {total}',
       dismissLabel: 'Clock on',
       closeAria: 'Close the office directory'
     },

@@ -21,9 +21,9 @@ describe('ExampleDiagramPreview', () => {
     render(
       <ExampleDiagramPreview
         source={SOURCE}
-        eyebrow="What is this?"
-        headline="Turn any topic into a living visualization"
-        body="AI drafts a diagram you can refine."
+        eyebrow="ArchiSlop"
+        headline="Any topic → a living diagram"
+        body="Generate one. Refine it. The office will have opinions."
         topicLabel="OAuth 2.0 authorization code flow"
         ariaLabel="Example visualization"
         active
@@ -31,8 +31,8 @@ describe('ExampleDiagramPreview', () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
-    expect(screen.getByText('What is this?')).toBeTruthy();
-    expect(screen.getByText('Turn any topic into a living visualization')).toBeTruthy();
+    expect(screen.getByText('ArchiSlop')).toBeTruthy();
+    expect(screen.getByText('Any topic → a living diagram')).toBeTruthy();
     expect(screen.getByText('OAuth 2.0 authorization code flow')).toBeTruthy();
     expect(renderMermaidPreviewSvg).toHaveBeenCalledWith('entry-example', SOURCE);
   });
@@ -50,14 +50,14 @@ describe('ExampleDiagramPreview', () => {
     render(
       <ExampleDiagramPreview
         source={SOURCE}
-        headline="Turn any topic into a living visualization"
+        headline="Any topic → a living diagram"
         ctaLabel="Generate this →"
         onTry={vi.fn()}
         active
       />
     );
     await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
-    expect(screen.getByText('Turn any topic into a living visualization')).toBeTruthy();
+    expect(screen.getByText('Any topic → a living diagram')).toBeTruthy();
     expect(screen.getByTestId('entry-example-try')).toBeTruthy();
     expect(screen.queryByText('demo')).toBeNull();
   });
@@ -67,7 +67,7 @@ describe('ExampleDiagramPreview', () => {
     render(
       <ExampleDiagramPreview
         source={SOURCE}
-        headline="Turn any topic into a living visualization"
+        headline="Any topic → a living diagram"
         topicLabel="OAuth 2.0 authorization code flow"
         ctaLabel="Generate this →"
         onTry={onTry}
@@ -83,7 +83,7 @@ describe('ExampleDiagramPreview', () => {
     render(
       <ExampleDiagramPreview
         source={SOURCE}
-        headline="Turn any topic into a living visualization"
+        headline="Any topic → a living diagram"
         ctaLabel="Generate this →"
         active
       />

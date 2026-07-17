@@ -15,6 +15,8 @@ const METRIC_RANGE_BY_KIND = Object.freeze({
   garden: [0.1, 10]
 });
 
+const AFFINITY_FIELDS = Object.freeze(['district', 'chain', 'bed', 'label', 'id']);
+
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
@@ -89,12 +91,62 @@ function explicitPosition(item, fallback) {
   ];
 }
 
+function normalizeAffinityToken(value) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed) return null;
+  return trimmed
+    .replace(/[-_/]+/g, ' ')
+    .replace(/\b(domain|service|api|layer|station)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** Tokens used to bind landmarks/paths to substrate sites by shared nouns. */
+export function affinityTokens(item) {
+  const tokens = new Set();
+  if (!item || typeof item !== 'object') return tokens;
+  for (const field of AFFINITY_FIELDS) {
+    const normalized = normalizeAffinityToken(item[field]);
+    if (!normalized) continue;
+    tokens.add(normalized);
+    for (const part of normalized.split(' ')) {
+      if (part.length > 2) tokens.add(part);
+    }
+  }
+  return tokens;
+}
+
+function affinityOverlap(a, b) {
+  let score = 0;
+  for (const token of a) {
+    if (b.has(token)) score += token.includes(' ') ? 3 : 1;
+  }
+  return score;
+}
+
 function makeMotion(worldKey, id, style, novelty) {
+  const styleBoost =
+    style === 'orbit' ? 1.15 : style === 'flow' ? 1.25 : style === 'pulse' ? 1.05 : 1;
   return {
     style,
     phase: seeded(worldKey, id, 'motion-phase') * TAU,
-    speed: 0.45 + seeded(worldKey, id, 'motion-speed') * (0.45 + novelty * 0.55),
+    speed: (0.45 + seeded(worldKey, id, 'motion-speed') * (0.45 + novelty * 0.55)) * styleBoost,
     amplitude: 0.035 + novelty * (0.08 + seeded(worldKey, id, 'motion-amp') * 0.12)
+  };
+}
+
+function makePresentation(item, kind) {
+  return {
+    lighting: typeof item?.lighting === 'string' ? item.lighting : null,
+    condition: typeof item?.condition === 'string' ? item.condition : null,
+    health: typeof item?.health === 'string' ? item.health : null,
+    hazard: clamp(finite(item?.hazard, 0), 0, 1),
+    maturity: clamp(finite(item?.maturity, kind === 'garden' ? 0.5 : 0.55), 0, 1),
+    cracks: clamp(finite(item?.cracks, 0), 0, 1),
+    tilt: clamp(finite(item?.tilt, 0), 0, 15),
+    relief: clamp(finite(item?.relief, 0.5), 0, 1),
+    affinity: [...affinityTokens(item)]
   };
 }
 
@@ -133,11 +185,62 @@ function makeSites({ substrateEntries, itemCount, worldRadius, topology, novelty
       radius: clamp(radius, 1.8, 4.6),
       height,
       anchor,
+      affinity: [...affinityTokens(item)],
+      presentation: makePresentation(item, 'archipelago'),
       motion: makeMotion(worldKey, id, entry ? 'sway' : 'pulse', novelty),
       estimatedCost: getCompositePrimitive(entry ? 'island' : 'platform').estimatedCost
     });
   }
   return sites;
+}
+
+function buildLinkNeighbors(dsl, layers) {
+  const neighbors = new Map();
+  const add = (from, to) => {
+    if (!from || !to) return;
+    if (!neighbors.has(from)) neighbors.set(from, new Set());
+    if (!neighbors.has(to)) neighbors.set(to, new Set());
+    neighbors.get(from).add(to);
+    neighbors.get(to).add(from);
+  };
+  for (const link of dsl.links ?? []) add(link.from, link.to);
+  for (const layer of layers) {
+    for (const item of layer.items ?? []) {
+      if (typeof item.parent === 'string') add(item.id, item.parent);
+      if (typeof item.moon === 'string') add(item.id, item.moon);
+      if (typeof item.binary === 'string') add(item.id, item.binary);
+    }
+  }
+  return neighbors;
+}
+
+function chooseSiteIndex({ item, sites, nodeIndex, layerIndex, worldKey, linkNeighbors }) {
+  const itemTokens = affinityTokens(item);
+  const linked = linkNeighbors.get(item.id) ?? new Set();
+  let bestIndex = 0;
+  let bestScore = -Infinity;
+  for (let index = 0; index < sites.length; index += 1) {
+    const site = sites[index];
+    const siteTokens = affinityTokens(site.item);
+    let score = affinityOverlap(itemTokens, siteTokens) * 10;
+    if (site.item?.id && linked.has(site.item.id)) score += 8;
+    // Mild seeded tie-break so equal-affinity items still spread across sites.
+    score += seeded(worldKey, `${item.id}:${site.id}`, 'site-tie') * 0.4;
+    score -= Math.abs(((nodeIndex + layerIndex) % Math.max(1, sites.length)) - index) * 0.05;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  }
+  if (bestScore < 0.5) {
+    return (
+      (nodeIndex +
+        layerIndex +
+        Math.floor(seeded(worldKey, item.id, 'site-choice') * Math.max(1, sites.length))) %
+      Math.max(1, sites.length)
+    );
+  }
+  return bestIndex;
 }
 
 function nodePosition({ item, nodeIndex, layerIndex, site, capability, worldKey, novelty }) {
@@ -163,17 +266,40 @@ function nodeDimensions(item, kind, normalized) {
     };
   }
   if (kind === 'terrain') return { radius: 1.1 + normalized * 1.5, height: 0.7 + normalized * 3 };
-  if (kind === 'layercake')
-    return { radius: 1 + normalized * 1.15, height: 0.8 + normalized * 2.5 };
+  if (kind === 'layercake') {
+    const cracks = clamp(finite(item.cracks, 0), 0, 1);
+    return {
+      radius: 1 + normalized * 1.15,
+      height: 0.8 + normalized * 2.5,
+      tilt: clamp(finite(item.tilt, 0), 0, 15),
+      cracks
+    };
+  }
   if (kind === 'tree') return { radius: 0.8 + normalized * 0.8, height: 2 + normalized * 3 };
-  if (kind === 'garden') return { radius: 0.65 + normalized * 0.7, height: 1.4 + normalized * 2.6 };
+  if (kind === 'garden') {
+    const maturity = clamp(finite(item.maturity, 0.5), 0, 1);
+    return {
+      radius: 0.65 + normalized * 0.7,
+      height: (0.9 + normalized * 2.6) * (0.35 + maturity * 0.65)
+    };
+  }
   if (kind === 'galaxy' || kind === 'orrery') {
     return { radius: 0.42 + normalized * 0.8, height: 0.42 + normalized * 0.8 };
   }
   return { radius: 0.7 + normalized * 0.7, height: 1.5 + normalized * 3 };
 }
 
-function makeNodes({ layers, sites, novelty, worldKey, anchors }) {
+function resolveNodeMotionStyle(capability, novelty, worldKey, itemId) {
+  const base =
+    capability.role === 'field' ? 'pulse' : getCompositePrimitive(capability.primitive).motionStyle;
+  if (novelty < 0.78) return base;
+  // High novelty occasionally remixes motion for accents/landmarks only.
+  if (capability.role !== 'accent' && capability.role !== 'landmark') return base;
+  const remix = ['pulse', 'sway', 'orbit'];
+  return remix[Math.floor(seeded(worldKey, itemId, 'motion-remix') * remix.length)];
+}
+
+function makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors }) {
   const entries = layers.flatMap((layer, layerIndex) => {
     const capability = getCompositeCapability(layer.as);
     if (capability.role === 'substrate' || capability.role === 'path') return [];
@@ -188,14 +314,18 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors }) {
 
   const nodes = entries.map((entry, nodeIndex) => {
     const { item, layer, layerIndex, capability } = entry;
-    const siteIndex =
-      (nodeIndex +
-        layerIndex +
-        Math.floor(seeded(worldKey, item.id, 'site-choice') * Math.max(1, sites.length))) %
-      Math.max(1, sites.length);
+    const siteIndex = chooseSiteIndex({
+      item,
+      sites,
+      nodeIndex,
+      layerIndex,
+      worldKey,
+      linkNeighbors
+    });
     const site = sites[siteIndex];
     const metric = metricValue(item, layer.as, capability.metric);
-    const { radius, height } = nodeDimensions(item, layer.as, metric.normalized);
+    const dimensions = nodeDimensions(item, layer.as, metric.normalized);
+    const { radius, height } = dimensions;
     const position = nodePosition({
       item,
       nodeIndex,
@@ -213,6 +343,7 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors }) {
     const labelDx = position[0] - site.position[0];
     const labelDz = position[2] - site.position[2];
     const labelDistance = Math.hypot(labelDx, labelDz) || 1;
+    const motionStyle = resolveNodeMotionStyle(capability, novelty, worldKey, item.id);
     anchors.set(item.id, anchor);
     return {
       id: item.id,
@@ -224,18 +355,15 @@ function makeNodes({ layers, sites, novelty, worldKey, anchors }) {
       position,
       anchor,
       attachedTo: site.id,
+      affinityBound: affinityOverlap(affinityTokens(item), affinityTokens(site.item)) > 0,
       labelOffset: [(labelDx / labelDistance) * 0.58, 0, (labelDz / labelDistance) * 0.58],
       radius,
       height,
+      tilt: dimensions.tilt ?? 0,
+      cracks: dimensions.cracks ?? 0,
       metric,
-      motion: makeMotion(
-        worldKey,
-        item.id,
-        capability.role === 'field'
-          ? 'pulse'
-          : getCompositePrimitive(capability.primitive).motionStyle,
-        novelty
-      ),
+      presentation: makePresentation(item, layer.as),
+      motion: makeMotion(worldKey, item.id, motionStyle, novelty),
       estimatedCost: getCompositePrimitive(capability.primitive).estimatedCost
     };
   });
@@ -263,7 +391,35 @@ function pathEnd(point, neighbor, distance) {
   return [point[0] + (dx / length) * distance, point[1], point[2] + (dz / length) * distance];
 }
 
-function makePaths({ layers, sites, novelty, worldKey, anchors }) {
+function choosePathSiteIndex({
+  item,
+  sites,
+  index,
+  layerIndex,
+  rotation,
+  worldKey,
+  linkNeighbors
+}) {
+  const itemTokens = affinityTokens(item);
+  const linked = linkNeighbors.get(item.id) ?? new Set();
+  let bestIndex = (index + rotation + layerIndex) % Math.max(1, sites.length);
+  let bestScore = -Infinity;
+  for (let siteIndex = 0; siteIndex < sites.length; siteIndex += 1) {
+    const site = sites[siteIndex];
+    let score = affinityOverlap(itemTokens, affinityTokens(site.item)) * 10;
+    if (site.item?.id && linked.has(site.item.id)) score += 8;
+    // Prefer progressing along the ring so the river still reads as a journey.
+    score -= Math.abs(siteIndex - ((index + rotation + layerIndex) % sites.length)) * 0.35;
+    score += seeded(worldKey, `${item.id}:${site.id}`, 'path-site') * 0.2;
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = siteIndex;
+    }
+  }
+  return bestIndex;
+}
+
+function makePaths({ layers, sites, novelty, worldKey, anchors, linkNeighbors, motionIntensity }) {
   return layers.flatMap((layer, layerIndex) => {
     const capability = getCompositeCapability(layer.as);
     if (capability.role !== 'path') return [];
@@ -271,7 +427,16 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
     if (items.length === 0) return [];
     const rotation = Math.floor(seeded(worldKey, layer.id, 'path-site-rotation') * sites.length);
     const stations = items.map((item, index) => {
-      const site = sites[(index + rotation + layerIndex) % sites.length];
+      const siteIndex = choosePathSiteIndex({
+        item,
+        sites,
+        index,
+        layerIndex,
+        rotation,
+        worldKey,
+        linkNeighbors
+      });
+      const site = sites[siteIndex];
       const point = routePoint(site, worldKey, item.id, index);
       const anchor = [point[0], point[1] + 0.9, point[2]];
       const labelDx = point[0] - site.position[0];
@@ -284,7 +449,9 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
         point,
         anchor,
         attachedTo: site.id,
+        affinityBound: affinityOverlap(affinityTokens(item), affinityTokens(site.item)) > 0,
         labelOffset: [(labelDx / labelDistance) * 0.72, 0, (labelDz / labelDistance) * 0.72],
+        presentation: makePresentation(item, 'river'),
         motion: makeMotion(worldKey, item.id, 'flow', novelty)
       };
     });
@@ -308,6 +475,9 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
     }
     const averageFlow =
       items.reduce((sum, item) => sum + finite(item.flow, 5), 0) / Math.max(1, items.length);
+    const averageHazard =
+      items.reduce((sum, item) => sum + clamp(finite(item.hazard, 0), 0, 1), 0) /
+      Math.max(1, items.length);
     return [
       {
         id: layer.id,
@@ -315,7 +485,14 @@ function makePaths({ layers, sites, novelty, worldKey, anchors }) {
         kind: layer.as,
         points: controls,
         stations,
-        width: clamp(0.16 + Math.sqrt(Math.max(0.1, averageFlow)) * 0.055, 0.2, 0.42),
+        width: clamp(
+          0.16 + Math.sqrt(Math.max(0.1, averageFlow)) * 0.055 * (0.85 + motionIntensity * 0.3),
+          0.2,
+          0.48
+        ),
+        hazard: averageHazard,
+        flow: averageFlow,
+        moteSpeed: 0.04 + averageFlow * 0.004 + motionIntensity * 0.03,
         motion: makeMotion(worldKey, layer.id, 'flow', novelty),
         estimatedCost: getCompositePrimitive('waypoint').estimatedCost * stations.length + 8
       }
@@ -361,6 +538,119 @@ function makeLinks(dsl, layers, anchors) {
   });
 }
 
+function makeConnectors(nodes, anchors) {
+  return nodes.flatMap((node) => {
+    if (node.kind !== 'tree' || typeof node.item?.parent !== 'string') return [];
+    const from = anchors.get(node.item.parent);
+    const to = node.anchor;
+    if (!from || !to) return [];
+    return [
+      {
+        id: `connector:${node.item.parent}->${node.id}`,
+        from: node.item.parent,
+        to: node.id,
+        fromAnchor: from,
+        toAnchor: to,
+        kind: 'connector'
+      }
+    ];
+  });
+}
+
+function makeGroups(sites, nodes, worldKey) {
+  const buckets = new Map();
+  const ensure = (key) => {
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        id: `group:${key}`,
+        label: key,
+        colorIndex: Math.floor(seeded(worldKey, key, 'group-color') * 8),
+        positions: [],
+        memberIds: new Set()
+      });
+    }
+    return buckets.get(key);
+  };
+
+  const groupKeysFor = (item) => {
+    const keys = new Set();
+    for (const field of ['chain', 'district', 'bed', 'label']) {
+      const key = normalizeAffinityToken(item?.[field]);
+      if (key) keys.add(key);
+    }
+    return keys;
+  };
+
+  const addMember = (item, position) => {
+    if (!item?.id) return;
+    for (const key of groupKeysFor(item)) {
+      const group = ensure(key);
+      if (group.memberIds.has(item.id)) continue;
+      group.memberIds.add(item.id);
+      group.positions.push(position);
+    }
+  };
+
+  for (const site of sites) {
+    if (!site.item) continue;
+    addMember(site.item, site.position);
+  }
+  for (const node of nodes) {
+    addMember(node.item, node.position);
+  }
+
+  return [...buckets.values()]
+    .filter((group) => group.memberIds.size >= 2)
+    .map((group) => {
+      const center = group.positions.reduce(
+        (acc, position) => [acc[0] + position[0], acc[1] + position[1], acc[2] + position[2]],
+        [0, 0, 0]
+      );
+      const count = group.positions.length;
+      const midpoint = [center[0] / count, 0.02, center[2] / count];
+      let radius = 2.2;
+      for (const position of group.positions) {
+        radius = Math.max(
+          radius,
+          Math.hypot(position[0] - midpoint[0], position[2] - midpoint[2]) + 1.4
+        );
+      }
+      return {
+        id: group.id,
+        label: group.label,
+        colorIndex: group.colorIndex,
+        center: midpoint,
+        radius: clamp(radius, 2.4, 9),
+        memberIds: [...group.memberIds]
+      };
+    });
+}
+
+function resolveLod(estimatedCost, itemCount) {
+  if (estimatedCost > 95 || itemCount > 18) return 'low';
+  if (estimatedCost > 58 || itemCount > 12) return 'medium';
+  return 'high';
+}
+
+/**
+ * Pick sky/theme family from fused layer roles so mixed worlds do not inherit
+ * only layers[0] (e.g. city sky over an ocean substrate).
+ */
+export function resolveCompositeAtmosphere(dsl) {
+  const layers = Array.isArray(dsl?.layers) ? dsl.layers : [];
+  const kinds = layers.map((layer) => layer.as);
+  const roles = new Set(kinds.map((kind) => getCompositeCapability(kind).role));
+  if (roles.has('substrate') || kinds.includes('archipelago')) return 'archipelago';
+  if (roles.has('path') || kinds.includes('river')) return 'river';
+  if (kinds.includes('garden')) return 'garden';
+  if (kinds.includes('galaxy') || kinds.includes('orrery')) return 'galaxy';
+  if (kinds.includes('tree')) return 'tree';
+  if (kinds.includes('layercake')) return 'layercake';
+  if (kinds.includes('city')) return 'city';
+  if (kinds.includes('terrain')) return 'terrain';
+  return kinds[0] ?? 'city';
+}
+
 function resolveGroundRadius(sites, nodes, paths) {
   let extent = 0;
   for (const site of sites) {
@@ -394,6 +684,7 @@ export function planFusedCompositeWorld(dsl) {
       ? (layer.items ?? []).map((item) => ({ layer, item }))
       : []
   );
+  const linkNeighbors = buildLinkNeighbors(dsl, layers);
   const anchors = new Map();
   const sites = makeSites({
     substrateEntries,
@@ -406,15 +697,29 @@ export function planFusedCompositeWorld(dsl) {
   for (const site of sites) {
     if (site.item?.id) anchors.set(site.item.id, site.anchor);
   }
-  const nodes = makeNodes({ layers, sites, novelty, worldKey, anchors });
-  const paths = makePaths({ layers, sites, novelty, worldKey, anchors });
+  const nodes = makeNodes({ layers, sites, novelty, worldKey, anchors, linkNeighbors });
+  const paths = makePaths({
+    layers,
+    sites,
+    novelty,
+    worldKey,
+    anchors,
+    linkNeighbors,
+    motionIntensity
+  });
   const links = makeLinks(dsl, layers, anchors);
+  const connectors = makeConnectors(nodes, anchors);
+  const groups = makeGroups(sites, nodes, worldKey);
   const groundRadius = resolveGroundRadius(sites, nodes, paths);
   const estimatedCost =
     sites.reduce((sum, item) => sum + item.estimatedCost, 0) +
     nodes.reduce((sum, item) => sum + item.estimatedCost, 0) +
     paths.reduce((sum, item) => sum + item.estimatedCost, 0) +
-    links.length * 2;
+    links.length * 2 +
+    connectors.length +
+    groups.length;
+  const lod = resolveLod(estimatedCost, itemCount);
+  const atmosphere = resolveCompositeAtmosphere(dsl);
 
   return {
     version: 2,
@@ -429,8 +734,12 @@ export function planFusedCompositeWorld(dsl) {
     nodes,
     paths,
     links,
+    connectors,
+    groups,
     anchors,
-    estimatedCost
+    estimatedCost,
+    lod,
+    atmosphere
   };
 }
 
@@ -444,11 +753,11 @@ export function resolveCompositeMotionTransform(motion, time, intensity, animate
     const angle = t * finite(motion?.speed, 1) + finite(motion?.phase, 0);
     return {
       offset: [
-        Math.cos(angle) * amplitude * 2.2,
-        wave * amplitude * 0.35,
-        Math.sin(angle) * amplitude * 2.2
+        Math.cos(angle) * amplitude * 2.6,
+        wave * amplitude * 0.4,
+        Math.sin(angle) * amplitude * 2.6
       ],
-      rotation: [0, angle * 0.18, 0],
+      rotation: [0, angle * 0.22, 0],
       scale: 1
     };
   }
@@ -464,6 +773,18 @@ export function resolveCompositeMotionTransform(motion, time, intensity, animate
       offset: [0, wave * amplitude * 0.16, 0],
       rotation: [0, 0, 0],
       scale: 1 + wave * amplitude * 0.24
+    };
+  }
+  if (motion?.style === 'flow') {
+    const drift = t * finite(motion?.speed, 1) * 0.35 + finite(motion?.phase, 0);
+    return {
+      offset: [
+        Math.sin(drift) * amplitude * 1.4,
+        Math.abs(Math.sin(drift * 1.3)) * amplitude * 0.55,
+        Math.cos(drift * 0.85) * amplitude * 0.9
+      ],
+      rotation: [0, Math.sin(drift) * amplitude * 0.8, wave * amplitude * 0.25],
+      scale: 1 + Math.abs(wave) * amplitude * 0.08
     };
   }
   return {

@@ -19,6 +19,10 @@ import {
   isVisualExportPayload,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
+import {
+  registerMetaphorGltfExporter,
+  unregisterMetaphorGltfExporter
+} from '../src/utils/metaphorGltfExport.js';
 
 const CHART_SOURCE = JSON.stringify({
   archislopVersion: 1,
@@ -43,6 +47,10 @@ describe('listExportFormats', () => {
     ]);
     expect(listExportFormats('anything', '<!DOCTYPE html><html></html>').map((f) => f.id)).toEqual([
       'anything-html'
+    ]);
+    expect(listExportFormats('metaphor3d', '{"metaphor":"city"}').map((f) => f.id)).toEqual([
+      'metaphor-json',
+      'metaphor-gltf'
     ]);
   });
 
@@ -110,6 +118,28 @@ describe('buildExportPayload', () => {
       formatId: 'metaphor-json'
     });
     expect(payload.body).toBe(prettyJsonOrRaw(source));
+  });
+
+  it('builds metaphor glTF from the registered live-scene exporter', async () => {
+    const glb = new Blob([new Uint8Array([0x67, 0x6c, 0x54, 0x46])], {
+      type: 'model/gltf-binary'
+    });
+    const exporter = async () => glb;
+    registerMetaphorGltfExporter(exporter);
+    try {
+      const payload = await buildExportPayload({
+        contentType: 'metaphor3d',
+        diagramSource: '{"metaphor":"city","items":[],"links":[]}',
+        formatId: 'metaphor-gltf'
+      });
+      expect(payload.ext).toBe('glb');
+      expect(payload.mime).toBe('model/gltf-binary');
+      expect(payload.delivery).toBe('file');
+      expect(payload.blob).toBe(glb);
+      expect(payload.filename).toMatch(/^archislop-metaphor3d-\d{8}-\d{6}\.glb$/);
+    } finally {
+      unregisterMetaphorGltfExporter(exporter);
+    }
   });
 
   it('rejects empty source', async () => {
@@ -314,10 +344,47 @@ describe('resolveWebShareMode', () => {
     ).toBe('file');
   });
 
-  it('prefers text share for plain-text payloads when both modes are supported', () => {
+  it('prefers file share for HTML, JSON, and glTF when file share is supported', () => {
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
       value: () => true
+    });
+
+    expect(
+      resolveWebShareMode({
+        filename: 'page.html',
+        mime: 'text/html;charset=utf-8',
+        ext: 'html',
+        delivery: 'text',
+        body: '<!DOCTYPE html><html></html>'
+      })
+    ).toBe('file');
+
+    expect(
+      resolveWebShareMode({
+        filename: 'scene.json',
+        mime: 'application/json;charset=utf-8',
+        ext: 'json',
+        delivery: 'text',
+        body: '{}'
+      })
+    ).toBe('file');
+
+    expect(
+      resolveWebShareMode({
+        filename: 'scene.glb',
+        mime: 'model/gltf-binary',
+        ext: 'glb',
+        delivery: 'file',
+        blob: new Blob(['x'], { type: 'model/gltf-binary' })
+      })
+    ).toBe('file');
+  });
+
+  it('falls back to text share when file share is unavailable', () => {
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: (data) => Boolean(data.text) && !data.files
     });
 
     expect(
@@ -418,7 +485,7 @@ describe('startWebShare', () => {
     });
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
-      value: () => true
+      value: (data) => Boolean(data.text) && !data.files
     });
 
     const method = await startWebShare({
@@ -431,6 +498,34 @@ describe('startWebShare', () => {
 
     expect(method).toBe('share-text');
     expect(share).toHaveBeenCalledWith({ text: 'hello', title: 'x.txt' });
+  });
+
+  it('shares anything HTML as a file attachment when file share is supported', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: share
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    const method = await startWebShare({
+      filename: 'page.html',
+      mime: 'text/html;charset=utf-8',
+      ext: 'html',
+      delivery: 'text',
+      body: '<!DOCTYPE html><html><body>hi</body></html>\n'
+    });
+
+    expect(method).toBe('share-file');
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: expect.arrayContaining([expect.any(File)]),
+        title: 'page.html'
+      })
+    );
   });
 
   it('does not retry text share after an async file-share rejection', async () => {

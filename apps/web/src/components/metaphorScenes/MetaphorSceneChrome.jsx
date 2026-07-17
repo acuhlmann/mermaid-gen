@@ -110,8 +110,25 @@ export function HoverableItem({ item, metaphor, children, onActiveIdChange }) {
     onActiveIdChange?.(null);
     if (typeof document !== 'undefined') document.body.style.cursor = '';
   };
+  const itemId = typeof item?.id === 'string' ? item.id : undefined;
   return (
-    <group onPointerOver={handleOver} onPointerMove={update} onPointerOut={handleOut}>
+    <group
+      name={itemId}
+      userData={
+        itemId
+          ? {
+              archislop: {
+                id: itemId,
+                label: typeof item?.label === 'string' ? item.label : itemId,
+                metaphor: metaphor ?? null
+              }
+            }
+          : undefined
+      }
+      onPointerOver={handleOver}
+      onPointerMove={update}
+      onPointerOut={handleOut}
+    >
       {highlightCategory ? <MetaphorChangeHighlightRing category={highlightCategory} /> : null}
       {children}
     </group>

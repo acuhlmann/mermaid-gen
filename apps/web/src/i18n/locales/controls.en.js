@@ -61,12 +61,11 @@ export const CONTROLS_EN = {
       { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
       { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' }
     ],
-    // Compact purpose card on the empty canvas: say what the app is for, show a
-    // tiny finished sample that matches the CTA, then let the newcomer generate it.
-    exampleEyebrow: 'What is this?',
-    exampleHeadline: 'Turn any topic into a living visualization',
-    exampleBody:
-      'AI drafts a diagram, infographic, 3D scene, chart, or freeform page — then you refine it while fictional stakeholders chime in.',
+    // Compact purpose card on the empty canvas: brand → one job → sample → CTA,
+    // revealed beat-by-beat so newcomers aren't handed every mode at once.
+    exampleEyebrow: 'ArchiSlop',
+    exampleHeadline: 'Any topic → a living diagram',
+    exampleBody: 'Generate one. Refine it. The office will have opinions.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualization you can generate',
     // CTA names the sample topic so it stays clear even when the preview is hidden.
@@ -109,6 +108,7 @@ export const CONTROLS_EN = {
     exportMermaidSvg: 'SVG image (.svg)',
     exportInfographicDsl: 'Infographic DSL (.txt)',
     exportMetaphorJson: 'Scene JSON (.json)',
+    exportMetaphorGltf: '3D model (.glb)',
     exportChartCsv: 'Spreadsheet CSV (.csv)',
     exportChartJson: 'Chart JSON (.json)',
     exportChartVegaLite: 'Vega-Lite spec (.vl.json)',

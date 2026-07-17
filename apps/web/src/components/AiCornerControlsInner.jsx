@@ -396,23 +396,24 @@ export function AiCornerControlsInner({
                 {exportFormats.map((format) => {
                   const busy = exportBusyId === format.id;
                   const label = controls[format.labelKey] ?? format.id;
-                  const payloadPreview = { delivery: format.delivery ?? 'text', mime: format.mime };
                   const delivery = format.delivery ?? 'text';
                   const canCopy =
-                    delivery === 'text'
-                      ? canCopyExportPayload({
-                          delivery: 'text',
-                          mime: format.mime,
-                          body: 'x',
-                          filename: 'preview',
-                          ext: format.ext
-                        })
-                      : Boolean(
-                          (typeof navigator !== 'undefined' &&
-                            navigator.clipboard?.write &&
-                            typeof ClipboardItem !== 'undefined') ||
-                          shareAvailable
-                        );
+                    delivery === 'file'
+                      ? false
+                      : delivery === 'text'
+                        ? canCopyExportPayload({
+                            delivery: 'text',
+                            mime: format.mime,
+                            body: 'x',
+                            filename: 'preview',
+                            ext: format.ext
+                          })
+                        : Boolean(
+                            (typeof navigator !== 'undefined' &&
+                              navigator.clipboard?.write &&
+                              typeof ClipboardItem !== 'undefined') ||
+                            shareAvailable
+                          );
                   const canShare = shareAvailable;
                   return (
                     <li key={format.id} className="settings-export-item">

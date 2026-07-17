@@ -583,9 +583,16 @@ export const OFFICE_ZH_CN = {
     doIt: '就这么办',
     directory: {
       title: '欢迎来到办公室',
-      tagline: '你有一张工位、一张图，和一群很有想法的同事。认识一下这层楼：',
+      tagline: '你的图有了工作场所——这层楼的人很有想法。',
+      tourHint: '一次认识一位。想安静时打开「专注时间」。',
+      rosterTagline: '会发邮件、发消息、路过插话的同事们：',
       expandLabel: '🏢 认识办公室',
       expandTitle: '到底是谁一直在打扰我？',
+      startLabel: '认识这层楼 →',
+      nextLabel: '下一位 →',
+      backLabel: '← 返回',
+      skipLabel: '跳过',
+      progressLabel: '{current} / {total}',
       dismissLabel: '打卡上班',
       closeAria: '关闭办公室通讯录'
     },

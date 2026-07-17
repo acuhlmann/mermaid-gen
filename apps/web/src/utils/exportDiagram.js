@@ -8,7 +8,7 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
  * Rationale (v1):
  * - mermaid: source for Mermaid Live / IDE plugins; SVG for slides/docs
  * - infographic: AntV DSL text (SVG export needs renderer hooks; deferred)
- * - metaphor3d: scene JSON (the portable authoring format)
+ * - metaphor3d: scene JSON (authoring) + baked glTF/GLB (delivery)
  * - chart: CSV when tabular data exists; full wrapper JSON; bare Vega-Lite
  * - anything: standalone HTML with vendored libs inlined (not a PWA — a
  *   single file that opens offline in any browser is the right replay shape)
@@ -18,7 +18,7 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
 /** @typedef {'mermaid'|'infographic'|'metaphor3d'|'chart'|'forms'|'anything'} ExportContentType */
 
 /**
- * @typedef {'text' | 'image'} ExportDeliveryKind
+ * @typedef {'text' | 'image' | 'file'} ExportDeliveryKind
  */
 
 /**
@@ -93,6 +93,13 @@ export const EXPORT_FORMATS_BY_MODE = {
       ext: 'json',
       mime: 'application/json;charset=utf-8',
       labelKey: 'exportMetaphorJson'
+    },
+    {
+      id: 'metaphor-gltf',
+      ext: 'glb',
+      mime: 'model/gltf-binary',
+      labelKey: 'exportMetaphorGltf',
+      delivery: 'file'
     }
   ],
   chart: [
@@ -288,6 +295,11 @@ async function buildExportBody(contentType, formatId, source) {
     case 'forms-json':
     case 'chart-json':
       return { body: prettyJsonOrRaw(source) };
+    case 'metaphor-gltf': {
+      const { exportMetaphorGltfBlob } = await import('./metaphorGltfExport.js');
+      const blob = await exportMetaphorGltfBlob();
+      return { blob };
+    }
     case 'chart-vl': {
       const parsed = parseChartDsl(source);
       if (!parsed.ok) throw new Error(parsed.error);
@@ -532,6 +544,10 @@ export function canShareExportPayload(payload) {
  * @returns {boolean}
  */
 export function canCopyExportPayload(payload) {
+  if (payload.delivery === 'file') {
+    // Binary exports (glTF) are not clipboard-friendly; share/download instead.
+    return false;
+  }
   if (payload.delivery === 'image') {
     const hasClipboard = Boolean(
       typeof navigator !== 'undefined' &&
@@ -558,6 +574,9 @@ export function exportPayloadToFile(payload) {
  * @returns {Promise<ExportDeliveryMethod>}
  */
 export async function copyExportPayload(payload) {
+  if (payload.delivery === 'file') {
+    throw new Error('This format cannot be copied — use Save or Share instead');
+  }
   if (payload.delivery === 'image') {
     const blob = payload.blob ?? exportPayloadToBlob(payload);
     const file = exportPayloadToFile(payload);
@@ -603,9 +622,10 @@ export function isVisualExportPayload(payload) {
 
 /**
  * Pick a Web Share mode synchronously so navigator.share runs in the click turn.
- * Visual payloads prefer share({ files }) so chat apps attach an image; plain
- * text formats (source, JSON, CSV) prefer share({ text }). An async fallback
- * loses the user-gesture activation, so the choice must be synchronous.
+ * Prefer share({ files }) whenever the platform can attach a file so chat apps
+ * receive HTML/JSON/glTF/images as attachments — not raw text in the body.
+ * Fall back to share({ text }) only when file share is unavailable. An async
+ * fallback loses the user-gesture activation, so the choice must be synchronous.
  * @param {ExportPayload} payload
  * @returns {'text' | 'file' | null}
  */
@@ -615,7 +635,7 @@ export function resolveWebShareMode(payload) {
   const file = exportPayloadToFile(payload);
   const canShareFiles = !navigator.canShare || navigator.canShare({ files: [file] });
 
-  if (isVisualExportPayload(payload) && canShareFiles) {
+  if (canShareFiles) {
     return 'file';
   }
 
@@ -624,8 +644,6 @@ export function resolveWebShareMode(payload) {
     const canShareText = !navigator.canShare || navigator.canShare({ text });
     if (canShareText) return 'text';
   }
-
-  if (canShareFiles) return 'file';
 
   return null;
 }
