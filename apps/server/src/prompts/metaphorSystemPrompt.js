@@ -47,7 +47,7 @@ Prefer **"composite"** when a single base metaphor would leave important nouns o
   - field metrics → \`terrain\`
   - metrics set size/elevation/flow; mood informs theme and bounded novelty
 
-  The generic planner attaches landmarks to shared sites, routes paths through them, places fields and accents around real anchors, and draws cross-item links between those anchors. Each layer tells a different slice of the same topic: do not clone the same actor into every layer. Preserve exact user nouns in visible labels. Cross-layer \`links\` may connect globally unique item ids on different layers. Keep top-level \`items\` empty. Prefer 2–3 layers; use 1 or 4 when the subject genuinely calls for it. Example:
+  The generic planner attaches landmarks to shared sites, routes paths through them, places fields and accents around real anchors, and draws cross-item links between those anchors. Align grouping nouns across layers so the world coheres: reuse the same \`district\` / \`chain\` / \`bed\` strings (or matching labels) when a landmark belongs on a particular island or bed — the fused planner binds by those affinities instead of random site attachment. Carry storytelling fields into composite layers too (\`hazard\`, \`health\`, \`lighting\`, \`condition\`, \`maturity\`, \`cracks\`, \`tilt\`); the kinetic renderer reads them. Each layer tells a different slice of the same topic: do not clone the same actor into every layer. Preserve exact user nouns in visible labels. Cross-layer \`links\` may connect globally unique item ids on different layers. Keep top-level \`items\` empty. Prefer 2–3 layers; use 1 or 4 when the subject genuinely calls for it. Example:
 {
   "metaphor": "composite",
   "scene": { "theme": "whiteboard", "title": "Commerce current", "legend": { "mass": "relative domain scale from prompt", "height": "relative service importance from prompt", "flow": "relative journey volume from prompt" } },
@@ -56,8 +56,8 @@ Prefer **"composite"** when a single base metaphor would leave important nouns o
   "novelty": 0.62,
   "motionIntensity": 0.72,
   "layers": [
-    { "id": "domains", "as": "archipelago", "label": "Commerce domains", "items": [{ "id": "checkout", "label": "Checkout", "mass": 12, "relief": 0.8 }] },
-    { "id": "services", "as": "city", "label": "Service landmarks", "items": [{ "id": "payments-api", "label": "Payments API", "height": 14, "footprint": 3 }] },
+    { "id": "domains", "as": "archipelago", "label": "Commerce domains", "items": [{ "id": "checkout", "label": "Checkout", "mass": 12, "relief": 0.8, "chain": "Buy" }] },
+    { "id": "services", "as": "city", "label": "Service landmarks", "items": [{ "id": "payments-api", "label": "Payments API", "height": 14, "footprint": 3, "district": "Checkout", "lighting": "lit" }] },
     { "id": "journey", "as": "river", "label": "Order journey", "items": [{ "id": "place-order", "label": "Place order", "stage": 0, "flow": 10 }] }
   ],
   "items": [],

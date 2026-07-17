@@ -37,6 +37,19 @@ The migration path to an actual USD Stage is:
 
 **Shipped (export only):** the web Export menu includes `metaphor-gltf` (`.glb`) which bakes the live R3F content root via Three's `GLTFExporter`. Item ids/labels are node `extras`; the Metaphor JSON DSL is attached as root `extras.archislop.diagramSource`. The JSON DSL remains canonical; GLB is not a round-trip authoring format.
 
+## Follow-on dynamics (still ADR-0009)
+
+Without changing the canonical boundary, the fused planner/renderer now also:
+
+1. **Binds landmarks and path stations by affinity** — shared `district` / `chain` / `bed` / label tokens attach items to the matching substrate site instead of seeded modulo placement.
+2. **Encodes storytelling fields** — `hazard`, `health`, `lighting`, `condition`, `maturity`, `cracks`, and `tilt` become plan `presentation` params that drive materials, posture, foam, and bloom height.
+3. **Differentiates motion styles** — `flow` is a distinct transform (not a bob fallback); path width/mote speed scale with `flow` × `motionIntensity`; high novelty may remix landmark/accent styles.
+4. **Draws affinity groups and tree connectors** — soft district/chain rings plus parent→child connector arcs for tree layers.
+5. **Applies cost-aware LOD** — `estimatedCost` / item count select `high` | `medium` | `low` detail (motes, glow, hazard foam, group rings).
+6. **Chooses composite atmosphere from roles** — sky/theme family prefers substrate (ocean) then path (river daylight) over `layers[0].as`.
+
+OpenUSD / WASM / persisted Stage work remains on the migration path above and is still out of scope.
+
 ## Consequences
 
 Positive:

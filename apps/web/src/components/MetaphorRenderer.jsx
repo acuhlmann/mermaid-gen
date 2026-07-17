@@ -59,6 +59,7 @@ import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
 import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoScene.jsx';
 import { CompositeScene } from './metaphorScenes/CompositeScene.jsx';
+import { resolveCompositeAtmosphere } from './metaphorScenes/fusedCompositePlanner.js';
 import {
   resolveMetaphorMotionPolicy,
   usePrefersReducedMotion
@@ -1184,9 +1185,7 @@ function MetaphorRendererImpl(
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
   const primaryLayerKind =
-    dsl?.metaphor === 'composite' && Array.isArray(dsl.layers) && dsl.layers[0]?.as
-      ? dsl.layers[0].as
-      : dsl?.metaphor;
+    dsl?.metaphor === 'composite' ? resolveCompositeAtmosphere(dsl) : dsl?.metaphor;
   const theme = useMemo(() => {
     const base = resolveMetaphorThemePreset(themeId);
     if (primaryLayerKind === 'river') return resolveRiverDaylightTheme(base);

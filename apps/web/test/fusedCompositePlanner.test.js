@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   planFusedCompositeWorld,
+  resolveCompositeAtmosphere,
   resolveCompositeMotionTransform
 } from '../src/components/metaphorScenes/fusedCompositePlanner.js';
 import {
@@ -162,6 +163,121 @@ describe('planFusedCompositeWorld', () => {
     }
   });
 
+  it('binds landmarks to substrate sites by shared district/chain/label affinity', () => {
+    const dsl = {
+      metaphor: 'composite',
+      layout: 'fused',
+      seed: 'affinity-bind',
+      novelty: 0.4,
+      motionIntensity: 0.6,
+      scene: {},
+      layers: [
+        {
+          id: 'domains',
+          as: 'archipelago',
+          items: [
+            { id: 'checkout-domain', label: 'Checkout', mass: 12, relief: 0.8, chain: 'Buy' },
+            { id: 'catalog-domain', label: 'Catalog', mass: 9, relief: 0.5, chain: 'Discover' }
+          ]
+        },
+        {
+          id: 'services',
+          as: 'city',
+          items: [
+            {
+              id: 'payments-api',
+              label: 'Payments API',
+              height: 16,
+              footprint: 3,
+              district: 'Checkout',
+              lighting: 'lit'
+            },
+            {
+              id: 'search-api',
+              label: 'Search API',
+              height: 10,
+              footprint: 2,
+              district: 'Catalog',
+              lighting: 'dim'
+            }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    };
+    const plan = planFusedCompositeWorld(dsl);
+    const payments = plan.nodes.find((node) => node.id === 'payments-api');
+    const search = plan.nodes.find((node) => node.id === 'search-api');
+    expect(payments.attachedTo).toBe('site:checkout-domain');
+    expect(search.attachedTo).toBe('site:catalog-domain');
+    expect(payments.affinityBound).toBe(true);
+    expect(search.affinityBound).toBe(true);
+    expect(payments.presentation.lighting).toBe('lit');
+    expect(search.presentation.lighting).toBe('dim');
+    expect(plan.groups.some((group) => group.memberIds.includes('payments-api'))).toBe(true);
+  });
+
+  it('encodes storytelling fields, connectors, LOD, and atmosphere on the plan', () => {
+    const dsl = {
+      metaphor: 'composite',
+      layout: 'fused',
+      seed: 'story-world',
+      novelty: 0.55,
+      motionIntensity: 0.8,
+      scene: {},
+      layers: [
+        {
+          id: 'islands',
+          as: 'archipelago',
+          items: [{ id: 'core', label: 'Core', mass: 10, relief: 0.7, chain: 'Platform' }]
+        },
+        {
+          id: 'plants',
+          as: 'garden',
+          items: [
+            {
+              id: 'growth',
+              label: 'Growth',
+              maturity: 0.9,
+              impact: 8,
+              bed: 'Platform',
+              health: 'thriving'
+            }
+          ]
+        },
+        {
+          id: 'org',
+          as: 'tree',
+          items: [
+            { id: 'root', label: 'Root', weight: 8 },
+            { id: 'leaf', label: 'Leaf', weight: 3, parent: 'root' }
+          ]
+        },
+        {
+          id: 'journey',
+          as: 'river',
+          items: [
+            { id: 'start', label: 'Start', stage: 0, flow: 12, hazard: 0.1 },
+            { id: 'risk', label: 'Risk', stage: 1, flow: 4, hazard: 0.8 }
+          ]
+        }
+      ],
+      items: [],
+      links: []
+    };
+    const plan = planFusedCompositeWorld(dsl);
+    expect(plan.atmosphere).toBe('archipelago');
+    expect(['high', 'medium', 'low']).toContain(plan.lod);
+    expect(plan.connectors.some((connector) => connector.to === 'leaf')).toBe(true);
+    const bloom = plan.nodes.find((node) => node.id === 'growth');
+    expect(bloom.presentation.health).toBe('thriving');
+    expect(bloom.height).toBeGreaterThan(1);
+    const riskStation = plan.paths[0].stations.find((station) => station.id === 'risk');
+    expect(riskStation.presentation.hazard).toBeCloseTo(0.8);
+    expect(plan.paths[0].moteSpeed).toBeGreaterThan(0.04);
+  });
+
   it('produces finite plans and stable anchors for every ordered layer-kind pair', () => {
     for (const firstKind of BASE_KINDS) {
       for (const secondKind of BASE_KINDS) {
@@ -171,6 +287,8 @@ describe('planFusedCompositeWorld', () => {
         expect(plan.estimatedCost).toBeGreaterThan(0);
         expect(Number.isFinite(plan.groundRadius)).toBe(true);
         expect(plan.groundRadius).toBeGreaterThan(0);
+        expect(plan.lod).toBeTruthy();
+        expect(plan.atmosphere).toBeTruthy();
         for (const site of plan.sites) {
           expectFiniteVector(site.position);
           expectFiniteVector(site.anchor);
@@ -179,10 +297,11 @@ describe('planFusedCompositeWorld', () => {
           expectFiniteVector(node.position);
           expectFiniteVector(node.anchor);
           expectFiniteVector(node.labelOffset);
+          expect(node.presentation).toBeTruthy();
         }
         for (const path of plan.paths) {
           for (const point of path.points) expectFiniteVector(point);
-          expect(path.width).toBeLessThanOrEqual(0.42);
+          expect(path.width).toBeLessThanOrEqual(0.48);
           for (const station of path.stations) expectFiniteVector(station.labelOffset);
         }
         for (const layer of dsl.layers) {
@@ -204,5 +323,46 @@ describe('planFusedCompositeWorld', () => {
     expect(frozenA).toEqual(frozenB);
     expect(frozenA.offset.some((value) => Math.abs(value) > 0)).toBe(true);
     expect(animated).not.toEqual(frozenA);
+  });
+
+  it('gives flow motion a distinct animated transform from pulse/bob', () => {
+    const flow = resolveCompositeMotionTransform(
+      { style: 'flow', phase: 0.4, speed: 1.1, amplitude: 0.2 },
+      4,
+      0.8,
+      true
+    );
+    const pulse = resolveCompositeMotionTransform(
+      { style: 'pulse', phase: 0.4, speed: 1.1, amplitude: 0.2 },
+      4,
+      0.8,
+      true
+    );
+    expect(flow).not.toEqual(pulse);
+    expect(Math.hypot(flow.offset[0], flow.offset[2])).toBeGreaterThan(0);
+  });
+});
+
+describe('resolveCompositeAtmosphere', () => {
+  it('prefers substrate ocean sky over the first layer kind', () => {
+    expect(
+      resolveCompositeAtmosphere({
+        layers: [
+          { as: 'city', items: [] },
+          { as: 'archipelago', items: [] }
+        ]
+      })
+    ).toBe('archipelago');
+  });
+
+  it('falls back to river daylight when paths exist without substrate', () => {
+    expect(
+      resolveCompositeAtmosphere({
+        layers: [
+          { as: 'city', items: [] },
+          { as: 'river', items: [] }
+        ]
+      })
+    ).toBe('river');
   });
 });
