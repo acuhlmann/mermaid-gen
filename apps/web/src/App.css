@@ -500,6 +500,19 @@
   cursor: pointer;
 }
 
+/* Sequence diagrams: message arrows + labels (not flowchart g.edgeLabel). */
+.diagram-viewport svg text.messageText,
+.diagram-viewport svg [data-et='message'] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.diagram-viewport svg [data-et='message'] {
+  pointer-events: stroke;
+  stroke: rgba(0, 0, 0, 0.001);
+  stroke-width: 12px;
+}
+
 /* Sequence diagrams: participants and lifelines are selectable for the radial menu. */
 .diagram-viewport svg [data-et='participant'] {
   pointer-events: auto;
