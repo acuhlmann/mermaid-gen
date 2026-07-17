@@ -5,6 +5,33 @@
  * with officeCast.js — the seen-template memory is shared across locales.
  */
 export const OFFICE_EN_AU = {
+  OFFICE_COLLEAGUES: {
+    intern: { blurb: 'Replies-all. Asks naive questions that are accidentally profound.' },
+    scrumMaster: {
+      blurb: 'Everything is a ceremony. Will time-box your smoko. Runs every meeting.'
+    },
+    helpdesk: { blurb: 'Closes tickets as duplicates of themselves. Works on his machine.' },
+    facilities: {
+      blurb: 'Sends ALL-CAPS fridge cleanouts. Runs the thermostat with an iron fist.'
+    },
+    hr: {
+      blurb: 'Weaponised cheerfulness. Your training is 847 days overdue. Sign Craig’s card.'
+    },
+    greybeard: {
+      blurb: '“We tried that in 2009.” Maintains the mainframe. Unsettlingly good advice.'
+    }
+  },
+  OFFICE_WELCOME_EMAIL: {
+    id: 'welcome-email-hr',
+    colleagueId: 'hr',
+    subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
+    body: 'Welcome to the floor! Stoked to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Office noise toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
+  },
+  OFFICE_WELCOME_IM: {
+    id: 'welcome-im-intern',
+    colleagueId: 'intern',
+    body: 'hey!! you must be the new {userTitle} — welcome!! the coffee machine has fourteen buttons and twelve are decorative. also gary WILL email you about the fridge. it’s not personal (it is)'
+  },
   OFFICE_EMAIL_TEMPLATES: [
     {
       id: 'email-fridge-cleanout',
@@ -247,9 +274,20 @@ export const OFFICE_EN_AU = {
   OFFICE_IM_QUICK_REPLIES: ['👍', 'in a meeting', 'circling back arvo'],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
+    directory: {
+      title: 'Welcome to the office',
+      tagline: 'You’ve got a desk, a diagram, and colleagues with opinions. Meet the floor:',
+      expandLabel: '🏢 Meet the office',
+      expandTitle: 'Who keeps interrupting me?',
+      dismissLabel: 'Clock on',
+      closeAria: 'Close the office directory'
+    },
     inbox: {
+      mailAnnounce: 'You’ve got mail, mate!',
+      mailAnnounceLang: 'en-AU',
       soundscapeLabel: 'Office noise',
-      soundscapeTitle: 'Ambient office racket — keyboards, the printer, the coffee machine',
+      soundscapeTitle:
+        'Ambient office racket — keyboards, paper, the printer, the phone, the coffee machine',
       emptyLine: "Inbox zero. HR reckons that's suss. Enjoy it while it lasts.",
       callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda, mate'
     },

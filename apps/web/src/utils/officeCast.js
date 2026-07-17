@@ -34,6 +34,7 @@ export const OFFICE_COLLEAGUES = {
     id: 'intern',
     name: 'Chad',
     title: 'The Intern (Unpaid, Strategic)',
+    blurb: 'Replies-all. Asks naive questions that are accidentally profound.',
     avatarEmoji: '🧃',
     accentColor: '#65a30d',
     emailFrom: 'chad.intern@archislop.corp',
@@ -44,6 +45,7 @@ export const OFFICE_COLLEAGUES = {
     id: 'scrumMaster',
     name: 'Pam',
     title: 'Agile Coach — CSM, CSPO, SAFe 6.0',
+    blurb: 'Everything is a ceremony. Will time-box your lunch. Runs every meeting.',
     avatarEmoji: '📅',
     accentColor: '#0ea5e9',
     emailFrom: 'pam.agile@archislop.corp',
@@ -54,6 +56,7 @@ export const OFFICE_COLLEAGUES = {
     id: 'helpdesk',
     name: 'Ticket Bot Dave',
     title: 'IT Helpdesk — Tier 1 (of 1)',
+    blurb: 'Closes tickets as duplicates of themselves. Works on his machine.',
     avatarEmoji: '🖥️',
     accentColor: '#64748b',
     emailFrom: 'no-reply@helpdesk.archislop.corp',
@@ -64,6 +67,7 @@ export const OFFICE_COLLEAGUES = {
     id: 'facilities',
     name: 'Gary',
     title: 'Facilities & Fridge Czar',
+    blurb: 'Sends ALL-CAPS fridge cleanouts. Controls the thermostat with an iron fist.',
     avatarEmoji: '🧹',
     accentColor: '#b45309',
     emailFrom: 'facilities@archislop.corp',
@@ -74,6 +78,7 @@ export const OFFICE_COLLEAGUES = {
     id: 'hr',
     name: 'Linda',
     title: 'People Ops Business Partner',
+    blurb: 'Weaponized cheerfulness. Your training is 847 days overdue. Sign Craig’s card.',
     avatarEmoji: '📎',
     accentColor: '#db2777',
     emailFrom: 'people-ops@archislop.corp',
@@ -84,6 +89,7 @@ export const OFFICE_COLLEAGUES = {
     id: 'greybeard',
     name: 'Ulrich',
     title: 'Staff Engineer Emeritus',
+    blurb: '“We tried that in 2009.” Maintains the mainframe. Unsettlingly good advice.',
     avatarEmoji: '🧓',
     accentColor: '#57534e',
     emailFrom: 'ulrich@mainframe.archislop.corp',
@@ -259,6 +265,24 @@ export const OFFICE_EMAIL_TEMPLATES = [
     body: "Saw your diagram on the shared drive. We built this in 2009. It ran on a cron job and fear. Took down prod for a week in 2011.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
   }
 ];
+
+/**
+ * First-run onboarding beats (docs/office-parody.md): a welcome email from
+ * People Ops that introduces the floor, then an IM from the intern. Pushed
+ * once ever by useOfficeWelcome — never part of the random template banks.
+ */
+export const OFFICE_WELCOME_EMAIL = {
+  id: 'welcome-email-hr',
+  colleagueId: 'hr',
+  subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
+  body: 'Welcome to the floor! So thrilled to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
+};
+
+export const OFFICE_WELCOME_IM = {
+  id: 'welcome-im-intern',
+  colleagueId: 'intern',
+  body: 'hey!! you must be the new {userTitle} — welcome!! the coffee machine has fourteen buttons and twelve are decorative. also gary WILL email you about the fridge. it’s not personal (it is)'
+};
 
 /** Canned IM pings — short chat noise with slot fills. */
 export const OFFICE_IM_TEMPLATES = [
@@ -442,15 +466,26 @@ export const OFFICE_IM_QUICK_REPLIES = ['👍', 'in a meeting', 'circling back']
  */
 export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
+  directory: {
+    title: 'Welcome to the office',
+    tagline: 'You’ve got a desk, a diagram, and colleagues with opinions. Meet the floor:',
+    expandLabel: '🏢 Meet the office',
+    expandTitle: 'Who keeps interrupting me?',
+    dismissLabel: 'Clock in',
+    closeAria: 'Close the office directory'
+  },
   inbox: {
     buttonTitle: 'Corporate inbox',
     unreadAria: 'Inbox — {count} unread emails',
     noUnreadAria: 'Inbox — no unread email',
     title: '📥 Inbox',
+    mailAnnounce: 'You’ve got mail!',
+    mailAnnounceLang: 'en-US',
     focusTimeLabel: 'Focus Time',
     focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
     soundscapeLabel: 'Soundscape',
-    soundscapeTitle: 'Ambient office noise — keyboards, the printer, the espresso machine',
+    soundscapeTitle:
+      'Ambient office noise — keyboards, paper, the printer, the desk phone, the watercooler, the espresso machine',
     closeAria: 'Close inbox',
     back: '← Back',
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',
@@ -493,6 +528,14 @@ export const OFFICE_CHROME_COPY = {
 
 export function officeEmailTemplates() {
   return office()?.OFFICE_EMAIL_TEMPLATES ?? OFFICE_EMAIL_TEMPLATES;
+}
+
+export function officeWelcomeEmail() {
+  return office()?.OFFICE_WELCOME_EMAIL ?? OFFICE_WELCOME_EMAIL;
+}
+
+export function officeWelcomeIm() {
+  return office()?.OFFICE_WELCOME_IM ?? OFFICE_WELCOME_IM;
 }
 
 export function officeImTemplates() {

@@ -15400,6 +15400,190 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
 }
 
+/* --- Who's-who chrome: roles beside names on every office surface --- */
+.office-im-title,
+.office-email-sender-role {
+  font-weight: 400;
+  color: var(--muted);
+}
+.office-email-sender {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.office-meeting-invite-attendees {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.office-meeting-invite-attendee {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  color: var(--text);
+}
+.office-meeting-seat-cell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+.office-meeting-seat-name {
+  font-size: 10px;
+  color: var(--muted);
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.office-meeting-seat-cell.is-speaking .office-meeting-seat-name {
+  color: var(--text);
+  font-weight: 700;
+}
+.office-meeting-beat-role {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* --- Office directory (entry-screen "meet the floor" card) --- */
+.office-directory {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  box-shadow: var(--control-shadow);
+  max-height: min(46vh, 380px);
+  overflow-y: auto;
+}
+.office-directory-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.office-directory-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-directory-close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.office-directory-close:hover {
+  background: rgba(15, 23, 42, 0.06);
+}
+.office-directory-tagline {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.office-directory-roster {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+.office-directory-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--control-border);
+  border-radius: 10px;
+}
+.office-directory-avatar {
+  flex: 0 0 auto;
+  font-size: 20px;
+  line-height: 1;
+  border: 2px solid var(--control-border);
+  border-radius: 50%;
+  padding: 4px;
+}
+.office-directory-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.office-directory-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-directory-role {
+  font-size: 11px;
+  color: var(--muted);
+}
+.office-directory-blurb {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--muted);
+  font-style: italic;
+}
+.office-directory-dismiss {
+  align-self: flex-end;
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+.office-directory-dismiss:hover {
+  background: var(--accent-dark);
+}
+.office-directory-chip {
+  align-self: flex-start;
+  appearance: none;
+  border: 1px solid var(--control-border);
+  background: var(--control-bg);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 4px 12px;
+  cursor: pointer;
+  box-shadow: var(--control-shadow);
+}
+.office-directory-chip:hover {
+  color: var(--text);
+}
+@media (max-width: 640px) {
+  .office-directory {
+    max-height: 38vh;
+  }
+  .office-directory-roster {
+    grid-template-columns: 1fr;
+  }
+  /* Long credentials crowd a phone-width ping — the tooltip still has them. */
+  .office-im-title {
+    display: none;
+  }
+}
+
 /* Small screens: keep office chrome clear of bottom controls. */
 @media (max-width: 640px) {
   .office-inbox {

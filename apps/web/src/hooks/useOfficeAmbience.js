@@ -31,7 +31,7 @@ import {
   pushOfficeWalkBy
 } from '../state/officeMomentStore.js';
 
-export const OFFICE_TICK_MS = 15_000;
+export const OFFICE_TICK_MS = 5_000;
 const MOMENT_TIMEOUT_MS = 12_000;
 const FAILURE_BACKOFF_MS = 30_000;
 const RECENT_MOMENTS_CAP = 5;

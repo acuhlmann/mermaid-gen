@@ -8,14 +8,44 @@
  */
 export const OFFICE_ZH_CN = {
   OFFICE_COLLEAGUES: {
-    intern: { title: '实习生（无薪 · 战略级）' },
-    scrumMaster: { title: '敏捷教练 — CSM、CSPO、SAFe 6.0' },
-    helpdesk: { name: '工单机器人 Dave', title: 'IT 服务台 — 一线（仅此一线）' },
-    facilities: { title: '后勤与冰箱沙皇' },
-    hr: { title: '人力运营业务伙伴' },
-    greybeard: { title: '资深工程师（荣休返聘）' }
+    intern: {
+      title: '实习生（无薪 · 战略级）',
+      blurb: '爱点“回复全部”。天真的问题偶尔一针见血。'
+    },
+    scrumMaster: {
+      title: '敏捷教练 — CSM、CSPO、SAFe 6.0',
+      blurb: '万事皆仪式。连午饭都要设时间盒。所有会议由她主持。'
+    },
+    helpdesk: {
+      name: '工单机器人 Dave',
+      title: 'IT 服务台 — 一线（仅此一线）',
+      blurb: '把工单关闭为它自己的重复项。在他机器上没问题。'
+    },
+    facilities: {
+      title: '后勤与冰箱沙皇',
+      blurb: '发全大写的冰箱清理通知。以铁腕掌控恒温器。'
+    },
+    hr: {
+      title: '人力运营业务伙伴',
+      blurb: '武器化的热情。你的培训已逾期 847 天。记得给 Craig 的贺卡签名。'
+    },
+    greybeard: {
+      title: '资深工程师（荣休返聘）',
+      blurb: '“2009 年我们试过。”维护着那台大型机。建议好得让人不安。'
+    }
   },
   OFFICE_SLOT_FALLBACKS: { label: '这张图', userTitle: '实习架构师' },
+  OFFICE_WELCOME_EMAIL: {
+    id: 'welcome-email-hr',
+    colleagueId: 'hr',
+    subject: '欢迎加入，{userTitle}！🎉（工牌照片：待定）',
+    body: '欢迎来到这层楼！非常高兴你的加入。在强制入职培训（已改期，时间待定）之前，先认识几位同事：\n\n📅 Pam（敏捷教练）主持所有会议。真的是所有。\n🧃 Chad（我们的实习生）马上会给你发消息。他没有恶意。\n🖥️ 工单机器人 Dave 是 IT。请勿回复，请勿来电，请勿。\n🧹 Gary 掌管冰箱和恒温器。请对两者保持敬意。\n🧓 Ulrich 见过你的架构。在 2009 年。\n\n我是 Linda — 人力运营！你的合规培训已经逾期了，这实属纪录。收件箱 📥、专注时间和办公室音景开关都在角落里，想让我们安静点随时可用。\n\n暖暖的问候，\nLinda'
+  },
+  OFFICE_WELCOME_IM: {
+    id: 'welcome-im-intern',
+    colleagueId: 'intern',
+    body: '嗨！！你就是新来的{userTitle}吧 — 欢迎！！咖啡机有十四个按钮，十二个是装饰。另外 gary 一定会给你发冰箱邮件。别往心里去（要往心里去）'
+  },
   OFFICE_EMAIL_TEMPLATES: [
     {
       id: 'email-fridge-cleanout',
@@ -244,15 +274,25 @@ export const OFFICE_ZH_CN = {
   OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '回头聊'],
   OFFICE_CHROME_COPY: {
     doIt: '就这么办',
+    directory: {
+      title: '欢迎来到办公室',
+      tagline: '你有一张工位、一张图，和一群很有想法的同事。认识一下这层楼：',
+      expandLabel: '🏢 认识办公室',
+      expandTitle: '到底是谁一直在打扰我？',
+      dismissLabel: '打卡上班',
+      closeAria: '关闭办公室通讯录'
+    },
     inbox: {
       buttonTitle: '公司邮箱',
       unreadAria: '收件箱 — {count} 封未读邮件',
       noUnreadAria: '收件箱 — 没有未读邮件',
       title: '📥 收件箱',
+      mailAnnounce: '您有新邮件！',
+      mailAnnounceLang: 'zh-CN',
       focusTimeLabel: '专注时间',
       focusTimeTitle: '同事们(基本上)会尊重专注时间',
       soundscapeLabel: '办公室音景',
-      soundscapeTitle: '办公室环境音 — 键盘声、打印机、咖啡机',
+      soundscapeTitle: '办公室环境音 — 键盘声、纸张、打印机、电话、饮水机、咖啡机',
       closeAria: '关闭收件箱',
       back: '← 返回',
       emptyLine: '收件箱清零。HR 觉得这很可疑。且行且珍惜。',

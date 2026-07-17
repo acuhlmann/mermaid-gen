@@ -8,6 +8,7 @@ import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
 import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
+import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
   acceptOfficeCoffee,
   dismissOfficeCoffee,
@@ -22,10 +23,19 @@ import {
   setOfficeSoundscape,
   subscribe
 } from '../state/officeMomentStore.js';
-import { playImPing, playMailChime, playMeetingJoinBlip } from '../utils/agentChimes.js';
+import {
+  playCalendarDing,
+  playEspressoMachine,
+  playFootsteps,
+  playImPing,
+  playMailChime,
+  playMeetingJoinBlip,
+  playYouveGotMail
+} from '../utils/agentChimes.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
 import {
   MEETING_FACILITATOR,
+  officeChromeCopy,
   officeMeetingCopy,
   pickMeetingAttendees
 } from '../utils/officeCast.js';
@@ -72,23 +82,59 @@ export default function OfficeLayer({
     onUsage
   });
 
-  // Room tone (keyboard clatter, the printer, the espresso machine) — its own
-  // sparse cadence, muted by Focus Time and the dock's Soundscape toggle.
+  // Room tone (keyboard clatter, paper shuffles, the printer, the desk phone,
+  // the watercooler, the espresso machine) — its own sparse cadence, muted by
+  // Focus Time and the dock's Soundscape toggle.
   useOfficeSoundscape({ playChime });
 
-  // Office SFX: mail ding on new email, pop on new IM, blip when a meeting
-  // starts playing. playChime is App's sound gate (soundEnabled + gesture).
+  // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
+  useOfficeWelcome({ getUserTitle });
+
+  // Office SFX: mail ding on new email ("You've got mail!" for the session's
+  // first), pop on new IM, footsteps when a colleague walks up, calendar ding
+  // on a meeting invite, the espresso machine when a coffee break is accepted,
+  // blip when a meeting starts playing. playChime is App's sound gate
+  // (soundEnabled + gesture).
   const prevUnreadRef = useRef(snapshot.unreadCount);
   const prevPingCountRef = useRef(snapshot.imPings.length);
   const prevMeetingStateRef = useRef(null);
+  const prevWalkByIdRef = useRef(snapshot.walkBy?.id ?? null);
+  const prevInviteIdRef = useRef(snapshot.meetingInvite?.id ?? null);
+  const prevCoffeeAcceptedRef = useRef(Boolean(snapshot.coffee?.accepted));
+  const mailAnnouncedRef = useRef(false);
   useEffect(() => {
-    if (snapshot.unreadCount > prevUnreadRef.current) playChime?.(playMailChime);
+    if (snapshot.unreadCount > prevUnreadRef.current) {
+      if (mailAnnouncedRef.current) {
+        playChime?.(playMailChime);
+      } else {
+        mailAnnouncedRef.current = true;
+        const inbox = officeChromeCopy().inbox;
+        playChime?.((ref) =>
+          playYouveGotMail(ref, { text: inbox.mailAnnounce, lang: inbox.mailAnnounceLang })
+        );
+      }
+    }
     prevUnreadRef.current = snapshot.unreadCount;
   }, [snapshot.unreadCount, playChime]);
   useEffect(() => {
     if (snapshot.imPings.length > prevPingCountRef.current) playChime?.(playImPing);
     prevPingCountRef.current = snapshot.imPings.length;
   }, [snapshot.imPings.length, playChime]);
+  useEffect(() => {
+    const walkById = snapshot.walkBy?.id ?? null;
+    if (walkById && walkById !== prevWalkByIdRef.current) playChime?.(playFootsteps);
+    prevWalkByIdRef.current = walkById;
+  }, [snapshot.walkBy?.id, playChime]);
+  useEffect(() => {
+    const inviteId = snapshot.meetingInvite?.id ?? null;
+    if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);
+    prevInviteIdRef.current = inviteId;
+  }, [snapshot.meetingInvite?.id, playChime]);
+  useEffect(() => {
+    const accepted = Boolean(snapshot.coffee?.accepted);
+    if (accepted && !prevCoffeeAcceptedRef.current) playChime?.(playEspressoMachine);
+    prevCoffeeAcceptedRef.current = accepted;
+  }, [snapshot.coffee?.accepted, playChime]);
   useEffect(() => {
     if (meeting?.state === 'playing' && prevMeetingStateRef.current !== 'playing') {
       playChime?.(playMeetingJoinBlip);

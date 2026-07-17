@@ -28,9 +28,26 @@ export default function MeetingInviteToast({ invite, onAccept, onDecline }) {
         <span className="office-meeting-invite-title">{invite.title}</span>
       </div>
       <div className="office-meeting-invite-meta">
-        {copy.meetingInvite.organizerLabel} {organizer.avatarEmoji} {organizer.name} ·{' '}
-        {copy.meetingInvite.attendeesLabel}{' '}
-        {invite.attendees.map((id) => officeSenderInfo(id).avatarEmoji).join(' ')}
+        <span title={organizer.title ? `${organizer.name} · ${organizer.title}` : organizer.name}>
+          {copy.meetingInvite.organizerLabel} {organizer.avatarEmoji} {organizer.name}
+        </span>
+      </div>
+      <div className="office-meeting-invite-attendees">
+        <span className="office-meeting-invite-attendees-label">
+          {copy.meetingInvite.attendeesLabel}
+        </span>
+        {invite.attendees.map((id) => {
+          const attendee = officeSenderInfo(id);
+          return (
+            <span
+              key={id}
+              className="office-meeting-invite-attendee"
+              title={attendee.title ? `${attendee.name} · ${attendee.title}` : attendee.name}
+            >
+              <span aria-hidden="true">{attendee.avatarEmoji}</span> {attendee.name}
+            </span>
+          );
+        })}
       </div>
       <p className="office-meeting-invite-body">{invite.body}</p>
       {proposedNewTime ? (

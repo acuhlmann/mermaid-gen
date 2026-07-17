@@ -28,9 +28,9 @@ describe('useOfficeSoundscape', () => {
   it('plays a cue through the sound gate after the quiet opening stretch', async () => {
     const playChime = vi.fn();
     renderHook(() => useOfficeSoundscape({ playChime, random: () => 0.5 }));
-    await vi.advanceTimersByTimeAsync(SOUNDSCAPE_FIRST_CUE_MIN_MS - 6_000);
+    await vi.advanceTimersByTimeAsync(SOUNDSCAPE_FIRST_CUE_MIN_MS - 2_000);
     expect(playChime).not.toHaveBeenCalled();
-    await vi.advanceTimersByTimeAsync(12_000);
+    await vi.advanceTimersByTimeAsync(SOUNDSCAPE_FIRST_CUE_MIN_MS + 6_000);
     expect(playChime).toHaveBeenCalledTimes(1);
     expect(typeof playChime.mock.calls[0][0]).toBe('function');
   });

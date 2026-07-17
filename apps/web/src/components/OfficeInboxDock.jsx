@@ -127,11 +127,20 @@ export default function OfficeInboxDock({
                           className={`office-email-row${email.read ? '' : ' is-unread'}`}
                           onClick={() => openEmail(email)}
                         >
-                          <span className="office-email-avatar" aria-hidden="true">
+                          <span
+                            className="office-email-avatar"
+                            aria-hidden="true"
+                            title={sender.title ? `${sender.name} · ${sender.title}` : sender.name}
+                          >
                             {sender.avatarEmoji}
                           </span>
                           <span className="office-email-meta">
-                            <span className="office-email-sender">{sender.name}</span>
+                            <span className="office-email-sender">
+                              {sender.name}
+                              {sender.title ? (
+                                <span className="office-email-sender-role"> · {sender.title}</span>
+                              ) : null}
+                            </span>
                             <span className="office-email-subject">{email.subject}</span>
                           </span>
                         </button>
