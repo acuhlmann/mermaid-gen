@@ -536,7 +536,8 @@ export const CONTROLS_ZH_CN = {
     streamingSource: '正在流式传输已校验的源码…',
     done: '完成',
     loadingEditor: '正在加载代码编辑器…',
-    selectAll: '全选'
+    selectAll: '全选',
+    copy: '复制'
   },
   anythingCanvas: {
     canvas: '任意画布（沙箱）',

@@ -16,6 +16,7 @@ import {
   startWebShare,
   resolveWebShareMode,
   isShareUserGestureError,
+  isVisualExportPayload,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
 
@@ -37,8 +38,8 @@ describe('listExportFormats', () => {
   it('returns mode-specific formats', () => {
     expect(listExportFormats('mermaid', 'flowchart TD\nA-->B').map((f) => f.id)).toEqual([
       'mermaid-source',
-      'mermaid-svg',
-      'mermaid-png'
+      'mermaid-png',
+      'mermaid-svg'
     ]);
     expect(listExportFormats('anything', '<!DOCTYPE html><html></html>').map((f) => f.id)).toEqual([
       'anything-html'
@@ -286,7 +287,7 @@ describe('shareExportPayload', () => {
 });
 
 describe('resolveWebShareMode', () => {
-  it('prefers text share for text delivery when both modes are supported', () => {
+  it('prefers file share for visual payloads (SVG, PNG)', () => {
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
       value: () => true
@@ -300,10 +301,37 @@ describe('resolveWebShareMode', () => {
         delivery: 'text',
         body: '<svg></svg>'
       })
+    ).toBe('file');
+
+    expect(
+      resolveWebShareMode({
+        filename: 'diagram.png',
+        mime: 'image/png',
+        ext: 'png',
+        delivery: 'image',
+        blob: new Blob(['x'], { type: 'image/png' })
+      })
+    ).toBe('file');
+  });
+
+  it('prefers text share for plain-text payloads when both modes are supported', () => {
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    expect(
+      resolveWebShareMode({
+        filename: 'diagram.mmd',
+        mime: 'text/plain;charset=utf-8',
+        ext: 'mmd',
+        delivery: 'text',
+        body: 'flowchart TD\nA-->B'
+      })
     ).toBe('text');
   });
 
-  it('uses file share for image delivery', () => {
+  it('uses file share for image delivery when text is unavailable', () => {
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
       value: (data) => Boolean(data.files)
@@ -321,8 +349,68 @@ describe('resolveWebShareMode', () => {
   });
 });
 
+describe('isVisualExportPayload', () => {
+  it('detects image mime and image delivery', () => {
+    expect(
+      isVisualExportPayload({
+        filename: 'x.svg',
+        mime: 'image/svg+xml',
+        ext: 'svg',
+        delivery: 'text',
+        body: '<svg/>'
+      })
+    ).toBe(true);
+    expect(
+      isVisualExportPayload({
+        filename: 'x.png',
+        mime: 'image/png',
+        ext: 'png',
+        delivery: 'image',
+        blob: new Blob()
+      })
+    ).toBe(true);
+    expect(
+      isVisualExportPayload({
+        filename: 'x.mmd',
+        mime: 'text/plain',
+        ext: 'mmd',
+        delivery: 'text',
+        body: 'flowchart TD'
+      })
+    ).toBe(false);
+  });
+});
+
 describe('startWebShare', () => {
-  it('invokes navigator.share synchronously and returns share-text for text delivery', async () => {
+  it('invokes navigator.share synchronously and returns share-file for visual payloads', async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: share
+    });
+    Object.defineProperty(navigator, 'canShare', {
+      configurable: true,
+      value: () => true
+    });
+
+    const method = await startWebShare({
+      filename: 'diagram.svg',
+      mime: 'image/svg+xml;charset=utf-8',
+      ext: 'svg',
+      delivery: 'text',
+      body: '<svg></svg>'
+    });
+
+    expect(method).toBe('share-file');
+    expect(share).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: expect.arrayContaining([expect.any(File)]),
+        title: 'diagram.svg'
+      })
+    );
+  });
+
+  it('invokes navigator.share synchronously and returns share-text for plain text', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'share', {
       configurable: true,
