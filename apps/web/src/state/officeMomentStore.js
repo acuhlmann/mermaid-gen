@@ -32,6 +32,8 @@ function initialState() {
     walkBy: null,
     /** @type {{id: string, lines: Array<{speakerId: string, text: string}>, accepted: boolean, createdAt: number} | null} */
     coffee: null,
+    /** @type {{id: string, topic: string, lines: Array<{speakerId: string, text: string}>, verdicts: Record<string, string>, accepted: boolean, votedFor: string | null, createdAt: number} | null} */
+    battle: null,
     /** @type {{id: string, colleagueId: string, title: string, body: string, attendees: string[], createdAt: number} | null} */
     meetingInvite: null
   };
@@ -104,6 +106,7 @@ export function hasActiveOfficeSurface() {
   return Boolean(
     state.walkBy ||
     state.coffee ||
+    state.battle ||
     state.meetingInvite ||
     state.imPings.length >= IM_PING_MAX_VISIBLE
   );
@@ -190,6 +193,41 @@ export function acceptOfficeCoffee() {
 export function dismissOfficeCoffee() {
   if (!state.coffee) return;
   update({ coffee: null });
+}
+
+/**
+ * A cubicle battle (docs/office-parody.md): invite pill → arena scene (lines
+ * pace in) → the user settles it by voting for a side → the winner's verdict
+ * zinger. `votedFor` doubles as the "battle is settled" flag.
+ */
+export function pushOfficeBattleInvite({ topic, lines, verdicts }) {
+  const battle = {
+    id: makeId('battle'),
+    topic: String(topic ?? ''),
+    lines: Array.isArray(lines) ? lines : [],
+    verdicts: verdicts && typeof verdicts === 'object' ? verdicts : {},
+    accepted: false,
+    votedFor: null,
+    createdAt: Date.now()
+  };
+  update({ battle });
+  return battle.id;
+}
+
+export function acceptOfficeBattle() {
+  if (!state.battle || state.battle.accepted) return;
+  update({ battle: { ...state.battle, accepted: true } });
+}
+
+export function voteOfficeBattle(colleagueId) {
+  if (!state.battle || !state.battle.accepted || state.battle.votedFor) return;
+  if (typeof colleagueId !== 'string' || !(colleagueId in state.battle.verdicts)) return;
+  update({ battle: { ...state.battle, votedFor: colleagueId } });
+}
+
+export function dismissOfficeBattle() {
+  if (!state.battle) return;
+  update({ battle: null });
 }
 
 export function pushOfficeMeetingInvite({ colleagueId, title, body, attendees }) {

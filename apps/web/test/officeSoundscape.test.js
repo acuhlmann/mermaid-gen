@@ -70,7 +70,15 @@ describe('pickNextSoundscapeCue', () => {
   });
 
   it('never plays a set piece twice in a row', () => {
-    for (const setPiece of ['printer', 'espresso', 'phone', 'watercooler']) {
+    for (const setPiece of [
+      'printer',
+      'espresso',
+      'phone',
+      'watercooler',
+      'chair',
+      'vending',
+      'elevator'
+    ]) {
       for (let i = 0; i < 200; i += 1) {
         const cue = pickNextSoundscapeCue({ ...BASE, lastCue: setPiece, random: Math.random });
         expect(cue).not.toBe(setPiece);
@@ -79,7 +87,7 @@ describe('pickNextSoundscapeCue', () => {
   });
 
   it('allows the desk textures to repeat — typing and paper are the room tone', () => {
-    for (const texture of ['keyboard', 'paper']) {
+    for (const texture of ['keyboard', 'mouse', 'paper']) {
       let sawRepeat = false;
       for (let i = 0; i < 400; i += 1) {
         if (pickNextSoundscapeCue({ ...BASE, lastCue: texture, random: Math.random }) === texture) {

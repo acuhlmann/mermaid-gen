@@ -15018,8 +15018,12 @@ body.slopitect-rainbow-tint::before {
   }
   .office-im-ping,
   .office-coffee-invite,
+  .office-battle-invite,
   .office-meeting-invite {
     animation: office-pop-in 220ms ease-out;
+  }
+  .office-battle-line {
+    animation: office-pop-in 260ms ease-out;
   }
 }
 @keyframes office-slide-in-left {
@@ -15166,6 +15170,196 @@ body.slopitect-rainbow-tint::before {
   padding: 5px 12px;
   cursor: pointer;
   color: var(--text);
+}
+
+/* --- Cubicle battle --- */
+.office-battle-invite {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 76px;
+  z-index: var(--z-office-chrome);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--control-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  box-shadow: var(--control-shadow);
+  font-size: 13px;
+  color: var(--text);
+  max-width: min(520px, calc(100vw - 28px));
+}
+.office-battle-accept,
+.office-battle-decline {
+  appearance: none;
+  border-radius: 999px;
+  font-size: 12px;
+  padding: 4px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.office-battle-accept {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.office-battle-decline {
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--muted);
+}
+.office-battle-scene {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: var(--modal-backdrop);
+}
+.office-battle-card {
+  width: min(460px, 100%);
+  background: var(--modal-card-bg);
+  border-radius: var(--modal-card-radius);
+  box-shadow: var(--modal-card-shadow);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.office-battle-head {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.office-battle-topic {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 13px;
+}
+.office-battle-versus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+.office-battle-versus-side {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.office-battle-vs {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-right: 6px;
+}
+.office-battle-versus-avatar {
+  font-size: 24px;
+  border: 2px solid var(--control-border);
+  border-radius: 999px;
+  padding: 3px 6px;
+  line-height: 1;
+}
+.office-battle-versus-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-battle-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.office-battle-line {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.office-battle-line-avatar {
+  font-size: 20px;
+}
+.office-battle-speaker {
+  font-weight: 700;
+}
+.office-battle-settle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.office-battle-settle-line {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.office-battle-settle-buttons {
+  display: flex;
+  gap: 8px;
+}
+.office-battle-side {
+  flex: 1 1 0;
+  appearance: none;
+  border: 2px solid var(--control-border);
+  background: var(--control-bg);
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 10px;
+  cursor: pointer;
+  color: var(--text);
+}
+.office-battle-walkaway {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  align-self: center;
+  padding: 2px 6px;
+}
+.office-battle-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--control-border);
+  padding-top: 10px;
+}
+.office-battle-verdict-head {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+.office-battle-verdict-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text);
+}
+.office-battle-done {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  background: transparent;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  color: var(--text);
+  align-self: flex-end;
 }
 
 /* --- Meeting invite --- */

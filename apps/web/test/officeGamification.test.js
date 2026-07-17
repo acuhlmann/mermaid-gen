@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyOfficeEvent,
   createInitialState,
+  OFFICE_BATTLE_ACHIEVEMENT_THRESHOLD,
   OFFICE_COFFEE_ACHIEVEMENT_THRESHOLD,
   OFFICE_REPLY_ACHIEVEMENT_THRESHOLD,
   OFFICE_XP_AWARDS
@@ -50,6 +51,18 @@ describe('applyOfficeEvent', () => {
       ({ state } = applyOfficeEvent(state, { kind: 'imReply' }));
     }
     expect(state.achievements.replyGuy).toBe(true);
+  });
+
+  it('awards battle XP and unlocks HOLY WAR REFEREE at the session threshold', () => {
+    let state = createInitialState();
+    const first = applyOfficeEvent(state, { kind: 'battleSettled' });
+    expect(first.state.xp).toBe(OFFICE_XP_AWARDS.battleSettled);
+    expect(first.emissions[0]).toMatchObject({ kind: 'xp', variant: 'office', amount: 5 });
+    ({ state } = first);
+    for (let i = 1; i < OFFICE_BATTLE_ACHIEVEMENT_THRESHOLD; i += 1) {
+      ({ state } = applyOfficeEvent(state, { kind: 'battleSettled' }));
+    }
+    expect(state.achievements.holyWarReferee).toBe(true);
   });
 
   it('recomputes level fields when office XP crosses a threshold', () => {

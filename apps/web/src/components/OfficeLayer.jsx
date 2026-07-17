@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
+import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeImPing from './OfficeImPing.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
@@ -10,7 +11,9 @@ import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
 import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
 import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
+  acceptOfficeBattle,
   acceptOfficeCoffee,
+  dismissOfficeBattle,
   dismissOfficeCoffee,
   dismissOfficeImPing,
   dismissOfficeMeetingInvite,
@@ -21,15 +24,18 @@ import {
   pushOfficeEmail,
   setOfficeFocusTime,
   setOfficeSoundscape,
-  subscribe
+  subscribe,
+  voteOfficeBattle
 } from '../state/officeMomentStore.js';
 import {
+  playBattleBell,
   playCalendarDing,
   playEspressoMachine,
   playFootsteps,
   playImPing,
   playMailChime,
   playMeetingJoinBlip,
+  playVictoryDing,
   playYouveGotMail
 } from '../utils/agentChimes.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
@@ -82,9 +88,10 @@ export default function OfficeLayer({
     onUsage
   });
 
-  // Room tone (keyboard clatter, paper shuffles, the printer, the desk phone,
-  // the watercooler, the espresso machine) — its own sparse cadence, muted by
-  // Focus Time and the dock's Soundscape toggle.
+  // Room tone (keyboard clatter, mouse clicks, paper shuffles, chair squeaks,
+  // the printer, the desk phone, the watercooler, the espresso machine, the
+  // vending machine, the elevator) — its own sparse cadence, muted by Focus
+  // Time and the dock's Soundscape toggle.
   useOfficeSoundscape({ playChime });
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
@@ -93,6 +100,7 @@ export default function OfficeLayer({
   // Office SFX: mail ding on new email ("You've got mail!" for the session's
   // first), pop on new IM, footsteps when a colleague walks up, calendar ding
   // on a meeting invite, the espresso machine when a coffee break is accepted,
+  // the boxing bell when a cubicle battle opens (victory sting on the verdict),
   // blip when a meeting starts playing. playChime is App's sound gate
   // (soundEnabled + gesture).
   const prevUnreadRef = useRef(snapshot.unreadCount);
@@ -101,6 +109,8 @@ export default function OfficeLayer({
   const prevWalkByIdRef = useRef(snapshot.walkBy?.id ?? null);
   const prevInviteIdRef = useRef(snapshot.meetingInvite?.id ?? null);
   const prevCoffeeAcceptedRef = useRef(Boolean(snapshot.coffee?.accepted));
+  const prevBattleAcceptedRef = useRef(Boolean(snapshot.battle?.accepted));
+  const prevBattleVotedRef = useRef(snapshot.battle?.votedFor ?? null);
   const mailAnnouncedRef = useRef(false);
   useEffect(() => {
     if (snapshot.unreadCount > prevUnreadRef.current) {
@@ -135,6 +145,16 @@ export default function OfficeLayer({
     if (accepted && !prevCoffeeAcceptedRef.current) playChime?.(playEspressoMachine);
     prevCoffeeAcceptedRef.current = accepted;
   }, [snapshot.coffee?.accepted, playChime]);
+  useEffect(() => {
+    const accepted = Boolean(snapshot.battle?.accepted);
+    if (accepted && !prevBattleAcceptedRef.current) playChime?.(playBattleBell);
+    prevBattleAcceptedRef.current = accepted;
+  }, [snapshot.battle?.accepted, playChime]);
+  useEffect(() => {
+    const votedFor = snapshot.battle?.votedFor ?? null;
+    if (votedFor && votedFor !== prevBattleVotedRef.current) playChime?.(playVictoryDing);
+    prevBattleVotedRef.current = votedFor;
+  }, [snapshot.battle?.votedFor, playChime]);
   useEffect(() => {
     if (meeting?.state === 'playing' && prevMeetingStateRef.current !== 'playing') {
       playChime?.(playMeetingJoinBlip);
@@ -188,6 +208,17 @@ export default function OfficeLayer({
     dismissOfficeCoffee();
     onOfficeEvent?.('coffeeBreak');
   }, [onOfficeEvent]);
+
+  // Settling a battle (voting) is the XP moment; walking away earns nothing
+  // but judgment-free peace. Dismiss happens on "Back to work" either way.
+  const handleBattleVote = useCallback(
+    (colleagueId) => {
+      if (getOfficeSnapshot().battle?.votedFor) return;
+      voteOfficeBattle(colleagueId);
+      onOfficeEvent?.('battleSettled');
+    },
+    [onOfficeEvent]
+  );
 
   const handleAcceptInvite = useCallback(() => {
     const invite = getOfficeSnapshot().meetingInvite;
@@ -249,6 +280,12 @@ export default function OfficeLayer({
         onAccept={acceptOfficeCoffee}
         onDecline={dismissOfficeCoffee}
         onDone={handleCoffeeDone}
+      />
+      <OfficeBattleOverlay
+        battle={snapshot.battle}
+        onAccept={acceptOfficeBattle}
+        onVote={handleBattleVote}
+        onDone={dismissOfficeBattle}
       />
       {!meeting && snapshot.meetingInvite ? (
         <MeetingInviteToast

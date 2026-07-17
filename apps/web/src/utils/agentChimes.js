@@ -965,6 +965,140 @@ export function playWaterCooler(audioContextRef) {
   });
 }
 
+/** The colleague one desk over working their mouse: a few crisp clicks and a
+ * short scroll-wheel ratchet. Quiet desk texture, may repeat. */
+export function playMouseClicks(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const clicks = 2 + Math.floor(Math.random() * 2);
+  let offset = 0.02;
+  for (let i = 0; i < clicks; i += 1) {
+    playNoiseBurst(context, {
+      at: now + offset,
+      durationSec: 0.012,
+      freqHz: 2600 + Math.random() * 900,
+      q: 3,
+      peakGain: 0.008
+    });
+    offset += 0.14 + Math.random() * 0.22;
+  }
+  // Scroll wheel: a fast run of tiny detents.
+  if (Math.random() < 0.6) {
+    for (let i = 0; i < 5; i += 1) {
+      playNoiseBurst(context, {
+        at: now + offset + i * 0.035,
+        durationSec: 0.008,
+        freqHz: 3400,
+        q: 4,
+        peakGain: 0.004
+      });
+    }
+  }
+}
+
+/** An office chair losing an argument with physics: two squeaks and a slow
+ * caster roll across the floor tile. */
+export function playChairSqueak(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let squeak = 0; squeak < 2; squeak += 1) {
+    const t0 = now + squeak * (0.42 + Math.random() * 0.15);
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'triangle';
+    const start = 480 + Math.random() * 120;
+    osc.frequency.setValueAtTime(start, t0);
+    osc.frequency.linearRampToValueAtTime(start * (1.35 + Math.random() * 0.25), t0 + 0.11);
+    osc.frequency.linearRampToValueAtTime(start * 0.9, t0 + 0.2);
+    applyGainEnvelope(gainNode, t0, 0.006, 0.22);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.25);
+  }
+  playNoiseBurst(context, {
+    at: now + 0.15,
+    durationSec: 0.7,
+    freqHz: 180,
+    freqEndHz: 140,
+    q: 0.8,
+    peakGain: 0.005
+  });
+}
+
+/** The vending machine down the corridor: coin clinks, motor spiral, and the
+ * fatal thunk of a snack committing to gravity. */
+export function playVendingMachine(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  // Two coin clinks.
+  for (let coin = 0; coin < 2; coin += 1) {
+    const t0 = now + coin * 0.22;
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(2450 - coin * 300, t0);
+    osc.frequency.linearRampToValueAtTime(2100 - coin * 300, t0 + 0.04);
+    applyGainEnvelope(gainNode, t0, 0.008, 0.06);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + 0.08);
+  }
+  // The spiral motor considering your choice.
+  const motor = context.createOscillator();
+  const motorGain = context.createGain();
+  motor.type = 'sawtooth';
+  motor.frequency.setValueAtTime(64, now + 0.55);
+  motor.frequency.linearRampToValueAtTime(58, now + 1.35);
+  applyGainEnvelope(motorGain, now + 0.55, 0.006, 0.85);
+  motor.connect(motorGain);
+  motorGain.connect(context.destination);
+  motor.start(now + 0.55);
+  motor.stop(now + 1.45);
+  // The drop.
+  playNoiseBurst(context, {
+    at: now + 1.5,
+    durationSec: 0.09,
+    freqHz: 130,
+    q: 0.8,
+    peakGain: 0.012
+  });
+}
+
+/** The elevator arriving on this floor: one polite ding, doors rumbling open.
+ * Nobody gets out. */
+export function playElevatorDing(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (const [freq, peak] of [
+    [1567.98, 0.012],
+    [3135.96, 0.004]
+  ]) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    applyGainEnvelope(gainNode, now, peak, 0.55);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(now);
+    osc.stop(now + 0.6);
+  }
+  playNoiseBurst(context, {
+    at: now + 0.5,
+    durationSec: 0.6,
+    freqHz: 120,
+    freqEndHz: 170,
+    q: 0.7,
+    peakGain: 0.005
+  });
+}
+
 /** Footsteps approaching on office carpet — heralds a walk-by. */
 export function playFootsteps(audioContextRef) {
   const context = getContext(audioContextRef);
@@ -982,6 +1116,58 @@ export function playFootsteps(audioContextRef) {
       peakGain: 0.005 + i * 0.002
     });
     offset += 0.34 + Math.random() * 0.05;
+  }
+}
+
+/** Boxing-bell ding-ding for a cubicle battle entering the arena — a bright
+ * metallic strike (fundamental + clashing overtones), twice. */
+export function playBattleBell(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  for (let hit = 0; hit < 2; hit += 1) {
+    const t0 = now + hit * 0.28;
+    for (const [freq, peak] of [
+      [880, 0.02],
+      [1976, 0.011],
+      [2640, 0.006]
+    ]) {
+      const osc = context.createOscillator();
+      const gainNode = context.createGain();
+      osc.type = 'triangle';
+      // Slight detune keeps it clangy instead of musical.
+      osc.frequency.setValueAtTime(freq * (1 + (Math.random() - 0.5) * 0.01), t0);
+      applyGainEnvelope(gainNode, t0, peak, 0.24);
+      osc.connect(gainNode);
+      gainNode.connect(context.destination);
+      osc.start(t0);
+      osc.stop(t0 + 0.28);
+    }
+  }
+}
+
+/** Tiny two-note victory sting when the user settles a cubicle battle. */
+export function playVictoryDing(audioContextRef) {
+  const context = getContext(audioContextRef);
+  if (!context) return;
+  const now = context.currentTime;
+  const notes = [
+    { freq: 880, dur: 0.09, peak: 0.024 },
+    { freq: 1318.5, dur: 0.16, peak: 0.026 }
+  ];
+  let offset = 0;
+  for (const note of notes) {
+    const osc = context.createOscillator();
+    const gainNode = context.createGain();
+    osc.type = 'sine';
+    const t0 = now + offset;
+    osc.frequency.setValueAtTime(note.freq, t0);
+    applyGainEnvelope(gainNode, t0, note.peak, note.dur);
+    osc.connect(gainNode);
+    gainNode.connect(context.destination);
+    osc.start(t0);
+    osc.stop(t0 + note.dur + 0.02);
+    offset += 0.09;
   }
 }
 

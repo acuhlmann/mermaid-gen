@@ -1,10 +1,14 @@
 import { useEffect, useRef } from 'react';
 import {
+  playChairSqueak,
   playDeskPhone,
   playDistantPrinter,
+  playElevatorDing,
   playEspressoMachine,
   playKeyboardClatter,
+  playMouseClicks,
   playPaperShuffle,
+  playVendingMachine,
   playWaterCooler
 } from '../utils/agentChimes.js';
 import { pickNextSoundscapeCue } from '../utils/officeSoundscape.js';
@@ -14,11 +18,15 @@ export const SOUNDSCAPE_TICK_MS = 5_000;
 
 const CUE_PLAYERS = {
   keyboard: playKeyboardClatter,
+  mouse: playMouseClicks,
   paper: playPaperShuffle,
   printer: playDistantPrinter,
+  chair: playChairSqueak,
   phone: playDeskPhone,
   watercooler: playWaterCooler,
-  espresso: playEspressoMachine
+  espresso: playEspressoMachine,
+  vending: playVendingMachine,
+  elevator: playElevatorDing
 };
 
 /**

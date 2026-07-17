@@ -342,6 +342,11 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '💬 秒回達人',
       subtitle: '一個會話快速回覆五次。「稍後跟進」是一種生活方式。'
     },
+    holyWarReferee: {
+      id: 'holyWarReferee',
+      title: '🥊 聖戰裁判',
+      subtitle: '平定了三場座位對決。Tab、空格和恆溫器都怕你。'
+    },
     refine: {
       id: 'masterPolisher',
       title: '👷 首席工程師',

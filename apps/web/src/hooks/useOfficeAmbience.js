@@ -12,6 +12,7 @@ import {
   OFFICE_EMAIL_LLM_CAST,
   OFFICE_IM_LLM_CAST,
   OFFICE_WALKBY_LLM_CAST,
+  officeBattleScenes,
   officeCoffeeScenes,
   officeEmailTemplates,
   officeImTemplates,
@@ -24,6 +25,7 @@ import {
 import {
   getOfficeSnapshot,
   hasActiveOfficeSurface,
+  pushOfficeBattleInvite,
   pushOfficeCoffeeInvite,
   pushOfficeEmail,
   pushOfficeImPing,
@@ -77,7 +79,7 @@ export function useOfficeAmbience(params) {
     let abortController = null;
     let failureUntil = 0;
     const sessionStartedAt = Date.now();
-    const counters = { momentCount: 0, llmMomentCount: 0, meetingInviteCount: 0 };
+    const counters = { momentCount: 0, llmMomentCount: 0, meetingInviteCount: 0, battleCount: 0 };
     const memory = readOfficeCadenceMemory();
     /** @type {string[]} */
     const recentMoments = [];
@@ -165,6 +167,27 @@ export function useOfficeAmbience(params) {
           }))
         });
         rememberMoment(scene.lines[0]?.text ?? 'coffee');
+        markFired(scene.id);
+        return true;
+      }
+      if (kind === 'battle') {
+        const scene = pickUnseenTemplate(officeBattleScenes(), memory.seenTemplateIds, random);
+        if (!scene) return false;
+        pushOfficeBattleInvite({
+          topic: fillOfficeSlots(scene.topic, slots),
+          lines: scene.lines.map((line) => ({
+            speakerId: line.speakerId,
+            text: fillOfficeSlots(line.text, slots)
+          })),
+          verdicts: Object.fromEntries(
+            Object.entries(scene.verdicts ?? {}).map(([sideId, text]) => [
+              sideId,
+              fillOfficeSlots(text, slots)
+            ])
+          )
+        });
+        rememberMoment(scene.topic);
+        counters.battleCount += 1;
         markFired(scene.id);
         return true;
       }
@@ -278,6 +301,7 @@ export function useOfficeAmbience(params) {
         momentCount: counters.momentCount,
         llmMomentCount: counters.llmMomentCount,
         meetingInviteCount: counters.meetingInviteCount,
+        battleCount: counters.battleCount,
         hasDiagram: Boolean(diagramSource.trim()),
         random
       });
