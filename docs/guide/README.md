@@ -2,19 +2,20 @@
 
 Human-readable documentation split into focused pages so GitHub preview stays fast and each topic is easy to skim.
 
-| Guide                                       | What you'll learn                                                    |
-| ------------------------------------------- | -------------------------------------------------------------------- |
-| [Quick start](quick-start.md)               | Install, run locally, health check, first diagram                    |
-| [Product & web UI](product.md)              | Vision, toolbar modes, Insights pane, Slopitect                      |
-| [System overview](system-overview.md)       | How web, server, and external agents connect; Gen UI layers          |
-| [Content types](content-types.md)           | Six slots: Mermaid, Infographic, Metaphor3D, Chart, Anything, Forms  |
-| [Agents](agents.md)                         | Intent vs transform vs analysis; user-facing modes; interaction flow |
-| [Validation & repair](validation.md)        | Mermaid four-layer ladder, Infographic pipeline, session slots       |
-| [External agents (MCP)](external-agents.md) | Pairing, join flow, MCP Apps table, hybrid web workflow              |
-| [Configuration](configuration.md)           | Environment variables, LLM backends, reliability tuning              |
-| [API endpoints](api-endpoints.md)           | REST and SSE route reference                                         |
-| [Development](development.md)               | Stack layout, tests, VS Code launch configs                          |
-| [Coding agents](coding-agents.md)           | Agent read order, verification table, PR checklist                   |
+| Guide                                             | What you'll learn                                                    |
+| ------------------------------------------------- | -------------------------------------------------------------------- |
+| [Quick start](quick-start.md)                     | Install, run locally, health check, first diagram                    |
+| [Product & web UI](product.md)                    | Vision, toolbar modes, Insights pane, Slopitect                      |
+| [System overview](system-overview.md)             | How web, server, and external agents connect; Gen UI layers          |
+| [Content types](content-types.md)                 | Six slots: Mermaid, Infographic, Metaphor3D, Chart, Anything, Forms  |
+| [Agents](agents.md)                               | Intent vs transform vs analysis; user-facing modes; interaction flow |
+| [Validation & repair](validation.md)              | Mermaid four-layer ladder, Infographic pipeline, session slots       |
+| [External agents (MCP)](external-agents.md)       | Pairing, join flow, MCP Apps table, hybrid web workflow              |
+| [Configuration](configuration.md)                 | Environment variables, LLM backends, reliability tuning              |
+| [API endpoints](api-endpoints.md)                 | REST and SSE route reference                                         |
+| [Development](development.md)                     | Stack layout, tests, VS Code launch configs                          |
+| [Coding agents](coding-agents.md)                 | Agent read order, verification table, PR checklist                   |
+| [Metaphor USDA mapping](metaphor-usda-mapping.md) | Versioned Metaphor3D DSL → `.usda` mapping (ADR-0009 steps 1–2)      |
 
 ## Integrator & operator docs (elsewhere)
 

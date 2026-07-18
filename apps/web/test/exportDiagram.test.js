@@ -55,7 +55,8 @@ describe('listExportFormats', () => {
     ]);
     expect(listExportFormats('metaphor3d', '{"metaphor":"city"}').map((f) => f.id)).toEqual([
       'metaphor-png',
-      'metaphor-json'
+      'metaphor-json',
+      'metaphor-usda'
     ]);
   });
 
@@ -149,6 +150,39 @@ describe('buildExportPayload', () => {
       formatId: 'metaphor-json'
     });
     expect(payload.body).toBe(prettyJsonOrRaw(source));
+  });
+
+  it('authors a USDA semantic stub for metaphor3d', async () => {
+    const source = JSON.stringify({
+      metaphor: 'city',
+      scene: { theme: 'noir', camera: 'orbit', title: 'T' },
+      items: [
+        { id: 'api', label: 'API', height: 12, footprint: 3, district: 'core' },
+        { id: 'db', label: 'DB', height: 6, footprint: 4 }
+      ],
+      links: [{ from: 'api', to: 'db', kind: 'flow', label: 'writes' }]
+    });
+    const payload = await buildExportPayload({
+      contentType: 'metaphor3d',
+      diagramSource: source,
+      formatId: 'metaphor-usda'
+    });
+    expect(payload.ext).toBe('usda');
+    expect(payload.delivery).toBe('text');
+    expect(payload.filename).toMatch(/^archislop-metaphor3d-\d{8}-\d{6}\.usda$/);
+    expect(payload.body.startsWith('#usda 1.0\n')).toBe(true);
+    expect(payload.body).toContain('string "archislop:mappingVersion"');
+    expect(payload.body).toContain('custom rel archislop:links = [</World/city/db>]');
+  });
+
+  it('rejects USDA export when the metaphor source is invalid', async () => {
+    await expect(
+      buildExportPayload({
+        contentType: 'metaphor3d',
+        diagramSource: '{"metaphor":"city"',
+        formatId: 'metaphor-usda'
+      })
+    ).rejects.toThrow(/not valid JSON/);
   });
 
   it('rejects empty source', async () => {

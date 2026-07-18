@@ -18,6 +18,7 @@ export * from './infographicSanitizer.js';
 export * from './metaphorSchema.js';
 export * from './metaphorSanitizer.js';
 export * from './metaphorPartialParse.js';
+export * from './metaphorUsda.js';
 export * from './chartSchema.js';
 export * from './anythingSchema.js';
 export * from './anythingPolicyLint.js';

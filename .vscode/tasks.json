@@ -9,6 +9,31 @@
         "kind": "build",
         "isDefault": true
       },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "focus": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:server",
+      "type": "shell",
+      "command": "npm run dev -w apps/server",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "dev:web",
+      "type": "shell",
+      "command": "npm run dev -w apps/web",
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      },
       "problemMatcher": []
     },
     {
@@ -29,6 +54,12 @@
       "type": "shell",
       "command": "npm run build -w apps/server",
       "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "check:affected",
+      "type": "shell",
+      "command": "npm run check:affected",
+      "problemMatcher": []
     }
   ]
 }

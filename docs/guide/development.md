@@ -12,11 +12,20 @@
 - `node apps/server/scripts/benchMermaid.js --tag <label>` — offline bench that replays a fixed corpus through `validateAndPreparePatch` and reports sanitizer-rescue rate, validator breakdown, and latency percentiles. Snapshots land in `apps/server/bench-results/<tag>-<iso>.json` (committed baselines for regression comparison; regenerate with the script, do not hand-edit); exits non-zero on regressions.
 - `node apps/server/scripts/benchAnything.js --tag <label>` — same pattern for Anything mode: replays valid / policy-violating / broken / runtime-failing HTML documents through `validateAndPrepareAnythingPatch` (full ladder including the jsdom runtime check) and reports accept rate, rejection-code breakdown, runtime-catch rate, doc sizes, and latency percentiles. Exits non-zero when outcomes drift from expectations.
 
-## VS Code run configs
+## VS Code / Cursor run configs
 
-- Shared tasks are in `.vscode/tasks.json`.
-- A launch template is committed at `.vscode/launch.example.json` (copy or merge into your local `.vscode/launch.json` if needed).
-- **Default:** **`Archislop: Dev (server + web → browser)`** — runs root `npm run dev` (server via `tsx watch`, web via Vite), loads `.env`, and opens http://localhost:5173 when Vite is ready. Use this for day-to-day work.
-- **Server breakpoints:** **`Server: Debug (Node + tsx)`** — `node --import tsx` on `src/index.js` (required after the TS migration; plain Node on `src/index.js` cannot resolve `.ts` modules imported as `.js`).
+Shared (committed) files live under `.vscode/` — see [`.vscode/README.md`](../../.vscode/README.md):
+
+| File                    | Purpose                                                              |
+| ----------------------- | -------------------------------------------------------------------- |
+| `extensions.json`       | Recommended extensions                                               |
+| `tasks.json`            | Shared tasks (`dev:full-stack`, `build:server`, …)                   |
+| `launch.example.json`   | Launch template — copy to local `launch.json`                        |
+| `settings.example.json` | Optional workspace settings template — copy to local `settings.json` |
+
+Personal `launch.json` and `settings.json` are gitignored so machine-specific shell/debug prefs stay local.
+
+- **Default:** copy `launch.example.json` → `launch.json`, then run **Archislop: Dev (server + web)** (root `npm run dev`, loads `.env`, opens the Vite URL when ready).
+- **Server breakpoints:** **Server: Debug (compiled dist)** — builds then runs `apps/server/dist/index.js` (do not attach to raw `src/index.js` with `tsx` for day-to-day listen-on-`:4000` work).
 
 Coding agents: see [`AGENTS.md`](../../AGENTS.md) for commands and file locations.

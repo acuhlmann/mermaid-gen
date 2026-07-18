@@ -30,7 +30,7 @@
       "program": "${workspaceFolder}/apps/server/dist/index.js",
       "preLaunchTask": "build:server",
       "envFile": "${workspaceFolder}/.env",
-      "console": "integratedTerminal",
+      "console": "internalConsole",
       "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
       "resolveSourceMapLocations": ["${workspaceFolder}/apps/server/**", "!**/node_modules/**"]
     },

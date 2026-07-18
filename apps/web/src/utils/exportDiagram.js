@@ -1,4 +1,4 @@
-import { parseChartDsl } from '@archislop/shared';
+import { parseChartDsl, sanitizeMetaphorDsl, authorMetaphorUsda } from '@archislop/shared';
 import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
 import {
   MERMAID_EXPORT_MAX_WIDTH_PX,
@@ -20,7 +20,8 @@ export {
  * Rationale (v1):
  * - mermaid: source for Mermaid Live / IDE plugins; SVG for slides/docs
  * - infographic: AntV DSL text (SVG export needs renderer hooks; deferred)
- * - metaphor3d: PNG screenshot for sharing + scene JSON for authoring
+ * - metaphor3d: PNG screenshot for sharing + scene JSON for authoring + USDA
+ *   semantic interchange stub (ADR-0009 migration steps 1–2)
  * - chart: CSV when tabular data exists; full wrapper JSON; bare Vega-Lite
  * - anything: standalone HTML with vendored libs inlined (not a PWA — a
  *   single file that opens offline in any browser is the right replay shape)
@@ -131,6 +132,12 @@ export const EXPORT_FORMATS_BY_MODE = {
       ext: 'json',
       mime: 'application/json;charset=utf-8',
       labelKey: 'exportMetaphorJson'
+    },
+    {
+      id: 'metaphor-usda',
+      ext: 'usda',
+      mime: 'text/plain;charset=utf-8',
+      labelKey: 'exportMetaphorUsda'
     }
   ],
   chart: [
@@ -452,6 +459,13 @@ async function buildExportBody(contentType, formatId, source) {
     case 'forms-json':
     case 'chart-json':
       return { body: prettyJsonOrRaw(source) };
+    case 'metaphor-usda': {
+      const sanitized = sanitizeMetaphorDsl(source);
+      if (!sanitized.dsl) {
+        throw new Error(sanitized.error ?? 'Metaphor DSL is invalid');
+      }
+      return { body: authorMetaphorUsda(sanitized.dsl) };
+    }
     case 'chart-vl': {
       const parsed = parseChartDsl(source);
       if (!parsed.ok) throw new Error(parsed.error);

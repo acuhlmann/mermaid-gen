@@ -20,5 +20,8 @@ dist/
 .tsbuildinfo.*
 **/.tsbuildinfo
 **/.tsbuildinfo.*
+# VS Code / Cursor: commit shared templates only (see .vscode/README.md).
+# Personal launch/settings stay local — copy from *.example.json if needed.
 .vscode/launch.json
+.vscode/settings.json
 .vscode/*.local.json
