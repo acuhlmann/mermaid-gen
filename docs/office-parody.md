@@ -282,3 +282,7 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     rematches with a running score, stakeholders wading in as tag-team partners, an LLM battle mode
     that argues about the user's actual diagram, and betting XP on the outcome before the first line
     lands.
+14. ~~**Walk-by / meeting narration (Web Speech)**~~ — ✅ shipped: per-cast pitch/rate profiles in
+    `officeNarration.js`; emails stay silent; inbox Narration toggle. **Next:** cloud TTS upgrade and
+    polish ladder — see [`office-narration-roadmap.md`](office-narration-roadmap.md) (recommended:
+    Google Cloud WaveNet on the existing GCP project for a small personal deploy).
