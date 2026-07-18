@@ -615,7 +615,8 @@ export const OFFICE_EN_AU = {
     inbox: {
       mailAnnounce: 'You’ve got mail, mate!',
       mailAnnounceLang: 'en-AU',
-      soundscapeLabel: 'Office noise',
+      togglesAria: 'Inbox ambience controls',
+      soundscapeLabel: 'Noise',
       soundscapeTitle:
         'Ambient office racket — keyboards, mouse clicks, paper, squeaky chairs, the printer, the phone, the coffee machine, the vending machine, the lift',
       narrationLabel: 'Narration',

@@ -5,10 +5,10 @@ import { formatLocale } from '../i18n/formatLocale.js';
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
  * unread badge, opening a popover with the email list, a reading pane,
- * the Focus Time (office DND) + Soundscape + Narration toggles, and the
- * "Call a meeting" shortcut. Pure props — OfficeLayer owns the store
- * subscription. Narration covers walk-bys and meetings only; emails stay
- * silent (nobody reads your inbox out loud).
+ * the Focus Time / Soundscape / Narration toggles (compact toolbar under the
+ * title), and the "Call a meeting" shortcut. Pure props — OfficeLayer owns
+ * the store subscription. Narration covers walk-bys and meetings only;
+ * emails stay silent (nobody reads your inbox out loud).
  */
 export default function OfficeInboxDock({
   openSignal = 0,
@@ -73,45 +73,43 @@ export default function OfficeInboxDock({
       {open ? (
         <div className="office-inbox-popover" role="dialog" aria-label={copy.inbox.buttonTitle}>
           <div className="office-inbox-header">
-            <span className="office-inbox-title">{copy.inbox.title}</span>
-            <label className="office-focus-toggle" title={copy.inbox.focusTimeTitle}>
-              <input
-                type="checkbox"
-                checked={focusTime}
-                onChange={() => onToggleFocusTime?.(!focusTime)}
-              />
-              <span>{copy.inbox.focusTimeLabel}</span>
-            </label>
-            <label
-              className="office-focus-toggle office-soundscape-toggle"
-              title={copy.inbox.soundscapeTitle}
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(soundscape)}
-                onChange={() => onToggleSoundscape?.(!soundscape)}
-              />
-              <span>{copy.inbox.soundscapeLabel}</span>
-            </label>
-            <label
-              className="office-focus-toggle office-soundscape-toggle"
-              title={copy.inbox.narrationTitle}
-            >
-              <input
-                type="checkbox"
-                checked={Boolean(narration)}
-                onChange={() => onToggleNarration?.(!narration)}
-              />
-              <span>{copy.inbox.narrationLabel}</span>
-            </label>
-            <button
-              type="button"
-              className="office-inbox-close"
-              aria-label={copy.inbox.closeAria}
-              onClick={toggleOpen}
-            >
-              ×
-            </button>
+            <div className="office-inbox-header-row">
+              <span className="office-inbox-title">{copy.inbox.title}</span>
+              <button
+                type="button"
+                className="office-inbox-close"
+                aria-label={copy.inbox.closeAria}
+                onClick={toggleOpen}
+              >
+                ×
+              </button>
+            </div>
+            <div className="office-inbox-toggles" role="group" aria-label={copy.inbox.togglesAria}>
+              <label className="office-focus-toggle" title={copy.inbox.focusTimeTitle}>
+                <input
+                  type="checkbox"
+                  checked={focusTime}
+                  onChange={() => onToggleFocusTime?.(!focusTime)}
+                />
+                <span>{copy.inbox.focusTimeLabel}</span>
+              </label>
+              <label className="office-focus-toggle" title={copy.inbox.soundscapeTitle}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(soundscape)}
+                  onChange={() => onToggleSoundscape?.(!soundscape)}
+                />
+                <span>{copy.inbox.soundscapeLabel}</span>
+              </label>
+              <label className="office-focus-toggle" title={copy.inbox.narrationTitle}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(narration)}
+                  onChange={() => onToggleNarration?.(!narration)}
+                />
+                <span>{copy.inbox.narrationLabel}</span>
+              </label>
+            </div>
           </div>
           {selected ? (
             <div className="office-email-view">

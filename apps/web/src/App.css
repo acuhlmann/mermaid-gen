@@ -14938,7 +14938,12 @@ body.slopitect-rainbow-tint::before {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  min-width: 13rem;
+  inline-size: max-content;
+  min-inline-size: 12rem;
+  max-inline-size: min(
+    20rem,
+    calc(100vw - 1.5rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   padding: 0.35rem;
   border-radius: 14px;
   border: 1px solid var(--control-border);
@@ -14970,6 +14975,7 @@ body.slopitect-rainbow-tint::before {
   font-size: 0.83rem;
   text-align: left;
   cursor: pointer;
+  white-space: nowrap;
 }
 .desk-actions-item:hover:not(:disabled) {
   background: rgba(37, 99, 235, 0.1);
@@ -14990,6 +14996,16 @@ body.slopitect-rainbow-tint::before {
     width: 40px;
     justify-content: center;
     padding: 0;
+  }
+  .office-inbox,
+  .desk-actions {
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+  }
+  .office-inbox {
+    top: calc(4.4rem + env(safe-area-inset-top, 0px));
+  }
+  .desk-actions {
+    top: calc(7.4rem + env(safe-area-inset-top, 0px));
   }
 }
 .office-inbox-button {
@@ -15029,8 +15045,13 @@ body.slopitect-rainbow-tint::before {
   position: absolute;
   top: 46px;
   right: 0;
-  width: min(340px, calc(100vw - 28px));
-  max-height: min(440px, 70vh);
+  container-type: inline-size;
+  container-name: office-inbox;
+  width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  max-height: min(440px, 70dvh);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -15041,33 +15062,56 @@ body.slopitect-rainbow-tint::before {
 }
 .office-inbox-header {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 10px;
-  padding: 10px 12px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem 0.6rem;
   border-bottom: 1px solid var(--control-border);
 }
+.office-inbox-header-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
 .office-inbox-title {
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 13px;
   font-weight: 700;
   color: var(--text);
 }
+.office-inbox-toggles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.25rem 0.35rem;
+  align-items: center;
+}
 .office-focus-toggle {
-  margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
+  gap: 0.25rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.2;
   color: var(--muted);
   cursor: pointer;
   user-select: none;
 }
-/* Second toggle rides next to Focus Time — only the first pushes right. */
-.office-soundscape-toggle {
-  margin-left: 0;
+.office-focus-toggle input {
+  flex: 0 0 auto;
+  margin: 0;
+}
+.office-focus-toggle span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .office-inbox-close {
   appearance: none;
+  flex: 0 0 auto;
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -15389,7 +15433,8 @@ body.slopitect-rainbow-tint::before {
   z-index: var(--z-office-chrome);
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   padding: 8px 14px;
   background: var(--office-surface-bg);
   border: 1px solid var(--control-border);
@@ -15397,7 +15442,24 @@ body.slopitect-rainbow-tint::before {
   box-shadow: var(--control-shadow);
   font-size: 13px;
   color: var(--text);
-  max-width: min(480px, calc(100vw - 28px));
+  max-width: min(
+    480px,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+}
+@media (max-width: 720px) {
+  .office-coffee-invite,
+  .office-battle-invite {
+    top: calc(4.4rem + env(safe-area-inset-top, 0px));
+    border-radius: 14px;
+    justify-content: flex-start;
+  }
+  .office-coffee-accept,
+  .office-coffee-decline,
+  .office-battle-accept,
+  .office-battle-decline {
+    flex: 0 0 auto;
+  }
 }
 .office-coffee-accept,
 .office-coffee-decline {
@@ -15514,7 +15576,8 @@ body.slopitect-rainbow-tint::before {
   z-index: var(--z-office-chrome);
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   padding: 8px 14px;
   background: var(--control-bg);
   border: 1px solid var(--control-border);
@@ -15522,7 +15585,10 @@ body.slopitect-rainbow-tint::before {
   box-shadow: var(--control-shadow);
   font-size: 13px;
   color: var(--text);
-  max-width: min(520px, calc(100vw - 28px));
+  max-width: min(
+    520px,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
 }
 .office-battle-accept,
 .office-battle-decline {
@@ -15698,10 +15764,13 @@ body.slopitect-rainbow-tint::before {
 /* --- Meeting invite --- */
 .office-meeting-invite {
   position: fixed;
-  right: 14px;
-  bottom: 96px;
+  right: max(0.5rem, env(safe-area-inset-right, 0px));
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-office-chrome);
-  width: min(340px, calc(100vw - 28px));
+  width: min(
+    22rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
   background: var(--modal-card-bg);
   border: 1px solid var(--control-border);
   border-top: 3px solid var(--accent);

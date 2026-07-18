@@ -893,6 +893,7 @@ export const OFFICE_CHROME_COPY = {
     title: '📥 Inbox',
     mailAnnounce: 'You’ve got mail!',
     mailAnnounceLang: 'en-US',
+    togglesAria: 'Inbox ambience controls',
     focusTimeLabel: 'Focus Time',
     focusTimeTitle: 'Colleagues (mostly) respect Focus Time',
     soundscapeLabel: 'Soundscape',

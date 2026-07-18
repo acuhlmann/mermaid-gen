@@ -611,9 +611,10 @@ export const OFFICE_ZH_CN = {
       title: '📥 收件箱',
       mailAnnounce: '您有新邮件！',
       mailAnnounceLang: 'zh-CN',
-      focusTimeLabel: '专注时间',
+      togglesAria: '收件箱氛围控制',
+      focusTimeLabel: '专注',
       focusTimeTitle: '同事们(基本上)会尊重专注时间',
-      soundscapeLabel: '办公室音景',
+      soundscapeLabel: '音景',
       soundscapeTitle:
         '办公室环境音 — 键盘声、鼠标点击、纸张、椅子吱呀、打印机、电话、饮水机、咖啡机、自动售货机、电梯',
       narrationLabel: '朗读',
