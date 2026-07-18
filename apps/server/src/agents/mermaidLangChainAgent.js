@@ -547,7 +547,7 @@ async function invokeWithRepair(
     return formatAgentInvokeFailure(error, env);
   }
 
-  const firstMessage = extractFinalMessage(firstResult);
+  let firstMessage = extractFinalMessage(firstResult);
   const afterFirstRevision = stateStore.getSlot('mermaid').revisionId;
   let firstError = extractToolFailureError(firstResult);
 
@@ -636,11 +636,26 @@ async function invokeWithRepair(
           raw: patchRetryResult
         };
       }
-      finishTurn({ accepted: false, errorClass: 'no-patch' });
-      return {
-        message: extractFinalMessage(patchRetryResult),
-        raw: patchRetryResult
-      };
+      const patchRetryError = extractToolFailureError(patchRetryResult);
+      if (patchRetryError && shouldAttemptSyntaxRepair(patchRetryError)) {
+        // A patch landed on the retry turn but failed validation — seed the syntax
+        // fixer / quality-escalation loop instead of stopping as "no patch".
+        firstError = patchRetryError;
+        firstResult = patchRetryResult;
+        firstMessage = extractFinalMessage(patchRetryResult);
+        const retryBroken = extractLastAttemptedMermaidSource(patchRetryResult);
+        if (retryBroken) proseBrokenSource = retryBroken;
+      } else {
+        finishTurn({
+          accepted: false,
+          errorClass: patchRetryError ? classifyAgentTurnError(patchRetryError) : 'no-patch'
+        });
+        return {
+          message: extractFinalMessage(patchRetryResult),
+          raw: patchRetryResult,
+          metadata: { error: patchRetryError ?? null }
+        };
+      }
     } catch (error) {
       const stop = stopReason();
       if (stop) return finishStoppedRun(stop, firstResult);

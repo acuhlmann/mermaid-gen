@@ -338,7 +338,7 @@ describe('shareExportPayload', () => {
 });
 
 describe('resolveWebShareMode', () => {
-  it('prefers file share for visual payloads (SVG, PNG)', () => {
+  it('prefers text share for SVG even when file share is reported as supported', () => {
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
       value: () => true
@@ -352,7 +352,7 @@ describe('resolveWebShareMode', () => {
         delivery: 'text',
         body: '<svg></svg>'
       })
-    ).toBe('file');
+    ).toBe('text');
 
     expect(
       resolveWebShareMode({
@@ -470,7 +470,7 @@ describe('isVisualExportPayload', () => {
 });
 
 describe('startWebShare', () => {
-  it('invokes navigator.share synchronously and returns share-file for visual payloads', async () => {
+  it('invokes navigator.share synchronously and returns share-text for SVG payloads', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'share', {
       configurable: true,
@@ -489,13 +489,8 @@ describe('startWebShare', () => {
       body: '<svg></svg>'
     });
 
-    expect(method).toBe('share-file');
-    expect(share).toHaveBeenCalledWith(
-      expect.objectContaining({
-        files: expect.arrayContaining([expect.any(File)]),
-        title: 'diagram.svg'
-      })
-    );
+    expect(method).toBe('share-text');
+    expect(share).toHaveBeenCalledWith({ text: '<svg></svg>', title: 'diagram.svg' });
   });
 
   it('invokes navigator.share synchronously and returns share-text for plain text', async () => {

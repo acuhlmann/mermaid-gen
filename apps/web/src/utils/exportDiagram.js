@@ -654,9 +654,23 @@ export function isVisualExportPayload(payload) {
 }
 
 /**
+ * Text-delivery SVG: mobile often reports canShare({ files }) true but rejects the
+ * actual share call for image/svg+xml. Prefer share({ text }) synchronously in the
+ * click turn — an async file→text fallback loses the user-gesture activation.
+ * @param {ExportPayload} payload
+ * @returns {boolean}
+ */
+export function prefersTextWebShare(payload) {
+  if (payload.delivery !== 'text') return false;
+  return (payload.mime ?? '').toLowerCase().includes('svg');
+}
+
+/**
  * Pick a Web Share mode synchronously so navigator.share runs in the click turn.
  * Prefer share({ files }) whenever the platform can attach a file so chat apps
  * receive HTML/JSON/glTF/images as attachments — not raw text in the body.
+ * SVG is the exception: many mobile browsers accept share({ text }) but block
+ * share({ files }) for image/svg+xml even when canShare says otherwise.
  * Fall back to share({ text }) only when file share is unavailable. An async
  * fallback loses the user-gesture activation, so the choice must be synchronous.
  * @param {ExportPayload} payload
@@ -668,6 +682,14 @@ export function resolveWebShareMode(payload) {
   const file = exportPayloadToFile(payload);
   const canShareFiles =
     typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+
+  if (payload.delivery === 'text') {
+    const text = payload.body ?? '';
+    const canShareText = typeof navigator.canShare !== 'function' || navigator.canShare({ text });
+    if (canShareText && (prefersTextWebShare(payload) || !canShareFiles)) {
+      return 'text';
+    }
+  }
 
   if (canShareFiles) {
     return 'file';

@@ -1140,3 +1140,65 @@ test('transform-policy rejection skips the syntax fixer and goes to agent repair
   assert.equal(turnCount, 3);
   assert.match(result.message, /Go Mad tier 3/);
 });
+
+test('patch_retry validation failure seeds repair loop and climbs to quality', async () => {
+  const parserError =
+    "Mermaid parser rejected source: Parse error on line 12:\n...note right of ServiceDisc\n----------------------^\nExpecting 'SEMI', got 'NODE_STRING'";
+  const stateStore = createDiagramStateStore();
+  let invokeCount = 0;
+  let qualityRepairInvoked = false;
+
+  const buildAgent = (profile) => ({
+    async invoke() {
+      invokeCount += 1;
+      if (invokeCount === 1) {
+        return { messages: [{ role: 'assistant', content: 'Prose only — no tool call.' }] };
+      }
+      if (invokeCount === 2) {
+        return {
+          messages: [
+            {
+              role: 'tool',
+              content: JSON.stringify({ accepted: false, error: parserError })
+            }
+          ]
+        };
+      }
+      if (profile === 'quality') {
+        qualityRepairInvoked = true;
+        await stateStore.applyDiagramSource({
+          contentType: 'mermaid',
+          diagramSource: 'sequenceDiagram\n  A->>B: hi',
+          reason: 'quality repair'
+        });
+        return { messages: [{ role: 'assistant', content: 'Quality repair ok.' }] };
+      }
+      return {
+        messages: [
+          { role: 'tool', content: JSON.stringify({ accepted: false, error: parserError }) }
+        ]
+      };
+    }
+  });
+
+  const service = createMermaidLangChainAgent({
+    stateStore,
+    env: {
+      OPENROUTER_API_KEY: 'test-key',
+      MERMAID_REPAIR_MAX_ATTEMPTS: '2',
+      MERMAID_REPAIR_BACKEND: 'deepseek'
+    },
+    chatModelFactory: (_env, options) => ({ __profile: options.modelProfile ?? 'fast' }),
+    createAgentImpl: (opts) => buildAgent(opts.model?.__profile ?? 'fast')
+  });
+
+  const result = await service.applyIntent({
+    prompt: 'add a note to the sequence diagram',
+    modelProfile: 'fast'
+  });
+
+  assert.equal(invokeCount, 4, 'prose + patch_retry + fast repair + quality repair');
+  assert.equal(qualityRepairInvoked, true);
+  assert.equal(stateStore.getSlot('mermaid').revisionId, 1);
+  assert.match(result.message, /Quality repair ok/);
+});
