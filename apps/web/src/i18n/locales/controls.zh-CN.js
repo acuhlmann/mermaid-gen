@@ -584,6 +584,7 @@ export const CONTROLS_ZH_CN = {
       river: '河流',
       garden: '花园',
       archipelago: '群岛',
+      machine: '机械',
       composite: '组合'
     },
     compositeHintTitle: '组合模式',

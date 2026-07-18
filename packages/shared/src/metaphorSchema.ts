@@ -10,7 +10,8 @@ export const METAPHOR_BASE_KINDS = [
   'orrery',
   'river',
   'garden',
-  'archipelago'
+  'archipelago',
+  'machine'
 ] as const;
 export const MetaphorBaseKindSchema = z.enum(METAPHOR_BASE_KINDS);
 
@@ -82,7 +83,10 @@ export const MetaphorLegendSchema = z
     health: z.string().max(80).optional(),
     mass: z.string().max(80).optional(),
     relief: z.string().max(80).optional(),
-    chain: z.string().max(80).optional()
+    chain: z.string().max(80).optional(),
+    speed: z.string().max(80).optional(),
+    axle: z.string().max(80).optional(),
+    torque: z.string().max(80).optional()
   })
   .strict();
 
@@ -289,6 +293,27 @@ export const ArchipelagoMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+export const MACHINE_MAX_ITEMS = 40;
+export const MachineItemSchema = MetaphorItemBase.extend({
+  /** Gear radius / relative importance. */
+  size: z.number().positive().max(10).default(3),
+  /** Rotation rate / activity / throughput. */
+  speed: z.number().min(0).max(10).default(3),
+  /** Shared shaft / subsystem grouping. */
+  axle: z.string().max(64).optional(),
+  /** 0–1 mechanical strain — high values glow hot. */
+  torque: z.number().min(0).max(1).optional(),
+  /** Id of another gear this one meshes with (visual coupling). */
+  mesh: z.string().max(64).optional()
+});
+
+export const MachineMetaphorSchema = z.object({
+  metaphor: z.literal('machine'),
+  scene: MetaphorSceneSchema,
+  items: z.array(MachineItemSchema).max(MACHINE_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
 /**
  * Composite v2 fuses semantic layers into one planned world. The v1
  * `adjacent` and `overlay` layouts remain accepted for authored compatibility.
@@ -334,7 +359,8 @@ const BASE_METAPHOR_SCHEMA_BY_KIND = {
   orrery: OrreryMetaphorSchema,
   river: RiverMetaphorSchema,
   garden: GardenMetaphorSchema,
-  archipelago: ArchipelagoMetaphorSchema
+  archipelago: ArchipelagoMetaphorSchema,
+  machine: MachineMetaphorSchema
 } as const;
 
 export const CompositeMetaphorSchema = z
@@ -417,6 +443,7 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   RiverMetaphorSchema,
   GardenMetaphorSchema,
   ArchipelagoMetaphorSchema,
+  MachineMetaphorSchema,
   CompositeMetaphorSchema
 ]);
 
@@ -441,6 +468,7 @@ export type OrreryItem = z.infer<typeof OrreryItemSchema>;
 export type RiverItem = z.infer<typeof RiverItemSchema>;
 export type GardenItem = z.infer<typeof GardenItemSchema>;
 export type ArchipelagoItem = z.infer<typeof ArchipelagoItemSchema>;
+export type MachineItem = z.infer<typeof MachineItemSchema>;
 export type CityMetaphor = z.infer<typeof CityMetaphorSchema>;
 export type LayercakeMetaphor = z.infer<typeof LayercakeMetaphorSchema>;
 export type GalaxyMetaphor = z.infer<typeof GalaxyMetaphorSchema>;
@@ -450,6 +478,7 @@ export type OrreryMetaphor = z.infer<typeof OrreryMetaphorSchema>;
 export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
 export type GardenMetaphor = z.infer<typeof GardenMetaphorSchema>;
 export type ArchipelagoMetaphor = z.infer<typeof ArchipelagoMetaphorSchema>;
+export type MachineMetaphor = z.infer<typeof MachineMetaphorSchema>;
 export type CompositeLayout = z.infer<typeof CompositeLayoutSchema>;
 export type CompositeSeed = z.infer<typeof CompositeSeedSchema>;
 export type MetaphorCompositeLayer = z.infer<typeof MetaphorCompositeLayerSchema>;

@@ -599,6 +599,7 @@ export const CONTROLS_EN = {
       river: 'River',
       garden: 'Garden',
       archipelago: 'Archipelago',
+      machine: 'Machine',
       composite: 'Composite'
     },
     compositeHintTitle: 'Composite mode',

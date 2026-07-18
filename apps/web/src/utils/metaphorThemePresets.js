@@ -80,6 +80,10 @@ export const METAPHOR_THEME_PRESETS = {
     treeSoilColor: '#7a5a3a',
     spaceTopColor: '#0b1026',
     spaceHorizonColor: '#2a1050',
+    machinePlateColor: '#3d4454',
+    machineRimColor: '#8b7355',
+    machineSparkColor: '#fbbf24',
+    machineAxlePalette: ['#c4a574', '#9a7b4f', '#d4b896', '#8b6914'],
     // Clean/flat: restrained bloom, soft pale shadow, no depth-of-field.
     postfx: {
       enabled: true,
@@ -134,6 +138,10 @@ export const METAPHOR_THEME_PRESETS = {
     treeSoilColor: '#070d18',
     spaceTopColor: '#01030a',
     spaceHorizonColor: '#1e1b4b',
+    machinePlateColor: '#3d4454',
+    machineRimColor: '#8b7355',
+    machineSparkColor: '#fbbf24',
+    machineAxlePalette: ['#c4a574', '#9a7b4f', '#d4b896', '#8b6914'],
     // Dramatic: heavy bloom on the lit windows/stars, deep vignette, dark shadow.
     postfx: {
       enabled: true,
@@ -188,6 +196,10 @@ export const METAPHOR_THEME_PRESETS = {
     treeSoilColor: '#1c0336',
     spaceTopColor: '#0a0118',
     spaceHorizonColor: '#31085e',
+    machinePlateColor: '#3d4454',
+    machineRimColor: '#8b7355',
+    machineSparkColor: '#fbbf24',
+    machineAxlePalette: ['#c4a574', '#9a7b4f', '#d4b896', '#8b6914'],
     // Neon arcade: strongest bloom + saturation for a synthwave glow.
     postfx: {
       enabled: true,
@@ -242,6 +254,10 @@ export const METAPHOR_THEME_PRESETS = {
     treeSoilColor: '#0a2348',
     spaceTopColor: '#030b1c',
     spaceHorizonColor: '#1e3a6e',
+    machinePlateColor: '#3d4454',
+    machineRimColor: '#8b7355',
+    machineSparkColor: '#fbbf24',
+    machineAxlePalette: ['#c4a574', '#9a7b4f', '#d4b896', '#8b6914'],
     // Technical/crisp: modest bloom on the linework, light vignette, no DoF.
     postfx: {
       enabled: true,

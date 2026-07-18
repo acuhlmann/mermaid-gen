@@ -11,6 +11,7 @@ export const METAPHOR_KIND_LABELS = {
   river: 'River',
   garden: 'Garden',
   archipelago: 'Archipelago',
+  machine: 'Machine',
   composite: 'Composite'
 };
 
@@ -43,6 +44,8 @@ function primaryMagnitude(item, kind) {
       return finiteNumber(item.impact, 3);
     case 'archipelago':
       return finiteNumber(item.mass, 4);
+    case 'machine':
+      return finiteNumber(item.size, 3);
     default:
       return 10;
   }
@@ -59,6 +62,8 @@ function secondaryMagnitude(item, kind) {
       return finiteNumber(item.orbit, 3);
     case 'archipelago':
       return finiteNumber(item.relief, 0.45);
+    case 'machine':
+      return finiteNumber(item.speed, 3);
     default:
       return null;
   }
@@ -76,6 +81,9 @@ function groupingLabel(item, kind) {
   }
   if (kind === 'archipelago' && typeof item.chain === 'string' && item.chain.trim()) {
     return item.chain.trim();
+  }
+  if (kind === 'machine' && typeof item.axle === 'string' && item.axle.trim()) {
+    return item.axle.trim();
   }
   return '';
 }
@@ -152,6 +160,14 @@ function mapItemToKind(item, fromKind, toKind, index) {
           : 0.35 + (index % 5) * 0.12;
       if (group) next.chain = group;
       break;
+    case 'machine':
+      next.size = Math.max(0.1, Math.min(10, primary));
+      next.speed =
+        secondary != null
+          ? Math.max(0, Math.min(10, secondary > 1 ? secondary : secondary * 10))
+          : 2 + (index % 5);
+      if (group) next.axle = group;
+      break;
     default:
       break;
   }
@@ -168,7 +184,8 @@ const COMPOSITE_LAYER_LABELS = {
   orrery: 'Hub & spokes',
   river: 'Journey',
   garden: 'Portfolio',
-  archipelago: 'Domains'
+  archipelago: 'Domains',
+  machine: 'Mechanism'
 };
 
 /**

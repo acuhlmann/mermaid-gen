@@ -72,10 +72,17 @@ export function riverPathLayout(items) {
   const firstWidth = riverWidthForFlow(flowValue(ordered[0]));
   // Soft lead-in (not a needle point) — abrupt width collapse at the source
   // flipped ribbon normals and produced flicker against the spring stones.
+  // Keep lead-in width close to the first station so the trimmed ribbon still
+  // meets the spring pool without a kink.
   controls.push({
     x: -halfExtent - 3.5,
     z: (hash01Salted('river', 'lead-z') - 0.5) * amplitude * 0.6,
-    width: firstWidth * 0.72
+    width: firstWidth * 0.92
+  });
+  controls.push({
+    x: -halfExtent - 1.6,
+    z: (hash01Salted('river', 'lead2-z') - 0.5) * amplitude * 0.45,
+    width: firstWidth * 0.96
   });
   ordered.forEach((item, i) => {
     const t = count === 1 ? 0.5 : i / (count - 1);
