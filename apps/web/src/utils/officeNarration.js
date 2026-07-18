@@ -1,24 +1,27 @@
 /**
- * Per-character speech for the office-parody layer (docs/office-parody.md).
+ * Per-character speech for the office-parody layer (docs/office-parody.md,
+ * docs/office-narration-roadmap.md).
  *
- * Walk-bys and WG meeting beats are spoken aloud via the browser's
- * Speech Synthesis API — the same zero-asset path as "You've got mail!".
- * Emails stay silent (nobody reads your inbox out loud). Voice "character"
- * is pitch/rate/volume per cast id so Chad, Pam, Ulrich, etc. sound
- * distinct even when the OS only exposes one system voice.
+ * Prefers Google Cloud WaveNet audio from POST /api/office/speak when the
+ * caller supplies `fetchCloudAudio`; falls back to the browser Speech
+ * Synthesis API (pitch/rate profiles) when cloud TTS is off, unconfigured,
+ * or fails. Emails / IMs stay silent by design — only overheard spoken
+ * surfaces (walk-bys, meetings, cubicle battles, coffee scenes) call this.
  *
- * Mobile + desktop: Web Speech works in modern browsers; cancel + chime
- * fallback keep the office graceful when synthesis is missing or muted.
+ * Mobile + desktop: HTMLAudioElement + Web Speech both respect the global
+ * sound gate (callers wrap via playChime).
  */
 
 /** @typedef {{ pitch: number, rate: number, volume: number }} OfficeVoiceProfile */
+/** @typedef {{ audioBase64: string, mimeType?: string }} OfficeCloudAudio */
+/** @typedef {{ spoken: boolean, cancelled?: boolean, source?: 'cloud' | 'webspeech' }} OfficeSpeakResult */
 
 /** @type {OfficeVoiceProfile} */
 const DEFAULT_PROFILE = { pitch: 1, rate: 1, volume: 0.8 };
 
 /**
- * Stable speech quirks per office speaker (colleagues + stakeholders who
- * take meeting seats). Values stay inside the Web Speech [0–2] ranges.
+ * Stable speech quirks per office speaker (Web Speech fallback). Cloud TTS
+ * uses its own WaveNet + prosody map in apps/server/src/agents/officeTts.js.
  *
  * @type {Record<string, OfficeVoiceProfile>}
  */
@@ -38,14 +41,16 @@ export const OFFICE_VOICE_PROFILES = {
   exec: { pitch: 0.78, rate: 0.94, volume: 0.84 }
 };
 
-/** Gap after a spoken meeting line before the next speaker starts. */
+/** Gap after a spoken line before the next speaker starts. */
 export const OFFICE_NARRATION_GAP_MS = 400;
 
-/** @type {((result: { spoken: boolean, cancelled?: boolean }) => void) | null} */
+/** @type {((result: OfficeSpeakResult) => void) | null} */
 let pendingResolve = null;
 /** Bumped on cancel / replace so a late onerror from a cancelled utterance
  * cannot settle the waiter for the line that replaced it. */
 let speakGeneration = 0;
+/** @type {HTMLAudioElement | null} */
+let activeAudio = null;
 
 /**
  * @param {string} speakerId
@@ -112,9 +117,23 @@ function settlePending(result) {
   resolve?.(result);
 }
 
+function stopActiveAudio() {
+  if (!activeAudio) return;
+  try {
+    activeAudio.onended = null;
+    activeAudio.onerror = null;
+    activeAudio.pause();
+    activeAudio.removeAttribute('src');
+    activeAudio.load();
+  } catch {
+    // Ignore.
+  }
+  activeAudio = null;
+}
+
 /**
- * Cancel any in-flight office utterance and resolve its waiter so meeting
- * playback cannot hang on a cancelled speak().
+ * Cancel any in-flight office utterance / cloud audio and resolve its waiter
+ * so meeting / battle playback cannot hang.
  */
 export function cancelOfficeNarration(globalObj = globalThis) {
   speakGeneration += 1;
@@ -123,42 +142,77 @@ export function cancelOfficeNarration(globalObj = globalThis) {
   } catch {
     // Ignore — synthesis is a garnish.
   }
+  stopActiveAudio();
   settlePending({ spoken: false, cancelled: true });
 }
 
 /**
- * Speak one line in the given speaker's voice. Resolves when the utterance
- * ends, errors, or is cancelled. Never throws.
- *
+ * @param {OfficeCloudAudio} audio
+ * @param {number} generation
+ * @param {typeof globalThis} globalObj
+ * @returns {Promise<OfficeSpeakResult>}
+ */
+function playCloudAudio(audio, generation, globalObj) {
+  return new Promise((resolve) => {
+    if (generation !== speakGeneration) {
+      resolve({ spoken: false, cancelled: true });
+      return;
+    }
+    const AudioCtor = globalObj.Audio;
+    if (typeof AudioCtor !== 'function' || !audio?.audioBase64) {
+      resolve({ spoken: false });
+      return;
+    }
+    pendingResolve = resolve;
+    try {
+      const mime = audio.mimeType || 'audio/mpeg';
+      const el = new AudioCtor(`data:${mime};base64,${audio.audioBase64}`);
+      activeAudio = el;
+      el.volume = 0.9;
+      const finish = (result) => {
+        if (generation !== speakGeneration) return;
+        if (activeAudio === el) activeAudio = null;
+        el.onended = null;
+        el.onerror = null;
+        settlePending(result);
+      };
+      el.onended = () => finish({ spoken: true, source: 'cloud' });
+      el.onerror = () => finish({ spoken: false });
+      const playResult = el.play();
+      if (playResult && typeof playResult.catch === 'function') {
+        playResult.catch(() => finish({ spoken: false }));
+      }
+    } catch {
+      if (generation === speakGeneration) settlePending({ spoken: false });
+    }
+  });
+}
+
+/**
  * @param {{
  *   speakerId?: string,
  *   text?: string,
  *   lang?: string,
  *   globalObj?: typeof globalThis
  * }} opts
- * @returns {Promise<{ spoken: boolean, cancelled?: boolean }>}
+ * @param {number} generation
+ * @returns {Promise<OfficeSpeakResult>}
  */
-export function speakOfficeLine({ speakerId = '', text = '', lang, globalObj = globalThis } = {}) {
-  const cleaned = sanitizeOfficeNarrationText(text);
-  if (!cleaned || !isOfficeNarrationAvailable(globalObj)) {
+function speakWebSpeech({ speakerId = '', text = '', lang, globalObj = globalThis }, generation) {
+  if (!isOfficeNarrationAvailable(globalObj)) {
     return Promise.resolve({ spoken: false });
   }
 
-  // One office speaker at a time — replace any prior line (walk-by → meeting).
-  const generation = ++speakGeneration;
-  try {
-    globalObj.speechSynthesis?.cancel();
-  } catch {
-    // Ignore.
-  }
-  settlePending({ spoken: false, cancelled: true });
-
   return new Promise((resolve) => {
+    if (generation !== speakGeneration) {
+      resolve({ spoken: false, cancelled: true });
+      return;
+    }
     pendingResolve = resolve;
     try {
       const synth = globalObj.speechSynthesis;
       const Utterance = globalObj.SpeechSynthesisUtterance;
-      const utterance = new Utterance(cleaned);
+      const utterance = new Utterance(text);
       const profile = officeVoiceProfile(speakerId);
       utterance.pitch = profile.pitch;
       utterance.rate = profile.rate;
@@ -173,11 +227,68 @@ export function speakOfficeLine({ speakerId = '', text = '', lang, globalObj = g
         utterance.onerror = null;
         settlePending(result);
       };
-      utterance.onend = () => finish({ spoken: true });
+      utterance.onend = () => finish({ spoken: true, source: 'webspeech' });
       utterance.onerror = () => finish({ spoken: false });
       synth.speak(utterance);
     } catch {
       if (generation === speakGeneration) settlePending({ spoken: false });
     }
   });
+}
+
+/**
+ * Speak one line in the given speaker's voice. Tries cloud WaveNet first when
+ * `fetchCloudAudio` is provided; otherwise (or on failure) uses Web Speech.
+ * Resolves when playback ends, errors, or is cancelled. Never throws.
+ *
+ * @param {{
+ *   speakerId?: string,
+ *   text?: string,
+ *   lang?: string,
+ *   fetchCloudAudio?: (args: { speakerId: string, text: string, lang?: string }) =>
+ *     Promise<OfficeCloudAudio | null | undefined>,
+ *   globalObj?: typeof globalThis
+ * }} opts
+ * @returns {Promise<OfficeSpeakResult>}
+ */
+export async function speakOfficeLine({
+  speakerId = '',
+  text = '',
+  lang,
+  fetchCloudAudio,
+  globalObj = globalThis
+} = {}) {
+  const cleaned = sanitizeOfficeNarrationText(text);
+  if (!cleaned) {
+    return { spoken: false };
+  }
+
+  // One office speaker at a time — replace any prior line.
+  const generation = ++speakGeneration;
+  try {
+    globalObj.speechSynthesis?.cancel();
+  } catch {
+    // Ignore.
+  }
+  stopActiveAudio();
+  settlePending({ spoken: false, cancelled: true });
+
+  if (typeof fetchCloudAudio === 'function') {
+    try {
+      const cloud = await fetchCloudAudio({ speakerId, text: cleaned, lang });
+      if (generation !== speakGeneration) {
+        return { spoken: false, cancelled: true };
+      }
+      if (cloud?.audioBase64) {
+        return playCloudAudio(cloud, generation, globalObj);
+      }
+    } catch {
+      // Fall through to Web Speech.
+    }
+  }
+
+  if (generation !== speakGeneration) {
+    return { spoken: false, cancelled: true };
+  }
+  return speakWebSpeech({ speakerId, text: cleaned, lang, globalObj }, generation);
 }

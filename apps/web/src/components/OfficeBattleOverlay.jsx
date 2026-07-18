@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
 export const BATTLE_LINE_PACE_MS = 1900;
@@ -7,15 +8,28 @@ export const BATTLE_LINE_PACE_MS = 1900;
 /**
  * Cubicle battle (docs/office-parody.md). Three-phase: a small invite pill
  * ([Grab popcorn] / [Not my circus]), an arena scene where the two combatants'
- * lines pace in one by one for drama, then a verdict — the user settles the
+ * lines pace in one by one for drama (spoken when narrateLine is provided —
+ * overheard argument, not inbox text), then a verdict — the user settles the
  * holy war by siding with someone (worth a small XP nudge, wired by
  * OfficeLayer via onVote) and the winner gets the last word.
+ *
+ * @param {{
+ *   battle: object | null,
+ *   onAccept?: () => void,
+ *   onVote?: (colleagueId: string) => void,
+ *   onDone?: () => void,
+ *   narrateLine?: (line: { speakerId: string, text: string }) => Promise<{ spoken?: boolean } | void>
+ * }} props
  */
-export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone }) {
+export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, narrateLine }) {
   const accepted = Boolean(battle?.accepted);
   const battleId = battle?.id ?? null;
   const lineCount = battle?.lines?.length ?? 0;
   const [visibleLines, setVisibleLines] = useState(1);
+  const narrateRef = useRef(narrateLine);
+  useEffect(() => {
+    narrateRef.current = narrateLine;
+  });
 
   // Restart the pacing whenever a new battle enters the arena.
   useEffect(() => {
@@ -23,10 +37,57 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone }
   }, [battleId]);
 
   useEffect(() => {
-    if (!accepted || visibleLines >= lineCount) return undefined;
-    const timer = setTimeout(() => setVisibleLines((count) => count + 1), BATTLE_LINE_PACE_MS);
-    return () => clearTimeout(timer);
-  }, [accepted, visibleLines, lineCount]);
+    if (!accepted || !battle || lineCount <= 0) return undefined;
+    let cancelled = false;
+    const lines = battle.lines;
+
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    void (async () => {
+      for (let index = 0; index < lineCount; index += 1) {
+        if (cancelled) return;
+        setVisibleLines(index + 1);
+        const line = lines[index];
+        const narrate = narrateRef.current;
+        let spoken = false;
+        if (typeof narrate === 'function' && line) {
+          try {
+            const result = await narrate(line);
+            spoken = Boolean(result?.spoken);
+          } catch {
+            spoken = false;
+          }
+        }
+        if (cancelled) return;
+        if (index < lineCount - 1) {
+          await wait(spoken ? OFFICE_NARRATION_GAP_MS : BATTLE_LINE_PACE_MS);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accepted, battleId, lineCount, battle]);
+
+  // Winner's closing zinger — overheard after the floor rules.
+  useEffect(() => {
+    if (!accepted || !battle?.votedFor) return undefined;
+    const text = battle.verdicts?.[battle.votedFor];
+    if (!text || typeof narrateLine !== 'function') return undefined;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await narrateLine({ speakerId: battle.votedFor, text });
+      } catch {
+        // Garnish.
+      }
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [accepted, battle?.votedFor, battle, narrateLine]);
 
   const sides = useMemo(() => {
     if (!battle) return [];

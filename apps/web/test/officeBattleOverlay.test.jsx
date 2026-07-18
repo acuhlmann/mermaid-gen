@@ -51,30 +51,47 @@ describe('OfficeBattleOverlay', () => {
     expect(onDone).toHaveBeenCalledOnce();
   });
 
-  it('paces the lines in one by one, then offers the vote', () => {
+  it('paces the lines in one by one, then offers the vote', async () => {
     render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} />);
     const arena = screen.getByRole('dialog');
     expect(arena.querySelectorAll('.office-battle-line')).toHaveLength(1);
     expect(arena.querySelector('.office-battle-settle')).toBeNull();
-    act(() => {
-      vi.advanceTimersByTime(BATTLE_LINE_PACE_MS + 10);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(BATTLE_LINE_PACE_MS + 10);
     });
     expect(arena.querySelectorAll('.office-battle-line')).toHaveLength(2);
-    act(() => {
-      vi.advanceTimersByTime(BATTLE_LINE_PACE_MS + 10);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(BATTLE_LINE_PACE_MS + 10);
     });
     expect(arena.querySelectorAll('.office-battle-line')).toHaveLength(3);
     expect(arena.querySelector('.office-battle-settle')).not.toBeNull();
   });
 
-  it('reports the chosen side and then shows the winning verdict', () => {
+  it('paces spoken lines via narrateLine when provided', async () => {
+    const narrateLine = vi.fn(() => Promise.resolve({ spoken: true }));
+    render(
+      <OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} narrateLine={narrateLine} />
+    );
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    expect(narrateLine).toHaveBeenCalledWith(BATTLE.lines[0]);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(500);
+      await Promise.resolve();
+    });
+    expect(narrateLine.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('reports the chosen side and then shows the winning verdict', async () => {
     const onVote = vi.fn();
     const { rerender } = render(
       <OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} onVote={onVote} />
     );
     for (let i = 0; i < BATTLE.lines.length; i += 1) {
-      act(() => {
-        vi.advanceTimersByTime(BATTLE_LINE_PACE_MS + 10);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(BATTLE_LINE_PACE_MS + 10);
       });
     }
     fireEvent.click(screen.getByText(/Side with Chad/));

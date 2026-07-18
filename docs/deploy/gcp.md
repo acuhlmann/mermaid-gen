@@ -153,6 +153,27 @@ When the API server runs on **Cloud Run**, it can call **Vertex AI** (Gemini / G
 
 Keep the **`deepseek-api-key`** secret attached for hybrid Brain Quality. Keep **`openrouter-api-key`** if you want **OpenRouter as backup** (analyze streaming retries once on OpenRouter after a Vertex stream error) or when using **`OPENROUTER_PREFERRED=1`**. Local development typically uses DeepSeek and/or OpenRouter from `.env`; Vertex locally needs `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`, and Application Default Credentials (for example `gcloud auth application-default login`).
 
+## Office WaveNet TTS (optional: spoken walk-bys / meetings / battles)
+
+Office narration prefers **Google Cloud Text-to-Speech (WaveNet)** when a GCP project id resolves; otherwise the browser falls back to Web Speech. See [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md).
+
+1. **Enable the API:**
+
+   ```bash
+   gcloud services enable texttospeech.googleapis.com --project=PROJECT_ID
+   ```
+
+2. **Grant the Cloud Run runtime service account** permission to synthesize:
+
+   ```bash
+   PROJECT_NUMBER=$(gcloud projects describe PROJECT_ID --format='value(projectNumber)')
+   gcloud projects add-iam-policy-binding PROJECT_ID \
+     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+     --role="roles/cloudtts.user"
+   ```
+
+3. Deploy scripts already set `VERTEX_PROJECT_ID` on Cloud Run — that is enough for `officeTtsConfigured: true` on `GET /api/health`. Kill switch: `OFFICE_TTS=0`.
+
 ## Secrets (DeepSeek for Brain Quality; OpenRouter optional)
 
 `.env` is **only for local development**. Cloud Run never reads your laptop’s `.env`; put keys in **Secret Manager** and expose them as env vars on the service (already wired in [`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh), [`scripts/deploy-hackathon-cloud-run.sh`](../../scripts/deploy-hackathon-cloud-run.sh), and the GitHub Actions workflow).
