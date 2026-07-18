@@ -3121,10 +3121,13 @@ ${requirementsBlock}`;
   const advisorPause =
     loading ||
     streamingPreview ||
+    (Boolean(liveDraftSource) && liveDraftContentType === contentMode) ||
+    insightsEntries.some((e) => (e.status ?? 'running') === 'running') ||
     voiceListening ||
     slopPromptExpanded ||
     clearConfirmOpen ||
     editorOpen ||
+    (narrowLayout && insightsOpen) ||
     // Fullscreen hides the advisor bubble + cast chrome entirely, so pause the
     // proactive loop — otherwise stakeholders keep pulsing nodes (and chiming)
     // over the bare canvas with no visible way to mute them.
@@ -4322,6 +4325,9 @@ ${requirementsBlock}`;
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
+      data-advisor-active={
+        advisor.thinkingPersona || advisor.suggestion || advisor.activePersona ? 'true' : undefined
+      }
     >
       <DiagramCanvas
         revisionId={state.revisionId}
