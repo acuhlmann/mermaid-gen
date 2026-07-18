@@ -5,6 +5,10 @@ import { applyChartThemeToSpec, resolveChartThemePreset } from '../utils/chartTh
 import { expressionInterpreter } from 'vega-interpreter';
 import { isMermaidInfrastructureError } from '../utils/mermaidRenderErrors.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import {
+  registerViewportPngExporter,
+  unregisterViewportPngExporter
+} from '../utils/viewportPngExport.js';
 
 /** Default rendered dimensions when the spec doesn't set width/height. Picked to feel
  *  presentation-sized inside the viewport so the first render isn't a tiny square. */
@@ -115,6 +119,24 @@ export default function ChartRenderer({ diagramSource, compact = false, selected
       cancelled = true;
     };
   }, [compact, parsed]);
+
+  useEffect(() => {
+    if (!parsed.ok) return undefined;
+    const exporter = async () => {
+      const view = viewRef.current;
+      if (!view) {
+        throw new Error('Chart is not ready to export — wait for it to render.');
+      }
+      const url = await view.toImageURL('png');
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error('Chart PNG export failed');
+      }
+      return response.blob();
+    };
+    registerViewportPngExporter('chart', exporter);
+    return () => unregisterViewportPngExporter('chart', exporter);
+  }, [parsed]);
 
   useEffect(
     () => () => {

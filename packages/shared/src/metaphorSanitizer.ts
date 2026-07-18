@@ -9,6 +9,7 @@ import {
   GARDEN_HEALTH,
   GARDEN_MAX_ITEMS,
   LAYERCAKE_MAX_ITEMS,
+  MACHINE_MAX_ITEMS,
   METAPHOR_BASE_KINDS,
   METAPHOR_GLYPH_KINDS,
   METAPHOR_KINDS,
@@ -51,6 +52,7 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   river: RIVER_MAX_ITEMS,
   garden: GARDEN_MAX_ITEMS,
   archipelago: ARCHIPELAGO_MAX_ITEMS,
+  machine: MACHINE_MAX_ITEMS,
   // Composite stores items on layers; top-level items stay empty.
   composite: 0
 };
@@ -282,6 +284,30 @@ function rescueNumericRanges(working: Record<string, unknown>, applied: string[]
         if (clamped !== item.relief) {
           item.relief = clamped;
           applied.push('clamp-relief');
+        }
+      }
+    }
+
+    if (kind === 'machine') {
+      if (typeof item.size === 'number' && Number.isFinite(item.size)) {
+        const clamped = clampNumber(item.size, 0.1, 10);
+        if (clamped !== item.size) {
+          item.size = clamped;
+          applied.push('clamp-size');
+        }
+      }
+      if (typeof item.speed === 'number' && Number.isFinite(item.speed)) {
+        const clamped = clampNumber(item.speed, 0, 10);
+        if (clamped !== item.speed) {
+          item.speed = clamped;
+          applied.push('clamp-speed');
+        }
+      }
+      if (typeof item.torque === 'number' && Number.isFinite(item.torque)) {
+        const clamped = clampNumber(item.torque, 0, 1);
+        if (clamped !== item.torque) {
+          item.torque = clamped;
+          applied.push('clamp-torque');
         }
       }
     }

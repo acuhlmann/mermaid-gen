@@ -111,6 +111,21 @@ describe('switchMetaphorKind', () => {
     expect(dsl.items[0].relief).toBeLessThanOrEqual(1);
   });
 
+  it('remaps city items to a machine while preserving topic groupings', () => {
+    const result = switchMetaphorKind(CITY_DSL, 'machine');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const dsl = JSON.parse(result.text);
+    expect(dsl.metaphor).toBe('machine');
+    expect(dsl.items[0]).toMatchObject({
+      id: 'auth',
+      size: 10,
+      axle: 'Core'
+    });
+    expect(dsl.items[0].speed).toBeGreaterThanOrEqual(0);
+    expect(dsl.items[0].speed).toBeLessThanOrEqual(10);
+  });
+
   it('wraps a city scene as one semantic layer in a fused world without duplicate actors', () => {
     const result = switchMetaphorKind(CITY_DSL, 'composite');
     expect(result.ok).toBe(true);

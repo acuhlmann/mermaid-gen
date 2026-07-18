@@ -18,6 +18,10 @@ import {
   archipelagoLayout,
   islandRadiusForMass
 } from '../src/utils/metaphorLayouts/archipelagoLayout.js';
+import {
+  gearRadiusForSize,
+  machineGearLayout
+} from '../src/utils/metaphorLayouts/machineGearLayout.js';
 
 describe('metaphorLayouts', () => {
   it('gridPosition centers a single item at origin', () => {
@@ -245,5 +249,26 @@ describe('metaphorLayouts', () => {
     const c = positions.get('c');
     const b = positions.get('b');
     expect(Math.hypot(a[0] - c[0], a[2] - c[2])).toBeLessThan(Math.hypot(a[0] - b[0], a[2] - b[2]));
+  });
+
+  it('machineGearLayout groups by axle, sizes by size, and pulls mesh pairs together', () => {
+    const items = [
+      { id: 'a', label: 'A', axle: 'Checkout', size: 8, speed: 7, mesh: 'b' },
+      { id: 'b', label: 'B', axle: 'Checkout', size: 3, speed: 5 },
+      { id: 'c', label: 'C', axle: 'Edge', size: 5, speed: 9, torque: 0.8 }
+    ];
+    const { gears, axles, positions, bounds } = machineGearLayout(items);
+    expect(positions.size).toBe(3);
+    expect(axles.map((a) => a.name).sort()).toEqual(['Checkout', 'Edge']);
+    expect(bounds.radius).toBeGreaterThan(0);
+    const big = gears.find((g) => g.id === 'a');
+    const small = gears.find((g) => g.id === 'b');
+    expect(big.radius).toBeGreaterThan(small.radius);
+    expect(big.radius).toBeCloseTo(gearRadiusForSize(8), 5);
+    const a = positions.get('a');
+    const b = positions.get('b');
+    const c = positions.get('c');
+    expect(Math.hypot(a[0] - b[0], a[2] - b[2])).toBeLessThan(Math.hypot(a[0] - c[0], a[2] - c[2]));
+    expect(big.spinSign).toBe(-small.spinSign);
   });
 });

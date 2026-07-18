@@ -5,29 +5,29 @@ import {
   chartDataValues,
   copyExportPayload,
   deliverExportPayload,
+  exportFormatSharePreview,
   exportPayloadToBlob,
+  getPreferredShareFormatId,
+  getShareFormatId,
   isExportUserAbortError,
+  isFormatCopyable,
   isPreviewableExportPayload,
+  isSharePermissionError,
+  isShareUserGestureError,
+  isVisualExportPayload,
   listExportFormats,
   prettyJsonOrRaw,
-  readSvgDimensions,
+  resolveWebShareMode,
   rowsToCsv,
   shareExportPayload,
   startWebShare,
-  resolveWebShareMode,
-  getShareFormatId,
-  exportFormatSharePreview,
-  isShareUserGestureError,
-  isSharePermissionError,
-  isVisualExportPayload,
-  normalizeSvgMarkupForExport,
-  MERMAID_EXPORT_MAX_WIDTH_PX,
   triggerBrowserDownload
 } from '../src/utils/exportDiagram.js';
 import {
-  registerMetaphorGltfExporter,
-  unregisterMetaphorGltfExporter
-} from '../src/utils/metaphorGltfExport.js';
+  MERMAID_EXPORT_MAX_WIDTH_PX,
+  normalizeSvgMarkupForExport,
+  readSvgDimensions
+} from '../src/utils/svgPngRaster.js';
 
 const CHART_SOURCE = JSON.stringify({
   archislopVersion: 1,
@@ -46,17 +46,38 @@ const CHART_SOURCE = JSON.stringify({
 describe('listExportFormats', () => {
   it('returns mode-specific formats', () => {
     expect(listExportFormats('mermaid', 'flowchart TD\nA-->B').map((f) => f.id)).toEqual([
-      'mermaid-source',
       'mermaid-png',
+      'mermaid-source',
       'mermaid-svg'
     ]);
     expect(listExportFormats('anything', '<!DOCTYPE html><html></html>').map((f) => f.id)).toEqual([
       'anything-html'
     ]);
     expect(listExportFormats('metaphor3d', '{"metaphor":"city"}').map((f) => f.id)).toEqual([
-      'metaphor-json',
-      'metaphor-gltf'
+      'metaphor-png',
+      'metaphor-json'
     ]);
+  });
+
+  it('picks a PNG-first preferred share format per mode', () => {
+    expect(getPreferredShareFormatId('mermaid', 'flowchart TD\nA-->B')).toBe('mermaid-png');
+    expect(getPreferredShareFormatId('chart', CHART_SOURCE)).toBe('chart-png');
+    expect(getPreferredShareFormatId('anything', '<html></html>')).toBe('anything-html');
+  });
+
+  it('hides copy for image and binary formats', () => {
+    const png = listExportFormats('mermaid', 'flowchart TD\nA-->B').find(
+      (f) => f.id === 'mermaid-png'
+    );
+    const svg = listExportFormats('mermaid', 'flowchart TD\nA-->B').find(
+      (f) => f.id === 'mermaid-svg'
+    );
+    const source = listExportFormats('mermaid', 'flowchart TD\nA-->B').find(
+      (f) => f.id === 'mermaid-source'
+    );
+    expect(isFormatCopyable(png)).toBe(false);
+    expect(isFormatCopyable(svg)).toBe(false);
+    expect(isFormatCopyable(source)).toBe(true);
   });
 
   it('hides chart CSV when there is no tabular data.values', () => {
@@ -65,8 +86,13 @@ describe('listExportFormats', () => {
       theme: 'noir',
       spec: { mark: 'bar', data: { url: 'https://example.com/data.json' } }
     });
-    expect(listExportFormats('chart', noData).map((f) => f.id)).toEqual(['chart-json', 'chart-vl']);
+    expect(listExportFormats('chart', noData).map((f) => f.id)).toEqual([
+      'chart-png',
+      'chart-json',
+      'chart-vl'
+    ]);
     expect(listExportFormats('chart', CHART_SOURCE).map((f) => f.id)).toEqual([
+      'chart-png',
       'chart-csv',
       'chart-json',
       'chart-vl'
@@ -123,28 +149,6 @@ describe('buildExportPayload', () => {
       formatId: 'metaphor-json'
     });
     expect(payload.body).toBe(prettyJsonOrRaw(source));
-  });
-
-  it('builds metaphor glTF from the registered live-scene exporter', async () => {
-    const glb = new Blob([new Uint8Array([0x67, 0x6c, 0x54, 0x46])], {
-      type: 'model/gltf-binary'
-    });
-    const exporter = async () => glb;
-    registerMetaphorGltfExporter(exporter);
-    try {
-      const payload = await buildExportPayload({
-        contentType: 'metaphor3d',
-        diagramSource: '{"metaphor":"city","items":[],"links":[]}',
-        formatId: 'metaphor-gltf'
-      });
-      expect(payload.ext).toBe('glb');
-      expect(payload.mime).toBe('model/gltf-binary');
-      expect(payload.delivery).toBe('file');
-      expect(payload.blob).toBe(glb);
-      expect(payload.filename).toMatch(/^archislop-metaphor3d-\d{8}-\d{6}\.glb$/);
-    } finally {
-      unregisterMetaphorGltfExporter(exporter);
-    }
   });
 
   it('rejects empty source', async () => {

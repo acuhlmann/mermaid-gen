@@ -47,6 +47,7 @@ import {
   fetchSessionDiagramState,
   isSlotCustomized,
   isSlotInSyncForTopic,
+  mergeLeavingSlotSnapshot,
   needsModeSwitchPeerSync,
   normalizeSessionId,
   peerRequiresModeSwitchTranslation,
@@ -282,6 +283,11 @@ function ArchiSlop() {
   const previousContentModeRef = useRef(contentMode);
   /** Per-mode revision id when the user last left that mode — detects unchanged source on return. */
   const sourceRevisionAtViewRef = useRef({});
+  /**
+   * Snapshot of the slot the user just left. Hydrate merges this when GET /session-state
+   * is behind the client (debounced editor sync or a race with the final stream write).
+   */
+  const leavingSlotSnapshotRef = useRef({});
   /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
   const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
@@ -1008,7 +1014,33 @@ function ArchiSlop() {
     setSessionHydrated(false);
     setLoading(true);
     setActiveRequest('hydrate');
-    fetchSessionDiagramState({ sessionId: activeSessionId })
+    const leavingSnapshot = sourceMode ? leavingSlotSnapshotRef.current[sourceMode] : null;
+
+    const flushLeavingSlot = async () => {
+      if (!sourceMode || !leavingSnapshot || !isSlotCustomized(leavingSnapshot)) return;
+      try {
+        await syncClientDiagramState({
+          contentType: sourceMode,
+          diagramSource: leavingSnapshot.diagramSource,
+          ...(leavingSnapshot.styleConfig != null
+            ? { styleConfig: leavingSnapshot.styleConfig }
+            : {}),
+          sessionId: activeSessionId
+        });
+      } catch {
+        // Best-effort — mergeLeavingSlotSnapshot below still enables peer detection.
+      }
+    };
+
+    flushLeavingSlot()
+      .then(() => fetchSessionDiagramState({ sessionId: activeSessionId }))
+      .then((fetchedSession) => {
+        const session = mergeLeavingSlotSnapshot(fetchedSession, sourceMode, leavingSnapshot);
+        if (sourceMode) {
+          delete leavingSlotSnapshotRef.current[sourceMode];
+        }
+        return session;
+      })
       .then((session) => {
         if (cancelled) return;
         freshlyMintedSessionIdsRef.current.delete(activeSessionId);
@@ -1904,7 +1936,21 @@ function ArchiSlop() {
     (nextMode) => {
       if (nextMode === contentMode) return;
       if (!isContentMode(nextMode)) return;
-      if (isConcreteContentMode(contentMode)) {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+        syncTimerRef.current = null;
+      }
+      if (streamTimerRef.current != null) {
+        cancelAnimationFrame(streamTimerRef.current);
+        streamTimerRef.current = null;
+      }
+      const wasTypewriterPreview = streamingPreviewRef.current;
+      setStreamingPreview(false);
+      streamingPreviewRef.current = false;
+      if (isConcreteContentMode(contentMode) && !wasTypewriterPreview) {
+        leavingSlotSnapshotRef.current[contentMode] = { ...stateRef.current };
+        sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
+      } else if (isConcreteContentMode(contentMode)) {
         sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
       }
       stopStreamingAgentRequest();
@@ -3075,10 +3121,13 @@ ${requirementsBlock}`;
   const advisorPause =
     loading ||
     streamingPreview ||
+    (Boolean(liveDraftSource) && liveDraftContentType === contentMode) ||
+    insightsEntries.some((e) => (e.status ?? 'running') === 'running') ||
     voiceListening ||
     slopPromptExpanded ||
     clearConfirmOpen ||
     editorOpen ||
+    (narrowLayout && insightsOpen) ||
     // Fullscreen hides the advisor bubble + cast chrome entirely, so pause the
     // proactive loop — otherwise stakeholders keep pulsing nodes (and chiming)
     // over the bare canvas with no visible way to mute them.
@@ -4276,6 +4325,9 @@ ${requirementsBlock}`;
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
+      data-advisor-active={
+        advisor.thinkingPersona || advisor.suggestion || advisor.activePersona ? 'true' : undefined
+      }
     >
       <DiagramCanvas
         revisionId={state.revisionId}

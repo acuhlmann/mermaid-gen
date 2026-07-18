@@ -31,7 +31,9 @@ import {
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
-import { METAPHOR_GLTF_ROOT_NAME, MetaphorGltfExportBridge } from '../utils/metaphorGltfExport.js';
+import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
+
+const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
@@ -58,6 +60,7 @@ import { OrreryScene } from './metaphorScenes/OrreryScene.jsx';
 import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
 import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoScene.jsx';
+import { MachineScene, MachineSky } from './metaphorScenes/MachineScene.jsx';
 import { CompositeScene } from './metaphorScenes/CompositeScene.jsx';
 import { resolveCompositeAtmosphere } from './metaphorScenes/fusedCompositePlanner.js';
 import {
@@ -81,6 +84,7 @@ const BOUNDS_MARGIN_BY_KIND = {
   river: 0.84,
   garden: 1.12,
   archipelago: 1.05,
+  machine: 1.06,
   composite: 1.1
 };
 
@@ -360,6 +364,7 @@ function DistrictGrid({ size, color }) {
 function DistrictPatch({ district, theme, index }) {
   const color = resolveDistrictColor(theme, index);
   const gridColor = theme.districtGridColor ?? theme.labelColor ?? '#cbd5e1';
+  const bannerColor = shiftColor(color, { lightness: -0.08, satScale: 0.85 });
   return (
     <group position={[district.center[0], 0.01, district.center[2]]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
@@ -367,10 +372,15 @@ function DistrictPatch({ district, theme, index }) {
         <meshStandardMaterial color={color} transparent opacity={0.4} />
       </mesh>
       <DistrictGrid size={district.size} color={gridColor} />
+      {/* Raised district placard so neighborhood names read as topic labels. */}
+      <mesh position={[0, 0.35, -district.size[1] / 2 + 0.4]}>
+        <boxGeometry args={[Math.min(district.size[0] * 0.7, 4.2), 0.12, 0.55]} />
+        <meshStandardMaterial color={bannerColor} roughness={0.7} metalness={0.15} />
+      </mesh>
       <ItemLabel
         text={district.name}
-        position={[0, 0.22, 0]}
-        fontSize={0.5}
+        position={[0, 0.72, -district.size[1] / 2 + 0.4]}
+        fontSize={0.52}
         color={theme.labelColor}
         outlineColor={theme.labelOutline}
       />
@@ -1031,6 +1041,7 @@ function MetaphorBaseScene({ dsl, theme }) {
   if (dsl.metaphor === 'river') return <RiverScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'garden') return <GardenScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'archipelago') return <ArchipelagoScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'machine') return <MachineScene dsl={dsl} theme={theme} />;
   return null;
 }
 
@@ -1210,7 +1221,12 @@ function MetaphorRendererImpl(
     >
       {renderError ? <p className="diagram-error">{renderError}</p> : null}
       {dsl ? (
-        <Canvas camera={ORBIT_CAMERA} dpr={[1, 2]} style={{ width: '100%', height: '100%' }}>
+        <Canvas
+          camera={ORBIT_CAMERA}
+          dpr={[1, 2]}
+          gl={{ preserveDrawingBuffer: true }}
+          style={{ width: '100%', height: '100%' }}
+        >
           <color attach="background" args={[theme.background]} />
           {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
               far enough out that Bounds framing never greys the subject. */}
@@ -1251,13 +1267,14 @@ function MetaphorRendererImpl(
           {skyKind === 'river' ? <RiverSky theme={theme} /> : null}
           {skyKind === 'garden' ? <GardenSky theme={theme} /> : null}
           {skyKind === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
+          {skyKind === 'machine' ? <MachineSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={motionPolicy.animated} intensity={motionPolicy.intensity}>
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>
                 <Bounds fit clip observe margin={boundsMargin}>
                   <Center disableY>
                     <group
-                      name={METAPHOR_GLTF_ROOT_NAME}
+                      name={METAPHOR_CONTENT_ROOT_NAME}
                       userData={{
                         archislop: {
                           contentType: 'metaphor3d',
@@ -1276,11 +1293,7 @@ function MetaphorRendererImpl(
           <MetaphorIntro streamingPreview={streamingPreview} />
           {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
           {!streamingPreview && enableGltfExport ? (
-            <MetaphorGltfExportBridge
-              diagramSource={diagramSource}
-              metaphor={dsl.metaphor}
-              enabled
-            />
+            <MetaphorPngExportBridge enabled background={theme.background} />
           ) : null}
         </Canvas>
       ) : null}

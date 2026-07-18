@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
-import { useAdvisorFloatMaxHeight } from '../hooks/useAdvisorFloatMaxHeight.js';
+import AdvisorFloatPortal from './AdvisorFloatPortal.jsx';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
@@ -91,6 +91,7 @@ export default function StakeholdersMascot({
   const hasLiveSurface = showThinking || bubbleReady;
 
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
+  const useFloatPortal = !startExpanded;
   const [expanded, setExpanded] = useState(startExpanded);
   const [surfaceLatch, setSurfaceLatch] = useState(false);
   const heldSurfaceRef = useRef(/** @type {import('react').ReactNode} */ (null));
@@ -101,8 +102,20 @@ export default function StakeholdersMascot({
   const hasFloatSurface = Boolean(introProps || advisorSurface || surfaceLatch);
 
   const wrapperRef = useRef(null);
-  useAdvisorFloatMaxHeight(wrapperRef, hasFloatSurface);
+  const mascotAnchorRef = useRef(null);
   const collapseTimerRef = useRef(null);
+
+  const portaledFloat =
+    introProps || advisorSurface ? (
+      introProps ? (
+        <div className="stakeholders-float-stack">
+          <StakeholderIntroSpotlight {...introProps} />
+          {advisorSurface}
+        </div>
+      ) : (
+        advisorSurface
+      )
+    ) : null;
 
   // Depend on a stable boolean — not the React element — so parent re-renders
   // do not reset the latch timer while the surface is already gone.
@@ -185,18 +198,15 @@ export default function StakeholdersMascot({
       ref={wrapperRef}
       style={style}
     >
-      {/* First-run only: stack the intro spotlight above the live advisor surface
-          in a flex column. The no-intro path (the common case) renders the surface
-          exactly as before, so steady-state bubble positioning is untouched. */}
-      {introProps ? (
-        <div className="stakeholders-float-stack">
-          <StakeholderIntroSpotlight {...introProps} />
-          {advisorSurface}
-        </div>
+      {useFloatPortal ? (
+        <AdvisorFloatPortal anchorRef={mascotAnchorRef} active={Boolean(portaledFloat)}>
+          {portaledFloat}
+        </AdvisorFloatPortal>
       ) : (
-        advisorSurface
+        portaledFloat
       )}
       <button
+        ref={mascotAnchorRef}
         type="button"
         className={mascotClass}
         aria-expanded={expanded}

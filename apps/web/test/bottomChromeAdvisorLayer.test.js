@@ -32,8 +32,10 @@ function ruleBody(selector) {
 }
 
 describe('bottom-chrome advisor-bubble layer gating', () => {
-  it('promotes .bottom-chrome to a GPU layer ONLY while streaming', () => {
-    const gated = ruleBody(".app-shell[data-streaming='true'] .bottom-chrome");
+  it('promotes .bottom-chrome to a GPU layer ONLY while streaming and no advisor surface', () => {
+    const gated = ruleBody(
+      ".app-shell[data-streaming='true']:not([data-advisor-active='true']) .bottom-chrome"
+    );
     expect(gated, 'expected a streaming-gated .bottom-chrome rule').toBeTruthy();
     expect(gated).toMatch(/transform:\s*translateZ\(0\)/);
   });
@@ -50,6 +52,10 @@ describe('bottom-chrome advisor-bubble layer gating', () => {
         selectorList.includes("[data-streaming='true']"),
         `.bottom-chrome is promoted to a compositor layer without a [data-streaming] gate — ` +
           `this clips the advisor speech bubble on mobile. Offending selector: ${selectorList.trim()}`
+      ).toBe(true);
+      expect(
+        selectorList.includes('[data-advisor-active'),
+        `.bottom-chrome GPU promotion must skip active advisor surfaces. Offending selector: ${selectorList.trim()}`
       ).toBe(true);
     }
   });

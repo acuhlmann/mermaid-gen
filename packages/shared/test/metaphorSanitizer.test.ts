@@ -607,6 +607,16 @@ test('MetaphorLegendSchema accepts the orrery and river axes', () => {
   assert.equal(ok.success, true);
 });
 
+test('MetaphorLegendSchema accepts the machine axes', () => {
+  const ok = MetaphorLegendSchema.safeParse({
+    size: 'criticality',
+    speed: 'throughput',
+    axle: 'subsystem',
+    torque: 'saturation'
+  });
+  assert.equal(ok.success, true);
+});
+
 test('sanitizeMetaphorDsl drops a non-string item.note', () => {
   const input = JSON.stringify({
     metaphor: 'galaxy',
@@ -722,6 +732,58 @@ test('sanitizeMetaphorDsl clamps archipelago mass and relief', () => {
   }
   assert.ok(result.applied.includes('clamp-mass'));
   assert.ok(result.applied.includes('clamp-relief'));
+});
+
+test('MetaphorDslSchema parses a machine with size, speed, axle, torque, and mesh', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'machine',
+    scene: {
+      title: 'Checkout drive train',
+      legend: {
+        size: 'criticality',
+        speed: 'rps',
+        axle: 'subsystem',
+        torque: 'saturation'
+      }
+    },
+    items: [
+      {
+        id: 'cart',
+        label: 'Cart',
+        size: 6,
+        speed: 8,
+        axle: 'Checkout',
+        torque: 0.6,
+        mesh: 'pricing'
+      },
+      { id: 'pricing', label: 'Pricing', size: 5, speed: 7, axle: 'Checkout' }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'machine');
+  if (dsl.metaphor === 'machine') {
+    assert.equal(dsl.items[0].size, 6);
+    assert.equal(dsl.items[0].speed, 8);
+    assert.equal(dsl.items[0].torque, 0.6);
+    assert.equal(dsl.items[0].mesh, 'pricing');
+    assert.equal(dsl.scene.legend?.axle, 'subsystem');
+  }
+});
+
+test('sanitizeMetaphorDsl clamps machine size, speed, and torque', () => {
+  const input = JSON.stringify({
+    metaphor: 'machine',
+    items: [{ id: 'hot', label: 'Hot', size: 99, speed: 40, torque: 3 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'machine') {
+    assert.equal(result.dsl.items[0].size, 10);
+    assert.equal(result.dsl.items[0].speed, 10);
+    assert.equal(result.dsl.items[0].torque, 1);
+  }
+  assert.ok(result.applied.includes('clamp-size'));
+  assert.ok(result.applied.includes('clamp-speed'));
+  assert.ok(result.applied.includes('clamp-torque'));
 });
 
 test('MetaphorDslSchema parses an experimental composite with city + river layers', () => {

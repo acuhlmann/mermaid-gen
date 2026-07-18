@@ -5647,10 +5647,50 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.28rem;
+  gap: 0.35rem;
   width: fit-content;
   max-width: 11.5rem;
   min-width: 0;
+}
+
+.settings-export-share-primary {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 2.65rem;
+  margin: 0;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent, #3b82f6) 55%, var(--control-border));
+  background: color-mix(in srgb, var(--accent, #3b82f6) 18%, var(--control-bg));
+  box-shadow: var(--control-shadow);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.settings-export-share-primary:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent, #3b82f6) 70%, var(--control-border));
+  background: color-mix(in srgb, var(--accent, #3b82f6) 26%, var(--control-bg));
+}
+
+.settings-export-share-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settings-export-share-primary-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.settings-export-share-primary-label {
+  line-height: 1.1;
 }
 
 .settings-export-toggle {
@@ -10501,12 +10541,12 @@ button {
    It must NOT be promoted permanently: `.bottom-chrome` is `position: fixed`
    (via `.corner-control`), and a transform on a fixed element makes it the
    containing/compositing box for its descendants. The advisor speech bubble is
-   an absolutely-positioned descendant that floats ABOVE the chrome box
-   (`bottom: calc(100% + …)`), so on mobile WebKit it gets clipped to the layer
-   bounds — it flashed in, then vanished as the layer settled. The advisor loop
-   is paused while streaming (`advisorPause`), so the bubble and this layer never
-   need to be live at the same time. */
-.app-shell[data-streaming='true'] .bottom-chrome {
+   portaled to `document.body` with `position: fixed`, but the bottom-chrome GPU
+   layer still caused foldable flicker during streams. The advisor loop is paused
+   while streaming (`advisorPause`), so the bubble and this layer never need to be
+   live at the same time. When a stakeholder bubble is active we also skip the
+   promotion so a brief streaming→advisor overlap cannot clip the handoff. */
+.app-shell[data-streaming='true']:not([data-advisor-active='true']) .bottom-chrome {
   transform: translateZ(0);
   backface-visibility: hidden;
 }
@@ -13199,6 +13239,46 @@ body.slopitect-rainbow-tint::before {
 
 .stakeholders-float-stack > * {
   pointer-events: auto;
+}
+
+/* Body portal — escapes `.app-shell { overflow: hidden }` and streaming GPU layers. */
+.advisor-float-portal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.advisor-float-portal-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+  min-width: 0;
+  max-width: min(32rem, calc(100vw - 2rem));
+  pointer-events: auto;
+}
+
+.advisor-float-portal .stakeholders-float-stack {
+  position: static;
+  inset: auto;
+}
+
+.advisor-float-portal .advisor-speech-bubble,
+.advisor-float-portal .advisor-thinking-indicator {
+  position: static;
+  inset: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  margin: 0;
+  max-width: min(32rem, calc(100vw - 2rem));
+  max-height: min(28rem, var(--advisor-float-max-h, 24rem));
+}
+
+.advisor-float-portal .advisor-speech-bubble.is-explain {
+  max-height: min(32rem, var(--advisor-float-max-h, 28rem));
 }
 
 .stakeholders-float-stack .advisor-speech-bubble,

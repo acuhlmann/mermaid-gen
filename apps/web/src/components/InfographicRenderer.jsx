@@ -2,6 +2,11 @@ import { useEffect, useImperativeHandle, useMemo, useRef, useState, forwardRef }
 import { normalizeRootSvgElement, sanitizeInfographicDsl } from '@archislop/shared';
 import { Infographic, parseSyntax } from '@antv/infographic';
 import { injectInfographicShapeTitleLabels } from '../utils/injectInfographicShapeLabels.js';
+import {
+  registerViewportPngExporter,
+  svgElementToPngBlob,
+  unregisterViewportPngExporter
+} from '../utils/viewportPngExport.js';
 
 const STREAMING_RENDER_THROTTLE_MS = 90;
 
@@ -182,6 +187,19 @@ function InfographicRendererImpl(
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (streamingPreview || !renderDsl) return undefined;
+    const exporter = async () => {
+      const svg = containerRef.current?.querySelector('svg');
+      if (!svg) {
+        throw new Error('Infographic is not ready to export — wait for it to render.');
+      }
+      return svgElementToPngBlob(svg);
+    };
+    registerViewportPngExporter('infographic', exporter);
+    return () => unregisterViewportPngExporter('infographic', exporter);
+  }, [renderDsl, streamingPreview]);
 
   useEffect(() => {
     if (lastSelectedElRef.current) {
