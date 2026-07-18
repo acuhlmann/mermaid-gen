@@ -356,6 +356,32 @@ export function siblingContentModes(contentMode) {
 }
 
 /**
+ * Overlay the slot snapshot captured when the user left `sourceMode` onto fetched session
+ * state when the client is ahead of GET /session-state (debounced editor sync, hydrate
+ * racing a just-finished stream write). Without this, mode-switch peer detection sees an
+ * empty/default peer and skips auto-translation into the new mode.
+ */
+export function mergeLeavingSlotSnapshot(session, sourceMode, snapshot) {
+  if (!session || !sourceMode || !snapshot || !CONTENT_MODES.includes(sourceMode)) {
+    return session;
+  }
+  if (!isSlotCustomized(snapshot)) return session;
+  const serverSlot = session[sourceMode];
+  const serverRev = serverSlot?.revisionId ?? 0;
+  const localRev = snapshot.revisionId ?? 0;
+  if (!isSlotCustomized(serverSlot) || localRev > serverRev) {
+    return {
+      ...session,
+      [sourceMode]: {
+        ...(serverSlot && typeof serverSlot === 'object' ? serverSlot : {}),
+        ...snapshot
+      }
+    };
+  }
+  return session;
+}
+
+/**
  * True when `sourceMode` is a customized sibling whose topic matches the carried candidate.
  */
 export function isValidModeSwitchSource({ contentMode, session, candidate, sourceMode }) {
@@ -658,7 +684,9 @@ export function shouldAutoSubmitModeSwitchIntent({
   peerRequiresTranslation = false,
   needsPeerSync = false
 }) {
-  if (textareaDirty) return false;
+  // Empty-slot takeover should run even when the prompt bar still holds a stale topic —
+  // peer conversion is driven by sibling slot content, not the visible textarea draft.
+  if (textareaDirty && !needsPeerSync && !peerRequiresTranslation) return false;
   if (needsPeerSync && candidate) return true;
   if (!candidate) return false;
   if (peerRequiresTranslation) return true;
