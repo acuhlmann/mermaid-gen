@@ -14,7 +14,11 @@ export function buildProductionContentSecurityPolicy() {
     "worker-src 'self' blob:",
     "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    "img-src 'self' data: https:",
+    // blob: for export previews (svgPngRaster, download links) and in-browser object URLs.
+    "img-src 'self' data: blob: https:",
+    // WaveNet office narration plays MP3 via data: URLs (officeNarration.js); blob: for
+    // browsers that promote in-memory media to object URLs.
+    "media-src 'self' data: blob:",
     "connect-src 'self' https: wss:",
     "font-src 'self' data: https://cdn.jsdelivr.net"
   ].join('; ');

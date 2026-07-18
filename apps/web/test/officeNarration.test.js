@@ -158,6 +158,42 @@ describe('speakOfficeLine', () => {
     expect(playCalls[0]).toMatch(/^data:audio\/mpeg;base64,/);
   });
 
+  it('falls back to Web Speech when cloud audio playback fails', async () => {
+    const fetchCloudAudio = vi.fn(async () => ({
+      audioBase64: btoa('hi'),
+      mimeType: 'audio/mpeg'
+    }));
+    function FakeAudio(src) {
+      this.src = src;
+      this.volume = 1;
+      this.onended = null;
+      this.onerror = null;
+      this.play = () => {
+        queueMicrotask(() => this.onerror?.());
+        return Promise.resolve();
+      };
+      this.pause = () => {};
+      this.removeAttribute = () => {};
+      this.load = () => {};
+    }
+    const { synth, spoken } = installSpeechMock();
+    const globalObj = {
+      Audio: FakeAudio,
+      speechSynthesis: synth,
+      SpeechSynthesisUtterance: globalThis.SpeechSynthesisUtterance
+    };
+    const result = await speakOfficeLine({
+      speakerId: 'intern',
+      text: 'sorry if this is dumb',
+      lang: 'en-US',
+      fetchCloudAudio,
+      globalObj
+    });
+    expect(result).toEqual({ spoken: true, source: 'webspeech' });
+    expect(fetchCloudAudio).toHaveBeenCalledOnce();
+    expect(spoken).toHaveLength(1);
+  });
+
   it('cancelOfficeNarration settles an in-flight waiter', async () => {
     const synth = {
       speak: vi.fn(),

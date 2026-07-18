@@ -9,4 +9,8 @@ test('production CSP allows bundled Monaco workers and editor styles', () => {
   assert.match(policy, /worker-src[^;]*blob:/);
   assert.match(policy, /style-src-elem/);
   assert.match(policy, /font-src[^;]*cdn\.jsdelivr\.net/);
+  assert.match(policy, /img-src[^;]*blob:/);
+  assert.match(policy, /media-src[^;]*'self'/);
+  assert.match(policy, /media-src[^;]*data:/);
+  assert.match(policy, /media-src[^;]*blob:/);
 });

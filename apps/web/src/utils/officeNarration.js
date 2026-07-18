@@ -280,7 +280,11 @@ export async function speakOfficeLine({
         return { spoken: false, cancelled: true };
       }
       if (cloud?.audioBase64) {
-        return playCloudAudio(cloud, generation, globalObj);
+        const cloudResult = await playCloudAudio(cloud, generation, globalObj);
+        if (cloudResult.spoken || cloudResult.cancelled) {
+          return cloudResult;
+        }
+        // Playback failed (CSP, decode, autoplay) — degrade to Web Speech.
       }
     } catch {
       // Fall through to Web Speech.
