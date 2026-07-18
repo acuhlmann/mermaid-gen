@@ -611,6 +611,9 @@ export const OFFICE_EN_AU = {
       soundscapeLabel: 'Office noise',
       soundscapeTitle:
         'Ambient office racket — keyboards, mouse clicks, paper, squeaky chairs, the printer, the phone, the coffee machine, the vending machine, the lift',
+      narrationLabel: 'Narration',
+      narrationTitle:
+        'Read walk-bys and meeting lines aloud in each colleague’s voice — emails stay silent',
       emptyLine: "Inbox zero. HR reckons that's suss. Enjoy it while it lasts.",
       callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda, mate'
     },

@@ -39,6 +39,11 @@ function reportUsage(onUsage, payload) {
  * timers are trivially testable (scriptVersion in the response leaves room
  * for a per-turn v2).
  *
+ * Optional `narrateBeat(beat) → Promise<{spoken?: boolean}>` speaks each
+ * non-user line (walk-bys/meetings are the spoken surfaces — emails stay
+ * silent). When synthesis actually speaks, pacing follows the voice; when it
+ * returns spoken:false (muted / unavailable), the reading-pace timer is used.
+ *
  * States: null → 'joining' → 'playing' → 'ended' (completed or left early),
  * or 'cancelled' when the script fetch fails (OfficeLayer converts that into
  * a canned cancellation email).
@@ -48,12 +53,33 @@ export function useMeetingPlayback({
   getContentType,
   getDiagramSource,
   getSvgRoot,
-  onUsage
+  onUsage,
+  narrateBeat,
+  narrationGapMs,
+  onCancelNarration
 }) {
   const [meeting, setMeeting] = useState(null);
-  const paramsRef = useRef({ getSessionId, getContentType, getDiagramSource, getSvgRoot, onUsage });
+  const paramsRef = useRef({
+    getSessionId,
+    getContentType,
+    getDiagramSource,
+    getSvgRoot,
+    onUsage,
+    narrateBeat,
+    narrationGapMs,
+    onCancelNarration
+  });
   useEffect(() => {
-    paramsRef.current = { getSessionId, getContentType, getDiagramSource, getSvgRoot, onUsage };
+    paramsRef.current = {
+      getSessionId,
+      getContentType,
+      getDiagramSource,
+      getSvgRoot,
+      onUsage,
+      narrateBeat,
+      narrationGapMs,
+      onCancelNarration
+    };
   });
 
   const pendingBeatsRef = useRef([]);
@@ -80,6 +106,7 @@ export function useMeetingPlayback({
       generationRef.current += 1;
       clearTimer();
       abortRef.current?.abort();
+      paramsRef.current.onCancelNarration?.();
     },
     [clearTimer]
   );
@@ -128,6 +155,39 @@ export function useMeetingPlayback({
         );
         return;
       }
+
+      const narrate = paramsRef.current.narrateBeat;
+      const useNarration =
+        typeof narrate === 'function' && nextBeat.speakerId !== MEETING_USER_SPEAKER;
+
+      if (useNarration) {
+        // Reveal the line immediately so the seat highlight matches the voice,
+        // speak it, then advance — falls back to the reading-pace delay when
+        // synthesis is muted/unavailable (narrateBeat returns spoken:false).
+        pendingBeatsRef.current = pendingBeatsRef.current.slice(1);
+        applyMeeting((prev) => {
+          if (!prev || prev.state !== 'playing') return prev;
+          return { ...prev, transcript: [...prev.transcript, nextBeat] };
+        });
+        void (async () => {
+          let spoken = false;
+          try {
+            const result = await narrate(nextBeat);
+            spoken = Boolean(result?.spoken);
+          } catch {
+            spoken = false;
+          }
+          if (generation !== generationRef.current) return;
+          const waitMs = spoken ? (paramsRef.current.narrationGapMs ?? 400) : beatDelayMs(nextBeat);
+          timerRef.current = setTimeout(() => {
+            timerRef.current = null;
+            if (generation !== generationRef.current) return;
+            scheduleNextBeat(generation);
+          }, waitMs);
+        })();
+        return;
+      }
+
       timerRef.current = setTimeout(() => {
         timerRef.current = null;
         if (generation !== generationRef.current) return;
@@ -195,6 +255,7 @@ export function useMeetingPlayback({
         ]
       });
       clearTimer();
+      paramsRef.current.onCancelNarration?.();
       const remainingBeats = pendingBeatsRef.current;
       const payload = await postJson('/api/office/meeting/interject', {
         ...diagramContext(),
@@ -234,6 +295,7 @@ export function useMeetingPlayback({
     clearTimer();
     abortRef.current?.abort();
     pendingBeatsRef.current = [];
+    paramsRef.current.onCancelNarration?.();
     applyMeeting((prev) =>
       prev && (prev.state === 'playing' || prev.state === 'joining')
         ? { ...prev, state: 'ended', completed: false }
@@ -246,6 +308,7 @@ export function useMeetingPlayback({
     clearTimer();
     abortRef.current?.abort();
     pendingBeatsRef.current = [];
+    paramsRef.current.onCancelNarration?.();
     applyMeeting(null);
   }, [clearTimer, applyMeeting]);
 

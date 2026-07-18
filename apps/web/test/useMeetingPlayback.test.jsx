@@ -141,4 +141,72 @@ describe('useMeetingPlayback', () => {
     });
     expect(result.current.meeting).toBeNull();
   });
+
+  it('paces beats to narrateBeat when synthesis speaks, and cancels on leave', async () => {
+    vi.stubGlobal('fetch', mockFetchWith({ script: SCRIPT }));
+    const narrateBeat = vi.fn(() => Promise.resolve({ spoken: true }));
+    const onCancelNarration = vi.fn();
+    const { result } = renderHook(() =>
+      useMeetingPlayback({
+        ...PARAMS,
+        narrateBeat,
+        narrationGapMs: 50,
+        onCancelNarration
+      })
+    );
+
+    await act(async () => {
+      await result.current.startMeeting({ attendees: ATTENDEES });
+    });
+
+    // First beat reveals immediately under narration, then waits for speak + gap.
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.meeting.transcript).toHaveLength(1);
+    expect(narrateBeat).toHaveBeenCalledWith(SCRIPT.beats[0]);
+
+    for (let i = 1; i < SCRIPT.beats.length; i += 1) {
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50);
+        await Promise.resolve();
+        await Promise.resolve();
+      });
+    }
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(50);
+      await Promise.resolve();
+    });
+    expect(result.current.meeting.state).toBe('ended');
+    expect(narrateBeat).toHaveBeenCalledTimes(SCRIPT.beats.length);
+    expect(narrateBeat.mock.calls.every(([beat]) => beat.speakerId !== 'you')).toBe(true);
+
+    await act(async () => {
+      await result.current.startMeeting({ attendees: ATTENDEES });
+    });
+    act(() => {
+      result.current.leaveMeeting();
+    });
+    expect(onCancelNarration).toHaveBeenCalled();
+  });
+
+  it('falls back to reading-pace delay when narrateBeat does not speak', async () => {
+    vi.stubGlobal('fetch', mockFetchWith({ script: SCRIPT }));
+    const narrateBeat = vi.fn(() => Promise.resolve({ spoken: false }));
+    const { result } = renderHook(() => useMeetingPlayback({ ...PARAMS, narrateBeat }));
+
+    await act(async () => {
+      await result.current.startMeeting({ attendees: ATTENDEES });
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(result.current.meeting.transcript).toHaveLength(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(beatDelayMs(SCRIPT.beats[0]) + 5);
+      await Promise.resolve();
+    });
+    expect(result.current.meeting.transcript).toHaveLength(2);
+  });
 });

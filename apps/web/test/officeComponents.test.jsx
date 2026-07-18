@@ -107,8 +107,10 @@ describe('OfficeInboxDock', () => {
         unreadCount={0}
         focusTime={false}
         soundscape
+        narration
         onToggleFocusTime={vi.fn()}
         onToggleSoundscape={onToggleSoundscape}
+        onToggleNarration={vi.fn()}
         onMarkRead={vi.fn()}
         onMarkAllRead={vi.fn()}
         onAdoptPrompt={vi.fn()}
@@ -121,6 +123,32 @@ describe('OfficeInboxDock', () => {
     expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
     expect(onToggleSoundscape).toHaveBeenCalledWith(false);
+  });
+
+  it('toggles walk-by / meeting narration (emails stay silent)', () => {
+    const onToggleNarration = vi.fn();
+    render(
+      <OfficeInboxDock
+        emails={[]}
+        unreadCount={0}
+        focusTime={false}
+        soundscape
+        narration
+        onToggleFocusTime={vi.fn()}
+        onToggleSoundscape={vi.fn()}
+        onToggleNarration={onToggleNarration}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={vi.fn()}
+        canCallMeeting={false}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
+    const toggle = screen.getByLabelText(/Narration/i);
+    expect(toggle.checked).toBe(true);
+    fireEvent.click(toggle);
+    expect(onToggleNarration).toHaveBeenCalledWith(false);
   });
 });
 

@@ -2,7 +2,8 @@
  * Office ambience pub/sub store — same hand-rolled useSyncExternalStore
  * pattern as errorToastStore.js. Holds everything the OfficeLayer chrome
  * renders: the email inbox, IM ping stack, active walk-by, coffee-break scene,
- * pending meeting invite, and the Focus Time (DND) flag.
+ * pending meeting invite, the Focus Time (DND) flag, Soundscape, and Narration
+ * (walk-bys + meetings spoken aloud; emails stay silent).
  *
  * The useOfficeAmbience hook is the only producer; components subscribe via
  * useSyncExternalStore(subscribe, getOfficeSnapshot).
@@ -10,8 +11,10 @@
 
 import {
   readOfficeFocusTime,
+  readOfficeNarrationEnabled,
   readOfficeSoundscapeEnabled,
   writeOfficeFocusTime,
+  writeOfficeNarrationEnabled,
   writeOfficeSoundscapeEnabled
 } from '../utils/officeAmbienceStorage.js';
 
@@ -23,6 +26,7 @@ function initialState() {
   return {
     focusTime: readOfficeFocusTime(),
     soundscape: readOfficeSoundscapeEnabled(),
+    narration: readOfficeNarrationEnabled(),
     /** @type {Array<{id: string, colleagueId: string, subject: string, body: string, actionPrompt?: string, createdAt: number, read: boolean}>} */
     emails: [],
     unreadCount: 0,
@@ -99,6 +103,11 @@ export function setOfficeFocusTime(enabled) {
 export function setOfficeSoundscape(enabled) {
   writeOfficeSoundscapeEnabled(Boolean(enabled));
   update({ soundscape: Boolean(enabled) });
+}
+
+export function setOfficeNarration(enabled) {
+  writeOfficeNarrationEnabled(Boolean(enabled));
+  update({ narration: Boolean(enabled) });
 }
 
 /** True when any interruptive office surface is currently on screen. */

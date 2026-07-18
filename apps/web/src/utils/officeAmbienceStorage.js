@@ -7,6 +7,7 @@
 
 export const OFFICE_FOCUS_TIME_STORAGE_KEY = 'archislop:office-focus-time';
 export const OFFICE_SOUNDSCAPE_STORAGE_KEY = 'archislop:office-soundscape';
+export const OFFICE_NARRATION_STORAGE_KEY = 'archislop:office-narration';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
@@ -57,6 +58,33 @@ export function writeOfficeSoundscapeEnabled(enabled) {
       window.localStorage.removeItem(OFFICE_SOUNDSCAPE_STORAGE_KEY);
     } else {
       window.localStorage.setItem(OFFICE_SOUNDSCAPE_STORAGE_KEY, '0');
+    }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @returns {boolean} True unless the user switched narration off — walk-bys
+ * and meeting beats default to spoken aloud (emails stay silent); only the
+ * opt-out is persisted, matching the soundscape toggle.
+ */
+export function readOfficeNarrationEnabled() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(OFFICE_NARRATION_STORAGE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+export function writeOfficeNarrationEnabled(enabled) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (enabled) {
+      window.localStorage.removeItem(OFFICE_NARRATION_STORAGE_KEY);
+    } else {
+      window.localStorage.setItem(OFFICE_NARRATION_STORAGE_KEY, '0');
     }
   } catch {
     // Ignore quota / privacy errors.
