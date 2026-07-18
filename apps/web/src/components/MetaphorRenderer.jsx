@@ -32,6 +32,7 @@ import {
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
 import { METAPHOR_GLTF_ROOT_NAME, MetaphorGltfExportBridge } from '../utils/metaphorGltfExport.js';
+import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
@@ -1219,7 +1220,12 @@ function MetaphorRendererImpl(
     >
       {renderError ? <p className="diagram-error">{renderError}</p> : null}
       {dsl ? (
-        <Canvas camera={ORBIT_CAMERA} dpr={[1, 2]} style={{ width: '100%', height: '100%' }}>
+        <Canvas
+          camera={ORBIT_CAMERA}
+          dpr={[1, 2]}
+          gl={{ preserveDrawingBuffer: true }}
+          style={{ width: '100%', height: '100%' }}
+        >
           <color attach="background" args={[theme.background]} />
           {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
               far enough out that Bounds framing never greys the subject. */}
@@ -1291,6 +1297,9 @@ function MetaphorRendererImpl(
               metaphor={dsl.metaphor}
               enabled
             />
+          ) : null}
+          {!streamingPreview && enableGltfExport ? (
+            <MetaphorPngExportBridge enabled background={theme.background} />
           ) : null}
         </Canvas>
       ) : null}

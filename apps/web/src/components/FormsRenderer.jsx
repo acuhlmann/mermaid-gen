@@ -1,10 +1,15 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useEffect, useMemo, useRef, useState } from 'react';
 import { renderMarkdown } from '@a2ui/markdown-it';
 import { MessageProcessor } from '@a2ui/web_core/v0_9';
 import { A2uiSurface, basicCatalog, MarkdownContext } from '@a2ui/react/v0_9';
 import '@a2ui/react/styles';
 import { FORMS_A2UI_SURFACE_ID, parseFormsA2ui } from '@archislop/shared';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import {
+  htmlElementToPngBlob,
+  registerViewportPngExporter,
+  unregisterViewportPngExporter
+} from '../utils/viewportPngExport.js';
 
 /**
  * Renders Forms-mode content: a **model-authored** A2UI v0.9 document, live and
@@ -74,6 +79,7 @@ export default function FormsRenderer({
 }) {
   const { controls } = useUiCopy();
   const lastGoodDocRef = useRef(null);
+  const rootRef = useRef(null);
 
   const parsed = useMemo(() => {
     if (!diagramSource?.trim()) {
@@ -181,6 +187,19 @@ export default function FormsRenderer({
     };
   }, [parsed]);
 
+  useEffect(() => {
+    if (streamingPreview || preview || !parsed.ok) return undefined;
+    const exporter = async () => {
+      const root = rootRef.current;
+      if (!root) {
+        throw new Error('Form is not ready to export — wait for it to render.');
+      }
+      return htmlElementToPngBlob(root);
+    };
+    registerViewportPngExporter('forms', exporter);
+    return () => unregisterViewportPngExporter('forms', exporter);
+  }, [parsed, streamingPreview, preview]);
+
   if (!parsed.ok && parsed.empty) {
     return null;
   }
@@ -196,6 +215,7 @@ export default function FormsRenderer({
   return (
     <MarkdownContext.Provider value={renderMarkdown}>
       <div
+        ref={rootRef}
         className={`forms-renderer-root${busy || streamingPreview ? ' is-busy' : ''}${
           preview ? ' forms-renderer-root--preview' : ''
         }`}

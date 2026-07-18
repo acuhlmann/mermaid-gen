@@ -6,12 +6,13 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import {
   EXPORT_PREVIEW_URL_TTL_MS,
   buildExportPayload,
-  canCopyExportPayload,
   canShareExportPayload,
   deliverExportPayload,
   exportFormatSharePreview,
+  getPreferredShareFormatId,
   getShareFormatId,
   isExportUserAbortError,
+  isFormatCopyable,
   isSharePermissionError,
   isShareUserGestureError,
   isWebShareAvailable,
@@ -84,6 +85,10 @@ export function AiCornerControlsInner({
     () => (hasSource ? listExportFormats(contentType, diagramSource) : []),
     [hasSource, contentType, diagramSource]
   );
+  const preferredShareFormatId = useMemo(
+    () => (hasSource ? getPreferredShareFormatId(contentType, diagramSource) : null),
+    [hasSource, contentType, diagramSource]
+  );
   const shareAvailable = isWebShareAvailable();
 
   function revokePreviewUrl() {
@@ -136,13 +141,46 @@ export function AiCornerControlsInner({
   );
 
   useEffect(() => {
-    exportPayloadCacheRef.current.clear();
-    setExportReadyIds(new Set());
-    if (!exportOpen || !hasSource || exportFormats.length === 0 || !shareAvailable) {
+    if (!hasSource || !preferredShareFormatId) {
+      return undefined;
+    }
+    let cancelled = false;
+    const promise = buildExportPayload({
+      contentType,
+      diagramSource,
+      formatId: preferredShareFormatId
+    })
+      .then((payload) => {
+        if (!cancelled) {
+          exportPayloadCacheRef.current.set(preferredShareFormatId, { payload, promise });
+          setExportReadyIds((prev) => new Set(prev).add(preferredShareFormatId));
+        }
+        return payload;
+      })
+      .catch(() => {
+        if (!cancelled) {
+          exportPayloadCacheRef.current.delete(preferredShareFormatId);
+          setExportReadyIds((prev) => {
+            const next = new Set(prev);
+            next.delete(preferredShareFormatId);
+            return next;
+          });
+        }
+      });
+    exportPayloadCacheRef.current.set(preferredShareFormatId, { promise });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasSource, contentType, diagramSource, preferredShareFormatId]);
+
+  useEffect(() => {
+    if (!exportOpen || !hasSource || exportFormats.length === 0) {
       return undefined;
     }
     let cancelled = false;
     for (const format of exportFormats) {
+      if (format.id === preferredShareFormatId) continue;
+      if (exportPayloadCacheRef.current.get(format.id)?.payload) continue;
       const promise = buildExportPayload({
         contentType,
         diagramSource,
@@ -169,9 +207,8 @@ export function AiCornerControlsInner({
     }
     return () => {
       cancelled = true;
-      exportPayloadCacheRef.current.clear();
     };
-  }, [exportOpen, hasSource, contentType, diagramSource, exportFormats, shareAvailable]);
+  }, [exportOpen, hasSource, contentType, diagramSource, exportFormats, preferredShareFormatId]);
 
   function getCachedExportPayload(formatId) {
     return exportPayloadCacheRef.current.get(formatId)?.payload ?? null;
@@ -301,6 +338,11 @@ export function AiCornerControlsInner({
       });
   }
 
+  function handlePrimaryShare() {
+    if (!preferredShareFormatId) return;
+    handleShare(preferredShareFormatId);
+  }
+
   function dismissExportFeedback() {
     clearCopyToastTimer();
     revokePreviewUrl();
@@ -327,6 +369,22 @@ export function AiCornerControlsInner({
     exportFeedback?.method === 'download' &&
     typeof window !== 'undefined' &&
     window.matchMedia?.('(pointer: coarse)')?.matches;
+
+  const primaryShareReady = preferredShareFormatId
+    ? isExportPayloadReady(preferredShareFormatId)
+    : false;
+  const primarySharePayload = preferredShareFormatId
+    ? (getSharePayload(preferredShareFormatId) ?? getCachedExportPayload(preferredShareFormatId))
+    : null;
+  const canPrimaryShare =
+    shareAvailable &&
+    Boolean(preferredShareFormatId) &&
+    (primaryShareReady
+      ? canShareExportPayload(
+          primarySharePayload ?? exportFormatSharePreview(preferredShareFormatId, contentType)
+        )
+      : true);
+  const primaryShareBusy = Boolean(exportBusyId) && exportBusyId === preferredShareFormatId;
 
   return (
     <>
@@ -396,6 +454,24 @@ export function AiCornerControlsInner({
             </div>
           </div>
           <div className="settings-export" role="group" aria-label={controls.export}>
+            {hasSource && canPrimaryShare ? (
+              <button
+                type="button"
+                className="settings-export-share-primary"
+                disabled={Boolean(exportBusyId) || !primaryShareReady}
+                aria-busy={primaryShareBusy}
+                onClick={handlePrimaryShare}
+              >
+                <span className="settings-export-share-primary-icon" aria-hidden="true">
+                  ↗
+                </span>
+                <span className="settings-export-share-primary-label">
+                  {primaryShareReady
+                    ? (controls.exportSharePrimary ?? controls.exportShare ?? 'Share')
+                    : (controls.exportSharePreparing ?? 'Preparing…')}
+                </span>
+              </button>
+            ) : null}
             <button
               type="button"
               className={`settings-export-toggle${exportOpen ? ' is-open' : ''}`}
@@ -415,32 +491,7 @@ export function AiCornerControlsInner({
                 {exportFormats.map((format) => {
                   const busy = exportBusyId === format.id;
                   const label = controls[format.labelKey] ?? format.id;
-                  const delivery = format.delivery ?? 'text';
-                  const canCopy =
-                    delivery === 'file'
-                      ? false
-                      : delivery === 'text'
-                        ? canCopyExportPayload({
-                            delivery: 'text',
-                            mime: format.mime,
-                            body: 'x',
-                            filename: 'preview',
-                            ext: format.ext
-                          })
-                        : Boolean(
-                            (typeof navigator !== 'undefined' &&
-                              navigator.clipboard?.write &&
-                              typeof ClipboardItem !== 'undefined') ||
-                            shareAvailable
-                          );
-                  const canShare =
-                    shareAvailable &&
-                    (isSharePayloadReady(format.id)
-                      ? canShareExportPayload(
-                          getSharePayload(format.id) ??
-                            exportFormatSharePreview(format.id, contentType)
-                        )
-                      : true);
+                  const canCopy = isFormatCopyable(format);
                   return (
                     <li key={format.id} className="settings-export-item">
                       <span className="settings-export-format-label">{label}</span>
@@ -473,23 +524,6 @@ export function AiCornerControlsInner({
                             onClick={() => handleExport(format.id, 'copy')}
                           >
                             {controls.exportCopy ?? 'Copy'}
-                          </button>
-                        ) : null}
-                        {canShare ? (
-                          <button
-                            type="button"
-                            className="settings-export-action"
-                            disabled={Boolean(exportBusyId) || !isSharePayloadReady(format.id)}
-                            title={
-                              isSharePayloadReady(format.id)
-                                ? (controls.exportShare ?? 'Share')
-                                : (controls.exportSharePreparing ?? 'Preparing…')
-                            }
-                            onClick={() => handleShare(format.id)}
-                          >
-                            {isSharePayloadReady(format.id)
-                              ? (controls.exportShare ?? 'Share')
-                              : (controls.exportSharePreparing ?? '…')}
                           </button>
                         ) : null}
                       </div>

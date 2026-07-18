@@ -15,8 +15,10 @@ import {
   shareExportPayload,
   startWebShare,
   resolveWebShareMode,
+  getPreferredShareFormatId,
   getShareFormatId,
   exportFormatSharePreview,
+  isFormatCopyable,
   isShareUserGestureError,
   isSharePermissionError,
   isVisualExportPayload,
@@ -46,17 +48,39 @@ const CHART_SOURCE = JSON.stringify({
 describe('listExportFormats', () => {
   it('returns mode-specific formats', () => {
     expect(listExportFormats('mermaid', 'flowchart TD\nA-->B').map((f) => f.id)).toEqual([
-      'mermaid-source',
       'mermaid-png',
+      'mermaid-source',
       'mermaid-svg'
     ]);
     expect(listExportFormats('anything', '<!DOCTYPE html><html></html>').map((f) => f.id)).toEqual([
       'anything-html'
     ]);
     expect(listExportFormats('metaphor3d', '{"metaphor":"city"}').map((f) => f.id)).toEqual([
+      'metaphor-png',
       'metaphor-json',
       'metaphor-gltf'
     ]);
+  });
+
+  it('picks a PNG-first preferred share format per mode', () => {
+    expect(getPreferredShareFormatId('mermaid', 'flowchart TD\nA-->B')).toBe('mermaid-png');
+    expect(getPreferredShareFormatId('chart', CHART_SOURCE)).toBe('chart-png');
+    expect(getPreferredShareFormatId('anything', '<html></html>')).toBe('anything-html');
+  });
+
+  it('hides copy for image and binary formats', () => {
+    const png = listExportFormats('mermaid', 'flowchart TD\nA-->B').find(
+      (f) => f.id === 'mermaid-png'
+    );
+    const svg = listExportFormats('mermaid', 'flowchart TD\nA-->B').find(
+      (f) => f.id === 'mermaid-svg'
+    );
+    const source = listExportFormats('mermaid', 'flowchart TD\nA-->B').find(
+      (f) => f.id === 'mermaid-source'
+    );
+    expect(isFormatCopyable(png)).toBe(false);
+    expect(isFormatCopyable(svg)).toBe(false);
+    expect(isFormatCopyable(source)).toBe(true);
   });
 
   it('hides chart CSV when there is no tabular data.values', () => {
@@ -65,8 +89,13 @@ describe('listExportFormats', () => {
       theme: 'noir',
       spec: { mark: 'bar', data: { url: 'https://example.com/data.json' } }
     });
-    expect(listExportFormats('chart', noData).map((f) => f.id)).toEqual(['chart-json', 'chart-vl']);
+    expect(listExportFormats('chart', noData).map((f) => f.id)).toEqual([
+      'chart-png',
+      'chart-json',
+      'chart-vl'
+    ]);
     expect(listExportFormats('chart', CHART_SOURCE).map((f) => f.id)).toEqual([
+      'chart-png',
       'chart-csv',
       'chart-json',
       'chart-vl'

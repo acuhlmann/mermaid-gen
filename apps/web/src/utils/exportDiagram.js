@@ -30,6 +30,8 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
  * @property {ExportDeliveryKind} [delivery] — defaults to text
  * @property {(source: string) => boolean} [isAvailable]
  * @property {string} [shareAsFormatId] — rasterize or alias Share to this format id
+ * @property {boolean} [copyable] — when false, hide clipboard (PNG/SVG/binary)
+ * @property {boolean} [primaryShare] — preferred one-tap share target for this mode
  */
 
 /**
@@ -64,28 +66,40 @@ export const MERMAID_EXPORT_MAX_WIDTH_PX = 1600;
 export const EXPORT_FORMATS_BY_MODE = {
   mermaid: [
     {
+      id: 'mermaid-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportMermaidPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
+    {
       id: 'mermaid-source',
       ext: 'mmd',
       mime: 'text/plain;charset=utf-8',
       labelKey: 'exportMermaidSource'
     },
     {
-      id: 'mermaid-png',
-      ext: 'png',
-      mime: 'image/png',
-      labelKey: 'exportMermaidPng',
-      delivery: 'image'
-    },
-    {
       id: 'mermaid-svg',
       ext: 'svg',
       mime: 'image/svg+xml;charset=utf-8',
       labelKey: 'exportMermaidSvg',
+      copyable: false,
       /** Share delivers a PNG raster so chat apps receive a picture attachment. */
       shareAsFormatId: 'mermaid-png'
     }
   ],
   infographic: [
+    {
+      id: 'infographic-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportInfographicPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'infographic-dsl',
       ext: 'txt',
@@ -94,6 +108,15 @@ export const EXPORT_FORMATS_BY_MODE = {
     }
   ],
   metaphor3d: [
+    {
+      id: 'metaphor-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportMetaphorPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'metaphor-json',
       ext: 'json',
@@ -105,10 +128,20 @@ export const EXPORT_FORMATS_BY_MODE = {
       ext: 'glb',
       mime: 'model/gltf-binary',
       labelKey: 'exportMetaphorGltf',
-      delivery: 'file'
+      delivery: 'file',
+      copyable: false
     }
   ],
   chart: [
+    {
+      id: 'chart-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportChartPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'chart-csv',
       ext: 'csv',
@@ -134,10 +167,20 @@ export const EXPORT_FORMATS_BY_MODE = {
       id: 'anything-html',
       ext: 'html',
       mime: 'text/html;charset=utf-8',
-      labelKey: 'exportAnythingHtml'
+      labelKey: 'exportAnythingHtml',
+      primaryShare: true
     }
   ],
   forms: [
+    {
+      id: 'forms-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportFormsPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'forms-json',
       ext: 'json',
@@ -167,6 +210,35 @@ export function listExportFormats(contentType, diagramSource) {
   return EXPORT_FORMATS_BY_MODE[contentType].filter((format) =>
     format.isAvailable ? format.isAvailable(source) : true
   );
+}
+
+/**
+ * Whether the clipboard action makes sense for this format (text/source only).
+ * @param {ExportFormat} format
+ * @returns {boolean}
+ */
+export function isFormatCopyable(format) {
+  if (format.copyable === false) return false;
+  if (format.delivery === 'file' || format.delivery === 'image') return false;
+  const mime = (format.mime ?? '').toLowerCase();
+  if (mime.startsWith('image/')) return false;
+  return true;
+}
+
+/**
+ * Best one-tap share format for the active mode (PNG for visuals, file for HTML).
+ * @param {string | null | undefined} contentType
+ * @param {string | null | undefined} diagramSource
+ * @returns {string | null}
+ */
+export function getPreferredShareFormatId(contentType, diagramSource) {
+  const formats = listExportFormats(contentType, diagramSource);
+  if (formats.length === 0) return null;
+  const flagged = formats.find((format) => format.primaryShare);
+  if (flagged) return flagged.id;
+  const image = formats.find((format) => format.delivery === 'image');
+  if (image) return image.id;
+  return formats[0].id;
 }
 
 /**
@@ -367,6 +439,14 @@ async function buildExportBody(contentType, formatId, source) {
     }
     case 'infographic-dsl':
       return { body: source.endsWith('\n') ? source : `${source}\n` };
+    case 'infographic-png':
+    case 'chart-png':
+    case 'metaphor-png':
+    case 'forms-png': {
+      const { captureViewportPngBlob } = await import('./viewportPngExport.js');
+      const blob = await captureViewportPngBlob(contentType);
+      return { blob };
+    }
     case 'metaphor-json':
     case 'forms-json':
     case 'chart-json':
