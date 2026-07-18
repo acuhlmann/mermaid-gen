@@ -131,11 +131,7 @@ function GearBody({ gear, item, theme, color }) {
           />
         </mesh>
         {toothMeshes.map((tooth, i) => (
-          <mesh
-            key={`tooth-${i}`}
-            position={[tooth.x, 0.08, tooth.z]}
-            rotation={[0, tooth.rot, 0]}
-          >
+          <mesh key={`tooth-${i}`} position={[tooth.x, 0.08, tooth.z]} rotation={[0, tooth.rot, 0]}>
             <boxGeometry args={[toothDepth * 1.1, 0.2, gear.radius * 0.22]} />
             <meshStandardMaterial color={steel} roughness={0.45} metalness={0.65} />
           </mesh>

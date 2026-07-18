@@ -197,7 +197,9 @@ function GearPrimitive({ entity, theme, emphasized }) {
   return (
     <SemanticMotion motion={entity.motion} emphasized={emphasized}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, entity.height * 0.25, 0]}>
-        <cylinderGeometry args={[entity.radius * 0.82, entity.radius * 0.82, entity.height * 0.35, 24]} />
+        <cylinderGeometry
+          args={[entity.radius * 0.82, entity.radius * 0.82, entity.height * 0.35, 24]}
+        />
         <meshStandardMaterial
           color={brass}
           roughness={0.4}

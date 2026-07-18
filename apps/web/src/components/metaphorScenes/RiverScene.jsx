@@ -390,7 +390,10 @@ function StationDock({ station, item, theme }) {
       {planks.map((p, i) => (
         <mesh key={`pile-${i}`} position={[p.x, 0.05, p.z]}>
           <cylinderGeometry args={[0.05, 0.06, 0.28, 6]} />
-          <meshStandardMaterial color={shiftColor(woodColor, { lightness: -0.12 })} roughness={0.95} />
+          <meshStandardMaterial
+            color={shiftColor(woodColor, { lightness: -0.12 })}
+            roughness={0.95}
+          />
         </mesh>
       ))}
       <group position={station.bank}>
