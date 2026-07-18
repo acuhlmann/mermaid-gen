@@ -188,6 +188,45 @@ function TreePrimitive({ entity, theme, emphasized }) {
   );
 }
 
+function GearPrimitive({ entity, theme, emphasized }) {
+  const brass = theme.machineRimColor ?? '#8b7355';
+  const steel = theme.machinePlateColor ?? '#3d4454';
+  const teeth = Math.max(8, Math.min(14, Math.round(6 + entity.radius * 3)));
+  const toothDepth = entity.radius * 0.18;
+  const torque = entity.presentation?.torque ?? 0;
+  return (
+    <SemanticMotion motion={entity.motion} emphasized={emphasized}>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, entity.height * 0.25, 0]}>
+        <cylinderGeometry args={[entity.radius * 0.82, entity.radius * 0.82, entity.height * 0.35, 24]} />
+        <meshStandardMaterial
+          color={brass}
+          roughness={0.4}
+          metalness={0.7}
+          emissive={torque > 0.4 ? '#f97316' : brass}
+          emissiveIntensity={torque > 0.4 ? 0.35 : emphasized ? 0.15 : 0.04}
+        />
+      </mesh>
+      {Array.from({ length: teeth }, (_, i) => {
+        const angle = (i / teeth) * Math.PI * 2;
+        return (
+          <mesh
+            key={`tooth-${i}`}
+            position={[
+              Math.cos(angle) * entity.radius * 0.9,
+              entity.height * 0.25,
+              Math.sin(angle) * entity.radius * 0.9
+            ]}
+            rotation={[0, -angle, 0]}
+          >
+            <boxGeometry args={[toothDepth, entity.height * 0.28, entity.radius * 0.2]} />
+            <meshStandardMaterial color={steel} roughness={0.45} metalness={0.65} />
+          </mesh>
+        );
+      })}
+    </SemanticMotion>
+  );
+}
+
 function MoundPrimitive({ entity, theme, emphasized }) {
   const color = theme.terrainHighColor ?? theme.treeLeafColor ?? '#65a30d';
   return (
@@ -322,6 +361,9 @@ function PrimitiveBody({ entity, theme, emphasized, lod }) {
   }
   if (entity.primitive === 'tree') {
     return <TreePrimitive entity={entity} theme={theme} emphasized={emphasized} />;
+  }
+  if (entity.primitive === 'gear') {
+    return <GearPrimitive entity={entity} theme={theme} emphasized={emphasized} />;
   }
   if (entity.primitive === 'mound') {
     return <MoundPrimitive entity={entity} theme={theme} emphasized={emphasized} />;

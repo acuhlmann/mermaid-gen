@@ -12,10 +12,11 @@ const METRIC_RANGE_BY_KIND = Object.freeze({
   terrain: [-10, 20],
   orrery: [0.1, 10],
   river: [0.1, 20],
-  garden: [0.1, 10]
+  garden: [0.1, 10],
+  machine: [0.1, 10]
 });
 
-const AFFINITY_FIELDS = Object.freeze(['district', 'chain', 'bed', 'label', 'id']);
+const AFFINITY_FIELDS = Object.freeze(['district', 'chain', 'bed', 'axle', 'label', 'id']);
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -146,6 +147,7 @@ function makePresentation(item, kind) {
     cracks: clamp(finite(item?.cracks, 0), 0, 1),
     tilt: clamp(finite(item?.tilt, 0), 0, 15),
     relief: clamp(finite(item?.relief, 0.5), 0, 1),
+    torque: clamp(finite(item?.torque, 0), 0, 1),
     affinity: [...affinityTokens(item)]
   };
 }
@@ -644,6 +646,7 @@ export function resolveCompositeAtmosphere(dsl) {
   if (roles.has('path') || kinds.includes('river')) return 'river';
   if (kinds.includes('garden')) return 'garden';
   if (kinds.includes('galaxy') || kinds.includes('orrery')) return 'galaxy';
+  if (kinds.includes('machine')) return 'machine';
   if (kinds.includes('tree')) return 'tree';
   if (kinds.includes('layercake')) return 'layercake';
   if (kinds.includes('city')) return 'city';

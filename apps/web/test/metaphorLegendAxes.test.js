@@ -45,6 +45,7 @@ describe('legendAxesFor', () => {
       'galaxy',
       'garden',
       'layercake',
+      'machine',
       'orrery',
       'river',
       'terrain',
@@ -90,6 +91,21 @@ describe('legendAxesFor', () => {
       { key: 'mass', label: 'Mass', text: 'weekly orders' },
       { key: 'relief', label: 'Relief', text: 'domain maturity' },
       { key: 'chain', label: 'Chain', text: 'region' }
+    ]);
+  });
+
+  it('exposes machine size, speed, axle, and torque axes', () => {
+    const axes = legendAxesFor('machine', {
+      size: 'criticality',
+      speed: 'rps',
+      axle: 'subsystem',
+      torque: 'saturation'
+    });
+    expect(axes).toEqual([
+      { key: 'size', label: 'Size', text: 'criticality' },
+      { key: 'speed', label: 'Speed', text: 'rps' },
+      { key: 'axle', label: 'Axle', text: 'subsystem' },
+      { key: 'torque', label: 'Torque', text: 'saturation' }
     ]);
   });
 });

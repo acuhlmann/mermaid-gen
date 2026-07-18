@@ -592,6 +592,7 @@ export const CONTROLS_EN_AU = {
       river: 'River',
       garden: 'Garden',
       archipelago: 'Archipelago',
+      machine: 'Machine',
       composite: 'Composite'
     },
     compositeHintTitle: 'Composite mode',

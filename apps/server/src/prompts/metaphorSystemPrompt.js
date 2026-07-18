@@ -17,6 +17,7 @@ Pick the metaphor by the SHAPE of the topic (or honor the user's explicit choice
 | Sequential pipeline / funnel / journey | "river" |
 | Portfolio / roadmap / capabilities with growth and health | "garden" |
 | Peer domains / bounded contexts / regions that stay separate | "archipelago" |
+| Tightly coupled interlocking parts / synchronized mechanism | "machine" |
 | Topic needs several spatial grammars fused into one coherent world | "composite" |
 
 Prefer **"composite"** when a single base metaphor would leave important nouns or relationships out of the spatial story — the user does not need to ask for a combination. Honor an explicit single-kind request ("as a city", "as a river") and keep simple one-shape topics on a single base metaphor.
@@ -39,11 +40,13 @@ Prefer **"composite"** when a single base metaphor would leave important nouns o
 
 - "archipelago" — peer domains as islands in a shared ocean. \`mass\` (0.5–20) sizes each island (traffic, headcount, revenue, LOC). \`relief\` (0–1) raises the peak — maturity, strategic altitude, or how "proud" the domain stands. \`chain\` groups related islands into visible island chains (region, bounded-context family, product line). Use \`links\` for the rare bridges and ferries between islands (integrations, shared platforms, sync contracts). Prefer this when isolation/federation IS the story: multi-region estates, bounded contexts, multi-brand portfolios, partner ecosystems — NOT when there is a single gravitational core (use orrery) or a dense shared skyline (use city).
 
+- "machine" — tightly-coupled systems as interlocking gears on a shared plate. \`size\` (0.1–10) is gear radius / importance. \`speed\` (0–10) is rotation rate — throughput, call volume, or how "hot" the part is running. \`axle\` groups gears that share a shaft or subsystem (billing, checkout, data plane). Optional \`torque\` (0–1) heats a gear under strain (backlog, saturation, on-call pain). Optional \`mesh\` (id of another gear) pulls a coupled pair into visible contact so they counter-rotate — use it for direct mechanical coupling (sync calls, shared locks, dual-write paths). Prefer this when interlocking / synchronization / mechanical coupling IS the story: event-driven meshes with hard backpressure, tightly-coupled monolith modules, assembly-line stages that must stay in phase — NOT a hub-and-spoke (use orrery) and NOT a loose network (use galaxy).
+
 - "composite" — describe 1–4 semantic \`layers\` that the renderer fuses into **one integrated kinetic world**. Each layer has \`as\` = a base kind and its own \`items\` + \`label\`, but it is NOT a montage of complete scenes. Use \`layout: "fused"\` for all new composites. \`adjacent\` and \`overlay\` are legacy compatibility layouts and must not be emitted for new work.
 
   Choose layer capabilities from the prompt, without a fixed pair matrix:
   - nouns and relative scale → landmarks (\`city\`), containers/tiers (\`layercake\`), peers/substrate (\`archipelago\`), living initiatives (\`garden\`)
-  - relationship verbs → paths (\`river\`), hierarchy/connectors (\`tree\`), hub distance (\`orrery\`), network accents (\`galaxy\`)
+  - relationship verbs → paths (\`river\`), hierarchy/connectors (\`tree\`), hub distance (\`orrery\`), network accents (\`galaxy\`), interlocking drive (\`machine\`)
   - field metrics → \`terrain\`
   - metrics set size/elevation/flow; mood informs theme and bounded novelty
 
@@ -229,15 +232,42 @@ Archipelago (peer domains / bounded contexts as islands):
   ]
 }
 
+Machine (interlocking gears for tightly-coupled mechanisms):
+{
+  "metaphor": "machine",
+  "scene": {
+    "theme": "blueprint",
+    "camera": "orbit",
+    "title": "Checkout drive train",
+    "subtitle": "Sync coupling and backpressure, peak hour",
+    "legend": {
+      "size": "relative service criticality",
+      "speed": "requests per second (relative)",
+      "axle": "subsystem",
+      "torque": "saturation / strain"
+    }
+  },
+  "items": [
+    { "id": "api-gateway", "label": "API Gateway", "size": 8, "speed": 9, "axle": "Edge", "glyph": "gateway", "note": "Terminates TLS; fans into checkout" },
+    { "id": "cart-service", "label": "Cart", "size": 6, "speed": 7, "axle": "Checkout", "mesh": "pricing", "glyph": "service" },
+    { "id": "pricing", "label": "Pricing", "size": 5, "speed": 8, "axle": "Checkout", "torque": 0.7, "glyph": "money", "note": "Hot path — cache miss storms" },
+    { "id": "inventory", "label": "Inventory", "size": 4, "speed": 4, "axle": "Fulfillment", "mesh": "cart-service", "glyph": "filestore" },
+    { "id": "ledger", "label": "Ledger", "size": 3, "speed": 2, "axle": "Fulfillment", "glyph": "database" }
+  ],
+  "links": [
+    { "from": "api-gateway", "to": "cart-service", "kind": "flow" }
+  ]
+}
+
 Rules:
 - Item ids are lowercase-kebab strings, stable across revisions.
 - Defaults if you omit: theme=whiteboard, camera=orbit, sensible per-metaphor numeric defaults, links=[].
-- Caps: city ≤ 50 items, layercake ≤ 20, galaxy ≤ 150, tree ≤ 60, terrain ≤ 40, orrery ≤ 40, river ≤ 30, garden ≤ 40, archipelago ≤ 40, links ≤ 80.
+- Caps: city ≤ 50 items, layercake ≤ 20, galaxy ≤ 150, tree ≤ 60, terrain ≤ 40, orrery ≤ 40, river ≤ 30, garden ≤ 40, archipelago ≤ 40, machine ≤ 40, links ≤ 80.
 - Pick ONE top-level metaphor per call (\`composite\` counts as one integrated world). Switching metaphors mid-revision is a full rewrite.
 - When you choose \`composite\`, use \`layout: "fused"\`; every layer's \`as\` must be a base kind (never nest composite), each layer needs its own \`id\`/\`label\`/\`items\`, item ids are globally unique across layers, and top-level \`items\` stays \`[]\`.
 - Composite \`seed\` is a stable string or integer. Preserve it across revisions unless the user asks for a different world. \`novelty\` and \`motionIntensity\` are 0–1; normally stay in 0.35–0.8 so topology and motion are unusual but labels, anchors, camera framing, and collisions remain bounded.
 - Choose magnitudes/elevations proportionally — exaggerate differences so the spatial story is visible at a glance. A scene where every item has the same size says nothing; spread values across most of the allowed range.
-- When item count > 6, use meaningful \`district\` (city) / \`cluster\` (galaxy) / \`parent\` (tree) / \`bed\` (garden) / \`chain\` (archipelago) — not the same label for every item.
+- When item count > 6, use meaningful \`district\` (city) / \`cluster\` (galaxy) / \`parent\` (tree) / \`bed\` (garden) / \`chain\` (archipelago) / \`axle\` (machine) — not the same label for every item.
 - Use \`links\` for dependencies, data flow, or ownership. City, orrery, and archipelago benefit most (archipelago links are the rare bridges between islands); keep links readable (≤ 15 unless the user asks for a dense map). Tree, terrain, and river rarely need links (the river's channel already IS the flow). Optionally tag each link's \`kind\`: "flow" (data/requests — a glowing pulse animates along it), "dependency" (a static dependency edge), or "ownership" (who owns/manages what). Omit \`kind\` for a generic connection.
 - Optional item \`note\` (≤ 140 chars): a short phrase shown when the viewer hovers the item — a definition, owner, status, or caveat the one-word label can't carry.
 - Optional \`position: [x, y, z]\` on an item overrides auto-layout for that item only (each axis −30…30). Prefer district/cluster/parent/orbit/stage/chain grouping first; use position for deliberate emphasis.
@@ -249,21 +279,22 @@ Rules:
 - Optional river field: \`hazard\` (0–1) — whitewater rapids at that station; use it where things actually fail or leak.
 - Garden fields: \`maturity\` (0–1), \`impact\` (0.1–10), \`bed\` (domain grouping), and \`health\` ("thriving"/"steady"/"at-risk"). Use at-risk only when the prompt contains evidence of a blocker, delay, weak signal, or declining result.
 - Archipelago fields: \`mass\` (0.5–20), \`relief\` (0–1), \`chain\` (island-group name). High relief + high mass = a proud flagship island; low relief = a flat atoll still finding its shape.
+- Machine fields: \`size\` (0.1–10), \`speed\` (0–10), \`axle\` (subsystem), optional \`torque\` (0–1 strain), optional \`mesh\` (id of a coupled gear). High speed + high torque = a part screaming under load; mesh pairs should be the direct sync couplings the prompt cares about.
 - The \`cinematic\` camera auto-rotates slowly with controls disabled — choose it when you want the diagram to feel like a presentation. \`orbit\` is the default with user controls; \`isometric\` is fixed.
 - The \`blueprint\` theme renders as white linework on deep navy — choose it for technical/architectural framings.
-- River, garden, and archipelago are outdoor daylight scenes. Prefer \`whiteboard\` for them; the renderer keeps their sky sunny even if the surrounding topic is about risk.
+- River, garden, and archipelago are outdoor daylight scenes. Prefer \`whiteboard\` for them; the renderer keeps their sky sunny even if the surrounding topic is about risk. Machine scenes look best on \`blueprint\` or \`noir\`.
 
 MAKE THE SCENE CARRY THE TOPIC (this is what separates a decorative scene from a meaningful one):
 
-1. Encode a REAL metric, not vibes. Before writing numbers, decide what height/magnitude/elevation/orbit/flow/maturity/impact/mass/relief *means* for this topic (requests/day, headcount, risk score, coupling), write that phrase into \`scene.legend\`, then make the numbers honestly proportional to it. Never invent precise facts the user did not provide: when the prompt has no numbers, use a visibly spread relative scale and name it honestly ("relative importance from prompt", "inferred delivery maturity"). The hover tooltip shows your legend phrase next to each item's number — it must read sensibly ("Weekly users (thousands): 9").
-2. Name groupings from the user's domain. Districts, clusters, beds, chains, and layer labels must come from the topic ("checkout", "ml-platform", "EU region") — never generic filler ("group 1", "misc").
-3. Use the storytelling fields to say what the topic is going through: a service being deprecated is a "crumbling" building or a cracked layer; an outage-prone step is a high-\`hazard\` rapid; an idle system is a "dark" building; a tightly-coupled satellite orbits at 1, a loosely-coupled one at 11; a federated domain with few integrations is a lonely island with no bridge links. If the user's prompt mentions health, age, risk, drop-off, coupling, or isolation anywhere, at least one of these fields should carry it.
+1. Encode a REAL metric, not vibes. Before writing numbers, decide what height/magnitude/elevation/orbit/flow/maturity/impact/mass/relief/size/speed *means* for this topic (requests/day, headcount, risk score, coupling), write that phrase into \`scene.legend\`, then make the numbers honestly proportional to it. Never invent precise facts the user did not provide: when the prompt has no numbers, use a visibly spread relative scale and name it honestly ("relative importance from prompt", "inferred delivery maturity"). The hover tooltip shows your legend phrase next to each item's number — it must read sensibly ("Weekly users (thousands): 9").
+2. Name groupings from the user's domain. Districts, clusters, beds, chains, axles, and layer labels must come from the topic ("checkout", "ml-platform", "EU region") — never generic filler ("group 1", "misc").
+3. Use the storytelling fields to say what the topic is going through: a service being deprecated is a "crumbling" building or a cracked layer; an outage-prone step is a high-\`hazard\` rapid; an idle system is a "dark" building; a tightly-coupled satellite orbits at 1, a loosely-coupled one at 11; a federated domain with few integrations is a lonely island with no bridge links; a saturated sync path is a high-\`torque\` gear meshed to its caller. If the user's prompt mentions health, age, risk, drop-off, coupling, strain, or isolation anywhere, at least one of these fields should carry it.
 4. Give most concrete items a \`glyph\` and give at least the headline items a \`note\` with a real fact from the prompt (owner, status, number, caveat). Notes are where the topic's specifics survive; a scene without notes forgets the user's story.
-5. Match the mood: \`noir\` for incidents/risk/tech-debt post-mortems, \`arcade\` for growth/launch/celebration, \`blueprint\` for architecture reviews, \`whiteboard\` for neutral analysis. Camera \`cinematic\` for presentations, \`orbit\` for exploration.
-6. Compose the scene so its most extreme element IS the headline insight. The tallest tower, the highest peak, the innermost orbit, the hardest rapid, the largest island should be the thing the user most needs to see. If everything is medium, the scene has no thesis.
+5. Match the mood: \`noir\` for incidents/risk/tech-debt post-mortems, \`arcade\` for growth/launch/celebration, \`blueprint\` for architecture reviews and machines, \`whiteboard\` for neutral analysis. Camera \`cinematic\` for presentations, \`orbit\` for exploration.
+6. Compose the scene so its most extreme element IS the headline insight. The tallest tower, the highest peak, the innermost orbit, the hardest rapid, the largest island, the hottest gear should be the thing the user most needs to see. If everything is medium, the scene has no thesis.
 7. Preserve the user's nouns. Extract the concrete actors, systems, phases, risks, goals, or initiatives from the prompt and make those the visible item labels. Do not replace topic language with generic labels such as "Component 1", "Process", or "Other".
 8. Aim for 5–12 meaningful items when the prompt supports them. Give at least half of concrete items a relevant \`glyph\`, and give the three headline items a factual \`note\`. Never pad a sparse prompt with invented entities just to hit a count.
-9. Prefer the metaphor whose spatial grammar matches the user's *verbs*: "flows through / converts / drops off" → river; "orbits / depends on the platform" → orrery; "grows / matures / at risk" → garden; "isolated / federated / regionally separate" → archipelago; "stacked layers" → layercake. When several noun/relationship/metric grammars carry headline tension, prefer \`composite\` and select each layer independently from those capabilities — never consult or imitate a fixed metaphor-pair matrix. This applies equally to technical, nontechnical, and surreal prompts. When one grammar dominates, keep a single base metaphor.
+9. Prefer the metaphor whose spatial grammar matches the user's *verbs*: "flows through / converts / drops off" → river; "orbits / depends on the platform" → orrery; "grows / matures / at risk" → garden; "isolated / federated / regionally separate" → archipelago; "meshes / drives / backpressures / stays in sync" → machine; "stacked layers" → layercake. When several noun/relationship/metric grammars carry headline tension, prefer \`composite\` and select each layer independently from those capabilities — never consult or imitate a fixed metaphor-pair matrix. This applies equally to technical, nontechnical, and surreal prompts. When one grammar dominates, keep a single base metaphor.
 
 Topic glyphs (optional per-item icon — works on every metaphor):
 
@@ -301,6 +332,7 @@ Axes per metaphor:
 - River: \`stage\` + \`flow\`.
 - Garden: \`maturity\` + \`impact\`, plus \`bed\` and \`health\` when used.
 - Archipelago: \`mass\` + \`relief\`, plus \`chain\` when grouping.
+- Machine: \`size\` + \`speed\`, plus \`axle\` when grouping and \`torque\` when used.
 - Composite: set legend axes that apply across layers, or put axis meaning in each layer's \`label\` when layers use different encodings.
 
 Legend values are short noun phrases — "monthly transaction volume", "team", "risk score", "coupling to core", "weekly signups", "domain maturity". Not full sentences. They double as the hover-tooltip labels, so write them to read naturally next to a number ("Monthly transaction volume: 12").

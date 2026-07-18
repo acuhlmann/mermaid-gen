@@ -78,6 +78,14 @@ export const COMPOSITE_PRIMITIVE_REGISTRY = Object.freeze({
     motionStyle: 'orbit',
     estimatedCost: 4
   }),
+  gear: Object.freeze({
+    role: 'connector',
+    bounds: Object.freeze({ radius: [0.55, 1.8], height: [0.4, 1.2] }),
+    anchor: 'hub',
+    placement: 'attach-to-site',
+    motionStyle: 'orbit',
+    estimatedCost: 6
+  }),
   waypoint: Object.freeze({
     role: 'path',
     bounds: Object.freeze({ radius: [0.35, 0.9], height: [0.5, 1.4] }),
@@ -97,7 +105,8 @@ export const COMPOSITE_CAPABILITY_BY_KIND = Object.freeze({
   river: Object.freeze({ role: 'path', primitive: 'waypoint', metric: 'flow' }),
   garden: Object.freeze({ role: 'landmark', primitive: 'bloom', metric: 'impact' }),
   galaxy: Object.freeze({ role: 'accent', primitive: 'star', metric: 'magnitude' }),
-  orrery: Object.freeze({ role: 'accent', primitive: 'orb', metric: 'size' })
+  orrery: Object.freeze({ role: 'accent', primitive: 'orb', metric: 'size' }),
+  machine: Object.freeze({ role: 'connector', primitive: 'gear', metric: 'size' })
 });
 
 export function getCompositeCapability(kind) {

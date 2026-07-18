@@ -47,6 +47,12 @@ export const METAPHOR_LEGEND_AXES = {
     ['relief', 'Relief'],
     ['chain', 'Chain']
   ],
+  machine: [
+    ['size', 'Size'],
+    ['speed', 'Speed'],
+    ['axle', 'Axle'],
+    ['torque', 'Torque']
+  ],
   // Composite layers keep their own encodings; no shared legend axes yet.
   composite: []
 };
@@ -91,6 +97,12 @@ const ITEM_METRICS = {
     { key: 'mass', label: 'Mass', type: 'number' },
     { key: 'relief', label: 'Relief', type: 'number' },
     { key: 'chain', label: 'Chain', type: 'text' }
+  ],
+  machine: [
+    { key: 'size', label: 'Size', type: 'number' },
+    { key: 'speed', label: 'Speed', type: 'number' },
+    { key: 'axle', label: 'Axle', type: 'text' },
+    { key: 'torque', label: 'Torque', type: 'number' }
   ],
   composite: []
 };
