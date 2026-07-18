@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
@@ -306,6 +307,11 @@ export default function OfficeLayer({
     [onOfficeEvent]
   );
 
+  const handleBattleDone = useCallback(() => {
+    cancelOfficeNarration();
+    dismissOfficeBattle();
+  }, []);
+
   const handleAcceptInvite = useCallback(() => {
     const invite = getOfficeSnapshot().meetingInvite;
     if (!invite) return;
@@ -354,19 +360,30 @@ export default function OfficeLayer({
     onTalkToTeam
   });
 
+  const deskDock = (
+    <DeskActionsDock
+      placement="bottom"
+      unreadCount={snapshot.unreadCount}
+      onGetCoffee={desk.getCoffee}
+      onWalkTheFloor={desk.walkTheFloor}
+      onImSomeone={desk.imSomeone}
+      onCheckInbox={desk.checkInbox}
+      onCallMeeting={desk.callMeeting}
+      onTalkToTeam={desk.talkToTeam}
+      blockedReason={desk.blockedReason}
+      canCallMeeting={canCallMeeting}
+    />
+  );
+  const [deskSlot, setDeskSlot] = useState(null);
+  useEffect(() => {
+    setDeskSlot(document.getElementById('office-desk-bottom-slot'));
+  }, []);
+
   return (
     <div className="office-layer">
-      <DeskActionsDock
-        onGetCoffee={desk.getCoffee}
-        onWalkTheFloor={desk.walkTheFloor}
-        onImSomeone={desk.imSomeone}
-        onCheckInbox={desk.checkInbox}
-        onCallMeeting={desk.callMeeting}
-        onTalkToTeam={desk.talkToTeam}
-        blockedReason={desk.blockedReason}
-        canCallMeeting={canCallMeeting}
-      />
+      {deskSlot ? createPortal(deskDock, deskSlot) : null}
       <OfficeInboxDock
+        showTrigger={false}
         openSignal={inboxOpenSignal}
         emails={snapshot.emails}
         unreadCount={snapshot.unreadCount}
@@ -403,7 +420,7 @@ export default function OfficeLayer({
         battle={snapshot.battle}
         onAccept={acceptOfficeBattle}
         onVote={handleBattleVote}
-        onDone={dismissOfficeBattle}
+        onDone={handleBattleDone}
         narrateLine={snapshot.narration ? narrateLine : undefined}
       />
       {!meeting && snapshot.meetingInvite ? (

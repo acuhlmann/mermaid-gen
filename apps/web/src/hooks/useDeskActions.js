@@ -11,6 +11,7 @@ import {
 import { pickRandomFrom } from '../utils/officeCast.js';
 import {
   acceptOfficeCoffee,
+  canOfferOfficeBattle,
   getOfficeSnapshot,
   hasActiveOfficeSurface
 } from '../state/officeMomentStore.js';
@@ -135,7 +136,7 @@ export function useDeskActions(params) {
         const ctx = readSlotContext(p, random);
         const hasDiagram = Boolean((p.getDiagramSource?.() ?? '').trim());
         if (!hasDiagram) {
-          const scene = random() < 0.5 ? 'coffee' : 'battle';
+          const scene = random() < 0.5 || !canOfferOfficeBattle() ? 'coffee' : 'battle';
           const delivered = deliverCannedMoment(scene, ctx, deliveryOptions());
           if (delivered) p.onOfficeEvent?.('walkedFloor');
           return delivered;

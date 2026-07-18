@@ -24,7 +24,8 @@ export default function OfficeInboxDock({
   onMarkAllRead,
   onAdoptPrompt,
   onCallMeeting,
-  canCallMeeting
+  canCallMeeting,
+  showTrigger = true
 }) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
@@ -50,26 +51,28 @@ export default function OfficeInboxDock({
   };
 
   return (
-    <div className="office-inbox">
-      <button
-        type="button"
-        className={`office-inbox-button${open ? ' is-open' : ''}${focusTime ? ' is-focus-time' : ''}`}
-        aria-label={
-          unreadCount > 0
-            ? formatLocale(copy.inbox.unreadAria, { count: unreadCount })
-            : copy.inbox.noUnreadAria
-        }
-        aria-expanded={open}
-        title={copy.inbox.buttonTitle}
-        onClick={toggleOpen}
-      >
-        <span aria-hidden="true">{focusTime ? '📪' : '📥'}</span>
-        {unreadCount > 0 ? (
-          <span className="office-inbox-badge" aria-hidden="true">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
-        ) : null}
-      </button>
+    <div className={`office-inbox${showTrigger ? '' : ' office-inbox--headless'}`}>
+      {showTrigger ? (
+        <button
+          type="button"
+          className={`office-inbox-button${open ? ' is-open' : ''}${focusTime ? ' is-focus-time' : ''}`}
+          aria-label={
+            unreadCount > 0
+              ? formatLocale(copy.inbox.unreadAria, { count: unreadCount })
+              : copy.inbox.noUnreadAria
+          }
+          aria-expanded={open}
+          title={copy.inbox.buttonTitle}
+          onClick={toggleOpen}
+        >
+          <span aria-hidden="true">{focusTime ? '📪' : '📥'}</span>
+          {unreadCount > 0 ? (
+            <span className="office-inbox-badge" aria-hidden="true">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
       {open ? (
         <div className="office-inbox-popover" role="dialog" aria-label={copy.inbox.buttonTitle}>
           <div className="office-inbox-header">

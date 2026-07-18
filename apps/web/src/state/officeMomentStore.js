@@ -21,6 +21,8 @@ import {
 export const IM_PING_TTL_MS = 9000;
 export const IM_PING_MAX_VISIBLE = 2;
 export const WALKBY_TTL_MS = 11_000;
+/** After the user walks away from a battle, hold off the next invite. */
+export const OFFICE_BATTLE_REENTRY_COOLDOWN_MS = 90_000;
 
 function initialState() {
   return {
@@ -45,6 +47,7 @@ function initialState() {
 
 let state = initialState();
 let nextId = 1;
+let battleReentryBlockedUntil = 0;
 const listeners = new Set();
 const expiryTimers = new Map();
 
@@ -204,12 +207,17 @@ export function dismissOfficeCoffee() {
   update({ coffee: null });
 }
 
+export function canOfferOfficeBattle(now = Date.now()) {
+  return !state.battle && now >= battleReentryBlockedUntil;
+}
+
 /**
  * A cubicle battle (docs/office-parody.md): invite pill → arena scene (lines
  * pace in) → the user settles it by voting for a side → the winner's verdict
  * zinger. `votedFor` doubles as the "battle is settled" flag.
  */
 export function pushOfficeBattleInvite({ topic, lines, verdicts }) {
+  if (!canOfferOfficeBattle()) return null;
   const battle = {
     id: makeId('battle'),
     topic: String(topic ?? ''),
@@ -236,6 +244,7 @@ export function voteOfficeBattle(colleagueId) {
 
 export function dismissOfficeBattle() {
   if (!state.battle) return;
+  battleReentryBlockedUntil = Date.now() + OFFICE_BATTLE_REENTRY_COOLDOWN_MS;
   update({ battle: null });
 }
 
@@ -263,4 +272,5 @@ export function _resetForTests() {
   listeners.clear();
   state = initialState();
   nextId = 1;
+  battleReentryBlockedUntil = 0;
 }

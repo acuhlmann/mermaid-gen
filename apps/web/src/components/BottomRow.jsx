@@ -26,7 +26,10 @@ export function BottomRow({ statusRow, promptPopover, actions, aiControls, narro
       {statusRow}
       <div className="bottom-row">
         {promptPopover}
-        <div className="bottom-row-actions">{actions}</div>
+        <div className="bottom-row-actions">
+          <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+          {actions}
+        </div>
         <div className={aiClass} aria-label={controls.settings.aiCluster}>
           {aiControls}
         </div>

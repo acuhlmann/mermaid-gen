@@ -160,7 +160,7 @@ export function deliverCannedMoment(kind, ctx, options) {
   if (kind === 'battle') {
     const scene = pickUnseenTemplate(officeBattleScenes(), memory.seenTemplateIds, random);
     if (!scene) return false;
-    pushOfficeBattleInvite({
+    const battleId = pushOfficeBattleInvite({
       topic: fillOfficeSlots(scene.topic, slots),
       lines: scene.lines.map((line) => ({
         speakerId: line.speakerId,
@@ -173,6 +173,7 @@ export function deliverCannedMoment(kind, ctx, options) {
         ])
       )
     });
+    if (!battleId) return false;
     remember(scene.topic);
     markFired(memory, scene.id, onFired);
     return true;

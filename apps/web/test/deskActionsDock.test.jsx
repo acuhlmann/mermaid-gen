@@ -21,6 +21,12 @@ function open(props = {}) {
 describe('DeskActionsDock', () => {
   afterEach(() => cleanup());
 
+  it('shows an unread badge on the desk button and inbox verb', () => {
+    open({ unreadCount: 3 });
+    expect(screen.getByRole('button', { name: /Your desk/i }).textContent).toContain('3');
+    expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
+  });
+
   it('offers the six desk verbs once opened', () => {
     open();
     for (const label of [

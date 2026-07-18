@@ -68,7 +68,7 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
     return () => {
       cancelled = true;
     };
-  }, [accepted, battleId, lineCount, battle]);
+  }, [accepted, battleId, lineCount]);
 
   // Winner's closing zinger — overheard after the floor rules.
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
     return () => {
       cancelled = true;
     };
-  }, [accepted, battle?.votedFor, battle, narrateLine]);
+  }, [accepted, battle?.votedFor, battleId, narrateLine]);
 
   const sides = useMemo(() => {
     if (!battle) return [];
@@ -120,8 +120,9 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
   }
 
   const allLinesIn = visibleLines >= lineCount;
-  const winner = battle.votedFor ? officeSenderInfo(battle.votedFor) : null;
-  const verdictText = battle.votedFor ? battle.verdicts[battle.votedFor] : null;
+  const votedFor = battle?.votedFor ?? null;
+  const winner = votedFor ? officeSenderInfo(votedFor) : null;
+  const verdictText = votedFor ? battle.verdicts[votedFor] : null;
 
   return (
     <div className="office-battle-scene" role="dialog" aria-label={copy.battle.sceneAria}>
@@ -171,7 +172,7 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
             );
           })}
         </ul>
-        {allLinesIn && !battle.votedFor ? (
+        {allLinesIn && !votedFor ? (
           <div className="office-battle-settle">
             <p className="office-battle-settle-line">{copy.battle.settleLine}</p>
             <div className="office-battle-settle-buttons">

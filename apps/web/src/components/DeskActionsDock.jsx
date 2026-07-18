@@ -19,7 +19,9 @@ export default function DeskActionsDock({
   onCallMeeting,
   onTalkToTeam,
   blockedReason = null,
-  canCallMeeting = true
+  canCallMeeting = true,
+  unreadCount = 0,
+  placement = 'corner'
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
@@ -40,7 +42,14 @@ export default function DeskActionsDock({
     { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
     { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
-    { id: 'inbox', label: copy.inbox, emoji: '📥', run: onCheckInbox, alwaysEnabled: true },
+    {
+      id: 'inbox',
+      label: copy.inbox,
+      emoji: '📥',
+      run: onCheckInbox,
+      alwaysEnabled: true,
+      badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null
+    },
     {
       id: 'meeting',
       label: copy.meeting,
@@ -52,8 +61,10 @@ export default function DeskActionsDock({
     { id: 'team', label: copy.team, emoji: '👥', run: onTalkToTeam }
   ];
 
+  const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
+
   return (
-    <div className="desk-actions" ref={rootRef}>
+    <div className={`desk-actions${placementClass}`} ref={rootRef}>
       <button
         type="button"
         className={`desk-actions-button${open ? ' is-open' : ''}`}
@@ -64,6 +75,11 @@ export default function DeskActionsDock({
       >
         <span aria-hidden="true">🪪</span>
         <span className="desk-actions-button-label">{copy.buttonLabel}</span>
+        {unreadCount > 0 ? (
+          <span className="desk-actions-unread-badge" aria-hidden="true">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        ) : null}
       </button>
       {open ? (
         <div className="desk-actions-menu" role="menu" aria-label={copy.menuAria}>
@@ -87,7 +103,12 @@ export default function DeskActionsDock({
                 <span className="desk-actions-item-emoji" aria-hidden="true">
                   {verb.emoji}
                 </span>
-                {verb.label}
+                <span className="desk-actions-item-label">{verb.label}</span>
+                {verb.badge ? (
+                  <span className="desk-actions-item-badge" aria-hidden="true">
+                    {verb.badge}
+                  </span>
+                ) : null}
               </button>
             );
           })}
