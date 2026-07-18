@@ -31,7 +31,9 @@ import {
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
-import { METAPHOR_GLTF_ROOT_NAME, MetaphorGltfExportBridge } from '../utils/metaphorGltfExport.js';
+import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
+
+const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
@@ -1219,7 +1221,12 @@ function MetaphorRendererImpl(
     >
       {renderError ? <p className="diagram-error">{renderError}</p> : null}
       {dsl ? (
-        <Canvas camera={ORBIT_CAMERA} dpr={[1, 2]} style={{ width: '100%', height: '100%' }}>
+        <Canvas
+          camera={ORBIT_CAMERA}
+          dpr={[1, 2]}
+          gl={{ preserveDrawingBuffer: true }}
+          style={{ width: '100%', height: '100%' }}
+        >
           <color attach="background" args={[theme.background]} />
           {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
               far enough out that Bounds framing never greys the subject. */}
@@ -1267,7 +1274,7 @@ function MetaphorRendererImpl(
                 <Bounds fit clip observe margin={boundsMargin}>
                   <Center disableY>
                     <group
-                      name={METAPHOR_GLTF_ROOT_NAME}
+                      name={METAPHOR_CONTENT_ROOT_NAME}
                       userData={{
                         archislop: {
                           contentType: 'metaphor3d',
@@ -1286,11 +1293,7 @@ function MetaphorRendererImpl(
           <MetaphorIntro streamingPreview={streamingPreview} />
           {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
           {!streamingPreview && enableGltfExport ? (
-            <MetaphorGltfExportBridge
-              diagramSource={diagramSource}
-              metaphor={dsl.metaphor}
-              enabled
-            />
+            <MetaphorPngExportBridge enabled background={theme.background} />
           ) : null}
         </Canvas>
       ) : null}

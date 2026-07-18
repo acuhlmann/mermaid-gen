@@ -1,5 +1,17 @@
 import { parseChartDsl } from '@archislop/shared';
 import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
+import {
+  MERMAID_EXPORT_MAX_WIDTH_PX,
+  normalizeSvgMarkupForExport,
+  svgMarkupToPngBlob
+} from './svgPngRaster.js';
+
+export {
+  MERMAID_EXPORT_MAX_WIDTH_PX,
+  normalizeSvgMarkupForExport,
+  readSvgDimensions,
+  svgMarkupToPngBlob
+} from './svgPngRaster.js';
 
 /**
  * Per-mode export formats. Each entry is a download the user can take out of
@@ -8,7 +20,7 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
  * Rationale (v1):
  * - mermaid: source for Mermaid Live / IDE plugins; SVG for slides/docs
  * - infographic: AntV DSL text (SVG export needs renderer hooks; deferred)
- * - metaphor3d: scene JSON (authoring) + baked glTF/GLB (delivery)
+ * - metaphor3d: PNG screenshot for sharing + scene JSON for authoring
  * - chart: CSV when tabular data exists; full wrapper JSON; bare Vega-Lite
  * - anything: standalone HTML with vendored libs inlined (not a PWA — a
  *   single file that opens offline in any browser is the right replay shape)
@@ -30,6 +42,8 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
  * @property {ExportDeliveryKind} [delivery] — defaults to text
  * @property {(source: string) => boolean} [isAvailable]
  * @property {string} [shareAsFormatId] — rasterize or alias Share to this format id
+ * @property {boolean} [copyable] — when false, hide clipboard (PNG/SVG/binary)
+ * @property {boolean} [primaryShare] — preferred one-tap share target for this mode
  */
 
 /**
@@ -57,12 +71,18 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
 /** How long an in-browser preview blob URL stays valid after export. */
 export const EXPORT_PREVIEW_URL_TTL_MS = 120_000;
 
-/** Cap rasterized / downloaded mermaid exports so wide sequence diagrams stay shareable. */
-export const MERMAID_EXPORT_MAX_WIDTH_PX = 1600;
-
 /** @type {Record<ExportContentType, ExportFormat[]>} */
 export const EXPORT_FORMATS_BY_MODE = {
   mermaid: [
+    {
+      id: 'mermaid-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportMermaidPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'mermaid-source',
       ext: 'mmd',
@@ -70,22 +90,25 @@ export const EXPORT_FORMATS_BY_MODE = {
       labelKey: 'exportMermaidSource'
     },
     {
-      id: 'mermaid-png',
-      ext: 'png',
-      mime: 'image/png',
-      labelKey: 'exportMermaidPng',
-      delivery: 'image'
-    },
-    {
       id: 'mermaid-svg',
       ext: 'svg',
       mime: 'image/svg+xml;charset=utf-8',
       labelKey: 'exportMermaidSvg',
+      copyable: false,
       /** Share delivers a PNG raster so chat apps receive a picture attachment. */
       shareAsFormatId: 'mermaid-png'
     }
   ],
   infographic: [
+    {
+      id: 'infographic-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportInfographicPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'infographic-dsl',
       ext: 'txt',
@@ -95,20 +118,31 @@ export const EXPORT_FORMATS_BY_MODE = {
   ],
   metaphor3d: [
     {
+      id: 'metaphor-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportMetaphorPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
+    {
       id: 'metaphor-json',
       ext: 'json',
       mime: 'application/json;charset=utf-8',
       labelKey: 'exportMetaphorJson'
-    },
-    {
-      id: 'metaphor-gltf',
-      ext: 'glb',
-      mime: 'model/gltf-binary',
-      labelKey: 'exportMetaphorGltf',
-      delivery: 'file'
     }
   ],
   chart: [
+    {
+      id: 'chart-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportChartPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'chart-csv',
       ext: 'csv',
@@ -134,10 +168,20 @@ export const EXPORT_FORMATS_BY_MODE = {
       id: 'anything-html',
       ext: 'html',
       mime: 'text/html;charset=utf-8',
-      labelKey: 'exportAnythingHtml'
+      labelKey: 'exportAnythingHtml',
+      primaryShare: true
     }
   ],
   forms: [
+    {
+      id: 'forms-png',
+      ext: 'png',
+      mime: 'image/png',
+      labelKey: 'exportFormsPng',
+      delivery: 'image',
+      copyable: false,
+      primaryShare: true
+    },
     {
       id: 'forms-json',
       ext: 'json',
@@ -167,6 +211,35 @@ export function listExportFormats(contentType, diagramSource) {
   return EXPORT_FORMATS_BY_MODE[contentType].filter((format) =>
     format.isAvailable ? format.isAvailable(source) : true
   );
+}
+
+/**
+ * Whether the clipboard action makes sense for this format (text/source only).
+ * @param {ExportFormat} format
+ * @returns {boolean}
+ */
+export function isFormatCopyable(format) {
+  if (format.copyable === false) return false;
+  if (format.delivery === 'file' || format.delivery === 'image') return false;
+  const mime = (format.mime ?? '').toLowerCase();
+  if (mime.startsWith('image/')) return false;
+  return true;
+}
+
+/**
+ * Best one-tap share format for the active mode (PNG for visuals, file for HTML).
+ * @param {string | null | undefined} contentType
+ * @param {string | null | undefined} diagramSource
+ * @returns {string | null}
+ */
+export function getPreferredShareFormatId(contentType, diagramSource) {
+  const formats = listExportFormats(contentType, diagramSource);
+  if (formats.length === 0) return null;
+  const flagged = formats.find((format) => format.primaryShare);
+  if (flagged) return flagged.id;
+  const image = formats.find((format) => format.delivery === 'image');
+  if (image) return image.id;
+  return formats[0].id;
 }
 
 /**
@@ -367,15 +440,18 @@ async function buildExportBody(contentType, formatId, source) {
     }
     case 'infographic-dsl':
       return { body: source.endsWith('\n') ? source : `${source}\n` };
+    case 'infographic-png':
+    case 'chart-png':
+    case 'metaphor-png':
+    case 'forms-png': {
+      const { captureViewportPngBlob } = await import('./viewportPngExport.js');
+      const blob = await captureViewportPngBlob(contentType);
+      return { blob };
+    }
     case 'metaphor-json':
     case 'forms-json':
     case 'chart-json':
       return { body: prettyJsonOrRaw(source) };
-    case 'metaphor-gltf': {
-      const { exportMetaphorGltfBlob } = await import('./metaphorGltfExport.js');
-      const blob = await exportMetaphorGltfBlob();
-      return { blob };
-    }
     case 'chart-vl': {
       const parsed = parseChartDsl(source);
       if (!parsed.ok) throw new Error(parsed.error);
@@ -391,128 +467,6 @@ async function buildExportBody(contentType, formatId, source) {
     default:
       throw new Error(`Unhandled export format: ${formatId}`);
   }
-}
-
-/**
- * Rasterize SVG markup to a PNG blob (client-side canvas).
- * @param {string} svgMarkup
- * @param {{ scale?: number, background?: string }} [options]
- * @returns {Promise<Blob>}
- */
-export async function svgMarkupToPngBlob(svgMarkup, { scale = 2, background = '#ffffff' } = {}) {
-  if (typeof document === 'undefined') {
-    throw new Error('PNG export requires a browser canvas');
-  }
-  const { width, height } = readSvgDimensions(svgMarkup);
-  const svgBlob = new Blob([svgMarkup], { type: 'image/svg+xml;charset=utf-8' });
-  const objectUrl = URL.createObjectURL(svgBlob);
-  try {
-    const image = await loadImageElement(objectUrl);
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.ceil(width * scale));
-    canvas.height = Math.max(1, Math.ceil(height * scale));
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D context unavailable');
-    ctx.fillStyle = background;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const pngBlob = await canvasToBlob(canvas, 'image/png');
-    if (!pngBlob) throw new Error('PNG encode failed');
-    return pngBlob;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-/**
- * @param {string} svgMarkup
- * @returns {{ width: number, height: number }}
- */
-export function readSvgDimensions(svgMarkup) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
-  const root = doc.documentElement;
-  if (!root || root.nodeName.toLowerCase() === 'parsererror') {
-    return { width: 800, height: 600 };
-  }
-  let width = parseSvgLength(root.getAttribute('width'));
-  let height = parseSvgLength(root.getAttribute('height'));
-  const viewBox = root.getAttribute('viewBox');
-  if ((!width || !height) && viewBox) {
-    const parts = viewBox
-      .trim()
-      .split(/[\s,]+/)
-      .map(Number);
-    if (parts.length === 4 && parts.every((n) => Number.isFinite(n))) {
-      if (!width) width = parts[2];
-      if (!height) height = parts[3];
-    }
-  }
-  return {
-    width: width > 0 ? width : 800,
-    height: height > 0 ? height : 600
-  };
-}
-
-/**
- * @param {string | null} raw
- * @returns {number}
- */
-function parseSvgLength(raw) {
-  if (!raw) return 0;
-  const text = String(raw).trim();
-  if (/%$/.test(text)) return 0;
-  const n = Number.parseFloat(text.replace(/px$/i, ''));
-  return Number.isFinite(n) ? n : 0;
-}
-
-/**
- * Shrink oversized mermaid SVG roots for export/share (keeps viewBox, caps width).
- * @param {string} svgMarkup
- * @param {{ maxWidth?: number }} [options]
- * @returns {string}
- */
-export function normalizeSvgMarkupForExport(
-  svgMarkup,
-  { maxWidth = MERMAID_EXPORT_MAX_WIDTH_PX } = {}
-) {
-  if (typeof document === 'undefined') return svgMarkup;
-  const { width, height } = readSvgDimensions(svgMarkup);
-  if (!(width > maxWidth) || !(height > 0)) return svgMarkup;
-
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(svgMarkup, 'image/svg+xml');
-  const root = doc.documentElement;
-  if (!root || root.nodeName.toLowerCase() === 'parsererror') return svgMarkup;
-
-  const nextHeight = Math.max(1, Math.round((height * maxWidth) / width));
-  root.setAttribute('width', String(maxWidth));
-  root.setAttribute('height', String(nextHeight));
-  return new XMLSerializer().serializeToString(doc);
-}
-
-/**
- * @param {string} url
- * @returns {Promise<HTMLImageElement>}
- */
-function loadImageElement(url) {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error('Failed to load SVG for PNG export'));
-    image.src = url;
-  });
-}
-
-/**
- * @param {HTMLCanvasElement} canvas
- * @param {string} type
- * @returns {Promise<Blob | null>}
- */
-function canvasToBlob(canvas, type) {
-  return new Promise((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), type);
-  });
 }
 
 /**
