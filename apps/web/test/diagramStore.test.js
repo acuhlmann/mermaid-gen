@@ -11,6 +11,7 @@ import {
   isPeerSlotAhead,
   isSlotCustomized,
   isSlotInSyncForTopic,
+  mergeLeavingSlotSnapshot,
   needsModeSwitchPeerSync,
   peerRequiresModeSwitchTranslation,
   pickPrimaryPeerMode,
@@ -1052,5 +1053,63 @@ describe('mode switch peer context', () => {
     };
     const peer = buildIntentPeerContext('chart', session, 'Solar system', 'mermaid');
     expect(peer).toEqual({ contentType: 'mermaid', diagramSource: customMermaid.diagramSource });
+  });
+
+  it('mergeLeavingSlotSnapshot overlays local peer when server slot is still default', () => {
+    const localMermaid = {
+      ...createInitialDiagramState('mermaid'),
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  API --> DB',
+      lastUserPrompt: 'API gateway',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const session = {
+      mermaid: createInitialDiagramState('mermaid'),
+      infographic: createInitialDiagramState('infographic')
+    };
+    const merged = mergeLeavingSlotSnapshot(session, 'mermaid', localMermaid);
+    expect(isSlotCustomized(merged.mermaid)).toBe(true);
+    expect(merged.mermaid.diagramSource).toContain('API');
+    expect(
+      needsModeSwitchPeerSync({
+        contentMode: 'infographic',
+        session: merged,
+        candidate: 'API gateway',
+        syncMarkers: { mermaid: null, infographic: null }
+      })
+    ).toBe(true);
+  });
+
+  it('mergeLeavingSlotSnapshot keeps newer server revision when already ahead', () => {
+    const serverMermaid = {
+      ...createInitialDiagramState('mermaid'),
+      revisionId: 5,
+      diagramSource: 'flowchart TD\n  Server',
+      updatedAt: '2026-05-10T11:00:00.000Z'
+    };
+    const staleLocal = {
+      ...createInitialDiagramState('mermaid'),
+      revisionId: 2,
+      diagramSource: 'flowchart TD\n  Local',
+      updatedAt: '2026-05-10T10:00:00.000Z'
+    };
+    const session = {
+      mermaid: serverMermaid,
+      infographic: createInitialDiagramState('infographic')
+    };
+    const merged = mergeLeavingSlotSnapshot(session, 'mermaid', staleLocal);
+    expect(merged.mermaid.diagramSource).toContain('Server');
+  });
+
+  it('shouldAutoSubmitModeSwitchIntent runs when needsPeerSync despite stale textarea', () => {
+    expect(
+      shouldAutoSubmitModeSwitchIntent({
+        candidate: 'API gateway',
+        textareaDirty: true,
+        newSlotInSync: false,
+        peerRequiresTranslation: false,
+        needsPeerSync: true
+      })
+    ).toBe(true);
   });
 });
