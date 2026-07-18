@@ -1,14 +1,13 @@
 /**
  * Live-viewport PNG capture for share-friendly exports.
  *
- * Renderers register a baker while the primary canvas is mounted (same pattern
- * as metaphorGltfExport.js). Falls back to DOM queries for SVG-based modes when
- * no registration exists.
+ * Renderers register a baker while the primary canvas is mounted. Falls back to
+ * DOM queries for SVG-based modes when no registration exists.
  */
 
 import { useEffect } from 'react';
 import { useThree } from '@react-three/fiber';
-import { svgMarkupToPngBlob } from './exportDiagram.js';
+import { svgMarkupToPngBlob } from './svgPngRaster.js';
 
 /** @typedef {() => Promise<Blob>} ViewportPngExporter */
 

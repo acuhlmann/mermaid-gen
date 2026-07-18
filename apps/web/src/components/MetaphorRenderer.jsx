@@ -31,8 +31,9 @@ import {
 } from './MetaphorOverlays.jsx';
 import { MetaphorEffects } from './MetaphorEffects.jsx';
 import { MetaphorHoverContext, createMetaphorHoverStore } from './metaphorHover.js';
-import { METAPHOR_GLTF_ROOT_NAME, MetaphorGltfExportBridge } from '../utils/metaphorGltfExport.js';
 import { MetaphorPngExportBridge } from '../utils/viewportPngExport.js';
+
+const METAPHOR_CONTENT_ROOT_NAME = 'archislop-metaphor-root';
 import { MetaphorClockProvider } from './metaphorScenes/MetaphorClockProvider.jsx';
 import { idHash, idHash2, shiftColor, truncateLabel } from './metaphorScenes/sceneUtils.js';
 import {
@@ -1273,7 +1274,7 @@ function MetaphorRendererImpl(
                 <Bounds fit clip observe margin={boundsMargin}>
                   <Center disableY>
                     <group
-                      name={METAPHOR_GLTF_ROOT_NAME}
+                      name={METAPHOR_CONTENT_ROOT_NAME}
                       userData={{
                         archislop: {
                           contentType: 'metaphor3d',
@@ -1291,13 +1292,6 @@ function MetaphorRendererImpl(
           <OrbitControls enableDamping makeDefault />
           <MetaphorIntro streamingPreview={streamingPreview} />
           {!streamingPreview && postfx.enabled ? <MetaphorEffects postfx={postfx} /> : null}
-          {!streamingPreview && enableGltfExport ? (
-            <MetaphorGltfExportBridge
-              diagramSource={diagramSource}
-              metaphor={dsl.metaphor}
-              enabled
-            />
-          ) : null}
           {!streamingPreview && enableGltfExport ? (
             <MetaphorPngExportBridge enabled background={theme.background} />
           ) : null}
