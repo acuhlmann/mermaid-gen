@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useRef } from 'react';
-import { AdvisorFloatPortal } from '../src/hooks/useAdvisorFloatPortal.jsx';
+import AdvisorFloatPortal from '../src/components/AdvisorFloatPortal.jsx';
 
 function Probe({ active, children }) {
   const anchorRef = useRef(null);

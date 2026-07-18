@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
-import { AdvisorFloatPortal } from '../hooks/useAdvisorFloatPortal.jsx';
+import AdvisorFloatPortal from './AdvisorFloatPortal.jsx';
 import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
