@@ -11,6 +11,7 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/shared/tsconfig.json packages/shared/
 COPY packages/shared/tsconfig.build.json packages/shared/
 COPY packages/shared/src packages/shared/src/
+COPY packages/shared/scripts packages/shared/scripts/
 
 RUN npm ci
 

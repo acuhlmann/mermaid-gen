@@ -26,6 +26,6 @@ Shared (committed) files live under `.vscode/` — see [`.vscode/README.md`](../
 Personal `launch.json` and `settings.json` are gitignored so machine-specific shell/debug prefs stay local.
 
 - **Default:** copy `launch.example.json` → `launch.json`, then run **Archislop: Dev (server + web)** (root `npm run dev`, loads `.env`, opens the Vite URL when ready).
-- **Server breakpoints:** **Server: Debug (compiled dist)** — builds then runs `apps/server/dist/index.js` (do not attach to raw `src/index.js` with `tsx` for day-to-day listen-on-`:4000` work).
+- **Server breakpoints:** **Server: Debug (compiled dist)** — builds then runs the compiled `dist/index.js` output (do not attach to raw `src/index.js` with `tsx` for day-to-day listen-on-`:4000` work).
 
 Coding agents: see [`AGENTS.md`](../../AGENTS.md) for commands and file locations.
