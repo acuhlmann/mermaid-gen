@@ -108,8 +108,8 @@ async function waitForControlsReady(buttonName = 'Refine') {
 }
 
 function openRenderAsMenu() {
-  if (screen.queryByRole('menu', { name: 'Target render mode' })) return;
-  fireEvent.click(screen.getByRole('button', { name: /open render as/i }));
+  if (screen.queryByRole('menu', { name: 'Deliverable format' })) return;
+  fireEvent.click(screen.getByRole('button', { name: /open deliverable format/i }));
 }
 
 function pickContentMode(modeLabel) {
@@ -374,7 +374,10 @@ describe('App simplified controls', () => {
 
     render(<App />);
 
-    const chip = await screen.findByRole('button', { name: 'Coffee supply chain' });
+    // The chip's accessible name includes the Day One attribution (requester +
+    // ask) and the example CTA also names the topic — the chip's title (the raw
+    // prompt) is the unique handle.
+    const chip = await screen.findByTitle('Break down the global coffee supply chain');
     fireEvent.click(chip);
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());

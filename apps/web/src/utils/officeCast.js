@@ -117,17 +117,32 @@ export function isOfficeColleagueId(value) {
 }
 
 /**
- * Display info for anyone who can appear in office chrome: colleagues (native)
- * or stakeholders (mapped from VARIANT_PERSONAS). Returns
- * `{ id, name, title, avatarEmoji, accentColor }` — accentColor is always a
- * usable CSS color (stakeholder `--vars` are wrapped in var()).
+ * The invented senior-stakeholder executives (castTiers.js `senior` tier).
+ * `exec` (The VP) and `ciso` (Sasha) are promoted members whose display data
+ * already lives in VARIANT_PERSONAS / OFFICE_COLLEAGUES; only the new execs
+ * are defined here. Keep voices aligned with SENIOR_MEETING_VOICES in
+ * apps/server/src/agents/officePersonas.js.
  */
-export function officeSenderInfo(id) {
-  const colleague = OFFICE_COLLEAGUES[id];
-  if (colleague) {
-    const localized = office()?.OFFICE_COLLEAGUES?.[id];
-    return localized ? { ...colleague, ...localized } : colleague;
+export const SENIOR_STAKEHOLDERS = {
+  cto: {
+    id: 'cto',
+    name: 'Marcus',
+    title: 'CTO — Ships Keynotes, Not Code',
+    blurb: 'Vision at scale. Quotes his own conference talk. Last opened an IDE in 2016.',
+    avatarEmoji: '🚀',
+    accentColor: '#7c3aed'
+  },
+  cfo: {
+    id: 'cfo',
+    name: 'Diane',
+    title: 'CFO — The Budget Is a No',
+    blurb: 'Every box is a cost center. Asks what the diagram costs per month. Approves nothing.',
+    avatarEmoji: '🧮',
+    accentColor: '#065f46'
   }
+};
+
+function stakeholderSenderInfo(id) {
   const persona = getVariantPersona(id);
   const accent = persona?.accentColorVar ?? '--accent';
   return {
@@ -139,47 +154,69 @@ export function officeSenderInfo(id) {
   };
 }
 
-/** Default WG meeting seat pool: facilitator + a rotating mix of both casts. */
-export const MEETING_CAST_POOL = ['exec', 'critique', 'goMad', 'intern', 'greybeard', 'ciso'];
+/**
+ * Display info for anyone who can appear in office chrome: colleagues (native),
+ * senior executives, or stakeholders (mapped from VARIANT_PERSONAS). Returns
+ * `{ id, name, title, avatarEmoji, accentColor }` — accentColor is always a
+ * usable CSS color (stakeholder `--vars` are wrapped in var()).
+ */
+export function officeSenderInfo(id) {
+  const colleague = OFFICE_COLLEAGUES[id];
+  if (colleague) {
+    const localized = office()?.OFFICE_COLLEAGUES?.[id];
+    return localized ? { ...colleague, ...localized } : colleague;
+  }
+  const senior = SENIOR_STAKEHOLDERS[id];
+  if (senior) {
+    const localized = office()?.SENIOR_STAKEHOLDERS?.[id];
+    return localized ? { ...senior, ...localized } : senior;
+  }
+  return stakeholderSenderInfo(id);
+}
+
+/** Steering-meeting seats: senior stakeholders the team presents to. */
+export const MEETING_SENIOR_POOL = ['exec', 'ciso', 'cto', 'cfo'];
+/** Team members who can be sent upstairs to defend the diagram. */
+export const MEETING_PRESENTER_POOL = ['refine', 'critique', 'explain'];
 export const MEETING_FACILITATOR = 'scrumMaster';
 
-/** Who can deliver an LLM-personalized moment of each kind (both casts). */
+/**
+ * Who can deliver an LLM-personalized moment of each kind. Team + office only —
+ * the senior tier never pings you day-to-day (castTiers.js); their one outlet
+ * is SENIOR_EMAIL_TEMPLATES and the steering meeting.
+ */
 export const OFFICE_WALKBY_LLM_CAST = [
   'scrumMaster',
   'intern',
   'greybeard',
   'facilities',
   'hr',
-  'ciso',
   'critique',
-  'exec',
   'explain'
 ];
-export const OFFICE_EMAIL_LLM_CAST = [
-  'critique',
-  'exec',
-  'scrumMaster',
-  'greybeard',
-  'hr',
-  'intern',
-  'ciso'
-];
-export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'goMad', 'ciso'];
+export const OFFICE_EMAIL_LLM_CAST = ['critique', 'scrumMaster', 'greybeard', 'hr', 'intern'];
+export const OFFICE_IM_LLM_CAST = ['intern', 'greybeard', 'scrumMaster', 'goMad'];
 
 export function pickRandomFrom(list, random = Math.random) {
   if (!Array.isArray(list) || list.length === 0) return null;
   return list[Math.floor(random() * list.length)] ?? null;
 }
 
-/** Pick 3–4 seats: the facilitator plus 2–3 randoms from the pool. */
+/**
+ * Pick 3–4 steering seats: Pam facilitates, 1–2 senior stakeholders outrank
+ * the room, and one team member presents (the poor soul walking the deck
+ * upstairs).
+ */
 export function pickMeetingAttendees(random = Math.random) {
-  const pool = [...MEETING_CAST_POOL];
+  const seniors = [...MEETING_SENIOR_POOL];
   const seats = [MEETING_FACILITATOR];
-  const extra = 2 + (random() < 0.5 ? 1 : 0);
-  for (let i = 0; i < extra && pool.length > 0; i += 1) {
-    const index = Math.floor(random() * pool.length);
-    seats.push(pool.splice(index, 1)[0]);
+  const seniorCount = 1 + (random() < 0.5 ? 1 : 0);
+  for (let i = 0; i < seniorCount && seniors.length > 0; i += 1) {
+    const index = Math.floor(random() * seniors.length);
+    seats.push(seniors.splice(index, 1)[0]);
   }
+  const presenter = pickRandomFrom(MEETING_PRESENTER_POOL, random) ?? 'refine';
+  seats.push(presenter);
   return seats;
 }
 
@@ -279,18 +316,6 @@ export const OFFICE_EMAIL_TEMPLATES = [
     body: "Saw your diagram on the shared drive. We built this in 2009. It ran on a cron job and fear. Took down prod for a week in 2011.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
   },
   {
-    id: 'email-ciso-phishing',
-    colleagueId: 'ciso',
-    subject: 'You did NOT click. We noticed. (Phishing Simulation Report)',
-    body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suspicious behavior and has been noted in your file.\n\nWe will keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
-  },
-  {
-    id: 'email-ciso-password',
-    colleagueId: 'ciso',
-    subject: 'Password policy update (effective yesterday)',
-    body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
-  },
-  {
     id: 'email-helpdesk-printer-firmware',
     colleagueId: 'helpdesk',
     subject: '[Ticket #48313] Printer firmware update complete',
@@ -329,6 +354,47 @@ export const OFFICE_EMAIL_TEMPLATES = [
 ];
 
 /**
+ * Rare high-stakes emails from the senior tier (castTiers.js) — the one
+ * ambient outlet executives get. Hard-capped at 1 per session by the cadence
+ * brain (officeCadence.js `seniorEmailCount`); the day-to-day banks above
+ * stay team + office only.
+ */
+export const SENIOR_EMAIL_TEMPLATES = [
+  {
+    id: 'email-ciso-phishing',
+    colleagueId: 'ciso',
+    subject: 'You did NOT click. We noticed. (Phishing Simulation Report)',
+    body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suspicious behavior and has been noted in your file.\n\nWe will keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
+  },
+  {
+    id: 'email-ciso-password',
+    colleagueId: 'ciso',
+    subject: 'Password policy update (effective yesterday)',
+    body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
+  },
+  {
+    id: 'email-exec-board-preread',
+    colleagueId: 'exec',
+    subject: 'Pre-read needed: the board will ask about {label}',
+    body: "Team — the board offsite is Thursday and I need a one-pager on {label}. One page. One. If it can't fit on one page it isn't a strategy, it's a hobby.\n\nHard stop in four minutes,\nThe VP",
+    actionPrompt: 'Simplify the diagram to its three most essential elements'
+  },
+  {
+    id: 'email-cfo-cloud-spend',
+    colleagueId: 'cfo',
+    subject: 'FLAGGED: unexplained line item ("{label}")',
+    body: 'Finance flagged a resource called "{label}". Please confirm it is (a) essential, and (b) free. If it cannot be both, see (b).\n\nThe budget is a no,\nDiane'
+  },
+  {
+    id: 'email-cto-conference',
+    colleagueId: 'cto',
+    subject: 'Saw this exact thing at a keynote (thoughts?)',
+    body: 'Just got back from VisionaryConf. There was a slide almost identical to your {label} — except theirs pulsed and had an AI halo. Can ours pulse? Loop in whoever owns pulsing.\n\nOnwards,\nMarcus',
+    actionPrompt: 'Add a bold visionary element that makes the diagram feel futuristic'
+  }
+];
+
+/**
  * First-run onboarding beats (docs/office-parody.md): a welcome email from
  * People Ops that introduces the floor, then an IM from the intern. Pushed
  * once ever by useOfficeWelcome — never part of the random template banks.
@@ -337,7 +403,7 @@ export const OFFICE_WELCOME_EMAIL = {
   id: 'welcome-email-hr',
   colleagueId: 'hr',
   subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-  body: 'Welcome to the floor! So thrilled to have you. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) is already suspicious of you. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
+  body: 'Welcome to the floor! So thrilled to have you. Your role: deliver. Diagrams, charts, 3D — whatever the floor needs, you architect it. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) is already suspicious of you. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
 };
 
 export const OFFICE_WELCOME_IM = {
@@ -399,16 +465,6 @@ export const OFFICE_IM_TEMPLATES = [
     body: 'The mainframe asked about you. I told it you were busy diagramming. It understood.'
   },
   {
-    id: 'im-ciso-password',
-    colleagueId: 'ciso',
-    body: "quarterly scan flagged your password as 'memorable'. unacceptable. rotate it to something even you can't guess."
-  },
-  {
-    id: 'im-ciso-arrows',
-    colleagueId: 'ciso',
-    body: 'counted the arrows in {label}. every one of them is an attack surface. sleep well.'
-  },
-  {
     id: 'im-helpdesk-dns',
     colleagueId: 'helpdesk',
     body: "Network slow? It's DNS. It's not DNS. It was DNS. Ticket closed."
@@ -461,11 +517,6 @@ export const OFFICE_WALKBY_FALLBACKS = [
     id: 'walkby-hr',
     colleagueId: 'hr',
     body: 'Love the energy around {label}! Have you considered presenting it at Mandatory Fun Hour? 😊'
-  },
-  {
-    id: 'walkby-ciso',
-    colleagueId: 'ciso',
-    body: 'Mm. {label}. Bold of you to draw an attack surface and then label it for them.'
   },
   {
     id: 'walkby-helpdesk',
@@ -775,13 +826,13 @@ export const OFFICE_BATTLE_SCENES = [
 
 /** In-fiction copy for meeting chrome (invites, joining gag, failure gag). */
 export const OFFICE_MEETING_COPY = {
-  inviteFallbackTitle: 'WG: Diagram Alignment Sync (recurring)',
+  inviteFallbackTitle: 'Architecture Review Board (steering)',
   inviteFallbackBody:
-    'We need to sync on the current diagram. Agenda: alignment, next steps, alignment on next steps. Snacks: no.',
+    'Leadership would like a look at the current diagram. Agenda: the headline, the cost, the risk. Your team presents; the seniors have questions. Snacks: no.',
   joiningLine: 'Waiting for the organizer to admit you…',
-  cancelledSubject: 'CANCELLED: Diagram Alignment Sync',
+  cancelledSubject: 'CANCELLED: Architecture Review Board',
   cancelledBody:
-    'Meeting cancelled — the organizer is double-booked. Rescheduled to: never. Action items remain your problem.\n\nPam',
+    'Meeting cancelled — leadership is double-booked. Rescheduled to: never. Action items remain your problem.\n\nPam',
   proposeNewTimeGag: 'New time proposed. The organizer has declined your proposed time.',
   minutesTitle: 'Meeting minutes',
   raiseHandPlaceholder: 'Say something to the room…',
@@ -800,11 +851,11 @@ export const OFFICE_IM_QUICK_REPLIES = ['👍', 'in a meeting', 'circling back']
 export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
   directory: {
-    title: 'Welcome to the office',
-    tagline: 'Your diagram has a workplace — and the floor has opinions.',
+    title: 'Day one at ArchiSlop Corp.',
+    tagline: 'Your new floor. Your new colleagues. Their opinions are included at no extra cost.',
     tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
     rosterTagline: 'The cast that emails, IMs, and walks by while you work:',
-    expandLabel: '🏢 Meet the office',
+    expandLabel: '🏢 Meet the floor',
     expandTitle: 'Who keeps interrupting me?',
     startLabel: 'Meet the floor →',
     nextLabel: 'Next →',
@@ -813,6 +864,27 @@ export const OFFICE_CHROME_COPY = {
     progressLabel: '{current} of {total}',
     dismissLabel: 'Clock in',
     closeAria: 'Close the office directory'
+  },
+  // Player-initiated desk verbs — the ego-perspective counterpart to the
+  // ambience director. `blocked.*` keys are keyed by useDeskActions reasons.
+  desk: {
+    buttonLabel: 'Your desk',
+    buttonAria: 'Your desk — things you can do',
+    buttonTitle: 'Get up, wander, bother someone',
+    menuAria: 'Desk actions',
+    menuHeading: 'What are you doing?',
+    coffee: 'Get a coffee',
+    walk: 'Walk the floor',
+    im: 'Message someone',
+    inbox: 'Check your mail',
+    meeting: 'Call a meeting',
+    team: 'Talk to your team',
+    blocked: {
+      busy: 'Deploy in progress — nobody leaves their desk.',
+      meeting: "You're in a meeting. Look engaged.",
+      surface: 'One thing at a time. You are already busy being interrupted.',
+      noAgenda: 'Draw something first — even this meeting needs an agenda'
+    }
   },
   inbox: {
     buttonTitle: 'Corporate inbox',
@@ -896,6 +968,10 @@ export function officeWelcomeIm() {
 
 export function officeImTemplates() {
   return office()?.OFFICE_IM_TEMPLATES ?? OFFICE_IM_TEMPLATES;
+}
+
+export function seniorEmailTemplates() {
+  return office()?.SENIOR_EMAIL_TEMPLATES ?? SENIOR_EMAIL_TEMPLATES;
 }
 
 export function officeWalkbyFallbacks() {

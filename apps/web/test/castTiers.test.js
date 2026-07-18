@@ -1,0 +1,82 @@
+import { describe, expect, it } from 'vitest';
+import { CAST_TIERS, tierOf } from '../src/utils/castTiers.js';
+import {
+  MEETING_PRESENTER_POOL,
+  MEETING_SENIOR_POOL,
+  OFFICE_COLLEAGUES,
+  OFFICE_EMAIL_LLM_CAST,
+  OFFICE_IM_LLM_CAST,
+  OFFICE_WALKBY_LLM_CAST,
+  SENIOR_EMAIL_TEMPLATES,
+  SENIOR_STAKEHOLDERS,
+  officeSenderInfo,
+  pickMeetingAttendees
+} from '../src/utils/officeCast.js';
+import { VARIANT_PERSONAS } from '../src/utils/slopitectCopy.js';
+
+const ALL_IDS = Object.values(CAST_TIERS).flat();
+
+describe('cast tiers', () => {
+  it('assigns every cast member to exactly one tier', () => {
+    expect(new Set(ALL_IDS).size).toBe(ALL_IDS.length);
+    for (const id of ALL_IDS) expect(tierOf(id)).toBeTruthy();
+    expect(tierOf('nobody')).toBeNull();
+  });
+
+  it('covers every advisor persona, colleague, and invented exec', () => {
+    // `fix` is a button, not a roundtable persona — it has no tier.
+    for (const variant of Object.keys(VARIANT_PERSONAS)) {
+      if (variant === 'fix') continue;
+      expect(tierOf(variant), `persona ${variant}`).toBeTruthy();
+    }
+    for (const id of Object.keys(OFFICE_COLLEAGUES)) {
+      expect(tierOf(id), `colleague ${id}`).toBeTruthy();
+    }
+    for (const id of Object.keys(SENIOR_STAKEHOLDERS)) {
+      expect(tierOf(id), `senior ${id}`).toBe('senior');
+    }
+  });
+
+  it('resolves display info for every tier, including the invented execs', () => {
+    for (const id of ALL_IDS) {
+      const info = officeSenderInfo(id);
+      expect(info.name, `${id} name`).toBeTruthy();
+      expect(info.name).not.toBe('A Colleague');
+      expect(info.avatarEmoji, `${id} emoji`).toBeTruthy();
+      expect(info.accentColor, `${id} accent`).toBeTruthy();
+    }
+    expect(officeSenderInfo('cto').name).toBe('Marcus');
+    expect(officeSenderInfo('cfo').name).toBe('Diane');
+  });
+
+  it('keeps the senior tier out of the day-to-day ambient casts', () => {
+    // Senior stakeholders are meeting people; they never ping your desk.
+    for (const cast of [OFFICE_WALKBY_LLM_CAST, OFFICE_EMAIL_LLM_CAST, OFFICE_IM_LLM_CAST]) {
+      for (const id of cast) expect(tierOf(id), `${id} in ambient cast`).not.toBe('senior');
+    }
+  });
+
+  it('routes senior voices only through the senior email bank', () => {
+    for (const template of SENIOR_EMAIL_TEMPLATES) {
+      expect(tierOf(template.colleagueId), `${template.id} sender`).toBe('senior');
+    }
+  });
+});
+
+describe('pickMeetingAttendees', () => {
+  it('seats the facilitator, senior stakeholders, and one team presenter', () => {
+    // Sweep a spread of random values so both the 1- and 2-senior branches run.
+    for (const value of [0, 0.2, 0.49, 0.5, 0.75, 0.99]) {
+      const seats = pickMeetingAttendees(() => value);
+      expect(seats[0]).toBe('scrumMaster');
+      expect(seats.length).toBeGreaterThanOrEqual(3);
+      expect(seats.length).toBeLessThanOrEqual(4);
+      expect(new Set(seats).size).toBe(seats.length);
+
+      const seniors = seats.filter((id) => MEETING_SENIOR_POOL.includes(id));
+      const presenters = seats.filter((id) => MEETING_PRESENTER_POOL.includes(id));
+      expect(seniors.length).toBeGreaterThanOrEqual(1);
+      expect(presenters.length).toBe(1);
+    }
+  });
+});

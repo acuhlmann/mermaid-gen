@@ -387,6 +387,7 @@ export function addAdvisorLlmCostUsd(state, usd) {
 export const OFFICE_XP_AWARDS = {
   emailRead: 1,
   imReply: 2,
+  walkedFloor: 2,
   coffeeBreak: 10,
   battleSettled: 5,
   meetingLeftEarly: 5,

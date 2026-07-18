@@ -4,8 +4,10 @@ export const CONTROLS_EN = {
     definition: 'What is this?',
     definitionPersona: 'Quick Reference',
     definitionTitle: 'Quick Reference · What does this element mean?',
-    stakeholders: 'Stakeholders',
-    stakeholdersTitle: 'Stakeholders · Tap to summon the roundtable',
+    // "Stakeholders" is the internal id; the fiction calls them your team (the
+    // senior tier only shows up in meetings — see castTiers.js).
+    stakeholders: 'Your Team',
+    stakeholdersTitle: 'Your Team · Tap to huddle',
     renderMode: 'Render as...',
     renderModePersona: 'Mode Shifter',
     renderModeTitle: 'Mode Shifter · Re-render this selection in another mode',
@@ -26,10 +28,12 @@ export const CONTROLS_EN = {
     demolish: 'Demolish',
     mute: 'Mute',
     unmute: 'Unmute',
-    muteAria: 'Mute stakeholders',
-    unmuteAria: 'Unmute stakeholders',
-    muteTitle: 'Stakeholders watching · click to mute',
-    unmuteTitle: 'Stakeholders muted · click to unmute'
+    muteAria: 'Mute your team',
+    unmuteAria: 'Unmute your team',
+    muteTitle: 'Your team is watching · click to mute',
+    unmuteTitle: 'Your team is muted · click to unmute',
+    prepForVp: 'Prep for the VP',
+    prepForVpTitle: 'Prep for the VP · Boil it down before it goes upstairs'
   },
   prompt: {
     yourTopic: 'Your Topic',
@@ -46,37 +50,64 @@ export const CONTROLS_EN = {
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
-    topicPlaceholder: 'Or type your own topic…',
-    starterHint: 'New here?',
-    starterAria: 'Example topics to get started',
+    topicPlaceholder: '…or pitch your own initiative',
+    starterHint: 'Day one. Your inbox is already full:',
+    starterAria: 'Assignment requests from the floor',
+    // Starters double as in-fiction assignments: `fromId` names the requester
+    // (any cast id officeSenderInfo can resolve) and `ask` is their one-line
+    // justification. `label`/`prompt` stay the real generation inputs — locale
+    // bundles may ship plain {label, prompt} entries and still render.
     starters: [
       {
         label: 'Coffee supply chain',
-        prompt: 'Break down the global coffee supply chain'
+        prompt: 'Break down the global coffee supply chain',
+        fromId: 'exec',
+        ask: 'Needs it before the board offsite. Non-negotiable.'
       },
       {
         label: 'OAuth 2.0 flow',
-        prompt: 'Explain how the OAuth 2.0 authorization code flow works'
+        prompt: 'Explain how the OAuth 2.0 authorization code flow works',
+        fromId: 'ciso',
+        ask: 'Wants every arrow labeled and accountable.'
       },
-      { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
-      { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' }
+      {
+        label: 'CI/CD pipeline',
+        prompt: 'Map a CI/CD pipeline from commit to production',
+        fromId: 'scrumMaster',
+        ask: 'For the sprint review. Great energy so far!'
+      },
+      {
+        label: 'Microservices',
+        prompt: 'Diagram a typical microservices architecture',
+        fromId: 'greybeard',
+        ask: 'So he can tell you it was tried in 2009.'
+      }
     ],
     // Compact purpose card on the empty canvas: brand → one job → sample → CTA,
     // revealed beat-by-beat so newcomers aren't handed every mode at once.
-    exampleEyebrow: 'ArchiSlop',
-    exampleHeadline: 'Any topic → a living diagram',
-    exampleBody: 'Generate one. Refine it. The office will have opinions.',
+    exampleEyebrow: 'ArchiSlop Corp. · IT Division',
+    exampleHeadline: 'Welcome aboard, Architect',
+    exampleBody: 'Your job: turn any topic into a deliverable. The office will have opinions.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualization you can generate',
     // CTA names the sample topic so it stays clear even when the preview is hidden.
-    exampleCta: 'Generate: Coffee supply chain →',
+    exampleCta: 'First assignment: Coffee supply chain →',
     exampleDiagramSource: `flowchart TD
     A["Farm"] --> B["Roaster"]
     B --> C["Distributor"]
     C --> D["Cafe"]`,
     // Empty-state Render as strip — introduce modes before Settings.
-    renderAsLabel: 'Render as',
+    renderAsLabel: 'Deliverable format',
     renderAsAria: 'Choose how to render your topic'
+  },
+  // Day One badge — the new-hire framing card at the top of the entry cluster.
+  // {userTitle} renders the current gamification level title.
+  dayOne: {
+    eyebrow: 'ArchiSlop Corp. · Employee Badge',
+    rolePrefix: 'New Hire',
+    hrLine: 'Badge photo: pending. Desk: this one. Compliance training: already overdue.',
+    pitchLine: 'They hired a rockstar. Pitch your own initiative — or take an assignment below.',
+    dismissAria: 'Put the badge away'
   },
   introLocale: {
     aria: 'Interface language',
@@ -89,7 +120,7 @@ export const CONTROLS_EN = {
     label: 'Settings',
     show: 'Show settings',
     hide: 'Hide settings',
-    title: 'Settings · invite agent, brain, export',
+    title: 'Settings · IT-approved: contractors, brain, export',
     region: 'Session settings',
     externalAgents: 'External agents',
     waitingHandshake: 'Waiting for handshake:',
@@ -110,7 +141,7 @@ export const CONTROLS_EN = {
     exportInfographicPng: 'PNG image (.png)',
     exportMetaphorJson: 'Scene JSON (.json)',
     exportMetaphorPng: 'PNG screenshot (.png)',
-    exportMetaphorGltf: '3D model (.glb)',
+    exportMetaphorUsda: 'USD scene (.usda)',
     exportChartCsv: 'Spreadsheet CSV (.csv)',
     exportChartJson: 'Chart JSON (.json)',
     exportChartPng: 'PNG image (.png)',
@@ -158,14 +189,14 @@ export const CONTROLS_EN = {
     formsShort: 'Forms',
     formsSubtitle: 'Endless A2UI intake forms',
     anotherMode: 'another mode',
-    renderMenu: 'Target render mode'
+    renderMenu: 'Deliverable format'
   },
   // First-run mode reveal — after the first result, reminds newcomers they can
   // switch forms from the bottom-bar Render as control. Skipped if they already
   modeReveal: {
-    eyebrow: 'Same topic, another form',
-    body: 'You can switch modes anytime from the Render as button in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
-    pickPrefix: 'Render as',
+    eyebrow: 'Same topic, another deliverable',
+    body: 'You can change format anytime from the Deliverable format button in the bottom bar — hand the same idea in as a 3D scene, chart, infographic, or freeform page.',
+    pickPrefix: 'Hand it in as',
     dismiss: 'Got it',
     aria: 'Try rendering your topic in another mode'
   },
@@ -234,10 +265,10 @@ export const CONTROLS_EN = {
     drillDeeperTitle: 'Spin up a full architecture deep-dive in the Thinking panel',
     explanationMissing: 'No explanation came back — try again in a moment.',
     explanationFailed: 'Could not fetch explanation.',
-    stakeholdersForElement: 'Stakeholders for this element',
-    stakeholdersHeading: 'Stakeholders',
-    stakeholdersWithName: 'Stakeholders · {name}',
-    closeStakeholders: 'Close stakeholders',
+    stakeholdersForElement: 'Your team on this element',
+    stakeholdersHeading: 'Your Team',
+    stakeholdersWithName: 'Your Team · {name}',
+    closeStakeholders: 'Close your team',
     renderSelectedInMode: 'Render selected item in another mode',
     renderAsHeading: 'Render this as...',
     renderNameAs: 'Render {name} as...',
@@ -253,38 +284,39 @@ export const CONTROLS_EN = {
     deprecated: 'DEPRECATED'
   },
   renderAsDock: {
-    openRenderAs: 'Open Render as · {mode}',
+    openRenderAs: 'Open Deliverable format · {mode}',
     tapToHide: 'Tap to hide',
-    tapToOpen: '{mode} · tap to open Render as',
-    pickMode: 'Pick a mode'
+    tapToOpen: '{mode} · tap to change deliverable format',
+    pickMode: 'Pick a format'
   },
   stakeholders: {
-    theStakeholders: 'The Stakeholders',
-    hideActions: 'Hide stakeholders actions',
-    openStakeholders: 'Open the Stakeholders · {name}',
+    theStakeholders: 'Your Team',
+    hideActions: 'Hide team actions',
+    openStakeholders: 'Open your team · {name}',
     tapToHide: 'Tap to hide',
-    tapToOpen: '{name} · tap to open the Stakeholders',
-    pickPersona: 'Pick a persona',
-    personaMenu: 'Stakeholder personas',
-    castGroup: 'Stakeholder cast',
-    castLabel: 'Stakeholders',
-    castOneOfMany: '{name} is one of {count} stakeholders',
+    tapToOpen: '{name} · tap to open your team',
+    pickPersona: 'Pick a teammate',
+    personaMenu: 'Your team',
+    castGroup: 'Your team',
+    castLabel: 'Your Team',
+    castOneOfMany: '{name} is one of {count} teammates',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
-    align: 'Align',
-    // One-time first-run spotlight framing the stakeholder mechanic.
-    introEyebrow: '👥 The roundtable has convened',
+    align: 'Prep for the VP',
+    seniorDivider: 'Upstairs',
+    // One-time first-run spotlight framing the team mechanic.
+    introEyebrow: '👥 Your team has opinions',
     introBody:
-      'A stakeholder is weighing in on your diagram — they chime in as you work, whether you asked or not. Mute them anytime with the button on the right.',
+      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Mute them anytime with the button on the right.',
     introDismiss: 'Got it',
-    introAria: 'Meet the stakeholders'
+    introAria: 'Meet your team'
   },
   invite: {
-    title: 'Onboard an external agent',
-    subtitle: 'Bring another LLM into the Co-Design roundtable.',
+    title: 'Onboard a contractor',
+    subtitle: 'Bring another LLM onto the project. Procurement has been notified.',
     close: 'Close',
     explainer:
-      "External agents join over MCP — they can see the diagram, propose changes, and weigh in alongside the Stakeholders. Scan the QR or hit Connect now to pair an IDE-side agent in one tap; you'll still approve the handshake before anyone touches the slop. For a long-lived setup, use the stable URL under Advanced.",
+      "External agents join over MCP — they can see the diagram, propose changes, and weigh in alongside your team. Scan the QR or hit Connect now to pair an IDE-side agent in one tap; you'll still approve the handshake before anyone touches the slop. For a long-lived setup, use the stable URL under Advanced.",
     loading: 'Loading invite…',
     loadFailed: 'Failed to load invite.',
     rotateFailed: 'Failed to rotate pairing code.',
@@ -580,8 +612,8 @@ export const CONTROLS_EN = {
   },
   advisor: {
     pinned: 'Pinned',
-    suggestionNav: 'Stakeholder suggestion navigation',
-    nextComment: 'Next stakeholder comment',
+    suggestionNav: 'Team suggestion navigation',
+    nextComment: 'Next teammate comment',
     drillDeeperAria: 'Drill deeper — open the full architecture dissertation',
     drillDeeperTitle: 'Open the full architecture deep-dive in the Thinking panel',
     pinTitle: 'Pinned — click to unpin',

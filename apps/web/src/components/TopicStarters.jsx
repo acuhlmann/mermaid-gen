@@ -1,12 +1,35 @@
+import { officeSenderInfo } from '../utils/officeCast.js';
+
 /**
- * First-run topic starters — a hint line beside the default example chip, plus
- * more tappable topic chips that float above the empty-state entry input.
- * Tapping a chip submits that topic immediately so a newcomer can see the app
- * work without having to invent a prompt from a cold blank box.
+ * First-run assignment chips — a hint line beside the default chip, plus more
+ * tappable chips that float above the empty-state entry input. Tapping a chip
+ * submits that topic immediately so a newcomer can see the app work without
+ * having to invent a prompt from a cold blank box.
+ *
+ * Starters may carry the Day One fiction: `fromId` attributes the request to a
+ * cast member (resolved via officeSenderInfo) and `ask` is their one-line
+ * justification. Entries without those fields (e.g. locale bundles that ship
+ * plain {label, prompt} starters) render as plain chips.
  *
  * Rendered only in the empty state (no diagram yet); the caller unmounts it once
  * a diagram exists.
  */
+
+function StarterChipContent({ item }) {
+  if (!item.fromId) return item.label;
+  const sender = officeSenderInfo(item.fromId);
+  return (
+    <>
+      <span className="topic-starter-from">
+        <span aria-hidden="true">{sender.avatarEmoji} </span>
+        {sender.name}
+      </span>
+      <span className="topic-starter-label">{item.label}</span>
+      {item.ask ? <span className="topic-starter-ask">{item.ask}</span> : null}
+    </>
+  );
+}
+
 export default function TopicStarters({ hint, ariaLabel, starters, busy = false, onPick }) {
   const items = Array.isArray(starters) ? starters.filter((s) => s && s.label && s.prompt) : [];
   if (items.length === 0) return null;
@@ -20,26 +43,26 @@ export default function TopicStarters({ hint, ariaLabel, starters, busy = false,
           {hint ? <p className="topic-starters-hint">{hint}</p> : null}
           <button
             type="button"
-            className="topic-starter-chip is-default"
+            className={`topic-starter-chip is-default ${defaultStarter.fromId ? 'has-from' : ''}`}
             disabled={busy}
             onClick={() => onPick?.(defaultStarter.prompt)}
             title={defaultStarter.prompt}
             aria-pressed
           >
-            {defaultStarter.label}
+            <StarterChipContent item={defaultStarter} />
           </button>
         </div>
         {moreStarters.map((item) => (
           <button
             key={item.label}
             type="button"
-            className="topic-starter-chip"
+            className={`topic-starter-chip ${item.fromId ? 'has-from' : ''}`}
             disabled={busy}
             onClick={() => onPick?.(item.prompt)}
             title={item.prompt}
             aria-pressed={false}
           >
-            {item.label}
+            <StarterChipContent item={item} />
           </button>
         ))}
       </div>

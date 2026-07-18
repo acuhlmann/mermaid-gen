@@ -4,6 +4,7 @@ import {
   OFFICE_FIRST_MOMENT_MIN_MS,
   OFFICE_LLM_MOMENT_CAP,
   OFFICE_MIN_GAP_MS,
+  OFFICE_SENIOR_EMAILS_PER_SESSION,
   OFFICE_SESSION_MOMENT_CAP,
   OFFICE_WARMUP_GAP_JITTER_MS,
   OFFICE_WARMUP_MIN_GAP_MS,
@@ -115,6 +116,30 @@ describe('pickNextMoment', () => {
       if (moment && (moment.kind === 'coffee' || moment.kind === 'meeting-invite')) {
         expect(moment.useLlm).toBe(false);
       }
+    }
+  });
+
+  // Leadership only reaches your inbox once a session, and never on the LLM's
+  // dime — the senior tier is a rare event, not another colleague.
+  it('offers senior emails as canned-only, capped once per session', () => {
+    let sawSenior = false;
+    for (let i = 0; i < 400; i += 1) {
+      const moment = pickNextMoment({ ...BASE, random: Math.random });
+      if (moment?.senior) {
+        sawSenior = true;
+        expect(moment.kind).toBe('email');
+        expect(moment.useLlm).toBe(false);
+      }
+    }
+    expect(sawSenior).toBe(true);
+
+    for (let i = 0; i < 400; i += 1) {
+      const moment = pickNextMoment({
+        ...BASE,
+        seniorEmailCount: OFFICE_SENIOR_EMAILS_PER_SESSION,
+        random: Math.random
+      });
+      if (moment) expect(moment.senior).toBeFalsy();
     }
   });
 });

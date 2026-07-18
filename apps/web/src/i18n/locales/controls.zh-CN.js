@@ -100,7 +100,7 @@ export const CONTROLS_ZH_CN = {
     exportInfographicPng: 'PNG 图像 (.png)',
     exportMetaphorJson: '场景 JSON (.json)',
     exportMetaphorPng: 'PNG 截图 (.png)',
-    exportMetaphorGltf: '3D 模型 (.glb)',
+    exportMetaphorUsda: 'USD 场景 (.usda)',
     exportChartCsv: '电子表格 CSV (.csv)',
     exportChartJson: '图表 JSON (.json)',
     exportChartPng: 'PNG 图像 (.png)',

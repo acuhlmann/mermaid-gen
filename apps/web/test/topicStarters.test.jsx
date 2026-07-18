@@ -1,11 +1,28 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import TopicStarters from '../src/components/TopicStarters.jsx';
 
 const STARTERS = [
   { label: 'Coffee supply chain', prompt: 'Break down the global coffee supply chain' },
   { label: 'OAuth 2.0 flow', prompt: 'Explain OAuth' }
+];
+
+// Day One shape: assignment chips attributed to a requester across both casts
+// (exec resolves via VARIANT_PERSONAS, ciso via OFFICE_COLLEAGUES).
+const ASSIGNMENT_STARTERS = [
+  {
+    label: 'Coffee supply chain',
+    prompt: 'Break down the global coffee supply chain',
+    fromId: 'exec',
+    ask: 'Needs it before the board offsite.'
+  },
+  {
+    label: 'OAuth 2.0 flow',
+    prompt: 'Explain OAuth',
+    fromId: 'ciso',
+    ask: 'Wants every arrow accountable.'
+  }
 ];
 
 describe('TopicStarters', () => {
@@ -24,5 +41,35 @@ describe('TopicStarters', () => {
     expect(
       screen.getByRole('button', { name: 'Coffee supply chain' }).getAttribute('aria-pressed')
     ).toBe('true');
+  });
+
+  it('attributes assignment chips to their requester from either cast', () => {
+    const onPick = vi.fn();
+    const { container } = render(
+      <TopicStarters
+        hint="Day one."
+        ariaLabel="Assignments"
+        starters={ASSIGNMENT_STARTERS}
+        onPick={onPick}
+      />
+    );
+    const chips = container.querySelectorAll('.topic-starter-chip.has-from');
+    expect(chips.length).toBe(2);
+    // Requester names resolve through officeSenderInfo — stakeholder + colleague.
+    expect(screen.getByText('The VP')).toBeTruthy();
+    expect(screen.getByText('Sasha')).toBeTruthy();
+    expect(screen.getByText('Needs it before the board offsite.')).toBeTruthy();
+    // The underlying generation prompt is untouched by the fiction.
+    fireEvent.click(chips[0]);
+    expect(onPick).toHaveBeenCalledWith('Break down the global coffee supply chain');
+  });
+
+  it('falls back to plain chips for old-shape locale starters', () => {
+    const { container } = render(
+      <TopicStarters hint="New here?" ariaLabel="Examples" starters={STARTERS} onPick={vi.fn()} />
+    );
+    expect(container.querySelector('.topic-starter-chip.has-from')).toBeNull();
+    expect(container.querySelector('.topic-starter-from')).toBeNull();
+    expect(screen.getByRole('button', { name: 'OAuth 2.0 flow' })).toBeTruthy();
   });
 });

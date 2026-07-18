@@ -111,18 +111,6 @@ export const OFFICE_EN_AU = {
       body: "Saw your diagram on the shared drive. We built this in 2009. Ran on a cron job and fear. Took down prod for a week in 2011.\n\nAsk me how. Or don't. It knows.\n\nUlrich"
     },
     {
-      id: 'email-ciso-phishing',
-      colleagueId: 'ciso',
-      subject: 'You did NOT click. We noticed. (Phishing Simulation Report)',
-      body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suss behaviour and has been noted in your file.\n\nWe\'ll keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
-    },
-    {
-      id: 'email-ciso-password',
-      colleagueId: 'ciso',
-      subject: 'Password policy update (effective yesterday)',
-      body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
-    },
-    {
       id: 'email-helpdesk-printer-firmware',
       colleagueId: 'helpdesk',
       subject: '[Ticket #48313] Printer firmware update complete',
@@ -157,6 +145,40 @@ export const OFFICE_EN_AU = {
       colleagueId: 'intern',
       subject: 'i shipped something!!! (small question)',
       body: "you guys!! my first change is LIVE. it's the {label} one. quick question though — if everything's on fire but in a small way, who do i tell? asking hypothetically. the fire is hypothetical. mostly.\n\nchad (intern)"
+    }
+  ],
+  SENIOR_EMAIL_TEMPLATES: [
+    {
+      id: 'email-ciso-phishing',
+      colleagueId: 'ciso',
+      subject: 'You did NOT click. We noticed. (Phishing Simulation Report)',
+      body: 'Courtesy notice: you failed to click last week\'s simulated phishing email ("FREE ARCHITECTURE REVIEW — CLICK NOW"). Statistically, everyone clicks. Not clicking is suss behaviour and has been noted in your file.\n\nWe\'ll keep testing until you do.\n\nTrust nothing,\nSasha — The Department of No'
+    },
+    {
+      id: 'email-ciso-password',
+      colleagueId: 'ciso',
+      subject: 'Password policy update (effective yesterday)',
+      body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
+    },
+    {
+      id: 'email-exec-board-preread',
+      colleagueId: 'exec',
+      subject: 'Pre-read needed: the board will ask about {label}',
+      body: "Team — the board offsite is Thursday and I need a one-pager on {label}. One page. One. If it can't fit on one page it isn't a strategy, it's a hobby.\n\nHard stop in four minutes,\nThe VP",
+      actionPrompt: 'Simplify the diagram to its three most essential elements'
+    },
+    {
+      id: 'email-cfo-cloud-spend',
+      colleagueId: 'cfo',
+      subject: 'FLAGGED: unexplained line item ("{label}")',
+      body: 'Finance flagged a resource called "{label}". Please confirm it is (a) essential, and (b) free. If it can\'t be both, see (b).\n\nThe budget is a no,\nDiane'
+    },
+    {
+      id: 'email-cto-conference',
+      colleagueId: 'cto',
+      subject: 'Saw this exact thing at a keynote (thoughts?)',
+      body: 'Just back from VisionaryConf. There was a slide almost identical to your {label} — except theirs pulsed and had an AI halo. Can ours pulse? Loop in whoever owns pulsing.\n\nOnwards,\nMarcus',
+      actionPrompt: 'Add a bold visionary element that makes the diagram feel futuristic'
     }
   ],
   OFFICE_IM_TEMPLATES: [
@@ -211,16 +233,6 @@ export const OFFICE_EN_AU = {
       body: 'The mainframe asked about you. Told it you were flat out diagramming. It understood.'
     },
     {
-      id: 'im-ciso-password',
-      colleagueId: 'ciso',
-      body: "quarterly scan reckons your password is 'memorable'. unacceptable. rotate it to something even you can't guess."
-    },
-    {
-      id: 'im-ciso-arrows',
-      colleagueId: 'ciso',
-      body: 'counted the arrows in {label}. every one of them is an attack surface. sleep well.'
-    },
-    {
       id: 'im-helpdesk-dns',
       colleagueId: 'helpdesk',
       body: "Network slow? It's DNS. It's not DNS. It was DNS. Ticket closed."
@@ -271,11 +283,6 @@ export const OFFICE_EN_AU = {
       id: 'walkby-hr',
       colleagueId: 'hr',
       body: 'Love the energy around {label}! Reckon you could present it at Mandatory Fun Hour? 😊'
-    },
-    {
-      id: 'walkby-ciso',
-      colleagueId: 'ciso',
-      body: 'Mm. {label}. Bold of you to draw an attack surface and then label it for them.'
     },
     {
       id: 'walkby-helpdesk',
@@ -574,13 +581,13 @@ export const OFFICE_EN_AU = {
     }
   ],
   OFFICE_MEETING_COPY: {
-    inviteFallbackTitle: 'WG: Diagram Alignment Sync (recurring)',
+    inviteFallbackTitle: 'Architecture Review Board (steering)',
     inviteFallbackBody:
-      'We need to sync on the current diagram. Agenda: alignment, next steps, alignment on next steps. Snacks: nah.',
+      'The big bosses want a squiz at the current diagram. Agenda: the headline, the cost, the risk. Your team presents; the seniors have questions. Snacks: nah.',
     joiningLine: 'Waiting for the organiser to let you in…',
-    cancelledSubject: 'CANCELLED: Diagram Alignment Sync',
+    cancelledSubject: 'CANCELLED: Architecture Review Board',
     cancelledBody:
-      "Meeting's off — the organiser is double-booked. Rescheduled to: never. Action items remain your problem.\n\nPam",
+      "Meeting's off — leadership is double-booked. Rescheduled to: never. Action items remain your problem.\n\nPam",
     proposeNewTimeGag: 'New time proposed. The organiser has knocked back your proposed time.',
     minutesTitle: 'Meeting minutes',
     raiseHandPlaceholder: 'Say something to the room…',
@@ -591,11 +598,11 @@ export const OFFICE_EN_AU = {
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     directory: {
-      title: 'Welcome to the office',
-      tagline: 'Your diagram has a workplace — and the floor has opinions.',
+      title: 'Day one at ArchiSlop Corp.',
+      tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',
       tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
       rosterTagline: 'The cast that emails, IMs, and walks by while you work:',
-      expandLabel: '🏢 Meet the office',
+      expandLabel: '🏢 Meet the floor',
       expandTitle: 'Who keeps interrupting me?',
       startLabel: 'Meet the floor →',
       nextLabel: 'Next →',

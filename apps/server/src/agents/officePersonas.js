@@ -111,28 +111,58 @@ patterns and drops lore. Warm, slightly oratorical, quietly smart-ass.`,
 mildly impatient, hard stop in four minutes, would like the one-pager.`
 };
 
+/**
+ * The invented senior-stakeholder executives (client tier map:
+ * apps/web/src/utils/castTiers.js; display data: SENIOR_STAKEHOLDERS in
+ * officeCast.js — keep aligned). `exec` and `ciso` are promoted members whose
+ * voices already live above; only the new execs need cards here. Senior
+ * attendees outrank the room in steering meetings.
+ */
+export const SENIOR_MEETING_VOICES = {
+  cto: {
+    name: 'Marcus',
+    title: 'CTO — Ships Keynotes, Not Code',
+    voice: `Marcus, the CTO — Ships Keynotes, Not Code. Visionary word salad delivered with total
+confidence. Quotes his own conference talk, wants everything to "pulse" and have an "AI halo",
+has not opened an IDE since 2016. Asks for the headline, not the details.`
+  },
+  cfo: {
+    name: 'Diane',
+    title: 'CFO — The Budget Is a No',
+    voice: `Diane, the CFO — The Budget Is a No. Every box is a cost center, every arrow is a
+line item. Asks what the diagram costs per month, approves nothing, dry as toast. The word
+"no" does most of her talking.`
+  }
+};
+
 export function isOfficeColleague(value) {
   return (
     typeof value === 'string' && Object.prototype.hasOwnProperty.call(OFFICE_COLLEAGUES, value)
   );
 }
 
-/** Anyone who can send a moment or take a meeting seat: colleagues + stakeholders. */
+/** Anyone who can send a moment or take a meeting seat: colleagues + stakeholders + senior execs. */
 export function isOfficeSpeaker(value) {
   return (
     isOfficeColleague(value) ||
     (typeof value === 'string' &&
-      Object.prototype.hasOwnProperty.call(STAKEHOLDER_MEETING_VOICES, value))
+      (Object.prototype.hasOwnProperty.call(STAKEHOLDER_MEETING_VOICES, value) ||
+        Object.prototype.hasOwnProperty.call(SENIOR_MEETING_VOICES, value)))
   );
 }
 
 function speakerVoice(id) {
-  return OFFICE_COLLEAGUES[id]?.voice ?? STAKEHOLDER_MEETING_VOICES[id] ?? '';
+  return (
+    OFFICE_COLLEAGUES[id]?.voice ??
+    SENIOR_MEETING_VOICES[id]?.voice ??
+    STAKEHOLDER_MEETING_VOICES[id] ??
+    ''
+  );
 }
 
 function speakerLabel(id) {
-  const colleague = OFFICE_COLLEAGUES[id];
-  return colleague ? `${colleague.name} (${colleague.title})` : id;
+  const speaker = OFFICE_COLLEAGUES[id] ?? SENIOR_MEETING_VOICES[id];
+  return speaker ? `${speaker.name} (${speaker.title})` : id;
 }
 
 /** Shared "engage the actual diagram" rule — mirrors the advisor's voice-not-topic clause. */
@@ -150,9 +180,10 @@ sign-off, max 500 chars.`,
 diagram, max 200 chars. MUST reference a visible label by name. No subject.`,
   coffee: `- kind coffee: "body" is one watercooler line, max 200 chars — smalltalk first, work second.
 No subject.`,
-  'meeting-invite': `- kind meeting-invite: "body" is the invite blurb (why "we need to sync" about this
-diagram), max 300 chars. Include "subject" as the meeting title (max 90 chars, reads like a recurring
-corporate invite).`
+  'meeting-invite': `- kind meeting-invite: "body" is the invite blurb — a steering-committee /
+architecture-review summons: senior stakeholders will attend and the user's team presents the
+diagram. Max 300 chars. Include "subject" as the meeting title (max 90 chars, reads like a
+recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 };
 
 export function buildMomentSystemPrompt({ kind, colleagueId }) {
@@ -244,6 +275,8 @@ competence that makes the parody land.
 and at least 2 "smalltalk" beats.
 - Attendees talk to EACH OTHER, by name: at least two beats directly react to the previous speaker
 (agree, object, misunderstand). Gentle bickering welcome; never mean.
+- Senior attendees (the VP, CISO, CTO, CFO) outrank the room: they ask for the headline, the cost,
+and the risk; any team attendee presents and defends the diagram; the facilitator keeps time.
 - ${SUBJECT_RULE}
 - Substantive beats MUST reference visible labels by name.`;
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
@@ -261,7 +261,9 @@ export default function StakeholdersMascot({
             ]
               .filter(Boolean)
               .join(' ');
-            return (
+            // Senior-tier rows (castTiers.js) sit below a divider: they are not
+            // teammates, they are who your team reports to.
+            const row = (
               <button
                 key={p.variant}
                 type="button"
@@ -286,6 +288,15 @@ export default function StakeholdersMascot({
                   {actionLabel}
                 </span>
               </button>
+            );
+            if (!p.senior) return row;
+            return (
+              <Fragment key={`${p.variant}-senior`}>
+                <span className="stakeholders-roster-divider" role="presentation">
+                  {stakeholdersCopy.seniorDivider ?? 'Upstairs'}
+                </span>
+                {row}
+              </Fragment>
             );
           })}
         </div>

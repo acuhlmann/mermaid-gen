@@ -64,12 +64,18 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **Mermaid metrics.** Optional structured JSON line per agent turn — mode, model, validator outcome, repair attempts, sanitizer hits, latency. Toggle with `MERMAID_METRICS=1`. Emitter: `apps/server/src/metrics/agentTurnMetrics.js`.
 
+**USDA export.** The Metaphor3D → USD ASCII interchange stub (`metaphor-usda` export format on the metaphor3d slot), implementing ADR-0009 migration steps 1–2. Semantics only — no geometry, no planner output, no USD Core conformance claim; the JSON DSL stays canonical. Mapping spec: `docs/guide/metaphor-usda-mapping.md`; author: `packages/shared/src/metaphorUsda.ts`.
+
 **Bench corpus.** A fixed offline corpus replayed through `validateAndPreparePatch` to track sanitizer-rescue rate and validator latency over time. Run with `node apps/server/scripts/benchMermaid.js --tag <label>`; snapshots in `apps/server/bench-results/`.
 
 **Web Companion.** The hybrid default UI for MCP hosts when the human also has the browser open. Read-only queue + activity feed; the human controls accept/reject in the web UI. Bundle: `apps/server/src/mcp/apps/webCompanionAppHtml.js`.
 
 **Slopitect.** Cosmetic companion avatar / HUD / achievements layer in the web app. Not a separate backend — it's purely feedback on agent runs. Lives in the `Slopitect*` components and `runGamificationStore.js`.
 
-**Stakeholders mascot.** The "advisor council" overlay (renamed from "council" mid-development; the name lives on as the file name `StakeholdersMascot.jsx`).
+**Stakeholders mascot.** The "advisor council" overlay (renamed from "council" mid-development; the name lives on as the file name `StakeholdersMascot.jsx`, and `stakeholders` remains the internal id everywhere). The UI now calls this cast **your team**.
 
-**Office Update™ / office colleagues.** The office-parody ambience layer (`docs/office-parody.md`): fictional colleagues (Chad the Intern, Pam the Agile Coach, Ticket Bot Dave, Gary from Facilities, Linda from People Ops, Ulrich the Greybeard) who send emails/IMs, walk by the canvas, host coffee breaks, and run WG meetings about the current diagram. Distinct from the Stakeholders (they never appear in the radial menu) and from real external MCP agents.
+**Cast tiers (team / senior / office).** The three-tier org chart of the fiction (`apps/web/src/utils/castTiers.js`). **Team** = the five advisor personas you work with daily (refine, innovate, goMad, critique, explain) — the proactive roundtable and the agent actions. **Senior** = the executives your team presents to (`exec` The VP, `ciso` Sasha, `cto` Marcus, `cfo` Diane): steering meetings and at most one high-stakes email per session, never ambient pings. **Office** = the ambient floor (Chad, Pam, Dave, Gary, Linda, Ulrich). Tier is a tag, not a data move — `exec` still lives in `VARIANT_PERSONAS`, `ciso` in `OFFICE_COLLEAGUES`.
+
+**Office Update™ / office colleagues.** The office-parody ambience layer (`docs/office-parody.md`): fictional colleagues (Chad the Intern, Pam the Agile Coach, Ticket Bot Dave, Gary from Facilities, Linda from People Ops, Ulrich the Greybeard) who send emails/IMs, walk by the canvas, host coffee breaks, and run WG meetings about the current diagram. Distinct from your team (colleagues never appear in the radial menu) and from real external MCP agents.
+
+**Day One.** The new-hire framing of the empty state (`DayOneBadge.jsx` + attributed starter chips): you are ArchiSlop Corp.'s newest architect, the starter topics are assignments from named cast members, and the diagram slots are your deliverables.

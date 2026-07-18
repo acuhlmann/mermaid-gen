@@ -13,7 +13,7 @@ describe('RenderAsMascot', () => {
   it('lists all content modes in the radial-style menu when expanded (test mode)', () => {
     render(<RenderAsMascot modes={MODES} currentMode="mermaid" onPickMode={vi.fn()} />);
     expect(screen.getByRole('dialog', { name: 'Render this as...' })).toBeTruthy();
-    expect(screen.getByRole('menu', { name: 'Target render mode' })).toBeTruthy();
+    expect(screen.getByRole('menu', { name: 'Deliverable format' })).toBeTruthy();
     expect(
       screen.getByRole('button', { name: /Render selected item as Infographic/i })
     ).toBeTruthy();

@@ -258,7 +258,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
     const { onHoverHold } = renderMenuWithSpies();
     onHoverHold.mockClear();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Stakeholders (Stakeholders)' }));
-    expect(screen.getByRole('dialog', { name: /Stakeholders for this element/i })).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: /Your team on this element/i })).toBeTruthy();
     expect(onHoverHold).toHaveBeenCalled();
   });
 
@@ -274,7 +274,7 @@ describe('radial menu popover survives the hover-close grace period', () => {
     const { onHoverRelease } = renderMenuWithSpies();
     fireEvent.click(screen.getByRole('menuitem', { name: 'Stakeholders (Stakeholders)' }));
     onHoverRelease.mockClear();
-    fireEvent.pointerLeave(screen.getByRole('dialog', { name: /Stakeholders for this element/i }));
+    fireEvent.pointerLeave(screen.getByRole('dialog', { name: /Your team on this element/i }));
     expect(onHoverRelease).not.toHaveBeenCalled();
   });
 
@@ -743,7 +743,7 @@ describe('radial popover drag handle', () => {
       />
     );
     fireEvent.click(screen.getByRole('menuitem', { name: 'Stakeholders (Stakeholders)' }));
-    const dialog = screen.getByRole('dialog', { name: /Stakeholders for this element/i });
+    const dialog = screen.getByRole('dialog', { name: /Your team on this element/i });
     const head = dialog.querySelector('.radial-stakeholders-head');
     expect(head).toBeTruthy();
     expect(head.getAttribute('title')).toMatch(/drag/i);

@@ -5094,8 +5094,8 @@
 .bottom-row-popover--settings {
   right: 0;
   left: auto;
-  bottom: auto;
-  top: calc(100% + 0.55rem);
+  bottom: calc(100% + 0.55rem);
+  top: auto;
   /* Match the settings panel's existing column layout so its inline behavior
      and popover behavior look identical aside from positioning. */
   display: flex;
@@ -6110,6 +6110,117 @@
 .topic-starter-chip:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+/* Senior-tier divider in the team roster: everything below reports upward. */
+.stakeholders-roster-divider {
+  padding: 0.3rem 0.5rem 0.1rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-top: 1px solid var(--control-border);
+  margin-top: 0.2rem;
+}
+
+/* Day One assignment chips: attributed requests stack sender → topic → ask. */
+.topic-starter-chip.has-from {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  text-align: left;
+  border-radius: 14px;
+  padding: 0.45rem 0.85rem;
+  max-width: 15rem;
+}
+
+.topic-starter-from {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.topic-starter-chip.has-from .topic-starter-label {
+  font-weight: 600;
+}
+
+.topic-starter-ask {
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+/* Day One employee badge — new-hire framing card atop the entry cluster. */
+.day-one-badge {
+  position: relative;
+  max-width: 24rem;
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  padding: 0.7rem 2.2rem 0.75rem 0.95rem;
+  background: var(--control-bg);
+  box-shadow: var(--control-shadow);
+  backdrop-filter: blur(18px);
+  animation: topic-starters-in 0.35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .day-one-badge {
+    animation: none;
+  }
+}
+
+.day-one-badge p {
+  margin: 0;
+}
+
+.day-one-badge-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.day-one-badge-role {
+  margin-top: 0.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.day-one-badge-line {
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.day-one-badge-pitch {
+  margin-top: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.day-one-badge-dismiss {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.4rem;
+  border: none;
+  border-radius: 6px;
+  padding: 0.15rem 0.35rem;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.day-one-badge-dismiss:hover {
+  color: var(--text);
 }
 
 /* First-run purpose card: compact copy + tiny matching sample in the canvas
@@ -14787,6 +14898,99 @@ body.slopitect-rainbow-tint::before {
   top: 76px;
   right: 14px;
   z-index: var(--z-office-chrome);
+}
+
+/* Desk verbs: your side of the office, stacked under the inbox envelope. */
+.desk-actions {
+  position: fixed;
+  top: 124px;
+  right: 14px;
+  z-index: var(--z-office-chrome);
+}
+.desk-actions-button {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  height: 40px;
+  padding: 0 0.6rem;
+  border-radius: 12px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg);
+  box-shadow: var(--control-shadow);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+.desk-actions-button:hover {
+  transform: translateY(-1px);
+}
+.desk-actions-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.desk-actions-button.is-open {
+  border-color: var(--accent);
+}
+.desk-actions-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 13rem;
+  padding: 0.35rem;
+  border-radius: 14px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg);
+  box-shadow: var(--control-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.desk-actions-heading {
+  margin: 0;
+  padding: 0.25rem 0.5rem 0.3rem;
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.desk-actions-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border: none;
+  border-radius: 9px;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.83rem;
+  text-align: left;
+  cursor: pointer;
+}
+.desk-actions-item:hover:not(:disabled) {
+  background: rgba(37, 99, 235, 0.1);
+}
+.desk-actions-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.desk-actions-item-emoji {
+  font-size: 0.95rem;
+}
+
+@media (max-width: 720px) {
+  .desk-actions-button-label {
+    display: none;
+  }
+  .desk-actions-button {
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
 }
 .office-inbox-button {
   position: relative;

@@ -29,7 +29,9 @@ export const CONTROLS_EN_AU = {
     muteAria: 'Mute the mob',
     unmuteAria: 'Unmute the mob',
     muteTitle: 'The mob is watching · click to shut them up',
-    unmuteTitle: 'The mob is muted · click to unmute'
+    unmuteTitle: 'The mob is muted · click to unmute',
+    prepForVp: 'Prep for the VP',
+    prepForVpTitle: 'Prep for the VP · Boil it down before it goes upstairs'
   },
   prompt: {
     yourTopic: 'Your topic, mate',
@@ -46,33 +48,56 @@ export const CONTROLS_EN_AU = {
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
-    topicPlaceholder: 'Or type your own topic…',
-    starterHint: 'New around here?',
-    starterAria: 'Example topics to get started',
+    topicPlaceholder: '…or pitch your own big idea',
+    starterHint: 'Day one, and the inbox is already chockers:',
+    starterAria: 'Assignment requests from the floor',
     starters: [
       {
         label: 'Coffee supply chain',
-        prompt: 'Break down the global coffee supply chain'
+        prompt: 'Break down the global coffee supply chain',
+        fromId: 'exec',
+        ask: 'Needs it before the board offsite. No wriggle room.'
       },
       {
         label: 'OAuth 2.0 flow',
-        prompt: 'Explain how the OAuth 2.0 authorization code flow works'
+        prompt: 'Explain how the OAuth 2.0 authorization code flow works',
+        fromId: 'ciso',
+        ask: 'Wants every arrow labelled and accountable, thanks.'
       },
-      { label: 'CI/CD pipeline', prompt: 'Map a CI/CD pipeline from commit to production' },
-      { label: 'Microservices', prompt: 'Diagram a typical microservices architecture' }
+      {
+        label: 'CI/CD pipeline',
+        prompt: 'Map a CI/CD pipeline from commit to production',
+        fromId: 'scrumMaster',
+        ask: 'For the sprint review. Great energy so far!'
+      },
+      {
+        label: 'Microservices',
+        prompt: 'Diagram a typical microservices architecture',
+        fromId: 'greybeard',
+        ask: 'So he can tell you it was tried in 2009.'
+      }
     ],
-    exampleEyebrow: 'ArchiSlop',
-    exampleHeadline: 'Any topic → a living visualisation',
-    exampleBody: 'Knock one out. Polish it. The office will have opinions, no worries.',
+    exampleEyebrow: 'ArchiSlop Corp. · IT Division',
+    exampleHeadline: 'Welcome aboard, Architect',
+    exampleBody:
+      'Your job: turn any topic into a deliverable. The office will have opinions, no worries.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualisation you can generate',
-    exampleCta: 'Generate: Coffee supply chain →',
+    exampleCta: 'First job: Coffee supply chain →',
     exampleDiagramSource: `flowchart TD
     A["Farm"] --> B["Roaster"]
     B --> C["Distributor"]
     C --> D["Cafe"]`,
-    renderAsLabel: 'Knock it out as',
+    renderAsLabel: 'Hand it in as',
     renderAsAria: 'Choose how to render your topic'
+  },
+  dayOne: {
+    eyebrow: 'ArchiSlop Corp. · Employee Badge',
+    rolePrefix: 'New Hire',
+    hrLine: 'Badge photo: pending. Desk: this one. Compliance training: already overdue, legend.',
+    pitchLine:
+      'They hired a rockstar. Pitch your own big idea — or grab a job from the pile below.',
+    dismissAria: 'Put the badge away'
   },
   introLocale: {
     aria: 'Interface language',
@@ -106,7 +131,7 @@ export const CONTROLS_EN_AU = {
     exportInfographicPng: 'PNG image (.png)',
     exportMetaphorJson: 'Scene JSON (.json)',
     exportMetaphorPng: 'PNG screenshot (.png)',
-    exportMetaphorGltf: '3D model (.glb)',
+    exportMetaphorUsda: 'USD scene (.usda)',
     exportChartCsv: 'Spreadsheet CSV (.csv)',
     exportChartJson: 'Chart JSON (.json)',
     exportChartPng: 'PNG image (.png)',
@@ -258,17 +283,18 @@ export const CONTROLS_EN_AU = {
     openStakeholders: 'Open the Mob · {name}',
     tapToHide: 'Tap to hide',
     tapToOpen: '{name} · tap to open the Mob',
-    pickPersona: 'Pick a persona',
-    personaMenu: 'Stakeholder personas',
-    castGroup: 'Stakeholder cast',
+    pickPersona: 'Pick a teammate',
+    personaMenu: 'Your crew',
+    castGroup: 'Your crew',
     castLabel: 'The Mob',
-    castOneOfMany: '{name} is one of {count} stakeholders',
+    castOneOfMany: '{name} is one of {count} in your mob',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
-    align: 'Align',
-    introEyebrow: '👥 The roundtable has convened, mate',
+    align: 'Prep for the VP',
+    seniorDivider: 'Upstairs',
+    introEyebrow: '👥 Your mob has opinions',
     introBody:
-      'A stakeholder is weighing in on your diagram — they chip in as you work, whether you asked or not. Shut them up anytime with the button on the right.',
+      'One of your mob is weighing in on your diagram — they chip in as you work, whether you asked or not. It is literally their job. Shut them up anytime with the button on the right.',
     introDismiss: 'Gotcha',
     introAria: 'Meet the mob'
   },

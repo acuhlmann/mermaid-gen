@@ -9,7 +9,13 @@ import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 
-const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
+/**
+ * The proactive roundtable is YOUR TEAM (castTiers.js `team` tier). `exec` is
+ * deliberately absent — the VP is senior tier: you meet them in steering
+ * meetings, not over your shoulder. The exec transform still runs on demand
+ * via the "Prep for the VP" action.
+ */
+const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
 const ACTIVITY_THROTTLE_MS = 1000;
 const SHOW_MS = 10_000;

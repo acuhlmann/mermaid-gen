@@ -125,18 +125,6 @@ export const OFFICE_ZH_CN = {
       body: '在共享盘上看到了你的图。这东西我们 2009 年就做过,靠一个 cron 任务和恐惧运行,2011 年把生产环境搞挂了一周。\n\n想知道细节就来问我。或者别问。它知道。\n\nUlrich'
     },
     {
-      id: 'email-ciso-phishing',
-      colleagueId: 'ciso',
-      subject: '你没有点击。我们注意到了。(钓鱼演练报告)',
-      body: '礼节性通知:上周的模拟钓鱼邮件(“免费架构评审 — 立即点击”)你没有点。统计上讲,人人都会点。不点属于可疑行为,已记入你的档案。\n\n我们会一直测,直到你点为止。\n\n什么都别信,\nSasha — 不行部'
-    },
-    {
-      id: 'email-ciso-password',
-      colleagueId: 'ciso',
-      subject: '密码策略更新(自昨日起生效)',
-      body: '密码现须包含 16 个字符、一个表情符号、一个质数,以及一个已弃用协议的亡魂。密码不得包含:单词、数字或字符。\n\n你当前的密码在 4 项检查中挂了 11 项。某种意义上,令人佩服。\n\nSasha'
-    },
-    {
       id: 'email-helpdesk-printer-firmware',
       colleagueId: 'helpdesk',
       subject: '[工单 #48313] 打印机固件升级完成',
@@ -171,6 +159,40 @@ export const OFFICE_ZH_CN = {
       colleagueId: 'intern',
       subject: '我上线东西啦!!!(小问题)',
       body: '各位!!我的第一个改动上线了。就是 {label} 那个。不过小问题 — 如果所有东西都着火了,但火不大,该报告给谁?纯属假设。火是假设的。基本上。\n\nchad(实习生)'
+    }
+  ],
+  SENIOR_EMAIL_TEMPLATES: [
+    {
+      id: 'email-ciso-phishing',
+      colleagueId: 'ciso',
+      subject: '你没有点击。我们注意到了。(钓鱼演练报告)',
+      body: '礼节性通知:上周的模拟钓鱼邮件(“免费架构评审 — 立即点击”)你没有点。统计上讲,人人都会点。不点属于可疑行为,已记入你的档案。\n\n我们会一直测,直到你点为止。\n\n什么都别信,\nSasha — 不行部'
+    },
+    {
+      id: 'email-ciso-password',
+      colleagueId: 'ciso',
+      subject: '密码策略更新(自昨日起生效)',
+      body: '密码现须包含 16 个字符、一个表情符号、一个质数,以及一个已弃用协议的亡魂。密码不得包含:单词、数字或字符。\n\n你当前的密码在 4 项检查中挂了 11 项。某种意义上,令人佩服。\n\nSasha'
+    },
+    {
+      id: 'email-exec-board-preread',
+      colleagueId: 'exec',
+      subject: '需要预读材料:董事会会问到 {label}',
+      body: '各位 — 董事会外出会议就在周四,我需要一份关于 {label} 的一页纸报告。一页。就一页。装不进一页的不是战略,是爱好。\n\n四分钟后有硬停,\nThe VP',
+      actionPrompt: '把图简化到最核心的三个要素'
+    },
+    {
+      id: 'email-cfo-cloud-spend',
+      colleagueId: 'cfo',
+      subject: '已标记:无法解释的预算项("{label}")',
+      body: '财务标记了一个名为“{label}”的资源。请确认它 (a) 必不可少,且 (b) 免费。如果无法兼得,请参见 (b)。\n\n预算就是不行,\nDiane'
+    },
+    {
+      id: 'email-cto-conference',
+      colleagueId: 'cto',
+      subject: '在某场主题演讲上见过一模一样的(想法?)',
+      body: '刚从 VisionaryConf 回来。有一页幻灯片和你的 {label} 几乎一样 — 只不过他们的会脉动,还带 AI 光环。我们的能脉动吗?把负责脉动的人拉进来。\n\n向前,\nMarcus',
+      actionPrompt: '加一个大胆的愿景元素,让整张图更有未来感'
     }
   ],
   OFFICE_IM_TEMPLATES: [
@@ -225,16 +247,6 @@ export const OFFICE_ZH_CN = {
       body: '大型机问起你了。我说你忙着画图。它表示理解。'
     },
     {
-      id: 'im-ciso-password',
-      colleagueId: 'ciso',
-      body: '季度扫描把你的密码标记为“好记”。不可接受。请改成一个连你自己都猜不到的。'
-    },
-    {
-      id: 'im-ciso-arrows',
-      colleagueId: 'ciso',
-      body: '数了数 {label} 里的箭头。每一根都是攻击面。祝你睡个好觉。'
-    },
-    {
       id: 'im-helpdesk-dns',
       colleagueId: 'helpdesk',
       body: '网络慢?是 DNS。不是 DNS。刚才是 DNS。工单已关闭。'
@@ -285,11 +297,6 @@ export const OFFICE_ZH_CN = {
       id: 'walkby-hr',
       colleagueId: 'hr',
       body: '大家围绕 {label} 的能量太棒了!考虑过在强制欢乐时光上展示它吗?😊'
-    },
-    {
-      id: 'walkby-ciso',
-      colleagueId: 'ciso',
-      body: '嗯。{label}。画出一个攻击面还替对方贴好标签,勇气可嘉。'
     },
     {
       id: 'walkby-helpdesk',
@@ -567,11 +574,12 @@ export const OFFICE_ZH_CN = {
     }
   ],
   OFFICE_MEETING_COPY: {
-    inviteFallbackTitle: '工作组:图表对齐同步会(例会)',
-    inviteFallbackBody: '需要就当前图表对齐一下。议程:对齐、下一步、就下一步对齐。零食:无。',
+    inviteFallbackTitle: '架构评审委员会(指导会议)',
+    inviteFallbackBody:
+      '领导层想看看当前这张图。议程:重点、成本、风险。你的团队来展示;高层负责提问。零食:无。',
     joiningLine: '正在等待组织者放你进来…',
-    cancelledSubject: '已取消:图表对齐同步会',
-    cancelledBody: '会议取消 — 组织者行程冲突。改期至:永不。行动项仍归你负责。\n\nPam',
+    cancelledSubject: '已取消:架构评审委员会',
+    cancelledBody: '会议取消 — 领导层行程冲突。改期至:永不。行动项仍归你负责。\n\nPam',
     proposeNewTimeGag: '已提议新时间。组织者拒绝了你提议的时间。',
     minutesTitle: '会议纪要',
     raiseHandPlaceholder: '对全场说点什么…',

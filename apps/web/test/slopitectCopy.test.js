@@ -162,6 +162,6 @@ describe('slopitectCopy', () => {
     expect(PROMPT_ACTION_COPY.label).toBe('Weigh In');
     expect(PROMPT_ACTION_COPY.roleTag).not.toBe(PROMPT_ACTION_COPY.label);
     expect(PROMPT_ACTION_COPY.roleTag).toBe('Just Say It');
-    expect(STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('Stakeholders');
+    expect(STAKEHOLDERS_MUTE_COPY.stakeholdersTag).toBe('Your Team');
   });
 });

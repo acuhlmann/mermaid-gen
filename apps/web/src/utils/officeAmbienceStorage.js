@@ -11,6 +11,7 @@ export const OFFICE_NARRATION_STORAGE_KEY = 'archislop:office-narration';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
+export const OFFICE_DAY_ONE_BADGE_STORAGE_KEY = 'archislop:day-one-badge-seen';
 
 const SEEN_TEMPLATE_CAP = 60;
 
@@ -131,6 +132,28 @@ export function writeOfficeDirectorySeen() {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(OFFICE_DIRECTORY_STORAGE_KEY, '1');
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * True once the Day One badge on the entry screen has been dismissed — the
+ * new-hire framing then stays out of the way on later visits.
+ */
+export function readDayOneBadgeSeen() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(OFFICE_DAY_ONE_BADGE_STORAGE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function writeDayOneBadgeSeen() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(OFFICE_DAY_ONE_BADGE_STORAGE_KEY, '1');
   } catch {
     // Ignore quota / privacy errors.
   }

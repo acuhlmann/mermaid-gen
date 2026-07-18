@@ -12,6 +12,7 @@ import {
   parseInterjectReply,
   parseMeetingScript,
   parseMomentReply,
+  SENIOR_MEETING_VOICES,
   STAKEHOLDER_MEETING_VOICES
 } from '../src/agents/officePersonas.js';
 
@@ -25,6 +26,22 @@ test('office colleague registry covers the v1 cast and stakeholders stay separat
   assert.equal(isOfficeColleague('exec'), false);
   assert.equal(isOfficeSpeaker('exec'), true);
   assert.equal(isOfficeSpeaker('ceo'), false);
+});
+
+test('senior stakeholders are valid meeting speakers with real voice blocks', () => {
+  for (const id of ['cto', 'cfo']) {
+    assert.equal(isOfficeSpeaker(id), true, `${id} should be able to take a seat`);
+    assert.equal(isOfficeColleague(id), false, `${id} is not an ambient colleague`);
+    assert.ok(SENIOR_MEETING_VOICES[id].voice.length > 40, `${id} needs a real voice block`);
+  }
+  // Seated seniors must be introduced by name, not by bare id, in the script prompt.
+  const prompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'cfo', 'refine'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(prompt, /Diane \(CFO/);
+  assert.match(prompt, /speakerId "cfo"/);
+  assert.match(prompt, /Senior attendees/);
 });
 
 test('moment system prompt carries the voice, strict-JSON rule, and kind rules', () => {
@@ -147,6 +164,13 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
     normalizeAttendees(['scrumMaster', 'exec', 'intern', 'greybeard', 'critique']),
     null
   );
+  // A steering-meeting roster (facilitator + seniors + a team presenter) must survive.
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'cto', 'cfo', 'refine']), [
+    'scrumMaster',
+    'cto',
+    'cfo',
+    'refine'
+  ]);
 });
 
 test('createOfficeChatModel returns null when no LLM is configured', () => {

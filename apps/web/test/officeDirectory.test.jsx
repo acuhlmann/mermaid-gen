@@ -26,7 +26,7 @@ describe('OfficeDirectory', () => {
     render(<OfficeDirectory />);
     expect(screen.getByTestId('office-directory-tour')).toBeTruthy();
     expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
-    expect(screen.getByText(/Your diagram has a workplace/)).toBeTruthy();
+    expect(screen.getByText(/Your new floor/)).toBeTruthy();
     expect(screen.queryByTestId('office-directory-roster')).toBeNull();
     expect(screen.queryByText('Facilities & Fridge Czar')).toBeNull();
   });
@@ -52,7 +52,7 @@ describe('OfficeDirectory', () => {
     }
     fireEvent.click(screen.getByRole('button', { name: 'Clock in' }));
     expect(screen.queryByText('Facilities & Fridge Czar')).toBeNull();
-    expect(screen.getByRole('button', { name: /Meet the office/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Meet the floor/ })).toBeTruthy();
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(window.localStorage.getItem(OFFICE_DIRECTORY_STORAGE_KEY)).toBe('1');
   });
@@ -60,15 +60,15 @@ describe('OfficeDirectory', () => {
   it('skips the tour and collapses to the Meet-the-office chip', () => {
     render(<OfficeDirectory />);
     fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
-    expect(screen.getByRole('button', { name: /Meet the office/ })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Meet the floor/ })).toBeTruthy();
     expect(readOfficeDirectorySeen()).toBe(true);
   });
 
   it('reopens the full roster for returning users', () => {
     window.localStorage.setItem(OFFICE_DIRECTORY_STORAGE_KEY, '1');
     render(<OfficeDirectory />);
-    expect(screen.queryByText(/Welcome to the office/)).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Meet the office/ }));
+    expect(screen.queryByText(/Day one at ArchiSlop/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Meet the floor/ }));
     expect(screen.getByTestId('office-directory-roster')).toBeTruthy();
     for (const name of ['Chad', 'Pam', 'Ticket Bot Dave', 'Gary', 'Linda', 'Ulrich', 'Sasha']) {
       expect(screen.getByText(name)).toBeTruthy();

@@ -39,6 +39,31 @@ minutes flow into the Thinking pane through System B's attributed-note rendering
 
 ## 3. Character roster
 
+The cast is split into **three tiers** (`apps/web/src/utils/castTiers.js` — `CAST_TIERS` /
+`tierOf`). The tier is a tag, not a data move: `exec` still lives in `VARIANT_PERSONAS` and
+`ciso` in `OFFICE_COLLEAGUES`.
+
+| Tier       | Who                                                      | How they reach you                                                              |
+| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **team**   | refine, innovate, goMad, critique, explain               | Proactive roundtable (`ADVISOR_ORDER`) + the agent actions. Your collaborators. |
+| **senior** | exec (VP), ciso (Sasha), cto (Marcus), cfo (Diane)       | Steering meetings + ≤1 high-stakes email/session. Never ambient pings.          |
+| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard | Emails, IMs, walk-bys, coffee, battles. The floor around you.                   |
+
+Boundary rules worth keeping: senior stakeholders are excluded from
+`OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and from the canned day-to-day banks — their one ambient
+outlet is `SENIOR_EMAIL_TEMPLATES`. They **may still be overheard** in coffee/battle set pieces
+(Sasha's DNS postmortem, the Friday-deploy war): overhearing leadership argue is not the same as
+leadership pinging your desk.
+
+### Senior stakeholders
+
+| id     | Name   | Title                          | Emoji | Bit                                                                 |
+| ------ | ------ | ------------------------------ | ----- | ------------------------------------------------------------------- |
+| `exec` | The VP | SVP of Synergy & Co-Design     | 👔    | Subtractive; wants the one-pager; hard stop in four minutes         |
+| `ciso` | Sasha  | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims             |
+| `cto`  | Marcus | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016 |
+| `cfo`  | Diane  | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month   |
+
 ### Shipped colleagues (v1)
 
 | id            | Name            | Title                             | Emoji | Bit                                                                                                  |
@@ -115,12 +140,63 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 The entry screen additionally mounts the **office directory** (`OfficeDirectory`): a
 focused "meet the floor" tour. First run it opens as a stepped intro (welcome beat →
 one colleague at a time → Clock in), persisted via `archislop:office-directory-seen`;
-afterwards it lives as a "🏢 Meet the office" chip that reopens the full roster.
+afterwards it lives as a "🏢 Meet the floor" chip that reopens the full roster.
 Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an opaque
 `--office-surface-bg` so canvas ink underneath never bleeds through the copy.
 
+### Day One (the new-hire frame)
+
+The empty state is staged as **your first day at ArchiSlop Corp.** — the user is the
+newest architect on the floor and the diagram slots are their work deliverables:
+
+- **`DayOneBadge`** (`apps/web/src/components/DayOneBadge.jsx`) tops the entry cluster:
+  "ArchiSlop Corp. · Employee Badge / New Hire — {userTitle}" (the gamification level
+  title), one HR gag line, and the rockstar pitch line. Dismiss persists via
+  `archislop:day-one-badge-seen` (`officeAmbienceStorage`), like the directory tour.
+- **Assignment chips** — `controls.prompt.starters` entries carry `fromId` (any cast id
+  `officeSenderInfo` can resolve — stakeholders and colleagues both work) and `ask` (the
+  requester's one-liner). `TopicStarters` renders a From-attribution stack; entries
+  without `fromId` (untranslated locale bundles) fall back to plain chips. The
+  `label`/`prompt` fields stay the real generation inputs — the fiction never touches
+  prompt quality.
+- **"Pitch your own initiative"** — the free-prompt placeholder; the entry "Render as"
+  strip is labeled **"Deliverable format"**.
+
+Assignments are canned-only for now. Roadmap: an LLM-refreshable assignment inbox
+(new requests referencing the user's recent work), budgeted like other office LLM calls.
+
 Roadmap moments: the desk phone nobody answers, desk-drop pastries from Facilities, the fire
 drill (all surfaces evacuate for 30 s), the printer that prints one page reading "soon".
+
+### Desk verbs (what _you_ do)
+
+The ambience director decides when the office interrupts you; the **desk verbs** are the other
+direction — you deciding to get up. `DeskActionsDock` ("🪪 Your desk", beside the inbox) opens a
+short menu wired to `useDeskActions`:
+
+| Verb                 | Does                                                                                                                               |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| ☕ Get a coffee      | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                            |
+| 🚶 Walk the floor    | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead |
+| 💬 Message someone   | DMs a teammate or colleague; reply is LLM-or-canned. Senior tier excluded — you don't cold-DM the CFO                              |
+| 📥 Check your mail   | Opens the inbox popover (`openSignal` counter prop)                                                                                |
+| 📅 Call a meeting    | Same handler as the inbox's shortcut (two entry points, one behavior)                                                              |
+| 👥 Talk to your team | `advisor.promptNext({})` — asks the roundtable for a fresh take                                                                    |
+
+**Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
+**bypass Focus Time** (it mutes interruptions, not your own initiative), but still respect
+one-surface-at-a-time, an open meeting, and a streaming agent run. Blocked verbs stay visible and
+disabled with an in-fiction tooltip ("Deploy in progress — nobody leaves their desk."), so the menu
+never silently no-ops.
+
+**Budget.** Verb-triggered LLM calls have their own cap (`DESK_LLM_CAP` = 3/session) and never
+spend the ambient `OFFICE_LLM_MOMENT_CAP`; asking for something yourself should not use up the
+office's background allowance. Verbs stamp `lastFiredAt` (so the ambient director backs off
+afterwards) but never consume its session caps. XP reuses the existing awards, plus
+`walkedFloor` (+2).
+
+Both producers share `apps/web/src/utils/officeMomentDelivery.js` — the canned-bank and
+LLM-moment paths live there, so a desk verb and an ambient moment resolve content identically.
 
 ## 5. The WG meeting system (flagship)
 
@@ -137,9 +213,12 @@ drill (all surfaces evacuate for 30 s), the printer that prints one page reading
   (derailments: tangents, fridge politics, war stories), `substantive` (a concrete diagram idea
   with an `actionPrompt`). Server enforces: 6–14 beats, ≥1 substantive, speakers from the attendee
   list only, facilitator opens and closes.
-- **Attendees**: 3–4 seats — Pam always facilitates, plus a rotating mix of
-  {`exec`, `critique`, `goMad`, `intern`, `greybeard`, `ciso`}. Attendees react to each other by
-  name and bicker gently.
+- **Attendees**: 3–4 seats, drawn as a **steering committee** (`pickMeetingAttendees`) — Pam always
+  facilitates, 1–2 **senior stakeholders** from {`exec`, `ciso`, `cto`, `cfo`} outrank the room, and
+  exactly one **team presenter** from {`refine`, `critique`, `explain`} walks the deck upstairs. The
+  showrunner prompt tells the seniors to ask for the headline, the cost, and the risk while the
+  presenter defends the diagram. Server-side the seat allowlist is `isOfficeSpeaker`
+  (`officePersonas.js`), which now spans colleagues + stakeholders + `SENIOR_MEETING_VOICES`.
 - **Interjections**: the user speaks up to 2× per meeting; `POST /api/office/meeting/interject`
   rewrites only the remaining beats to react to the user's point. On failure, Pam parks the point
   ("Great point — parking-lotting that.") and the meeting rolls on.
@@ -160,7 +239,9 @@ the pure cadence brain (`officeCadence.js`) on a 5 s tick:
 - Quiet first ~20 s of a session, then a **warm-up**: the first 2 moments arrive on a short
   45–75 s leash (the office notices the new arrival) before the cadence settles to the 3–5 min
   jittered cruise gap; **hard cap ~10 moments/session**; 1 meeting invite/session; 2 cubicle
-  battles/session.
+  battles/session; **1 senior email/session** (`OFFICE_SENIOR_EMAILS_PER_SESSION`) — a canned email
+  has a ~20 % chance of coming from upstairs instead of the floor while that cap is open, and the
+  senior draw never spends an LLM call.
 - Never fires while: an agent run streams, the stakeholder advisor bubble is up, a meeting is
   open, another office surface is on screen, the tab is hidden, or **Focus Time** is on
   (persisted; colleagues mostly respect it).
@@ -222,6 +303,11 @@ model?}`.
 - `POST /api/office/meeting/interject` — `{…context, attendees, transcriptSoFar, interjection}` →
   `{beats: MeetingBeat[] | null, usage?, model?}`.
 
+`attendees` accepts any id that passes `isOfficeSpeaker` — colleagues, stakeholders, and (since the
+tier split) the senior execs. No shared-schema change was needed: `speakerId`/`colleagueId` are
+plain strings and the allowlist is the trust boundary. Producer is the client's
+`pickMeetingAttendees`; consumer is `normalizeAttendees`.
+
 The session-events bus is **not involved in v1** (client-driven request/response, no second
 consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started` event types (per
 `docs/recipes/add-session-event.md`) so real external agents can join the watercooler.
@@ -241,9 +327,13 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | First-run welcome sequence                                             | `apps/web/src/hooks/useOfficeWelcome.js` (beats: `OFFICE_WELCOME_EMAIL` / `OFFICE_WELCOME_IM` in `officeCast.js`)                                                                                                                                                                                                                                                                                                                        |
 | Entry-screen office directory                                          | `apps/web/src/components/OfficeDirectory.jsx` (mounted in App's entry cluster; colleague `blurb`s in `officeCast.js`)                                                                                                                                                                                                                                                                                                                    |
 | Ambience store (useSyncExternalStore)                                  | `apps/web/src/state/officeMomentStore.js`                                                                                                                                                                                                                                                                                                                                                                                                |
-| Director hook                                                          | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                                                                                                                                                                                                                                                                                |
+| Director hook (cadence + caps)                                         | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                                                                                                                                                                                                                                                                                |
+| Shared moment delivery (both producers)                                | `apps/web/src/utils/officeMomentDelivery.js`                                                                                                                                                                                                                                                                                                                                                                                             |
+| Desk verbs (player-initiated)                                          | `apps/web/src/hooks/useDeskActions.js` + `apps/web/src/components/DeskActionsDock.jsx`                                                                                                                                                                                                                                                                                                                                                   |
+| Cast tiers (team / senior / office)                                    | `apps/web/src/utils/castTiers.js`                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Day One entry framing                                                  | `apps/web/src/components/DayOneBadge.jsx` + attributed `controls.prompt.starters` (`TopicStarters.jsx`)                                                                                                                                                                                                                                                                                                                                  |
 | Meeting playback state machine                                         | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                                                                                                                                                                                                                                                                                               |
-| Chrome                                                                 | `apps/web/src/components/OfficeLayer.jsx` (+ `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                                                                                                     |
+| Chrome                                                                 | `apps/web/src/components/OfficeLayer.jsx` (+ `DeskActionsDock`, `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                                                                                  |
 | Office XP reducer                                                      | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                       |
 | Minutes → Thinking pane                                                | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                               |
 | SFX                                                                    | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape cues (`playKeyboardClatter` / `playMouseClicks` / `playPaperShuffle` / `playDistantPrinter` / `playChairSqueak` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine` / `playVendingMachine` / `playElevatorDing`) in `apps/web/src/utils/agentChimes.js` |

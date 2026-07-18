@@ -102,7 +102,9 @@ describe('useAdvisorOrchestrator', () => {
 
   /** Force pickNextPersona to return a specific persona (ADVISOR_ORDER index). */
   function mockPersonaPick(persona) {
-    const order = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
+    // Mirrors ADVISOR_ORDER: your team only. `exec` is senior tier and is not
+    // in the proactive rotation (castTiers.js).
+    const order = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
     const idx = order.indexOf(persona);
     vi.spyOn(Math, 'random').mockReturnValue((idx + 0.01) / order.length);
   }

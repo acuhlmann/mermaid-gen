@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
+import DeskActionsDock from './DeskActionsDock.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeImPing from './OfficeImPing.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
+import { useDeskActions } from '../hooks/useDeskActions.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
 import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
@@ -72,6 +74,7 @@ export default function OfficeLayer({
   onAdoptPrompt,
   onMeetingMinutes,
   onOfficeEvent,
+  onTalkToTeam,
   playChime
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
@@ -333,9 +336,38 @@ export default function OfficeLayer({
 
   const canCallMeeting = Boolean((getDiagramSource?.() ?? '').trim()) && !meeting;
 
+  // Bumping this counter opens the inbox popover from the desk menu without
+  // lifting the dock's own open/close state.
+  const [inboxOpenSignal, setInboxOpenSignal] = useState(0);
+  const desk = useDeskActions({
+    pause,
+    meetingActive: Boolean(meeting),
+    getDiagramSource,
+    getContentType,
+    getSessionId,
+    getSvgRoot,
+    getUserTitle,
+    onUsage,
+    onOfficeEvent,
+    onCallMeeting: handleCallMeeting,
+    onCheckInbox: () => setInboxOpenSignal((n) => n + 1),
+    onTalkToTeam
+  });
+
   return (
     <div className="office-layer">
+      <DeskActionsDock
+        onGetCoffee={desk.getCoffee}
+        onWalkTheFloor={desk.walkTheFloor}
+        onImSomeone={desk.imSomeone}
+        onCheckInbox={desk.checkInbox}
+        onCallMeeting={desk.callMeeting}
+        onTalkToTeam={desk.talkToTeam}
+        blockedReason={desk.blockedReason}
+        canCallMeeting={canCallMeeting}
+      />
       <OfficeInboxDock
+        openSignal={inboxOpenSignal}
         emails={snapshot.emails}
         unreadCount={snapshot.unreadCount}
         focusTime={snapshot.focusTime}

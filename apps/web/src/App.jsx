@@ -136,6 +136,7 @@ import {
   writeToStorage as writeGamificationToStorage,
   reconcileLifetimeLlmCostUsd
 } from './state/runGamificationStore.js';
+import DayOneBadge from './components/DayOneBadge.jsx';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import OfficeLayer from './components/OfficeLayer.jsx';
 import { getVariantPersona } from './utils/slopitectCopy.js';
@@ -4205,7 +4206,7 @@ ${requirementsBlock}`;
       },
       {
         id: 'exec',
-        label: a.coDesign,
+        label: a.prepForVp ?? a.coDesign,
         icon: <ActionPersonaIcon variant="exec" />,
         variant: 'exec',
         persona: actionPersonaName('exec'),
@@ -4479,6 +4480,7 @@ ${requirementsBlock}`;
         }}
         onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
         onOfficeEvent={handleOfficeEvent}
+        onTalkToTeam={() => advisor.promptNext({})}
         playChime={tryAgentSound}
       />
       <HotkeyOverlay
@@ -4739,6 +4741,7 @@ ${requirementsBlock}`;
         actions={
           !hasCanvasContent && !insightsOpen ? (
             <div className="entry-cluster">
+              <DayOneBadge copy={controls.dayOne} userTitle={gamification.levelTitle} />
               <OfficeDirectory />
               <TopicStarters
                 hint={controls.prompt.starterHint}
@@ -4882,16 +4885,19 @@ ${requirementsBlock}`;
                       onClick: () => runTransform('goMad', { useDiagramFocus: true })
                     },
                     {
-                      variant: 'exec',
-                      onClick: () => runTransform('exec', { useDiagramFocus: true })
-                    },
-                    {
                       variant: 'critique',
                       onClick: () => runAnalyze('critique', { useDiagramFocus: true })
                     },
                     {
                       variant: 'explain',
                       onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                    },
+                    // Senior tier: the VP is not a teammate — this action preps
+                    // the diagram for upstairs (castTiers.js).
+                    {
+                      variant: 'exec',
+                      senior: true,
+                      onClick: () => runTransform('exec', { useDiagramFocus: true })
                     }
                   ]}
                   activeAdvisorVariant={advisor.activePersona}
@@ -5025,16 +5031,19 @@ ${requirementsBlock}`;
                       onClick: () => runTransform('goMad', { useDiagramFocus: true })
                     },
                     {
-                      variant: 'exec',
-                      onClick: () => runTransform('exec', { useDiagramFocus: true })
-                    },
-                    {
                       variant: 'critique',
                       onClick: () => runAnalyze('critique', { useDiagramFocus: true })
                     },
                     {
                       variant: 'explain',
                       onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                    },
+                    // Senior tier: the VP is not a teammate — this action preps
+                    // the diagram for upstairs (castTiers.js).
+                    {
+                      variant: 'exec',
+                      senior: true,
+                      onClick: () => runTransform('exec', { useDiagramFocus: true })
                     }
                   ]}
                   activeAdvisorVariant={advisor.activePersona}

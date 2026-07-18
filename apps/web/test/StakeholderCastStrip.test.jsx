@@ -8,10 +8,10 @@ const CAST = ['refine', 'innovate', 'goMad', 'exec', 'critique', 'explain'];
 describe('StakeholderCastStrip', () => {
   afterEach(() => cleanup());
 
-  it('renders stakeholders tag and cast avatars when cast has multiple personas', () => {
+  it('renders the team tag and cast avatars when cast has multiple personas', () => {
     render(<StakeholderCastStrip variants={CAST} activeVariant="exec" />);
-    expect(screen.getByText('Stakeholders')).toBeTruthy();
-    expect(screen.getByLabelText(/The VP is one of 6 stakeholders/i)).toBeTruthy();
+    expect(screen.getByText('Your Team')).toBeTruthy();
+    expect(screen.getByLabelText(/The VP is one of 6 teammates/i)).toBeTruthy();
     expect(screen.getByTitle('THE Engineer')).toBeTruthy();
     expect(screen.getByTitle('Chief Innovation Officer')).toBeTruthy();
   });

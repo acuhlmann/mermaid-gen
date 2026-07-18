@@ -108,7 +108,7 @@ export const PROMPT_ACTION_COPY = {
 
 /** Mute / unmute stakeholders chrome action — role pill always names who you are silencing. */
 export const STAKEHOLDERS_MUTE_COPY = {
-  stakeholdersTag: 'Stakeholders',
+  stakeholdersTag: 'Your Team',
   watchingEmoji: '👀',
   stakeholdersEmoji: '👥'
 };

@@ -57,7 +57,7 @@ describe('AdvisorSpeechBubble', () => {
       />
     );
     const back = screen.getByRole('button', { name: /Older suggestion/i });
-    const next = screen.getByRole('button', { name: /Next stakeholder comment/i });
+    const next = screen.getByRole('button', { name: /Next teammate comment/i });
     fireEvent.click(back);
     expect(onHistoryBack).toHaveBeenCalledTimes(1);
     fireEvent.click(next);
@@ -66,7 +66,7 @@ describe('AdvisorSpeechBubble', () => {
 
   it('disables prompt-next when canPromptNext is false', () => {
     render(<AdvisorSpeechBubble {...baseProps} canPromptNext={false} onPromptNext={vi.fn()} />);
-    expect(screen.getByRole('button', { name: /Next stakeholder comment/i }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: /Next teammate comment/i }).disabled).toBe(true);
   });
 
   it('exposes data-kind for styling and assertions', () => {
@@ -99,6 +99,6 @@ describe('AdvisorSpeechBubble', () => {
         castVariants={['refine', 'innovate', 'exec', 'critique', 'explain', 'goMad']}
       />
     );
-    expect(screen.getByText('Stakeholders')).toBeTruthy();
+    expect(screen.getByText('Your Team')).toBeTruthy();
   });
 });

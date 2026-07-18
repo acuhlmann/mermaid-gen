@@ -125,18 +125,6 @@ export const OFFICE_ZH_TW = {
       body: '在共用磁碟上看到你的圖了。這東西我們 2009 年就做過,靠一支 cron 排程和恐懼運作,2011 年讓正式環境掛了一整週。\n\n想知道就來問我。或者別問。它知道。\n\nUlrich'
     },
     {
-      id: 'email-ciso-phishing',
-      colleagueId: 'ciso',
-      subject: '你沒有點。我們注意到了。(釣魚演練報告)',
-      body: '禮貌性通知:上週的模擬釣魚信(「免費架構評審 — 立即點擊」)你沒有點。統計上,人人都會點。不點屬於可疑行為,已記入你的檔案。\n\n我們會一直測,直到你點為止。\n\n什麼都別信,\nSasha — 不行部'
-    },
-    {
-      id: 'email-ciso-password',
-      colleagueId: 'ciso',
-      subject: '密碼政策更新(自昨日起生效)',
-      body: '密碼現須包含 16 個字元、一個表情符號、一個質數,以及一個已棄用協定的亡魂。密碼不得包含:單字、數字或字元。\n\n你目前的密碼在 4 項檢查中不及格 11 項。就某種意義而言,令人佩服。\n\nSasha'
-    },
-    {
       id: 'email-helpdesk-printer-firmware',
       colleagueId: 'helpdesk',
       subject: '[工單 #48313] 印表機韌體更新完成',
@@ -171,6 +159,40 @@ export const OFFICE_ZH_TW = {
       colleagueId: 'intern',
       subject: '我上線東西了!!!(小問題)',
       body: '各位!!我的第一個改動上線了。就是 {label} 那個。不過小問題 — 如果所有東西都著火了,但火不大,要跟誰講?純屬假設。火是假設的。大致上。\n\nchad(實習生)'
+    }
+  ],
+  SENIOR_EMAIL_TEMPLATES: [
+    {
+      id: 'email-ciso-phishing',
+      colleagueId: 'ciso',
+      subject: '你沒有點。我們注意到了。(釣魚演練報告)',
+      body: '禮貌性通知:上週的模擬釣魚信(「免費架構評審 — 立即點擊」)你沒有點。統計上,人人都會點。不點屬於可疑行為,已記入你的檔案。\n\n我們會一直測,直到你點為止。\n\n什麼都別信,\nSasha — 不行部'
+    },
+    {
+      id: 'email-ciso-password',
+      colleagueId: 'ciso',
+      subject: '密碼政策更新(自昨日起生效)',
+      body: '密碼現須包含 16 個字元、一個表情符號、一個質數,以及一個已棄用協定的亡魂。密碼不得包含:單字、數字或字元。\n\n你目前的密碼在 4 項檢查中不及格 11 項。就某種意義而言,令人佩服。\n\nSasha'
+    },
+    {
+      id: 'email-exec-board-preread',
+      colleagueId: 'exec',
+      subject: '需要預讀資料:董事會會問到 {label}',
+      body: '各位 — 董事會外地會議就在週四,我需要一份關於 {label} 的一頁報告。一頁。就一頁。裝不進一頁的不是戰略,是嗜好。\n\n四分鐘後有硬停,\nThe VP',
+      actionPrompt: '把圖簡化到最核心的三個要素'
+    },
+    {
+      id: 'email-cfo-cloud-spend',
+      colleagueId: 'cfo',
+      subject: '已標記:無法解釋的預算項目(「{label}」)',
+      body: '財務標記了一個名為「{label}」的資源。請確認它 (a) 必不可少,且 (b) 免費。如果無法兼得,請參見 (b)。\n\n預算就是不行,\nDiane'
+    },
+    {
+      id: 'email-cto-conference',
+      colleagueId: 'cto',
+      subject: '在某場主題演講上看過一模一樣的(想法?)',
+      body: '剛從 VisionaryConf 回來。有一頁投影片和你的 {label} 幾乎一樣 — 只不過他們的會脈動,還帶 AI 光環。我們的能脈動嗎?把負責脈動的人拉進來。\n\n向前,\nMarcus',
+      actionPrompt: '加一個大膽的願景元素,讓整張圖更有未來感'
     }
   ],
   OFFICE_IM_TEMPLATES: [
@@ -225,16 +247,6 @@ export const OFFICE_ZH_TW = {
       body: '大型主機問起你。我說你忙著畫圖。它表示理解。'
     },
     {
-      id: 'im-ciso-password',
-      colleagueId: 'ciso',
-      body: '季度掃描把你的密碼標記為「好記」。不可接受。請改成一個連你自己都猜不到的。'
-    },
-    {
-      id: 'im-ciso-arrows',
-      colleagueId: 'ciso',
-      body: '數了數 {label} 裡的箭頭。每一根都是攻擊面。祝你好眠。'
-    },
-    {
       id: 'im-helpdesk-dns',
       colleagueId: 'helpdesk',
       body: '網路很慢?是 DNS。不是 DNS。剛剛是 DNS。工單已結案。'
@@ -285,11 +297,6 @@ export const OFFICE_ZH_TW = {
       id: 'walkby-hr',
       colleagueId: 'hr',
       body: '大家在 {label} 上的能量超棒!要不要在強制歡樂時光發表一下?😊'
-    },
-    {
-      id: 'walkby-ciso',
-      colleagueId: 'ciso',
-      body: '嗯。{label}。畫出一個攻擊面還替對方貼好標籤,勇氣可嘉。'
     },
     {
       id: 'walkby-helpdesk',
@@ -567,11 +574,12 @@ export const OFFICE_ZH_TW = {
     }
   ],
   OFFICE_MEETING_COPY: {
-    inviteFallbackTitle: '工作小組:圖表對齊同步會議(定期)',
-    inviteFallbackBody: '需要就目前的圖對齊一下。議程:對齊、下一步、就下一步對齊。點心:無。',
+    inviteFallbackTitle: '架構評審委員會(指導會議)',
+    inviteFallbackBody:
+      '領導層想看看目前這張圖。議程:重點、成本、風險。你的團隊來簡報;高層負責提問。點心:無。',
     joiningLine: '正在等主辦人讓你進來…',
-    cancelledSubject: '已取消:圖表對齊同步會議',
-    cancelledBody: '會議取消 — 主辦人行程衝突。改期至:永遠不會。行動項目仍然歸你。\n\nPam',
+    cancelledSubject: '已取消:架構評審委員會',
+    cancelledBody: '會議取消 — 領導層行程衝突。改期至:永遠不會。行動項目仍然歸你。\n\nPam',
     proposeNewTimeGag: '已提議新時間。主辦人婉拒了你提議的時間。',
     minutesTitle: '會議紀錄',
     raiseHandPlaceholder: '對大家說點什麼…',

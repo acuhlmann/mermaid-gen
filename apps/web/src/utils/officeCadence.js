@@ -22,6 +22,11 @@ export const OFFICE_SESSION_MOMENT_CAP = 10;
 export const OFFICE_MEETING_INVITES_PER_SESSION = 1;
 export const OFFICE_BATTLES_PER_SESSION = 2;
 export const OFFICE_LLM_MOMENT_CAP = 3;
+/** Senior stakeholders (VP/CISO/CTO/CFO) get exactly one ambient email each
+ * session — they are meeting people, not desk-ping people. */
+export const OFFICE_SENIOR_EMAILS_PER_SESSION = 1;
+/** Share of canned emails drawn from the senior bank while that cap is open. */
+const SENIOR_EMAIL_RATIO = 0.2;
 
 /** Relative frequency of each moment kind (before availability filters). */
 const MOMENT_WEIGHTS = [
@@ -46,10 +51,11 @@ const IM_LLM_RATIO = 0.2;
  *   llmMomentCount: number,
  *   meetingInviteCount: number,
  *   battleCount?: number,
+ *   seniorEmailCount?: number,
  *   hasDiagram: boolean,
  *   random?: () => number
  * }} args
- * @returns {{ kind: 'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite', useLlm: boolean } | null}
+ * @returns {{ kind: 'email'|'im'|'walkby'|'coffee'|'battle'|'meeting-invite', useLlm: boolean, senior?: boolean } | null}
  */
 export function pickNextMoment({
   now,
@@ -59,6 +65,7 @@ export function pickNextMoment({
   llmMomentCount,
   meetingInviteCount,
   battleCount = 0,
+  seniorEmailCount = 0,
   hasDiagram,
   random = Math.random
 }) {
@@ -101,6 +108,17 @@ export function pickNextMoment({
     useLlm = llmBudgetLeft && hasDiagram && random() < EMAIL_LLM_RATIO;
   } else if (kind === 'im') {
     useLlm = llmBudgetLeft && hasDiagram && random() < IM_LLM_RATIO;
+  }
+
+  // A canned email may instead come from upstairs — zero LLM, capped hard so
+  // leadership stays a rare event rather than another colleague.
+  if (
+    kind === 'email' &&
+    !useLlm &&
+    seniorEmailCount < OFFICE_SENIOR_EMAILS_PER_SESSION &&
+    random() < SENIOR_EMAIL_RATIO
+  ) {
+    return { kind, useLlm: false, senior: true };
   }
   return { kind, useLlm };
 }

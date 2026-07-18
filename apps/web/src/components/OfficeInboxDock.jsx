@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -11,6 +11,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
  * silent (nobody reads your inbox out loud).
  */
 export default function OfficeInboxDock({
+  openSignal = 0,
   emails,
   unreadCount,
   focusTime,
@@ -29,6 +30,12 @@ export default function OfficeInboxDock({
   const [selectedId, setSelectedId] = useState(null);
   const selected = emails.find((email) => email.id === selectedId) ?? null;
   const copy = officeChromeCopy();
+
+  // The desk menu's "Check your mail" verb bumps openSignal; 0 is the initial
+  // value, so the inbox never pops open on mount.
+  useEffect(() => {
+    if (openSignal > 0) setOpen(true);
+  }, [openSignal]);
 
   const toggleOpen = () => {
     setOpen((prev) => {

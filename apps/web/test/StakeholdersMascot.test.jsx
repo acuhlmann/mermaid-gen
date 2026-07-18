@@ -17,7 +17,7 @@ describe('StakeholdersMascot', () => {
 
   it('lists all stakeholder names in the roster when expanded (test mode)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
-    expect(screen.getByRole('menu', { name: 'Stakeholder personas' })).toBeTruthy();
+    expect(screen.getByRole('menu', { name: 'Your team' })).toBeTruthy();
     expect(screen.getByText('THE Engineer')).toBeTruthy();
     expect(screen.getByText('Chief Innovation Officer')).toBeTruthy();
     expect(screen.getByText('THE SLOPITECT')).toBeTruthy();
