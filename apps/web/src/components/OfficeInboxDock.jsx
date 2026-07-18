@@ -5,16 +5,20 @@ import { formatLocale } from '../i18n/formatLocale.js';
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
  * unread badge, opening a popover with the email list, a reading pane,
- * the Focus Time (office DND) + Soundscape toggles, and the "Call a meeting"
- * shortcut. Pure props — OfficeLayer owns the store subscription.
+ * the Focus Time (office DND) + Soundscape + Narration toggles, and the
+ * "Call a meeting" shortcut. Pure props — OfficeLayer owns the store
+ * subscription. Narration covers walk-bys and meetings only; emails stay
+ * silent (nobody reads your inbox out loud).
  */
 export default function OfficeInboxDock({
   emails,
   unreadCount,
   focusTime,
   soundscape,
+  narration,
   onToggleFocusTime,
   onToggleSoundscape,
+  onToggleNarration,
   onMarkRead,
   onMarkAllRead,
   onAdoptPrompt,
@@ -81,6 +85,17 @@ export default function OfficeInboxDock({
                 onChange={() => onToggleSoundscape?.(!soundscape)}
               />
               <span>{copy.inbox.soundscapeLabel}</span>
+            </label>
+            <label
+              className="office-focus-toggle office-soundscape-toggle"
+              title={copy.inbox.narrationTitle}
+            >
+              <input
+                type="checkbox"
+                checked={Boolean(narration)}
+                onChange={() => onToggleNarration?.(!narration)}
+              />
+              <span>{copy.inbox.narrationLabel}</span>
             </label>
             <button
               type="button"

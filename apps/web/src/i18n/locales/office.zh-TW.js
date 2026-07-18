@@ -608,6 +608,8 @@ export const OFFICE_ZH_TW = {
       soundscapeLabel: '辦公室音景',
       soundscapeTitle:
         '辦公室環境音 — 鍵盤聲、滑鼠點擊、紙張、椅子吱呀、印表機、電話、飲水機、咖啡機、自動販賣機、電梯',
+      narrationLabel: '朗讀',
+      narrationTitle: '用每位同事的聲音朗讀路過發言和會議發言 — 郵件保持靜音',
       closeAria: '關閉收件匣',
       back: '← 返回',
       emptyLine: '收件匣清空。HR 覺得這很可疑。好好珍惜。',

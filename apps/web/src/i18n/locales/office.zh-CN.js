@@ -608,6 +608,8 @@ export const OFFICE_ZH_CN = {
       soundscapeLabel: '办公室音景',
       soundscapeTitle:
         '办公室环境音 — 键盘声、鼠标点击、纸张、椅子吱呀、打印机、电话、饮水机、咖啡机、自动售货机、电梯',
+      narrationLabel: '朗读',
+      narrationTitle: '用每位同事的声音朗读路过发言和会议发言 — 邮件保持静音',
       closeAria: '关闭收件箱',
       back: '← 返回',
       emptyLine: '收件箱清零。HR 觉得这很可疑。且行且珍惜。',

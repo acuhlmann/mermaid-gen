@@ -23,6 +23,7 @@ import {
   markOfficeEmailRead,
   pushOfficeEmail,
   setOfficeFocusTime,
+  setOfficeNarration,
   setOfficeSoundscape,
   subscribe,
   voteOfficeBattle
@@ -45,6 +46,11 @@ import {
   officeMeetingCopy,
   pickMeetingAttendees
 } from '../utils/officeCast.js';
+import {
+  cancelOfficeNarration,
+  OFFICE_NARRATION_GAP_MS,
+  speakOfficeLine
+} from '../utils/officeNarration.js';
 
 /**
  * The Office Update™ (docs/office-parody.md) — single mount point for all
@@ -68,12 +74,40 @@ export default function OfficeLayer({
   playChime
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
+
+  // Speak walk-bys + meeting beats when Narration is on; emails stay silent
+  // (nobody reads your inbox out loud). Gated through playChime so the global
+  // sound toggle / first-gesture policy still applies on mobile and desktop.
+  const narrateBeat = useCallback(
+    (beat) => {
+      if (!getOfficeSnapshot().narration) return Promise.resolve({ spoken: false });
+      const text = typeof beat?.text === 'string' ? beat.text : '';
+      const speakerId = typeof beat?.speakerId === 'string' ? beat.speakerId : '';
+      if (!text || !speakerId) return Promise.resolve({ spoken: false });
+      const lang = officeChromeCopy().inbox.mailAnnounceLang;
+      return new Promise((resolve) => {
+        let invoked = false;
+        playChime?.(() => {
+          invoked = true;
+          void speakOfficeLine({ speakerId, text, lang }).then(resolve);
+        });
+        queueMicrotask(() => {
+          if (!invoked) resolve({ spoken: false });
+        });
+      });
+    },
+    [playChime]
+  );
+
   const { meeting, startMeeting, interject, leaveMeeting, closeMeeting } = useMeetingPlayback({
     getSessionId,
     getContentType,
     getDiagramSource,
     getSvgRoot,
-    onUsage
+    onUsage,
+    narrateBeat: snapshot.narration ? narrateBeat : undefined,
+    narrationGapMs: OFFICE_NARRATION_GAP_MS,
+    onCancelNarration: cancelOfficeNarration
   });
 
   useOfficeAmbience({
@@ -96,6 +130,11 @@ export default function OfficeLayer({
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
   useOfficeWelcome({ getUserTitle });
+
+  // Kill in-flight speech when the user mutes narration or books Focus Time.
+  useEffect(() => {
+    if (!snapshot.narration || snapshot.focusTime) cancelOfficeNarration();
+  }, [snapshot.narration, snapshot.focusTime]);
 
   // Office SFX: mail ding on new email ("You've got mail!" for the session's
   // first), pop on new IM, footsteps when a colleague walks up, calendar ding
@@ -131,10 +170,27 @@ export default function OfficeLayer({
     prevPingCountRef.current = snapshot.imPings.length;
   }, [snapshot.imPings.length, playChime]);
   useEffect(() => {
-    const walkById = snapshot.walkBy?.id ?? null;
-    if (walkById && walkById !== prevWalkByIdRef.current) playChime?.(playFootsteps);
+    const walkBy = snapshot.walkBy;
+    const walkById = walkBy?.id ?? null;
+    if (walkById && walkById !== prevWalkByIdRef.current) {
+      playChime?.(playFootsteps);
+      // Over-the-shoulder: the colleague actually says the line. Emails never
+      // get this treatment — inbox stays read-only by design.
+      if (snapshot.narration && walkBy?.body) {
+        const lang = officeChromeCopy().inbox.mailAnnounceLang;
+        playChime?.(() => {
+          void speakOfficeLine({
+            speakerId: walkBy.colleagueId,
+            text: walkBy.body,
+            lang
+          });
+        });
+      }
+    } else if (!walkById && prevWalkByIdRef.current) {
+      cancelOfficeNarration();
+    }
     prevWalkByIdRef.current = walkById;
-  }, [snapshot.walkBy?.id, playChime]);
+  }, [snapshot.walkBy, snapshot.narration, playChime]);
   useEffect(() => {
     const inviteId = snapshot.meetingInvite?.id ?? null;
     if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);
@@ -257,8 +313,10 @@ export default function OfficeLayer({
         unreadCount={snapshot.unreadCount}
         focusTime={snapshot.focusTime}
         soundscape={snapshot.soundscape}
+        narration={snapshot.narration}
         onToggleFocusTime={setOfficeFocusTime}
         onToggleSoundscape={setOfficeSoundscape}
+        onToggleNarration={setOfficeNarration}
         onMarkRead={handleMarkRead}
         onMarkAllRead={markAllOfficeEmailsRead}
         onAdoptPrompt={handleAdopt}
