@@ -29,6 +29,7 @@ import { renderMermaidPreviewSvg } from './renderMermaidPreview.js';
  * @property {string} labelKey — key under controls.settings
  * @property {ExportDeliveryKind} [delivery] — defaults to text
  * @property {(source: string) => boolean} [isAvailable]
+ * @property {string} [shareAsFormatId] — rasterize or alias Share to this format id
  */
 
 /**
@@ -79,7 +80,9 @@ export const EXPORT_FORMATS_BY_MODE = {
       id: 'mermaid-svg',
       ext: 'svg',
       mime: 'image/svg+xml;charset=utf-8',
-      labelKey: 'exportMermaidSvg'
+      labelKey: 'exportMermaidSvg',
+      /** Share delivers a PNG raster so chat apps receive a picture attachment. */
+      shareAsFormatId: 'mermaid-png'
     }
   ],
   infographic: [
@@ -164,6 +167,76 @@ export function listExportFormats(contentType, diagramSource) {
   return EXPORT_FORMATS_BY_MODE[contentType].filter((format) =>
     format.isAvailable ? format.isAvailable(source) : true
   );
+}
+
+/**
+ * Format id whose pre-warmed payload Web Share should use. SVG save stays vector;
+ * Share on the SVG row delivers PNG so WhatsApp and similar apps get a picture.
+ * @param {string} formatId
+ * @param {string | null | undefined} [contentType]
+ * @returns {string}
+ */
+export function getShareFormatId(formatId, contentType = null) {
+  if (contentType && isExportableContentType(contentType)) {
+    const format = EXPORT_FORMATS_BY_MODE[contentType].find((entry) => entry.id === formatId);
+    if (format?.shareAsFormatId) return format.shareAsFormatId;
+  }
+  return formatId;
+}
+
+/**
+ * Minimal placeholder for synchronous canShare checks before pre-warm finishes.
+ * @param {string} formatId
+ * @param {string | null | undefined} [contentType]
+ * @returns {ExportPayload}
+ */
+export function exportFormatSharePreview(formatId, contentType = null) {
+  const shareFormatId = getShareFormatId(formatId, contentType);
+  if (!contentType || !isExportableContentType(contentType)) {
+    return {
+      filename: 'preview',
+      mime: 'text/plain',
+      ext: 'txt',
+      delivery: 'text',
+      body: 'x'
+    };
+  }
+  const format = EXPORT_FORMATS_BY_MODE[contentType].find((entry) => entry.id === shareFormatId);
+  if (!format) {
+    return {
+      filename: 'preview',
+      mime: 'text/plain',
+      ext: 'txt',
+      delivery: 'text',
+      body: 'x'
+    };
+  }
+  const delivery = format.delivery ?? 'text';
+  if (delivery === 'image') {
+    return {
+      filename: `preview.${format.ext}`,
+      mime: format.mime,
+      ext: format.ext,
+      delivery: 'image',
+      blob: new Blob(['x'], { type: format.mime })
+    };
+  }
+  if (delivery === 'file') {
+    return {
+      filename: `preview.${format.ext}`,
+      mime: format.mime,
+      ext: format.ext,
+      delivery: 'file',
+      blob: new Blob(['x'], { type: format.mime })
+    };
+  }
+  return {
+    filename: `preview.${format.ext}`,
+    mime: format.mime,
+    ext: format.ext,
+    delivery: 'text',
+    body: 'x'
+  };
 }
 
 /**

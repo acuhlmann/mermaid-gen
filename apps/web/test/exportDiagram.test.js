@@ -15,6 +15,8 @@ import {
   shareExportPayload,
   startWebShare,
   resolveWebShareMode,
+  getShareFormatId,
+  exportFormatSharePreview,
   isShareUserGestureError,
   isSharePermissionError,
   isVisualExportPayload,
@@ -337,22 +339,26 @@ describe('shareExportPayload', () => {
   });
 });
 
+describe('getShareFormatId', () => {
+  it('maps mermaid SVG share to the PNG raster format', () => {
+    expect(getShareFormatId('mermaid-svg', 'mermaid')).toBe('mermaid-png');
+    expect(getShareFormatId('mermaid-png', 'mermaid')).toBe('mermaid-png');
+    expect(getShareFormatId('chart-csv', 'chart')).toBe('chart-csv');
+  });
+
+  it('builds a PNG placeholder for SVG share capability checks', () => {
+    const preview = exportFormatSharePreview('mermaid-svg', 'mermaid');
+    expect(preview.delivery).toBe('image');
+    expect(preview.mime).toContain('image/png');
+  });
+});
+
 describe('resolveWebShareMode', () => {
-  it('prefers file share for visual payloads (SVG, PNG)', () => {
+  it('prefers file share for PNG and other visual payloads', () => {
     Object.defineProperty(navigator, 'canShare', {
       configurable: true,
       value: () => true
     });
-
-    expect(
-      resolveWebShareMode({
-        filename: 'diagram.svg',
-        mime: 'image/svg+xml;charset=utf-8',
-        ext: 'svg',
-        delivery: 'text',
-        body: '<svg></svg>'
-      })
-    ).toBe('file');
 
     expect(
       resolveWebShareMode({
@@ -470,7 +476,7 @@ describe('isVisualExportPayload', () => {
 });
 
 describe('startWebShare', () => {
-  it('invokes navigator.share synchronously and returns share-file for visual payloads', async () => {
+  it('invokes navigator.share synchronously and returns share-file for PNG payloads', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'share', {
       configurable: true,
@@ -482,18 +488,18 @@ describe('startWebShare', () => {
     });
 
     const method = await startWebShare({
-      filename: 'diagram.svg',
-      mime: 'image/svg+xml;charset=utf-8',
-      ext: 'svg',
-      delivery: 'text',
-      body: '<svg></svg>'
+      filename: 'diagram.png',
+      mime: 'image/png',
+      ext: 'png',
+      delivery: 'image',
+      blob: new Blob(['x'], { type: 'image/png' })
     });
 
     expect(method).toBe('share-file');
     expect(share).toHaveBeenCalledWith(
       expect.objectContaining({
         files: expect.arrayContaining([expect.any(File)]),
-        title: 'diagram.svg'
+        title: 'diagram.png'
       })
     );
   });

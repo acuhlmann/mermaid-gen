@@ -9,6 +9,8 @@ import {
   canCopyExportPayload,
   canShareExportPayload,
   deliverExportPayload,
+  exportFormatSharePreview,
+  getShareFormatId,
   isExportUserAbortError,
   isSharePermissionError,
   isShareUserGestureError,
@@ -175,6 +177,14 @@ export function AiCornerControlsInner({
     return exportPayloadCacheRef.current.get(formatId)?.payload ?? null;
   }
 
+  function getSharePayload(formatId) {
+    return getCachedExportPayload(getShareFormatId(formatId, contentType));
+  }
+
+  function isSharePayloadReady(formatId) {
+    return isExportPayloadReady(getShareFormatId(formatId, contentType));
+  }
+
   function isExportPayloadReady(formatId) {
     return exportReadyIds.has(formatId);
   }
@@ -260,7 +270,8 @@ export function AiCornerControlsInner({
    */
   function handleShare(formatId, payloadOverride) {
     if (!hasSource || exportBusyId) return;
-    const payload = payloadOverride ?? getCachedExportPayload(formatId);
+    const shareFormatId = getShareFormatId(formatId, contentType);
+    const payload = payloadOverride ?? getSharePayload(formatId);
     if (!payload) {
       setExportError(
         controls.exportSharePreparing ??
@@ -280,7 +291,7 @@ export function AiCornerControlsInner({
     }
     void sharePromise
       .then((method) => {
-        applyExportSuccess(payload, formatId, method);
+        applyExportSuccess(payload, shareFormatId, method);
       })
       .catch((err) => {
         handleExportFailure(err, 'share');
@@ -424,15 +435,10 @@ export function AiCornerControlsInner({
                           );
                   const canShare =
                     shareAvailable &&
-                    (isExportPayloadReady(format.id)
+                    (isSharePayloadReady(format.id)
                       ? canShareExportPayload(
-                          getCachedExportPayload(format.id) ?? {
-                            delivery: format.delivery ?? 'text',
-                            mime: format.mime,
-                            body: 'x',
-                            filename: 'preview',
-                            ext: format.ext
-                          }
+                          getSharePayload(format.id) ??
+                            exportFormatSharePreview(format.id, contentType)
                         )
                       : true);
                   return (
@@ -473,15 +479,15 @@ export function AiCornerControlsInner({
                           <button
                             type="button"
                             className="settings-export-action"
-                            disabled={Boolean(exportBusyId) || !isExportPayloadReady(format.id)}
+                            disabled={Boolean(exportBusyId) || !isSharePayloadReady(format.id)}
                             title={
-                              isExportPayloadReady(format.id)
+                              isSharePayloadReady(format.id)
                                 ? (controls.exportShare ?? 'Share')
                                 : (controls.exportSharePreparing ?? 'Preparing…')
                             }
                             onClick={() => handleShare(format.id)}
                           >
-                            {isExportPayloadReady(format.id)
+                            {isSharePayloadReady(format.id)
                               ? (controls.exportShare ?? 'Share')
                               : (controls.exportSharePreparing ?? '…')}
                           </button>

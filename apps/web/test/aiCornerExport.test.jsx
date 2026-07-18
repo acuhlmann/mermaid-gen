@@ -173,6 +173,57 @@ describe('AiCornerControlsInner export', () => {
     vi.useRealTimers();
   });
 
+  it('shares mermaid SVG rows as the pre-warmed PNG raster', async () => {
+    buildExportPayload.mockImplementation(async ({ formatId }) => ({
+      filename: `archislop-mermaid-20260716-120000.${formatId === 'mermaid-png' ? 'png' : 'svg'}`,
+      mime: formatId === 'mermaid-png' ? 'image/png' : 'image/svg+xml;charset=utf-8',
+      ext: formatId === 'mermaid-png' ? 'png' : 'svg',
+      delivery: formatId === 'mermaid-png' ? 'image' : 'text',
+      ...(formatId === 'mermaid-png'
+        ? { blob: new Blob(['png'], { type: 'image/png' }) }
+        : { body: '<svg></svg>' })
+    }));
+
+    render(
+      <AiCornerControlsInner
+        controls={CONTROLS_EN.settings}
+        modelProfile="fast"
+        onSelectModelProfile={() => {}}
+        pendingHandshake={null}
+        externalAgentPresence={[]}
+        onInviteAgent={() => {}}
+        agentThinkingChrome={false}
+        insightsOpen={false}
+        onToggleInsights={() => {}}
+        includeThinkingToggle={false}
+        contentType="mermaid"
+        diagramSource={'flowchart TD\n  A --> B'}
+      />
+    );
+
+    openExportList();
+
+    await waitFor(() => {
+      expect(buildExportPayload).toHaveBeenCalledWith(
+        expect.objectContaining({ formatId: 'mermaid-png' })
+      );
+    });
+
+    const svgRow = screen.getByText(/SVG/i).closest('li');
+    const shareButton = svgRow?.querySelector('button[title="Share"]');
+    expect(shareButton).toBeTruthy();
+    fireEvent.click(shareButton);
+
+    await waitFor(() => {
+      expect(startWebShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filename: 'archislop-mermaid-20260716-120000.png',
+          delivery: 'image'
+        })
+      );
+    });
+  });
+
   it('disables export when there is no source', () => {
     render(
       <AiCornerControlsInner
