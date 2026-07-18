@@ -91,8 +91,8 @@ Cheap wins while Cloud TTS is optional:
 
 **Env / deploy (required for WaveNet in production):**
 
-- Enable API: `gcloud services enable texttospeech.googleapis.com`
-- IAM: Cloud Run runtime SA needs `roles/cloudtts.user`
+- Enable API: `gcloud services enable texttospeech.googleapis.com --project=PROJECT_ID`
+- IAM: no predefined role for standard synthesis — API enable + runtime SA with project access (default compute SA already has `roles/editor`)
 - Kill switch: `OFFICE_TTS=0` → Web Speech fallback
 - Project id: same `VERTEX_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` resolution as Vertex
 
@@ -134,7 +134,7 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 - [x] en-AU / zh-CN / zh-TW map onto WaveNet voice tables
 - [x] Synthesize **server-side only** (`POST /api/office/speak`)
 - [ ] Character usage stays under WaveNet free tier in production (spot-check Metrics Explorer after deploy)
-- [ ] Cloud Run SA has `roles/cloudtts.user` + `texttospeech.googleapis.com` enabled
+- [ ] `texttospeech.googleapis.com` enabled on deploy project (runtime SA already has Editor on `mermaidgen`)
 
 ---
 

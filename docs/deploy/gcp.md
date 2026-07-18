@@ -163,14 +163,7 @@ Office narration prefers **Google Cloud Text-to-Speech (WaveNet)** when a GCP pr
    gcloud services enable texttospeech.googleapis.com --project=PROJECT_ID
    ```
 
-2. **Grant the Cloud Run runtime service account** permission to synthesize:
-
-   ```bash
-   PROJECT_NUMBER=$(gcloud projects describe PROJECT_ID --format='value(projectNumber)')
-   gcloud projects add-iam-policy-binding PROJECT_ID \
-     --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
-     --role="roles/cloudtts.user"
-   ```
+2. **No extra IAM role for standard synthesis.** The classic `text:synthesize` endpoint does not expose a predefined `roles/cloudtts.user` (that name is not valid for project IAM). Enabling the API is enough when the Cloud Run runtime service account already has broad access (this repo’s default compute SA has `roles/editor`). If you use a locked-down custom SA, grant it a role that can call enabled APIs (e.g. `roles/editor` on a dev project, or a custom role once Google publishes TTS-specific permissions).
 
 3. Deploy scripts already set `VERTEX_PROJECT_ID` on Cloud Run — that is enough for `officeTtsConfigured: true` on `GET /api/health`. Kill switch: `OFFICE_TTS=0`.
 
