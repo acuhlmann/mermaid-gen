@@ -6,6 +6,7 @@ pnpm-debug.log*
 .atomic/
 .claude/skills/
 .claude/settings.local.json
+.claude/worktrees/
 
 .env
 .env.local
