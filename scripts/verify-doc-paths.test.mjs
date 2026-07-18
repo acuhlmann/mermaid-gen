@@ -8,6 +8,7 @@ import {
   extractPaths,
   resolveExisting,
   shouldSkip,
+  toPosixPath,
   verifyDocPaths
 } from './verify-doc-paths.mjs';
 import { fileURLToPath } from 'node:url';
@@ -15,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('collectDocMarkdownFiles includes docs/guide and docs/agents', () => {
-  const files = collectDocMarkdownFiles(ROOT).map((f) => path.relative(ROOT, f));
+  const files = collectDocMarkdownFiles(ROOT).map((f) => toPosixPath(path.relative(ROOT, f)));
   assert.ok(files.some((f) => f === 'docs/guide/coding-agents.md'));
   assert.ok(files.some((f) => f === 'docs/agents/sensors.md'));
   assert.ok(files.some((f) => f === 'docs/recipes/README.md'));

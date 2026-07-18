@@ -7,18 +7,20 @@
 
 ## 1. What we already shipped
 
-| Surface          | Spoken today?                           | Notes                                     |
-| ---------------- | --------------------------------------- | ----------------------------------------- |
-| Walk-bys         | Yes (Web Speech + pitch/rate profile)   | Cancels on dismiss / Focus Time           |
-| WG meeting beats | Yes (paced to `audioended` when spoken) | User raise-hand lines stay silent         |
-| Emails           | **No**                                  | Realistic: nobody reads your inbox aloud  |
-| IM pings         | No                                      | Glanceable; optional later                |
-| Coffee / battles | No                                      | Scripted theater — good Tier-2 candidates |
-| Soundscape       | N/A (non-verbal SFX)                    | Stays Web Audio synthesized cues          |
+| Surface            | Spoken today?                                            | Notes                                                   |
+| ------------------ | -------------------------------------------------------- | ------------------------------------------------------- |
+| Walk-bys           | Yes — WaveNet when configured, else Web Speech           | Overheard colleague; cancels on dismiss / Focus Time    |
+| WG meeting beats   | Yes — paced to playback end                              | User raise-hand lines stay silent                       |
+| Cubicle battles    | Yes — lines + winner verdict spoken                      | Overheard argument (invite pill stays text-only)        |
+| Coffee break scene | Yes — watercooler lines paced + spoken when Narration on | Invite toast stays text-only; opt-in scene is overheard |
+| Emails             | **No**                                                   | Realistic: nobody reads your inbox aloud                |
+| IM pings           | **No**                                                   | Chat notifications — you read them                      |
+| Meeting invites    | No (calendar chime only)                                 | You read the toast                                      |
+| Soundscape         | N/A (non-verbal SFX)                                     | Stays Web Audio synthesized cues                        |
 
 Toggle: inbox **Narration** (default on). Global sound gate + first-gesture policy still apply on mobile Safari/Chrome.
 
-**Limits of Web Speech (why upgrade later):** voice set differs per OS/browser; iOS loads voices asynchronously; quality is “system robot with character quirks,” not a stable Chad/Pam across devices.
+**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (WaveNet + in-memory cache). Kill switch `OFFICE_TTS=0`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
 
 ---
 
@@ -74,66 +76,39 @@ Cheap wins while Cloud TTS is optional:
 2. **Speaker sting** before speech (reuse existing chimes: calendar for Pam, ticket blip for Dave).
 3. **Caption karaoke** — optional underline of the active walk-by / meeting bubble (accessibility + mobile without headphones).
 4. **Directory “Hear sample”** — one canned line per colleague in `OfficeDirectory` so users audition voices.
-5. **IM narration** — only the first ~80 chars of a ping, rate-limited (still never emails).
+5. ~~**IM narration**~~ — **won’t do** for realism (chat stays text); keep emails silent too.
 
-### Phase B — Cloud TTS behind the same Narration toggle (recommended)
+### Phase B — Cloud TTS behind the same Narration toggle
 
-Architecture sketch (keep client dumb):
+~~**Shipped:**~~ dedicated `POST /api/office/speak`, WaveNet cast map + prosody in
+`officeTts.js`, client prefers cloud MP3 then Web Speech, battles + coffee spoken.
 
-```
-Client OfficeLayer / useMeetingPlayback
-  → speakOfficeLine() today (Web Speech)
-  → later: prefer playOfficeAudio(url | blob) when server returns audio
+**Still useful follow-ups:**
 
-Server (new thin module, e.g. apps/server/src/agents/officeTts.js)
-  → synthesize(text, voiceName, lang) via @google-cloud/text-to-speech
-  → cache key: hash(text + voiceName + lang) → memory / optional GCS
-  → return { audioBase64, mimeType: 'audio/mpeg', durationMs? }
-    or signed URL if caching in GCS
+- Batch meeting-script audio during the “waiting to be admitted” gag (fewer round-trips).
+- Optional GCS cache for hot canned lines across Cloud Run instances.
+- Re-listen in the [Cloud TTS console](https://console.cloud.google.com/speech/text-to-speech) and tweak voice ids if a character feels off.
 
-Wire options (pick one):
-  1. Piggyback on existing POST /api/office/moment and /api/office/meeting
-     — attach audio[] to LLM responses (meeting: batch all beats during “waiting to be admitted”)
-  2. Dedicated POST /api/office/speak { speakerId, text, lang }
-     — simpler cache; client calls per walk-by / beat
-```
+**Env / deploy (required for WaveNet in production):**
 
-**Voice cast mapping** (illustrative — lock real voice names after listening in the [Cloud TTS console](https://console.cloud.google.com/speech/text-to-speech)):
-
-| Cast id       | Direction                    | Example WaveNet-style target        |
-| ------------- | ---------------------------- | ----------------------------------- |
-| `intern`      | Young, bright, slightly fast | `en-US-Wavenet-D` (or similar)      |
-| `scrumMaster` | Warm facilitator             | `en-US-Wavenet-F`                   |
-| `helpdesk`    | Flat, tired                  | lower-pitched Standard/WaveNet male |
-| `facilities`  | Gruff                        | low male WaveNet                    |
-| `hr`          | Bright / cheerful            | high female WaveNet                 |
-| `greybeard`   | Slow, grave                  | low male, slower speakingRate       |
-| `ciso`        | Clipped, cool                | mid male, slightly faster           |
-| Stakeholders  | One WaveNet each             | reuse meeting seat map              |
-
-Use SSML `prosody rate/pitch` lightly so we keep comedy without leaving WaveNet.
-
-**Env / deploy:**
-
-- Enable API: `gcloud services enable texttospeech.googleapis.com`
-- IAM: Cloud Run runtime SA needs `roles/cloudtts.user` (or broader Speech client role — confirm current role id in IAM docs)
-- Kill switch: `OFFICE_TTS=0` → Web Speech fallback (same pattern as `ANYTHING_RUNTIME_CHECK`)
-- Optional: `OFFICE_TTS_VOICE_TIER=wavenet|neural2`
+- Enable API: `gcloud services enable texttospeech.googleapis.com --project=PROJECT_ID`
+- IAM: no predefined role for standard synthesis — API enable + runtime SA with project access (default compute SA already has `roles/editor`)
+- Kill switch: `OFFICE_TTS=0` → Web Speech fallback
+- Project id: same `VERTEX_PROJECT_ID` / `GOOGLE_CLOUD_PROJECT` resolution as Vertex
 
 **Cost control (even though free tier should cover you):**
 
-- Cache canned templates from `officeCast.js` aggressively (build-time MP3s or first-request cache).
-- Only synthesize walk-bys + meeting beats (never email bodies).
-- Cap chars per utterance (e.g. 500) — truncate with ellipsis for TTS only; UI keeps full text.
-- Meeting: one batch synthesize of the script during join gag latency.
+- In-memory LRU already caches identical lines (battle/coffee templates repeat).
+- Never synthesize emails / IMs.
+- Cap chars per utterance (500) — truncate with ellipsis for TTS only; UI keeps full text.
+- Optional next: batch meeting-script synthesize during join gag latency.
 
 ### Phase C — Pre-bake canned audio (~70% of office noise)
 
-Most emails/IMs/coffee/battle lines are **static templates**. Generate Opus/MP3 once per template id × locale (script under `scripts/` or a one-shot Cloud Function), ship or CDN-cache them. Live TTS only for LLM walk-bys and meeting substantive beats. Best latency + zero per-session cost for battles/coffee if you later narrate those.
+Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once per template id × locale (script under `scripts/`), ship or CDN-cache them. Live TTS only for LLM walk-bys and meeting beats. Cuts latency and cross-instance cache misses.
 
 ### Phase D — Optional polish
 
-- Narrate coffee / battle lines (Phase C assets).
 - Streaming TTS for very long beats (usually unnecessary — beats are short).
 - Word timestamps → seat highlight / caption sync.
 - ElevenLabs (or Chirp) **only** for a “premium voices” Easter egg if you ever want it.
@@ -142,23 +117,24 @@ Most emails/IMs/coffee/battle lines are **static templates**. Generate Opus/MP3 
 
 ## 5. Suggested implementation order
 
-1. Phase A items that make Web Speech feel less thin (duck + sting + directory sample).
-2. Server `officeTts` module + WaveNet cast map + `OFFICE_TTS` kill switch + Web Speech fallback.
-3. Attach audio to `/api/office/meeting` (biggest perceived win — meetings are the flagship).
-4. Walk-by live synthesize via `/api/office/speak` or moment response field.
-5. Phase C bake for battle/coffee if those get narration.
+1. ~~Server WaveNet + `/api/office/speak` + Web Speech fallback~~ ✅
+2. ~~Speak battles + coffee (overheard) while keeping email/IM silent~~ ✅
+3. Phase A polish (duck soundscape, speaker sting, directory “Hear sample”).
+4. Batch meeting-script synthesize during join latency.
+5. Phase C bake canned battle/coffee/walk-by templates.
 6. Re-evaluate Neural2 / Chirp only if WaveNet still feels cheap after living with it.
 
 ---
 
-## 6. Acceptance checks (when someone builds Phase B)
+## 6. Acceptance checks (Phase B)
 
-- [ ] Same Narration / Focus Time / global mute behavior as Web Speech MVP
-- [ ] Emails never synthesize
-- [ ] Offline / API failure → silent degrade to Web Speech or reading-pace timers (in-fiction, no error toast)
-- [ ] en-AU / zh-CN / zh-TW pick locale-appropriate voices
-- [ ] Cloud Run SA works without a user API key in the browser (synthesize **server-side only**)
-- [ ] Character usage stays obviously under WaveNet free tier for personal traffic (spot-check Metrics Explorer)
+- [x] Same Narration / Focus Time / global mute behavior as Web Speech MVP
+- [x] Emails / IMs never synthesize
+- [x] Offline / API failure → Web Speech or reading-pace timers (no error toast)
+- [x] en-AU / zh-CN / zh-TW map onto WaveNet voice tables
+- [x] Synthesize **server-side only** (`POST /api/office/speak`)
+- [ ] Character usage stays under WaveNet free tier in production (spot-check Metrics Explorer after deploy)
+- [ ] `texttospeech.googleapis.com` enabled on deploy project (runtime SA already has Editor on `mermaidgen`)
 
 ---
 

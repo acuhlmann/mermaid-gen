@@ -828,7 +828,7 @@ export const OFFICE_CHROME_COPY = {
       'Ambient office noise — keyboards, mouse clicks, paper, chair squeaks, the printer, the desk phone, the watercooler, the espresso machine, the vending machine, the elevator',
     narrationLabel: 'Narration',
     narrationTitle:
-      'Read walk-bys and meeting lines aloud in each colleague’s voice — emails stay silent',
+      'Speak walk-bys, meetings, cubicle battles, and coffee chat aloud — emails and IMs stay silent',
     closeAria: 'Close inbox',
     back: '← Back',
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',

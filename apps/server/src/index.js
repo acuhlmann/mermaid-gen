@@ -10,6 +10,7 @@ import { CopilotRuntime } from '@copilotkit/runtime/v2';
 import { createCopilotExpressHandler } from '@copilotkit/runtime/v2/express';
 import { createSessionAwareCopilotRuntimeAgent } from './agents/copilotRuntimeAgent.js';
 import { isLlmConfigured, resolveLlmBackend } from './agents/mermaidLangChainAgent.js';
+import { isOfficeTtsEnabled } from './agents/officeTts.js';
 import { isAgentCostEstimateEnabled } from '@archislop/shared';
 import {
   getCachedLlmCostRates,
@@ -144,6 +145,7 @@ app.get('/api/health', (_req, res) => {
     status: 'ok',
     runtimeReady: Boolean(runtime),
     llmConfigured: isLlmConfigured(),
+    officeTtsConfigured: isOfficeTtsEnabled(),
     llmBackend: resolveLlmBackend() ?? 'none',
     llmBackendsByProfile: {
       fast: resolveLlmBackend(process.env, 'fast') ?? 'none',

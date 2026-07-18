@@ -40,6 +40,7 @@ import {
   playYouveGotMail
 } from '../utils/agentChimes.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
+import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import {
   MEETING_FACILITATOR,
   officeChromeCopy,
@@ -75,28 +76,61 @@ export default function OfficeLayer({
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
 
-  // Speak walk-bys + meeting beats when Narration is on; emails stay silent
-  // (nobody reads your inbox out loud). Gated through playChime so the global
-  // sound toggle / first-gesture policy still applies on mobile and desktop.
-  const narrateBeat = useCallback(
-    (beat) => {
+  // Cloud WaveNet via POST /api/office/speak; null → Web Speech fallback.
+  const fetchCloudAudio = useCallback(
+    async ({ speakerId, text, lang }) => {
+      try {
+        const headers = { 'content-type': 'application/json' };
+        const sessionId = getSessionId?.() ?? '';
+        if (sessionId) headers[SESSION_HEADER] = sessionId;
+        const response = await fetch(`${API_BASE_URL}/api/office/speak`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ speakerId, text, lang })
+        });
+        if (!response.ok) return null;
+        const body = await response.json();
+        return body?.audio ?? null;
+      } catch {
+        return null;
+      }
+    },
+    [getSessionId]
+  );
+
+  // Overheard spoken surfaces only: walk-bys, meetings, battles, coffee.
+  // Emails / IMs stay silent (realistic office — you read those yourself).
+  // Gated through playChime so the global sound toggle / first-gesture
+  // policy still applies on mobile and desktop.
+  const narrateLine = useCallback(
+    (line) => {
       if (!getOfficeSnapshot().narration) return Promise.resolve({ spoken: false });
-      const text = typeof beat?.text === 'string' ? beat.text : '';
-      const speakerId = typeof beat?.speakerId === 'string' ? beat.speakerId : '';
+      const text = typeof line?.text === 'string' ? line.text : '';
+      const speakerId = typeof line?.speakerId === 'string' ? line.speakerId : '';
       if (!text || !speakerId) return Promise.resolve({ spoken: false });
       const lang = officeChromeCopy().inbox.mailAnnounceLang;
       return new Promise((resolve) => {
         let invoked = false;
         playChime?.(() => {
           invoked = true;
-          void speakOfficeLine({ speakerId, text, lang }).then(resolve);
+          void speakOfficeLine({
+            speakerId,
+            text,
+            lang,
+            fetchCloudAudio
+          }).then(resolve);
         });
         queueMicrotask(() => {
           if (!invoked) resolve({ spoken: false });
         });
       });
     },
-    [playChime]
+    [playChime, fetchCloudAudio]
+  );
+
+  const narrateBeat = useCallback(
+    (beat) => narrateLine({ speakerId: beat?.speakerId, text: beat?.text }),
+    [narrateLine]
   );
 
   const { meeting, startMeeting, interject, leaveMeeting, closeMeeting } = useMeetingPlayback({
@@ -177,20 +211,13 @@ export default function OfficeLayer({
       // Over-the-shoulder: the colleague actually says the line. Emails never
       // get this treatment — inbox stays read-only by design.
       if (snapshot.narration && walkBy?.body) {
-        const lang = officeChromeCopy().inbox.mailAnnounceLang;
-        playChime?.(() => {
-          void speakOfficeLine({
-            speakerId: walkBy.colleagueId,
-            text: walkBy.body,
-            lang
-          });
-        });
+        void narrateLine({ speakerId: walkBy.colleagueId, text: walkBy.body });
       }
     } else if (!walkById && prevWalkByIdRef.current) {
       cancelOfficeNarration();
     }
     prevWalkByIdRef.current = walkById;
-  }, [snapshot.walkBy, snapshot.narration, playChime]);
+  }, [snapshot.walkBy, snapshot.narration, playChime, narrateLine]);
   useEffect(() => {
     const inviteId = snapshot.meetingInvite?.id ?? null;
     if (inviteId && inviteId !== prevInviteIdRef.current) playChime?.(playCalendarDing);
@@ -338,12 +365,14 @@ export default function OfficeLayer({
         onAccept={acceptOfficeCoffee}
         onDecline={dismissOfficeCoffee}
         onDone={handleCoffeeDone}
+        narrateLine={snapshot.narration ? narrateLine : undefined}
       />
       <OfficeBattleOverlay
         battle={snapshot.battle}
         onAccept={acceptOfficeBattle}
         onVote={handleBattleVote}
         onDone={dismissOfficeBattle}
+        narrateLine={snapshot.narration ? narrateLine : undefined}
       />
       {!meeting && snapshot.meetingInvite ? (
         <MeetingInviteToast

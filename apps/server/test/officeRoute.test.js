@@ -71,6 +71,37 @@ test('office moment reports 503 when no LLM is configured', async () => {
   }
 });
 
+test('office speak returns audio:null when TTS is disabled', async () => {
+  const prev = process.env.OFFICE_TTS;
+  process.env.OFFICE_TTS = '0';
+  const { port, closeServer } = await bootServer();
+  try {
+    const res = await post(port, 'speak', {
+      speakerId: 'intern',
+      text: 'sorry if this is a dumb question',
+      lang: 'en-US'
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.audio, null);
+    assert.equal(body.reason, 'disabled');
+  } finally {
+    if (prev === undefined) delete process.env.OFFICE_TTS;
+    else process.env.OFFICE_TTS = prev;
+    await closeServer();
+  }
+});
+
+test('office speak rejects unknown speakers', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const res = await post(port, 'speak', { speakerId: 'theCeo', text: 'hello' });
+    assert.equal(res.status, 400);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office meeting validates the attendee list before touching the model', async () => {
   const { port, closeServer } = await bootServer();
   try {

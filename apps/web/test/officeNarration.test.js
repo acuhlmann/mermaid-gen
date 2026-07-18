@@ -15,6 +15,16 @@ import {
   writeOfficeNarrationEnabled
 } from '../src/utils/officeAmbienceStorage.js';
 
+function clearNarrationStorage() {
+  try {
+    if (typeof window.localStorage?.removeItem === 'function') {
+      window.localStorage.removeItem(OFFICE_NARRATION_STORAGE_KEY);
+    }
+  } catch {
+    // Ignore storage quirks in some Node/jsdom builds.
+  }
+}
+
 function installSpeechMock({
   voices = [{ lang: 'en-US', localService: true, default: true }]
 } = {}) {
@@ -43,11 +53,12 @@ function installSpeechMock({
 
 beforeEach(() => {
   cancelOfficeNarration();
+  clearNarrationStorage();
 });
 
 afterEach(() => {
   cancelOfficeNarration();
-  window.localStorage.clear();
+  clearNarrationStorage();
   delete globalThis.speechSynthesis;
   delete globalThis.SpeechSynthesisUtterance;
 });
@@ -92,7 +103,7 @@ describe('speakOfficeLine', () => {
       text: 'We tried that in 2009.',
       lang: 'en-US'
     });
-    expect(result).toEqual({ spoken: true });
+    expect(result).toEqual({ spoken: true, source: 'webspeech' });
     expect(synth.speak).toHaveBeenCalledTimes(1);
     expect(spoken[0].text).toBe('We tried that in 2009.');
     expect(spoken[0].pitch).toBe(OFFICE_VOICE_PROFILES.greybeard.pitch);
@@ -101,10 +112,50 @@ describe('speakOfficeLine', () => {
   });
 
   it('resolves spoken:false when synthesis is unavailable', async () => {
-    expect(isOfficeNarrationAvailable()).toBe(false);
-    await expect(speakOfficeLine({ speakerId: 'intern', text: 'hi' })).resolves.toEqual({
+    const empty = {};
+    expect(isOfficeNarrationAvailable(empty)).toBe(false);
+    await expect(
+      speakOfficeLine({ speakerId: 'intern', text: 'hi', globalObj: empty })
+    ).resolves.toEqual({
       spoken: false
     });
+  });
+
+  it('prefers cloud audio when fetchCloudAudio returns a payload', async () => {
+    const fetchCloudAudio = vi.fn(async () => ({
+      audioBase64: btoa('hi'),
+      mimeType: 'audio/mpeg'
+    }));
+    const playCalls = [];
+    function FakeAudio(src) {
+      playCalls.push(src);
+      this.src = src;
+      this.volume = 1;
+      this.onended = null;
+      this.onerror = null;
+      this.play = () => {
+        queueMicrotask(() => this.onended?.());
+        return Promise.resolve();
+      };
+      this.pause = () => {};
+      this.removeAttribute = () => {};
+      this.load = () => {};
+    }
+    const globalObj = {
+      Audio: FakeAudio,
+      speechSynthesis: { cancel: vi.fn(), speak: vi.fn(), getVoices: () => [] },
+      SpeechSynthesisUtterance: function SpeechSynthesisUtterance() {}
+    };
+    const result = await speakOfficeLine({
+      speakerId: 'intern',
+      text: 'sorry if this is dumb',
+      lang: 'en-US',
+      fetchCloudAudio,
+      globalObj
+    });
+    expect(result).toEqual({ spoken: true, source: 'cloud' });
+    expect(fetchCloudAudio).toHaveBeenCalledOnce();
+    expect(playCalls[0]).toMatch(/^data:audio\/mpeg;base64,/);
   });
 
   it('cancelOfficeNarration settles an in-flight waiter', async () => {
@@ -127,6 +178,23 @@ describe('speakOfficeLine', () => {
 });
 
 describe('office narration storage', () => {
+  beforeEach(() => {
+    const store = new Map();
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: (key) => (store.has(key) ? store.get(key) : null),
+        setItem: (key, value) => {
+          store.set(key, String(value));
+        },
+        removeItem: (key) => {
+          store.delete(key);
+        },
+        clear: () => store.clear()
+      }
+    });
+  });
+
   it('defaults ON and only persists the opt-out', () => {
     expect(readOfficeNarrationEnabled()).toBe(true);
     writeOfficeNarrationEnabled(false);

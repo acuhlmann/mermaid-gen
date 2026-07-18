@@ -21,6 +21,7 @@ import {
   parseMomentReply,
   resolveOfficeModelId
 } from '../agents/officePersonas.js';
+import { isOfficeTtsEnabled, synthesizeOfficeSpeech } from '../agents/officeTts.js';
 
 const OfficeMomentRequestSchema = z.object({
   kind: OfficeMomentKindSchema,
@@ -46,6 +47,12 @@ const OfficeInterjectRequestSchema = z.object({
   attendees: z.array(z.string().max(40)).min(1).max(8),
   transcriptSoFar: z.array(z.string().max(300)).max(20).default([]),
   interjection: z.string().min(1).max(400)
+});
+
+const OfficeSpeakRequestSchema = z.object({
+  speakerId: z.string().refine(isOfficeSpeaker, { message: 'unknown speaker' }),
+  text: z.string().min(1).max(800),
+  lang: z.string().max(16).optional()
 });
 
 function safeErrorMessage(error) {
@@ -153,6 +160,28 @@ export function createOfficeRouter() {
       });
     } catch (error) {
       res.status(502).json({ error: safeErrorMessage(error) });
+    }
+  });
+
+  // WaveNet (or Web Speech fallback on the client). No LLM — decorative audio
+  // only. Returns { audio: null } when TTS is off / unconfigured / failed so
+  // the client can degrade without an error toast.
+  router.post('/speak', async (req, res) => {
+    const parsed = OfficeSpeakRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Invalid speak payload', details: parsed.error.flatten() });
+      return;
+    }
+    if (!isOfficeTtsEnabled(process.env)) {
+      res.status(200).json({ audio: null, reason: 'disabled' });
+      return;
+    }
+    try {
+      const audio = await synthesizeOfficeSpeech(parsed.data);
+      res.status(200).json({ audio });
+    } catch (error) {
+      console.warn('office speak failed:', safeErrorMessage(error));
+      res.status(200).json({ audio: null, reason: 'unavailable' });
     }
   });
 
