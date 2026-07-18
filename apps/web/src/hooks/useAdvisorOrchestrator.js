@@ -25,8 +25,8 @@ const HOVER_FOCUS_DEBOUNCE_MS = 600;
 const SELECT_FOCUS_DEBOUNCE_MS = 60;
 /** Keep a freshly surfaced bubble visible through post-render focus churn. */
 const FOCUS_CLEAR_GRACE_MS = 3000;
-/** Ignore brief loading/streaming flicker so the chip is not wiped mid-proposal. */
-const PAUSE_CLEAR_DEBOUNCE_MS = 450;
+/** Poll while pause/hidden blocks the auto-dismiss countdown. */
+const DISMISS_PAUSE_POLL_MS = 250;
 /** Minimum time the "is polishing…" chip stays up before an external clear may run. */
 export const THINKING_MIN_DWELL_MS = 600;
 
@@ -202,7 +202,6 @@ export function useAdvisorOrchestrator(params) {
   const thinkingStartedAtRef = useRef(0);
   /** True from the first thinking frame until the bubble lands or the cycle hard-fails. */
   const proposalInFlightRef = useRef(false);
-  const pauseClearTimerRef = useRef(/** @type {ReturnType<typeof setTimeout> | null} */ (null));
 
   // Imperative loop API, populated by the setup effect.
   const scheduleNextRef = useRef(() => {});
@@ -304,7 +303,8 @@ export function useAdvisorOrchestrator(params) {
   }, [activePersona]);
 
   useEffect(() => {
-    let phaseTimer = null;
+    let scheduleTimer = null;
+    let dismissTimer = null;
     let abortController = null;
     let generation = 0;
     let failureUntil = 0;
@@ -315,11 +315,23 @@ export function useAdvisorOrchestrator(params) {
     /** @type {'timeout' | 'superseded' | null} */
     let lastAbortReason = null;
 
-    const clearPhaseTimer = () => {
-      if (phaseTimer != null) {
-        clearTimeout(phaseTimer);
-        phaseTimer = null;
+    const clearScheduleTimer = () => {
+      if (scheduleTimer != null) {
+        clearTimeout(scheduleTimer);
+        scheduleTimer = null;
       }
+    };
+
+    const clearDismissTimer = () => {
+      if (dismissTimer != null) {
+        clearTimeout(dismissTimer);
+        dismissTimer = null;
+      }
+    };
+
+    const clearPhaseTimers = () => {
+      clearScheduleTimer();
+      clearDismissTimer();
     };
 
     /** @param {'timeout' | 'superseded'} [reason] */
@@ -336,7 +348,7 @@ export function useAdvisorOrchestrator(params) {
       if (Date.now() - lastActivityAtRef.current <= ADVISOR_IDLE_PAUSE_MS) return;
       if (idlePausedRef.current) return;
       idlePausedRef.current = true;
-      clearPhaseTimer();
+      clearPhaseTimers();
       cancelInFlight();
       clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
     };
@@ -356,13 +368,28 @@ export function useAdvisorOrchestrator(params) {
     };
 
     function startDismissTimer() {
-      clearPhaseTimer();
-      phaseTimer = setTimeout(() => {
-        phaseTimer = null;
-        if (pinnedRef.current) return; // pinned during the countdown — leave bubble up
-        clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
-        scheduleNext(GAP_MS);
-      }, SHOW_MS);
+      clearDismissTimer();
+      const arm = () => {
+        if (!alive) return;
+        if (pinnedRef.current) return;
+        // Do not eat the visible window while the canvas is busy or the tab is
+        // hidden — suggestions often land during loading/streaming pauses.
+        if (pauseRef.current || isHidden()) {
+          dismissTimer = setTimeout(arm, DISMISS_PAUSE_POLL_MS);
+          return;
+        }
+        dismissTimer = setTimeout(() => {
+          dismissTimer = null;
+          if (pinnedRef.current) return;
+          if (pauseRef.current || isHidden()) {
+            arm();
+            return;
+          }
+          clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
+          scheduleNext(GAP_MS);
+        }, SHOW_MS);
+      };
+      arm();
     }
 
     /** @param {string | null} persona */
@@ -386,7 +413,7 @@ export function useAdvisorOrchestrator(params) {
     };
 
     const tick = async () => {
-      clearPhaseTimer();
+      clearScheduleTimer();
       const gen = ++generation;
       const focusKeyAtTick = focusKeyRef.current;
       const persona = forcedPersonaRef.current ?? pickNextPersona(previousPersona);
@@ -467,7 +494,8 @@ export function useAdvisorOrchestrator(params) {
         // Dropping the reply here left only the brief "is polishing…" chip — the speech
         // bubble never landed. Pause still blocks *new* ticks via shouldPauseNow.
         if (shouldDiscardForFocusChange(focusKeyAtTick, focusKeyRef.current)) {
-          // Selection moved to a different node mid-flight — re-tick without blanking the chip.
+          setThinking(null);
+          proposalInFlightRef.current = false;
           scheduleNext(0);
           return;
         }
@@ -526,6 +554,9 @@ export function useAdvisorOrchestrator(params) {
             failureUntil = Date.now() + FAILURE_BACKOFF_MS;
             setError('advisor timeout');
             scheduleNext(GAP_MS);
+          } else if (gen === generation) {
+            setThinking(null);
+            proposalInFlightRef.current = false;
           }
           return;
         }
@@ -542,10 +573,10 @@ export function useAdvisorOrchestrator(params) {
     };
 
     function scheduleNext(delay) {
-      clearPhaseTimer();
-      phaseTimer = setTimeout(
+      clearScheduleTimer();
+      scheduleTimer = setTimeout(
         () => {
-          phaseTimer = null;
+          scheduleTimer = null;
           if (!alive) return;
           if (pinnedRef.current) return; // pinned — hold current bubble until unpin
           if (shouldPauseNow()) {
@@ -569,7 +600,7 @@ export function useAdvisorOrchestrator(params) {
         dismissStreak = 0;
       }
       cancelInFlight();
-      clearPhaseTimer();
+      clearScheduleTimer();
       scheduleNext(GAP_MS);
     }
 
@@ -577,9 +608,9 @@ export function useAdvisorOrchestrator(params) {
     cancelLoopRef.current = (opts) => dismissCycle(opts);
     cancelPendingRef.current = () => {
       cancelInFlight();
-      clearPhaseTimer();
+      clearScheduleTimer();
     };
-    pauseTimerRef.current = () => clearPhaseTimer();
+    pauseTimerRef.current = () => clearDismissTimer();
     resumeTimerRef.current = () => {
       if (pinnedRef.current) return;
       startDismissTimer();
@@ -587,7 +618,8 @@ export function useAdvisorOrchestrator(params) {
 
     promptNextRef.current = ({ persona: forced } = {}) => {
       cancelInFlight();
-      clearPhaseTimer();
+      clearScheduleTimer();
+      clearDismissTimer();
       setIsPinned(false);
       pinnedRef.current = false;
       clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
@@ -606,7 +638,7 @@ export function useAdvisorOrchestrator(params) {
 
     const handleVisibility = () => {
       if (shouldPauseNow()) {
-        clearPhaseTimer();
+        clearScheduleTimer();
         // Never abort an in-flight proposal or wipe a landed bubble on brief
         // mobile visibility flickers (control center, banner, tab switch). Pause
         // still blocks new ticks via shouldPauseNow / scheduleNext.
@@ -615,7 +647,12 @@ export function useAdvisorOrchestrator(params) {
         }
         cancelInFlight();
         clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
-      } else if (phaseTimer == null && !abortController && !proposalInFlightRef.current) {
+      } else if (
+        scheduleTimer == null &&
+        dismissTimer == null &&
+        !abortController &&
+        !proposalInFlightRef.current
+      ) {
         scheduleNext(GAP_MS);
       }
     };
@@ -625,7 +662,7 @@ export function useAdvisorOrchestrator(params) {
 
     return () => {
       alive = false;
-      clearPhaseTimer();
+      clearPhaseTimers();
       cancelInFlight();
       if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', handleVisibility);
@@ -659,11 +696,6 @@ export function useAdvisorOrchestrator(params) {
   }, []);
 
   useEffect(() => {
-    if (pauseClearTimerRef.current != null) {
-      clearTimeout(pauseClearTimerRef.current);
-      pauseClearTimerRef.current = null;
-    }
-
     if (isMuted) {
       clearAdvisorSurface({ clearPersona: true, force: true });
       setIsPinned(false);
@@ -673,32 +705,25 @@ export function useAdvisorOrchestrator(params) {
     }
 
     if (!pause) {
-      scheduleNextRef.current?.(GAP_MS);
-      return undefined;
-    }
-
-    // Loading/streaming can flicker for a frame or two after a patch lands — debounce
-    // the wipe so a freshly surfaced "is polishing…" chip is not eaten instantly.
-    // Once a speech bubble has landed, leave it up: pause only blocks new ticks.
-    // Clearing landed proposals here made the chip flash during think then vanish
-    // when the reply arrived while loading/streaming was still true.
-    pauseClearTimerRef.current = setTimeout(() => {
-      pauseClearTimerRef.current = null;
-      if (!pauseRef.current || mutedRef.current) return;
-      if (proposalInFlightRef.current) return;
-      if (suggestionRef.current) return;
-      clearAdvisorSurface({ clearPersona: true, force: true });
-      setIsPinned(false);
-      pinnedRef.current = false;
-      cancelLoopRef.current?.({ resetStreak: false });
-    }, PAUSE_CLEAR_DEBOUNCE_MS);
-
-    return () => {
-      if (pauseClearTimerRef.current != null) {
-        clearTimeout(pauseClearTimerRef.current);
-        pauseClearTimerRef.current = null;
+      if (Date.now() - lastActivityAtRef.current > ADVISOR_IDLE_PAUSE_MS) {
+        if (!idlePausedRef.current) {
+          idlePausedRef.current = true;
+          clearAdvisorSurface({ clearPersona: true, force: true });
+          cancelLoopRef.current?.({ resetStreak: false });
+        }
+        return undefined;
       }
-    };
+      if (!suggestionRef.current && !thinkingPersonaRef.current) {
+        scheduleNextRef.current?.(GAP_MS);
+      }
+      if (suggestionRef.current && !pinnedRef.current) {
+        resumeTimerRef.current?.();
+      }
+    }
+    // Pause only blocks new ticks via shouldPauseNow — never wipe a landed bubble
+    // or an in-flight "is polishing…" chip. Clearing here was the recurring
+    // post-load vanish when loading/streaming flickered for a few frames.
+    return undefined;
   }, [pause, isMuted, clearAdvisorSurface]);
 
   // Focus-change watcher: when the user clicks (selected) or hovers (hover) a

@@ -1220,4 +1220,42 @@ describe('useAdvisorOrchestrator', () => {
     expect(result.current.architectDumbLevel).toBe(7);
     expect(result.current.suggestion).toMatch(/goo ga/i);
   });
+
+  it('does not auto-dismiss a landed proposal while pause stays true', async () => {
+    mockPersonaPick('explain');
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        persona: 'explain',
+        suggestion: 'Still visible after the stream pause.',
+        highlightIds: [],
+        kind: 'comment'
+      })
+    });
+
+    const { result, rerender } = renderHook(
+      ({ pause }) => useAdvisorOrchestrator(defaultParams({ pause })),
+      { initialProps: { pause: false } }
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(GAP_MS + 100);
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toBe('Still visible after the stream pause.');
+
+    rerender({ pause: true });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(12_000);
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toBe('Still visible after the stream pause.');
+
+    rerender({ pause: false });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_500);
+      await Promise.resolve();
+    });
+    expect(result.current.suggestion).toBeNull();
+  });
 });
