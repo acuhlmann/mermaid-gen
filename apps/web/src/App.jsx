@@ -195,8 +195,6 @@ import {
   PromptIcon,
   MicIcon,
   MicActiveIcon,
-  CodeEditorIcon,
-  CodeCloseIcon,
   RenderModeIcon
 } from './components/AppIcons.jsx';
 import { ActionPersonaIcon, ActionPersonaRole } from './components/ActionPersonaBits.jsx';
@@ -4634,21 +4632,6 @@ ${requirementsBlock}`;
                 onToggle={toggleFullscreen}
               />
             ) : null}
-            {hasCanvasContent || editorOpen ? (
-              <button
-                type="button"
-                className={`overlay-button code-toggle-button${editorOpen ? ' is-open' : ''}`}
-                onClick={() => setEditorOpen((current) => !current)}
-                aria-expanded={editorOpen}
-                aria-label={editorOpen ? controls.editor.closeEditor : controls.editor.openEditor}
-                title={editorOpen ? controls.editor.closeEditor : controls.editor.codeTitle}
-              >
-                <ButtonIcon>{editorOpen ? <CodeCloseIcon /> : <CodeEditorIcon />}</ButtonIcon>
-                <span className="button-label">
-                  {editorOpen ? controls.editor.close : controls.editor.code}
-                </span>
-              </button>
-            ) : null}
           </div>
         ) : null}
       </TopShell>
@@ -5149,6 +5132,10 @@ ${requirementsBlock}`;
                 isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
               }
               diagramSource={state.diagramSource}
+              showEditorToggle={hasCanvasContent || editorOpen}
+              editorOpen={editorOpen}
+              onToggleEditor={() => setEditorOpen((current) => !current)}
+              editorControls={controls.editor}
             />
           ) : null
         }

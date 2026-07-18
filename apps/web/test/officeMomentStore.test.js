@@ -124,6 +124,22 @@ describe('officeMomentStore', () => {
     expect(hasActiveOfficeSurface()).toBe(false);
   });
 
+  it('blocks another battle invite immediately after the user walks away', () => {
+    pushOfficeBattleInvite({
+      topic: 'Tabs vs. spaces',
+      lines: [{ speakerId: 'greybeard', text: 'Tabs.' }],
+      verdicts: { greybeard: 'Tabs it is.' }
+    });
+    dismissOfficeBattle();
+    const second = pushOfficeBattleInvite({
+      topic: 'Monorepo vs. polyrepo',
+      lines: [{ speakerId: 'intern', text: 'polyrepo!!' }],
+      verdicts: { intern: 'polyrepo wins!!' }
+    });
+    expect(second).toBeNull();
+    expect(getOfficeSnapshot().battle).toBeNull();
+  });
+
   it('reports active office surfaces so the director can hold fire', () => {
     expect(hasActiveOfficeSurface()).toBe(false);
     pushOfficeMeetingInvite({

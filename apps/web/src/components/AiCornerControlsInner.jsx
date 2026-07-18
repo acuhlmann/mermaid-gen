@@ -58,7 +58,11 @@ export function AiCornerControlsInner({
   includeThinkingToggle = true,
   popoverMode = true,
   contentType = null,
-  diagramSource = ''
+  diagramSource = '',
+  editorOpen = false,
+  onToggleEditor,
+  editorControls = null,
+  showEditorToggle = false
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
@@ -453,6 +457,23 @@ export function AiCornerControlsInner({
               </button>
             </div>
           </div>
+          {showEditorToggle && editorControls ? (
+            <div className="settings-editor-toggle" role="group" aria-label={editorControls.code}>
+              <button
+                type="button"
+                className={`settings-editor-button${editorOpen ? ' is-open' : ''}`}
+                aria-pressed={editorOpen}
+                onClick={onToggleEditor}
+              >
+                <span className="settings-editor-button-icon" aria-hidden="true">
+                  {'</>'}
+                </span>
+                <span className="settings-editor-button-label">
+                  {editorOpen ? editorControls.close : editorControls.code}
+                </span>
+              </button>
+            </div>
+          ) : null}
           <div className="settings-export" role="group" aria-label={controls.export}>
             {hasSource && canPrimaryShare ? (
               <button
