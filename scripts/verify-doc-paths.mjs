@@ -37,6 +37,13 @@ const SKIP_PATTERNS = [
   /node_modules/
 ];
 
+/** Repo-relative paths in docs always use POSIX separators, even on Windows. */
+export function toPosixPath(relPath) {
+  return String(relPath ?? '')
+    .split(path.sep)
+    .join('/');
+}
+
 /**
  * @param {string} dir
  * @returns {string[]}
@@ -92,9 +99,15 @@ export function extractPaths(content, sourceFile) {
       const base = path.dirname(sourceFile);
       p = path.normalize(path.join(base, p));
     }
-    found.push({ path: p.replace(/^\//, ''), source: sourceFile });
+    found.push({
+      path: toPosixPath(p.replace(/^\//, '')),
+      source: toPosixPath(sourceFile)
+    });
   }
-  return found;
+  return found.map((ref) => ({
+    path: toPosixPath(ref.path),
+    source: toPosixPath(ref.source)
+  }));
 }
 
 /** @param {string} relPath */
@@ -136,7 +149,7 @@ export function verifyDocPaths(root = ROOT) {
   /** @type {{ cited: string, source: string }[]} */
   const allRefs = [];
   for (const file of collectDocMarkdownFiles(root)) {
-    const rel = path.relative(root, file);
+    const rel = toPosixPath(path.relative(root, file));
     const content = fs.readFileSync(file, 'utf8');
     for (const { path: p, source } of extractPaths(content, rel)) {
       if (!shouldSkip(p)) allRefs.push({ cited: p, source });
