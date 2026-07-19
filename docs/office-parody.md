@@ -167,9 +167,9 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 
 The entry screen additionally mounts the **office directory** (`OfficeDirectory`): an
 interactive game-style **"Meet the Office"** orientation. **First run it is the entire
-app** — nothing else mounts until the tour is dismissed or skipped — then the empty
-state, Day One badge, and the rest of the chrome appear. The cinematic flow is title
-card / Press Start → name badge with Linda's auto-voiced welcome → Meet the team
+app is** — nothing else mounts until the tour is dismissed or skipped — then the empty
+state, Day One badge, and the rest of the chrome appear. The cinematic flow is reception
+check-in → name badge with Linda's auto-voiced welcome → Meet the team
 auto-plays each colleague intro in order → Clock in, persisted via
 `archislop:office-directory-seen`; afterwards it lives as a "🏢 Meet the Office" chip
 on the empty state, and as a **desk verb** once you have canvas content, so everybody
@@ -183,7 +183,7 @@ Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an 
 
 Three things make the orientation more than a static list:
 
-- **Cinematic voice (gesture-unlocked).** Press Start / Meet the team are the
+- **Cinematic voice (gesture-unlocked).** Check in at reception / Meet the team are the
   user gestures that unlock speech. Linda's welcome and each colleague spotlight
   then **auto-play** in order (`useIntroNarrator` + Cloud TTS), advancing when
   each line finishes — no per-character ▶ required. Roster revisit and ▶ buttons

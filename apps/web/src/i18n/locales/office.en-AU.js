@@ -691,23 +691,13 @@ export const OFFICE_EN_AU = {
       title: 'Day one at ArchiSlop Corp.',
       tourEyebrow: 'NEW HIRE ORIENTATION™',
       rosterEyebrow: 'CAST DIRECTORY',
-      bootEyebrow: 'ARCHISLOP CORP. · EMPLOYEE ONBOARDING MODULE 1.0',
-      bootTitle: 'Meet the Office',
-      bootTagline:
-        'A prestige dramedy about shipping diagrams under fluoro lights. You’re the new hire. Everyone else already has notes.',
-      bootBullets: [
-        '▶ Press Start — Linda welcomes you by voice',
-        '📛 Name yourself — the floor will weaponise it immediately',
-        '🎬 Meet the team — they introduce themselves in order'
-      ],
-      pressStartLabel: '▶ Press Start',
-      bootFootnote: 'Synergy loading… Co-Design buffering… politics already online.',
-      welcomeChapter: 'CHAPTER 0 — NAME YOURSELF',
+      welcomeChapter: 'RECEPTION DESK',
+      checkInLabel: 'Check in at reception →',
       colleagueChapter: 'COLLEAGUE {current} OF {total}',
       unlockedLabel: '✨ CHARACTER UNLOCKED',
       tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',
       tourHint:
-        'Name your badge, then Meet the team — they introduce themselves in order. Mute anytime with Focus Time.',
+        'Pick up your badge, check in with Linda, then meet the team on the floor. Mute anytime with Focus Time.',
       autoplayHint: 'Speaking…',
       skipBeatLabel: 'Skip →',
       rosterTagline:
