@@ -54,7 +54,7 @@ import {
   playYouveGotMail
 } from '../utils/agentChimes.js';
 import { officeMinutesToInsightEntry } from '../utils/appInsightHelpers.js';
-import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
+import { fetchOfficeCloudAudio } from '../utils/officeSpeechClient.js';
 import {
   MEETING_FACILITATOR,
   officeChromeCopy,
@@ -83,6 +83,7 @@ export default function OfficeLayer({
   getSessionId,
   getSvgRoot,
   getUserTitle,
+  getUserName,
   onUsage,
   onAdoptPrompt,
   onMeetingMinutes,
@@ -99,25 +100,10 @@ export default function OfficeLayer({
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
 
-  // Cloud WaveNet via POST /api/office/speak; null → Web Speech fallback.
+  // Cloud TTS ladder via POST /api/office/speak; null → Web Speech fallback.
   const fetchCloudAudio = useCallback(
-    async ({ speakerId, text, lang }) => {
-      try {
-        const headers = { 'content-type': 'application/json' };
-        const sessionId = getSessionId?.() ?? '';
-        if (sessionId) headers[SESSION_HEADER] = sessionId;
-        const response = await fetch(`${API_BASE_URL}/api/office/speak`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ speakerId, text, lang })
-        });
-        if (!response.ok) return null;
-        const body = await response.json();
-        return body?.audio ?? null;
-      } catch {
-        return null;
-      }
-    },
+    ({ speakerId, text, lang }) =>
+      fetchOfficeCloudAudio({ speakerId, text, lang, sessionId: getSessionId?.() ?? '' }),
     [getSessionId]
   );
 
@@ -176,6 +162,7 @@ export default function OfficeLayer({
     getSessionId,
     getSvgRoot,
     getUserTitle,
+    getUserName,
     onUsage
   });
 
@@ -190,6 +177,7 @@ export default function OfficeLayer({
     getSessionId,
     getSvgRoot,
     getUserTitle,
+    getUserName,
     onUsage
   });
 
@@ -200,7 +188,7 @@ export default function OfficeLayer({
   useOfficeSoundscape({ playChime });
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
-  useOfficeWelcome({ getUserTitle });
+  useOfficeWelcome({ getUserTitle, getUserName });
 
   // Kill in-flight speech when the user mutes narration or books Focus Time.
   useEffect(() => {
@@ -398,6 +386,7 @@ export default function OfficeLayer({
     getSessionId,
     getSvgRoot,
     getUserTitle,
+    getUserName,
     onUsage,
     onOfficeEvent,
     onCallMeeting: handleCallMeeting,

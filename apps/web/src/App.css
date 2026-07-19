@@ -17197,6 +17197,178 @@ body.slopitect-rainbow-tint::before {
 .office-directory-chip:hover {
   color: var(--text);
 }
+
+/* ── New-hire name badge (the editable "HELLO, my name is" lanyard) ────── */
+.name-tag {
+  display: block;
+  width: 100%;
+  max-width: 15rem;
+  margin: 0.5rem 0 0.15rem;
+  padding: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+  text-align: center;
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+  color: #1e293b;
+  box-shadow: var(--control-shadow);
+}
+.name-tag-hello {
+  display: block;
+  background: #d6294f;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  padding: 0.22rem 0.5rem 0.1rem;
+}
+.name-tag-sub {
+  display: block;
+  background: #d6294f;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.56rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0 0.5rem 0.2rem;
+  border-bottom: 2px solid #b91c3c;
+}
+.name-tag-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.42rem 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1e293b;
+  font-family: 'Segoe Script', 'Bradley Hand', 'Comic Sans MS', cursive;
+}
+.name-tag-value.is-placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+.name-tag-edit {
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+.name-tag-input {
+  width: 100%;
+  border: 0;
+  padding: 0.42rem 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-align: center;
+  color: #1e293b;
+  background: #fffbe8;
+  font-family: 'Segoe Script', 'Bradley Hand', 'Comic Sans MS', cursive;
+}
+.name-tag-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ── Orientation voice control (▶ Hear it) — click-only, never autoplays ── */
+.intro-voice-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.intro-voice-button:hover {
+  border-color: var(--accent);
+}
+.intro-voice-button-icon {
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--accent);
+}
+.intro-voice-button.is-speaking {
+  border-color: var(--accent);
+  background: rgba(15, 23, 42, 0.05);
+}
+.intro-voice-button.is-speaking .intro-voice-button-icon {
+  animation: intro-voice-pulse 1s ease-in-out infinite;
+}
+@keyframes intro-voice-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .intro-voice-button.is-speaking .intro-voice-button-icon {
+    animation: none;
+  }
+}
+
+/* ── Orientation tour: greeting, spotlight voice, skip-the-ceremony ────── */
+.office-directory-greeting {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+.office-directory-name-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.office-directory-welcome .name-tag {
+  align-self: center;
+  margin: 8px auto 2px;
+}
+.office-directory-spotlight-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.office-directory-hear--welcome {
+  align-self: center;
+  margin-top: 6px;
+}
+.office-directory-skip-build {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 6px;
+  margin-top: 2px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.office-directory-skip-build:hover {
+  color: var(--text);
+}
+.office-directory-card-hear {
+  flex: 0 0 auto;
+  align-self: center;
+  margin-left: auto;
+}
+
 @media (max-width: 640px) {
   .office-directory--roster {
     max-height: 38vh;

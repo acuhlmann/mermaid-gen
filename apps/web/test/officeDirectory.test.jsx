@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import OfficeDirectory from '../src/components/OfficeDirectory.jsx';
 import {
@@ -7,6 +7,7 @@ import {
   OFFICE_DIRECTORY_STORAGE_KEY
 } from '../src/utils/officeAmbienceStorage.js';
 import { OFFICE_COLLEAGUES } from '../src/utils/officeCast.js';
+import { _resetUserIdentityForTests, setUserName } from '../src/state/userIdentityStore.js';
 
 // Derived from the live roster so this test doesn't need a manual update every
 // time a colleague is added or removed (see docs/office-parody.md roster).
@@ -14,11 +15,13 @@ const COLLEAGUE_COUNT = Object.keys(OFFICE_COLLEAGUES).length;
 
 beforeEach(() => {
   window.localStorage.clear();
+  _resetUserIdentityForTests();
 });
 
 afterEach(() => {
   cleanup();
   window.localStorage.clear();
+  _resetUserIdentityForTests();
 });
 
 describe('OfficeDirectory', () => {
@@ -26,9 +29,25 @@ describe('OfficeDirectory', () => {
     render(<OfficeDirectory />);
     expect(screen.getByTestId('office-directory-tour')).toBeTruthy();
     expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
-    expect(screen.getByText(/Your new floor/)).toBeTruthy();
+    expect(screen.getByText(/newest architect/i)).toBeTruthy();
     expect(screen.queryByTestId('office-directory-roster')).toBeNull();
     expect(screen.queryByText('Facilities & Fridge Czar')).toBeNull();
+  });
+
+  it('greets the user by the name on their badge (default when blank)', () => {
+    render(<OfficeDirectory />);
+    expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
+    cleanup();
+    setUserName('Gavin');
+    render(<OfficeDirectory />);
+    expect(screen.getByText('Welcome aboard, Gavin.')).toBeTruthy();
+  });
+
+  it('offers a click-only voice control on the welcome step (never autoplays)', () => {
+    render(<OfficeDirectory />);
+    // A ▶ button exists, but nothing is "speaking" until the user clicks it.
+    const hear = screen.getByRole('button', { name: /Hear your welcome/ });
+    expect(hear.getAttribute('aria-pressed')).toBe('false');
   });
 
   it('introduces colleagues one at a time, then clocks in', () => {
@@ -57,9 +76,11 @@ describe('OfficeDirectory', () => {
     expect(window.localStorage.getItem(OFFICE_DIRECTORY_STORAGE_KEY)).toBe('1');
   });
 
-  it('skips the tour and collapses to the Meet-the-office chip', () => {
-    render(<OfficeDirectory />);
-    fireEvent.click(screen.getByRole('button', { name: 'Skip' }));
+  it('skips the ceremony straight to the canvas and marks the tour seen', () => {
+    const onSkipToBuild = vi.fn();
+    render(<OfficeDirectory onSkipToBuild={onSkipToBuild} />);
+    fireEvent.click(screen.getByTestId('office-directory-skip-build'));
+    expect(onSkipToBuild).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /Meet the floor/ })).toBeTruthy();
     expect(readOfficeDirectorySeen()).toBe(true);
   });
@@ -74,5 +95,7 @@ describe('OfficeDirectory', () => {
       expect(screen.getByText(name)).toBeTruthy();
     }
     expect(screen.getByText('Facilities & Fridge Czar')).toBeTruthy();
+    // Every roster card carries its own click-to-hear voice control.
+    expect(screen.getAllByTestId('intro-voice-button').length).toBe(COLLEAGUE_COUNT);
   });
 });

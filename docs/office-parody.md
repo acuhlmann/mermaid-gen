@@ -159,17 +159,34 @@ actual node). Store lifecycle mirrors coffee: invite → accept → vote → dis
 Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 
 1. **Linda's welcome email** — introduces the whole floor by name/role, plus the Focus Time /
-   Soundscape escape hatches. Timed ~1.5 s after the user's first pointer/key gesture (so the
-   sound gate is open and the **"You've got mail!"** announce — speech synthesis, chime-only
-   fallback — actually plays), with a 15 s no-interaction fallback.
-2. **Chad's welcome IM** ~8 s later.
+   Soundscape escape hatches, and greets the user by their chosen name (`{userName}`). Timed
+   ~1.5 s after the user's first pointer/key gesture (so the sound gate is open and the
+   **"You've got mail!"** announce — speech synthesis, chime-only fallback — actually plays),
+   with a 15 s no-interaction fallback.
+2. **Chad's welcome IM** ~8 s later (also on a first-name basis).
 
 The entry screen additionally mounts the **office directory** (`OfficeDirectory`): a
-focused "meet the floor" tour. First run it opens as a stepped intro (welcome beat →
+focused "meet the floor" orientation. First run it opens as a stepped intro (welcome beat →
 one colleague at a time → Clock in), persisted via `archislop:office-directory-seen`;
 afterwards it lives as a "🏢 Meet the floor" chip that reopens the full roster.
 Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an opaque
 `--office-surface-bg` so canvas ink underneath never bleeds through the copy.
+
+Three things make the orientation more than a static list:
+
+- **Voice showcase (click-only).** Every beat — Linda's welcome and each colleague spotlight,
+  plus every roster card on the return visit — carries a ▶ **Hear it** control
+  (`IntroVoiceButton` + `useIntroNarrator`) that plays the line in that colleague's real
+  Cloud-TTS voice (the Chirp3-HD → Neural2 → WaveNet ladder in `officeTts.js`). Cost guardrail:
+  a voice is **only ever synthesized on the explicit click, never autoplayed**, so preview bots
+  and scrapers can't quietly burn the GCP Chirp free tier. The click doubles as the browser's
+  autoplay gesture, so it works on mobile Safari/Chrome too. `useIntroNarrator` and
+  `OfficeLayer` share one Cloud-audio fetcher (`officeSpeechClient.js`).
+- **Name yourself in the intro.** The welcome step embeds the editable **name badge**
+  (`NameTag`, see Day One below).
+- **Skip the ceremony.** A persistent "Skip the ceremony — just let me build →" button dismisses
+  the whole orientation (marking it seen) and focuses the empty-state topic input, for anyone who
+  has seen the bit or just wants the canvas.
 
 ### Day One (the new-hire frame)
 
@@ -180,6 +197,15 @@ newest architect on the floor and the diagram slots are their work deliverables:
   "ArchiSlop Corp. · Employee Badge / New Hire — {userTitle}" (the gamification level
   title), one HR gag line, and the rockstar pitch line. Dismiss persists via
   `archislop:day-one-badge-seen` (`officeAmbienceStorage`), like the directory tour.
+- **Name badge** — the lanyard carries an editable "HELLO, my name is ___" tag (`NameTag`).
+  The chosen name lives in a small reactive store (`userIdentityStore.js`, persisted at
+  `archislop:user-name`) and is the source for the `{userName}` slot (`fillOfficeSlots`), so the
+  instant the user names themselves the whole office — Linda's welcome, Chad's IMs, the
+  orientation greeting, and any canned line carrying `{userName}` — starts addressing them by it.
+  Blank badge falls back to a funny default (`resolveUserName` → "Newbie"). The same badge shows
+  in the orientation welcome step; both edit the one store, so they stay in sync live. `{userName}`
+  threads through `readSlotContext` alongside `{userTitle}`, so it is available to every ambient
+  moment, not just onboarding.
 - **Assignment chips** — `controls.prompt.starters` entries carry `fromId` (any cast id
   `officeSenderInfo` can resolve — stakeholders and colleagues both work) and `ask` (the
   requester's one-liner). `TopicStarters` renders a From-attribution stack; entries
@@ -363,6 +389,8 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | DND + soundscape + narration + cadence + welcome/directory persistence | `apps/web/src/utils/officeAmbienceStorage.js`                                                                                                                                                                                                                                                                                                                                                                                            |
 | First-run welcome sequence                                             | `apps/web/src/hooks/useOfficeWelcome.js` (beats: `OFFICE_WELCOME_EMAIL` / `OFFICE_WELCOME_IM` in `officeCast.js`)                                                                                                                                                                                                                                                                                                                        |
 | Entry-screen office directory                                          | `apps/web/src/components/OfficeDirectory.jsx` (mounted in App's entry cluster; colleague `blurb`s in `officeCast.js`)                                                                                                                                                                                                                                                                                                                    |
+| User display name (editable, reactive)                                 | `apps/web/src/state/userIdentityStore.js` (`resolveUserName`, persisted `archislop:user-name` via `officeAmbienceStorage.js`), edited through `apps/web/src/components/NameTag.jsx`                                                                                                                                                                                                                                                      |
+| Orientation voice showcase (click-only)                                | `apps/web/src/hooks/useIntroNarrator.js` + `apps/web/src/components/IntroVoiceButton.jsx`; shared Cloud-audio fetcher `apps/web/src/utils/officeSpeechClient.js` (also used by `OfficeLayer`)                                                                                                                                                                                                                                            |
 | Ambience store (useSyncExternalStore)                                  | `apps/web/src/state/officeMomentStore.js`                                                                                                                                                                                                                                                                                                                                                                                                |
 | Director hook (cadence + caps)                                         | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                                                                                                                                                                                                                                                                                |
 | Run-reaction hook (colleague pings you about the run you just made)    | `apps/web/src/hooks/useOfficeRunReactions.js` (pure `planRunReaction` brain; App bumps `runSignal` from `triggerCompletionDelight`; delivers an IM through the shared ladder)                                                                                                                                                                                                                                                            |     |

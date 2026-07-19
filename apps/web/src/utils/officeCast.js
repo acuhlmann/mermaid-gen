@@ -220,20 +220,27 @@ export function pickMeetingAttendees(random = Math.random) {
   return seats;
 }
 
-/** Localized safe defaults for empty `{label}` / `{userTitle}` slot fills. */
+/** Localized safe defaults for empty `{label}` / `{userTitle}` / `{userName}` slot fills. */
 export const OFFICE_SLOT_FALLBACKS = {
   label: 'the diagram',
-  userTitle: 'Intern Architect'
+  userTitle: 'Intern Architect',
+  userName: 'Newbie'
 };
 
-/** Replace `{label}` / `{userTitle}` slots; drops in safe defaults when missing. */
-export function fillOfficeSlots(text, { label, userTitle } = {}) {
+/** Replace `{label}` / `{userTitle}` / `{userName}` slots; drops in safe defaults when missing. */
+export function fillOfficeSlots(text, { label, userTitle, userName } = {}) {
   const fallbacks = office()?.OFFICE_SLOT_FALLBACKS ?? OFFICE_SLOT_FALLBACKS;
   return String(text ?? '')
     .replaceAll('{label}', label && String(label).trim() ? String(label).trim() : fallbacks.label)
     .replaceAll(
       '{userTitle}',
       userTitle && String(userTitle).trim() ? String(userTitle).trim() : fallbacks.userTitle
+    )
+    .replaceAll(
+      '{userName}',
+      userName && String(userName).trim()
+        ? String(userName).trim()
+        : (fallbacks.userName ?? OFFICE_SLOT_FALLBACKS.userName)
     );
 }
 
@@ -402,14 +409,14 @@ export const SENIOR_EMAIL_TEMPLATES = [
 export const OFFICE_WELCOME_EMAIL = {
   id: 'welcome-email-hr',
   colleagueId: 'hr',
-  subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: pending)',
-  body: 'Welcome to the floor! So thrilled to have you. Your role: deliver. Diagrams, charts, 3D — whatever the floor needs, you architect it. A few names before your mandatory orientation (rescheduled, TBD):\n\n📅 Pam (Agile Coach) runs the meetings. All of them.\n🧃 Chad (our intern) will IM you shortly. He means well.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not.\n🧹 Gary owns the fridge and the thermostat. Respect both.\n🧓 Ulrich has seen your architecture before. In 2009.\n🔐 Sasha (our CISO) is already suspicious of you. It’s a compliment.\n\nAnd I’m Linda — People Ops! Your compliance training is already overdue, which is honestly a record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner whenever you need us quieter.\n\nWarmly,\nLinda'
+  subject: 'Welcome aboard, {userTitle}! 🎉 (your badge photo is “processing”)',
+  body: 'Welcome to the floor, {userName}! Officially thrilled, legally obligated to say so. 🎉\n\nYour mandate here is refreshingly simple: ship deliverables. Diagrams, charts, 3D, whatever the roadmap is pivoting to this week — you architect it, and we align on the credit at the all-hands.\n\nA few faces before your orientation (rescheduled to a date that does not technically exist):\n\n📅 Pam (Agile Coach) runs the meetings. All of them. This email is, itself, a ceremony.\n🧃 Chad (our intern) will IM you in roughly eight seconds. He is “heads-down.”\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not make eye contact.\n🧹 Gary owns the fridge and the thermostat. Both are load-bearing.\n🧓 Ulrich has seen your architecture before. In 2009. He’ll mention it.\n🔐 Sasha (our CISO) has already flagged you as an attack surface. She means it warmly.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner for when we become “a lot.”\n\nSynergistically yours,\nLinda'
 };
 
 export const OFFICE_WELCOME_IM = {
   id: 'welcome-im-intern',
   colleagueId: 'intern',
-  body: 'hey!! you must be the new {userTitle} — welcome!! the coffee machine has fourteen buttons and twelve are decorative. also gary WILL email you about the fridge. it’s not personal (it is)'
+  body: 'hey {userName}!! you must be the new {userTitle} — welcome to the sloppiest team in tech!! 🎉 heads up: the coffee machine has fourteen buttons and twelve are purely decorative. also gary WILL email you about the fridge, it’s not personal (it is). lmk if you need anything, tho fair warning i also don’t know how most things work yet'
 };
 
 /** Canned IM pings — short chat noise with slot fills. */
@@ -417,7 +424,7 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-intern-boxes',
     colleagueId: 'intern',
-    body: 'quick q — is {label} supposed to have that many arrows? asking for my onboarding doc'
+    body: 'hey {userName}, quick q — is {label} supposed to have that many arrows? asking for my onboarding doc'
   },
   {
     id: 'im-intern-lunch',
@@ -501,7 +508,7 @@ export const OFFICE_WALKBY_FALLBACKS = [
   {
     id: 'walkby-intern',
     colleagueId: 'intern',
-    body: 'whoa, {label} looks so official. did you make that with the AI? can I put it in my portfolio?'
+    body: 'whoa {userName}, {label} looks so official. did you make that with the AI? can I put it in my portfolio?'
   },
   {
     id: 'walkby-greybeard',
@@ -852,18 +859,42 @@ export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
   directory: {
     title: 'Day one at ArchiSlop Corp.',
-    tagline: 'Your new floor. Your new colleagues. Their opinions are included at no extra cost.',
-    tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
-    rosterTagline: 'The cast that emails, IMs, and walks by while you work:',
+    tagline: "You're the newest architect on the floor, and everyone already has notes.",
+    tourHint:
+      'Meet the cast one at a time — tap ▶ to hear each one in their own voice. Mute the whole building anytime with Focus Time.',
+    rosterTagline: 'The cast that emails, IMs, and walks by while you work — tap ▶ to hear one:',
+    // {name} is filled from the user's badge (resolveUserName) at render time.
+    greeting: 'Welcome aboard, {name}.',
+    greetingHint: 'The office will call you that. Change it on your name badge anytime.',
     expandLabel: '🏢 Meet the floor',
     expandTitle: 'Who keeps interrupting me?',
     startLabel: 'Meet the floor →',
     nextLabel: 'Next →',
     backLabel: '← Back',
     skipLabel: 'Skip',
+    skipToBuildLabel: 'Skip the ceremony — just let me build →',
+    skipToBuildTitle:
+      'Close orientation and drop me straight on the canvas. No offense taken. (Some taken.)',
     progressLabel: '{current} of {total}',
     dismissLabel: 'Clock in',
-    closeAria: 'Close the office directory'
+    closeAria: 'Close the office directory',
+    // Voice showcase — synthesized only on an explicit ▶ click, never autoplayed,
+    // so preview bots and scrapers can't quietly burn the Cloud TTS free tier.
+    hearLabel: 'Hear it',
+    hearWelcomeLabel: 'Hear your welcome',
+    hearSpeakingLabel: 'Shh… they’re talking',
+    hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
+    // Linda's spoken orientation line (Cloud TTS strips emoji before speaking).
+    welcomeVoiceSpeakerId: 'hr',
+    welcomeVoiceLine:
+      "Welcome to the floor. I'm Linda, from People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and every single colleague here has strong opinions about your diagrams. You are going to fit in beautifully. Let's go meet the team.",
+    nameTag: {
+      hello: 'HELLO',
+      subtitle: 'my name is',
+      placeholder: 'Newbie',
+      editTitle: 'Type your name — the whole office will start using it',
+      inputAria: 'Your name for the office'
+    }
   },
   // Player-initiated desk verbs — the ego-perspective counterpart to the
   // ambience director. `blocked.*` keys are keyed by useDeskActions reasons.
