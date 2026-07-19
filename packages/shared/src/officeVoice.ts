@@ -2,9 +2,10 @@
  * Shared voice constants for the office-parody narration layer
  * (see docs/office-parody.md, docs/office-narration-roadmap.md).
  *
- * Two engines speak the cast: Google Cloud TTS on the server (Neural2
- * default, WaveNet switchback — apps/server/src/agents/officeTts.js) and the
- * browser Speech Synthesis API as a fallback (apps/web/src/utils/officeNarration.js). Each keeps its own
+ * Two engines speak the cast: Google Cloud TTS on the server (Chirp3-HD
+ * default, with a Chirp3-HD → Neural2 → WaveNet fallback ladder —
+ * apps/server/src/agents/officeTts.js) and the browser Speech Synthesis API as
+ * the final "system voice" fallback (apps/web/src/utils/officeNarration.js). Each keeps its own
  * prosody table because the engines take different pitch units, but both key
  * off the same speaker ids and both apply the same global rate scale — so
  * those two things live here, in the leaf package both apps can import.

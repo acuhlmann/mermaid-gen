@@ -155,7 +155,7 @@ Keep the **`deepseek-api-key`** secret attached for hybrid Brain Quality. Keep *
 
 ## Office Cloud TTS (optional: spoken walk-bys / meetings / battles)
 
-Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id resolves; otherwise the browser falls back to Web Speech. Voices default to **Neural2** for en-US / en-AU, with the WaveNet cast kept as an instant switchback (`OFFICE_TTS_VOICE_TIER=wavenet`); zh locales always use WaveNet (no Neural2 cmn-\* voices exist). See [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md).
+Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id resolves; otherwise the browser falls back to Web Speech. Voices default to **Chirp3-HD** for every locale (including the Chinese ones — Chirp3-HD ships cmn-CN / cmn-TW voices Neural2 lacks), synthesised down a runtime fallback ladder **Chirp3-HD → Neural2 → WaveNet → Web Speech**. `OFFICE_TTS_VOICE_TIER` pins the ladder top (`chirp3` default, `neural2`, or `wavenet` for full switchback). See [`docs/office-narration-roadmap.md`](../office-narration-roadmap.md).
 
 1. **Enable the API:**
 
@@ -165,7 +165,7 @@ Office narration prefers **Google Cloud Text-to-Speech** when a GCP project id r
 
 2. **No extra IAM role for standard synthesis.** The classic `text:synthesize` endpoint does not expose a predefined `roles/cloudtts.user` (that name is not valid for project IAM). Enabling the API is enough when the Cloud Run runtime service account already has broad access (this repo’s default compute SA has `roles/editor`). If you use a locked-down custom SA, grant it a role that can call enabled APIs (e.g. `roles/editor` on a dev project, or a custom role once Google publishes TTS-specific permissions).
 
-3. Deploy scripts already set `VERTEX_PROJECT_ID` on Cloud Run — that is enough for `officeTtsConfigured: true` on `GET /api/health`. Kill switch: `OFFICE_TTS=0`. Voice tier: `OFFICE_TTS_VOICE_TIER=wavenet` to pin the pre-Neural2 cast.
+3. Deploy scripts already set `VERTEX_PROJECT_ID` on Cloud Run — that is enough for `officeTtsConfigured: true` on `GET /api/health`. Kill switch: `OFFICE_TTS=0`. Voice tier: `OFFICE_TTS_VOICE_TIER=neural2` (skip Chirp) or `=wavenet` (pin the oldest cast); default `chirp3`.
 
 ## Secrets (DeepSeek for Brain Quality; OpenRouter optional)
 

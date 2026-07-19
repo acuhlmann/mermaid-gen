@@ -628,6 +628,17 @@ export function useAdvisorOrchestrator(params) {
       clearDismissTimer();
       setIsPinned(false);
       pinnedRef.current = false;
+      // promptNext is an *explicit* user request ("Talk to your team" / picking
+      // a stakeholder), so it clears the ambient backoffs the passive scheduler
+      // sets — otherwise the click silently no-ops when the roundtable happens
+      // to be in a failure/dismiss backoff or has idle-paused. It still respects
+      // the hard gates in shouldPauseNow (muted, pause/streaming, hidden tab, no
+      // diagram) — those are surfaced as a disabled desk verb instead.
+      failureUntil = 0;
+      dismissBackoffUntil = 0;
+      dismissStreak = 0;
+      idlePausedRef.current = false;
+      lastActivityAtRef.current = Date.now();
       clearAdvisorSurfaceRef.current?.({ clearPersona: true, force: true });
       setProposalHistory((prev) => {
         if (prev.entries.length === 0) return prev;

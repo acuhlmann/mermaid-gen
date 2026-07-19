@@ -6,17 +6,28 @@
  * disabled / unconfigured / fails, callers get null and the client falls
  * back to Web Speech (officeNarration.js).
  *
- * Voice tier: Neural2 (next step up from WaveNet) is the default for locales
- * that have it (en-US, en-AU). zh locales stay on WaveNet — Google ships no
- * Neural2 cmn-* voices at all. Set OFFICE_TTS_VOICE_TIER=wavenet to pin the
- * old WaveNet cast everywhere (instant switchback).
+ * Voice tier: **Chirp3-HD** (the newest, most natural tier) is the default for
+ * every locale, including the Chinese ones — this is the whole reason Chinese
+ * finally sounds right, because unlike Neural2 (which ships no cmn-* voices at
+ * all) Chirp3-HD covers cmn-CN and cmn-TW. Each `/speak` synthesises down a
+ * runtime **fallback ladder**: Chirp3-HD → Neural2 → WaveNet, dropping to the
+ * client's Web Speech ("system voice") only when every cloud tier fails. So a
+ * Chirp outage silently degrades to Neural2, a Neural2 gap to WaveNet, and a
+ * total cloud failure to the browser — no error ever reaches the user.
+ *
+ * `OFFICE_TTS_VOICE_TIER` pins the *top* of that ladder for switchback:
+ * `chirp3` (default) tries all three; `neural2` skips Chirp and starts at
+ * Neural2; `wavenet` pins the old WaveNet cast everywhere. zh locales have no
+ * Neural2 voices, so their ladder is just Chirp3-HD → WaveNet.
  *
  * Kill switch: OFFICE_TTS=0|false|off. Default ON when a GCP project id
  * resolves (same VERTEX_PROJECT_ID / GOOGLE_CLOUD_PROJECT path as Vertex).
  *
  * Speed: the per-persona rates below are relative fingerprints; a global
  * scale (OFFICE_TTS_RATE_SCALE, shared with the Web Speech fallback) lifts
- * the whole cast at once. Tune the scale, not the table.
+ * the whole cast at once. Tune the scale, not the table. Pitch is a WaveNet /
+ * Neural2 fingerprint only — Chirp3-HD ignores pitch, so the Chirp tier keeps
+ * the rate fingerprint but not the pitch one.
  */
 
 import { createHash } from 'node:crypto';
@@ -27,7 +38,8 @@ import { resolveVertexProjectId } from './llmProvider.js';
 export const OFFICE_TTS_MAX_CHARS = 500;
 export const OFFICE_TTS_CACHE_MAX = 200;
 
-/** @typedef {{ name: string, languageCode: string, speakingRate?: number, pitch?: number }} OfficeTtsVoice */
+/** @typedef {'chirp3' | 'neural2' | 'wavenet'} OfficeTtsEngine */
+/** @typedef {{ name: string, languageCode: string, speakingRate?: number, pitch?: number, engine?: OfficeTtsEngine }} OfficeTtsVoice */
 
 /**
  * Cast → WaveNet voice per locale. Prosody (rate/pitch) keeps comedy
@@ -187,6 +199,56 @@ const NEURAL2_VOICE_NAMES = {
   }
 };
 
+/**
+ * Chirp3-HD voice-name roster, keyed by speaker. Chirp3-HD voice names are
+ * *locale-independent* (the same `Puck` / `Aoede` ship for en-US, en-AU,
+ * cmn-CN and cmn-TW alike), so unlike the WaveNet / Neural2 tables this is one
+ * flat map — the per-locale voice id is `${chirpLang}-Chirp3-HD-${name}`.
+ *
+ * Only the eight core Chirp3-HD voices are used, because those are the ones
+ * guaranteed across every office locale (crucially the cmn-* ones):
+ *   female — Aoede, Kore, Leda, Zephyr
+ *   male   — Puck, Charon, Fenrir, Orus
+ * Each speaker keeps the *gender* of its WaveNet letter so the cast still reads
+ * the same; prosody (rate) is inherited from VOICES_BY_LANG, and pitch is
+ * dropped (Chirp3-HD does not support it).
+ *
+ * @type {Record<string, string>}
+ */
+const CHIRP3_VOICE_ROSTER = {
+  // team
+  refine: 'Puck',
+  innovate: 'Zephyr',
+  goMad: 'Fenrir',
+  critique: 'Charon',
+  explain: 'Aoede',
+  // senior
+  exec: 'Orus',
+  ciso: 'Charon',
+  cto: 'Puck',
+  cfo: 'Kore',
+  // office
+  intern: 'Puck',
+  scrumMaster: 'Kore',
+  helpdesk: 'Charon',
+  facilities: 'Fenrir',
+  hr: 'Leda',
+  greybeard: 'Orus'
+};
+
+/**
+ * BCP-47 language code Chirp3-HD (and WaveNet) use per office locale. zh tags
+ * map onto Google's `cmn-*` codes; the en tags pass through unchanged.
+ *
+ * @type {Record<string, string>}
+ */
+const CHIRP_LANG_CODE = {
+  'en-US': 'en-US',
+  'en-AU': 'en-AU',
+  'zh-CN': 'cmn-CN',
+  'zh-TW': 'cmn-TW'
+};
+
 const DEFAULT_VOICE = {
   name: 'en-US-Wavenet-D',
   languageCode: 'en-US',
@@ -243,48 +305,75 @@ export function resolveOfficeTtsRateScale(env = process.env) {
 }
 
 /** Default voice tier when OFFICE_TTS_VOICE_TIER is unset or malformed. */
-export const OFFICE_TTS_DEFAULT_TIER = 'neural2';
+export const OFFICE_TTS_DEFAULT_TIER = 'chirp3';
 
 /**
- * Deploy-time voice-tier switch. `neural2` (default) upgrades en-US / en-AU
- * to Neural2 voices; `wavenet` pins the previous cast everywhere. zh locales
- * fall back to WaveNet per locale regardless (no Neural2 cmn-* voices exist).
+ * The fallback ladder for each pinned tier, richest engine first. `synthesize`
+ * walks it until an engine answers; whatever's left when all cloud engines
+ * fail is the client's Web Speech "system voice".
+ *
+ * @type {Record<OfficeTtsEngine, OfficeTtsEngine[]>}
+ */
+const TIER_LADDER = {
+  chirp3: ['chirp3', 'neural2', 'wavenet'],
+  neural2: ['neural2', 'wavenet'],
+  wavenet: ['wavenet']
+};
+
+/**
+ * Deploy-time voice-tier switch — the *top* of the fallback ladder. `chirp3`
+ * (default) tries Chirp3-HD → Neural2 → WaveNet; `neural2` skips Chirp;
+ * `wavenet` pins the previous cast everywhere. Bare `chirp` is accepted as an
+ * alias for `chirp3`. Locales without a given engine (zh has no Neural2, no
+ * locale-independent limits on Chirp) simply drop that rung from their ladder.
  *
  * @param {NodeJS.ProcessEnv} [env]
- * @returns {'neural2' | 'wavenet'}
+ * @returns {OfficeTtsEngine}
  */
 export function resolveOfficeTtsVoiceTier(env = process.env) {
   const raw =
     typeof env.OFFICE_TTS_VOICE_TIER === 'string'
       ? env.OFFICE_TTS_VOICE_TIER.trim().toLowerCase()
       : '';
+  if (raw === 'chirp' || raw === 'chirp3') return 'chirp3';
   if (raw === 'neural2' || raw === 'wavenet') return raw;
   return OFFICE_TTS_DEFAULT_TIER;
 }
 
 /**
- * Resolve the voice for a speaker, with the global rate scale already applied
- * — callers hand the returned `speakingRate` straight to the API. Under the
- * neural2 tier the name comes from NEURAL2_VOICE_NAMES when the locale has an
- * overlay; prosody always comes from the WaveNet prosody table.
+ * Build one engine's voice for a speaker, or null when that engine has no
+ * voice for the locale (e.g. Neural2 in zh). Prosody (rate/pitch) always comes
+ * from the WaveNet prosody table so the comedy fingerprints cannot drift
+ * between engines; the rate is returned already globally scaled.
  *
- * @param {string} speakerId
- * @param {string | undefined} lang
- * @param {NodeJS.ProcessEnv} [env]
- * @returns {OfficeTtsVoice}
+ * @param {OfficeTtsEngine} engine
+ * @param {string} locale
+ * @param {string} key resolved speaker key (already fell back to 'refine')
+ * @param {OfficeTtsVoice} base prosody row from VOICES_BY_LANG
+ * @param {NodeJS.ProcessEnv} env
+ * @returns {OfficeTtsVoice | null}
  */
-export function resolveOfficeTtsVoice(speakerId, lang, env = process.env) {
-  const locale = normalizeOfficeTtsLang(lang);
-  const table = VOICES_BY_LANG[locale] ?? VOICES_BY_LANG['en-US'];
-  const key = table[speakerId] ? speakerId : 'refine';
-  const base = table[key] ?? DEFAULT_VOICE;
-  const name =
-    resolveOfficeTtsVoiceTier(env) === 'neural2'
-      ? (NEURAL2_VOICE_NAMES[locale]?.[key] ?? base.name)
-      : base.name;
+function voiceForEngine(engine, locale, key, base, env) {
+  let name = null;
+  let languageCode = base.languageCode;
+  if (engine === 'wavenet') {
+    name = base.name;
+  } else if (engine === 'neural2') {
+    name = NEURAL2_VOICE_NAMES[locale]?.[key] ?? null;
+  } else if (engine === 'chirp3') {
+    const chirpLang = CHIRP_LANG_CODE[locale];
+    const voiceName = CHIRP3_VOICE_ROSTER[key];
+    if (chirpLang && voiceName) {
+      name = `${chirpLang}-Chirp3-HD-${voiceName}`;
+      languageCode = chirpLang;
+    }
+  }
+  if (!name) return null;
   return {
     ...base,
     name,
+    languageCode,
+    engine,
     speakingRate: scaleSpeakingRate(base.speakingRate ?? 1, {
       ...CLOUD_TTS_RATE_RANGE,
       scale: resolveOfficeTtsRateScale(env)
@@ -292,11 +381,64 @@ export function resolveOfficeTtsVoice(speakerId, lang, env = process.env) {
   };
 }
 
+/**
+ * Ordered voice candidates for a speaker, richest engine first, per the tier
+ * ladder. `synthesizeOfficeSpeech` tries each until one succeeds; the client's
+ * Web Speech is the implicit last rung once the array is exhausted.
+ *
+ * @param {string} speakerId
+ * @param {string | undefined} lang
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {OfficeTtsVoice[]}
+ */
+export function resolveOfficeTtsVoiceCandidates(speakerId, lang, env = process.env) {
+  const locale = normalizeOfficeTtsLang(lang);
+  const table = VOICES_BY_LANG[locale] ?? VOICES_BY_LANG['en-US'];
+  const key = table[speakerId] ? speakerId : 'refine';
+  const base = table[key] ?? DEFAULT_VOICE;
+  const ladder = TIER_LADDER[resolveOfficeTtsVoiceTier(env)] ?? TIER_LADDER.chirp3;
+  /** @type {OfficeTtsVoice[]} */
+  const candidates = [];
+  const seen = new Set();
+  for (const engine of ladder) {
+    const voice = voiceForEngine(engine, locale, key, base, env);
+    if (voice && !seen.has(voice.name)) {
+      seen.add(voice.name);
+      candidates.push(voice);
+    }
+  }
+  // A locale/tier that somehow resolved nothing still gets the WaveNet base so
+  // callers never see an empty ladder.
+  if (candidates.length === 0) {
+    const fallback = voiceForEngine('wavenet', locale, key, base, env);
+    if (fallback) candidates.push(fallback);
+  }
+  return candidates;
+}
+
+/**
+ * Resolve the single primary voice for a speaker (the top of the ladder), with
+ * the global rate scale already applied. Kept for callers/tests that want the
+ * default voice; `synthesizeOfficeSpeech` walks the full candidate ladder.
+ *
+ * @param {string} speakerId
+ * @param {string | undefined} lang
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {OfficeTtsVoice}
+ */
+export function resolveOfficeTtsVoice(speakerId, lang, env = process.env) {
+  const candidates = resolveOfficeTtsVoiceCandidates(speakerId, lang, env);
+  return candidates[0] ?? { ...DEFAULT_VOICE, engine: 'wavenet' };
+}
+
 /** @internal Test seam — the authored (unscaled) prosody table. */
 export const _VOICES_BY_LANG = VOICES_BY_LANG;
 
 /** @internal Test seam — the Neural2 voice-name overlay per locale. */
 export const _NEURAL2_VOICE_NAMES = NEURAL2_VOICE_NAMES;
+
+/** @internal Test seam — the locale-independent Chirp3-HD voice roster. */
+export const _CHIRP3_VOICE_ROSTER = CHIRP3_VOICE_ROSTER;
 
 /**
  * @param {unknown} text
@@ -342,8 +484,27 @@ export function _resetOfficeTtsForTests() {
 }
 
 /**
- * Synthesize one office line. Returns null when disabled, empty, or on API
- * failure (callers must degrade gracefully — never throw to the client).
+ * Build the Cloud TTS `audioConfig` for one voice. Chirp3-HD does not support
+ * `pitch` (sending it errors the whole request), so pitch rides only on the
+ * WaveNet / Neural2 engines — Chirp keeps the rate fingerprint alone.
+ *
+ * @param {OfficeTtsVoice} voice
+ * @returns {import('@google-cloud/text-to-speech').protos.google.cloud.texttospeech.v1.IAudioConfig}
+ */
+function audioConfigFor(voice) {
+  const config = {
+    audioEncoding: 'MP3',
+    speakingRate: voice.speakingRate ?? 1
+  };
+  if (voice.engine !== 'chirp3') config.pitch = voice.pitch ?? 0;
+  return config;
+}
+
+/**
+ * Synthesize one office line, walking the Chirp3-HD → Neural2 → WaveNet ladder
+ * (`resolveOfficeTtsVoiceCandidates`) until an engine answers. Returns null
+ * when disabled, empty, or when *every* cloud engine fails — the caller then
+ * degrades to the client's Web Speech "system voice". Never throws.
  *
  * @param {{ speakerId?: string, text?: string, lang?: string }} args
  * @param {NodeJS.ProcessEnv} [env]
@@ -360,39 +521,68 @@ export async function synthesizeOfficeSpeech(
   if (!cleaned || typeof speakerId !== 'string' || !speakerId) return null;
 
   const locale = normalizeOfficeTtsLang(lang);
-  const voice = resolveOfficeTtsVoice(speakerId, locale, env);
-  const key = cacheKey(speakerId, cleaned, `${locale}:${voice.name}`);
+  const candidates = resolveOfficeTtsVoiceCandidates(speakerId, locale, env);
+  if (candidates.length === 0) return null;
+
+  // Cache keys off the ladder's *top* voice so identical lines skip the API
+  // (and its fallback walk) entirely — the stored `voiceName` still records
+  // whichever engine actually answered.
+  const key = cacheKey(speakerId, cleaned, `${locale}:${candidates[0].name}`);
   const hit = cache.get(key);
   if (hit) return hit;
 
+  let client;
   try {
-    const client = getClient(env, deps);
+    client = getClient(env, deps);
+  } catch (err) {
+    // Constructing the TTS client can throw (missing ADC) — degrade, never throw.
+    console.warn('officeTts: client init failed:', err?.message ?? err);
+    return null;
+  }
+  for (const voice of candidates) {
+    const result = await synthesizeVoice(client, voice, cleaned, locale);
+    if (result) {
+      remember(key, result);
+      return result;
+    }
+  }
+  return null;
+}
+
+/**
+ * One rung of the fallback ladder: synthesize with a single voice. Returns the
+ * result on success, or null when the engine fails or hands back empty audio
+ * (so the caller falls through to the next rung).
+ *
+ * @param {import('@google-cloud/text-to-speech').TextToSpeechClient} client
+ * @param {OfficeTtsVoice} voice
+ * @param {string} text pre-sanitized line
+ * @param {string} locale
+ * @returns {Promise<{ audioBase64: string, mimeType: string, voiceName: string, lang: string } | null>}
+ */
+async function synthesizeVoice(client, voice, text, locale) {
+  try {
     const [response] = await client.synthesizeSpeech({
-      input: { text: cleaned },
-      voice: {
-        languageCode: voice.languageCode,
-        name: voice.name
-      },
-      audioConfig: {
-        audioEncoding: 'MP3',
-        speakingRate: voice.speakingRate ?? 1,
-        pitch: voice.pitch ?? 0
-      }
+      input: { text },
+      voice: { languageCode: voice.languageCode, name: voice.name },
+      audioConfig: audioConfigFor(voice)
     });
     const content = response?.audioContent;
     if (!content) return null;
     const buffer = Buffer.isBuffer(content) ? content : Buffer.from(content);
     if (buffer.length === 0) return null;
-    const result = {
+    return {
       audioBase64: buffer.toString('base64'),
       mimeType: 'audio/mpeg',
       voiceName: voice.name,
       lang: locale
     };
-    remember(key, result);
-    return result;
   } catch (err) {
-    console.warn('officeTts: synthesize failed:', err?.message ?? err);
+    // Fall through to the next rung of the ladder.
+    console.warn(
+      `officeTts: ${voice.engine} (${voice.name}) failed, trying fallback:`,
+      err?.message ?? err
+    );
     return null;
   }
 }

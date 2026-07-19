@@ -19,6 +19,7 @@ import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
+import { useOfficeRunReactions } from '../hooks/useOfficeRunReactions.js';
 import { useOfficeSoundscape } from '../hooks/useOfficeSoundscape.js';
 import { useOfficeWelcome } from '../hooks/useOfficeWelcome.js';
 import {
@@ -89,6 +90,8 @@ export default function OfficeLayer({
   onTalkToTeam,
   onCheckHrProgression,
   playChime,
+  /** Bumped by App when an agent run completes, so a colleague can react to it. */
+  runSignal = null,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
   deskActionsAnchorReady = false,
   /** Desktop vs mobile bottom row — slot remounts when this flips. */
@@ -165,6 +168,20 @@ export default function OfficeLayer({
   });
 
   useOfficeAmbience({
+    pause,
+    advisorBusy,
+    meetingActive: Boolean(meeting),
+    getDiagramSource,
+    getContentType,
+    getSessionId,
+    getSvgRoot,
+    getUserTitle,
+    onUsage
+  });
+
+  // A colleague reacts to the diagram you just generated (IM, capped hard).
+  useOfficeRunReactions({
+    runSignal,
     pause,
     advisorBusy,
     meetingActive: Boolean(meeting),
@@ -364,7 +381,11 @@ export default function OfficeLayer({
     closeMeeting();
   }, [meeting, onMeetingMinutes, onOfficeEvent, closeMeeting]);
 
-  const canCallMeeting = Boolean((getDiagramSource?.() ?? '').trim()) && !meeting;
+  const hasDiagramSource = Boolean((getDiagramSource?.() ?? '').trim());
+  const canCallMeeting = hasDiagramSource && !meeting;
+  // The roundtable reacts to the diagram; with a blank canvas the advisor route
+  // returns null and the verb would silently no-op, so disable it in-fiction.
+  const canTalkToTeam = hasDiagramSource;
 
   // Bumping this counter opens the inbox popover from the desk menu without
   // lifting the dock's own open/close state.
@@ -416,6 +437,7 @@ export default function OfficeLayer({
       onCheckHrProgression={onCheckHrProgression}
       blockedReason={desk.blockedReason}
       canCallMeeting={canCallMeeting}
+      canTalkToTeam={canTalkToTeam}
     />
   );
   const [deskSlot, setDeskSlot] = useState(null);
