@@ -395,7 +395,7 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     `{label}` slot fallbacks) localizes to en-AU / zh-CN / zh-TW via `office.*.js` bundles merged
     in `getUiLocaleBundle.js` and applied through `setActiveOfficeBundle`. Template ids stay
     aligned across locales so the seen-template memory survives locale switches. Server-side (LLM)
-    moments remain English-first — a persona-prompt locale hint is the natural follow-up.
+    moments now follow the same locale — see item 16.
 13. ~~**Cubicle battles**~~ — ✅ shipped (see §4 "Cubicle battles"). Future escalations: best-of-three
     rematches with a running score, stakeholders wading in as tag-team partners, an LLM battle mode
     that argues about the user's actual diagram, and betting XP on the outcome before the first line
@@ -406,3 +406,25 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     `officeTts.js` WaveNet cast map, client prefers cloud MP3 with Web Speech fallback; cubicle
     battles and coffee scenes are spoken (emails/IMs stay silent). Polish + caching ladder:
     [`office-narration-roadmap.md`](office-narration-roadmap.md).
+16. ~~**LLM moments speak the UI locale**~~ — ✅ shipped: the client sends `uiLocale`
+    (`officeDialogueLocale()`) on `/api/office/moment`, `/meeting`, and `/meeting/interject`;
+    `buildOfficeLanguageRule` adds the directive to the system prompt and
+    `buildOfficeLanguageReminder` restates it as the **last line of the user prompt**. Both
+    placements are needed: with the rule only in the system prompt, short IM moments still came back
+    in English because the persona voice blocks quote English catchphrases ("sorry if this is a dumb
+    question") and the model copied them through. This is deliberately _not_ `promptLanguage.ts` —
+    that infers language from the diagram's own script, which would keep the office English whenever
+    the diagram is English. Cast language and TTS voice now agree, so `cmn-CN-Wavenet-*` reads
+    Chinese text instead of pronouncing English phonetically.
+17. ~~**Meetings you can look away from**~~ — ✅ shipped: `MeetingOverlay` has a **docked** mode
+    (`🗕 Look at my screen`, persisted via `readOfficeMeetingDocked`) that shrinks the room to a
+    corner card, drops `aria-modal`, and sets `pointer-events: none` on the backdrop so clicks reach
+    the canvas — a real meeting doesn't confiscate your screen. Escape docks rather than leaves, so a
+    stray keypress can't kill an in-flight meeting. On phones the docked room becomes a bottom sheet.
+18. ~~**Slop Chat™ messenger**~~ — ✅ shipped: `imHistory` in `officeMomentStore.js` keeps every IM
+    (capped at `IM_HISTORY_MAX`) independently of the TTL-expiring toast stack, so a ping missed in
+    its nine seconds is still readable. `OfficeMessenger.jsx` renders per-colleague threads with
+    unread counts, quick replies, and a composer that routes through the desk's existing
+    `imSomeone` verb — replies come back through the same LLM/canned ladder as any other IM. Also
+    non-modal. Follow-ups: per-thread "poke" targeting a specific colleague, and persisting history
+    across reloads.

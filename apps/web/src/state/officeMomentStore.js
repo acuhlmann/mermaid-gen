@@ -20,6 +20,13 @@ import {
 
 export const IM_PING_TTL_MS = 9000;
 export const IM_PING_MAX_VISIBLE = 2;
+/**
+ * Slop Chat™ scrollback. Toast pings expire after IM_PING_TTL_MS and only two
+ * show at once, so without a separate log every IM the user didn't catch in
+ * nine seconds was gone forever. History is capped rather than unbounded —
+ * this is ambience, not a compliance archive.
+ */
+export const IM_HISTORY_MAX = 60;
 export const WALKBY_TTL_MS = 11_000;
 /** After the user walks away from a battle, hold off the next invite. */
 export const OFFICE_BATTLE_REENTRY_COOLDOWN_MS = 90_000;
@@ -32,8 +39,13 @@ function initialState() {
     /** @type {Array<{id: string, colleagueId: string, subject: string, body: string, actionPrompt?: string, createdAt: number, read: boolean}>} */
     emails: [],
     unreadCount: 0,
-    /** @type {Array<{id: string, colleagueId: string, body: string, createdAt: number}>} */
+    /** Transient toasts — TTL-expired, max IM_PING_MAX_VISIBLE on screen.
+     * @type {Array<{id: string, colleagueId: string, body: string, createdAt: number}>} */
     imPings: [],
+    /** Durable scrollback for the messenger, oldest first. Never TTL-expired.
+     * @type {Array<{id: string, colleagueId: string, body: string, createdAt: number, outbound?: boolean, read: boolean}>} */
+    imHistory: [],
+    imUnreadCount: 0,
     /** @type {{id: string, colleagueId: string, body: string, actionPrompt?: string, createdAt: number} | null} */
     walkBy: null,
     /** @type {{id: string, lines: Array<{speakerId: string, text: string}>, accepted: boolean, createdAt: number} | null} */
@@ -151,18 +163,56 @@ export function markAllOfficeEmailsRead() {
   update({ emails: state.emails.map((e) => (e.read ? e : { ...e, read: true })), unreadCount: 0 });
 }
 
+/**
+ * A new IM lands in two places: the transient toast stack (expires) and the
+ * durable history (does not). Dismissing or expiring a toast must NOT touch
+ * history — that separation is the whole point of the messenger.
+ */
 export function pushOfficeImPing({ colleagueId, body }) {
   const ping = { id: makeId('im'), colleagueId, body: String(body ?? ''), createdAt: Date.now() };
   const imPings = [...state.imPings, ping].slice(-IM_PING_MAX_VISIBLE);
-  update({ imPings });
+  const imHistory = [...state.imHistory, { ...ping, read: false }].slice(-IM_HISTORY_MAX);
+  update({ imPings, imHistory, imUnreadCount: countUnreadIms(imHistory) });
   scheduleExpiry(ping.id, IM_PING_TTL_MS, () => dismissOfficeImPing(ping.id));
   return ping.id;
+}
+
+function countUnreadIms(history) {
+  return history.reduce((total, msg) => (msg.read || msg.outbound ? total : total + 1), 0);
+}
+
+/** Records the user's side of the conversation (quick replies + composer). */
+export function pushOfficeImReply({ colleagueId, body }) {
+  const text = String(body ?? '').trim();
+  if (!text) return null;
+  const message = {
+    id: makeId('im'),
+    colleagueId,
+    body: text,
+    createdAt: Date.now(),
+    outbound: true,
+    read: true
+  };
+  const imHistory = [...state.imHistory, message].slice(-IM_HISTORY_MAX);
+  update({ imHistory });
+  return message.id;
+}
+
+/** Marks a colleague's thread read; omit the id to clear the whole log. */
+export function markOfficeImsRead(colleagueId) {
+  const imHistory = state.imHistory.map((msg) =>
+    !msg.read && (!colleagueId || msg.colleagueId === colleagueId) ? { ...msg, read: true } : msg
+  );
+  const imUnreadCount = countUnreadIms(imHistory);
+  if (imUnreadCount === state.imUnreadCount) return;
+  update({ imHistory, imUnreadCount });
 }
 
 export function dismissOfficeImPing(id) {
   clearExpiry(id);
   const imPings = state.imPings.filter((ping) => ping.id !== id);
   if (imPings.length === state.imPings.length) return;
+  // History deliberately untouched — the toast is a notification, not the message.
   update({ imPings });
 }
 

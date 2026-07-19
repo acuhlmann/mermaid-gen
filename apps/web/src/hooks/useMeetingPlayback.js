@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
-import { officeMeetingCopy, MEETING_FACILITATOR } from '../utils/officeCast.js';
+import {
+  officeDialogueLocale,
+  officeMeetingCopy,
+  MEETING_FACILITATOR
+} from '../utils/officeCast.js';
 
 export const MEETING_FETCH_TIMEOUT_MS = 25_000;
 export const MEETING_INTERJECTION_CAP = 2;
@@ -118,7 +122,14 @@ export function useMeetingPlayback({
     const svgRoot = p.getSvgRoot?.() ?? null;
     const host = svgRoot ?? (typeof document !== 'undefined' ? document : null);
     const { labels } = getAdvisorVisibleLabels({ contentType, host, diagramSource });
-    return { contentType, diagramSource, visibleLabels: labels };
+    // uiLocale rides along on both /meeting and /meeting/interject so a
+    // mid-meeting interjection stays in the same language as the script.
+    return {
+      contentType,
+      diagramSource,
+      visibleLabels: labels,
+      uiLocale: officeDialogueLocale()
+    };
   }, []);
 
   const postJson = useCallback(async (path, body) => {

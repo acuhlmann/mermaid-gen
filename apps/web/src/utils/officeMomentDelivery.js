@@ -23,6 +23,7 @@ import {
   OFFICE_WALKBY_LLM_CAST,
   officeBattleScenes,
   officeCoffeeScenes,
+  officeDialogueLocale,
   officeEmailTemplates,
   officeImTemplates,
   officeMeetingCopy,
@@ -240,7 +241,8 @@ export async function deliverLlmMoment(kind, ctx, options) {
         contentType: ctx.contentType,
         diagramSource: ctx.diagramSource,
         visibleLabels: ctx.labels,
-        recentMoments: [...recentMoments]
+        recentMoments: [...recentMoments],
+        uiLocale: officeDialogueLocale()
       }),
       signal: controller.signal
     });

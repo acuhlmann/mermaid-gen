@@ -11,14 +11,17 @@ import {
   dismissOfficeWalkBy,
   getOfficeSnapshot,
   hasActiveOfficeSurface,
+  IM_HISTORY_MAX,
   IM_PING_MAX_VISIBLE,
   IM_PING_TTL_MS,
   markAllOfficeEmailsRead,
   markOfficeEmailRead,
+  markOfficeImsRead,
   pushOfficeBattleInvite,
   pushOfficeCoffeeInvite,
   pushOfficeEmail,
   pushOfficeImPing,
+  pushOfficeImReply,
   pushOfficeMeetingInvite,
   pushOfficeWalkBy,
   setOfficeFocusTime,
@@ -65,6 +68,63 @@ describe('officeMomentStore', () => {
     pushOfficeImPing({ colleagueId: 'greybeard', body: 'two' });
     dismissOfficeImPing(first);
     expect(getOfficeSnapshot().imPings.map((p) => p.body)).toEqual(['two']);
+  });
+
+  it('keeps IM history after the toasts cap out and expire', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'one' });
+    pushOfficeImPing({ colleagueId: 'intern', body: 'two' });
+    pushOfficeImPing({ colleagueId: 'greybeard', body: 'three' });
+    // Toasts are capped; history is not.
+    expect(getOfficeSnapshot().imPings).toHaveLength(IM_PING_MAX_VISIBLE);
+    expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['one', 'two', 'three']);
+
+    vi.advanceTimersByTime(IM_PING_TTL_MS + 10);
+    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+    // The whole point of the messenger: expiry must not erase the log.
+    expect(getOfficeSnapshot().imHistory).toHaveLength(3);
+    expect(getOfficeSnapshot().imUnreadCount).toBe(3);
+  });
+
+  it('dismissing a toast leaves its message in history', () => {
+    const id = pushOfficeImPing({ colleagueId: 'intern', body: 'still here' });
+    dismissOfficeImPing(id);
+    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+    expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['still here']);
+  });
+
+  it('records outbound replies without counting them as unread', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'standup?' });
+    pushOfficeImReply({ colleagueId: 'intern', body: 'on my way' });
+    const { imHistory, imUnreadCount } = getOfficeSnapshot();
+    expect(imHistory.map((m) => m.body)).toEqual(['standup?', 'on my way']);
+    expect(imHistory[1].outbound).toBe(true);
+    // Only the colleague's message is unread — your own reply never is.
+    expect(imUnreadCount).toBe(1);
+    // Empty / whitespace replies are dropped rather than logged.
+    expect(pushOfficeImReply({ colleagueId: 'intern', body: '   ' })).toBeNull();
+    expect(getOfficeSnapshot().imHistory).toHaveLength(2);
+  });
+
+  it('marks IMs read per colleague, then globally', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'a' });
+    pushOfficeImPing({ colleagueId: 'greybeard', body: 'b' });
+    expect(getOfficeSnapshot().imUnreadCount).toBe(2);
+    markOfficeImsRead('intern');
+    expect(getOfficeSnapshot().imUnreadCount).toBe(1);
+    markOfficeImsRead();
+    expect(getOfficeSnapshot().imUnreadCount).toBe(0);
+    expect(getOfficeSnapshot().imHistory).toHaveLength(2);
+  });
+
+  it('caps IM history so a long session cannot grow it without bound', () => {
+    for (let i = 0; i < IM_HISTORY_MAX + 12; i += 1) {
+      pushOfficeImPing({ colleagueId: 'intern', body: `msg-${i}` });
+    }
+    const { imHistory } = getOfficeSnapshot();
+    expect(imHistory).toHaveLength(IM_HISTORY_MAX);
+    // Oldest are dropped, newest retained.
+    expect(imHistory[imHistory.length - 1].body).toBe(`msg-${IM_HISTORY_MAX + 11}`);
+    expect(imHistory[0].body).toBe('msg-12');
   });
 
   it('replaces an active walk-by and auto-expires it', () => {

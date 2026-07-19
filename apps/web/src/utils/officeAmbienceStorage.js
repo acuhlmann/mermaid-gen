@@ -8,6 +8,7 @@
 export const OFFICE_FOCUS_TIME_STORAGE_KEY = 'archislop:office-focus-time';
 export const OFFICE_SOUNDSCAPE_STORAGE_KEY = 'archislop:office-soundscape';
 export const OFFICE_NARRATION_STORAGE_KEY = 'archislop:office-narration';
+export const OFFICE_MEETING_DOCKED_STORAGE_KEY = 'archislop:office-meeting-docked';
 export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
@@ -86,6 +87,34 @@ export function writeOfficeNarrationEnabled(enabled) {
       window.localStorage.removeItem(OFFICE_NARRATION_STORAGE_KEY);
     } else {
       window.localStorage.setItem(OFFICE_NARRATION_STORAGE_KEY, '0');
+    }
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * @returns {boolean} True when the user prefers meetings docked to a corner
+ * (canvas visible) rather than centred over the diagram. Defaults OFF — the
+ * centred room is the first-run "you're in a meeting" beat; docking is the
+ * learned escape hatch, so we only store the opt-in.
+ */
+export function readOfficeMeetingDocked() {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(OFFICE_MEETING_DOCKED_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function writeOfficeMeetingDocked(docked) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (docked) {
+      window.localStorage.setItem(OFFICE_MEETING_DOCKED_STORAGE_KEY, '1');
+    } else {
+      window.localStorage.removeItem(OFFICE_MEETING_DOCKED_STORAGE_KEY);
     }
   } catch {
     // Ignore quota / privacy errors.

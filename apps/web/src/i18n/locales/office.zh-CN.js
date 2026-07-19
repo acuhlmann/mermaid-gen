@@ -650,7 +650,26 @@ export const OFFICE_ZH_CN = {
     },
     im: {
       regionAria: '即时消息',
-      dismissAria: '关闭来自 {name} 的消息'
+      dismissAria: '关闭来自 {name} 的消息',
+      openHistoryAria: '打开 Slop Chat(未读 {count} 条)',
+      openHistoryTitle: 'Slop Chat™ —— 查看历史消息'
+    },
+    messenger: {
+      title: '💬 Slop Chat™',
+      tagline: '在线状态提示多了 40%',
+      closeAria: '关闭 Slop Chat',
+      threadsAria: '会话列表',
+      emptyThreads: '还没有消息。且行且珍惜。',
+      emptyThread: '挑一位同事吧,他们「都有空」。',
+      composerPlaceholder: '输入消息……',
+      composerAria: '发消息给 {name}',
+      send: '发送',
+      sending: '发送中……',
+      typing: '{name} 正在输入……',
+      unreadDot: '未读',
+      you: '我',
+      statusOnline: '空闲',
+      statusBusy: '开会中'
     },
     walkby: {
       dismissAria: '挥手送走 {name}'
@@ -689,7 +708,11 @@ export const OFFICE_ZH_CN = {
       noMinutes: '没有行动项。以公司标准衡量,这是一场完美的会议。',
       raiseHandAria: '举手',
       raiseHand: '✋ 举手({count})',
-      atTime: '✋ 时间到'
+      atTime: '✋ 时间到',
+      dock: '🗕 看我的屏幕',
+      dockTitle: '把会议缩到角落,腾出手来改图',
+      undock: '🗖 回到会议室',
+      undockTitle: '把会议放回屏幕中央'
     }
   }
 };

@@ -171,6 +171,59 @@ project plans, board games. When a message touches the diagram it MUST engage th
 the visible labels. The persona theme is a *voice*, not a *topic* — do NOT default to
 enterprise-software vocabulary unless the diagram is actually about that.`;
 
+/**
+ * UI-locale → office dialogue language. The office layer is the one place
+ * where language must follow the *chrome* locale rather than the diagram's
+ * script (promptLanguage.ts): colleagues are ambient furniture, so they should
+ * speak the language the UI is wearing even when the diagram itself is in
+ * English. Without this the cast writes English and the cmn-* WaveNet voices
+ * in officeTts.js read it phonetically — the "Chinese mode doesn't speak
+ * Chinese" bug.
+ *
+ * Speaker *names* stay Latin so they keep matching the client cast in
+ * officeCast.js (which renders its own localized labels).
+ *
+ * @param {string | undefined} uiLocale
+ * @returns {string} A prompt clause, or '' for English locales.
+ */
+export function resolveOfficeLanguage(uiLocale) {
+  const raw = typeof uiLocale === 'string' ? uiLocale.trim().toLowerCase() : '';
+  if (raw.startsWith('zh-tw') || raw.startsWith('cmn-tw')) {
+    return { label: 'Traditional Chinese (zh-TW)', avoid: 'Simplified Chinese' };
+  }
+  if (raw.startsWith('zh') || raw.startsWith('cmn')) {
+    return { label: 'Simplified Chinese (zh-CN)', avoid: 'Traditional Chinese' };
+  }
+  return null;
+}
+
+export function buildOfficeLanguageRule(uiLocale) {
+  const lang = resolveOfficeLanguage(uiLocale);
+  if (!lang) return '';
+  // The persona voice blocks above quote English catchphrases verbatim ("sorry
+  // if this is a dumb question"). Without the explicit "adapt the catchphrases"
+  // clause the model copies them through and the whole line reverts to English.
+  return `\n\nLANGUAGE: Write EVERY reader-facing string (subject, body, title, beat text,
+actionPrompt) in ${lang.label}. The persona descriptions above are written in English and quote
+English catchphrases — those are a description of ATTITUDE, not text to copy. Render each voice
+naturally in ${lang.label}. Keep speakerId values and technical acronyms exactly as given. Do NOT
+emit ${lang.avoid} and do NOT add English translations. Translate the JOKE, not the words.`;
+}
+
+/**
+ * Terse restatement for the END of the user prompt. Recency matters: with the
+ * rule only in the system prompt, short moments still came back in English
+ * because the persona's English sample phrases dominated. This is the last
+ * thing the model reads before it generates.
+ *
+ * @param {string | undefined} uiLocale
+ * @returns {string}
+ */
+export function buildOfficeLanguageReminder(uiLocale) {
+  const lang = resolveOfficeLanguage(uiLocale);
+  return lang ? `\nEvery reader-facing string MUST be written in ${lang.label}.` : '';
+}
+
 const MOMENT_BODY_RULES = {
   email: `- kind email: include "subject" (max 90 chars, reads like a real corporate email subject —
 sentence case or ominous caps, no emoji spam). "body" is 2–4 short sentences plus an in-character
@@ -186,7 +239,7 @@ diagram. Max 300 chars. Include "subject" as the meeting title (max 90 chars, re
 recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 };
 
-export function buildMomentSystemPrompt({ kind, colleagueId }) {
+export function buildMomentSystemPrompt({ kind, colleagueId, uiLocale }) {
   const voice = speakerVoice(colleagueId);
   return `${voice}
 
@@ -204,14 +257,15 @@ only when your moment genuinely proposes a change. Omit the key entirely otherwi
 - Reference at least one visible label when the moment is about the diagram. Pure office noise
 (fridge, passwords, trainings) may ignore the diagram.
 - MUST SURPRISE. Avoid every angle listed under "recent moments".
-- Never claim you changed anything. Stay comedic, never mean, never blocking.`;
+- Never claim you changed anything. Stay comedic, never mean, never blocking.${buildOfficeLanguageRule(uiLocale)}`;
 }
 
 export function buildMomentUserPrompt({
   contentType,
   diagramSource,
   visibleLabels,
-  recentMoments
+  recentMoments,
+  uiLocale
 }) {
   const labels =
     Array.isArray(visibleLabels) && visibleLabels.length > 0
@@ -245,11 +299,11 @@ export function buildMomentUserPrompt({
     source,
     '```',
     '',
-    'Reply with strict JSON now.'
+    `Reply with strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
   ].join('\n');
 }
 
-export function buildMeetingSystemPrompt({ attendees, facilitatorId }) {
+export function buildMeetingSystemPrompt({ attendees, facilitatorId, uiLocale }) {
   const cards = attendees
     .map((id) => `### ${speakerLabel(id)} — speakerId "${id}"\n${speakerVoice(id)}`)
     .join('\n\n');
@@ -278,10 +332,16 @@ and at least 2 "smalltalk" beats.
 - Senior attendees (the VP, CISO, CTO, CFO) outrank the room: they ask for the headline, the cost,
 and the risk; any team attendee presents and defends the diagram; the facilitator keeps time.
 - ${SUBJECT_RULE}
-- Substantive beats MUST reference visible labels by name.`;
+- Substantive beats MUST reference visible labels by name.${buildOfficeLanguageRule(uiLocale)}`;
 }
 
-export function buildMeetingUserPrompt({ contentType, diagramSource, visibleLabels, topic }) {
+export function buildMeetingUserPrompt({
+  contentType,
+  diagramSource,
+  visibleLabels,
+  topic,
+  uiLocale
+}) {
   const labels =
     Array.isArray(visibleLabels) && visibleLabels.length > 0
       ? visibleLabels
@@ -305,14 +365,14 @@ export function buildMeetingUserPrompt({ contentType, diagramSource, visibleLabe
     source,
     '```',
     '',
-    'Write the meeting script as strict JSON now.'
+    `Write the meeting script as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
   ]
     .filter((line) => line !== null)
     .join('\n');
 }
 
-export function buildInterjectSystemPrompt({ attendees, facilitatorId }) {
-  return `${buildMeetingSystemPrompt({ attendees, facilitatorId })}
+export function buildInterjectSystemPrompt({ attendees, facilitatorId, uiLocale }) {
+  return `${buildMeetingSystemPrompt({ attendees, facilitatorId, uiLocale })}
 
 INTERJECTION MODE (overrides the beat-count rules above):
 - The user (a real human in the room) just spoke. Rewrite ONLY the remaining beats so the attendees
@@ -327,7 +387,8 @@ export function buildInterjectUserPrompt({
   diagramSource,
   visibleLabels,
   transcriptSoFar,
-  interjection
+  interjection,
+  uiLocale
 }) {
   const transcript =
     Array.isArray(transcriptSoFar) && transcriptSoFar.length > 0
@@ -337,14 +398,14 @@ export function buildInterjectUserPrompt({
           .join('\n')
       : '(meeting just started)';
   return [
-    buildMeetingUserPrompt({ contentType, diagramSource, visibleLabels }),
+    buildMeetingUserPrompt({ contentType, diagramSource, visibleLabels, uiLocale }),
     '',
     'Transcript so far:',
     transcript,
     '',
     `THE USER JUST SAID: "${String(interjection).slice(0, 400)}"`,
     '',
-    'Write the revised remaining beats as strict JSON now.'
+    `Write the revised remaining beats as strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
   ].join('\n');
 }
 

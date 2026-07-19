@@ -7,6 +7,7 @@ import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
 import OfficeImPing from './OfficeImPing.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
+import OfficeMessenger from './OfficeMessenger.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
@@ -24,7 +25,9 @@ import {
   getOfficeSnapshot,
   markAllOfficeEmailsRead,
   markOfficeEmailRead,
+  markOfficeImsRead,
   pushOfficeEmail,
+  pushOfficeImReply,
   setOfficeFocusTime,
   setOfficeNarration,
   setOfficeSoundscape,
@@ -47,6 +50,7 @@ import { API_BASE_URL, SESSION_HEADER } from '../state/diagramSession.js';
 import {
   MEETING_FACILITATOR,
   officeChromeCopy,
+  officeDialogueLocale,
   officeMeetingCopy,
   pickMeetingAttendees
 } from '../utils/officeCast.js';
@@ -113,7 +117,7 @@ export default function OfficeLayer({
       const text = typeof line?.text === 'string' ? line.text : '';
       const speakerId = typeof line?.speakerId === 'string' ? line.speakerId : '';
       if (!text || !speakerId) return Promise.resolve({ spoken: false });
-      const lang = officeChromeCopy().inbox.mailAnnounceLang;
+      const lang = officeDialogueLocale();
       return new Promise((resolve) => {
         let invoked = false;
         playChime?.(() => {
@@ -276,12 +280,20 @@ export default function OfficeLayer({
   );
 
   const handleQuickReply = useCallback(
-    (ping) => {
+    (ping, reply) => {
+      // Record the user's side too, so the toast reply is still there in the
+      // messenger scrollback after the toast itself expires.
+      pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
       dismissOfficeImPing(ping.id);
       onOfficeEvent?.('imReply');
     },
     [onOfficeEvent]
   );
+
+  const [messengerOpen, setMessengerOpen] = useState(false);
+  const [messengerBusy, setMessengerBusy] = useState(false);
+  const handleOpenMessenger = useCallback(() => setMessengerOpen(true), []);
+  const handleCloseMessenger = useCallback(() => setMessengerOpen(false), []);
 
   const handleAdopt = useCallback(
     (prompt, colleagueId) => {
@@ -361,6 +373,23 @@ export default function OfficeLayer({
     onTalkToTeam
   });
 
+  // Slop Chat™ sending reuses the desk's "IM someone" verb, so a reply comes
+  // back through the same LLM/canned ladder as any other IM — and therefore
+  // lands in imHistory via pushOfficeImPing with no extra plumbing.
+  const handleMessengerSend = useCallback(
+    async (colleagueId, body) => {
+      pushOfficeImReply({ colleagueId, body });
+      onOfficeEvent?.('imReply');
+      setMessengerBusy(true);
+      try {
+        await desk.imSomeone(colleagueId);
+      } finally {
+        setMessengerBusy(false);
+      }
+    },
+    [desk, onOfficeEvent]
+  );
+
   const deskDock = (
     <DeskActionsDock
       placement="bottom"
@@ -403,8 +432,19 @@ export default function OfficeLayer({
       />
       <OfficeImPing
         pings={snapshot.imPings}
+        unreadCount={snapshot.imUnreadCount}
+        historyCount={snapshot.imHistory.length}
         onDismiss={dismissOfficeImPing}
         onQuickReply={handleQuickReply}
+        onOpenHistory={handleOpenMessenger}
+      />
+      <OfficeMessenger
+        open={messengerOpen}
+        messages={snapshot.imHistory}
+        busy={messengerBusy}
+        onClose={handleCloseMessenger}
+        onMarkRead={markOfficeImsRead}
+        onSend={handleMessengerSend}
       />
       <OfficeWalkBy
         walkBy={snapshot.walkBy}

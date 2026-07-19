@@ -650,7 +650,26 @@ export const OFFICE_ZH_TW = {
     },
     im: {
       regionAria: '即時訊息',
-      dismissAria: '關閉來自 {name} 的訊息'
+      dismissAria: '關閉來自 {name} 的訊息',
+      openHistoryAria: '開啟 Slop Chat(未讀 {count} 則)',
+      openHistoryTitle: 'Slop Chat™ —— 查看歷史訊息'
+    },
+    messenger: {
+      title: '💬 Slop Chat™',
+      tagline: '在線狀態提示多了 40%',
+      closeAria: '關閉 Slop Chat',
+      threadsAria: '對話列表',
+      emptyThreads: '還沒有訊息。且行且珍惜。',
+      emptyThread: '挑一位同事吧,他們「都有空」。',
+      composerPlaceholder: '輸入訊息……',
+      composerAria: '傳訊息給 {name}',
+      send: '傳送',
+      sending: '傳送中……',
+      typing: '{name} 正在輸入……',
+      unreadDot: '未讀',
+      you: '我',
+      statusOnline: '有空',
+      statusBusy: '開會中'
     },
     walkby: {
       dismissAria: '揮手送走 {name}'
@@ -689,7 +708,11 @@ export const OFFICE_ZH_TW = {
       noMinutes: '沒有行動項目。以公司標準來說,這是一場完美的會議。',
       raiseHandAria: '舉手',
       raiseHand: '✋ 舉手({count})',
-      atTime: '✋ 時間到'
+      atTime: '✋ 時間到',
+      dock: '🗕 看我的螢幕',
+      dockTitle: '把會議縮到角落,騰出手來改圖',
+      undock: '🗖 回到會議室',
+      undockTitle: '把會議放回螢幕中央'
     }
   }
 };

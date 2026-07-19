@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  buildInterjectSystemPrompt,
   buildMeetingSystemPrompt,
+  buildMeetingUserPrompt,
+  buildInterjectUserPrompt,
   buildMomentSystemPrompt,
+  buildOfficeLanguageRule,
   buildMomentUserPrompt,
   createOfficeChatModel,
   isOfficeColleague,
@@ -176,4 +180,93 @@ test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () 
 test('createOfficeChatModel returns null when no LLM is configured', () => {
   const model = createOfficeChatModel({}, { purpose: 'moment' });
   assert.equal(model, null);
+});
+
+test('office language rule follows the UI locale, not the diagram script', () => {
+  assert.match(buildOfficeLanguageRule('zh-CN'), /Simplified Chinese \(zh-CN\)/);
+  assert.match(buildOfficeLanguageRule('zh-TW'), /Traditional Chinese \(zh-TW\)/);
+  // Case / region tolerance — the client sends whatever mailAnnounceLang holds.
+  assert.match(buildOfficeLanguageRule('zh-cn'), /Simplified Chinese/);
+  assert.match(buildOfficeLanguageRule('cmn-TW'), /Traditional Chinese/);
+  // Each variant must exclude the other, or TTS gets the wrong script.
+  assert.doesNotMatch(buildOfficeLanguageRule('zh-CN'), /Write EVERY[\s\S]*Traditional Chinese \(/);
+  // English locales stay clause-free so the prompt is unchanged for them.
+  for (const locale of ['en', 'en-US', 'en-AU', '', undefined, null]) {
+    assert.equal(buildOfficeLanguageRule(locale), '', `${locale} should add no clause`);
+  }
+});
+
+test('user prompts restate the language as their final instruction', () => {
+  // Recency: the system-prompt rule alone lost to the personas' English
+  // catchphrases on short moments, so the reminder must be the LAST thing read.
+  const moment = buildMomentUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n A-->B',
+    visibleLabels: ['A'],
+    recentMoments: [],
+    uiLocale: 'zh-CN'
+  });
+  assert.match(moment.trimEnd(), /Simplified Chinese \(zh-CN\)\.$/);
+
+  const meeting = buildMeetingUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n A-->B',
+    visibleLabels: ['A'],
+    uiLocale: 'zh-TW'
+  });
+  assert.match(meeting.trimEnd(), /Traditional Chinese \(zh-TW\)\.$/);
+
+  const interject = buildInterjectUserPrompt({
+    contentType: 'mermaid',
+    diagramSource: 'flowchart TD\n A-->B',
+    visibleLabels: ['A'],
+    transcriptSoFar: ['scrumMaster: hi'],
+    interjection: 'what about cost?',
+    uiLocale: 'zh-CN'
+  });
+  assert.match(interject.trimEnd(), /Simplified Chinese \(zh-CN\)\.$/);
+
+  // English locales must leave the tail instruction untouched.
+  assert.match(
+    buildMomentUserPrompt({ visibleLabels: [], recentMoments: [] }).trimEnd(),
+    /Reply with strict JSON now\.$/
+  );
+});
+
+test('language rule tells the model to adapt English catchphrases', () => {
+  // The personas quote English lines verbatim; without this the model copies
+  // them through and the reply reverts to English.
+  assert.match(buildOfficeLanguageRule('zh-CN'), /ATTITUDE, not text to copy/);
+});
+
+test('all three office prompt builders honour uiLocale', () => {
+  const moment = buildMomentSystemPrompt({ kind: 'im', colleagueId: 'intern', uiLocale: 'zh-CN' });
+  assert.match(moment, /Simplified Chinese \(zh-CN\)/);
+
+  const meeting = buildMeetingSystemPrompt({
+    attendees: ATTENDEES,
+    facilitatorId: 'scrumMaster',
+    uiLocale: 'zh-TW'
+  });
+  assert.match(meeting, /Traditional Chinese \(zh-TW\)/);
+
+  // Interject composes the meeting prompt — the locale must survive the nesting,
+  // otherwise a raised hand flips the room back to English mid-meeting.
+  const interject = buildInterjectSystemPrompt({
+    attendees: ATTENDEES,
+    facilitatorId: 'scrumMaster',
+    uiLocale: 'zh-TW'
+  });
+  assert.match(interject, /Traditional Chinese \(zh-TW\)/);
+  assert.match(interject, /INTERJECTION MODE/);
+
+  // Omitting the locale must leave the English prompts byte-identical.
+  assert.equal(
+    buildMeetingSystemPrompt({ attendees: ATTENDEES, facilitatorId: 'scrumMaster' }),
+    buildMeetingSystemPrompt({
+      attendees: ATTENDEES,
+      facilitatorId: 'scrumMaster',
+      uiLocale: 'en-US'
+    })
+  );
 });

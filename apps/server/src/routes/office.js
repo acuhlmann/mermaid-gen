@@ -23,13 +23,21 @@ import {
 } from '../agents/officePersonas.js';
 import { isOfficeTtsEnabled, synthesizeOfficeSpeech } from '../agents/officeTts.js';
 
+/**
+ * The chrome locale the office cast should speak. Unlike diagram agents (which
+ * infer language from the diagram's own script via promptLanguage.ts), the
+ * office layer follows the UI — see buildOfficeLanguageRule.
+ */
+const UiLocaleField = z.string().max(16).optional();
+
 const OfficeMomentRequestSchema = z.object({
   kind: OfficeMomentKindSchema,
   colleagueId: z.string().refine(isOfficeSpeaker, { message: 'unknown colleague' }),
   contentType: ContentTypeSchema.default('mermaid'),
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
-  recentMoments: z.array(z.string().max(400)).max(5).default([])
+  recentMoments: z.array(z.string().max(400)).max(5).default([]),
+  uiLocale: UiLocaleField
 });
 
 const OfficeMeetingRequestSchema = z.object({
@@ -37,7 +45,8 @@ const OfficeMeetingRequestSchema = z.object({
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(1).max(8),
-  topic: z.string().max(200).optional()
+  topic: z.string().max(200).optional(),
+  uiLocale: UiLocaleField
 });
 
 const OfficeInterjectRequestSchema = z.object({
@@ -46,7 +55,8 @@ const OfficeInterjectRequestSchema = z.object({
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   attendees: z.array(z.string().max(40)).min(1).max(8),
   transcriptSoFar: z.array(z.string().max(300)).max(20).default([]),
-  interjection: z.string().min(1).max(400)
+  interjection: z.string().min(1).max(400),
+  uiLocale: UiLocaleField
 });
 
 const OfficeSpeakRequestSchema = z.object({
@@ -99,7 +109,8 @@ export function createOfficeRouter() {
 
     const system = buildMomentSystemPrompt({
       kind: payload.kind,
-      colleagueId: payload.colleagueId
+      colleagueId: payload.colleagueId,
+      uiLocale: payload.uiLocale
     });
     const user = buildMomentUserPrompt(payload);
     const officeModel = resolveOfficeModelId(process.env);
@@ -146,7 +157,11 @@ export function createOfficeRouter() {
     }
 
     const facilitatorId = pickFacilitator(attendees);
-    const system = buildMeetingSystemPrompt({ attendees, facilitatorId });
+    const system = buildMeetingSystemPrompt({
+      attendees,
+      facilitatorId,
+      uiLocale: payload.uiLocale
+    });
     const user = buildMeetingUserPrompt(payload);
     const officeModel = resolveOfficeModelId(process.env);
     try {
@@ -211,7 +226,11 @@ export function createOfficeRouter() {
     }
 
     const facilitatorId = pickFacilitator(attendees);
-    const system = buildInterjectSystemPrompt({ attendees, facilitatorId });
+    const system = buildInterjectSystemPrompt({
+      attendees,
+      facilitatorId,
+      uiLocale: payload.uiLocale
+    });
     const user = buildInterjectUserPrompt(payload);
     const officeModel = resolveOfficeModelId(process.env);
     try {

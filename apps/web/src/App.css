@@ -15234,6 +15234,14 @@ body.slopitect-rainbow-tint::before {
 
 .office-inbox--headless .office-inbox-popover {
   pointer-events: auto;
+  /* The headless container is bottom-anchored and zero-height (the desk dock
+     opens it; there is no envelope button to hang off). Inheriting the base
+     `top: 46px` would open the popover DOWNWARD from that bottom edge and push
+     the footer — "Mark all read" / "Call a meeting" — below the viewport. Open
+     upward instead, at every width. */
+  top: auto;
+  bottom: calc(100% + 0.45rem);
+  --office-inbox-anchor: calc(var(--mobile-bottom-chrome-est, 5.5rem) + 3rem);
 }
 
 /* Desk verbs: your side of the office, stacked under the inbox envelope. */
@@ -15560,7 +15568,12 @@ body.slopitect-rainbow-tint::before {
     22rem,
     calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
   );
-  max-height: min(440px, 70dvh);
+  /* The popover hangs 122px below the viewport top (.office-inbox top:76px +
+     this element's top:46px), so a bare 70dvh can still overhang the bottom on
+     short windows. --office-inbox-anchor keeps that offset in the budget; the
+     mobile branch below re-anchors to the bottom and overrides it. */
+  --office-inbox-anchor: 138px;
+  max-height: min(440px, calc(var(--app-vvh, 100dvh) - var(--office-inbox-anchor)));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -15571,6 +15584,7 @@ body.slopitect-rainbow-tint::before {
 }
 .office-inbox-header {
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: stretch;
   gap: 0.45rem;
@@ -15633,11 +15647,18 @@ body.slopitect-rainbow-tint::before {
 .office-inbox-close:hover {
   background: rgba(15, 23, 42, 0.06);
 }
+/* The popover is a fixed-height flex column with overflow:hidden, so the
+   scrollable middle needs min-height:0 — a flex item's default min-height:auto
+   refuses to shrink below its content, which pushes .office-inbox-footer
+   ("Mark all read" / "Call a meeting") past the clipped bottom edge. */
 .office-email-list {
   list-style: none;
   margin: 0;
   padding: 4px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .office-email-empty {
   padding: 16px 12px;
@@ -15690,7 +15711,10 @@ body.slopitect-rainbow-tint::before {
 }
 .office-email-view {
   padding: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -15730,6 +15754,8 @@ body.slopitect-rainbow-tint::before {
 }
 .office-inbox-footer {
   display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 8px 12px;
   border-top: 1px solid var(--control-border);
@@ -15794,6 +15820,41 @@ body.slopitect-rainbow-tint::before {
   border-radius: 12px;
   box-shadow: var(--control-shadow);
 }
+/* Persistent tab that opens the messenger — sits above the toasts and outlives
+   them, so an expired ping is still reachable. */
+.office-im-history {
+  position: relative;
+  align-self: flex-end;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg);
+  box-shadow: var(--control-shadow);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 160ms ease;
+}
+.office-im-history:hover {
+  transform: translateY(-1px);
+}
+.office-im-history:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.office-im-history-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 15px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+}
 .office-im-avatar {
   flex: 0 0 auto;
 }
@@ -15842,6 +15903,258 @@ body.slopitect-rainbow-tint::before {
   font-size: 16px;
   line-height: 1;
   padding: 0 2px;
+}
+
+/* --- Slop Chat™ messenger (durable IM history) ---
+   Deliberately NOT a modal: chat is something you read while working, so this
+   is a floating window over the canvas rather than a backdrop. */
+.office-messenger {
+  position: fixed;
+  right: 14px;
+  bottom: 96px;
+  z-index: var(--z-office-modal);
+  width: min(460px, calc(100vw - 28px));
+  height: min(440px, calc(var(--app-vvh, 100dvh) - 160px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--modal-card-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  box-shadow: var(--modal-card-shadow);
+}
+.office-messenger-titlebar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--control-border);
+}
+.office-messenger-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-messenger-tagline {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 10px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.office-messenger-close {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.office-messenger-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.office-messenger-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) 1fr;
+}
+.office-messenger-threads {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-right: 1px solid var(--control-border);
+}
+.office-messenger-thread {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 7px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.office-messenger-thread:hover {
+  background: rgba(15, 23, 42, 0.05);
+}
+.office-messenger-thread.is-active {
+  background: rgba(15, 23, 42, 0.09);
+}
+.office-messenger-thread:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+.office-messenger-thread-meta {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-direction: column;
+}
+.office-messenger-thread-name {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-messenger-thread-snippet,
+.office-messenger-msg-body,
+.office-messenger-msg-name {
+  overflow-wrap: anywhere;
+}
+.office-messenger-thread-snippet {
+  font-size: 11px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.office-messenger-unread {
+  flex: 0 0 auto;
+  min-width: 15px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+}
+.office-messenger-thread-view {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+.office-messenger-log {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px;
+}
+.office-messenger-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: 88%;
+}
+.office-messenger-msg.is-outbound {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.office-messenger-bubble {
+  min-width: 0;
+  padding: 5px 9px;
+  border-radius: 11px;
+  background: var(--office-surface-bg);
+  border: 1px solid var(--control-border);
+}
+.office-messenger-msg.is-outbound .office-messenger-bubble {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+}
+.office-messenger-msg-name {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.office-messenger-msg.is-outbound .office-messenger-msg-name {
+  color: rgba(255, 255, 255, 0.85);
+}
+.office-messenger-msg-body {
+  margin: 1px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.office-messenger-typing,
+.office-messenger-empty {
+  font-size: 11px;
+  color: var(--muted);
+  font-style: italic;
+}
+.office-messenger-empty {
+  margin: 0;
+  padding: 18px 14px;
+  text-align: center;
+}
+.office-messenger-quick {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 9px 6px;
+}
+.office-messenger-quick-reply {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.office-messenger-quick-reply:hover:not(:disabled) {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.05);
+}
+.office-messenger-quick-reply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.office-messenger-composer {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+  padding: 8px 9px;
+  border-top: 1px solid var(--control-border);
+}
+.office-messenger-composer input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 9px;
+  font-size: 12.5px;
+  color: var(--text);
+  background: var(--office-surface-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 9px;
+}
+.office-messenger-composer input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+.office-messenger-composer button {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+  cursor: pointer;
+}
+.office-messenger-composer button:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 /* --- Walk-by --- */
@@ -16346,6 +16659,9 @@ body.slopitect-rainbow-tint::before {
   justify-content: center;
   padding: 16px;
   background: var(--modal-backdrop-strong);
+  transition:
+    background 220ms ease,
+    padding 220ms ease;
 }
 .office-meeting-room {
   width: min(560px, 100%);
@@ -16357,6 +16673,63 @@ body.slopitect-rainbow-tint::before {
   border-radius: var(--modal-card-radius);
   box-shadow: var(--modal-card-shadow);
 }
+
+/* Docked: the meeting keeps running in a corner card while the user works on
+   the diagram. The backdrop stops painting AND stops catching pointer events —
+   without pointer-events:none the transparent full-screen layer would still
+   eat every click on the canvas underneath. The room re-enables them for
+   itself. */
+.office-meeting-backdrop.is-docked {
+  background: transparent;
+  pointer-events: none;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 12px;
+}
+.office-meeting-backdrop.is-docked .office-meeting-room {
+  pointer-events: auto;
+  width: min(360px, 100%);
+  max-height: min(420px, calc(var(--app-vvh) - 24px));
+  border: 1px solid var(--control-border);
+  /* Lift it clear of the bottom-right desk chrome (inbox, desk verbs). */
+  margin: 0 0 clamp(0px, calc(var(--app-vvh) - 620px), 96px) 0;
+  opacity: 0.97;
+}
+.office-meeting-backdrop.is-docked .office-meeting-room:hover,
+.office-meeting-backdrop.is-docked .office-meeting-room:focus-within {
+  opacity: 1;
+}
+/* The seat row is the first thing to go when space is tight — the transcript
+   is what the user is actually reading. */
+.office-meeting-backdrop.is-docked .office-meeting-seats {
+  display: none;
+}
+.office-meeting-dock {
+  appearance: none;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.office-meeting-dock:hover {
+  color: var(--text);
+  background: rgba(15, 23, 42, 0.05);
+}
+.office-meeting-dock:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .office-meeting-backdrop {
+    transition: none;
+  }
+}
 .office-meeting-titlebar {
   display: flex;
   align-items: center;
@@ -16366,6 +16739,7 @@ body.slopitect-rainbow-tint::before {
   border-bottom: 1px solid var(--control-border);
 }
 .office-meeting-title {
+  flex: 1 1 auto;
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
@@ -16823,15 +17197,17 @@ body.slopitect-rainbow-tint::before {
   .office-inbox:not(.office-inbox--headless) .office-inbox-popover {
     top: auto;
     bottom: 46px;
+    /* Bottom-anchored at 150px + 46px; leave room above for the top chrome. */
+    --office-inbox-anchor: 232px;
   }
   .office-inbox--headless {
     left: max(0.75rem, env(safe-area-inset-left, 0px));
     right: max(0.75rem, env(safe-area-inset-right, 0px));
     width: auto;
   }
+  /* Upward anchoring is now unconditional (see the base rule); this only
+     stretches the popover to the full width of the phone. */
   .office-inbox--headless .office-inbox-popover {
-    top: auto;
-    bottom: calc(100% + 0.45rem);
     left: 0;
     right: 0;
     width: auto;
@@ -16841,6 +17217,34 @@ body.slopitect-rainbow-tint::before {
     bottom: 200px;
     right: 10px;
   }
+  /* Phone: full-width sheet, and the thread list becomes a horizontal strip so
+     the message log keeps the width it needs to be readable. */
+  .office-messenger {
+    left: 10px;
+    right: 10px;
+    bottom: 150px;
+    width: auto;
+    height: min(58dvh, calc(var(--app-vvh, 100dvh) - 210px));
+  }
+  .office-messenger-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .office-messenger-threads {
+    display: flex;
+    gap: 4px;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-right: 0;
+    border-bottom: 1px solid var(--control-border);
+  }
+  .office-messenger-thread {
+    width: auto;
+  }
+  .office-messenger-thread-meta {
+    display: none;
+  }
   .office-meeting-invite {
     bottom: 200px;
     right: 10px;
@@ -16848,5 +17252,19 @@ body.slopitect-rainbow-tint::before {
   .office-walkby {
     bottom: 200px;
     left: 10px;
+  }
+  /* Phone: a corner card would be unreadable, so a docked meeting becomes a
+     bottom sheet instead — canvas visible above, meeting thumbable below. */
+  .office-meeting-backdrop.is-docked {
+    align-items: stretch;
+    justify-content: stretch;
+    padding: 0;
+  }
+  .office-meeting-backdrop.is-docked .office-meeting-room {
+    width: 100%;
+    margin: auto 0 0 0;
+    max-height: min(46dvh, calc(var(--app-vvh) - 120px));
+    border-radius: var(--modal-card-radius) var(--modal-card-radius) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }

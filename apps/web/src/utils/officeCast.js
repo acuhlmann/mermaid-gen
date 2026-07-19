@@ -914,7 +914,26 @@ export const OFFICE_CHROME_COPY = {
   },
   im: {
     regionAria: 'Instant messages',
-    dismissAria: 'Dismiss message from {name}'
+    dismissAria: 'Dismiss message from {name}',
+    openHistoryAria: 'Open Slop Chat ({count} unread)',
+    openHistoryTitle: 'Slop Chat™ — read past messages'
+  },
+  messenger: {
+    title: '💬 Slop Chat™',
+    tagline: 'Now with 40% more presence indicators',
+    closeAria: 'Close Slop Chat',
+    threadsAria: 'Conversations',
+    emptyThreads: 'No messages yet. Enjoy it while it lasts.',
+    emptyThread: 'Pick a colleague. They are all "available".',
+    composerPlaceholder: 'Type a message…',
+    composerAria: 'Message {name}',
+    send: 'Send',
+    sending: 'Sending…',
+    typing: '{name} is typing…',
+    unreadDot: 'Unread',
+    you: 'You',
+    statusOnline: 'Available',
+    statusBusy: 'In a meeting'
   },
   walkby: {
     dismissAria: 'Wave off {name}'
@@ -953,7 +972,12 @@ export const OFFICE_CHROME_COPY = {
     noMinutes: 'No action items. A perfect meeting, by corporate standards.',
     raiseHandAria: 'Raise hand',
     raiseHand: '✋ Raise hand ({count})',
-    atTime: '✋ At time'
+    atTime: '✋ At time',
+    // Docking the meeting = glancing at your own screen while the room talks.
+    dock: '🗕 Look at my screen',
+    dockTitle: 'Shrink the meeting to a corner so you can work on the diagram',
+    undock: '🗖 Back to the room',
+    undockTitle: 'Bring the meeting back to the centre of the screen'
   }
 };
 
@@ -999,6 +1023,19 @@ export function officeImQuickReplies() {
 
 export function officeChromeCopy() {
   return office()?.OFFICE_CHROME_COPY ?? OFFICE_CHROME_COPY;
+}
+
+/**
+ * The BCP-47 tag the office cast should speak and be synthesized in
+ * ('en-US' | 'en-AU' | 'zh-CN' | 'zh-TW').
+ *
+ * Sent to /api/office/* as `uiLocale` so the personas *write* in this language
+ * (buildOfficeLanguageRule on the server), and passed to speakOfficeLine as
+ * `lang` so WaveNet / Web Speech *reads* it with a matching voice. Those two
+ * must agree — a cmn-CN voice handed English text reads it phonetically.
+ */
+export function officeDialogueLocale() {
+  return officeChromeCopy().inbox.mailAnnounceLang ?? 'en-US';
 }
 
 /**
