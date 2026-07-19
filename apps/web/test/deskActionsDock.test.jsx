@@ -46,9 +46,10 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('offers the desk verbs once opened, including HR progression', () => {
+  it('offers the desk verbs once opened, including Meet the Office and HR', () => {
     open();
     for (const label of [
+      'Meet the Office',
       'Check my HR progression',
       'Get a coffee',
       'Walk the floor',
@@ -60,6 +61,14 @@ describe('DeskActionsDock', () => {
     ]) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
+  });
+
+  it('opens Meet the Office from the desk menu', () => {
+    const onMeetOffice = vi.fn();
+    open({ onMeetOffice });
+    fireEvent.click(screen.getByRole('menuitem', { name: /Meet the Office/ }));
+    expect(onMeetOffice).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
   it('shows an unread badge on Slop Chat when IMs are waiting', () => {

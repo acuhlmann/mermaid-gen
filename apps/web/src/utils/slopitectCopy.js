@@ -455,7 +455,13 @@ export const IDLE_TIPS = [
   "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
   'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
   'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
-  'The VP runs on synergy, Co-Design, and a hard stop in four minutes.'
+  'The VP runs on synergy, Co-Design, and a hard stop in four minutes.',
+  'Slopitect Tip™: "It works on my machine" is not a deployment strategy. It is a lifestyle.',
+  'Pivot means we kept the logo and replaced the product. Again.',
+  'If your compression algorithm also compresses morale, call it culture.',
+  'Series A is when the fridge gets a name. Series B is when Gary locks the thermostat.',
+  'Minimum viable product means maximum viable PowerPoint.',
+  'The best middleware is the one nobody admits still runs in production.'
 ];
 
 /** Pick a tip for the given rotation index (stable, no random). */

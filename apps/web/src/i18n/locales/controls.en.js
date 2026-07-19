@@ -106,9 +106,9 @@ export const CONTROLS_EN = {
     eyebrow: 'ArchiSlop Corp. · Employee Badge',
     rolePrefix: 'New Hire',
     hrLine:
-      'Badge photo: still processing. Desk: this one. Compliance training: already overdue (a record).',
+      'Badge photo: still processing. Desk: this one. Equity: vibes. Compliance training: already overdue (a record).',
     pitchLine:
-      "This canvas is your deliverable. Pitch any topic below — or take a colleague's assignment when you're feeling brave.",
+      "This canvas is your deliverable. Pitch any topic below — or take a colleague's assignment when you're feeling Series-A brave.",
     dismissAria: 'Put the badge away',
     // The editable "HELLO, my name is ___" lanyard. Name yourself once and the
     // whole office (Linda's welcome, Chad's IMs, the orientation) uses it live.

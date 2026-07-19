@@ -4479,6 +4479,13 @@ ${requirementsBlock}`;
 
       {ceremonyOverlays}
       <ErrorToast />
+      {hasCanvasContent ? (
+        <OfficeDirectory
+          placement="overlay"
+          showChip={false}
+          getSessionId={() => activeSessionId}
+        />
+      ) : null}
       <OfficeLayer
         pause={advisorPause}
         advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
@@ -4828,6 +4835,8 @@ ${requirementsBlock}`;
                 onPick={handleStarterPick}
               />
               <OfficeDirectory
+                placement="entry"
+                showChip
                 onSkipToBuild={focusTopicInput}
                 getSessionId={() => activeSessionId}
               />

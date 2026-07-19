@@ -34,7 +34,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'intern',
     name: 'Chad',
     title: 'The Intern (Unpaid, Strategic)',
-    blurb: 'Replies-all. Asks naive questions that are accidentally profound.',
+    blurb: 'Replies-all. Equity in vibes. Accidentally asks the only good question in the room.',
+    introLine:
+      "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler.",
     avatarEmoji: '🧃',
     accentColor: '#65a30d',
     emailFrom: 'chad.intern@archislop.corp',
@@ -45,7 +47,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'scrumMaster',
     name: 'Pam',
     title: 'Agile Coach — CSM, CSPO, SAFe 6.0',
-    blurb: 'Everything is a ceremony. Will time-box your lunch. Runs every meeting.',
+    blurb: 'Everything is a ceremony. Will time-box your lunch. Facilitates your existential dread.',
+    introLine:
+      "Hi! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Great energy. Let's circle back.",
     avatarEmoji: '📅',
     accentColor: '#0ea5e9',
     emailFrom: 'pam.agile@archislop.corp',
@@ -56,7 +60,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'helpdesk',
     name: 'Ticket Bot Dave',
     title: 'IT Helpdesk — Tier 1 (of 1)',
-    blurb: 'Closes tickets as duplicates of themselves. Works on his machine.',
+    blurb: 'Closes tickets as duplicates of themselves. Works on his machine. DNS was involved.',
+    introLine:
+      "Ticket Bot Dave. Tier 1 of 1. I close tickets as duplicates of themselves. Have you tried turning it off and on again. That was not a question. Works on my machine.",
     avatarEmoji: '🖥️',
     accentColor: '#64748b',
     emailFrom: 'no-reply@helpdesk.archislop.corp',
@@ -67,7 +73,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'facilities',
     name: 'Gary',
     title: 'Facilities & Fridge Czar',
-    blurb: 'Sends ALL-CAPS fridge cleanouts. Controls the thermostat with an iron fist.',
+    blurb: 'ALL-CAPS fridge cleanouts. Thermostat locked at 20.5°C. Architecture is perishable.',
+    introLine:
+      'I AM GARY. I OWN THE FRIDGE. I OWN THE THERMOSTAT. Unlabeled containers — and unlabeled architecture diagrams — become FACILITIES PROPERTY. You have been warned. Warmly.',
     avatarEmoji: '🧹',
     accentColor: '#b45309',
     emailFrom: 'facilities@archislop.corp',
@@ -78,7 +86,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'hr',
     name: 'Linda',
     title: 'People Ops Business Partner',
-    blurb: 'Weaponized cheerfulness. Your training is 847 days overdue. Sign Craig’s card.',
+    blurb: 'Weaponized cheerfulness. Training overdue since onboarding. Please sign Craig’s card.',
+    introLine:
+      "I'm Linda, People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and Craig's birthday card still needs a warm generic message. You are going to fit in beautifully.",
     avatarEmoji: '📎',
     accentColor: '#db2777',
     emailFrom: 'people-ops@archislop.corp',
@@ -89,7 +99,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'greybeard',
     name: 'Ulrich',
     title: 'Staff Engineer Emeritus',
-    blurb: '“We tried that in 2009.” Maintains the mainframe. Unsettlingly good advice.',
+    blurb: '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him.',
+    introLine:
+      'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming.',
     avatarEmoji: '🧓',
     accentColor: '#57534e',
     emailFrom: 'ulrich@mainframe.archislop.corp',
@@ -100,8 +112,9 @@ export const OFFICE_COLLEAGUES = {
     id: 'ciso',
     name: 'Sasha',
     title: 'CISO — The Department of No',
-    blurb:
-      'Everything is an attack surface, especially the arrows. Runs the phishing tests. Trusts nothing.',
+    blurb: 'Everything is an attack surface — especially the arrows. Trust is a vulnerability.',
+    introLine:
+      "Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly.",
     avatarEmoji: '🔐',
     accentColor: '#dc2626',
     emailFrom: 'secops@archislop.corp',
@@ -409,14 +422,14 @@ export const SENIOR_EMAIL_TEMPLATES = [
 export const OFFICE_WELCOME_EMAIL = {
   id: 'welcome-email-hr',
   colleagueId: 'hr',
-  subject: 'Welcome aboard, {userTitle}! 🎉 (your badge photo is “processing”)',
-  body: 'Welcome to the floor, {userName}! Officially thrilled, legally obligated to say so. 🎉\n\nYour mandate here is refreshingly simple: ship deliverables. Diagrams, charts, 3D, whatever the roadmap is pivoting to this week — you architect it, and we align on the credit at the all-hands.\n\nA few faces before your orientation (rescheduled to a date that does not technically exist):\n\n📅 Pam (Agile Coach) runs the meetings. All of them. This email is, itself, a ceremony.\n🧃 Chad (our intern) will IM you in roughly eight seconds. He is “heads-down.”\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not make eye contact.\n🧹 Gary owns the fridge and the thermostat. Both are load-bearing.\n🧓 Ulrich has seen your architecture before. In 2009. He’ll mention it.\n🔐 Sasha (our CISO) has already flagged you as an attack surface. She means it warmly.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner for when we become “a lot.”\n\nSynergistically yours,\nLinda'
+  subject: 'Welcome aboard, {userTitle}! 🎉 (badge photo: “still processing,” forever)',
+  body: 'Welcome to the floor, {userName}! Officially thrilled. Legally obligated to say so. Emotionally buffering.\n\nYour mandate is refreshingly simple: ship deliverables. Diagrams, charts, 3D flythroughs of the org chart — you architect it, we align on the credit at the all-hands.\n\nA few faces before your orientation (rescheduled to a date that does not technically exist on any calendar product):\n\n📅 Pam (Agile Coach) runs the meetings. All of them. This email is, itself, a ceremony.\n🧃 Chad (our intern) will IM you in roughly eight seconds. He is “heads-down.” He is also reply-all.\n🖥️ Ticket Bot Dave is IT. Do not reply, do not call, do not make eye contact. DNS was involved.\n🧹 Gary owns the fridge and the thermostat. Both are load-bearing. Neither negotiates.\n🧓 Ulrich has seen your architecture before. In 2009. He’ll mention it. Softly. Forever.\n🔐 Sasha (our CISO) has already flagged you as an attack surface. She means it warmly.\n\nI’m Linda — People Ops. Your compliance training is already overdue, which is, genuinely, a company record. The inbox 📥, Focus Time, and Soundscape toggles live in the corner for when we become “a lot.”\n\nSynergistically yours,\nLinda\n\nP.S. Please sign Craig’s card. Craig knows who you are.'
 };
 
 export const OFFICE_WELCOME_IM = {
   id: 'welcome-im-intern',
   colleagueId: 'intern',
-  body: 'hey {userName}!! you must be the new {userTitle} — welcome to the sloppiest team in tech!! 🎉 heads up: the coffee machine has fourteen buttons and twelve are purely decorative. also gary WILL email you about the fridge, it’s not personal (it is). lmk if you need anything, tho fair warning i also don’t know how most things work yet'
+  body: 'hey {userName}!! you must be the new {userTitle} — welcome to the sloppiest team in tech!! 🎉 heads up: the coffee machine has fourteen buttons and twelve are purely decorative (i pressed all of them). also gary WILL email you about the fridge, it’s not personal (it is). lmk if you need anything, tho fair warning i also don’t know how most things work yet. equity in vibes though!!'
 };
 
 /** Canned IM pings — short chat noise with slot fills. */
@@ -424,77 +437,77 @@ export const OFFICE_IM_TEMPLATES = [
   {
     id: 'im-intern-boxes',
     colleagueId: 'intern',
-    body: 'hey {userName}, quick q — is {label} supposed to have that many arrows? asking for my onboarding doc'
+    body: 'hey {userName}, quick q — is {label} supposed to have that many arrows? asking for my onboarding doc / also my soul'
   },
   {
     id: 'im-intern-lunch',
     colleagueId: 'intern',
-    body: 'anyone else see the fridge email?? gary means business'
+    body: 'anyone else see the fridge email?? gary means business. like Series B business'
   },
   {
     id: 'im-scrum-standup',
     colleagueId: 'scrumMaster',
-    body: "Friendly ping! You've been heads-down for a while — should we time-box this? 🙂"
+    body: "Friendly ping! You've been heads-down for a while — should we time-box this into a smaller existential crisis? 🙂"
   },
   {
     id: 'im-scrum-retro',
     colleagueId: 'scrumMaster',
-    body: 'Adding "{label}" to the retro board as a discussion topic. Great energy!'
+    body: 'Adding "{label}" to the retro board as a discussion topic. Great energy! Parking-lotting the feelings.'
   },
   {
     id: 'im-helpdesk-restart',
     colleagueId: 'helpdesk',
-    body: 'Scheduled maintenance tonight. Save your work. This is not related to the smoke.'
+    body: 'Scheduled maintenance tonight. Save your work. This is not related to the smoke. (It is related to the smoke.)'
   },
   {
     id: 'im-helpdesk-printer',
     colleagueId: 'helpdesk',
-    body: 'Ticket #48311 (printer, 3rd floor) closed as WONTFIX. The printer has tenure.'
+    body: 'Ticket #48311 (printer, 3rd floor) closed as WONTFIX. The printer has tenure. HR agrees.'
   },
   {
     id: 'im-facilities-plant',
     colleagueId: 'facilities',
-    body: 'Whoever is watering the fake plant near the elevators — please stop. It is thriving and I do not like it.'
+    body: 'Whoever is watering the fake plant near the elevators — please stop. It is thriving and I do not like what that implies about our culture.'
   },
   {
     id: 'im-hr-survey',
     colleagueId: 'hr',
-    body: "Only 2 minutes left to complete the anonymous wellness survey! (We can see you haven't started, {userTitle}.)"
+    body: "Only 2 minutes left to complete the anonymous wellness survey! (We can see you haven't started, {userTitle}. Anonymously.)"
   },
   {
     id: 'im-greybeard-look',
     colleagueId: 'greybeard',
-    body: "Looked at {label}. We tried that in 2009. It's fine. Probably."
+    body: "Looked at {label}. We tried that in 2009. It's fine. Probably. The mainframe shrugged."
   },
   {
     id: 'im-greybeard-mainframe',
     colleagueId: 'greybeard',
-    body: 'The mainframe asked about you. I told it you were busy diagramming. It understood.'
+    body: 'The mainframe asked about you. I told it you were busy diagramming. It understood. It always understands.'
   },
   {
     id: 'im-helpdesk-dns',
     colleagueId: 'helpdesk',
-    body: "Network slow? It's DNS. It's not DNS. It was DNS. Ticket closed."
+    body: "Network slow? It's DNS. It's not DNS. It was DNS. Ticket closed. Please rate this interaction: 🔥"
   },
   {
     id: 'im-greybeard-gitblame',
     colleagueId: 'greybeard',
-    body: 'Ran git blame on the outage. It says you. 2019. The mainframe forgives, but it logs.'
+    body: 'Ran git blame on the outage. It says you. 2019. The mainframe forgives, but it logs. Forever.'
   },
   {
     id: 'im-intern-regex',
     colleagueId: 'intern',
-    body: 'wrote my first regex!! it matches everything. is that bad? it feels powerful'
+    body: 'wrote my first regex!! it matches everything. is that bad? it feels like a Series A'
   },
   {
     id: 'im-scrum-velocity',
     colleagueId: 'scrumMaster',
-    body: "Velocity check! You're averaging 4.2 boxes per hour — amazing! Let's not tell finance we measure this. 🙂"
+    body: "Velocity check! You're averaging 4.2 boxes per hour — amazing! Let's not tell finance we measure this. Or sales. Or you. 🙂"
   },
   {
     id: 'im-facilities-elevator',
     colleagueId: 'facilities',
-    body: 'The elevator is making the noise again. Take the stairs. The stairs also make a noise, but a different one.'
+    body: 'The elevator is making the noise again. Take the stairs. The stairs also make a noise, but a different, more honest one.'
   }
 ];
 
@@ -859,29 +872,50 @@ export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
   directory: {
     title: 'Day one at ArchiSlop Corp.',
-    tagline: "You're the newest architect on the floor, and everyone already has notes.",
+    tourEyebrow: 'NEW HIRE ORIENTATION™',
+    rosterEyebrow: 'CAST DIRECTORY',
+    // Interactive game intro — title card before the badge / cast walkthrough.
+    bootEyebrow: 'ARCHISLOP CORP. · EMPLOYEE ONBOARDING MODULE 1.0',
+    bootTitle: 'Meet the Office',
+    bootTagline:
+      'A prestige dramedy about shipping diagrams under fluorescent lights. You are the new hire. Everyone else already has notes.',
+    bootBullets: [
+      '▶ Tap to hear each colleague introduce themselves',
+      '📛 Name yourself — the floor will weaponize it immediately',
+      '🔇 Focus Time mutes the building when the bit gets “a lot”'
+    ],
+    pressStartLabel: '▶ Press Start',
+    bootFootnote: 'Synergy loading… Co-Design buffering… politics already online.',
+    welcomeChapter: 'CHAPTER 0 — NAME YOURSELF',
+    colleagueChapter: 'COLLEAGUE {current} OF {total}',
+    unlockedLabel: '✨ CHARACTER UNLOCKED',
+    tagline:
+      "You're the newest architect on the floor. The whiteboard is your deliverable. The interruptions are free.",
     tourHint:
-      'Meet the cast one at a time — tap ▶ to hear each one in their own voice. Mute the whole building anytime with Focus Time.',
-    rosterTagline: 'The cast that emails, IMs, and walks by while you work — tap ▶ to hear one:',
+      'Meet the cast one at a time — tap ▶ to hear each one introduce themselves. Mute the whole building anytime with Focus Time.',
+    rosterTagline:
+      'The cast that emails, IMs, and walks by while you work — tap ▶ and let them introduce themselves:',
     // {name} is filled from the user's badge (resolveUserName) at render time.
     greeting: 'Welcome aboard, {name}.',
-    greetingHint: 'The office will call you that. Change it on your name badge anytime.',
-    expandLabel: '🏢 Meet the floor',
-    expandTitle: 'Who keeps interrupting me?',
-    startLabel: 'Meet the floor →',
-    nextLabel: 'Next →',
+    greetingHint:
+      'The office will call you that in emails, IMs, and awkward walk-bys. Change it anytime. They will notice.',
+    expandLabel: '🏢 Meet the Office',
+    expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
+    startLabel: 'Meet the Office →',
+    nextLabel: 'Next colleague →',
     backLabel: '← Back',
     skipLabel: 'Skip',
-    skipToBuildLabel: 'Skip the ceremony — just let me build →',
+    skipToBuildLabel: 'Skip the ceremony — just let me ship →',
     skipToBuildTitle:
-      'Close orientation and drop me straight on the canvas. No offense taken. (Some taken.)',
+      'Close orientation and drop me on the canvas. No offense taken. (Some taken. Noted in your file.)',
     progressLabel: '{current} of {total}',
-    dismissLabel: 'Clock in',
-    closeAria: 'Close the office directory',
+    dismissLabel: 'Clock in — begin Day One',
+    replayTourLabel: '↻ Replay intro',
+    closeAria: 'Close Meet the Office',
     // Voice showcase — synthesized only on an explicit ▶ click, never autoplayed,
     // so preview bots and scrapers can't quietly burn the Cloud TTS free tier.
-    hearLabel: 'Hear it',
-    hearWelcomeLabel: 'Hear your welcome',
+    hearLabel: '▶ Hear intro',
+    hearWelcomeLabel: '▶ Hear Linda’s welcome',
     hearSpeakingLabel: 'Shh… they’re talking',
     hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
     // Linda's spoken orientation line (Cloud TTS strips emoji before speaking).
@@ -904,6 +938,8 @@ export const OFFICE_CHROME_COPY = {
     buttonTitle: 'Get up, wander, bother someone',
     menuAria: 'Desk actions',
     menuHeading: 'What are you doing?',
+    meetOffice: 'Meet the Office',
+    meetOfficeTitle: 'Replay the cast — tap ▶ and let everybody introduce themselves',
     hrProgress: 'Check my HR progression',
     hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda thinks of you',
     coffee: 'Get a coffee',

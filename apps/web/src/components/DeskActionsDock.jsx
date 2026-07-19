@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
+import { requestOfficeDirectoryOpen } from '../state/officeDirectoryUiStore.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a short verb menu — check HR progression, get
- * a coffee, walk the floor, message someone, check mail, call a meeting, talk
- * to your team.
+ * ArchiSlop helmet stamp opens a short verb menu — Meet the Office, check HR
+ * progression, get a coffee, walk the floor, message someone, check mail, call
+ * a meeting, talk to your team.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -22,6 +23,7 @@ export default function DeskActionsDock({
   onCallMeeting,
   onTalkToTeam,
   onCheckHrProgression,
+  onMeetOffice,
   blockedReason = null,
   canCallMeeting = true,
   canTalkToTeam = true,
@@ -44,7 +46,20 @@ export default function DeskActionsDock({
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
+  const meetOffice = () => {
+    if (onMeetOffice) onMeetOffice();
+    else requestOfficeDirectoryOpen('roster');
+  };
+
   const verbs = [
+    {
+      id: 'meetOffice',
+      label: copy.meetOffice,
+      emoji: '🏢',
+      run: meetOffice,
+      alwaysEnabled: true,
+      title: copy.meetOfficeTitle
+    },
     {
       id: 'hr',
       label: copy.hrProgress,

@@ -165,10 +165,13 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
    with a 15 s no-interaction fallback.
 2. **Chad's welcome IM** ~8 s later (also on a first-name basis).
 
-The entry screen additionally mounts the **office directory** (`OfficeDirectory`): a
-focused "meet the floor" orientation. First run it opens as a stepped intro (welcome beat →
-one colleague at a time → Clock in), persisted via `archislop:office-directory-seen`;
-afterwards it lives as a "🏢 Meet the floor" chip that reopens the full roster.
+The entry screen additionally mounts the **office directory** (`OfficeDirectory`): an
+interactive game-style **"Meet the Office"** orientation. First run it opens as a
+cinematic intro (title card / Press Start → name badge → one colleague at a time with
+▶ self-intros → Clock in), persisted via `archislop:office-directory-seen`;
+afterwards it lives as a "🏢 Meet the Office" chip on the empty state, and as a
+**desk verb** once you have canvas content, so everybody can introduce themselves
+again anytime.
 Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an opaque
 `--office-surface-bg` so canvas ink underneath never bleeds through the copy.
 
@@ -225,7 +228,7 @@ drill (all surfaces evacuate for 30 s), the printer that prints one page reading
 
 The ambience director decides when the office interrupts you; the **desk verbs** are the other
 direction — you deciding to get up. `DeskActionsDock` (ArchiSlop helmet stamp in the bottom row)
-opens a short menu wired to `useDeskActions` (plus one chrome sink for the XP / People Ops panel):
+opens a short menu wired to `useDeskActions` (plus chrome sinks for Meet the Office and the XP / People Ops panel):
 
 | Verb                       | Does                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

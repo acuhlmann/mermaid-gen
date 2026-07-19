@@ -6,23 +6,40 @@
  */
 export const OFFICE_EN_AU = {
   OFFICE_COLLEAGUES: {
-    intern: { blurb: 'Replies-all. Asks naive questions that are accidentally profound.' },
-    scrumMaster: {
-      blurb: 'Everything is a ceremony. Will time-box your smoko. Runs every meeting.'
+    intern: {
+      blurb: 'Replies-all. Equity in vibes. Accidentally asks the only good question in the room.',
+      introLine:
+        "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler."
     },
-    helpdesk: { blurb: 'Closes tickets as duplicates of themselves. Works on his machine.' },
+    scrumMaster: {
+      blurb: 'Everything is a ceremony. Will time-box your smoko. Facilitates your existential dread.',
+      introLine:
+        "G'day! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Great energy. Let's circle back."
+    },
+    helpdesk: {
+      blurb: 'Closes tickets as duplicates of themselves. Works on his machine. DNS was involved.',
+      introLine:
+        'Ticket Bot Dave. Tier 1 of 1. I close tickets as duplicates of themselves. Have you tried turning it off and on again. That was not a question. Works on my machine.'
+    },
     facilities: {
-      blurb: 'Sends ALL-CAPS fridge cleanouts. Runs the thermostat with an iron fist.'
+      blurb: 'ALL-CAPS fridge cleanouts. Thermostat locked at 20.5°C. Architecture is perishable.',
+      introLine:
+        'I AM GARY. I OWN THE FRIDGE. I OWN THE THERMOSTAT. Unlabelled containers — and unlabelled architecture diagrams — become FACILITIES PROPERTY. You have been warned. Warmly.'
     },
     hr: {
-      blurb: 'Weaponised cheerfulness. Your training is 847 days overdue. Sign Craig’s card.'
+      blurb: 'Weaponised cheerfulness. Training overdue since onboarding. Please sign Craig’s card.',
+      introLine:
+        "I'm Linda, People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and Craig's birthday card still needs a warm generic message. You are going to fit in beautifully."
     },
     greybeard: {
-      blurb: '“We tried that in 2009.” Maintains the mainframe. Unsettlingly good advice.'
+      blurb: '“We tried that in 2009.” Maintains the mainframe. The mainframe maintains him.',
+      introLine:
+        'Ulrich. Staff Engineer Emeritus. We tried that in 2009. It ran on cron and fear. I maintain the mainframe nobody admits exists. The mainframe asked about you. I told it you were diagramming.'
     },
     ciso: {
-      blurb:
-        "Everything's an attack surface, especially the arrows. Runs the phishing tests. Reckons you're suss."
+      blurb: "Everything's an attack surface — especially the arrows. Trust is a vulnerability.",
+      introLine:
+        "Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly."
     }
   },
   OFFICE_WELCOME_EMAIL: {
@@ -598,23 +615,43 @@ export const OFFICE_EN_AU = {
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     desk: {
+      meetOffice: 'Meet the Office',
+      meetOfficeTitle: 'Replay the cast — tap ▶ and let everybody introduce themselves',
       hrProgress: 'Check me HR progression',
       hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya'
     },
     directory: {
       title: 'Day one at ArchiSlop Corp.',
+      tourEyebrow: 'NEW HIRE ORIENTATION™',
+      rosterEyebrow: 'CAST DIRECTORY',
+      bootEyebrow: 'ARCHISLOP CORP. · EMPLOYEE ONBOARDING MODULE 1.0',
+      bootTitle: 'Meet the Office',
+      bootTagline:
+        'A prestige dramedy about shipping diagrams under fluoro lights. You’re the new hire. Everyone else already has notes.',
+      bootBullets: [
+        '▶ Tap to hear each colleague introduce themselves',
+        '📛 Name yourself — the floor will weaponise it immediately',
+        '🔇 Focus Time mutes the building when the bit gets “a bit much”'
+      ],
+      pressStartLabel: '▶ Press Start',
+      bootFootnote: 'Synergy loading… Co-Design buffering… politics already online.',
+      welcomeChapter: 'CHAPTER 0 — NAME YOURSELF',
+      colleagueChapter: 'COLLEAGUE {current} OF {total}',
+      unlockedLabel: '✨ CHARACTER UNLOCKED',
       tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',
       tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
-      rosterTagline: 'The cast that emails, IMs, and walks by while you work:',
-      expandLabel: '🏢 Meet the floor',
-      expandTitle: 'Who keeps interrupting me?',
-      startLabel: 'Meet the floor →',
-      nextLabel: 'Next →',
+      rosterTagline: 'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
+      expandLabel: '🏢 Meet the Office',
+      expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
+      startLabel: 'Meet the Office →',
+      nextLabel: 'Next colleague →',
       backLabel: '← Back',
       skipLabel: 'Skip',
+      skipToBuildLabel: 'Skip the ceremony — just let me ship →',
       progressLabel: '{current} of {total}',
-      dismissLabel: 'Clock on',
-      closeAria: 'Close the office directory'
+      dismissLabel: 'Clock on — begin Day One',
+      replayTourLabel: '↻ Replay intro',
+      closeAria: 'Close Meet the Office'
     },
     inbox: {
       mailAnnounce: 'You’ve got mail, mate!',

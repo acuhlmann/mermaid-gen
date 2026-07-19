@@ -16994,7 +16994,43 @@ body.slopitect-rainbow-tint::before {
   letter-spacing: normal;
 }
 
-/* --- Office directory (entry-screen "meet the floor" card) --- */
+/* --- Office directory (interactive game-style "Meet the Office") --- */
+.office-directory-host {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+.office-directory-host--overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  pointer-events: none;
+}
+.office-directory-host--overlay.is-open {
+  pointer-events: auto;
+}
+.office-directory-host--overlay .office-directory {
+  position: relative;
+  z-index: 1;
+  max-width: min(28rem, 100%);
+  max-height: min(78vh, 640px);
+  width: 100%;
+  pointer-events: auto;
+}
+.office-directory-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: rgba(15, 23, 42, 0.45);
+  cursor: pointer;
+}
 .office-directory {
   display: flex;
   flex-direction: column;
@@ -17008,15 +17044,37 @@ body.slopitect-rainbow-tint::before {
   overflow-y: auto;
 }
 .office-directory--tour {
-  max-width: min(22rem, 100%);
+  max-width: min(24rem, 100%);
   max-height: none;
   overflow: visible;
 }
+.office-directory--boot {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.04), transparent 40%),
+    var(--office-surface-bg);
+  border-color: rgba(15, 23, 42, 0.18);
+  box-shadow:
+    var(--control-shadow),
+    0 0 0 1px rgba(255, 255, 255, 0.4) inset;
+}
 .office-directory-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
+}
+.office-directory-head-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.office-directory-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
 }
 .office-directory-title {
   font-size: 13px;
@@ -17055,6 +17113,100 @@ body.slopitect-rainbow-tint::before {
   flex-direction: column;
   gap: 2px;
 }
+.office-directory-title-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  padding: 8px 4px 4px;
+  animation: office-directory-beat-in 0.45s ease both;
+}
+.office-directory-boot-eyebrow {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.office-directory-boot-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+.office-directory-boot-tagline {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 22rem;
+}
+.office-directory-boot-bullets {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  max-width: 22rem;
+  text-align: left;
+}
+.office-directory-boot-bullets li {
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text);
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--control-border);
+}
+.office-directory-press-start {
+  appearance: none;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 22px;
+  margin-top: 6px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+  animation: office-directory-pulse 1.6s ease-in-out infinite;
+}
+.office-directory-press-start:hover {
+  background: var(--accent-dark);
+}
+.office-directory-boot-footnote {
+  margin: 2px 0 0;
+  font-size: 10px;
+  color: var(--muted);
+  font-style: italic;
+}
+.office-directory-chapter {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.office-directory-unlocked {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b45309;
+}
 .office-directory-spotlight {
   display: flex;
   flex-direction: column;
@@ -17071,20 +17223,66 @@ body.slopitect-rainbow-tint::before {
   letter-spacing: 0.02em;
   color: var(--muted);
 }
-.office-directory-avatar--hero {
+.office-directory-hero-ring {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
   margin: 2px 0 4px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.9), transparent 55%),
+    color-mix(in srgb, var(--face-accent, var(--accent)) 18%, #fff);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--face-accent, var(--accent)) 55%, transparent),
+    0 8px 18px rgba(15, 23, 42, 0.12);
+}
+.office-directory-avatar--hero {
+  margin: 0;
 }
 .office-directory-spotlight .office-directory-name {
-  font-size: 14px;
+  font-size: 15px;
 }
 .office-directory-spotlight .office-directory-role {
   font-size: 12px;
 }
 .office-directory-spotlight .office-directory-blurb {
   margin: 4px 0 0;
-  max-width: 18rem;
+  max-width: 20rem;
   font-size: 12px;
   line-height: 1.4;
+}
+.office-directory-quote {
+  margin: 8px 0 0;
+  max-width: 22rem;
+  padding: 8px 10px;
+  border-left: 3px solid color-mix(in srgb, var(--face-accent, var(--accent)) 70%, transparent);
+  background: rgba(15, 23, 42, 0.04);
+  border-radius: 0 10px 10px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+  font-style: italic;
+  text-align: left;
+}
+.office-directory-progress-dots {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  margin-top: 2px;
+}
+.office-directory-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.15);
+}
+.office-directory-dot.is-done {
+  background: color-mix(in srgb, var(--accent) 55%, #94a3b8);
+}
+.office-directory-dot.is-current {
+  background: var(--accent);
+  transform: scale(1.2);
 }
 .office-directory-tour-actions {
   display: flex;
@@ -17092,6 +17290,13 @@ body.slopitect-rainbow-tint::before {
   justify-content: space-between;
   gap: 8px;
   margin-top: 2px;
+}
+.office-directory-roster-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
 }
 .office-directory-secondary {
   appearance: none;
@@ -17117,8 +17322,23 @@ body.slopitect-rainbow-tint::before {
     transform: translateY(0);
   }
 }
+@keyframes office-directory-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.24);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .office-directory-spotlight {
+  .office-directory-spotlight,
+  .office-directory-title-card {
+    animation: none;
+  }
+  .office-directory-press-start {
     animation: none;
   }
 }
@@ -17189,13 +17409,15 @@ body.slopitect-rainbow-tint::before {
   background: var(--office-surface-bg);
   border-radius: 999px;
   font-size: 12px;
-  color: var(--muted);
-  padding: 4px 12px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 6px 14px;
   cursor: pointer;
   box-shadow: var(--control-shadow);
 }
 .office-directory-chip:hover {
-  color: var(--text);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* ── New-hire name badge (the editable "HELLO, my name is" lanyard) ────── */
