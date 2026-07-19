@@ -116,4 +116,9 @@ describe('LevelUpInfoPanel', () => {
     expect(current).toBeTruthy();
     expect(current.textContent).toContain('Junior Slopitect');
   });
+
+  it('greets the user by name when provided', () => {
+    render(<LevelUpInfoPanel {...baseProps} userName="Alex" onClose={() => {}} />);
+    expect(screen.getByTestId('levelup-info-panel').textContent).toContain('Welcome back, Alex.');
+  });
 });

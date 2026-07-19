@@ -455,7 +455,9 @@ export const IDLE_TIPS = [
   "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
   'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
   'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
-  'The VP runs on synergy, Co-Design, and a hard stop in four minutes.'
+  'The VP runs on synergy, Co-Design, and a hard stop in four minutes.',
+  'Six slots, one canvas: Mermaid for boxes, Chart for numbers, Anything for chaos.',
+  'Slop Chat™ colleagues remember what you said — try not to panic.'
 ];
 
 /** Pick a tip for the given rotation index (stable, no random). */

@@ -164,14 +164,24 @@ export function useDeskActions(params) {
 
   /**
    * Message someone directly. Their reply comes from the LLM when the desk
-   * budget allows, otherwise from the canned IM bank.
+   * budget allows, otherwise from the canned IM bank. Pass `userMessage` (and
+   * optional `threadTranscript`) when replying in Slop Chat™ so the colleague
+   * responds to what the user actually said.
    */
   const imSomeone = useCallback(
-    (colleagueId) =>
+    (colleagueId, replyContext) =>
       runVerb(async () => {
         const p = paramsRef.current;
         const ctx = readSlotContext(p, random);
         const target = colleagueId ?? pickRandomFrom(DESK_IM_CAST, random);
+        const userMessage =
+          typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+        const threadTranscript = Array.isArray(replyContext?.threadTranscript)
+          ? replyContext.threadTranscript
+          : [];
+        const replyOpts = userMessage
+          ? { replyContext: { colleagueId: target, userMessage, threadTranscript } }
+          : {};
         let delivered = false;
         if (target && deskLlmCountRef.current < DESK_LLM_CAP) {
           delivered = await deliverLlmMoment(
@@ -183,11 +193,18 @@ export function useDeskActions(params) {
               onUsage: (usage) => paramsRef.current.onUsage?.(usage),
               onLlmSpent: () => {
                 deskLlmCountRef.current += 1;
-              }
+              },
+              ...replyOpts
             })
           );
         }
-        if (!delivered) delivered = deliverCannedMoment('im', ctx, deliveryOptions());
+        if (!delivered) {
+          delivered = deliverCannedMoment(
+            'im',
+            ctx,
+            deliveryOptions({ colleagueId: target, ...replyOpts })
+          );
+        }
         return delivered;
       }),
     [deliveryOptions, random, runVerb]

@@ -228,8 +228,12 @@ export const OFFICE_SLOT_FALLBACKS = {
 };
 
 /** Replace `{label}` / `{userTitle}` / `{userName}` slots; drops in safe defaults when missing. */
-export function fillOfficeSlots(text, { label, userTitle, userName } = {}) {
+export function fillOfficeSlots(text, { label, userTitle, userName, snippet } = {}) {
   const fallbacks = office()?.OFFICE_SLOT_FALLBACKS ?? OFFICE_SLOT_FALLBACKS;
+  const safeSnippet =
+    snippet && String(snippet).trim()
+      ? String(snippet).trim().slice(0, 48)
+      : (fallbacks.snippet ?? 'that');
   return String(text ?? '')
     .replaceAll('{label}', label && String(label).trim() ? String(label).trim() : fallbacks.label)
     .replaceAll(
@@ -241,7 +245,8 @@ export function fillOfficeSlots(text, { label, userTitle, userName } = {}) {
       userName && String(userName).trim()
         ? String(userName).trim()
         : (fallbacks.userName ?? OFFICE_SLOT_FALLBACKS.userName)
-    );
+    )
+    .replaceAll('{snippet}', safeSnippet);
 }
 
 /**
@@ -495,6 +500,53 @@ export const OFFICE_IM_TEMPLATES = [
     id: 'im-facilities-elevator',
     colleagueId: 'facilities',
     body: 'The elevator is making the noise again. Take the stairs. The stairs also make a noise, but a different one.'
+  }
+];
+
+/** Canned IM replies when the user messages a colleague and the LLM is unavailable. */
+export const OFFICE_IM_REPLY_TEMPLATES = [
+  {
+    id: 'im-reply-intern-ack',
+    colleagueId: 'intern',
+    body: 're: "{snippet}" — lol ok. anyway is {label} supposed to look that official??'
+  },
+  {
+    id: 'im-reply-intern-meeting',
+    colleagueId: 'intern',
+    body: 'got ur "{snippet}" — im in standup rn but saving this for my onboarding doc'
+  },
+  {
+    id: 'im-reply-scrum-ack',
+    colleagueId: 'scrumMaster',
+    body: 'Noted on "{snippet}" — love the energy! Let\'s time-box a follow-up after standup 🙂'
+  },
+  {
+    id: 'im-reply-greybeard-ack',
+    colleagueId: 'greybeard',
+    body: 'Re: "{snippet}" — we tried that in 2009. It\'s fine. Probably.'
+  },
+  {
+    id: 'im-reply-helpdesk-ack',
+    colleagueId: 'helpdesk',
+    body: 'Ticket updated: user said "{snippet}". Status: ACKNOWLEDGED. Have you tried turning it off and on?'
+  },
+  {
+    id: 'im-reply-facilities-ack',
+    colleagueId: 'facilities',
+    body: 'Re: "{snippet}" — copy. Also the third-floor printer is still haunted.'
+  },
+  {
+    id: 'im-reply-hr-ack',
+    colleagueId: 'hr',
+    body: 'Thanks for "{snippet}", {userName}! Logging this as a wellness win 😊'
+  },
+  {
+    id: 'im-reply-generic-ack',
+    body: 're: "{snippet}" — fair. circling back after I finish this diagram'
+  },
+  {
+    id: 'im-reply-generic-busy',
+    body: 'saw "{snippet}" — in the zone on {label} rn, ping u after'
   }
 ];
 
@@ -1029,6 +1081,10 @@ export function officeWelcomeIm() {
 
 export function officeImTemplates() {
   return office()?.OFFICE_IM_TEMPLATES ?? OFFICE_IM_TEMPLATES;
+}
+
+export function officeImReplyTemplates() {
+  return office()?.OFFICE_IM_REPLY_TEMPLATES ?? OFFICE_IM_REPLY_TEMPLATES;
 }
 
 export function seniorEmailTemplates() {

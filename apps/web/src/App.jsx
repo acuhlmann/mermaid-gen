@@ -4612,6 +4612,7 @@ ${requirementsBlock}`;
                 achievements={gamification.achievements}
                 lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
                 costTrackingEnabled={costTrackingEnabled}
+                userName={resolveUserName()}
                 onClose={() => setXpInfoPanelOpen(false)}
               />
             </div>

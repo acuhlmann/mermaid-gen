@@ -28,6 +28,14 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
           <div key={ping.id} className="office-im-ping" style={{ borderColor: sender.accentColor }}>
             <PersonaFace id={ping.colleagueId} size={26} className="office-im-avatar" />
             <div className="office-im-content">
+              <button
+                type="button"
+                className="office-im-dismiss"
+                aria-label={formatLocale(copy.im.dismissAria, { name: sender.name })}
+                onClick={() => onDismiss?.(ping.id)}
+              >
+                ×
+              </button>
               <span className="office-im-sender">
                 {sender.name}
                 {sender.title ? <span className="office-im-title"> · {sender.title}</span> : null}
@@ -46,14 +54,6 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
                 ))}
               </div>
             </div>
-            <button
-              type="button"
-              className="office-im-dismiss"
-              aria-label={formatLocale(copy.im.dismissAria, { name: sender.name })}
-              onClick={() => onDismiss?.(ping.id)}
-            >
-              ×
-            </button>
           </div>
         );
       })}

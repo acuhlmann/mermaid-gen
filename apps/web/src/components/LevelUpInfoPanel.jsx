@@ -4,6 +4,7 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona, tipForIndex } from '../utils/slopitectCopy.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import { resolveUserName } from '../state/userIdentityStore.js';
 
 const VARIANT_ROW_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 
@@ -66,6 +67,7 @@ export default function LevelUpInfoPanel({
   achievements = {},
   lifetimeLlmCostUsd = 0,
   costTrackingEnabled = false,
+  userName,
   onClose
 }) {
   const { slopitect, controls } = useUiCopy();
@@ -124,6 +126,20 @@ export default function LevelUpInfoPanel({
   );
   const xpLabel = panel.xpLabel ?? hud.xpLabel ?? 'XP';
   const dialogAria = formatLocale(panel.levelDialogAria ?? 'Level {level} progress', { level });
+  const displayName = useMemo(() => {
+    const explicit = typeof userName === 'string' ? userName.trim() : '';
+    if (explicit) return explicit;
+    const stored = resolveUserName();
+    return stored && stored !== 'Newbie' ? stored : '';
+  }, [userName]);
+  const greeting = useMemo(() => {
+    if (displayName) {
+      return formatLocale(panel.greetingNamed ?? 'Welcome back, {userName}.', {
+        userName: displayName
+      });
+    }
+    return panel.greetingDefault ?? 'Welcome back, Slopitect.';
+  }, [displayName, panel.greetingDefault, panel.greetingNamed]);
 
   useEffect(() => {
     if (typeof onClose !== 'function') return undefined;
@@ -179,6 +195,7 @@ export default function LevelUpInfoPanel({
             <h2 className="levelup-info-title">
               {levelTitle || panel.defaultTitle || hud.levelFallbackTitle}
             </h2>
+            <p className="levelup-info-greeting">{greeting}</p>
             <p className="levelup-info-flavor">{levelFlavorFor(panel.levelFlavor, level)}</p>
           </div>
           {typeof onClose === 'function' ? (
@@ -269,6 +286,7 @@ export default function LevelUpInfoPanel({
       <section className="levelup-info-section" aria-label={controls.insights.earnXp}>
         <h3 className="levelup-info-section-title">{panel.engineTitle}</h3>
         <p className="levelup-info-section-lede">{panel.engineLede}</p>
+        {panel.slotsLede ? <p className="levelup-info-section-lede">{panel.slotsLede}</p> : null}
         <ul className="levelup-info-variants">
           {VARIANT_ROW_ORDER.map((id) => {
             const persona = getVariantPersona(id);

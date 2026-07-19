@@ -11449,6 +11449,13 @@ button {
   font-style: italic;
 }
 
+.levelup-info-greeting {
+  margin: 0 0 0.18rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #b45309;
+}
+
 .levelup-info-close {
   appearance: none;
   -webkit-appearance: none;
@@ -15882,8 +15889,11 @@ body.slopitect-rainbow-tint::before {
   flex: 0 0 auto;
 }
 .office-im-content {
+  position: relative;
   min-width: 0;
   flex: 1 1 auto;
+  padding-top: 0.15rem;
+  padding-right: 1.35rem;
 }
 .office-im-sender {
   display: block;
@@ -15926,6 +15936,19 @@ body.slopitect-rainbow-tint::before {
   font-size: 16px;
   line-height: 1;
   padding: 0 2px;
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+}
+.office-im-dismiss:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text);
 }
 
 /* --- Slop Chat™ messenger (durable IM history) ---
@@ -16197,6 +16220,7 @@ body.slopitect-rainbow-tint::before {
   box-shadow: var(--control-shadow);
 }
 .office-walkby-bubble {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -16204,8 +16228,11 @@ body.slopitect-rainbow-tint::before {
   border: 1px solid var(--control-border);
   border-radius: 12px;
   border-bottom-left-radius: 4px;
-  padding: 8px 12px;
+  padding: 8px 12px 8px 10px;
+  padding-right: 1.75rem;
   box-shadow: var(--control-shadow);
+  min-width: 0;
+  flex: 1 1 auto;
 }
 .office-walkby-name {
   font-size: 11px;
@@ -16229,7 +16256,20 @@ body.slopitect-rainbow-tint::before {
   cursor: pointer;
   font-size: 16px;
   line-height: 1;
-  align-self: flex-start;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 1.35rem;
+  height: 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0;
+}
+.office-walkby-dismiss:hover {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--text);
 }
 @media (prefers-reduced-motion: no-preference) {
   .office-walkby {
@@ -16293,14 +16333,66 @@ body.slopitect-rainbow-tint::before {
   .office-coffee-invite,
   .office-battle-invite {
     top: calc(4.4rem + env(safe-area-inset-top, 0px));
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    width: auto;
+    max-width: none;
+    transform: none;
     border-radius: 14px;
     justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.72rem 0.85rem;
+  }
+  .office-battle-invite-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+  .office-battle-invite-actions,
+  .office-coffee-invite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
   }
   .office-coffee-accept,
   .office-coffee-decline,
   .office-battle-accept,
   .office-battle-decline {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-width: 7.5rem;
+  }
+  .office-battle-scene {
+    padding: max(0.75rem, env(safe-area-inset-top, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px))
+      max(0.75rem, env(safe-area-inset-left, 0px));
+    align-items: flex-end;
+  }
+  .office-battle-card {
+    width: 100%;
+    max-height: min(
+      calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem),
+      36rem
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .office-battle-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+  }
+  .office-battle-versus {
+    flex-wrap: wrap;
+    gap: 0.55rem 0.85rem;
+  }
+  .office-battle-settle-buttons {
+    flex-direction: column;
+  }
+  .office-battle-side {
+    width: 100%;
   }
 }
 .office-coffee-accept,

@@ -25,6 +25,7 @@ import {
   officeCoffeeScenes,
   officeDialogueLocale,
   officeEmailTemplates,
+  officeImReplyTemplates,
   officeImTemplates,
   officeMeetingCopy,
   officeWalkbyFallbacks,
@@ -123,6 +124,33 @@ export function deliverCannedMoment(kind, ctx, options) {
   }
 
   if (kind === 'im') {
+    const replyContext = options.replyContext;
+    const userMessage =
+      typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+    if (userMessage) {
+      const targetId = replyContext.colleagueId ?? options.colleagueId;
+      if (!targetId) return false;
+      const bank = officeImReplyTemplates().filter(
+        (template) => !template.colleagueId || template.colleagueId === targetId
+      );
+      const template = pickUnseenTemplate(
+        bank.length > 0 ? bank : officeImReplyTemplates(),
+        memory.seenTemplateIds,
+        random
+      );
+      if (!template) return false;
+      pushOfficeImPing({
+        colleagueId: targetId,
+        body: fillOfficeSlots(template.body, {
+          ...slots,
+          snippet: userMessage.slice(0, 48)
+        })
+      });
+      remember(userMessage);
+      markFired(memory, template.id, onFired);
+      return true;
+    }
+
     const template = pickUnseenTemplate(officeImTemplates(), memory.seenTemplateIds, random);
     if (!template) return false;
     pushOfficeImPing({
@@ -234,6 +262,12 @@ export async function deliverLlmMoment(kind, ctx, options) {
   try {
     const headers = { 'content-type': 'application/json' };
     if (sessionId) headers[SESSION_HEADER] = sessionId;
+    const replyContext = options.replyContext;
+    const userMessage =
+      typeof replyContext?.userMessage === 'string' ? replyContext.userMessage.trim() : '';
+    const threadTranscript = Array.isArray(replyContext?.threadTranscript)
+      ? replyContext.threadTranscript
+      : [];
     const response = await fetch(`${API_BASE_URL}/api/office/moment`, {
       method: 'POST',
       headers,
@@ -244,7 +278,10 @@ export async function deliverLlmMoment(kind, ctx, options) {
         diagramSource: ctx.diagramSource,
         visibleLabels: ctx.labels,
         recentMoments: [...recentMoments],
-        uiLocale: officeDialogueLocale()
+        uiLocale: officeDialogueLocale(),
+        userName: ctx.userName || undefined,
+        userMessage: userMessage || undefined,
+        threadTranscript: threadTranscript.length > 0 ? threadTranscript : undefined
       }),
       signal: controller.signal
     });
