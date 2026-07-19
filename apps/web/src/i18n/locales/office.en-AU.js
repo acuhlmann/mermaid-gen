@@ -696,9 +696,9 @@ export const OFFICE_EN_AU = {
       bootTagline:
         'A prestige dramedy about shipping diagrams under fluoro lights. You’re the new hire. Everyone else already has notes.',
       bootBullets: [
-        '▶ Tap to hear each colleague introduce themselves',
+        '▶ Press Start — Linda welcomes you by voice',
         '📛 Name yourself — the floor will weaponise it immediately',
-        '🔇 Focus Time mutes the building when the bit gets “a bit much”'
+        '🎬 Meet the team — they introduce themselves in order'
       ],
       pressStartLabel: '▶ Press Start',
       bootFootnote: 'Synergy loading… Co-Design buffering… politics already online.',
@@ -706,12 +706,15 @@ export const OFFICE_EN_AU = {
       colleagueChapter: 'COLLEAGUE {current} OF {total}',
       unlockedLabel: '✨ CHARACTER UNLOCKED',
       tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',
-      tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
+      tourHint:
+        'Name your badge, then Meet the team — they introduce themselves in order. Mute anytime with Focus Time.',
+      autoplayHint: 'Speaking…',
+      skipBeatLabel: 'Skip →',
       rosterTagline:
         'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
       expandLabel: '🏢 Meet the Office',
       expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
-      startLabel: 'Meet the Office →',
+      startLabel: 'Meet the team →',
       nextLabel: 'Next colleague →',
       backLabel: '← Back',
       skipLabel: 'Skip',

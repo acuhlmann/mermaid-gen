@@ -189,7 +189,8 @@ export default function OfficeLayer({
   useOfficeSoundscape({ playChime });
 
   // First-run onboarding: Linda's welcome email + Chad's IM, once ever.
-  useOfficeWelcome({ getUserTitle, getUserName });
+  // Paused while Meet the Office is open so it doesn't compete with the tour.
+  useOfficeWelcome({ getUserTitle, getUserName, pause });
 
   // Kill in-flight speech when the user mutes narration or books Focus Time.
   useEffect(() => {

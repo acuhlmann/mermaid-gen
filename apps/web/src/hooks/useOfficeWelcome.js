@@ -23,7 +23,10 @@ export const WELCOME_IM_DELAY_MS = 8_000;
  * timer for users who only watch. Respects Focus Time and never re-fires —
  * the ambience cadence takes over from here.
  *
- * @param {{ getUserTitle?: () => string, getUserName?: () => string }} params
+ * When `pause` is true (e.g. Meet the Office tour is open), delivery waits
+ * so the email/IM don't compete with the cinematic intro.
+ *
+ * @param {{ getUserTitle?: () => string, getUserName?: () => string, pause?: boolean }} params
  */
 export function useOfficeWelcome(params = {}) {
   const paramsRef = useRef(params);
@@ -46,6 +49,11 @@ export function useOfficeWelcome(params = {}) {
 
     const deliver = () => {
       if (delivered) return;
+      // Hold welcome mail/IM while Meet the Office (or any pause) is up.
+      if (paramsRef.current.pause) {
+        later(deliver, 2_000);
+        return;
+      }
       delivered = true;
       // Focus Time on a first run means the user restored a muted office —
       // honor it and skip onboarding entirely rather than nag later.
@@ -63,6 +71,17 @@ export function useOfficeWelcome(params = {}) {
       });
       later(() => {
         if (getOfficeSnapshot().focusTime) return;
+        if (paramsRef.current.pause) {
+          later(() => {
+            if (getOfficeSnapshot().focusTime || paramsRef.current.pause) return;
+            const im = officeWelcomeIm();
+            pushOfficeImPing({
+              colleagueId: im.colleagueId,
+              body: fillOfficeSlots(im.body, slots)
+            });
+          }, 2_000);
+          return;
+        }
         const im = officeWelcomeIm();
         pushOfficeImPing({
           colleagueId: im.colleagueId,
