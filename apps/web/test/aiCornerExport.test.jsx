@@ -78,9 +78,9 @@ describe('AiCornerControlsInner export', () => {
       expect(buildExportPayload).toHaveBeenCalledWith(
         expect.objectContaining({ formatId: 'chart-png' })
       );
+      // Accessible name is "Preparing…" until pre-warm finishes.
+      expect(screen.getByRole('button', { name: /^Share$/i })).toBeTruthy();
     });
-
-    expect(screen.getByRole('button', { name: /^Share$/i })).toBeTruthy();
 
     openExportList();
 
@@ -126,6 +126,7 @@ describe('AiCornerControlsInner export', () => {
 
     await waitFor(() => {
       expect(buildExportPayload).toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: /^Share$/i })).toBeTruthy();
     });
 
     const shareButton = screen.getByRole('button', { name: /^Share$/i });
@@ -212,6 +213,9 @@ describe('AiCornerControlsInner export', () => {
       expect(buildExportPayload).toHaveBeenCalledWith(
         expect.objectContaining({ formatId: 'mermaid-png' })
       );
+      // Wait for ready label — under full-suite load the pre-warm can still be
+      // resolving when the call is first observed (button stays "Preparing…").
+      expect(screen.getByRole('button', { name: /^Share$/i })).toBeTruthy();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /^Share$/i }));
