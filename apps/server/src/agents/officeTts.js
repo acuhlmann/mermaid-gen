@@ -8,10 +8,15 @@
  *
  * Kill switch: OFFICE_TTS=0|false|off. Default ON when a GCP project id
  * resolves (same VERTEX_PROJECT_ID / GOOGLE_CLOUD_PROJECT path as Vertex).
+ *
+ * Speed: the per-persona rates below are relative fingerprints; a global
+ * scale (OFFICE_TTS_RATE_SCALE, shared with the Web Speech fallback) lifts
+ * the whole cast at once. Tune the scale, not the table.
  */
 
 import { createHash } from 'node:crypto';
 import textToSpeech from '@google-cloud/text-to-speech';
+import { CLOUD_TTS_RATE_RANGE, OFFICE_TTS_RATE_SCALE, scaleSpeakingRate } from '@archislop/shared';
 import { resolveVertexProjectId } from './llmProvider.js';
 
 export const OFFICE_TTS_MAX_CHARS = 500;
@@ -167,15 +172,44 @@ export function normalizeOfficeTtsLang(lang) {
 }
 
 /**
+ * Deploy-time override for the global rate scale, so narration speed can be
+ * tuned by ear without a rebuild. Absent or malformed values fall back to the
+ * shared default.
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {number}
+ */
+export function resolveOfficeTtsRateScale(env = process.env) {
+  const raw = typeof env.OFFICE_TTS_RATE_SCALE === 'string' ? env.OFFICE_TTS_RATE_SCALE.trim() : '';
+  if (!raw) return OFFICE_TTS_RATE_SCALE;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : OFFICE_TTS_RATE_SCALE;
+}
+
+/**
+ * Resolve the voice for a speaker, with the global rate scale already applied
+ * — callers hand the returned `speakingRate` straight to the API.
+ *
  * @param {string} speakerId
  * @param {string | undefined} lang
+ * @param {NodeJS.ProcessEnv} [env]
  * @returns {OfficeTtsVoice}
  */
-export function resolveOfficeTtsVoice(speakerId, lang) {
+export function resolveOfficeTtsVoice(speakerId, lang, env = process.env) {
   const locale = normalizeOfficeTtsLang(lang);
   const table = VOICES_BY_LANG[locale] ?? VOICES_BY_LANG['en-US'];
-  return table[speakerId] ?? table.refine ?? DEFAULT_VOICE;
+  const base = table[speakerId] ?? table.refine ?? DEFAULT_VOICE;
+  return {
+    ...base,
+    speakingRate: scaleSpeakingRate(base.speakingRate ?? 1, {
+      ...CLOUD_TTS_RATE_RANGE,
+      scale: resolveOfficeTtsRateScale(env)
+    })
+  };
 }
+
+/** @internal Test seam — the authored (unscaled) prosody table. */
+export const _VOICES_BY_LANG = VOICES_BY_LANG;
 
 /**
  * @param {unknown} text
@@ -239,7 +273,7 @@ export async function synthesizeOfficeSpeech(
   if (!cleaned || typeof speakerId !== 'string' || !speakerId) return null;
 
   const locale = normalizeOfficeTtsLang(lang);
-  const voice = resolveOfficeTtsVoice(speakerId, locale);
+  const voice = resolveOfficeTtsVoice(speakerId, locale, env);
   const key = cacheKey(speakerId, cleaned, `${locale}:${voice.name}`);
   const hit = cache.get(key);
   if (hit) return hit;

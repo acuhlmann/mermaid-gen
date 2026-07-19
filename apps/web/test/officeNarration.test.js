@@ -9,6 +9,7 @@ import {
   sanitizeOfficeNarrationText,
   speakOfficeLine
 } from '../src/utils/officeNarration.js';
+import { OFFICE_TTS_RATE_SCALE } from '@archislop/shared';
 import {
   OFFICE_NARRATION_STORAGE_KEY,
   readOfficeNarrationEnabled,
@@ -70,7 +71,18 @@ describe('officeVoiceProfile', () => {
     );
     expect(officeVoiceProfile('goMad').rate).toBeGreaterThan(officeVoiceProfile('helpdesk').rate);
     expect(OFFICE_VOICE_PROFILES.scrumMaster).toBeTruthy();
-    expect(officeVoiceProfile('unknown-speaker')).toEqual({ pitch: 1, rate: 1, volume: 0.8 });
+    expect(officeVoiceProfile('unknown-speaker')).toEqual({
+      pitch: 1,
+      rate: OFFICE_TTS_RATE_SCALE,
+      volume: 0.8
+    });
+  });
+
+  it('applies the shared global rate scale on top of authored rates', () => {
+    expect(officeVoiceProfile('greybeard').rate).toBeCloseTo(
+      OFFICE_VOICE_PROFILES.greybeard.rate * OFFICE_TTS_RATE_SCALE,
+      9
+    );
   });
 });
 
@@ -107,7 +119,7 @@ describe('speakOfficeLine', () => {
     expect(synth.speak).toHaveBeenCalledTimes(1);
     expect(spoken[0].text).toBe('We tried that in 2009.');
     expect(spoken[0].pitch).toBe(OFFICE_VOICE_PROFILES.greybeard.pitch);
-    expect(spoken[0].rate).toBe(OFFICE_VOICE_PROFILES.greybeard.rate);
+    expect(spoken[0].rate).toBe(officeVoiceProfile('greybeard').rate);
     expect(spoken[0].lang).toBe('en-US');
   });
 

@@ -12,6 +12,8 @@
  * sound gate (callers wrap via playChime).
  */
 
+import { WEB_SPEECH_RATE_RANGE, scaleSpeakingRate } from '@archislop/shared';
+
 /** @typedef {{ pitch: number, rate: number, volume: number }} OfficeVoiceProfile */
 /** @typedef {{ audioBase64: string, mimeType?: string }} OfficeCloudAudio */
 /** @typedef {{ spoken: boolean, cancelled?: boolean, source?: 'cloud' | 'webspeech' }} OfficeSpeakResult */
@@ -22,6 +24,10 @@ const DEFAULT_PROFILE = { pitch: 1, rate: 1, volume: 0.8 };
 /**
  * Stable speech quirks per office speaker (Web Speech fallback). Cloud TTS
  * uses its own WaveNet + prosody map in apps/server/src/agents/officeTts.js.
+ *
+ * Rates here are authored *unscaled*, so they stay directly comparable to the
+ * server table; `officeVoiceProfile` applies the shared global rate scale on
+ * the way out. Keys must match OFFICE_SPEAKER_IDS (asserted in tests).
  *
  * @type {Record<string, OfficeVoiceProfile>}
  */
@@ -55,11 +61,15 @@ let speakGeneration = 0;
 let activeAudio = null;
 
 /**
+ * Profile for a speaker with the global rate scale already applied — callers
+ * assign the returned `rate` straight onto an utterance.
+ *
  * @param {string} speakerId
  * @returns {OfficeVoiceProfile}
  */
 export function officeVoiceProfile(speakerId) {
-  return OFFICE_VOICE_PROFILES[speakerId] ?? DEFAULT_PROFILE;
+  const base = OFFICE_VOICE_PROFILES[speakerId] ?? DEFAULT_PROFILE;
+  return { ...base, rate: scaleSpeakingRate(base.rate, WEB_SPEECH_RATE_RANGE) };
 }
 
 /** True when the browser exposes a usable speechSynthesis surface. */

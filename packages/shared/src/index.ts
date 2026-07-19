@@ -40,3 +40,4 @@ export * from './promptLanguage.js';
 export * from './uiLocale.js';
 export * from './llmCostEstimate.js';
 export * from './officeScript.js';
+export * from './officeVoice.js';
