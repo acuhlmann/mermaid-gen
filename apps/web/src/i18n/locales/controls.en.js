@@ -105,10 +105,20 @@ export const CONTROLS_EN = {
   dayOne: {
     eyebrow: 'ArchiSlop Corp. · Employee Badge',
     rolePrefix: 'New Hire',
-    hrLine: 'Badge photo: pending. Desk: this one. Compliance training: already overdue.',
+    hrLine:
+      'Badge photo: still processing. Desk: this one. Compliance training: already overdue (a record).',
     pitchLine:
-      "Your canvas is yours. Type a topic below — or grab a colleague's request when you're ready.",
-    dismissAria: 'Put the badge away'
+      "This canvas is your deliverable. Pitch any topic below — or take a colleague's assignment when you're feeling brave.",
+    dismissAria: 'Put the badge away',
+    // The editable "HELLO, my name is ___" lanyard. Name yourself once and the
+    // whole office (Linda's welcome, Chad's IMs, the orientation) uses it live.
+    nameTag: {
+      hello: 'HELLO',
+      subtitle: 'my name is',
+      placeholder: 'Newbie',
+      editTitle: 'Type your name — the whole office will start using it',
+      inputAria: 'Your name for the office'
+    }
   },
   introLocale: {
     aria: 'Interface language',

@@ -52,7 +52,8 @@ export const RECENT_MOMENTS_CAP = 5;
  *   getContentType?: () => string,
  *   getDiagramSource?: () => string,
  *   getSvgRoot?: () => ParentNode | null | undefined,
- *   getUserTitle?: () => string
+ *   getUserTitle?: () => string,
+ *   getUserName?: () => string
  * }} params
  * @param {() => number} random
  */
@@ -67,7 +68,8 @@ export function readSlotContext(params, random = Math.random) {
     diagramSource,
     labels,
     label: pickRandomFrom(labels, random),
-    userTitle: params.getUserTitle?.() ?? ''
+    userTitle: params.getUserTitle?.() ?? '',
+    userName: params.getUserName?.() ?? ''
   };
 }
 
@@ -102,7 +104,7 @@ function markFired(memory, templateId, onFired) {
  */
 export function deliverCannedMoment(kind, ctx, options) {
   const { memory, random = Math.random, senior = false, onRemember, onFired } = options;
-  const slots = { label: ctx.label, userTitle: ctx.userTitle };
+  const slots = { label: ctx.label, userTitle: ctx.userTitle, userName: ctx.userName };
   const remember = (text) => onRemember?.(String(text ?? ''));
 
   if (kind === 'email') {

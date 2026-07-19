@@ -13,8 +13,16 @@ export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
 export const OFFICE_DAY_ONE_BADGE_STORAGE_KEY = 'archislop:day-one-badge-seen';
+export const OFFICE_USER_NAME_STORAGE_KEY = 'archislop:user-name';
 
 const SEEN_TEMPLATE_CAP = 60;
+
+/**
+ * Cap the stored display name so a paste-bomb can't bloat every office slot
+ * fill (the name rides into emails, IMs, and TTS lines). Comfortably longer
+ * than any real first name, short enough to never wrap the lanyard badge.
+ */
+export const USER_NAME_MAX_LENGTH = 24;
 
 /** @returns {boolean} True when the user booked Focus Time (office muted). */
 export function readOfficeFocusTime() {
@@ -183,6 +191,45 @@ export function writeDayOneBadgeSeen() {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(OFFICE_DAY_ONE_BADGE_STORAGE_KEY, '1');
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * The user's chosen display name — the handle the office cast uses when it
+ * addresses "you" (Linda's welcome, Chad's IM, the name badge). Stored raw and
+ * possibly empty; the funny default lives in userIdentityStore.resolveUserName
+ * so a nameless new hire is still greeted as someone.
+ *
+ * @returns {string} The trimmed stored name, or '' when the badge is blank.
+ */
+export function readUserName() {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(OFFICE_USER_NAME_STORAGE_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Persist the display name (trimmed + capped). An empty value clears the key
+ * so the office falls back to the default handle rather than storing '' .
+ *
+ * @param {string} name
+ */
+export function writeUserName(name) {
+  if (typeof window === 'undefined') return;
+  try {
+    const trimmed = String(name ?? '')
+      .trim()
+      .slice(0, USER_NAME_MAX_LENGTH);
+    if (trimmed) {
+      window.localStorage.setItem(OFFICE_USER_NAME_STORAGE_KEY, trimmed);
+    } else {
+      window.localStorage.removeItem(OFFICE_USER_NAME_STORAGE_KEY);
+    }
   } catch {
     // Ignore quota / privacy errors.
   }

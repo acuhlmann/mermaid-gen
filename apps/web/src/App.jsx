@@ -139,6 +139,7 @@ import {
 import DayOneBadge from './components/DayOneBadge.jsx';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import OfficeLayer from './components/OfficeLayer.jsx';
+import { resolveUserName } from './state/userIdentityStore.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
@@ -623,6 +624,16 @@ function ArchiSlop() {
   const handleBrandClick = useCallback(() => {
     showSlopitectTip();
   }, [showSlopitectTip]);
+
+  // "Skip the ceremony" escape hatch from the orientation tour: drop the user
+  // straight on the empty-state topic input so they can start generating.
+  const focusTopicInput = useCallback(() => {
+    if (typeof document === 'undefined') return;
+    const el = document.getElementById('diagram-change-prompt');
+    if (!el) return;
+    el.focus();
+    el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  }, []);
 
   const dismissSlopitectTip = useCallback(() => {
     if (tipDismissTimerRef.current) {
@@ -4476,6 +4487,7 @@ ${requirementsBlock}`;
         getSessionId={() => activeSessionId}
         getSvgRoot={() => (typeof document !== 'undefined' ? document : null)}
         getUserTitle={() => gamification.levelTitle}
+        getUserName={() => resolveUserName()}
         onUsage={reportAdvisorUsage}
         onAdoptPrompt={(text) => {
           void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {});
@@ -4815,7 +4827,10 @@ ${requirementsBlock}`;
                 busy={busy}
                 onPick={handleStarterPick}
               />
-              <OfficeDirectory />
+              <OfficeDirectory
+                onSkipToBuild={focusTopicInput}
+                getSessionId={() => activeSessionId}
+              />
             </div>
           ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">

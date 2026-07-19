@@ -23,7 +23,7 @@ export const WELCOME_IM_DELAY_MS = 8_000;
  * timer for users who only watch. Respects Focus Time and never re-fires —
  * the ambience cadence takes over from here.
  *
- * @param {{ getUserTitle?: () => string }} params
+ * @param {{ getUserTitle?: () => string, getUserName?: () => string }} params
  */
 export function useOfficeWelcome(params = {}) {
   const paramsRef = useRef(params);
@@ -51,7 +51,10 @@ export function useOfficeWelcome(params = {}) {
       // honor it and skip onboarding entirely rather than nag later.
       writeOfficeWelcomeSeen();
       if (getOfficeSnapshot().focusTime) return;
-      const slots = { userTitle: paramsRef.current.getUserTitle?.() ?? '' };
+      const slots = {
+        userTitle: paramsRef.current.getUserTitle?.() ?? '',
+        userName: paramsRef.current.getUserName?.() ?? ''
+      };
       const email = officeWelcomeEmail();
       pushOfficeEmail({
         colleagueId: email.colleagueId,
