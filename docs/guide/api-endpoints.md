@@ -2,7 +2,7 @@
 
 | Method | Path                                            | Purpose                                                                                                                                         |
 | ------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`  | `/api/health`                                   | Liveness + `llmConfigured`, `runtimeReady`                                                                                                      |
+| `GET`  | `/api/health`                                   | Liveness + `llmConfigured`, `runtimeReady`, `officeTtsConfigured`, `llmBackend`, `llmBackendsByProfile`, `agentCostEstimates`, `pairingStore`   |
 | `GET`  | `/api/copilotkit/state`                         | Current diagram state for session (active slot by default; pass `contentType` for a specific slot)                                              |
 | `GET`  | `/api/copilotkit/session-state`                 | Full session payload (all six slots + `activeContentType`)                                                                                      |
 | `POST` | `/api/copilotkit/state`                         | Client sync of editor source into server state (`contentType` selects the slot)                                                                 |
@@ -27,6 +27,10 @@
 | `POST` | `/api/advisor/explain`                          | One-shot label/part explanation for the advisor overlay                                                                                         |
 | `POST` | `/api/advisor/explain-dumb`                     | Simplify a prior explain markdown to a lower reading level                                                                                      |
 | `POST` | `/api/diagram/render-error`                     | Fast-path syntax repair for Mermaid render errors and Anything load-phase errors (`contentType`: `mermaid` \| `anything`; returns `{repaired}`) |
+| `POST` | `/api/office/moment`                            | Office-parody walk-by / IM / email beat script (`kind`, colleague, diagram context)                                                             |
+| `POST` | `/api/office/meeting`                           | Generate a WG meeting script for the current diagram                                                                                            |
+| `POST` | `/api/office/meeting/interject`                 | User interjection mid-meeting (up to 2× per meeting)                                                                                            |
+| `POST` | `/api/office/speak`                             | Cloud TTS for office narration (Chirp3-HD → Neural2 → WaveNet fallback ladder); kill switch `OFFICE_TTS=0`                                      |
 | `*`    | `/mcp`                                          | MCP Streamable HTTP (optional `?pairing=` / `?session=` on initialize)                                                                          |
 
 Wire contracts: [System overview](system-overview.md), [`docs/architecture-ag-ui.md`](../architecture-ag-ui.md), [`docs/architecture-external-agents.md`](../architecture-external-agents.md).

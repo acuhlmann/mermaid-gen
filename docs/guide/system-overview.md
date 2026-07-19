@@ -29,6 +29,7 @@ flowchart TB
     MEA[Metaphor3D agents]
     CA[Chart agents]
     AA[Anything agents]
+    FA[Forms agents]
     Router --- Reg
     SE --- Reg
     MCP --- Reg
@@ -40,6 +41,7 @@ flowchart TB
     Dispatcher --> MEA
     Dispatcher --> CA
     Dispatcher --> AA
+    Dispatcher --> FA
   end
 
   subgraph guests ["External agents"]
@@ -52,7 +54,7 @@ flowchart TB
   Collab <-->|"collaboration only"| SE
   Cursor <-->|"MCP tools · never auto-patch"| MCP
   Store -.->|"optional"| CK
-  MA & IA & MEA & CA & AA <-->|"LangChain + tools"| LLM
+  MA & IA & MEA & CA & AA & FA <-->|"LangChain + tools"| LLM
   MCP -.->|"handshake · proposal events"| SE
 ```
 
@@ -97,4 +99,6 @@ ArchiSlop uses **three UI strategies** on purpose — full map: [`docs/architect
 - **Validation (Infographic)**: local `parseSyntax` only.
 - **Validation (Metaphor3D)**: JSON schema + sanitizer + syntax fixer; same repair ladder shape as Mermaid.
 - **Validation (Chart)**: `parseChartDsl` (shared package) + Vega schema check.
+- **Validation (Anything)**: shape + policy + quality + lib-marker lint + jsdom runtime check (no HTML sanitizer).
+- **Validation (Forms)**: `parseFormsA2ui` allowlist gate + syntax fixer ladder (model-authored A2UI).
 - **External edits**: validated at proposal time; applied only after human accept (same validators as built-in tools).

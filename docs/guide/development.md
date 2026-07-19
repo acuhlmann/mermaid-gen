@@ -2,8 +2,8 @@
 
 ## Stack
 
-- `apps/web`: React + Vite UI with Monaco editor, Mermaid live renderer, AntV Infographic renderer (`InfographicRenderer.jsx`), Metaphor3D (`MetaphorRenderer.jsx`), Chart (`ChartRenderer.jsx`), and Anything (`AnythingRenderer.jsx`)
-- `apps/server`: Express runtime with CopilotKit-compatible endpoints and LangChain-based agent orchestration; `DiagramAgentDispatcher` routes to the Mermaid, Infographic, Metaphor3D, Chart, or Anything service
+- `apps/web`: React + Vite UI with Monaco editor, Mermaid live renderer, AntV Infographic renderer (`InfographicRenderer.jsx`), Metaphor3D (`MetaphorRenderer.jsx`), Chart (`ChartRenderer.jsx`), Forms (`FormsRenderer.jsx`), and Anything (`AnythingRenderer.jsx`)
+- `apps/server`: Express runtime with CopilotKit-compatible endpoints and LangChain-based agent orchestration; `DiagramAgentDispatcher` routes to the Mermaid, Infographic, Metaphor3D, Chart, Anything, or Forms service
 - `packages/shared`: shared diagram schemas (`SessionDiagramStateSchema` with six slots), patch logic, and `ContentTypeSchema` (`mermaid` | `infographic` | `metaphor3d` | `chart` | `anything` | `forms`)
 
 ## Tests
