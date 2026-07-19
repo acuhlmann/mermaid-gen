@@ -70,7 +70,7 @@ describe('OfficeDirectory', () => {
   it('introduces colleagues one at a time, then clocks in', () => {
     render(<OfficeDirectory />);
     fireEvent.click(screen.getByTestId('office-directory-press-start'));
-    fireEvent.click(screen.getByRole('button', { name: 'Meet the Office →' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     expect(screen.getByTestId('office-directory-spotlight')).toBeTruthy();
     expect(screen.getByText('Chad')).toBeTruthy();
     expect(screen.getByText(`1 of ${COLLEAGUE_COUNT}`)).toBeTruthy();

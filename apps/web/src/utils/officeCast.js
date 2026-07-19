@@ -1039,7 +1039,7 @@ export const OFFICE_CHROME_COPY = {
       'The office will call you that in emails, IMs, and awkward walk-bys. Change it anytime. They will notice.',
     expandLabel: '🏢 Meet the Office',
     expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
-    startLabel: 'Meet the Office →',
+    startLabel: 'Meet the team →',
     nextLabel: 'Next colleague →',
     backLabel: '← Back',
     skipLabel: 'Skip',

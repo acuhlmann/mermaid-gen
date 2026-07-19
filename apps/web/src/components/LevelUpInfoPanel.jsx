@@ -5,6 +5,7 @@ import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona, tipForIndex } from '../utils/slopitectCopy.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import { resolveUserName } from '../state/userIdentityStore.js';
+import { requestOfficeDirectoryOpen } from '../state/officeDirectoryUiStore.js';
 
 const VARIANT_ROW_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 
@@ -141,6 +142,11 @@ export default function LevelUpInfoPanel({
     return panel.greetingDefault ?? 'Welcome back, Slopitect.';
   }, [displayName, panel.greetingDefault, panel.greetingNamed]);
 
+  const openMeetTheTeam = () => {
+    requestOfficeDirectoryOpen('tour');
+    onClose?.();
+  };
+
   useEffect(() => {
     if (typeof onClose !== 'function') return undefined;
     function onKey(event) {
@@ -231,6 +237,26 @@ export default function LevelUpInfoPanel({
           )}
         </div>
       </header>
+
+      {panel.meetTeamLabel ? (
+        <section
+          className="levelup-info-section levelup-info-meet-team"
+          aria-label={controls.stakeholders.introAria}
+          data-testid="levelup-meet-team"
+        >
+          {panel.meetTeamLede ? (
+            <p className="levelup-info-section-lede">{panel.meetTeamLede}</p>
+          ) : null}
+          <button
+            type="button"
+            className="levelup-info-meet-team-btn"
+            title={panel.meetTeamTitle}
+            onClick={openMeetTheTeam}
+          >
+            {panel.meetTeamLabel}
+          </button>
+        </section>
+      ) : null}
 
       {costTrackingEnabled ? (
         <section

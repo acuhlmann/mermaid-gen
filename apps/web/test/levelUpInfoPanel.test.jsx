@@ -2,6 +2,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import LevelUpInfoPanel from '../src/components/LevelUpInfoPanel.jsx';
+import { requestOfficeDirectoryOpen } from '../src/state/officeDirectoryUiStore.js';
+
+vi.mock('../src/state/officeDirectoryUiStore.js', () => ({
+  requestOfficeDirectoryOpen: vi.fn()
+}));
 
 const baseProps = {
   level: 3,
@@ -20,7 +25,10 @@ const baseProps = {
 };
 
 describe('LevelUpInfoPanel', () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.mocked(requestOfficeDirectoryOpen).mockClear();
+  });
 
   it('renders the current level title, progress fill, and next-level taunt', () => {
     render(<LevelUpInfoPanel {...baseProps} onClose={() => {}} />);
@@ -120,5 +128,13 @@ describe('LevelUpInfoPanel', () => {
   it('greets the user by name when provided', () => {
     render(<LevelUpInfoPanel {...baseProps} userName="Alex" onClose={() => {}} />);
     expect(screen.getByTestId('levelup-info-panel').textContent).toContain('Welcome back, Alex.');
+  });
+
+  it('offers Meet the team and opens the office orientation tour', () => {
+    const onClose = vi.fn();
+    render(<LevelUpInfoPanel {...baseProps} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: /Meet the team/ }));
+    expect(requestOfficeDirectoryOpen).toHaveBeenCalledWith('tour');
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

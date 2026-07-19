@@ -711,7 +711,7 @@ export const OFFICE_EN_AU = {
         'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
       expandLabel: '🏢 Meet the Office',
       expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
-      startLabel: 'Meet the Office →',
+      startLabel: 'Meet the team →',
       nextLabel: 'Next colleague →',
       backLabel: '← Back',
       skipLabel: 'Skip',
