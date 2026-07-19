@@ -72,7 +72,13 @@ function TourTitle({ copy, onPressStart }) {
   );
 }
 
-function ColleagueSpotlight({ colleague, colleagueId, progressLabel, chapterLabel, unlockedLabel }) {
+function ColleagueSpotlight({
+  colleague,
+  colleagueId,
+  progressLabel,
+  chapterLabel,
+  unlockedLabel
+}) {
   return (
     <div
       className="office-directory-spotlight"
@@ -82,7 +88,10 @@ function ColleagueSpotlight({ colleague, colleagueId, progressLabel, chapterLabe
       <p className="office-directory-chapter">{chapterLabel}</p>
       <p className="office-directory-progress">{progressLabel}</p>
       {unlockedLabel ? <p className="office-directory-unlocked">{unlockedLabel}</p> : null}
-      <div className="office-directory-hero-ring" style={{ '--face-accent': colleague.accentColor }}>
+      <div
+        className="office-directory-hero-ring"
+        style={{ '--face-accent': colleague.accentColor }}
+      >
         <PersonaFace
           id={colleagueId}
           size={64}
@@ -201,9 +210,7 @@ function DirectoryTour({
         eyebrow={step === STEP_TITLE ? null : copy.tourEyebrow}
       />
 
-      {step === STEP_TITLE ? (
-        <TourTitle copy={copy} onPressStart={onNext} />
-      ) : null}
+      {step === STEP_TITLE ? <TourTitle copy={copy} onPressStart={onNext} /> : null}
       {step === STEP_WELCOME ? (
         <TourWelcome copy={copy} userName={userName} speakingId={speakingId} onHear={onHear} />
       ) : null}

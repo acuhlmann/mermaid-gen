@@ -17142,8 +17142,7 @@ body.slopitect-rainbow-tint::before {
 }
 .office-directory--boot {
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.04), transparent 40%),
-    var(--office-surface-bg);
+    linear-gradient(180deg, rgba(15, 23, 42, 0.04), transparent 40%), var(--office-surface-bg);
   border-color: rgba(15, 23, 42, 0.18);
   box-shadow:
     var(--control-shadow),

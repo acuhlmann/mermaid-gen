@@ -12,7 +12,8 @@ export const OFFICE_EN_AU = {
         "Hey!! I'm Chad — unpaid, strategic, and statistically likely to reply-all about the stapler. Quick question about your diagram that might accidentally be the smartest thing anyone says today. Also: where is the stapler."
     },
     scrumMaster: {
-      blurb: 'Everything is a ceremony. Will time-box your smoko. Facilitates your existential dread.',
+      blurb:
+        'Everything is a ceremony. Will time-box your smoko. Facilitates your existential dread.',
       introLine:
         "G'day! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Great energy. Let's circle back."
     },
@@ -27,7 +28,8 @@ export const OFFICE_EN_AU = {
         'I AM GARY. I OWN THE FRIDGE. I OWN THE THERMOSTAT. Unlabelled containers — and unlabelled architecture diagrams — become FACILITIES PROPERTY. You have been warned. Warmly.'
     },
     hr: {
-      blurb: 'Weaponised cheerfulness. Training overdue since onboarding. Please sign Craig’s card.',
+      blurb:
+        'Weaponised cheerfulness. Training overdue since onboarding. Please sign Craig’s card.',
       introLine:
         "I'm Linda, People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and Craig's birthday card still needs a warm generic message. You are going to fit in beautifully."
     },
@@ -39,7 +41,7 @@ export const OFFICE_EN_AU = {
     ciso: {
       blurb: "Everything's an attack surface — especially the arrows. Trust is a vulnerability.",
       introLine:
-        "Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly."
+        'Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly.'
     }
   },
   OFFICE_WELCOME_EMAIL: {
@@ -670,7 +672,13 @@ export const OFFICE_EN_AU = {
     leaveLabel: 'Shoot through',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', 'in a meeting', 'circling back arvo', 'parking lot it', 'noted in me file'],
+  OFFICE_IM_QUICK_REPLIES: [
+    '👍',
+    'in a meeting',
+    'circling back arvo',
+    'parking lot it',
+    'noted in me file'
+  ],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     desk: {
@@ -699,7 +707,8 @@ export const OFFICE_EN_AU = {
       unlockedLabel: '✨ CHARACTER UNLOCKED',
       tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',
       tourHint: 'Meet them one at a time. Mute anytime with Focus Time.',
-      rosterTagline: 'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
+      rosterTagline:
+        'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
       expandLabel: '🏢 Meet the Office',
       expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
       startLabel: 'Meet the Office →',
