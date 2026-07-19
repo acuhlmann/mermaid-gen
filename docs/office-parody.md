@@ -166,15 +166,18 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 2. **Chad's welcome IM** ~8 s later (also on a first-name basis).
 
 The entry screen additionally mounts the **office directory** (`OfficeDirectory`): an
-interactive game-style **"Meet the Office"** orientation. First run it opens as a
-cinematic intro (title card / Press Start → name badge with Linda's auto-voiced
-welcome → Meet the team auto-plays each colleague intro in order → Clock in),
-persisted via `archislop:office-directory-seen`; afterwards it lives as a
-"🏢 Meet the Office" chip on the empty state, and as a **desk verb** once you
-have canvas content, so everybody can introduce themselves again anytime.
+interactive game-style **"Meet the Office"** orientation. **First run it is the entire
+app** — nothing else mounts until the tour is dismissed or skipped — then the empty
+state, Day One badge, and the rest of the chrome appear. The cinematic flow is title
+card / Press Start → name badge with Linda's auto-voiced welcome → Meet the team
+auto-plays each colleague intro in order → Clock in, persisted via
+`archislop:office-directory-seen`; afterwards it lives as a "🏢 Meet the Office" chip
+on the empty state, and as a **desk verb** once you have canvas content, so everybody
+can introduce themselves again anytime.
 While the directory is open it publishes pause state (`officeDirectoryUiStore`)
-so ambience IMs/walk-bys, Linda's welcome email, and the advisor stay quiet —
-and mounts as a modal overlay so Day One / starters don't compete visually.
+so ambience IMs/walk-bys, Linda's welcome email, and the advisor stay quiet.
+On first visit the rest of the shell does not mount until the tour completes;
+reopens use a dimmed modal overlay so Day One / starters stay behind but visible.
 Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an opaque
 `--office-surface-bg` so canvas ink underneath never bleeds through the copy.
 

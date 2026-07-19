@@ -117,9 +117,11 @@ describe('OfficeDirectory', () => {
 
   it('skips the ceremony straight to the canvas and marks the tour seen', () => {
     const onSkipToBuild = vi.fn();
-    render(<OfficeDirectory onSkipToBuild={onSkipToBuild} />);
+    const onBootComplete = vi.fn();
+    render(<OfficeDirectory onSkipToBuild={onSkipToBuild} onBootComplete={onBootComplete} />);
     fireEvent.click(screen.getByTestId('office-directory-skip-build'));
     expect(onSkipToBuild).toHaveBeenCalledTimes(1);
+    expect(onBootComplete).toHaveBeenCalledTimes(1);
     expect(screen.getByRole('button', { name: /Meet the Office/ })).toBeTruthy();
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);

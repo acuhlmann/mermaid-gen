@@ -135,6 +135,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     configure({ asyncUtilTimeout: 10_000 });
     vi.useRealTimers();
     window.localStorage.clear();
+    window.localStorage.setItem('archislop:office-directory-seen', '1');
     window.history.replaceState({}, '', '/');
     const oscillator = {
       type: 'triangle',
@@ -1007,5 +1008,24 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       );
       expect(intentCalls).toHaveLength(1);
     });
+  });
+
+  it('shows Meet the Office alone on first visit, then reveals the entry screen', async () => {
+    window.localStorage.removeItem('archislop:office-directory-seen');
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
+      infographic: createInitialDiagramState('infographic')
+    });
+    render(<App />);
+    expect(screen.getByTestId('office-directory-modal')).toBeTruthy();
+    expect(screen.queryByTestId('day-one-badge')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
+
+    fireEvent.click(screen.getByTestId('office-directory-skip-build'));
+
+    expect(await screen.findByTestId('day-one-badge')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: /Do it/i })).toBeTruthy();
+    expect(screen.queryByTestId('office-directory-modal')).toBeNull();
   });
 });

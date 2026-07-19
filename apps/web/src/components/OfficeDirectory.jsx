@@ -364,6 +364,7 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
  */
 export default function OfficeDirectory({
   onSkipToBuild,
+  onBootComplete,
   getSessionId,
   showChip = true,
   placement = 'entry'
@@ -412,6 +413,7 @@ export default function OfficeDirectory({
   };
 
   const dismiss = () => {
+    const wasFirstRun = !readOfficeDirectorySeen();
     autoGenRef.current += 1;
     stop();
     setCinematic(false);
@@ -420,6 +422,7 @@ export default function OfficeDirectory({
     firstRunRef.current = false;
     setStep(null);
     setOpen(false);
+    if (wasFirstRun) onBootComplete?.();
   };
 
   const skipToBuild = () => {
