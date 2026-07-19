@@ -47,7 +47,8 @@ export const OFFICE_COLLEAGUES = {
     id: 'scrumMaster',
     name: 'Pam',
     title: 'Agile Coach — CSM, CSPO, SAFe 6.0',
-    blurb: 'Everything is a ceremony. Will time-box your lunch. Facilitates your existential dread.',
+    blurb:
+      'Everything is a ceremony. Will time-box your lunch. Facilitates your existential dread.',
     introLine:
       "Hi! I'm Pam — CSM, CSPO, SAFe 6.0, and emotionally fluent in parking lots. This introduction is time-boxed for forty-five seconds of synergy. Great energy. Let's circle back.",
     avatarEmoji: '📅',
@@ -62,7 +63,7 @@ export const OFFICE_COLLEAGUES = {
     title: 'IT Helpdesk — Tier 1 (of 1)',
     blurb: 'Closes tickets as duplicates of themselves. Works on his machine. DNS was involved.',
     introLine:
-      "Ticket Bot Dave. Tier 1 of 1. I close tickets as duplicates of themselves. Have you tried turning it off and on again. That was not a question. Works on my machine.",
+      'Ticket Bot Dave. Tier 1 of 1. I close tickets as duplicates of themselves. Have you tried turning it off and on again. That was not a question. Works on my machine.',
     avatarEmoji: '🖥️',
     accentColor: '#64748b',
     emailFrom: 'no-reply@helpdesk.archislop.corp',
@@ -114,7 +115,7 @@ export const OFFICE_COLLEAGUES = {
     title: 'CISO — The Department of No',
     blurb: 'Everything is an attack surface — especially the arrows. Trust is a vulnerability.',
     introLine:
-      "Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly.",
+      'Sasha. CISO. Department of No. Everything is an attack surface — especially you, the arrows, and that temporary admin password from 2017. Noted in your file. I mean it warmly.',
     avatarEmoji: '🔐',
     accentColor: '#dc2626',
     emailFrom: 'secops@archislop.corp',
@@ -607,7 +608,10 @@ export const OFFICE_COFFEE_SCENES = [
         speakerId: 'hr',
         text: "Did you sign Craig's card? Everyone keeps asking who Craig is. That's not the point of a card. Craig is the point."
       },
-      { speakerId: 'helpdesk', text: 'Craig is ticket #31337. Closed as "cannot reproduce". Still birthdaying.' }
+      {
+        speakerId: 'helpdesk',
+        text: 'Craig is ticket #31337. Closed as "cannot reproduce". Still birthdaying.'
+      }
     ]
   },
   {
@@ -617,7 +621,10 @@ export const OFFICE_COFFEE_SCENES = [
         speakerId: 'helpdesk',
         text: 'The third-floor printer printed something nobody sent again. One page. Just the word "soon". Product calls it predictive.'
       },
-      { speakerId: 'facilities', text: 'That printer is load-bearing. Do not touch the printer. Do not fund the printer.' }
+      {
+        speakerId: 'facilities',
+        text: 'That printer is load-bearing. Do not touch the printer. Do not fund the printer.'
+      }
     ]
   },
   {
@@ -627,7 +634,10 @@ export const OFFICE_COFFEE_SCENES = [
         speakerId: 'scrumMaster',
         text: 'They renamed the roadmap to "north-star journey atlas". The roadmap itself is unchanged since 2022. Pivot!'
       },
-      { speakerId: 'greybeard', text: "In 2009 we called it a list. It also didn't change. We were honest about it." }
+      {
+        speakerId: 'greybeard',
+        text: "In 2009 we called it a list. It also didn't change. We were honest about it."
+      }
     ]
   },
   {
@@ -741,7 +751,8 @@ export const OFFICE_BATTLE_SCENES = [
       }
     ],
     verdicts: {
-      greybeard: 'Tabs it is. The linter has been reconfigured. The intern will recover, in time. Or pivot.',
+      greybeard:
+        'Tabs it is. The linter has been reconfigured. The intern will recover, in time. Or pivot.',
       intern:
         'two spaces win!! ulrich says the industry is doomed, but he says that every day anyway. culture!'
     }
@@ -812,7 +823,10 @@ export const OFFICE_BATTLE_SCENES = [
         speakerId: 'greybeard',
         text: "You'd turn one problem into a distributed system of problems, with worse logging and better slides."
       },
-      { speakerId: 'scrumMaster', text: "We'd get a service mesh! There's a webinar! I've already story-pointed the webinar!" },
+      {
+        speakerId: 'scrumMaster',
+        text: "We'd get a service mesh! There's a webinar! I've already story-pointed the webinar!"
+      },
       {
         speakerId: 'greybeard',
         text: 'I attended a webinar once. 2011. The mainframe and I still talk about it. Softly. With fear.'
@@ -837,7 +851,10 @@ export const OFFICE_BATTLE_SCENES = [
         speakerId: 'ciso',
         text: 'It was my firewall rule, and my firewall rule was CORRECT. It blocked something suspicious: all traffic.'
       },
-      { speakerId: 'helpdesk', text: 'Which it resolved via DNS. The ticket stands. The ticket has tenure.' },
+      {
+        speakerId: 'helpdesk',
+        text: 'Which it resolved via DNS. The ticket stands. The ticket has tenure.'
+      },
       {
         speakerId: 'ciso',
         text: 'Blocking everything is the only architecture with zero CVEs. Look it up. Or don’t. Noted either way.'
