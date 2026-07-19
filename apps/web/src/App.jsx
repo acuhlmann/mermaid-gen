@@ -4320,7 +4320,7 @@ ${requirementsBlock}`;
 
   return (
     <main
-      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
+      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent && narrowLayout ? ' has-bottom-brand' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -4970,6 +4970,23 @@ ${requirementsBlock}`;
           ) : hasCanvasContent && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
+                <button
+                  type="button"
+                  className={`overlay-button compact-button slop-action-button is-brand${xpInfoPanelOpen ? ' is-expanded' : ''}`}
+                  onClick={() => setXpInfoPanelOpen((open) => !open)}
+                  aria-expanded={xpInfoPanelOpen}
+                  aria-controls="levelup-info-panel"
+                  aria-label="ArchiSlop"
+                  title="ArchiSlop"
+                  data-testid="bottom-brand-mark"
+                >
+                  <ButtonIcon>
+                    <span className="action-persona-icon is-brand" aria-hidden="true">
+                      <ArchiSlopMarkIcon />
+                    </span>
+                  </ButtonIcon>
+                  <span className="button-label">ArchiSlop</span>
+                </button>
                 <button
                   type="button"
                   className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
