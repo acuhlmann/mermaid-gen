@@ -873,6 +873,8 @@ export const OFFICE_CHROME_COPY = {
     buttonTitle: 'Get up, wander, bother someone',
     menuAria: 'Desk actions',
     menuHeading: 'What are you doing?',
+    hrProgress: 'Check my HR progression',
+    hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda thinks of you',
     coffee: 'Get a coffee',
     walk: 'Walk the floor',
     im: 'Message someone',

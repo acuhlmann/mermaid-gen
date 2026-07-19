@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
- * to do in the office, as opposed to the things the office does to you. A
- * badge button beside the inbox opens a short verb menu — get a coffee, walk
- * the floor, message someone, check mail, call a meeting, talk to your team.
+ * to do in the office, as opposed to the things the office does to you. The
+ * ArchiSlop helmet stamp opens a short verb menu — check HR progression, get
+ * a coffee, walk the floor, message someone, check mail, call a meeting, talk
+ * to your team.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -18,6 +20,7 @@ export default function DeskActionsDock({
   onCheckInbox,
   onCallMeeting,
   onTalkToTeam,
+  onCheckHrProgression,
   blockedReason = null,
   canCallMeeting = true,
   unreadCount = 0,
@@ -39,6 +42,14 @@ export default function DeskActionsDock({
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
   const verbs = [
+    {
+      id: 'hr',
+      label: copy.hrProgress,
+      emoji: '📈',
+      run: onCheckHrProgression,
+      alwaysEnabled: true,
+      title: copy.hrProgressTitle
+    },
     { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
     { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
@@ -71,9 +82,12 @@ export default function DeskActionsDock({
         aria-label={copy.buttonAria}
         aria-expanded={open}
         title={copy.buttonTitle}
+        data-testid="bottom-brand-mark"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span aria-hidden="true">🪪</span>
+        <span className="desk-actions-button-stamp is-brand" aria-hidden="true">
+          <ArchiSlopMarkIcon />
+        </span>
         <span className="desk-actions-button-label">{copy.buttonLabel}</span>
         {unreadCount > 0 ? (
           <span className="desk-actions-unread-badge" aria-hidden="true">
@@ -86,7 +100,11 @@ export default function DeskActionsDock({
           <p className="desk-actions-heading">{copy.menuHeading}</p>
           {verbs.map((verb) => {
             const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
-            const title = verb.disabled ? verb.disabledTitle : disabled ? blockedTitle : verb.label;
+            const title = verb.disabled
+              ? verb.disabledTitle
+              : disabled
+                ? blockedTitle
+                : (verb.title ?? verb.label);
             return (
               <button
                 key={verb.id}

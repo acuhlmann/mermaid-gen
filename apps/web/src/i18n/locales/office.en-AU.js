@@ -597,6 +597,10 @@ export const OFFICE_EN_AU = {
   OFFICE_IM_QUICK_REPLIES: ['👍', 'in a meeting', 'circling back arvo'],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
+    desk: {
+      hrProgress: 'Check me HR progression',
+      hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya'
+    },
     directory: {
       title: 'Day one at ArchiSlop Corp.',
       tagline: 'Your new floor. Your new colleagues. Their opinions come free of charge.',

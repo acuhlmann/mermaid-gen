@@ -11,6 +11,7 @@ function open(props = {}) {
     onCheckInbox: vi.fn(),
     onCallMeeting: vi.fn(),
     onTalkToTeam: vi.fn(),
+    onCheckHrProgression: vi.fn(),
     ...props
   };
   render(<DeskActionsDock {...handlers} />);
@@ -21,15 +22,32 @@ function open(props = {}) {
 describe('DeskActionsDock', () => {
   afterEach(() => cleanup());
 
+  it('shows the ArchiSlop mark on the desk stamp', () => {
+    render(
+      <DeskActionsDock
+        onGetCoffee={vi.fn()}
+        onWalkTheFloor={vi.fn()}
+        onImSomeone={vi.fn()}
+        onCheckInbox={vi.fn()}
+        onCallMeeting={vi.fn()}
+        onTalkToTeam={vi.fn()}
+        onCheckHrProgression={vi.fn()}
+      />
+    );
+    const trigger = screen.getByTestId('bottom-brand-mark');
+    expect(trigger.querySelector('.brand-helmet-svg')).toBeTruthy();
+  });
+
   it('shows an unread badge on the desk button and inbox verb', () => {
     open({ unreadCount: 3 });
     expect(screen.getByRole('button', { name: /Your desk/i }).textContent).toContain('3');
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('offers the six desk verbs once opened', () => {
+  it('offers the desk verbs once opened, including HR progression', () => {
     open();
     for (const label of [
+      'Check my HR progression',
       'Get a coffee',
       'Walk the floor',
       'Message someone',
@@ -41,6 +59,13 @@ describe('DeskActionsDock', () => {
     }
   });
 
+  it('runs HR progression and closes the menu', () => {
+    const handlers = open();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Check my HR progression/ }));
+    expect(handlers.onCheckHrProgression).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+  });
+
   it('runs the verb and closes the menu', () => {
     const handlers = open();
     fireEvent.click(screen.getByRole('menuitem', { name: /Get a coffee/ }));
@@ -48,7 +73,7 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('disables verbs with an in-fiction reason while blocked, but never the inbox', () => {
+  it('disables verbs with an in-fiction reason while blocked, but never inbox or HR', () => {
     open({ blockedReason: 'meeting' });
     const coffee = screen.getByRole('menuitem', { name: /Get a coffee/ });
     expect(coffee.disabled).toBe(true);
@@ -56,6 +81,7 @@ describe('DeskActionsDock', () => {
     // Reading your mail is always allowed — it opens a popover, it doesn't
     // put another office surface on screen.
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).disabled).toBe(false);
+    expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
   });
 
   it('blocks Call a meeting on an empty canvas with the agenda gag', () => {

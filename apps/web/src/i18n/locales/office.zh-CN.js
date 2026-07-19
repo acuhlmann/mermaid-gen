@@ -589,6 +589,27 @@ export const OFFICE_ZH_CN = {
   OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '回头聊'],
   OFFICE_CHROME_COPY: {
     doIt: '就这么办',
+    desk: {
+      buttonLabel: '你的工位',
+      buttonAria: '你的工位 — 你可以做的事',
+      buttonTitle: '起身、闲逛、打扰别人',
+      menuAria: '工位操作',
+      menuHeading: '你在干嘛？',
+      hrProgress: '查一下我的 HR 晋升进度',
+      hrProgressTitle: '人力运营记分卡 — 等级、XP，以及 Linda 对你的看法',
+      coffee: '去喝杯咖啡',
+      walk: '在楼层走走',
+      im: '给谁发条消息',
+      inbox: '查一下邮件',
+      meeting: '召集会议',
+      team: '和团队聊聊',
+      blocked: {
+        busy: '部署进行中 — 谁也别离开工位。',
+        meeting: '你在开会。装得投入一点。',
+        surface: '一次一件事。你已经被打断得够忙了。',
+        noAgenda: '先画点什么 — 这场会也需要议程'
+      }
+    },
     directory: {
       title: '欢迎来到办公室',
       tagline: '你的图有了工作场所——这层楼的人很有想法。',

@@ -589,6 +589,27 @@ export const OFFICE_ZH_TW = {
   OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '晚點回'],
   OFFICE_CHROME_COPY: {
     doIt: '就這麼辦',
+    desk: {
+      buttonLabel: '你的工位',
+      buttonAria: '你的工位 — 你可以做的事',
+      buttonTitle: '起身、閒晃、打擾別人',
+      menuAria: '工位操作',
+      menuHeading: '你在幹嘛？',
+      hrProgress: '查一下我的 HR 晉升進度',
+      hrProgressTitle: '人資營運計分卡 — 等級、XP，以及 Linda 對你的看法',
+      coffee: '去喝杯咖啡',
+      walk: '在樓層走走',
+      im: '傳訊息給誰',
+      inbox: '查一下郵件',
+      meeting: '召開會議',
+      team: '和團隊聊聊',
+      blocked: {
+        busy: '部署進行中 — 誰也別離開工位。',
+        meeting: '你在開會。裝得投入一點。',
+        surface: '一次一件事。你已經被打斷得夠忙了。',
+        noAgenda: '先畫點東西 — 這場會也需要議程'
+      }
+    },
     directory: {
       title: '歡迎來到辦公室',
       tagline: '你的圖有了工作場所——這層樓的人很有想法。',

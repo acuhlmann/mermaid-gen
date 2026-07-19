@@ -171,17 +171,18 @@ drill (all surfaces evacuate for 30 s), the printer that prints one page reading
 ### Desk verbs (what _you_ do)
 
 The ambience director decides when the office interrupts you; the **desk verbs** are the other
-direction — you deciding to get up. `DeskActionsDock` ("🪪 Your desk", beside the inbox) opens a
-short menu wired to `useDeskActions`:
+direction — you deciding to get up. `DeskActionsDock` (ArchiSlop helmet stamp in the bottom row)
+opens a short menu wired to `useDeskActions` (plus one chrome sink for the XP / People Ops panel):
 
-| Verb                 | Does                                                                                                                               |
-| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| ☕ Get a coffee      | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                            |
-| 🚶 Walk the floor    | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead |
-| 💬 Message someone   | DMs a teammate or colleague; reply is LLM-or-canned. Senior tier excluded — you don't cold-DM the CFO                              |
-| 📥 Check your mail   | Opens the inbox popover (`openSignal` counter prop)                                                                                |
-| 📅 Call a meeting    | Same handler as the inbox's shortcut (two entry points, one behavior)                                                              |
-| 👥 Talk to your team | `advisor.promptNext({})` — asks the roundtable for a fresh take                                                                    |
+| Verb                       | Does                                                                                                                               |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| 📈 Check my HR progression | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled                                                  |
+| ☕ Get a coffee            | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                            |
+| 🚶 Walk the floor          | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead |
+| 💬 Message someone         | DMs a teammate or colleague; reply is LLM-or-canned. Senior tier excluded — you don't cold-DM the CFO                              |
+| 📥 Check your mail         | Opens the inbox popover (`openSignal` counter prop)                                                                                |
+| 📅 Call a meeting          | Same handler as the inbox's shortcut (two entry points, one behavior)                                                              |
+| 👥 Talk to your team       | `advisor.promptNext({})` — asks the roundtable for a fresh take                                                                    |
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
 **bypass Focus Time** (it mutes interruptions, not your own initiative), but still respect

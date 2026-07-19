@@ -76,6 +76,7 @@ export default function OfficeLayer({
   onMeetingMinutes,
   onOfficeEvent,
   onTalkToTeam,
+  onCheckHrProgression,
   playChime
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
@@ -370,6 +371,7 @@ export default function OfficeLayer({
       onCheckInbox={desk.checkInbox}
       onCallMeeting={desk.callMeeting}
       onTalkToTeam={desk.talkToTeam}
+      onCheckHrProgression={onCheckHrProgression}
       blockedReason={desk.blockedReason}
       canCallMeeting={canCallMeeting}
     />
