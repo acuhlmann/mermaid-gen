@@ -8,7 +8,7 @@ import { officeDialogueLocale } from '../utils/officeCast.js';
  *
  * Cost guardrail: voices are Google Cloud TTS. The orientation never speaks
  * on cold mount — that would let scrapers burn the Chirp free tier. Speech
- * starts only after an explicit user gesture (Press Start / Meet the team),
+ * starts only after an explicit user gesture (Check in at reception / Meet the team),
  * which also unlocks browser autoplay for the rest of a cinematic sequence.
  *
  * `play(id, line)` speaks one beat and returns the settle promise so the tour

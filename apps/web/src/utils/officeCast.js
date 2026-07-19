@@ -1012,25 +1012,15 @@ export const OFFICE_CHROME_COPY = {
     title: 'Day one at ArchiSlop Corp.',
     tourEyebrow: 'NEW HIRE ORIENTATION™',
     rosterEyebrow: 'CAST DIRECTORY',
-    // Interactive game intro — title card before the badge / cast walkthrough.
-    bootEyebrow: 'ARCHISLOP CORP. · EMPLOYEE ONBOARDING MODULE 1.0',
-    bootTitle: 'Meet the Office',
-    bootTagline:
-      'A prestige dramedy about shipping diagrams under fluorescent lights. You are the new hire. Everyone else already has notes.',
-    bootBullets: [
-      '▶ Press Start — Linda welcomes you by voice',
-      '📛 Name yourself — the floor will weaponize it immediately',
-      '🎬 Meet the team — they introduce themselves in order'
-    ],
-    pressStartLabel: '▶ Press Start',
-    bootFootnote: 'Synergy loading… Co-Design buffering… politics already online.',
-    welcomeChapter: 'CHAPTER 0 — NAME YOURSELF',
+    // Reception-first orientation — name badge, Linda's welcome, then the floor.
+    welcomeChapter: 'RECEPTION DESK',
+    checkInLabel: 'Check in at reception →',
     colleagueChapter: 'COLLEAGUE {current} OF {total}',
     unlockedLabel: '✨ CHARACTER UNLOCKED',
     tagline:
       "You're the newest architect on the floor. The whiteboard is your deliverable. The interruptions are free.",
     tourHint:
-      'Name your badge, then Meet the team — they introduce themselves in order. Mute the whole building anytime with Focus Time.',
+      'Pick up your badge, check in with Linda, then meet the team on the floor. Mute the whole building anytime with Focus Time.',
     autoplayHint: 'Speaking…',
     skipBeatLabel: 'Skip →',
     rosterTagline:

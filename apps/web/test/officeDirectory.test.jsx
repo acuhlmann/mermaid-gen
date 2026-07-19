@@ -46,48 +46,47 @@ afterEach(() => {
 });
 
 describe('OfficeDirectory', () => {
-  it('opens a cinematic game-intro title card on first run as a modal', async () => {
+  it('opens at reception on first run as a modal', async () => {
     render(<OfficeDirectory />);
     expect(screen.getByTestId('office-directory-modal')).toBeTruthy();
     expect(screen.getByTestId('office-directory-tour')).toBeTruthy();
-    expect(screen.getByTestId('office-directory-title')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Press Start/i })).toBeTruthy();
-    expect(screen.getByText(/Meet the Office/i)).toBeTruthy();
-    expect(screen.queryByTestId('office-directory-welcome')).toBeNull();
+    expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
+    expect(screen.getByText(/RECEPTION DESK/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Check in at reception/i })).toBeTruthy();
+    expect(screen.getByText(/Day one at ArchiSlop/)).toBeTruthy();
     expect(screen.queryByTestId('office-directory-roster')).toBeNull();
     await waitFor(() => expect(getOfficeDirectoryUi().open).toBe(true));
   });
 
-  it('does not speak on the title card before Press Start', () => {
+  it('does not speak at reception before check-in', () => {
     render(<OfficeDirectory />);
     expect(playMock).not.toHaveBeenCalled();
   });
 
-  it('moves from Press Start into the name-badge welcome beat and auto-plays Linda', async () => {
+  it('checks in at reception, auto-plays Linda, then offers Meet the team', async () => {
     render(<OfficeDirectory />);
-    fireEvent.click(screen.getByTestId('office-directory-press-start'));
-    expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
     expect(screen.getByText(/newest architect/i)).toBeTruthy();
     expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('office-directory-check-in'));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
     expect(playMock.mock.calls[0][0]).toBe('welcome');
+    expect(screen.getByRole('button', { name: 'Meet the team →' })).toBeTruthy();
   });
 
-  it('greets the user by the name on their badge (default when blank)', () => {
+  it('greets the user by the name on their badge (default when blank)', async () => {
     render(<OfficeDirectory />);
-    fireEvent.click(screen.getByTestId('office-directory-press-start'));
     expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
     cleanup();
     playMock.mockClear();
     setUserName('Gavin');
     render(<OfficeDirectory />);
-    fireEvent.click(screen.getByTestId('office-directory-press-start'));
     expect(screen.getByText('Welcome aboard, Gavin.')).toBeTruthy();
   });
 
   it('auto-introduces colleagues by voice after Meet the team, then clocks in', async () => {
     render(<OfficeDirectory />);
-    fireEvent.click(screen.getByTestId('office-directory-press-start'));
+    fireEvent.click(screen.getByTestId('office-directory-check-in'));
+    await waitFor(() => expect(playMock).toHaveBeenCalled());
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     expect(screen.getByTestId('office-directory-spotlight')).toBeTruthy();
     expect(screen.getByText('Chad')).toBeTruthy();
@@ -139,7 +138,8 @@ describe('OfficeDirectory', () => {
     expect(screen.getByText('Facilities & Fridge Czar')).toBeTruthy();
     expect(screen.getAllByTestId('intro-voice-button').length).toBe(COLLEAGUE_COUNT);
     fireEvent.click(screen.getByRole('button', { name: /Replay intro/ }));
-    expect(screen.getByTestId('office-directory-title')).toBeTruthy();
+    expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
+    expect(screen.getByText(/RECEPTION DESK/i)).toBeTruthy();
   });
 
   it('opens from an external desk/UI signal even when the chip is hidden', () => {

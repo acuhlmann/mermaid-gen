@@ -4,7 +4,7 @@
  * decides whether this beat is the one currently speaking. Flips to a stop
  * affordance while its line is playing so a second click silences it.
  *
- * During the cinematic tour, speech auto-plays after Press Start / Meet the
+ * During the cinematic tour, speech auto-plays after check-in / Meet the
  * team; this button remains for replay/stop. Roster revisit stays click-only.
  */
 export default function IntroVoiceButton({
