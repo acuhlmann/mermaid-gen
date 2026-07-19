@@ -16,7 +16,7 @@ export function buildProductionContentSecurityPolicy() {
     "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
     // blob: for export previews (svgPngRaster, download links) and in-browser object URLs.
     "img-src 'self' data: blob: https:",
-    // WaveNet office narration plays MP3 via data: URLs (officeNarration.js); blob: for
+    // Cloud TTS office narration plays MP3 via data: URLs (officeNarration.js); blob: for
     // browsers that promote in-memory media to object URLs.
     "media-src 'self' data: blob:",
     "connect-src 'self' https: wss:",

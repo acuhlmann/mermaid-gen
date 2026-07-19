@@ -178,7 +178,8 @@ export function createOfficeRouter() {
     }
   });
 
-  // WaveNet (or Web Speech fallback on the client). No LLM — decorative audio
+  // Cloud TTS (Neural2 default, WaveNet switchback) or Web Speech fallback on
+  // the client. No LLM — decorative audio
   // only. Returns { audio: null } when TTS is off / unconfigured / failed so
   // the client can degrade without an error toast.
   router.post('/speak', async (req, res) => {

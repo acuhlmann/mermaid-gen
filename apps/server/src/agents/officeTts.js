@@ -1,10 +1,15 @@
 /**
- * Google Cloud WaveNet TTS for the office-parody layer
+ * Google Cloud TTS for the office-parody layer
  * (docs/office-narration-roadmap.md).
  *
  * Server-side only — the browser never sees GCP credentials. When TTS is
  * disabled / unconfigured / fails, callers get null and the client falls
  * back to Web Speech (officeNarration.js).
+ *
+ * Voice tier: Neural2 (next step up from WaveNet) is the default for locales
+ * that have it (en-US, en-AU). zh locales stay on WaveNet — Google ships no
+ * Neural2 cmn-* voices at all. Set OFFICE_TTS_VOICE_TIER=wavenet to pin the
+ * old WaveNet cast everywhere (instant switchback).
  *
  * Kill switch: OFFICE_TTS=0|false|off. Default ON when a GCP project id
  * resolves (same VERTEX_PROJECT_ID / GOOGLE_CLOUD_PROJECT path as Vertex).
@@ -26,7 +31,8 @@ export const OFFICE_TTS_CACHE_MAX = 200;
 
 /**
  * Cast → WaveNet voice per locale. Prosody (rate/pitch) keeps comedy
- * fingerprints without leaving WaveNet. zh locales use cmn-* voice ids.
+ * fingerprints without leaving WaveNet — and doubles as the prosody source
+ * for the Neural2 overlay below. zh locales use cmn-* voice ids.
  *
  * @type {Record<string, Record<string, OfficeTtsVoice>>}
  */
@@ -131,6 +137,56 @@ const VOICES_BY_LANG = {
   }
 };
 
+/**
+ * Neural2 voice-name overlay per locale (next tier up from WaveNet). Names
+ * only — prosody (rate/pitch) is inherited from the WaveNet table entry for
+ * the same speaker, so the comedy fingerprints cannot drift between tiers.
+ *
+ * Mapping keeps each persona's WaveNet letter and gender where the Neural2
+ * catalog allows: en-AU is 1:1; en-US has no Neural2-B, so helpdesk and
+ * critique (both Wavenet-B males) move to other males (J / A). zh locales are
+ * absent by design — cmn-CN / cmn-TW have no Neural2 voices (cmn-TW has
+ * nothing above WaveNet), so they always resolve from the WaveNet table.
+ *
+ * @type {Record<string, Record<string, string>>}
+ */
+const NEURAL2_VOICE_NAMES = {
+  'en-US': {
+    intern: 'en-US-Neural2-D',
+    scrumMaster: 'en-US-Neural2-F',
+    helpdesk: 'en-US-Neural2-J',
+    facilities: 'en-US-Neural2-J',
+    hr: 'en-US-Neural2-H',
+    greybeard: 'en-US-Neural2-I',
+    ciso: 'en-US-Neural2-A',
+    refine: 'en-US-Neural2-D',
+    innovate: 'en-US-Neural2-F',
+    goMad: 'en-US-Neural2-J',
+    critique: 'en-US-Neural2-A',
+    explain: 'en-US-Neural2-C',
+    exec: 'en-US-Neural2-I',
+    cto: 'en-US-Neural2-A',
+    cfo: 'en-US-Neural2-F'
+  },
+  'en-AU': {
+    intern: 'en-AU-Neural2-B',
+    scrumMaster: 'en-AU-Neural2-A',
+    helpdesk: 'en-AU-Neural2-D',
+    facilities: 'en-AU-Neural2-D',
+    hr: 'en-AU-Neural2-C',
+    greybeard: 'en-AU-Neural2-B',
+    ciso: 'en-AU-Neural2-D',
+    refine: 'en-AU-Neural2-B',
+    innovate: 'en-AU-Neural2-A',
+    goMad: 'en-AU-Neural2-D',
+    critique: 'en-AU-Neural2-D',
+    explain: 'en-AU-Neural2-C',
+    exec: 'en-AU-Neural2-B',
+    cto: 'en-AU-Neural2-B',
+    cfo: 'en-AU-Neural2-A'
+  }
+};
+
 const DEFAULT_VOICE = {
   name: 'en-US-Wavenet-D',
   languageCode: 'en-US',
@@ -186,9 +242,31 @@ export function resolveOfficeTtsRateScale(env = process.env) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : OFFICE_TTS_RATE_SCALE;
 }
 
+/** Default voice tier when OFFICE_TTS_VOICE_TIER is unset or malformed. */
+export const OFFICE_TTS_DEFAULT_TIER = 'neural2';
+
+/**
+ * Deploy-time voice-tier switch. `neural2` (default) upgrades en-US / en-AU
+ * to Neural2 voices; `wavenet` pins the previous cast everywhere. zh locales
+ * fall back to WaveNet per locale regardless (no Neural2 cmn-* voices exist).
+ *
+ * @param {NodeJS.ProcessEnv} [env]
+ * @returns {'neural2' | 'wavenet'}
+ */
+export function resolveOfficeTtsVoiceTier(env = process.env) {
+  const raw =
+    typeof env.OFFICE_TTS_VOICE_TIER === 'string'
+      ? env.OFFICE_TTS_VOICE_TIER.trim().toLowerCase()
+      : '';
+  if (raw === 'neural2' || raw === 'wavenet') return raw;
+  return OFFICE_TTS_DEFAULT_TIER;
+}
+
 /**
  * Resolve the voice for a speaker, with the global rate scale already applied
- * — callers hand the returned `speakingRate` straight to the API.
+ * — callers hand the returned `speakingRate` straight to the API. Under the
+ * neural2 tier the name comes from NEURAL2_VOICE_NAMES when the locale has an
+ * overlay; prosody always comes from the WaveNet prosody table.
  *
  * @param {string} speakerId
  * @param {string | undefined} lang
@@ -198,9 +276,15 @@ export function resolveOfficeTtsRateScale(env = process.env) {
 export function resolveOfficeTtsVoice(speakerId, lang, env = process.env) {
   const locale = normalizeOfficeTtsLang(lang);
   const table = VOICES_BY_LANG[locale] ?? VOICES_BY_LANG['en-US'];
-  const base = table[speakerId] ?? table.refine ?? DEFAULT_VOICE;
+  const key = table[speakerId] ? speakerId : 'refine';
+  const base = table[key] ?? DEFAULT_VOICE;
+  const name =
+    resolveOfficeTtsVoiceTier(env) === 'neural2'
+      ? (NEURAL2_VOICE_NAMES[locale]?.[key] ?? base.name)
+      : base.name;
   return {
     ...base,
+    name,
     speakingRate: scaleSpeakingRate(base.speakingRate ?? 1, {
       ...CLOUD_TTS_RATE_RANGE,
       scale: resolveOfficeTtsRateScale(env)
@@ -210,6 +294,9 @@ export function resolveOfficeTtsVoice(speakerId, lang, env = process.env) {
 
 /** @internal Test seam — the authored (unscaled) prosody table. */
 export const _VOICES_BY_LANG = VOICES_BY_LANG;
+
+/** @internal Test seam — the Neural2 voice-name overlay per locale. */
+export const _NEURAL2_VOICE_NAMES = NEURAL2_VOICE_NAMES;
 
 /**
  * @param {unknown} text

@@ -2,7 +2,7 @@
  * Per-character speech for the office-parody layer (docs/office-parody.md,
  * docs/office-narration-roadmap.md).
  *
- * Prefers Google Cloud WaveNet audio from POST /api/office/speak when the
+ * Prefers Google Cloud TTS audio from POST /api/office/speak when the
  * caller supplies `fetchCloudAudio`; falls back to the browser Speech
  * Synthesis API (pitch/rate profiles) when cloud TTS is off, unconfigured,
  * or fails. Emails / IMs stay silent by design — only overheard spoken
@@ -23,7 +23,7 @@ const DEFAULT_PROFILE = { pitch: 1, rate: 1, volume: 0.8 };
 
 /**
  * Stable speech quirks per office speaker (Web Speech fallback). Cloud TTS
- * uses its own WaveNet + prosody map in apps/server/src/agents/officeTts.js.
+ * uses its own Neural2/WaveNet voice + prosody map in apps/server/src/agents/officeTts.js.
  *
  * Rates here are authored *unscaled*, so they stay directly comparable to the
  * server table; `officeVoiceProfile` applies the shared global rate scale on

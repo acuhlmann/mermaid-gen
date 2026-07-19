@@ -11,7 +11,7 @@
       "source": "copilotkit/skills",
       "sourceType": "github",
       "skillPath": "SKILL.md",
-      "computedHash": "0b7bbf96ffaccd4e44c2343225ec6e5be2ce4260c1f1e333b017fc7962d1b72f"
+      "computedHash": "b9d440933e704b111ce048a3f1768d38ba2c1949b4f9f7903dd0f8452d2a6107"
     },
     "copilotkit-agui": {
       "source": "copilotkit/skills",

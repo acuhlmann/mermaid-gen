@@ -4,13 +4,16 @@ import { OFFICE_SPEAKER_IDS, OFFICE_TTS_RATE_SCALE } from '@archislop/shared';
 import {
   _resetOfficeTtsForTests,
   _VOICES_BY_LANG,
+  _NEURAL2_VOICE_NAMES,
   isOfficeTtsEnabled,
   normalizeOfficeTtsLang,
   resolveOfficeTtsRateScale,
+  resolveOfficeTtsVoiceTier,
   resolveOfficeTtsVoice,
   sanitizeOfficeTtsText,
   synthesizeOfficeSpeech,
-  OFFICE_TTS_MAX_CHARS
+  OFFICE_TTS_MAX_CHARS,
+  OFFICE_TTS_DEFAULT_TIER
 } from '../src/agents/officeTts.js';
 
 test.afterEach(() => {
@@ -32,14 +35,56 @@ test('normalizeOfficeTtsLang maps UI locales onto voice tables', () => {
   assert.equal(normalizeOfficeTtsLang(undefined), 'en-US');
 });
 
-test('resolveOfficeTtsVoice picks WaveNet names per cast and locale', () => {
+test('resolveOfficeTtsVoice defaults to Neural2 names for en locales', () => {
   const pam = resolveOfficeTtsVoice('scrumMaster', 'en-US');
-  assert.equal(pam.name, 'en-US-Wavenet-F');
+  assert.equal(pam.name, 'en-US-Neural2-F');
   assert.equal(pam.languageCode, 'en-US');
   const ulrichAu = resolveOfficeTtsVoice('greybeard', 'en-AU');
-  assert.ok(ulrichAu.name.startsWith('en-AU-Wavenet-'));
-  const chadZh = resolveOfficeTtsVoice('intern', 'zh-CN');
-  assert.ok(chadZh.name.startsWith('cmn-CN-Wavenet-'));
+  assert.equal(ulrichAu.name, 'en-AU-Neural2-B');
+  // en-US has no Neural2-B: the two Wavenet-B personas remap to other males.
+  assert.equal(resolveOfficeTtsVoice('helpdesk', 'en-US').name, 'en-US-Neural2-J');
+  assert.equal(resolveOfficeTtsVoice('critique', 'en-US').name, 'en-US-Neural2-A');
+  // Unknown speakers fall back to the refine persona, still on Neural2.
+  assert.equal(resolveOfficeTtsVoice('nobody', 'en-US').name, 'en-US-Neural2-D');
+});
+
+test('OFFICE_TTS_VOICE_TIER=wavenet restores the WaveNet cast everywhere', () => {
+  const env = { OFFICE_TTS_VOICE_TIER: 'wavenet' };
+  assert.equal(resolveOfficeTtsVoice('scrumMaster', 'en-US', env).name, 'en-US-Wavenet-F');
+  assert.ok(resolveOfficeTtsVoice('greybeard', 'en-AU', env).name.startsWith('en-AU-Wavenet-'));
+  assert.ok(resolveOfficeTtsVoice('intern', 'zh-CN', env).name.startsWith('cmn-CN-Wavenet-'));
+});
+
+test('zh locales stay on WaveNet even under the neural2 tier', () => {
+  // Google ships no Neural2 cmn-* voices; cmn-TW has nothing above WaveNet.
+  assert.ok(resolveOfficeTtsVoice('intern', 'zh-CN').name.startsWith('cmn-CN-Wavenet-'));
+  assert.ok(resolveOfficeTtsVoice('intern', 'zh-TW').name.startsWith('cmn-TW-Wavenet-'));
+});
+
+test('resolveOfficeTtsVoiceTier honours explicit values only', () => {
+  assert.equal(resolveOfficeTtsVoiceTier({}), OFFICE_TTS_DEFAULT_TIER);
+  assert.equal(resolveOfficeTtsVoiceTier({ OFFICE_TTS_VOICE_TIER: 'wavenet' }), 'wavenet');
+  assert.equal(resolveOfficeTtsVoiceTier({ OFFICE_TTS_VOICE_TIER: ' Neural2 ' }), 'neural2');
+  assert.equal(
+    resolveOfficeTtsVoiceTier({ OFFICE_TTS_VOICE_TIER: 'chirp3' }),
+    OFFICE_TTS_DEFAULT_TIER
+  );
+});
+
+test('every Neural2 overlay locale covers exactly the canonical speaker ids', () => {
+  for (const [locale, names] of Object.entries(_NEURAL2_VOICE_NAMES)) {
+    assert.deepEqual(
+      Object.keys(names).sort(),
+      [...OFFICE_SPEAKER_IDS].sort(),
+      `${locale} Neural2 overlay drifted from OFFICE_SPEAKER_IDS`
+    );
+    for (const [id, name] of Object.entries(names)) {
+      assert.ok(
+        name.startsWith(`${locale}-Neural2-`),
+        `${locale}/${id} not a Neural2 name: ${name}`
+      );
+    }
+  }
 });
 
 test('every locale table covers exactly the canonical speaker ids', () => {
@@ -108,7 +153,45 @@ test('synthesizeOfficeSpeech sends the scaled rate in audioConfig', async () => 
   assert.equal(request.audioConfig.audioEncoding, 'MP3');
   assert.ok(Math.abs(request.audioConfig.speakingRate - authored.speakingRate * 1.25) < 1e-9);
   assert.equal(request.audioConfig.pitch, authored.pitch);
+  assert.equal(request.voice.name, 'en-US-Neural2-I');
+});
+
+test('synthesizeOfficeSpeech sends the WaveNet name under the wavenet tier', async () => {
+  /** @type {any} */
+  let request = null;
+  const client = {
+    async synthesizeSpeech(req) {
+      request = req;
+      return [{ audioContent: Buffer.from('fake-mp3-bytes') }];
+    }
+  };
+  await synthesizeOfficeSpeech(
+    { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
+    { VERTEX_PROJECT_ID: 'mermaidgen', OFFICE_TTS_VOICE_TIER: 'wavenet' },
+    { client }
+  );
   assert.equal(request.voice.name, 'en-US-Wavenet-I');
+});
+
+test('tiers cache separately because the voice name is in the key', async () => {
+  let calls = 0;
+  const client = {
+    async synthesizeSpeech() {
+      calls += 1;
+      return [{ audioContent: Buffer.from('fake-mp3-bytes') }];
+    }
+  };
+  const baseEnv = { VERTEX_PROJECT_ID: 'mermaidgen' };
+  const args = { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' };
+  const neural = await synthesizeOfficeSpeech(args, baseEnv, { client });
+  const wave = await synthesizeOfficeSpeech(
+    args,
+    { ...baseEnv, OFFICE_TTS_VOICE_TIER: 'wavenet' },
+    { client }
+  );
+  assert.equal(neural?.voiceName, 'en-US-Neural2-I');
+  assert.equal(wave?.voiceName, 'en-US-Wavenet-I');
+  assert.equal(calls, 2);
 });
 
 test('sanitizeOfficeTtsText strips emoji and caps length', () => {
@@ -143,7 +226,7 @@ test('synthesizeOfficeSpeech uses the injected client and caches', async () => {
   );
   assert.ok(first?.audioBase64);
   assert.equal(first.mimeType, 'audio/mpeg');
-  assert.equal(first.voiceName, 'en-US-Wavenet-I');
+  assert.equal(first.voiceName, 'en-US-Neural2-I');
   const second = await synthesizeOfficeSpeech(
     { speakerId: 'greybeard', text: 'We tried that in 2009.', lang: 'en-US' },
     env,

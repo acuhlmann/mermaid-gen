@@ -7,20 +7,20 @@
 
 ## 1. What we already shipped
 
-| Surface            | Spoken today?                                            | Notes                                                   |
-| ------------------ | -------------------------------------------------------- | ------------------------------------------------------- |
-| Walk-bys           | Yes — WaveNet when configured, else Web Speech           | Overheard colleague; cancels on dismiss / Focus Time    |
-| WG meeting beats   | Yes — paced to playback end                              | User raise-hand lines stay silent                       |
-| Cubicle battles    | Yes — lines + winner verdict spoken                      | Overheard argument (invite pill stays text-only)        |
-| Coffee break scene | Yes — watercooler lines paced + spoken when Narration on | Invite toast stays text-only; opt-in scene is overheard |
-| Emails             | **No**                                                   | Realistic: nobody reads your inbox aloud                |
-| IM pings           | **No**                                                   | Chat notifications — you read them                      |
-| Meeting invites    | No (calendar chime only)                                 | You read the toast                                      |
-| Soundscape         | N/A (non-verbal SFX)                                     | Stays Web Audio synthesized cues                        |
+| Surface            | Spoken today?                                                       | Notes                                                   |
+| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------------- |
+| Walk-bys           | Yes — Neural2 (WaveNet switchback) when configured, else Web Speech | Overheard colleague; cancels on dismiss / Focus Time    |
+| WG meeting beats   | Yes — paced to playback end                                         | User raise-hand lines stay silent                       |
+| Cubicle battles    | Yes — lines + winner verdict spoken                                 | Overheard argument (invite pill stays text-only)        |
+| Coffee break scene | Yes — watercooler lines paced + spoken when Narration on            | Invite toast stays text-only; opt-in scene is overheard |
+| Emails             | **No**                                                              | Realistic: nobody reads your inbox aloud                |
+| IM pings           | **No**                                                              | Chat notifications — you read them                      |
+| Meeting invites    | No (calendar chime only)                                            | You read the toast                                      |
+| Soundscape         | N/A (non-verbal SFX)                                                | Stays Web Audio synthesized cues                        |
 
 Toggle: inbox **Narration** (default on). Global sound gate + first-gesture policy still apply on mobile Safari/Chrome.
 
-**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (WaveNet + in-memory cache). Kill switch `OFFICE_TTS=0`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
+**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (Neural2 default for en locales, WaveNet switchback + zh fallback; in-memory cache). Kill switch `OFFICE_TTS=0`; tier switch `OFFICE_TTS_VOICE_TIER=wavenet`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
 
 ---
 
@@ -83,6 +83,24 @@ Cheap wins while Cloud TTS is optional:
 ~~**Shipped:**~~ dedicated `POST /api/office/speak`, WaveNet cast map + prosody in
 `officeTts.js`, client prefers cloud MP3 then Web Speech, battles + coffee spoken.
 
+### Phase B+ — Neural2 tier (shipped)
+
+WaveNet got its scheduled upgrade: **Neural2 is the default voice tier** for locales that
+have one, switched by `OFFICE_TTS_VOICE_TIER` (`neural2` default, `wavenet` = instant
+switchback to the old cast). Same `synthesizeSpeech` request shape, same
+speakingRate/pitch prosody — only the voice names change (`officeTts.js`
+`NEURAL2_VOICE_NAMES` overlay; prosody stays in the WaveNet table as the single source).
+
+| Locale | Default tier | Notes                                                                                      |
+| ------ | ------------ | ------------------------------------------------------------------------------------------ |
+| en-US  | Neural2      | A/C/D/E/F/G/H/I/J — no B, so helpdesk/critique (Wavenet-B males) remap to J/A, same gender |
+| en-AU  | Neural2      | A/B/C/D — letters and genders identical to the WaveNet set                                 |
+| zh-CN  | WaveNet      | No Neural2 cmn-CN voices exist (Chirp 3 HD exists but skips rate/pitch control)            |
+| zh-TW  | WaveNet      | No Neural2 **or** Chirp 3 HD — WaveNet is the top tier here                                |
+
+Cost: Neural2 free tier is 1M chars/month (vs WaveNet's 4M), then $16 / 1M chars — still
+effectively $0 at personal-app volume (~6,700 typical lines/month would exhaust the free pool).
+
 **Still useful follow-ups:**
 
 - Batch meeting-script audio during the “waiting to be admitted” gag (fewer round-trips).
@@ -122,7 +140,7 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 3. Phase A polish (duck soundscape, speaker sting, directory “Hear sample”).
 4. Batch meeting-script synthesize during join latency.
 5. Phase C bake canned battle/coffee/walk-by templates.
-6. Re-evaluate Neural2 / Chirp only if WaveNet still feels cheap after living with it.
+6. ~~Re-evaluate Neural2~~ ✅ shipped as the default tier (Phase B+); Chirp 3 HD stays skipped (2× price, no rate/pitch control for persona fingerprints).
 
 ---
 
@@ -131,9 +149,9 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 - [x] Same Narration / Focus Time / global mute behavior as Web Speech MVP
 - [x] Emails / IMs never synthesize
 - [x] Offline / API failure → Web Speech or reading-pace timers (no error toast)
-- [x] en-AU / zh-CN / zh-TW map onto WaveNet voice tables
+- [x] en-AU / zh-CN / zh-TW map onto voice tables (Neural2 for en locales, WaveNet for zh)
 - [x] Synthesize **server-side only** (`POST /api/office/speak`)
-- [ ] Character usage stays under WaveNet free tier in production (spot-check Metrics Explorer after deploy)
+- [ ] Character usage stays under the Neural2 1M-char free tier in production (spot-check Metrics Explorer after deploy)
 - [ ] `texttospeech.googleapis.com` enabled on deploy project (runtime SA already has Editor on `mermaidgen`)
 
 ---
