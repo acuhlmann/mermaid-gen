@@ -1,6 +1,14 @@
 # Content types
 
-The active content type defaults to `mermaid` and is persisted in `localStorage` under `archislop:content-mode`. **Auto**, **Mermaid**, **Infographic**, **Metaphor3D**, **Chart**, **Anything**, and **Forms** are all persisted across page reloads.
+The active content type defaults to `mermaid`. The mode picker — **Auto** plus all six concrete slots — is persisted in `localStorage` under `archislop:content-mode` and restored on reload via `readStoredContentMode()` in `apps/web/src/utils/appSessionLocation.js`.
+
+**Persistence model (three layers):**
+
+| Layer                | What survives a reload                                             | Notes                                                                                                                                            |
+| -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mode picker          | All seven options                                                  | `archislop:content-mode`                                                                                                                         |
+| Client diagram cache | Insights, editor chrome, and the **active** slot's `diagramSource` | Key `archislop:diagram-cache-v2:{sessionId}`; Anything writes `diagramSource: ''` (large/untrusted HTML)                                         |
+| Server slot state    | All six slots while the process and `x-session-id` stay alive      | In-memory per server process; not Redis-backed — a cold server restart clears slots unless the client cache can restore the active mode's source |
 
 ## Auto mode
 
@@ -83,7 +91,7 @@ The `chart` slot stores a Vega-Lite-compatible DSL. The agent writes valid Vega-
 - Validation: `validateAndPrepareChartPatch` in `apps/server/src/tools/chartDslTool.js`.
 - Agent service: `ChartAgentService` (`apps/server/src/agents/chartLangChainAgent.js`).
 - **Style** edits are also supported for the chart slot (same `/api/copilotkit/style` route as Mermaid).
-- Chart mode is **not persisted** in `localStorage`; a page reload returns to Mermaid.
+- Chart mode follows the persistence model above — the picker and active-slot source are cached client-side; server slot data survives reload while the session is still on the same server process.
 
 ## anything
 
@@ -108,7 +116,7 @@ Server-side validation is deterministic (`parseAnythingHtml` shape check, `lintA
 - Agent service: `apps/server/src/agents/anythingLangChainAgent.js` (intent/transform/analyze; no Style support). Mutations use `apply_anything_patch` (full rewrite) or `apply_anything_edit` (atomic search/replace blocks, preferred for Refine/Exec/Fix; same validation ladder either way).
 - Offline bench: `node apps/server/scripts/benchAnything.js --tag <label>` (see [Validation & repair](validation.md#offline-bench)).
 - The canvas disables pan/zoom in this mode — the iframe owns scrolling and interaction (same treatment as `metaphor3d`).
-- Anything mode is **not persisted** in `localStorage` (diagram source is omitted from the client cache when active); a page reload returns to Mermaid.
+- Anything mode persists in the mode picker, but `App.jsx` writes `diagramSource: ''` into the client diagram cache while Anything is active (large/untrusted HTML). After a server restart the slot is empty unless the user regenerates or restores from an insights entry.
 
 **MCP / external agents:** session state and MCP resources expose raw Anything HTML in JSON — in marker form (`@lib:` markers are NOT expanded; call `expandAnythingLibs` from `@archislop/shared/anythingLibVendor.js` if you must execute the page). Treat it as untrusted — never execute outside the same sandbox + CSP wrapper.
 
@@ -126,6 +134,6 @@ The document is a JSON wrapper `{ archislopFormsVersion, formTitle, formCode?, m
 - Renderer + submit loop: `apps/web/src/components/FormsRenderer.jsx` (`@a2ui/react` + `basicCatalog`; `onFormSubmit` → the next-form intent). The empty canvas shows a client-side seed form (`buildFormsSeedDoc`) so the gauntlet is interactive immediately; submitting the seed persists it into the slot before asking for the next form.
 - The canvas disables pan/zoom in this mode and opts back into normal `touch-action` / text selection — the A2UI surface owns scrolling and native form interaction (same treatment as `anything`).
 - Forms sits after Chart and before Anything in the mode picker.
-- Forms mode is **web-only and not persisted** in `localStorage`; a page reload returns to Mermaid, and MCP hosts do not render it.
+- Forms mode persists in the mode picker and client cache like Chart; it is **web-only** — MCP hosts do not render the Forms slot (session state may still carry the A2UI JSON for programmatic consumers).
 
 See also [Agents](agents.md) and [Validation & repair](validation.md).

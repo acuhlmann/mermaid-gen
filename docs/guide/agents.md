@@ -12,16 +12,19 @@ flowchart TB
   D -->|"contentType=metaphor3d"| MES["MetaphorAgentService\nmetaphorLangChainAgent.js"]
   D -->|"contentType=chart"| CAS["ChartAgentService\nchartLangChainAgent.js"]
   D -->|"contentType=anything"| AAS["AnythingAgentService\nanythingLangChainAgent.js"]
+  D -->|"contentType=forms"| FAS["FormsAgentService\nformsLangChainAgent.js"]
   MAS --> MT["Mermaid tools\napply_mermaid_patch\nget_diagram_state"]
   IAS --> IT["Infographic tools\napply_infographic_patch\nget_diagram_state"]
   MES --> MET["Metaphor tools\napply_metaphor_patch\nget_diagram_state"]
   CAS --> CT["Chart tools\napply_chart_patch\nget_diagram_state"]
   AAS --> AT["Anything tools\napply_anything_patch\napply_anything_edit\nget_anything_html"]
+  FAS --> FT["Forms tools\napply_forms_patch\nget_diagram_state"]
   MT --> MV["validateAndPreparePatch\n(Mermaid 4-layer ladder)"]
   IT --> IV["validateAndPrepareInfographicPatch\n(2-layer: sanitizer + parseSyntax)"]
   MET --> MEV["validateAndPrepareMetaphorPatch\n(schema + sanitizer + syntax fixer)"]
   CT --> CV["validateAndPrepareChartPatch\n(DSL parse + schema)"]
   AT --> AV["validateAndPrepareAnythingPatch\n(shape + policy + quality + runtime check)"]
+  FT --> FV["validateAndPrepareFormsPatch\n(parseFormsA2ui allowlist)"]
 ```
 
 ## Roles: intent vs transform vs analysis
@@ -40,7 +43,7 @@ flowchart TB
     A --> Text[Markdown prose]
   end
 
-  Tools --> V["validateAndPrepare*Patch\n(Mermaid or Infographic)"]
+  Tools --> V["validateAndPrepare*Patch\n(per-slot ladder)"]
   V --> SS[(State store slot\n+ revision)]
 ```
 
@@ -69,7 +72,7 @@ Validation and repair ladders: [Validation & repair](validation.md).
 
 ## Interaction flow
 
-1. User picks **Mode** (Diagram, Infographic, 3D, Chart, or Anything) from the AI corner controls; the UI persists the choice (Mermaid, Infographic, and Metaphor3D only) and includes `contentType` in every subsequent request.
+1. User picks **Mode** (**Auto**, Diagram, Infographic, 3D, Chart, Forms, or Anything) from the AI corner controls; the UI persists the choice in `archislop:content-mode` and includes `contentType` in every subsequent request.
 2. User edits source or loads state; client syncs via `GET`/`POST /api/copilotkit/state` with `contentType`.
 3. **Go** and **Fix from critique** use the **intent** operation: `POST /api/copilotkit/agent-stream` with `operation: intent`, or `POST /api/copilotkit/intent` without streaming. The active `contentType` is forwarded. **Syntax auto-fix** for Mermaid and Anything tries the fast-path `POST /api/diagram/render-error` first (one fixer call, no agent loop) and only falls back to the intent operation on rejection.
 4. **Refine / Innovate / Go Mad** use `agent-stream` or `POST /api/copilotkit/transform` with `mode` and optional `goMadDepth`.
