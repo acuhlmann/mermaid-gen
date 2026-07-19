@@ -461,7 +461,9 @@ export const IDLE_TIPS = [
   'If your compression algorithm also compresses morale, call it culture.',
   'Series A is when the fridge gets a name. Series B is when Gary locks the thermostat.',
   'Minimum viable product means maximum viable PowerPoint.',
-  'The best middleware is the one nobody admits still runs in production.'
+  'The best middleware is the one nobody admits still runs in production.',
+  'Six slots, one canvas: Mermaid for boxes, Chart for numbers, Anything for chaos.',
+  'Slop Chat™ colleagues remember what you said — try not to panic.'
 ];
 
 /** Pick a tip for the given rotation index (stable, no random). */

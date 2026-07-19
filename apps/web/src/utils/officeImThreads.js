@@ -46,3 +46,24 @@ export function groupImThreads(messages) {
     }))
     .sort((a, b) => b.last.createdAt - a.last.createdAt);
 }
+
+/**
+ * Build a compact transcript for IM reply prompts — last few turns with the
+ * named colleague, oldest first.
+ *
+ * @param {OfficeImMessage[] | null | undefined} messages
+ * @param {string} colleagueId
+ * @param {number} [limit]
+ * @returns {Array<{ from: 'user' | 'colleague', body: string }>}
+ */
+export function threadTranscriptFor(messages, colleagueId, limit = 8) {
+  if (!colleagueId) return [];
+  const safeLimit = Math.max(1, Math.min(12, limit));
+  return (messages ?? [])
+    .filter((msg) => msg.colleagueId === colleagueId)
+    .slice(-safeLimit)
+    .map((msg) => ({
+      from: msg.outbound ? 'user' : 'colleague',
+      body: String(msg.body ?? '').slice(0, 300)
+    }));
+}

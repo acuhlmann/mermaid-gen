@@ -83,6 +83,19 @@ describe('useDeskActions', () => {
     expect(getOfficeSnapshot().imPings.length).toBe(1);
   });
 
+  it('delivers a contextual canned IM reply when the user messages someone', async () => {
+    const { result } = renderHook(() => useDeskActions(BASE_PARAMS));
+    await act(async () => {
+      await result.current.imSomeone('intern', {
+        userMessage: 'is this diagram too spicy?',
+        threadTranscript: [{ from: 'user', body: 'is this diagram too spicy?' }]
+      });
+    });
+    const ping = getOfficeSnapshot().imPings[0];
+    expect(ping).toBeTruthy();
+    expect(ping.body.toLowerCase()).toContain('spicy');
+  });
+
   it('stops spending LLM calls once the desk budget is gone', async () => {
     // Server answers, so each verb spends one desk LLM call.
     const fetchMock = vi.fn(() =>

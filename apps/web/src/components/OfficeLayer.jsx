@@ -67,6 +67,7 @@ import {
   OFFICE_NARRATION_GAP_MS,
   speakOfficeLine
 } from '../utils/officeNarration.js';
+import { threadTranscriptFor } from '../utils/officeImThreads.js';
 
 /**
  * The Office Update™ (docs/office-parody.md) — single mount point for all
@@ -295,17 +296,6 @@ export default function OfficeLayer({
     [onOfficeEvent]
   );
 
-  const handleQuickReply = useCallback(
-    (ping, reply) => {
-      // Record the user's side too, so the toast reply is still there in the
-      // messenger scrollback after the toast itself expires.
-      pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
-      dismissOfficeImPing(ping.id);
-      onOfficeEvent?.('imReply');
-    },
-    [onOfficeEvent]
-  );
-
   const [messengerOpen, setMessengerOpen] = useState(false);
   const [messengerBusy, setMessengerBusy] = useState(false);
   const handleOpenMessenger = useCallback(() => setMessengerOpen(true), []);
@@ -403,10 +393,24 @@ export default function OfficeLayer({
       onOfficeEvent?.('imReply');
       setMessengerBusy(true);
       try {
-        await desk.imSomeone(colleagueId);
+        const history = getOfficeSnapshot().imHistory;
+        const threadTranscript = threadTranscriptFor(history, colleagueId);
+        await desk.imSomeone(colleagueId, { userMessage: body, threadTranscript });
       } finally {
         setMessengerBusy(false);
       }
+    },
+    [desk, onOfficeEvent]
+  );
+
+  const handleQuickReply = useCallback(
+    async (ping, reply) => {
+      pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
+      dismissOfficeImPing(ping.id);
+      onOfficeEvent?.('imReply');
+      const history = getOfficeSnapshot().imHistory;
+      const threadTranscript = threadTranscriptFor(history, ping.colleagueId);
+      await desk.imSomeone(ping.colleagueId, { userMessage: reply, threadTranscript });
     },
     [desk, onOfficeEvent]
   );

@@ -245,8 +245,16 @@ diagram. Max 300 chars. Include "subject" as the meeting title (max 90 chars, re
 recurring corporate invite, e.g. "Architecture Review Board (steering)").`
 };
 
-export function buildMomentSystemPrompt({ kind, colleagueId, uiLocale }) {
+export function buildMomentSystemPrompt({ kind, colleagueId, uiLocale, isReply = false }) {
   const voice = speakerVoice(colleagueId);
+  const replyRule =
+    kind === 'im' && isReply
+      ? `
+IM REPLY MODE (overrides the usual "surprise me" rule):
+- The user just sent you a chat message. Your "body" must directly acknowledge what they said —
+answer their question, react to their tone, or continue the thread naturally.
+- Do NOT pivot to a random new topic or send a cold-open ping.`
+      : '';
   return `${voice}
 
 You are writing ONE office "${kind}" moment inside a parody corporate-IT workplace where the user
@@ -263,7 +271,7 @@ only when your moment genuinely proposes a change. Omit the key entirely otherwi
 - Reference at least one visible label when the moment is about the diagram. Pure office noise
 (fridge, passwords, trainings) may ignore the diagram.
 - MUST SURPRISE. Avoid every angle listed under "recent moments".
-- Never claim you changed anything. Stay comedic, never mean, never blocking.${buildOfficeLanguageRule(uiLocale)}`;
+- Never claim you changed anything. Stay comedic, never mean, never blocking.${replyRule}${buildOfficeLanguageRule(uiLocale)}`;
 }
 
 export function buildMomentUserPrompt({
@@ -271,7 +279,10 @@ export function buildMomentUserPrompt({
   diagramSource,
   visibleLabels,
   recentMoments,
-  uiLocale
+  uiLocale,
+  userName,
+  userMessage,
+  threadTranscript
 }) {
   const labels =
     Array.isArray(visibleLabels) && visibleLabels.length > 0
@@ -291,7 +302,22 @@ export function buildMomentUserPrompt({
     typeof diagramSource === 'string' && diagramSource.trim()
       ? diagramSource.slice(0, 4000)
       : '(empty)';
+  const transcript =
+    Array.isArray(threadTranscript) && threadTranscript.length > 0
+      ? threadTranscript
+          .slice(-8)
+          .map(
+            (line) =>
+              `- ${line.from === 'user' ? 'USER' : 'YOU'}: ${String(line.body).slice(0, 200)}`
+          )
+          .join('\n')
+      : null;
+  const safeUserName =
+    typeof userName === 'string' && userName.trim() ? userName.trim().slice(0, 80) : null;
+  const safeUserMessage =
+    typeof userMessage === 'string' && userMessage.trim() ? userMessage.trim().slice(0, 400) : null;
   return [
+    safeUserName ? `The user's name is ${safeUserName}.` : null,
     `Diagram type: ${contentType || 'mermaid'}`,
     '',
     'Visible labels (what the user is working on):',
@@ -299,6 +325,15 @@ export function buildMomentUserPrompt({
     '',
     'Recent moments (avoid repetition):',
     recent,
+    transcript
+      ? [
+          '',
+          'Slop Chat thread so far (oldest first):',
+          transcript,
+          '',
+          `THE USER JUST SENT: "${safeUserMessage}"`
+        ]
+      : null,
     '',
     'Current diagram source (for context):',
     '```',
@@ -306,7 +341,10 @@ export function buildMomentUserPrompt({
     '```',
     '',
     `Reply with strict JSON now.${buildOfficeLanguageReminder(uiLocale)}`
-  ].join('\n');
+  ]
+    .flat()
+    .filter((line) => line !== null)
+    .join('\n');
 }
 
 export function buildMeetingSystemPrompt({ attendees, facilitatorId, uiLocale }) {

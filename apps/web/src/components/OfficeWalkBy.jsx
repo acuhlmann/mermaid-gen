@@ -16,6 +16,14 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
     <div className="office-walkby" role="status" aria-live="polite">
       <PersonaFace id={walkBy.colleagueId} size={40} className="office-walkby-avatar" />
       <div className="office-walkby-bubble">
+        <button
+          type="button"
+          className="office-walkby-dismiss"
+          aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
+          onClick={() => onDismiss?.(walkBy.id)}
+        >
+          ×
+        </button>
         <div className="office-walkby-name">
           {sender.name}
           {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
@@ -31,14 +39,6 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
           </button>
         ) : null}
       </div>
-      <button
-        type="button"
-        className="office-walkby-dismiss"
-        aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
-        onClick={() => onDismiss?.(walkBy.id)}
-      >
-        ×
-      </button>
     </div>
   );
 }

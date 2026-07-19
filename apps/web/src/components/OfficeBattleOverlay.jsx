@@ -110,12 +110,14 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
             topic: battle.topic
           })}
         </span>
-        <button type="button" className="office-battle-accept" onClick={onAccept}>
-          {copy.battle.accept}
-        </button>
-        <button type="button" className="office-battle-decline" onClick={onDone}>
-          {copy.battle.decline}
-        </button>
+        <div className="office-battle-invite-actions">
+          <button type="button" className="office-battle-accept" onClick={onAccept}>
+            {copy.battle.accept}
+          </button>
+          <button type="button" className="office-battle-decline" onClick={onDone}>
+            {copy.battle.decline}
+          </button>
+        </div>
       </div>
     );
   }

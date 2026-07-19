@@ -15,6 +15,10 @@ export const SLOPITECT_GAMIFICATION_EN = {
       'Mythic synergy unlocked. Recruiters appear in dreams.',
       'You ARE the architecture now. Frame this in HR.'
     ],
+    greetingNamed: 'Welcome back, {userName}.',
+    greetingDefault: 'Welcome back, Slopitect.',
+    slotsLede:
+      'Six diagram slots — Mermaid, Infographic, Chart, 3D Metaphor, Anything, Forms — each keeps its own revision history.',
     nextLevelTaunts: [
       'so close the synergy can taste it.',
       'one good Co-Design away.',
@@ -36,7 +40,7 @@ export const SLOPITECT_GAMIFICATION_EN = {
     cleared: 'cleared',
     engineTitle: 'Slop Engine',
     engineLede:
-      'Every completed run pays XP. Stack streaks, combos and Go Mad depth to mint extra.',
+      'Every completed persona run pays XP — Refine, Innovate, Go Mad, Critique, Explain — across any diagram slot. Stack streaks, combos, and Go Mad depth to mint extra.',
     variantMetaSuffix: 'per streak',
     goMadDepthBonus: '· +35 depth ≥ 3',
     comboLine: 'chain two personas in a row inside 6s for +8 (+4 per extra link).',

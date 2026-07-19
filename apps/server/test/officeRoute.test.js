@@ -56,6 +56,31 @@ test('office walkby with an empty diagram short-circuits to a null moment', asyn
   }
 });
 
+test('office moment accepts optional IM reply context fields', async () => {
+  const { port, closeServer } = await bootServer();
+  try {
+    const badTranscript = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      userMessage: 'can we ship this today?',
+      threadTranscript: [{ from: 'ghost', body: 'nope' }]
+    });
+    assert.equal(badTranscript.status, 400);
+
+    const valid = await post(port, 'moment', {
+      kind: 'im',
+      colleagueId: 'intern',
+      diagramSource: 'flowchart TD\n A-->B',
+      userMessage: 'can we ship this today?',
+      threadTranscript: [{ from: 'user', body: 'can we ship this today?' }]
+    });
+    assert.ok(valid.status === 200 || valid.status === 503);
+  } finally {
+    await closeServer();
+  }
+});
+
 test('office moment reports 503 when no LLM is configured', async () => {
   // The test environment has no provider keys, so the model factory yields null.
   const { port, closeServer } = await bootServer();

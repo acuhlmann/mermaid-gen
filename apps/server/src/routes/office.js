@@ -30,6 +30,11 @@ import { isOfficeTtsEnabled, synthesizeOfficeSpeech } from '../agents/officeTts.
  */
 const UiLocaleField = z.string().max(16).optional();
 
+const OfficeThreadLineSchema = z.object({
+  from: z.enum(['user', 'colleague']),
+  body: z.string().max(300)
+});
+
 const OfficeMomentRequestSchema = z.object({
   kind: OfficeMomentKindSchema,
   colleagueId: z.string().refine(isOfficeSpeaker, { message: 'unknown colleague' }),
@@ -37,7 +42,10 @@ const OfficeMomentRequestSchema = z.object({
   diagramSource: z.string().max(20_000).default(''),
   visibleLabels: z.array(z.string().max(200)).max(60).default([]),
   recentMoments: z.array(z.string().max(400)).max(5).default([]),
-  uiLocale: UiLocaleField
+  uiLocale: UiLocaleField,
+  userName: z.string().max(80).optional(),
+  userMessage: z.string().max(400).optional(),
+  threadTranscript: z.array(OfficeThreadLineSchema).max(12).optional()
 });
 
 const OfficeMeetingRequestSchema = z.object({
@@ -110,7 +118,8 @@ export function createOfficeRouter() {
     const system = buildMomentSystemPrompt({
       kind: payload.kind,
       colleagueId: payload.colleagueId,
-      uiLocale: payload.uiLocale
+      uiLocale: payload.uiLocale,
+      isReply: Boolean(payload.userMessage?.trim())
     });
     const user = buildMomentUserPrompt(payload);
     const officeModel = resolveOfficeModelId(process.env);
