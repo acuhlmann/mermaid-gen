@@ -32,5 +32,11 @@ export default defineConfig({
     // Mermaid lazy-loads diagram chunks; pre-bundle the core entry so Vite does not serve
     // stale split chunks (504 Outdated Optimize Dep) after dependency changes.
     include: ['source-map-js', 'path-browserify', '@antv/infographic', 'mermaid', 'vega-embed']
+  },
+  test: {
+    // Node 25+ enables experimental Web Storage on globalThis; that empty proxy
+    // blocks jsdom from installing a real window.localStorage. Disable it so
+    // Vitest jsdom environments own storage (see nodejs/node#60303).
+    execArgv: ['--no-experimental-webstorage']
   }
 });

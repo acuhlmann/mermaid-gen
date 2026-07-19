@@ -13,11 +13,13 @@
  */
 
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 export const DEFAULT_ANYTHING_RUNTIME_TIMEOUT_MS = 4000;
 export const DEFAULT_ANYTHING_RUNTIME_SETTLE_MS = 250;
 
-const SANDBOX_PATH = new URL('./anythingRuntimeSandbox.js', import.meta.url).pathname;
+// fileURLToPath (not URL.pathname) so Windows gets `D:\...` instead of `/D:/...`.
+const SANDBOX_PATH = fileURLToPath(new URL('./anythingRuntimeSandbox.js', import.meta.url));
 const SANDBOX_MAX_OLD_SPACE_MB = 256;
 
 /**

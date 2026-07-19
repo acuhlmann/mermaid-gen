@@ -9,6 +9,7 @@
 ## Tests
 
 - `npm test` — full workspace test suite.
+- The repo pins Node 26 (`.nvmrc`). `apps/web` Vitest passes `--no-experimental-webstorage` via `test.execArgv` so Node's experimental Web Storage global does not shadow jsdom's `localStorage` (needed on Node 25+; accepted no-op on older majors).
 - `node apps/server/scripts/benchMermaid.js --tag <label>` — offline bench that replays a fixed corpus through `validateAndPreparePatch` and reports sanitizer-rescue rate, validator breakdown, and latency percentiles. Snapshots land in `apps/server/bench-results/<tag>-<iso>.json` (committed baselines for regression comparison; regenerate with the script, do not hand-edit); exits non-zero on regressions.
 - `node apps/server/scripts/benchAnything.js --tag <label>` — same pattern for Anything mode: replays valid / policy-violating / broken / runtime-failing HTML documents through `validateAndPrepareAnythingPatch` (full ladder including the jsdom runtime check) and reports accept rate, rejection-code breakdown, runtime-catch rate, doc sizes, and latency percentiles. Exits non-zero when outcomes drift from expectations.
 
