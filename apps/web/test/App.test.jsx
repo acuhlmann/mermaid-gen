@@ -1,6 +1,14 @@
 // @vitest-environment jsdom
 import { createInitialDiagramState } from '@archislop/shared';
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  configure,
+  fireEvent,
+  render,
+  screen,
+  waitFor
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
 
@@ -121,8 +129,10 @@ function pickContentMode(modeLabel) {
   );
 }
 
-describe('App simplified controls', () => {
+describe('App simplified controls', { timeout: 20_000 }, () => {
   beforeEach(() => {
+    // Full-suite pre-push runs can starve jsdom; RTL defaults (1s) flake under load.
+    configure({ asyncUtilTimeout: 10_000 });
     vi.useRealTimers();
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
@@ -653,6 +663,7 @@ describe('App simplified controls', () => {
   });
 
   it('auto-closes Thinking on mobile after Refine applies a diagram revision', async () => {
+    // Full-suite runs can exceed the default 5s when many App tests share one worker.
     readDiagramCacheMock.mockReturnValue({
       insightsEntries: [
         {
@@ -718,7 +729,7 @@ describe('App simplified controls', () => {
     } finally {
       globalThis.matchMedia = previousMatchMedia;
     }
-  });
+  }, 15000);
 
   it('retries a failed transform from the insight card', async () => {
     let transformCalls = 0;
@@ -769,6 +780,7 @@ describe('App simplified controls', () => {
   });
 
   it('does not re-submit intent when switching back after a mode-switch sync', async () => {
+    // Same full-suite headroom as the mobile auto-close test above.
     const previousMatchMedia = globalThis.matchMedia;
     globalThis.matchMedia = vi.fn().mockImplementation((query) => ({
       matches: query.includes('prefers-reduced-motion'),
@@ -853,7 +865,7 @@ describe('App simplified controls', () => {
     expect(intentCalls).toHaveLength(0);
 
     globalThis.matchMedia = previousMatchMedia;
-  });
+  }, 15000);
 
   it('auto-submits intent with peerContext when switching to infographic after Refine without lastUserPrompt', async () => {
     const mermaidFromRefine = {
