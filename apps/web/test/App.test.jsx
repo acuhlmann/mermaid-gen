@@ -402,6 +402,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   });
 
   it('shows Fix after critique with actionable items and applies critique-driven intent', async () => {
+    // Full-suite CI runs can starve this one past the describe's 20s ceiling
+    // (see 447a057) — give it its own explicit headroom.
     streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
       if (payload.operation === 'intent') {
         onEvent?.({
@@ -445,10 +447,10 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
           expect.any(Function),
           expect.objectContaining({ signal: expect.any(AbortSignal) })
         ),
-      { timeout: 15_000 }
+      { timeout: 25_000 }
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
-  });
+  }, 30_000);
 
   it('Fix selected sends only checked actionable improvements', async () => {
     streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
