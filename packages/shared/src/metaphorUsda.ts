@@ -87,6 +87,17 @@ const KIND_ITEM_FIELDS: Record<MetaphorBaseKind, ItemFieldMapping[]> = {
     { field: 'axle', type: 'string' },
     { field: 'torque', type: 'double' },
     { field: 'mesh', type: 'rel' }
+  ],
+  bridge: [
+    { field: 'span', type: 'double' },
+    { field: 'load', type: 'double' },
+    { field: 'side', type: 'string' },
+    { field: 'strain', type: 'double' }
+  ],
+  cycle: [
+    { field: 'phase', type: 'double' },
+    { field: 'size', type: 'double' },
+    { field: 'friction', type: 'double' }
   ]
 };
 

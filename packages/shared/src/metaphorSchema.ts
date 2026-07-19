@@ -11,7 +11,9 @@ export const METAPHOR_BASE_KINDS = [
   'river',
   'garden',
   'archipelago',
-  'machine'
+  'machine',
+  'bridge',
+  'cycle'
 ] as const;
 export const MetaphorBaseKindSchema = z.enum(METAPHOR_BASE_KINDS);
 
@@ -24,6 +26,13 @@ export const MetaphorKindSchema = z.enum(METAPHOR_KINDS);
 
 export const METAPHOR_THEMES = ['whiteboard', 'noir', 'arcade', 'blueprint'] as const;
 export const MetaphorThemeSchema = z.enum(METAPHOR_THEMES).default('whiteboard');
+
+/**
+ * Optional scene atmosphere the agent picks from the topic's mood. The renderer
+ * maps it to sky, fog, light tint, and ambient particles — never to encodings.
+ */
+export const METAPHOR_MOODS = ['day', 'dawn', 'dusk', 'night', 'storm', 'ember', 'aurora'] as const;
+export const MetaphorMoodSchema = z.enum(METAPHOR_MOODS);
 
 export const METAPHOR_CAMERAS = ['orbit', 'isometric', 'cinematic'] as const;
 export const MetaphorCameraSchema = z.enum(METAPHOR_CAMERAS).default('orbit');
@@ -86,7 +95,13 @@ export const MetaphorLegendSchema = z
     chain: z.string().max(80).optional(),
     speed: z.string().max(80).optional(),
     axle: z.string().max(80).optional(),
-    torque: z.string().max(80).optional()
+    torque: z.string().max(80).optional(),
+    span: z.string().max(80).optional(),
+    load: z.string().max(80).optional(),
+    side: z.string().max(80).optional(),
+    strain: z.string().max(80).optional(),
+    phase: z.string().max(80).optional(),
+    friction: z.string().max(80).optional()
   })
   .strict();
 
@@ -114,6 +129,7 @@ export const MetaphorSceneSchema = z
     title: z.string().max(160).optional(),
     subtitle: z.string().max(200).optional(),
     legend: MetaphorLegendSchema.optional(),
+    mood: MetaphorMoodSchema.optional(),
     nebula: z.array(MetaphorNebulaSchema).max(8).optional(),
     surface: MetaphorSurfaceSchema.optional()
   })
@@ -314,6 +330,42 @@ export const MachineMetaphorSchema = z.object({
   links: MetaphorLinksField
 });
 
+export const BRIDGE_MAX_ITEMS = 30;
+export const BridgeItemSchema = MetaphorItemBase.extend({
+  /** Position along the crossing, 0 (near shore) → 100 (far shore). */
+  span: z.number().min(0).max(100).default(0),
+  /** Tower scale / relative importance of this connection point. */
+  load: z.number().positive().max(10).default(3),
+  /** Shore/system grouping label (which side or domain this point serves). */
+  side: z.string().max(64).optional(),
+  /** 0–1 structural strain — high values sag the deck and crack the tower. */
+  strain: z.number().min(0).max(1).optional()
+});
+
+export const BridgeMetaphorSchema = z.object({
+  metaphor: z.literal('bridge'),
+  scene: MetaphorSceneSchema,
+  items: z.array(BridgeItemSchema).max(BRIDGE_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
+export const CYCLE_MAX_ITEMS = 24;
+export const CycleItemSchema = MetaphorItemBase.extend({
+  /** Position around the loop, 0–100 (wraps; ties keep authoring order). */
+  phase: z.number().min(0).max(100).default(0),
+  /** Pod scale / relative importance of this step in the cycle. */
+  size: z.number().positive().max(10).default(3),
+  /** 0–1 drag at this step — the pod slowing the loop, rendered hot. */
+  friction: z.number().min(0).max(1).optional()
+});
+
+export const CycleMetaphorSchema = z.object({
+  metaphor: z.literal('cycle'),
+  scene: MetaphorSceneSchema,
+  items: z.array(CycleItemSchema).max(CYCLE_MAX_ITEMS).default([]),
+  links: MetaphorLinksField
+});
+
 /**
  * Composite v2 fuses semantic layers into one planned world. The v1
  * `adjacent` and `overlay` layouts remain accepted for authored compatibility.
@@ -360,7 +412,9 @@ const BASE_METAPHOR_SCHEMA_BY_KIND = {
   river: RiverMetaphorSchema,
   garden: GardenMetaphorSchema,
   archipelago: ArchipelagoMetaphorSchema,
-  machine: MachineMetaphorSchema
+  machine: MachineMetaphorSchema,
+  bridge: BridgeMetaphorSchema,
+  cycle: CycleMetaphorSchema
 } as const;
 
 export const CompositeMetaphorSchema = z
@@ -444,12 +498,15 @@ export const MetaphorDslSchema = z.discriminatedUnion('metaphor', [
   GardenMetaphorSchema,
   ArchipelagoMetaphorSchema,
   MachineMetaphorSchema,
+  BridgeMetaphorSchema,
+  CycleMetaphorSchema,
   CompositeMetaphorSchema
 ]);
 
 export type MetaphorKind = z.infer<typeof MetaphorKindSchema>;
 export type MetaphorBaseKind = z.infer<typeof MetaphorBaseKindSchema>;
 export type MetaphorTheme = z.infer<typeof MetaphorThemeSchema>;
+export type MetaphorMood = z.infer<typeof MetaphorMoodSchema>;
 export type MetaphorCamera = z.infer<typeof MetaphorCameraSchema>;
 export type MetaphorGlyph = z.infer<typeof MetaphorGlyphSchema>;
 export type MetaphorLegend = z.infer<typeof MetaphorLegendSchema>;
@@ -469,6 +526,8 @@ export type RiverItem = z.infer<typeof RiverItemSchema>;
 export type GardenItem = z.infer<typeof GardenItemSchema>;
 export type ArchipelagoItem = z.infer<typeof ArchipelagoItemSchema>;
 export type MachineItem = z.infer<typeof MachineItemSchema>;
+export type BridgeItem = z.infer<typeof BridgeItemSchema>;
+export type CycleItem = z.infer<typeof CycleItemSchema>;
 export type CityMetaphor = z.infer<typeof CityMetaphorSchema>;
 export type LayercakeMetaphor = z.infer<typeof LayercakeMetaphorSchema>;
 export type GalaxyMetaphor = z.infer<typeof GalaxyMetaphorSchema>;
@@ -479,6 +538,8 @@ export type RiverMetaphor = z.infer<typeof RiverMetaphorSchema>;
 export type GardenMetaphor = z.infer<typeof GardenMetaphorSchema>;
 export type ArchipelagoMetaphor = z.infer<typeof ArchipelagoMetaphorSchema>;
 export type MachineMetaphor = z.infer<typeof MachineMetaphorSchema>;
+export type BridgeMetaphor = z.infer<typeof BridgeMetaphorSchema>;
+export type CycleMetaphor = z.infer<typeof CycleMetaphorSchema>;
 export type CompositeLayout = z.infer<typeof CompositeLayoutSchema>;
 export type CompositeSeed = z.infer<typeof CompositeSeedSchema>;
 export type MetaphorCompositeLayer = z.infer<typeof MetaphorCompositeLayerSchema>;

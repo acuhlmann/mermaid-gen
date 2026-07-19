@@ -1,10 +1,12 @@
 import {
   ARCHIPELAGO_MAX_ITEMS,
+  BRIDGE_MAX_ITEMS,
   CITY_CONDITION,
   CITY_LIGHTING,
   CITY_MAX_ITEMS,
   COMPOSITE_LAYOUTS,
   COMPOSITE_MAX_LAYERS,
+  CYCLE_MAX_ITEMS,
   GALAXY_MAX_ITEMS,
   GARDEN_HEALTH,
   GARDEN_MAX_ITEMS,
@@ -15,6 +17,7 @@ import {
   METAPHOR_KINDS,
   METAPHOR_LINK_KINDS,
   METAPHOR_MAX_LINKS,
+  METAPHOR_MOODS,
   MetaphorDslSchema,
   ORRERY_MAX_ITEMS,
   RIVER_MAX_ITEMS,
@@ -53,6 +56,8 @@ const MAX_ITEMS_BY_KIND: Record<MetaphorKind, number> = {
   garden: GARDEN_MAX_ITEMS,
   archipelago: ARCHIPELAGO_MAX_ITEMS,
   machine: MACHINE_MAX_ITEMS,
+  bridge: BRIDGE_MAX_ITEMS,
+  cycle: CYCLE_MAX_ITEMS,
   // Composite stores items on layers; top-level items stay empty.
   composite: 0
 };
@@ -311,6 +316,54 @@ function rescueNumericRanges(working: Record<string, unknown>, applied: string[]
         }
       }
     }
+
+    if (kind === 'bridge') {
+      if (typeof item.span === 'number' && Number.isFinite(item.span)) {
+        const clamped = clampNumber(item.span, 0, 100);
+        if (clamped !== item.span) {
+          item.span = clamped;
+          applied.push('clamp-span');
+        }
+      }
+      if (typeof item.load === 'number' && Number.isFinite(item.load)) {
+        const clamped = clampNumber(item.load, 0.1, 10);
+        if (clamped !== item.load) {
+          item.load = clamped;
+          applied.push('clamp-load');
+        }
+      }
+      if (typeof item.strain === 'number' && Number.isFinite(item.strain)) {
+        const clamped = clampNumber(item.strain, 0, 1);
+        if (clamped !== item.strain) {
+          item.strain = clamped;
+          applied.push('clamp-strain');
+        }
+      }
+    }
+
+    if (kind === 'cycle') {
+      if (typeof item.phase === 'number' && Number.isFinite(item.phase)) {
+        const clamped = clampNumber(item.phase, 0, 100);
+        if (clamped !== item.phase) {
+          item.phase = clamped;
+          applied.push('clamp-phase');
+        }
+      }
+      if (typeof item.size === 'number' && Number.isFinite(item.size)) {
+        const clamped = clampNumber(item.size, 0.1, 10);
+        if (clamped !== item.size) {
+          item.size = clamped;
+          applied.push('clamp-size');
+        }
+      }
+      if (typeof item.friction === 'number' && Number.isFinite(item.friction)) {
+        const clamped = clampNumber(item.friction, 0, 1);
+        if (clamped !== item.friction) {
+          item.friction = clamped;
+          applied.push('clamp-friction');
+        }
+      }
+    }
   }
 }
 
@@ -386,7 +439,16 @@ function rescueSceneLegend(working: Record<string, unknown>, applied: string[]):
     'health',
     'mass',
     'relief',
-    'chain'
+    'chain',
+    'speed',
+    'axle',
+    'torque',
+    'span',
+    'load',
+    'side',
+    'strain',
+    'phase',
+    'friction'
   ];
   const kept: Record<string, string> = {};
   let droppedUnknown = false;
@@ -408,6 +470,28 @@ function rescueSceneLegend(working: Record<string, unknown>, applied: string[]):
     delete working.scene.legend;
   } else {
     working.scene.legend = kept;
+  }
+}
+
+const MOOD_SET = new Set<string>(METAPHOR_MOODS);
+
+function rescueSceneMood(working: Record<string, unknown>, applied: string[]): void {
+  if (!isObject(working.scene)) return;
+  if (!('mood' in working.scene)) return;
+  if (typeof working.scene.mood !== 'string') {
+    delete working.scene.mood;
+    applied.push('drop-invalid-mood');
+    return;
+  }
+  const lower = working.scene.mood.trim().toLowerCase();
+  if (MOOD_SET.has(lower)) {
+    if (working.scene.mood !== lower) {
+      working.scene.mood = lower;
+      applied.push('normalize-mood-case');
+    }
+  } else {
+    delete working.scene.mood;
+    applied.push('drop-invalid-mood');
   }
 }
 
@@ -895,6 +979,7 @@ export function sanitizeMetaphorDsl(
     rescueOrreryMoons(working, applied);
   }
   rescueSceneLegend(working, applied);
+  rescueSceneMood(working, applied);
   rescueLinksField(working, applied, allowStructureRewrite);
   rescueLinkKinds(working, applied);
 

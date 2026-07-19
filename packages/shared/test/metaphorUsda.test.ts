@@ -155,6 +155,14 @@ const KIND_FIXTURES: Record<
       { id: 'b', label: 'B', size: 3, speed: 1 }
     ],
     fields: ['size', 'speed', 'axle', 'torque', 'mesh']
+  },
+  bridge: {
+    items: [{ id: 'a', label: 'A', span: 40, load: 5, side: 'legacy', strain: 0.5 }],
+    fields: ['span', 'load', 'side', 'strain']
+  },
+  cycle: {
+    items: [{ id: 'a', label: 'A', phase: 25, size: 4, friction: 0.3 }],
+    fields: ['phase', 'size', 'friction']
   }
 };
 

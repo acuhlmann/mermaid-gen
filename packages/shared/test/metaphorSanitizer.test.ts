@@ -984,3 +984,137 @@ test('Composite layers retain each base kind item cap', () => {
   assert.equal(galaxy.success, true);
   assert.equal(city.success, false);
 });
+
+test('sanitizeMetaphorDsl keeps machine legend axes (speed/axle/torque regression)', () => {
+  const input = JSON.stringify({
+    metaphor: 'machine',
+    scene: {
+      legend: {
+        size: 'criticality',
+        speed: 'requests per second',
+        axle: 'subsystem',
+        torque: 'saturation'
+      }
+    },
+    items: [{ id: 'cart', label: 'Cart', size: 6, speed: 8, axle: 'Checkout', torque: 0.6 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  assert.equal(result.dsl?.scene?.legend?.speed, 'requests per second');
+  assert.equal(result.dsl?.scene?.legend?.axle, 'subsystem');
+  assert.equal(result.dsl?.scene?.legend?.torque, 'saturation');
+  assert.ok(!result.applied.includes('drop-invalid-legend-axis'));
+});
+
+test('sanitizeMetaphorDsl keeps a valid scene.mood and normalizes its case', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    scene: { mood: 'Dusk' },
+    items: [{ id: 'a', label: 'A' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  assert.equal(result.dsl?.scene?.mood, 'dusk');
+  assert.ok(result.applied.includes('normalize-mood-case'));
+});
+
+test('sanitizeMetaphorDsl drops an invalid scene.mood without rejecting the DSL', () => {
+  const input = JSON.stringify({
+    metaphor: 'city',
+    scene: { mood: 'vaporwave' },
+    items: [{ id: 'a', label: 'A' }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  assert.equal(result.dsl?.scene?.mood, undefined);
+  assert.ok(result.applied.includes('drop-invalid-mood'));
+});
+
+test('MetaphorDslSchema parses a bridge with span, load, side, and strain', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'bridge',
+    scene: {
+      title: 'Monolith → services migration',
+      legend: {
+        span: 'migration phase',
+        load: 'traffic share',
+        side: 'system',
+        strain: 'cutover risk'
+      }
+    },
+    items: [
+      { id: 'auth-bridge', label: 'Auth bridge', span: 20, load: 6, side: 'legacy', strain: 0.7 },
+      { id: 'data-sync', label: 'Data sync', span: 60, load: 4, side: 'target' }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'bridge');
+  if (dsl.metaphor === 'bridge') {
+    assert.equal(dsl.items[0].span, 20);
+    assert.equal(dsl.items[0].strain, 0.7);
+    assert.equal(dsl.items[1].side, 'target');
+  }
+});
+
+test('sanitizeMetaphorDsl clamps bridge span, load, and strain', () => {
+  const input = JSON.stringify({
+    metaphor: 'bridge',
+    items: [{ id: 'deck', label: 'Deck', span: 140, load: 99, strain: 4 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'bridge') {
+    assert.equal(result.dsl.items[0].span, 100);
+    assert.equal(result.dsl.items[0].load, 10);
+    assert.equal(result.dsl.items[0].strain, 1);
+  }
+  assert.ok(result.applied.includes('clamp-span'));
+  assert.ok(result.applied.includes('clamp-load'));
+  assert.ok(result.applied.includes('clamp-strain'));
+});
+
+test('MetaphorDslSchema parses a cycle with phase, size, and friction', () => {
+  const dsl = MetaphorDslSchema.parse({
+    metaphor: 'cycle',
+    scene: {
+      title: 'Sprint loop',
+      legend: { phase: 'ceremony order', size: 'effort', friction: 'blockers' }
+    },
+    items: [
+      { id: 'plan', label: 'Plan', phase: 0, size: 4 },
+      { id: 'review', label: 'Review', phase: 80, size: 3, friction: 0.5 }
+    ]
+  });
+  assert.equal(dsl.metaphor, 'cycle');
+  if (dsl.metaphor === 'cycle') {
+    assert.equal(dsl.items[1].phase, 80);
+    assert.equal(dsl.items[1].friction, 0.5);
+  }
+});
+
+test('sanitizeMetaphorDsl clamps cycle phase, size, and friction', () => {
+  const input = JSON.stringify({
+    metaphor: 'cycle',
+    items: [{ id: 'step', label: 'Step', phase: 120, size: 0, friction: 9 }]
+  });
+  const result = sanitizeMetaphorDsl(input);
+  assert.ok(result.dsl);
+  if (result.dsl?.metaphor === 'cycle') {
+    assert.equal(result.dsl.items[0].phase, 100);
+    assert.equal(result.dsl.items[0].size, 0.1);
+    assert.equal(result.dsl.items[0].friction, 1);
+  }
+  assert.ok(result.applied.includes('clamp-phase'));
+  assert.ok(result.applied.includes('clamp-friction'));
+});
+
+test('MetaphorLegendSchema accepts the bridge and cycle axes', () => {
+  const ok = MetaphorLegendSchema.safeParse({
+    span: 'position along crossing',
+    load: 'traffic share',
+    side: 'system',
+    strain: 'cutover risk',
+    phase: 'ceremony order',
+    friction: 'blockers'
+  });
+  assert.equal(ok.success, true);
+});
