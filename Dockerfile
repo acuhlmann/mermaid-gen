@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-bookworm AS builder
+FROM node:26-bookworm AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -36,7 +36,7 @@ fi
 
 RUN npm prune --omit=dev
 
-FROM node:24-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production

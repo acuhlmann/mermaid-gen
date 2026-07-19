@@ -2,12 +2,13 @@
 
 ## Setup
 
-1. Install dependencies and CopilotKit skills:
+1. **Node.js**: install the major in [`.nvmrc`](../../.nvmrc) (currently **26**; `engines.node` is `>=26`). GitHub Actions reads the same file via `node-version-file`; the Dockerfile uses `node:26-bookworm`.
+2. Install dependencies and CopilotKit skills:
    - `npm run setup`
    - This installs npm dependencies and runs `npx skills add copilotkit/skills --full-depth -y`.
-2. Configure environment:
+3. Configure environment:
    - `cp .env.example .env` — copy to `.env` in the repo root.
-3. Run both web and server:
+4. Run both web and server:
    - `npm run dev`
 
 ### Skills folder behavior

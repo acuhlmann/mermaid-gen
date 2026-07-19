@@ -23,7 +23,7 @@
     "@archislop/shared": "^1.0.0",
     "@copilotkit/runtime": "1.57.4",
     "@google-cloud/text-to-speech": "^6.4.1",
-    "@langchain/core": "^1.2.2",
+    "@langchain/core": "^1.2.3",
     "@langchain/google-vertexai": "^2.2.0",
     "@langchain/openai": "^1.5.5",
     "@langchain/openrouter": "^0.4.5",
