@@ -34,7 +34,7 @@ export async function validateAndPrepareMetaphorPatch({
       accepted: false,
       error: `${
         sanitized.error ?? 'Metaphor DSL did not parse.'
-      } Emit a JSON object with metaphor city|layercake|galaxy|tree|terrain|orrery|river|garden|archipelago|composite. Composite uses layout "fused", 1-4 layers, and top-level items:[].`
+      } Emit a JSON object with metaphor city|layercake|galaxy|tree|terrain|orrery|river|garden|archipelago|machine|bridge|cycle|composite. Composite uses layout "fused", 1-4 layers, and top-level items:[].`
     };
   }
 

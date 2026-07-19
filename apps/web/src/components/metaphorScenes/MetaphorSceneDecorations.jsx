@@ -736,3 +736,247 @@ export function SkySunGlow({ position = [85, 110, 55], color = '#fff3c4' }) {
     </Billboard>
   );
 }
+
+/* ---------------------------------------------------------------------------
+ * Mood ambience — the `scene.mood` particle layer shared by every kind. One
+ * parameterized vocabulary (embers, snow, petals, rain, stars, aurora) seeded
+ * from stable ids and driven by the metaphor clock, so streaming and reduced
+ * motion freeze into a stable pose. Glow-type particles use additive blending:
+ * it is commutative, so overlapping transparent sprites never flip draw order
+ * and shimmer (the river source/mouth flicker pattern).
+ * ------------------------------------------------------------------------- */
+
+/** Loop progress along a path, fading in/out at both ends so the wrap-around
+ *  teleport is invisible. */
+function moodLoop(progress) {
+  const edge = Math.min(progress, 1 - progress);
+  return THREE.MathUtils.smoothstep(edge, 0, 0.16);
+}
+
+function MoodDriftField({ fx, radius, rising }) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const isRain = fx.type === 'rain';
+  const drops = useMemo(
+    () =>
+      Array.from({ length: fx.count ?? 24 }, (_, i) => ({
+        x: (idHash2('mood', `x${i}`) - 0.5) * 2 * radius,
+        z: (idHash2('mood', `z${i}`) - 0.5) * 2 * radius,
+        phase: idHash2('mood', `p${i}`),
+        speed: (isRain ? 0.5 : 0.05) + idHash2('mood', `s${i}`) * (isRain ? 0.35 : 0.05),
+        sway: 0.4 + idHash2('mood', `w${i}`) * (isRain ? 0.2 : 1.1),
+        size: 0.6 + idHash2('mood', `r${i}`) * 0.8,
+        alt: idHash2('mood', `a${i}`) > 0.5
+      })),
+    [fx.count, radius, isRain]
+  );
+  const span = isRain ? 13 : 10;
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const d = drops[i];
+      if (!d) return;
+      const progress = (d.phase + t * d.speed) % 1;
+      const y = rising ? 0.4 + progress * span : 12.4 - progress * span;
+      child.position.set(
+        d.x + Math.sin(t * 0.7 + d.phase * 7) * d.sway,
+        y,
+        d.z + Math.cos(t * 0.55 + d.phase * 5) * d.sway
+      );
+      if (!isRain) child.rotation.y = t * 1.2 + d.phase * Math.PI * 2;
+      if (!isRain) child.rotation.x = Math.sin(t * 1.4 + d.phase * 9) * 0.9;
+      if (child.material) child.material.opacity = 0.75 * moodLoop(progress);
+    });
+  });
+  const additive = fx.type !== 'petals';
+  return (
+    <group ref={groupRef} rotation={isRain ? [0, 0, 0.1] : [0, 0, 0]}>
+      {drops.map((d, i) => (
+        <mesh key={`drop-${i}`} position={[d.x, 6, d.z]} scale={d.size}>
+          {isRain ? (
+            <boxGeometry args={[0.02, 0.55, 0.02]} />
+          ) : fx.type === 'petals' ? (
+            <planeGeometry args={[0.16, 0.11]} />
+          ) : (
+            <sphereGeometry args={[0.05, 6, 6]} />
+          )}
+          {fx.type === 'petals' ? (
+            <meshStandardMaterial
+              color={d.alt ? fx.color2 : fx.color}
+              roughness={0.7}
+              side={THREE.DoubleSide}
+              transparent
+              opacity={0.85}
+              depthWrite={false}
+            />
+          ) : (
+            <meshBasicMaterial
+              color={d.alt && fx.color2 ? fx.color2 : fx.color}
+              transparent
+              opacity={0.75}
+              depthWrite={false}
+              blending={additive ? THREE.AdditiveBlending : THREE.NormalBlending}
+              toneMapped={false}
+            />
+          )}
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Twinkling stars scattered high above the scene (night mood). */
+function MoodStarField({ color, count = 34, radius }) {
+  const groupRef = useRef(null);
+  const { getTime, animated } = useMetaphorClock();
+  const stars = useMemo(
+    () =>
+      Array.from({ length: count }, (_, i) => {
+        const angle = idHash2('moodstar', `a${i}`) * Math.PI * 2;
+        const dist = Math.sqrt(idHash2('moodstar', `d${i}`)) * radius * 1.3;
+        return {
+          x: Math.cos(angle) * dist,
+          y: 13 + idHash2('moodstar', `y${i}`) * 13,
+          z: Math.sin(angle) * dist,
+          size: 0.5 + idHash2('moodstar', `s${i}`) * 1.1,
+          blink: 0.8 + idHash2('moodstar', `b${i}`) * 2.2,
+          phase: idHash2('moodstar', `p${i}`) * Math.PI * 2
+        };
+      }),
+    [count, radius]
+  );
+  useFrame(() => {
+    if (!animated || !groupRef.current) return;
+    const t = getTime();
+    groupRef.current.children.forEach((child, i) => {
+      const s = stars[i];
+      if (!s) return;
+      child.scale.setScalar(s.size * (0.65 + 0.35 * Math.sin(t * s.blink + s.phase)));
+    });
+  });
+  return (
+    <group ref={groupRef}>
+      {stars.map((s, i) => (
+        <mesh key={`star-${i}`} position={[s.x, s.y, s.z]} scale={s.size}>
+          <sphereGeometry args={[0.06, 6, 6]} />
+          <meshBasicMaterial
+            color={color}
+            transparent
+            opacity={0.9}
+            depthWrite={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/** Broad aurora curtains waving slowly far around the scene (aurora mood). */
+function MoodAuroraCurtains({ color, color2, count = 3 }) {
+  const meshRefs = useRef([]);
+  const { getTime, animated } = useMetaphorClock();
+  const curtains = useMemo(() => {
+    return Array.from({ length: count }, (_, c) => {
+      const geom = new THREE.PlaneGeometry(46, 15, 48, 1);
+      const positions = geom.attributes.position;
+      const colors = new Float32Array(positions.count * 3);
+      const from = new THREE.Color(color);
+      const to = new THREE.Color(color2 ?? color);
+      for (let i = 0; i < positions.count; i += 1) {
+        const u = (positions.getX(i) + 23) / 46;
+        const mixed = from.clone().lerp(to, u);
+        colors[i * 3] = mixed.r;
+        colors[i * 3 + 1] = mixed.g;
+        colors[i * 3 + 2] = mixed.b;
+      }
+      geom.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+      return {
+        geom,
+        base: Float32Array.from(positions.array),
+        angle: (c / count) * Math.PI * 2 + 0.5,
+        radius: 46 + c * 7,
+        y: 24 + c * 3,
+        offset: c * 1.7
+      };
+    });
+  }, [color, color2, count]);
+  useFrame(() => {
+    curtains.forEach((curtain, c) => {
+      const mesh = meshRefs.current[c];
+      if (!mesh) return;
+      const t = animated ? getTime() : 0;
+      const pos = mesh.geometry.attributes.position;
+      for (let i = 0; i < pos.count; i += 1) {
+        const bx = curtain.base[i * 3];
+        const by = curtain.base[i * 3 + 1];
+        // Slow vertical billow, stronger toward the top edge.
+        const strength = (by + 7.5) / 15;
+        pos.setZ(i, Math.sin(bx * 0.22 + t * 0.5 + curtain.offset) * 2.6 * strength);
+      }
+      pos.needsUpdate = true;
+    });
+  });
+  return (
+    <group>
+      {curtains.map((curtain, c) => (
+        <mesh
+          key={`curtain-${c}`}
+          ref={(el) => {
+            meshRefs.current[c] = el;
+          }}
+          geometry={curtain.geom}
+          position={[
+            Math.cos(curtain.angle) * curtain.radius,
+            curtain.y,
+            Math.sin(curtain.angle) * curtain.radius
+          ]}
+          rotation={[0, -curtain.angle + Math.PI / 2, 0]}
+          frustumCulled={false}
+        >
+          <meshBasicMaterial
+            vertexColors
+            transparent
+            opacity={0.14}
+            depthWrite={false}
+            side={THREE.DoubleSide}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+            fog={false}
+          />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+/**
+ * Ambient particle layer for the DSL's `scene.mood`. Rendered outside <Bounds>
+ * with a fixed spread so it never reframes the subject; `fx` is the particle
+ * descriptor stashed on the theme by applyMoodToTheme.
+ */
+export function MoodAmbience({ fx, radius = 30 }) {
+  if (!fx?.type) return null;
+  if (fx.type === 'fireflies') {
+    return (
+      <MeadowFireflies
+        radius={radius}
+        color={fx.color ?? '#ffe28a'}
+        count={fx.count ?? 22}
+        idSeed="mood-fireflies"
+      />
+    );
+  }
+  if (fx.type === 'stars') {
+    return <MoodStarField color={fx.color ?? '#dbeafe'} count={fx.count} radius={radius} />;
+  }
+  if (fx.type === 'aurora') {
+    return <MoodAuroraCurtains color={fx.color ?? '#5eead4'} color2={fx.color2} count={fx.count} />;
+  }
+  if (fx.type === 'embers' || fx.type === 'snow' || fx.type === 'petals' || fx.type === 'rain') {
+    return <MoodDriftField fx={fx} radius={radius} rising={fx.type === 'embers'} />;
+  }
+  return null;
+}

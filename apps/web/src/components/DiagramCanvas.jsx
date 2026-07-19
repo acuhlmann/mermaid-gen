@@ -1781,6 +1781,9 @@ export default function DiagramCanvas({
                       type="button"
                       className="overlay-button compact-button primary-button"
                       onClick={onEditorClose}
+                      aria-label={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                      title={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                      data-testid="diagram-editor-close"
                     >
                       {controls.diagramCanvas.done}
                     </button>
@@ -1823,6 +1826,18 @@ export default function DiagramCanvas({
                 >
                   {controls.diagramCanvas.selectAll}
                 </button>
+                {onEditorClose ? (
+                  <button
+                    type="button"
+                    className="overlay-button compact-button primary-button"
+                    onClick={onEditorClose}
+                    aria-label={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                    title={controls.editor?.closeEditor ?? controls.diagramCanvas.done}
+                    data-testid="diagram-editor-close"
+                  >
+                    {controls.diagramCanvas.done}
+                  </button>
+                ) : null}
               </div>
               <Suspense
                 fallback={

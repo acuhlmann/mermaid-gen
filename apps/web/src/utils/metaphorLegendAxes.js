@@ -53,6 +53,17 @@ export const METAPHOR_LEGEND_AXES = {
     ['axle', 'Axle'],
     ['torque', 'Torque']
   ],
+  bridge: [
+    ['span', 'Span'],
+    ['load', 'Load'],
+    ['side', 'Side'],
+    ['strain', 'Strain']
+  ],
+  cycle: [
+    ['phase', 'Phase'],
+    ['size', 'Size'],
+    ['friction', 'Friction']
+  ],
   // Composite layers keep their own encodings; no shared legend axes yet.
   composite: []
 };
@@ -103,6 +114,17 @@ const ITEM_METRICS = {
     { key: 'speed', label: 'Speed', type: 'number' },
     { key: 'axle', label: 'Axle', type: 'text' },
     { key: 'torque', label: 'Torque', type: 'number' }
+  ],
+  bridge: [
+    { key: 'span', label: 'Span', type: 'number' },
+    { key: 'load', label: 'Load', type: 'number' },
+    { key: 'side', label: 'Side', type: 'text' },
+    { key: 'strain', label: 'Strain', type: 'number' }
+  ],
+  cycle: [
+    { key: 'phase', label: 'Phase', type: 'number' },
+    { key: 'size', label: 'Size', type: 'number' },
+    { key: 'friction', label: 'Friction', type: 'number' }
   ],
   composite: []
 };

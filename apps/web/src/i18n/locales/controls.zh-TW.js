@@ -481,7 +481,8 @@ export const CONTROLS_ZH_TW = {
   },
   planBeat: {
     agent: '智慧代理',
-    plan: '計畫'
+    plan: '計畫',
+    samePreviewAbove: '同上圖 ↑'
   },
   gamificationHud: {
     bonus: '獎勵',

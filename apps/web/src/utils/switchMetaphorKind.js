@@ -12,6 +12,8 @@ export const METAPHOR_KIND_LABELS = {
   garden: 'Garden',
   archipelago: 'Archipelago',
   machine: 'Machine',
+  bridge: 'Bridge',
+  cycle: 'Cycle wheel',
   composite: 'Composite'
 };
 
@@ -45,6 +47,10 @@ function primaryMagnitude(item, kind) {
     case 'archipelago':
       return finiteNumber(item.mass, 4);
     case 'machine':
+      return finiteNumber(item.size, 3);
+    case 'bridge':
+      return finiteNumber(item.load, 3);
+    case 'cycle':
       return finiteNumber(item.size, 3);
     default:
       return 10;
@@ -84,6 +90,9 @@ function groupingLabel(item, kind) {
   }
   if (kind === 'machine' && typeof item.axle === 'string' && item.axle.trim()) {
     return item.axle.trim();
+  }
+  if (kind === 'bridge' && typeof item.side === 'string' && item.side.trim()) {
+    return item.side.trim();
   }
   return '';
 }
@@ -168,11 +177,38 @@ function mapItemToKind(item, fromKind, toKind, index) {
           : 2 + (index % 5);
       if (group) next.axle = group;
       break;
+    case 'bridge':
+      // span/phase are normalized across the full item set after mapping.
+      next.span = index;
+      next.load = Math.max(0.1, Math.min(10, primary));
+      if (group) next.side = group;
+      break;
+    case 'cycle':
+      next.phase = index;
+      next.size = Math.max(0.1, Math.min(10, primary));
+      break;
     default:
       break;
   }
 
   return next;
+}
+
+/** Evenly spread positional encodings (bridge span, cycle phase) after a kind
+ *  switch — index placeholders would bunch every item at the start edge. */
+function normalizePositionalAxes(kind, items) {
+  if (kind === 'bridge') {
+    const last = Math.max(1, items.length - 1);
+    items.forEach((item, i) => {
+      item.span = Math.round((i / last) * 100);
+    });
+  } else if (kind === 'cycle') {
+    const count = Math.max(1, items.length);
+    items.forEach((item, i) => {
+      item.phase = Math.round((i / count) * 100);
+    });
+  }
+  return items;
 }
 
 const COMPOSITE_LAYER_LABELS = {
@@ -185,7 +221,9 @@ const COMPOSITE_LAYER_LABELS = {
   river: 'Journey',
   garden: 'Portfolio',
   archipelago: 'Domains',
-  machine: 'Mechanism'
+  machine: 'Mechanism',
+  bridge: 'Crossing',
+  cycle: 'Loop'
 };
 
 /**
@@ -280,15 +318,19 @@ export function switchMetaphorKind(source, nextKind) {
     working = {
       metaphor: kind,
       scene: flat.scene,
-      items: flat.items.map((item, index) => mapItemToKind(item, flat.metaphor, kind, index)),
+      items: normalizePositionalAxes(
+        kind,
+        flat.items.map((item, index) => mapItemToKind(item, flat.metaphor, kind, index))
+      ),
       links: flat.links
     };
   } else {
     working = {
       metaphor: kind,
       scene: isObject(sanitized.dsl.scene) ? { ...sanitized.dsl.scene } : {},
-      items: sanitized.dsl.items.map((item, index) =>
-        mapItemToKind(item, currentKind, kind, index)
+      items: normalizePositionalAxes(
+        kind,
+        sanitized.dsl.items.map((item, index) => mapItemToKind(item, currentKind, kind, index))
       ),
       links: Array.isArray(sanitized.dsl.links) ? [...sanitized.dsl.links] : []
     };

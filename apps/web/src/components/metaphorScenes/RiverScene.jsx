@@ -288,7 +288,7 @@ function CurrentMotes({ samples, normals, theme }) {
       );
       // Wide fade at both ends so wrap-around teleport is invisible.
       const edge = Math.min(progress, 1 - progress);
-      const fade = THREE.MathUtils.smoothstep(edge, 0, 0.12);
+      const fade = THREE.MathUtils.smoothstep(edge, 0, 0.15);
       if (child.material) child.material.opacity = 0.78 * fade;
     });
   });
@@ -298,11 +298,13 @@ function CurrentMotes({ samples, normals, theme }) {
       {motes.map((m, i) => (
         <mesh key={`mote-${i}`}>
           <sphereGeometry args={[m.radius, 8, 8]} />
+          {/* Start invisible — useFrame fades motes in along their lane, so
+              they never flash as a clump at the origin on the first frame. */}
           <meshBasicMaterial
             color={moteColor}
             toneMapped={false}
             transparent
-            opacity={0.78}
+            opacity={0}
             depthWrite={false}
             depthTest
           />
@@ -573,13 +575,16 @@ function SourceAndMouth({ samples, theme }) {
         />
       </mesh>
       {mist.map((m, i) => (
-        <mesh key={`mist-${i}`} position={[m.x, m.y, m.z]} renderOrder={5}>
+        <mesh key={`mist-${i}`} position={[m.x, m.y, m.z]}>
           <sphereGeometry args={[m.r, 8, 8]} />
+          {/* Additive blending is commutative, so overlapping mist never flips
+              draw order — that re-sort was the visible source-end flicker. */}
           <meshBasicMaterial
             color="#f0f9ff"
             transparent
             opacity={0.22}
             depthWrite={false}
+            blending={THREE.AdditiveBlending}
             toneMapped={false}
           />
         </mesh>
@@ -610,15 +615,18 @@ function SourceAndMouth({ samples, theme }) {
           key={`lagoon-ring-${i}`}
           position={[mouth.x, 0.055 + i * 0.008, mouth.z]}
           rotation={[-Math.PI / 2, 0, 0]}
-          renderOrder={5}
         >
+          {/* Additive shimmer — order-independent, so the mouth rings stop
+              flickering against each other and the water. */}
           <ringGeometry args={[lagoonR * scale, lagoonR * (scale + 0.045), 48]} />
           <meshBasicMaterial
             color="#e0f2fe"
             transparent
             opacity={0.14 - i * 0.04}
             depthWrite={false}
+            blending={THREE.AdditiveBlending}
             side={THREE.DoubleSide}
+            toneMapped={false}
           />
         </mesh>
       ))}
@@ -738,7 +746,17 @@ export function RiverScene({ dsl, theme }) {
     return maxZ + 5.5;
   }, [layout.samples]);
 
-  if (layout.samples.length < 2) return null;
+  // Fewer than 2 samples (early streaming) — show the empty meadow instead of
+  // unmounting the whole scene, so the canvas doesn't flash blank each time a
+  // partial DSL drops below renderable size.
+  if (layout.samples.length < 2) {
+    return (
+      <group>
+        <RiverMeadow theme={theme} radiusX={8} radiusZ={8} />
+        <MetaphorGroundShadow theme={theme} y={-0.02} scale={16} />
+      </group>
+    );
+  }
 
   const meadowX = layout.bounds.halfExtent * 1.12;
 

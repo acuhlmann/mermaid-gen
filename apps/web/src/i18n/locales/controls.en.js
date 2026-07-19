@@ -527,7 +527,8 @@ export const CONTROLS_EN = {
   },
   planBeat: {
     agent: 'Agent',
-    plan: 'Plan'
+    plan: 'Plan',
+    samePreviewAbove: 'Same diagram as above ↑'
   },
   gamificationHud: {
     bonus: 'bonus',

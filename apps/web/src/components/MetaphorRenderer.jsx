@@ -15,6 +15,7 @@ import {
   resolveGardenDaylightTheme,
   resolveRiverDaylightTheme
 } from '../utils/metaphorThemePresets.js';
+import { applyMoodToTheme } from '../utils/metaphorMoods.js';
 import { cityDistrictLayout } from '../utils/metaphorLayouts/cityDistrictLayout.js';
 import {
   layercakeComponentPositions,
@@ -49,6 +50,7 @@ import {
   CityTraffic,
   FloorGlowDisc,
   IcingDrips,
+  MoodAmbience,
   PenthouseGlowBand,
   RisingSparkles,
   SpireBeacon
@@ -61,6 +63,8 @@ import { RiverScene, RiverSky } from './metaphorScenes/RiverScene.jsx';
 import { GardenScene, GardenSky } from './metaphorScenes/GardenScene.jsx';
 import { ArchipelagoScene, ArchipelagoSky } from './metaphorScenes/ArchipelagoScene.jsx';
 import { MachineScene, MachineSky } from './metaphorScenes/MachineScene.jsx';
+import { BridgeScene, BridgeSky } from './metaphorScenes/BridgeScene.jsx';
+import { CycleScene, CycleSky } from './metaphorScenes/CycleScene.jsx';
 import { CompositeScene } from './metaphorScenes/CompositeScene.jsx';
 import { resolveCompositeAtmosphere } from './metaphorScenes/fusedCompositePlanner.js';
 import {
@@ -85,6 +89,8 @@ const BOUNDS_MARGIN_BY_KIND = {
   garden: 1.12,
   archipelago: 1.05,
   machine: 1.06,
+  bridge: 1.08,
+  cycle: 1.08,
   composite: 1.1
 };
 
@@ -1042,6 +1048,8 @@ function MetaphorBaseScene({ dsl, theme }) {
   if (dsl.metaphor === 'garden') return <GardenScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'archipelago') return <ArchipelagoScene dsl={dsl} theme={theme} />;
   if (dsl.metaphor === 'machine') return <MachineScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'bridge') return <BridgeScene dsl={dsl} theme={theme} />;
+  if (dsl.metaphor === 'cycle') return <CycleScene dsl={dsl} theme={theme} />;
   return null;
 }
 
@@ -1195,18 +1203,37 @@ function MetaphorRendererImpl(
   const renderError = !streamingPreview && hasSource && !dsl ? finalResolved.renderError : '';
 
   const themeId = dsl?.scene?.theme ?? 'whiteboard';
+  const moodId = dsl?.scene?.mood ?? null;
   const primaryLayerKind =
     dsl?.metaphor === 'composite' ? resolveCompositeAtmosphere(dsl) : dsl?.metaphor;
   const theme = useMemo(() => {
     const base = resolveMetaphorThemePreset(themeId);
-    if (primaryLayerKind === 'river') return resolveRiverDaylightTheme(base);
-    if (primaryLayerKind === 'garden') return resolveGardenDaylightTheme(base);
-    if (primaryLayerKind === 'archipelago') return resolveArchipelagoDaylightTheme(base);
-    return base;
-  }, [primaryLayerKind, themeId]);
+    let resolved = base;
+    let daylight = false;
+    if (primaryLayerKind === 'river') {
+      resolved = resolveRiverDaylightTheme(base);
+      daylight = true;
+    } else if (primaryLayerKind === 'garden') {
+      resolved = resolveGardenDaylightTheme(base);
+      daylight = true;
+    } else if (primaryLayerKind === 'archipelago') {
+      resolved = resolveArchipelagoDaylightTheme(base);
+      daylight = true;
+    }
+    // scene.mood re-tints the atmosphere only — never the encodings. Daylight
+    // scenes take a softened blend so they stay readable.
+    return applyMoodToTheme(resolved, moodId, { soften: daylight });
+  }, [primaryLayerKind, themeId, moodId]);
   const postfx = resolveMetaphorPostfx(theme);
   const boundsMargin = BOUNDS_MARGIN_BY_KIND[dsl?.metaphor] ?? 1.08;
   const skyKind = primaryLayerKind;
+  // Space kinds have their own star fields; ground-weather particles (rain,
+  // snow, petals, fireflies) would read wrong there.
+  const moodParticles =
+    theme.moodFx?.particles &&
+    (theme.moodFx.particleSpaceSafe || (skyKind !== 'galaxy' && skyKind !== 'orrery'))
+      ? theme.moodFx.particles
+      : null;
   const motionPolicy = resolveMetaphorMotionPolicy({
     streamingPreview,
     reducedMotion,
@@ -1228,9 +1255,15 @@ function MetaphorRendererImpl(
           style={{ width: '100%', height: '100%' }}
         >
           <color attach="background" args={[theme.background]} />
-          {/* Gentle depth fog gives the skyline an atmospheric horizon; kept
-              far enough out that Bounds framing never greys the subject. */}
-          {skyKind === 'city' ? (
+          {/* Mood fog applies to every kind (storm closes in, dawn haze); the
+              city's own gentle horizon fog stays as the no-mood default. Fog is
+              kept far enough out that Bounds framing never greys the subject. */}
+          {theme.moodFx?.fog ? (
+            <fog
+              attach="fog"
+              args={[theme.moodFx.fog.color, theme.moodFx.fog.near, theme.moodFx.fog.far]}
+            />
+          ) : skyKind === 'city' ? (
             <fog attach="fog" args={[theme.skyHorizonColor ?? theme.background, 42, 150]} />
           ) : null}
           <ambientLight intensity={theme.ambientIntensity} />
@@ -1238,6 +1271,7 @@ function MetaphorRendererImpl(
           <directionalLight
             position={theme.directional.position}
             intensity={theme.directional.intensity}
+            color={theme.directional.color ?? '#ffffff'}
           />
           {/* Soft complementary fill from the opposite side lifts the shadowed
               faces so forms read as rounded and dimensional instead of flat.
@@ -1268,7 +1302,12 @@ function MetaphorRendererImpl(
           {skyKind === 'garden' ? <GardenSky theme={theme} /> : null}
           {skyKind === 'archipelago' ? <ArchipelagoSky theme={theme} /> : null}
           {skyKind === 'machine' ? <MachineSky theme={theme} /> : null}
+          {skyKind === 'bridge' ? <BridgeSky theme={theme} /> : null}
+          {skyKind === 'cycle' ? <CycleSky theme={theme} /> : null}
           <MetaphorClockProvider enabled={motionPolicy.animated} intensity={motionPolicy.intensity}>
+            {/* Mood ambience renders outside <Bounds> at a fixed spread, so the
+                particle layer never reframes the subject. */}
+            {moodParticles ? <MoodAmbience fx={moodParticles} /> : null}
             <MetaphorHoverContext.Provider value={streamingPreview ? null : hoverStore}>
               <MetaphorChangeHighlightProvider highlight={changeHighlight}>
                 <Bounds fit clip observe margin={boundsMargin}>

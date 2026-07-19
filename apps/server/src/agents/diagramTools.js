@@ -325,7 +325,7 @@ export function createMetaphorTools({ stateStore }) {
     {
       name: 'get_metaphor_dsl',
       description:
-        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain/orrery/river/garden/archipelago/machine), including revision id and source.',
+        'Read the current 3D metaphor DSL (city/layercake/galaxy/tree/terrain/orrery/river/garden/archipelago/machine/bridge/cycle), including revision id and source.',
       schema: z.object({})
     }
   );
@@ -344,7 +344,7 @@ export function createMetaphorTools({ stateStore }) {
       name: 'apply_metaphor_patch',
       description:
         'Validate and apply a complete 3D metaphor DSL update. The DSL is a JSON object: ' +
-        '{"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden|archipelago|machine","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
+        '{"metaphor":"city|layercake|galaxy|tree|terrain|orrery|river|garden|archipelago|machine|bridge|cycle","scene":{"theme":"whiteboard|noir|arcade|blueprint","camera":"orbit|isometric|cinematic"},"items":[...]}. ' +
         'For city: items are {id, label, height (1-100), footprint (1-20), district?, lighting?, condition?}. ' +
         'For layercake: items are {id, label, thickness (1-10), components?: string[], cracks?, tilt?}. ' +
         'For galaxy: items are {id, label, magnitude (1-20), cluster?, binary?}. ' +
@@ -355,6 +355,9 @@ export function createMetaphorTools({ stateStore }) {
         'For garden: items are {id, label, maturity (0-1), impact (0.1-10), bed?, health? (thriving|steady|at-risk)}. ' +
         'For archipelago: items are {id, label, mass (0.5-20, island size), relief (0-1, peak height), chain?}. ' +
         'For machine: items are {id, label, size (0.1-10, gear radius), speed (0-10, spin rate), axle?, torque? (0-1), mesh?}. ' +
+        'For bridge: items are {id, label, span (0-100, position along crossing), load (0.1-10, tower scale), side? (shore/system), strain? (0-1)}. ' +
+        'For cycle: items are {id, label, phase (0-100, around the loop), size (0.1-10, pod scale), friction? (0-1)}. ' +
+        'Optional scene.mood: day|dawn|dusk|night|storm|ember|aurora (atmosphere only). ' +
         'Item ids must be stable lowercase-kebab strings (e.g. auth-service). Returns {accepted, revisionId} or {accepted: false, error}.',
       schema: z.object({
         diagramSource: z

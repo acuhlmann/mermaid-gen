@@ -481,7 +481,8 @@ export const CONTROLS_ZH_CN = {
   },
   planBeat: {
     agent: '智能体',
-    plan: '计划'
+    plan: '计划',
+    samePreviewAbove: '同上图 ↑'
   },
   gamificationHud: {
     bonus: '奖励',

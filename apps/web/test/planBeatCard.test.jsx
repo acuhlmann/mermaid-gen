@@ -236,4 +236,28 @@ flowchart LR
     expect(screen.getByTestId('thinking-syntax-code')).toBeTruthy();
     expect(screen.getByText('Here is the config stub.')).toBeTruthy();
   });
+
+  it('replaces a duplicate preview with a same-as-above note when reusePreview is set', () => {
+    const text = `Using the Mermaid diagram as subject context for this view.
+
+flowchart LR
+  Auth --> API
+  API --> DB`;
+    render(
+      <ul>
+        <PlanBeatCard
+          beat={{ text, source: 'server' }}
+          variant="intent"
+          index={1}
+          contentType="forms"
+          reusePreview
+        />
+      </ul>
+    );
+
+    expect(screen.queryByTestId('insights-embedded-diagram')).toBeNull();
+    expect(screen.getByTestId('plan-preview-reuse')).toBeTruthy();
+    expect(screen.getByText(/Same diagram as above/)).toBeTruthy();
+    expect(screen.getByText(/Using the Mermaid diagram as subject context/)).toBeTruthy();
+  });
 });

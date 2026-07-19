@@ -9,11 +9,12 @@
  * Derivation logic lives in `runTimelineModel.ts`.
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { ContentType } from '@archislop/shared';
 import PlanBeatCard from './PlanBeatCard';
 import { PatchLinesBar } from '../utils/thinkingProseEnrich';
 import { formatActionDurationMs } from '../utils/formatTechnicalActionDetail.js';
+import { buildPlanPreviewReuseByBeatIndex } from '../utils/planPreviewDedupe.js';
 import {
   actionDurationMs,
   actionExecutionMode,
@@ -203,7 +204,8 @@ function SegmentItems({
   now,
   showRawNames,
   collapsed,
-  planContentType = null
+  planContentType = null,
+  previewReuseByBeatIndex = null
 }: {
   items: TimelineItem[];
   variant: string;
@@ -212,6 +214,7 @@ function SegmentItems({
   showRawNames: boolean;
   collapsed: boolean;
   planContentType?: ContentType | null;
+  previewReuseByBeatIndex?: Map<number, number> | null;
 }) {
   const copy = useUiCopy().controls.runTimeline;
   if (items.length === 0) return null;
@@ -247,6 +250,7 @@ function SegmentItems({
                     variant={variant}
                     index={item.beatIndex}
                     contentType={planContentType}
+                    reusePreview={previewReuseByBeatIndex?.has(item.beatIndex) ?? false}
                   />
                 ) : null
               )}
@@ -406,7 +410,8 @@ function PhaseSegment({
   statusText,
   runLive,
   now,
-  planContentType = null
+  planContentType = null,
+  previewReuseByBeatIndex = null
 }: {
   seg: TimelineSegment;
   state: SegmentState;
@@ -417,6 +422,7 @@ function PhaseSegment({
   runLive: boolean;
   now: number;
   planContentType?: ContentType | null;
+  previewReuseByBeatIndex?: Map<number, number> | null;
 }) {
   const copy = useUiCopy().controls.runTimeline;
   const isActive = state === 'active';
@@ -463,6 +469,7 @@ function PhaseSegment({
           showRawNames={showRawPhaseIds}
           collapsed={variant !== 'explain' && !isActive && state === 'complete'}
           planContentType={planContentType}
+          previewReuseByBeatIndex={previewReuseByBeatIndex}
         />
       </div>
     </li>
@@ -584,6 +591,10 @@ export default function RunTimeline({
   } = view;
 
   const planContentType = normalizePlanContentType(entry.contentType);
+  const previewReuseByBeatIndex = useMemo(
+    () => buildPlanPreviewReuseByBeatIndex(entry.planBeats),
+    [entry.planBeats]
+  );
 
   if (view.empty) return null;
 
@@ -627,6 +638,7 @@ export default function RunTimeline({
               runLive={runLive}
               now={now}
               planContentType={planContentType}
+              previewReuseByBeatIndex={previewReuseByBeatIndex}
             />
           );
         })}

@@ -70,16 +70,30 @@ function splitPlanSteps(text: string): string[] {
   return [trimmed];
 }
 
+function PlanPreviewReuseNote() {
+  const { controls } = useUiCopy();
+  return (
+    <p className="insights-plan-preview-reuse" data-testid="plan-preview-reuse">
+      {controls.planBeat.samePreviewAbove}
+    </p>
+  );
+}
+
 function PlanDiagramPreview({
   preview,
   idPrefix,
-  targetContentType = null
+  targetContentType = null,
+  reusePreview = false
 }: {
   preview: DiagramPreviewMeta;
   idPrefix: string;
   targetContentType?: ContentType | null;
+  /** True when an earlier plan beat already showed this same diagram. */
+  reusePreview?: boolean;
 }) {
   const { controls } = useUiCopy();
+  if (reusePreview) return <PlanPreviewReuseNote />;
+
   const isSourceContext = Boolean(
     targetContentType && preview.kind && preview.kind !== targetContentType
   );
@@ -119,12 +133,14 @@ function PlanStepBody({
   step,
   cardIndex,
   stepIndex,
-  targetContentType = null
+  targetContentType = null,
+  reusePreview = false
 }: {
   step: string;
   cardIndex: number;
   stepIndex: number;
   targetContentType?: ContentType | null;
+  reusePreview?: boolean;
 }) {
   const preview = tryExtractDiagramPreviewFromText(step);
   const keyBase = `plan-${cardIndex}-${stepIndex}`;
@@ -141,6 +157,7 @@ function PlanStepBody({
           preview={preview}
           idPrefix={keyBase}
           targetContentType={targetContentType}
+          reusePreview={reusePreview}
         />
       </div>
     );
@@ -189,13 +206,16 @@ export default function PlanBeatCard({
   beat,
   variant = 'general',
   index = 0,
-  contentType = null
+  contentType = null,
+  reusePreview = false
 }: {
   beat?: PlanBeat;
   variant?: string;
   index?: number;
   /** Run target slot — used only to label cross-mode source-context previews. */
   contentType?: ContentType | null;
+  /** When true, omit the embedded diagram and point at an earlier identical preview. */
+  reusePreview?: boolean;
 }) {
   const { controls } = useUiCopy();
   const source = beat?.source === 'agent' ? 'agent' : 'server';
@@ -215,7 +235,7 @@ export default function PlanBeatCard({
 
   return (
     <li
-      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}${wholePreview ? ' has-diagram-preview' : ''}`}
+      className={`insights-plan-card is-${source}${multiStep ? ' is-multi-step' : ''}${wholePreview ? ' has-diagram-preview' : ''}${reusePreview ? ' is-preview-reuse' : ''}`}
       data-testid="plan-beat-card"
       style={{ animationDelay: `${Math.min(index, 8) * 45}ms` }}
     >
@@ -260,6 +280,7 @@ export default function PlanBeatCard({
               preview={wholePreview}
               idPrefix={`plan-${index}`}
               targetContentType={contentType}
+              reusePreview={reusePreview}
             />
           </div>
         ) : multiStep ? (
@@ -286,6 +307,7 @@ export default function PlanBeatCard({
                       cardIndex={index}
                       stepIndex={stepIndex}
                       targetContentType={contentType}
+                      reusePreview={reusePreview}
                     />
                   </span>
                 </li>
