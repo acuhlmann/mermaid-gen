@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
@@ -155,7 +156,7 @@ export default function OfficeInboxDock({
                             aria-hidden="true"
                             title={sender.title ? `${sender.name} · ${sender.title}` : sender.name}
                           >
-                            {sender.avatarEmoji}
+                            <PersonaFace id={email.colleagueId} size={24} />
                           </span>
                           <span className="office-email-meta">
                             <span className="office-email-sender">
@@ -208,13 +209,7 @@ function OfficeEmailHeader({ email }) {
   const sender = officeSenderInfo(email.colleagueId);
   return (
     <div className="office-email-head">
-      <span
-        className="office-email-avatar"
-        aria-hidden="true"
-        style={{ borderColor: sender.accentColor }}
-      >
-        {sender.avatarEmoji}
-      </span>
+      <PersonaFace id={email.colleagueId} size={30} className="office-email-avatar" />
       <div>
         <div className="office-email-sender">
           {sender.name}

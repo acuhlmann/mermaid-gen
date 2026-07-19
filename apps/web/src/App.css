@@ -6328,11 +6328,17 @@
 }
 
 .topic-starter-from {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   font-size: 0.68rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+.topic-starter-face {
+  flex: 0 0 auto;
 }
 
 .topic-starter-chip.has-from .topic-starter-label {
@@ -11656,7 +11662,8 @@ button {
 }
 
 .levelup-info-variant-emoji {
-  font-size: 1.05rem;
+  display: inline-flex;
+  align-items: center;
   line-height: 1;
 }
 
@@ -12625,10 +12632,13 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02));
-  border: 2px solid rgba(255, 255, 255, 0.12);
-  font-size: 30px;
   flex: none;
+}
+/* The companion wrapper survives the emoji→PersonaFace swap because the mood
+   animations (slopitect-avatar-shake / -synth-pulse / …) target it. Its own
+   border/background are gone — the face draws the ring now. */
+.slopitect-companion-face {
+  display: block;
 }
 
 .slopitect-companion-name-block {
@@ -12899,7 +12909,8 @@ button {
 }
 
 .live-run-hud-emoji {
-  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
 }
 .live-run-hud-label {
   text-transform: uppercase;
@@ -14263,7 +14274,6 @@ body.slopitect-rainbow-tint::before {
   height: 1.35rem;
   margin-left: 0;
   border-radius: 50%;
-  font-size: 0.72rem;
   line-height: 1;
   background: #fff;
   border: 1.5px solid rgba(99, 102, 241, 0.22);
@@ -15652,9 +15662,11 @@ body.slopitect-rainbow-tint::before {
 .office-email-row.is-unread .office-email-subject {
   font-weight: 700;
 }
+/* Avatar classes below sit on a <PersonaFace> <svg>, which carries its own
+   accent ring and explicit width/height — so these rules are layout only
+   (no font-size / border / padding, which applied to the old emoji spans). */
 .office-email-avatar {
   flex: 0 0 auto;
-  font-size: 18px;
 }
 .office-email-meta {
   display: flex;
@@ -15783,7 +15795,7 @@ body.slopitect-rainbow-tint::before {
   box-shadow: var(--control-shadow);
 }
 .office-im-avatar {
-  font-size: 20px;
+  flex: 0 0 auto;
 }
 .office-im-content {
   min-width: 0;
@@ -15845,12 +15857,7 @@ body.slopitect-rainbow-tint::before {
 }
 .office-walkby-avatar {
   flex: 0 0 auto;
-  font-size: 28px;
-  line-height: 1;
-  background: var(--office-surface-bg);
-  border: 2px solid var(--control-border);
   border-radius: 50%;
-  padding: 6px;
   box-shadow: var(--control-shadow);
 }
 .office-walkby-bubble {
@@ -16020,7 +16027,7 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
 }
 .office-coffee-avatar {
-  font-size: 20px;
+  flex: 0 0 auto;
 }
 .office-coffee-speaker {
   font-weight: 700;
@@ -16162,11 +16169,7 @@ body.slopitect-rainbow-tint::before {
   margin-right: 6px;
 }
 .office-battle-versus-avatar {
-  font-size: 24px;
-  border: 2px solid var(--control-border);
-  border-radius: 999px;
-  padding: 3px 6px;
-  line-height: 1;
+  flex: 0 0 auto;
 }
 .office-battle-versus-name {
   font-size: 13px;
@@ -16189,7 +16192,7 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
 }
 .office-battle-line-avatar {
-  font-size: 20px;
+  flex: 0 0 auto;
 }
 .office-battle-speaker {
   font-weight: 700;
@@ -16388,11 +16391,11 @@ body.slopitect-rainbow-tint::before {
   padding: 10px 14px 4px;
 }
 .office-meeting-seat {
-  font-size: 22px;
+  display: inline-flex;
   line-height: 1;
   border: 2px solid transparent;
   border-radius: 50%;
-  padding: 5px;
+  padding: 2px;
   transition:
     transform 200ms ease,
     border-color 200ms ease;
@@ -16426,7 +16429,6 @@ body.slopitect-rainbow-tint::before {
   flex-direction: row-reverse;
 }
 .office-meeting-beat-avatar {
-  font-size: 18px;
   flex: 0 0 auto;
 }
 .office-meeting-beat-bubble {
@@ -16673,8 +16675,6 @@ body.slopitect-rainbow-tint::before {
   color: var(--muted);
 }
 .office-directory-avatar--hero {
-  font-size: 28px;
-  padding: 8px;
   margin: 2px 0 4px;
 }
 .office-directory-spotlight .office-directory-name {
@@ -16744,12 +16744,6 @@ body.slopitect-rainbow-tint::before {
 }
 .office-directory-avatar {
   flex: 0 0 auto;
-  font-size: 20px;
-  line-height: 1;
-  border: 2px solid var(--control-border);
-  border-radius: 50%;
-  padding: 4px;
-  background: #fff;
 }
 .office-directory-meta {
   display: flex;

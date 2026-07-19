@@ -1,5 +1,6 @@
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 /**
  * Over-the-shoulder walk-by (docs/office-parody.md): a colleague slides in
@@ -13,13 +14,7 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
   const sender = officeSenderInfo(walkBy.colleagueId);
   return (
     <div className="office-walkby" role="status" aria-live="polite">
-      <span
-        className="office-walkby-avatar"
-        aria-hidden="true"
-        style={{ borderColor: sender.accentColor }}
-      >
-        {sender.avatarEmoji}
-      </span>
+      <PersonaFace id={walkBy.colleagueId} size={40} className="office-walkby-avatar" />
       <div className="office-walkby-bubble">
         <div className="office-walkby-name">
           {sender.name}

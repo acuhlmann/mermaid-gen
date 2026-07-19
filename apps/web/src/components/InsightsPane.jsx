@@ -9,6 +9,7 @@ import {
   partitionDiagramToolJsonBlocks,
   stripInsightStreamDelimiters
 } from '../utils/insightThinkingEnrich.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 import { enrichInline, isVisualStepLine } from '../utils/thinkingProseEnrich';
 import { extractFencedCodeBlock } from '../utils/thinkingFencedBlock';
 import { extractMarkdownTableBlock, ThinkingMarkdownTable } from '../utils/thinkingMarkdownTable';
@@ -319,7 +320,7 @@ function InsightEntryPersonaBanner({ variant, size = 'entry' }) {
       aria-label={`${persona.name}, ${persona.title}`}
     >
       <span className="insights-entry-persona-emoji" aria-hidden="true">
-        {persona.avatarEmoji || '🏗️'}
+        <PersonaFace id={variant} size={size === 'pane' ? 30 : 24} />
       </span>
       <span className="insights-entry-persona-text">
         <span className="insights-entry-persona-name">{persona.name}</span>

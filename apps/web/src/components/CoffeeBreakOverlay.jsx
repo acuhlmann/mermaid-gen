@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 export const COFFEE_BREAK_DURATION_MS = 15_000;
 /** Reading-pace gap between watercooler lines when narration is off / muted. */
@@ -112,7 +113,7 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
                   aria-hidden="true"
                   title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
                 >
-                  {speaker.avatarEmoji}
+                  <PersonaFace id={line.speakerId} size={26} />
                 </span>
                 <span>
                   <span

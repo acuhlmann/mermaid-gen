@@ -76,6 +76,32 @@ leadership pinging your desk.
 | `greybeard`   | Ulrich          | Staff Engineer Emeritus           | 🧓    | "We tried that in 2009"; maintains the mainframe nobody admits exists; unsettlingly good advice      |
 | `ciso`        | Sasha           | CISO — The Department of No       | 🔐    | Everything is an attack surface, especially the arrows; runs the phishing sims; "noted in your file" |
 
+### How a character is drawn
+
+The emoji column above is now a **fallback**, not the render path. Every avatar surface
+renders `<PersonaFace id={...} />`
+(`apps/web/src/components/personaFaces/index.jsx`) — one parametric SVG face driven by a
+trait row per character in `./registry.js` (skin, hair + color, facial hair, glasses,
+accessory, expression). The accent disc/ring uses the character's existing `accentColor`
+from `officeSenderInfo`, so faces stay distinguishable at a glance even at 16 px.
+
+Rules worth knowing before you touch it:
+
+- **Traits are read off the character's prose, not invented.** Ulrich "Staff Engineer
+  Emeritus" is `receding` + `beard` + `tired`; Dave "Tier 1 (of 1)" wears the `headset`.
+- **A new cast member costs a trait row, not new art** — that is the whole reason this is
+  parametric rather than 15 hand-drawn SVGs. The future bench below needs one row each.
+- **Below ~24 px the component drops fine detail** (glasses, facial hair, accessory) and
+  keeps silhouette + ring, so the 1.35 rem cast strip stays legible.
+- **Faces stay `aria-hidden`.** Every call site already shows the name next to the avatar;
+  passing `title` promotes the SVG to a named image and duplicates that text in the a11y
+  tree. Where a hover tooltip is wanted, put `title` on a wrapper span instead.
+- Emoji deliberately remain where a glyph sits **inline in a sentence** (meeting minutes,
+  battle verdict, invite toast) and in the Markdown transcript — those are text, not
+  avatars.
+- Unknown ids fall back to `avatarEmoji` (or an explicit `fallbackEmoji`, which is how the
+  meeting's non-persona "you" seat keeps its 🙋).
+
 ### Future bench (roadmap)
 
 - **The Product Manager** 🗺️ — "quick question" that is never quick; scope creep as a love language.

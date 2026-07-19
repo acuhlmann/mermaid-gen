@@ -1,4 +1,5 @@
 import { getVariantPersona, phaseCeremonyLabel } from '../utils/slopitectCopy.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CSS_CLASS = {
   refine: 'is-variant-refine',
@@ -37,7 +38,7 @@ export default function SlopitectStatusBoard({ variant, phases, totalSteps }) {
       <span className="slopitect-status-board-dot" aria-hidden="true" />
       <span className="slopitect-status-board-persona" title={persona.title}>
         <span className="slopitect-status-board-emoji" aria-hidden="true">
-          {persona.avatarEmoji || '🏗️'}
+          <PersonaFace id={variant} size={20} />
         </span>
         {persona.name}
       </span>

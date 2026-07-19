@@ -5,6 +5,7 @@ import {
 } from '../utils/officeAmbienceStorage.js';
 import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
 
@@ -139,13 +140,7 @@ export default function OfficeDirectory() {
           const colleague = officeSenderInfo(id);
           return (
             <li key={id} className="office-directory-card">
-              <span
-                className="office-directory-avatar"
-                aria-hidden="true"
-                style={{ borderColor: colleague.accentColor }}
-              >
-                {colleague.avatarEmoji}
-              </span>
+              <PersonaFace id={id} size={38} className="office-directory-avatar" />
               <span className="office-directory-meta">
                 <span className="office-directory-name">{colleague.name}</span>
                 <span className="office-directory-role">{colleague.title}</span>
@@ -173,13 +168,11 @@ function ColleagueSpotlight({ colleagueId, progressLabel }) {
       data-testid="office-directory-spotlight"
     >
       <p className="office-directory-progress">{progressLabel}</p>
-      <span
+      <PersonaFace
+        id={colleagueId}
+        size={56}
         className="office-directory-avatar office-directory-avatar--hero"
-        aria-hidden="true"
-        style={{ borderColor: colleague.accentColor }}
-      >
-        {colleague.avatarEmoji}
-      </span>
+      />
       <span className="office-directory-name">{colleague.name}</span>
       <span className="office-directory-role">{colleague.title}</span>
       {colleague.blurb ? <p className="office-directory-blurb">{colleague.blurb}</p> : null}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 export const BATTLE_LINE_PACE_MS = 1900;
 
@@ -137,10 +138,9 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
               {index === 1 ? <span className="office-battle-vs">{copy.battle.versus}</span> : null}
               <span
                 className="office-battle-versus-avatar"
-                style={{ borderColor: side.accentColor }}
                 title={side.title ? `${side.name} · ${side.title}` : side.name}
               >
-                {side.avatarEmoji}
+                <PersonaFace id={side.id} size={34} />
               </span>
               <span className="office-battle-versus-name">{side.name}</span>
             </span>
@@ -156,7 +156,7 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
                   aria-hidden="true"
                   title={speaker.title ? `${speaker.name} · ${speaker.title}` : speaker.name}
                 >
-                  {speaker.avatarEmoji}
+                  <PersonaFace id={line.speakerId} size={24} />
                 </span>
                 <span>
                   <span

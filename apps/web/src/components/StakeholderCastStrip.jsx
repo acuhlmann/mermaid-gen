@@ -1,6 +1,7 @@
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 function cssVariant(variant) {
   return variant === 'goMad' ? 'go-mad' : variant;
@@ -79,7 +80,7 @@ export default function StakeholderCastStrip({
                   if (!isActive) onSelectVariant(variant);
                 }}
               >
-                {meta.avatarEmoji || '🏗️'}
+                <PersonaFace id={variant} size={16} className="stakeholder-cast-face" />
               </button>
             );
           }
@@ -91,7 +92,7 @@ export default function StakeholderCastStrip({
               title={meta.name}
               aria-hidden={isActive ? undefined : true}
             >
-              {meta.avatarEmoji || '🏗️'}
+              <PersonaFace id={variant} size={16} className="stakeholder-cast-face" />
             </span>
           );
         })}

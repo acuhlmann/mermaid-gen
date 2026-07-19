@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { meetingMinutes, MEETING_USER_SPEAKER } from '../hooks/useMeetingPlayback.js';
 import { officeChromeCopy, officeMeetingCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 function speakerInfo(speakerId, chrome) {
   if (speakerId === MEETING_USER_SPEAKER) {
@@ -78,9 +79,13 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
               >
                 <span
                   className={`office-meeting-seat${id === lastSpeakerId ? ' is-speaking' : ''}`}
-                  style={{ borderColor: seat.accentColor }}
                 >
-                  {seat.avatarEmoji}
+                  <PersonaFace
+                    id={id}
+                    size={30}
+                    className="office-meeting-seat-face"
+                    fallbackEmoji={seat.avatarEmoji}
+                  />
                 </span>
                 <span className="office-meeting-seat-name">{seat.name}</span>
               </span>
@@ -101,9 +106,12 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
                   key={index}
                   className={`office-meeting-beat office-meeting-beat--${beat.kind}${isUser ? ' is-user' : ''}`}
                 >
-                  <span className="office-meeting-beat-avatar" aria-hidden="true">
-                    {speaker.avatarEmoji}
-                  </span>
+                  <PersonaFace
+                    id={beat.speakerId}
+                    size={26}
+                    className="office-meeting-beat-avatar"
+                    fallbackEmoji={speaker.avatarEmoji}
+                  />
                   <div className="office-meeting-beat-bubble">
                     <span
                       className="office-meeting-beat-name"

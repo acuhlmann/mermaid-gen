@@ -9,7 +9,7 @@ import {
   sanitizeOfficeNarrationText,
   speakOfficeLine
 } from '../src/utils/officeNarration.js';
-import { OFFICE_TTS_RATE_SCALE } from '@archislop/shared';
+import { OFFICE_SPEAKER_IDS, OFFICE_TTS_RATE_SCALE } from '@archislop/shared';
 import {
   OFFICE_NARRATION_STORAGE_KEY,
   readOfficeNarrationEnabled,
@@ -83,6 +83,13 @@ describe('officeVoiceProfile', () => {
       OFFICE_VOICE_PROFILES.greybeard.rate * OFFICE_TTS_RATE_SCALE,
       9
     );
+  });
+
+  // Drift guard: this map is a hand-maintained twin of the server's WaveNet
+  // prosody table. Without this, adding a persona to one silently leaves the
+  // other falling back to DEFAULT_PROFILE.
+  it('covers exactly the canonical speaker ids', () => {
+    expect(Object.keys(OFFICE_VOICE_PROFILES).sort()).toEqual([...OFFICE_SPEAKER_IDS].sort());
   });
 });
 

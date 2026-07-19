@@ -3,6 +3,7 @@ import { lifetimeLlmCostFlavor } from '@archislop/shared';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona, tipForIndex } from '../utils/slopitectCopy.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_ROW_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 
@@ -276,7 +277,7 @@ export default function LevelUpInfoPanel({
             return (
               <li key={id} className={`levelup-info-variant is-${id}`}>
                 <span className="levelup-info-variant-emoji" aria-hidden="true">
-                  {persona.avatarEmoji}
+                  <PersonaFace id={id} size={24} />
                 </span>
                 <span className="levelup-info-variant-text">
                   <span className="levelup-info-variant-name">{persona.name}</span>

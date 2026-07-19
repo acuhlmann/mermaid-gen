@@ -7,6 +7,7 @@ import AdvisorSpeechBubble from './AdvisorSpeechBubble.jsx';
 import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const COLLAPSE_AFTER_MS = 6000;
 /** Keep the float anchor latched briefly across thinking→bubble handoff gaps. */
@@ -278,7 +279,7 @@ export default function StakeholdersMascot({
                 }}
               >
                 <span className={`action-persona-icon is-${variantClass}`} aria-hidden="true">
-                  {meta.avatarEmoji || '🏗️'}
+                  <PersonaFace id={p.variant} size={22} />
                 </span>
                 <span className="stakeholders-roster-label">
                   <span className="stakeholders-roster-name">{meta.name}</span>

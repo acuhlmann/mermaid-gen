@@ -1,6 +1,7 @@
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const PERSONA_CLASS = {
   refine: 'is-refine',
@@ -48,7 +49,7 @@ export default function AdvisorThinkingIndicator({
       />
       <div className="advisor-thinking-main">
         <span className="advisor-thinking-emoji" aria-hidden="true">
-          {meta.avatarEmoji || '🏗️'}
+          <PersonaFace id={persona} size={26} />
         </span>
         <span className="advisor-thinking-text">
           <span className="advisor-thinking-persona">{meta.name}</span>

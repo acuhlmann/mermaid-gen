@@ -9,6 +9,7 @@ import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const PERSONA_CLASS = {
   refine: 'is-refine',
@@ -135,7 +136,7 @@ export default function AdvisorSpeechBubble({
       />
       <div className="advisor-speech-main">
         <span className="advisor-speech-emoji" aria-hidden="true">
-          {meta.avatarEmoji || '🏗️'}
+          <PersonaFace id={persona} size={34} />
         </span>
         <div className="advisor-speech-body">
           <div className="advisor-speech-head">

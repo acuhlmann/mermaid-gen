@@ -1,5 +1,6 @@
 import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 /**
  * Slop Chat™ — stacked IM ping bubbles (docs/office-parody.md). Auto-expire is
@@ -21,9 +22,7 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
         const sender = officeSenderInfo(ping.colleagueId);
         return (
           <div key={ping.id} className="office-im-ping" style={{ borderColor: sender.accentColor }}>
-            <span className="office-im-avatar" aria-hidden="true">
-              {sender.avatarEmoji}
-            </span>
+            <PersonaFace id={ping.colleagueId} size={26} className="office-im-avatar" />
             <div className="office-im-content">
               <span className="office-im-sender">
                 {sender.name}

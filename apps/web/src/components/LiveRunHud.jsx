@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
@@ -49,7 +50,7 @@ export default function LiveRunHud({ variant, streaming = false, streak = 0 }) {
       data-testid="live-run-hud"
     >
       <span className="live-run-hud-emoji" aria-hidden="true">
-        {persona.avatarEmoji || '🏗️'}
+        <PersonaFace id={variant} size={22} />
       </span>
       <span className="live-run-hud-label">{variantLabel}</span>
       <span className="live-run-hud-clock">{formatElapsed(elapsedMs)}</span>

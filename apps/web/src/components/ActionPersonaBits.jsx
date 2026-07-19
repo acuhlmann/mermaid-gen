@@ -1,11 +1,11 @@
 import { actionCssVariant, actionPersonaName } from '../utils/appActionPersonas.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
-export function ActionPersonaIcon({ variant, fallback = '🏗️' }) {
-  const persona = getVariantPersona(variant);
+export function ActionPersonaIcon({ variant }) {
   return (
     <span className={`action-persona-icon is-${actionCssVariant(variant)}`} aria-hidden="true">
-      {persona.avatarEmoji || fallback}
+      <PersonaFace id={variant} size={22} className="action-persona-face" />
     </span>
   );
 }

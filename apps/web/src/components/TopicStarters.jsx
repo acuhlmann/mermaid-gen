@@ -1,4 +1,5 @@
 import { officeSenderInfo } from '../utils/officeCast.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 /**
  * First-run assignment chips — a hint line beside the default chip, plus more
@@ -21,7 +22,7 @@ function StarterChipContent({ item }) {
   return (
     <>
       <span className="topic-starter-from">
-        <span aria-hidden="true">{sender.avatarEmoji} </span>
+        <PersonaFace id={item.fromId} size={16} className="topic-starter-face" />
         {sender.name}
       </span>
       <span className="topic-starter-label">{item.label}</span>

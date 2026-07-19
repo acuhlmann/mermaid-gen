@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getVariantPersona, quoteForRotation } from '../utils/slopitectCopy.js';
+import { PersonaFace } from './personaFaces/index.jsx';
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
@@ -75,7 +76,7 @@ export default function SlopitectCompanion({ variant, streaming = false }) {
         <span className="slopitect-companion-bubble-text">{speechLine}</span>
       </div>
       <div className="slopitect-companion-avatar" aria-hidden="true">
-        <span className="slopitect-companion-emoji">{persona.avatarEmoji || '🏗️'}</span>
+        <PersonaFace id={variant} size={52} className="slopitect-companion-face" />
       </div>
       <div className="slopitect-companion-name-block">
         <span className="slopitect-companion-name">{persona.name}</span>
