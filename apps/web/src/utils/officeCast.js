@@ -1018,9 +1018,9 @@ export const OFFICE_CHROME_COPY = {
     bootTagline:
       'A prestige dramedy about shipping diagrams under fluorescent lights. You are the new hire. Everyone else already has notes.',
     bootBullets: [
-      '▶ Tap to hear each colleague introduce themselves',
+      '▶ Press Start — Linda welcomes you by voice',
       '📛 Name yourself — the floor will weaponize it immediately',
-      '🔇 Focus Time mutes the building when the bit gets “a lot”'
+      '🎬 Meet the team — they introduce themselves in order'
     ],
     pressStartLabel: '▶ Press Start',
     bootFootnote: 'Synergy loading… Co-Design buffering… politics already online.',
@@ -1030,7 +1030,9 @@ export const OFFICE_CHROME_COPY = {
     tagline:
       "You're the newest architect on the floor. The whiteboard is your deliverable. The interruptions are free.",
     tourHint:
-      'Meet the cast one at a time — tap ▶ to hear each one introduce themselves. Mute the whole building anytime with Focus Time.',
+      'Name your badge, then Meet the team — they introduce themselves in order. Mute the whole building anytime with Focus Time.',
+    autoplayHint: 'Speaking…',
+    skipBeatLabel: 'Skip →',
     rosterTagline:
       'The cast that emails, IMs, and walks by while you work — tap ▶ and let them introduce themselves:',
     // {name} is filled from the user's badge (resolveUserName) at render time.

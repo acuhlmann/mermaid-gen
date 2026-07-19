@@ -17128,7 +17128,7 @@ body.slopitect-rainbow-tint::before {
 .office-directory-host--overlay {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: calc(var(--z-office-modal) + 20);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17152,8 +17152,30 @@ body.slopitect-rainbow-tint::before {
   border: 0;
   padding: 0;
   margin: 0;
-  background: rgba(15, 23, 42, 0.45);
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
   cursor: pointer;
+}
+.office-directory--cinematic {
+  animation: office-directory-beat-in 0.35s ease both;
+}
+.office-directory-autoplay-hint {
+  margin: 4px 0 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+  animation: office-directory-pulse 1.2s ease-in-out infinite;
+}
+@keyframes office-directory-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 .office-directory {
   display: flex;

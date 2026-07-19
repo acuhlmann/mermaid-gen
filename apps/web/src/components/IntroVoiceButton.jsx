@@ -4,8 +4,8 @@
  * decides whether this beat is the one currently speaking. Flips to a stop
  * affordance while its line is playing so a second click silences it.
  *
- * A line is only ever synthesized on this click — never on mount — which is
- * what keeps preview bots off the paid Cloud TTS path (docs/office-parody.md).
+ * During the cinematic tour, speech auto-plays after Press Start / Meet the
+ * team; this button remains for replay/stop. Roster revisit stays click-only.
  */
 export default function IntroVoiceButton({
   speaking = false,

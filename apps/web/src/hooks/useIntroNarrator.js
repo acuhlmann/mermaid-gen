@@ -4,19 +4,16 @@ import { cancelOfficeNarration, speakOfficeLine } from '../utils/officeNarration
 import { officeDialogueLocale } from '../utils/officeCast.js';
 
 /**
- * Click-to-hear narrator for the first-run orientation (docs/office-parody.md).
+ * Narrator for the Meet the Office orientation (docs/office-parody.md).
  *
- * The whole point of gating narration here is cost: the office voices are
- * Google Cloud TTS (officeTts.js), and the GCP Chirp free tier is finite. So
- * the orientation NEVER autoplays a voice — a line is only ever synthesized on
- * an explicit ▶ click, which a scraper or link-preview bot will never perform.
- * The click doubles as the autoplay gesture the browser needs, so the audio
- * actually plays on mobile Safari/Chrome too.
+ * Cost guardrail: voices are Google Cloud TTS. The orientation never speaks
+ * on cold mount — that would let scrapers burn the Chirp free tier. Speech
+ * starts only after an explicit user gesture (Press Start / Meet the team),
+ * which also unlocks browser autoplay for the rest of a cinematic sequence.
  *
- * `play(id, line)` speaks one beat in-character and records which beat is
- * talking (`speakingId`) so the button can flip to a "stop" affordance; a
- * second click, a different beat, or unmount stops it. `speakOfficeLine`
- * already enforces one voice at a time process-wide.
+ * `play(id, line)` speaks one beat and returns the settle promise so the tour
+ * can auto-advance when the line finishes. `speakingId` flips the ▶ button to
+ * a stop affordance. `speakOfficeLine` already enforces one voice at a time.
  *
  * @param {{ getSessionId?: () => string }} [opts]
  */
@@ -37,17 +34,20 @@ export function useIntroNarrator({ getSessionId } = {}) {
   }, []);
 
   const play = useCallback((id, { speakerId, text, lang } = {}) => {
-    if (!speakerId || !text) return;
+    if (!speakerId || !text) {
+      return Promise.resolve({ spoken: false });
+    }
     const gen = ++genRef.current;
     setSpeakingId(id);
     const sessionId = sessionRef.current?.() ?? '';
-    void speakOfficeLine({
+    return speakOfficeLine({
       speakerId,
       text,
       lang: lang ?? officeDialogueLocale(),
       fetchCloudAudio: (args) => fetchOfficeCloudAudio({ ...args, sessionId })
-    }).then(() => {
+    }).then((result) => {
       if (gen === genRef.current) setSpeakingId((current) => (current === id ? null : current));
+      return result;
     });
   }, []);
 

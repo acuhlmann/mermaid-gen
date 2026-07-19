@@ -1,4 +1,12 @@
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import DiagramFullscreenButton from './components/DiagramFullscreenButton.jsx';
 import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx';
@@ -140,6 +148,10 @@ import DayOneBadge from './components/DayOneBadge.jsx';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import OfficeLayer from './components/OfficeLayer.jsx';
 import { resolveUserName } from './state/userIdentityStore.js';
+import {
+  getOfficeDirectoryUi,
+  subscribeOfficeDirectoryUi
+} from './state/officeDirectoryUiStore.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
@@ -3132,6 +3144,12 @@ ${requirementsBlock}`;
   const { fullscreenSupported, isFullscreen, toggleFullscreen } =
     useDiagramFullscreen(diagramSurfaceRef);
 
+  const officeDirectoryUi = useSyncExternalStore(
+    subscribeOfficeDirectoryUi,
+    getOfficeDirectoryUi,
+    getOfficeDirectoryUi
+  );
+
   const advisorPause =
     loading ||
     streamingPreview ||
@@ -3145,7 +3163,9 @@ ${requirementsBlock}`;
     // Fullscreen hides the advisor bubble + cast chrome entirely, so pause the
     // proactive loop — otherwise stakeholders keep pulsing nodes (and chiming)
     // over the bare canvas with no visible way to mute them.
-    isFullscreen;
+    isFullscreen ||
+    // Meet the Office orientation/roster owns the stage — no competing popups.
+    officeDirectoryUi.open;
 
   // Focus priority: an explicit click (selectedNode) is a strong signal — comment
   // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce

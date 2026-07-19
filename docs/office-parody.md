@@ -167,24 +167,26 @@ Two once-ever beats, gated by `archislop:office-welcomed` (`useOfficeWelcome`):
 
 The entry screen additionally mounts the **office directory** (`OfficeDirectory`): an
 interactive game-style **"Meet the Office"** orientation. First run it opens as a
-cinematic intro (title card / Press Start → name badge → one colleague at a time with
-▶ self-intros → Clock in), persisted via `archislop:office-directory-seen`;
-afterwards it lives as a "🏢 Meet the Office" chip on the empty state, and as a
-**desk verb** once you have canvas content, so everybody can introduce themselves
-again anytime.
+cinematic intro (title card / Press Start → name badge with Linda's auto-voiced
+welcome → Meet the team auto-plays each colleague intro in order → Clock in),
+persisted via `archislop:office-directory-seen`; afterwards it lives as a
+"🏢 Meet the Office" chip on the empty state, and as a **desk verb** once you
+have canvas content, so everybody can introduce themselves again anytime.
+While the directory is open it publishes pause state (`officeDirectoryUiStore`)
+so ambience IMs/walk-bys, Linda's welcome email, and the advisor stay quiet —
+and mounts as a modal overlay so Day One / starters don't compete visually.
 Floating office surfaces (directory, IM pings, walk-bys, coffee invites) use an opaque
 `--office-surface-bg` so canvas ink underneath never bleeds through the copy.
 
 Three things make the orientation more than a static list:
 
-- **Voice showcase (click-only).** Every beat — Linda's welcome and each colleague spotlight,
-  plus every roster card on the return visit — carries a ▶ **Hear it** control
-  (`IntroVoiceButton` + `useIntroNarrator`) that plays the line in that colleague's real
-  Cloud-TTS voice (the Chirp3-HD → Neural2 → WaveNet ladder in `officeTts.js`). Cost guardrail:
-  a voice is **only ever synthesized on the explicit click, never autoplayed**, so preview bots
-  and scrapers can't quietly burn the GCP Chirp free tier. The click doubles as the browser's
-  autoplay gesture, so it works on mobile Safari/Chrome too. `useIntroNarrator` and
-  `OfficeLayer` share one Cloud-audio fetcher (`officeSpeechClient.js`).
+- **Cinematic voice (gesture-unlocked).** Press Start / Meet the team are the
+  user gestures that unlock speech. Linda's welcome and each colleague spotlight
+  then **auto-play** in order (`useIntroNarrator` + Cloud TTS), advancing when
+  each line finishes — no per-character ▶ required. Roster revisit and ▶ buttons
+  remain for replay/stop. Cost guardrail: nothing speaks on cold mount (scrapers
+  can't burn Chirp). `useIntroNarrator` and `OfficeLayer` share one Cloud-audio
+  fetcher (`officeSpeechClient.js`).
 - **Name yourself in the intro.** The welcome step embeds the editable **name badge**
   (`NameTag`, see Day One below).
 - **Skip the ceremony.** A persistent "Skip the ceremony — just let me build →" button dismisses
