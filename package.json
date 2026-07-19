@@ -32,6 +32,7 @@
     "typecheck:strict": "npm run typecheck:strict -w apps/server && npm run typecheck:strict -w apps/web",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "format:affected": "node scripts/format-affected.mjs",
     "check": "npm run verify:deps && npm run verify:boundaries && npm run format:check && npm run typecheck && npm run typecheck:strict && npm run lint && npm run test && npm run check:wire",
     "check:affected": "node scripts/check-affected.mjs",
     "check:fast": "npm run typecheck -w packages/shared && npm run test -w packages/shared",

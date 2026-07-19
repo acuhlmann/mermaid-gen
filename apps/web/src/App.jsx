@@ -4369,813 +4369,813 @@ ${requirementsBlock}`;
     >
       {!officeBootPending ? (
         <>
-      <DiagramCanvas
-        revisionId={state.revisionId}
-        diagramSource={
-          liveDraftSource && liveDraftContentType === contentMode
-            ? liveDraftSource
-            : state.diagramSource
-        }
-        contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
-        rendererRefreshKey={rendererRefreshKey}
-        onManualEdit={handleManualEdit}
-        onValidationChange={handleValidationChange}
-        streamingPreview={
-          streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)
-        }
-        agentThinking={agentThinkingChrome && !streamingPreview}
-        editorOpen={editorOpen}
-        insightsOpen={insightsMounted && Boolean(insightsSlot)}
-        insightsSlot={insightsSlot}
-        ceremonySlot={null}
-        selectedNode={selectedNode}
-        hoverDescriptor={hoverDescriptor}
-        onSelectedNodeChange={handleSelectedNodeChange}
-        onHoverTargetChange={handleHoverTargetChange}
-        onPanGestureStart={dismissRadialMenu}
-        onNodeToolbarAnchor={setToolbarAnchor}
-        onEditorClose={() => setEditorOpen(false)}
-        changeHighlight={changeHighlightForCanvas}
-        changeHighlightContentType={changeHighlightContentType}
-        onDiagramSvgRendered={handleDiagramSvgRendered}
-        runFx={{
-          variant: liveVariant,
-          streaming: Boolean(liveStreamingEntry) && (!insightsOpen || liveVariant === 'goMad'),
-          intensity:
-            (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || goMadStreak >= 2
-              ? 'high'
-              : 'normal'
-        }}
-        diagramSurfaceRef={diagramSurfaceRef}
-        isFullscreen={isFullscreen}
-        onFormSubmit={handleFormSubmit}
-      />
-
-      {showEntryExample ? (
-        <ExampleDiagramPreview
-          source={controls.prompt.exampleDiagramSource ?? EXAMPLE_DIAGRAM_SOURCE}
-          eyebrow={controls.prompt.exampleEyebrow}
-          headline={controls.prompt.exampleHeadline}
-          body={controls.prompt.exampleBody}
-          topicLabel={controls.prompt.exampleTopic}
-          ariaLabel={controls.prompt.exampleAria}
-          ctaLabel={controls.prompt.exampleCta}
-          onTry={() => handleStarterPick(entryDemoPrompt)}
-          active={showEntryExample}
-        />
-      ) : null}
-
-      {modeRevealActive ? (
-        <ModeRevealSpotlight
-          eyebrow={controls.modeReveal.eyebrow}
-          body={controls.modeReveal.body}
-          modes={contentModeOptions.filter((m) => m.id !== 'auto')}
-          currentMode={contentMode}
-          onPickMode={handleModeRevealPick}
-          pickPrefix={controls.modeReveal.pickPrefix}
-          dismissLabel={controls.modeReveal.dismiss}
-          ariaLabel={controls.modeReveal.aria}
-          onDismiss={dismissModeReveal}
-        />
-      ) : null}
-
-      <DiagramFullscreenOverlay
-        isFullscreen={isFullscreen}
-        host={diagramSurfaceRef.current}
-        onExit={toggleFullscreen}
-      >
-        <RadialActionMenu
-          key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
-          descriptor={radialMenuSession?.descriptor ?? null}
-          anchor={radialMenuSession?.anchor ?? null}
-          actions={radialActions}
-          busy={busy}
-          diagramSource={state.diagramSource}
-          contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
-          sessionId={activeSessionId}
-          slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
-          onSlopPromptClose={closeSlopPrompt}
-          slopPrompt={
-            slopPromptExpanded && slopPromptSource === 'radial' ? (
-              <SlopNextPrompt
-                layout="radial"
-                prompt={slopNextPrompt}
-                busy={busy}
-                voiceSupported={voiceSupported}
-                voiceListening={voiceListening}
-                narrowLayout={narrowLayout}
-                speechRecognitionCtor={SpeechRecognitionCtor}
-                PromptIcon={PromptIcon}
-                MicIcon={MicIcon}
-                MicActiveIcon={MicActiveIcon}
-                ButtonIcon={ButtonIcon}
-                copy={controls.prompt}
-                onPromptChange={setSlopNextPrompt}
-                onSubmit={handleSlopPromptSubmit}
-                onClose={closeSlopPrompt}
-                onMicToggleClick={handleMicToggleClick}
-                onMicPointerDown={handleMicPointerDown}
-                onMicPointerUp={handleMicPointerUp}
-                onMicLostPointerCapture={() => stopVoiceInput()}
-              />
-            ) : null
-          }
-          onActionPick={handleRadialAction}
-          onDrillDeeper={(descriptor) => {
-            if (!descriptor) return;
-            setSelectedNode(descriptor);
-            closeRadialMenu();
-            setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'explain' }));
-            tryAgentSound(playExplainBoot);
-            runAnalyze('explain', { focusTarget: descriptor });
-          }}
-          onHoverHold={cancelMenuClose}
-          onHoverRelease={scheduleMenuClose}
-          onBackdropPointerDown={() => {
-            if (slopPromptExpanded && slopPromptSource === 'radial') {
-              closeSlopPrompt();
-              return;
+          <DiagramCanvas
+            revisionId={state.revisionId}
+            diagramSource={
+              liveDraftSource && liveDraftContentType === contentMode
+                ? liveDraftSource
+                : state.diagramSource
             }
-            dismissRadialMenu();
-          }}
-          onClose={closeRadialMenu}
-          onAdvisorUsage={reportAdvisorUsage}
-        />
-      </DiagramFullscreenOverlay>
+            contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
+            rendererRefreshKey={rendererRefreshKey}
+            onManualEdit={handleManualEdit}
+            onValidationChange={handleValidationChange}
+            streamingPreview={
+              streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)
+            }
+            agentThinking={agentThinkingChrome && !streamingPreview}
+            editorOpen={editorOpen}
+            insightsOpen={insightsMounted && Boolean(insightsSlot)}
+            insightsSlot={insightsSlot}
+            ceremonySlot={null}
+            selectedNode={selectedNode}
+            hoverDescriptor={hoverDescriptor}
+            onSelectedNodeChange={handleSelectedNodeChange}
+            onHoverTargetChange={handleHoverTargetChange}
+            onPanGestureStart={dismissRadialMenu}
+            onNodeToolbarAnchor={setToolbarAnchor}
+            onEditorClose={() => setEditorOpen(false)}
+            changeHighlight={changeHighlightForCanvas}
+            changeHighlightContentType={changeHighlightContentType}
+            onDiagramSvgRendered={handleDiagramSvgRendered}
+            runFx={{
+              variant: liveVariant,
+              streaming: Boolean(liveStreamingEntry) && (!insightsOpen || liveVariant === 'goMad'),
+              intensity:
+                (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || goMadStreak >= 2
+                  ? 'high'
+                  : 'normal'
+            }}
+            diagramSurfaceRef={diagramSurfaceRef}
+            isFullscreen={isFullscreen}
+            onFormSubmit={handleFormSubmit}
+          />
 
-      {ceremonyOverlays}
-      <ErrorToast />
-      <OfficeLayer
-        pause={advisorPause}
-        advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
-        getDiagramSource={() => stateRef.current?.diagramSource ?? ''}
-        getContentType={() => contentMode}
-        getSessionId={() => activeSessionId}
-        getSvgRoot={() => (typeof document !== 'undefined' ? document : null)}
-        getUserTitle={() => gamification.levelTitle}
-        getUserName={() => resolveUserName()}
-        onUsage={reportAdvisorUsage}
-        onAdoptPrompt={(text) => {
-          void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {});
-        }}
-        onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
-        onOfficeEvent={handleOfficeEvent}
-        onTalkToTeam={() => advisor.promptNext({})}
-        onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
-        playChime={tryAgentSound}
-        runSignal={officeRunSignal}
-        deskActionsAnchorReady={hasCanvasContent}
-        deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
-      />
-      <HotkeyOverlay
-        open={hotkeyOverlayOpen}
-        onClose={() => setHotkeyOverlayOpen(false)}
-        copy={controls.hotkeys}
-      />
-
-      <TopShell>
-        <div
-          className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
-          aria-label="ArchiSlop"
-          onClick={handleBrandClick}
-        >
-          <div className="brand-control-chip">
-            <div className="brand-control-chip-row">
-              <span className="brand-mark" aria-hidden="true">
-                <ArchiSlopMarkIcon />
-              </span>
-              <span className="brand-name">ArchiSlop</span>
-              {gamification?.prestigeShortLabel ? (
-                narrowLayout && compactBrand ? (
-                  <button
-                    type="button"
-                    className="brand-prestige-badge"
-                    title={`${controls.brand.totalSlopRuns.replace('{count}', String(gamification.totalRuns ?? 0))} · ${xpBarMobileOpen ? controls.brand.tapToHideXp : controls.brand.tapToShowXp}`}
-                    data-testid="brand-prestige-badge"
-                    aria-expanded={xpBarMobileOpen}
-                    aria-controls="brand-xp-mobile-slot"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setXpBarMobileOpen((current) => !current);
-                    }}
-                  >
-                    {gamification.prestigeShortLabel}
-                  </button>
-                ) : (
-                  <span
-                    className="brand-prestige-badge"
-                    title={controls.brand.totalSlopRuns.replace(
-                      '{count}',
-                      String(gamification.totalRuns ?? 0)
-                    )}
-                    data-testid="brand-prestige-badge"
-                  >
-                    {gamification.prestigeShortLabel}
-                  </span>
-                )
-              ) : null}
-              {gamification?.level && !narrowLayout ? (
-                <XpProgressBar
-                  level={gamification.level}
-                  short={gamification.levelShortLabel}
-                  flair={gamification.levelFlair}
-                  progressRatio={gamification.levelProgressRatio}
-                  xpInto={gamification.xpIntoLevel}
-                  xpForNext={gamification.xpForNextLevel}
-                  totalXp={gamification.xp}
-                  isMaxLevel={gamification.xpForNextLevel == null}
-                  flashKey={xpBarFlashKey}
-                  variant={liveVariant}
-                  onClick={() => setXpInfoPanelOpen((open) => !open)}
-                  expanded={xpInfoPanelOpen}
-                  controlsId="levelup-info-panel"
-                />
-              ) : null}
-            </div>
-            {gamification?.level && narrowLayout ? (
-              <div
-                id="brand-xp-mobile-slot"
-                className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
-                aria-hidden={compactBrand ? !xpBarMobileOpen : false}
-              >
-                <XpProgressBar
-                  level={gamification.level}
-                  short={gamification.levelShortLabel}
-                  flair={gamification.levelFlair}
-                  progressRatio={gamification.levelProgressRatio}
-                  xpInto={gamification.xpIntoLevel}
-                  xpForNext={gamification.xpForNextLevel}
-                  totalXp={gamification.xp}
-                  isMaxLevel={gamification.xpForNextLevel == null}
-                  flashKey={xpBarFlashKey}
-                  variant={liveVariant}
-                  onClick={() => setXpInfoPanelOpen((open) => !open)}
-                  expanded={xpInfoPanelOpen}
-                  controlsId="levelup-info-panel"
-                />
-              </div>
-            ) : null}
-          </div>
-          {xpInfoPanelOpen && gamification?.level ? (
-            <div
-              id="levelup-info-panel"
-              className="levelup-info-panel-mount"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <LevelUpInfoPanel
-                level={gamification.level}
-                levelTitle={gamification.levelTitle}
-                levelFlair={gamification.levelFlair}
-                levelShortLabel={gamification.levelShortLabel}
-                progressRatio={gamification.levelProgressRatio}
-                xpInto={gamification.xpIntoLevel}
-                xpForNext={gamification.xpForNextLevel}
-                totalXp={gamification.xp}
-                isMaxLevel={gamification.xpForNextLevel == null}
-                prestigeShortLabel={gamification.prestigeShortLabel}
-                totalRuns={gamification.totalRuns}
-                runsByVariant={gamification.runsByVariant}
-                achievements={gamification.achievements}
-                lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
-                costTrackingEnabled={costTrackingEnabled}
-                userName={resolveUserName()}
-                onClose={() => setXpInfoPanelOpen(false)}
-              />
-            </div>
-          ) : null}
-          {slopitectTip ? (
-            <div
-              ref={slopitectTipRef}
-              className="slopitect-tip-chip"
-              role="status"
-              aria-live="polite"
-              data-testid="slopitect-tip-chip"
-              onClick={(event) => {
-                event.stopPropagation();
-                dismissSlopitectTip();
-              }}
-            >
-              <span className="slopitect-tip-chip-label" aria-hidden="true">
-                {controls.insights.tipLabel}
-              </span>
-              <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
-            </div>
-          ) : null}
-        </div>
-
-        {fullscreenSupported || hasCanvasContent || editorOpen || showIntroLocaleToggle ? (
-          <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
-            {showIntroLocaleToggle ? (
-              <IntroLocaleToggle
-                locale={locale}
-                copy={controls.introLocale}
-                onSelectLocale={setLocale}
-              />
-            ) : null}
-            {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
-              <DiagramFullscreenButton
-                isFullscreen={isFullscreen}
-                disabled={streamingPreview}
-                onToggle={toggleFullscreen}
-              />
-            ) : null}
-          </div>
-        ) : null}
-      </TopShell>
-
-      <AgentHandshakeDialog
-        request={pendingHandshake}
-        onApprove={handleApproveHandshake}
-        onDeny={handleDenyHandshake}
-      />
-
-      <InviteAgentDialog
-        sessionId={activeSessionId}
-        open={inviteDialogOpen}
-        onClose={() => setInviteDialogOpen(false)}
-      />
-
-      <ClearConfirmDialog
-        key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
-        open={clearConfirmOpen}
-        copy={controls.clearDialog}
-        onConfirm={() => {
-          void performClearDiagram();
-        }}
-        onCancel={() => setClearConfirmOpen(false)}
-      />
-
-      <BottomRow
-        narrowLayout={narrowLayout}
-        statusRow={
-          status ? (
-            <div className="overlay-status-row">
-              <p
-                id="app-status"
-                className={`overlay-status ${error ? 'is-error' : ''}`}
-                role="status"
-              >
-                {status}
-              </p>
-              {streamingAgentStoppable && !insightsOpen ? (
-                <button
-                  type="button"
-                  className="overlay-button compact-button overlay-status-stop"
-                  onClick={stopStreamingAgentRequest}
-                >
-                  {controls.insights.stopRequest}
-                </button>
-              ) : null}
-            </div>
-          ) : null
-        }
-        promptPopover={
-          hasCanvasContent && slopPromptExpanded && slopPromptSource === 'chrome' ? (
-            <div className="bottom-row-popover bottom-row-popover--prompt">
-              <SlopNextPrompt
-                layout="chrome"
-                prompt={slopNextPrompt}
-                busy={busy}
-                voiceSupported={voiceSupported}
-                voiceListening={voiceListening}
-                narrowLayout={narrowLayout}
-                speechRecognitionCtor={SpeechRecognitionCtor}
-                PromptIcon={PromptIcon}
-                MicIcon={MicIcon}
-                MicActiveIcon={MicActiveIcon}
-                ButtonIcon={ButtonIcon}
-                copy={controls.prompt}
-                onPromptChange={setSlopNextPrompt}
-                onSubmit={handleSlopPromptSubmit}
-                onClose={closeSlopPrompt}
-                onMicToggleClick={handleMicToggleClick}
-                onMicPointerDown={handleMicPointerDown}
-                onMicPointerUp={handleMicPointerUp}
-                onMicLostPointerCapture={() => stopVoiceInput()}
-              />
-            </div>
-          ) : null
-        }
-        actions={
-          !hasCanvasContent && !insightsOpen ? (
-            <div className="entry-cluster">
-              <DayOneBadge copy={controls.dayOne} userTitle={gamification.levelTitle} />
-              <form className="prompt-control" onSubmit={runIntentChange}>
-                <label className="sr-only" htmlFor="diagram-change-prompt">
-                  {controls.prompt.yourTopic}
-                </label>
-                <input
-                  id="diagram-change-prompt"
-                  value={prompt}
-                  onChange={(event) => setPrompt(event.target.value)}
-                  placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
-                  disabled={busy}
-                  aria-invalid={error ? 'true' : 'false'}
-                  aria-describedby={status ? 'app-status' : undefined}
-                />
-                <div className="prompt-actions-main">
-                  <button
-                    type="button"
-                    className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-                    disabled={!voiceSupported || busy}
-                    {...(narrowLayout
-                      ? {
-                          onPointerUp: (event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            handleMicToggleClick(event);
-                          }
-                        }
-                      : {
-                          onPointerDown: handleMicPointerDown,
-                          onPointerUp: handleMicPointerUp,
-                          onPointerCancel: handleMicPointerUp,
-                          onLostPointerCapture: () => stopVoiceInput(),
-                          onKeyDown: (event) => {
-                            if (event.repeat) return;
-                            if (event.key === ' ' || event.key === 'Enter') {
-                              event.preventDefault();
-                              startVoiceInput();
-                            }
-                          },
-                          onKeyUp: (event) => {
-                            if (event.key === ' ' || event.key === 'Enter') {
-                              event.preventDefault();
-                              stopVoiceInput();
-                            }
-                          }
-                        })}
-                    aria-label={
-                      narrowLayout
-                        ? voiceListening
-                          ? controls.prompt.tapToStop
-                          : controls.prompt.tapToDictate
-                        : controls.prompt.holdToSpeak
-                    }
-                    aria-pressed={narrowLayout ? voiceListening : undefined}
-                    title={
-                      voiceSupported
-                        ? narrowLayout
-                          ? voiceListening
-                            ? controls.prompt.tapToStop
-                            : controls.prompt.tapToDictatePrompt
-                          : controls.prompt.holdToDictate
-                        : SpeechRecognitionCtor
-                          ? controls.prompt.voiceNeedsHttps
-                          : controls.prompt.voiceUnsupported
-                    }
-                  >
-                    <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-                    <span className="button-label">{controls.prompt.mic}</span>
-                  </button>
-                  <button
-                    type="submit"
-                    className="overlay-button primary-button"
-                    disabled={busy || !prompt.trim()}
-                  >
-                    <ButtonIcon>{'>'}</ButtonIcon>
-                    <span className="button-label">{controls.prompt.doIt}</span>
-                  </button>
-                </div>
-              </form>
-              <EntryRenderAs
-                label={controls.prompt.renderAsLabel}
-                ariaLabel={controls.prompt.renderAsAria}
-                modes={contentModeOptions}
-                currentMode={contentMode}
-                onPickMode={handleEntryRenderAsPick}
-                pickPrefix={controls.modeReveal.pickPrefix}
-                disabled={busy || loading || streamingPreview}
-              />
-              <TopicStarters
-                hint={controls.prompt.starterHint}
-                ariaLabel={controls.prompt.starterAria}
-                starters={controls.prompt.starters}
-                busy={busy}
-                onPick={handleStarterPick}
-              />
-            </div>
-          ) : hasCanvasContent && !narrowLayout ? (
-            <div className="prompt-actions prompt-actions--desktop">
-              <div className="button-group">
-                <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                  disabled={busy}
-                  onClick={toggleChromeSlopPrompt}
-                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                  title={slopitect.PROMPT_ACTION_COPY.title}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">
-                      💬
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                    </span>
-                    {slopitect.PROMPT_ACTION_COPY.roleTag}
-                  </span>
-                </button>
-                <RenderAsMascot
-                  modes={contentModeOptions}
-                  currentMode={contentMode}
-                  onPickMode={handleSelectContentMode}
-                  disabled={loading || streamingPreview}
-                />
-                <StakeholdersMascot
-                  personas={[
-                    {
-                      variant: 'refine',
-                      onClick: () => runTransform('refine', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'innovate',
-                      onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'goMad',
-                      label: goMadShapeLabel(goMadStreak, controls.actions),
-                      onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'critique',
-                      onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'explain',
-                      onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                    },
-                    // Senior tier: the VP is not a teammate — this action preps
-                    // the diagram for upstairs (castTiers.js).
-                    {
-                      variant: 'exec',
-                      senior: true,
-                      onClick: () => runTransform('exec', { useDiagramFocus: true })
-                    }
-                  ]}
-                  activeAdvisorVariant={advisor.activePersona}
-                  thinkingPersona={advisor.thinkingPersona}
-                  busy={busy}
-                  bubbleProps={advisorBubbleProps}
-                  onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                  castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                  introProps={stakeholderIntroProps}
-                />
-              </div>
-              <div className="button-group">
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
-                  onClick={advisor.toggleMute}
-                  aria-pressed={advisor.isMuted}
-                  aria-label={
-                    advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
-                  }
-                  title={
-                    advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
-                  }
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
-                      {advisor.isMuted ? '🔇' : '🔊'}
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">
-                    {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
-                  </span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {advisor.isMuted
-                        ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
-                        : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
-                    </span>
-                    {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
-                  </span>
-                </button>
-              </div>
-              {latestCritique?.text ? (
-                <div className="button-group">
-                  <button
-                    type="button"
-                    className="overlay-button compact-button slop-action-button is-fix"
-                    disabled={!canFixFromCritique}
-                    onClick={() => handleFixFromCritique('all')}
-                    aria-label={controls.actions.fix}
-                    title={controls.actions.fixTitle}
-                  >
-                    <ButtonIcon>
-                      <span className="action-persona-icon is-fix" aria-hidden="true">
-                        🛠️
-                      </span>
-                    </ButtonIcon>
-                    <span className="button-label">{controls.actions.fix}</span>
-                    <ActionPersonaRole fallback={controls.actions.fixPersona} />
-                  </button>
-                </div>
-              ) : null}
-              <div className="button-group">
-                <button
-                  type="button"
-                  className="overlay-button compact-button slop-action-button is-clear"
-                  disabled={busy}
-                  onClick={() => handleClearDiagram()}
-                  aria-label={controls.actions.clear}
-                  title={controls.actions.clearTitle}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-clear" aria-hidden="true">
-                      🧨
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{controls.actions.clear}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      🧨
-                    </span>
-                    {controls.actions.demolish}
-                  </span>
-                </button>
-              </div>
-            </div>
-          ) : hasCanvasContent && narrowLayout ? (
-            <div className="prompt-actions prompt-actions--mobile">
-              <div className="button-group">
-                <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                  disabled={busy}
-                  onClick={toggleChromeSlopPrompt}
-                  aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                  aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                  title={slopitect.PROMPT_ACTION_COPY.title}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-prompt" aria-hidden="true">
-                      💬
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                    </span>
-                    {slopitect.PROMPT_ACTION_COPY.roleTag}
-                  </span>
-                </button>
-                <RenderAsMascot
-                  modes={contentModeOptions}
-                  currentMode={contentMode}
-                  onPickMode={handleSelectContentMode}
-                  disabled={loading || streamingPreview}
-                />
-                <StakeholdersMascot
-                  personas={[
-                    {
-                      variant: 'refine',
-                      onClick: () => runTransform('refine', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'innovate',
-                      onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'goMad',
-                      label: goMadShapeLabel(goMadStreak, controls.actions),
-                      onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'critique',
-                      onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                    },
-                    {
-                      variant: 'explain',
-                      onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                    },
-                    // Senior tier: the VP is not a teammate — this action preps
-                    // the diagram for upstairs (castTiers.js).
-                    {
-                      variant: 'exec',
-                      senior: true,
-                      onClick: () => runTransform('exec', { useDiagramFocus: true })
-                    }
-                  ]}
-                  activeAdvisorVariant={advisor.activePersona}
-                  thinkingPersona={advisor.thinkingPersona}
-                  busy={busy}
-                  bubbleProps={advisorBubbleProps}
-                  onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                  castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                  introProps={stakeholderIntroProps}
-                />
-                <button
-                  type="button"
-                  className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
-                  onClick={advisor.toggleMute}
-                  aria-pressed={advisor.isMuted}
-                  aria-label={
-                    advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
-                  }
-                  title={
-                    advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
-                  }
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
-                      {advisor.isMuted ? '🔇' : '🔊'}
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">
-                    {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
-                  </span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      {advisor.isMuted
-                        ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
-                        : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
-                    </span>
-                    {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
-                  </span>
-                </button>
-                {latestCritique?.text ? (
-                  <button
-                    type="button"
-                    className="overlay-button compact-button slop-action-button is-fix"
-                    disabled={!canFixFromCritique}
-                    onClick={() => handleFixFromCritique('all')}
-                    aria-label={controls.actions.fix}
-                    title={controls.actions.fixTitle}
-                  >
-                    <ButtonIcon>
-                      <span className="action-persona-icon is-fix" aria-hidden="true">
-                        🛠️
-                      </span>
-                    </ButtonIcon>
-                    <span className="button-label">{controls.actions.fix}</span>
-                    <ActionPersonaRole fallback={controls.actions.fixPersona} />
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="overlay-button compact-button slop-action-button is-clear"
-                  disabled={busy}
-                  onClick={() => handleClearDiagram()}
-                  aria-label={controls.actions.clear}
-                  title={controls.actions.clearTitle}
-                >
-                  <ButtonIcon>
-                    <span className="action-persona-icon is-clear" aria-hidden="true">
-                      🧨
-                    </span>
-                  </ButtonIcon>
-                  <span className="button-label">{controls.actions.clear}</span>
-                  <span className="slop-action-role">
-                    <span className="slop-action-role-emoji" aria-hidden="true">
-                      🧨
-                    </span>
-                    {controls.actions.demolish}
-                  </span>
-                </button>
-              </div>
-            </div>
-          ) : null
-        }
-        aiControls={
-          // Empty intro: modes live in the Render as strip; Settings (brain /
-          // invite) only clutter the first screen. Keep the gear once a
-          // diagram exists, or whenever a handshake needs the panel. Peer content
-          // also keeps chrome after a mode switch into an empty slot.
-          hasCanvasContent || pendingHandshake ? (
-            <AiCornerControlsInner
-              controls={controls.settings}
-              insightsCopy={controls.insights}
-              modelProfile={modelProfile}
-              onSelectModelProfile={setModelProfile}
-              pendingHandshake={pendingHandshake}
-              externalAgentPresence={externalAgentPresence}
-              onInviteAgent={() => setInviteDialogOpen(true)}
-              agentThinkingChrome={agentThinkingChrome}
-              insightsOpen={insightsOpen}
-              onToggleInsights={() => setInsightsOpen((v) => !v)}
-              includeThinkingToggle={insightsEntries.length > 0}
-              popoverMode={!narrowLayout}
-              contentType={
-                isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
-              }
-              diagramSource={state.diagramSource}
-              showEditorToggle={hasCanvasContent || editorOpen}
-              editorOpen={editorOpen}
-              onToggleEditor={() => setEditorOpen((current) => !current)}
-              editorControls={controls.editor}
+          {showEntryExample ? (
+            <ExampleDiagramPreview
+              source={controls.prompt.exampleDiagramSource ?? EXAMPLE_DIAGRAM_SOURCE}
+              eyebrow={controls.prompt.exampleEyebrow}
+              headline={controls.prompt.exampleHeadline}
+              body={controls.prompt.exampleBody}
+              topicLabel={controls.prompt.exampleTopic}
+              ariaLabel={controls.prompt.exampleAria}
+              ctaLabel={controls.prompt.exampleCta}
+              onTry={() => handleStarterPick(entryDemoPrompt)}
+              active={showEntryExample}
             />
-          ) : null
-        }
-      />
+          ) : null}
+
+          {modeRevealActive ? (
+            <ModeRevealSpotlight
+              eyebrow={controls.modeReveal.eyebrow}
+              body={controls.modeReveal.body}
+              modes={contentModeOptions.filter((m) => m.id !== 'auto')}
+              currentMode={contentMode}
+              onPickMode={handleModeRevealPick}
+              pickPrefix={controls.modeReveal.pickPrefix}
+              dismissLabel={controls.modeReveal.dismiss}
+              ariaLabel={controls.modeReveal.aria}
+              onDismiss={dismissModeReveal}
+            />
+          ) : null}
+
+          <DiagramFullscreenOverlay
+            isFullscreen={isFullscreen}
+            host={diagramSurfaceRef.current}
+            onExit={toggleFullscreen}
+          >
+            <RadialActionMenu
+              key={radialMenuSession?.descriptor?.id ?? 'radial-closed'}
+              descriptor={radialMenuSession?.descriptor ?? null}
+              anchor={radialMenuSession?.anchor ?? null}
+              actions={radialActions}
+              busy={busy}
+              diagramSource={state.diagramSource}
+              contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
+              sessionId={activeSessionId}
+              slopPromptOpen={slopPromptExpanded && slopPromptSource === 'radial'}
+              onSlopPromptClose={closeSlopPrompt}
+              slopPrompt={
+                slopPromptExpanded && slopPromptSource === 'radial' ? (
+                  <SlopNextPrompt
+                    layout="radial"
+                    prompt={slopNextPrompt}
+                    busy={busy}
+                    voiceSupported={voiceSupported}
+                    voiceListening={voiceListening}
+                    narrowLayout={narrowLayout}
+                    speechRecognitionCtor={SpeechRecognitionCtor}
+                    PromptIcon={PromptIcon}
+                    MicIcon={MicIcon}
+                    MicActiveIcon={MicActiveIcon}
+                    ButtonIcon={ButtonIcon}
+                    copy={controls.prompt}
+                    onPromptChange={setSlopNextPrompt}
+                    onSubmit={handleSlopPromptSubmit}
+                    onClose={closeSlopPrompt}
+                    onMicToggleClick={handleMicToggleClick}
+                    onMicPointerDown={handleMicPointerDown}
+                    onMicPointerUp={handleMicPointerUp}
+                    onMicLostPointerCapture={() => stopVoiceInput()}
+                  />
+                ) : null
+              }
+              onActionPick={handleRadialAction}
+              onDrillDeeper={(descriptor) => {
+                if (!descriptor) return;
+                setSelectedNode(descriptor);
+                closeRadialMenu();
+                setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: 'explain' }));
+                tryAgentSound(playExplainBoot);
+                runAnalyze('explain', { focusTarget: descriptor });
+              }}
+              onHoverHold={cancelMenuClose}
+              onHoverRelease={scheduleMenuClose}
+              onBackdropPointerDown={() => {
+                if (slopPromptExpanded && slopPromptSource === 'radial') {
+                  closeSlopPrompt();
+                  return;
+                }
+                dismissRadialMenu();
+              }}
+              onClose={closeRadialMenu}
+              onAdvisorUsage={reportAdvisorUsage}
+            />
+          </DiagramFullscreenOverlay>
+
+          {ceremonyOverlays}
+          <ErrorToast />
+          <OfficeLayer
+            pause={advisorPause}
+            advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
+            getDiagramSource={() => stateRef.current?.diagramSource ?? ''}
+            getContentType={() => contentMode}
+            getSessionId={() => activeSessionId}
+            getSvgRoot={() => (typeof document !== 'undefined' ? document : null)}
+            getUserTitle={() => gamification.levelTitle}
+            getUserName={() => resolveUserName()}
+            onUsage={reportAdvisorUsage}
+            onAdoptPrompt={(text) => {
+              void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {});
+            }}
+            onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
+            onOfficeEvent={handleOfficeEvent}
+            onTalkToTeam={() => advisor.promptNext({})}
+            onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
+            playChime={tryAgentSound}
+            runSignal={officeRunSignal}
+            deskActionsAnchorReady={hasCanvasContent}
+            deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
+          />
+          <HotkeyOverlay
+            open={hotkeyOverlayOpen}
+            onClose={() => setHotkeyOverlayOpen(false)}
+            copy={controls.hotkeys}
+          />
+
+          <TopShell>
+            <div
+              className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
+              aria-label="ArchiSlop"
+              onClick={handleBrandClick}
+            >
+              <div className="brand-control-chip">
+                <div className="brand-control-chip-row">
+                  <span className="brand-mark" aria-hidden="true">
+                    <ArchiSlopMarkIcon />
+                  </span>
+                  <span className="brand-name">ArchiSlop</span>
+                  {gamification?.prestigeShortLabel ? (
+                    narrowLayout && compactBrand ? (
+                      <button
+                        type="button"
+                        className="brand-prestige-badge"
+                        title={`${controls.brand.totalSlopRuns.replace('{count}', String(gamification.totalRuns ?? 0))} · ${xpBarMobileOpen ? controls.brand.tapToHideXp : controls.brand.tapToShowXp}`}
+                        data-testid="brand-prestige-badge"
+                        aria-expanded={xpBarMobileOpen}
+                        aria-controls="brand-xp-mobile-slot"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setXpBarMobileOpen((current) => !current);
+                        }}
+                      >
+                        {gamification.prestigeShortLabel}
+                      </button>
+                    ) : (
+                      <span
+                        className="brand-prestige-badge"
+                        title={controls.brand.totalSlopRuns.replace(
+                          '{count}',
+                          String(gamification.totalRuns ?? 0)
+                        )}
+                        data-testid="brand-prestige-badge"
+                      >
+                        {gamification.prestigeShortLabel}
+                      </span>
+                    )
+                  ) : null}
+                  {gamification?.level && !narrowLayout ? (
+                    <XpProgressBar
+                      level={gamification.level}
+                      short={gamification.levelShortLabel}
+                      flair={gamification.levelFlair}
+                      progressRatio={gamification.levelProgressRatio}
+                      xpInto={gamification.xpIntoLevel}
+                      xpForNext={gamification.xpForNextLevel}
+                      totalXp={gamification.xp}
+                      isMaxLevel={gamification.xpForNextLevel == null}
+                      flashKey={xpBarFlashKey}
+                      variant={liveVariant}
+                      onClick={() => setXpInfoPanelOpen((open) => !open)}
+                      expanded={xpInfoPanelOpen}
+                      controlsId="levelup-info-panel"
+                    />
+                  ) : null}
+                </div>
+                {gamification?.level && narrowLayout ? (
+                  <div
+                    id="brand-xp-mobile-slot"
+                    className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
+                    aria-hidden={compactBrand ? !xpBarMobileOpen : false}
+                  >
+                    <XpProgressBar
+                      level={gamification.level}
+                      short={gamification.levelShortLabel}
+                      flair={gamification.levelFlair}
+                      progressRatio={gamification.levelProgressRatio}
+                      xpInto={gamification.xpIntoLevel}
+                      xpForNext={gamification.xpForNextLevel}
+                      totalXp={gamification.xp}
+                      isMaxLevel={gamification.xpForNextLevel == null}
+                      flashKey={xpBarFlashKey}
+                      variant={liveVariant}
+                      onClick={() => setXpInfoPanelOpen((open) => !open)}
+                      expanded={xpInfoPanelOpen}
+                      controlsId="levelup-info-panel"
+                    />
+                  </div>
+                ) : null}
+              </div>
+              {xpInfoPanelOpen && gamification?.level ? (
+                <div
+                  id="levelup-info-panel"
+                  className="levelup-info-panel-mount"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <LevelUpInfoPanel
+                    level={gamification.level}
+                    levelTitle={gamification.levelTitle}
+                    levelFlair={gamification.levelFlair}
+                    levelShortLabel={gamification.levelShortLabel}
+                    progressRatio={gamification.levelProgressRatio}
+                    xpInto={gamification.xpIntoLevel}
+                    xpForNext={gamification.xpForNextLevel}
+                    totalXp={gamification.xp}
+                    isMaxLevel={gamification.xpForNextLevel == null}
+                    prestigeShortLabel={gamification.prestigeShortLabel}
+                    totalRuns={gamification.totalRuns}
+                    runsByVariant={gamification.runsByVariant}
+                    achievements={gamification.achievements}
+                    lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
+                    costTrackingEnabled={costTrackingEnabled}
+                    userName={resolveUserName()}
+                    onClose={() => setXpInfoPanelOpen(false)}
+                  />
+                </div>
+              ) : null}
+              {slopitectTip ? (
+                <div
+                  ref={slopitectTipRef}
+                  className="slopitect-tip-chip"
+                  role="status"
+                  aria-live="polite"
+                  data-testid="slopitect-tip-chip"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    dismissSlopitectTip();
+                  }}
+                >
+                  <span className="slopitect-tip-chip-label" aria-hidden="true">
+                    {controls.insights.tipLabel}
+                  </span>
+                  <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
+                </div>
+              ) : null}
+            </div>
+
+            {fullscreenSupported || hasCanvasContent || editorOpen || showIntroLocaleToggle ? (
+              <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
+                {showIntroLocaleToggle ? (
+                  <IntroLocaleToggle
+                    locale={locale}
+                    copy={controls.introLocale}
+                    onSelectLocale={setLocale}
+                  />
+                ) : null}
+                {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
+                  <DiagramFullscreenButton
+                    isFullscreen={isFullscreen}
+                    disabled={streamingPreview}
+                    onToggle={toggleFullscreen}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </TopShell>
+
+          <AgentHandshakeDialog
+            request={pendingHandshake}
+            onApprove={handleApproveHandshake}
+            onDeny={handleDenyHandshake}
+          />
+
+          <InviteAgentDialog
+            sessionId={activeSessionId}
+            open={inviteDialogOpen}
+            onClose={() => setInviteDialogOpen(false)}
+          />
+
+          <ClearConfirmDialog
+            key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
+            open={clearConfirmOpen}
+            copy={controls.clearDialog}
+            onConfirm={() => {
+              void performClearDiagram();
+            }}
+            onCancel={() => setClearConfirmOpen(false)}
+          />
+
+          <BottomRow
+            narrowLayout={narrowLayout}
+            statusRow={
+              status ? (
+                <div className="overlay-status-row">
+                  <p
+                    id="app-status"
+                    className={`overlay-status ${error ? 'is-error' : ''}`}
+                    role="status"
+                  >
+                    {status}
+                  </p>
+                  {streamingAgentStoppable && !insightsOpen ? (
+                    <button
+                      type="button"
+                      className="overlay-button compact-button overlay-status-stop"
+                      onClick={stopStreamingAgentRequest}
+                    >
+                      {controls.insights.stopRequest}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null
+            }
+            promptPopover={
+              hasCanvasContent && slopPromptExpanded && slopPromptSource === 'chrome' ? (
+                <div className="bottom-row-popover bottom-row-popover--prompt">
+                  <SlopNextPrompt
+                    layout="chrome"
+                    prompt={slopNextPrompt}
+                    busy={busy}
+                    voiceSupported={voiceSupported}
+                    voiceListening={voiceListening}
+                    narrowLayout={narrowLayout}
+                    speechRecognitionCtor={SpeechRecognitionCtor}
+                    PromptIcon={PromptIcon}
+                    MicIcon={MicIcon}
+                    MicActiveIcon={MicActiveIcon}
+                    ButtonIcon={ButtonIcon}
+                    copy={controls.prompt}
+                    onPromptChange={setSlopNextPrompt}
+                    onSubmit={handleSlopPromptSubmit}
+                    onClose={closeSlopPrompt}
+                    onMicToggleClick={handleMicToggleClick}
+                    onMicPointerDown={handleMicPointerDown}
+                    onMicPointerUp={handleMicPointerUp}
+                    onMicLostPointerCapture={() => stopVoiceInput()}
+                  />
+                </div>
+              ) : null
+            }
+            actions={
+              !hasCanvasContent && !insightsOpen ? (
+                <div className="entry-cluster">
+                  <DayOneBadge copy={controls.dayOne} userTitle={gamification.levelTitle} />
+                  <form className="prompt-control" onSubmit={runIntentChange}>
+                    <label className="sr-only" htmlFor="diagram-change-prompt">
+                      {controls.prompt.yourTopic}
+                    </label>
+                    <input
+                      id="diagram-change-prompt"
+                      value={prompt}
+                      onChange={(event) => setPrompt(event.target.value)}
+                      placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
+                      disabled={busy}
+                      aria-invalid={error ? 'true' : 'false'}
+                      aria-describedby={status ? 'app-status' : undefined}
+                    />
+                    <div className="prompt-actions-main">
+                      <button
+                        type="button"
+                        className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+                        disabled={!voiceSupported || busy}
+                        {...(narrowLayout
+                          ? {
+                              onPointerUp: (event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                handleMicToggleClick(event);
+                              }
+                            }
+                          : {
+                              onPointerDown: handleMicPointerDown,
+                              onPointerUp: handleMicPointerUp,
+                              onPointerCancel: handleMicPointerUp,
+                              onLostPointerCapture: () => stopVoiceInput(),
+                              onKeyDown: (event) => {
+                                if (event.repeat) return;
+                                if (event.key === ' ' || event.key === 'Enter') {
+                                  event.preventDefault();
+                                  startVoiceInput();
+                                }
+                              },
+                              onKeyUp: (event) => {
+                                if (event.key === ' ' || event.key === 'Enter') {
+                                  event.preventDefault();
+                                  stopVoiceInput();
+                                }
+                              }
+                            })}
+                        aria-label={
+                          narrowLayout
+                            ? voiceListening
+                              ? controls.prompt.tapToStop
+                              : controls.prompt.tapToDictate
+                            : controls.prompt.holdToSpeak
+                        }
+                        aria-pressed={narrowLayout ? voiceListening : undefined}
+                        title={
+                          voiceSupported
+                            ? narrowLayout
+                              ? voiceListening
+                                ? controls.prompt.tapToStop
+                                : controls.prompt.tapToDictatePrompt
+                              : controls.prompt.holdToDictate
+                            : SpeechRecognitionCtor
+                              ? controls.prompt.voiceNeedsHttps
+                              : controls.prompt.voiceUnsupported
+                        }
+                      >
+                        <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
+                        <span className="button-label">{controls.prompt.mic}</span>
+                      </button>
+                      <button
+                        type="submit"
+                        className="overlay-button primary-button"
+                        disabled={busy || !prompt.trim()}
+                      >
+                        <ButtonIcon>{'>'}</ButtonIcon>
+                        <span className="button-label">{controls.prompt.doIt}</span>
+                      </button>
+                    </div>
+                  </form>
+                  <EntryRenderAs
+                    label={controls.prompt.renderAsLabel}
+                    ariaLabel={controls.prompt.renderAsAria}
+                    modes={contentModeOptions}
+                    currentMode={contentMode}
+                    onPickMode={handleEntryRenderAsPick}
+                    pickPrefix={controls.modeReveal.pickPrefix}
+                    disabled={busy || loading || streamingPreview}
+                  />
+                  <TopicStarters
+                    hint={controls.prompt.starterHint}
+                    ariaLabel={controls.prompt.starterAria}
+                    starters={controls.prompt.starters}
+                    busy={busy}
+                    onPick={handleStarterPick}
+                  />
+                </div>
+              ) : hasCanvasContent && !narrowLayout ? (
+                <div className="prompt-actions prompt-actions--desktop">
+                  <div className="button-group">
+                    <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                    <button
+                      type="button"
+                      className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
+                      disabled={busy}
+                      onClick={toggleChromeSlopPrompt}
+                      aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
+                      aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                      title={slopitect.PROMPT_ACTION_COPY.title}
+                    >
+                      <ButtonIcon>
+                        <span className="action-persona-icon is-prompt" aria-hidden="true">
+                          💬
+                        </span>
+                      </ButtonIcon>
+                      <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
+                      <span className="slop-action-role">
+                        <span className="slop-action-role-emoji" aria-hidden="true">
+                          {slopitect.PROMPT_ACTION_COPY.roleEmoji}
+                        </span>
+                        {slopitect.PROMPT_ACTION_COPY.roleTag}
+                      </span>
+                    </button>
+                    <RenderAsMascot
+                      modes={contentModeOptions}
+                      currentMode={contentMode}
+                      onPickMode={handleSelectContentMode}
+                      disabled={loading || streamingPreview}
+                    />
+                    <StakeholdersMascot
+                      personas={[
+                        {
+                          variant: 'refine',
+                          onClick: () => runTransform('refine', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'innovate',
+                          onClick: () => runTransform('innovate', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'goMad',
+                          label: goMadShapeLabel(goMadStreak, controls.actions),
+                          onClick: () => runTransform('goMad', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'critique',
+                          onClick: () => runAnalyze('critique', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'explain',
+                          onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                        },
+                        // Senior tier: the VP is not a teammate — this action preps
+                        // the diagram for upstairs (castTiers.js).
+                        {
+                          variant: 'exec',
+                          senior: true,
+                          onClick: () => runTransform('exec', { useDiagramFocus: true })
+                        }
+                      ]}
+                      activeAdvisorVariant={advisor.activePersona}
+                      thinkingPersona={advisor.thinkingPersona}
+                      busy={busy}
+                      bubbleProps={advisorBubbleProps}
+                      onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
+                      castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                      introProps={stakeholderIntroProps}
+                    />
+                  </div>
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
+                      onClick={advisor.toggleMute}
+                      aria-pressed={advisor.isMuted}
+                      aria-label={
+                        advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
+                      }
+                      title={
+                        advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
+                      }
+                    >
+                      <ButtonIcon>
+                        <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
+                          {advisor.isMuted ? '🔇' : '🔊'}
+                        </span>
+                      </ButtonIcon>
+                      <span className="button-label">
+                        {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
+                      </span>
+                      <span className="slop-action-role">
+                        <span className="slop-action-role-emoji" aria-hidden="true">
+                          {advisor.isMuted
+                            ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
+                            : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                        </span>
+                        {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
+                      </span>
+                    </button>
+                  </div>
+                  {latestCritique?.text ? (
+                    <div className="button-group">
+                      <button
+                        type="button"
+                        className="overlay-button compact-button slop-action-button is-fix"
+                        disabled={!canFixFromCritique}
+                        onClick={() => handleFixFromCritique('all')}
+                        aria-label={controls.actions.fix}
+                        title={controls.actions.fixTitle}
+                      >
+                        <ButtonIcon>
+                          <span className="action-persona-icon is-fix" aria-hidden="true">
+                            🛠️
+                          </span>
+                        </ButtonIcon>
+                        <span className="button-label">{controls.actions.fix}</span>
+                        <ActionPersonaRole fallback={controls.actions.fixPersona} />
+                      </button>
+                    </div>
+                  ) : null}
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className="overlay-button compact-button slop-action-button is-clear"
+                      disabled={busy}
+                      onClick={() => handleClearDiagram()}
+                      aria-label={controls.actions.clear}
+                      title={controls.actions.clearTitle}
+                    >
+                      <ButtonIcon>
+                        <span className="action-persona-icon is-clear" aria-hidden="true">
+                          🧨
+                        </span>
+                      </ButtonIcon>
+                      <span className="button-label">{controls.actions.clear}</span>
+                      <span className="slop-action-role">
+                        <span className="slop-action-role-emoji" aria-hidden="true">
+                          🧨
+                        </span>
+                        {controls.actions.demolish}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : hasCanvasContent && narrowLayout ? (
+                <div className="prompt-actions prompt-actions--mobile">
+                  <div className="button-group">
+                    <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                    <button
+                      type="button"
+                      className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
+                      disabled={busy}
+                      onClick={toggleChromeSlopPrompt}
+                      aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
+                      aria-label={slopitect.PROMPT_ACTION_COPY.label}
+                      title={slopitect.PROMPT_ACTION_COPY.title}
+                    >
+                      <ButtonIcon>
+                        <span className="action-persona-icon is-prompt" aria-hidden="true">
+                          💬
+                        </span>
+                      </ButtonIcon>
+                      <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
+                      <span className="slop-action-role">
+                        <span className="slop-action-role-emoji" aria-hidden="true">
+                          {slopitect.PROMPT_ACTION_COPY.roleEmoji}
+                        </span>
+                        {slopitect.PROMPT_ACTION_COPY.roleTag}
+                      </span>
+                    </button>
+                    <RenderAsMascot
+                      modes={contentModeOptions}
+                      currentMode={contentMode}
+                      onPickMode={handleSelectContentMode}
+                      disabled={loading || streamingPreview}
+                    />
+                    <StakeholdersMascot
+                      personas={[
+                        {
+                          variant: 'refine',
+                          onClick: () => runTransform('refine', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'innovate',
+                          onClick: () => runTransform('innovate', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'goMad',
+                          label: goMadShapeLabel(goMadStreak, controls.actions),
+                          onClick: () => runTransform('goMad', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'critique',
+                          onClick: () => runAnalyze('critique', { useDiagramFocus: true })
+                        },
+                        {
+                          variant: 'explain',
+                          onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                        },
+                        // Senior tier: the VP is not a teammate — this action preps
+                        // the diagram for upstairs (castTiers.js).
+                        {
+                          variant: 'exec',
+                          senior: true,
+                          onClick: () => runTransform('exec', { useDiagramFocus: true })
+                        }
+                      ]}
+                      activeAdvisorVariant={advisor.activePersona}
+                      thinkingPersona={advisor.thinkingPersona}
+                      busy={busy}
+                      bubbleProps={advisorBubbleProps}
+                      onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
+                      castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                      introProps={stakeholderIntroProps}
+                    />
+                    <button
+                      type="button"
+                      className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
+                      onClick={advisor.toggleMute}
+                      aria-pressed={advisor.isMuted}
+                      aria-label={
+                        advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
+                      }
+                      title={
+                        advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
+                      }
+                    >
+                      <ButtonIcon>
+                        <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
+                          {advisor.isMuted ? '🔇' : '🔊'}
+                        </span>
+                      </ButtonIcon>
+                      <span className="button-label">
+                        {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
+                      </span>
+                      <span className="slop-action-role">
+                        <span className="slop-action-role-emoji" aria-hidden="true">
+                          {advisor.isMuted
+                            ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
+                            : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
+                        </span>
+                        {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
+                      </span>
+                    </button>
+                    {latestCritique?.text ? (
+                      <button
+                        type="button"
+                        className="overlay-button compact-button slop-action-button is-fix"
+                        disabled={!canFixFromCritique}
+                        onClick={() => handleFixFromCritique('all')}
+                        aria-label={controls.actions.fix}
+                        title={controls.actions.fixTitle}
+                      >
+                        <ButtonIcon>
+                          <span className="action-persona-icon is-fix" aria-hidden="true">
+                            🛠️
+                          </span>
+                        </ButtonIcon>
+                        <span className="button-label">{controls.actions.fix}</span>
+                        <ActionPersonaRole fallback={controls.actions.fixPersona} />
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="overlay-button compact-button slop-action-button is-clear"
+                      disabled={busy}
+                      onClick={() => handleClearDiagram()}
+                      aria-label={controls.actions.clear}
+                      title={controls.actions.clearTitle}
+                    >
+                      <ButtonIcon>
+                        <span className="action-persona-icon is-clear" aria-hidden="true">
+                          🧨
+                        </span>
+                      </ButtonIcon>
+                      <span className="button-label">{controls.actions.clear}</span>
+                      <span className="slop-action-role">
+                        <span className="slop-action-role-emoji" aria-hidden="true">
+                          🧨
+                        </span>
+                        {controls.actions.demolish}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ) : null
+            }
+            aiControls={
+              // Empty intro: modes live in the Render as strip; Settings (brain /
+              // invite) only clutter the first screen. Keep the gear once a
+              // diagram exists, or whenever a handshake needs the panel. Peer content
+              // also keeps chrome after a mode switch into an empty slot.
+              hasCanvasContent || pendingHandshake ? (
+                <AiCornerControlsInner
+                  controls={controls.settings}
+                  insightsCopy={controls.insights}
+                  modelProfile={modelProfile}
+                  onSelectModelProfile={setModelProfile}
+                  pendingHandshake={pendingHandshake}
+                  externalAgentPresence={externalAgentPresence}
+                  onInviteAgent={() => setInviteDialogOpen(true)}
+                  agentThinkingChrome={agentThinkingChrome}
+                  insightsOpen={insightsOpen}
+                  onToggleInsights={() => setInsightsOpen((v) => !v)}
+                  includeThinkingToggle={insightsEntries.length > 0}
+                  popoverMode={!narrowLayout}
+                  contentType={
+                    isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
+                  }
+                  diagramSource={state.diagramSource}
+                  showEditorToggle={hasCanvasContent || editorOpen}
+                  editorOpen={editorOpen}
+                  onToggleEditor={() => setEditorOpen((current) => !current)}
+                  editorControls={controls.editor}
+                />
+              ) : null
+            }
+          />
         </>
       ) : null}
       <div className="office-directory-root-mount">

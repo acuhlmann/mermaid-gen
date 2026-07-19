@@ -9,11 +9,7 @@
  *   CHECK_AFFECTED_BASE=origin/main npm run check:affected
  */
 import { spawnSync } from 'node:child_process';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const repoRoot = resolve(__dirname, '..');
+import { changedFiles, filterPrettierFiles, repoRoot } from './prettier-files.mjs';
 
 const argv = process.argv.slice(2);
 const baseFlag = argv.find((a) => a.startsWith('--base='));
@@ -35,42 +31,7 @@ function run(cmd, args, label) {
   if (out.status !== 0) process.exit(out.status ?? 1);
 }
 
-function gitLines(args) {
-  const out = spawnSync('git', args, { cwd: repoRoot, encoding: 'utf8' });
-  if (out.status !== 0) return [];
-  return out.stdout
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean);
-}
-
 const LINTABLE_RE = /\.(js|jsx|ts|tsx|mjs|cjs)$/;
-
-/** Mirrors `.prettierignore` — keep in sync when that file changes. */
-const PRETTIER_EXT = /\.(js|jsx|ts|tsx|mjs|cjs|css|json|md|mdx|yml|yaml|html)$/;
-const PRETTIER_SKIP = [
-  /^node_modules\//,
-  /^\.agents\//,
-  /^dist\//,
-  /^build\//,
-  /^coverage\//,
-  /^apps\/web\/dist/,
-  /^apps\/web\/dist-main/,
-  /^apps\/web\/dist-hackathon/,
-  /^apps\/server\/bench-results\//,
-  /^packages\/shared\/src\/vendor\//,
-  /^package-lock\.json$/,
-  /^skills-lock\.json$/,
-  /\.min\.js$/,
-  /\.min\.css$/,
-  /^\.env/,
-  /^\.env\./
-];
-
-/** @param {string[]} files */
-function filterPrettierFiles(files) {
-  return files.filter((f) => PRETTIER_EXT.test(f) && !PRETTIER_SKIP.some((re) => re.test(f)));
-}
 
 /** @param {string[]} files */
 function runFormatCheck(files) {
@@ -167,22 +128,12 @@ function classify(files) {
   return flags;
 }
 
-function changedFiles() {
-  const mergeBase = spawnSync('git', ['merge-base', 'HEAD', baseRef], {
-    cwd: repoRoot,
-    encoding: 'utf8'
-  });
-  const diffBase =
-    mergeBase.status === 0 && mergeBase.stdout.trim() ? mergeBase.stdout.trim() : baseRef;
-
-  const committed = gitLines(['diff', '--name-only', `${diffBase}...HEAD`]);
-  const unstaged = gitLines(['diff', '--name-only']);
-  const staged = gitLines(['diff', '--name-only', '--cached']);
-  return [...new Set([...committed, ...unstaged, ...staged])];
+function changedFilesForCheck() {
+  return changedFiles(baseRef);
 }
 
 function main() {
-  const files = changedFiles();
+  const files = changedFilesForCheck();
   if (files.length === 0) {
     console.log('check-affected: no changed files; running check:fast');
     run('npm', ['run', 'check:fast'], 'check:fast');
