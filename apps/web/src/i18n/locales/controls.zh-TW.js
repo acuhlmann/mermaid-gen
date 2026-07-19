@@ -46,8 +46,8 @@ export const CONTROLS_ZH_TW = {
     slopNextPlaceholder: '告訴智慧代理要改什麼…',
     slopNextLabel: '新提示',
     closePrompt: '關閉提示',
-    topicPlaceholder: '或輸入你自己的主題…',
-    starterHint: '第一次來？',
+    topicPlaceholder: '輸入任何主題 — 圖表、資料圖、表單…',
+    starterHint: '或從同事那裡接個任務：',
     starterAria: '用於快速開始的範例主題',
     starters: [
       { label: '咖啡供應鏈', prompt: '拆解全球咖啡供應鏈' },
@@ -57,10 +57,10 @@ export const CONTROLS_ZH_TW = {
     ],
     exampleEyebrow: 'ArchiSlop',
     exampleHeadline: '任意主題 → 一張可演進的圖',
-    exampleBody: '先產生，再打磨。辦公室同事會有意見。',
+    exampleBody: '把任何主題變成可交付成果。從你最關心的內容開始。',
     exampleTopic: '全球咖啡供應鏈',
     exampleAria: '可立即產生的視覺化範例',
-    exampleCta: '產生：咖啡供應鏈 →',
+    exampleCta: '試試：咖啡供應鏈 →',
     exampleDiagramSource: `flowchart TD
     A["農場"] --> B["烘焙廠"]
     B --> C["經銷商"]

@@ -48,8 +48,8 @@ export const CONTROLS_EN_AU = {
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
-    topicPlaceholder: '…or pitch your own big idea',
-    starterHint: 'Day one, and the inbox is already chockers:',
+    topicPlaceholder: 'Pitch any topic — diagram, chart, form…',
+    starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
     starters: [
       {
@@ -79,11 +79,10 @@ export const CONTROLS_EN_AU = {
     ],
     exampleEyebrow: 'ArchiSlop Corp. · IT Division',
     exampleHeadline: 'Welcome aboard, Architect',
-    exampleBody:
-      'Your job: turn any topic into a deliverable. The office will have opinions, no worries.',
+    exampleBody: 'Turn any topic into a deliverable. Start with whatever you care about.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualisation you can generate',
-    exampleCta: 'First job: Coffee supply chain →',
+    exampleCta: 'Try it: Coffee supply chain →',
     exampleDiagramSource: `flowchart TD
     A["Farm"] --> B["Roaster"]
     B --> C["Distributor"]
@@ -96,7 +95,7 @@ export const CONTROLS_EN_AU = {
     rolePrefix: 'New Hire',
     hrLine: 'Badge photo: pending. Desk: this one. Compliance training: already overdue, legend.',
     pitchLine:
-      'They hired a rockstar. Pitch your own big idea — or grab a job from the pile below.',
+      "Your canvas is yours. Type a topic below — or grab a colleague's request when you're ready.",
     dismissAria: 'Put the badge away'
   },
   introLocale: {

@@ -18,12 +18,14 @@ export default function DeskActionsDock({
   onWalkTheFloor,
   onImSomeone,
   onCheckInbox,
+  onOpenSlopChat,
   onCallMeeting,
   onTalkToTeam,
   onCheckHrProgression,
   blockedReason = null,
   canCallMeeting = true,
   unreadCount = 0,
+  imUnreadCount = 0,
   placement = 'corner'
 }) {
   const [open, setOpen] = useState(false);
@@ -53,6 +55,15 @@ export default function DeskActionsDock({
     { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
     { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
+    {
+      id: 'slopChat',
+      label: copy.slopChat,
+      emoji: '💬',
+      run: onOpenSlopChat,
+      alwaysEnabled: true,
+      title: copy.slopChatTitle,
+      badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
+    },
     {
       id: 'inbox',
       label: copy.inbox,

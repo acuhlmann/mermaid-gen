@@ -7,23 +7,14 @@ import { PersonaFace } from './personaFaces/index.jsx';
  * handled by the store TTL; quick replies are pure local flavor (plus a tiny
  * XP nudge through onQuickReply).
  *
- * Toasts are notifications, not the archive: once any IM has ever arrived this
- * also renders the chat tab that opens OfficeMessenger, so an expired ping is
- * still reachable. That tab is why the component no longer bails out when the
- * ping stack is empty.
+ * Toasts are notifications, not the archive. Open Slop Chat from the desk
+ * menu to read past messages after a toast expires.
  */
-export default function OfficeImPing({
-  pings,
-  unreadCount = 0,
-  historyCount = 0,
-  onDismiss,
-  onQuickReply,
-  onOpenHistory
-}) {
+export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
   const copy = officeChromeCopy();
   const quickReplies = officeImQuickReplies();
   const hasPings = Array.isArray(pings) && pings.length > 0;
-  if (!hasPings && historyCount === 0) return null;
+  if (!hasPings) return null;
   return (
     <div
       className="office-im-stack"
@@ -31,22 +22,6 @@ export default function OfficeImPing({
       aria-label={copy.im.regionAria}
       aria-live="polite"
     >
-      {historyCount > 0 ? (
-        <button
-          type="button"
-          className={`office-im-history${unreadCount > 0 ? ' has-unread' : ''}`}
-          aria-label={formatLocale(copy.im.openHistoryAria, { count: unreadCount })}
-          title={copy.im.openHistoryTitle}
-          onClick={() => onOpenHistory?.()}
-        >
-          <span aria-hidden="true">💬</span>
-          {unreadCount > 0 ? (
-            <span className="office-im-history-badge" aria-hidden="true">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          ) : null}
-        </button>
-      ) : null}
       {(pings ?? []).map((ping) => {
         const sender = officeSenderInfo(ping.colleagueId);
         return (

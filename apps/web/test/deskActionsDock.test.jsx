@@ -9,6 +9,7 @@ function open(props = {}) {
     onWalkTheFloor: vi.fn(),
     onImSomeone: vi.fn(),
     onCheckInbox: vi.fn(),
+    onOpenSlopChat: vi.fn(),
     onCallMeeting: vi.fn(),
     onTalkToTeam: vi.fn(),
     onCheckHrProgression: vi.fn(),
@@ -29,6 +30,7 @@ describe('DeskActionsDock', () => {
         onWalkTheFloor={vi.fn()}
         onImSomeone={vi.fn()}
         onCheckInbox={vi.fn()}
+        onOpenSlopChat={vi.fn()}
         onCallMeeting={vi.fn()}
         onTalkToTeam={vi.fn()}
         onCheckHrProgression={vi.fn()}
@@ -51,12 +53,25 @@ describe('DeskActionsDock', () => {
       'Get a coffee',
       'Walk the floor',
       'Message someone',
+      'Open Slop Chat',
       'Check your mail',
       'Call a meeting',
       'Talk to your team'
     ]) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
+  });
+
+  it('shows an unread badge on Slop Chat when IMs are waiting', () => {
+    open({ imUnreadCount: 2 });
+    expect(screen.getByRole('menuitem', { name: /Open Slop Chat/ }).textContent).toContain('2');
+  });
+
+  it('opens Slop Chat from the desk menu', () => {
+    const handlers = open();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Open Slop Chat/ }));
+    expect(handlers.onOpenSlopChat).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
   });
 
   it('runs HR progression and closes the menu', () => {
