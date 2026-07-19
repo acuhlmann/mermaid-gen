@@ -35,8 +35,9 @@ After editing `packages/shared`, run `npm run build -w packages/shared` before s
 
 ## PR checklist (copy before submit)
 
+- [ ] Ran `npm run format:affected` and re-staged (mandatory for cloud agents — Husky does not run)
 - [ ] Ran `npm run check:affected` or the smallest row from the table above
-- [ ] If Prettier failed locally: `npm run format` (or rely on the pre-commit hook after `npm install`)
+- [ ] If Prettier still failed: `npm run format` on the whole repo
 - [ ] Ran `npm run check:full` if the change touches build, routes, or multiple workspaces
 - [ ] Updated producer **and** consumer for any wire/schema change ([blast-radius](../agent-blast-radius.md))
 - [ ] Updated `docs/guide/`, architecture doc, or recipe if behavior or routes changed

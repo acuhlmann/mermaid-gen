@@ -64,7 +64,7 @@ Every session carries **six independent diagram slots** — `mermaid` (Mermaid t
 | Before PR (matches CI)                 | `npm run check:full` (`check` + build)                              |
 | Wire + doc paths only                  | `npm run check:wire`                                                |
 | Blast-radius map                       | [`docs/agent-blast-radius.md`](docs/agent-blast-radius.md)          |
-| Format the diff you're about to commit | `npm run format`                                                    |
+| Format the diff you're about to commit | `npm run format:affected` (agents); `npm run format` for whole repo |
 | Build all workspaces                   | `npm run build`                                                     |
 | Health probe                           | `curl http://localhost:4000/api/health`                             |
 | Mermaid offline bench                  | `node apps/server/scripts/benchMermaid.js --tag <label>`            |
