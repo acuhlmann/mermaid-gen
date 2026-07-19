@@ -24,6 +24,7 @@ export default function DeskActionsDock({
   onCheckHrProgression,
   blockedReason = null,
   canCallMeeting = true,
+  canTalkToTeam = true,
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner'
@@ -80,7 +81,14 @@ export default function DeskActionsDock({
       disabled: !canCallMeeting,
       disabledTitle: copy.blocked?.noAgenda
     },
-    { id: 'team', label: copy.team, emoji: '👥', run: onTalkToTeam }
+    {
+      id: 'team',
+      label: copy.team,
+      emoji: '👥',
+      run: onTalkToTeam,
+      disabled: !canTalkToTeam,
+      disabledTitle: copy.blocked?.noTeam ?? copy.blocked?.noAgenda
+    }
   ];
 
   const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';

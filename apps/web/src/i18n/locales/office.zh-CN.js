@@ -609,7 +609,8 @@ export const OFFICE_ZH_CN = {
         busy: '部署进行中 — 谁也别离开工位。',
         meeting: '你在开会。装得投入一点。',
         surface: '一次一件事。你已经被打断得够忙了。',
-        noAgenda: '先画点什么 — 这场会也需要议程'
+        noAgenda: '先画点什么 — 这场会也需要议程',
+        noTeam: '先在画布上画点东西 — 团队还没东西可以回应'
       }
     },
     directory: {

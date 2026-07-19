@@ -115,14 +115,15 @@ Rules worth knowing before you touch it:
 
 A **moment** is one interruption: `{kind, colleague, channel, content source}`. Shipped kinds:
 
-| Kind             | Channel                                   | Content                                                       | Interruption level          |
-| ---------------- | ----------------------------------------- | ------------------------------------------------------------- | --------------------------- |
-| `email`          | Inbox dock (envelope + unread badge)      | 2-in-3 canned noise, 1-in-3 LLM about the diagram             | Passive (badge + soft ding) |
-| `im`             | Slop Chat™ ping bubbles (TTL ~9 s, max 2) | Mostly canned with `{label}` slot fills                       | Low                         |
-| `walkby`         | Colleague slides in beside the canvas     | **Always LLM** (must reference a real label); canned fallback | Medium (~11 s)              |
-| `coffee`         | Invite pill → watercooler scene overlay   | Canned two-hander scenes                                      | Opt-in (+10 XP)             |
-| `battle`         | Invite pill → battle arena overlay        | Canned holy-war scenes; the user votes a winner               | Opt-in (+5 XP for settling) |
-| `meeting-invite` | Calendar-invite toast                     | Canned invite; the meeting itself is LLM                      | Opt-in (the flagship)       |
+| Kind             | Channel                                   | Content                                                                   | Interruption level          |
+| ---------------- | ----------------------------------------- | ------------------------------------------------------------------------- | --------------------------- |
+| `email`          | Inbox dock (envelope + unread badge)      | 2-in-3 canned noise, 1-in-3 LLM about the diagram                         | Passive (badge + soft ding) |
+| `im`             | Slop Chat™ ping bubbles (TTL ~9 s, max 2) | Mostly canned with `{label}` slot fills                                   | Low                         |
+| `walkby`         | Colleague slides in beside the canvas     | **Always LLM** (must reference a real label); canned fallback             | Medium (~11 s)              |
+| `coffee`         | Invite pill → watercooler scene overlay   | Canned two-hander scenes                                                  | Opt-in (+10 XP)             |
+| `battle`         | Invite pill → battle arena overlay        | Canned holy-war scenes; the user votes a winner                           | Opt-in (+5 XP for settling) |
+| `meeting-invite` | Calendar-invite toast                     | Canned invite; the meeting itself is LLM                                  | Opt-in (the flagship)       |
+| `run-reaction`   | Slop Chat™ ping, right after a run lands  | Canned IM (occasional LLM); a colleague reacts to what you just generated | Low                         |
 
 Actionable moments carry an `actionPrompt` — a "Do it" button that feeds the normal intent-prompt
 path (same adopt flow as the stakeholder advisor).
@@ -200,15 +201,15 @@ The ambience director decides when the office interrupts you; the **desk verbs**
 direction — you deciding to get up. `DeskActionsDock` (ArchiSlop helmet stamp in the bottom row)
 opens a short menu wired to `useDeskActions` (plus one chrome sink for the XP / People Ops panel):
 
-| Verb                       | Does                                                                                                                               |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 📈 Check my HR progression | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled                                                  |
-| ☕ Get a coffee            | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                            |
-| 🚶 Walk the floor          | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead |
-| 💬 Message someone         | DMs a teammate or colleague; reply is LLM-or-canned. Senior tier excluded — you don't cold-DM the CFO                              |
-| 📥 Check your mail         | Opens the inbox popover (`openSignal` counter prop)                                                                                |
-| 📅 Call a meeting          | Same handler as the inbox's shortcut (two entry points, one behavior)                                                              |
-| 👥 Talk to your team       | `advisor.promptNext({})` — asks the roundtable for a fresh take                                                                    |
+| Verb                       | Does                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 📈 Check my HR progression | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled                                                                                                                                                                                                                                                                                                                                                       |
+| ☕ Get a coffee            | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                                                                                                                                                                                                                                                                                                                                 |
+| 🚶 Walk the floor          | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead                                                                                                                                                                                                                                                                                                      |
+| 💬 Message someone         | DMs a teammate or colleague; reply is LLM-or-canned. Senior tier excluded — you don't cold-DM the CFO                                                                                                                                                                                                                                                                                                                                   |
+| 📥 Check your mail         | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                                                                                                                                                     |
+| 📅 Call a meeting          | Same handler as the inbox's shortcut (two entry points, one behavior)                                                                                                                                                                                                                                                                                                                                                                   |
+| 👥 Talk to your team       | `advisor.promptNext({})` — asks the roundtable for a fresh take. Disabled (in-fiction `blocked.noTeam`) on a blank canvas: the advisor route returns null with no diagram, so the verb would silently no-op. `promptNext` itself is an explicit trigger that clears the ambient failure/dismiss/idle backoffs the passive scheduler sets, so a click always fires when the roundtable _can_ speak (has a diagram, not muted/streaming). |
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
 **bypass Focus Time** (it mutes interruptions, not your own initiative), but still respect
@@ -277,6 +278,15 @@ the pure cadence brain (`officeCadence.js`) on a 5 s tick:
   usage sink. ~70 % of content is canned (template banks in `officeCast.js` with `{label}` /
   `{userTitle}` slot fills; seen-template memory prevents repeats across sessions).
 - LLM failure → 30 s backoff + canned fallback. Offline sessions keep a fully-functional office.
+
+**Run reactions** are a third producer alongside the ambient director and the desk verbs: when an
+agent run lands a fresh diagram, `useOfficeRunReactions` (pure brain `planRunReaction`) has a
+colleague **IM** you about the thing you just made — the office reacting to _your_ output rather
+than a timer. It shares the canned/LLM IM ladder and the cadence memory (so it backs the ambient
+director off), but keeps its own tiny budget: ~55 % chance per run, a 40 s cooldown, **≤5
+reactions/session**, of which **≤2 spend an LLM call**. It respects the same hard gates (streaming
+run, meeting, advisor bubble, active surface, hidden tab, Focus Time) and stays silent on a blank
+canvas — there is no response to react to.
 
 ### Soundscape (room tone)
 
@@ -355,6 +365,7 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | Entry-screen office directory                                          | `apps/web/src/components/OfficeDirectory.jsx` (mounted in App's entry cluster; colleague `blurb`s in `officeCast.js`)                                                                                                                                                                                                                                                                                                                    |
 | Ambience store (useSyncExternalStore)                                  | `apps/web/src/state/officeMomentStore.js`                                                                                                                                                                                                                                                                                                                                                                                                |
 | Director hook (cadence + caps)                                         | `apps/web/src/hooks/useOfficeAmbience.js`                                                                                                                                                                                                                                                                                                                                                                                                |
+| Run-reaction hook (colleague pings you about the run you just made)    | `apps/web/src/hooks/useOfficeRunReactions.js` (pure `planRunReaction` brain; App bumps `runSignal` from `triggerCompletionDelight`; delivers an IM through the shared ladder)                                                                                                                                                                                                                                                            |     |
 | Shared moment delivery (both producers)                                | `apps/web/src/utils/officeMomentDelivery.js`                                                                                                                                                                                                                                                                                                                                                                                             |
 | Desk verbs (player-initiated)                                          | `apps/web/src/hooks/useDeskActions.js` + `apps/web/src/components/DeskActionsDock.jsx`                                                                                                                                                                                                                                                                                                                                                   |
 | Cast tiers (team / senior / office)                                    | `apps/web/src/utils/castTiers.js`                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -364,7 +375,7 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | Office XP reducer                                                      | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                       |
 | Minutes → Thinking pane                                                | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                               |
 | SFX                                                                    | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape cues (`playKeyboardClatter` / `playMouseClicks` / `playPaperShuffle` / `playDistantPrinter` / `playChairSqueak` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine` / `playVendingMachine` / `playElevatorDing`) in `apps/web/src/utils/agentChimes.js` |
-| Walk-by / meeting / battle / coffee narration                          | `apps/web/src/utils/officeNarration.js` + `POST /api/office/speak` (`apps/server/src/agents/officeTts.js` Neural2 default, WaveNet switchback); emails/IMs stay silent; inbox Narration toggle                                                                                                                                                                                                                                           |
+| Walk-by / meeting / battle / coffee narration                          | `apps/web/src/utils/officeNarration.js` + `POST /api/office/speak` (`apps/server/src/agents/officeTts.js` Chirp3-HD default with a Chirp3-HD → Neural2 → WaveNet → Web Speech fallback ladder; `OFFICE_TTS_VOICE_TIER` pins the ladder top); emails/IMs stay silent; inbox Narration toggle                                                                                                                                              |
 | Narration roadmap (TTS follow-ups)                                     | [`docs/office-narration-roadmap.md`](office-narration-roadmap.md)                                                                                                                                                                                                                                                                                                                                                                        |
 | App integration                                                        | one `<OfficeLayer/>` mount next to `<ErrorToast/>` in `apps/web/src/App.jsx`                                                                                                                                                                                                                                                                                                                                                             |
 
@@ -404,9 +415,13 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     `officeNarration.js`; emails stay silent; inbox Narration toggle.
 15. ~~**Google Cloud WaveNet TTS + overheard battles/coffee**~~ — ✅ shipped: `POST /api/office/speak`,
     `officeTts.js` WaveNet cast map, client prefers cloud MP3 with Web Speech fallback; cubicle
-    battles and coffee scenes are spoken (emails/IMs stay silent). Voices since upgraded to a
-    **Neural2 default tier** for en-US / en-AU (`OFFICE_TTS_VOICE_TIER=wavenet` restores the old
-    cast; zh locales stay WaveNet). Polish + caching ladder:
+    battles and coffee scenes are spoken (emails/IMs stay silent). Voices since upgraded again to a
+    **Chirp3-HD default tier** for _every_ locale — crucially including the Chinese ones, since
+    Chirp3-HD ships cmn-CN / cmn-TW voices that Neural2 never had. Each `/speak` walks a runtime
+    **fallback ladder** — Chirp3-HD → Neural2 → WaveNet → the client's Web Speech "system voice" —
+    so any single tier's outage degrades silently. `OFFICE_TTS_VOICE_TIER` pins the top of the
+    ladder (`chirp3` default, `neural2`, or `wavenet` for full switchback). Chirp3-HD carries the
+    per-persona rate fingerprint but not pitch (the engine ignores it). Polish + caching ladder:
     [`office-narration-roadmap.md`](office-narration-roadmap.md).
 16. ~~**LLM moments speak the UI locale**~~ — ✅ shipped: the client sends `uiLocale`
     (`officeDialogueLocale()`) on `/api/office/moment`, `/meeting`, and `/meeting/interject`;

@@ -7,20 +7,20 @@
 
 ## 1. What we already shipped
 
-| Surface            | Spoken today?                                                       | Notes                                                   |
-| ------------------ | ------------------------------------------------------------------- | ------------------------------------------------------- |
-| Walk-bys           | Yes — Neural2 (WaveNet switchback) when configured, else Web Speech | Overheard colleague; cancels on dismiss / Focus Time    |
-| WG meeting beats   | Yes — paced to playback end                                         | User raise-hand lines stay silent                       |
-| Cubicle battles    | Yes — lines + winner verdict spoken                                 | Overheard argument (invite pill stays text-only)        |
-| Coffee break scene | Yes — watercooler lines paced + spoken when Narration on            | Invite toast stays text-only; opt-in scene is overheard |
-| Emails             | **No**                                                              | Realistic: nobody reads your inbox aloud                |
-| IM pings           | **No**                                                              | Chat notifications — you read them                      |
-| Meeting invites    | No (calendar chime only)                                            | You read the toast                                      |
-| Soundscape         | N/A (non-verbal SFX)                                                | Stays Web Audio synthesized cues                        |
+| Surface            | Spoken today?                                                                 | Notes                                                   |
+| ------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Walk-bys           | Yes — Chirp3-HD (→ Neural2 → WaveNet ladder) when configured, else Web Speech | Overheard colleague; cancels on dismiss / Focus Time    |
+| WG meeting beats   | Yes — paced to playback end                                                   | User raise-hand lines stay silent                       |
+| Cubicle battles    | Yes — lines + winner verdict spoken                                           | Overheard argument (invite pill stays text-only)        |
+| Coffee break scene | Yes — watercooler lines paced + spoken when Narration on                      | Invite toast stays text-only; opt-in scene is overheard |
+| Emails             | **No**                                                                        | Realistic: nobody reads your inbox aloud                |
+| IM pings           | **No**                                                                        | Chat notifications — you read them                      |
+| Meeting invites    | No (calendar chime only)                                                      | You read the toast                                      |
+| Soundscape         | N/A (non-verbal SFX)                                                          | Stays Web Audio synthesized cues                        |
 
 Toggle: inbox **Narration** (default on). Global sound gate + first-gesture policy still apply on mobile Safari/Chrome.
 
-**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (Neural2 default for en locales, WaveNet switchback + zh fallback; in-memory cache). Kill switch `OFFICE_TTS=0`; tier switch `OFFICE_TTS_VOICE_TIER=wavenet`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
+**Cloud path:** `POST /api/office/speak` → `apps/server/src/agents/officeTts.js` (Chirp3-HD default for every locale, with a Chirp3-HD → Neural2 → WaveNet fallback ladder; in-memory cache). Kill switch `OFFICE_TTS=0`; tier switch `OFFICE_TTS_VOICE_TIER=neural2|wavenet`. Health exposes `officeTtsConfigured`. Client (`officeNarration.js`) prefers cloud MP3, falls back to Web Speech.
 
 ---
 
@@ -101,6 +101,34 @@ speakingRate/pitch prosody — only the voice names change (`officeTts.js`
 Cost: Neural2 free tier is 1M chars/month (vs WaveNet's 4M), then $16 / 1M chars — still
 effectively $0 at personal-app volume (~6,700 typical lines/month would exhaust the free pool).
 
+### Phase B++ — Chirp3-HD tier + fallback ladder (shipped)
+
+The default tier moved again to **Chirp3-HD** for _every_ locale. The reason it superseded the
+"skip it" call above is **Chinese**: Neural2 ships no `cmn-*` voices, so zh was stuck on WaveNet,
+whereas Chirp3-HD covers `cmn-CN` / `cmn-TW` — so zh finally gets the newest voices too. The
+earlier "no rate control" objection is stale: Chirp3-HD honours `speakingRate`, so the per-persona
+_rate_ fingerprints survive. It does **not** support `pitch`, so `synthesizeSpeech` drops pitch for
+the Chirp tier only (WaveNet / Neural2 still carry it).
+
+Rather than a static per-locale tier, `officeTts.js` now synthesises down a **runtime fallback
+ladder** (`resolveOfficeTtsVoiceCandidates` → `synthesizeOfficeSpeech` loop): Chirp3-HD → Neural2 →
+WaveNet → (client) Web Speech "system voice". Any rung's API failure falls through to the next, so
+a Chirp outage silently degrades to Neural2, a Neural2 gap to WaveNet, and a total cloud failure to
+the browser — no error ever reaches the user. `OFFICE_TTS_VOICE_TIER` pins the ladder's top
+(`chirp3` default, `neural2`, `wavenet`). Chirp3-HD uses the eight locale-independent core voices
+(`Aoede`/`Kore`/`Leda`/`Zephyr` female, `Puck`/`Charon`/`Fenrir`/`Orus` male), gender-matched to
+each persona's WaveNet letter (`CHIRP3_VOICE_ROSTER`).
+
+| Locale | Default tier | Ladder                        | Notes                                             |
+| ------ | ------------ | ----------------------------- | ------------------------------------------------- |
+| en-US  | Chirp3-HD    | Chirp3-HD → Neural2 → WaveNet | full three-rung ladder                            |
+| en-AU  | Chirp3-HD    | Chirp3-HD → Neural2 → WaveNet | full three-rung ladder                            |
+| zh-CN  | Chirp3-HD    | Chirp3-HD → WaveNet           | no Neural2 cmn-CN voices, so that rung is skipped |
+| zh-TW  | Chirp3-HD    | Chirp3-HD → WaveNet           | no Neural2 cmn-TW voices, so that rung is skipped |
+
+Cost note: Chirp3-HD is ~$30 / 1M chars after a 1M free pool — still effectively $0 at
+personal-app volume, and only the top of the ladder ever bills (fallbacks fire only on failure).
+
 **Still useful follow-ups:**
 
 - Batch meeting-script audio during the “waiting to be admitted” gag (fewer round-trips).
@@ -140,7 +168,7 @@ Battle/coffee/walk-by fallbacks are **static templates**. Generate Opus/MP3 once
 3. Phase A polish (duck soundscape, speaker sting, directory “Hear sample”).
 4. Batch meeting-script synthesize during join latency.
 5. Phase C bake canned battle/coffee/walk-by templates.
-6. ~~Re-evaluate Neural2~~ ✅ shipped as the default tier (Phase B+); Chirp 3 HD stays skipped (2× price, no rate/pitch control for persona fingerprints).
+6. ~~Re-evaluate Neural2~~ ✅ shipped as a tier (Phase B+); ~~Chirp 3 HD skipped~~ ✅ now the default tier (Phase B++) — it honours `speakingRate`, unlocks Chinese `cmn-*` voices, and only bills at the top of the fallback ladder.
 
 ---
 

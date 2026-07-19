@@ -105,4 +105,19 @@ describe('DeskActionsDock', () => {
     expect(meeting.disabled).toBe(true);
     expect(meeting.getAttribute('title')).toMatch(/agenda/i);
   });
+
+  it('blocks Talk to your team on an empty canvas so it never silently no-ops', () => {
+    open({ canTalkToTeam: false });
+    const team = screen.getByRole('menuitem', { name: /Talk to your team/ });
+    expect(team.disabled).toBe(true);
+    expect(team.getAttribute('title')).toMatch(/nothing to react to/i);
+  });
+
+  it('enables Talk to your team once there is a diagram', () => {
+    const handlers = open({ canTalkToTeam: true });
+    const team = screen.getByRole('menuitem', { name: /Talk to your team/ });
+    expect(team.disabled).toBe(false);
+    fireEvent.click(team);
+    expect(handlers.onTalkToTeam).toHaveBeenCalledTimes(1);
+  });
 });

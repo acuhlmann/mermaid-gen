@@ -887,7 +887,8 @@ export const OFFICE_CHROME_COPY = {
       busy: 'Deploy in progress — nobody leaves their desk.',
       meeting: "You're in a meeting. Look engaged.",
       surface: 'One thing at a time. You are already busy being interrupted.',
-      noAgenda: 'Draw something first — even this meeting needs an agenda'
+      noAgenda: 'Draw something first — even this meeting needs an agenda',
+      noTeam: 'Put something on the canvas — the team has nothing to react to yet'
     }
   },
   inbox: {

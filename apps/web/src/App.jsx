@@ -290,6 +290,8 @@ function ArchiSlop() {
   /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
   const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
   const [celebratingEntryId, setCelebratingEntryId] = useState(null);
+  // Bumped on every completed run so the office can ping the user about it.
+  const [officeRunSignal, setOfficeRunSignal] = useState(null);
   const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
   /** Auto pulse focuses on newly added nodes; manual "Highlight changes" shows full diff. */
   const [diagramChangeHighlightAddedOnly, setDiagramChangeHighlightAddedOnly] = useState(false);
@@ -1535,6 +1537,8 @@ function ArchiSlop() {
 
   const triggerCompletionDelight = useCallback(
     (entryId, variant = 'general', extras = {}) => {
+      // Let the office react to the response the user just got (IM ping).
+      setOfficeRunSignal((prev) => ({ id: (prev?.id ?? 0) + 1, variant }));
       setCelebratingEntryId(entryId);
       if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
       const dwellMs = variant === 'goMad' ? 1100 : 900;
@@ -4481,6 +4485,7 @@ ${requirementsBlock}`;
         onTalkToTeam={() => advisor.promptNext({})}
         onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
         playChime={tryAgentSound}
+        runSignal={officeRunSignal}
         deskActionsAnchorReady={hasCanvasContent}
         deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
       />
