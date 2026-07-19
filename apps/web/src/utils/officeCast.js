@@ -878,6 +878,8 @@ export const OFFICE_CHROME_COPY = {
     coffee: 'Get a coffee',
     walk: 'Walk the floor',
     im: 'Message someone',
+    slopChat: 'Open Slop Chat',
+    slopChatTitle: 'Slop Chat™ — read past messages',
     inbox: 'Check your mail',
     meeting: 'Call a meeting',
     team: 'Talk to your team',

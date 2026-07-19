@@ -4714,14 +4714,6 @@ ${requirementsBlock}`;
           !hasCanvasContent && !insightsOpen ? (
             <div className="entry-cluster">
               <DayOneBadge copy={controls.dayOne} userTitle={gamification.levelTitle} />
-              <OfficeDirectory />
-              <TopicStarters
-                hint={controls.prompt.starterHint}
-                ariaLabel={controls.prompt.starterAria}
-                starters={controls.prompt.starters}
-                busy={busy}
-                onPick={handleStarterPick}
-              />
               <form className="prompt-control" onSubmit={runIntentChange}>
                 <label className="sr-only" htmlFor="diagram-change-prompt">
                   {controls.prompt.yourTopic}
@@ -4809,10 +4801,19 @@ ${requirementsBlock}`;
                 pickPrefix={controls.modeReveal.pickPrefix}
                 disabled={busy || loading || streamingPreview}
               />
+              <TopicStarters
+                hint={controls.prompt.starterHint}
+                ariaLabel={controls.prompt.starterAria}
+                starters={controls.prompt.starters}
+                busy={busy}
+                onPick={handleStarterPick}
+              />
+              <OfficeDirectory />
             </div>
           ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
               <div className="button-group">
+                <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
                 <button
                   type="button"
                   className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
@@ -4959,6 +4960,7 @@ ${requirementsBlock}`;
           ) : hasCanvasContent && narrowLayout ? (
             <div className="prompt-actions prompt-actions--mobile">
               <div className="button-group">
+                <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
                 <button
                   type="button"
                   className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}

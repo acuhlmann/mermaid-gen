@@ -5076,7 +5076,8 @@
 .bottom-office-desk-slot {
   display: flex;
   flex: 0 0 auto;
-  align-items: flex-end;
+  align-items: center;
+  align-self: center;
   position: relative;
   /* Menu floats above the chrome; don't clip it. Keep z-index inside the
      bottom-chrome stacking context (26) — elevating here used to compete with
@@ -5403,8 +5404,13 @@
     display: flex;
     flex-wrap: nowrap;
     gap: 0.45rem;
-    align-items: stretch;
+    align-items: center;
     width: 100%;
+  }
+
+  .prompt-actions--mobile .button-group .bottom-office-desk-slot,
+  .prompt-actions--mobile .button-group .desk-actions--bottom {
+    align-self: center;
   }
 
   /* Icon-only mobile action bar: labels and role chips are hidden; the persona
@@ -6554,8 +6560,8 @@
   }
 }
 
-/* Phones: drop the canvas purpose card entirely — the bottom entry cluster
-   (starters + topic input + Render as) already carries the first-run path. */
+/* Phones: drop the canvas purpose card body/demo — the bottom entry cluster
+   (topic input + Render as + starters) already carries the first-run path. */
 @media (max-width: 640px) {
   .entry-example {
     bottom: auto;
@@ -6726,13 +6732,12 @@
   }
 }
 
-/* Phones: the empty intro stacks badge + office tour + starters + input +
-   Render as — far too much for one viewport. Cap height so the cluster scrolls
-   while the Go/mic row stays reachable; shrink the badge to a single beat. */
+/* Phones / foldables: the empty intro stacks badge + input + Render as +
+   starters + office chip — cap height so the topic row stays reachable. */
 @media (max-width: 640px) {
   .entry-cluster {
     gap: 0.4rem;
-    max-height: min(42vh, 18rem);
+    max-height: min(48vh, 20rem);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -6745,9 +6750,13 @@
     padding: 0.55rem 2rem 0.55rem 0.8rem;
   }
 
-  .day-one-badge-line,
-  .day-one-badge-pitch {
+  .day-one-badge-line {
     display: none;
+  }
+
+  .day-one-badge-pitch {
+    font-size: 0.82rem;
+    line-height: 1.35;
   }
 
   .day-one-badge-role {
@@ -6773,6 +6782,20 @@
 
   .entry-render-as-hint {
     display: none;
+  }
+}
+
+@media (max-height: 700px) and (max-width: 1024px) {
+  .day-one-badge {
+    padding: 0.5rem 2rem 0.5rem 0.75rem;
+  }
+
+  .day-one-badge-line {
+    display: none;
+  }
+
+  .entry-cluster {
+    max-height: min(44vh, 17rem);
   }
 }
 
@@ -15257,8 +15280,8 @@ body.slopitect-rainbow-tint::before {
   top: auto;
   right: auto;
   display: flex;
-  align-items: flex-end;
-  align-self: flex-end;
+  align-items: center;
+  align-self: center;
 }
 
 /* Bottom-row trigger: same ArchiSlop helmet stamp as the old brand control —
@@ -15273,7 +15296,7 @@ body.slopitect-rainbow-tint::before {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  align-self: flex-end;
+  align-self: center;
 }
 
 .desk-actions--bottom .desk-actions-button:hover {

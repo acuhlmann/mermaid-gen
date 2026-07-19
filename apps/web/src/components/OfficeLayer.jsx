@@ -394,10 +394,12 @@ export default function OfficeLayer({
     <DeskActionsDock
       placement="bottom"
       unreadCount={snapshot.unreadCount}
+      imUnreadCount={snapshot.imUnreadCount}
       onGetCoffee={desk.getCoffee}
       onWalkTheFloor={desk.walkTheFloor}
       onImSomeone={desk.imSomeone}
       onCheckInbox={desk.checkInbox}
+      onOpenSlopChat={handleOpenMessenger}
       onCallMeeting={desk.callMeeting}
       onTalkToTeam={desk.talkToTeam}
       onCheckHrProgression={onCheckHrProgression}
@@ -432,11 +434,8 @@ export default function OfficeLayer({
       />
       <OfficeImPing
         pings={snapshot.imPings}
-        unreadCount={snapshot.imUnreadCount}
-        historyCount={snapshot.imHistory.length}
         onDismiss={dismissOfficeImPing}
         onQuickReply={handleQuickReply}
-        onOpenHistory={handleOpenMessenger}
       />
       <OfficeMessenger
         open={messengerOpen}

@@ -600,6 +600,8 @@ export const OFFICE_ZH_CN = {
       coffee: '去喝杯咖啡',
       walk: '在楼层走走',
       im: '给谁发条消息',
+      slopChat: '打开 Slop Chat',
+      slopChatTitle: 'Slop Chat™ — 查看历史消息',
       inbox: '查一下邮件',
       meeting: '召集会议',
       team: '和团队聊聊',

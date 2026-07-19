@@ -50,8 +50,8 @@ export const CONTROLS_EN = {
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
-    topicPlaceholder: '…or pitch your own initiative',
-    starterHint: 'Day one. Your inbox is already full:',
+    topicPlaceholder: 'Pitch any topic — diagram, chart, form…',
+    starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
     // Starters double as in-fiction assignments: `fromId` names the requester
     // (any cast id officeSenderInfo can resolve) and `ask` is their one-line
@@ -87,11 +87,11 @@ export const CONTROLS_EN = {
     // revealed beat-by-beat so newcomers aren't handed every mode at once.
     exampleEyebrow: 'ArchiSlop Corp. · IT Division',
     exampleHeadline: 'Welcome aboard, Architect',
-    exampleBody: 'Your job: turn any topic into a deliverable. The office will have opinions.',
+    exampleBody: 'Turn any topic into a deliverable. Start with whatever you care about.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualization you can generate',
     // CTA names the sample topic so it stays clear even when the preview is hidden.
-    exampleCta: 'First assignment: Coffee supply chain →',
+    exampleCta: 'Try it: Coffee supply chain →',
     exampleDiagramSource: `flowchart TD
     A["Farm"] --> B["Roaster"]
     B --> C["Distributor"]
@@ -106,7 +106,8 @@ export const CONTROLS_EN = {
     eyebrow: 'ArchiSlop Corp. · Employee Badge',
     rolePrefix: 'New Hire',
     hrLine: 'Badge photo: pending. Desk: this one. Compliance training: already overdue.',
-    pitchLine: 'They hired a rockstar. Pitch your own initiative — or take an assignment below.',
+    pitchLine:
+      "Your canvas is yours. Type a topic below — or grab a colleague's request when you're ready.",
     dismissAria: 'Put the badge away'
   },
   introLocale: {
