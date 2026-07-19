@@ -152,6 +152,7 @@ import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
 } from './state/officeDirectoryUiStore.js';
+import { readOfficeDirectorySeen } from './utils/officeAmbienceStorage.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { UiLocaleProvider } from './i18n/UiLocaleContext.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
@@ -3150,6 +3151,9 @@ ${requirementsBlock}`;
     getOfficeDirectoryUi
   );
 
+  // First visit: Meet the Office is the entire app until the tour is dismissed.
+  const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
+
   const advisorPause =
     loading ||
     streamingPreview ||
@@ -4355,7 +4359,7 @@ ${requirementsBlock}`;
 
   return (
     <main
-      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}`}
+      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -4363,6 +4367,8 @@ ${requirementsBlock}`;
         advisor.thinkingPersona || advisor.suggestion || advisor.activePersona ? 'true' : undefined
       }
     >
+      {!officeBootPending ? (
+        <>
       <DiagramCanvas
         revisionId={state.revisionId}
         diagramSource={
@@ -4499,13 +4505,6 @@ ${requirementsBlock}`;
 
       {ceremonyOverlays}
       <ErrorToast />
-      {hasCanvasContent ? (
-        <OfficeDirectory
-          placement="overlay"
-          showChip={false}
-          getSessionId={() => activeSessionId}
-        />
-      ) : null}
       <OfficeLayer
         pause={advisorPause}
         advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
@@ -4855,12 +4854,6 @@ ${requirementsBlock}`;
                 busy={busy}
                 onPick={handleStarterPick}
               />
-              <OfficeDirectory
-                placement="entry"
-                showChip
-                onSkipToBuild={focusTopicInput}
-                getSessionId={() => activeSessionId}
-              />
             </div>
           ) : hasCanvasContent && !narrowLayout ? (
             <div className="prompt-actions prompt-actions--desktop">
@@ -5183,6 +5176,17 @@ ${requirementsBlock}`;
           ) : null
         }
       />
+        </>
+      ) : null}
+      <div className="office-directory-root-mount">
+        <OfficeDirectory
+          placement={officeBootPending ? 'boot' : hasCanvasContent ? 'overlay' : 'entry'}
+          showChip={!officeBootPending && !hasCanvasContent}
+          onSkipToBuild={focusTopicInput}
+          onBootComplete={() => setOfficeBootPending(false)}
+          getSessionId={() => activeSessionId}
+        />
+      </div>
     </main>
   );
 }
