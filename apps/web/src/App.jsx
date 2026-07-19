@@ -4481,6 +4481,8 @@ ${requirementsBlock}`;
         onTalkToTeam={() => advisor.promptNext({})}
         onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
         playChime={tryAgentSound}
+        deskActionsAnchorReady={hasCanvasContent}
+        deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
       />
       <HotkeyOverlay
         open={hotkeyOverlayOpen}

@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react';
 import { createPortal } from 'react-dom';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
@@ -81,7 +88,11 @@ export default function OfficeLayer({
   onOfficeEvent,
   onTalkToTeam,
   onCheckHrProgression,
-  playChime
+  playChime,
+  /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
+  deskActionsAnchorReady = false,
+  /** Desktop vs mobile bottom row — slot remounts when this flips. */
+  deskActionsLayoutKey = 'desktop'
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
 
@@ -408,9 +419,15 @@ export default function OfficeLayer({
     />
   );
   const [deskSlot, setDeskSlot] = useState(null);
-  useEffect(() => {
+  // Slot appears only after canvas content mounts the bottom row; a one-shot lookup
+  // on OfficeLayer mount misses it when session hydrate or first diagram lands later.
+  useLayoutEffect(() => {
+    if (!deskActionsAnchorReady) {
+      setDeskSlot(null);
+      return;
+    }
     setDeskSlot(document.getElementById('office-desk-bottom-slot'));
-  }, []);
+  }, [deskActionsAnchorReady, deskActionsLayoutKey]);
 
   return (
     <div className="office-layer">
