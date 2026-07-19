@@ -1,0 +1,35 @@
+# Cross-platform line endings: always checkout LF so Prettier (endOfLine: "lf")
+# and CI match local Windows/macOS/Linux working trees. Overrides core.autocrlf.
+* text=auto eol=lf
+
+# Shell / hooks must stay LF even on Windows (Husky runs via sh).
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows batch files need CRLF when executed by cmd.exe.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binary assets — do not convert.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.7z binary
+*.mp3 binary
+*.mp4 binary
+*.webm binary
+*.wasm binary
+*.parquet binary
+*.lockb binary

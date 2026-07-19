@@ -40,8 +40,10 @@ describe('legendAxesFor', () => {
   it('covers every metaphor kind in the axis map', () => {
     expect(Object.keys(METAPHOR_LEGEND_AXES).sort()).toEqual([
       'archipelago',
+      'bridge',
       'city',
       'composite',
+      'cycle',
       'galaxy',
       'garden',
       'layercake',
@@ -50,6 +52,34 @@ describe('legendAxesFor', () => {
       'river',
       'terrain',
       'tree'
+    ]);
+  });
+
+  it('exposes bridge span, load, side, and strain axes', () => {
+    const axes = legendAxesFor('bridge', {
+      span: 'migration stage',
+      load: 'traffic volume',
+      side: 'owner team',
+      strain: 'coupling risk'
+    });
+    expect(axes).toEqual([
+      { key: 'span', label: 'Span', text: 'migration stage' },
+      { key: 'load', label: 'Load', text: 'traffic volume' },
+      { key: 'side', label: 'Side', text: 'owner team' },
+      { key: 'strain', label: 'Strain', text: 'coupling risk' }
+    ]);
+  });
+
+  it('exposes cycle phase, size, and friction axes', () => {
+    const axes = legendAxesFor('cycle', {
+      phase: 'lifecycle stage',
+      size: 'cohort size',
+      friction: 'drop-off risk'
+    });
+    expect(axes).toEqual([
+      { key: 'phase', label: 'Phase', text: 'lifecycle stage' },
+      { key: 'size', label: 'Size', text: 'cohort size' },
+      { key: 'friction', label: 'Friction', text: 'drop-off risk' }
     ]);
   });
 

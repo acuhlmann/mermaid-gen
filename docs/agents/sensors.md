@@ -20,6 +20,23 @@ The smallest meaningful loop is `npm run check:affected` — it inspects your di
 
 After touching `@a2ui/*`, `package.json`, or `package-lock.json`, also run `npm run verify:deps` and `npm run typecheck -w apps/web` — duplicate `@a2ui/web_core` installs fail TypeScript only when a `.tsx` file imports from both `@a2ui/web_core` and `@a2ui/react`.
 
+## Line endings (Windows + Linux)
+
+Repo text files are **LF** (`.editorconfig`, Prettier `endOfLine: "lf"`, and [`.gitattributes`](../../.gitattributes) `eol=lf`). CI runs on Linux, so CRLF working trees make `format:check` fail even when Git itself looks clean (`core.autocrlf=true` converts on checkout; Prettier reads the raw bytes).
+
+If a Windows clone fails Prettier on hundreds of files with no real formatting drift:
+
+1. Confirm [`.gitattributes`](../../.gitattributes) is present (pull / rebase if needed) and stage it: `git add .gitattributes`
+2. Stash or commit any WIP, then refresh checkouts so `eol=lf` applies:
+
+```bash
+git stash push -u -m "wip before lf refresh"
+git restore .
+git stash pop
+```
+
+`.gitattributes` overrides `core.autocrlf`; new clones and restores get LF. Do **not** "fix" a pure line-ending mismatch with a whole-repo `npm run format` unless you intend a mass formatting commit.
+
 ## How to read verify:deps output
 
 On failure the script prints the mismatched install paths and a one-line `npm install` fix. No separate guidance file — the error _is_ the fix.

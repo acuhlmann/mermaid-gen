@@ -92,6 +92,11 @@ function runFormatCheck(files) {
   });
   if (out.status !== 0) {
     console.error('\nformat:check failed — run: npm run format');
+    if (process.platform === 'win32') {
+      console.error(
+        'On Windows, if hundreds of files fail only on line endings: ensure .gitattributes is present, then refresh the working tree with LF (see docs/agents/sensors.md § Line endings).'
+      );
+    }
     process.exit(out.status ?? 1);
   }
 }
