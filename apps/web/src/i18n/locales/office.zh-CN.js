@@ -159,6 +159,12 @@ export const OFFICE_ZH_CN = {
       colleagueId: 'intern',
       subject: '我上线东西啦!!!(小问题)',
       body: '各位!!我的第一个改动上线了。就是 {label} 那个。不过小问题 — 如果所有东西都着火了,但火不大,该报告给谁?纯属假设。火是假设的。基本上。\n\nchad(实习生)'
+    },
+    {
+      id: 'email-intern-pitch-deck',
+      colleagueId: 'intern',
+      subject: '小问题:图能当路演 PPT 吗',
+      body: '嘿 {userName}!!随便问一下 — “{label}” 本质上是不是带箭头的路演稿??因为站会上有人说 deck,我点头点了十二分钟。\n\n另外我在领英写了“颠覆白板赛道”。会不会有点猛\n\nchad(实习生)'
     }
   ],
   SENIOR_EMAIL_TEMPLATES: [
@@ -419,6 +425,32 @@ export const OFFICE_ZH_CN = {
           text: '查清楚是哪一半。其中一半要进审计。'
         }
       ]
+    },
+    {
+      id: 'coffee-compression',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: '要是把架构压得够狠,会不会直接变成一句 slogan??为路演问问'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '试过。2009。那句 slogan 搞挂了生产。主机到现在还在引用。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-parking-lot',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '我们要把停车场再放进停车场。元仪式。凡有情绪的人都请来。'
+        },
+        {
+          speakerId: 'hr',
+          text: '我带了 Craig 的贺卡。Craig 对停车场有情绪。据说。'
+        }
+      ]
     }
   ],
   OFFICE_BATTLE_SCENES: [
@@ -571,6 +603,32 @@ export const OFFICE_ZH_CN = {
         facilities: '容器没了。别问去哪儿了。冰箱恢复了安宁。标签机赢了。',
         helpdesk: '容器留下。它已晋升为生产环境。Gary 现在得提变更申请。'
       }
+    },
+    {
+      id: 'battle-mvp',
+      topic: 'MVP 到底是什么意思',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: '所以 MVP 就是最小可行产品对吧??我领英上写了三遍'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: 'MVP 是 Maximum Viable PowerPoint。我们交付幻灯片。产品是 stretch goal。能量满满!'
+        },
+        {
+          speakerId: 'intern',
+          text: '这听起来不合法,但又很像融资'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: '合法性已放进停车场。我们来给情绪限时,再给 slogan 估故事点。'
+        }
+      ],
+      verdicts: {
+        intern: 'MVP 是能跑的东西。Chad 已更新领英。幻灯片吃醋了。',
+        scrumMaster: 'MVP 是幻灯片。产品会在未来的仪式里跟上。邀请已发。'
+      }
     }
   ],
   OFFICE_MEETING_COPY: {
@@ -586,7 +644,7 @@ export const OFFICE_ZH_CN = {
     leaveLabel: '离开会议',
     interjectCapLine: 'Pam:“观点很棒 — 先放停车场。时间到了。”'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '回头聊'],
+  OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '回头聊', '先放停车场', '已记入档案'],
   OFFICE_CHROME_COPY: {
     doIt: '就这么办',
     desk: {

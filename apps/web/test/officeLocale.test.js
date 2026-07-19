@@ -148,7 +148,7 @@ describe('office locale bundles', () => {
     expect(deepKeys(localized.OFFICE_CHROME_COPY).sort()).toEqual(
       deepKeys(OFFICE_CHROME_COPY).sort()
     );
-    expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(3);
+    expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(5);
   });
 
   it('routes localized copy through the officeCast accessors', () => {

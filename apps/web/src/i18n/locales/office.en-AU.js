@@ -162,6 +162,12 @@ export const OFFICE_EN_AU = {
       colleagueId: 'intern',
       subject: 'i shipped something!!! (small question)',
       body: "you guys!! my first change is LIVE. it's the {label} one. quick question though — if everything's on fire but in a small way, who do i tell? asking hypothetically. the fire is hypothetical. mostly.\n\nchad (intern)"
+    },
+    {
+      id: 'email-intern-pitch-deck',
+      colleagueId: 'intern',
+      subject: 'quick q: can a diagram be a pitch deck',
+      body: 'hey {userName}!! random but is "{label}" basically a pitch deck with arrows?? asking because someone said "deck" in standup and i nodded for 12 minutes.\n\nalso i put "disrupting the whiteboard space" on me linkedin. is that too much\n\nchad (intern)'
     }
   ],
   SENIOR_EMAIL_TEMPLATES: [
@@ -434,6 +440,32 @@ export const OFFICE_EN_AU = {
           text: 'Find out which half. One of them is going in the audit.'
         }
       ]
+    },
+    {
+      id: 'coffee-compression',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: 'if we compress the architecture enough does it become a slogan?? asking for a pitch'
+        },
+        {
+          speakerId: 'greybeard',
+          text: 'We tried that. 2009. The slogan took down prod. The mainframe still quotes it.'
+        }
+      ]
+    },
+    {
+      id: 'coffee-parking-lot',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: "We're parking-lotting the parking lot. Meta-ceremony. I've invited everyone who has feelings."
+        },
+        {
+          speakerId: 'hr',
+          text: "I brought Craig's card. Craig has feelings about parking lots. Allegedly."
+        }
+      ]
     }
   ],
   OFFICE_BATTLE_SCENES: [
@@ -595,6 +627,33 @@ export const OFFICE_EN_AU = {
         helpdesk:
           'The container stays. It has been promoted to production. Gary must now file a change request.'
       }
+    },
+    {
+      id: 'battle-mvp',
+      topic: 'What does MVP actually mean',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: 'ok but MVP means Minimum Viable Product right?? i put it on me linkedin three times'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: 'MVP means Maximum Viable PowerPoint. We ship the deck. The product is a stretch goal. Great energy!'
+        },
+        {
+          speakerId: 'intern',
+          text: 'that feels illegal but also like fundraising'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: "I've parking-lotted legality. Let's time-box the feelings and story-point the slogan."
+        }
+      ],
+      verdicts: {
+        intern: 'MVP means the thing that works. Chad has updated LinkedIn. The deck is jealous.',
+        scrumMaster:
+          'MVP means the deck. The product will follow in a future ceremony. Invite already sent.'
+      }
     }
   ],
   OFFICE_MEETING_COPY: {
@@ -611,7 +670,7 @@ export const OFFICE_EN_AU = {
     leaveLabel: 'Shoot through',
     interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', 'in a meeting', 'circling back arvo'],
+  OFFICE_IM_QUICK_REPLIES: ['👍', 'in a meeting', 'circling back arvo', 'parking lot it', 'noted in me file'],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     desk: {

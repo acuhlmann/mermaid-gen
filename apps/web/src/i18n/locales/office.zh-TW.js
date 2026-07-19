@@ -159,6 +159,12 @@ export const OFFICE_ZH_TW = {
       colleagueId: 'intern',
       subject: '我上線東西了!!!(小問題)',
       body: '各位!!我的第一個改動上線了。就是 {label} 那個。不過小問題 — 如果所有東西都著火了,但火不大,要跟誰講?純屬假設。火是假設的。大致上。\n\nchad(實習生)'
+    },
+    {
+      id: 'email-intern-pitch-deck',
+      colleagueId: 'intern',
+      subject: '小問題:圖能當路演簡報嗎',
+      body: '嘿 {userName}!!隨便問一下 — 「{label}」本質上是不是帶箭頭的路演稿??因為站會有人說 deck,我點頭點了十二分鐘。\n\n另外我在 LinkedIn 寫了「顛覆白板賽道」。會不會有點兇\n\nchad(實習生)'
     }
   ],
   SENIOR_EMAIL_TEMPLATES: [
@@ -419,6 +425,32 @@ export const OFFICE_ZH_TW = {
           text: '查清楚是哪一半。其中一半要進稽核。'
         }
       ]
+    },
+    {
+      id: 'coffee-compression',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: '要是把架構壓得夠狠,會不會直接變成一句 slogan??為路演問問'
+        },
+        {
+          speakerId: 'greybeard',
+          text: '試過。2009。那句 slogan 搞掛了正式環境。主機到現在還在引用。'
+        }
+      ]
+    },
+    {
+      id: 'coffee-parking-lot',
+      lines: [
+        {
+          speakerId: 'scrumMaster',
+          text: '我們要把停車場再丟進停車場。元儀式。凡有情緒的人都請來。'
+        },
+        {
+          speakerId: 'hr',
+          text: '我帶了 Craig 的賀卡。Craig 對停車場有情緒。據說。'
+        }
+      ]
     }
   ],
   OFFICE_BATTLE_SCENES: [
@@ -571,6 +603,32 @@ export const OFFICE_ZH_TW = {
         facilities: '容器不見了。別問去哪了。冰箱恢復安寧。標籤機贏了。',
         helpdesk: '容器留下。它已晉升為正式環境。Gary 現在得提出變更申請。'
       }
+    },
+    {
+      id: 'battle-mvp',
+      topic: 'MVP 到底是什麼意思',
+      lines: [
+        {
+          speakerId: 'intern',
+          text: '所以 MVP 就是最小可行產品對吧??我 LinkedIn 上寫了三遍'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: 'MVP 是 Maximum Viable PowerPoint。我們交付簡報。產品是 stretch goal。能量滿滿!'
+        },
+        {
+          speakerId: 'intern',
+          text: '這聽起來不合法,但又很像募資'
+        },
+        {
+          speakerId: 'scrumMaster',
+          text: '合法性已丟進停車場。我們來給情緒限時,再給 slogan 估故事點。'
+        }
+      ],
+      verdicts: {
+        intern: 'MVP 是能跑的東西。Chad 已更新 LinkedIn。簡報吃醋了。',
+        scrumMaster: 'MVP 是簡報。產品會在未來的儀式跟上。邀請已發。'
+      }
     }
   ],
   OFFICE_MEETING_COPY: {
@@ -586,7 +644,7 @@ export const OFFICE_ZH_TW = {
     leaveLabel: '離開會議',
     interjectCapLine: 'Pam:「很棒的觀點 — 先放進停車場。時間到了。」'
   },
-  OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '晚點回'],
+  OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '晚點回', '先丟停車場', '已記入檔案'],
   OFFICE_CHROME_COPY: {
     doIt: '就這麼辦',
     desk: {

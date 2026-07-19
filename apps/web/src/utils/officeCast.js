@@ -265,32 +265,32 @@ export const OFFICE_EMAIL_TEMPLATES = [
   {
     id: 'email-fridge-cleanout',
     colleagueId: 'facilities',
-    subject: 'REMINDER: Fridge cleanout FRIDAY',
-    body: 'The refrigerator will be cleaned Friday at 3 PM. Anything unlabelled becomes property of Facilities. This includes containers, condiments, and architecture diagrams.\n\nThanks in advance,\nGary'
+    subject: 'REMINDER: Fridge cleanout FRIDAY (Series B energy)',
+    body: 'The refrigerator will be cleaned Friday at 3 PM. Anything unlabelled becomes property of Facilities. This includes containers, condiments, and architecture diagrams left "for later".\n\nIf your leftovers have equity, label them.\n\nThanks in advance,\nGary'
   },
   {
     id: 'email-thermostat',
     colleagueId: 'facilities',
-    subject: 'RE: RE: RE: Thermostat',
-    body: 'The thermostat is set to a scientifically optimal 20.5°C and is now in a locked enclosure. Please stop taping ice packs to the sensor. I know it was the third floor.\n\nGary'
+    subject: 'RE: RE: RE: Thermostat (FINAL, scientifically)',
+    body: 'The thermostat is set to a scientifically optimal 20.5°C and is now in a locked enclosure. Please stop taping ice packs to the sensor. I know it was the third floor. The third floor knows I know.\n\nClimate change starts with you. Specifically: stop touching it.\n\nGary'
   },
   {
     id: 'email-room-booking',
     colleagueId: 'facilities',
     subject: 'Your booking of "War Room 4" is confirmed',
-    body: 'Please note War Room 4 was converted to a wellness pod in 2023, and prior to that did not exist. Your booking remains confirmed.\n\nGary'
+    body: 'Please note War Room 4 was converted to a wellness pod in 2023, and prior to that did not exist. Your booking remains confirmed. Synergy is location-independent.\n\nGary'
   },
   {
     id: 'email-password-expiry',
     colleagueId: 'helpdesk',
     subject: '[Ticket #48291] Your password expires in 14 days',
-    body: 'To reset your password, please log in with your expired password and follow the link we will send to the email account you are locked out of.\n\nThis ticket has been closed as RESOLVED.\n\n— Helpdesk (do not reply, do not call, do not)'
+    body: 'To reset your password, please log in with your expired password and follow the link we will send to the email account you are locked out of.\n\nNew password must contain: one uppercase, one lowercase, one number, one special character, one childhood trauma, and the ghost of a deprecated protocol.\n\nThis ticket has been closed as RESOLVED.\n\n— Helpdesk (do not reply, do not call, do not)'
   },
   {
     id: 'email-ticket-duplicate',
     colleagueId: 'helpdesk',
     subject: '[Ticket #48292] Closed as duplicate of #48292',
-    body: 'Your ticket regarding "{label}" has been closed as a duplicate of itself. If the issue persists, it is a feature.\n\nWorks on my machine,\nDave'
+    body: 'Your ticket regarding "{label}" has been closed as a duplicate of itself. If the issue persists, it is a feature. If the feature persists, it is a roadmap item.\n\nWorks on my machine,\nDave'
   },
   {
     id: 'email-vpn-maintenance',
@@ -302,32 +302,32 @@ export const OFFICE_EMAIL_TEMPLATES = [
     id: 'email-compliance-training',
     colleagueId: 'hr',
     subject: 'Friendly nudge! Training overdue 😊',
-    body: 'Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! Completing it takes only 4 hours and features 11 unskippable modules.\n\nWarmly,\nLinda — People Ops'
+    body: 'Just a friendly nudge that your "Working Safely With Diagrams" compliance training is 847 days overdue! Completing it takes only 4 hours and features 11 unskippable modules, a quiz you cannot fail (we track attempts), and a certificate nobody will ask for until an audit.\n\nWarmly,\nLinda — People Ops'
   },
   {
     id: 'email-birthday-card',
     colleagueId: 'hr',
     subject: 'Card for Craig — sign by EOD!',
-    body: "Craig's birthday card is circulating! Please add a warm personal message for Craig. If you do not know Craig, a warm generic message is fine. Craig knows who you are.\n\nLinda"
+    body: "Craig's birthday card is circulating! Please add a warm personal message for Craig. If you do not know Craig, a warm generic message is fine. Craig knows who you are. Craig has always known.\n\nLinda"
   },
   {
     id: 'email-mandatory-fun',
     colleagueId: 'hr',
     subject: "You're invited: Mandatory Team Fun Hour 🎉",
-    body: 'Attendance at Thursday\'s optional team-building is mandatory. This quarter\'s theme: "Trust Falls & Org Charts". Please review {label} beforehand so the fun stays aligned.\n\nLinda'
+    body: 'Attendance at Thursday\'s optional team-building is mandatory. This quarter\'s theme: "Trust Falls & Org Charts". Please review {label} beforehand so the fun stays aligned with Q3 OKRs.\n\nFun will be measured.\n\nLinda'
   },
   {
     id: 'email-storypoints',
     colleagueId: 'scrumMaster',
     subject: 'Action required: story-point your diagram',
-    body: 'Great energy this sprint! Reminder that all diagram boxes must be story-pointed by tomorrow\'s refinement. "{label}" looks like a 13 — let\'s decompose it in the parking lot.\n\nPam',
+    body: 'Great energy this sprint! Reminder that all diagram boxes must be story-pointed by tomorrow\'s refinement. "{label}" looks like a 13 — let\'s decompose it in the parking lot until it becomes three 5s and a vibe.\n\nPam',
     actionPrompt: 'Split the most complex node into two smaller steps'
   },
   {
     id: 'email-intern-replyall',
     colleagueId: 'intern',
     subject: 'RE: RE: FW: RE: quick question',
-    body: 'sorry for the reply-all again!! but does anyone know if "{label}" is supposed to connect to the other thing? also where do we keep the stapler? unrelated.\n\nchad (intern)'
+    body: 'sorry for the reply-all again!! but does anyone know if "{label}" is supposed to connect to the other thing? also where do we keep the stapler? unrelated. also is equity in vibes still a thing or was that a joke\n\nchad (intern)'
   },
   {
     id: 'email-greybeard-migration',
@@ -339,7 +339,7 @@ export const OFFICE_EMAIL_TEMPLATES = [
     id: 'email-helpdesk-printer-firmware',
     colleagueId: 'helpdesk',
     subject: '[Ticket #48313] Printer firmware update complete',
-    body: 'The third-floor printer is now on firmware 9.0.1. New features: refusing PDFs, a louder noise, and printing one (1) page reading "soon" at unscheduled intervals. This is expected behavior.\n\nDo not open a ticket. It will be closed as a duplicate of the printer.\n\n— Dave'
+    body: 'The third-floor printer is now on firmware 9.0.1. New features: refusing PDFs, a louder noise, and printing one (1) page reading "soon" at unscheduled intervals. This is expected behavior. Product calls it "event-driven."\n\nDo not open a ticket. It will be closed as a duplicate of the printer.\n\n— Dave'
   },
   {
     id: 'email-greybeard-cloud',
@@ -351,7 +351,7 @@ export const OFFICE_EMAIL_TEMPLATES = [
     id: 'email-scrum-retro-retro',
     colleagueId: 'scrumMaster',
     subject: 'Invite: Retro on the Retro (mandatory, fun)',
-    body: "Team! Our retro scored 4.2/5 on energy but only 2.9 on actionability, so we're holding a retro on the retro. Please bring one Glad, one Sad, one Mad, and a backup Mad.\n\nAction items from the previous retro carry over untouched, as tradition demands.\n\nPam"
+    body: "Team! Our retro scored 4.2/5 on energy but only 2.9 on actionability, so we're holding a retro on the retro. Please bring one Glad, one Sad, one Mad, and a backup Mad.\n\nAction items from the previous retro carry over untouched, as tradition demands. Culture!\n\nPam"
   },
   {
     id: 'email-hr-wellness-webinar',
@@ -363,13 +363,19 @@ export const OFFICE_EMAIL_TEMPLATES = [
     id: 'email-facilities-microwave',
     colleagueId: 'facilities',
     subject: 'INCIDENT REPORT: The Microwave',
-    body: 'At 12:47 someone microwaved fish. The building has feelings about this, and so do I. The microwave is now under new management (mine). A sign-up sheet is on the door: NAME, DISH, INTENTIONS.\n\nThanks in advance,\nGary'
+    body: 'At 12:47 someone microwaved fish. The building has feelings about this, and so do I. The microwave is now under new management (mine). A sign-up sheet is on the door: NAME, DISH, INTENTIONS.\n\nFish is a P0.\n\nThanks in advance,\nGary'
   },
   {
     id: 'email-intern-first-ship',
     colleagueId: 'intern',
     subject: 'i shipped something!!! (small question)',
-    body: "you guys!! my first change is LIVE. it's the {label} one. quick question though — if everything is on fire but in a small way, who do i tell? asking hypothetically. the fire is hypothetical. mostly.\n\nchad (intern)"
+    body: "you guys!! my first change is LIVE. it's the {label} one. quick question though — if everything is on fire but in a small way, who do i tell? asking hypothetically. the fire is hypothetical. mostly. the metrics are up AND down which feels like product-market fit??\n\nchad (intern)"
+  },
+  {
+    id: 'email-intern-pitch-deck',
+    colleagueId: 'intern',
+    subject: 'quick q: can a diagram be a pitch deck',
+    body: 'hey {userName}!! random but is "{label}" basically a pitch deck with arrows?? asking because someone said "deck" in standup and i nodded for 12 minutes.\n\nalso i put "disrupting the whiteboard space" on my linkedin. is that too much\n\nchad (intern)'
   }
 ];
 
@@ -516,37 +522,37 @@ export const OFFICE_WALKBY_FALLBACKS = [
   {
     id: 'walkby-scrum',
     colleagueId: 'scrumMaster',
-    body: "Ooh, is that {label}? This wasn't on the sprint board — I've added it retroactively as a spike."
+    body: "Ooh, is that {label}? This wasn't on the sprint board — I've added it retroactively as a spike. Great energy. Parking lot pending."
   },
   {
     id: 'walkby-intern',
     colleagueId: 'intern',
-    body: 'whoa {userName}, {label} looks so official. did you make that with the AI? can I put it in my portfolio?'
+    body: 'whoa {userName}, {label} looks so Series A. did you make that with the AI? can I put it in my portfolio / pitch deck / both?'
   },
   {
     id: 'walkby-greybeard',
     colleagueId: 'greybeard',
-    body: "{label}, huh. We had one of those in 2009. It's still running. Nobody knows where."
+    body: "{label}, huh. We had one of those in 2009. It's still running. Nobody knows where. The mainframe does."
   },
   {
     id: 'walkby-facilities',
     colleagueId: 'facilities',
-    body: 'Nice diagram. Is {label} why the third floor smells like burnt popcorn? Be honest.'
+    body: 'Nice diagram. Is {label} why the third floor smells like burnt popcorn? Be honest. Facilities has a nose for architecture.'
   },
   {
     id: 'walkby-hr',
     colleagueId: 'hr',
-    body: 'Love the energy around {label}! Have you considered presenting it at Mandatory Fun Hour? 😊'
+    body: 'Love the energy around {label}! Have you considered presenting it at Mandatory Fun Hour? 😊 Attendance is optional and mandatory.'
   },
   {
     id: 'walkby-helpdesk',
     colleagueId: 'helpdesk',
-    body: "That {label} box? I have an open ticket about it. Had. It's a known issue now. Congratulations."
+    body: "That {label} box? I have an open ticket about it. Had. It's a known issue now. Congratulations — you've been productized."
   },
   {
     id: 'walkby-greybeard-orchestrator',
     colleagueId: 'greybeard',
-    body: "Careful with {label}. The last one of those became self-aware around 2011. We don't say 'orchestrator' out loud anymore."
+    body: "Careful with {label}. The last one of those became self-aware around 2011. We don't say 'orchestrator' out loud anymore. Or 'synergy'. Mostly."
   }
 ];
 
@@ -560,9 +566,12 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'facilities',
-        text: 'New coffee machine has fourteen buttons. Twelve are decorative.'
+        text: 'New coffee machine has fourteen buttons. Twelve are decorative. Two are lies.'
       },
-      { speakerId: 'greybeard', text: 'The old one had one button and a smell. Better days.' }
+      {
+        speakerId: 'greybeard',
+        text: 'The old one had one button and a smell. Free. Honest. Better days.'
+      }
     ]
   },
   {
@@ -570,11 +579,11 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'scrumMaster',
-        text: 'I dreamed we did standup sitting down. Woke up in a cold sweat.'
+        text: 'I dreamed we did standup sitting down. Woke up in a cold sweat. Booked a ceremony about it.'
       },
       {
         speakerId: 'intern',
-        text: "wait, we're allowed to dream about work? is that in the handbook?"
+        text: "wait, we're allowed to dream about work? is that in the handbook? asking for my equity in vibes"
       }
     ]
   },
@@ -583,11 +592,11 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'greybeard',
-        text: "Saw your {label} thing. One box too many. You'll see which one."
+        text: "Saw your {label} thing. One box too many. You'll see which one. Eventually. Or in 2009."
       },
       {
         speakerId: 'intern',
-        text: 'he does this. last week he told me my badge photo had "too much optimism".'
+        text: 'he does this. last week he told me my badge photo had "too much optimism". which is literally my brand'
       }
     ]
   },
@@ -596,9 +605,9 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'hr',
-        text: "Did you sign Craig's card? Everyone keeps asking who Craig is. That's not the point of a card."
+        text: "Did you sign Craig's card? Everyone keeps asking who Craig is. That's not the point of a card. Craig is the point."
       },
-      { speakerId: 'helpdesk', text: 'Craig is ticket #31337. Closed as "cannot reproduce".' }
+      { speakerId: 'helpdesk', text: 'Craig is ticket #31337. Closed as "cannot reproduce". Still birthdaying.' }
     ]
   },
   {
@@ -606,9 +615,9 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'helpdesk',
-        text: 'The third-floor printer printed something nobody sent again. One page. Just the word "soon".'
+        text: 'The third-floor printer printed something nobody sent again. One page. Just the word "soon". Product calls it predictive.'
       },
-      { speakerId: 'facilities', text: 'That printer is load-bearing. Do not touch the printer.' }
+      { speakerId: 'facilities', text: 'That printer is load-bearing. Do not touch the printer. Do not fund the printer.' }
     ]
   },
   {
@@ -616,9 +625,9 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'scrumMaster',
-        text: 'They renamed the roadmap to "north-star journey atlas". The roadmap itself is unchanged since 2022.'
+        text: 'They renamed the roadmap to "north-star journey atlas". The roadmap itself is unchanged since 2022. Pivot!'
       },
-      { speakerId: 'greybeard', text: "In 2009 we called it a list. It also didn't change." }
+      { speakerId: 'greybeard', text: "In 2009 we called it a list. It also didn't change. We were honest about it." }
     ]
   },
   {
@@ -626,13 +635,13 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'helpdesk',
-        text: "Postmortem's published. Root cause: DNS. Root cause of the root cause: also DNS."
+        text: "Postmortem's published. Root cause: DNS. Root cause of the root cause: also DNS. Slide 1 is just the word DNS."
       },
       {
         speakerId: 'ciso',
-        text: "It's always DNS. Except when it's someone testing in prod."
+        text: "It's always DNS. Except when it's someone testing in prod. Which also resolved through DNS."
       },
-      { speakerId: 'helpdesk', text: 'That resolved through DNS. Officially it was DNS.' }
+      { speakerId: 'helpdesk', text: 'Officially it was DNS. Unofficially it was DNS. Consensus.' }
     ]
   },
   {
@@ -640,11 +649,11 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'scrumMaster',
-        text: "Finance flagged the cloud bill again. I've scheduled a cost-alignment ceremony."
+        text: "Finance flagged the cloud bill again. I've scheduled a cost-alignment ceremony. Bring feelings and a spreadsheet."
       },
       {
         speakerId: 'greybeard',
-        text: 'In 2009 the server lived under my desk. Free. Warm. Loud. Better days.'
+        text: 'In 2009 the server lived under my desk. Free. Warm. Loud. Better days. Worse latency. Same politics.'
       }
     ]
   },
@@ -653,11 +662,11 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'hr',
-        text: 'The standing desks arrived! Wellness data says we now sit 94% of the time, but taller.'
+        text: 'The standing desks arrived! Wellness data says we now sit 94% of the time, but taller. Growth!'
       },
       {
         speakerId: 'facilities',
-        text: "They rise on their own at night. The desks. I've said too much."
+        text: "They rise on their own at night. The desks. I've said too much. Label your intentions."
       }
     ]
   },
@@ -666,11 +675,37 @@ export const OFFICE_COFFEE_SCENES = [
     lines: [
       {
         speakerId: 'intern',
-        text: 'the AI wrote half my code today!! so cool. which half? unclear'
+        text: 'the AI wrote half my code today!! so cool. which half? unclear. feels like a Series A'
       },
       {
         speakerId: 'ciso',
-        text: 'Find out which half. One of them is going in the audit.'
+        text: 'Find out which half. One of them is going in the audit. The other is also going in the audit.'
+      }
+    ]
+  },
+  {
+    id: 'coffee-compression',
+    lines: [
+      {
+        speakerId: 'intern',
+        text: 'if we compress the architecture enough does it become a slogan?? asking for a pitch'
+      },
+      {
+        speakerId: 'greybeard',
+        text: 'We tried that. 2009. The slogan took down prod. The mainframe still quotes it.'
+      }
+    ]
+  },
+  {
+    id: 'coffee-parking-lot',
+    lines: [
+      {
+        speakerId: 'scrumMaster',
+        text: "We're parking-lotting the parking lot. Meta-ceremony. I've invited everyone who has feelings."
+      },
+      {
+        speakerId: 'hr',
+        text: "I brought Craig's card. Craig has feelings about parking lots. Allegedly."
       }
     ]
   }
@@ -690,25 +725,25 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'greybeard',
-        text: 'Tabs. One keystroke, one character, configurable width. We settled this in 2009.'
+        text: 'Tabs. One keystroke, one character, configurable width. We settled this in 2009. The industry forgot. On purpose.'
       },
       {
         speakerId: 'intern',
-        text: 'the style guide says two spaces!! i read the whole thing. it took my weekend'
+        text: 'the style guide says two spaces!! i read the whole thing. it took my weekend. my equity in vibes went down'
       },
       {
         speakerId: 'greybeard',
-        text: 'The style guide was written by a committee that has never opened a terminal.'
+        text: 'The style guide was written by a committee that has never opened a terminal. Or a can of worms.'
       },
       {
         speakerId: 'intern',
-        text: 'the linter agrees with me!!! i have never once beaten the linter'
+        text: 'the linter agrees with me!!! i have never once beaten the linter. it feels like product-market fit'
       }
     ],
     verdicts: {
-      greybeard: 'Tabs it is. The linter has been reconfigured. The intern will recover, in time.',
+      greybeard: 'Tabs it is. The linter has been reconfigured. The intern will recover, in time. Or pivot.',
       intern:
-        'two spaces win!! ulrich says the industry is doomed, but he says that every day anyway'
+        'two spaces win!! ulrich says the industry is doomed, but he says that every day anyway. culture!'
     }
   },
   {
@@ -717,25 +752,25 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'scrumMaster',
-        text: "The sprint ends Friday, so we deploy Friday. That's just math! Great energy, everyone."
+        text: "The sprint ends Friday, so we deploy Friday. That's just math! Great energy, everyone. Bring snacks and incident severity levels."
       },
       {
         speakerId: 'ciso',
-        text: "Nothing ships on Friday. Incidents don't respect weekends, and neither does my phone."
+        text: "Nothing ships on Friday. Incidents don't respect weekends, and neither does my phone. Noted in your file."
       },
       {
         speakerId: 'scrumMaster',
-        text: "We'll add a Monday 'deploy retro' to process any feelings. And outages."
+        text: "We'll add a Monday 'deploy retro' to process any feelings. And outages. And feelings about outages."
       },
       {
         speakerId: 'ciso',
-        text: "I'll be processing mine from the incident bridge. Bring your feelings and a laptop."
+        text: "I'll be processing mine from the incident bridge. Bring your feelings and a laptop. Leave the optimism."
       }
     ],
     verdicts: {
       scrumMaster:
-        'Motion carries — we ship Friday! Sasha has pre-declared the incident, to save time.',
-      ciso: 'Deploy moved to Monday. The weekend remains legally uneventful. You are welcome.'
+        'Motion carries — we ship Friday! Sasha has pre-declared the incident, to save time. Efficiency!',
+      ciso: 'Deploy moved to Monday. The weekend remains legally uneventful. You are welcome. Warmly.'
     }
   },
   {
@@ -744,25 +779,25 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'facilities',
-        text: 'The thermostat is set to 20.5°C. That number came from SCIENCE and it is FINAL.'
+        text: 'The thermostat is set to 20.5°C. That number came from SCIENCE and it is FINAL. Series B does not change physics.'
       },
       {
         speakerId: 'hr',
-        text: "Gary, three people are wearing gloves indoors. I'm getting wellness tickets."
+        text: "Gary, three people are wearing gloves indoors. I'm getting wellness tickets. Anonymously. We can see who."
       },
       {
         speakerId: 'facilities',
-        text: 'Gloves are PERSONAL GROWTH. The sensor stays locked. I know about the ice packs.'
+        text: 'Gloves are PERSONAL GROWTH. The sensor stays locked. I know about the ice packs. The ice packs know about me.'
       },
       {
         speakerId: 'hr',
-        text: 'Morale rises with temperature! There are studies. I printed one. It was cold to the touch.'
+        text: 'Morale rises with temperature! There are studies. I printed one. It was cold to the touch. Like this culture.'
       }
     ],
     verdicts: {
       facilities:
         '20.5°C STANDS. A jumper drive has been organized. Morale is now a fabric problem.',
-      hr: "We're trialling 21°C! Gary calls it 'the tropics' and has filed a formal protest."
+      hr: "We're trialling 21°C! Gary calls it 'the tropics' and has filed a formal protest. Growth mindset!"
     }
   },
   {
@@ -771,23 +806,23 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'scrumMaster',
-        text: 'Splitting {label} into microservices gives every team its own backlog! Autonomy! Ceremonies!'
+        text: 'Splitting {label} into microservices gives every team its own backlog! Autonomy! Ceremonies! A webinar!'
       },
       {
         speakerId: 'greybeard',
-        text: "You'd turn one problem into a distributed system of problems, with worse logging."
+        text: "You'd turn one problem into a distributed system of problems, with worse logging and better slides."
       },
-      { speakerId: 'scrumMaster', text: "We'd get a service mesh! There's a webinar!" },
+      { speakerId: 'scrumMaster', text: "We'd get a service mesh! There's a webinar! I've already story-pointed the webinar!" },
       {
         speakerId: 'greybeard',
-        text: 'I attended a webinar once. 2011. The mainframe and I still talk about it.'
+        text: 'I attended a webinar once. 2011. The mainframe and I still talk about it. Softly. With fear.'
       }
     ],
     verdicts: {
       scrumMaster:
-        "Microservices it is! I've booked a recurring sync for each of the fourteen new repos.",
+        "Microservices it is! I've booked a recurring sync for each of the fourteen new repos. Great energy!",
       greybeard:
-        "The monolith stays. In ten years you'll call it 'majestic' and claim it was your idea."
+        "The monolith stays. In ten years you'll call it 'majestic' and claim it was your idea. Again."
     }
   },
   {
@@ -796,22 +831,22 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'helpdesk',
-        text: "Root cause: DNS. Closing the postmortem. It's always DNS."
+        text: "Root cause: DNS. Closing the postmortem. It's always DNS. Efficiency is naming it early."
       },
       {
         speakerId: 'ciso',
         text: 'It was my firewall rule, and my firewall rule was CORRECT. It blocked something suspicious: all traffic.'
       },
-      { speakerId: 'helpdesk', text: 'Which it resolved via DNS. The ticket stands.' },
+      { speakerId: 'helpdesk', text: 'Which it resolved via DNS. The ticket stands. The ticket has tenure.' },
       {
         speakerId: 'ciso',
-        text: 'Blocking everything is the only architecture with zero CVEs. Look it up.'
+        text: 'Blocking everything is the only architecture with zero CVEs. Look it up. Or don’t. Noted either way.'
       }
     ],
     verdicts: {
       helpdesk:
         "'DNS' is accepted as root cause, and pre-approved as root cause for all future incidents. Efficiency.",
-      ciso: 'Ruling: the firewall was right. Availability is a rumor started by sales.'
+      ciso: 'Ruling: the firewall was right. Availability is a rumor started by sales. Warmly.'
     }
   },
   {
@@ -820,19 +855,19 @@ export const OFFICE_BATTLE_SCENES = [
     lines: [
       {
         speakerId: 'facilities',
-        text: 'An UNLABELED container has been in the fridge since Q2. This is now a FACILITIES matter.'
+        text: 'An UNLABELED container has been in the fridge since Q2. This is now a FACILITIES matter. Also a culture matter.'
       },
       {
         speakerId: 'helpdesk',
-        text: "I did label it. Ticket #48317: 'container, contents unknown, do not reboot'."
+        text: "I did label it. Ticket #48317: 'container, contents unknown, do not reboot'. Works on my machine."
       },
       {
         speakerId: 'facilities',
-        text: 'A ticket number is NOT a label. Labels have NAMES and DATES. I provide them. Willingly.'
+        text: 'A ticket number is NOT a label. Labels have NAMES and DATES. I provide them. Willingly. With menace.'
       },
       {
         speakerId: 'helpdesk',
-        text: 'The contents have 94 days of uptime. Longest-running service on this floor. Do not disturb.'
+        text: 'The contents have 94 days of uptime. Longest-running service on this floor. Do not disturb. Do not fundraise.'
       }
     ],
     verdicts: {
@@ -841,6 +876,33 @@ export const OFFICE_BATTLE_SCENES = [
       helpdesk:
         'The container stays. It has been promoted to production. Gary must now file a change request.'
     }
+  },
+  {
+    id: 'battle-mvp',
+    topic: 'What does MVP actually mean',
+    lines: [
+      {
+        speakerId: 'intern',
+        text: 'ok but MVP means Minimum Viable Product right?? i put it on my linkedin three times'
+      },
+      {
+        speakerId: 'scrumMaster',
+        text: 'MVP means Maximum Viable PowerPoint. We ship the deck. The product is a stretch goal. Great energy!'
+      },
+      {
+        speakerId: 'intern',
+        text: 'that feels illegal but also like fundraising'
+      },
+      {
+        speakerId: 'scrumMaster',
+        text: "I've parking-lotted legality. Let's time-box the feelings and story-point the slogan."
+      }
+    ],
+    verdicts: {
+      intern: 'MVP means the thing that works. Chad has updated LinkedIn. The deck is jealous.',
+      scrumMaster:
+        'MVP means the deck. The product will follow in a future ceremony. Invite already sent.'
+    }
   }
 ];
 
@@ -848,20 +910,27 @@ export const OFFICE_BATTLE_SCENES = [
 export const OFFICE_MEETING_COPY = {
   inviteFallbackTitle: 'Architecture Review Board (steering)',
   inviteFallbackBody:
-    'Leadership would like a look at the current diagram. Agenda: the headline, the cost, the risk. Your team presents; the seniors have questions. Snacks: no.',
-  joiningLine: 'Waiting for the organizer to admit you…',
+    'Leadership would like a look at the current diagram. Agenda: the headline, the cost, the risk, and whether it pulses. Your team presents; the seniors have questions. Snacks: no. Optimism: optional.',
+  joiningLine: 'Waiting for the organizer to admit you… (they can see you)',
   cancelledSubject: 'CANCELLED: Architecture Review Board',
   cancelledBody:
-    'Meeting cancelled — leadership is double-booked. Rescheduled to: never. Action items remain your problem.\n\nPam',
-  proposeNewTimeGag: 'New time proposed. The organizer has declined your proposed time.',
+    'Meeting cancelled — leadership is double-booked. Rescheduled to: never. Action items remain your problem. Synergy remains theoretical.\n\nPam',
+  proposeNewTimeGag:
+    'New time proposed. The organizer has declined your proposed time. And your backup time. And time.',
   minutesTitle: 'Meeting minutes',
-  raiseHandPlaceholder: 'Say something to the room…',
+  raiseHandPlaceholder: 'Say something to the room… (keep it one-pager)',
   leaveLabel: 'Leave meeting',
-  interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time."'
+  interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time. Amazing energy."'
 };
 
 /** Quick canned replies offered under an IM ping (pure local flavor + tiny XP). */
-export const OFFICE_IM_QUICK_REPLIES = ['👍', 'in a meeting', 'circling back'];
+export const OFFICE_IM_QUICK_REPLIES = [
+  '👍',
+  'in a meeting',
+  'circling back',
+  'parking lot it',
+  'noted in my file'
+];
 
 /**
  * Static chrome strings for the office surfaces (inbox dock, IM stack,
