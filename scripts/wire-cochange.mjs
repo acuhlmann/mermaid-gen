@@ -111,18 +111,48 @@ export function detectWireCoChangeRisks(files) {
     const hasClient =
       has('apps/web/src/state/sessionEventsClient.js') ||
       has('apps/web/src/state/sessionEventsClient.ts');
-    const hasTest = has(/^apps\/server\/test\/sessionEventBus/);
-    if (!hasClient || !hasTest) {
+    const hasBusTest = has(/^apps\/server\/test\/sessionEventBus/);
+    const hasClientTest =
+      has('apps/web/test/sessionEventsClient.test.js') ||
+      has('apps/web/test/sessionEventsClient.test.ts');
+    if (!hasClient || !hasBusTest || !hasClientTest) {
       /** @type {string[]} */
       const missing = [];
       if (!hasClient) missing.push('apps/web/src/state/sessionEventsClient.js');
-      if (!hasTest) missing.push('apps/server/test/sessionEventBus.test.js');
+      if (!hasBusTest) missing.push('apps/server/test/sessionEventBus.test.js');
+      if (!hasClientTest) missing.push('apps/web/test/sessionEventsClient.test.js');
       risks.push({
         id: 'session-events-producer-only',
         trigger: 'apps/server/src/state/sessionEventBus.ts',
         missing,
         guidance:
-          'sessionEventBus changed without the web client and/or bus test. Follow docs/recipes/add-session-event.md and docs/agent-blast-radius.md § Session-events.'
+          'sessionEventBus changed without the web client and/or bus/client tests. Follow docs/recipes/add-session-event.md and docs/agent-blast-radius.md § Session-events.'
+      });
+    }
+  }
+
+  if (has('apps/server/src/tools/chartDslTool.js')) {
+    const hasTest = has('apps/server/test/chartDslTool.test.js');
+    if (!hasTest) {
+      risks.push({
+        id: 'chart-tool-without-test',
+        trigger: 'apps/server/src/tools/chartDslTool.js',
+        missing: ['apps/server/test/chartDslTool.test.js'],
+        guidance:
+          'chartDslTool changed without chartDslTool.test.js in the same diff. Mirror infographicDslTool.test.js patterns. Run: npm run test -w apps/server'
+      });
+    }
+  }
+
+  if (has('apps/server/src/tools/formsA2uiTool.js')) {
+    const hasTest = has('apps/server/test/formsA2uiTool.test.js');
+    if (!hasTest) {
+      risks.push({
+        id: 'forms-tool-without-test',
+        trigger: 'apps/server/src/tools/formsA2uiTool.js',
+        missing: ['apps/server/test/formsA2uiTool.test.js'],
+        guidance:
+          'formsA2uiTool changed without formsA2uiTool.test.js in the same diff. Use buildFormsSeedDoc() from @archislop/shared. Run: npm run test -w apps/server'
       });
     }
   }

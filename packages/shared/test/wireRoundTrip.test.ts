@@ -7,9 +7,14 @@ import { createAgentStreamEmitter } from '../src/agentStreamEmitter.js';
 import {
   AGUI_CUSTOM_NAME_A2UI,
   AGUI_CUSTOM_NAME_ARTIFACT,
+  AGUI_CUSTOM_NAME_CONTENT_TYPE,
+  AGUI_CUSTOM_NAME_MODEL_CALL,
   AGUI_CUSTOM_NAME_PLAN_BEAT,
+  AGUI_CUSTOM_NAME_SYNTAX_FIXER,
+  AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT,
   AGUI_STATE_PATH_LAST_PATCH_SUMMARY,
   LEGACY_STREAM_TYPE_A2UI,
+  LEGACY_STREAM_TYPE_CONTENT_TYPE,
   LEGACY_STREAM_TYPE_PLAN_BEAT
 } from '../src/agUiWireConstants.js';
 import { isLegacyStreamEvent, type LegacyStreamEvent } from '../src/legacyStreamEvents.js';
@@ -94,4 +99,62 @@ test('wire round-trip: explain_sections and style_edits artifact CUSTOM payloads
     const value = wire[0].value as { kind: string };
     assert.equal(value.kind, legacy.kind);
   }
+});
+
+test('wire round-trip: content_type legacy → CUSTOM', () => {
+  for (const key of ['content_type_chart', 'content_type_mermaid'] as const) {
+    const legacy = fixture(key);
+    if (legacy.type !== LEGACY_STREAM_TYPE_CONTENT_TYPE) throw new Error('fixture type');
+    const wire = emitLegacyToWire(legacy);
+    assert.equal(wire.length, 1);
+    assert.equal(wire[0].type, 'CUSTOM');
+    assert.equal(wire[0].name, AGUI_CUSTOM_NAME_CONTENT_TYPE);
+    const value = wire[0].value as { contentType: string; reason?: string };
+    assert.equal(value.contentType, legacy.contentType);
+    assert.equal(value.reason, legacy.reason);
+  }
+});
+
+test('wire round-trip: tool_apply_result legacy → CUSTOM', () => {
+  for (const key of ['tool_apply_result_accepted', 'tool_apply_result_rejected'] as const) {
+    const legacy = fixture(key);
+    if (legacy.type !== 'tool_apply_result') throw new Error('fixture type');
+    const wire = emitLegacyToWire(legacy);
+    assert.equal(wire.length, 1);
+    assert.equal(wire[0].type, 'CUSTOM');
+    assert.equal(wire[0].name, AGUI_CUSTOM_NAME_TOOL_APPLY_RESULT);
+    const value = wire[0].value as { accepted: boolean; name: string };
+    assert.equal(value.accepted, legacy.accepted);
+    assert.equal(value.name, legacy.name);
+  }
+});
+
+test('wire round-trip: model_call legacy → CUSTOM', () => {
+  const start = fixture('model_call_start');
+  if (start.type !== 'model_call_start') throw new Error('fixture type');
+  const startWire = emitLegacyToWire(start);
+  assert.equal(startWire[0].name, AGUI_CUSTOM_NAME_MODEL_CALL);
+  assert.deepEqual((startWire[0].value as { phase: string }).phase, 'start');
+
+  const end = fixture('model_call_end');
+  if (end.type !== 'model_call_end') throw new Error('fixture type');
+  const endWire = emitLegacyToWire(end);
+  assert.equal(endWire[0].name, AGUI_CUSTOM_NAME_MODEL_CALL);
+  const endValue = endWire[0].value as { phase: string; inputTokens: number };
+  assert.equal(endValue.phase, 'end');
+  assert.equal(endValue.inputTokens, 900);
+});
+
+test('wire round-trip: syntax_fixer legacy → CUSTOM', () => {
+  const start = fixture('syntax_fixer_start');
+  if (start.type !== 'syntax_fixer_start') throw new Error('fixture type');
+  const startWire = emitLegacyToWire(start);
+  assert.equal(startWire[0].name, AGUI_CUSTOM_NAME_SYNTAX_FIXER);
+  assert.equal((startWire[0].value as { phase: string }).phase, 'start');
+
+  const result = fixture('syntax_fixer_result');
+  if (result.type !== 'syntax_fixer_result') throw new Error('fixture type');
+  const resultWire = emitLegacyToWire(result);
+  assert.equal(resultWire[0].name, AGUI_CUSTOM_NAME_SYNTAX_FIXER);
+  assert.equal((resultWire[0].value as { outcome: string }).outcome, 'repaired');
 });

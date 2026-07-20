@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createOfficeRouter } from '../src/routes/office.js';
-import { UNCONFIGURED_LLM_ENV } from './testEnv.js';
+import { UNCONFIGURED_LLM_ENV } from './helpers/testEnv.js';
 
 function bootServer({ env = UNCONFIGURED_LLM_ENV } = {}) {
   const app = express();
