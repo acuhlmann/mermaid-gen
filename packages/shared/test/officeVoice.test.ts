@@ -17,8 +17,7 @@ test('chunkOfficeNarrationText keeps short lines intact', () => {
 });
 
 test('chunkOfficeNarrationText splits on sentence boundaries', () => {
-  const text =
-    'First sentence is here. Second sentence follows. Third wraps up the thought.';
+  const text = 'First sentence is here. Second sentence follows. Third wraps up the thought.';
   const chunks = chunkOfficeNarrationText(text, 40);
   assert.equal(chunks.length, 3);
   assert.equal(chunks.join(' '), text);

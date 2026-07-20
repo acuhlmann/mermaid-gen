@@ -200,7 +200,11 @@ function playCloudAudio(audio, generation, globalObj) {
       const mime = audio.mimeType || 'audio/mpeg';
       const bytes = decodeCloudAudioBase64(audio.audioBase64, globalObj);
       const BlobCtor = globalObj.Blob ?? globalThis.Blob;
-      if (bytes && typeof BlobCtor === 'function' && typeof globalObj.URL?.createObjectURL === 'function') {
+      if (
+        bytes &&
+        typeof BlobCtor === 'function' &&
+        typeof globalObj.URL?.createObjectURL === 'function'
+      ) {
         objectUrl = globalObj.URL.createObjectURL(new BlobCtor([bytes], { type: mime }));
       }
       const el = new AudioCtor(objectUrl ?? `data:${mime};base64,${audio.audioBase64}`);
@@ -364,10 +368,7 @@ export async function speakOfficeLine({
     if (generation !== speakGeneration) {
       return { spoken: spokeAny, cancelled: true };
     }
-    const webResult = await speakWebSpeech(
-      { speakerId, text: chunk, lang, globalObj },
-      generation
-    );
+    const webResult = await speakWebSpeech({ speakerId, text: chunk, lang, globalObj }, generation);
     if (webResult.cancelled) {
       return { spoken: spokeAny, cancelled: true };
     }

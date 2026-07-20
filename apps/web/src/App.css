@@ -16663,9 +16663,8 @@ body.slopitect-rainbow-tint::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: max(0.75rem, env(safe-area-inset-top, 0px))
-    max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px))
-    max(0.75rem, env(safe-area-inset-left, 0px));
+  padding: max(0.75rem, env(safe-area-inset-top, 0px)) max(0.75rem, env(safe-area-inset-right, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-left, 0px));
   background: var(--modal-backdrop);
 }
 .office-battle-card {

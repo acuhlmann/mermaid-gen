@@ -17,7 +17,16 @@ Read [`AGENTS.md`](../../AGENTS.md) and [`CLAUDE.md`](../../CLAUDE.md). Both are
 
 ## After editing
 
-Run `npm run check:affected`. It runs Prettier on changed files plus the other sensors relevant to your diff. Staged commits are auto-formatted by the Husky pre-commit hook.
+Local dev: Husky runs `lint-staged` on commit and `check:affected` on push.
+
+**Cloud agents (no Husky):** before **every** `git commit`, run:
+
+```bash
+npm run precommit
+git add -u
+```
+
+`precommit` = `format:affected` (write Prettier fixes) + `check:affected` (verify). CI runs `format:check` on the whole repo first — unformatted edits fail even when tests pass.
 
 ## Reading sensor output
 
