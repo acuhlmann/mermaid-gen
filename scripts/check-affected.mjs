@@ -143,6 +143,7 @@ function main() {
   }
 
   if (flags.web) {
+    run('npm', ['run', 'verify:boundaries'], 'verify:boundaries (graph rules)');
     run('npm', ['run', 'typecheck', '-w', 'apps/web'], 'typecheck (apps/web)');
     run('npm', ['run', 'test', '-w', 'apps/web'], 'test (apps/web)');
     if (flags.lintWeb) {

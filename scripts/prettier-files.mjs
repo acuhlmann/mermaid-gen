@@ -3,6 +3,7 @@
  * Keep PRETTIER_SKIP in sync with `.prettierignore`.
  */
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,8 +33,15 @@ export const PRETTIER_SKIP = [
 ];
 
 /** @param {string[]} files */
+export function filterExistingFiles(files) {
+  return files.filter((f) => existsSync(resolve(repoRoot, f)));
+}
+
+/** @param {string[]} files */
 export function filterPrettierFiles(files) {
-  return files.filter((f) => PRETTIER_EXT.test(f) && !PRETTIER_SKIP.some((re) => re.test(f)));
+  return filterExistingFiles(files).filter(
+    (f) => PRETTIER_EXT.test(f) && !PRETTIER_SKIP.some((re) => re.test(f))
+  );
 }
 
 function gitLines(args) {

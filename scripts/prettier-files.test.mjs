@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { filterPrettierFiles } from './prettier-files.mjs';
+import { filterExistingFiles, filterPrettierFiles } from './prettier-files.mjs';
 
 test('filterPrettierFiles keeps source files and skips ignored paths', () => {
   const files = [
@@ -14,4 +14,9 @@ test('filterPrettierFiles keeps source files and skips ignored paths', () => {
     'apps/web/src/App.jsx',
     'docs/guide/coding-agents.md'
   ]);
+});
+
+test('filterExistingFiles drops deleted paths from rename diffs', () => {
+  const files = ['package.json', 'this-path-does-not-exist-in-repo.xyz'];
+  assert.deepEqual(filterExistingFiles(files), ['package.json']);
 });
