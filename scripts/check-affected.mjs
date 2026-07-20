@@ -10,6 +10,7 @@
  */
 import { spawnSync } from 'node:child_process';
 import { changedFiles, filterPrettierFiles, repoRoot } from './prettier-files.mjs';
+import { classifyChangedFiles } from './check-affected-lib.mjs';
 
 const argv = process.argv.slice(2);
 const baseFlag = argv.find((a) => a.startsWith('--base='));
@@ -67,68 +68,7 @@ function runFormatCheck(files) {
 
 /** @param {string[]} files */
 function classify(files) {
-  const flags = {
-    shared: false,
-    server: false,
-    web: false,
-    wire: false,
-    docs: false,
-    root: false,
-    deps: false,
-    // Per-workspace lint trigger: only when a lintable file actually changed
-    // in that workspace's src tree. Avoids running ESLint for pure doc edits
-    // inside a workspace.
-    lintShared: false,
-    lintServer: false,
-    lintWeb: false
-  };
-  for (const f of files) {
-    if (f.startsWith('packages/shared/')) flags.shared = true;
-    if (f.startsWith('apps/server/')) flags.server = true;
-    if (f.startsWith('apps/web/')) flags.web = true;
-    if (f.startsWith('packages/shared/src/') && LINTABLE_RE.test(f)) flags.lintShared = true;
-    if (f.startsWith('apps/server/src/') && LINTABLE_RE.test(f)) flags.lintServer = true;
-    if (f.startsWith('apps/web/src/') && LINTABLE_RE.test(f)) flags.lintWeb = true;
-    if (
-      f.startsWith('packages/shared/src/') &&
-      /agUi|legacyStream|agentStreamEmitter|diagramSchema|wire/i.test(f)
-    ) {
-      flags.wire = true;
-    }
-    if (
-      f.startsWith('apps/server/src/') &&
-      /routes\/copilot|agents\/|mcp\/|state\/sessionEventBus|tools\//.test(f)
-    ) {
-      flags.wire = true;
-    }
-    if (f.startsWith('apps/web/src/state/') || f.includes('agUiTranslator')) {
-      flags.wire = true;
-    }
-    if (
-      f.startsWith('docs/') ||
-      f === 'STRUCTURE.md' ||
-      f === 'AGENTS.md' ||
-      f === 'CLAUDE.md' ||
-      f.startsWith('docs/recipes/')
-    ) {
-      flags.docs = true;
-    }
-    // Anything that could change the dependency graph or the boundary config
-    // re-runs the graph check.
-    if (f === '.dependency-cruiser.cjs' || f === 'package.json' || f === 'package-lock.json') {
-      flags.deps = true;
-    }
-    if (
-      f === 'package.json' ||
-      f.startsWith('scripts/') ||
-      f.startsWith('.github/') ||
-      f === 'tsconfig.base.json' ||
-      f.includes('tsconfig.')
-    ) {
-      flags.root = true;
-    }
-  }
-  return flags;
+  return classifyChangedFiles(files);
 }
 
 function changedFilesForCheck() {
@@ -161,6 +101,7 @@ function main() {
 
   if (flags.docs) {
     run('npm', ['run', 'verify:doc-paths'], 'verify:doc-paths');
+    run('npm', ['run', 'verify:agent-infra'], 'verify:agent-infra');
     ran = true;
   }
 

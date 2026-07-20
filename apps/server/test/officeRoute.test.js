@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createOfficeRouter } from '../src/routes/office.js';
+import { UNCONFIGURED_LLM_ENV } from './testEnv.js';
 
-function bootServer() {
+function bootServer({ env = UNCONFIGURED_LLM_ENV } = {}) {
   const app = express();
   app.use(express.json());
-  app.use('/api/office', createOfficeRouter());
+  app.use('/api/office', createOfficeRouter({ env }));
   return new Promise((resolve) => {
     const server = app.listen(0, () => {
       const port = server.address().port;
@@ -75,14 +76,13 @@ test('office moment accepts optional IM reply context fields', async () => {
       userMessage: 'can we ship this today?',
       threadTranscript: [{ from: 'user', body: 'can we ship this today?' }]
     });
-    assert.ok(valid.status === 200 || valid.status === 503);
+    assert.equal(valid.status, 503, 'valid IM payload reaches the unconfigured model gate');
   } finally {
     await closeServer();
   }
 });
 
 test('office moment reports 503 when no LLM is configured', async () => {
-  // The test environment has no provider keys, so the model factory yields null.
   const { port, closeServer } = await bootServer();
   try {
     const res = await post(port, 'moment', {
@@ -97,9 +97,9 @@ test('office moment reports 503 when no LLM is configured', async () => {
 });
 
 test('office speak returns audio:null when TTS is disabled', async () => {
-  const prev = process.env.OFFICE_TTS;
-  process.env.OFFICE_TTS = '0';
-  const { port, closeServer } = await bootServer();
+  const { port, closeServer } = await bootServer({
+    env: { ...UNCONFIGURED_LLM_ENV, OFFICE_TTS: '0' }
+  });
   try {
     const res = await post(port, 'speak', {
       speakerId: 'intern',
@@ -111,8 +111,6 @@ test('office speak returns audio:null when TTS is disabled', async () => {
     assert.equal(body.audio, null);
     assert.equal(body.reason, 'disabled');
   } finally {
-    if (prev === undefined) delete process.env.OFFICE_TTS;
-    else process.env.OFFICE_TTS = prev;
     await closeServer();
   }
 });
