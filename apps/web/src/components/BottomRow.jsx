@@ -1,31 +1,28 @@
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
- * Outer .bottom-chrome wrapper plus the unified bottom row: the four left
- * action icons share a baseline with the right cluster (Settings, Thinking).
+ * Outer .bottom-chrome wrapper plus the unified bottom row: your desk. The
+ * always-visible primaries (the Work Order and Your Team) share a baseline with
+ * the right cluster (Outbox, Settings, Thinking).
  *
  * Slots:
  * - `statusRow`      — optional, rendered above the row in flow (keeps
  *                       aria-live semantics; minor vertical shift acceptable).
- * - `promptPopover`  — optional, the SlopNextPrompt input. Caller supplies
- *                       it with the bottom-row-popover classes so it floats
- *                       upward into the canvas anchored to the Prompt button.
- * - `actions`        — left side: PromptControlForm (empty-state) OR the
- *                       prompt-actions icon row (Prompt, Render as,
- *                       Stakeholders, Mute, Fix, Clear).
- * - `aiControls`     — right side: AiCornerControlsInner (Settings + Thinking).
+ * - `actions`        — left side: the empty-state entry form OR the desk row
+ *                       (Work Order · Your Team · Desk drawer).
+ * - `aiControls`     — right side: AiCornerControlsInner (Outbox + Settings +
+ *                       Thinking).
  *
  * `narrowLayout` toggles mobile class hooks so the right cluster keeps the
  * existing inline-stacked settings panel layout instead of popover mode.
  */
-export function BottomRow({ statusRow, promptPopover, actions, aiControls, narrowLayout }) {
+export function BottomRow({ statusRow, actions, aiControls, narrowLayout }) {
   const { controls } = useUiCopy();
   const aiClass = narrowLayout ? 'bottom-row-ai is-narrow' : 'bottom-row-ai';
   return (
     <div className="corner-control bottom-chrome">
       {statusRow}
       <div className="bottom-row">
-        {promptPopover}
         <div className="bottom-row-actions">{actions}</div>
         <div className={aiClass} aria-label={controls.settings.aiCluster}>
           {aiControls}

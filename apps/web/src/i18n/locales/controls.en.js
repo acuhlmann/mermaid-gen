@@ -50,6 +50,9 @@ export const CONTROLS_EN = {
     slopNextPlaceholder: 'Tell the agent what to change…',
     slopNextLabel: 'New prompt',
     closePrompt: 'Close prompt',
+    // The persistent Work Order at the centre of the desk (content mode).
+    deskLabel: 'Work order — what should we change?',
+    deskPlaceholder: 'Write your next work order…',
     topicPlaceholder: 'Pitch any topic — diagram, chart, form…',
     starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
@@ -131,8 +134,14 @@ export const CONTROLS_EN = {
     label: 'Settings',
     show: 'Show settings',
     hide: 'Hide settings',
-    title: 'Settings · IT-approved: contractors, brain, export',
+    title: 'Settings · IT-approved: contractors, brain, code',
     region: 'Session settings',
+    // The Outbox — export/share promoted out of Settings into its own desk drawer.
+    outboxLabel: 'Outbox',
+    outboxShow: 'Open the outbox',
+    outboxHide: 'Close the outbox',
+    outboxTitle: 'Outbox · Ship this deliverable — save, copy, or share',
+    outboxRegion: 'Outbox — export & share',
     externalAgents: 'External agents',
     waitingHandshake: 'Waiting for handshake:',
     externalAgentFallback: 'External agent',
@@ -299,6 +308,17 @@ export const CONTROLS_EN = {
     tapToHide: 'Tap to hide',
     tapToOpen: '{mode} · tap to change deliverable format',
     pickMode: 'Pick a format'
+  },
+  // The desk drawer — secondary controls (format, focus, fix, demolish) grouped
+  // out of the way so the Work Order and Your Team stay the primary desk objects.
+  deskDrawer: {
+    label: 'Desk drawer',
+    close: 'Close the desk drawer',
+    title: 'Desk drawer · Deliverable format, focus, fix & demolition',
+    menuAria: 'Desk drawer',
+    roleTag: 'Supply Closet',
+    formatHeading: 'Deliverable format',
+    deskHeading: 'On your desk'
   },
   stakeholders: {
     theStakeholders: 'Your Team',

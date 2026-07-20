@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { AiCornerControlsInner } from '../src/components/AiCornerControlsInner.jsx';
+import OutboxDock from '../src/components/OutboxDock.jsx';
 import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
 
 vi.mock('../src/utils/exportDiagram.js', async (importOriginal) => {
@@ -50,7 +50,7 @@ function openExportList() {
   fireEvent.click(screen.getByRole('button', { name: /^Export$/i }));
 }
 
-describe('AiCornerControlsInner export', () => {
+describe('OutboxDock export', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -58,20 +58,7 @@ describe('AiCornerControlsInner export', () => {
 
   it('shows per-format save and copy actions plus a primary share button', async () => {
     render(
-      <AiCornerControlsInner
-        controls={CONTROLS_EN.settings}
-        modelProfile="fast"
-        onSelectModelProfile={() => {}}
-        pendingHandshake={null}
-        externalAgentPresence={[]}
-        onInviteAgent={() => {}}
-        agentThinkingChrome={false}
-        insightsOpen={false}
-        onToggleInsights={() => {}}
-        includeThinkingToggle={false}
-        contentType="chart"
-        diagramSource={chartSource}
-      />
+      <OutboxDock controls={CONTROLS_EN.settings} contentType="chart" diagramSource={chartSource} />
     );
 
     await waitFor(() => {
@@ -108,20 +95,7 @@ describe('AiCornerControlsInner export', () => {
 
   it('uses pre-warmed payload for primary share without rebuilding on click', async () => {
     render(
-      <AiCornerControlsInner
-        controls={CONTROLS_EN.settings}
-        modelProfile="fast"
-        onSelectModelProfile={() => {}}
-        pendingHandshake={null}
-        externalAgentPresence={[]}
-        onInviteAgent={() => {}}
-        agentThinkingChrome={false}
-        insightsOpen={false}
-        onToggleInsights={() => {}}
-        includeThinkingToggle={false}
-        contentType="chart"
-        diagramSource={chartSource}
-      />
+      <OutboxDock controls={CONTROLS_EN.settings} contentType="chart" diagramSource={chartSource} />
     );
 
     await waitFor(() => {
@@ -145,20 +119,7 @@ describe('AiCornerControlsInner export', () => {
   it('shows a brief copy toast without action buttons', async () => {
     vi.useFakeTimers();
     render(
-      <AiCornerControlsInner
-        controls={CONTROLS_EN.settings}
-        modelProfile="fast"
-        onSelectModelProfile={() => {}}
-        pendingHandshake={null}
-        externalAgentPresence={[]}
-        onInviteAgent={() => {}}
-        agentThinkingChrome={false}
-        insightsOpen={false}
-        onToggleInsights={() => {}}
-        includeThinkingToggle={false}
-        contentType="chart"
-        diagramSource={chartSource}
-      />
+      <OutboxDock controls={CONTROLS_EN.settings} contentType="chart" diagramSource={chartSource} />
     );
 
     openExportList();
@@ -193,17 +154,8 @@ describe('AiCornerControlsInner export', () => {
     }));
 
     render(
-      <AiCornerControlsInner
+      <OutboxDock
         controls={CONTROLS_EN.settings}
-        modelProfile="fast"
-        onSelectModelProfile={() => {}}
-        pendingHandshake={null}
-        externalAgentPresence={[]}
-        onInviteAgent={() => {}}
-        agentThinkingChrome={false}
-        insightsOpen={false}
-        onToggleInsights={() => {}}
-        includeThinkingToggle={false}
         contentType="mermaid"
         diagramSource={'flowchart TD\n  A --> B'}
       />
@@ -235,22 +187,7 @@ describe('AiCornerControlsInner export', () => {
   });
 
   it('disables export when there is no source', () => {
-    render(
-      <AiCornerControlsInner
-        controls={CONTROLS_EN.settings}
-        modelProfile="fast"
-        onSelectModelProfile={() => {}}
-        pendingHandshake={null}
-        externalAgentPresence={[]}
-        onInviteAgent={() => {}}
-        agentThinkingChrome={false}
-        insightsOpen={false}
-        onToggleInsights={() => {}}
-        includeThinkingToggle={false}
-        contentType="mermaid"
-        diagramSource=""
-      />
-    );
+    render(<OutboxDock controls={CONTROLS_EN.settings} contentType="mermaid" diagramSource="" />);
 
     expect(screen.getByRole('button', { name: /Export/i }).disabled).toBe(true);
     expect(screen.getByText(/Generate something first/i)).toBeTruthy();
