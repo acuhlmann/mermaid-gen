@@ -61,7 +61,7 @@ verify:deps: @a2ui/web_core versions used by apps/web imports are mismatched:
     apps/web import path → 0.9.2
     @a2ui/react nested import path → 0.10.0
   TypeScript treats these as incompatible types when imported from @a2ui/web_core and @a2ui/react in the same file.
-  Fix: npm install @a2ui/web_core@0.10.0 -w apps/web && npm run verify:deps && commit package-lock.json
+  Fix: npm install @a2ui/web_core@0.10.5 -w apps/web && npm run verify:deps && commit package-lock.json
 ```
 
 Singleton checks are configured in `scripts/verify-deps.mjs`; override pins live in root `package.json` `overrides`.

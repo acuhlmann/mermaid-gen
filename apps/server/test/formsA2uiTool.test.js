@@ -37,7 +37,7 @@ test('validateAndPrepareFormsPatch rejects disallowed components', async () => {
       {
         createSurface: {
           surfaceId: 'x',
-          catalogId: 'https://a2ui.org/specification/v0_9/basic_catalog.json'
+          catalogId: 'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json'
         }
       },
       {

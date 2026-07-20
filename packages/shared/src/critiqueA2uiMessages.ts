@@ -7,7 +7,8 @@ import { splitCritiqueActionableSections } from './critiqueActionable.js';
  * module), reuse `createLegacyA2uiStreamEvent`, and render with the same allowlisted catalog pattern.
  */
 /** Must match `basicCatalog.id` from `@a2ui/react` v0.9. */
-export const A2UI_BASIC_CATALOG_ID = 'https://a2ui.org/specification/v0_9/basic_catalog.json';
+export const A2UI_BASIC_CATALOG_ID =
+  'https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json';
 
 /** Single-surface id for critique actionable checklist (AG-UI `CUSTOM` a2ui payload). */
 export const A2UI_CRITIQUE_SURFACE_ID = 'critique-actionables';
