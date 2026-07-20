@@ -115,7 +115,6 @@ import {
   playRefineTokenTick,
   playStreakStinger,
   playStreamStartChime,
-  playSubmitThunk,
   playTokenTickChime,
   playToolEndChime,
   playToolStartChime,
@@ -183,14 +182,13 @@ import {
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
-import { goIntentInsightTitle } from './utils/goIntentInsightTitle.js';
 import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
 import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
-import { buildAdvisorIntentPrompt, resolveAdvisorFocusNode } from './utils/advisorActionContext.js';
+import { buildAdvisorIntentPrompt } from './utils/advisorActionContext.js';
 import {
   useCompactBrandLayout,
   useFoldableDualScreen,
@@ -211,6 +209,8 @@ import { TopShell } from './components/TopShell.jsx';
 import { BottomRow } from './components/BottomRow.jsx';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import { useStyleEdits } from './hooks/useStyleEdits.js';
+import { useSubmitIntent } from './hooks/useSubmitIntent.js';
+import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import {
   AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS,
@@ -218,7 +218,6 @@ import {
   SpeechRecognitionCtor
 } from './utils/appConstants.js';
 import { buildRadialActions } from './components/buildRadialActions.jsx';
-import { formatFormAnswer } from './utils/formatFormAnswer.js';
 import {
   buildContentModeOptions,
   buildRenderSelectionPrompt,
@@ -359,6 +358,8 @@ export function ArchiSlop() {
   const clientValidationRef = useRef({ source: null, error: null });
   const autoFixAttemptedRef = useRef(false);
   const loadingRef = useRef(false);
+  const submitIntentWithPromptRef = useRef(null);
+  const closeRadialMenuRef = useRef(null);
   const streamingPreviewRef = useRef(false);
   const lastDraftTickAtRef = useRef(0);
   const autoFixAlwaysOnRef = useRef(true);
@@ -1131,7 +1132,7 @@ export function ArchiSlop() {
           Promise.resolve().then(async () => {
             if (cancelled) return;
             try {
-              await submitIntentWithPrompt(pendingRenderModeRequest.promptText, {
+              await submitIntentWithPromptRef.current?.(pendingRenderModeRequest.promptText, {
                 stateOverride: data,
                 peerContext: pendingRenderModeRequest.peerContext,
                 focusTarget: pendingRenderModeRequest.descriptor,
@@ -1174,13 +1175,13 @@ export function ArchiSlop() {
                 if (cancelled) return;
                 stateRef.current = cleared;
                 setState(cleared);
-                await submitIntentWithPrompt(candidate, {
+                await submitIntentWithPromptRef.current?.(candidate, {
                   stateOverride: cleared,
                   skipLoadingGuard: true
                 });
                 return;
               }
-              await submitIntentWithPrompt(candidate, {
+              await submitIntentWithPromptRef.current?.(candidate, {
                 stateOverride: data,
                 peerContext,
                 skipLoadingGuard: true,
@@ -2494,284 +2495,60 @@ export function ArchiSlop() {
     return syncedState;
   }
 
-  async function submitIntentWithPrompt(nextPrompt, options = {}) {
-    const trimmed = (nextPrompt ?? '').trim();
-    if (!trimmed) return;
-    applyLocaleFromText(trimmed);
-    if (!options.skipLoadingGuard && (loadingRef.current || streamingPreviewRef.current)) {
-      return;
-    }
+  const {
+    submitIntentWithPrompt,
+    runIntentChange,
+    handleFormSubmit,
+    handleStarterPick,
+    handleSlopPromptSubmit,
+    handleDeskPromptSubmit
+  } = useSubmitIntent({
+    applyLocaleFromText,
+    closeRadialMenuRef,
+    closeSlopPrompt,
+    contentMode,
+    controls,
+    hasInteractedRef,
+    loadingRef,
+    modelProfile,
+    prompt,
+    radialMenuSession,
+    runStreamingAgent,
+    selectedNode,
+    setActiveRequest,
+    setDeskPrompt,
+    setError,
+    setGoMadStreak,
+    setInsightsOpen,
+    setLatestCritique,
+    setLoading,
+    setPrompt,
+    setSelectedNode,
+    slopPromptSource,
+    streamingPreviewRef,
+    syncDiagramOrThrow,
+    tryAgentSound
+  });
+  submitIntentWithPromptRef.current = submitIntentWithPrompt;
 
-    setInsightsOpen(true);
-    tryAgentSound(playSubmitThunk);
-    setGoMadStreak(0);
-    const focusNode = resolveAdvisorFocusNode({
-      advisorFocusDescriptor: options.advisorFocusDescriptor,
-      focusTarget: options.focusTarget,
-      selectedNode
-    });
-    const titleSelection =
-      options.focusTarget ??
-      (options.advisorFocusDescriptor?.id ? options.advisorFocusDescriptor : null) ??
-      selectedNode;
-    const requestContentType = isContentMode(options.contentTypeOverride)
-      ? options.contentTypeOverride
-      : contentMode;
-    setLoading(true);
-    setActiveRequest('intent');
-    setError('');
-
-    try {
-      // Mode-switch auto-rerun passes `stateOverride` so we don't need to wait for React's
-      // setState flush. Without it, syncDiagramOrThrow would read stale `stateRef.current`
-      // (the OLD mode's slot) and submit the wrong revisionId.
-      const syncedState = options.stateOverride
-        ? options.stateOverride
-        : await syncDiagramOrThrow();
-      await runStreamingAgent({
-        operation: 'intent',
-        payload: {
-          operation: 'intent',
-          prompt: trimmed,
-          revisionId: syncedState.revisionId,
-          diagramSource: syncedState.diagramSource,
-          contentType: requestContentType,
-          settings: {},
-          focusNode,
-          modelProfile,
-          ...(options.peerContext ? { peerContext: options.peerContext } : {}),
-          ...(options.transformPersona ? { transformPersona: options.transformPersona } : {})
-        },
-        title: goIntentInsightTitle(trimmed, titleSelection, controls.insights?.goIntent),
-        variant: options.variantOverride ?? 'intent',
-        diagramUndoBaseline: { ...syncedState },
-        topic: topicFromDescriptor(titleSelection),
-        modeSwitchSync: Boolean(options.modeSwitchSync),
-        modeSwitchPeerRevisionId:
-          options.modeSwitchPeerRevisionId != null ? options.modeSwitchPeerRevisionId : null,
-        modeSwitchPeerMode: options.modeSwitchPeerMode ?? null
-      });
-      // Retain the prompt so the user can see and refine the current topic. Mode-switch
-      // carry-over relies on this too — the textarea is the visible source of truth for
-      // "the topic this session is currently about."
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLatestCritique(null);
-      setLoading(false);
-      setActiveRequest(null);
-    }
-  }
-
-  async function runIntentChange(event) {
-    event.preventDefault();
-    hasInteractedRef.current = true;
-    await submitIntentWithPrompt(prompt.trim());
-  }
-
-  // Forms mode: the user submitted the current form. Summarize their answers and
-  // ask the agent for the NEXT form — the endless corporate gauntlet. The prompt
-  // is structured (like Fix) and does not touch the visible prompt bar.
-  async function handleFormSubmit({ formTitle, formCode, buttonLabel, answers } = {}) {
-    if (loadingRef.current || streamingPreviewRef.current) return;
-    hasInteractedRef.current = true;
-    const codeStr = formCode ? ` (${formCode})` : '';
-    const summarized = Array.isArray(answers)
-      ? answers
-          .map(({ label, value }) => `${label}: ${formatFormAnswer(value)}`)
-          .filter(Boolean)
-          .join('; ')
-      : '';
-    const nextPrompt = [
-      `The user completed the form "${formTitle}"${codeStr} and clicked "${buttonLabel || 'Submit'}".`,
-      summarized
-        ? `Their answers were — ${summarized}.`
-        : 'They submitted it with no fields filled in.',
-      'Now issue the NEXT form in the endless corporate gauntlet: acknowledge these answers with bureaucratic non-sequiturs, invent a fresh reason more information is needed, bump the form code, and add new tedium. Never declare the process complete — there is always another form.'
-    ].join(' ');
-    await submitIntentWithPrompt(nextPrompt, {
-      contentTypeOverride: 'forms',
-      variantOverride: 'intent'
-    });
-  }
-
-  // First-run topic starter chip: seed the visible prompt then submit, so the
-  // newcomer both sees the topic they picked and gets an immediate result.
-  // submitIntentWithPrompt owns the loading guard, so no extra busy check here.
-  async function handleStarterPick(text) {
-    const trimmed = (text ?? '').trim();
-    if (!trimmed) return;
-    setPrompt(trimmed);
-    hasInteractedRef.current = true;
-    await submitIntentWithPrompt(trimmed);
-  }
-
-  async function handleSlopPromptSubmit(text) {
-    const trimmed = (text ?? '').trim();
-    if (!trimmed) return;
-    const radialDescriptor =
-      slopPromptSource === 'radial' ? (radialMenuSession?.descriptor ?? null) : null;
-    closeSlopPrompt();
-    setInsightsOpen(true);
-    if (radialDescriptor) {
-      closeRadialMenu();
-    }
-    hasInteractedRef.current = true;
-    if (radialDescriptor) {
-      setSelectedNode(radialDescriptor);
-    }
-    await submitIntentWithPrompt(trimmed);
-  }
-
-  // The persistent desk Work Order (content mode): submit the next instruction,
-  // clear its own buffer, and stay put — unlike the radial popover it never closes.
-  async function handleDeskPromptSubmit(text) {
-    const trimmed = (text ?? '').trim();
-    if (!trimmed) return;
-    hasInteractedRef.current = true;
-    setInsightsOpen(true);
-    setDeskPrompt('');
-    await submitIntentWithPrompt(trimmed);
-  }
-
-  async function runTransform(mode, options = {}) {
-    const useDiagramFocus = Boolean(options.useDiagramFocus);
-    hasInteractedRef.current = true;
-    if (loadingRef.current || streamingPreviewRef.current) return;
-    if (contentMode === 'auto') return;
-    if (!isConcreteContentMode(contentMode)) return;
-    if (!stateRef.current.diagramSource.trim()) return;
-
-    if (mode !== 'goMad') setGoMadStreak(0);
-
-    const focusOverride = options.focusTarget ?? null;
-    const baseFocus = focusOverride || selectedNode;
-    const focusNode = useDiagramFocus
-      ? undefined
-      : resolveAdvisorFocusNode({
-          advisorFocusDescriptor: options.advisorFocusDescriptor,
-          focusTarget: focusOverride,
-          selectedNode: baseFocus
-        });
-    const titleSelection = useDiagramFocus
-      ? null
-      : options.advisorFocusDescriptor?.id
-        ? options.advisorFocusDescriptor
-        : baseFocus;
-    const advisorPrompt =
-      typeof options.advisorPrompt === 'string' ? options.advisorPrompt.trim().slice(0, 400) : '';
-    setLoading(true);
-    setActiveRequest(`transform:${mode}`);
-    setError('');
-
-    try {
-      const syncedState = await syncDiagramOrThrow();
-      const labels = {
-        refine: controls.actions.refine,
-        innovate: controls.actions.innovate,
-        goMad: controls.actions.goMad,
-        exec: controls.actions.coDesign
-      };
-      const goMadDepth = mode === 'goMad' ? goMadStreak + 1 : undefined;
-      const transformTitleVerb =
-        mode === 'goMad' && goMadDepth > 1
-          ? `${controls.actions.goMad} (×${goMadDepth})`
-          : labels[mode];
-      await runStreamingAgent({
-        operation: 'transform',
-        payload: {
-          operation: 'transform',
-          mode,
-          revisionId: syncedState.revisionId,
-          diagramSource: syncedState.diagramSource,
-          contentType: contentMode,
-          focusNode,
-          modelProfile,
-          ...(mode === 'goMad' ? { goMadDepth } : {}),
-          ...(advisorPrompt ? { advisorPrompt } : {})
-        },
-        title: selectionActionTitle(titleSelection, transformTitleVerb),
-        variant: options.variantOverride ?? mode,
-        diagramUndoBaseline: { ...syncedState },
-        topic: topicFromDescriptor(titleSelection)
-      });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setActiveRequest(null);
-    }
-  }
-
-  async function runAnalyze(kind, options = {}) {
-    const useDiagramFocus = Boolean(options.useDiagramFocus);
-    hasInteractedRef.current = true;
-    if (loadingRef.current || streamingPreviewRef.current) return;
-    if (contentMode === 'auto') return;
-    if (!isConcreteContentMode(contentMode)) return;
-    if (!stateRef.current.diagramSource.trim()) return;
-
-    const focusOverride = options.focusTarget ?? null;
-    const baseFocus = focusOverride || selectedNode;
-    const focusNode = useDiagramFocus
-      ? undefined
-      : resolveAdvisorFocusNode({
-          advisorFocusDescriptor: options.advisorFocusDescriptor,
-          focusTarget: focusOverride,
-          selectedNode: baseFocus
-        });
-    const titleSelection = useDiagramFocus
-      ? null
-      : options.advisorFocusDescriptor?.id
-        ? options.advisorFocusDescriptor
-        : baseFocus;
-    const advisorPrompt =
-      typeof options.advisorPrompt === 'string' ? options.advisorPrompt.trim().slice(0, 400) : '';
-    setLoading(true);
-    setActiveRequest(`analyze:${kind}`);
-    setError('');
-
-    try {
-      const syncedState = await syncDiagramOrThrow();
-      const labels = {
-        critique: controls.actions.critique,
-        explain: controls.actions.explain
-      };
-      await runStreamingAgent({
-        operation: 'analyze',
-        payload: {
-          operation: 'analyze',
-          kind,
-          revisionId: syncedState.revisionId,
-          diagramSource: syncedState.diagramSource,
-          contentType: contentMode,
-          focusNode,
-          modelProfile,
-          ...(advisorPrompt ? { advisorPrompt } : {})
-        },
-        title: selectionActionTitle(titleSelection, labels[kind]),
-        variant: kind,
-        topic: topicFromDescriptor(titleSelection),
-        onFinal: ({ finalText, sectionId: critiqueEntryId }) => {
-          if (kind !== 'critique') return;
-          const cleaned = finalText.trim();
-          if (!cleaned) return;
-          setLatestCritique({
-            text: cleaned,
-            insightEntryId: critiqueEntryId,
-            focusNode,
-            topic: topicFromDescriptor(titleSelection),
-            createdAt: Date.now()
-          });
-        }
-      });
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-      setActiveRequest(null);
-    }
-  }
+  const { runTransform, runAnalyze } = useAnalyzeFlow({
+    contentMode,
+    controls,
+    goMadStreak,
+    hasInteractedRef,
+    loadingRef,
+    modelProfile,
+    runStreamingAgent,
+    selectedNode,
+    setActiveRequest,
+    setError,
+    setGoMadStreak,
+    setLatestCritique,
+    setLoading,
+    stateRef,
+    streamingPreviewRef,
+    syncDiagramOrThrow
+  });
 
   const handleFixFromCritique = useCallback(
     async (scope = 'all', options = {}) => {
@@ -3559,6 +3336,7 @@ ${requirementsBlock}`;
     setRadialMenuVisible(false);
     setHoverDescriptor(null);
   }, [clearHoverCloseTimer]);
+  closeRadialMenuRef.current = closeRadialMenu;
 
   const armAutoDiagramChangeHighlight = useCallback(
     (entryId) => {
