@@ -32,10 +32,16 @@
 
 import { createHash } from 'node:crypto';
 import textToSpeech from '@google-cloud/text-to-speech';
-import { CLOUD_TTS_RATE_RANGE, OFFICE_TTS_RATE_SCALE, scaleSpeakingRate } from '@archislop/shared';
+import {
+  CLOUD_TTS_RATE_RANGE,
+  OFFICE_TTS_CHUNK_MAX_CHARS,
+  OFFICE_TTS_RATE_SCALE,
+  scaleSpeakingRate
+} from '@archislop/shared';
 import { resolveVertexProjectId } from './llmProvider.js';
 
-export const OFFICE_TTS_MAX_CHARS = 500;
+/** Per-request cap — longer lines are chunked client-side before /speak. */
+export const OFFICE_TTS_MAX_CHARS = OFFICE_TTS_CHUNK_MAX_CHARS;
 export const OFFICE_TTS_CACHE_MAX = 200;
 
 /** @typedef {'chirp3' | 'neural2' | 'wavenet'} OfficeTtsEngine */

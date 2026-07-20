@@ -48,7 +48,14 @@ export type OfficeSpeakerId = (typeof OFFICE_SPEAKER_IDS)[number];
  * difference (greybeard stays the slowest, goMad the fastest). Tune this one
  * number rather than editing the tables.
  */
-export const OFFICE_TTS_RATE_SCALE = 1.12;
+export const OFFICE_TTS_RATE_SCALE = 1.18;
+
+/**
+ * Max characters per Google Cloud TTS request. The API allows ~5000 bytes;
+ * 800 chars keeps English and CJK safely under that while still fitting a full
+ * meeting beat. Longer lines are split client-side and spoken sequentially.
+ */
+export const OFFICE_TTS_CHUNK_MAX_CHARS = 800;
 
 /** @internal Shared clamp — engines disagree on their valid rate ranges. */
 function clamp(value: number, min: number, max: number): number {
@@ -87,3 +94,58 @@ export const CLOUD_TTS_RATE_RANGE = { min: 0.25, max: 4 } as const;
  * but browsers clamp far tighter and degrade badly past 2.
  */
 export const WEB_SPEECH_RATE_RANGE = { min: 0.5, max: 2 } as const;
+
+const SENTENCE_SPLIT_RE = /(?<=[.!?…])\s+/u;
+
+/**
+ * Split narration text into TTS-safe chunks at sentence boundaries. Hard-splits
+ * overlong sentences so Google Cloud TTS never truncates mid-thought.
+ */
+export function chunkOfficeNarrationText(
+  text: string,
+  maxChars: number = OFFICE_TTS_CHUNK_MAX_CHARS
+): string[] {
+  const cleaned = String(text ?? '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) return [];
+  if (maxChars <= 0 || cleaned.length <= maxChars) return [cleaned];
+
+  /** @type {string[]} */
+  const chunks: string[] = [];
+  let buffer = '';
+
+  const flush = () => {
+    const piece = buffer.trim();
+    if (piece) chunks.push(piece);
+    buffer = '';
+  };
+
+  const pushHardSplit = (sentence: string) => {
+    let rest = sentence.trim();
+    while (rest.length > maxChars) {
+      chunks.push(rest.slice(0, maxChars).trimEnd());
+      rest = rest.slice(maxChars).trimStart();
+    }
+    buffer = rest;
+  };
+
+  for (const sentence of cleaned.split(SENTENCE_SPLIT_RE)) {
+    const part = sentence.trim();
+    if (!part) continue;
+    if (part.length > maxChars) {
+      flush();
+      pushHardSplit(part);
+      continue;
+    }
+    const candidate = buffer ? `${buffer} ${part}` : part;
+    if (candidate.length <= maxChars) {
+      buffer = candidate;
+    } else {
+      flush();
+      buffer = part;
+    }
+  }
+  flush();
+  return chunks.length > 0 ? chunks : [cleaned.slice(0, maxChars)];
+}

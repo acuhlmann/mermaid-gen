@@ -28,7 +28,8 @@ This file is a quick operator manual for coding agents working in this repositor
 - Build all packages: `npm run build`
 - **Verify after edits** (pick the smallest loop that fits):
   - `npm run check:affected` — diff-scoped sensors (includes Prettier on changed files; matches what agents should run before push)
-  - `npm run format:affected` — **run before every agent commit** (writes Prettier on changed files; cloud agents have no Husky)
+  - `npm run precommit` — **run before every cloud-agent commit** (`format:affected` + `check:affected`; Husky does not run in cloud VMs)
+  - `npm run format:affected` — write Prettier fixes on changed files only (included in `precommit`)
   - `npm run format` / `npm run format:check` — Prettier write / verify whole repo (CI runs `format:check`; pre-commit auto-formats staged files). Text is LF via `.gitattributes`; Windows CRLF working trees — see [`docs/agents/sensors.md`](docs/agents/sensors.md) § Line endings
   - `npm run check:fast` — shared package only (schemas, sanitizers, wire constants)
   - `npm run check` — typecheck + lint + test all workspaces (default)

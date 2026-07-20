@@ -24,9 +24,9 @@ CI runs `prettier --check .` on the **whole repo** (first step in [`.github/work
 
 **Before every agent commit** (no Husky in cloud VMs):
 
-1. `npm run format:affected` — write Prettier fixes for your diff only
-2. `git add` the formatted files
-3. `npm run check:affected` before push (or `npm run check:full` before opening a PR)
+1. `npm run precommit` — formats your diff **and** runs the scoped sensor check
+2. `git add -u` — re-stage any files Prettier rewrote
+3. `git commit` … then `npm run check:full` before opening a PR if the change is large
 
 After touching `App.jsx` or any file with a big structural edit, prefer `npm run format:affected` over hand-indenting.
 

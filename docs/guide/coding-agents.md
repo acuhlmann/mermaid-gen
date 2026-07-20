@@ -35,7 +35,7 @@ After editing `packages/shared`, run `npm run build -w packages/shared` before s
 
 ## PR checklist (copy before submit)
 
-- [ ] Ran `npm run format:affected` and re-staged (mandatory for cloud agents — Husky does not run)
+- [ ] Ran `npm run precommit` and re-staged (mandatory for cloud agents — Husky does not run)
 - [ ] Ran `npm run check:affected` or the smallest row from the table above
 - [ ] If Prettier still failed: `npm run format` on the whole repo
 - [ ] Ran `npm run check:full` if the change touches build, routes, or multiple workspaces

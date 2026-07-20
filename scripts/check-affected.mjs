@@ -52,7 +52,10 @@ function runFormatCheck(files) {
     shell: process.platform === 'win32'
   });
   if (out.status !== 0) {
-    console.error('\nformat:check failed — run: npm run format');
+    console.error('\nformat:check failed — run: npm run format:affected');
+    console.error(
+      'Then re-stage formatted files. Cloud agents: use npm run precommit before every commit.'
+    );
     if (process.platform === 'win32') {
       console.error(
         'On Windows, if hundreds of files fail only on line endings: ensure .gitattributes is present, then refresh the working tree with LF (see docs/agents/sensors.md § Line endings).'
