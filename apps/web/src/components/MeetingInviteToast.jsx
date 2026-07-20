@@ -23,6 +23,9 @@ export default function MeetingInviteToast({ invite, onAccept, onDecline }) {
 
   return (
     <div className="office-meeting-invite" role="status" aria-live="polite">
+      <p className="office-moment-kind office-moment-kind--meeting" aria-hidden="true">
+        {copy.meetingInvite.kindLabel}
+      </p>
       <div className="office-meeting-invite-head">
         <span aria-hidden="true">📅</span>
         <span className="office-meeting-invite-title">{invite.title}</span>

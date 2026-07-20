@@ -1123,7 +1123,8 @@ export const OFFICE_CHROME_COPY = {
     callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda'
   },
   im: {
-    regionAria: 'Instant messages',
+    regionAria: 'Slop Chat instant messages',
+    kindLabel: 'Slop Chat™ · Instant message',
     dismissAria: 'Dismiss message from {name}',
     openHistoryAria: 'Open Slop Chat ({count} unread)',
     openHistoryTitle: 'Slop Chat™ — read past messages'
@@ -1146,9 +1147,11 @@ export const OFFICE_CHROME_COPY = {
     statusBusy: 'In a meeting'
   },
   walkby: {
+    kindLabel: 'Walk-by · Over your shoulder',
     dismissAria: 'Wave off {name}'
   },
   coffee: {
+    kindLabel: 'Watercooler · Coffee break',
     inviteLine: 'Coffee break? {name} is holding court at the machine.',
     accept: 'Take 5',
     decline: 'Deadline',
@@ -1157,6 +1160,7 @@ export const OFFICE_CHROME_COPY = {
     done: 'Back to it'
   },
   battle: {
+    kindLabel: 'Cubicle drama · Battle',
     inviteLine: '🥊 {a} and {b} are at it again — "{topic}". The floor is watching.',
     accept: 'Grab popcorn',
     decline: 'Not my circus',
@@ -1170,6 +1174,7 @@ export const OFFICE_CHROME_COPY = {
     done: 'Back to work'
   },
   meetingInvite: {
+    kindLabel: 'Calendar invite · Meeting',
     organizerLabel: 'Organizer:',
     attendeesLabel: 'Attendees:',
     accept: 'Accept',

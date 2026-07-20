@@ -78,6 +78,9 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
     const inviter = officeSenderInfo(coffee.lines[0]?.speakerId ?? 'facilities');
     return (
       <div className="office-coffee-invite" role="status" aria-live="polite">
+        <p className="office-moment-kind office-moment-kind--coffee" aria-hidden="true">
+          {copy.coffee.kindLabel}
+        </p>
         <span aria-hidden="true">☕</span>
         <span
           className="office-coffee-invite-text"

@@ -137,7 +137,6 @@ import {
   writeToStorage as writeGamificationToStorage,
   reconcileLifetimeLlmCostUsd
 } from './state/runGamificationStore.js';
-import DayOneBadge from './components/DayOneBadge.jsx';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import OfficeLayer from './components/OfficeLayer.jsx';
 import { resolveUserName } from './state/userIdentityStore.js';
@@ -145,7 +144,8 @@ import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
 } from './state/officeDirectoryUiStore.js';
-import { readOfficeDirectorySeen } from './utils/officeAmbienceStorage.js';
+import { readOfficeDirectorySeen, writeDayOneBadgeSeen } from './utils/officeAmbienceStorage.js';
+import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import confetti from 'canvas-confetti';
@@ -2690,6 +2690,14 @@ ${requirementsBlock}`;
 
   // First visit: Meet the Office is the entire app until the tour is dismissed.
   const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
+  /** After orientation, keep office pings quiet so the canvas welcome lands first. */
+  const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
+
+  const handleOfficeBootComplete = useCallback(() => {
+    setOfficeBootPending(false);
+    writeDayOneBadgeSeen();
+    setOfficeCanvasGrace(true);
+  }, []);
 
   const advisorPause =
     loading ||
@@ -2707,6 +2715,8 @@ ${requirementsBlock}`;
     isFullscreen ||
     // Meet the Office orientation/roster owns the stage — no competing popups.
     officeDirectoryUi.open;
+
+  const officeDistractionsPaused = advisorPause || officeCanvasGrace;
 
   // Focus priority: an explicit click (selectedNode) is a strong signal — comment
   // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce
@@ -3412,6 +3422,16 @@ ${requirementsBlock}`;
     hasCanvasContentRef.current = hasCanvasContent;
   }, [hasCanvasContent]);
 
+  useEffect(() => {
+    if (!officeCanvasGrace) return undefined;
+    if (hasCanvasContent) {
+      setOfficeCanvasGrace(false);
+      return undefined;
+    }
+    const timer = setTimeout(() => setOfficeCanvasGrace(false), OFFICE_CANVAS_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [officeCanvasGrace, hasCanvasContent]);
+
   const { critiqueActionableSplit, critiqueActionableUi } = useCritiqueActionableUi({
     activeRequest,
     handleFixFromCritique,
@@ -3802,7 +3822,8 @@ ${requirementsBlock}`;
           {ceremonyOverlays}
           <ErrorToast />
           <OfficeLayer
-            pause={advisorPause}
+            pause={officeDistractionsPaused}
+            suppressDistractions={officeCanvasGrace}
             advisorBusy={Boolean(advisor.activePersona || advisor.thinkingPersona)}
             getDiagramSource={() => stateRef.current?.diagramSource ?? ''}
             getContentType={() => contentMode}
@@ -4030,7 +4051,6 @@ ${requirementsBlock}`;
             actions={
               !hasCanvasContent && !insightsOpen ? (
                 <div className="entry-cluster">
-                  <DayOneBadge copy={controls.dayOne} userTitle={gamification.levelTitle} />
                   <TopicStarters
                     hint={controls.prompt.starterHint}
                     ariaLabel={controls.prompt.starterAria}
@@ -4317,9 +4337,10 @@ ${requirementsBlock}`;
       <div className="office-directory-root-mount">
         <OfficeDirectory
           placement={officeBootPending ? 'boot' : hasCanvasContent ? 'overlay' : 'entry'}
+          isBoot={officeBootPending}
           showChip={false}
           onSkipToBuild={focusTopicInput}
-          onBootComplete={() => setOfficeBootPending(false)}
+          onBootComplete={handleOfficeBootComplete}
           getSessionId={() => activeSessionId}
         />
       </div>

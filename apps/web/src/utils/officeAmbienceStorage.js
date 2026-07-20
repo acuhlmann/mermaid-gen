@@ -157,11 +157,12 @@ export function writeOfficeWelcomeSeen() {
  * collapses to the "Meet the office" chip on later visits.
  */
 export function readOfficeDirectorySeen() {
-  if (typeof window === 'undefined') return true;
+  if (typeof window === 'undefined') return false;
   try {
     return window.localStorage.getItem(OFFICE_DIRECTORY_STORAGE_KEY) === '1';
   } catch {
-    return true;
+    // Prefer showing orientation over skipping it when storage is unavailable.
+    return false;
   }
 }
 

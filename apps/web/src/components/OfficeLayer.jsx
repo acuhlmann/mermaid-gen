@@ -78,6 +78,9 @@ import { threadTranscriptFor } from '../utils/officeImThreads.js';
  */
 export default function OfficeLayer({
   pause,
+  /** When true, hide transient office surfaces (IM, walk-bys, etc.) while the
+   *  canvas intro is still landing — pause still gates the ambience director. */
+  suppressDistractions = false,
   advisorBusy,
   getDiagramSource,
   getContentType,
@@ -482,45 +485,49 @@ export default function OfficeLayer({
         onCallMeeting={handleCallMeeting}
         canCallMeeting={canCallMeeting}
       />
-      <OfficeImPing
-        pings={snapshot.imPings}
-        onDismiss={dismissOfficeImPing}
-        onQuickReply={handleQuickReply}
-      />
-      <OfficeMessenger
-        open={messengerOpen}
-        messages={snapshot.imHistory}
-        busy={messengerBusy}
-        onClose={handleCloseMessenger}
-        onMarkRead={markOfficeImsRead}
-        onSend={handleMessengerSend}
-      />
-      <OfficeWalkBy
-        walkBy={snapshot.walkBy}
-        onDismiss={dismissOfficeWalkBy}
-        onAdoptPrompt={handleAdopt}
-      />
-      <CoffeeBreakOverlay
-        coffee={snapshot.coffee}
-        onAccept={acceptOfficeCoffee}
-        onDecline={dismissOfficeCoffee}
-        onDone={handleCoffeeDone}
-        narrateLine={snapshot.narration ? narrateLine : undefined}
-      />
-      <OfficeBattleOverlay
-        battle={snapshot.battle}
-        onAccept={acceptOfficeBattle}
-        onVote={handleBattleVote}
-        onDone={handleBattleDone}
-        narrateLine={snapshot.narration ? narrateLine : undefined}
-      />
-      {!meeting && snapshot.meetingInvite ? (
-        <MeetingInviteToast
-          invite={snapshot.meetingInvite}
-          onAccept={handleAcceptInvite}
-          onDecline={dismissOfficeMeetingInvite}
-        />
-      ) : null}
+      {suppressDistractions ? null : (
+        <>
+          <OfficeImPing
+            pings={snapshot.imPings}
+            onDismiss={dismissOfficeImPing}
+            onQuickReply={handleQuickReply}
+          />
+          <OfficeMessenger
+            open={messengerOpen}
+            messages={snapshot.imHistory}
+            busy={messengerBusy}
+            onClose={handleCloseMessenger}
+            onMarkRead={markOfficeImsRead}
+            onSend={handleMessengerSend}
+          />
+          <OfficeWalkBy
+            walkBy={snapshot.walkBy}
+            onDismiss={dismissOfficeWalkBy}
+            onAdoptPrompt={handleAdopt}
+          />
+          <CoffeeBreakOverlay
+            coffee={snapshot.coffee}
+            onAccept={acceptOfficeCoffee}
+            onDecline={dismissOfficeCoffee}
+            onDone={handleCoffeeDone}
+            narrateLine={snapshot.narration ? narrateLine : undefined}
+          />
+          <OfficeBattleOverlay
+            battle={snapshot.battle}
+            onAccept={acceptOfficeBattle}
+            onVote={handleBattleVote}
+            onDone={handleBattleDone}
+            narrateLine={snapshot.narration ? narrateLine : undefined}
+          />
+          {!meeting && snapshot.meetingInvite ? (
+            <MeetingInviteToast
+              invite={snapshot.meetingInvite}
+              onAccept={handleAcceptInvite}
+              onDecline={dismissOfficeMeetingInvite}
+            />
+          ) : null}
+        </>
+      )}
       <MeetingOverlay
         meeting={meeting}
         onInterject={interject}

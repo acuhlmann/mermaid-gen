@@ -14,30 +14,35 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
   const sender = officeSenderInfo(walkBy.colleagueId);
   return (
     <div className="office-walkby" role="status" aria-live="polite">
-      <PersonaFace id={walkBy.colleagueId} size={40} className="office-walkby-avatar" />
-      <div className="office-walkby-bubble">
-        <button
-          type="button"
-          className="office-walkby-dismiss"
-          aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
-          onClick={() => onDismiss?.(walkBy.id)}
-        >
-          ×
-        </button>
-        <div className="office-walkby-name">
-          {sender.name}
-          {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
-        </div>
-        <p className="office-walkby-body">{walkBy.body}</p>
-        {walkBy.actionPrompt ? (
+      <p className="office-moment-kind office-moment-kind--walkby" aria-hidden="true">
+        {copy.walkby.kindLabel}
+      </p>
+      <div className="office-walkby-row">
+        <PersonaFace id={walkBy.colleagueId} size={40} className="office-walkby-avatar" />
+        <div className="office-walkby-bubble">
           <button
             type="button"
-            className="office-do-it"
-            onClick={() => onAdoptPrompt?.(walkBy.actionPrompt, walkBy.colleagueId)}
+            className="office-walkby-dismiss"
+            aria-label={formatLocale(copy.walkby.dismissAria, { name: sender.name })}
+            onClick={() => onDismiss?.(walkBy.id)}
           >
-            {copy.doIt}
+            ×
           </button>
-        ) : null}
+          <div className="office-walkby-name">
+            {sender.name}
+            {sender.title ? <span className="office-walkby-title"> · {sender.title}</span> : null}
+          </div>
+          <p className="office-walkby-body">{walkBy.body}</p>
+          {walkBy.actionPrompt ? (
+            <button
+              type="button"
+              className="office-do-it"
+              onClick={() => onAdoptPrompt?.(walkBy.actionPrompt, walkBy.colleagueId)}
+            >
+              {copy.doIt}
+            </button>
+          ) : null}
+        </div>
       </div>
     </div>
   );

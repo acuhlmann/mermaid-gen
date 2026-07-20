@@ -102,6 +102,9 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
   if (!accepted) {
     return (
       <div className="office-battle-invite" role="status" aria-live="polite">
+        <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
+          {copy.battle.kindLabel}
+        </p>
         <span aria-hidden="true">🥊</span>
         <span className="office-battle-invite-text">
           {formatLocale(copy.battle.inviteLine, {
