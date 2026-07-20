@@ -29,6 +29,26 @@ function deepKeys(value, prefix = '') {
   );
 }
 
+/** @param {string[]} expected @param {string[]} actual */
+function formatKeyDiff(expected, actual) {
+  const expectedSet = new Set(expected);
+  const actualSet = new Set(actual);
+  const missing = expected.filter((key) => !actualSet.has(key));
+  const extra = actual.filter((key) => !expectedSet.has(key));
+  const lines = [];
+  if (missing.length > 0) {
+    lines.push(
+      `missing (${missing.length}): ${missing.slice(0, 12).join(', ')}${missing.length > 12 ? '…' : ''}`
+    );
+  }
+  if (extra.length > 0) {
+    lines.push(
+      `extra (${extra.length}): ${extra.slice(0, 12).join(', ')}${extra.length > 12 ? '…' : ''}`
+    );
+  }
+  return lines.join('; ') || 'no key diff';
+}
+
 afterEach(() => {
   setActiveOfficeBundle(null);
 });
@@ -145,9 +165,12 @@ describe('office locale bundles', () => {
 
   it.each(LOCALES)('keeps chrome copy structurally complete (%s)', (locale) => {
     const localized = getUiLocaleBundle(locale).office;
-    expect(deepKeys(localized.OFFICE_CHROME_COPY).sort()).toEqual(
-      deepKeys(OFFICE_CHROME_COPY).sort()
-    );
+    const expectedKeys = deepKeys(OFFICE_CHROME_COPY).sort();
+    const actualKeys = deepKeys(localized.OFFICE_CHROME_COPY).sort();
+    expect(
+      actualKeys,
+      `${locale} OFFICE_CHROME_COPY keys must match officeCast.js — ${formatKeyDiff(expectedKeys, actualKeys)}. When editing OFFICE_CHROME_COPY.directory, sync apps/web/src/i18n/locales/office.*.js`
+    ).toEqual(expectedKeys);
     expect(localized.OFFICE_IM_QUICK_REPLIES).toHaveLength(5);
   });
 

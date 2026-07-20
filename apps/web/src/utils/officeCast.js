@@ -1005,56 +1005,46 @@ export const OFFICE_IM_QUICK_REPLIES = [
  * Static chrome strings for the office surfaces (inbox dock, IM stack,
  * walk-bys, coffee breaks, meeting room). Templated strings use `{name}` /
  * `{count}` slots — render with formatLocale.
+ *
+ * When editing `directory` keys here, keep `apps/web/src/i18n/locales/office.*.js`
+ * in sync — `apps/web/test/officeLocale.test.js` asserts key parity on every locale.
  */
 export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
   directory: {
-    title: 'Day one at ArchiSlop Corp.',
+    title: 'Meet the team',
     tourEyebrow: 'NEW HIRE ORIENTATION™',
     rosterEyebrow: 'CAST DIRECTORY',
-    // Reception-first orientation — name badge, Linda's welcome, then the floor.
-    welcomeChapter: 'RECEPTION DESK',
-    checkInLabel: 'Check in at reception →',
     colleagueChapter: 'COLLEAGUE {current} OF {total}',
     unlockedLabel: '✨ CHARACTER UNLOCKED',
     tagline:
       "You're the newest architect on the floor. The whiteboard is your deliverable. The interruptions are free.",
-    tourHint:
-      'Pick up your badge, check in with Linda, then meet the team on the floor. Mute the whole building anytime with Focus Time.',
     autoplayHint: 'Speaking…',
-    skipBeatLabel: 'Skip →',
     rosterTagline:
       'The cast that emails, IMs, and walks by while you work — tap ▶ and let them introduce themselves:',
     // {name} is filled from the user's badge (resolveUserName) at render time.
     greeting: 'Welcome aboard, {name}.',
+    greetingRole: 'Architect',
     greetingHint:
       'The office will call you that in emails, IMs, and awkward walk-bys. Change it anytime. They will notice.',
     expandLabel: '🏢 Meet the Office',
     expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
     startLabel: 'Meet the team →',
-    nextLabel: 'Next colleague →',
-    backLabel: '← Back',
-    skipLabel: 'Skip',
+    deskChapter: 'YOUR DESK',
+    deskIntro:
+      'This canvas is your deliverable. Pitch any topic below — or pick up an assignment from the floor.',
     skipToBuildLabel: 'Skip the ceremony — just let me ship →',
     skipToBuildTitle:
       'Close orientation and drop me on the canvas. No offense taken. (Some taken. Noted in your file.)',
-    progressLabel: '{current} of {total}',
     dismissLabel: 'Clock in — begin Day One',
     replayTourLabel: '↻ Replay intro',
     closeAria: 'Close Meet the Office',
-    // Voice showcase — synthesized only on an explicit ▶ click, never autoplayed,
-    // so preview bots and scrapers can't quietly burn the Cloud TTS free tier.
     hearLabel: '▶ Hear intro',
-    hearWelcomeLabel: '▶ Hear Linda’s welcome',
     hearSpeakingLabel: 'Shh… they’re talking',
     hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
     transcriptLabel: 'Transcript',
     transcriptOnLabel: 'Hide text',
     transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
-    // Linda's spoken orientation line (Cloud TTS strips emoji before speaking).
-    welcomeVoiceSpeakerId: 'hr',
-    welcomeVoiceLine:
-      "Welcome to the floor. I'm Linda, from People Ops. Your badge photo is processing, your compliance training is somehow already overdue, and every single colleague here has strong opinions about your diagrams. You are going to fit in beautifully. Let's go meet the team.",
     nameTag: {
       hello: 'HELLO',
       subtitle: 'my name is',

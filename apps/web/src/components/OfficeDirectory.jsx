@@ -19,12 +19,9 @@ import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import IntroVoiceButton from './IntroVoiceButton.jsx';
 import NameTag from './NameTag.jsx';
+import TopicStarters from './TopicStarters.jsx';
 
 const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
-
-/** Reception check-in → each colleague. */
-const STEP_WELCOME = 0;
-const STEP_FIRST_COLLEAGUE = 1;
 
 /** When TTS is offline, give the user time to read the quote before advancing. */
 const SILENT_BEAT_MS = 2_400;
@@ -75,201 +72,90 @@ function DirectoryHead({ copy, onClose, eyebrow, toolbar }) {
   );
 }
 
-function ColleagueSpotlight({
+/** One colleague on the single-page onboarding roster — no duplicate blurb + intro. */
+function OnboardingColleagueCard({
   colleague,
   colleagueId,
-  progressLabel,
-  chapterLabel,
-  unlockedLabel,
-  showTranscript
+  isSpeaking,
+  showTranscript,
+  speakingId,
+  onHear,
+  copy
 }) {
+  const voiceLine = colleagueVoiceLine(colleague);
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (!isSpeaking) return;
+    cardRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+  }, [isSpeaking]);
+
   return (
-    <div
-      className="office-directory-spotlight"
-      key={colleagueId}
-      data-testid="office-directory-spotlight"
+    <li
+      ref={cardRef}
+      className={`office-directory-onboarding-card${isSpeaking ? ' is-speaking' : ''}`}
+      data-testid="office-directory-colleague-card"
+      data-colleague-id={colleagueId}
     >
-      {showTranscript ? (
-        <>
-          <p className="office-directory-chapter">{chapterLabel}</p>
-          <p className="office-directory-progress">{progressLabel}</p>
-          {unlockedLabel ? <p className="office-directory-unlocked">{unlockedLabel}</p> : null}
-        </>
-      ) : null}
       <div
-        className="office-directory-hero-ring"
+        className="office-directory-hero-ring office-directory-hero-ring--compact"
         style={{ '--face-accent': colleague.accentColor }}
       >
         <PersonaFace
           id={colleagueId}
-          size={64}
+          size={44}
           className="office-directory-avatar office-directory-avatar--hero"
         />
       </div>
-      <span className="office-directory-name">{colleague.name}</span>
-      {showTranscript ? (
-        <>
-          <span className="office-directory-role">{colleague.title}</span>
-          {colleague.blurb ? <p className="office-directory-blurb">{colleague.blurb}</p> : null}
-          {colleague.introLine ? (
-            <blockquote className="office-directory-quote">“{colleague.introLine}”</blockquote>
-          ) : null}
-        </>
-      ) : null}
-    </div>
-  );
-}
-
-/** The welcome step: name badge and Linda's voiced intro (text optional via CC). */
-function TourWelcome({ copy, userName, speakingId, onHear, autoPlaying, showTranscript }) {
-  return (
-    <div className="office-directory-welcome" data-testid="office-directory-welcome">
-      <p className="office-directory-chapter">{copy.welcomeChapter}</p>
-      <NameTag copy={copy.nameTag} />
-      {showTranscript ? (
-        <>
-          <p className="office-directory-greeting">
-            {formatLocale(copy.greeting, { name: userName })}
+      <div className="office-directory-onboarding-card-copy">
+        <span className="office-directory-name">{colleague.name}</span>
+        <span className="office-directory-role">{colleague.title}</span>
+        {showTranscript && voiceLine ? (
+          <p className="office-directory-transcript-line" data-testid="office-directory-transcript">
+            {voiceLine}
           </p>
-          <p className="office-directory-tagline">{copy.tagline}</p>
-          {copy.greetingHint ? (
-            <p className="office-directory-name-hint">{copy.greetingHint}</p>
-          ) : null}
-          <p className="office-directory-tour-hint">{copy.tourHint}</p>
-          {copy.welcomeVoiceLine ? (
-            <p
-              className="office-directory-transcript-line"
-              data-testid="office-directory-transcript"
-            >
-              {copy.welcomeVoiceLine}
-            </p>
-          ) : null}
-        </>
-      ) : (
-        <>
-          {autoPlaying && speakingId === 'welcome' ? (
-            <p className="office-directory-autoplay-hint" data-testid="office-directory-autoplay">
-              {copy.autoplayHint}
-            </p>
-          ) : null}
-          <div className="office-directory-voice-hero" aria-hidden="true">
-            <PersonaFace
-              id={copy.welcomeVoiceSpeakerId ?? 'hr'}
-              size={72}
-              className="office-directory-avatar office-directory-avatar--welcome"
-            />
-          </div>
-        </>
-      )}
-      {!autoPlaying && copy.welcomeVoiceLine ? (
-        <IntroVoiceButton
-          className="office-directory-hear office-directory-hear--welcome"
-          speaking={speakingId === 'welcome'}
-          idleLabel={copy.hearWelcomeLabel}
-          speakingLabel={copy.hearSpeakingLabel}
-          title={copy.hearTitle}
-          onClick={() =>
-            onHear('welcome', {
-              speakerId: copy.welcomeVoiceSpeakerId,
-              text: copy.welcomeVoiceLine
-            })
-          }
-        />
-      ) : null}
-    </div>
-  );
-}
-
-/** One colleague spotlight step — cinematic auto-voice, with ▶ to replay/stop. */
-function TourColleague({
-  copy,
-  colleagueId,
-  stepIndex,
-  speakingId,
-  onHear,
-  autoPlaying,
-  showTranscript
-}) {
-  const colleague = officeSenderInfo(colleagueId);
-  const voiceLine = colleagueVoiceLine(colleague);
-  return (
-    <div className="office-directory-spotlight-wrap">
-      <ColleagueSpotlight
-        colleague={colleague}
-        colleagueId={colleagueId}
-        unlockedLabel={copy.unlockedLabel}
-        showTranscript={showTranscript}
-        chapterLabel={formatLocale(copy.colleagueChapter, {
-          current: String(stepIndex),
-          total: String(COLLEAGUE_IDS.length)
-        })}
-        progressLabel={formatLocale(copy.progressLabel, {
-          current: String(stepIndex),
-          total: String(COLLEAGUE_IDS.length)
-        })}
-      />
-      {showTranscript && voiceLine ? (
-        <p className="office-directory-transcript-line" data-testid="office-directory-transcript">
-          {voiceLine}
-        </p>
-      ) : null}
-      <div className="office-directory-progress-dots" aria-hidden="true">
-        {COLLEAGUE_IDS.map((id, i) => (
-          <span
-            key={id}
-            className={`office-directory-dot${i < stepIndex ? ' is-done' : ''}${
-              i === stepIndex - 1 ? ' is-current' : ''
-            }`}
-          />
-        ))}
+        ) : null}
       </div>
-      {autoPlaying ? (
-        <p className="office-directory-autoplay-hint" data-testid="office-directory-autoplay">
-          {copy.autoplayHint}
-        </p>
-      ) : null}
-      {!autoPlaying ? (
-        <IntroVoiceButton
-          className="office-directory-hear"
-          speaking={speakingId === colleagueId}
-          idleLabel={copy.hearLabel}
-          speakingLabel={copy.hearSpeakingLabel}
-          title={copy.hearTitle}
-          onClick={() => onHear(colleagueId, { speakerId: colleagueId, text: voiceLine })}
-        />
-      ) : null}
-    </div>
+      <IntroVoiceButton
+        className="office-directory-card-hear"
+        speaking={speakingId === colleagueId}
+        idleLabel={copy.hearLabel}
+        speakingLabel={copy.hearSpeakingLabel}
+        title={copy.hearTitle}
+        onClick={() => onHear(colleagueId, { speakerId: colleagueId, text: voiceLine })}
+      />
+    </li>
   );
 }
 
-/** The stepped first-run orientation: reception → each colleague → Clock in. */
-function DirectoryTour({
+/**
+ * Single-page first-run orientation: name badge → colleague intros (voiced) →
+ * desk + assignment chips — all on one scrollable surface.
+ */
+function OnboardingPage({
   copy,
-  step,
   userName,
+  userRole,
   speakingId,
+  touring,
+  tourIndex,
+  autoPlaying,
   onHear,
-  onBack,
-  onNext,
-  onCheckIn,
   onDismiss,
   onSkip,
-  autoPlaying,
-  cinematic,
-  voiceUnlocked,
+  onStartTour,
   showTranscript,
   onToggleTranscript,
-  localeToolbar
+  localeToolbar,
+  isBoot,
+  entryStarters,
+  onStarterPick
 }) {
-  const lastColleagueStep = STEP_FIRST_COLLEAGUE + COLLEAGUE_IDS.length - 1;
-  const atLastStep = step >= lastColleagueStep;
-  const colleagueIndex = step - STEP_FIRST_COLLEAGUE;
-
   return (
     <div
-      className={`office-directory office-directory--tour${
-        step === STEP_WELCOME ? ' office-directory--boot' : ''
-      }${cinematic ? ' office-directory--cinematic' : ''}${showTranscript ? ' is-transcript-on' : ''}`}
+      className={`office-directory office-directory--onboarding${
+        touring ? ' office-directory--cinematic' : ''
+      }${showTranscript ? ' is-transcript-on' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}
@@ -293,56 +179,78 @@ function DirectoryTour({
         }
       />
 
-      {step === STEP_WELCOME ? (
-        <TourWelcome
-          copy={copy}
-          userName={userName}
-          speakingId={speakingId}
-          onHear={onHear}
-          autoPlaying={autoPlaying}
-          showTranscript={showTranscript}
-        />
-      ) : null}
-      {step >= STEP_FIRST_COLLEAGUE ? (
-        <TourColleague
-          copy={copy}
-          colleagueId={COLLEAGUE_IDS[colleagueIndex]}
-          stepIndex={colleagueIndex + 1}
-          speakingId={speakingId}
-          onHear={onHear}
-          autoPlaying={autoPlaying}
-          showTranscript={showTranscript}
-        />
-      ) : null}
+      <div className="office-directory-onboarding-scroll" data-testid="office-directory-welcome">
+        <section className="office-directory-onboarding-intro">
+          <NameTag copy={copy.nameTag} />
+          {showTranscript ? (
+            <>
+              <p className="office-directory-greeting">
+                {formatLocale(copy.greeting, { name: userName })}
+              </p>
+              {userRole ? <p className="office-directory-role-line">{userRole}</p> : null}
+              <p className="office-directory-tagline">{copy.tagline}</p>
+              {copy.greetingHint ? (
+                <p className="office-directory-name-hint">{copy.greetingHint}</p>
+              ) : null}
+            </>
+          ) : null}
+          {!touring ? (
+            <button
+              type="button"
+              className="office-directory-dismiss office-directory-start-tour"
+              data-testid="office-directory-start-tour"
+              onClick={onStartTour}
+            >
+              {copy.startLabel}
+            </button>
+          ) : autoPlaying ? (
+            <p className="office-directory-autoplay-hint" data-testid="office-directory-autoplay">
+              {copy.autoplayHint}
+            </p>
+          ) : null}
+        </section>
+
+        <section className="office-directory-onboarding-cast" aria-label={copy.title}>
+          <ul className="office-directory-onboarding-roster">
+            {COLLEAGUE_IDS.map((colleagueId) => {
+              const colleague = officeSenderInfo(colleagueId);
+              return (
+                <OnboardingColleagueCard
+                  key={colleagueId}
+                  colleagueId={colleagueId}
+                  colleague={colleague}
+                  isSpeaking={
+                    speakingId === colleagueId ||
+                    (touring && tourIndex >= 0 && COLLEAGUE_IDS[tourIndex] === colleagueId)
+                  }
+                  showTranscript={showTranscript}
+                  speakingId={speakingId}
+                  onHear={onHear}
+                  copy={copy}
+                />
+              );
+            })}
+          </ul>
+        </section>
+
+        {isBoot && entryStarters ? (
+          <section className="office-directory-onboarding-desk" data-testid="office-directory-desk">
+            <p className="office-directory-chapter">{copy.deskChapter}</p>
+            <p className="office-directory-tagline">{copy.deskIntro}</p>
+            <TopicStarters
+              hint={entryStarters.hint}
+              ariaLabel={entryStarters.ariaLabel}
+              starters={entryStarters.starters}
+              onPick={onStarterPick}
+            />
+          </section>
+        ) : null}
+      </div>
 
       <div className="office-directory-tour-actions">
-        {step > STEP_WELCOME ? (
-          <button type="button" className="office-directory-secondary" onClick={onBack}>
-            {copy.backLabel}
-          </button>
-        ) : null}
-        {atLastStep ? (
-          <button type="button" className="office-directory-dismiss" onClick={onDismiss}>
-            {copy.dismissLabel}
-          </button>
-        ) : step === STEP_WELCOME && !voiceUnlocked ? (
-          <button
-            type="button"
-            className="office-directory-dismiss"
-            data-testid="office-directory-check-in"
-            onClick={onCheckIn}
-          >
-            {copy.checkInLabel}
-          </button>
-        ) : (
-          <button type="button" className="office-directory-dismiss" onClick={onNext}>
-            {step === STEP_WELCOME
-              ? copy.startLabel
-              : cinematic
-                ? (copy.skipBeatLabel ?? copy.nextLabel)
-                : copy.nextLabel}
-          </button>
-        )}
+        <button type="button" className="office-directory-dismiss" onClick={onDismiss}>
+          {copy.dismissLabel}
+        </button>
       </div>
 
       <button
@@ -372,6 +280,7 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
       <ul className="office-directory-roster">
         {COLLEAGUE_IDS.map((id) => {
           const colleague = officeSenderInfo(id);
+          const voiceLine = colleagueVoiceLine(colleague);
           return (
             <li key={id} className="office-directory-card">
               <PersonaFace id={id} size={38} className="office-directory-avatar" />
@@ -388,7 +297,7 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
                 idleLabel={copy.hearLabel}
                 speakingLabel={copy.hearSpeakingLabel}
                 title={copy.hearTitle}
-                onClick={() => onHear(id, { speakerId: id, text: colleagueVoiceLine(colleague) })}
+                onClick={() => onHear(id, { speakerId: id, text: voiceLine })}
               />
             </li>
           );
@@ -409,13 +318,12 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
 }
 
 /**
- * Interactive office directory (docs/office-parody.md): reception check-in →
- * name badge → Linda's welcome → auto-voiced colleague intros → Clock in.
+ * Interactive office directory (docs/office-parody.md): single-page orientation
+ * with name badge, voiced colleague intros, desk, and first assignments.
  * Afterwards: "Meet the Office" chip (and desk verb) reopen the roster.
  *
  * While open, the directory publishes pause state so ambience / welcome IMs /
- * advisor popups stay quiet. Voice never fires on cold mount — only after
- * Check in / Meet the team (user gesture unlocks the cinematic sequence).
+ * advisor popups stay quiet. Voice starts only after "Meet the team" (gesture).
  */
 export default function OfficeDirectory({
   onSkipToBuild,
@@ -424,16 +332,20 @@ export default function OfficeDirectory({
   showChip = true,
   placement = 'entry',
   /** When true, orientation owns the screen until Clock in — no backdrop dismiss. */
-  isBoot = false
+  isBoot = false,
+  /** Assignment chips shown in the desk section during first-run boot. */
+  entryStarters = null,
+  /** Called when the user picks a starter during boot (after tour dismiss). */
+  onStarterPick,
+  /** Job title shown under the personalized greeting (default Architect). */
+  userRole = 'Architect'
 }) {
   const firstRunRef = useRef(!readOfficeDirectorySeen());
   const [open, setOpen] = useState(() => firstRunRef.current);
-  /** `null` = full roster browse; `0` = reception; `1..` = colleagues. */
-  const [step, setStep] = useState(() => (firstRunRef.current ? STEP_WELCOME : null));
-  /** Check-in at reception unlocks Linda's welcome voice (browser TTS gesture). */
-  const [voiceUnlocked, setVoiceUnlocked] = useState(false);
-  /** After "Meet the team", colleagues auto-speak and advance. */
-  const [cinematic, setCinematic] = useState(false);
+  /** `null` = full roster browse; `true` = single-page onboarding tour. */
+  const [tourOpen, setTourOpen] = useState(() => firstRunRef.current);
+  const [touring, setTouring] = useState(false);
+  const [tourIndex, setTourIndex] = useState(-1);
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
@@ -448,18 +360,15 @@ export default function OfficeDirectory({
   const { speakingId, play, stop } = useIntroNarrator({ getSessionId });
   const copy = officeChromeCopy().directory;
 
-  // Publish open state so App / OfficeLayer can pause competing popups.
   useEffect(() => {
     setOfficeDirectoryOpen(open);
     return () => setOfficeDirectoryOpen(false);
   }, [open]);
 
-  // Parent boot gate can outlive a stale `open` flag (HMR, storage races) — keep
-  // the reception desk up until the user clocks in or skips the ceremony.
   useEffect(() => {
     if (!isBoot) return;
     setOpen(true);
-    setStep((current) => (current === null ? STEP_WELCOME : current));
+    setTourOpen((current) => (current === null ? true : current));
   }, [isBoot]);
 
   useEffect(() => {
@@ -467,12 +376,12 @@ export default function OfficeDirectory({
     handledOpenNonce.current = directoryUi.openNonce;
     stop();
     autoGenRef.current += 1;
-    setCinematic(false);
+    setTouring(false);
+    setTourIndex(-1);
     setAutoPlaying(false);
-    setVoiceUnlocked(false);
     setShowTranscript(false);
     setOpen(true);
-    setStep(directoryUi.mode === 'tour' ? STEP_WELCOME : null);
+    setTourOpen(directoryUi.mode === 'tour');
   }, [directoryUi.openNonce, directoryUi.mode, stop]);
 
   const hearBeat = (id, line) => {
@@ -487,13 +396,13 @@ export default function OfficeDirectory({
     const wasFirstRun = !readOfficeDirectorySeen();
     autoGenRef.current += 1;
     stop();
-    setCinematic(false);
+    setTouring(false);
+    setTourIndex(-1);
     setAutoPlaying(false);
-    setVoiceUnlocked(false);
     setShowTranscript(false);
     writeOfficeDirectorySeen();
     firstRunRef.current = false;
-    setStep(null);
+    setTourOpen(null);
     setOpen(false);
     if (wasFirstRun) onBootComplete?.();
   };
@@ -503,62 +412,26 @@ export default function OfficeDirectory({
     onSkipToBuild?.();
   };
 
-  const goBack = () => {
+  const startTour = () => {
     autoGenRef.current += 1;
     stop();
-    setAutoPlaying(false);
-    setCinematic(false);
-    setStep((s) => Math.max(STEP_WELCOME, s - 1));
+    setTouring(true);
+    setTourIndex(0);
   };
 
-  const checkIn = () => {
-    setVoiceUnlocked(true);
+  const handleStarterPick = (prompt) => {
+    dismiss();
+    onStarterPick?.(prompt);
   };
 
-  const goNext = () => {
-    autoGenRef.current += 1;
-    stop();
-    setAutoPlaying(false);
-    const leavingWelcome = step === STEP_WELCOME;
-    if (leavingWelcome) setCinematic(true);
-    setStep((s) => s + 1);
-  };
-
-  // After reception check-in: auto-play Linda's welcome (gesture unlocked TTS).
+  // Cinematic run: auto-speak each colleague in order on the single page.
   useEffect(() => {
-    if (!open || step !== STEP_WELCOME || !voiceUnlocked || !copy.welcomeVoiceLine)
-      return undefined;
-    const gen = ++autoGenRef.current;
-    let cancelled = false;
-    const ac = new AbortController();
-    setAutoPlaying(true);
-    void (async () => {
-      const result = await play('welcome', {
-        speakerId: copy.welcomeVoiceSpeakerId,
-        text: copy.welcomeVoiceLine
-      });
-      if (cancelled || gen !== autoGenRef.current) return;
-      if (!result?.spoken && !result?.cancelled) await sleep(SILENT_BEAT_MS, ac.signal);
-      else if (result?.spoken) await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
-      if (!cancelled && gen === autoGenRef.current) setAutoPlaying(false);
-    })();
-    return () => {
-      cancelled = true;
-      ac.abort();
-    };
-  }, [open, step, voiceUnlocked, copy.welcomeVoiceLine, copy.welcomeVoiceSpeakerId, play]);
-
-  // Cinematic colleague run: auto-speak each intro, then advance.
-  useEffect(() => {
-    if (!open || !cinematic || step == null || step < STEP_FIRST_COLLEAGUE) return undefined;
-    const colleagueIndex = step - STEP_FIRST_COLLEAGUE;
-    const colleagueId = COLLEAGUE_IDS[colleagueIndex];
-    if (!colleagueId) return undefined;
+    if (!open || !touring || tourIndex < 0 || tourIndex >= COLLEAGUE_IDS.length) return undefined;
+    const colleagueId = COLLEAGUE_IDS[tourIndex];
     const colleague = officeSenderInfo(colleagueId);
     const gen = ++autoGenRef.current;
     let cancelled = false;
     const ac = new AbortController();
-    const lastColleagueStep = STEP_FIRST_COLLEAGUE + COLLEAGUE_IDS.length - 1;
     setAutoPlaying(true);
     void (async () => {
       const result = await play(colleagueId, {
@@ -574,15 +447,15 @@ export default function OfficeDirectory({
       else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
       if (cancelled || gen !== autoGenRef.current) return;
       setAutoPlaying(false);
-      if (step < lastColleagueStep) {
-        setStep((s) => s + 1);
+      if (tourIndex < COLLEAGUE_IDS.length - 1) {
+        setTourIndex((index) => index + 1);
       }
     })();
     return () => {
       cancelled = true;
       ac.abort();
     };
-  }, [open, cinematic, step, play]);
+  }, [open, touring, tourIndex, play]);
 
   if (!open) {
     if (!showChip) return null;
@@ -594,10 +467,10 @@ export default function OfficeDirectory({
           title={copy.expandTitle}
           data-testid="office-directory-chip"
           onClick={() => {
-            setCinematic(false);
+            setTouring(false);
+            setTourIndex(-1);
             setAutoPlaying(false);
-            setVoiceUnlocked(false);
-            setStep(null);
+            setTourOpen(null);
             setOpen(true);
           }}
         >
@@ -607,8 +480,6 @@ export default function OfficeDirectory({
     );
   }
 
-  // Open directory always mounts as a modal overlay so Day One / starters /
-  // ambience chrome stay dimmed and non-interactive behind it.
   return (
     <div
       className="office-directory-host office-directory-host--overlay is-open"
@@ -623,32 +494,31 @@ export default function OfficeDirectory({
         tabIndex={isBoot ? -1 : undefined}
         onClick={isBoot ? undefined : dismiss}
       />
-      {step !== null ? (
-        <DirectoryTour
+      {tourOpen ? (
+        <OnboardingPage
           copy={copy}
-          step={step}
           userName={userName}
+          userRole={userRole}
           speakingId={speakingId}
+          touring={touring}
+          tourIndex={tourIndex}
+          autoPlaying={autoPlaying}
           onHear={hearBeat}
-          onBack={goBack}
-          onNext={goNext}
-          onCheckIn={checkIn}
           onDismiss={dismiss}
           onSkip={skipToBuild}
-          autoPlaying={autoPlaying}
-          cinematic={cinematic}
-          voiceUnlocked={voiceUnlocked}
+          onStartTour={startTour}
           showTranscript={showTranscript}
           onToggleTranscript={() => setShowTranscript((value) => !value)}
           localeToolbar={
-            step === STEP_WELCOME ? (
-              <IntroLocaleToggle
-                locale={locale}
-                copy={controls.introLocale}
-                onSelectLocale={setLocale}
-              />
-            ) : null
+            <IntroLocaleToggle
+              locale={locale}
+              copy={controls.introLocale}
+              onSelectLocale={setLocale}
+            />
           }
+          isBoot={isBoot}
+          entryStarters={entryStarters}
+          onStarterPick={handleStarterPick}
         />
       ) : (
         <DirectoryRoster
@@ -659,11 +529,11 @@ export default function OfficeDirectory({
           onReplayTour={() => {
             autoGenRef.current += 1;
             stop();
-            setCinematic(false);
+            setTouring(false);
+            setTourIndex(-1);
             setAutoPlaying(false);
-            setVoiceUnlocked(false);
             setShowTranscript(false);
-            setStep(STEP_WELCOME);
+            setTourOpen(true);
           }}
         />
       )}

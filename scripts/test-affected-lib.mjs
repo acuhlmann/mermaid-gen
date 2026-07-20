@@ -83,6 +83,10 @@ export const BLAST_RADIUS_RULES = [
       'apps/server/test/chartDslTool.test.js',
       'apps/server/test/chartLangChainAgent.test.js'
     ]
+  },
+  {
+    match: /apps\/web\/src\/utils\/officeCast\.js|apps\/web\/src\/i18n\/locales\/office\./,
+    tests: ['apps/web/test/officeLocale.test.js', 'apps/web/test/officeDirectory.test.jsx']
   }
 ];
 
