@@ -86,7 +86,10 @@ function pickFacilitator(attendees) {
  * cheap fast-tier model, strict-JSON replies, and the client always has a
  * canned fallback — a null result here is a feature, not an error.
  */
-export function createOfficeRouter() {
+/**
+ * @param {{ env?: NodeJS.ProcessEnv }} [opts]
+ */
+export function createOfficeRouter({ env = process.env } = {}) {
   const router = express.Router();
   router.use(createApiRateLimitMiddleware('llm'));
 
@@ -105,7 +108,7 @@ export function createOfficeRouter() {
 
     let model;
     try {
-      model = createOfficeChatModel(process.env, { purpose: 'moment' });
+      model = createOfficeChatModel(env, { purpose: 'moment' });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -122,7 +125,7 @@ export function createOfficeRouter() {
       isReply: Boolean(payload.userMessage?.trim())
     });
     const user = buildMomentUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(process.env);
+    const officeModel = resolveOfficeModelId(env);
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
@@ -155,7 +158,7 @@ export function createOfficeRouter() {
 
     let model;
     try {
-      model = createOfficeChatModel(process.env, { purpose: 'meeting' });
+      model = createOfficeChatModel(env, { purpose: 'meeting' });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -172,7 +175,7 @@ export function createOfficeRouter() {
       uiLocale: payload.uiLocale
     });
     const user = buildMeetingUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(process.env);
+    const officeModel = resolveOfficeModelId(env);
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);
@@ -197,7 +200,7 @@ export function createOfficeRouter() {
       res.status(400).json({ error: 'Invalid speak payload', details: parsed.error.flatten() });
       return;
     }
-    if (!isOfficeTtsEnabled(process.env)) {
+    if (!isOfficeTtsEnabled(env)) {
       res.status(200).json({ audio: null, reason: 'disabled' });
       return;
     }
@@ -225,7 +228,7 @@ export function createOfficeRouter() {
 
     let model;
     try {
-      model = createOfficeChatModel(process.env, { purpose: 'meeting' });
+      model = createOfficeChatModel(env, { purpose: 'meeting' });
     } catch (error) {
       res.status(503).json({ error: safeErrorMessage(error) });
       return;
@@ -242,7 +245,7 @@ export function createOfficeRouter() {
       uiLocale: payload.uiLocale
     });
     const user = buildInterjectUserPrompt(payload);
-    const officeModel = resolveOfficeModelId(process.env);
+    const officeModel = resolveOfficeModelId(env);
     try {
       const reply = await model.invoke([new SystemMessage(system), new HumanMessage(user)]);
       const usage = officeUsageFromReply(reply);

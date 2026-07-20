@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import test from 'node:test';
 import {
   collectPackageInstances,
@@ -52,7 +53,8 @@ test('resolveReactWebCore matches workspace web_core when nested copy aligns', (
 });
 
 test('verifyDeps passes on the current install tree', () => {
-  const overrides = { '@a2ui/web_core': '0.10.0', '@ag-ui/client': '0.0.53' };
+  const pkgJson = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+  const overrides = pkgJson.overrides ?? {};
   const errors = verifyDeps(ROOT, overrides);
   assert.deepEqual(errors, []);
 });
