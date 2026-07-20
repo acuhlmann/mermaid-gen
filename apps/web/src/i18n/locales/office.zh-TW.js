@@ -684,6 +684,7 @@ export const OFFICE_ZH_TW = {
       title: '認識團隊',
       tourEyebrow: '新人入職引導™',
       rosterEyebrow: '辦公室名冊',
+      welcomeChapter: '人力資源',
       colleagueChapter: '同事 {current} / {total}',
       unlockedLabel: '✨ 解鎖角色',
       tagline: '你是這層樓最新的架構師。白板是你的交付物，打擾是免費的。',
@@ -691,13 +692,9 @@ export const OFFICE_ZH_TW = {
       rosterTagline: '會寄信、傳訊息、路過插話的同事們——點 ▶ 聽他們自我介紹：',
       greeting: '歡迎加入，{name}。',
       greetingRole: '架構師',
-      greetingHint:
-        '辦公室會在郵件、即時訊息和尷尬的路過中這樣稱呼你。隨時可以改，他們會注意到的。',
       expandLabel: '🏢 認識辦公室',
       expandTitle: '到底是誰一直在打擾我？（劇透：全都是）',
       startLabel: '認識團隊 →',
-      deskChapter: '你的工位',
-      deskIntro: '這塊畫布是你的交付物。在下方輸入任何主題——或者從樓層領取一項任務。',
       skipToBuildLabel: '略過儀式 — 讓我直接開搞 →',
       skipToBuildTitle: '關閉引導，直接進入畫布。沒有惡意。（有一點。已記入檔案。）',
       dismissLabel: '打卡上班 — 開始第一天',
@@ -709,6 +706,9 @@ export const OFFICE_ZH_TW = {
       transcriptLabel: '字幕',
       transcriptOnLabel: '隱藏文字',
       transcriptTitle: '顯示語音內容為文字 — 無法收聽時使用',
+      welcomeVoiceSpeakerId: 'hr',
+      welcomeVoiceLine:
+        '歡迎來到這層樓。我是琳達，負責人力營運。領取識別證，寫下你的名字，我來介紹團隊。你會融入得很好的。',
       nameTag: {
         hello: '你好',
         subtitle: '我叫',

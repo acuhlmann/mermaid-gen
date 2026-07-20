@@ -19,7 +19,6 @@ import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import IntroVoiceButton from './IntroVoiceButton.jsx';
 import NameTag from './NameTag.jsx';
-import TopicStarters from './TopicStarters.jsx';
 
 const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
 
@@ -72,16 +71,8 @@ function DirectoryHead({ copy, onClose, eyebrow, toolbar }) {
   );
 }
 
-/** One colleague on the single-page onboarding roster — no duplicate blurb + intro. */
-function OnboardingColleagueCard({
-  colleague,
-  colleagueId,
-  isSpeaking,
-  showTranscript,
-  speakingId,
-  onHear,
-  copy
-}) {
+/** One colleague on the onboarding roster — highlight only, no per-card replay. */
+function OnboardingColleagueCard({ colleague, colleagueId, isSpeaking, showTranscript }) {
   const voiceLine = colleagueVoiceLine(colleague);
   const cardRef = useRef(null);
 
@@ -116,41 +107,29 @@ function OnboardingColleagueCard({
           </p>
         ) : null}
       </div>
-      <IntroVoiceButton
-        className="office-directory-card-hear"
-        speaking={speakingId === colleagueId}
-        idleLabel={copy.hearLabel}
-        speakingLabel={copy.hearSpeakingLabel}
-        title={copy.hearTitle}
-        onClick={() => onHear(colleagueId, { speakerId: colleagueId, text: voiceLine })}
-      />
     </li>
   );
 }
 
 /**
- * Single-page first-run orientation: name badge → colleague intros (voiced) →
- * desk + assignment chips — all on one scrollable surface.
+ * First-run orientation: Linda (HR) + name badge → auto-voiced colleague intros.
  */
 function OnboardingPage({
   copy,
   userName,
   userRole,
-  speakingId,
-  touring,
-  tourIndex,
+  tourPhase,
+  colleagueIndex,
   autoPlaying,
-  onHear,
   onDismiss,
   onSkip,
   onStartTour,
   showTranscript,
   onToggleTranscript,
-  localeToolbar,
-  isBoot,
-  entryStarters,
-  onStarterPick
+  localeToolbar
 }) {
+  const touring = tourPhase !== 'idle';
+
   return (
     <div
       className={`office-directory office-directory--onboarding${
@@ -181,6 +160,7 @@ function OnboardingPage({
 
       <div className="office-directory-onboarding-scroll" data-testid="office-directory-welcome">
         <section className="office-directory-onboarding-intro">
+          <p className="office-directory-chapter">{copy.welcomeChapter}</p>
           <NameTag copy={copy.nameTag} />
           {showTranscript ? (
             <>
@@ -189,11 +169,24 @@ function OnboardingPage({
               </p>
               {userRole ? <p className="office-directory-role-line">{userRole}</p> : null}
               <p className="office-directory-tagline">{copy.tagline}</p>
-              {copy.greetingHint ? (
-                <p className="office-directory-name-hint">{copy.greetingHint}</p>
+              {copy.welcomeVoiceLine ? (
+                <p
+                  className="office-directory-transcript-line"
+                  data-testid="office-directory-hr-transcript"
+                >
+                  {copy.welcomeVoiceLine}
+                </p>
               ) : null}
             </>
-          ) : null}
+          ) : (
+            <div className="office-directory-voice-hero" aria-hidden="true">
+              <PersonaFace
+                id={copy.welcomeVoiceSpeakerId ?? 'hr'}
+                size={72}
+                className="office-directory-avatar office-directory-avatar--welcome"
+              />
+            </div>
+          )}
           {!touring ? (
             <button
               type="button"
@@ -212,39 +205,20 @@ function OnboardingPage({
 
         <section className="office-directory-onboarding-cast" aria-label={copy.title}>
           <ul className="office-directory-onboarding-roster">
-            {COLLEAGUE_IDS.map((colleagueId) => {
+            {COLLEAGUE_IDS.map((colleagueId, index) => {
               const colleague = officeSenderInfo(colleagueId);
               return (
                 <OnboardingColleagueCard
                   key={colleagueId}
                   colleagueId={colleagueId}
                   colleague={colleague}
-                  isSpeaking={
-                    speakingId === colleagueId ||
-                    (touring && tourIndex >= 0 && COLLEAGUE_IDS[tourIndex] === colleagueId)
-                  }
+                  isSpeaking={tourPhase === 'colleagues' && colleagueIndex === index}
                   showTranscript={showTranscript}
-                  speakingId={speakingId}
-                  onHear={onHear}
-                  copy={copy}
                 />
               );
             })}
           </ul>
         </section>
-
-        {isBoot && entryStarters ? (
-          <section className="office-directory-onboarding-desk" data-testid="office-directory-desk">
-            <p className="office-directory-chapter">{copy.deskChapter}</p>
-            <p className="office-directory-tagline">{copy.deskIntro}</p>
-            <TopicStarters
-              hint={entryStarters.hint}
-              ariaLabel={entryStarters.ariaLabel}
-              starters={entryStarters.starters}
-              onPick={onStarterPick}
-            />
-          </section>
-        ) : null}
       </div>
 
       <div className="office-directory-tour-actions">
@@ -318,12 +292,9 @@ function DirectoryRoster({ copy, speakingId, onHear, onDismiss, onReplayTour }) 
 }
 
 /**
- * Interactive office directory (docs/office-parody.md): single-page orientation
- * with name badge, voiced colleague intros, desk, and first assignments.
- * Afterwards: "Meet the Office" chip (and desk verb) reopen the roster.
- *
- * While open, the directory publishes pause state so ambience / welcome IMs /
- * advisor popups stay quiet. Voice starts only after "Meet the team" (gesture).
+ * Interactive office directory: HR welcome + name badge → auto colleague intros.
+ * Voice starts only after "Meet the team" (browser gesture). Afterwards the
+ * roster chip reopens the cast list with optional ▶ replay per person.
  */
 export default function OfficeDirectory({
   onSkipToBuild,
@@ -331,21 +302,14 @@ export default function OfficeDirectory({
   getSessionId,
   showChip = true,
   placement = 'entry',
-  /** When true, orientation owns the screen until Clock in — no backdrop dismiss. */
   isBoot = false,
-  /** Assignment chips shown in the desk section during first-run boot. */
-  entryStarters = null,
-  /** Called when the user picks a starter during boot (after tour dismiss). */
-  onStarterPick,
-  /** Job title shown under the personalized greeting (default Architect). */
   userRole = 'Architect'
 }) {
   const firstRunRef = useRef(!readOfficeDirectorySeen());
   const [open, setOpen] = useState(() => firstRunRef.current);
-  /** `null` = full roster browse; `true` = single-page onboarding tour. */
   const [tourOpen, setTourOpen] = useState(() => firstRunRef.current);
-  const [touring, setTouring] = useState(false);
-  const [tourIndex, setTourIndex] = useState(-1);
+  const [tourPhase, setTourPhase] = useState('idle');
+  const [colleagueIndex, setColleagueIndex] = useState(-1);
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
@@ -376,8 +340,8 @@ export default function OfficeDirectory({
     handledOpenNonce.current = directoryUi.openNonce;
     stop();
     autoGenRef.current += 1;
-    setTouring(false);
-    setTourIndex(-1);
+    setTourPhase('idle');
+    setColleagueIndex(-1);
     setAutoPlaying(false);
     setShowTranscript(false);
     setOpen(true);
@@ -396,8 +360,8 @@ export default function OfficeDirectory({
     const wasFirstRun = !readOfficeDirectorySeen();
     autoGenRef.current += 1;
     stop();
-    setTouring(false);
-    setTourIndex(-1);
+    setTourPhase('idle');
+    setColleagueIndex(-1);
     setAutoPlaying(false);
     setShowTranscript(false);
     writeOfficeDirectorySeen();
@@ -415,19 +379,45 @@ export default function OfficeDirectory({
   const startTour = () => {
     autoGenRef.current += 1;
     stop();
-    setTouring(true);
-    setTourIndex(0);
+    setTourPhase('hr');
+    setColleagueIndex(-1);
   };
 
-  const handleStarterPick = (prompt) => {
-    dismiss();
-    onStarterPick?.(prompt);
-  };
-
-  // Cinematic run: auto-speak each colleague in order on the single page.
+  // Linda's HR welcome, then hand off to the colleague run.
   useEffect(() => {
-    if (!open || !touring || tourIndex < 0 || tourIndex >= COLLEAGUE_IDS.length) return undefined;
-    const colleagueId = COLLEAGUE_IDS[tourIndex];
+    if (!open || tourPhase !== 'hr' || !copy.welcomeVoiceLine) return undefined;
+    const gen = ++autoGenRef.current;
+    let cancelled = false;
+    const ac = new AbortController();
+    setAutoPlaying(true);
+    void (async () => {
+      const result = await play('welcome', {
+        speakerId: copy.welcomeVoiceSpeakerId,
+        text: copy.welcomeVoiceLine
+      });
+      if (cancelled || gen !== autoGenRef.current) return;
+      if (result?.cancelled) {
+        setAutoPlaying(false);
+        return;
+      }
+      if (!result?.spoken) await sleep(SILENT_BEAT_MS, ac.signal);
+      else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
+      if (cancelled || gen !== autoGenRef.current) return;
+      setAutoPlaying(false);
+      setTourPhase('colleagues');
+      setColleagueIndex(0);
+    })();
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [open, tourPhase, copy.welcomeVoiceLine, copy.welcomeVoiceSpeakerId, play]);
+
+  // Auto-speak each colleague in order.
+  useEffect(() => {
+    if (!open || tourPhase !== 'colleagues' || colleagueIndex < 0) return undefined;
+    const colleagueId = COLLEAGUE_IDS[colleagueIndex];
+    if (!colleagueId) return undefined;
     const colleague = officeSenderInfo(colleagueId);
     const gen = ++autoGenRef.current;
     let cancelled = false;
@@ -447,15 +437,15 @@ export default function OfficeDirectory({
       else await sleep(OFFICE_NARRATION_GAP_MS, ac.signal);
       if (cancelled || gen !== autoGenRef.current) return;
       setAutoPlaying(false);
-      if (tourIndex < COLLEAGUE_IDS.length - 1) {
-        setTourIndex((index) => index + 1);
+      if (colleagueIndex < COLLEAGUE_IDS.length - 1) {
+        setColleagueIndex((index) => index + 1);
       }
     })();
     return () => {
       cancelled = true;
       ac.abort();
     };
-  }, [open, touring, tourIndex, play]);
+  }, [open, tourPhase, colleagueIndex, play]);
 
   if (!open) {
     if (!showChip) return null;
@@ -467,8 +457,8 @@ export default function OfficeDirectory({
           title={copy.expandTitle}
           data-testid="office-directory-chip"
           onClick={() => {
-            setTouring(false);
-            setTourIndex(-1);
+            setTourPhase('idle');
+            setColleagueIndex(-1);
             setAutoPlaying(false);
             setTourOpen(null);
             setOpen(true);
@@ -499,11 +489,9 @@ export default function OfficeDirectory({
           copy={copy}
           userName={userName}
           userRole={userRole}
-          speakingId={speakingId}
-          touring={touring}
-          tourIndex={tourIndex}
+          tourPhase={tourPhase}
+          colleagueIndex={colleagueIndex}
           autoPlaying={autoPlaying}
-          onHear={hearBeat}
           onDismiss={dismiss}
           onSkip={skipToBuild}
           onStartTour={startTour}
@@ -516,9 +504,6 @@ export default function OfficeDirectory({
               onSelectLocale={setLocale}
             />
           }
-          isBoot={isBoot}
-          entryStarters={entryStarters}
-          onStarterPick={handleStarterPick}
         />
       ) : (
         <DirectoryRoster
@@ -529,8 +514,8 @@ export default function OfficeDirectory({
           onReplayTour={() => {
             autoGenRef.current += 1;
             stop();
-            setTouring(false);
-            setTourIndex(-1);
+            setTourPhase('idle');
+            setColleagueIndex(-1);
             setAutoPlaying(false);
             setShowTranscript(false);
             setTourOpen(true);

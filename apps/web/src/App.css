@@ -6324,6 +6324,30 @@
   align-items: stretch;
 }
 
+.entry-desk-intro {
+  animation: topic-starters-in 0.35s ease both;
+}
+
+.entry-desk-intro-greeting {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.entry-desk-intro-role {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.entry-desk-intro-body {
+  margin: 0.15rem 0 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--muted);
+  max-width: 36rem;
+}
+
 .topic-starters {
   animation: topic-starters-in 0.35s ease both;
 }

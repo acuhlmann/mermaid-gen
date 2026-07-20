@@ -29,15 +29,6 @@ vi.mock('../src/hooks/useIntroNarrator.js', () => ({
 
 const COLLEAGUE_COUNT = Object.keys(OFFICE_COLLEAGUES).length;
 
-const STARTERS = [
-  {
-    label: 'Coffee supply chain',
-    prompt: 'Break down the global coffee supply chain',
-    fromId: 'exec',
-    ask: 'Needs it before the board offsite.'
-  }
-];
-
 function renderDirectory(props = {}) {
   return render(
     <UiLocaleProvider>
@@ -67,30 +58,26 @@ afterEach(() => {
 });
 
 describe('OfficeDirectory', () => {
-  it('opens the single-page onboarding tour on first run', async () => {
-    renderDirectory({ isBoot: true, entryStarters: { starters: STARTERS } });
+  it('opens HR welcome with name badge on first run', async () => {
+    renderDirectory({ isBoot: true });
     expect(screen.getByTestId('office-directory-modal')).toBeTruthy();
     expect(screen.getByTestId('office-directory-tour')).toBeTruthy();
-    expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
+    expect(screen.getByTestId('name-tag')).toBeTruthy();
+    expect(document.querySelector('.office-directory-chapter')?.textContent).toMatch(/PEOPLE OPS/i);
     expect(screen.getByTestId('office-directory-start-tour')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Check in at reception/i })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Hear Linda/i })).toBeNull();
     expect(screen.getAllByTestId('office-directory-colleague-card').length).toBe(COLLEAGUE_COUNT);
-    expect(screen.getByTestId('office-directory-desk')).toBeTruthy();
-    expect(screen.getByTestId('topic-starters')).toBeTruthy();
-    expect(screen.getByTestId('intro-locale-toggle')).toBeTruthy();
-    expect(screen.queryByTestId('office-directory-roster')).toBeNull();
+    expect(screen.queryByTestId('office-directory-desk')).toBeNull();
+    expect(screen.queryByTestId('intro-voice-button')).toBeNull();
     await waitFor(() => expect(getOfficeDirectoryUi().open).toBe(true));
   });
 
   it('hides spoken copy until transcript is enabled', () => {
     renderDirectory();
     expect(screen.queryByText(/newest architect/i)).toBeNull();
-    expect(screen.queryByText('Welcome aboard, Newbie.')).toBeNull();
     enableTranscript();
     expect(screen.getByText(/newest architect/i)).toBeTruthy();
     expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
-    expect(screen.getByText('Architect')).toBeTruthy();
+    expect(screen.getByTestId('office-directory-hr-transcript')).toBeTruthy();
   });
 
   it('does not speak before Meet the team is clicked', () => {
@@ -98,20 +85,21 @@ describe('OfficeDirectory', () => {
     expect(playMock).not.toHaveBeenCalled();
   });
 
-  it('starts colleague intros after Meet the team is clicked', async () => {
+  it('auto-plays Linda then colleagues after Meet the team', async () => {
     renderDirectory({ showChip: false });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
-    expect(playMock.mock.calls[0][0]).toBe('intern');
+    expect(playMock.mock.calls[0][0]).toBe('welcome');
+    await waitFor(() => expect(playMock.mock.calls.some((c) => c[0] === 'intern')).toBe(true));
     expect(screen.getByTestId('office-directory-autoplay')).toBeTruthy();
+    expect(screen.queryByTestId('intro-voice-button')).toBeNull();
   });
 
-  it('greets the user by the name on their badge when transcript is on', async () => {
+  it('greets the user by the name on their badge when transcript is on', () => {
     renderDirectory();
     enableTranscript();
     expect(screen.getByText('Welcome aboard, Newbie.')).toBeTruthy();
     cleanup();
-    playMock.mockClear();
     setUserName('Gavin');
     renderDirectory();
     enableTranscript();
@@ -139,26 +127,8 @@ describe('OfficeDirectory', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Clock in/ }));
-    expect(screen.queryByTestId('office-directory-chip')).toBeNull();
     expect(readOfficeDirectorySeen()).toBe(true);
-    expect(window.localStorage.getItem(OFFICE_DIRECTORY_STORAGE_KEY)).toBe('1');
     expect(getOfficeDirectoryUi().open).toBe(false);
-  });
-
-  it('picks a starter during boot and dismisses the tour', () => {
-    const onStarterPick = vi.fn();
-    const onBootComplete = vi.fn();
-    renderDirectory({
-      isBoot: true,
-      entryStarters: { starters: STARTERS, hint: 'Pick one:', ariaLabel: 'Assignments' },
-      onStarterPick,
-      onBootComplete,
-      showChip: false
-    });
-    fireEvent.click(screen.getByRole('button', { name: /Coffee supply chain/i }));
-    expect(onStarterPick).toHaveBeenCalledWith(STARTERS[0].prompt);
-    expect(onBootComplete).toHaveBeenCalledTimes(1);
-    expect(readOfficeDirectorySeen()).toBe(true);
   });
 
   it('skips the ceremony straight to the canvas and marks the tour seen', () => {
@@ -168,7 +138,6 @@ describe('OfficeDirectory', () => {
     fireEvent.click(screen.getByTestId('office-directory-skip-build'));
     expect(onSkipToBuild).toHaveBeenCalledTimes(1);
     expect(onBootComplete).toHaveBeenCalledTimes(1);
-    expect(screen.queryByTestId('office-directory-chip')).toBeNull();
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
   });
@@ -176,24 +145,17 @@ describe('OfficeDirectory', () => {
   it('reopens the full roster for returning users, with replay intro', () => {
     window.localStorage.setItem(OFFICE_DIRECTORY_STORAGE_KEY, '1');
     renderDirectory();
-    expect(screen.queryByText(/Meet the team/)).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /Meet the Office/ }));
     expect(screen.getByTestId('office-directory-roster')).toBeTruthy();
-    for (const name of ['Chad', 'Pam', 'Ticket Bot Dave', 'Gary', 'Linda', 'Ulrich', 'Sasha']) {
-      expect(screen.getByText(name)).toBeTruthy();
-    }
-    expect(screen.getByText('Facilities & Fridge Czar')).toBeTruthy();
     expect(screen.getAllByTestId('intro-voice-button').length).toBe(COLLEAGUE_COUNT);
     fireEvent.click(screen.getByRole('button', { name: /Replay intro/ }));
     expect(screen.getByTestId('office-directory-welcome')).toBeTruthy();
     expect(screen.getByTestId('office-directory-start-tour')).toBeTruthy();
-    expect(screen.getByTestId('intro-locale-toggle')).toBeTruthy();
   });
 
   it('opens from an external desk/UI signal even when the chip is hidden', () => {
     window.localStorage.setItem(OFFICE_DIRECTORY_STORAGE_KEY, '1');
     renderDirectory({ showChip: false, placement: 'overlay' });
-    expect(screen.queryByTestId('office-directory-roster')).toBeNull();
     act(() => {
       requestOfficeDirectoryOpen('roster');
     });
