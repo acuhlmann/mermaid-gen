@@ -99,7 +99,8 @@ export function createAgUiTranslator(): (
             op.path === agUiDraftSourcePath('infographic') ||
             op.path === agUiDraftSourcePath('metaphor3d') ||
             op.path === agUiDraftSourcePath('chart') ||
-            op.path === agUiDraftSourcePath('anything')
+            op.path === agUiDraftSourcePath('anything') ||
+            op.path === agUiDraftSourcePath('forms')
           );
         });
         if (draftOp) {

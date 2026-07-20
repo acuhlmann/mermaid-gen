@@ -44,6 +44,25 @@ test('shared infographic preview script renders AntV from CDN, not just DSL text
   assert.match(MCP_APP_DIAGRAM_PREVIEW_SCRIPT, /infographicDslFallback/);
 });
 
+test('shared preview script includes chart, forms, and anything slot helpers', () => {
+  assert.match(MCP_APP_DIAGRAM_PREVIEW_SCRIPT, /renderChartPreview/);
+  assert.match(MCP_APP_DIAGRAM_PREVIEW_SCRIPT, /renderFormsSlotPreview/);
+  assert.match(MCP_APP_DIAGRAM_PREVIEW_SCRIPT, /renderAnythingPreview/);
+  assert.match(MCP_APP_DIAGRAM_PREVIEW_SCRIPT, /VEGA_EMBED_CDN/);
+});
+
+test('canvas-preview MCP App exposes all six slot tabs and preview helpers', () => {
+  assert.match(canvasPreviewAppHtml, /data-slot="mermaid"/);
+  assert.match(canvasPreviewAppHtml, /data-slot="infographic"/);
+  assert.match(canvasPreviewAppHtml, /data-slot="metaphor3d"/);
+  assert.match(canvasPreviewAppHtml, /data-slot="chart"/);
+  assert.match(canvasPreviewAppHtml, /data-slot="anything"/);
+  assert.match(canvasPreviewAppHtml, /data-slot="forms"/);
+  assert.match(canvasPreviewAppHtml, /renderChartPreview/);
+  assert.match(canvasPreviewAppHtml, /renderFormsSlotPreview/);
+  assert.match(canvasPreviewAppHtml, /renderAnythingPreview/);
+});
+
 test('canvas-preview MCP App advertises a live AntV preview for infographic slot', () => {
   assert.match(canvasPreviewAppHtml, /Live AntV infographic preview/i);
   assert.doesNotMatch(canvasPreviewAppHtml, /open ArchiSlop web for full AntV preview/i);

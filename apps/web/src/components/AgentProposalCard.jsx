@@ -3,6 +3,7 @@ import AgentBadge from './AgentBadge.jsx';
 import InsightsEmbeddedDiagram from './InsightsEmbeddedDiagram.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { isConcreteContentType } from '@archislop/shared';
 
 function formatRelative(iso) {
   if (!iso) return '';
@@ -56,7 +57,7 @@ export default function AgentProposalCard({
   const diagramSource = typeof proposal.diagramSource === 'string' ? proposal.diagramSource : '';
   const canOpenFullPreview =
     Boolean(diagramSource.trim()) &&
-    (proposal.contentType === 'mermaid' || proposal.contentType === 'infographic') &&
+    isConcreteContentType(proposal.contentType) &&
     typeof onOpenFullPreview === 'function';
 
   return (

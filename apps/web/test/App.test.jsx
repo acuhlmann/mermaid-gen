@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createInitialDiagramState } from '@archislop/shared';
+import { createInitialDiagramState, buildFormsSeedDoc } from '@archislop/shared';
 import {
   act,
   cleanup,
@@ -341,6 +341,61 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
   }, 15_000);
 
+  it("Thinking segment Restore re-syncs a forms entry's after-snapshot to the canvas", async () => {
+    const formsDoc = buildFormsSeedDoc();
+    const formsUpdatedDoc = formsDoc.replace('Form 0-A', 'Form 0-B');
+    const formsBaseline = {
+      ...createInitialDiagramState('forms'),
+      revisionId: 1,
+      diagramSource: formsDoc
+    };
+    const formsUpdated = {
+      ...formsBaseline,
+      contentType: 'forms',
+      revisionId: 2,
+      diagramSource: formsUpdatedDoc,
+      updatedAt: '2026-05-10T08:31:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'forms',
+      mermaid: initialState,
+      infographic: createInitialDiagramState('infographic'),
+      forms: formsBaseline
+    });
+    syncClientDiagramStateMock.mockImplementation(async (payload) => ({
+      ...formsUpdated,
+      ...payload,
+      contentType: payload.contentType ?? 'forms'
+    }));
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'transform' || payload.operation === 'intent') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: formsUpdated,
+          message: 'Applied.'
+        });
+      }
+    });
+
+    render(<App />);
+    pickContentMode('Forms');
+    const refineButton = await screen.findByRole('button', { name: 'Refine' });
+    fireEvent.click(refineButton);
+
+    await screen.findByRole('button', { name: 'Restore' });
+    const callsBefore = syncClientDiagramStateMock.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+
+    await waitFor(() =>
+      expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore)
+    );
+    const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
+    expect(lastPayload.contentType).toBe('forms');
+    expect(lastPayload.diagramSource).toBe(formsUpdatedDoc);
+  }, 15_000);
+
   it('streams intent when submitting the prompt control', async () => {
     // Prompt input is only shown when no diagram is set (initial topic-setting state).
     fetchSessionDiagramStateMock.mockResolvedValueOnce({
@@ -432,9 +487,18 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
 
-    // Fix lives inside the Desk Drawer, surfacing once a critique exists.
+    // Desk drawer Fix is shown once critique text exists but stays disabled until
+    // actionable bullets are parsed and the agent is idle — clicking early is a no-op.
+    await screen.findByRole('checkbox', {
+      name: /Use clearer labels and simplify branching/i
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Critique' }).disabled).toBe(false);
+    });
+
     openDeskDrawer();
     const fixButton = await screen.findByRole('menuitem', { name: 'Fix' });
+    await waitFor(() => expect(fixButton.disabled).toBe(false));
     fireEvent.click(fixButton);
 
     await waitFor(

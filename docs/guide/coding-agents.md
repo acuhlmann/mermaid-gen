@@ -21,15 +21,15 @@ Operator guide for Claude Code, Cursor, Copilot, and other agents editing **arch
 
 ## Verification commands
 
-| When you changed…                              | Run                                                                             |
-| ---------------------------------------------- | ------------------------------------------------------------------------------- |
-| Not sure / many areas                          | `npm run check:affected` (diff-scoped; includes **Prettier** on changed files)  |
-| `packages/shared` only                         | `npm run check:fast`                                                            |
-| Default local gate                             | `npm run check` (boundaries, typecheck, lint, test, **wire**)                   |
-| **Before opening a PR** (matches CI)           | `npm run check:full`                                                            |
-| AG-UI / session-events / MCP / `diagramSchema` | `npm run check:wire` (also included in `check`)                                 |
-| Mermaid sanitizer or rule packs                | `npm run check:fast` + `node apps/server/scripts/benchMermaid.js --tag <label>` |
-| Server wire modules (strict islands)           | `npm run typecheck:strict -w apps/server`                                       |
+| When you changed…                              | Run                                                                                                         |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Not sure / many areas                          | `npm run check:affected` (diff-scoped; **Prettier** + server **strict** islands when `apps/server` changes) |
+| `packages/shared` only                         | `npm run check:fast`                                                                                        |
+| Default local gate                             | `npm run check` (boundaries, typecheck, lint, test, **wire**)                                               |
+| **Before opening a PR** (matches CI)           | `npm run check:full`                                                                                        |
+| AG-UI / session-events / MCP / `diagramSchema` | `npm run check:wire` (also included in `check`)                                                             |
+| Mermaid sanitizer or rule packs                | `npm run check:fast` + `node apps/server/scripts/benchMermaid.js --tag <label>`                             |
+| Server wire modules (strict islands)           | `npm run typecheck:strict -w apps/server`                                                                   |
 
 After editing `packages/shared`, run `npm run build -w packages/shared` before server/web typecheck if consumers report stale types from `dist/`.
 

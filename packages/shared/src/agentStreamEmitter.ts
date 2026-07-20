@@ -143,7 +143,11 @@ export function customEvent({ name, value }: { name: string; value: unknown }) {
 
 function patchSummaryToJsonPatch(evt: Record<string, unknown>, contentType: string | undefined) {
   const slot =
-    contentType === 'infographic' || contentType === 'metaphor3d' || contentType === 'chart'
+    contentType === 'infographic' ||
+    contentType === 'metaphor3d' ||
+    contentType === 'chart' ||
+    contentType === 'anything' ||
+    contentType === 'forms'
       ? contentType
       : 'mermaid';
   return [

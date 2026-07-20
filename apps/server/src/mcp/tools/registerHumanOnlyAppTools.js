@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ContentTypeSchema } from '@archislop/shared';
 import { registerAppTool } from '@modelcontextprotocol/ext-apps/server';
 import { humanOnlyMcpToolBlocked } from '../mcpHelpers.js';
 import {
@@ -72,7 +73,7 @@ export function registerHumanOnlyAppTools(server) {
         'Human-only (MCP App): queue a fix request for selected actionable critique bullets. Surfaces in session events for the ArchiSlop web client.',
       inputSchema: {
         items: z.array(z.string().min(1)).min(1).max(40),
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
+        contentType: ContentTypeSchema,
         critiqueInsightId: z.string().optional()
       },
       ...APP_ONLY_UI(MCP_APP_URI_CRITIQUE_MAP)

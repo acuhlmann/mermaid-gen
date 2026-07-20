@@ -284,6 +284,41 @@ describe('InsightsPane', () => {
     expect(onRestoreToEntry).toHaveBeenCalledWith('e-undo');
   });
 
+  it('shows Restore for forms entries and invokes handler', () => {
+    const onRestoreToEntry = vi.fn();
+    const formsDoc = JSON.stringify({
+      archislopFormsVersion: 1,
+      formTitle: 'Incident intake',
+      messages: []
+    });
+
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'e-forms-restore',
+            title: 'Forms — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Applied.',
+            technicalActions: [],
+            diagramUndoBaseline: { revisionId: 0, diagramSource: formsDoc },
+            diagramRevisionApplied: true,
+            diagramUndoConsumed: false,
+            diagramAfterSource: formsDoc,
+            diagramAfterContentType: 'forms'
+          }
+        ]}
+        celebratingEntryId={null}
+        onRestoreToEntry={onRestoreToEntry}
+        diagramUndoDisabled={false}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+    expect(onRestoreToEntry).toHaveBeenCalledWith('e-forms-restore');
+  });
+
   it('invokes highlight toggle when Highlight on canvas is clicked', () => {
     const onToggleDiagramChangeHighlight = vi.fn();
     const baseline = { revisionId: 0, diagramSource: 'flowchart TD\n  A --> B' };

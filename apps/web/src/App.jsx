@@ -188,7 +188,8 @@ import {
   styleEditsToPrompt,
   isLabelExplainGiveUpLevel,
   LABEL_EXPLAIN_GIBBERISH_LEVEL,
-  MAX_LABEL_EXPLAIN_DUMB_LEVEL
+  MAX_LABEL_EXPLAIN_DUMB_LEVEL,
+  isConcreteContentType
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
@@ -3472,14 +3473,7 @@ ${requirementsBlock}`;
   const applyDiagramSnapshotToCanvas = useCallback(
     async ({ diagramSource, contentType, styleConfig }) => {
       if (typeof diagramSource !== 'string' || !diagramSource.trim()) return;
-      if (
-        contentType !== 'mermaid' &&
-        contentType !== 'infographic' &&
-        contentType !== 'metaphor3d' &&
-        contentType !== 'chart' &&
-        contentType !== 'anything'
-      )
-        return;
+      if (!isConcreteContentType(contentType)) return;
 
       const needsModeSwitch = contentType !== contentMode;
 
@@ -3528,14 +3522,7 @@ ${requirementsBlock}`;
       const targetSource = entry?.diagramAfterSource;
       const targetContentType = entry?.diagramAfterContentType;
       if (typeof targetSource !== 'string' || !targetSource.trim()) return;
-      if (
-        targetContentType !== 'mermaid' &&
-        targetContentType !== 'infographic' &&
-        targetContentType !== 'metaphor3d' &&
-        targetContentType !== 'chart' &&
-        targetContentType !== 'anything'
-      )
-        return;
+      if (!isConcreteContentType(targetContentType)) return;
 
       const baseline = entry?.diagramUndoBaseline;
       await applyDiagramSnapshotToCanvas({
@@ -3595,17 +3582,10 @@ ${requirementsBlock}`;
 
       const entry = insightsEntries.find((e) => e.id === entryId);
       const targetContentType = entry?.diagramAfterContentType;
-      if (
-        targetContentType === 'mermaid' ||
-        targetContentType === 'infographic' ||
-        targetContentType === 'chart' ||
-        targetContentType === 'metaphor3d'
-      ) {
-        if (targetContentType !== contentMode) {
-          suppressNextModeSwitchRerunRef.current = true;
-          setContentMode(targetContentType);
-          setRendererRefreshKey((n) => n + 1);
-        }
+      if (isConcreteContentType(targetContentType) && targetContentType !== contentMode) {
+        suppressNextModeSwitchRerunRef.current = true;
+        setContentMode(targetContentType);
+        setRendererRefreshKey((n) => n + 1);
       }
 
       setDiagramChangeHighlightEntryId(entryId);
