@@ -234,13 +234,25 @@ drill (all surfaces evacuate for 30 s), the printer that prints one page reading
 ### Desk verbs (what _you_ do)
 
 The ambience director decides when the office interrupts you; the **desk verbs** are the other
-direction — you deciding to get up. `DeskActionsDock` (ArchiSlop helmet stamp in the bottom row)
-opens a priority-ordered menu wired to `useDeskActions` plus chrome sinks for Outbox, Settings,
-Thinking, and the XP / People Ops panel. Meet the Office is no longer a desk verb — first-visit
-boot and the level panel's "Meet the team" CTA cover the directory.
+direction — you deciding to act from your cube. `DeskActionsDock` (ArchiSlop helmet stamp in the
+bottom row) opens a **desk-geography** menu wired to `useDeskActions` plus chrome sinks for Outbox,
+Settings, Notebook, Concentration, and the XP / People Ops panel. Meet the Office is no longer a
+desk verb — first-visit boot and the level panel's "Meet the team" CTA cover the directory.
+
+**Zones on the desk**
+
+| Zone                | Fiction                      | Controls                                                                                 |
+| ------------------- | ---------------------------- | ---------------------------------------------------------------------------------------- |
+| Your seat           | Personal cognition           | Notebook (Thinking pane), Concentration (Rush job / Deep work → wire `fast` / `quality`) |
+| Work surface        | The deliverable              | Work order, Desk tray (Deliverable format, Facilities, Shredder)                         |
+| People around you   | Colleagues at adjacent desks | Your Team, Headphones (mute advisors — distinct from inbox Focus Time)                   |
+| Get up              | Leave the chair              | Talk to team, meeting, mail, IM, walk, coffee, outbox                                    |
+| Under the desk / IT | Cubicle plumbing             | Adjust workstation (contractors + code drawer), HR progression                           |
 
 | Verb                        | Does                                                                                                                                                                                                                                                                                 |
 | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                              |
+| 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                            |
 | 👥 Talk to your team        | `advisor.promptNext({})` — asks the roundtable for a fresh take. Disabled (in-fiction `blocked.noTeam`) on a blank canvas or while streaming/thinking. Explicit click clears Focus Time mute and ambient backoffs so the verb never silently no-ops when the roundtable _can_ speak. |
 | 📅 Call a meeting           | Same handler as the inbox's shortcut (two entry points, one behavior)                                                                                                                                                                                                                |
 | 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                  |
@@ -248,9 +260,11 @@ boot and the level panel's "Meet the team" CTA cover the directory.
 | 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                       |
 | 🚶 Walk the floor           | An on-demand walk-by (LLM within the desk budget, canned fallback); with a blank canvas you overhear a coffee/battle scene instead                                                                                                                                                   |
 | ☕ Get a coffee             | Pushes an unseen coffee scene and auto-accepts it — you walked over, there is no invite                                                                                                                                                                                              |
-| 🧠 Open the Thinking board  | Toggles the Thinking pane — desk verb replaces the old 🧠 icon                                                                                                                                                                                                                       |
-| ⚙️ Adjust your workstation  | Opens headless Settings (brain speed, guest agents, code drawer) — desk verb replaces the old ⚙️ icon                                                                                                                                                                                |
+| ⚙️ Adjust your workstation  | Opens headless Settings (guest agents, code drawer) — concentration no longer lives here                                                                                                                                                                                             |
 | 📈 Check my HR progression  | Toggles the level-up / People Ops scorecard (`LevelUpInfoPanel`) — always enabled; that panel also links to Meet the team                                                                                                                                                            |
+
+**Mute distinction.** **Headphones** (beside Your Team) mutes the advisor roundtable. **Focus Time**
+(inbox) mutes office interruptions only — desk verbs still bypass it.
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
 **bypass Focus Time** (it mutes interruptions, not your own initiative), but still respect

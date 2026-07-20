@@ -9,9 +9,10 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  * - `statusRow`      — optional, rendered above the row in flow (keeps
  *                       aria-live semantics; minor vertical shift acceptable).
  * - `actions`        — left side: the empty-state entry form OR the desk row
- *                       (Work Order · Your Team · Desk drawer).
+ *                       (Work Order · Your Team + Headphones · Desk tray).
  * - `aiControls`     — right side: AiCornerControlsInner (headless Outbox +
- *                       Settings panels).
+ *                       Settings panels — contractors & code; concentration is
+ *                       on Your seat in the desk menu).
  *
  * `narrowLayout` toggles mobile class hooks so the right cluster keeps the
  * existing inline-stacked settings panel layout instead of popover mode.

@@ -686,8 +686,12 @@ export const OFFICE_EN_AU = {
       hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya',
       outbox: 'Ship from the Outbox',
       settings: 'Adjust ya workstation',
-      thinking: 'Open the Thinking board',
-      thinkingClose: 'Close the Thinking board'
+      settingsTitle: 'Guest agents and the code drawer',
+      thinking: 'Open ya notebook',
+      thinkingClose: 'Close ya notebook',
+      sectionSeat: 'Ya seat',
+      sectionGetUp: 'Get up',
+      sectionUnderDesk: 'Under the desk'
     },
     directory: {
       title: 'Meet the team',

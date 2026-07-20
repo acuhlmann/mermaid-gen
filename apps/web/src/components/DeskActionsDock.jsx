@@ -1,20 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a verb menu — talk to the team, call a meeting,
- * check mail, ship from the Outbox, wander the floor, tweak the workstation,
- * and so on. Meet the Office lives on the level / People Ops panel instead.
+ * ArchiSlop helmet stamp opens a geography-grouped menu — Your seat (notebook
+ * + concentration), Get up (wander / bother), Under the desk (workstation / HR).
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
  * disabled with an in-fiction reason, so the menu never silently no-ops.
- *
- * Order is priority: collaboration and shipping first, ambience in the middle,
- * workstation / HR meta last.
  */
 export default function DeskActionsDock({
   onGetCoffee,
@@ -28,6 +25,8 @@ export default function DeskActionsDock({
   onOpenOutbox,
   onOpenSettings,
   onToggleThinking,
+  modelProfile = 'fast',
+  onSelectModelProfile = null,
   blockedReason = null,
   canCallMeeting = true,
   canTalkToTeam = true,
@@ -41,6 +40,8 @@ export default function DeskActionsDock({
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
   const copy = officeChromeCopy().desk;
+  const { controls } = useUiCopy();
+  const settingsCopy = controls.settings;
 
   useEffect(() => {
     if (!open) return undefined;
@@ -53,7 +54,20 @@ export default function DeskActionsDock({
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
-  const verbs = [
+  const seatVerbs = [
+    {
+      id: 'thinking',
+      label: thinkingOpen ? copy.thinkingClose : copy.thinking,
+      emoji: '📓',
+      run: onToggleThinking,
+      alwaysEnabled: true,
+      disabled: !canToggleThinking,
+      disabledTitle: copy.blocked?.noThinking,
+      title: copy.thinkingTitle
+    }
+  ];
+
+  const getUpVerbs = [
     {
       id: 'team',
       label: copy.team,
@@ -99,17 +113,10 @@ export default function DeskActionsDock({
     },
     { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
-    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
-    {
-      id: 'thinking',
-      label: thinkingOpen ? copy.thinkingClose : copy.thinking,
-      emoji: '🧠',
-      run: onToggleThinking,
-      alwaysEnabled: true,
-      disabled: !canToggleThinking,
-      disabledTitle: copy.blocked?.noThinking,
-      title: copy.thinkingTitle
-    },
+    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee }
+  ];
+
+  const underDeskVerbs = [
     {
       id: 'settings',
       label: copy.settings,
@@ -129,6 +136,39 @@ export default function DeskActionsDock({
   ];
 
   const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
+
+  const renderVerb = (verb) => {
+    const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
+    const title = verb.disabled
+      ? verb.disabledTitle
+      : disabled
+        ? blockedTitle
+        : (verb.title ?? verb.label);
+    return (
+      <button
+        key={verb.id}
+        type="button"
+        role="menuitem"
+        className="desk-actions-item"
+        disabled={disabled}
+        title={title ?? verb.label}
+        onClick={() => {
+          setOpen(false);
+          void verb.run?.();
+        }}
+      >
+        <span className="desk-actions-item-emoji" aria-hidden="true">
+          {verb.emoji}
+        </span>
+        <span className="desk-actions-item-label">{verb.label}</span>
+        {verb.badge ? (
+          <span className="desk-actions-item-badge" aria-hidden="true">
+            {verb.badge}
+          </span>
+        ) : null}
+      </button>
+    );
+  };
 
   return (
     <div className={`desk-actions${placementClass}`} ref={rootRef}>
@@ -153,39 +193,43 @@ export default function DeskActionsDock({
       </button>
       {open ? (
         <div className="desk-actions-menu" role="menu" aria-label={copy.menuAria}>
-          <p className="desk-actions-heading">{copy.menuHeading}</p>
-          {verbs.map((verb) => {
-            const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
-            const title = verb.disabled
-              ? verb.disabledTitle
-              : disabled
-                ? blockedTitle
-                : (verb.title ?? verb.label);
-            return (
+          <p className="desk-actions-heading">{copy.sectionSeat ?? 'Your seat'}</p>
+          {seatVerbs.map(renderVerb)}
+          <div
+            className="desk-actions-concentration"
+            role="group"
+            aria-label={settingsCopy.brain}
+            title={settingsCopy.concentrationTitle ?? settingsCopy.brain}
+          >
+            <span className="desk-actions-concentration-label">
+              <span className="desk-actions-item-emoji" aria-hidden="true">
+                🎚️
+              </span>
+              {settingsCopy.brain}
+            </span>
+            <div className="desk-actions-concentration-segment">
               <button
-                key={verb.id}
                 type="button"
-                role="menuitem"
-                className="desk-actions-item"
-                disabled={disabled}
-                title={title ?? verb.label}
-                onClick={() => {
-                  setOpen(false);
-                  void verb.run?.();
-                }}
+                className={`desk-actions-concentration-option${modelProfile === 'fast' ? ' is-selected' : ''}`}
+                aria-pressed={modelProfile === 'fast'}
+                onClick={() => onSelectModelProfile?.('fast')}
               >
-                <span className="desk-actions-item-emoji" aria-hidden="true">
-                  {verb.emoji}
-                </span>
-                <span className="desk-actions-item-label">{verb.label}</span>
-                {verb.badge ? (
-                  <span className="desk-actions-item-badge" aria-hidden="true">
-                    {verb.badge}
-                  </span>
-                ) : null}
+                {settingsCopy.fast}
               </button>
-            );
-          })}
+              <button
+                type="button"
+                className={`desk-actions-concentration-option${modelProfile === 'quality' ? ' is-selected' : ''}`}
+                aria-pressed={modelProfile === 'quality'}
+                onClick={() => onSelectModelProfile?.('quality')}
+              >
+                {settingsCopy.quality}
+              </button>
+            </div>
+          </div>
+          <p className="desk-actions-heading">{copy.sectionGetUp ?? 'Get up'}</p>
+          {getUpVerbs.map(renderVerb)}
+          <p className="desk-actions-heading">{copy.sectionUnderDesk ?? 'Under the desk'}</p>
+          {underDeskVerbs.map(renderVerb)}
         </div>
       ) : null}
     </div>

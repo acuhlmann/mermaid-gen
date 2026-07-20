@@ -5,11 +5,11 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 const DRAWER_EMOJI = '🗄️';
 
 /**
- * The desk drawer: the secondary controls the app no longer keeps out on the
- * desk (Deliverable format, Fix, Demolish, Focus Time) collapse into one grouped
- * office drawer so the always-visible surface stays the Work Order + Your Team.
- * One pill opens a menu (mirrors DeskActionsDock's open / outside-click pattern);
- * the format section reuses the mode options, the desk section the loose verbs.
+ * The desk tray: work-surface tools (Deliverable format, Facilities, Shredder)
+ * collapse into one grouped office tray so the always-visible surface stays the
+ * Work Order + Your Team. Headphones live beside Your Team (people zone), not
+ * here. One pill opens a menu (mirrors DeskActionsDock's open / outside-click
+ * pattern).
  *
  * Behavior-only props — App owns the handlers; copy comes from the locale bundle.
  */
@@ -17,8 +17,6 @@ export default function DeskDrawer({
   modes,
   currentMode,
   onPickMode,
-  isMuted = false,
-  onToggleMute,
   canFix = false,
   fixDisabled = false,
   onFix,
@@ -60,9 +58,9 @@ export default function DeskDrawer({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={
-          open ? (drawer.close ?? drawer.label ?? 'Desk drawer') : (drawer.label ?? 'Desk drawer')
+          open ? (drawer.close ?? drawer.label ?? 'Desk tray') : (drawer.label ?? 'Desk tray')
         }
-        title={drawer.title ?? drawer.label ?? 'Desk drawer'}
+        title={drawer.title ?? drawer.label ?? 'Desk tray'}
         onClick={() => setOpen((v) => !v)}
       >
         <ButtonIcon>
@@ -70,19 +68,19 @@ export default function DeskDrawer({
             {DRAWER_EMOJI}
           </span>
         </ButtonIcon>
-        <span className="button-label">{drawer.label ?? 'Desk drawer'}</span>
+        <span className="button-label">{drawer.label ?? 'Desk tray'}</span>
         <span className="slop-action-role">
           <span className="slop-action-role-emoji" aria-hidden="true">
             {DRAWER_EMOJI}
           </span>
-          {drawer.roleTag ?? 'Supply Closet'}
+          {drawer.roleTag ?? 'Work surface'}
         </span>
       </button>
       {open ? (
         <div
           className="desk-actions-menu desk-drawer-menu"
           role="menu"
-          aria-label={drawer.menuAria ?? drawer.label ?? 'Desk drawer'}
+          aria-label={drawer.menuAria ?? drawer.label ?? 'Desk tray'}
         >
           {modeOptions.length > 0 ? (
             <>
@@ -115,35 +113,20 @@ export default function DeskDrawer({
               })}
             </>
           ) : null}
-          <p className="desk-actions-heading">{drawer.deskHeading ?? 'Desk'}</p>
-          <button
-            type="button"
-            role="menuitem"
-            className="desk-actions-item"
-            aria-pressed={isMuted}
-            title={isMuted ? actions.unmuteTitle : actions.muteTitle}
-            onClick={() => runAndClose(onToggleMute)}
-          >
-            <span className="desk-actions-item-emoji" aria-hidden="true">
-              {isMuted ? '🔇' : '🔊'}
-            </span>
-            <span className="desk-actions-item-label">
-              {isMuted ? actions.unmute : actions.mute}
-            </span>
-          </button>
+          <p className="desk-actions-heading">{drawer.deskHeading ?? 'Work surface'}</p>
           {canFix ? (
             <button
               type="button"
               role="menuitem"
               className="desk-actions-item"
               disabled={busy || fixDisabled}
-              title={actions.fixTitle}
+              title={actions.facilitiesTitle ?? actions.fixTitle}
               onClick={() => runAndClose(onFix)}
             >
               <span className="desk-actions-item-emoji" aria-hidden="true">
                 🛠️
               </span>
-              <span className="desk-actions-item-label">{actions.fix}</span>
+              <span className="desk-actions-item-label">{actions.facilities ?? actions.fix}</span>
             </button>
           ) : null}
           <button
@@ -155,7 +138,7 @@ export default function DeskDrawer({
             onClick={() => runAndClose(onDemolish)}
           >
             <span className="desk-actions-item-emoji" aria-hidden="true">
-              🧨
+              🗑️
             </span>
             <span className="desk-actions-item-label">{actions.demolish ?? actions.clear}</span>
           </button>

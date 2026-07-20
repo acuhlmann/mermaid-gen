@@ -13626,6 +13626,84 @@ body.slopitect-rainbow-tint::before {
   align-items: center;
 }
 
+/* People zone: Your Team + Headphones sit together on the desk. */
+.desk-people-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+}
+
+.desk-headphones-button {
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 3.4rem;
+  padding: 0.35rem 0.45rem;
+}
+
+.desk-headphones-button .button-label {
+  font-size: 0.62rem;
+  line-height: 1.1;
+  max-width: 4.5rem;
+  white-space: normal;
+  text-align: center;
+}
+
+.desk-headphones-emoji {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.desk-headphones-button.is-muted {
+  border-color: rgba(100, 116, 139, 0.45);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+/* Your seat · Concentration dial inside the desk menu. */
+.desk-actions-concentration {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem 0.55rem;
+}
+
+.desk-actions-concentration-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}
+
+.desk-actions-concentration-segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.25rem;
+}
+
+.desk-actions-concentration-option {
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.75);
+  color: inherit;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  cursor: pointer;
+}
+
+.desk-actions-concentration-option:hover {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.desk-actions-concentration-option.is-selected {
+  border-color: rgba(14, 165, 233, 0.65);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent, #0ea5e9);
+}
+
 /* The Work Order — a persistent inline prompt (layout="desk"), not a popover. */
 .slop-prompt-panel--desk {
   flex: 1 1 16rem;

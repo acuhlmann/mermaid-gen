@@ -115,11 +115,11 @@ async function waitForControlsReady(buttonName = 'Refine') {
   });
 }
 
-// Deliverable format now lives inside the Desk Drawer, alongside Fix, Demolish
-// and Focus — the secondaries no longer sit out on the desk.
+// Deliverable format now lives inside the Desk tray, alongside Facilities and
+// Shredder — the secondaries no longer sit out on the desk.
 function openDeskDrawer() {
-  if (screen.queryByRole('menu', { name: /desk drawer/i })) return;
-  fireEvent.click(screen.getByRole('button', { name: /desk drawer/i }));
+  if (screen.queryByRole('menu', { name: /desk tray/i })) return;
+  fireEvent.click(screen.getByRole('button', { name: /desk tray/i }));
 }
 
 function pickContentMode(modeLabel) {
@@ -487,7 +487,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
 
-    // Desk drawer Fix is shown once critique text exists but stays disabled until
+    // Desk tray Facilities is shown once critique text exists but stays disabled until
     // actionable bullets are parsed and the agent is idle — clicking early is a no-op.
     await screen.findByRole('checkbox', {
       name: /Use clearer labels and simplify branching/i
@@ -497,7 +497,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     openDeskDrawer();
-    const fixButton = await screen.findByRole('menuitem', { name: 'Fix' });
+    const fixButton = await screen.findByRole('menuitem', { name: 'Facilities' });
     await waitFor(() => expect(fixButton.disabled).toBe(false));
     fireEvent.click(fixButton);
 
@@ -514,9 +514,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
         ),
       { timeout: 25_000 }
     );
-    // Reopen the drawer: with the critique consumed, Fix no longer appears.
+    // Reopen the tray: with the critique consumed, Facilities no longer appears.
     openDeskDrawer();
-    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Fix' })).toBeNull());
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Facilities' })).toBeNull());
   }, 30_000);
 
   it('Fix selected sends only checked actionable improvements', async () => {
@@ -607,9 +607,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   it('clears to an empty diagram instead of seeded sample', async () => {
     render(<App />);
     await waitForControlsReady();
-    // Demolish lives inside the Desk Drawer now.
+    // Shredder lives inside the Desk tray now.
     openDeskDrawer();
-    const clearButton = await screen.findByRole('menuitem', { name: 'Demolish' });
+    const clearButton = await screen.findByRole('menuitem', { name: 'Shredder' });
     fireEvent.click(clearButton);
 
     // Clear now opens a "demolition" confirmation overlay first — click through to
@@ -639,10 +639,12 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(source.textContent).not.toContain('CachedA[Cached]');
   });
 
-  it('sends quality modelProfile after selecting Quality', async () => {
+  it('sends quality modelProfile after selecting Deep work', async () => {
     render(<App />);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Quality' }));
+    await waitFor(() => expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('bottom-brand-mark'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }));
 
     const refineButton = await screen.findByRole('button', { name: 'Refine' });
     fireEvent.click(refineButton);
@@ -779,10 +781,10 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       await waitFor(() => expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy());
       fireEvent.click(screen.getByTestId('bottom-brand-mark'));
       await waitFor(() => {
-        const item = screen.getByRole('menuitem', { name: /Open the Thinking board/ });
+        const item = screen.getByRole('menuitem', { name: /Open your notebook/ });
         expect(item.disabled).toBe(false);
       });
-      fireEvent.click(screen.getByRole('menuitem', { name: /Open the Thinking board/ }));
+      fireEvent.click(screen.getByRole('menuitem', { name: /Open your notebook/ }));
       await waitFor(() =>
         expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open')
       );

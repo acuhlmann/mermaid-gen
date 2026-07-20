@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
-import { BrainIcon } from './AppIcons.jsx';
 import OutboxDock from './OutboxDock.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 
@@ -9,15 +8,14 @@ const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 /**
  * Right-cluster of the bottom row: Outbox + Settings panels live here as
  * headless chrome opened from desk verbs (and force-opened for a pending
- * handshake). Thinking toggles from the desk menu too — no dedicated icons.
- * The Settings panel renders as a floating popover when `popoverMode` is true
- * (desktop) and inline when false. A pending handshake force-opens the panel
- * inline regardless of mode so the user can't accidentally dismiss it.
+ * handshake). Concentration lives on Your seat in the desk menu; Thinking
+ * (notebook) toggles from there too. The Settings panel renders as a floating
+ * popover when `popoverMode` is true (desktop) and inline when false. A pending
+ * handshake force-opens the panel inline regardless of mode so the user can't
+ * accidentally dismiss it.
  */
 export function AiCornerControlsInner({
   controls = DEFAULT_CONTROLS,
-  modelProfile,
-  onSelectModelProfile,
   pendingHandshake,
   externalAgentPresence,
   onInviteAgent,
@@ -76,32 +74,6 @@ export function AiCornerControlsInner({
                 </span>
               ) : null}
               <AgentPresenceBar presence={externalAgentPresence} onInvite={onInviteAgent} />
-            </div>
-          </div>
-          <div className="model-profile-toggle" role="group" aria-label={controls.brain}>
-            <span className="model-profile-label model-profile-label--brain">
-              <span className="model-profile-label-icon" aria-hidden="true">
-                <BrainIcon />
-              </span>
-              {controls.brain}
-            </span>
-            <div className="model-profile-segment">
-              <button
-                type="button"
-                className={`model-profile-option ${modelProfile === 'fast' ? 'is-selected' : ''}`}
-                aria-pressed={modelProfile === 'fast'}
-                onClick={() => onSelectModelProfile('fast')}
-              >
-                {controls.fast}
-              </button>
-              <button
-                type="button"
-                className={`model-profile-option ${modelProfile === 'quality' ? 'is-selected' : ''}`}
-                aria-pressed={modelProfile === 'quality'}
-                onClick={() => onSelectModelProfile('quality')}
-              >
-                {controls.quality}
-              </button>
             </div>
           </div>
           {showEditorToggle && editorControls ? (

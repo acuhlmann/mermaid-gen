@@ -97,6 +97,8 @@ export default function OfficeLayer({
   onOpenOutbox,
   onOpenSettings,
   onToggleThinking,
+  modelProfile = 'fast',
+  onSelectModelProfile = null,
   canTalkToTeam: canTalkToTeamProp,
   canOpenOutbox = false,
   canToggleThinking = false,
@@ -446,6 +448,8 @@ export default function OfficeLayer({
       onOpenOutbox={onOpenOutbox}
       onOpenSettings={onOpenSettings}
       onToggleThinking={onToggleThinking}
+      modelProfile={modelProfile}
+      onSelectModelProfile={onSelectModelProfile}
       blockedReason={desk.blockedReason}
       canCallMeeting={canCallMeeting}
       canTalkToTeam={canTalkToTeam}

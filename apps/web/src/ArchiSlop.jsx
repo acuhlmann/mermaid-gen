@@ -3821,6 +3821,8 @@ ${requirementsBlock}`;
             onOpenOutbox={() => setOutboxOpenSignal((n) => n + 1)}
             onOpenSettings={() => setSettingsOpenSignal((n) => n + 1)}
             onToggleThinking={() => setInsightsOpen((v) => !v)}
+            modelProfile={modelProfile}
+            onSelectModelProfile={setModelProfile}
             canTalkToTeam={
               Boolean((state.diagramSource ?? '').trim()) &&
               !advisor.thinkingPersona &&
@@ -4155,51 +4157,72 @@ ${requirementsBlock}`;
                       onMicPointerUp={handleMicPointerUp}
                       onMicLostPointerCapture={() => stopVoiceInput()}
                     />
-                    <StakeholdersMascot
-                      personas={[
-                        {
-                          variant: 'refine',
-                          onClick: () => runTransform('refine', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'innovate',
-                          onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'goMad',
-                          label: goMadShapeLabel(goMadStreak, controls.actions),
-                          onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'critique',
-                          onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'explain',
-                          onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                        },
-                        // Senior tier: the VP is not a teammate — this action preps
-                        // the diagram for upstairs (castTiers.js).
-                        {
-                          variant: 'exec',
-                          senior: true,
-                          onClick: () => runTransform('exec', { useDiagramFocus: true })
+                    <div className="desk-people-group">
+                      <StakeholdersMascot
+                        personas={[
+                          {
+                            variant: 'refine',
+                            onClick: () => runTransform('refine', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'innovate',
+                            onClick: () => runTransform('innovate', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'goMad',
+                            label: goMadShapeLabel(goMadStreak, controls.actions),
+                            onClick: () => runTransform('goMad', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'critique',
+                            onClick: () => runAnalyze('critique', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'explain',
+                            onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                          },
+                          // Senior tier: the VP is not a teammate — this action preps
+                          // the diagram for upstairs (castTiers.js).
+                          {
+                            variant: 'exec',
+                            senior: true,
+                            onClick: () => runTransform('exec', { useDiagramFocus: true })
+                          }
+                        ]}
+                        activeAdvisorVariant={advisor.activePersona}
+                        thinkingPersona={advisor.thinkingPersona}
+                        busy={busy}
+                        bubbleProps={advisorBubbleProps}
+                        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
+                        castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                        introProps={stakeholderIntroProps}
+                      />
+                      <button
+                        type="button"
+                        className={`overlay-button compact-button desk-headphones-button${advisor.isMuted ? ' is-muted' : ''}`}
+                        aria-pressed={advisor.isMuted}
+                        aria-label={
+                          advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
                         }
-                      ]}
-                      activeAdvisorVariant={advisor.activePersona}
-                      thinkingPersona={advisor.thinkingPersona}
-                      busy={busy}
-                      bubbleProps={advisorBubbleProps}
-                      onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                      castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                      introProps={stakeholderIntroProps}
-                    />
+                        title={
+                          advisor.isMuted
+                            ? controls.actions.unmuteTitle
+                            : controls.actions.muteTitle
+                        }
+                        onClick={() => advisor.toggleMute()}
+                      >
+                        <span className="desk-headphones-emoji" aria-hidden="true">
+                          {advisor.isMuted ? '🎧' : '🔊'}
+                        </span>
+                        <span className="button-label">
+                          {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
+                        </span>
+                      </button>
+                    </div>
                     <DeskDrawer
                       modes={contentModeOptions}
                       currentMode={contentMode}
                       onPickMode={handleSelectContentMode}
-                      isMuted={advisor.isMuted}
-                      onToggleMute={advisor.toggleMute}
                       canFix={Boolean(latestCritique?.text)}
                       fixDisabled={!canFixFromCritique}
                       onFix={() => handleFixFromCritique('all')}
@@ -4213,51 +4236,72 @@ ${requirementsBlock}`;
                 <div className="prompt-actions prompt-actions--mobile">
                   <div className="button-group desk-primary-group">
                     <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
-                    <StakeholdersMascot
-                      personas={[
-                        {
-                          variant: 'refine',
-                          onClick: () => runTransform('refine', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'innovate',
-                          onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'goMad',
-                          label: goMadShapeLabel(goMadStreak, controls.actions),
-                          onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'critique',
-                          onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                        },
-                        {
-                          variant: 'explain',
-                          onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                        },
-                        // Senior tier: the VP is not a teammate — this action preps
-                        // the diagram for upstairs (castTiers.js).
-                        {
-                          variant: 'exec',
-                          senior: true,
-                          onClick: () => runTransform('exec', { useDiagramFocus: true })
+                    <div className="desk-people-group">
+                      <StakeholdersMascot
+                        personas={[
+                          {
+                            variant: 'refine',
+                            onClick: () => runTransform('refine', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'innovate',
+                            onClick: () => runTransform('innovate', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'goMad',
+                            label: goMadShapeLabel(goMadStreak, controls.actions),
+                            onClick: () => runTransform('goMad', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'critique',
+                            onClick: () => runAnalyze('critique', { useDiagramFocus: true })
+                          },
+                          {
+                            variant: 'explain',
+                            onClick: () => runAnalyze('explain', { useDiagramFocus: true })
+                          },
+                          // Senior tier: the VP is not a teammate — this action preps
+                          // the diagram for upstairs (castTiers.js).
+                          {
+                            variant: 'exec',
+                            senior: true,
+                            onClick: () => runTransform('exec', { useDiagramFocus: true })
+                          }
+                        ]}
+                        activeAdvisorVariant={advisor.activePersona}
+                        thinkingPersona={advisor.thinkingPersona}
+                        busy={busy}
+                        bubbleProps={advisorBubbleProps}
+                        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
+                        castDisabled={busy || Boolean(advisor.thinkingPersona)}
+                        introProps={stakeholderIntroProps}
+                      />
+                      <button
+                        type="button"
+                        className={`overlay-button compact-button desk-headphones-button${advisor.isMuted ? ' is-muted' : ''}`}
+                        aria-pressed={advisor.isMuted}
+                        aria-label={
+                          advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
                         }
-                      ]}
-                      activeAdvisorVariant={advisor.activePersona}
-                      thinkingPersona={advisor.thinkingPersona}
-                      busy={busy}
-                      bubbleProps={advisorBubbleProps}
-                      onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                      castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                      introProps={stakeholderIntroProps}
-                    />
+                        title={
+                          advisor.isMuted
+                            ? controls.actions.unmuteTitle
+                            : controls.actions.muteTitle
+                        }
+                        onClick={() => advisor.toggleMute()}
+                      >
+                        <span className="desk-headphones-emoji" aria-hidden="true">
+                          {advisor.isMuted ? '🎧' : '🔊'}
+                        </span>
+                        <span className="button-label">
+                          {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
+                        </span>
+                      </button>
+                    </div>
                     <DeskDrawer
                       modes={contentModeOptions}
                       currentMode={contentMode}
                       onPickMode={handleSelectContentMode}
-                      isMuted={advisor.isMuted}
-                      onToggleMute={advisor.toggleMute}
                       canFix={Boolean(latestCritique?.text)}
                       fixDisabled={!canFixFromCritique}
                       onFix={() => handleFixFromCritique('all')}
@@ -4297,8 +4341,6 @@ ${requirementsBlock}`;
               hasCanvasContent || pendingHandshake ? (
                 <AiCornerControlsInner
                   controls={controls.settings}
-                  modelProfile={modelProfile}
-                  onSelectModelProfile={setModelProfile}
                   pendingHandshake={pendingHandshake}
                   externalAgentPresence={externalAgentPresence}
                   onInviteAgent={() => setInviteDialogOpen(true)}

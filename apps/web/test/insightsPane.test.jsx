@@ -215,7 +215,7 @@ describe('InsightsPane', () => {
 
     const metas = screen.getAllByLabelText('Run details');
     expect(within(metas[0]).getByText('Infographic')).toBeTruthy();
-    expect(within(metas[0]).getByText('Quality')).toBeTruthy();
+    expect(within(metas[0]).getByText('Deep work')).toBeTruthy();
     expect(within(metas[1]).getByText('3D')).toBeTruthy();
     expect(within(metas[2]).getByText('Chart')).toBeTruthy();
     const timeEl = metas[0].querySelector('time');

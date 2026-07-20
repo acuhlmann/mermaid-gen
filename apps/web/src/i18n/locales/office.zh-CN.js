@@ -690,10 +690,13 @@ export const OFFICE_ZH_CN = {
       outbox: '从发件箱寄出',
       outboxTitle: '导出或分享工位上的成品',
       settings: '调整一下工位',
-      settingsTitle: '脑速、访客代理和代码抽屉',
-      thinking: '打开思考板',
-      thinkingClose: '关闭思考板',
-      thinkingTitle: '楼层留下的笔记、评审和运行记录',
+      settingsTitle: '访客代理和代码抽屉',
+      thinking: '打开笔记本',
+      thinkingClose: '关闭笔记本',
+      thinkingTitle: '你的笔记本 · 笔记、评审和运行记录',
+      sectionSeat: '座位上',
+      sectionGetUp: '起身',
+      sectionUnderDesk: '桌子下面',
       blocked: {
         busy: '部署进行中 — 谁也别离开工位。',
         meeting: '你在开会。装得投入一点。',
@@ -701,7 +704,7 @@ export const OFFICE_ZH_CN = {
         noAgenda: '先画点什么 — 这场会也需要议程',
         noTeam: '先在画布上画点东西 — 团队还没东西可以回应',
         noOutbox: '还没什么可寄 — 先在画布上放个成品',
-        noThinking: '思考板是空的 — 先跑点什么'
+        noThinking: '笔记本是空的 — 先跑点什么'
       }
     },
     directory: {

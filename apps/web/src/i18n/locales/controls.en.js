@@ -22,16 +22,18 @@ export const CONTROLS_EN = {
     fix: 'Fix',
     fixPersona: 'Site Foreman',
     fixTitle: 'Site Foreman · Fixing the slop',
+    facilities: 'Facilities',
+    facilitiesTitle: 'Call Facilities · fix the slop',
     explain: 'Explain',
     clear: 'Clear',
-    clearTitle: 'Clear · Demolish the slop and start fresh',
-    demolish: 'Demolish',
-    mute: 'Mute',
-    unmute: 'Unmute',
-    muteAria: 'Mute your team',
-    unmuteAria: 'Unmute your team',
-    muteTitle: 'Your team is watching · click to mute',
-    unmuteTitle: 'Your team is muted · click to unmute',
+    clearTitle: 'File a demolition permit · clear the desk and start fresh',
+    demolish: 'Shredder',
+    mute: 'Headphones',
+    unmute: 'Headphones off',
+    muteAria: 'Put headphones on — mute your team',
+    unmuteAria: 'Take headphones off — unmute your team',
+    muteTitle: 'Your team is hovering · put headphones on',
+    unmuteTitle: 'Headphones on · team is muted · click to take them off',
     prepForVp: 'Prep for the VP',
     prepForVpTitle: 'Prep for the VP · Boil it down before it goes upstairs'
   },
@@ -142,7 +144,7 @@ export const CONTROLS_EN = {
     label: 'Settings',
     show: 'Show settings',
     hide: 'Hide settings',
-    title: 'Settings · IT-approved: contractors, brain, code',
+    title: 'Workstation · contractors & code drawer',
     region: 'Session settings',
     // The Outbox — export/share promoted out of Settings into its own desk drawer.
     outboxLabel: 'Outbox',
@@ -153,12 +155,14 @@ export const CONTROLS_EN = {
     externalAgents: 'External agents',
     waitingHandshake: 'Waiting for handshake:',
     externalAgentFallback: 'External agent',
-    brain: 'Brain',
-    fast: 'Fast',
-    quality: 'Quality',
+    // Concentration lives on Your seat (desk menu); labels still used in run meta.
+    brain: 'Concentration',
+    fast: 'Rush job',
+    quality: 'Deep work',
+    concentrationTitle: 'How hard you are thinking before the next deliverable',
     mode: 'Mode',
-    thinking: 'Thinking',
-    aiCluster: 'AI model and thinking',
+    thinking: 'Notebook',
+    aiCluster: 'Workstation',
     export: 'Export',
     exportEmpty: 'Generate something first to export it.',
     exportWorking: 'Exporting…',
@@ -317,16 +321,16 @@ export const CONTROLS_EN = {
     tapToOpen: '{mode} · tap to change deliverable format',
     pickMode: 'Pick a format'
   },
-  // The desk drawer — secondary controls (format, focus, fix, demolish) grouped
+  // The desk tray — work-surface tools (format, facilities, shredder) grouped
   // out of the way so the Work Order and Your Team stay the primary desk objects.
   deskDrawer: {
-    label: 'Desk drawer',
-    close: 'Close the desk drawer',
-    title: 'Desk drawer · Deliverable format, focus, fix & demolition',
-    menuAria: 'Desk drawer',
-    roleTag: 'Supply Closet',
+    label: 'Desk tray',
+    close: 'Close the desk tray',
+    title: 'Desk tray · Deliverable format, facilities & shredder',
+    menuAria: 'Desk tray',
+    roleTag: 'Work surface',
     formatHeading: 'Deliverable format',
-    deskHeading: 'On your desk'
+    deskHeading: 'Work surface'
   },
   stakeholders: {
     theStakeholders: 'Your Team',
@@ -346,7 +350,7 @@ export const CONTROLS_EN = {
     // One-time first-run spotlight framing the team mechanic.
     introEyebrow: '👥 Your team has opinions',
     introBody:
-      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Mute them anytime with the button on the right.',
+      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Put on Headphones anytime to shut them out.',
     introDismiss: 'Got it',
     introAria: 'Meet your team'
   },

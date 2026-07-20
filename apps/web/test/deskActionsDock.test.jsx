@@ -16,8 +16,10 @@ function open(props = {}) {
     onOpenOutbox: vi.fn(),
     onOpenSettings: vi.fn(),
     onToggleThinking: vi.fn(),
+    onSelectModelProfile: vi.fn(),
     canOpenOutbox: true,
     canToggleThinking: true,
+    modelProfile: 'fast',
     ...props
   };
   render(<DeskActionsDock {...handlers} />);
@@ -54,40 +56,52 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('offers desk verbs in priority order without Meet the Office', () => {
+  it('groups desk verbs by seat / get up / under the desk without Meet the Office', () => {
     open();
     const items = screen.getAllByRole('menuitem').map((el) => el.textContent);
     expect(items.join('\n')).not.toMatch(/Meet the Office/);
-    expect(items[0]).toMatch(/Talk to your team/);
-    expect(items[1]).toMatch(/Call a meeting/);
-    expect(items[2]).toMatch(/Check your mail/);
-    expect(items[3]).toMatch(/Ship from the Outbox/);
+    expect(screen.getByText('Your seat')).toBeTruthy();
+    expect(screen.getByText('Get up')).toBeTruthy();
+    expect(screen.getByText('Under the desk')).toBeTruthy();
+    expect(items[0]).toMatch(/Open your notebook/);
+    expect(screen.getByRole('menuitem', { name: /Talk to your team/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Call a meeting/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Check your mail/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Ship from the Outbox/ })).toBeTruthy();
     for (const label of [
       'Open Slop Chat',
       'Message someone',
       'Walk the floor',
       'Get a coffee',
-      'Open the Thinking board',
       'Adjust your workstation',
       'Check my HR progression'
     ]) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
+    expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
   });
 
-  it('runs Settings and Thinking verbs and closes the menu', () => {
+  it('runs Settings and Notebook verbs and closes the menu', () => {
     const handlers = open({ canToggleThinking: true });
     fireEvent.click(screen.getByRole('menuitem', { name: /Adjust your workstation/ }));
     expect(handlers.onOpenSettings).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('toggles Thinking from the desk menu', () => {
+  it('toggles Notebook from the desk menu', () => {
     cleanup();
     const handlers = open({ canToggleThinking: true });
-    fireEvent.click(screen.getByRole('menuitem', { name: /Open the Thinking board/ }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Open your notebook/ }));
     expect(handlers.onToggleThinking).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('selects Deep work concentration without closing the menu', () => {
+    const handlers = open({ modelProfile: 'fast' });
+    fireEvent.click(screen.getByRole('button', { name: 'Deep work' }));
+    expect(handlers.onSelectModelProfile).toHaveBeenCalledWith('quality');
+    expect(screen.getByRole('menu')).toBeTruthy();
   });
 
   it('opens Outbox from the desk menu', () => {
@@ -157,10 +171,10 @@ describe('DeskActionsDock', () => {
     expect(handlers.onTalkToTeam).toHaveBeenCalledTimes(1);
   });
 
-  it('blocks Outbox and Thinking when there is nothing to open', () => {
+  it('blocks Outbox and Notebook when there is nothing to open', () => {
     open({ canOpenOutbox: false, canToggleThinking: false });
     const outbox = screen.getByRole('menuitem', { name: /Ship from the Outbox/ });
-    const thinking = screen.getByRole('menuitem', { name: /Open the Thinking board/ });
+    const thinking = screen.getByRole('menuitem', { name: /Open your notebook/ });
     expect(outbox.disabled).toBe(true);
     expect(thinking.disabled).toBe(true);
     expect(outbox.getAttribute('title')).toMatch(/Nothing to ship/i);

@@ -1059,6 +1059,9 @@ export const OFFICE_CHROME_COPY = {
     buttonTitle: 'Get up, wander, bother someone',
     menuAria: 'Desk actions',
     menuHeading: 'What are you doing?',
+    sectionSeat: 'Your seat',
+    sectionGetUp: 'Get up',
+    sectionUnderDesk: 'Under the desk',
     hrProgress: 'Check my HR progression',
     hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda thinks of you',
     coffee: 'Get a coffee',
@@ -1072,10 +1075,10 @@ export const OFFICE_CHROME_COPY = {
     outbox: 'Ship from the Outbox',
     outboxTitle: 'Export or share the deliverable on your desk',
     settings: 'Adjust your workstation',
-    settingsTitle: 'Brain speed, guest agents, and the code drawer',
-    thinking: 'Open the Thinking board',
-    thinkingClose: 'Close the Thinking board',
-    thinkingTitle: 'Notes, critiques, and run history from the floor',
+    settingsTitle: 'Guest agents and the code drawer',
+    thinking: 'Open your notebook',
+    thinkingClose: 'Close your notebook',
+    thinkingTitle: 'Your notebook · notes, critiques, and run history',
     blocked: {
       busy: 'Deploy in progress — nobody leaves their desk.',
       meeting: "You're in a meeting. Look engaged.",
@@ -1083,7 +1086,7 @@ export const OFFICE_CHROME_COPY = {
       noAgenda: 'Draw something first — even this meeting needs an agenda',
       noTeam: 'Put something on the canvas — the team has nothing to react to yet',
       noOutbox: 'Nothing to ship yet — put a deliverable on the canvas first',
-      noThinking: 'The Thinking board is empty — run something first'
+      noThinking: 'Your notebook is empty — run something first'
     }
   },
   inbox: {
