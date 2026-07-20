@@ -66,6 +66,8 @@ verify:deps: @a2ui/web_core versions used by apps/web imports are mismatched:
 
 Singleton checks are configured in `scripts/verify-deps.mjs`; override pins live in root `package.json` `overrides`.
 
+When overrides hoist a newer `@a2ui/web_core`, npm ls may also mark **older transitive copies** (e.g. `@copilotkit/a2ui-renderer` still declares `0.9.0`) as invalid. That is expected — `verify:deps` only fails when the versions **app code actually imports** (`apps/web` and `@a2ui/react` paths) disagree. CI uses Node from `.nvmrc` (currently 26); match it locally before dependency bumps so `npm ls` output matches CI.
+
 ## How to read ESLint output
 
 The custom formatter at `packages/eslint-config/formatter.cjs` renders one line per violation, then a trailing block titled **"Agent guidance"**. The block quotes, for each rule id that fired, the canonical fix and the exact suppression syntax.
