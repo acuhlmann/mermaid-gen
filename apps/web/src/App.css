@@ -16676,7 +16676,6 @@ body.slopitect-rainbow-tint::before {
   );
 }
 @media (max-width: 720px) {
-  .office-coffee-invite,
   .office-battle-invite,
   .office-meeting-invite {
     top: calc(4.4rem + env(safe-area-inset-top, 0px));
@@ -16703,14 +16702,11 @@ body.slopitect-rainbow-tint::before {
     overflow-wrap: anywhere;
   }
   .office-battle-invite-actions,
-  .office-coffee-invite-actions,
   .office-meeting-invite-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
   }
-  .office-coffee-accept,
-  .office-coffee-decline,
   .office-battle-accept,
   .office-battle-decline,
   .office-meeting-accept,
@@ -16749,6 +16745,99 @@ body.slopitect-rainbow-tint::before {
   }
   .office-battle-side {
     width: 100%;
+  }
+}
+
+/* Watercooler invite: phones use the block above via max-width 720px; unfolded
+   foldables land in the 721–1024px band and kept the centered pill — awkward
+   across the hinge and cramped beside a side-by-side Thinking pane. */
+@media (max-width: 1024px) {
+  .office-coffee-invite {
+    top: calc(4.4rem + env(safe-area-inset-top, 0px));
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: auto;
+    width: auto;
+    max-width: none;
+    transform: none;
+    border-radius: 14px;
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.72rem 0.85rem;
+  }
+
+  .office-coffee-invite-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .office-coffee-invite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .office-coffee-accept,
+  .office-coffee-decline {
+    flex: 1 1 auto;
+    min-width: 7rem;
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+
+  .office-coffee-scene {
+    padding: max(0.75rem, env(safe-area-inset-top, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px))
+      max(0.75rem, env(safe-area-inset-left, 0px));
+    align-items: center;
+    justify-content: center;
+  }
+
+  .office-coffee-card {
+    width: 100%;
+    max-height: min(
+      calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem),
+      32rem
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .office-coffee-footer {
+    flex-wrap: wrap;
+  }
+
+  .office-coffee-done {
+    flex: 1 1 auto;
+    min-width: 7rem;
+    text-align: center;
+  }
+}
+
+@supports (horizontal-viewport-segments: 2) {
+  @media (horizontal-viewport-segments: 2) and (max-width: 1024px) {
+    /* Keep the invite on the canvas segment — not straddling the hinge. */
+    .office-coffee-invite {
+      right: auto;
+      width: min(
+        26rem,
+        calc(
+          env(viewport-segment-width 0 0, 50vw) - 1rem - env(safe-area-inset-left, 0px) -
+            env(safe-area-inset-right, 0px)
+        )
+      );
+    }
+
+    .office-coffee-scene {
+      /* Scene stays centred on the active (left) segment when unfolded. */
+      left: env(viewport-segment-left 0 0, 0);
+      width: env(viewport-segment-width 0 0, 100vw);
+      right: auto;
+    }
   }
 }
 .office-coffee-accept,

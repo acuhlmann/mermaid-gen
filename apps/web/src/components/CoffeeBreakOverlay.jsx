@@ -88,12 +88,14 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
         >
           {formatLocale(copy.coffee.inviteLine, { name: inviter.name })}
         </span>
-        <button type="button" className="office-coffee-accept" onClick={onAccept}>
-          {copy.coffee.accept}
-        </button>
-        <button type="button" className="office-coffee-decline" onClick={onDecline}>
-          {copy.coffee.decline}
-        </button>
+        <div className="office-coffee-invite-actions">
+          <button type="button" className="office-coffee-accept" onClick={onAccept}>
+            {copy.coffee.accept}
+          </button>
+          <button type="button" className="office-coffee-decline" onClick={onDecline}>
+            {copy.coffee.decline}
+          </button>
+        </div>
       </div>
     );
   }
