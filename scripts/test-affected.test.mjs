@@ -1,0 +1,90 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  basenameTestCandidates,
+  isWireSourcePath,
+  resolveAffectedTests,
+  SERVER_SLOW_TEST_FILES,
+  summarizeAffectedTestPlan,
+  touchesAnythingRuntime
+} from './test-affected-lib.mjs';
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+test('basenameTestCandidates maps server agents to test files', () => {
+  assert.deepEqual(basenameTestCandidates('apps/server/src/agents/diagramAgentDispatcher.js'), [
+    'apps/server/test/diagramAgentDispatcher.test.js'
+  ]);
+});
+
+test('basenameTestCandidates maps shared sources to .test.ts', () => {
+  assert.deepEqual(basenameTestCandidates('packages/shared/src/formsA2ui.ts'), [
+    'packages/shared/test/formsA2ui.test.ts'
+  ]);
+});
+
+test('basenameTestCandidates maps web components to jsx/js/ts variants', () => {
+  const candidates = basenameTestCandidates('apps/web/src/components/InsightsPane.jsx');
+  assert.ok(candidates.includes('apps/web/test/InsightsPane.test.jsx'));
+});
+
+test('resolveAffectedTests includes basename mirror and blast-radius tests', () => {
+  const plan = resolveAffectedTests(['apps/server/src/agents/diagramAgentDispatcher.js'], {
+    root: ROOT
+  });
+  assert.ok(plan.tests.includes('apps/server/test/diagramAgentDispatcher.test.js'));
+});
+
+test('resolveAffectedTests adds copilot blast-radius tests for diagramSchema edits', () => {
+  const plan = resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT });
+  assert.ok(plan.tests.includes('packages/shared/test/diagramSchema.test.ts'));
+  assert.ok(plan.tests.includes('apps/server/test/copilotRoute.test.js'));
+  assert.equal(plan.runWire, true);
+});
+
+test('resolveAffectedTests skips slow server tests unless anything changes', () => {
+  const plan = resolveAffectedTests(['apps/server/src/agents/mermaidLangChainAgent.js'], {
+    root: ROOT
+  });
+  for (const slow of SERVER_SLOW_TEST_FILES) {
+    assert.equal(plan.tests.includes(slow), false);
+  }
+  assert.equal(plan.skipSlowServerTests, true);
+});
+
+test('resolveAffectedTests keeps slow server tests when anything paths change', () => {
+  const plan = resolveAffectedTests(['apps/server/src/tools/anythingRuntimeCheck.js'], {
+    root: ROOT,
+    includeSlow: true
+  });
+  assert.ok(plan.anythingTouched);
+  assert.ok(plan.tests.includes('apps/server/test/anythingRuntimeCheck.test.js'));
+});
+
+test('resolveAffectedTests marks unknown server paths for fallback', () => {
+  const plan = resolveAffectedTests(['apps/server/src/utils/noMatchingTestModule.js'], {
+    root: ROOT
+  });
+  assert.ok(plan.fallbacks.includes('server'));
+});
+
+test('isWireSourcePath recognizes copilot routes and web state', () => {
+  assert.equal(isWireSourcePath('apps/server/src/routes/copilot.ts'), true);
+  assert.equal(isWireSourcePath('apps/web/src/state/agUiTranslator.ts'), true);
+  assert.equal(isWireSourcePath('apps/server/src/utils/redactSecrets.js'), false);
+});
+
+test('touchesAnythingRuntime matches anything modules only', () => {
+  assert.equal(touchesAnythingRuntime('apps/server/src/agents/anythingLangChainAgent.js'), true);
+  assert.equal(touchesAnythingRuntime('apps/server/src/agents/mermaidLangChainAgent.js'), false);
+});
+
+test('summarizeAffectedTestPlan is human-readable', () => {
+  const summary = summarizeAffectedTestPlan(
+    resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT })
+  );
+  assert.match(summary, /targeted test file/);
+  assert.match(summary, /wire/);
+});

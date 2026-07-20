@@ -39,21 +39,22 @@ Run: `npm run check:wire`
 
 ## Forms validation ladder
 
-| Layer             | Location                                                                                                                                                                     |
-| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Shared parse gate | [`packages/shared/src/formsA2ui.ts`](../packages/shared/src/formsA2ui.ts)                                                                                                    |
-| Server tool       | [`apps/server/src/tools/formsA2uiTool.js`](../apps/server/src/tools/formsA2uiTool.js)                                                                                        |
-| Tests             | [`packages/shared/test/formsA2ui.test.ts`](../packages/shared/test/formsA2ui.test.ts), [`apps/server/test/formsA2uiTool.test.js`](../apps/server/test/formsA2uiTool.test.js) |
+| Layer             | Location                                                                                                                                                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared parse gate | [`packages/shared/src/formsA2ui.ts`](../packages/shared/src/formsA2ui.ts)                                                                                                                                                                                                       |
+| Server tool       | [`apps/server/src/tools/formsA2uiTool.js`](../apps/server/src/tools/formsA2uiTool.js)                                                                                                                                                                                           |
+| Tests             | [`packages/shared/test/formsA2ui.test.ts`](../packages/shared/test/formsA2ui.test.ts), [`apps/server/test/formsA2uiTool.test.js`](../apps/server/test/formsA2uiTool.test.js), [`apps/server/test/formsLangChainAgent.test.js`](../apps/server/test/formsLangChainAgent.test.js) |
 
 ## HTTP / Zod body (intent, transform, analyze, style)
 
-| Layer          | Location                                                                                                                                                                           |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema         | [`packages/shared/src/diagramSchema.ts`](../packages/shared/src/diagramSchema.ts)                                                                                                  |
-| Inferred types | [`apps/server/src/routes/copilotRouteTypes.ts`](../apps/server/src/routes/copilotRouteTypes.ts)                                                                                    |
-| Route handler  | [`apps/server/src/routes/copilot.ts`](../apps/server/src/routes/copilot.ts)                                                                                                        |
-| Web client     | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js), [`App.jsx`](../apps/web/src/App.jsx)                                                                |
-| Tests          | [`apps/server/test/copilotRoute.test.js`](../apps/server/test/copilotRoute.test.js), [`packages/shared/test/diagramSchema.test.ts`](../packages/shared/test/diagramSchema.test.ts) |
+| Layer          | Location                                                                                                                                                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema         | [`packages/shared/src/diagramSchema.ts`](../packages/shared/src/diagramSchema.ts)                                                                                                                                                                                                           |
+| Inferred types | [`apps/server/src/routes/copilotRouteTypes.ts`](../apps/server/src/routes/copilotRouteTypes.ts)                                                                                                                                                                                             |
+| Route handler  | [`apps/server/src/routes/copilot.ts`](../apps/server/src/routes/copilot.ts)                                                                                                                                                                                                                 |
+| Dispatcher     | [`apps/server/src/agents/diagramAgentDispatcher.js`](../apps/server/src/agents/diagramAgentDispatcher.js)                                                                                                                                                                                   |
+| Web client     | [`apps/web/src/state/diagramStore.js`](../apps/web/src/state/diagramStore.js), [`App.jsx`](../apps/web/src/App.jsx)                                                                                                                                                                         |
+| Tests          | [`apps/server/test/copilotRoute.test.js`](../apps/server/test/copilotRoute.test.js), [`apps/server/test/diagramAgentDispatcher.test.js`](../apps/server/test/diagramAgentDispatcher.test.js), [`packages/shared/test/diagramSchema.test.ts`](../packages/shared/test/diagramSchema.test.ts) |
 
 Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
@@ -80,6 +81,7 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Scope                         | Command                                                                 |
 | ----------------------------- | ----------------------------------------------------------------------- |
 | Diff-scoped (agents)          | `npm run check:affected`                                                |
+| Diff-scoped tests only        | `npm run test:affected`                                                 |
 | Shared only                   | `npm run check:fast`                                                    |
 | Default (includes wire tests) | `npm run check`                                                         |
 | Before PR / CI parity         | `npm run check:full`                                                    |

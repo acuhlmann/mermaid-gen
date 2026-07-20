@@ -135,7 +135,6 @@ function main() {
     // CI runs typecheck:strict via `npm run check`; loose server typecheck alone
     // misses strict-island regressions (see ADR-0006).
     run('npm', ['run', 'typecheck:strict', '-w', 'apps/server'], 'typecheck:strict (apps/server)');
-    run('npm', ['run', 'test', '-w', 'apps/server'], 'test (apps/server)');
     if (flags.lintServer) {
       run('npm', ['run', 'lint', '-w', 'apps/server'], 'lint (apps/server)');
     }
@@ -145,11 +144,14 @@ function main() {
   if (flags.web) {
     run('npm', ['run', 'verify:boundaries'], 'verify:boundaries (graph rules)');
     run('npm', ['run', 'typecheck', '-w', 'apps/web'], 'typecheck (apps/web)');
-    run('npm', ['run', 'test', '-w', 'apps/web'], 'test (apps/web)');
     if (flags.lintWeb) {
       run('npm', ['run', 'lint', '-w', 'apps/web'], 'lint (apps/web)');
     }
     ran = true;
+  }
+
+  if (flags.server || flags.web) {
+    run('node', ['scripts/test-affected.mjs', '--base', baseRef], 'test:affected');
   }
 
   if (flags.wire) {

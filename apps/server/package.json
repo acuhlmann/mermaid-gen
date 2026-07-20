@@ -5,6 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test",
+    "test:fast": "node ../../scripts/run-server-tests.mjs --fast",
     "test:wire": "node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/wireEmitterRoundTrip.test.js",
     "lint": "eslint --format ../../packages/eslint-config/formatter.cjs .",
     "typecheck": "tsc --noEmit -p .",
