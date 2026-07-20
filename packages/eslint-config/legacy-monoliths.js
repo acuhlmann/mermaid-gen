@@ -7,7 +7,7 @@
 // over the threshold, fix the file rather than adding it here.
 
 export const LEGACY_MONOLITHS = [
-  'apps/web/src/App.jsx',
+  'apps/web/src/ArchiSlop.jsx',
   'apps/web/src/components/InsightsPane.jsx',
   'apps/web/src/components/DiagramCanvas.jsx',
   'apps/web/src/components/RadialActionMenu.jsx',
