@@ -8,7 +8,9 @@
 export default function EntryRenderAs({
   label,
   hint,
+  hintId = 'entry-formats-hint',
   ariaLabel,
+  ariaDescribedBy,
   modes,
   currentMode,
   onPickMode,
@@ -22,9 +24,18 @@ export default function EntryRenderAs({
     <div className="entry-render-as" data-testid="entry-render-as">
       <div className="entry-render-as-copy">
         {label ? <p className="entry-render-as-label">{label}</p> : null}
-        {hint ? <p className="entry-render-as-hint">{hint}</p> : null}
+        {hint ? (
+          <p className="entry-render-as-hint" id={hintId}>
+            {hint}
+          </p>
+        ) : null}
       </div>
-      <div className="entry-render-as-chips" role="group" aria-label={ariaLabel || label}>
+      <div
+        className="entry-render-as-chips"
+        role="group"
+        aria-label={ariaLabel || label}
+        aria-describedby={ariaDescribedBy ?? (hint ? hintId : undefined)}
+      >
         {options.map((option) => (
           <button
             key={option.id}

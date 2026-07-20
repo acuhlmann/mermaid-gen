@@ -1015,6 +1015,7 @@ export const OFFICE_CHROME_COPY = {
     title: 'Meet the team',
     tourEyebrow: 'NEW HIRE ORIENTATION™',
     rosterEyebrow: 'CAST DIRECTORY',
+    welcomeChapter: 'PEOPLE OPS',
     colleagueChapter: 'COLLEAGUE {current} OF {total}',
     unlockedLabel: '✨ CHARACTER UNLOCKED',
     tagline:
@@ -1022,17 +1023,11 @@ export const OFFICE_CHROME_COPY = {
     autoplayHint: 'Speaking…',
     rosterTagline:
       'The cast that emails, IMs, and walks by while you work — tap ▶ and let them introduce themselves:',
-    // {name} is filled from the user's badge (resolveUserName) at render time.
     greeting: 'Welcome aboard, {name}.',
     greetingRole: 'Architect',
-    greetingHint:
-      'The office will call you that in emails, IMs, and awkward walk-bys. Change it anytime. They will notice.',
     expandLabel: '🏢 Meet the Office',
     expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
     startLabel: 'Meet the team →',
-    deskChapter: 'YOUR DESK',
-    deskIntro:
-      'This canvas is your deliverable. Pitch any topic below — or pick up an assignment from the floor.',
     skipToBuildLabel: 'Skip the ceremony — just let me ship →',
     skipToBuildTitle:
       'Close orientation and drop me on the canvas. No offense taken. (Some taken. Noted in your file.)',
@@ -1045,6 +1040,9 @@ export const OFFICE_CHROME_COPY = {
     transcriptLabel: 'Transcript',
     transcriptOnLabel: 'Hide text',
     transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
+    welcomeVoiceSpeakerId: 'hr',
+    welcomeVoiceLine:
+      "Welcome to the floor. I'm Linda, from People Ops. Pick up your badge, type your name, and I'll introduce the team. You are going to fit in beautifully.",
     nameTag: {
       hello: 'HELLO',
       subtitle: 'my name is',

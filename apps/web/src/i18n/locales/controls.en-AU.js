@@ -51,6 +51,13 @@ export const CONTROLS_EN_AU = {
     topicPlaceholder: 'Pitch any topic — diagram, chart, form…',
     starterHint: 'Or pick up an assignment from the floor:',
     starterAria: 'Assignment requests from the floor',
+    entryIntro: {
+      greeting: 'Welcome, {name}',
+      role: 'Architect',
+      body: 'Turn any idea into a deliverable — pitch your own topic below, or pick up an assignment from the floor.'
+    },
+    renderAsHint:
+      'Pick a format here before you generate. Your desk (bottom-right) has export, settings, and more.',
     starters: [
       {
         label: 'Coffee supply chain',

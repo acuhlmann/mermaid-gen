@@ -17,9 +17,8 @@ import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import TopicStarters from './components/TopicStarters.jsx';
 import EntryRenderAs from './components/EntryRenderAs.jsx';
-import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
+import EntryDeskIntro from './components/EntryDeskIntro.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
-import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
 import DeskDrawer from './components/DeskDrawer.jsx';
@@ -148,7 +147,6 @@ import { readOfficeDirectorySeen, writeDayOneBadgeSeen } from './utils/officeAmb
 import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
-import { formatLocale } from './i18n/formatLocale.js';
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
@@ -2793,8 +2791,6 @@ ${requirementsBlock}`;
     [handleSelectContentMode]
   );
 
-  const entryDemoPrompt = controls.prompt.starters?.[0]?.prompt?.trim() || EXAMPLE_TRY_PROMPT;
-
   const dismissStakeholderIntro = useCallback(() => {
     if (stakeholderIntroTimerRef.current) {
       clearTimeout(stakeholderIntroTimerRef.current);
@@ -3449,11 +3445,6 @@ ${requirementsBlock}`;
       critiqueActionableSplit.items.length > 0
     ) && !busy;
 
-  // First-run demo: show the read-only example only once we know the diagram slot
-  // is genuinely empty (gated on hydration to avoid a flash for returning users
-  // whose saved diagram is about to load), and never over the editor/insights.
-  const showEntryExample = sessionHydrated && !hasCanvasContent && !editorOpen && !insightsOpen;
-
   // First-run mode reveal: after the first diagram, remind newcomers that modes
   // also live in the bottom-bar Render as control (empty-state already surfaces
   // Render as). Skipped when they already picked a mode on entry. Once-ever,
@@ -3728,21 +3719,6 @@ ${requirementsBlock}`;
             isFullscreen={isFullscreen}
             onFormSubmit={handleFormSubmit}
           />
-
-          {showEntryExample ? (
-            <ExampleDiagramPreview
-              source={controls.prompt.exampleDiagramSource ?? EXAMPLE_DIAGRAM_SOURCE}
-              eyebrow={controls.prompt.exampleEyebrow}
-              headline={formatLocale(controls.prompt.exampleHeadline, { name: userName })}
-              role={controls.prompt.exampleRole}
-              body={controls.prompt.exampleBody}
-              topicLabel={controls.prompt.exampleTopic}
-              ariaLabel={controls.prompt.exampleAria}
-              ctaLabel={controls.prompt.exampleCta}
-              onTry={() => handleStarterPick(entryDemoPrompt)}
-              active={showEntryExample}
-            />
-          ) : null}
 
           {modeRevealActive ? (
             <ModeRevealSpotlight
@@ -4054,6 +4030,11 @@ ${requirementsBlock}`;
             actions={
               !hasCanvasContent && !insightsOpen ? (
                 <div className="entry-cluster">
+                  <EntryDeskIntro
+                    copy={controls.prompt.entryIntro}
+                    userName={userName}
+                    role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
+                  />
                   <TopicStarters
                     hint={controls.prompt.starterHint}
                     ariaLabel={controls.prompt.starterAria}
@@ -4063,6 +4044,7 @@ ${requirementsBlock}`;
                   />
                   <EntryRenderAs
                     label={controls.prompt.renderAsLabel}
+                    hint={controls.prompt.renderAsHint}
                     ariaLabel={controls.prompt.renderAsAria}
                     modes={contentModeOptions}
                     currentMode={contentMode}
@@ -4345,17 +4327,7 @@ ${requirementsBlock}`;
           onSkipToBuild={focusTopicInput}
           onBootComplete={handleOfficeBootComplete}
           getSessionId={() => activeSessionId}
-          userRole={controls.prompt.exampleRole ?? 'Architect'}
-          entryStarters={
-            officeBootPending
-              ? {
-                  hint: controls.prompt.starterHint,
-                  ariaLabel: controls.prompt.starterAria,
-                  starters: controls.prompt.starters
-                }
-              : null
-          }
-          onStarterPick={handleStarterPick}
+          userRole={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'}
         />
       </div>
     </main>
