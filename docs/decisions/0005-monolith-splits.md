@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` (4 292 → 3 789 LOC, -503 LOC)
+### `App.jsx` (4 292 → 12 LOC entry + 4 546 LOC `ArchiSlop.jsx`, -477 LOC net in monolith)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
@@ -62,14 +62,16 @@ they need access to outer-closure state.
 - ✅ `AiCornerControlsInner` (~115 LOC) extracted to its own file.
 - ✅ `useSyncVisualViewportHeight` extracted to
   `apps/web/src/hooks/useSyncVisualViewportHeight.js`.
+- ✅ **Entry split:** `App.jsx` is now a 12-line `UiLocaleProvider` wrapper;
+  the shell lives in `apps/web/src/ArchiSlop.jsx`.
+- ✅ **Feature hooks:** `useVoiceInput`, `useStyleEdits` under `hooks/`.
+- ✅ **Feature modules:** `features/insights/InsightsSlot.jsx` (Thinking pane
+  wiring + `useCritiqueActionableUi`), `features/ceremony/CeremonyOverlaysSlot.jsx`,
+  `utils/buildRadialActions.jsx`, `utils/appConstants.js`, `utils/formatFormAnswer.js`.
 - ⏳ Larger seam: extract per-feature custom hooks (`useSubmitIntent`,
-  `useAnalyzeFlow`, `useStyleEdits`, `useAdvisorOverlays`) and lift major
-  JSX sections (insights wiring, ceremony overlays, radial menu wiring)
-  into wrapper components under `apps/web/src/features/`. Target:
-  App.jsx < 1 000 LOC, mostly layout + composition.
-- ⏳ These remaining extractions need UI smoke-testing before they land
-  because they thread through state that ArchiSlop owns; they should not
-  ride direct-to-main commits.
+  `useAnalyzeFlow`, `useAdvisorOverlays`) and lift remaining major JSX sections
+  (radial menu handler, session hydrate) into wrapper components. Target:
+  `ArchiSlop.jsx` < 1 000 LOC, mostly layout + composition.
 
 ### Other targets
 
