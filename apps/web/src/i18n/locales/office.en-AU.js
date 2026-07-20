@@ -712,7 +712,10 @@ export const OFFICE_EN_AU = {
       progressLabel: '{current} of {total}',
       dismissLabel: 'Clock on — begin Day One',
       replayTourLabel: '↻ Replay intro',
-      closeAria: 'Close Meet the Office'
+      closeAria: 'Close Meet the Office',
+      transcriptLabel: 'Transcript',
+      transcriptOnLabel: 'Hide text',
+      transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen'
     },
     inbox: {
       mailAnnounce: 'You’ve got mail, mate!',

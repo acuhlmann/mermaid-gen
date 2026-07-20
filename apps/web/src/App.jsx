@@ -19,7 +19,6 @@ import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import TopicStarters from './components/TopicStarters.jsx';
 import EntryRenderAs from './components/EntryRenderAs.jsx';
 import ExampleDiagramPreview from './components/ExampleDiagramPreview.jsx';
-import IntroLocaleToggle from './components/IntroLocaleToggle.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
@@ -245,7 +244,7 @@ function formatFormAnswer(value) {
 }
 
 function ArchiSlop() {
-  const { controls, slopitect, locale, setLocale, applyLocaleFromText } = useUiCopy();
+  const { controls, slopitect, applyLocaleFromText } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
@@ -3906,8 +3905,6 @@ ${requirementsBlock}`;
   // whose saved diagram is about to load), and never over the editor/insights.
   const showEntryExample = sessionHydrated && !hasCanvasContent && !editorOpen && !insightsOpen;
 
-  const showIntroLocaleToggle = showEntryExample;
-
   // First-run mode reveal: after the first diagram, remind newcomers that modes
   // also live in the bottom-bar Render as control (empty-state already surfaces
   // Render as). Skipped when they already picked a mode on entry. Once-ever,
@@ -4663,22 +4660,13 @@ ${requirementsBlock}`;
               ) : null}
             </div>
 
-            {fullscreenSupported || hasCanvasContent || editorOpen || showIntroLocaleToggle ? (
+            {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
               <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
-                {showIntroLocaleToggle ? (
-                  <IntroLocaleToggle
-                    locale={locale}
-                    copy={controls.introLocale}
-                    onSelectLocale={setLocale}
-                  />
-                ) : null}
-                {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
-                  <DiagramFullscreenButton
-                    isFullscreen={isFullscreen}
-                    disabled={streamingPreview}
-                    onToggle={toggleFullscreen}
-                  />
-                ) : null}
+                <DiagramFullscreenButton
+                  isFullscreen={isFullscreen}
+                  disabled={streamingPreview}
+                  onToggle={toggleFullscreen}
+                />
               </div>
             ) : null}
           </TopShell>
@@ -5181,7 +5169,7 @@ ${requirementsBlock}`;
       <div className="office-directory-root-mount">
         <OfficeDirectory
           placement={officeBootPending ? 'boot' : hasCanvasContent ? 'overlay' : 'entry'}
-          showChip={!officeBootPending && !hasCanvasContent}
+          showChip={false}
           onSkipToBuild={focusTopicInput}
           onBootComplete={() => setOfficeBootPending(false)}
           getSessionId={() => activeSessionId}
