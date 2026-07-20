@@ -1,4 +1,5 @@
 import { buildWebCanvasUrl } from './diagramDiffSummary.js';
+import { collectSlotRevisions } from './mcpSlotRevisions.js';
 
 /**
  * One-shot bootstrap document for external agents after room bind.
@@ -35,8 +36,7 @@ export function buildSessionBootstrap({ entry, services, pairingCodeStore, publi
   const sessionId = entry.appSessionId;
   const pairingCode = pairingCodeStore.getOrCreateCode(sessionId);
   const sessionState = services.stateStore.getSessionState();
-  const mermaidSlot = services.stateStore.getSlot('mermaid');
-  const infographicSlot = services.stateStore.getSlot('infographic');
+  const revisions = collectSlotRevisions(services.stateStore);
   const pendingHandshakes = services.handshakeStore.listPendingRequests();
   const pendingForSession = pendingHandshakes.filter((h) => h.sessionId === sessionId);
 
@@ -56,10 +56,7 @@ export function buildSessionBootstrap({ entry, services, pairingCodeStore, publi
     webCanvasUrl: buildWebCanvasUrl(sessionId),
     publicBaseUrl: publicBaseUrl ?? undefined,
     activeContentType: sessionState.activeContentType,
-    revisions: {
-      mermaid: mermaidSlot.revisionId,
-      infographic: infographicSlot.revisionId
-    },
+    revisions,
     agentRegistered: Boolean(entry.agentId),
     agentId: entry.agentId ?? null,
     agentName: entry.agentName ?? null,

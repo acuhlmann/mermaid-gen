@@ -85,4 +85,13 @@ describe('resolveAgentStreamFailureStatus', () => {
     expect(r.failureClass).toBe('syntax_exhausted');
     expect(r.detail).toMatch(/not valid JSON/);
   });
+
+  it('surfaces forms validation details from exhausted repair runs', () => {
+    const r = resolveAgentStreamFailureStatus({
+      code: 'no_mutation_revision',
+      message: 'Form update failed: Forms document must contain at least one Button.'
+    });
+    expect(r.failureClass).toBe('syntax_exhausted');
+    expect(r.detail).toMatch(/at least one Button/);
+  });
 });

@@ -53,7 +53,8 @@ function stripFailurePrefix(message: string): string {
     .replace(/^infographic update failed:\s*/i, '')
     .replace(/^chart update failed:\s*/i, '')
     .replace(/^metaphor update failed:\s*/i, '')
-    .replace(/^page update failed:\s*/i, '');
+    .replace(/^page update failed:\s*/i, '')
+    .replace(/^form update failed:\s*/i, '');
 }
 
 /** User-facing status for failed intent/transform agent streams. */
@@ -125,7 +126,8 @@ export function resolveAgentStreamFailureStatus({
     lower.includes('chart update failed') ||
     lower.includes('metaphor update failed') ||
     lower.includes('infographic update failed') ||
-    lower.includes('script block') ||
+    lower.includes('form update failed') ||
+    lower.includes('forms document') ||
     lower.includes('style block') ||
     lower.includes('external url') ||
     lower.includes('must not reference') ||

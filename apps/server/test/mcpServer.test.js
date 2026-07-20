@@ -5,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
 import { RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
+import { buildFormsSeedDoc } from '@archislop/shared';
 
 import { createSessionServicesRegistry } from '../src/state/sessionServices.js';
 import { createPairingCodeStore } from '../src/state/pairingCodeStore.js';
@@ -479,4 +480,52 @@ test('MCP: non-blocking register_agent and get_handshake_status', async (t) => {
   const sub = parseToolText(await callTool(client, 'subscribe_session_events', {}));
   assert.ok(sub.sessionEventsUrl?.includes('session-events'));
   assert.ok(sub.agentToken);
+});
+
+test('MCP: propose_diagram_edit accepts forms slot documents', async (t) => {
+  const { sessionRegistry, pairingCodeStore, port, closeServer } = await setupServer();
+  t.after(closeServer);
+
+  const sessionId = 'mcp-forms-propose';
+  const code = pairingCodeStore.getOrCreateCode(sessionId);
+  const services = sessionRegistry.getSessionServices(sessionId);
+  const { client, transport } = await connectClient(port, `pairing=${encodeURIComponent(code)}`);
+  t.after(() => client.close());
+  t.after(() => transport.close());
+
+  const registerPromise = callTool(client, 'register_agent', {
+    name: 'Forms Bot',
+    emoji: '📋',
+    wait: true
+  });
+  let requestId = null;
+  for (let i = 0; i < 20 && !requestId; i += 1) {
+    const pending = services.handshakeStore.listPendingRequests();
+    if (pending.length > 0) requestId = pending[0].requestId;
+    if (!requestId) await new Promise((r) => setTimeout(r, 25));
+  }
+  assert.ok(requestId);
+  const approvedAgent = services.handshakeStore.approveRequest(requestId);
+  services.eventBus.publish(sessionId, {
+    type: 'handshake_resolved',
+    payload: { requestId, status: 'approved', agent: approvedAgent }
+  });
+  const registerResult = parseToolText(await registerPromise);
+  assert.equal(registerResult.status, 'approved');
+
+  const formsDoc = buildFormsSeedDoc();
+  const proposeResult = parseToolText(
+    await callTool(client, 'propose_diagram_edit', {
+      contentType: 'forms',
+      diagramSource: formsDoc,
+      reason: 'forms proposal',
+      baseRevisionId: 0
+    })
+  );
+  assert.equal(proposeResult.status, 'pending');
+  assert.ok(proposeResult.proposalId);
+
+  const statePayload = parseToolText(await callTool(client, 'get_session_state', {}));
+  assert.ok(statePayload.slots?.forms);
+  assert.equal(statePayload.revisions?.forms, 0);
 });

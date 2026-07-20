@@ -88,9 +88,77 @@ export function extractAnythingAdvisorLabels(source) {
   return { labels: labels.slice(0, MAX_LABELS), ids: labels.slice(0, MAX_LABELS) };
 }
 
+export function extractMetaphorAdvisorLabels(source) {
+  if (typeof source !== 'string' || !source.trim()) {
+    return { labels: [], ids: [] };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return { labels: [], ids: [] };
+  }
+  const labels = [];
+  const seen = new Set();
+  pushUnique(labels, seen, parsed?.scene?.title);
+  const items = Array.isArray(parsed?.items) ? parsed.items : [];
+  for (const item of items) {
+    if (labels.length >= MAX_LABELS) break;
+    pushUnique(labels, seen, item?.label);
+    pushUnique(labels, seen, item?.id);
+  }
+  return { labels: labels.slice(0, MAX_LABELS), ids: labels.slice(0, MAX_LABELS) };
+}
+
+function collectFormsComponentLabels(component, labels, seen) {
+  if (!component || typeof component !== 'object') return;
+  if (component.component === 'Text') {
+    const text = component.text;
+    if (typeof text === 'string') pushUnique(labels, seen, text);
+    if (text && typeof text === 'object' && typeof text.literalString === 'string') {
+      pushUnique(labels, seen, text.literalString);
+    }
+  }
+  for (const key of ['label', 'title', 'placeholder', 'hint']) {
+    pushUnique(labels, seen, component[key]);
+  }
+  for (const child of component.children ?? []) {
+    if (labels.length >= MAX_LABELS) break;
+    collectFormsComponentLabels(child, labels, seen);
+  }
+}
+
+export function extractFormsAdvisorLabels(source) {
+  if (typeof source !== 'string' || !source.trim()) {
+    return { labels: [], ids: [] };
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return { labels: [], ids: [] };
+  }
+  const labels = [];
+  const seen = new Set();
+  pushUnique(labels, seen, parsed?.formTitle);
+  const messages = Array.isArray(parsed?.messages) ? parsed.messages : [];
+  for (const message of messages) {
+    if (labels.length >= MAX_LABELS) break;
+    const components = message?.updateComponents?.components;
+    if (!Array.isArray(components)) continue;
+    for (const component of components) {
+      if (labels.length >= MAX_LABELS) break;
+      collectFormsComponentLabels(component, labels, seen);
+    }
+  }
+  return { labels: labels.slice(0, MAX_LABELS), ids: labels.slice(0, MAX_LABELS) };
+}
+
 export function getAdvisorVisibleLabels({ contentType, host, diagramSource }) {
   if (contentType === 'infographic') return getVisibleInfographicLabels(host);
   if (contentType === 'chart') return extractChartAdvisorLabels(diagramSource);
   if (contentType === 'anything') return extractAnythingAdvisorLabels(diagramSource);
+  if (contentType === 'metaphor3d') return extractMetaphorAdvisorLabels(diagramSource);
+  if (contentType === 'forms') return extractFormsAdvisorLabels(diagramSource);
   return getVisibleDiagramLabels(host);
 }

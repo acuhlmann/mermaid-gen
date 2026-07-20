@@ -40,13 +40,15 @@ export const AGUI_STATE_PATH_INFOGRAPHIC_REVISION = '/infographic/revisionId';
 export const AGUI_STATE_PATH_METAPHOR3D_REVISION = '/metaphor3d/revisionId';
 export const AGUI_STATE_PATH_CHART_REVISION = '/chart/revisionId';
 export const AGUI_STATE_PATH_ANYTHING_REVISION = '/anything/revisionId';
+export const AGUI_STATE_PATH_FORMS_REVISION = '/forms/revisionId';
 
 export function agUiDraftSourcePath(contentType: string | null | undefined) {
   const slot =
     contentType === 'infographic' ||
     contentType === 'metaphor3d' ||
     contentType === 'chart' ||
-    contentType === 'anything'
+    contentType === 'anything' ||
+    contentType === 'forms'
       ? contentType
       : 'mermaid';
   return `/${slot}/draftSource`;
@@ -57,6 +59,7 @@ export function agUiRevisionPath(contentType: string | null | undefined) {
   if (contentType === 'metaphor3d') return AGUI_STATE_PATH_METAPHOR3D_REVISION;
   if (contentType === 'chart') return AGUI_STATE_PATH_CHART_REVISION;
   if (contentType === 'anything') return AGUI_STATE_PATH_ANYTHING_REVISION;
+  if (contentType === 'forms') return AGUI_STATE_PATH_FORMS_REVISION;
   return AGUI_STATE_PATH_MERMAID_REVISION;
 }
 

@@ -1,5 +1,6 @@
 import type { ContentType } from '@archislop/shared';
 import { buildWebCanvasUrl } from './diagramDiffSummary.js';
+import { collectSlotRevisions } from './mcpSlotRevisions.js';
 import { buildProposalReviewPayload } from './mcpProposalReviewPayload.js';
 import type { DiagramStateStore } from '../state/diagramStateStore.js';
 import type { SessionEventBus } from '../state/sessionEventBus.js';
@@ -224,14 +225,10 @@ export function getSessionCollaborationSnapshot(
   },
   sessionId: string | undefined
 ) {
-  const mermaidRevision = stateStore.getSlot('mermaid').revisionId;
-  const infographicRevision = stateStore.getSlot('infographic').revisionId;
+  const revisions = collectSlotRevisions(stateStore);
   const services = { stateStore, proposalStore };
   const pending = proposalStore.listPending({
-    currentRevisionByContentType: {
-      mermaid: mermaidRevision,
-      infographic: infographicRevision
-    }
+    currentRevisionByContentType: revisions
   });
   const proposals = sessionId
     ? pending.map((p) => {
@@ -250,7 +247,7 @@ export function getSessionCollaborationSnapshot(
     : pending;
   return {
     activeContentType: stateStore.getSessionState().activeContentType,
-    revisions: { mermaid: mermaidRevision, infographic: infographicRevision },
+    revisions,
     presence: presenceStore.list(),
     proposals,
     webCanvasUrl: sessionId ? buildWebCanvasUrl(sessionId) : undefined
