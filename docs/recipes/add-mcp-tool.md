@@ -4,17 +4,19 @@ Use when external agents (Cursor, Claude Desktop, VS Code Copilot) need a new ca
 
 ## Steps
 
-1. **Define the tool** in `apps/server/src/mcp/mcpServer.js` inside the existing `server.tool(name, schema, handler)` registration block. Match the surrounding pattern: Zod schema for inputs, async handler returning `{ content: [...] }` (and optionally `{ structuredContent }` for App-aware hosts).
-2. **Forward to session services.** The handler runs inside a closure over `getSessionServicesForInput` / pairing. Get session services and call the appropriate method on the in-process services (`stateStore`, `sessionEventBus`, `agentDispatcher`, …). Don't reach into other tools' state directly.
-3. **If the tool needs human approval** (anything that mutates the diagram), emit a _proposal_ via `sessionEventBus.publishProposal(...)` and have the tool block on `wait_for_resolution` rather than applying directly. See `propose_diagram_edit` for the reference pattern.
-4. **If the tool returns an MCP App URL** (for hosts that support SEP-1865), add a new HTML bundle under `apps/server/src/mcp/apps/` exporting a string. Use an existing bundle (`webCompanionAppHtml.js`, `proposalReviewAppHtml.js`) as the template — they share nav chrome and use the session-event bridge for auto-refresh. Return `{ uri: 'ui://archislop/your-bundle.html' }` from the tool.
-5. **Document the tool** in [`docs/guide/external-agents.md`](../guide/external-agents.md) under the _MCP Apps_ table (if it has a UI surface) and the _Other MCP tools_ list (if not). Update [`docs/architecture-external-agents.md`](../architecture-external-agents.md) if the tool changes any of the named flows (join, handshake, proposal, insights).
-6. **Add a test** in `apps/server/test/mcpServer.test.js`. The test harness already mocks the session services — copy the closest existing test.
-7. **Smoke-test interactively.** `npm run dev`, open the UI, hit _Invite agent_, copy the pairing code, then call your tool from any MCP client (`mcp inspector`, Cursor with the pairing URL, …). Confirm `session-events` shows the right activity and the web UI reflects the change.
+1. **Define the tool** under `apps/server/src/mcp/tools/register{ToolName}.js` exporting `register{ToolName}(server, ctx)`. Prefer this over growing `mcpServer.js` (ADR-0005). Match the surrounding pattern: Zod schema for inputs, async handler returning `{ content: [...] }` (and optionally `{ structuredContent }` for App-aware hosts). See `apps/server/src/mcp/tools/README.md` for the `ctx` shape and `registerGetMcpBinding.js` as a template.
+2. **Compose in `buildMcpServer`.** Import the register function and call it from `apps/server/src/mcp/mcpServer.js` with the shared `toolCtx` (or extend `toolCtx` if the tool needs a new store/helper). Keep registration order deterministic.
+3. **Forward to session services.** The handler runs with access to `ctx.currentEntry` / `ctx.requireBoundSession` / pairing. Get session services and call the appropriate method on the in-process services (`stateStore`, `sessionEventBus`, `agentDispatcher`, …). Don't reach into other tools' state directly.
+4. **If the tool needs human approval** (anything that mutates the diagram), emit a _proposal_ via `sessionEventBus.publishProposal(...)` and have the tool block on `wait_for_resolution` rather than applying directly. See `propose_diagram_edit` for the reference pattern. Human-only App stubs live in `registerHumanOnlyAppTools.js`.
+5. **If the tool returns an MCP App URL** (for hosts that support SEP-1865), add a new HTML bundle under `apps/server/src/mcp/apps/` exporting a string. Use an existing bundle (`webCompanionAppHtml.js`, `proposalReviewAppHtml.js`) as the template — they share nav chrome and use the session-event bridge for auto-refresh. Return `{ uri: 'ui://archislop/your-bundle.html' }` from the tool.
+6. **Document the tool** in [`docs/guide/external-agents.md`](../guide/external-agents.md) under the _MCP Apps_ table (if it has a UI surface) and the _Other MCP tools_ list (if not). Update [`docs/architecture-external-agents.md`](../architecture-external-agents.md) if the tool changes any of the named flows (join, handshake, proposal, insights).
+7. **Add a test** in `apps/server/test/mcpServer.test.js` (required — `check:affected` warns if MCP tool files change without this test). The test harness already mocks the session services — copy the closest existing test.
+8. **Smoke-test interactively.** `npm run dev`, open the UI, hit _Invite agent_, copy the pairing code, then call your tool from any MCP client (`mcp inspector`, Cursor with the pairing URL, …). Confirm `session-events` shows the right activity and the web UI reflects the change.
 
 ## Files you'll touch
 
-- `apps/server/src/mcp/mcpServer.js` — tool registration.
+- `apps/server/src/mcp/tools/register{ToolName}.js` — tool registration (preferred).
+- `apps/server/src/mcp/mcpServer.js` — compose `register…(server, toolCtx)`.
 - `apps/server/src/mcp/apps/<your-bundle>.js` — optional MCP App HTML.
 - `apps/server/test/mcpServer.test.js` — test.
 - `docs/guide/external-agents.md`, `docs/architecture-external-agents.md` — docs.

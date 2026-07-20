@@ -23,32 +23,15 @@ import {
 import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
   captureMessagesFromStreamEvent,
-  extractFinalMessage,
-  extractLastAttemptedToolSource,
-  extractOriginalRequest,
   extractTextContent,
-  extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   invokeChatModelToClient,
-  normalizeAgentStreamEvent,
-  toLangChainMessages
+  normalizeAgentStreamEvent
 } from './_lib/diagramAgentHelpers.js';
+import { invokePatchAgentWithRepair } from './_lib/invokePatchAgentWithRepair.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
-import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { repairChartWithFixer, isChartSyntaxFixerAvailable } from './chartSyntaxFixer.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
-import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
-import {
-  appendLastValidationError,
-  buildAgentRunBudgetExceededMessage,
-  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
-  MIN_SYNTAX_FIXER_BUDGET_MS,
-  resolveAgentRepairAttemptProfile,
-  resolveAgentRepairMaxAttempts,
-  resolveAgentRunBudgetMs
-} from '@archislop/shared';
-import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 import {
   buildChartAnalyzeFocusInstructions,
   buildChartFocusScopeInstructions
@@ -240,286 +223,40 @@ export function createChartLangChainAgent({
   }
 
   async function invokeWithRepair(userMessages, opts) {
-    const {
-      requirePatch = false,
-      emit,
-      profile,
-      abortSignal,
-      mode = null,
-      focusNode = null,
-      peerContext = null,
-      // When the caller has a clean short prompt (intent), pass it so the repair
-      // instruction doesn't re-embed the whole current-DSL block that the first
-      // user message carries. Falls back to extracting the first user message.
-      originalRequest: originalRequestOverride = null
-    } = opts ?? {};
-    const runProfile = normalizeModelProfile(profile);
-    const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'chart');
-    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
-    const turnStarted = Date.now();
-    // Every model turn shares this deadline-capped signal so an in-flight call cannot
-    // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
-    const runSignal = createRunDeadlineSignal({
-      abortSignal,
-      budgetMs: runBudgetMs,
-      startedAt: turnStarted
+    return invokePatchAgentWithRepair({
+      contentType: 'chart',
+      patchToolName: 'apply_chart_patch',
+      agentName: 'chart',
+      stateStore,
+      env,
+      userMessages,
+      opts,
+      buildAgent,
+      invokeAgentStream,
+      extractProseSource: extractChartDslFromAssistantResult,
+      buildRepairInstruction: buildChartRepairInstruction,
+      patchRequiredInstruction: CHART_PATCH_REQUIRED_INSTRUCTION,
+      isSyntaxFixerAvailable: isChartSyntaxFixerAvailable,
+      repairWithFixer: repairChartWithFixer,
+      labels: {
+        phaseInvokeId: 'chart_invoke',
+        phaseRepairId: (attempt) => `chart_repair_${attempt}`,
+        invokeLabel: 'Composing chart…',
+        repairLabel: (attempt, max) => `Repairing chart (attempt ${attempt} of ${max})…`,
+        retryPlanBeat: (attempt, max, tierNote) =>
+          `Previous chart patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${max})${tierNote}.`,
+        successMessage: 'Chart updated.',
+        proseRecoveryReason: 'prose-dsl recovery',
+        proseRecoveryValidator: 'prose-dsl-recovery',
+        validationFailedFallback: 'Chart validation failed',
+        syntaxFixerSuccessMessage: 'Chart updated (repaired by syntax fixer).',
+        syntaxFixerRepairedDetail: 'Repaired invalid chart DSL and applied the patch.',
+        syntaxFixerStoreRejectedFallback: 'Chart validation failed after syntax fixer.',
+        syntaxFixerFailedFallback: 'Syntax fixer could not repair the chart DSL.',
+        failurePrefix: 'Chart update failed',
+        noApplyMessage: 'Chart update did not apply.'
+      }
     });
-    const beforeRevision = stateStore.getSlot('chart').revisionId;
-    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
-
-    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
-    // appending to a growing transcript — otherwise each attempt re-embeds every prior
-    // broken source + repair instruction, blowing up token cost superlinearly (audit F1).
-    const initialMessages = toLangChainMessages(userMessages);
-    let messages = initialMessages;
-    let lastResult = null;
-    let lastError = null;
-    let lastBrokenSource = null;
-    let syntaxFixerTried = false;
-    let invokeErrored = false;
-    let agent = buildAgent(runProfile);
-
-    const backend = resolveLlmBackend(env, runProfile);
-    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
-    let repairAttempts = 0;
-    /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
-    const finishTurn = (sample) => {
-      recordAgentTurn(
-        {
-          contentType: 'chart',
-          mode: mode ?? 'unknown',
-          model: modelLabel,
-          profile: runProfile,
-          durationMs: Date.now() - turnStarted,
-          accepted: sample.accepted,
-          validator: sample.validator ?? null,
-          repairAttempts,
-          sanitizerHits: 0,
-          errorClass: sample.errorClass ?? null
-        },
-        { env }
-      );
-    };
-
-    /**
-     * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
-     * starting work that cannot finish inside the budget only delays the failure.
-     */
-    const stopReason = (minRemainingMs = 0) => {
-      if (abortSignal?.aborted) {
-        return {
-          code: 'run_aborted',
-          message: 'Agent run was stopped before completion.',
-          errorClass: 'run-aborted'
-        };
-      }
-      if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
-        return {
-          code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
-          errorClass: 'budget-exceeded'
-        };
-      }
-      return null;
-    };
-
-    const finishStoppedRun = (reason) => {
-      // Keep the last validator diagnostic in the failure message so the UI shows WHY the
-      // run ran out of time (what was invalid in the DSL), not just that it timed out.
-      const message = appendLastValidationError(reason.message, lastError);
-      if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-        emit({ type: 'error', code: reason.code, message });
-      }
-      finishTurn({ accepted: false, errorClass: reason.errorClass });
-      return {
-        message,
-        raw: lastResult,
-        metadata: { agent: 'chart', error: lastError ?? null, code: reason.code }
-      };
-    };
-
-    if (typeof emit === 'function' && requirePatch) {
-      emitServerMutationPlanBeats({
-        emit,
-        stateStore,
-        mode,
-        messages: userMessages,
-        focusNode,
-        peerContext,
-        contentType: 'chart'
-      });
-    }
-
-    for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      if (attempt > 0) {
-        repairAttempts += 1;
-        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-        agent = buildAgent(repairProfile);
-      }
-      const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
-      if (stop) return finishStoppedRun(stop);
-      if (typeof emit === 'function') {
-        if (attempt > 0) {
-          const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-          const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
-          emitPlanBeat(
-            emit,
-            `Previous chart patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
-            'server'
-          );
-        }
-        emit({
-          type: 'phase',
-          id: attempt === 0 ? 'chart_invoke' : `chart_repair_${attempt}`,
-          label:
-            attempt === 0
-              ? 'Composing chart…'
-              : `Repairing chart (attempt ${attempt} of ${maxRepairAttempts})…`
-        });
-      }
-
-      const result = await invokeAgentStream({ agent, messages, abortSignal: runSignal, emit });
-      if (result?.error) {
-        // A deadline/user abort surfaces as a stream error — finish with the proper
-        // stop reason (which carries the last validator diagnostic) instead of the
-        // bare "aborted" message.
-        const abortStop = stopReason();
-        if (abortStop) return finishStoppedRun(abortStop);
-        lastError = result.error;
-        invokeErrored = true;
-        if (typeof emit === 'function') emit({ type: 'error', message: lastError });
-        break;
-      }
-
-      lastResult = result;
-      const currentRevision = stateStore.getSlot('chart').revisionId;
-      if (currentRevision !== beforeRevision) {
-        finishTurn({
-          accepted: true,
-          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
-        });
-        return {
-          message: extractFinalMessage(result) || 'Chart updated.',
-          raw: result,
-          metadata: { agent: 'chart' }
-        };
-      }
-
-      if (!requirePatch) {
-        // Non-mutation runs (no caller today) aren't accept/reject samples — don't record.
-        return {
-          message: extractFinalMessage(result) || 'Done.',
-          raw: result,
-          metadata: { agent: 'chart' }
-        };
-      }
-
-      let failureError = extractToolFailureError(result);
-
-      if (!failureError && !result) {
-        failureError = 'Agent stream ended without a model response or tool result.';
-        lastError = failureError;
-      }
-
-      if (!failureError) {
-        const proseDsl = extractChartDslFromAssistantResult(result);
-        if (proseDsl) {
-          const applied = await stateStore.applyDiagramSource({
-            contentType: 'chart',
-            diagramSource: proseDsl,
-            reason: 'prose-dsl recovery'
-          });
-          if (applied.accepted) {
-            finishTurn({ accepted: true, validator: 'prose-dsl-recovery' });
-            return {
-              message: extractFinalMessage(result) || 'Chart updated.',
-              raw: result,
-              metadata: { agent: 'chart', validator: 'prose-dsl-recovery' }
-            };
-          }
-          failureError = applied.error ?? 'Chart validation failed';
-          lastBrokenSource = proseDsl;
-          lastError = failureError;
-        }
-      }
-
-      if (failureError) {
-        lastError = failureError;
-        lastBrokenSource =
-          extractLastAttemptedToolSource(result, 'apply_chart_patch') || lastBrokenSource;
-
-        if (!syntaxFixerTried && lastBrokenSource && isChartSyntaxFixerAvailable(env)) {
-          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
-          if (fixerStop) return finishStoppedRun(fixerStop);
-          syntaxFixerTried = true;
-          repairAttempts += 1;
-          emitSyntaxFixerStart(emit, { contentType: 'chart', triggerError: failureError });
-          const fixerOutcome = await repairChartWithFixer({
-            brokenSource: lastBrokenSource,
-            parseError: failureError,
-            originalRequest,
-            env,
-            abortSignal: runSignal
-          });
-          if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
-            const applied = await stateStore.applyDiagramSource({
-              contentType: 'chart',
-              diagramSource: fixerOutcome.diagramSource,
-              reason: 'syntax-fixer repair'
-            });
-            if (applied.accepted) {
-              emitSyntaxFixerResult(emit, {
-                contentType: 'chart',
-                outcome: 'repaired',
-                detail: 'Repaired invalid chart DSL and applied the patch.'
-              });
-              finishTurn({ accepted: true, validator: 'syntax-fixer' });
-              return {
-                message: 'Chart updated (repaired by syntax fixer).',
-                raw: result,
-                metadata: { agent: 'chart', validator: 'syntax-fixer' }
-              };
-            }
-            lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'chart',
-              outcome: 'store_rejected',
-              error: applied.error ?? 'Chart validation failed after syntax fixer.'
-            });
-          } else {
-            lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'chart',
-              outcome: 'fixer_failed',
-              error: fixerOutcome.error ?? 'Syntax fixer could not repair the chart DSL.'
-            });
-          }
-        }
-
-        messages = [
-          ...initialMessages,
-          new SystemMessage(
-            buildChartRepairInstruction({
-              errorMessage: failureError,
-              brokenSource: lastBrokenSource,
-              originalRequest
-            })
-          )
-        ];
-      } else {
-        messages = [...initialMessages, new SystemMessage(CHART_PATCH_REQUIRED_INSTRUCTION)];
-      }
-    }
-
-    finishTurn({
-      accepted: false,
-      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
-    });
-    return {
-      message: lastError ? `Chart update failed: ${lastError}` : 'Chart update did not apply.',
-      raw: lastResult,
-      metadata: { agent: 'chart', error: lastError ?? null }
-    };
   }
 
   return {

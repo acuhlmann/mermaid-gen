@@ -20,31 +20,14 @@ import {
 import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
   captureMessagesFromStreamEvent,
-  extractFinalMessage,
-  extractLastAttemptedToolSource,
-  extractOriginalRequest,
   extractTextContent,
-  extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   invokeChatModelToClient,
-  normalizeAgentStreamEvent,
-  toLangChainMessages
+  normalizeAgentStreamEvent
 } from './_lib/diagramAgentHelpers.js';
+import { invokePatchAgentWithRepair } from './_lib/invokePatchAgentWithRepair.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
-import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { repairMetaphorWithFixer, isMetaphorSyntaxFixerAvailable } from './metaphorSyntaxFixer.js';
-import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
-import {
-  appendLastValidationError,
-  buildAgentRunBudgetExceededMessage,
-  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
-  MIN_SYNTAX_FIXER_BUDGET_MS,
-  resolveAgentRepairAttemptProfile,
-  resolveAgentRepairMaxAttempts,
-  resolveAgentRunBudgetMs
-} from '@archislop/shared';
-import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 
 const METAPHOR_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply a metaphor patch.
 - You MUST call apply_metaphor_patch now once with complete, valid metaphor DSL JSON, then briefly summarize in prose only.
@@ -182,283 +165,40 @@ export function createMetaphorLangChainAgent({
   }
 
   async function invokeWithRepair(userMessages, opts) {
-    const {
-      requirePatch = false,
-      emit,
-      profile,
-      abortSignal,
-      mode = null,
-      focusNode = null,
-      peerContext = null,
-      // When the caller has a clean short prompt (intent), pass it so the repair
-      // instruction doesn't re-embed the whole current-document block that the first
-      // user message carries. Falls back to extracting the first user message.
-      originalRequest: originalRequestOverride = null
-    } = opts ?? {};
-    const runProfile = normalizeModelProfile(profile);
-    const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'metaphor3d');
-    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
-    const turnStarted = Date.now();
-    // Every model turn shares this deadline-capped signal so an in-flight call cannot
-    // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
-    const runSignal = createRunDeadlineSignal({
-      abortSignal,
-      budgetMs: runBudgetMs,
-      startedAt: turnStarted
+    return invokePatchAgentWithRepair({
+      contentType: 'metaphor3d',
+      patchToolName: 'apply_metaphor_patch',
+      agentName: 'metaphor3d',
+      stateStore,
+      env,
+      userMessages,
+      opts,
+      buildAgent,
+      invokeAgentStream,
+      extractProseSource: extractMetaphorDslFromAssistantResult,
+      buildRepairInstruction: buildMetaphorRepairInstruction,
+      patchRequiredInstruction: METAPHOR_PATCH_REQUIRED_INSTRUCTION,
+      isSyntaxFixerAvailable: isMetaphorSyntaxFixerAvailable,
+      repairWithFixer: repairMetaphorWithFixer,
+      labels: {
+        phaseInvokeId: 'metaphor_invoke',
+        phaseRepairId: (attempt) => `metaphor_repair_${attempt}`,
+        invokeLabel: 'Composing metaphor…',
+        repairLabel: (attempt, max) => `Repairing metaphor (attempt ${attempt} of ${max})…`,
+        retryPlanBeat: (attempt, max, tierNote) =>
+          `Previous metaphor patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${max})${tierNote}.`,
+        successMessage: 'Metaphor updated.',
+        proseRecoveryReason: 'prose-dsl recovery',
+        proseRecoveryValidator: 'prose-dsl-recovery',
+        validationFailedFallback: 'Metaphor validation failed',
+        syntaxFixerSuccessMessage: 'Metaphor updated (repaired by syntax fixer).',
+        syntaxFixerRepairedDetail: 'Repaired invalid metaphor DSL and applied the patch.',
+        syntaxFixerStoreRejectedFallback: 'Metaphor validation failed after syntax fixer.',
+        syntaxFixerFailedFallback: 'Syntax fixer could not repair the metaphor DSL.',
+        failurePrefix: 'Metaphor update failed',
+        noApplyMessage: 'Metaphor update did not apply.'
+      }
     });
-    const beforeRevision = stateStore.getSlot('metaphor3d').revisionId;
-    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
-
-    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
-    // appending to a growing transcript — otherwise each attempt re-embeds every prior
-    // broken source + repair instruction, blowing up token cost superlinearly (audit F1).
-    const initialMessages = toLangChainMessages(userMessages);
-    let messages = initialMessages;
-    let lastResult = null;
-    let lastError = null;
-    let lastBrokenSource = null;
-    let syntaxFixerTried = false;
-    let invokeErrored = false;
-    let agent = buildAgent(runProfile);
-
-    const backend = resolveLlmBackend(env, runProfile);
-    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
-    let repairAttempts = 0;
-    /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
-    const finishTurn = (sample) => {
-      recordAgentTurn(
-        {
-          contentType: 'metaphor3d',
-          mode: mode ?? 'unknown',
-          model: modelLabel,
-          profile: runProfile,
-          durationMs: Date.now() - turnStarted,
-          accepted: sample.accepted,
-          validator: sample.validator ?? null,
-          repairAttempts,
-          sanitizerHits: 0,
-          errorClass: sample.errorClass ?? null
-        },
-        { env }
-      );
-    };
-
-    /**
-     * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
-     * starting work that cannot finish inside the budget only delays the failure.
-     */
-    const stopReason = (minRemainingMs = 0) => {
-      if (abortSignal?.aborted) {
-        return {
-          code: 'run_aborted',
-          message: 'Agent run was stopped before completion.',
-          errorClass: 'run-aborted'
-        };
-      }
-      if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
-        return {
-          code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
-          errorClass: 'budget-exceeded'
-        };
-      }
-      return null;
-    };
-
-    const finishStoppedRun = (reason) => {
-      // Keep the last validator diagnostic in the failure message so the UI shows WHY the
-      // run ran out of time (what was invalid in the DSL), not just that it timed out.
-      const message = appendLastValidationError(reason.message, lastError);
-      if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-        emit({ type: 'error', code: reason.code, message });
-      }
-      finishTurn({ accepted: false, errorClass: reason.errorClass });
-      return {
-        message,
-        raw: lastResult,
-        metadata: { agent: 'metaphor3d', error: lastError ?? null, code: reason.code }
-      };
-    };
-
-    if (typeof emit === 'function' && requirePatch) {
-      emitServerMutationPlanBeats({
-        emit,
-        stateStore,
-        mode,
-        messages: userMessages,
-        focusNode,
-        peerContext,
-        contentType: 'metaphor3d'
-      });
-    }
-
-    for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      if (attempt > 0) {
-        repairAttempts += 1;
-        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-        agent = buildAgent(repairProfile);
-      }
-      const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
-      if (stop) return finishStoppedRun(stop);
-      if (typeof emit === 'function') {
-        if (attempt > 0) {
-          const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-          const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
-          emitPlanBeat(
-            emit,
-            `Previous metaphor patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
-            'server'
-          );
-        }
-        emit({
-          type: 'phase',
-          id: attempt === 0 ? 'metaphor_invoke' : `metaphor_repair_${attempt}`,
-          label:
-            attempt === 0
-              ? 'Composing metaphor…'
-              : `Repairing metaphor (attempt ${attempt} of ${maxRepairAttempts})…`
-        });
-      }
-
-      const result = await invokeAgentStream({ agent, messages, abortSignal: runSignal, emit });
-      if (result?.error) {
-        // A deadline/user abort surfaces as a stream error — finish with the proper
-        // stop reason (which carries the last validator diagnostic) instead of the
-        // bare "aborted" message.
-        const abortStop = stopReason();
-        if (abortStop) return finishStoppedRun(abortStop);
-        lastError = result.error;
-        invokeErrored = true;
-        if (typeof emit === 'function') emit({ type: 'error', message: lastError });
-        break;
-      }
-
-      lastResult = result;
-      const currentRevision = stateStore.getSlot('metaphor3d').revisionId;
-      if (currentRevision !== beforeRevision) {
-        finishTurn({
-          accepted: true,
-          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
-        });
-        return {
-          message: extractFinalMessage(result) || 'Metaphor updated.',
-          raw: result,
-          metadata: { agent: 'metaphor3d' }
-        };
-      }
-
-      if (!requirePatch) {
-        // Non-mutation runs (no caller today) aren't accept/reject samples — don't record.
-        return {
-          message: extractFinalMessage(result) || 'Done.',
-          raw: result,
-          metadata: { agent: 'metaphor3d' }
-        };
-      }
-
-      let failureError = extractToolFailureError(result);
-
-      if (!failureError) {
-        const proseDsl = extractMetaphorDslFromAssistantResult(result);
-        if (proseDsl) {
-          const applied = await stateStore.applyDiagramSource({
-            contentType: 'metaphor3d',
-            diagramSource: proseDsl,
-            reason: 'prose-dsl recovery'
-          });
-          if (applied.accepted) {
-            finishTurn({ accepted: true, validator: 'prose-dsl-recovery' });
-            return {
-              message: extractFinalMessage(result) || 'Metaphor updated.',
-              raw: result,
-              metadata: { agent: 'metaphor3d', validator: 'prose-dsl-recovery' }
-            };
-          }
-          failureError = applied.error ?? 'Metaphor validation failed';
-          lastBrokenSource = proseDsl;
-          lastError = failureError;
-        }
-      }
-
-      if (failureError) {
-        lastError = failureError;
-        lastBrokenSource =
-          extractLastAttemptedToolSource(result, 'apply_metaphor_patch') || lastBrokenSource;
-
-        if (!syntaxFixerTried && lastBrokenSource && isMetaphorSyntaxFixerAvailable(env)) {
-          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
-          if (fixerStop) return finishStoppedRun(fixerStop);
-          syntaxFixerTried = true;
-          repairAttempts += 1;
-          emitSyntaxFixerStart(emit, { contentType: 'metaphor3d', triggerError: failureError });
-          const fixerOutcome = await repairMetaphorWithFixer({
-            brokenSource: lastBrokenSource,
-            parseError: failureError,
-            originalRequest,
-            env,
-            abortSignal: runSignal
-          });
-          if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
-            const applied = await stateStore.applyDiagramSource({
-              contentType: 'metaphor3d',
-              diagramSource: fixerOutcome.diagramSource,
-              reason: 'syntax-fixer repair'
-            });
-            if (applied.accepted) {
-              emitSyntaxFixerResult(emit, {
-                contentType: 'metaphor3d',
-                outcome: 'repaired',
-                detail: 'Repaired invalid metaphor DSL and applied the patch.'
-              });
-              finishTurn({ accepted: true, validator: 'syntax-fixer' });
-              return {
-                message: 'Metaphor updated (repaired by syntax fixer).',
-                raw: result,
-                metadata: { agent: 'metaphor3d', validator: 'syntax-fixer' }
-              };
-            }
-            lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'metaphor3d',
-              outcome: 'store_rejected',
-              error: applied.error ?? 'Metaphor validation failed after syntax fixer.'
-            });
-          } else {
-            lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'metaphor3d',
-              outcome: 'fixer_failed',
-              error: fixerOutcome.error ?? 'Syntax fixer could not repair the metaphor DSL.'
-            });
-          }
-        }
-
-        messages = [
-          ...initialMessages,
-          new SystemMessage(
-            buildMetaphorRepairInstruction({
-              errorMessage: failureError,
-              brokenSource: lastBrokenSource,
-              originalRequest
-            })
-          )
-        ];
-      } else {
-        messages = [...initialMessages, new SystemMessage(METAPHOR_PATCH_REQUIRED_INSTRUCTION)];
-      }
-    }
-
-    finishTurn({
-      accepted: false,
-      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
-    });
-    return {
-      message: lastError
-        ? `Metaphor update failed: ${lastError}`
-        : 'Metaphor update did not apply.',
-      raw: lastResult,
-      metadata: { agent: 'metaphor3d', error: lastError ?? null }
-    };
   }
 
   return {

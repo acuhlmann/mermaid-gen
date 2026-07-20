@@ -42,12 +42,12 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 ## MCP tool
 
-| Layer             | Location                                                                      |
-| ----------------- | ----------------------------------------------------------------------------- |
-| Tool registration | [`apps/server/src/mcp/mcpServer.js`](../apps/server/src/mcp/mcpServer.js)     |
-| Optional App HTML | [`apps/server/src/mcp/apps/`](../apps/server/src/mcp/apps/)                   |
-| Tests             | [`apps/server/test/mcpServer.test.js`](../apps/server/test/mcpServer.test.js) |
-| Docs              | [`docs/guide/external-agents.md`](../docs/guide/external-agents.md)           |
+| Layer             | Location                                                                                                                                      |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tool registration | [`apps/server/src/mcp/tools/register*.js`](../apps/server/src/mcp/tools/) composed from [`mcpServer.js`](../apps/server/src/mcp/mcpServer.js) |
+| Optional App HTML | [`apps/server/src/mcp/apps/`](../apps/server/src/mcp/apps/)                                                                                   |
+| Tests             | [`apps/server/test/mcpServer.test.js`](../apps/server/test/mcpServer.test.js)                                                                 |
+| Docs              | [`docs/guide/external-agents.md`](../docs/guide/external-agents.md)                                                                           |
 
 ## Mermaid validation / sanitizer
 
