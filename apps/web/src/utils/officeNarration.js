@@ -12,7 +12,11 @@
  * sound gate (callers wrap via playChime).
  */
 
-import { WEB_SPEECH_RATE_RANGE, scaleSpeakingRate } from '@archislop/shared';
+import {
+  chunkOfficeNarrationText,
+  WEB_SPEECH_RATE_RANGE,
+  scaleSpeakingRate
+} from '@archislop/shared';
 
 /** @typedef {{ pitch: number, rate: number, volume: number }} OfficeVoiceProfile */
 /** @typedef {{ audioBase64: string, mimeType?: string }} OfficeCloudAudio */
@@ -164,6 +168,21 @@ export function cancelOfficeNarration(globalObj = globalThis) {
  * @param {typeof globalThis} globalObj
  * @returns {Promise<OfficeSpeakResult>}
  */
+function decodeCloudAudioBase64(audioBase64, globalObj) {
+  const atobFn = globalObj.atob ?? globalThis.atob;
+  if (typeof atobFn !== 'function') return null;
+  try {
+    const binary = atobFn(audioBase64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
 function playCloudAudio(audio, generation, globalObj) {
   return new Promise((resolve) => {
     if (generation !== speakGeneration) {
@@ -176,9 +195,15 @@ function playCloudAudio(audio, generation, globalObj) {
       return;
     }
     pendingResolve = resolve;
+    let objectUrl = null;
     try {
       const mime = audio.mimeType || 'audio/mpeg';
-      const el = new AudioCtor(`data:${mime};base64,${audio.audioBase64}`);
+      const bytes = decodeCloudAudioBase64(audio.audioBase64, globalObj);
+      const BlobCtor = globalObj.Blob ?? globalThis.Blob;
+      if (bytes && typeof BlobCtor === 'function' && typeof globalObj.URL?.createObjectURL === 'function') {
+        objectUrl = globalObj.URL.createObjectURL(new BlobCtor([bytes], { type: mime }));
+      }
+      const el = new AudioCtor(objectUrl ?? `data:${mime};base64,${audio.audioBase64}`);
       activeAudio = el;
       el.volume = 0.9;
       const finish = (result) => {
@@ -186,6 +211,14 @@ function playCloudAudio(audio, generation, globalObj) {
         if (activeAudio === el) activeAudio = null;
         el.onended = null;
         el.onerror = null;
+        if (objectUrl) {
+          try {
+            globalObj.URL?.revokeObjectURL(objectUrl);
+          } catch {
+            // Ignore.
+          }
+          objectUrl = null;
+        }
         settlePending(result);
       };
       el.onended = () => finish({ spoken: true, source: 'cloud' });
@@ -195,6 +228,13 @@ function playCloudAudio(audio, generation, globalObj) {
         playResult.catch(() => finish({ spoken: false }));
       }
     } catch {
+      if (objectUrl) {
+        try {
+          globalObj.URL?.revokeObjectURL(objectUrl);
+        } catch {
+          // Ignore.
+        }
+      }
       if (generation === speakGeneration) settlePending({ spoken: false });
     }
   });
@@ -275,6 +315,11 @@ export async function speakOfficeLine({
     return { spoken: false };
   }
 
+  const chunks = chunkOfficeNarrationText(cleaned);
+  if (chunks.length === 0) {
+    return { spoken: false };
+  }
+
   // One office speaker at a time — replace any prior line.
   const generation = ++speakGeneration;
   try {
@@ -285,26 +330,52 @@ export async function speakOfficeLine({
   stopActiveAudio();
   settlePending({ spoken: false, cancelled: true });
 
-  if (typeof fetchCloudAudio === 'function') {
-    try {
-      const cloud = await fetchCloudAudio({ speakerId, text: cleaned, lang });
-      if (generation !== speakGeneration) {
-        return { spoken: false, cancelled: true };
-      }
-      if (cloud?.audioBase64) {
-        const cloudResult = await playCloudAudio(cloud, generation, globalObj);
-        if (cloudResult.spoken || cloudResult.cancelled) {
-          return cloudResult;
+  let spokeAny = false;
+  /** @type {'cloud' | 'webspeech' | undefined} */
+  let lastSource;
+  for (const chunk of chunks) {
+    if (generation !== speakGeneration) {
+      return { spoken: spokeAny, cancelled: true };
+    }
+
+    if (typeof fetchCloudAudio === 'function') {
+      try {
+        const cloud = await fetchCloudAudio({ speakerId, text: chunk, lang });
+        if (generation !== speakGeneration) {
+          return { spoken: spokeAny, cancelled: true };
         }
-        // Playback failed (CSP, decode, autoplay) — degrade to Web Speech.
+        if (cloud?.audioBase64) {
+          const cloudResult = await playCloudAudio(cloud, generation, globalObj);
+          if (cloudResult.cancelled) {
+            return { spoken: spokeAny, cancelled: true };
+          }
+          if (cloudResult.spoken) {
+            spokeAny = true;
+            lastSource = 'cloud';
+            continue;
+          }
+          // Playback failed (CSP, decode, autoplay) — degrade this chunk to Web Speech.
+        }
+      } catch {
+        // Fall through to Web Speech for this chunk.
       }
-    } catch {
-      // Fall through to Web Speech.
+    }
+
+    if (generation !== speakGeneration) {
+      return { spoken: spokeAny, cancelled: true };
+    }
+    const webResult = await speakWebSpeech(
+      { speakerId, text: chunk, lang, globalObj },
+      generation
+    );
+    if (webResult.cancelled) {
+      return { spoken: spokeAny, cancelled: true };
+    }
+    if (webResult.spoken) {
+      spokeAny = true;
+      lastSource = 'webspeech';
     }
   }
 
-  if (generation !== speakGeneration) {
-    return { spoken: false, cancelled: true };
-  }
-  return speakWebSpeech({ speakerId, text: cleaned, lang, globalObj }, generation);
+  return { spoken: spokeAny, source: lastSource };
 }

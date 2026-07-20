@@ -140,6 +140,40 @@ describe('speakOfficeLine', () => {
     });
   });
 
+  it('chunks long lines across multiple cloud requests', async () => {
+    const fetchCloudAudio = vi.fn(async () => ({
+      audioBase64: btoa('hi'),
+      mimeType: 'audio/mpeg'
+    }));
+    function FakeAudio() {
+      this.volume = 1;
+      this.onended = null;
+      this.onerror = null;
+      this.play = () => {
+        queueMicrotask(() => this.onended?.());
+        return Promise.resolve();
+      };
+      this.pause = () => {};
+      this.removeAttribute = () => {};
+      this.load = () => {};
+    }
+    const globalObj = {
+      Audio: FakeAudio,
+      speechSynthesis: { cancel: vi.fn(), speak: vi.fn(), getVoices: () => [] },
+      SpeechSynthesisUtterance: function SpeechSynthesisUtterance() {}
+    };
+    const long = `${'A'.repeat(700)}. ${'B'.repeat(700)}.`;
+    const result = await speakOfficeLine({
+      speakerId: 'intern',
+      text: long,
+      lang: 'en-US',
+      fetchCloudAudio,
+      globalObj
+    });
+    expect(result.spoken).toBe(true);
+    expect(fetchCloudAudio.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
   it('prefers cloud audio when fetchCloudAudio returns a payload', async () => {
     const fetchCloudAudio = vi.fn(async () => ({
       audioBase64: btoa('hi'),
