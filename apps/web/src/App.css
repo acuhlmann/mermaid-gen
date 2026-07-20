@@ -18100,3 +18100,191 @@ body.slopitect-rainbow-tint::before {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Wide mobile / unfolded foldables — side-by-side canvas + Thinking pane
+   (640–1024px wide, ≥480px tall). Overrides the phone fullscreen overlay. */
+@media (min-width: 640px) and (max-width: 1024px) and (min-height: 480px) {
+  .diagram-canvas.is-insights-open:not(.is-editor-open) {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 36vw);
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .diagram-canvas.is-insights-open:not(.is-editor-open) .insights-pane {
+    position: relative;
+    inset: auto;
+    z-index: auto;
+    width: auto;
+    max-width: none;
+    padding-top: 0.35rem;
+    padding-left: 0;
+    padding-right: 0;
+    padding-bottom: 0;
+    border-left: 1px solid rgba(148, 163, 184, 0.35);
+    border-top: 0;
+    box-shadow: none;
+  }
+
+  .insights-pane-dismiss.overlay-button {
+    display: inline-flex;
+    position: absolute;
+    top: auto;
+    right: 0.75rem;
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+    pointer-events: auto;
+    width: auto;
+    min-width: 0;
+    align-self: auto;
+  }
+
+  .insights-pane:has(.insights-pane-dismiss) .insights-pane-body {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .insights-pane:has(.insights-pane-dismiss):has(.insights-stop-stream-btn) .insights-pane-body {
+    padding-bottom: calc(6.35rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .insights-pane:has(.insights-pane-dismiss) .insights-stop-stream-btn {
+    position: absolute;
+    right: 0.75rem;
+    bottom: calc(0.75rem + 2.85rem + env(safe-area-inset-bottom, 0px));
+    z-index: 3;
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open) .prompt-stack {
+    position: relative;
+    left: auto;
+    right: auto;
+    bottom: auto;
+    z-index: auto;
+    margin: 0;
+    padding: 0;
+    pointer-events: auto;
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open) .insights-pane-body {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-shell.is-insights-open .ai-corner-controls,
+  .app-shell.is-insights-open .prompt-actions--mobile {
+    display: flex;
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open) .bottom-chrome {
+    padding-right: max(220px, 36vw);
+  }
+
+  .app-shell.is-insights-open:not(.is-editor-open) .top-shell {
+    right: calc(max(220px, 36vw) + 1rem);
+  }
+
+  .diagram-viewport {
+    padding: 4.25rem 0.75rem var(--mobile-bottom-chrome-est);
+  }
+
+  .forms-renderer-root {
+    --forms-top-chrome-est: 4.25rem;
+  }
+}
+
+/* Dual-screen foldables: place canvas on the left segment, Thinking on the right. */
+@supports (horizontal-viewport-segments: 2) {
+  @media (horizontal-viewport-segments: 2) and (max-width: 1024px) {
+    .diagram-canvas.is-insights-open:not(.is-editor-open) {
+      grid-template-columns:
+        env(viewport-segment-width 0 0, minmax(0, 1fr))
+        env(viewport-segment-width 1 0, minmax(220px, 36vw));
+    }
+
+    .diagram-canvas.is-insights-open:not(.is-editor-open) .diagram-main-column {
+      padding-right: max(0.5rem, env(safe-area-inset-right, 0px));
+    }
+
+    .diagram-canvas.is-insights-open:not(.is-editor-open) .insights-pane {
+      padding-left: max(0.65rem, env(safe-area-inset-left, 0px));
+    }
+
+    .app-shell.is-foldable-dual .bottom-chrome {
+      padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+      padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    }
+  }
+}
+
+/* Touch-first devices: larger tap targets and prevent iOS input zoom. */
+@media (pointer: coarse) {
+  .overlay-button,
+  .primary-button,
+  .compact-button,
+  .radial-action-menu .radial-action-button {
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .prompt-control input,
+  .slop-prompt-panel-input,
+  .intro-prompt-input {
+    font-size: max(16px, 0.95rem);
+  }
+
+  .topic-starter-chip,
+  .entry-render-as-chip {
+    min-height: 2.5rem;
+    padding-block: 0.45rem;
+  }
+
+  .insights-pane-body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+/* Landscape phones / foldable cover: reclaim vertical space. */
+@media (max-width: 1024px) and (max-height: 500px) and (orientation: landscape) {
+  .diagram-viewport {
+    padding-top: 3.25rem;
+  }
+
+  .brand-control {
+    top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  }
+
+  .top-corner-controls {
+    top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  }
+
+  .bottom-chrome {
+    bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.35rem;
+  }
+
+  .entry-cluster {
+    max-height: min(38vh, 12rem);
+  }
+
+  .radial-action-menu .radial-action-button {
+    width: 2.85rem;
+    height: 2.85rem;
+  }
+}
+
+/* Ultra-narrow phones: tighten horizontal padding. */
+@media (max-width: 360px) {
+  .bottom-chrome {
+    left: 0.5rem;
+    right: 0.5rem;
+  }
+
+  .diagram-viewport {
+    padding-left: 0.65rem;
+    padding-right: 0.65rem;
+  }
+
+  .prompt-actions--mobile .overlay-button.slop-action-button {
+    min-width: 2.65rem;
+    padding-inline: 0.5rem;
+  }
+}

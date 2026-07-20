@@ -682,7 +682,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
     const previousMatchMedia = globalThis.matchMedia;
     globalThis.matchMedia = vi.fn().mockImplementation((query) => ({
-      matches: query.includes('1024px'),
+      matches: query.includes('639px') && query.includes('max-width'),
       media: query,
       onchange: null,
       addListener: vi.fn(),

@@ -8,7 +8,7 @@ import {
   useRef,
   useState
 } from 'react';
-import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from '../utils/useDelayedUnmount.js';
 import {
   findMermaidSourceRangeForDiagramSelection,
@@ -282,12 +282,7 @@ export default function DiagramCanvas({
   const diagramSyncRafRef = useRef(0);
   const lastSvgRenderedReportRef = useRef('');
   const [monacoBind, setMonacoBind] = useState(null);
-  const [narrowLayout, setNarrowLayout] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(MOBILE_MEDIA_QUERY).matches
-  );
+  const narrowLayout = useNarrowLayout();
   const bindDiagramSurfaceRef = useCallback(
     (node) => {
       diagramSurfaceRefLocal.current = node;
@@ -297,16 +292,6 @@ export default function DiagramCanvas({
     },
     [diagramSurfaceRef]
   );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const sync = () => setNarrowLayout(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
-
   const handleEditorMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco;

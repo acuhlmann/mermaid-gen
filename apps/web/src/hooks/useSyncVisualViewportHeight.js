@@ -2,8 +2,9 @@ import { useEffect } from 'react';
 
 /**
  * Sync the `--app-vvh` CSS variable to the visual-viewport height so layouts
- * (mobile keyboard, address bar) snap to the actual usable area, not 100vh.
- * Falls back to `window.innerHeight` if `visualViewport` is unavailable.
+ * (mobile keyboard, address bar, foldable hinge transitions) snap to the actual
+ * usable area, not 100vh. Falls back to `window.innerHeight` if `visualViewport`
+ * is unavailable.
  */
 export function useSyncVisualViewportHeight() {
   useEffect(() => {
@@ -21,13 +22,20 @@ export function useSyncVisualViewportHeight() {
     if (vv) {
       vv.addEventListener('resize', applyHeight);
       vv.addEventListener('scroll', applyHeight);
-      return () => {
+    }
+    window.addEventListener('resize', applyHeight);
+    window.addEventListener('orientationchange', applyHeight);
+    const orientation = window.screen?.orientation;
+    orientation?.addEventListener?.('change', applyHeight);
+
+    return () => {
+      if (vv) {
         vv.removeEventListener('resize', applyHeight);
         vv.removeEventListener('scroll', applyHeight);
-      };
-    }
-
-    window.addEventListener('resize', applyHeight);
-    return () => window.removeEventListener('resize', applyHeight);
+      }
+      window.removeEventListener('resize', applyHeight);
+      window.removeEventListener('orientationchange', applyHeight);
+      orientation?.removeEventListener?.('change', applyHeight);
+    };
   }, []);
 }
