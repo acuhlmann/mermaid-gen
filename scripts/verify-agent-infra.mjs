@@ -9,6 +9,7 @@ const AGENT_DOC_FILES = [
   'AGENTS.md',
   'CLAUDE.md',
   'docs/guide/coding-agents.md',
+  'docs/agents/testing.md',
   'docs/agent-blast-radius.md',
   'docs/agents/sensors.md'
 ];

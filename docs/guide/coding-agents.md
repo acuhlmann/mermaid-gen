@@ -24,6 +24,7 @@ Operator guide for Claude Code, Cursor, Copilot, and other agents editing **arch
 | When you changed…                              | Run                                                                                                                                                         |
 | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Not sure / many areas                          | `npm run check:affected` (diff-scoped; **Prettier** + **verify:boundaries** when `apps/web` changes + server **strict** islands when `apps/server` changes) |
+| `apps/server` or `apps/web` (tests only)       | `npm run test:affected` (skips slow Anything integration unless the diff touches `anything*`)                                                               |
 | `packages/shared` only                         | `npm run check:fast`                                                                                                                                        |
 | Default local gate                             | `npm run check` (boundaries, typecheck, lint, test, **wire**)                                                                                               |
 | **Before opening a PR** (matches CI)           | `npm run check:full`                                                                                                                                        |
@@ -62,5 +63,6 @@ Edit [`.cursor/skills/`](../../.cursor/skills/) only. [`.claude/skills/mermaid`]
 
 - [`AGENTS.md`](../../AGENTS.md) — full operator manual
 - [`CLAUDE.md`](../../CLAUDE.md) — short agent quick-reference
+- [`docs/agents/testing.md`](../agents/testing.md) — diff-scoped tests, helpers, slow suites
 - [`docs/agents/sensors.md`](../agents/sensors.md) — lint, dep-cruiser, and formatter guidance
 - [`change-diagram-schema.md`](../recipes/change-diagram-schema.md) — schema change playbook
