@@ -316,6 +316,9 @@ export function ArchiSlop() {
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   /** Click-to-open level/XP info popover anchored to the XP bar. */
   const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
+  /** Desk verbs bump these to open headless Outbox / Settings panels. */
+  const [outboxOpenSignal, setOutboxOpenSignal] = useState(0);
+  const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
   const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
@@ -3815,6 +3818,17 @@ ${requirementsBlock}`;
             onOfficeEvent={handleOfficeEvent}
             onTalkToTeam={() => advisor.promptNext({})}
             onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
+            onOpenOutbox={() => setOutboxOpenSignal((n) => n + 1)}
+            onOpenSettings={() => setSettingsOpenSignal((n) => n + 1)}
+            onToggleThinking={() => setInsightsOpen((v) => !v)}
+            canTalkToTeam={
+              Boolean((state.diagramSource ?? '').trim()) &&
+              !advisor.thinkingPersona &&
+              !advisorPause
+            }
+            canOpenOutbox={Boolean((state.diagramSource ?? '').trim())}
+            canToggleThinking={insightsEntries.length > 0}
+            thinkingOpen={insightsOpen}
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
             deskActionsAnchorReady={hasCanvasContent}
@@ -4017,6 +4031,22 @@ ${requirementsBlock}`;
               !hasCanvasContent && !insightsOpen ? (
                 <div className="entry-cluster">
                   <DayOneBadge copy={controls.dayOne} userTitle={gamification.levelTitle} />
+                  <TopicStarters
+                    hint={controls.prompt.starterHint}
+                    ariaLabel={controls.prompt.starterAria}
+                    starters={controls.prompt.starters}
+                    busy={busy}
+                    onPick={handleStarterPick}
+                  />
+                  <EntryRenderAs
+                    label={controls.prompt.renderAsLabel}
+                    ariaLabel={controls.prompt.renderAsAria}
+                    modes={contentModeOptions}
+                    currentMode={contentMode}
+                    onPickMode={handleEntryRenderAsPick}
+                    pickPrefix={controls.modeReveal.pickPrefix}
+                    disabled={busy || loading || streamingPreview}
+                  />
                   <form className="prompt-control" onSubmit={runIntentChange}>
                     <label className="sr-only" htmlFor="diagram-change-prompt">
                       {controls.prompt.yourTopic}
@@ -4095,22 +4125,6 @@ ${requirementsBlock}`;
                       </button>
                     </div>
                   </form>
-                  <EntryRenderAs
-                    label={controls.prompt.renderAsLabel}
-                    ariaLabel={controls.prompt.renderAsAria}
-                    modes={contentModeOptions}
-                    currentMode={contentMode}
-                    onPickMode={handleEntryRenderAsPick}
-                    pickPrefix={controls.modeReveal.pickPrefix}
-                    disabled={busy || loading || streamingPreview}
-                  />
-                  <TopicStarters
-                    hint={controls.prompt.starterHint}
-                    ariaLabel={controls.prompt.starterAria}
-                    starters={controls.prompt.starters}
-                    busy={busy}
-                    onPick={handleStarterPick}
-                  />
                 </div>
               ) : hasCanvasContent && !narrowLayout ? (
                 <div className="prompt-actions prompt-actions--desktop">
@@ -4192,26 +4206,6 @@ ${requirementsBlock}`;
                 </div>
               ) : hasCanvasContent && narrowLayout ? (
                 <div className="prompt-actions prompt-actions--mobile">
-                  <SlopNextPrompt
-                    layout="desk"
-                    prompt={deskPrompt}
-                    busy={busy}
-                    voiceSupported={voiceSupported}
-                    voiceListening={voiceListening}
-                    narrowLayout={narrowLayout}
-                    speechRecognitionCtor={SpeechRecognitionCtor}
-                    PromptIcon={PromptIcon}
-                    MicIcon={MicIcon}
-                    MicActiveIcon={MicActiveIcon}
-                    ButtonIcon={ButtonIcon}
-                    copy={controls.prompt}
-                    onPromptChange={setDeskPrompt}
-                    onSubmit={handleDeskPromptSubmit}
-                    onMicToggleClick={handleMicToggleClick}
-                    onMicPointerDown={handleMicPointerDown}
-                    onMicPointerUp={handleMicPointerUp}
-                    onMicLostPointerCapture={() => stopVoiceInput()}
-                  />
                   <div className="button-group desk-primary-group">
                     <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
                     <StakeholdersMascot
@@ -4267,27 +4261,42 @@ ${requirementsBlock}`;
                       modeDisabled={loading || streamingPreview}
                     />
                   </div>
+                  <SlopNextPrompt
+                    layout="desk"
+                    prompt={deskPrompt}
+                    busy={busy}
+                    voiceSupported={voiceSupported}
+                    voiceListening={voiceListening}
+                    narrowLayout={narrowLayout}
+                    speechRecognitionCtor={SpeechRecognitionCtor}
+                    PromptIcon={PromptIcon}
+                    MicIcon={MicIcon}
+                    MicActiveIcon={MicActiveIcon}
+                    ButtonIcon={ButtonIcon}
+                    copy={controls.prompt}
+                    onPromptChange={setDeskPrompt}
+                    onSubmit={handleDeskPromptSubmit}
+                    onMicToggleClick={handleMicToggleClick}
+                    onMicPointerDown={handleMicPointerDown}
+                    onMicPointerUp={handleMicPointerUp}
+                    onMicLostPointerCapture={() => stopVoiceInput()}
+                  />
                 </div>
               ) : null
             }
             aiControls={
-              // Empty intro: modes live in the Render as strip; Settings (brain /
-              // invite) only clutter the first screen. Keep the gear once a
-              // diagram exists, or whenever a handshake needs the panel. Peer content
-              // also keeps chrome after a mode switch into an empty slot.
+              // Empty intro: Settings only clutter the first screen. Keep the
+              // headless Outbox/Settings panels once a diagram exists, or whenever
+              // a handshake needs the panel. Peer content also keeps chrome after
+              // a mode switch into an empty slot.
               hasCanvasContent || pendingHandshake ? (
                 <AiCornerControlsInner
                   controls={controls.settings}
-                  insightsCopy={controls.insights}
                   modelProfile={modelProfile}
                   onSelectModelProfile={setModelProfile}
                   pendingHandshake={pendingHandshake}
                   externalAgentPresence={externalAgentPresence}
                   onInviteAgent={() => setInviteDialogOpen(true)}
-                  agentThinkingChrome={agentThinkingChrome}
-                  insightsOpen={insightsOpen}
-                  onToggleInsights={() => setInsightsOpen((v) => !v)}
-                  includeThinkingToggle={insightsEntries.length > 0}
                   popoverMode={!narrowLayout}
                   contentType={
                     isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
@@ -4297,6 +4306,8 @@ ${requirementsBlock}`;
                   editorOpen={editorOpen}
                   onToggleEditor={() => setEditorOpen((current) => !current)}
                   editorControls={controls.editor}
+                  settingsOpenSignal={settingsOpenSignal}
+                  outboxOpenSignal={outboxOpenSignal}
                 />
               ) : null
             }

@@ -631,9 +631,15 @@ export function useAdvisorOrchestrator(params) {
       // promptNext is an *explicit* user request ("Talk to your team" / picking
       // a stakeholder), so it clears the ambient backoffs the passive scheduler
       // sets — otherwise the click silently no-ops when the roundtable happens
-      // to be in a failure/dismiss backoff or has idle-paused. It still respects
-      // the hard gates in shouldPauseNow (muted, pause/streaming, hidden tab, no
-      // diagram) — those are surfaced as a disabled desk verb instead.
+      // to be in a failure/dismiss backoff or has idle-paused. Desk initiative
+      // also clears Focus Time mute (interruptions stay muted; *you* asked).
+      // Hard gates that remain: pause/streaming, hidden tab, no diagram — those
+      // are surfaced as a disabled desk verb instead.
+      if (mutedRef.current) {
+        mutedRef.current = false;
+        setIsMuted(false);
+        writeAdvisorMuted(false);
+      }
       failureUntil = 0;
       dismissBackoffUntil = 0;
       dismissStreak = 0;

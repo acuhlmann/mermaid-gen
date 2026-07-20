@@ -653,8 +653,6 @@ export const OFFICE_ZH_CN = {
       buttonTitle: '起身、闲逛、打扰别人',
       menuAria: '工位操作',
       menuHeading: '你在干嘛？',
-      meetOffice: '认识办公室',
-      meetOfficeTitle: '再看一遍角色表 — 点 ▶ 让大家自我介绍',
       hrProgress: '查一下我的 HR 晋升进度',
       hrProgressTitle: '人力运营记分卡 — 等级、XP，以及 Linda 对你的看法',
       coffee: '去喝杯咖啡',
@@ -665,12 +663,21 @@ export const OFFICE_ZH_CN = {
       inbox: '查一下邮件',
       meeting: '召集会议',
       team: '和团队聊聊',
+      outbox: '从发件箱寄出',
+      outboxTitle: '导出或分享工位上的成品',
+      settings: '调整一下工位',
+      settingsTitle: '脑速、访客代理和代码抽屉',
+      thinking: '打开思考板',
+      thinkingClose: '关闭思考板',
+      thinkingTitle: '楼层留下的笔记、评审和运行记录',
       blocked: {
         busy: '部署进行中 — 谁也别离开工位。',
         meeting: '你在开会。装得投入一点。',
         surface: '一次一件事。你已经被打断得够忙了。',
         noAgenda: '先画点什么 — 这场会也需要议程',
-        noTeam: '先在画布上画点东西 — 团队还没东西可以回应'
+        noTeam: '先在画布上画点东西 — 团队还没东西可以回应',
+        noOutbox: '还没什么可寄 — 先在画布上放个成品',
+        noThinking: '思考板是空的 — 先跑点什么'
       }
     },
     directory: {

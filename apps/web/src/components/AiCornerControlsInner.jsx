@@ -1,40 +1,35 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
-import { ButtonIcon, BrainIcon } from './AppIcons.jsx';
+import { BrainIcon } from './AppIcons.jsx';
 import OutboxDock from './OutboxDock.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
-import { formatLocale } from '../i18n/formatLocale.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 
 /**
- * Right-cluster of the bottom row: the Outbox (📤), Settings (⚙️) and Thinking
- * (🧠) toggles. Export/share is its own office drawer (OutboxDock) rather than a
- * buried settings row. The Settings panel renders as a floating popover below
- * the gear when `popoverMode` is true (default, desktop) and inline as a flex
- * sibling when false (narrow viewports keep the existing stacked layout). A
- * pending handshake force-opens the panel inline regardless of mode so the user
- * can't accidentally dismiss it by clicking off-canvas.
+ * Right-cluster of the bottom row: Outbox + Settings panels live here as
+ * headless chrome opened from desk verbs (and force-opened for a pending
+ * handshake). Thinking toggles from the desk menu too — no dedicated icons.
+ * The Settings panel renders as a floating popover when `popoverMode` is true
+ * (desktop) and inline when false. A pending handshake force-opens the panel
+ * inline regardless of mode so the user can't accidentally dismiss it.
  */
 export function AiCornerControlsInner({
   controls = DEFAULT_CONTROLS,
-  insightsCopy = CONTROLS_EN.insights,
   modelProfile,
   onSelectModelProfile,
   pendingHandshake,
   externalAgentPresence,
   onInviteAgent,
-  agentThinkingChrome,
-  insightsOpen,
-  onToggleInsights,
-  includeThinkingToggle = true,
   popoverMode = true,
   contentType = null,
   diagramSource = '',
   editorOpen = false,
   onToggleEditor,
   editorControls = null,
-  showEditorToggle = false
+  showEditorToggle = false,
+  settingsOpenSignal = 0,
+  outboxOpenSignal = 0
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
@@ -44,6 +39,10 @@ export function AiCornerControlsInner({
     ? 'ai-corner-settings-panel bottom-row-popover bottom-row-popover--settings'
     : 'ai-corner-settings-panel';
 
+  useEffect(() => {
+    if (settingsOpenSignal > 0) setSettingsOpen(true);
+  }, [settingsOpenSignal]);
+
   return (
     <>
       {(diagramSource ?? '').trim() ? (
@@ -52,25 +51,11 @@ export function AiCornerControlsInner({
           contentType={contentType}
           diagramSource={diagramSource}
           popoverMode={popoverMode}
+          showTrigger={false}
+          openSignal={outboxOpenSignal}
         />
       ) : null}
-      <div className="ai-corner-settings-anchor">
-        <button
-          type="button"
-          className={`overlay-button ai-corner-settings-toggle${effectiveOpen ? ' is-open' : ''}${pendingHandshake ? ' has-pending' : ''}`}
-          onClick={() => setSettingsOpen((v) => !v)}
-          aria-expanded={effectiveOpen}
-          aria-controls="ai-corner-settings-panel"
-          aria-label={effectiveOpen ? controls.hide : controls.show}
-          title={controls.title}
-        >
-          <ButtonIcon>
-            <span className="action-persona-icon is-settings" aria-hidden="true">
-              ⚙️
-            </span>
-          </ButtonIcon>
-          <span className="button-label">{controls.label}</span>
-        </button>
+      <div className="ai-corner-settings-anchor ai-corner-settings-anchor--headless">
         <div
           id="ai-corner-settings-panel"
           className={`${panelClass}${effectiveOpen ? ' is-open' : ''}`}
@@ -136,40 +121,18 @@ export function AiCornerControlsInner({
               </button>
             </div>
           ) : null}
+          {effectiveOpen && !pendingHandshake ? (
+            <button
+              type="button"
+              className="ai-corner-settings-dismiss"
+              onClick={() => setSettingsOpen(false)}
+              aria-label={controls.hide}
+            >
+              {controls.hide}
+            </button>
+          ) : null}
         </div>
       </div>
-      {includeThinkingToggle ? (
-        <button
-          type="button"
-          className={`overlay-button thinking-toggle-button ${agentThinkingChrome ? 'is-agent-active' : ''}${insightsOpen ? ' is-open' : ''}`}
-          onClick={onToggleInsights}
-          aria-label={
-            insightsOpen
-              ? formatLocale(insightsCopy.hideThinking ?? 'Hide {thinking}', {
-                  thinking: controls.thinking
-                })
-              : formatLocale(insightsCopy.showThinking ?? 'Show {thinking}', {
-                  thinking: controls.thinking
-                })
-          }
-          title={
-            insightsOpen
-              ? formatLocale(insightsCopy.hideThinkingPanel ?? 'Hide {thinking} panel', {
-                  thinking: controls.thinking
-                })
-              : formatLocale(insightsCopy.showThinkingPanel ?? 'Show {thinking} panel', {
-                  thinking: controls.thinking
-                })
-          }
-        >
-          <ButtonIcon>
-            <span className="action-persona-icon is-thinking" aria-hidden="true">
-              🧠
-            </span>
-          </ButtonIcon>
-          <span className="button-label">{controls.thinking}</span>
-        </button>
-      ) : null}
     </>
   );
 }

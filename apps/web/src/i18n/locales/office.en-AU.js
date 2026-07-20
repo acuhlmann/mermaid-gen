@@ -682,10 +682,12 @@ export const OFFICE_EN_AU = {
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
     desk: {
-      meetOffice: 'Meet the Office',
-      meetOfficeTitle: 'Replay the cast — tap ▶ and let everybody introduce themselves',
       hrProgress: 'Check me HR progression',
-      hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya'
+      hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya',
+      outbox: 'Ship from the Outbox',
+      settings: 'Adjust ya workstation',
+      thinking: 'Open the Thinking board',
+      thinkingClose: 'Close the Thinking board'
     },
     directory: {
       title: 'Day one at ArchiSlop Corp.',

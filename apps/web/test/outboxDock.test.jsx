@@ -192,4 +192,27 @@ describe('OutboxDock export', () => {
     expect(screen.getByRole('button', { name: /Export/i }).disabled).toBe(true);
     expect(screen.getByText(/Generate something first/i)).toBeTruthy();
   });
+
+  it('supports headless mode opened via openSignal', () => {
+    const { rerender } = render(
+      <OutboxDock
+        controls={CONTROLS_EN.settings}
+        contentType="chart"
+        diagramSource={chartSource}
+        showTrigger={false}
+        openSignal={0}
+      />
+    );
+    expect(screen.queryByRole('button', { name: /^Outbox$/i })).toBeNull();
+    rerender(
+      <OutboxDock
+        controls={CONTROLS_EN.settings}
+        contentType="chart"
+        diagramSource={chartSource}
+        showTrigger={false}
+        openSignal={1}
+      />
+    );
+    expect(screen.getByRole('region', { name: /Outbox/i })).toBeTruthy();
+  });
 });

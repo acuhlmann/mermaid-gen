@@ -91,6 +91,13 @@ export default function OfficeLayer({
   onOfficeEvent,
   onTalkToTeam,
   onCheckHrProgression,
+  onOpenOutbox,
+  onOpenSettings,
+  onToggleThinking,
+  canTalkToTeam: canTalkToTeamProp,
+  canOpenOutbox = false,
+  canToggleThinking = false,
+  thinkingOpen = false,
   playChime,
   /** Bumped by App when an agent run completes, so a colleague can react to it. */
   runSignal = null,
@@ -362,9 +369,13 @@ export default function OfficeLayer({
 
   const hasDiagramSource = Boolean((getDiagramSource?.() ?? '').trim());
   const canCallMeeting = hasDiagramSource && !meeting;
-  // The roundtable reacts to the diagram; with a blank canvas the advisor route
-  // returns null and the verb would silently no-op, so disable it in-fiction.
-  const canTalkToTeam = hasDiagramSource;
+  // Roundtable nudge needs a diagram and a free advisor; mute is cleared on
+  // click (desk initiative bypasses Focus Time). Prefer the App-supplied gate
+  // when present so streaming / thinking stay in sync with canPromptNext.
+  const canTalkToTeam =
+    typeof canTalkToTeamProp === 'boolean'
+      ? canTalkToTeamProp
+      : hasDiagramSource && !pause && !advisorBusy;
 
   // Bumping this counter opens the inbox popover from the desk menu without
   // lifting the dock's own open/close state.
@@ -429,9 +440,15 @@ export default function OfficeLayer({
       onCallMeeting={desk.callMeeting}
       onTalkToTeam={desk.talkToTeam}
       onCheckHrProgression={onCheckHrProgression}
+      onOpenOutbox={onOpenOutbox}
+      onOpenSettings={onOpenSettings}
+      onToggleThinking={onToggleThinking}
       blockedReason={desk.blockedReason}
       canCallMeeting={canCallMeeting}
       canTalkToTeam={canTalkToTeam}
+      canOpenOutbox={canOpenOutbox}
+      canToggleThinking={canToggleThinking}
+      thinkingOpen={thinkingOpen}
     />
   );
   const [deskSlot, setDeskSlot] = useState(null);

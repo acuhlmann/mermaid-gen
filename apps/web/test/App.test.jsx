@@ -776,7 +776,13 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     try {
       render(<App />);
-      fireEvent.click(await screen.findByRole('button', { name: 'Show Thinking' }));
+      await waitFor(() => expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy());
+      fireEvent.click(screen.getByTestId('bottom-brand-mark'));
+      await waitFor(() => {
+        const item = screen.getByRole('menuitem', { name: /Open the Thinking board/ });
+        expect(item.disabled).toBe(false);
+      });
+      fireEvent.click(screen.getByRole('menuitem', { name: /Open the Thinking board/ }));
       await waitFor(() =>
         expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open')
       );

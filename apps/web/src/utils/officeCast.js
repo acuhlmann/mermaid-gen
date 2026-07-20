@@ -1071,8 +1071,6 @@ export const OFFICE_CHROME_COPY = {
     buttonTitle: 'Get up, wander, bother someone',
     menuAria: 'Desk actions',
     menuHeading: 'What are you doing?',
-    meetOffice: 'Meet the Office',
-    meetOfficeTitle: 'Replay the cast — tap ▶ and let everybody introduce themselves',
     hrProgress: 'Check my HR progression',
     hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda thinks of you',
     coffee: 'Get a coffee',
@@ -1083,12 +1081,21 @@ export const OFFICE_CHROME_COPY = {
     inbox: 'Check your mail',
     meeting: 'Call a meeting',
     team: 'Talk to your team',
+    outbox: 'Ship from the Outbox',
+    outboxTitle: 'Export or share the deliverable on your desk',
+    settings: 'Adjust your workstation',
+    settingsTitle: 'Brain speed, guest agents, and the code drawer',
+    thinking: 'Open the Thinking board',
+    thinkingClose: 'Close the Thinking board',
+    thinkingTitle: 'Notes, critiques, and run history from the floor',
     blocked: {
       busy: 'Deploy in progress — nobody leaves their desk.',
       meeting: "You're in a meeting. Look engaged.",
       surface: 'One thing at a time. You are already busy being interrupted.',
       noAgenda: 'Draw something first — even this meeting needs an agenda',
-      noTeam: 'Put something on the canvas — the team has nothing to react to yet'
+      noTeam: 'Put something on the canvas — the team has nothing to react to yet',
+      noOutbox: 'Nothing to ship yet — put a deliverable on the canvas first',
+      noThinking: 'The Thinking board is empty — run something first'
     }
   },
   inbox: {
