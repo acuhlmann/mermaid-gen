@@ -171,9 +171,8 @@ app is** — nothing else mounts until the tour is dismissed or skipped — then
 state, Day One badge, and the rest of the chrome appear. The cinematic flow is reception
 check-in → name badge with Linda's auto-voiced welcome → Meet the team
 auto-plays each colleague intro in order → Clock in, persisted via
-`archislop:office-directory-seen`; afterwards it lives as a "🏢 Meet the Office" chip
-on the empty state, and as a **desk verb** once you have canvas content, so everybody
-can introduce themselves again anytime.
+`archislop:office-directory-seen`; afterwards reopen via the **desk verb** once you
+have canvas content, so everybody can introduce themselves again anytime.
 While the directory is open it publishes pause state (`officeDirectoryUiStore`)
 so ambience IMs/walk-bys, Linda's welcome email, and the advisor stay quiet.
 On first visit the rest of the shell does not mount until the tour completes;
@@ -191,7 +190,10 @@ Three things make the orientation more than a static list:
   can't burn Chirp). `useIntroNarrator` and `OfficeLayer` share one Cloud-audio
   fetcher (`officeSpeechClient.js`).
 - **Name yourself in the intro.** The welcome step embeds the editable **name badge**
-  (`NameTag`, see Day One below).
+  (`NameTag`, see Day One below). Spoken copy stays voice-first; a **Transcript (CC)**
+  toggle at reception reveals text for users who cannot listen.
+- **Language at reception.** The orientation welcome step includes the compact
+  **IntroLocaleToggle** so locale is chosen before check-in — not on the entry screen.
 - **Skip the ceremony.** A persistent "Skip the ceremony — just let me build →" button dismisses
   the whole orientation (marking it seen) and focuses the empty-state topic input, for anyone who
   has seen the bit or just wants the canvas.

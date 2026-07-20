@@ -694,7 +694,10 @@ export const OFFICE_ZH_CN = {
       progressLabel: '{current} / {total}',
       dismissLabel: '打卡上班 — 开始第一天',
       replayTourLabel: '↻ 重看开场',
-      closeAria: '关闭认识办公室'
+      closeAria: '关闭认识办公室',
+      transcriptLabel: '字幕',
+      transcriptOnLabel: '隐藏文字',
+      transcriptTitle: '显示语音内容为文字 — 无法收听时使用'
     },
     inbox: {
       buttonTitle: '公司邮箱',

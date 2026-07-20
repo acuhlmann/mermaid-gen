@@ -12,8 +12,11 @@ import {
 } from '../state/officeDirectoryUiStore.js';
 import { useIntroNarrator } from '../hooks/useIntroNarrator.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import IntroLocaleToggle from './IntroLocaleToggle.jsx';
+import IntroTranscriptButton from './IntroTranscriptButton.jsx';
 import IntroVoiceButton from './IntroVoiceButton.jsx';
 import NameTag from './NameTag.jsx';
 
@@ -50,21 +53,24 @@ function sleep(ms, signal) {
   });
 }
 
-function DirectoryHead({ copy, onClose, eyebrow }) {
+function DirectoryHead({ copy, onClose, eyebrow, toolbar }) {
   return (
     <div className="office-directory-head">
       <div className="office-directory-head-copy">
         {eyebrow ? <span className="office-directory-eyebrow">{eyebrow}</span> : null}
         <span className="office-directory-title">🏢 {copy.title}</span>
       </div>
-      <button
-        type="button"
-        className="office-directory-close"
-        aria-label={copy.closeAria}
-        onClick={onClose}
-      >
-        ×
-      </button>
+      <div className="office-directory-head-actions">
+        {toolbar}
+        <button
+          type="button"
+          className="office-directory-close"
+          aria-label={copy.closeAria}
+          onClick={onClose}
+        >
+          ×
+        </button>
+      </div>
     </div>
   );
 }
@@ -74,7 +80,8 @@ function ColleagueSpotlight({
   colleagueId,
   progressLabel,
   chapterLabel,
-  unlockedLabel
+  unlockedLabel,
+  showTranscript
 }) {
   return (
     <div
@@ -82,9 +89,13 @@ function ColleagueSpotlight({
       key={colleagueId}
       data-testid="office-directory-spotlight"
     >
-      <p className="office-directory-chapter">{chapterLabel}</p>
-      <p className="office-directory-progress">{progressLabel}</p>
-      {unlockedLabel ? <p className="office-directory-unlocked">{unlockedLabel}</p> : null}
+      {showTranscript ? (
+        <>
+          <p className="office-directory-chapter">{chapterLabel}</p>
+          <p className="office-directory-progress">{progressLabel}</p>
+          {unlockedLabel ? <p className="office-directory-unlocked">{unlockedLabel}</p> : null}
+        </>
+      ) : null}
       <div
         className="office-directory-hero-ring"
         style={{ '--face-accent': colleague.accentColor }}
@@ -96,29 +107,64 @@ function ColleagueSpotlight({
         />
       </div>
       <span className="office-directory-name">{colleague.name}</span>
-      <span className="office-directory-role">{colleague.title}</span>
-      {colleague.blurb ? <p className="office-directory-blurb">{colleague.blurb}</p> : null}
-      {colleague.introLine ? (
-        <blockquote className="office-directory-quote">“{colleague.introLine}”</blockquote>
+      {showTranscript ? (
+        <>
+          <span className="office-directory-role">{colleague.title}</span>
+          {colleague.blurb ? <p className="office-directory-blurb">{colleague.blurb}</p> : null}
+          {colleague.introLine ? (
+            <blockquote className="office-directory-quote">“{colleague.introLine}”</blockquote>
+          ) : null}
+        </>
       ) : null}
     </div>
   );
 }
 
-/** The welcome step: greeting, editable name badge, and Linda's voiced intro. */
-function TourWelcome({ copy, userName, speakingId, onHear, autoPlaying }) {
+/** The welcome step: name badge and Linda's voiced intro (text optional via CC). */
+function TourWelcome({ copy, userName, speakingId, onHear, autoPlaying, showTranscript }) {
   return (
     <div className="office-directory-welcome" data-testid="office-directory-welcome">
       <p className="office-directory-chapter">{copy.welcomeChapter}</p>
-      <p className="office-directory-greeting">{formatLocale(copy.greeting, { name: userName })}</p>
-      <p className="office-directory-tagline">{copy.tagline}</p>
       <NameTag copy={copy.nameTag} />
-      {copy.greetingHint ? <p className="office-directory-name-hint">{copy.greetingHint}</p> : null}
-      <p className="office-directory-tour-hint">{copy.tourHint}</p>
-      {copy.welcomeVoiceLine ? (
+      {showTranscript ? (
+        <>
+          <p className="office-directory-greeting">
+            {formatLocale(copy.greeting, { name: userName })}
+          </p>
+          <p className="office-directory-tagline">{copy.tagline}</p>
+          {copy.greetingHint ? (
+            <p className="office-directory-name-hint">{copy.greetingHint}</p>
+          ) : null}
+          <p className="office-directory-tour-hint">{copy.tourHint}</p>
+          {copy.welcomeVoiceLine ? (
+            <p
+              className="office-directory-transcript-line"
+              data-testid="office-directory-transcript"
+            >
+              {copy.welcomeVoiceLine}
+            </p>
+          ) : null}
+        </>
+      ) : (
+        <>
+          {autoPlaying && speakingId === 'welcome' ? (
+            <p className="office-directory-autoplay-hint" data-testid="office-directory-autoplay">
+              {copy.autoplayHint}
+            </p>
+          ) : null}
+          <div className="office-directory-voice-hero" aria-hidden="true">
+            <PersonaFace
+              id={copy.welcomeVoiceSpeakerId ?? 'hr'}
+              size={72}
+              className="office-directory-avatar office-directory-avatar--welcome"
+            />
+          </div>
+        </>
+      )}
+      {!autoPlaying && copy.welcomeVoiceLine ? (
         <IntroVoiceButton
           className="office-directory-hear office-directory-hear--welcome"
-          speaking={speakingId === 'welcome' || Boolean(autoPlaying && speakingId === 'welcome')}
+          speaking={speakingId === 'welcome'}
           idleLabel={copy.hearWelcomeLabel}
           speakingLabel={copy.hearSpeakingLabel}
           title={copy.hearTitle}
@@ -130,24 +176,29 @@ function TourWelcome({ copy, userName, speakingId, onHear, autoPlaying }) {
           }
         />
       ) : null}
-      {autoPlaying && speakingId === 'welcome' ? (
-        <p className="office-directory-autoplay-hint" data-testid="office-directory-autoplay">
-          {copy.autoplayHint}
-        </p>
-      ) : null}
     </div>
   );
 }
 
 /** One colleague spotlight step — cinematic auto-voice, with ▶ to replay/stop. */
-function TourColleague({ copy, colleagueId, stepIndex, speakingId, onHear, autoPlaying }) {
+function TourColleague({
+  copy,
+  colleagueId,
+  stepIndex,
+  speakingId,
+  onHear,
+  autoPlaying,
+  showTranscript
+}) {
   const colleague = officeSenderInfo(colleagueId);
+  const voiceLine = colleagueVoiceLine(colleague);
   return (
     <div className="office-directory-spotlight-wrap">
       <ColleagueSpotlight
         colleague={colleague}
         colleagueId={colleagueId}
         unlockedLabel={copy.unlockedLabel}
+        showTranscript={showTranscript}
         chapterLabel={formatLocale(copy.colleagueChapter, {
           current: String(stepIndex),
           total: String(COLLEAGUE_IDS.length)
@@ -157,6 +208,11 @@ function TourColleague({ copy, colleagueId, stepIndex, speakingId, onHear, autoP
           total: String(COLLEAGUE_IDS.length)
         })}
       />
+      {showTranscript && voiceLine ? (
+        <p className="office-directory-transcript-line" data-testid="office-directory-transcript">
+          {voiceLine}
+        </p>
+      ) : null}
       <div className="office-directory-progress-dots" aria-hidden="true">
         {COLLEAGUE_IDS.map((id, i) => (
           <span
@@ -172,16 +228,16 @@ function TourColleague({ copy, colleagueId, stepIndex, speakingId, onHear, autoP
           {copy.autoplayHint}
         </p>
       ) : null}
-      <IntroVoiceButton
-        className="office-directory-hear"
-        speaking={speakingId === colleagueId}
-        idleLabel={copy.hearLabel}
-        speakingLabel={copy.hearSpeakingLabel}
-        title={copy.hearTitle}
-        onClick={() =>
-          onHear(colleagueId, { speakerId: colleagueId, text: colleagueVoiceLine(colleague) })
-        }
-      />
+      {!autoPlaying ? (
+        <IntroVoiceButton
+          className="office-directory-hear"
+          speaking={speakingId === colleagueId}
+          idleLabel={copy.hearLabel}
+          speakingLabel={copy.hearSpeakingLabel}
+          title={copy.hearTitle}
+          onClick={() => onHear(colleagueId, { speakerId: colleagueId, text: voiceLine })}
+        />
+      ) : null}
     </div>
   );
 }
@@ -200,7 +256,10 @@ function DirectoryTour({
   onSkip,
   autoPlaying,
   cinematic,
-  voiceUnlocked
+  voiceUnlocked,
+  showTranscript,
+  onToggleTranscript,
+  localeToolbar
 }) {
   const lastColleagueStep = STEP_FIRST_COLLEAGUE + COLLEAGUE_IDS.length - 1;
   const atLastStep = step >= lastColleagueStep;
@@ -210,13 +269,29 @@ function DirectoryTour({
     <div
       className={`office-directory office-directory--tour${
         step === STEP_WELCOME ? ' office-directory--boot' : ''
-      }${cinematic ? ' office-directory--cinematic' : ''}`}
+      }${cinematic ? ' office-directory--cinematic' : ''}${showTranscript ? ' is-transcript-on' : ''}`}
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}
       data-testid="office-directory-tour"
     >
-      <DirectoryHead copy={copy} onClose={onDismiss} eyebrow={copy.tourEyebrow} />
+      <DirectoryHead
+        copy={copy}
+        onClose={onDismiss}
+        eyebrow={copy.tourEyebrow}
+        toolbar={
+          <>
+            {localeToolbar}
+            <IntroTranscriptButton
+              enabled={showTranscript}
+              label={copy.transcriptLabel}
+              enabledLabel={copy.transcriptOnLabel}
+              title={copy.transcriptTitle}
+              onToggle={onToggleTranscript}
+            />
+          </>
+        }
+      />
 
       {step === STEP_WELCOME ? (
         <TourWelcome
@@ -225,6 +300,7 @@ function DirectoryTour({
           speakingId={speakingId}
           onHear={onHear}
           autoPlaying={autoPlaying}
+          showTranscript={showTranscript}
         />
       ) : null}
       {step >= STEP_FIRST_COLLEAGUE ? (
@@ -235,6 +311,7 @@ function DirectoryTour({
           speakingId={speakingId}
           onHear={onHear}
           autoPlaying={autoPlaying}
+          showTranscript={showTranscript}
         />
       ) : null}
 
@@ -356,7 +433,9 @@ export default function OfficeDirectory({
   /** After "Meet the team", colleagues auto-speak and advance. */
   const [cinematic, setCinematic] = useState(false);
   const [autoPlaying, setAutoPlaying] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
+  const { controls, locale, setLocale } = useUiCopy();
   const directoryUi = useSyncExternalStore(
     subscribeOfficeDirectoryUi,
     getOfficeDirectoryUi,
@@ -381,6 +460,7 @@ export default function OfficeDirectory({
     setCinematic(false);
     setAutoPlaying(false);
     setVoiceUnlocked(false);
+    setShowTranscript(false);
     setOpen(true);
     setStep(directoryUi.mode === 'tour' ? STEP_WELCOME : null);
   }, [directoryUi.openNonce, directoryUi.mode, stop]);
@@ -400,6 +480,7 @@ export default function OfficeDirectory({
     setCinematic(false);
     setAutoPlaying(false);
     setVoiceUnlocked(false);
+    setShowTranscript(false);
     writeOfficeDirectorySeen();
     firstRunRef.current = false;
     setStep(null);
@@ -545,6 +626,17 @@ export default function OfficeDirectory({
           autoPlaying={autoPlaying}
           cinematic={cinematic}
           voiceUnlocked={voiceUnlocked}
+          showTranscript={showTranscript}
+          onToggleTranscript={() => setShowTranscript((value) => !value)}
+          localeToolbar={
+            step === STEP_WELCOME ? (
+              <IntroLocaleToggle
+                locale={locale}
+                copy={controls.introLocale}
+                onSelectLocale={setLocale}
+              />
+            ) : null
+          }
         />
       ) : (
         <DirectoryRoster
@@ -558,6 +650,7 @@ export default function OfficeDirectory({
             setCinematic(false);
             setAutoPlaying(false);
             setVoiceUnlocked(false);
+            setShowTranscript(false);
             setStep(STEP_WELCOME);
           }}
         />

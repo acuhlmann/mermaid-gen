@@ -1048,6 +1048,9 @@ export const OFFICE_CHROME_COPY = {
     hearWelcomeLabel: '▶ Hear Linda’s welcome',
     hearSpeakingLabel: 'Shh… they’re talking',
     hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
+    transcriptLabel: 'Transcript',
+    transcriptOnLabel: 'Hide text',
+    transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
     // Linda's spoken orientation line (Cloud TTS strips emoji before speaking).
     welcomeVoiceSpeakerId: 'hr',
     welcomeVoiceLine:
