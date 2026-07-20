@@ -177,6 +177,13 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
             );
           })}
         </ul>
+        {!votedFor && !allLinesIn ? (
+          <div className="office-battle-bail">
+            <button type="button" className="office-battle-getout" onClick={onDone}>
+              {copy.battle.getOut}
+            </button>
+          </div>
+        ) : null}
         {allLinesIn && !votedFor ? (
           <div className="office-battle-settle">
             <p className="office-battle-settle-line">{copy.battle.settleLine}</p>

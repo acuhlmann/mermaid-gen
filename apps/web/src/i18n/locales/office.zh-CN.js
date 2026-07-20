@@ -761,7 +761,7 @@ export const OFFICE_ZH_CN = {
       decline: '赶死线',
       sceneAria: '咖啡时间',
       sceneTitle: '茶水间',
-      done: '回去干活'
+      done: '我得去发版了'
     },
     battle: {
       inviteLine: '🥊 {a} 和 {b} 又杠上了 — “{topic}”。全楼层都在围观。',
@@ -770,6 +770,7 @@ export const OFFICE_ZH_CN = {
       sceneAria: '工位对决',
       sceneTitle: '工位对决',
       versus: 'vs',
+      getOut: '溜出工位对决',
       settleLine: '双方你都听完了。总得有人是错的:',
       sideLabel: '站 {name}',
       walkAway: '上报 HR(离场)',
@@ -780,7 +781,7 @@ export const OFFICE_ZH_CN = {
       organizerLabel: '组织者:',
       attendeesLabel: '参会者:',
       accept: '接受',
-      decline: '拒绝',
+      decline: '不行 — 我在赶上线',
       proposeNewTime: '另提时间'
     },
     meeting: {

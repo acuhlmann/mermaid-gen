@@ -738,7 +738,7 @@ export const OFFICE_EN_AU = {
       decline: 'Flat out',
       sceneAria: 'Coffee break',
       sceneTitle: 'The Watercooler',
-      done: 'Back to it'
+      done: "I've got a deploy"
     },
     battle: {
       inviteLine: '🥊 {a} and {b} are having a barney — "{topic}". The floor is watching.',
@@ -747,6 +747,7 @@ export const OFFICE_EN_AU = {
       sceneAria: 'Cubicle battle',
       sceneTitle: 'Cubicle Battle',
       versus: 'vs',
+      getOut: 'Get out of Cubicle Battle',
       settleLine: "You've heard both sides. Someone has to be wrong:",
       sideLabel: 'Back {name}',
       walkAway: 'Escalate to HR (shoot through)',
@@ -757,7 +758,7 @@ export const OFFICE_EN_AU = {
       organizerLabel: 'Organiser:',
       attendeesLabel: 'Attendees:',
       accept: 'Accept',
-      decline: 'Decline',
+      decline: "Can't — I'm shipping",
       proposeNewTime: 'Propose new time'
     }
   }
