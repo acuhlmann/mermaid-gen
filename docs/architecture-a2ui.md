@@ -2,7 +2,7 @@
 
 > **See also:** [`architecture-generative-ui.md`](architecture-generative-ui.md) — where A2UI sits among the three UI strategies and how MCP **critique-map** parallels the checklist. For where A2UI sits on the abstraction spectrum (vs. content DSLs and freeform HTML), see the [visual tour](https://acuhlmann.github.io/mermaid-gen/architecture-generative-ui-visual.html).
 
-ArchiSlop uses **A2UI v0.9** (the [`basicCatalog`](https://a2ui.org/specification/v0_9/basic_catalog.json) allowlist) in **two places, with opposite trust models**. The distinction is the whole point of this doc — do not conflate them:
+ArchiSlop uses **A2UI v0.9** (the [`basicCatalog`](https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json) allowlist) in **two places, with opposite trust models**. The distinction is the whole point of this doc — do not conflate them:
 
 | Strategy                    | Where                      | Who writes the A2UI JSON?                                               | Wire                                                             | Interactivity                                                                 |
 | --------------------------- | -------------------------- | ----------------------------------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -44,7 +44,7 @@ sequenceDiagram
 
 ## Web UI
 
-- Host: [`apps/web/src/components/CritiqueA2uiSurface.jsx`](../apps/web/src/components/CritiqueA2uiSurface.jsx) with `@a2ui/react` and `basicCatalog` (`https://a2ui.org/specification/v0_9/basic_catalog.json`).
+- Host: [`apps/web/src/components/CritiqueA2uiSurface.jsx`](../apps/web/src/components/CritiqueA2uiSurface.jsx) with `@a2ui/react` and `basicCatalog` (`https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json`).
 - If the stream omits `a2ui` messages, the client rebuilds them with `buildCritiqueActionableA2uiMessages` from the same markdown (same trust model).
 - **Fix selected** / **Fix all** map to fixed action names and trigger the existing **intent** path (`archislop_fixSelected`, `archislop_fixAll`).
 

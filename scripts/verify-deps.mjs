@@ -124,6 +124,27 @@ export function collectPackageInstances(node, pkgName) {
 }
 
 /**
+ * Whether an npm ls "invalid" marker for @a2ui/web_core should fail verify:deps.
+ *
+ * Overrides make both the pinned version and older transitive copies look invalid
+ * to npm ls (e.g. @copilotkit/a2ui-renderer still declares 0.9.0 while the
+ * override hoists 0.10.5). Only report when app import paths are not aligned.
+ *
+ * @param {{ version: string, invalid?: string }} hit
+ * @param {{ expectedCore?: string, webCore: string | null, reactCore: string | null }} ctx
+ */
+export function shouldReportInvalidWebCoreHit(hit, { expectedCore, webCore, reactCore }) {
+  if (!hit.invalid) return false;
+  if (expectedCore && hit.version === expectedCore) return false;
+
+  const importPathsAligned =
+    Boolean(expectedCore) && webCore === expectedCore && reactCore === expectedCore;
+  if (importPathsAligned) return false;
+
+  return true;
+}
+
+/**
  * @param {string} root
  * @param {Record<string, string>} overrides
  */
@@ -185,10 +206,15 @@ export function verifyDeps(root, overrides) {
       /** @type {Set<string>} */
       const seenInvalid = new Set();
       for (const hit of collectPackageInstances(tree, '@a2ui/web_core')) {
-        if (!hit.invalid) continue;
-        // Overrides intentionally violate peer ranges (e.g. markdown-it wants ^0.9.2).
-        // npm ls marks the pinned version invalid — that is expected, not a split install.
-        if (expectedCore && hit.version === expectedCore) continue;
+        if (
+          !shouldReportInvalidWebCoreHit(hit, {
+            expectedCore,
+            webCore,
+            reactCore
+          })
+        ) {
+          continue;
+        }
 
         const message = [
           `verify:deps: npm ls marks @a2ui/web_core@${hit.version} as invalid (${hit.invalid}).`,

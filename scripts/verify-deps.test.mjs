@@ -6,6 +6,7 @@ import {
   readInstalledVersion,
   resolveReactWebCore,
   resolveWorkspacePackage,
+  shouldReportInvalidWebCoreHit,
   verifyDeps
 } from './verify-deps.mjs';
 import path from 'node:path';
@@ -43,7 +44,7 @@ test('collectPackageInstances finds nested instances and invalid markers', () =>
 
 test('resolveWorkspacePackage prefers workspace node_modules', () => {
   const webCore = resolveWorkspacePackage(ROOT, 'apps/web', '@a2ui/web_core');
-  assert.equal(webCore, '0.10.0');
+  assert.equal(webCore, '0.10.5');
 });
 
 test('resolveReactWebCore matches workspace web_core when nested copy aligns', () => {
@@ -94,6 +95,46 @@ test('verifyDeps ignores npm ls invalid markers on the override-pinned version',
   const hits = collectPackageInstances(tree, '@a2ui/web_core');
   assert.equal(hits.length, 2);
   assert.ok(hits.every((hit) => hit.version === '0.10.0'));
+  for (const hit of hits) {
+    assert.equal(
+      shouldReportInvalidWebCoreHit(hit, {
+        expectedCore: '0.10.0',
+        webCore: '0.10.0',
+        reactCore: '0.10.0'
+      }),
+      false
+    );
+  }
+});
+
+test('shouldReportInvalidWebCoreHit ignores transitive older web_core when import paths align', () => {
+  const hit = {
+    version: '0.9.0',
+    invalid: '"0.10.5" from apps/web/node_modules/@copilotkit/a2ui-renderer'
+  };
+  assert.equal(
+    shouldReportInvalidWebCoreHit(hit, {
+      expectedCore: '0.10.5',
+      webCore: '0.10.5',
+      reactCore: '0.10.5'
+    }),
+    false
+  );
+});
+
+test('shouldReportInvalidWebCoreHit still flags misaligned import paths', () => {
+  const hit = {
+    version: '0.10.3',
+    invalid: '"0.10.5" from apps/web/node_modules/@a2ui/react'
+  };
+  assert.equal(
+    shouldReportInvalidWebCoreHit(hit, {
+      expectedCore: '0.10.5',
+      webCore: '0.10.5',
+      reactCore: '0.10.3'
+    }),
+    true
+  );
 });
 
 test('readInstalledVersion returns null for missing paths', () => {

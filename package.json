@@ -14,7 +14,7 @@
     "packages/eslint-config"
   ],
   "overrides": {
-    "@a2ui/web_core": "0.10.0",
+    "@a2ui/web_core": "0.10.5",
     "@ag-ui/client": "0.0.57",
     "@ag-ui/core": "0.0.57",
     "@ag-ui/encoder": "0.0.57",

@@ -61,10 +61,12 @@ verify:deps: @a2ui/web_core versions used by apps/web imports are mismatched:
     apps/web import path → 0.9.2
     @a2ui/react nested import path → 0.10.0
   TypeScript treats these as incompatible types when imported from @a2ui/web_core and @a2ui/react in the same file.
-  Fix: npm install @a2ui/web_core@0.10.0 -w apps/web && npm run verify:deps && commit package-lock.json
+  Fix: npm install @a2ui/web_core@0.10.5 -w apps/web && npm run verify:deps && commit package-lock.json
 ```
 
 Singleton checks are configured in `scripts/verify-deps.mjs`; override pins live in root `package.json` `overrides`.
+
+When overrides hoist a newer `@a2ui/web_core`, npm ls may also mark **older transitive copies** (e.g. `@copilotkit/a2ui-renderer` still declares `0.9.0`) as invalid. That is expected — `verify:deps` only fails when the versions **app code actually imports** (`apps/web` and `@a2ui/react` paths) disagree. CI uses Node from `.nvmrc` (currently 26); match it locally before dependency bumps so `npm ls` output matches CI.
 
 ## How to read ESLint output
 
