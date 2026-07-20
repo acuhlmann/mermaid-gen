@@ -115,18 +115,16 @@ async function waitForControlsReady(buttonName = 'Refine') {
   });
 }
 
-function openRenderAsMenu() {
-  if (screen.queryByRole('menu', { name: 'Deliverable format' })) return;
-  fireEvent.click(screen.getByRole('button', { name: /open deliverable format/i }));
+// Deliverable format now lives inside the Desk Drawer, alongside Fix, Demolish
+// and Focus — the secondaries no longer sit out on the desk.
+function openDeskDrawer() {
+  if (screen.queryByRole('menu', { name: /desk drawer/i })) return;
+  fireEvent.click(screen.getByRole('button', { name: /desk drawer/i }));
 }
 
 function pickContentMode(modeLabel) {
-  openRenderAsMenu();
-  fireEvent.click(
-    screen.getByRole('button', {
-      name: new RegExp(`Render selected item as ${modeLabel}`, 'i')
-    })
-  );
+  openDeskDrawer();
+  fireEvent.click(screen.getByRole('menuitem', { name: new RegExp(`^${modeLabel}$`, 'i') }));
 }
 
 describe('App simplified controls', { timeout: 20_000 }, () => {
@@ -434,7 +432,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
 
-    const fixButton = await screen.findByRole('button', { name: 'Fix' });
+    // Fix lives inside the Desk Drawer, surfacing once a critique exists.
+    openDeskDrawer();
+    const fixButton = await screen.findByRole('menuitem', { name: 'Fix' });
     fireEvent.click(fixButton);
 
     await waitFor(
@@ -450,7 +450,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
         ),
       { timeout: 25_000 }
     );
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Fix' })).toBeNull());
+    // Reopen the drawer: with the critique consumed, Fix no longer appears.
+    openDeskDrawer();
+    await waitFor(() => expect(screen.queryByRole('menuitem', { name: 'Fix' })).toBeNull());
   }, 30_000);
 
   it('Fix selected sends only checked actionable improvements', async () => {
@@ -540,8 +542,10 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
   it('clears to an empty diagram instead of seeded sample', async () => {
     render(<App />);
-    await waitForControlsReady('Clear');
-    const clearButton = await screen.findByRole('button', { name: 'Clear' });
+    await waitForControlsReady();
+    // Demolish lives inside the Desk Drawer now.
+    openDeskDrawer();
+    const clearButton = await screen.findByRole('menuitem', { name: 'Demolish' });
     fireEvent.click(clearButton);
 
     // Clear now opens a "demolition" confirmation overlay first — click through to

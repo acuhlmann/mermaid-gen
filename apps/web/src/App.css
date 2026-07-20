@@ -13531,6 +13531,152 @@ body.slopitect-rainbow-tint::before {
   justify-content: flex-end;
 }
 
+/* ── The desk: bottom control surface ──────────────────────────────────────
+   The Work Order (persistent prompt) is the centerpiece and grows to fill the
+   row; Your Team sits beside it; the Desk Drawer collapses the secondaries.
+   Outbox lives in the right cluster (mirrors the Settings popover). */
+
+.prompt-actions--desktop {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The primary desk group grows so the Work Order fills the available desk. */
+.desk-primary-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+/* The Work Order — a persistent inline prompt (layout="desk"), not a popover. */
+.slop-prompt-panel--desk {
+  flex: 1 1 16rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 8rem;
+  padding: 0.28rem 0.42rem 0.28rem 0.5rem;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96)),
+    radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.14), transparent 55%);
+  border: 1px solid rgba(56, 189, 248, 0.32);
+  box-shadow: var(--control-shadow);
+}
+
+.slop-prompt-panel-eyebrow--desk {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #38bdf8, #14b8a6);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+}
+
+.slop-prompt-panel-eyebrow--desk svg {
+  display: block;
+  width: 15px;
+  height: 15px;
+}
+
+.slop-prompt-panel--desk .slop-prompt-panel-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 999px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.slop-prompt-panel--desk .slop-prompt-panel-actions {
+  flex: 0 0 auto;
+  gap: 0.3rem;
+}
+
+.slop-prompt-panel--desk .slop-prompt-panel-actions .overlay-button {
+  min-height: 2.15rem;
+  padding: 0.38rem 0.72rem;
+  font-size: 0.82rem;
+}
+
+/* Desk drawer — the trigger reuses the slop-action pill; the menu (which reuses
+   the desk-actions-menu chrome) opens upward out of the bottom row. */
+.desk-drawer {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  align-self: center;
+}
+
+/* Compound selector so these win over .desk-actions-menu (defined later in the
+   file with equal specificity) — the drawer opens upward out of the bottom row. */
+.desk-actions-menu.desk-drawer-menu {
+  top: auto;
+  bottom: calc(100% + 0.45rem);
+  right: 0;
+  left: auto;
+  z-index: var(--z-bottom-popover);
+}
+
+.desk-drawer-mode.is-current {
+  opacity: 0.7;
+}
+
+.desk-drawer-current-tag {
+  margin-left: auto;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.desk-actions-item.is-demolish:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.12);
+}
+
+/* Outbox — its own drawer in the right cluster; popover mirrors --settings. */
+.outbox-dock {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.bottom-row-popover--outbox {
+  right: 0;
+  left: auto;
+  bottom: calc(100% + 0.55rem);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: max-content;
+  min-width: 0;
+  max-width: min(22rem, calc(100vw - 2rem));
+}
+
+/* An explicit display wins over the [hidden] UA rule, so restore it (mirrors
+   .ai-corner-settings-panel[hidden]). Applies to the inline mode too. */
+.outbox-panel[hidden] {
+  display: none;
+}
+
+/* Mobile: the Work Order takes its own full-width row above Team + drawer. */
+.prompt-actions--mobile .slop-prompt-panel--desk {
+  flex-basis: 100%;
+  width: 100%;
+}
+
+.prompt-actions--mobile .desk-primary-group {
+  width: 100%;
+}
+
 @media (max-width: 1024px) {
   .app-shell.is-insights-open.has-slop-prompt-chrome:not(.is-editor-open) {
     --mobile-bottom-chrome-est: 12.5rem;

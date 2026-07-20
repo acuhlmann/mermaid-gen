@@ -23,7 +23,7 @@ import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import { EXAMPLE_DIAGRAM_SOURCE, EXAMPLE_TRY_PROMPT } from './utils/exampleDiagram.js';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
-import RenderAsMascot from './components/RenderAsMascot.jsx';
+import DeskDrawer from './components/DeskDrawer.jsx';
 import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
 import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
 import {
@@ -210,7 +210,7 @@ import {
   MicActiveIcon,
   RenderModeIcon
 } from './components/AppIcons.jsx';
-import { ActionPersonaIcon, ActionPersonaRole } from './components/ActionPersonaBits.jsx';
+import { ActionPersonaIcon } from './components/ActionPersonaBits.jsx';
 import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
 import { TopShell } from './components/TopShell.jsx';
 import { BottomRow } from './components/BottomRow.jsx';
@@ -268,6 +268,9 @@ function ArchiSlop() {
   const [prompt, setPrompt] = useState('');
   /** Fresh instruction for the inline “slop next” prompt — never prefilled from the session topic. */
   const [slopNextPrompt, setSlopNextPrompt] = useState('');
+  /** The persistent desk Work Order (content mode) — its own buffer so the radial
+   * prompt clearing slopNextPrompt on open can't wipe what you've typed here. */
+  const [deskPrompt, setDeskPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
   const [error, setError] = useState('');
@@ -385,6 +388,7 @@ function ArchiSlop() {
   const lastSpeechInterimRef = useRef('');
   const voiceStopTimerRef = useRef(null);
   const promptRef = useRef('');
+  const hasCanvasContentRef = useRef(false);
   const voiceCapturedAnyRef = useRef(false);
   const voiceAccumulatedRef = useRef('');
   const voiceFinalsTextRef = useRef('');
@@ -490,20 +494,6 @@ function ArchiSlop() {
     setSlopPromptSource(null);
     setSlopNextPrompt('');
   }, []);
-
-  const openChromeSlopPrompt = useCallback(() => {
-    setSlopNextPrompt('');
-    setSlopPromptSource('chrome');
-    setSlopPromptExpanded(true);
-  }, []);
-
-  const toggleChromeSlopPrompt = useCallback(() => {
-    if (slopPromptExpanded && slopPromptSource === 'chrome') {
-      closeSlopPrompt();
-    } else {
-      openChromeSlopPrompt();
-    }
-  }, [slopPromptExpanded, slopPromptSource, closeSlopPrompt, openChromeSlopPrompt]);
 
   const openRadialSlopPrompt = useCallback(() => {
     setSlopNextPrompt('');
@@ -1410,7 +1400,13 @@ function ArchiSlop() {
     const trimmed = text.trim();
     if (!trimmed) return;
     if (slopPromptExpandedRef.current) {
+      // Radial "weigh in" prompt is open — dictation goes to its buffer.
       setSlopNextPrompt((current) => (current ? `${current.trimEnd()} ${trimmed}` : trimmed));
+      return;
+    }
+    if (hasCanvasContentRef.current) {
+      // Content mode: the persistent desk Work Order is the active prompt target.
+      setDeskPrompt((current) => (current ? `${current.trimEnd()} ${trimmed}` : trimmed));
       return;
     }
     setPrompt((current) => {
@@ -2693,6 +2689,17 @@ function ArchiSlop() {
     await submitIntentWithPrompt(trimmed);
   }
 
+  // The persistent desk Work Order (content mode): submit the next instruction,
+  // clear its own buffer, and stay put — unlike the radial popover it never closes.
+  async function handleDeskPromptSubmit(text) {
+    const trimmed = (text ?? '').trim();
+    if (!trimmed) return;
+    hasInteractedRef.current = true;
+    setInsightsOpen(true);
+    setDeskPrompt('');
+    await submitIntentWithPrompt(trimmed);
+  }
+
   const stopVoiceInput = useCallback(
     (options = {}) => {
       const immediate = Boolean(options.immediate);
@@ -3888,6 +3895,12 @@ ${requirementsBlock}`;
   // empty target slot — do not dump the user back on the first-run intro.
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
 
+  // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
+  // routes to the persistent desk Work Order buffer whenever there's content.
+  useEffect(() => {
+    hasCanvasContentRef.current = hasCanvasContent;
+  }, [hasCanvasContent]);
+
   const critiqueActionableSplit = useMemo(
     () => (latestCritique?.text ? splitCritiqueActionableSections(latestCritique.text) : null),
     [latestCritique?.text]
@@ -4356,7 +4369,7 @@ ${requirementsBlock}`;
 
   return (
     <main
-      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${slopPromptExpanded && slopPromptSource === 'chrome' ? ' has-slop-prompt-chrome' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
+      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -4717,33 +4730,6 @@ ${requirementsBlock}`;
                 </div>
               ) : null
             }
-            promptPopover={
-              hasCanvasContent && slopPromptExpanded && slopPromptSource === 'chrome' ? (
-                <div className="bottom-row-popover bottom-row-popover--prompt">
-                  <SlopNextPrompt
-                    layout="chrome"
-                    prompt={slopNextPrompt}
-                    busy={busy}
-                    voiceSupported={voiceSupported}
-                    voiceListening={voiceListening}
-                    narrowLayout={narrowLayout}
-                    speechRecognitionCtor={SpeechRecognitionCtor}
-                    PromptIcon={PromptIcon}
-                    MicIcon={MicIcon}
-                    MicActiveIcon={MicActiveIcon}
-                    ButtonIcon={ButtonIcon}
-                    copy={controls.prompt}
-                    onPromptChange={setSlopNextPrompt}
-                    onSubmit={handleSlopPromptSubmit}
-                    onClose={closeSlopPrompt}
-                    onMicToggleClick={handleMicToggleClick}
-                    onMicPointerDown={handleMicPointerDown}
-                    onMicPointerUp={handleMicPointerUp}
-                    onMicLostPointerCapture={() => stopVoiceInput()}
-                  />
-                </div>
-              ) : null
-            }
             actions={
               !hasCanvasContent && !insightsOpen ? (
                 <div className="entry-cluster">
@@ -4845,35 +4831,27 @@ ${requirementsBlock}`;
                 </div>
               ) : hasCanvasContent && !narrowLayout ? (
                 <div className="prompt-actions prompt-actions--desktop">
-                  <div className="button-group">
+                  <div className="button-group desk-primary-group">
                     <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
-                    <button
-                      type="button"
-                      className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                      disabled={busy}
-                      onClick={toggleChromeSlopPrompt}
-                      aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                      aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                      title={slopitect.PROMPT_ACTION_COPY.title}
-                    >
-                      <ButtonIcon>
-                        <span className="action-persona-icon is-prompt" aria-hidden="true">
-                          💬
-                        </span>
-                      </ButtonIcon>
-                      <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                      <span className="slop-action-role">
-                        <span className="slop-action-role-emoji" aria-hidden="true">
-                          {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                        </span>
-                        {slopitect.PROMPT_ACTION_COPY.roleTag}
-                      </span>
-                    </button>
-                    <RenderAsMascot
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleSelectContentMode}
-                      disabled={loading || streamingPreview}
+                    <SlopNextPrompt
+                      layout="desk"
+                      prompt={deskPrompt}
+                      busy={busy}
+                      voiceSupported={voiceSupported}
+                      voiceListening={voiceListening}
+                      narrowLayout={narrowLayout}
+                      speechRecognitionCtor={SpeechRecognitionCtor}
+                      PromptIcon={PromptIcon}
+                      MicIcon={MicIcon}
+                      MicActiveIcon={MicActiveIcon}
+                      ButtonIcon={ButtonIcon}
+                      copy={controls.prompt}
+                      onPromptChange={setDeskPrompt}
+                      onSubmit={handleDeskPromptSubmit}
+                      onMicToggleClick={handleMicToggleClick}
+                      onMicPointerDown={handleMicPointerDown}
+                      onMicPointerUp={handleMicPointerUp}
+                      onMicLostPointerCapture={() => stopVoiceInput()}
                     />
                     <StakeholdersMascot
                       personas={[
@@ -4914,114 +4892,45 @@ ${requirementsBlock}`;
                       castDisabled={busy || Boolean(advisor.thinkingPersona)}
                       introProps={stakeholderIntroProps}
                     />
-                  </div>
-                  <div className="button-group">
-                    <button
-                      type="button"
-                      className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
-                      onClick={advisor.toggleMute}
-                      aria-pressed={advisor.isMuted}
-                      aria-label={
-                        advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
-                      }
-                      title={
-                        advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
-                      }
-                    >
-                      <ButtonIcon>
-                        <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
-                          {advisor.isMuted ? '🔇' : '🔊'}
-                        </span>
-                      </ButtonIcon>
-                      <span className="button-label">
-                        {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
-                      </span>
-                      <span className="slop-action-role">
-                        <span className="slop-action-role-emoji" aria-hidden="true">
-                          {advisor.isMuted
-                            ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
-                            : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
-                        </span>
-                        {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
-                      </span>
-                    </button>
-                  </div>
-                  {latestCritique?.text ? (
-                    <div className="button-group">
-                      <button
-                        type="button"
-                        className="overlay-button compact-button slop-action-button is-fix"
-                        disabled={!canFixFromCritique}
-                        onClick={() => handleFixFromCritique('all')}
-                        aria-label={controls.actions.fix}
-                        title={controls.actions.fixTitle}
-                      >
-                        <ButtonIcon>
-                          <span className="action-persona-icon is-fix" aria-hidden="true">
-                            🛠️
-                          </span>
-                        </ButtonIcon>
-                        <span className="button-label">{controls.actions.fix}</span>
-                        <ActionPersonaRole fallback={controls.actions.fixPersona} />
-                      </button>
-                    </div>
-                  ) : null}
-                  <div className="button-group">
-                    <button
-                      type="button"
-                      className="overlay-button compact-button slop-action-button is-clear"
-                      disabled={busy}
-                      onClick={() => handleClearDiagram()}
-                      aria-label={controls.actions.clear}
-                      title={controls.actions.clearTitle}
-                    >
-                      <ButtonIcon>
-                        <span className="action-persona-icon is-clear" aria-hidden="true">
-                          🧨
-                        </span>
-                      </ButtonIcon>
-                      <span className="button-label">{controls.actions.clear}</span>
-                      <span className="slop-action-role">
-                        <span className="slop-action-role-emoji" aria-hidden="true">
-                          🧨
-                        </span>
-                        {controls.actions.demolish}
-                      </span>
-                    </button>
+                    <DeskDrawer
+                      modes={contentModeOptions}
+                      currentMode={contentMode}
+                      onPickMode={handleSelectContentMode}
+                      isMuted={advisor.isMuted}
+                      onToggleMute={advisor.toggleMute}
+                      canFix={Boolean(latestCritique?.text)}
+                      fixDisabled={!canFixFromCritique}
+                      onFix={() => handleFixFromCritique('all')}
+                      onDemolish={() => handleClearDiagram()}
+                      busy={busy}
+                      modeDisabled={loading || streamingPreview}
+                    />
                   </div>
                 </div>
               ) : hasCanvasContent && narrowLayout ? (
                 <div className="prompt-actions prompt-actions--mobile">
-                  <div className="button-group">
+                  <SlopNextPrompt
+                    layout="desk"
+                    prompt={deskPrompt}
+                    busy={busy}
+                    voiceSupported={voiceSupported}
+                    voiceListening={voiceListening}
+                    narrowLayout={narrowLayout}
+                    speechRecognitionCtor={SpeechRecognitionCtor}
+                    PromptIcon={PromptIcon}
+                    MicIcon={MicIcon}
+                    MicActiveIcon={MicActiveIcon}
+                    ButtonIcon={ButtonIcon}
+                    copy={controls.prompt}
+                    onPromptChange={setDeskPrompt}
+                    onSubmit={handleDeskPromptSubmit}
+                    onMicToggleClick={handleMicToggleClick}
+                    onMicPointerDown={handleMicPointerDown}
+                    onMicPointerUp={handleMicPointerUp}
+                    onMicLostPointerCapture={() => stopVoiceInput()}
+                  />
+                  <div className="button-group desk-primary-group">
                     <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
-                    <button
-                      type="button"
-                      className={`overlay-button compact-button slop-action-button is-prompt${slopPromptExpanded && slopPromptSource === 'chrome' ? ' is-expanded' : ''}`}
-                      disabled={busy}
-                      onClick={toggleChromeSlopPrompt}
-                      aria-expanded={slopPromptExpanded && slopPromptSource === 'chrome'}
-                      aria-label={slopitect.PROMPT_ACTION_COPY.label}
-                      title={slopitect.PROMPT_ACTION_COPY.title}
-                    >
-                      <ButtonIcon>
-                        <span className="action-persona-icon is-prompt" aria-hidden="true">
-                          💬
-                        </span>
-                      </ButtonIcon>
-                      <span className="button-label">{slopitect.PROMPT_ACTION_COPY.label}</span>
-                      <span className="slop-action-role">
-                        <span className="slop-action-role-emoji" aria-hidden="true">
-                          {slopitect.PROMPT_ACTION_COPY.roleEmoji}
-                        </span>
-                        {slopitect.PROMPT_ACTION_COPY.roleTag}
-                      </span>
-                    </button>
-                    <RenderAsMascot
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleSelectContentMode}
-                      disabled={loading || streamingPreview}
-                    />
                     <StakeholdersMascot
                       personas={[
                         {
@@ -5061,74 +4970,19 @@ ${requirementsBlock}`;
                       castDisabled={busy || Boolean(advisor.thinkingPersona)}
                       introProps={stakeholderIntroProps}
                     />
-                    <button
-                      type="button"
-                      className={`overlay-button compact-button slop-action-button is-advisor-mute ${advisor.isMuted ? 'is-muted' : ''}`}
-                      onClick={advisor.toggleMute}
-                      aria-pressed={advisor.isMuted}
-                      aria-label={
-                        advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
-                      }
-                      title={
-                        advisor.isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle
-                      }
-                    >
-                      <ButtonIcon>
-                        <span className="action-persona-icon is-advisor-mute" aria-hidden="true">
-                          {advisor.isMuted ? '🔇' : '🔊'}
-                        </span>
-                      </ButtonIcon>
-                      <span className="button-label">
-                        {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
-                      </span>
-                      <span className="slop-action-role">
-                        <span className="slop-action-role-emoji" aria-hidden="true">
-                          {advisor.isMuted
-                            ? slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersEmoji
-                            : slopitect.STAKEHOLDERS_MUTE_COPY.watchingEmoji}
-                        </span>
-                        {slopitect.STAKEHOLDERS_MUTE_COPY.stakeholdersTag}
-                      </span>
-                    </button>
-                    {latestCritique?.text ? (
-                      <button
-                        type="button"
-                        className="overlay-button compact-button slop-action-button is-fix"
-                        disabled={!canFixFromCritique}
-                        onClick={() => handleFixFromCritique('all')}
-                        aria-label={controls.actions.fix}
-                        title={controls.actions.fixTitle}
-                      >
-                        <ButtonIcon>
-                          <span className="action-persona-icon is-fix" aria-hidden="true">
-                            🛠️
-                          </span>
-                        </ButtonIcon>
-                        <span className="button-label">{controls.actions.fix}</span>
-                        <ActionPersonaRole fallback={controls.actions.fixPersona} />
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="overlay-button compact-button slop-action-button is-clear"
-                      disabled={busy}
-                      onClick={() => handleClearDiagram()}
-                      aria-label={controls.actions.clear}
-                      title={controls.actions.clearTitle}
-                    >
-                      <ButtonIcon>
-                        <span className="action-persona-icon is-clear" aria-hidden="true">
-                          🧨
-                        </span>
-                      </ButtonIcon>
-                      <span className="button-label">{controls.actions.clear}</span>
-                      <span className="slop-action-role">
-                        <span className="slop-action-role-emoji" aria-hidden="true">
-                          🧨
-                        </span>
-                        {controls.actions.demolish}
-                      </span>
-                    </button>
+                    <DeskDrawer
+                      modes={contentModeOptions}
+                      currentMode={contentMode}
+                      onPickMode={handleSelectContentMode}
+                      isMuted={advisor.isMuted}
+                      onToggleMute={advisor.toggleMute}
+                      canFix={Boolean(latestCritique?.text)}
+                      fixDisabled={!canFixFromCritique}
+                      onFix={() => handleFixFromCritique('all')}
+                      onDemolish={() => handleClearDiagram()}
+                      busy={busy}
+                      modeDisabled={loading || streamingPreview}
+                    />
                   </div>
                 </div>
               ) : null

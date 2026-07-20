@@ -30,9 +30,19 @@ export default function SlopNextPrompt({
   style
 }) {
   const inputRef = useRef(null);
-  const inputId = layout === 'radial' ? 'slop-prompt-radial-input' : 'slop-prompt-chrome-input';
+  const isDesk = layout === 'desk';
+  const inputId =
+    layout === 'radial'
+      ? 'slop-prompt-radial-input'
+      : isDesk
+        ? 'slop-prompt-desk-input'
+        : 'slop-prompt-chrome-input';
 
   useEffect(() => {
+    // The desk Work Order is always mounted; stealing focus (and scrolling it
+    // into view) on every mount would hijack the page, so only the transient
+    // popover layouts auto-focus.
+    if (isDesk) return undefined;
     const id = window.setTimeout(
       () => {
         const el = inputRef.current;
@@ -51,7 +61,7 @@ export default function SlopNextPrompt({
       narrowLayout ? 80 : 30
     );
     return () => window.clearTimeout(id);
-  }, [narrowLayout]);
+  }, [narrowLayout, isDesk]);
 
   useEffect(() => {
     function onKey(event) {
@@ -90,24 +100,33 @@ export default function SlopNextPrompt({
       onSubmit={handleSubmit}
       data-testid={`slop-prompt-panel-${layout}`}
     >
-      <div className="slop-prompt-panel-head">
-        <span className="slop-prompt-panel-eyebrow" aria-hidden="true">
-          {PromptIcon ? <PromptIcon /> : '💬'}
-        </span>
-        <p className="slop-prompt-panel-title" id={`${inputId}-label`}>
-          {copy.slopNextTitle}
-        </p>
-        <button
-          type="button"
-          className="slop-prompt-panel-close"
-          onClick={onClose}
-          aria-label={copy.closePrompt}
+      {isDesk ? (
+        <span
+          className="slop-prompt-panel-eyebrow slop-prompt-panel-eyebrow--desk"
+          aria-hidden="true"
         >
-          ×
-        </button>
-      </div>
+          {PromptIcon ? <PromptIcon /> : '📝'}
+        </span>
+      ) : (
+        <div className="slop-prompt-panel-head">
+          <span className="slop-prompt-panel-eyebrow" aria-hidden="true">
+            {PromptIcon ? <PromptIcon /> : '💬'}
+          </span>
+          <p className="slop-prompt-panel-title" id={`${inputId}-label`}>
+            {copy.slopNextTitle}
+          </p>
+          <button
+            type="button"
+            className="slop-prompt-panel-close"
+            onClick={onClose}
+            aria-label={copy.closePrompt}
+          >
+            ×
+          </button>
+        </div>
+      )}
       <label className="sr-only" htmlFor={inputId}>
-        {copy.slopNextLabel}
+        {isDesk ? (copy.deskLabel ?? copy.slopNextLabel) : copy.slopNextLabel}
       </label>
       <input
         id={inputId}
@@ -115,11 +134,14 @@ export default function SlopNextPrompt({
         className="slop-prompt-panel-input"
         value={prompt ?? ''}
         onChange={(event) => onPromptChange?.(event.target.value)}
-        placeholder={copy.slopNextPlaceholder}
+        placeholder={
+          isDesk ? (copy.deskPlaceholder ?? copy.slopNextPlaceholder) : copy.slopNextPlaceholder
+        }
         disabled={busy}
         autoComplete="off"
         autoCapitalize="sentences"
-        aria-labelledby={`${inputId}-label`}
+        // Desk layout has no title element; the sr-only <label htmlFor> names it.
+        aria-labelledby={isDesk ? undefined : `${inputId}-label`}
       />
       <div className="slop-prompt-panel-actions">
         <button
