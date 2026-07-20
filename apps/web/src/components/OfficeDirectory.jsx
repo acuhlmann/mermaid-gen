@@ -422,7 +422,9 @@ export default function OfficeDirectory({
   onBootComplete,
   getSessionId,
   showChip = true,
-  placement = 'entry'
+  placement = 'entry',
+  /** When true, orientation owns the screen until Clock in — no backdrop dismiss. */
+  isBoot = false
 }) {
   const firstRunRef = useRef(!readOfficeDirectorySeen());
   const [open, setOpen] = useState(() => firstRunRef.current);
@@ -451,6 +453,14 @@ export default function OfficeDirectory({
     setOfficeDirectoryOpen(open);
     return () => setOfficeDirectoryOpen(false);
   }, [open]);
+
+  // Parent boot gate can outlive a stale `open` flag (HMR, storage races) — keep
+  // the reception desk up until the user clocks in or skips the ceremony.
+  useEffect(() => {
+    if (!isBoot) return;
+    setOpen(true);
+    setStep((current) => (current === null ? STEP_WELCOME : current));
+  }, [isBoot]);
 
   useEffect(() => {
     if (directoryUi.openNonce <= handledOpenNonce.current) return;
@@ -608,8 +618,10 @@ export default function OfficeDirectory({
       <button
         type="button"
         className="office-directory-backdrop"
-        aria-label={copy.closeAria}
-        onClick={dismiss}
+        aria-label={isBoot ? undefined : copy.closeAria}
+        aria-hidden={isBoot ? 'true' : undefined}
+        tabIndex={isBoot ? -1 : undefined}
+        onClick={isBoot ? undefined : dismiss}
       />
       {step !== null ? (
         <DirectoryTour

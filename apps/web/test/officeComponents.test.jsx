@@ -180,6 +180,7 @@ describe('office who-is-who chrome', () => {
         onQuickReply={vi.fn()}
       />
     );
+    expect(screen.getByText('Slop Chat™ · Instant message')).toBeTruthy();
     expect(screen.getByText('Ulrich')).toBeTruthy();
     expect(screen.getByText(/Staff Engineer Emeritus/)).toBeTruthy();
   });

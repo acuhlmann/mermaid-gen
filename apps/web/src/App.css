@@ -16138,6 +16138,23 @@ body.slopitect-rainbow-tint::before {
   background: var(--accent-dark);
 }
 
+/* --- Office moment kind labels (IM, walk-by, coffee, etc.) --- */
+.office-moment-kind {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.office-moment-kind--im {
+  align-self: flex-end;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  border: 1px solid var(--control-border);
+}
+
 /* --- IM pings (Slop Chat™) --- */
 .office-im-stack {
   position: fixed;
@@ -16520,9 +16537,16 @@ body.slopitect-rainbow-tint::before {
   bottom: 130px;
   z-index: var(--z-office-chrome);
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  max-width: min(360px, calc(100vw - 28px));
+}
+.office-walkby-row {
+  display: flex;
   align-items: flex-end;
   gap: 8px;
-  max-width: min(360px, calc(100vw - 28px));
+  width: 100%;
 }
 .office-walkby-avatar {
   flex: 0 0 auto;

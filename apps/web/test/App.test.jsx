@@ -1098,8 +1098,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     fireEvent.click(screen.getByTestId('office-directory-skip-build'));
 
-    expect(await screen.findByTestId('day-one-badge')).toBeTruthy();
     expect(await screen.findByRole('button', { name: /Do it/i })).toBeTruthy();
     expect(screen.queryByTestId('office-directory-modal')).toBeNull();
+    expect(screen.queryByTestId('day-one-badge')).toBeNull();
   });
 });

@@ -22,6 +22,9 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
       aria-label={copy.im.regionAria}
       aria-live="polite"
     >
+      <div className="office-moment-kind office-moment-kind--im" aria-hidden="true">
+        {copy.im.kindLabel}
+      </div>
       {(pings ?? []).map((ping) => {
         const sender = officeSenderInfo(ping.colleagueId);
         return (
