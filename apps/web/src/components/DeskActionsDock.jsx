@@ -1,18 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
-import { requestOfficeDirectoryOpen } from '../state/officeDirectoryUiStore.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a short verb menu — Meet the Office, check HR
- * progression, get a coffee, walk the floor, message someone, check mail, call
- * a meeting, talk to your team.
+ * ArchiSlop helmet stamp opens a verb menu — talk to the team, call a meeting,
+ * check mail, ship from the Outbox, wander the floor, tweak the workstation,
+ * and so on. Meet the Office lives on the level / People Ops panel instead.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
  * disabled with an in-fiction reason, so the menu never silently no-ops.
+ *
+ * Order is priority: collaboration and shipping first, ambience in the middle,
+ * workstation / HR meta last.
  */
 export default function DeskActionsDock({
   onGetCoffee,
@@ -23,10 +25,15 @@ export default function DeskActionsDock({
   onCallMeeting,
   onTalkToTeam,
   onCheckHrProgression,
-  onMeetOffice,
+  onOpenOutbox,
+  onOpenSettings,
+  onToggleThinking,
   blockedReason = null,
   canCallMeeting = true,
   canTalkToTeam = true,
+  canOpenOutbox = false,
+  canToggleThinking = false,
+  thinkingOpen = false,
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner'
@@ -46,47 +53,14 @@ export default function DeskActionsDock({
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
-  const meetOffice = () => {
-    if (onMeetOffice) onMeetOffice();
-    else requestOfficeDirectoryOpen('roster');
-  };
-
   const verbs = [
     {
-      id: 'meetOffice',
-      label: copy.meetOffice,
-      emoji: '🏢',
-      run: meetOffice,
-      alwaysEnabled: true,
-      title: copy.meetOfficeTitle
-    },
-    {
-      id: 'hr',
-      label: copy.hrProgress,
-      emoji: '📈',
-      run: onCheckHrProgression,
-      alwaysEnabled: true,
-      title: copy.hrProgressTitle
-    },
-    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
-    { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
-    { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
-    {
-      id: 'slopChat',
-      label: copy.slopChat,
-      emoji: '💬',
-      run: onOpenSlopChat,
-      alwaysEnabled: true,
-      title: copy.slopChatTitle,
-      badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
-    },
-    {
-      id: 'inbox',
-      label: copy.inbox,
-      emoji: '📥',
-      run: onCheckInbox,
-      alwaysEnabled: true,
-      badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null
+      id: 'team',
+      label: copy.team,
+      emoji: '👥',
+      run: onTalkToTeam,
+      disabled: !canTalkToTeam,
+      disabledTitle: copy.blocked?.noTeam ?? copy.blocked?.noAgenda
     },
     {
       id: 'meeting',
@@ -97,12 +71,60 @@ export default function DeskActionsDock({
       disabledTitle: copy.blocked?.noAgenda
     },
     {
-      id: 'team',
-      label: copy.team,
-      emoji: '👥',
-      run: onTalkToTeam,
-      disabled: !canTalkToTeam,
-      disabledTitle: copy.blocked?.noTeam ?? copy.blocked?.noAgenda
+      id: 'inbox',
+      label: copy.inbox,
+      emoji: '📥',
+      run: onCheckInbox,
+      alwaysEnabled: true,
+      badge: unreadCount > 0 ? (unreadCount > 9 ? '9+' : String(unreadCount)) : null
+    },
+    {
+      id: 'outbox',
+      label: copy.outbox,
+      emoji: '📤',
+      run: onOpenOutbox,
+      alwaysEnabled: true,
+      disabled: !canOpenOutbox,
+      disabledTitle: copy.blocked?.noOutbox,
+      title: copy.outboxTitle
+    },
+    {
+      id: 'slopChat',
+      label: copy.slopChat,
+      emoji: '💬',
+      run: onOpenSlopChat,
+      alwaysEnabled: true,
+      title: copy.slopChatTitle,
+      badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
+    },
+    { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
+    { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
+    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
+    {
+      id: 'thinking',
+      label: thinkingOpen ? copy.thinkingClose : copy.thinking,
+      emoji: '🧠',
+      run: onToggleThinking,
+      alwaysEnabled: true,
+      disabled: !canToggleThinking,
+      disabledTitle: copy.blocked?.noThinking,
+      title: copy.thinkingTitle
+    },
+    {
+      id: 'settings',
+      label: copy.settings,
+      emoji: '⚙️',
+      run: onOpenSettings,
+      alwaysEnabled: true,
+      title: copy.settingsTitle
+    },
+    {
+      id: 'hr',
+      label: copy.hrProgress,
+      emoji: '📈',
+      run: onCheckHrProgression,
+      alwaysEnabled: true,
+      title: copy.hrProgressTitle
     }
   ];
 

@@ -653,8 +653,6 @@ export const OFFICE_ZH_TW = {
       buttonTitle: '起身、閒晃、打擾別人',
       menuAria: '工位操作',
       menuHeading: '你在幹嘛？',
-      meetOffice: '認識辦公室',
-      meetOfficeTitle: '再看一遍角色表 — 點 ▶ 讓大家自我介紹',
       hrProgress: '查一下我的 HR 晉升進度',
       hrProgressTitle: '人資營運計分卡 — 等級、XP，以及 Linda 對你的看法',
       coffee: '去喝杯咖啡',
@@ -665,12 +663,21 @@ export const OFFICE_ZH_TW = {
       inbox: '查一下郵件',
       meeting: '召開會議',
       team: '和團隊聊聊',
+      outbox: '從寄件匣寄出',
+      outboxTitle: '匯出或分享工位上的成品',
+      settings: '調整一下工位',
+      settingsTitle: '腦速、訪客代理和程式碼抽屜',
+      thinking: '打開思考板',
+      thinkingClose: '關閉思考板',
+      thinkingTitle: '樓層留下的筆記、評審和執行紀錄',
       blocked: {
         busy: '部署進行中 — 誰也別離開工位。',
         meeting: '你在開會。裝得投入一點。',
         surface: '一次一件事。你已經被打斷得夠忙了。',
         noAgenda: '先畫點東西 — 這場會也需要議程',
-        noTeam: '先在畫布上畫點東西 — 團隊還沒東西可以回應'
+        noTeam: '先在畫布上畫點東西 — 團隊還沒東西可以回應',
+        noOutbox: '還沒什麼可寄 — 先在畫布上放個成品',
+        noThinking: '思考板是空的 — 先跑點什麼'
       }
     },
     directory: {

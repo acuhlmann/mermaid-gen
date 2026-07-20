@@ -5204,6 +5204,52 @@
   max-width: 100%;
 }
 
+/* Desk verbs open Settings / Outbox — anchors stay in the bottom row for
+   popover positioning but take no icon footprint when closed. */
+.ai-corner-settings-anchor--headless,
+.outbox-dock--headless {
+  width: 0;
+  min-width: 0;
+  height: 0;
+  min-height: 0;
+  overflow: visible;
+  pointer-events: none;
+  align-self: flex-end;
+}
+
+.ai-corner-settings-anchor--headless:has(.ai-corner-settings-panel.is-open:not([hidden])),
+.outbox-dock--headless:has(.outbox-panel.is-open:not([hidden])) {
+  width: auto;
+  height: auto;
+  pointer-events: auto;
+}
+
+.ai-corner-settings-anchor--headless .ai-corner-settings-panel,
+.outbox-dock--headless .outbox-panel {
+  pointer-events: auto;
+}
+
+.ai-corner-settings-dismiss,
+.outbox-panel-dismiss {
+  align-self: stretch;
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--control-border);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ai-corner-settings-dismiss:hover,
+.outbox-panel-dismiss:hover {
+  color: var(--text);
+  border-color: rgba(37, 99, 235, 0.45);
+}
+
 .ai-corner-settings-toggle {
   align-self: flex-end;
   position: relative;
@@ -13620,6 +13666,35 @@ body.slopitect-rainbow-tint::before {
   right: 0;
   left: auto;
   z-index: var(--z-bottom-popover);
+  max-block-size: min(
+    70dvh,
+    calc(
+      100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
+        env(safe-area-inset-top, 0px) - 1.5rem
+    )
+  );
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-inline-size: min(
+    20rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+}
+
+/* Mobile / foldable: fixed bottom sheet so Deliverable format stays inside the
+   visual viewport instead of clipping above the hinge or safe-area chrome. */
+@media (max-width: 1024px) {
+  .desk-actions-menu.desk-drawer-menu {
+    position: fixed;
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: calc(
+      var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.35rem
+    );
+    width: auto;
+    max-inline-size: none;
+  }
 }
 
 .desk-drawer-mode.is-current {
@@ -13667,14 +13742,16 @@ body.slopitect-rainbow-tint::before {
   display: none;
 }
 
-/* Mobile: the Work Order takes its own full-width row above Team + drawer. */
+/* Mobile: the Work Order sits on the bottom row under Team + drawer. */
 .prompt-actions--mobile .slop-prompt-panel--desk {
   flex-basis: 100%;
   width: 100%;
+  order: 2;
 }
 
 .prompt-actions--mobile .desk-primary-group {
   width: 100%;
+  order: 1;
 }
 
 @media (max-width: 1024px) {
@@ -18106,7 +18183,7 @@ body.slopitect-rainbow-tint::before {
    (640–1024px wide, ≥480px tall). Overrides the phone fullscreen overlay. */
 @media (min-width: 640px) and (max-width: 1024px) and (min-height: 480px) {
   .diagram-canvas.is-insights-open:not(.is-editor-open) {
-    grid-template-columns: minmax(0, 1fr) minmax(220px, 36vw);
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 44vw);
     grid-template-rows: minmax(0, 1fr);
   }
 
@@ -18174,11 +18251,11 @@ body.slopitect-rainbow-tint::before {
   }
 
   .app-shell.is-insights-open:not(.is-editor-open) .bottom-chrome {
-    padding-right: max(220px, 36vw);
+    padding-right: max(280px, 44vw);
   }
 
   .app-shell.is-insights-open:not(.is-editor-open) .top-shell {
-    right: calc(max(220px, 36vw) + 1rem);
+    right: calc(max(280px, 44vw) + 1rem);
   }
 
   .diagram-viewport {
@@ -18196,7 +18273,7 @@ body.slopitect-rainbow-tint::before {
     .diagram-canvas.is-insights-open:not(.is-editor-open) {
       grid-template-columns:
         env(viewport-segment-width 0 0, minmax(0, 1fr))
-        env(viewport-segment-width 1 0, minmax(220px, 36vw));
+        env(viewport-segment-width 1 0, minmax(280px, 44vw));
     }
 
     .diagram-canvas.is-insights-open:not(.is-editor-open) .diagram-main-column {

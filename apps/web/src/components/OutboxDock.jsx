@@ -37,19 +37,25 @@ function isQuickToastMethod(method) {
 
 /**
  * The Outbox: sending your finished deliverable out is a first-class office
- * action, so it lives in its own bottom-row drawer (📤) rather than buried
- * inside the Settings gear. Trigger + popover panel own the whole export
- * subsystem (share pre-warm, per-format Save/Copy, Web Share). The panel floats
- * above the trigger when `popoverMode` (desktop) and stacks inline otherwise.
+ * action. The panel opens from the desk verb "Ship from the Outbox" via
+ * `openSignal` (optional dedicated trigger kept for tests). Owns the whole
+ * export subsystem (share pre-warm, per-format Save/Copy, Web Share). The panel
+ * floats above the anchor when `popoverMode` (desktop) and stacks inline otherwise.
  */
 export default function OutboxDock({
   controls = DEFAULT_CONTROLS,
   contentType = null,
   diagramSource = '',
-  popoverMode = true
+  popoverMode = true,
+  showTrigger = true,
+  openSignal = 0
 }) {
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [panelOpen, setPanelOpen] = useState(startExpanded);
+
+  useEffect(() => {
+    if (openSignal > 0) setPanelOpen(true);
+  }, [openSignal]);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportBusyId, setExportBusyId] = useState(null);
   const [exportError, setExportError] = useState(null);
@@ -370,25 +376,27 @@ export default function OutboxDock({
   const outboxLabel = controls.outboxLabel ?? 'Outbox';
 
   return (
-    <div className="outbox-dock">
-      <button
-        type="button"
-        className={`overlay-button outbox-toggle${panelOpen ? ' is-open' : ''}`}
-        onClick={() => setPanelOpen((v) => !v)}
-        aria-expanded={panelOpen}
-        aria-controls="outbox-panel"
-        aria-label={
-          panelOpen ? (controls.outboxHide ?? outboxLabel) : (controls.outboxShow ?? outboxLabel)
-        }
-        title={controls.outboxTitle ?? outboxLabel}
-      >
-        <ButtonIcon>
-          <span className="action-persona-icon is-outbox" aria-hidden="true">
-            📤
-          </span>
-        </ButtonIcon>
-        <span className="button-label">{outboxLabel}</span>
-      </button>
+    <div className={`outbox-dock${showTrigger ? '' : ' outbox-dock--headless'}`}>
+      {showTrigger ? (
+        <button
+          type="button"
+          className={`overlay-button outbox-toggle${panelOpen ? ' is-open' : ''}`}
+          onClick={() => setPanelOpen((v) => !v)}
+          aria-expanded={panelOpen}
+          aria-controls="outbox-panel"
+          aria-label={
+            panelOpen ? (controls.outboxHide ?? outboxLabel) : (controls.outboxShow ?? outboxLabel)
+          }
+          title={controls.outboxTitle ?? outboxLabel}
+        >
+          <ButtonIcon>
+            <span className="action-persona-icon is-outbox" aria-hidden="true">
+              📤
+            </span>
+          </ButtonIcon>
+          <span className="button-label">{outboxLabel}</span>
+        </button>
+      ) : null}
       <div
         id="outbox-panel"
         className={`${panelClass}${panelOpen ? ' is-open' : ''}`}
@@ -396,6 +404,16 @@ export default function OutboxDock({
         aria-label={controls.outboxRegion ?? outboxLabel}
         hidden={!panelOpen}
       >
+        {!showTrigger ? (
+          <button
+            type="button"
+            className="outbox-panel-dismiss"
+            onClick={() => setPanelOpen(false)}
+            aria-label={controls.outboxHide ?? outboxLabel}
+          >
+            {controls.outboxHide ?? 'Hide Outbox'}
+          </button>
+        ) : null}
         <div className="settings-export" role="group" aria-label={controls.export}>
           {hasSource && canPrimaryShare ? (
             <button
