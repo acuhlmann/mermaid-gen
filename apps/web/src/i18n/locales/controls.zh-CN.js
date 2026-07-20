@@ -29,7 +29,9 @@ export const CONTROLS_ZH_CN = {
     muteAria: '静音相关方',
     unmuteAria: '取消静音相关方',
     muteTitle: '相关方正在围观 · 点击静音',
-    unmuteTitle: '相关方已静音 · 点击取消静音'
+    unmuteTitle: '相关方已静音 · 点击取消静音',
+    prepForVp: '给 VP 准备稿',
+    prepForVpTitle: '给 VP 准备稿 · 送上楼前先熬干水分'
   },
   prompt: {
     yourTopic: '你的主题',
@@ -46,6 +48,8 @@ export const CONTROLS_ZH_CN = {
     slopNextPlaceholder: '告诉智能体要改什么…',
     slopNextLabel: '新提示',
     closePrompt: '关闭提示',
+    deskLabel: '工单 — 这次要改什么？',
+    deskPlaceholder: '写下你的下一条工单…',
     topicPlaceholder: '输入任何主题 — 图表、数据图、表单…',
     starterHint: '或从同事那里接个任务：',
     starterAria: '用于快速开始的示例主题',
@@ -55,8 +59,9 @@ export const CONTROLS_ZH_CN = {
       { label: 'CI/CD 流水线', prompt: '梳理从提交到上线的 CI/CD 流水线' },
       { label: '微服务', prompt: '画一张典型的微服务架构图' }
     ],
-    exampleEyebrow: 'ArchiSlop',
-    exampleHeadline: '任意主题 → 一张可演进的图',
+    exampleEyebrow: 'ArchiSlop 公司 · IT 事业部',
+    exampleHeadline: '欢迎入职，{name}',
+    exampleRole: '架构师',
     exampleBody: '把任何主题变成可交付成果。从你最关心的内容开始。',
     exampleTopic: '全球咖啡供应链',
     exampleAria: '可立即生成的可视化示例',
@@ -67,6 +72,21 @@ export const CONTROLS_ZH_CN = {
     C --> D["咖啡馆"]`,
     renderAsLabel: '渲染为',
     renderAsAria: '选择主题的渲染形态'
+  },
+  dayOne: {
+    eyebrow: 'ArchiSlop 公司 · 员工工牌',
+    rolePrefix: '新员工',
+    hrLine: '工牌照片：还在处理中。工位：就是这张。股权：氛围感。合规培训：已经逾期（破纪录）。',
+    pitchLine:
+      '这块画布就是你的交付物。在下方抛出任何主题——或者在你觉得自己够 Series-A 勇敢时，接下同事的派活。',
+    dismissAria: '收起工牌',
+    nameTag: {
+      hello: '你好',
+      subtitle: '我叫',
+      placeholder: '新人',
+      editTitle: '输入你的名字——整个办公室都会开始这么叫你',
+      inputAria: '你在办公室的名字'
+    }
   },
   introLocale: {
     aria: '界面语言',
@@ -81,6 +101,11 @@ export const CONTROLS_ZH_CN = {
     hide: '隐藏设置',
     title: '设置 · 邀请智能体、模型、导出',
     region: '会话设置',
+    outboxLabel: '发件箱',
+    outboxShow: '打开发件箱',
+    outboxHide: '关闭发件箱',
+    outboxTitle: '发件箱 · 寄出这份交付物——保存、复制或分享',
+    outboxRegion: '发件箱 — 导出与分享',
     externalAgents: '外部智能体',
     waitingHandshake: '等待握手：',
     externalAgentFallback: '外部智能体',
@@ -246,6 +271,15 @@ export const CONTROLS_ZH_CN = {
     tapToOpen: '{mode} · 点击打开渲染为',
     pickMode: '选择模式'
   },
+  deskDrawer: {
+    label: '抽屉',
+    close: '关闭抽屉',
+    title: '抽屉 · 交付形态、聚焦、修复与拆除',
+    menuAria: '抽屉',
+    roleTag: '杂物间',
+    formatHeading: '交付形态',
+    deskHeading: '工位上的东西'
+  },
   stakeholders: {
     theStakeholders: '相关方',
     hideActions: '隐藏相关方操作',
@@ -259,7 +293,8 @@ export const CONTROLS_ZH_CN = {
     castOneOfMany: '{name} 是 {count} 位相关方之一',
     castSpeaking: '{name} 正在发言',
     castAskCommentary: '请 {name} 点评',
-    align: '对齐',
+    align: '给 VP 准备稿',
+    seniorDivider: '楼上',
     introEyebrow: '👥 圆桌会议已召开',
     introBody:
       '一位相关方正在对你的图表发表意见——无论你是否询问，他们都会在你工作时插话。随时可用右侧按钮将其静音。',

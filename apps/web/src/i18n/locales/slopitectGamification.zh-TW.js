@@ -438,6 +438,14 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       '神話級協同已解鎖。獵頭開始出現在夢裡。',
       '你現在就是架構。去 HR 把這件事裱起來。'
     ],
+    greetingNamed: '歡迎回來，{userName}。',
+    greetingDefault: '歡迎回來，爛圖建築師。',
+    meetTeamLabel: '認識團隊 →',
+    meetTeamTitle: '打開辦公室入職引導——聽聽 Chad、Pam、Linda 和其他人自我介紹',
+    meetTeamLede:
+      '畫布下方的五位人設隊友會插話點評。辦公室樓層是另一套陣容——郵件、即時訊息、路過搭話。',
+    slotsLede:
+      '六個圖表槽位——Mermaid、資訊圖、資料圖、3D 隱喻、任意頁、表單——各自保留獨立的修訂歷史。',
     nextLevelTaunts: [
       '近到協同都嚐得到了。',
       '距一次好的協同設計只差一步。',
