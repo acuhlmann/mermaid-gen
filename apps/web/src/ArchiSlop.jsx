@@ -139,7 +139,7 @@ import {
 } from './state/runGamificationStore.js';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import OfficeLayer from './components/OfficeLayer.jsx';
-import { resolveUserName } from './state/userIdentityStore.js';
+import { resolveUserName, subscribe as subscribeUserName } from './state/userIdentityStore.js';
 import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
@@ -148,6 +148,7 @@ import { readOfficeDirectorySeen, writeDayOneBadgeSeen } from './utils/officeAmb
 import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
+import { formatLocale } from './i18n/formatLocale.js';
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
@@ -2692,6 +2693,7 @@ ${requirementsBlock}`;
   const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
   /** After orientation, keep office pings quiet so the canvas welcome lands first. */
   const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
+  const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
 
   const handleOfficeBootComplete = useCallback(() => {
     setOfficeBootPending(false);
@@ -3731,7 +3733,8 @@ ${requirementsBlock}`;
             <ExampleDiagramPreview
               source={controls.prompt.exampleDiagramSource ?? EXAMPLE_DIAGRAM_SOURCE}
               eyebrow={controls.prompt.exampleEyebrow}
-              headline={controls.prompt.exampleHeadline}
+              headline={formatLocale(controls.prompt.exampleHeadline, { name: userName })}
+              role={controls.prompt.exampleRole}
               body={controls.prompt.exampleBody}
               topicLabel={controls.prompt.exampleTopic}
               ariaLabel={controls.prompt.exampleAria}
@@ -4342,6 +4345,17 @@ ${requirementsBlock}`;
           onSkipToBuild={focusTopicInput}
           onBootComplete={handleOfficeBootComplete}
           getSessionId={() => activeSessionId}
+          userRole={controls.prompt.exampleRole ?? 'Architect'}
+          entryStarters={
+            officeBootPending
+              ? {
+                  hint: controls.prompt.starterHint,
+                  ariaLabel: controls.prompt.starterAria,
+                  starters: controls.prompt.starters
+                }
+              : null
+          }
+          onStarterPick={handleStarterPick}
         />
       </div>
     </main>

@@ -78,7 +78,8 @@ export const CONTROLS_EN_AU = {
       }
     ],
     exampleEyebrow: 'ArchiSlop Corp. · IT Division',
-    exampleHeadline: 'Welcome aboard, Architect',
+    exampleHeadline: 'Welcome aboard, {name}',
+    exampleRole: 'Architect',
     exampleBody: 'Turn any topic into a deliverable. Start with whatever you care about.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualisation you can generate',

@@ -89,7 +89,8 @@ export const CONTROLS_EN = {
     // Compact purpose card on the empty canvas: brand → one job → sample → CTA,
     // revealed beat-by-beat so newcomers aren't handed every mode at once.
     exampleEyebrow: 'ArchiSlop Corp. · IT Division',
-    exampleHeadline: 'Welcome aboard, Architect',
+    exampleHeadline: 'Welcome aboard, {name}',
+    exampleRole: 'Architect',
     exampleBody: 'Turn any topic into a deliverable. Start with whatever you care about.',
     exampleTopic: 'Global coffee supply chain',
     exampleAria: 'Example of an archislop visualization you can generate',

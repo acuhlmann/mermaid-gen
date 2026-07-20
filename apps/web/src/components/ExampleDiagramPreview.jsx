@@ -17,6 +17,7 @@ export default function ExampleDiagramPreview({
   source,
   eyebrow,
   headline,
+  role,
   body,
   topicLabel,
   ariaLabel,
@@ -52,6 +53,7 @@ export default function ExampleDiagramPreview({
       <div className="entry-example-card">
         {eyebrow ? <p className="entry-example-eyebrow">{eyebrow}</p> : null}
         {headline ? <h2 className="entry-example-headline">{headline}</h2> : null}
+        {role ? <p className="entry-example-role">{role}</p> : null}
         {body ? <p className="entry-example-body">{body}</p> : null}
         {svgMarkup ? (
           <div className="entry-example-demo">
