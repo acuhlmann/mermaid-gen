@@ -427,6 +427,14 @@ export const SLOPITECT_GAMIFICATION_ZH_CN = {
       '神话级协同已解锁。猎头开始出现在梦里。',
       '你就是架构本身。去HR那里把这个裱起来。'
     ],
+    greetingNamed: '欢迎回来，{userName}。',
+    greetingDefault: '欢迎回来，烂图建筑师。',
+    meetTeamLabel: '认识团队 →',
+    meetTeamTitle: '打开办公室入职引导——听听 Chad、Pam、Linda 和其他人自我介绍',
+    meetTeamLede:
+      '画布下方的五位人设队友会插话点评。办公室楼层是另一套阵容——邮件、即时消息、路过搭讪。',
+    slotsLede:
+      '六个图表槽位——Mermaid、信息图、数据图、3D 隐喻、任意页、表单——各自保留独立的修订历史。',
     nextLevelTaunts: [
       '近到协同都快尝到了。',
       '就差一次好的协同设计。',

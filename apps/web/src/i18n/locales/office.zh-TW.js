@@ -10,35 +10,59 @@ export const OFFICE_ZH_TW = {
   OFFICE_COLLEAGUES: {
     intern: {
       title: '實習生(無薪 · 戰略級)',
-      blurb: '愛按「回覆全部」。天真的問題偶爾一針見血。'
+      blurb: '愛按「回覆全部」。天真的問題偶爾一針見血。',
+      introLine:
+        '嗨!!我是 Chad——無薪、戰略級,而且大概率會因為訂書機議題全員回覆。關於你的圖有個小問題,說不定會是今天全場最聰明的一句。另外:訂書機放哪兒了?'
     },
     scrumMaster: {
       title: '敏捷教練 — CSM、CSPO、SAFe 6.0',
-      blurb: '凡事皆儀式。連午餐都要設時間盒。所有會議由她主持。'
+      blurb: '凡事皆儀式。連午餐都要設時間盒。所有會議由她主持。',
+      introLine:
+        '嗨!我是 Pam——CSM、CSPO、SAFe 6.0,對停車場話術情感流利。這次自我介紹限時四十五秒協同能量。氣氛很好。咱們回頭再對齊。'
     },
     helpdesk: {
       name: '工單機器人 Dave',
       title: 'IT 服務台 — 一線(僅此一線)',
-      blurb: '把工單關閉為它自己的重複項。在他機器上沒問題。'
+      blurb: '把工單關閉為它自己的重複項。在他機器上沒問題。',
+      introLine:
+        '工單機器人 Dave。一線(僅此一線)。我把工單關成它自己的重複項。試過關機再開機嗎。那不是問句。在我機器上沒問題。'
     },
     facilities: {
       title: '總務暨冰箱沙皇',
-      blurb: '發全大寫的冰箱清理通知。以鐵腕掌控恆溫器。'
+      blurb: '發全大寫的冰箱清理通知。以鐵腕掌控恆溫器。',
+      introLine:
+        '我是 GARY。冰箱是我的。恆溫器也是。沒貼標籤的容器——以及沒標清楚的架構圖——一律歸總務部所有。友情警告。'
     },
     hr: {
       title: '人資營運業務夥伴',
-      blurb: '武器化的熱情。你的訓練已逾期 847 天。記得幫 Craig 的卡片簽名。'
+      blurb: '武器化的熱情。你的訓練已逾期 847 天。記得幫 Craig 的卡片簽名。',
+      introLine:
+        '我是 Linda,人資營運。你的識別證照片還在處理,合規訓練不知怎麼已經逾期了,Craig 的生日卡片還需要一句暖呼呼的套話。你會融入得非常漂亮。'
     },
     greybeard: {
       title: '資深工程師(榮退回鍋)',
-      blurb: '「2009 年我們試過。」維護著那台大型主機。建議好得令人不安。'
+      blurb: '「2009 年我們試過。」維護著那台大型主機。建議好得令人不安。',
+      introLine:
+        'Ulrich。資深工程師(榮退回鍋)。2009 年我們試過。靠 cron 和恐懼在跑。我維護著那台沒人承認的大型主機。大型主機問起你了。我跟它說你在畫圖。'
     },
     ciso: {
       title: '資安長 — 「不行部」',
-      blurb: '萬物皆攻擊面,尤其是箭頭。釣魚演練由 TA 主持。誰都不信。'
+      blurb: '萬物皆攻擊面,尤其是箭頭。釣魚演練由 TA 主持。誰都不信。',
+      introLine:
+        'Sasha。資安長。不行部。萬物皆攻擊面——尤其是你、那些箭頭,還有 2017 年那個臨時管理員密碼。已記入你的檔案。我是出於好意。'
     }
   },
-  OFFICE_SLOT_FALLBACKS: { label: '這張圖', userTitle: '實習架構師' },
+  SENIOR_STAKEHOLDERS: {
+    cto: {
+      title: 'CTO — 只發 keynote,不寫程式',
+      blurb: '規模化願景。引用自己的大會演講。上次打開 IDE 是 2016 年。'
+    },
+    cfo: {
+      title: 'CFO — 預算就是不行',
+      blurb: '每個方塊都是成本中心。會問這張圖每月要花多少錢。什麼都不批。'
+    }
+  },
+  OFFICE_SLOT_FALLBACKS: { label: '這張圖', userTitle: '實習架構師', userName: '新人' },
   OFFICE_WELCOME_EMAIL: {
     id: 'welcome-email-hr',
     colleagueId: 'hr',
@@ -741,6 +765,7 @@ export const OFFICE_ZH_TW = {
       callMeetingDisabledTitle: '先畫點東西 — 這場會也需要議程'
     },
     im: {
+      kindLabel: 'Slop Chat™ · 即時訊息',
       regionAria: '即時訊息',
       dismissAria: '關閉來自 {name} 的訊息',
       openHistoryAria: '開啟 Slop Chat(未讀 {count} 則)',
@@ -764,9 +789,11 @@ export const OFFICE_ZH_TW = {
       statusBusy: '開會中'
     },
     walkby: {
+      kindLabel: '路過 · 從你肩膀上方',
       dismissAria: '揮手送走 {name}'
     },
     coffee: {
+      kindLabel: '茶水間 · 咖啡歇腳',
       inviteLine: '喝杯咖啡?{name} 正在咖啡機旁開講。',
       accept: '休息 5 分鐘',
       decline: '趕死線',
@@ -775,6 +802,7 @@ export const OFFICE_ZH_TW = {
       done: '我得去發版了'
     },
     battle: {
+      kindLabel: '座位鬧劇 · 對決',
       inviteLine: '🥊 {a} 和 {b} 又槓上了 — 「{topic}」。整層樓都在圍觀。',
       accept: '搬好板凳',
       decline: '與我無關',
@@ -789,6 +817,7 @@ export const OFFICE_ZH_TW = {
       done: '回去上工'
     },
     meetingInvite: {
+      kindLabel: '日曆邀請 · 會議',
       organizerLabel: '主辦人:',
       attendeesLabel: '與會者:',
       accept: '接受',

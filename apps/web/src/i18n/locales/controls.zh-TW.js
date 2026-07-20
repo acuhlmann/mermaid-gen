@@ -29,7 +29,9 @@ export const CONTROLS_ZH_TW = {
     muteAria: '靜音相關方',
     unmuteAria: '取消靜音相關方',
     muteTitle: '相關方正在圍觀 · 點擊靜音',
-    unmuteTitle: '相關方已靜音 · 點擊取消靜音'
+    unmuteTitle: '相關方已靜音 · 點擊取消靜音',
+    prepForVp: '給 VP 準備稿',
+    prepForVpTitle: '給 VP 準備稿 · 送上樓前先熬乾水分'
   },
   prompt: {
     yourTopic: '你的主題',
@@ -46,6 +48,8 @@ export const CONTROLS_ZH_TW = {
     slopNextPlaceholder: '告訴智慧代理要改什麼…',
     slopNextLabel: '新提示',
     closePrompt: '關閉提示',
+    deskLabel: '工單 — 這次要改什麼？',
+    deskPlaceholder: '寫下你的下一條工單…',
     topicPlaceholder: '輸入任何主題 — 圖表、資料圖、表單…',
     starterHint: '或從同事那裡接個任務：',
     starterAria: '用於快速開始的範例主題',
@@ -55,8 +59,9 @@ export const CONTROLS_ZH_TW = {
       { label: 'CI/CD 流水線', prompt: '梳理從提交到上線的 CI/CD 流水線' },
       { label: '微服務', prompt: '畫一張典型的微服務架構圖' }
     ],
-    exampleEyebrow: 'ArchiSlop',
-    exampleHeadline: '任意主題 → 一張可演進的圖',
+    exampleEyebrow: 'ArchiSlop 公司 · IT 事業部',
+    exampleHeadline: '歡迎入職，{name}',
+    exampleRole: '架構師',
     exampleBody: '把任何主題變成可交付成果。從你最關心的內容開始。',
     exampleTopic: '全球咖啡供應鏈',
     exampleAria: '可立即產生的視覺化範例',
@@ -67,6 +72,21 @@ export const CONTROLS_ZH_TW = {
     C --> D["咖啡館"]`,
     renderAsLabel: '渲染為',
     renderAsAria: '選擇主題的渲染形態'
+  },
+  dayOne: {
+    eyebrow: 'ArchiSlop 公司 · 員工識別證',
+    rolePrefix: '新進員工',
+    hrLine: '識別證照片：還在處理中。座位：就是這張。股權：氛圍感。合規訓練：已經逾期（破紀錄）。',
+    pitchLine:
+      '這塊畫布就是你的交付物。在下方拋出任何主題——或者在你覺得自己夠 Series-A 勇敢時，接下同事的派活。',
+    dismissAria: '收起識別證',
+    nameTag: {
+      hello: '你好',
+      subtitle: '我叫',
+      placeholder: '新人',
+      editTitle: '輸入你的名字——整個辦公室都會開始這麼叫你',
+      inputAria: '你在辦公室的名字'
+    }
   },
   introLocale: {
     aria: '介面語言',
@@ -81,6 +101,11 @@ export const CONTROLS_ZH_TW = {
     hide: '隱藏設定',
     title: '設定 · 邀請智慧代理、模型、匯出',
     region: '工作階段設定',
+    outboxLabel: '寄件匣',
+    outboxShow: '開啟寄件匣',
+    outboxHide: '關閉寄件匣',
+    outboxTitle: '寄件匣 · 寄出這份交付物——儲存、複製或分享',
+    outboxRegion: '寄件匣 — 匯出與分享',
     externalAgents: '外部智慧代理',
     waitingHandshake: '等待握手：',
     externalAgentFallback: '外部智慧代理',
@@ -246,6 +271,15 @@ export const CONTROLS_ZH_TW = {
     tapToOpen: '{mode} · 點擊開啟渲染為',
     pickMode: '選擇模式'
   },
+  deskDrawer: {
+    label: '抽屜',
+    close: '關閉抽屜',
+    title: '抽屜 · 交付形態、聚焦、修復與拆除',
+    menuAria: '抽屜',
+    roleTag: '雜物間',
+    formatHeading: '交付形態',
+    deskHeading: '座位上的東西'
+  },
   stakeholders: {
     theStakeholders: '相關方',
     hideActions: '隱藏相關方操作',
@@ -259,7 +293,8 @@ export const CONTROLS_ZH_TW = {
     castOneOfMany: '{name} 是 {count} 位相關方之一',
     castSpeaking: '{name} 正在發言',
     castAskCommentary: '請 {name} 點評',
-    align: '對齊',
+    align: '給 VP 準備稿',
+    seniorDivider: '樓上',
     introEyebrow: '👥 圓桌會議已召開',
     introBody:
       '一位相關方正在對你的圖表發表意見——無論你是否詢問，他們都會在你工作時插話。隨時可用右側按鈕將其靜音。',
