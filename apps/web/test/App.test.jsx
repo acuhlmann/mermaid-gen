@@ -487,9 +487,18 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     const critiqueButton = await screen.findByRole('button', { name: 'Critique' });
     fireEvent.click(critiqueButton);
 
-    // Fix lives inside the Desk Drawer, surfacing once a critique exists.
+    // Desk drawer Fix is shown once critique text exists but stays disabled until
+    // actionable bullets are parsed and the agent is idle — clicking early is a no-op.
+    await screen.findByRole('checkbox', {
+      name: /Use clearer labels and simplify branching/i
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Critique' }).disabled).toBe(false);
+    });
+
     openDeskDrawer();
     const fixButton = await screen.findByRole('menuitem', { name: 'Fix' });
+    await waitFor(() => expect(fixButton.disabled).toBe(false));
     fireEvent.click(fixButton);
 
     await waitFor(

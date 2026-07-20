@@ -56,6 +56,7 @@ export const SERVER_STRICT_ISLAND_FILES = [
   'src/middleware/apiRateLimit.ts',
   'src/utils/inviteToken.ts',
   'src/mcp/mcpCollaborationActions.ts',
+  'src/mcp/mcpSlotRevisions.ts',
   'src/state/sessionServices.ts',
   'src/state/pairingCodeStore.ts'
 ];

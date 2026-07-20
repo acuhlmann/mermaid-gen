@@ -133,6 +133,9 @@ function main() {
 
   if (flags.server) {
     run('npm', ['run', 'typecheck', '-w', 'apps/server'], 'typecheck (apps/server)');
+    // CI runs typecheck:strict via `npm run check`; loose server typecheck alone
+    // misses strict-island regressions (see ADR-0006).
+    run('npm', ['run', 'typecheck:strict', '-w', 'apps/server'], 'typecheck:strict (apps/server)');
     run('npm', ['run', 'test', '-w', 'apps/server'], 'test (apps/server)');
     if (flags.lintServer) {
       run('npm', ['run', 'lint', '-w', 'apps/server'], 'lint (apps/server)');
