@@ -67,7 +67,9 @@ they need access to outer-closure state.
 - ✅ **Feature hooks:** `useVoiceInput`, `useStyleEdits` under `hooks/`.
 - ✅ **Feature modules:** `features/insights/InsightsSlot.jsx` (Thinking pane
   wiring + `useCritiqueActionableUi`), `features/ceremony/CeremonyOverlaysSlot.jsx`,
-  `utils/buildRadialActions.jsx`, `utils/appConstants.js`, `utils/formatFormAnswer.js`.
+  `components/buildRadialActions.jsx`, `utils/appConstants.js`, `utils/formatFormAnswer.js`.
+  (JSX that imports `components/` must not live under `utils/` — see
+  `web-non-component-no-components` in `.dependency-cruiser.cjs`.)
 - ⏳ Larger seam: extract per-feature custom hooks (`useSubmitIntent`,
   `useAnalyzeFlow`, `useAdvisorOverlays`) and lift remaining major JSX sections
   (radial menu handler, session hydrate) into wrapper components. Target:

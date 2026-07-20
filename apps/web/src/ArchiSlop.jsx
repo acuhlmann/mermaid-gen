@@ -217,7 +217,7 @@ import {
   RADIAL_MENU_CLOSE_GRACE_MS,
   SpeechRecognitionCtor
 } from './utils/appConstants.js';
-import { buildRadialActions } from './utils/buildRadialActions.jsx';
+import { buildRadialActions } from './components/buildRadialActions.jsx';
 import { formatFormAnswer } from './utils/formatFormAnswer.js';
 import {
   buildContentModeOptions,

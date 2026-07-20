@@ -1,7 +1,11 @@
-import { ActionPersonaIcon } from '../components/ActionPersonaBits.jsx';
-import { RenderModeIcon } from '../components/AppIcons.jsx';
-import { actionPersonaEmoji, actionPersonaName, actionPersonaTitle } from './appActionPersonas.js';
-import { goMadShapeLabel, selectableRenderModes } from './renderModeAction.js';
+import { ActionPersonaIcon } from './ActionPersonaBits.jsx';
+import { RenderModeIcon } from './AppIcons.jsx';
+import {
+  actionPersonaEmoji,
+  actionPersonaName,
+  actionPersonaTitle
+} from '../utils/appActionPersonas.js';
+import { goMadShapeLabel, selectableRenderModes } from '../utils/renderModeAction.js';
 
 /**
  * Radial menu action definitions for the diagram node toolbar.
