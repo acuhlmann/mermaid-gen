@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { createInitialDiagramState } from '@archislop/shared';
+import { createInitialDiagramState, buildFormsSeedDoc } from '@archislop/shared';
 import {
   act,
   cleanup,
@@ -339,6 +339,61 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     expect(typeof lastPayload.diagramSource).toBe('string');
     // Restore stays available so the user can re-jump to this version anytime.
     expect(screen.getByRole('button', { name: 'Restore' })).toBeTruthy();
+  }, 15_000);
+
+  it("Thinking segment Restore re-syncs a forms entry's after-snapshot to the canvas", async () => {
+    const formsDoc = buildFormsSeedDoc();
+    const formsUpdatedDoc = formsDoc.replace('Form 0-A', 'Form 0-B');
+    const formsBaseline = {
+      ...createInitialDiagramState('forms'),
+      revisionId: 1,
+      diagramSource: formsDoc
+    };
+    const formsUpdated = {
+      ...formsBaseline,
+      contentType: 'forms',
+      revisionId: 2,
+      diagramSource: formsUpdatedDoc,
+      updatedAt: '2026-05-10T08:31:00.000Z'
+    };
+
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'forms',
+      mermaid: initialState,
+      infographic: createInitialDiagramState('infographic'),
+      forms: formsBaseline
+    });
+    syncClientDiagramStateMock.mockImplementation(async (payload) => ({
+      ...formsUpdated,
+      ...payload,
+      contentType: payload.contentType ?? 'forms'
+    }));
+    streamDiagramAgentMock.mockImplementation(async (payload, onEvent) => {
+      if (payload.operation === 'transform' || payload.operation === 'intent') {
+        onEvent?.({
+          type: 'final',
+          revisionChanged: true,
+          state: formsUpdated,
+          message: 'Applied.'
+        });
+      }
+    });
+
+    render(<App />);
+    pickContentMode('Forms');
+    const refineButton = await screen.findByRole('button', { name: 'Refine' });
+    fireEvent.click(refineButton);
+
+    await screen.findByRole('button', { name: 'Restore' });
+    const callsBefore = syncClientDiagramStateMock.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Restore' }));
+
+    await waitFor(() =>
+      expect(syncClientDiagramStateMock.mock.calls.length).toBeGreaterThan(callsBefore)
+    );
+    const lastPayload = syncClientDiagramStateMock.mock.calls.at(-1)[0];
+    expect(lastPayload.contentType).toBe('forms');
+    expect(lastPayload.diagramSource).toBe(formsUpdatedDoc);
   }, 15_000);
 
   it('streams intent when submitting the prompt control', async () => {

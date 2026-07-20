@@ -200,4 +200,99 @@ async function renderInfographicPreview(el, source) {
     }
   }, INFOGRAPHIC_RENDER_MS);
 }
+
+function clipSource(source, max) {
+  const limit = typeof max === "number" ? max : 12000;
+  const text = String(source ?? "").trim();
+  if (!text) return "";
+  return text.length > limit ? text.slice(0, limit) + "…" : text;
+}
+
+function renderSourceFallback(el, source, note) {
+  const text = clipSource(source, 12000);
+  el.innerHTML =
+    (note ? '<p class="muted" style="margin:0 0 6px;font-size:12px">' + esc(note) + "</p>" : "") +
+    "<pre style='margin:0;font-size:11px;white-space:pre-wrap;word-break:break-word'>" +
+    esc(text || "(empty)") + "</pre>";
+}
+
+async function renderJsonSlotPreview(el, source, note) {
+  if (!source?.trim()) {
+    el.innerHTML = '<span class="muted">(empty)</span>';
+    return;
+  }
+  try {
+    const parsed = JSON.parse(source);
+    const pretty = JSON.stringify(parsed, null, 2);
+    const headline =
+      parsed.formTitle ||
+      parsed.metaphor ||
+      (parsed.spec && typeof parsed.spec.title === "object" ? parsed.spec.title.text : parsed.spec?.title) ||
+      "";
+    let html = note ? '<p class="muted" style="margin:0 0 6px;font-size:12px">' + esc(note) + "</p>" : "";
+    if (headline) {
+      html += '<p style="margin:0 0 6px;font-weight:600">' + esc(String(headline)) + "</p>";
+    }
+    html +=
+      "<pre style='margin:0;font-size:11px;white-space:pre-wrap;word-break:break-word'>" +
+      esc(clipSource(pretty, 12000)) +
+      "</pre>";
+    el.innerHTML = html;
+  } catch {
+    renderSourceFallback(el, source, "Invalid JSON — showing raw source.");
+  }
+}
+
+async function renderFormsSlotPreview(el, source) {
+  await renderJsonSlotPreview(
+    el,
+    source,
+    "Interactive form renders in ArchiSlop web. Source is read-only here."
+  );
+}
+
+const VEGA_EMBED_CDN = "https://esm.sh/vega-embed@6";
+const VEGA_EMBED_LOAD_MS = 20000;
+const VEGA_EMBED_RENDER_MS = 15000;
+
+async function renderChartPreview(el, source) {
+  if (!source?.trim()) {
+    el.innerHTML = '<span class="muted">(empty)</span>';
+    return;
+  }
+  try {
+    const wrapper = JSON.parse(source);
+    const spec = wrapper?.spec ?? wrapper;
+    const mod = await withTimeout(import(VEGA_EMBED_CDN), VEGA_EMBED_LOAD_MS, "Vega-Embed load");
+    const embed = mod?.default ?? mod;
+    el.innerHTML = "";
+    const host = document.createElement("div");
+    host.style.width = "100%";
+    host.style.minHeight = "200px";
+    el.appendChild(host);
+    await withTimeout(embed(host, spec, { actions: false }), VEGA_EMBED_RENDER_MS, "Chart render");
+  } catch (e) {
+    await renderJsonSlotPreview(
+      el,
+      source,
+      "Chart preview unavailable (" + esc(e?.message ?? "render failed") + ") — showing JSON."
+    );
+  }
+}
+
+async function renderAnythingPreview(el, source) {
+  if (!source?.trim()) {
+    el.innerHTML = '<span class="muted">(empty)</span>';
+    return;
+  }
+  el.innerHTML = "";
+  const iframe = document.createElement("iframe");
+  iframe.setAttribute("sandbox", "allow-scripts");
+  iframe.setAttribute("title", "Anything preview");
+  iframe.style.width = "100%";
+  iframe.style.minHeight = "280px";
+  iframe.style.border = "0";
+  iframe.srcdoc = source;
+  el.appendChild(iframe);
+}
 `;

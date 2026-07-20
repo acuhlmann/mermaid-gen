@@ -18,6 +18,10 @@ export const canvasPreviewAppHtml = `<!DOCTYPE html>
   <div class="tabs" id="slot-tabs">
     <button type="button" class="active" data-slot="mermaid">Mermaid</button>
     <button type="button" data-slot="infographic">Infographic</button>
+    <button type="button" data-slot="metaphor3d">3D</button>
+    <button type="button" data-slot="chart">Chart</button>
+    <button type="button" data-slot="anything">Anything</button>
+    <button type="button" data-slot="forms">Forms</button>
   </div>
   <div class="tabs" id="view-tabs" style="margin-top:4px">
     <button type="button" class="active" data-view="preview">Preview</button>
@@ -110,9 +114,23 @@ async function renderSlot() {
   if (activeSlot === "mermaid") {
     els.previewNote.textContent = "Live Mermaid preview (sandboxed). Open web for editor + built-in agents.";
     await renderMermaidPreview(els.previewBox, source);
-  } else {
+  } else if (activeSlot === "infographic") {
     els.previewNote.textContent = "Live AntV infographic preview (sandboxed). Open web for editor + built-in agents.";
     await renderInfographicPreview(els.previewBox, source);
+  } else if (activeSlot === "chart") {
+    els.previewNote.textContent = "Vega-Lite chart preview when valid; otherwise formatted JSON.";
+    await renderChartPreview(els.previewBox, source);
+  } else if (activeSlot === "metaphor3d") {
+    els.previewNote.textContent = "Metaphor DSL summary — the 3D scene renders in ArchiSlop web.";
+    await renderJsonSlotPreview(els.previewBox, source);
+  } else if (activeSlot === "forms") {
+    els.previewNote.textContent = "Forms A2UI summary — the interactive form renders in ArchiSlop web.";
+    await renderFormsSlotPreview(els.previewBox, source);
+  } else if (activeSlot === "anything") {
+    els.previewNote.textContent = "Sandboxed HTML preview. Open web for full editor + runtime libraries.";
+    await renderAnythingPreview(els.previewBox, source);
+  } else {
+    await renderSourceFallback(els.previewBox, source, "Unknown slot.");
   }
 }
 
@@ -161,7 +179,7 @@ async function loadCanvas() {
   }
 }
 
-const app = new App({ name: "ArchiSlop Canvas Preview", version: "1.0.0" });
+const app = new App({ name: "ArchiSlop Canvas Preview", version: "1.1.0" });
 app.ontoolresult = (result) => applyPayload(parsePayload(result));
 els.openWeb.addEventListener("click", () => {
   if (webCanvasUrl) app.openLink({ url: webCanvasUrl }).catch(() => window.open(webCanvasUrl, "_blank"));
