@@ -701,6 +701,8 @@ export const OFFICE_EN_AU = {
         'The cast that emails, IMs, and walks by while you work — tap ▶ to hear an intro:',
       greeting: 'Welcome aboard, {name}.',
       greetingRole: 'Architect',
+      greetingHint:
+        'The office will call you that in emails, IMs, and awkward walk-bys. Change it anytime. They will notice.',
       expandLabel: '🏢 Meet the Office',
       expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
       startLabel: 'Meet the team →',
@@ -708,12 +710,24 @@ export const OFFICE_EN_AU = {
       deskIntro:
         'This canvas is your deliverable. Pitch any topic below — or pick up an assignment from the floor.',
       skipToBuildLabel: 'Skip the ceremony — just let me ship →',
+      skipToBuildTitle:
+        'Close orientation and drop me on the canvas. No offence taken. (Some taken. Noted in your file.)',
       dismissLabel: 'Clock on — begin Day One',
       replayTourLabel: '↻ Replay intro',
       closeAria: 'Close Meet the Office',
+      hearLabel: '▶ Hear intro',
+      hearSpeakingLabel: 'Shh… they’re talking',
+      hearTitle: 'Play this line in their actual voice — Google Cloud text-to-speech',
       transcriptLabel: 'Transcript',
       transcriptOnLabel: 'Hide text',
-      transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen'
+      transcriptTitle: 'Show spoken dialogue as text — for when you cannot listen',
+      nameTag: {
+        hello: 'HELLO',
+        subtitle: 'my name is',
+        placeholder: 'Newbie',
+        editTitle: 'Type your name — the whole office will start using it',
+        inputAria: 'Your name for the office'
+      }
     },
     inbox: {
       mailAnnounce: 'You’ve got mail, mate!',

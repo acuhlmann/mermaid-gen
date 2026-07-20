@@ -1005,6 +1005,9 @@ export const OFFICE_IM_QUICK_REPLIES = [
  * Static chrome strings for the office surfaces (inbox dock, IM stack,
  * walk-bys, coffee breaks, meeting room). Templated strings use `{name}` /
  * `{count}` slots — render with formatLocale.
+ *
+ * When editing `directory` keys here, keep `apps/web/src/i18n/locales/office.*.js`
+ * in sync — `apps/web/test/officeLocale.test.js` asserts key parity on every locale.
  */
 export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
