@@ -39,6 +39,35 @@ test('detectWireCoChangeRisks ignores MCP tools README-only edits', () => {
   assert.equal(risks.length, 0);
 });
 
+test('detectWireCoChangeRisks flags sessionEventBus without client test', () => {
+  const risks = detectWireCoChangeRisks([
+    'apps/server/src/state/sessionEventBus.ts',
+    'apps/server/test/sessionEventBus.test.js',
+    'apps/web/src/state/sessionEventsClient.js'
+  ]);
+  assert.ok(risks.some((r) => r.id === 'session-events-producer-only'));
+});
+
+test('detectWireCoChangeRisks passes sessionEventBus with client and both tests', () => {
+  const risks = detectWireCoChangeRisks([
+    'apps/server/src/state/sessionEventBus.ts',
+    'apps/server/test/sessionEventBus.test.js',
+    'apps/web/src/state/sessionEventsClient.js',
+    'apps/web/test/sessionEventsClient.test.js'
+  ]);
+  assert.equal(risks.length, 0);
+});
+
+test('detectWireCoChangeRisks flags chartDslTool without test', () => {
+  const risks = detectWireCoChangeRisks(['apps/server/src/tools/chartDslTool.js']);
+  assert.ok(risks.some((r) => r.id === 'chart-tool-without-test'));
+});
+
+test('detectWireCoChangeRisks flags formsA2uiTool without test', () => {
+  const risks = detectWireCoChangeRisks(['apps/server/src/tools/formsA2uiTool.js']);
+  assert.ok(risks.some((r) => r.id === 'forms-tool-without-test'));
+});
+
 test('detectWireCoChangeRisks flags sessionEventBus without client', () => {
   const risks = detectWireCoChangeRisks([
     'apps/server/src/state/sessionEventBus.ts',

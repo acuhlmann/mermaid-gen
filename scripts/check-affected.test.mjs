@@ -16,6 +16,13 @@ test('classifyChangedFiles marks server agent routes as wire', () => {
   assert.equal(flags.lintServer, true);
 });
 
+test('classifyChangedFiles marks any app src lintable file as wire', () => {
+  const flags = classifyChangedFiles(['apps/web/src/components/InsightsPane.jsx']);
+  assert.equal(flags.web, true);
+  assert.equal(flags.wire, true);
+  assert.equal(flags.lintWeb, true);
+});
+
 test('classifyChangedFiles marks web state and agUi translator as wire', () => {
   const flags = classifyChangedFiles(['apps/web/src/state/agUiTranslator.ts']);
   assert.equal(flags.web, true);

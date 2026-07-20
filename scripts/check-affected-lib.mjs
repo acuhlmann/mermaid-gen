@@ -57,6 +57,16 @@ export function classifyChangedFiles(files) {
     if (f.startsWith('apps/web/src/state/') || f.includes('agUiTranslator')) {
       flags.wire = true;
     }
+    if (f.startsWith('apps/web/src/state/sessionEventsClient')) {
+      flags.wire = true;
+    }
+    // Any app source change can affect wire contracts indirectly — run wire tests cheaply.
+    if (
+      (f.startsWith('apps/server/src/') || f.startsWith('apps/web/src/')) &&
+      LINTABLE_RE.test(f)
+    ) {
+      flags.wire = true;
+    }
     if (
       f.startsWith('docs/') ||
       f === 'STRUCTURE.md' ||

@@ -19,14 +19,31 @@ Run: `npm run check:wire`
 
 ## Session-events SSE (collaboration)
 
-| Layer                         | Location                                                                                                                          |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Bus schema + publish          | [`apps/server/src/state/sessionEventBus.ts`](../apps/server/src/state/sessionEventBus.ts)                                         |
-| Producer (route / MCP / tool) | Matching handler in [`copilot.ts`](../apps/server/src/routes/copilot.ts) or [`mcpServer.js`](../apps/server/src/mcp/mcpServer.js) |
-| Web client                    | [`apps/web/src/state/sessionEventsClient.js`](../apps/web/src/state/sessionEventsClient.js)                                       |
-| MCP App bridge (if UI)        | [`apps/server/src/mcp/apps/mcpAppSessionBridge.js`](../apps/server/src/mcp/apps/mcpAppSessionBridge.js) + App HTML bundle         |
-| Tests                         | [`apps/server/test/sessionEventBus.test.js`](../apps/server/test/sessionEventBus.test.js)                                         |
-| Docs                          | [`docs/architecture-external-agents.md`](../docs/architecture-external-agents.md)                                                 |
+| Layer                         | Location                                                                                                                                                                               |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bus schema + publish          | [`apps/server/src/state/sessionEventBus.ts`](../apps/server/src/state/sessionEventBus.ts)                                                                                              |
+| Producer (route / MCP / tool) | Matching handler in [`copilot.ts`](../apps/server/src/routes/copilot.ts) or [`mcpServer.js`](../apps/server/src/mcp/mcpServer.js)                                                      |
+| Web client                    | [`apps/web/src/state/sessionEventsClient.js`](../apps/web/src/state/sessionEventsClient.js)                                                                                            |
+| MCP App bridge (if UI)        | [`apps/server/src/mcp/apps/mcpAppSessionBridge.js`](../apps/server/src/mcp/apps/mcpAppSessionBridge.js) + App HTML bundle                                                              |
+| Tests                         | [`apps/server/test/sessionEventBus.test.js`](../apps/server/test/sessionEventBus.test.js), [`apps/web/test/sessionEventsClient.test.js`](../apps/web/test/sessionEventsClient.test.js) |
+| Docs                          | [`docs/architecture-external-agents.md`](../docs/architecture-external-agents.md)                                                                                                      |
+
+## Chart validation ladder
+
+| Layer         | Location                                                                                                                                                                                                                                                                    |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared schema | [`packages/shared/src/chartSchema.ts`](../packages/shared/src/chartSchema.ts)                                                                                                                                                                                               |
+| Server tool   | [`apps/server/src/tools/chartDslTool.js`](../apps/server/src/tools/chartDslTool.js)                                                                                                                                                                                         |
+| Syntax fixer  | [`apps/server/src/agents/chartSyntaxFixer.js`](../apps/server/src/agents/chartSyntaxFixer.js)                                                                                                                                                                               |
+| Tests         | [`packages/shared/test/chartSchema.test.ts`](../packages/shared/test/chartSchema.test.ts), [`apps/server/test/chartDslTool.test.js`](../apps/server/test/chartDslTool.test.js), [`apps/server/test/chartSyntaxFixer.test.js`](../apps/server/test/chartSyntaxFixer.test.js) |
+
+## Forms validation ladder
+
+| Layer             | Location                                                                                                                                                                     |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared parse gate | [`packages/shared/src/formsA2ui.ts`](../packages/shared/src/formsA2ui.ts)                                                                                                    |
+| Server tool       | [`apps/server/src/tools/formsA2uiTool.js`](../apps/server/src/tools/formsA2uiTool.js)                                                                                        |
+| Tests             | [`packages/shared/test/formsA2ui.test.ts`](../packages/shared/test/formsA2ui.test.ts), [`apps/server/test/formsA2uiTool.test.js`](../apps/server/test/formsA2uiTool.test.js) |
 
 ## HTTP / Zod body (intent, transform, analyze, style)
 

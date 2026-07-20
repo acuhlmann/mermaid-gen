@@ -46,5 +46,49 @@
         }
       }
     ]
+  },
+  "tool_apply_result_accepted": {
+    "type": "tool_apply_result",
+    "name": "apply_mermaid_patch",
+    "id": "tool_9",
+    "accepted": true,
+    "revisionId": 6,
+    "nodesAdded": 1,
+    "reason": "Add gateway"
+  },
+  "tool_apply_result_rejected": {
+    "type": "tool_apply_result",
+    "name": "apply_chart_patch",
+    "id": "tool_7",
+    "accepted": false,
+    "error": "Vega-Lite compile failed: missing field"
+  },
+  "syntax_fixer_start": {
+    "type": "syntax_fixer_start",
+    "contentType": "chart",
+    "triggerError": "bad field"
+  },
+  "syntax_fixer_result": {
+    "type": "syntax_fixer_result",
+    "contentType": "chart",
+    "outcome": "repaired",
+    "detail": "fixed encoding"
+  },
+  "model_call_start": {
+    "type": "model_call_start",
+    "callId": "run-9",
+    "model": "deepseek-chat"
+  },
+  "model_call_end": {
+    "type": "model_call_end",
+    "callId": "run-9",
+    "model": "deepseek-chat",
+    "inputTokens": 900,
+    "outputTokens": 120
+  },
+  "content_type_mermaid": {
+    "type": "content_type",
+    "contentType": "mermaid",
+    "reason": "flowchart ask"
   }
 }

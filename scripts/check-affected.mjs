@@ -89,9 +89,8 @@ function main() {
 
   const wireRisks = detectWireCoChangeRisks(files);
   if (wireRisks.length > 0) {
-    console.warn('\n' + formatWireCoChangeRisks(wireRisks));
-    // Soft fail during warm-up: warn loudly with canonical fix, do not exit.
-    // Promote to process.exit(1) once agents routinely co-change consumers.
+    console.error('\n' + formatWireCoChangeRisks(wireRisks));
+    process.exit(1);
   }
 
   // CI runs format:check on every PR — catch drift before push (skipped when full check runs below).
