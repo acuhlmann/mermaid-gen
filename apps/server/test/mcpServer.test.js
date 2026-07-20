@@ -97,6 +97,9 @@ test('MCP: end-to-end handshake → presence → propose → accept → state ad
   const tools = await client.listTools();
   const names = new Set(tools.tools.map((t) => t.name));
   for (const required of [
+    'get_mcp_binding',
+    'get_session_bootstrap',
+    'open_session_pairing',
     'register_agent',
     'get_session_state',
     'propose_diagram_edit',

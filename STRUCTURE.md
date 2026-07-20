@@ -4,53 +4,55 @@ Look up a concept here before grepping. Paths are repo-relative.
 
 ## Server
 
-| Concept                                                | File(s)                                                                      |
-| ------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| Server entrypoint, app wiring                          | `apps/server/src/index.js`                                                   |
-| Built-in agent + collaboration routes                  | `apps/server/src/routes/copilot.ts`                                          |
-| Advisor companion routes                               | `apps/server/src/routes/advisor.js`                                          |
-| Office-parody moment + meeting routes                  | `apps/server/src/routes/office.js`                                           |
-| Diagram repair route (render-error fast path)          | `apps/server/src/routes/diagramRepair.js`                                    |
-| Agent dispatcher (content-type → agent service)        | `apps/server/src/agents/diagramAgentDispatcher.js`                           |
-| Mermaid agent service                                  | `apps/server/src/agents/mermaidLangChainAgent.js`                            |
-| Infographic agent service                              | `apps/server/src/agents/infographicLangChainAgent.js`                        |
-| Metaphor3D agent service                               | `apps/server/src/agents/metaphorLangChainAgent.js`                           |
-| Chart agent service                                    | `apps/server/src/agents/chartLangChainAgent.js`                              |
-| Anything agent service                                 | `apps/server/src/agents/anythingLangChainAgent.js`                           |
-| Forms agent service (model-authored A2UI)              | `apps/server/src/agents/formsLangChainAgent.js`                              |
-| Mermaid syntax fixer (single-shot, no tools)           | `apps/server/src/agents/mermaidSyntaxFixer.js`                               |
-| Infographic syntax fixer                               | `apps/server/src/agents/infographicSyntaxFixer.js`                           |
-| Mermaid diagram-type rule packs                        | `apps/server/src/prompts/mermaidSyntaxGuard.js`                              |
-| Infographic rule packs                                 | `apps/server/src/prompts/infographicSyntaxGuard.js`                          |
-| Anything design craft rule pack                        | `apps/server/src/prompts/anythingDesignGuide.js`                             |
-| Forms parody prompt + A2UI authoring contract          | `apps/server/src/prompts/formsSystemPrompt.js`, `formsSyntaxGuard.js`        |
-| Anything search/replace edit application               | `apps/server/src/agents/_lib/searchReplaceEdits.js`                          |
-| Advisor prompts (Slopitect persona)                    | `apps/server/src/agents/advisorPrompts.js`                                   |
-| Office colleague voices + meeting script prompts       | `apps/server/src/agents/officePersonas.js`                                   |
-| Critique markdown → A2UI checklist stream              | `apps/server/src/agents/critiqueA2uiStream.ts`                               |
-| Analyze finalize (critique / explain / style emits)    | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts`                       |
-| AG-UI stream emitter + wire types (shared)             | `packages/shared/src/agentStreamEmitter.ts`, `agUiEventTypes.ts`             |
-| LangGraph ReAct config knobs                           | `apps/server/src/agents/agentGraphConfig.js`                                 |
-| LLM backend selection (Vertex / OpenRouter / DeepSeek) | `apps/server/src/agents/llmProvider.js`                                      |
-| CopilotKit runtime wrapper                             | `apps/server/src/agents/copilotRuntimeAgent.js`                              |
-| Diagram tools registry (LangChain `Tool[]`)            | `apps/server/src/agents/diagramTools.js`                                     |
-| Mermaid validate + sanitizer rescue tool               | `apps/server/src/tools/mermaidDiffTool.js`                                   |
-| Infographic validate + sanitizer rescue tool           | `apps/server/src/tools/infographicDslTool.js`                                |
-| Chart validate + Vega-Lite compile tool                | `apps/server/src/tools/chartDslTool.js`                                      |
-| Anything validate + policy/quality lint tool           | `apps/server/src/tools/anythingHtmlTool.js`                                  |
-| Forms validate (A2UI allowlist parser)                 | `apps/server/src/tools/formsA2uiTool.js`, `packages/shared/src/formsA2ui.ts` |
-| Session services registry                              | `apps/server/src/state/sessionServices.js`                                   |
-| Per-session diagram store (six slots)                  | `apps/server/src/state/diagramStateStore.ts`                                 |
-| Session event bus (SSE feed)                           | `apps/server/src/state/sessionEventBus.ts`                                   |
-| Pairing code store factory (in-memory / Redis)         | `apps/server/src/state/pairingCodeStoreFactory.js`                           |
-| Agent token store                                      | `apps/server/src/state/agentTokenStore.js`                                   |
-| MCP server + tool registration                         | `apps/server/src/mcp/mcpServer.js`                                           |
-| MCP App HTML bundles (Gen UI)                          | `apps/server/src/mcp/apps/`                                                  |
-| MCP rate limiting                                      | `apps/server/src/mcp/mcpRateLimit.js`                                        |
-| Production CSP                                         | `apps/server/src/security/productionCsp.js`                                  |
-| Invite token HMAC                                      | `apps/server/src/utils/inviteToken.js`                                       |
-| Mermaid run-budget shared timer                        | `packages/shared/src/agentRunBudget.ts`                                      |
-| Agent turn metrics emitter                             | `apps/server/src/metrics/agentTurnMetrics.js`                                |
+| Concept                                                    | File(s)                                                                       |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Server entrypoint, app wiring                              | `apps/server/src/index.js`                                                    |
+| Built-in agent + collaboration routes                      | `apps/server/src/routes/copilot.ts`                                           |
+| Advisor companion routes                                   | `apps/server/src/routes/advisor.js`                                           |
+| Office-parody moment + meeting routes                      | `apps/server/src/routes/office.js`                                            |
+| Diagram repair route (render-error fast path)              | `apps/server/src/routes/diagramRepair.js`                                     |
+| Agent dispatcher (content-type → agent service)            | `apps/server/src/agents/diagramAgentDispatcher.js`                            |
+| Shared patch+repair ladder (chart/metaphor/anything/forms) | `apps/server/src/agents/_lib/invokePatchAgentWithRepair.js`                   |
+| Mermaid agent service                                      | `apps/server/src/agents/mermaidLangChainAgent.js`                             |
+| Infographic agent service                                  | `apps/server/src/agents/infographicLangChainAgent.js`                         |
+| Metaphor3D agent service                                   | `apps/server/src/agents/metaphorLangChainAgent.js`                            |
+| Chart agent service                                        | `apps/server/src/agents/chartLangChainAgent.js`                               |
+| Anything agent service                                     | `apps/server/src/agents/anythingLangChainAgent.js`                            |
+| Forms agent service (model-authored A2UI)                  | `apps/server/src/agents/formsLangChainAgent.js`                               |
+| Mermaid syntax fixer (single-shot, no tools)               | `apps/server/src/agents/mermaidSyntaxFixer.js`                                |
+| Infographic syntax fixer                                   | `apps/server/src/agents/infographicSyntaxFixer.js`                            |
+| Mermaid diagram-type rule packs                            | `apps/server/src/prompts/mermaidSyntaxGuard.js`                               |
+| Infographic rule packs                                     | `apps/server/src/prompts/infographicSyntaxGuard.js`                           |
+| Anything design craft rule pack                            | `apps/server/src/prompts/anythingDesignGuide.js`                              |
+| Forms parody prompt + A2UI authoring contract              | `apps/server/src/prompts/formsSystemPrompt.js`, `formsSyntaxGuard.js`         |
+| Anything search/replace edit application                   | `apps/server/src/agents/_lib/searchReplaceEdits.js`                           |
+| Advisor prompts (Slopitect persona)                        | `apps/server/src/agents/advisorPrompts.js`                                    |
+| Office colleague voices + meeting script prompts           | `apps/server/src/agents/officePersonas.js`                                    |
+| Critique markdown → A2UI checklist stream                  | `apps/server/src/agents/critiqueA2uiStream.ts`                                |
+| Analyze finalize (critique / explain / style emits)        | `apps/server/src/agents/agentStreamAnalyzeFinalize.ts`                        |
+| AG-UI stream emitter + wire types (shared)                 | `packages/shared/src/agentStreamEmitter.ts`, `agUiEventTypes.ts`              |
+| LangGraph ReAct config knobs                               | `apps/server/src/agents/agentGraphConfig.js`                                  |
+| LLM backend selection (Vertex / OpenRouter / DeepSeek)     | `apps/server/src/agents/llmProvider.js`                                       |
+| CopilotKit runtime wrapper                                 | `apps/server/src/agents/copilotRuntimeAgent.js`                               |
+| Diagram tools registry (LangChain `Tool[]`)                | `apps/server/src/agents/diagramTools.js`                                      |
+| Mermaid validate + sanitizer rescue tool                   | `apps/server/src/tools/mermaidDiffTool.js`                                    |
+| Infographic validate + sanitizer rescue tool               | `apps/server/src/tools/infographicDslTool.js`                                 |
+| Chart validate + Vega-Lite compile tool                    | `apps/server/src/tools/chartDslTool.js`                                       |
+| Anything validate + policy/quality lint tool               | `apps/server/src/tools/anythingHtmlTool.js`                                   |
+| Forms validate (A2UI allowlist parser)                     | `apps/server/src/tools/formsA2uiTool.js`, `packages/shared/src/formsA2ui.ts`  |
+| Session services registry                                  | `apps/server/src/state/sessionServices.js`                                    |
+| Per-session diagram store (six slots)                      | `apps/server/src/state/diagramStateStore.ts`                                  |
+| Session event bus (SSE feed)                               | `apps/server/src/state/sessionEventBus.ts`                                    |
+| Pairing code store factory (in-memory / Redis)             | `apps/server/src/state/pairingCodeStoreFactory.js`                            |
+| Agent token store                                          | `apps/server/src/state/agentTokenStore.js`                                    |
+| MCP server + tool registration                             | `apps/server/src/mcp/mcpServer.js` + `apps/server/src/mcp/tools/register*.js` |
+| MCP binding snapshot                                       | `apps/server/src/mcp/mcpBindingSnapshot.js`                                   |
+| MCP App HTML bundles (Gen UI)                              | `apps/server/src/mcp/apps/`                                                   |
+| MCP rate limiting                                          | `apps/server/src/mcp/mcpRateLimit.js`                                         |
+| Production CSP                                             | `apps/server/src/security/productionCsp.js`                                   |
+| Invite token HMAC                                          | `apps/server/src/utils/inviteToken.js`                                        |
+| Mermaid run-budget shared timer                            | `packages/shared/src/agentRunBudget.ts`                                       |
+| Agent turn metrics emitter                                 | `apps/server/src/metrics/agentTurnMetrics.js`                                 |
 
 ## Web
 

@@ -19,7 +19,6 @@ import { resolvePublicBaseUrl } from '../utils/publicBaseUrl.js';
 import { verifyInviteToken } from '../utils/inviteToken.js';
 import { buildSessionBootstrap } from './mcpSessionBootstrap.js';
 import {
-  humanOnlyMcpToolBlocked,
   jsonResult,
   originFromMcpEntry,
   pairingFailureMessage,
@@ -27,8 +26,12 @@ import {
   safeError,
   textResult
 } from './mcpHelpers.js';
+import { buildMcpBindingSnapshot } from './mcpBindingSnapshot.js';
+import { registerGetMcpBinding } from './tools/registerGetMcpBinding.js';
+import { registerGetSessionBootstrap } from './tools/registerGetSessionBootstrap.js';
+import { registerOpenSessionPairing } from './tools/registerOpenSessionPairing.js';
+import { registerHumanOnlyAppTools } from './tools/registerHumanOnlyAppTools.js';
 import {
-  APP_ONLY_UI,
   MCP_APP_URI_CANVAS_PREVIEW,
   MCP_APP_URI_COMPOSE_INSIGHT,
   MCP_APP_URI_CRITIQUE_MAP,
@@ -245,35 +248,6 @@ function buildMcpServer({
     return { entry, services: sessionRegistry.getSessionServices(entry.appSessionId) };
   }
 
-  function buildMcpBindingSnapshot(entry) {
-    if (!entry) {
-      return {
-        bound: false,
-        message: 'No MCP transport session. Connect to /mcp first.'
-      };
-    }
-    if (!entry.appSessionId) {
-      return {
-        bound: false,
-        message: 'Not bound to an ArchiSlop room.',
-        inviteHint: 'Open Invite agent in the ArchiSlop web UI and copy the pairing code.'
-      };
-    }
-    const code = pairingCodeStore.getOrCreateCode(entry.appSessionId);
-    return {
-      bound: true,
-      sessionId: entry.appSessionId,
-      pairingCode: code,
-      webCanvasUrl: buildWebCanvasUrl(entry.appSessionId),
-      agentRegistered: Boolean(entry.agentId),
-      agentId: entry.agentId ?? null,
-      agentName: entry.agentName ?? null,
-      message: entry.agentId
-        ? 'Room bound and agent registered.'
-        : 'Room bound. Call register_agent next.'
-    };
-  }
-
   async function executeJoinSession({ pairingCode }) {
     const entry = currentEntry();
     if (!entry) {
@@ -282,7 +256,7 @@ function buildMcpServer({
     if (!pairingCode) {
       return jsonResult({
         status: 'needs_pairing_code',
-        ...buildMcpBindingSnapshot(entry),
+        ...buildMcpBindingSnapshot(entry, pairingCodeStore),
         message:
           'Enter the pairing code in the session pairing MCP App, or pass pairingCode in tool arguments.'
       });
@@ -311,56 +285,25 @@ function buildMcpServer({
     });
   }
 
-  server.registerTool(
-    'get_mcp_binding',
-    {
-      title: 'MCP transport binding',
-      description:
-        'Returns whether this MCP connection is bound to an ArchiSlop room (session id, pairing code, web canvas URL). Used by the session pairing MCP App.',
-      inputSchema: {}
-    },
-    async () => {
-      const entry = currentEntry();
-      const services = entry?.appSessionId
-        ? sessionRegistry.getSessionServices(entry.appSessionId)
-        : null;
-      const binding = buildMcpBindingSnapshot(entry);
-      const bootstrap =
-        entry && services
-          ? buildSessionBootstrap({
-              entry,
-              services,
-              pairingCodeStore,
-              publicBaseUrl: publicBaseUrl()
-            })
-          : null;
-      return jsonResult({ ...binding, bootstrap });
-    }
-  );
-
-  server.registerTool(
-    'get_session_bootstrap',
-    {
-      title: 'Session bootstrap',
-      description:
-        'One-shot JSON for this MCP connection: room binding, revisions, handshake status, checklist, collaboration guide prompt name.',
-      inputSchema: {}
-    },
-    async () => {
-      const bound = requireBoundSession();
-      if (bound.error) return bound.error;
-      const { entry } = bound;
-      const services = sessionRegistry.getSessionServices(entry.appSessionId);
-      return jsonResult(
-        buildSessionBootstrap({
-          entry,
-          services,
-          pairingCodeStore,
-          publicBaseUrl: publicBaseUrl()
-        })
-      );
-    }
-  );
+  const toolCtx = {
+    mcpRegistry,
+    sessionRegistry,
+    pairingCodeStore,
+    agentTokenStore,
+    mcpRateLimiter,
+    mcpSessionIdRef,
+    publicBaseUrl,
+    currentEntry,
+    currentServices,
+    assertResourceSessionAccess,
+    recordPairingFailure,
+    finalizeApprovedAgent,
+    requireBoundSession,
+    requireSessionEntry,
+    executeJoinSession
+  };
+  registerGetMcpBinding(server, toolCtx);
+  registerGetSessionBootstrap(server, toolCtx);
 
   registerAppTool(
     server,
@@ -377,18 +320,7 @@ function buildMcpServer({
     executeJoinSession
   );
 
-  registerAppTool(
-    server,
-    'open_session_pairing',
-    {
-      title: 'Open session pairing',
-      description:
-        'Opens the session pairing MCP App: paste the code from Invite agent in the web UI, or let the agent pass pairingCode via join_session.',
-      inputSchema: {},
-      ...UI_META(MCP_APP_URI_SESSION_PAIRING)
-    },
-    async () => jsonResult(buildMcpBindingSnapshot(currentEntry()))
-  );
+  registerOpenSessionPairing(server, toolCtx);
 
   registerAppTool(
     server,
@@ -883,53 +815,7 @@ function buildMcpServer({
     }
   );
 
-  registerAppTool(
-    server,
-    'resolve_handshake',
-    {
-      title: 'Approve or deny agent handshake',
-      description:
-        'Human-only (MCP App): approve or deny a pending register_agent request. Use decision "approve" or "deny".',
-      inputSchema: {
-        requestId: z.string().min(1),
-        decision: z.enum(['approve', 'deny'])
-      },
-      ...APP_ONLY_UI(MCP_APP_URI_HANDSHAKE)
-    },
-    async () => humanOnlyMcpToolBlocked()
-  );
-
-  registerAppTool(
-    server,
-    'resolve_proposal',
-    {
-      title: 'Accept or reject diagram proposal',
-      description:
-        'Human-only (MCP App): accept or reject a pending propose_diagram_edit. Use decision "accept" or "reject".',
-      inputSchema: {
-        proposalId: z.string().min(1),
-        decision: z.enum(['accept', 'reject'])
-      },
-      ...APP_ONLY_UI(MCP_APP_URI_PROPOSAL_REVIEW)
-    },
-    async () => humanOnlyMcpToolBlocked()
-  );
-
-  registerAppTool(
-    server,
-    'request_proposal_changes',
-    {
-      title: 'Request changes on a proposal',
-      description:
-        'Human-only (MCP App): ask the proposing agent to revise without accepting or rejecting. The proposal stays pending; the agent learns via session event and can submit a new propose_diagram_edit.',
-      inputSchema: {
-        proposalId: z.string().min(1),
-        comment: z.string().min(1).max(4000)
-      },
-      ...APP_ONLY_UI(MCP_APP_URI_PROPOSAL_REVIEW)
-    },
-    async () => humanOnlyMcpToolBlocked()
-  );
+  registerHumanOnlyAppTools(server);
 
   server.registerTool(
     'get_session_snapshot',
@@ -1244,23 +1130,6 @@ function buildMcpServer({
         origin: originFromMcpEntry(entry)
       });
     }
-  );
-
-  registerAppTool(
-    server,
-    'request_critique_fix',
-    {
-      title: 'Request fix for critique items',
-      description:
-        'Human-only (MCP App): queue a fix request for selected actionable critique bullets. Surfaces in session events for the ArchiSlop web client.',
-      inputSchema: {
-        items: z.array(z.string().min(1)).min(1).max(40),
-        contentType: z.enum(['mermaid', 'infographic', 'metaphor3d', 'chart', 'anything']),
-        critiqueInsightId: z.string().optional()
-      },
-      ...APP_ONLY_UI(MCP_APP_URI_CRITIQUE_MAP)
-    },
-    async () => humanOnlyMcpToolBlocked()
   );
 
   server.registerTool(

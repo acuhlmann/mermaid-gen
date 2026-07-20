@@ -31,14 +31,25 @@ they need access to outer-closure state.
 
 ## Progress
 
-### `mcpServer.js` (1 551 → 1 484 LOC)
+### `mcpServer.js` (~1 542 → ~1 413 LOC)
 
 - ✅ Helpers extracted to `apps/server/src/mcp/mcpHelpers.js`
   (`textResult`, `jsonResult`, `safeError`, `humanOnlyMcpToolBlocked`,
   `originFromMcpEntry`, `requireRegisteredAgent`, `pairingFailureMessage`).
-- ⏳ Per-tool registration files under `apps/server/src/mcp/tools/`.
-  See `apps/server/src/mcp/tools/README.md` for the
-  `register{ToolName}(server, ctx)` pattern and the example `ctx` shape.
+- ✅ Binding snapshot extracted to `apps/server/src/mcp/mcpBindingSnapshot.js`.
+- ✅ First per-tool modules under `apps/server/src/mcp/tools/`:
+  `registerGetMcpBinding`, `registerGetSessionBootstrap`,
+  `registerOpenSessionPairing`, `registerHumanOnlyAppTools` (four human-only
+  stubs). Remaining tools still inline; continue the
+  `register{ToolName}(server, ctx)` pattern from `tools/README.md`.
+
+### Shared repair ladder (agent maintainability)
+
+- ✅ `invokePatchAgentWithRepair` in
+  `apps/server/src/agents/_lib/invokePatchAgentWithRepair.js` — immutable-transcript
+  repair loop shared by chart, metaphor3d, anything, and forms agents.
+  Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
+  converge on the same helper.
 
 ### `App.jsx` (4 292 → 3 789 LOC, -503 LOC)
 

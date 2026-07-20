@@ -1,13 +1,23 @@
 # MCP tool modules
 
-Per-tool extraction target for `apps/server/src/mcp/mcpServer.js`. The file is
-~1480 LOC and historically registers every MCP tool inside one closure.
-Future per-tool splits should live here, one file per tool.
+Per-tool extraction for `apps/server/src/mcp/mcpServer.js` (ADR-0005). Prefer adding
+new tools here instead of growing the hub file.
+
+## Extracted so far
+
+| Module                           | Tools                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------- |
+| `registerGetMcpBinding.js`       | `get_mcp_binding`                                                                           |
+| `registerGetSessionBootstrap.js` | `get_session_bootstrap`                                                                     |
+| `registerOpenSessionPairing.js`  | `open_session_pairing`                                                                      |
+| `registerHumanOnlyAppTools.js`   | `resolve_handshake`, `resolve_proposal`, `request_proposal_changes`, `request_critique_fix` |
+
+Shared binding JSON lives in `apps/server/src/mcp/mcpBindingSnapshot.js`.
 
 ## Pattern
 
 Each tool module exports a `register{ToolName}(server, ctx)` function. The
-shared `ctx` object is built once at the top of `buildMcpServer` and contains
+shared `ctx` object is built once in `buildMcpServer` as `toolCtx` and contains
 the stores and closure helpers that the tool needs to call into:
 
 ```js
@@ -29,7 +39,7 @@ export function registerGetMcpBinding(server, ctx) {
       const services = entry?.appSessionId
         ? ctx.sessionRegistry.getSessionServices(entry.appSessionId)
         : null;
-      const binding = buildMcpBindingSnapshot(entry);
+      const binding = buildMcpBindingSnapshot(entry, ctx.pairingCodeStore);
       const bootstrap =
         entry && services
           ? buildSessionBootstrap({
@@ -48,7 +58,7 @@ export function registerGetMcpBinding(server, ctx) {
 `mcpServer.js` then composes everything in `buildMcpServer`:
 
 ```js
-const ctx = {
+const toolCtx = {
   mcpRegistry,
   sessionRegistry,
   pairingCodeStore,
@@ -60,9 +70,13 @@ const ctx = {
   currentServices,
   assertResourceSessionAccess,
   recordPairingFailure,
-  finalizeApprovedAgent
+  finalizeApprovedAgent,
+  requireBoundSession,
+  requireSessionEntry,
+  executeJoinSession
 };
-registerGetMcpBinding(server, ctx);
+registerGetMcpBinding(server, toolCtx);
+registerGetSessionBootstrap(server, toolCtx);
 // …other registers in deterministic order
 ```
 
@@ -75,6 +89,8 @@ identity helpers (`originFromMcpEntry`, `requireRegisteredAgent`,
 
 ## Verification
 
-The MCP integration suite (`apps/server/test/mcpServer.test.js`, 474 LOC) drives
+The MCP integration suite (`apps/server/test/mcpServer.test.js`) drives
 every tool through a real transport, so it's the regression gate when you
 extract a tool. Run `npm run test -w apps/server` after each move.
+`npm run check:affected` also warns if MCP tool files change without that test
+in the same diff (see `scripts/wire-cochange.mjs`).

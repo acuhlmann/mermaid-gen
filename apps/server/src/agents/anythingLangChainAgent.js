@@ -1,4 +1,4 @@
-import { HumanMessage, SystemMessage } from '@langchain/core/messages';
+import { HumanMessage } from '@langchain/core/messages';
 import { createAgent } from 'langchain';
 import { createAnythingTools } from './diagramTools.js';
 import { redactSecrets } from '../utils/redactSecrets.js';
@@ -16,31 +16,14 @@ import {
 import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
   captureMessagesFromStreamEvent,
-  extractFinalMessage,
-  extractLastAttemptedToolSource,
-  extractOriginalRequest,
   extractTextContent,
-  extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   invokeChatModelToClient,
-  normalizeAgentStreamEvent,
-  toLangChainMessages
+  normalizeAgentStreamEvent
 } from './_lib/diagramAgentHelpers.js';
+import { invokePatchAgentWithRepair } from './_lib/invokePatchAgentWithRepair.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
-import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
-import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
-import {
-  appendLastValidationError,
-  buildAgentRunBudgetExceededMessage,
-  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
-  MIN_SYNTAX_FIXER_BUDGET_MS,
-  resolveAgentRepairAttemptProfile,
-  resolveAgentRepairMaxAttempts,
-  resolveAgentRunBudgetMs
-} from '@archislop/shared';
-import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 
 const ANYTHING_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply an Anything-mode update.
 - You MUST apply it now through a tool: apply_anything_edit with targeted search/replace blocks for a scoped change to the existing document, or apply_anything_patch once with a complete, self-contained HTML document. Then briefly summarize in prose only.
@@ -205,288 +188,40 @@ export function createAnythingLangChainAgent({
   }
 
   async function invokeWithRepair(userMessages, opts) {
-    const {
-      requirePatch = false,
-      emit,
-      profile,
-      abortSignal,
-      mode = null,
-      focusNode = null,
-      peerContext = null,
-      // When the caller has a clean short prompt (intent), pass it so the repair
-      // instruction doesn't re-embed the whole current-document block that the first
-      // user message carries — anything docs run up to ANYTHING_HTML_MAX_LENGTH, so
-      // this is the single largest avoidable payload in the repair prompt. Falls back
-      // to extracting the first user message.
-      originalRequest: originalRequestOverride = null
-    } = opts ?? {};
-    const runProfile = normalizeModelProfile(profile);
-    const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'anything');
-    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
-    const turnStarted = Date.now();
-    // Every model turn shares this deadline-capped signal so an in-flight call cannot
-    // overrun the run budget; `abortSignal` stays untouched for user-stop detection.
-    const runSignal = createRunDeadlineSignal({
-      abortSignal,
-      budgetMs: runBudgetMs,
-      startedAt: turnStarted
+    return invokePatchAgentWithRepair({
+      contentType: 'anything',
+      patchToolName: 'apply_anything_patch',
+      agentName: 'anything',
+      stateStore,
+      env,
+      userMessages,
+      opts,
+      buildAgent,
+      invokeAgentStream,
+      extractProseSource: extractHtmlFromAssistantResult,
+      buildRepairInstruction: buildAnythingRepairInstruction,
+      patchRequiredInstruction: ANYTHING_PATCH_REQUIRED_INSTRUCTION,
+      isSyntaxFixerAvailable: isAnythingSyntaxFixerAvailable,
+      repairWithFixer: repairAnythingWithFixer,
+      labels: {
+        phaseInvokeId: 'anything_invoke',
+        phaseRepairId: (attempt) => `anything_repair_${attempt}`,
+        invokeLabel: 'Building page…',
+        repairLabel: (attempt, max) => `Repairing page (attempt ${attempt} of ${max})…`,
+        retryPlanBeat: (attempt, max, tierNote) =>
+          `Previous page patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${max})${tierNote}.`,
+        successMessage: 'Page updated.',
+        proseRecoveryReason: 'prose-html recovery',
+        proseRecoveryValidator: 'prose-html-recovery',
+        validationFailedFallback: 'HTML validation failed',
+        syntaxFixerSuccessMessage: 'Page updated (repaired by syntax fixer).',
+        syntaxFixerRepairedDetail: 'Repaired invalid page HTML and applied the patch.',
+        syntaxFixerStoreRejectedFallback: 'Page validation failed after syntax fixer.',
+        syntaxFixerFailedFallback: 'Syntax fixer could not repair the page HTML.',
+        failurePrefix: 'Page update failed',
+        noApplyMessage: 'Page update did not apply.'
+      }
     });
-    const beforeRevision = stateStore.getSlot('anything').revisionId;
-    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
-
-    // Repair turns rebuild from this immutable base (mermaid pattern) instead of
-    // appending to a growing transcript — otherwise attempt 2 can carry 4+ copies of a
-    // ~200 KB document, blowing up token cost superlinearly (audit F1).
-    const initialMessages = toLangChainMessages(userMessages);
-    let messages = initialMessages;
-    let lastResult = null;
-    let lastError = null;
-    let lastBrokenSource = null;
-    let syntaxFixerTried = false;
-    let invokeErrored = false;
-    let agent = buildAgent(runProfile);
-
-    const backend = resolveLlmBackend(env, runProfile);
-    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
-    let repairAttempts = 0;
-    /** @param {{accepted: boolean, validator?: string | null, errorClass?: string | null}} sample */
-    const finishTurn = (sample) => {
-      recordAgentTurn(
-        {
-          contentType: 'anything',
-          mode: mode ?? 'unknown',
-          model: modelLabel,
-          profile: runProfile,
-          durationMs: Date.now() - turnStarted,
-          accepted: sample.accepted,
-          validator: sample.validator ?? null,
-          repairAttempts,
-          sanitizerHits: 0,
-          errorClass: sample.errorClass ?? null
-        },
-        { env }
-      );
-    };
-
-    /**
-     * @param {number} [minRemainingMs] Stop early when less than this much budget remains —
-     * starting work that cannot finish inside the budget only delays the failure.
-     */
-    const stopReason = (minRemainingMs = 0) => {
-      if (abortSignal?.aborted) {
-        return {
-          code: 'run_aborted',
-          message: 'Agent run was stopped before completion.',
-          errorClass: 'run-aborted'
-        };
-      }
-      if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
-        return {
-          code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
-          errorClass: 'budget-exceeded'
-        };
-      }
-      return null;
-    };
-
-    const finishStoppedRun = (reason) => {
-      // Keep the last validator diagnostic in the failure message so the UI shows WHY the
-      // run ran out of time (what was invalid in the page), not just that it timed out.
-      const message = appendLastValidationError(reason.message, lastError);
-      if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-        emit({ type: 'error', code: reason.code, message });
-      }
-      finishTurn({ accepted: false, errorClass: reason.errorClass });
-      return {
-        message,
-        raw: lastResult,
-        metadata: { agent: 'anything', error: lastError ?? null, code: reason.code }
-      };
-    };
-
-    if (typeof emit === 'function' && requirePatch) {
-      emitServerMutationPlanBeats({
-        emit,
-        stateStore,
-        mode,
-        messages: userMessages,
-        focusNode,
-        peerContext,
-        contentType: 'anything'
-      });
-    }
-
-    for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      if (attempt > 0) {
-        repairAttempts += 1;
-        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-        agent = buildAgent(repairProfile);
-      }
-      const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
-      if (stop) return finishStoppedRun(stop);
-      if (typeof emit === 'function') {
-        if (attempt > 0) {
-          const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-          const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
-          emitPlanBeat(
-            emit,
-            `Previous page patch did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
-            'server'
-          );
-        }
-        emit({
-          type: 'phase',
-          id: attempt === 0 ? 'anything_invoke' : `anything_repair_${attempt}`,
-          label:
-            attempt === 0
-              ? 'Building page…'
-              : `Repairing page (attempt ${attempt} of ${maxRepairAttempts})…`
-        });
-      }
-
-      const result = await invokeAgentStream({ agent, messages, abortSignal: runSignal, emit });
-      if (result?.error) {
-        // A deadline/user abort surfaces as a stream error — finish with the proper
-        // stop reason (which carries the last validator diagnostic) instead of the
-        // bare "aborted" message.
-        const abortStop = stopReason();
-        if (abortStop) return finishStoppedRun(abortStop);
-        lastError = result.error;
-        invokeErrored = true;
-        if (typeof emit === 'function') emit({ type: 'error', message: lastError });
-        break;
-      }
-
-      lastResult = result;
-      const currentRevision = stateStore.getSlot('anything').revisionId;
-      if (currentRevision !== beforeRevision) {
-        finishTurn({
-          accepted: true,
-          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
-        });
-        return {
-          message: extractFinalMessage(result) || 'Page updated.',
-          raw: result,
-          metadata: { agent: 'anything' }
-        };
-      }
-
-      if (!requirePatch) {
-        // Non-mutation runs (no caller today) aren't accept/reject samples — don't record.
-        return {
-          message: extractFinalMessage(result) || 'Done.',
-          raw: result,
-          metadata: { agent: 'anything' }
-        };
-      }
-
-      let failureError = extractToolFailureError(result);
-
-      if (!failureError && !result) {
-        failureError = 'Agent stream ended without a model response or tool result.';
-        lastError = failureError;
-      }
-
-      if (!failureError) {
-        const proseHtml = extractHtmlFromAssistantResult(result);
-        if (proseHtml) {
-          const applied = await stateStore.applyDiagramSource({
-            contentType: 'anything',
-            diagramSource: proseHtml,
-            reason: 'prose-html recovery'
-          });
-          if (applied.accepted) {
-            finishTurn({ accepted: true, validator: 'prose-html-recovery' });
-            return {
-              message: extractFinalMessage(result) || 'Page updated.',
-              raw: result,
-              metadata: { agent: 'anything', validator: 'prose-html-recovery' }
-            };
-          }
-          failureError = applied.error ?? 'HTML validation failed';
-          lastBrokenSource = proseHtml;
-          lastError = failureError;
-        }
-      }
-
-      if (failureError) {
-        lastError = failureError;
-        lastBrokenSource =
-          extractLastAttemptedToolSource(result, 'apply_anything_patch') || lastBrokenSource;
-
-        if (!syntaxFixerTried && lastBrokenSource && isAnythingSyntaxFixerAvailable(env)) {
-          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
-          if (fixerStop) return finishStoppedRun(fixerStop);
-          syntaxFixerTried = true;
-          repairAttempts += 1;
-          emitSyntaxFixerStart(emit, { contentType: 'anything', triggerError: failureError });
-          const fixerOutcome = await repairAnythingWithFixer({
-            brokenSource: lastBrokenSource,
-            parseError: failureError,
-            originalRequest,
-            env,
-            abortSignal: runSignal
-          });
-          if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
-            const applied = await stateStore.applyDiagramSource({
-              contentType: 'anything',
-              diagramSource: fixerOutcome.diagramSource,
-              reason: 'syntax-fixer repair'
-            });
-            if (applied.accepted) {
-              emitSyntaxFixerResult(emit, {
-                contentType: 'anything',
-                outcome: 'repaired',
-                detail: 'Repaired invalid page HTML and applied the patch.'
-              });
-              finishTurn({ accepted: true, validator: 'syntax-fixer' });
-              return {
-                message: 'Page updated (repaired by syntax fixer).',
-                raw: result,
-                metadata: { agent: 'anything', validator: 'syntax-fixer' }
-              };
-            }
-            lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'anything',
-              outcome: 'store_rejected',
-              error: applied.error ?? 'Page validation failed after syntax fixer.'
-            });
-          } else {
-            lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'anything',
-              outcome: 'fixer_failed',
-              error: fixerOutcome.error ?? 'Syntax fixer could not repair the page HTML.'
-            });
-          }
-        }
-
-        messages = [
-          ...initialMessages,
-          new SystemMessage(
-            buildAnythingRepairInstruction({
-              errorMessage: failureError,
-              brokenSource: lastBrokenSource,
-              originalRequest
-            })
-          )
-        ];
-      } else {
-        messages = [...initialMessages, new SystemMessage(ANYTHING_PATCH_REQUIRED_INSTRUCTION)];
-      }
-    }
-
-    finishTurn({
-      accepted: false,
-      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
-    });
-    return {
-      message: lastError ? `Page update failed: ${lastError}` : 'Page update did not apply.',
-      raw: lastResult,
-      metadata: { agent: 'anything', error: lastError ?? null }
-    };
   }
 
   return {

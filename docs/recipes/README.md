@@ -4,6 +4,7 @@ Step-by-step playbooks for recurring changes. Each recipe names the files to tou
 
 | Recipe                                                 | When to use                                                                                    |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| [add-content-type-slot.md](add-content-type-slot.md)   | Adding a new diagram slot (`contentType`) end-to-end                                           |
 | [add-mcp-tool.md](add-mcp-tool.md)                     | Exposing a new tool to external agents (Cursor/Claude/VS Code) over MCP                        |
 | [add-rule-pack.md](add-rule-pack.md)                   | Adding a new Mermaid or Infographic diagram-type rule pack                                     |
 | [add-intent-variant.md](add-intent-variant.md)         | Adding a new transform mode (like Refine / Innovate / Go Mad)                                  |

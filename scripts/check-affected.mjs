@@ -11,6 +11,7 @@
 import { spawnSync } from 'node:child_process';
 import { changedFiles, filterPrettierFiles, repoRoot } from './prettier-files.mjs';
 import { classifyChangedFiles } from './check-affected-lib.mjs';
+import { detectWireCoChangeRisks, formatWireCoChangeRisks } from './wire-cochange.mjs';
 
 const argv = process.argv.slice(2);
 const baseFlag = argv.find((a) => a.startsWith('--base='));
@@ -85,6 +86,13 @@ function main() {
 
   console.log(`check-affected: ${files.length} file(s) vs ${baseRef}`);
   const flags = classify(files);
+
+  const wireRisks = detectWireCoChangeRisks(files);
+  if (wireRisks.length > 0) {
+    console.warn('\n' + formatWireCoChangeRisks(wireRisks));
+    // Soft fail during warm-up: warn loudly with canonical fix, do not exit.
+    // Promote to process.exit(1) once agents routinely co-change consumers.
+  }
 
   // CI runs format:check on every PR — catch drift before push (skipped when full check runs below).
   if (!flags.root) {

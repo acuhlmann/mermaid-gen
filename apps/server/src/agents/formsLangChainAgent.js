@@ -23,32 +23,15 @@ import {
 import { createLazyAgentService } from './_lib/createLazyAgentService.js';
 import {
   captureMessagesFromStreamEvent,
-  extractFinalMessage,
-  extractLastAttemptedToolSource,
-  extractOriginalRequest,
   extractTextContent,
-  extractToolFailureError,
   forwardNormalizedAgentStreamEvent,
   invokeChatModelToClient,
-  normalizeAgentStreamEvent,
-  toLangChainMessages
+  normalizeAgentStreamEvent
 } from './_lib/diagramAgentHelpers.js';
+import { invokePatchAgentWithRepair } from './_lib/invokePatchAgentWithRepair.js';
 import { createPatchToolStreamTracker } from './streamPatchToolTelemetry.js';
-import { classifyAgentTurnError, recordAgentTurn } from '../metrics/agentTurnMetrics.js';
 import { buildAdvisorSuggestionBlock } from './mermaidAnalysisPrompts.js';
-import { emitPlanBeat, emitServerMutationPlanBeats } from './planBeatMessages.js';
-import { emitSyntaxFixerResult, emitSyntaxFixerStart } from './syntaxFixerTelemetry.js';
 import { isFormsSyntaxFixerAvailable, repairFormsWithFixer } from './formsSyntaxFixer.js';
-import {
-  appendLastValidationError,
-  buildAgentRunBudgetExceededMessage,
-  MIN_AGENT_REPAIR_TURN_BUDGET_MS,
-  MIN_SYNTAX_FIXER_BUDGET_MS,
-  resolveAgentRepairAttemptProfile,
-  resolveAgentRepairMaxAttempts,
-  resolveAgentRunBudgetMs
-} from '@archislop/shared';
-import { createRunDeadlineSignal } from './_lib/agentRunDeadline.js';
 
 const FORMS_PATCH_REQUIRED_INSTRUCTION = `Your previous response did not apply a forms patch.
 - You MUST call apply_forms_patch now once with a complete, valid forms document JSON, then briefly summarize in prose only.
@@ -208,267 +191,40 @@ export function createFormsLangChainAgent({
   }
 
   async function invokeWithRepair(userMessages, opts) {
-    const {
-      requirePatch = false,
-      emit,
-      profile,
-      abortSignal,
-      mode = null,
-      focusNode = null,
-      peerContext = null,
-      originalRequest: originalRequestOverride = null
-    } = opts ?? {};
-    const runProfile = normalizeModelProfile(profile);
-    const maxRepairAttempts = resolveAgentRepairMaxAttempts(runProfile, env, 'forms');
-    const runBudgetMs = resolveAgentRunBudgetMs(runProfile, env, mode);
-    const turnStarted = Date.now();
-    const runSignal = createRunDeadlineSignal({
-      abortSignal,
-      budgetMs: runBudgetMs,
-      startedAt: turnStarted
+    return invokePatchAgentWithRepair({
+      contentType: 'forms',
+      patchToolName: 'apply_forms_patch',
+      agentName: 'forms',
+      stateStore,
+      env,
+      userMessages,
+      opts,
+      buildAgent,
+      invokeAgentStream,
+      extractProseSource: extractFormsDocFromAssistantResult,
+      buildRepairInstruction: buildFormsRepairInstruction,
+      patchRequiredInstruction: FORMS_PATCH_REQUIRED_INSTRUCTION,
+      isSyntaxFixerAvailable: isFormsSyntaxFixerAvailable,
+      repairWithFixer: repairFormsWithFixer,
+      labels: {
+        phaseInvokeId: 'forms_invoke',
+        phaseRepairId: (attempt) => `forms_repair_${attempt}`,
+        invokeLabel: 'Issuing form…',
+        repairLabel: (attempt, max) => `Repairing form (attempt ${attempt} of ${max})…`,
+        retryPlanBeat: (attempt, max, tierNote) =>
+          `Previous form did not validate — retrying while keeping your intent (attempt ${attempt} of ${max})${tierNote}.`,
+        successMessage: 'Form issued.',
+        proseRecoveryReason: 'prose-doc recovery',
+        proseRecoveryValidator: 'prose-doc-recovery',
+        validationFailedFallback: 'Forms validation failed',
+        syntaxFixerSuccessMessage: 'Form issued (repaired by syntax fixer).',
+        syntaxFixerRepairedDetail: 'Repaired invalid forms document and applied the patch.',
+        syntaxFixerStoreRejectedFallback: 'Forms validation failed after syntax fixer.',
+        syntaxFixerFailedFallback: 'Syntax fixer could not repair the forms document.',
+        failurePrefix: 'Form update failed',
+        noApplyMessage: 'Form update did not apply.'
+      }
     });
-    const beforeRevision = stateStore.getSlot('forms').revisionId;
-    const originalRequest = originalRequestOverride ?? extractOriginalRequest(userMessages);
-
-    const initialMessages = toLangChainMessages(userMessages);
-    let messages = initialMessages;
-    let lastResult = null;
-    let lastError = null;
-    let lastBrokenSource = null;
-    let syntaxFixerTried = false;
-    let invokeErrored = false;
-    let agent = buildAgent(runProfile);
-
-    const backend = resolveLlmBackend(env, runProfile);
-    const modelLabel = backend ? `${backend}:${resolveModelId(env, runProfile, backend)}` : null;
-    let repairAttempts = 0;
-    const finishTurn = (sample) => {
-      recordAgentTurn(
-        {
-          contentType: 'forms',
-          mode: mode ?? 'unknown',
-          model: modelLabel,
-          profile: runProfile,
-          durationMs: Date.now() - turnStarted,
-          accepted: sample.accepted,
-          validator: sample.validator ?? null,
-          repairAttempts,
-          sanitizerHits: 0,
-          errorClass: sample.errorClass ?? null
-        },
-        { env }
-      );
-    };
-
-    const stopReason = (minRemainingMs = 0) => {
-      if (abortSignal?.aborted) {
-        return {
-          code: 'run_aborted',
-          message: 'Agent run was stopped before completion.',
-          errorClass: 'run-aborted'
-        };
-      }
-      if (Date.now() - turnStarted >= runBudgetMs - minRemainingMs) {
-        return {
-          code: 'run_budget_exceeded',
-          message: buildAgentRunBudgetExceededMessage(runProfile, runBudgetMs),
-          errorClass: 'budget-exceeded'
-        };
-      }
-      return null;
-    };
-
-    const finishStoppedRun = (reason) => {
-      const message = appendLastValidationError(reason.message, lastError);
-      if (typeof emit === 'function' && reason.code === 'run_budget_exceeded') {
-        emit({ type: 'error', code: reason.code, message });
-      }
-      finishTurn({ accepted: false, errorClass: reason.errorClass });
-      return {
-        message,
-        raw: lastResult,
-        metadata: { agent: 'forms', error: lastError ?? null, code: reason.code }
-      };
-    };
-
-    if (typeof emit === 'function' && requirePatch) {
-      emitServerMutationPlanBeats({
-        emit,
-        stateStore,
-        mode,
-        messages: userMessages,
-        focusNode,
-        peerContext,
-        contentType: 'forms'
-      });
-    }
-
-    for (let attempt = 0; attempt <= maxRepairAttempts; attempt += 1) {
-      if (attempt > 0) {
-        repairAttempts += 1;
-        const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-        agent = buildAgent(repairProfile);
-      }
-      const stop = stopReason(attempt > 0 ? MIN_AGENT_REPAIR_TURN_BUDGET_MS : 0);
-      if (stop) return finishStoppedRun(stop);
-      if (typeof emit === 'function') {
-        if (attempt > 0) {
-          const repairProfile = resolveAgentRepairAttemptProfile(runProfile, attempt);
-          const tierNote = repairProfile === 'quality' ? ' (quality model)' : '';
-          emitPlanBeat(
-            emit,
-            `Previous form did not validate — retrying while keeping your intent (attempt ${attempt} of ${maxRepairAttempts})${tierNote}.`,
-            'server'
-          );
-        }
-        emit({
-          type: 'phase',
-          id: attempt === 0 ? 'forms_invoke' : `forms_repair_${attempt}`,
-          label:
-            attempt === 0
-              ? 'Issuing form…'
-              : `Repairing form (attempt ${attempt} of ${maxRepairAttempts})…`
-        });
-      }
-
-      const result = await invokeAgentStream({ agent, messages, abortSignal: runSignal, emit });
-      if (result?.error) {
-        const abortStop = stopReason();
-        if (abortStop) return finishStoppedRun(abortStop);
-        lastError = result.error;
-        invokeErrored = true;
-        if (typeof emit === 'function') emit({ type: 'error', message: lastError });
-        break;
-      }
-
-      lastResult = result;
-      const currentRevision = stateStore.getSlot('forms').revisionId;
-      if (currentRevision !== beforeRevision) {
-        finishTurn({
-          accepted: true,
-          validator: attempt === 0 ? 'first-try' : `repair-attempt-${attempt}`
-        });
-        return {
-          message: extractFinalMessage(result) || 'Form issued.',
-          raw: result,
-          metadata: { agent: 'forms' }
-        };
-      }
-
-      if (!requirePatch) {
-        return {
-          message: extractFinalMessage(result) || 'Done.',
-          raw: result,
-          metadata: { agent: 'forms' }
-        };
-      }
-
-      let failureError = extractToolFailureError(result);
-
-      if (!failureError && !result) {
-        failureError = 'Agent stream ended without a model response or tool result.';
-        lastError = failureError;
-      }
-
-      if (!failureError) {
-        const proseDoc = extractFormsDocFromAssistantResult(result);
-        if (proseDoc) {
-          const applied = await stateStore.applyDiagramSource({
-            contentType: 'forms',
-            diagramSource: proseDoc,
-            reason: 'prose-doc recovery'
-          });
-          if (applied.accepted) {
-            finishTurn({ accepted: true, validator: 'prose-doc-recovery' });
-            return {
-              message: extractFinalMessage(result) || 'Form issued.',
-              raw: result,
-              metadata: { agent: 'forms', validator: 'prose-doc-recovery' }
-            };
-          }
-          failureError = applied.error ?? 'Forms validation failed';
-          lastBrokenSource = proseDoc;
-          lastError = failureError;
-        }
-      }
-
-      if (failureError) {
-        lastError = failureError;
-        lastBrokenSource =
-          extractLastAttemptedToolSource(result, 'apply_forms_patch') || lastBrokenSource;
-
-        if (!syntaxFixerTried && lastBrokenSource && isFormsSyntaxFixerAvailable(env)) {
-          const fixerStop = stopReason(MIN_SYNTAX_FIXER_BUDGET_MS);
-          if (fixerStop) return finishStoppedRun(fixerStop);
-          syntaxFixerTried = true;
-          repairAttempts += 1;
-          emitSyntaxFixerStart(emit, { contentType: 'forms', triggerError: failureError });
-          const fixerOutcome = await repairFormsWithFixer({
-            brokenSource: lastBrokenSource,
-            parseError: failureError,
-            originalRequest,
-            env,
-            abortSignal: runSignal
-          });
-          if (fixerOutcome.accepted && fixerOutcome.diagramSource) {
-            const applied = await stateStore.applyDiagramSource({
-              contentType: 'forms',
-              diagramSource: fixerOutcome.diagramSource,
-              reason: 'syntax-fixer repair'
-            });
-            if (applied.accepted) {
-              emitSyntaxFixerResult(emit, {
-                contentType: 'forms',
-                outcome: 'repaired',
-                detail: 'Repaired invalid forms document and applied the patch.'
-              });
-              finishTurn({ accepted: true, validator: 'syntax-fixer' });
-              return {
-                message: 'Form issued (repaired by syntax fixer).',
-                raw: result,
-                metadata: { agent: 'forms', validator: 'syntax-fixer' }
-              };
-            }
-            lastError = `${failureError}\n(fixer attempt also rejected: ${applied.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'forms',
-              outcome: 'store_rejected',
-              error: applied.error ?? 'Forms validation failed after syntax fixer.'
-            });
-          } else {
-            lastError = `${failureError}\n(syntax fixer: ${fixerOutcome.error})`;
-            emitSyntaxFixerResult(emit, {
-              contentType: 'forms',
-              outcome: 'fixer_failed',
-              error: fixerOutcome.error ?? 'Syntax fixer could not repair the forms document.'
-            });
-          }
-        }
-
-        messages = [
-          ...initialMessages,
-          new SystemMessage(
-            buildFormsRepairInstruction({
-              errorMessage: failureError,
-              brokenSource: lastBrokenSource,
-              originalRequest
-            })
-          )
-        ];
-      } else {
-        messages = [...initialMessages, new SystemMessage(FORMS_PATCH_REQUIRED_INSTRUCTION)];
-      }
-    }
-
-    finishTurn({
-      accepted: false,
-      errorClass: invokeErrored ? 'invoke-error' : (classifyAgentTurnError(lastError) ?? 'no-patch')
-    });
-    return {
-      message: lastError ? `Form update failed: ${lastError}` : 'Form update did not apply.',
-      raw: lastResult,
-      metadata: { agent: 'forms', error: lastError ?? null }
-    };
   }
 
   return {
