@@ -200,7 +200,13 @@ import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
 import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import { buildAdvisorIntentPrompt, resolveAdvisorFocusNode } from './utils/advisorActionContext.js';
-import { useCompactBrandLayout, useNarrowLayout } from './hooks/useAppLayoutMedia.js';
+import {
+  useCompactBrandLayout,
+  useFoldableDualScreen,
+  useNarrowLayout,
+  usePhoneLayout,
+  useWideMobileLayout
+} from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 import {
   ButtonIcon,
@@ -448,6 +454,9 @@ function ArchiSlop() {
 
   useSyncVisualViewportHeight();
   const narrowLayout = useNarrowLayout();
+  const phoneLayout = usePhoneLayout();
+  const wideMobileLayout = useWideMobileLayout();
+  const foldableDualScreen = useFoldableDualScreen();
   const compactBrand = useCompactBrandLayout();
 
   useEffect(() => {
@@ -3720,7 +3729,7 @@ ${requirementsBlock}`;
       activeEntryStatus === 'done' && Boolean(activeAutoCloseEntry?.diagramRevisionApplied);
     const runProducedCanvasResult = revisionChanged || completedActiveMutation;
     if (
-      narrowLayout &&
+      phoneLayout &&
       insightsOpen &&
       !activeEntryRunning &&
       Boolean(activeEntryId) &&
@@ -3737,7 +3746,7 @@ ${requirementsBlock}`;
       autoCloseActiveEntryIdRef.current = null;
     }
     prevAutoCloseRunningRef.current = activeEntryRunning;
-  }, [insightsEntries, narrowLayout, insightsOpen, state.revisionId, state.diagramSource]);
+  }, [insightsEntries, phoneLayout, insightsOpen, state.revisionId, state.diagramSource]);
 
   const busy = loading || streamingPreview;
 
@@ -4312,7 +4321,7 @@ ${requirementsBlock}`;
   const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');
   const liveVariant = liveStreamingEntry?.variant ?? null;
   const ceremonyAnchor =
-    insightsMounted && insightsOpen ? (narrowLayout ? 'insights' : 'canvas') : 'viewport';
+    insightsMounted && insightsOpen ? (phoneLayout ? 'insights' : 'canvas') : 'viewport';
   const ceremonyOverlays = (
     <RunCeremonyOverlays
       anchor={ceremonyAnchor}
@@ -4369,7 +4378,7 @@ ${requirementsBlock}`;
 
   return (
     <main
-      className={`app-shell ${editorOpen ? 'is-editor-open' : ''} ${insightsOpen ? 'is-insights-open' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
+      className={`app-shell${editorOpen ? ' is-editor-open' : ''}${insightsOpen ? ' is-insights-open' : ''}${narrowLayout ? ' is-narrow-layout' : ''}${phoneLayout ? ' is-phone-layout' : ''}${wideMobileLayout ? ' is-wide-mobile' : ''}${foldableDualScreen ? ' is-foldable-dual' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}

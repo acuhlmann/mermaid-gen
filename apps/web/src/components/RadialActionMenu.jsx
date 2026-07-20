@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { partKindLabel } from '../utils/partKindLabel.js';
-import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
+import { MOBILE_BOTTOM_CHROME_RESERVE_PX } from '../utils/layoutBreakpoints.js';
 import { chipBoundingClearancePx, resolveArcGeometry } from '../utils/radialMenuLayout.js';
 import {
   fallbackLabelGibberish,
@@ -27,7 +28,6 @@ const ARC_RADIUS_MOBILE_PX = 62;
 const BUTTON_HALF_DESKTOP_PX = 34;
 const BUTTON_HALF_MOBILE_PX = 32;
 const VIEWPORT_MARGIN_PX = 8;
-const MOBILE_BOTTOM_CHROME_RESERVE_PX = 120;
 const HOVER_DISK_EXTRA_PX = 12;
 /** Max chip width before the label wraps (keeps the action ring compact). */
 export const CHIP_MAX_WIDTH_PX = 100;
@@ -161,21 +161,7 @@ export default function RadialActionMenu({
   const [explainerSurrendering, setExplainerSurrendering] = useState(false);
   const surrenderTimerRef = useRef(null);
   const [explanation, setExplanation] = useState({ status: 'idle', text: '', error: '' });
-  const [narrowLayout, setNarrowLayout] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(MOBILE_MEDIA_QUERY).matches
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const sync = () => setNarrowLayout(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
+  const narrowLayout = useNarrowLayout();
 
   useEffect(() => {
     if (!descriptor) return undefined;

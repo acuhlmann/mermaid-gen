@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
 import AgentBadge from './AgentBadge.jsx';
-import { MOBILE_MEDIA_QUERY } from '../utils/layoutBreakpoints.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -9,21 +8,7 @@ const MOBILE_VISIBLE_AGENT_CAP = 3;
 export default function AgentPresenceBar({ presence, onInvite }) {
   const { controls } = useUiCopy();
   const agents = Array.isArray(presence) ? presence : [];
-  const [narrowLayout, setNarrowLayout] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      typeof window.matchMedia === 'function' &&
-      window.matchMedia(MOBILE_MEDIA_QUERY).matches
-  );
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia(MOBILE_MEDIA_QUERY);
-    const sync = () => setNarrowLayout(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
+  const narrowLayout = useNarrowLayout();
 
   const visibleAgents =
     narrowLayout && agents.length > MOBILE_VISIBLE_AGENT_CAP
