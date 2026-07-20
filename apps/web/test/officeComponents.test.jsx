@@ -228,7 +228,7 @@ describe('office who-is-who chrome', () => {
 });
 
 describe('CoffeeBreakOverlay', () => {
-  it('runs invite → accept → done and grants the break on Back to it', () => {
+  it('runs invite → accept → done and grants the break on bail-out', () => {
     const onAccept = vi.fn();
     const onDone = vi.fn();
     const coffee = {
@@ -250,7 +250,7 @@ describe('CoffeeBreakOverlay', () => {
       />
     );
     expect(screen.getByText(/Twelve decorative buttons/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Back to it' }));
+    fireEvent.click(screen.getByRole('button', { name: "I've got a deploy" }));
     expect(onDone).toHaveBeenCalled();
   });
 });

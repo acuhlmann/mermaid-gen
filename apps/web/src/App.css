@@ -16684,11 +16684,12 @@ body.slopitect-rainbow-tint::before {
   );
 }
 @media (max-width: 720px) {
-  .office-coffee-invite,
-  .office-battle-invite {
+  .office-battle-invite,
+  .office-meeting-invite {
     top: calc(4.4rem + env(safe-area-inset-top, 0px));
     left: max(0.5rem, env(safe-area-inset-left, 0px));
     right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: auto;
     width: auto;
     max-width: none;
     transform: none;
@@ -16699,6 +16700,9 @@ body.slopitect-rainbow-tint::before {
     gap: 0.55rem;
     padding: 0.72rem 0.85rem;
   }
+  .office-meeting-invite {
+    border-radius: 12px;
+  }
   .office-battle-invite-text {
     flex: 1 1 auto;
     min-width: 0;
@@ -16706,17 +16710,18 @@ body.slopitect-rainbow-tint::before {
     overflow-wrap: anywhere;
   }
   .office-battle-invite-actions,
-  .office-coffee-invite-actions {
+  .office-meeting-invite-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.45rem;
   }
-  .office-coffee-accept,
-  .office-coffee-decline,
   .office-battle-accept,
-  .office-battle-decline {
+  .office-battle-decline,
+  .office-meeting-accept,
+  .office-meeting-decline,
+  .office-meeting-propose {
     flex: 1 1 auto;
-    min-width: 7.5rem;
+    min-width: 7rem;
   }
   .office-battle-scene {
     padding: max(0.75rem, env(safe-area-inset-top, 0px))
@@ -16748,6 +16753,99 @@ body.slopitect-rainbow-tint::before {
   }
   .office-battle-side {
     width: 100%;
+  }
+}
+
+/* Watercooler invite: phones use the block above via max-width 720px; unfolded
+   foldables land in the 721–1024px band and kept the centered pill — awkward
+   across the hinge and cramped beside a side-by-side Thinking pane. */
+@media (max-width: 1024px) {
+  .office-coffee-invite {
+    top: calc(4.4rem + env(safe-area-inset-top, 0px));
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: auto;
+    width: auto;
+    max-width: none;
+    transform: none;
+    border-radius: 14px;
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.72rem 0.85rem;
+  }
+
+  .office-coffee-invite-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .office-coffee-invite-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .office-coffee-accept,
+  .office-coffee-decline {
+    flex: 1 1 auto;
+    min-width: 7rem;
+    border-radius: 8px;
+    padding: 6px 12px;
+  }
+
+  .office-coffee-scene {
+    padding: max(0.75rem, env(safe-area-inset-top, 0px))
+      max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px))
+      max(0.75rem, env(safe-area-inset-left, 0px));
+    align-items: center;
+    justify-content: center;
+  }
+
+  .office-coffee-card {
+    width: 100%;
+    max-height: min(
+      calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 1.5rem),
+      32rem
+    );
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .office-coffee-footer {
+    flex-wrap: wrap;
+  }
+
+  .office-coffee-done {
+    flex: 1 1 auto;
+    min-width: 7rem;
+    text-align: center;
+  }
+}
+
+@supports (horizontal-viewport-segments: 2) {
+  @media (horizontal-viewport-segments: 2) and (max-width: 1024px) {
+    /* Keep the invite on the canvas segment — not straddling the hinge. */
+    .office-coffee-invite {
+      right: auto;
+      width: min(
+        26rem,
+        calc(
+          env(viewport-segment-width 0 0, 50vw) - 1rem - env(safe-area-inset-left, 0px) -
+            env(safe-area-inset-right, 0px)
+        )
+      );
+    }
+
+    .office-coffee-scene {
+      /* Scene stays centred on the active (left) segment when unfolded. */
+      left: env(viewport-segment-left 0 0, 0);
+      width: env(viewport-segment-width 0 0, 100vw);
+      right: auto;
+    }
   }
 }
 .office-coffee-accept,
@@ -17025,7 +17123,8 @@ body.slopitect-rainbow-tint::before {
   cursor: pointer;
   color: var(--text);
 }
-.office-battle-walkaway {
+.office-battle-walkaway,
+.office-battle-getout {
   appearance: none;
   border: 0;
   background: transparent;
@@ -17034,6 +17133,20 @@ body.slopitect-rainbow-tint::before {
   cursor: pointer;
   align-self: center;
   padding: 2px 6px;
+}
+.office-battle-bail {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+}
+.office-battle-getout {
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.office-battle-getout:hover,
+.office-battle-walkaway:hover {
+  color: var(--text);
 }
 .office-battle-verdict {
   display: flex;
@@ -17069,7 +17182,7 @@ body.slopitect-rainbow-tint::before {
 .office-meeting-invite {
   position: fixed;
   right: max(0.5rem, env(safe-area-inset-right, 0px));
-  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-office-chrome);
   width: min(
     22rem,
@@ -17113,6 +17226,7 @@ body.slopitect-rainbow-tint::before {
 }
 .office-meeting-invite-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 .office-meeting-accept {
@@ -18239,8 +18353,12 @@ body.slopitect-rainbow-tint::before {
     max-width: none;
   }
   .office-im-stack {
-    bottom: 200px;
-    right: 10px;
+    bottom: calc(
+      var(--mobile-bottom-chrome-est, 8.75rem) + env(safe-area-inset-bottom, 0px) + 0.5rem
+    );
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    max-width: none;
   }
   /* Phone: full-width sheet, and the thread list becomes a horizontal strip so
      the message log keeps the width it needs to be readable. */
@@ -18270,13 +18388,13 @@ body.slopitect-rainbow-tint::before {
   .office-messenger-thread-meta {
     display: none;
   }
-  .office-meeting-invite {
-    bottom: 200px;
-    right: 10px;
-  }
   .office-walkby {
-    bottom: 200px;
-    left: 10px;
+    bottom: calc(
+      var(--mobile-bottom-chrome-est, 8.75rem) + env(safe-area-inset-bottom, 0px) + 0.5rem
+    );
+    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    max-width: none;
   }
   /* Phone: a corner card would be unreadable, so a docked meeting becomes a
      bottom sheet instead — canvas visible above, meeting thumbable below. */
@@ -18299,7 +18417,7 @@ body.slopitect-rainbow-tint::before {
    (640–1024px wide, ≥480px tall). Overrides the phone fullscreen overlay. */
 @media (min-width: 640px) and (max-width: 1024px) and (min-height: 480px) {
   .diagram-canvas.is-insights-open:not(.is-editor-open) {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 44vw);
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 52vw);
     grid-template-rows: minmax(0, 1fr);
   }
 
@@ -18367,11 +18485,11 @@ body.slopitect-rainbow-tint::before {
   }
 
   .app-shell.is-insights-open:not(.is-editor-open) .bottom-chrome {
-    padding-right: max(280px, 44vw);
+    padding-right: max(320px, 52vw);
   }
 
   .app-shell.is-insights-open:not(.is-editor-open) .top-shell {
-    right: calc(max(280px, 44vw) + 1rem);
+    right: calc(max(320px, 52vw) + 1rem);
   }
 
   .diagram-viewport {
@@ -18389,7 +18507,7 @@ body.slopitect-rainbow-tint::before {
     .diagram-canvas.is-insights-open:not(.is-editor-open) {
       grid-template-columns:
         env(viewport-segment-width 0 0, minmax(0, 1fr))
-        env(viewport-segment-width 1 0, minmax(280px, 44vw));
+        env(viewport-segment-width 1 0, minmax(320px, 52vw));
     }
 
     .diagram-canvas.is-insights-open:not(.is-editor-open) .diagram-main-column {

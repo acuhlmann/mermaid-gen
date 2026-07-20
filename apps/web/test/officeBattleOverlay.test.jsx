@@ -51,6 +51,13 @@ describe('OfficeBattleOverlay', () => {
     expect(onDone).toHaveBeenCalledOnce();
   });
 
+  it('offers a get-out escape during line pacing', async () => {
+    const onDone = vi.fn();
+    render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} onDone={onDone} />);
+    fireEvent.click(screen.getByText('Get out of Cubicle Battle'));
+    expect(onDone).toHaveBeenCalledOnce();
+  });
+
   it('paces the lines in one by one, then offers the vote', async () => {
     render(<OfficeBattleOverlay battle={{ ...BATTLE, accepted: true }} />);
     const arena = screen.getByRole('dialog');

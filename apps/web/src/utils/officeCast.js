@@ -1147,7 +1147,7 @@ export const OFFICE_CHROME_COPY = {
     decline: 'Deadline',
     sceneAria: 'Coffee break',
     sceneTitle: 'The Watercooler',
-    done: 'Back to it'
+    done: "I've got a deploy"
   },
   battle: {
     kindLabel: 'Cubicle drama · Battle',
@@ -1157,6 +1157,7 @@ export const OFFICE_CHROME_COPY = {
     sceneAria: 'Cubicle battle',
     sceneTitle: 'Cubicle Battle',
     versus: 'vs',
+    getOut: 'Get out of Cubicle Battle',
     settleLine: "You've heard both sides. Someone has to be wrong:",
     sideLabel: 'Side with {name}',
     walkAway: 'Escalate to HR (leave)',
@@ -1168,7 +1169,7 @@ export const OFFICE_CHROME_COPY = {
     organizerLabel: 'Organizer:',
     attendeesLabel: 'Attendees:',
     accept: 'Accept',
-    decline: 'Decline',
+    decline: "Can't — I'm shipping",
     proposeNewTime: 'Propose new time'
   },
   meeting: {
