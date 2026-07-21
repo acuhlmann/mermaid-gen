@@ -110,24 +110,22 @@ describe('DeskBottomActionsSlot empty canvas', () => {
       />
     );
     expect(screen.getByRole('menu', { name: /Desk tray/i })).toBeTruthy();
-    expect(screen.getByText('Deliverable format')).toBeTruthy();
+    expect(screen.queryByText('Deliverable format')).toBeNull();
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
   });
 
-  it('renders notebook and concentration on the work order group', () => {
+  it('renders notebook on the desk chrome row', () => {
     const onToggleThinking = vi.fn();
     render(
       <DeskBottomActionsSlot
         {...baseProps({
           hasCanvasContent: true,
-          modelProfile: 'fast',
-          onSelectModelProfile: vi.fn(),
           onToggleThinking
         })}
       />
     );
     expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
-    expect(screen.getByTestId('concentration-control')).toBeTruthy();
+    expect(screen.queryByTestId('concentration-control')).toBeNull();
     fireEvent.click(screen.getByTestId('desk-notebook-button'));
     expect(onToggleThinking).toHaveBeenCalledTimes(1);
   });

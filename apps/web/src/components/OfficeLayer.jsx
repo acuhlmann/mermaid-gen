@@ -454,6 +454,8 @@ export default function OfficeLayer({
       blockedReason={desk.blockedReason}
       canOpenOutbox={canOpenOutbox}
       initialOpen={deskMenuInitialOpen}
+      modelProfile={modelProfile}
+      onSelectModelProfile={onSelectModelProfile}
     />
   );
   const deskSlot = useSyncExternalStore(

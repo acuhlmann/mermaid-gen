@@ -80,7 +80,7 @@ describe('OfficeLayer desk actions portal', () => {
     );
 
     expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
-    expect(screen.getByText('Get up')).toBeTruthy();
+    expect(screen.getByTestId('concentration-control')).toBeTruthy();
   });
 
   it('rebinds when the bottom nav layout key changes', () => {

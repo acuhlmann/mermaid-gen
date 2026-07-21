@@ -1,7 +1,7 @@
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
- * Fast / quality model profile toggle — shared by the Work Order footer and the
+ * Fast / quality model profile toggle — shared by the desk menu footer and the
  * Thinking pane header.
  */
 export default function ConcentrationControl({

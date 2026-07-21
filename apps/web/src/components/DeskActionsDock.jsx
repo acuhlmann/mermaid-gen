@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
+import ConcentrationControl from './ConcentrationControl.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a geography-grouped menu — Get up (wander /
- * bother), Under the desk (contractor / HR). Notebook, concentration, and the
- * code drawer live on the bottom chrome and Thinking pane header.
+ * ArchiSlop helmet stamp opens a flat verb menu with concentration at the
+ * bottom. Notebook and the code drawer live on the bottom chrome and Thinking
+ * pane header.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -27,7 +28,9 @@ export default function DeskActionsDock({
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
-  initialOpen = false
+  initialOpen = false,
+  modelProfile = 'fast',
+  onSelectModelProfile = null
 }) {
   const [open, setOpen] = useState(initialOpen);
   const rootRef = useRef(null);
@@ -49,7 +52,7 @@ export default function DeskActionsDock({
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
 
-  const getUpVerbs = [
+  const deskVerbs = [
     {
       id: 'inbox',
       label: copy.inbox,
@@ -78,10 +81,7 @@ export default function DeskActionsDock({
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
     },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
-    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee }
-  ];
-
-  const underDeskVerbs = [
+    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
     {
       id: 'contractor',
       label: copy.onboardContractor,
@@ -163,10 +163,12 @@ export default function DeskActionsDock({
           role="menu"
           aria-label={copy.menuAria}
         >
-          <p className="desk-actions-heading">{copy.sectionGetUp ?? 'Get up'}</p>
-          {getUpVerbs.map(renderVerb)}
-          <p className="desk-actions-heading">{copy.sectionUnderDesk ?? 'Under the desk'}</p>
-          {underDeskVerbs.map(renderVerb)}
+          {deskVerbs.map(renderVerb)}
+          <ConcentrationControl
+            variant="menu"
+            modelProfile={modelProfile}
+            onSelectModelProfile={onSelectModelProfile}
+          />
         </div>
       ) : null}
     </div>

@@ -2611,8 +2611,6 @@ ${requirementsBlock}`;
                 canFixFromCritique={canFixFromCritique}
                 handleFixFromCritique={handleFixFromCritique}
                 handleClearDiagram={handleClearDiagram}
-                modelProfile={modelProfile}
-                onSelectModelProfile={setModelProfile}
                 onToggleThinking={() => setInsightsOpen((v) => !v)}
                 canToggleThinking
               />

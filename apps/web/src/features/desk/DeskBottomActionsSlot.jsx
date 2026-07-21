@@ -4,7 +4,6 @@ import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
-import ConcentrationControl from '../../components/ConcentrationControl.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
 function DeskPeopleCluster({
@@ -85,8 +84,6 @@ function DeskChromeRow({
   onMicPointerDown,
   onMicPointerUp,
   onMicLostPointerCapture,
-  modelProfile,
-  onSelectModelProfile,
   thinkingOpen,
   onToggleThinking,
   canToggleThinking = true,
@@ -143,11 +140,6 @@ function DeskChromeRow({
           onMicPointerDown={onMicPointerDown}
           onMicPointerUp={onMicPointerUp}
           onMicLostPointerCapture={onMicLostPointerCapture}
-        />
-        <ConcentrationControl
-          variant="footer"
-          modelProfile={modelProfile}
-          onSelectModelProfile={onSelectModelProfile}
         />
         <span hidden data-testid="desk-prompt-change-wired">
           {typeof onPromptChange === 'function' ? 'yes' : 'no'}
@@ -261,8 +253,6 @@ export function DeskBottomActionsSlot({
   canFixFromCritique,
   handleFixFromCritique,
   handleClearDiagram,
-  modelProfile,
-  onSelectModelProfile,
   onToggleThinking,
   canToggleThinking = true
 }) {
@@ -299,8 +289,6 @@ export function DeskBottomActionsSlot({
     onMicPointerDown: handleMicPointerDown,
     onMicPointerUp: handleMicPointerUp,
     onMicLostPointerCapture: () => stopVoiceInput(),
-    modelProfile,
-    onSelectModelProfile,
     thinkingOpen: insightsOpen,
     onToggleThinking,
     canToggleThinking,
