@@ -37,6 +37,7 @@ export default defineConfig({
     // Node 25+ enables experimental Web Storage on globalThis; that empty proxy
     // blocks jsdom from installing a real window.localStorage. Disable it so
     // Vitest jsdom environments own storage (see nodejs/node#60303).
-    execArgv: ['--no-experimental-webstorage']
+    execArgv: ['--no-experimental-webstorage'],
+    setupFiles: ['./test/setup/jsdom-polyfills.js']
   }
 });
