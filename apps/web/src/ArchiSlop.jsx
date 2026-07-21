@@ -8,7 +8,6 @@ import {
   useSyncExternalStore
 } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
-import DiagramFullscreenButton from './components/DiagramFullscreenButton.jsx';
 import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx';
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
@@ -21,7 +20,6 @@ import {
   fallbackState,
   normalizeSessionId,
   readDiagramCache,
-  streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
   submitDiagramRenderRepair,
@@ -29,50 +27,22 @@ import {
 } from './state/diagramStore.js';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
 import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
-import {
-  applyAgentStreamInsightEvent,
-  closeOpenInsightPhases
-} from './state/applyAgentStreamInsightEvent';
-import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
 import './App.css';
 import './components/RunTimeline.css';
 import {
   playCritiqueBoot,
-  playInnovateSynthLoop,
-  playGoMadKlaxonLoop,
-  playGoMadAirhornBlast,
-  playCritiqueScribbleLoop,
-  playCritiquePenStab,
-  playExplainPageFlipLoop,
-  playDraftTick,
   playExplainBoot,
-  playFailureChime,
   playGoMadBoot,
-  playGoMadStreamStart,
-  playGoMadTokenTick,
-  playCritiqueTokenTick,
-  playExplainTokenTick,
   playInnovateBoot,
-  playInnovateStreamStart,
-  playInnovateTokenTick,
   playModeSwoosh,
-  playPhaseChangePluck,
-  playRefineBoot,
-  playRefinePolishLoop,
-  playRefineStreamStart,
-  playRefineTokenTick,
-  playStreamStartChime,
-  playTokenTickChime,
-  playToolEndChime,
-  playToolStartChime
+  playRefineBoot
 } from './utils/agentChimes.js';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
 import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
 import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
 import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
 import { useSessionHydrate } from './features/session/useSessionHydrate.js';
-import { SlopitectTipSlot } from './features/prompt/SlopitectTipSlot.jsx';
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
 import { useRadialMenu } from './features/prompt/useRadialMenu.js';
 import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
@@ -81,12 +51,12 @@ import { DeskBottomActionsSlot } from './features/desk/DeskBottomActionsSlot.jsx
 import { ModeRevealSlot } from './features/desk/ModeRevealSlot.jsx';
 import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
 import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
+import { BrandChromeSlot } from './features/shell/BrandChromeSlot.jsx';
+import { useRunStreamingAgent } from './features/streaming/useRunStreamingAgent.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
 import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
-import XpProgressBar from './components/XpProgressBar.jsx';
-import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
@@ -126,8 +96,6 @@ import {
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
-import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
-import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
@@ -140,15 +108,8 @@ import {
   useWideMobileLayout
 } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
-import {
-  ButtonIcon,
-  ArchiSlopMarkIcon,
-  PromptIcon,
-  MicIcon,
-  MicActiveIcon
-} from './components/AppIcons.jsx';
+import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from './components/AppIcons.jsx';
 import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
-import { TopShell } from './components/TopShell.jsx';
 import { BottomRow } from './components/BottomRow.jsx';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import { useStyleEdits } from './hooks/useStyleEdits.js';
@@ -1112,174 +1073,39 @@ export function ArchiSlop() {
     }
   }
 
-  const runStreamingAgent = useCallback(
-    async ({
-      operation,
-      payload,
-      title,
-      onFinal,
-      variant = 'general',
-      diagramUndoBaseline,
-      topic,
-      modeSwitchSync = false,
-      modeSwitchPeerRevisionId = null,
-      modeSwitchPeerMode = null
-    }) => {
-      setInsightsOpen(true);
-      const retryDescriptor = buildInsightRetryDescriptor({
-        operation,
-        payload,
-        variant,
-        topic,
-        modelProfile: payload.modelProfile ?? modelProfile,
-        modeSwitchSync,
-        modeSwitchPeerRevisionId,
-        modeSwitchPeerMode,
-        focusNode: payload.focusNode
-      });
-      const sectionId = appendInsightEntry(title, variant, {
-        diagramUndoBaseline,
-        topic,
-        retryDescriptor,
-        contentType: payload.contentType ?? contentMode,
-        modelProfile: payload.modelProfile ?? modelProfile
-      });
-      if (diagramUndoBaseline) {
-        autoCloseActiveEntryIdRef.current = sectionId;
-      }
-      if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
-      else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
-      else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
-      else tryAgentSound(playStreamStartChime);
-      lastTokenSoundAtRef.current = 0;
-      goMadTokenTickIndexRef.current = 0;
-      const streamAcc = { text: '', estimatedCostUsd: 0 };
-      const abortCtrl = new AbortController();
-      streamAgentAbortRef.current = abortCtrl;
-      const streamCtx = buildAgentStreamInsightContext(
-        sectionId,
-        operation,
-        variant,
-        diagramUndoBaseline,
-        {
-          patchInsightEntry,
-          appendToInsight,
-          setInsightStatus,
-          appendTechnicalAction,
-          annotateTechnicalActionResult,
-          finalizeTechnicalActionResult,
-          enrichTechnicalActionDetail,
-          lastTokenSoundAtRef,
-          goMadTokenTickIndexRef,
-          lastDraftTickAtRef,
-          tryAgentSound,
-          playGoMadTokenTick,
-          playTokenTickChime,
-          playToolStartChime,
-          playToolEndChime,
-          playDraftTick,
-          playFailureChime,
-          playPhaseChangePluck,
-          playRefineTokenTick,
-          playInnovateTokenTick,
-          playCritiqueTokenTick,
-          playExplainTokenTick,
-          playRefinePolishLoop,
-          playInnovateSynthLoop,
-          playGoMadKlaxonLoop,
-          playGoMadAirhornBlast,
-          playCritiqueScribbleLoop,
-          playCritiquePenStab,
-          playExplainPageFlipLoop,
-          setLiveDraftSource,
-          setLiveDraftContentType,
-          setGoMadStreak,
-          sessionTopicRef,
-          crossModeSyncRef,
-          modeSwitchSync,
-          modeSwitchPeerRevisionId,
-          modeSwitchPeerMode,
-          animateAcceptedSource,
-          pendingAutoDiagramHighlightRef,
-          pendingAutoDiagramHighlightTimeoutRef,
-          triggerCompletionDelight,
-          onFinal,
-          onContentTypeResolved: ({ contentType }) => {
-            applyResolvedContentMode(contentType);
-          },
-          agentCostEstimates: agentCostEstimatesRef.current
-        }
-      );
-      try {
-        await streamDiagramAgent(
-          payload,
-          (evt) => {
-            appendStreamDebugLog(sectionId, evt);
-            applyAgentStreamInsightEvent(streamAcc, streamCtx, evt);
-          },
-          { signal: abortCtrl.signal, sessionId: activeSessionId }
-        );
-      } catch (err) {
-        const aborted =
-          err?.name === 'AbortError' ||
-          (typeof DOMException !== 'undefined' &&
-            err instanceof DOMException &&
-            err.name === 'AbortError');
-        if (aborted) {
-          patchInsightEntry(sectionId, (entry) => ({
-            ...entry,
-            status: 'cancelled',
-            statusText: controls.loading.stopped,
-            completedAt: Date.now(),
-            phases: closeOpenInsightPhases(entry.phases, Date.now())
-          }));
-        } else {
-          appendToInsight(
-            sectionId,
-            `\n\n**${controls.insights?.errorPrefix ?? 'Error'}:** ${err.message}\n`
-          );
-          tryAgentSound(playFailureChime);
-          const failure = resolveAgentStreamFailureStatus({
-            operation,
-            message: err.message,
-            copy: controls.insights?.streamFailures
-          });
-          patchInsightEntry(sectionId, (entry) => ({
-            ...entry,
-            status: 'failed',
-            statusText: failure.statusText,
-            failureClass: failure.failureClass,
-            failureDetail: failure.detail,
-            completedAt: Date.now(),
-            phases: closeOpenInsightPhases(entry.phases, Date.now())
-          }));
-        }
-      } finally {
-        if (streamAgentAbortRef.current === abortCtrl) {
-          streamAgentAbortRef.current = null;
-        }
-      }
-    },
-    [
-      animateAcceptedSource,
-      appendInsightEntry,
-      appendStreamDebugLog,
-      appendTechnicalAction,
-      annotateTechnicalActionResult,
-      finalizeTechnicalActionResult,
-      enrichTechnicalActionDetail,
-      appendToInsight,
-      activeSessionId,
-      applyResolvedContentMode,
-      contentMode,
-      modelProfile,
-      patchInsightEntry,
-      setGoMadStreak,
-      setInsightStatus,
-      triggerCompletionDelight,
-      tryAgentSound
-    ]
-  );
+  const { runStreamingAgent } = useRunStreamingAgent({
+    activeSessionId,
+    contentMode,
+    modelProfile,
+    controls,
+    streamAgentAbortRef,
+    lastTokenSoundAtRef,
+    goMadTokenTickIndexRef,
+    lastDraftTickAtRef,
+    sessionTopicRef,
+    crossModeSyncRef,
+    pendingAutoDiagramHighlightRef,
+    pendingAutoDiagramHighlightTimeoutRef,
+    agentCostEstimatesRef,
+    autoCloseActiveEntryIdRef,
+    setInsightsOpen,
+    setGoMadStreak,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    appendInsightEntry,
+    patchInsightEntry,
+    appendToInsight,
+    setInsightStatus,
+    appendTechnicalAction,
+    annotateTechnicalActionResult,
+    finalizeTechnicalActionResult,
+    enrichTechnicalActionDetail,
+    appendStreamDebugLog,
+    animateAcceptedSource,
+    applyResolvedContentMode,
+    triggerCompletionDelight,
+    tryAgentSound
+  });
 
   const insightsEntriesRef = useRef(insightsEntries);
   useEffect(() => {
@@ -2659,134 +2485,30 @@ ${requirementsBlock}`;
             copy={controls.hotkeys}
           />
 
-          <TopShell>
-            <div
-              className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
-              aria-label="ArchiSlop"
-              onClick={handleBrandClick}
-            >
-              <div className="brand-control-chip">
-                <div className="brand-control-chip-row">
-                  <span className="brand-mark" aria-hidden="true">
-                    <ArchiSlopMarkIcon />
-                  </span>
-                  <span className="brand-name">ArchiSlop</span>
-                  {gamification?.prestigeShortLabel ? (
-                    narrowLayout && compactBrand ? (
-                      <button
-                        type="button"
-                        className="brand-prestige-badge"
-                        title={`${controls.brand.totalSlopRuns.replace('{count}', String(gamification.totalRuns ?? 0))} · ${xpBarMobileOpen ? controls.brand.tapToHideXp : controls.brand.tapToShowXp}`}
-                        data-testid="brand-prestige-badge"
-                        aria-expanded={xpBarMobileOpen}
-                        aria-controls="brand-xp-mobile-slot"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setXpBarMobileOpen((current) => !current);
-                        }}
-                      >
-                        {gamification.prestigeShortLabel}
-                      </button>
-                    ) : (
-                      <span
-                        className="brand-prestige-badge"
-                        title={controls.brand.totalSlopRuns.replace(
-                          '{count}',
-                          String(gamification.totalRuns ?? 0)
-                        )}
-                        data-testid="brand-prestige-badge"
-                      >
-                        {gamification.prestigeShortLabel}
-                      </span>
-                    )
-                  ) : null}
-                  {gamification?.level && !narrowLayout ? (
-                    <XpProgressBar
-                      level={gamification.level}
-                      short={gamification.levelShortLabel}
-                      flair={gamification.levelFlair}
-                      progressRatio={gamification.levelProgressRatio}
-                      xpInto={gamification.xpIntoLevel}
-                      xpForNext={gamification.xpForNextLevel}
-                      totalXp={gamification.xp}
-                      isMaxLevel={gamification.xpForNextLevel == null}
-                      flashKey={xpBarFlashKey}
-                      variant={liveVariant}
-                      onClick={() => setXpInfoPanelOpen((open) => !open)}
-                      expanded={xpInfoPanelOpen}
-                      controlsId="levelup-info-panel"
-                    />
-                  ) : null}
-                </div>
-                {gamification?.level && narrowLayout ? (
-                  <div
-                    id="brand-xp-mobile-slot"
-                    className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
-                    aria-hidden={compactBrand ? !xpBarMobileOpen : false}
-                  >
-                    <XpProgressBar
-                      level={gamification.level}
-                      short={gamification.levelShortLabel}
-                      flair={gamification.levelFlair}
-                      progressRatio={gamification.levelProgressRatio}
-                      xpInto={gamification.xpIntoLevel}
-                      xpForNext={gamification.xpForNextLevel}
-                      totalXp={gamification.xp}
-                      isMaxLevel={gamification.xpForNextLevel == null}
-                      flashKey={xpBarFlashKey}
-                      variant={liveVariant}
-                      onClick={() => setXpInfoPanelOpen((open) => !open)}
-                      expanded={xpInfoPanelOpen}
-                      controlsId="levelup-info-panel"
-                    />
-                  </div>
-                ) : null}
-              </div>
-              {xpInfoPanelOpen && gamification?.level ? (
-                <div
-                  id="levelup-info-panel"
-                  className="levelup-info-panel-mount"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <LevelUpInfoPanel
-                    level={gamification.level}
-                    levelTitle={gamification.levelTitle}
-                    levelFlair={gamification.levelFlair}
-                    levelShortLabel={gamification.levelShortLabel}
-                    progressRatio={gamification.levelProgressRatio}
-                    xpInto={gamification.xpIntoLevel}
-                    xpForNext={gamification.xpForNextLevel}
-                    totalXp={gamification.xp}
-                    isMaxLevel={gamification.xpForNextLevel == null}
-                    prestigeShortLabel={gamification.prestigeShortLabel}
-                    totalRuns={gamification.totalRuns}
-                    runsByVariant={gamification.runsByVariant}
-                    achievements={gamification.achievements}
-                    lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
-                    costTrackingEnabled={costTrackingEnabled}
-                    userName={resolveUserName()}
-                    onClose={() => setXpInfoPanelOpen(false)}
-                  />
-                </div>
-              ) : null}
-              <SlopitectTipSlot
-                tip={slopitectTip}
-                tipRef={slopitectTipRef}
-                tipLabel={controls.insights.tipLabel}
-                onDismiss={dismissSlopitectTip}
-              />
-            </div>
-
-            {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
-              <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
-                <DiagramFullscreenButton
-                  isFullscreen={isFullscreen}
-                  disabled={streamingPreview}
-                  onToggle={toggleFullscreen}
-                />
-              </div>
-            ) : null}
-          </TopShell>
+          <BrandChromeSlot
+            narrowLayout={narrowLayout}
+            compactBrand={compactBrand}
+            xpBarMobileOpen={xpBarMobileOpen}
+            onToggleXpBarMobile={() => setXpBarMobileOpen((current) => !current)}
+            slopitectTip={slopitectTip}
+            slopitectTipRef={slopitectTipRef}
+            onDismissSlopitectTip={dismissSlopitectTip}
+            xpInfoPanelOpen={xpInfoPanelOpen}
+            onToggleXpInfoPanel={() => setXpInfoPanelOpen((open) => !open)}
+            onCloseXpInfoPanel={() => setXpInfoPanelOpen(false)}
+            gamification={gamification}
+            xpBarFlashKey={xpBarFlashKey}
+            liveVariant={liveVariant}
+            controls={controls}
+            onBrandClick={handleBrandClick}
+            costTrackingEnabled={costTrackingEnabled}
+            fullscreenSupported={fullscreenSupported}
+            hasCanvasContent={hasCanvasContent}
+            editorOpen={editorOpen}
+            isFullscreen={isFullscreen}
+            streamingPreview={streamingPreview}
+            onToggleFullscreen={toggleFullscreen}
+          />
 
           <SessionCollaborationSlot
             activeSessionId={activeSessionId}
