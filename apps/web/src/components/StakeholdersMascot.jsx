@@ -9,6 +9,7 @@ import AdvisorThinkingIndicator from './AdvisorThinkingIndicator.jsx';
 import StakeholderCastStrip from './StakeholderCastStrip.jsx';
 import StakeholderIntroSpotlight from './StakeholderIntroSpotlight.jsx';
 import { PersonaFace } from './personaFaces/index.jsx';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const COLLAPSE_AFTER_MS = 6000;
 /** Keep the float anchor latched briefly across thinking→bubble handoff gaps. */
@@ -102,6 +103,7 @@ export default function StakeholdersMascot({
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const useFloatPortal = !startExpanded;
   const [expanded, setExpanded] = useState(startExpanded);
+  const rosterZIndex = useOverlayLayer('stakeholders-roster', expanded);
   const [surfaceLatch, setSurfaceLatch] = useState(false);
   const heldSurfaceRef = useRef(/** @type {import('react').ReactNode} */ (null));
   if (liveAdvisorSurface) {
@@ -286,6 +288,7 @@ export default function StakeholdersMascot({
       {expanded ? (
         <div
           className="stakeholders-roster"
+          style={overlayLayerStyle(rosterZIndex)}
           role="menu"
           aria-label={stakeholdersCopy.personaMenu}
           onPointerEnter={armCollapseTimer}

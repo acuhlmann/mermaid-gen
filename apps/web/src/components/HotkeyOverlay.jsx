@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const DEFAULT_COPY = CONTROLS_EN.hotkeys;
 
@@ -19,6 +20,7 @@ function buildEntries(copy) {
 }
 
 export default function HotkeyOverlay({ open, onClose, copy = DEFAULT_COPY }) {
+  const modalZIndex = useOverlayLayer('hotkey-overlay', open, 'modal');
   const entries = buildEntries(copy);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function HotkeyOverlay({ open, onClose, copy = DEFAULT_COPY }) {
   return (
     <div
       className="hotkey-overlay"
+      style={overlayLayerStyle(modalZIndex)}
       role="dialog"
       aria-modal="true"
       aria-labelledby="hotkey-overlay-title"

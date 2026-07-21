@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const DEFAULT_COPY = CONTROLS_EN.clearDialog;
 
@@ -9,6 +10,7 @@ const DEFAULT_COPY = CONTROLS_EN.clearDialog;
  * initializer roll a fresh impure random copy without touching render.
  */
 export default function ClearConfirmDialog({ open, onConfirm, onCancel, copy = DEFAULT_COPY }) {
+  const modalZIndex = useOverlayLayer('clear-confirm', open, 'modal');
   const [line] = useState(() => {
     const prompts = copy?.prompts ?? [];
     return prompts[Math.floor(Math.random() * prompts.length)] ?? { title: '', body: '' };
@@ -32,6 +34,7 @@ export default function ClearConfirmDialog({ open, onConfirm, onCancel, copy = D
   return (
     <div
       className="clear-confirm-overlay"
+      style={overlayLayerStyle(modalZIndex)}
       role="dialog"
       aria-modal="true"
       aria-labelledby="clear-confirm-title"

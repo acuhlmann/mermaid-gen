@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ButtonIcon, RenderModeIcon } from './AppIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const COLLAPSE_AFTER_MS = 6000;
 const RENDER_MODE_EMOJI = '🔄';
@@ -20,6 +21,7 @@ export default function RenderAsMascot({ modes, currentMode, onPickMode, disable
 
   const startExpanded = typeof import.meta !== 'undefined' && import.meta.env?.MODE === 'test';
   const [expanded, setExpanded] = useState(startExpanded);
+  const menuZIndex = useOverlayLayer('render-as-mascot-menu', expanded);
   const wrapperRef = useRef(null);
   const collapseTimerRef = useRef(null);
 
@@ -75,6 +77,7 @@ export default function RenderAsMascot({ modes, currentMode, onPickMode, disable
       {expanded ? (
         <div
           className="render-as-mascot-menu"
+          style={overlayLayerStyle(menuZIndex)}
           role="dialog"
           aria-label={radial.renderAsHeading}
           onPointerEnter={armCollapseTimer}
