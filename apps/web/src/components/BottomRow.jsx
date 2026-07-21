@@ -12,7 +12,7 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
  *                       (Work Order · Your Team + Headphones · Desk tray).
  * - `aiControls`     — right side: AiCornerControlsInner (headless Outbox +
  *                       Settings panels — contractors & code; concentration is
- *                       on Your seat in the desk menu).
+ *                       in the desk menu footer).
  *
  * `narrowLayout` toggles mobile class hooks so the right cluster keeps the
  * existing inline-stacked settings panel layout instead of popover mode.

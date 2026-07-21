@@ -14,7 +14,7 @@ describe('DeskDrawer', () => {
   it('opens when forceOpen is set for the entry tour', () => {
     render(<DeskDrawer modes={MODES} currentMode="mermaid" onPickMode={vi.fn()} forceOpen />);
     expect(screen.getByRole('menu', { name: /Desk tray/i })).toBeTruthy();
-    expect(screen.getByText('Deliverable format')).toBeTruthy();
+    expect(screen.queryByText('Deliverable format')).toBeNull();
     expect(screen.getByRole('menuitem', { name: /Chart/i })).toBeTruthy();
   });
 

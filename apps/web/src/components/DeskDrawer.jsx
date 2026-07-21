@@ -92,12 +92,8 @@ export default function DeskDrawer({
           role="menu"
           aria-label={drawer.menuAria ?? drawer.label ?? 'Desk tray'}
         >
-          {modeOptions.length > 0 ? (
-            <>
-              <p className="desk-actions-heading">
-                {drawer.formatHeading ?? controls.contentModes?.renderMenu ?? 'Deliverable format'}
-              </p>
-              {modeOptions.map((mode) => {
+          {modeOptions.length > 0
+            ? modeOptions.map((mode) => {
                 const isCurrent = mode.id === currentMode;
                 const techLabel = mode.techLabel ?? mode.subtitle;
                 return (
@@ -123,10 +119,8 @@ export default function DeskDrawer({
                     ) : null}
                   </button>
                 );
-              })}
-            </>
-          ) : null}
-          <p className="desk-actions-heading">{drawer.deskHeading ?? 'Work surface'}</p>
+              })
+            : null}
           {canFix ? (
             <button
               type="button"
