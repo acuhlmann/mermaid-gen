@@ -2321,6 +2321,7 @@ ${requirementsBlock}`;
       editorOpen={editorOpen}
       onToggleEditor={() => setEditorOpen((current) => !current)}
       canToggleEditor={hasCanvasContent || editorOpen}
+      deskSlotRef={insightsOpen ? deskSlotRef : null}
     />
   );
 
@@ -2484,7 +2485,7 @@ ${requirementsBlock}`;
             thinkingOpen={insightsOpen}
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
-            deskActionsAnchorReady={showDeskChrome && entryReveal.desk}
+            deskActionsAnchorReady={entryReveal.desk && (hasCanvasContent || showEntryDeskIntro)}
             deskMenuInitialOpen={false}
             deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
           />

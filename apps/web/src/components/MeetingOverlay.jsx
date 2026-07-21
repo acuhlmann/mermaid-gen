@@ -21,7 +21,7 @@ function speakerInfo(speakerId, chrome) {
   return officeSenderInfo(speakerId);
 }
 
-function MeetingTitlebar({ title, chrome, copy, docked, ended, onToggleDocked, onExit }) {
+function MeetingTitlebar({ title, chrome, docked, onToggleDocked, onExit }) {
   return (
     <div className="office-meeting-titlebar">
       <span className="office-meeting-title">📅 {title}</span>
@@ -35,7 +35,7 @@ function MeetingTitlebar({ title, chrome, copy, docked, ended, onToggleDocked, o
         {docked ? chrome.meeting.undock : chrome.meeting.dock}
       </button>
       <button type="button" className="office-meeting-leave" onClick={onExit}>
-        {ended ? chrome.meeting.close : copy.leaveLabel}
+        {chrome.meeting.close}
       </button>
     </div>
   );
@@ -227,11 +227,9 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
         <MeetingTitlebar
           title={meeting.title}
           chrome={chrome}
-          copy={copy}
           docked={docked}
-          ended={ended}
           onToggleDocked={toggleDocked}
-          onExit={ended ? onClose : onLeave}
+          onExit={() => onClose?.()}
         />
         <MeetingSeats attendees={meeting.attendees} lastSpeakerId={lastSpeakerId} chrome={chrome} />
         {meeting.state === 'joining' ? (

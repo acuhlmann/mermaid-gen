@@ -423,7 +423,7 @@ export const CONTROLS_EN = {
   },
   insights: {
     paneLabel: 'Thoughts and analysis',
-    title: 'Thinking',
+    title: 'Notebook',
     live: 'Live',
     empty: 'Agent thoughts and critique responses appear here.',
     tipLabel: 'Slopitect Tip™',

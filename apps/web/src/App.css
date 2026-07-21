@@ -13913,13 +13913,55 @@ body.slopitect-rainbow-tint::before {
   gap: 0.25rem;
 }
 
-.concentration-control--header .concentration-control-label {
-  font-size: 0.72rem;
+.concentration-control--header.concentration-control:has(.concentration-control-segment:only-child),
+.concentration-control--header .concentration-control-segment:only-child {
+  margin-left: 0;
+}
+
+.concentration-control--header:has(.concentration-control-segment:only-child) {
+  gap: 0;
 }
 
 .concentration-control--header .concentration-control-option {
   font-size: 0.72rem;
   padding: 0.32rem 0.45rem;
+}
+
+.insights-pane-header-top {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.insights-pane-header-top .insights-pane-title {
+  flex: 0 0 auto;
+}
+
+.insights-pane-header-top .insights-live-badge {
+  flex: 0 0 auto;
+}
+
+.insights-pane-desk-slot {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+}
+
+.insights-pane-header-top .concentration-control--header {
+  flex: 1 1 auto;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.insights-pane-header-top .concentration-control--header .concentration-control-segment {
+  flex-wrap: nowrap;
+}
+
+.insights-pane-header-top .insights-pane-tool-btn {
+  flex: 0 0 auto;
+  padding: 0.28rem 0.45rem;
 }
 
 .insights-pane-header-tools {

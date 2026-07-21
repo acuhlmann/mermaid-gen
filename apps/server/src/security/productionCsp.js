@@ -12,8 +12,8 @@ export function buildProductionContentSecurityPolicy() {
     "script-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://esm.sh",
     // Monaco and other editors create module workers from blob: URLs unless configured otherwise.
     "worker-src 'self' blob:",
-    "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
-    "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
+    "style-src 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net",
+    "style-src-elem 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net https://esm.sh",
     // blob: for export previews (svgPngRaster, download links) and in-browser object URLs.
     "img-src 'self' data: blob: https:",
     // Cloud TTS office narration plays MP3 via data: URLs (officeNarration.js); blob: for

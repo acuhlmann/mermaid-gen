@@ -1118,7 +1118,8 @@ export default function InsightsPane({
   onSelectModelProfile = null,
   editorOpen = false,
   onToggleEditor = null,
-  canToggleEditor = false
+  canToggleEditor = false,
+  deskSlotRef = null
 }) {
   const { controls } = useUiCopy();
   const insightsCopy = controls.insights;
@@ -1183,7 +1184,7 @@ export default function InsightsPane({
     >
       {ceremonySlot}
       <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
-        <div className="insights-pane-title-row">
+        <div className="insights-pane-header-top" data-testid="insights-pane-header-tools">
           <span className="insights-pane-title">{insightsCopy.title}</span>
           {hasLiveAgent ? (
             <span className="insights-live-badge" aria-live="polite">
@@ -1191,10 +1192,16 @@ export default function InsightsPane({
               {insightsCopy.live}
             </span>
           ) : null}
-        </div>
-        <div className="insights-pane-header-tools" data-testid="insights-pane-header-tools">
+          {typeof deskSlotRef === 'function' ? (
+            <div
+              id="office-desk-bottom-slot"
+              ref={deskSlotRef}
+              className="insights-pane-desk-slot desk-chrome-tool"
+            />
+          ) : null}
           <ConcentrationControl
             variant="header"
+            compact
             modelProfile={modelProfile}
             onSelectModelProfile={onSelectModelProfile}
           />

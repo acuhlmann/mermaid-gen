@@ -8,6 +8,7 @@ export default function ConcentrationControl({
   modelProfile = 'fast',
   onSelectModelProfile = null,
   variant = 'footer',
+  compact = false,
   className = ''
 }) {
   const { controls } = useUiCopy();
@@ -24,12 +25,14 @@ export default function ConcentrationControl({
       title={settingsCopy.concentrationTitle ?? settingsCopy.brain}
       data-testid="concentration-control"
     >
-      <span className="concentration-control-label">
-        <span className="concentration-control-emoji" aria-hidden="true">
-          🎚️
+      {compact ? null : (
+        <span className="concentration-control-label">
+          <span className="concentration-control-emoji" aria-hidden="true">
+            🎚️
+          </span>
+          {settingsCopy.brain}
         </span>
-        {settingsCopy.brain}
-      </span>
+      )}
       <div className="concentration-control-segment">
         <button
           type="button"

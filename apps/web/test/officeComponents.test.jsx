@@ -337,6 +337,21 @@ describe('MeetingOverlay', () => {
     expect(onInterject).toHaveBeenCalledWith('What about the budget?');
   });
 
+  it('dismisses the meeting when Close is clicked', () => {
+    const onClose = vi.fn();
+    render(
+      <MeetingOverlay
+        meeting={PLAYING_MEETING}
+        onInterject={vi.fn()}
+        onLeave={vi.fn()}
+        onClose={onClose}
+        onAdoptPrompt={vi.fn()}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('shows minutes with Do it action items once the meeting ends', () => {
     const onAdoptPrompt = vi.fn();
     const ended = {
