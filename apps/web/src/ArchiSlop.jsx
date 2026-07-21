@@ -13,14 +13,7 @@ import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx'
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
-import EntryRenderAs from './components/EntryRenderAs.jsx';
-import EntryDeskIntro from './components/EntryDeskIntro.jsx';
-import EntryDeskPointers from './components/EntryDeskPointers.jsx';
-import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
-import StakeholdersMascot from './components/StakeholdersMascot.jsx';
-import DeskDrawer from './components/DeskDrawer.jsx';
-import { readModeRevealSeen, writeModeRevealSeen } from './utils/modeRevealStorage.js';
 import { joinRoomByPairingCode } from './state/sessionEventsClient.js';
 import {
   createEmptyCrossModeSyncMarkers,
@@ -45,47 +38,34 @@ import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/age
 import './App.css';
 import './components/RunTimeline.css';
 import {
-  playAchievementFanfare,
-  playKonamiRainbow,
-  playRefinePolishLoop,
+  playCritiqueBoot,
   playInnovateSynthLoop,
   playGoMadKlaxonLoop,
   playGoMadAirhornBlast,
   playCritiqueScribbleLoop,
   playCritiquePenStab,
   playExplainPageFlipLoop,
-  playComboStinger,
-  playCompletionChime as playCompletionChimeTone,
-  playConfettiPop,
-  playCritiqueBoot,
-  playCritiqueCompletion,
   playDraftTick,
   playExplainBoot,
-  playExplainCompletion,
   playFailureChime,
   playGoMadBoot,
-  playGoMadCompletionChime,
   playGoMadStreamStart,
   playGoMadTokenTick,
   playCritiqueTokenTick,
   playExplainTokenTick,
   playInnovateBoot,
-  playInnovateCompletion,
   playInnovateStreamStart,
   playInnovateTokenTick,
-  playLevelUpFanfare,
   playModeSwoosh,
   playPhaseChangePluck,
   playRefineBoot,
-  playRefineCompletion,
+  playRefinePolishLoop,
   playRefineStreamStart,
   playRefineTokenTick,
-  playStreakStinger,
   playStreamStartChime,
   playTokenTickChime,
   playToolEndChime,
-  playToolStartChime,
-  playXpPickup
+  playToolStartChime
 } from './utils/agentChimes.js';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
 import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
@@ -96,6 +76,11 @@ import { SlopitectTipSlot } from './features/prompt/SlopitectTipSlot.jsx';
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
 import { useRadialMenu } from './features/prompt/useRadialMenu.js';
 import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
+import { useRunCeremony } from './features/ceremony/useRunCeremony.js';
+import { DeskBottomActionsSlot } from './features/desk/DeskBottomActionsSlot.jsx';
+import { ModeRevealSlot } from './features/desk/ModeRevealSlot.jsx';
+import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
+import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
@@ -103,8 +88,6 @@ import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
 import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
-  applyCompletedRun,
-  applyOfficeEvent,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage,
@@ -117,16 +100,7 @@ import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
 } from './state/officeDirectoryUiStore.js';
-import {
-  readOfficeDirectorySeen,
-  writeDayOneBadgeSeen,
-  readEntryDeskIntroSeen,
-  writeEntryDeskIntroSeen
-} from './utils/officeAmbienceStorage.js';
-import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
-import confetti from 'canvas-confetti';
-import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
 import {
   coercePatchApplyDisplayStats,
@@ -187,7 +161,6 @@ import { buildRadialActions } from './components/buildRadialActions.jsx';
 import {
   buildContentModeOptions,
   buildRenderSelectionPrompt,
-  goMadShapeLabel,
   isConcreteContentMode,
   isContentMode
 } from './utils/renderModeAction.js';
@@ -258,7 +231,6 @@ export function ArchiSlop() {
   const leavingSlotSnapshotRef = useRef({});
   /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
   const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
-  const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   // Bumped on every completed run so the office can ping the user about it.
   const [officeRunSignal, setOfficeRunSignal] = useState(null);
   const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
@@ -277,11 +249,6 @@ export function ArchiSlop() {
     if (typeof window === 'undefined') return createInitialGamificationState();
     return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
   });
-  const [streakHudToasts, setStreakHudToasts] = useState([]);
-  const [streakHudAchievement, setStreakHudAchievement] = useState(null);
-  const [streakHudLevelUp, setStreakHudLevelUp] = useState(null);
-  /** Bumped each time the player crosses a level. The XP bar uses it as a flash key. */
-  const [xpBarFlashKey, setXpBarFlashKey] = useState(0);
   /** Mobile-only: XP bar starts collapsed below the brand row; toggled by tapping the role badge. */
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   /** Click-to-open level/XP info popover anchored to the XP bar. */
@@ -292,9 +259,6 @@ export function ArchiSlop() {
   /** Bumped from Your Team menu to start a WG meeting via OfficeLayer. */
   const [callMeetingSignal, setCallMeetingSignal] = useState(0);
   const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
-  const streakEmissionSeqRef = useRef(0);
-  /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
-  const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
   const [selectedNode, setSelectedNode] = useState(null);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
@@ -562,26 +526,6 @@ export function ArchiSlop() {
     }
   }, [slopitect.CONSOLE_STAMP_LINES]);
 
-  // Slopitect prompt easter eggs: fire each keyword's toast at most once per session.
-  const promptEasterEggsFiredRef = useRef(new Set());
-  const promptEasterEggSeqRef = useRef(0);
-  useEffect(() => {
-    if (!prompt) return;
-    const eggs = slopitect.PROMPT_EASTER_EGGS ?? [];
-    for (const egg of eggs) {
-      if (egg.match.test(prompt) && !promptEasterEggsFiredRef.current.has(egg.toast)) {
-        promptEasterEggsFiredRef.current.add(egg.toast);
-        const seq = promptEasterEggSeqRef.current + 1;
-        promptEasterEggSeqRef.current = seq;
-        const toast = { id: `easter-${Date.now()}-${seq}`, kind: 'text', label: egg.toast };
-        setStreakHudToasts((q) => [...q, toast]);
-        setTimeout(() => {
-          setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
-        }, 1800);
-      }
-    }
-  }, [prompt, slopitect.PROMPT_EASTER_EGGS]);
-
   useEffect(() => {
     if (!latestCritique?.text) {
       setCritiqueActionableSelected([]);
@@ -590,63 +534,6 @@ export function ArchiSlop() {
     const { items } = splitCritiqueActionableSections(latestCritique.text);
     setCritiqueActionableSelected(items.map(() => false));
   }, [latestCritique?.createdAt, latestCritique?.text]);
-
-  // Konami code (↑↑↓↓←→←→BA) easter egg → "SLOPITECT AWAKENED" banner + rainbow body tint + fanfare.
-  const konamiBufferRef = useRef([]);
-  const konamiFiredRef = useRef(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const sequence = [
-      'ArrowUp',
-      'ArrowUp',
-      'ArrowDown',
-      'ArrowDown',
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowLeft',
-      'ArrowRight',
-      'b',
-      'a'
-    ];
-    function isEditable(target) {
-      if (!target) return false;
-      const tag = (target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-      return target.isContentEditable === true;
-    }
-    function handleKey(e) {
-      if (konamiFiredRef.current) return;
-      if (isEditable(e.target)) return;
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      konamiBufferRef.current = [...konamiBufferRef.current, key].slice(-sequence.length);
-      const buf = konamiBufferRef.current;
-      if (buf.length !== sequence.length) return;
-      for (let i = 0; i < sequence.length; i++) {
-        if (buf[i] !== sequence[i]) return;
-      }
-      konamiFiredRef.current = true;
-      const konami = slopitect.KONAMI_ACHIEVEMENT;
-      const banner = {
-        id: `konami-${Date.now()}`,
-        title: konami?.title ?? '',
-        subtitle: konami?.subtitle ?? ''
-      };
-      setStreakHudAchievement(banner);
-      setTimeout(() => {
-        setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
-      }, 3200);
-      tryAgentSound(playAchievementFanfare);
-      setTimeout(() => tryAgentSound(playKonamiRainbow), 120);
-      if (typeof document !== 'undefined' && document.body) {
-        document.body.classList.add('slopitect-rainbow-tint');
-        setTimeout(() => document.body.classList.remove('slopitect-rainbow-tint'), 5200);
-      }
-    }
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-    // tryAgentSound is stable enough for this listener and we want a one-shot lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slopitect.KONAMI_ACHIEVEMENT]);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -809,188 +696,26 @@ export function ArchiSlop() {
     [soundEnabled]
   );
 
-  // Shared gamification-emission pipeline (XP toasts, streak/combo stingers,
-  // level-up banners, achievement fanfares). Fed by both completed runs
-  // (applyCompletedRun) and office ambience events (applyOfficeEvent).
-  const processSlopEmissions = useCallback(
-    (emissions, now) => {
-      if (!Array.isArray(emissions) || emissions.length === 0) return;
-      const reduceMotion =
-        typeof globalThis.matchMedia === 'function' &&
-        globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const stamped = emissions.map((e) => {
-        const seq = streakEmissionSeqRef.current + 1;
-        streakEmissionSeqRef.current = seq;
-        return { ...e, id: `slop-${now}-${seq}` };
-      });
-      const toasts = stamped.filter(
-        (e) => e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
-      );
-      const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
-      const levelUpEmission = stamped.find((e) => e.kind === 'levelUp');
-      if (toasts.length > 0) {
-        setStreakHudToasts((q) => [...q, ...toasts]);
-        for (const t of toasts) {
-          setTimeout(() => {
-            setStreakHudToasts((q) => q.filter((x) => x.id !== t.id));
-          }, 1800);
-        }
-      }
-      if (levelUpEmission) {
-        setStreakHudLevelUp(levelUpEmission);
-        setXpBarFlashKey((n) => n + 1);
-        setTimeout(() => {
-          setStreakHudLevelUp((current) => (current?.id === levelUpEmission.id ? null : current));
-        }, 5200);
-      }
-      if (banner) {
-        setStreakHudAchievement(banner);
-        setTimeout(() => {
-          setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
-        }, 3200);
-      }
-      // Audio: xp pickup / streak / combo / level-up / achievement.
-      for (const e of emissions) {
-        if (e.kind === 'xp') {
-          tryAgentSound(playXpPickup);
-        } else if (e.kind === 'streak' && e.streak >= 2) {
-          tryAgentSound((ctx) => playStreakStinger(ctx, e.streak));
-        } else if (e.kind === 'combo') {
-          tryAgentSound((ctx) => playComboStinger(ctx, e.combo));
-        } else if (e.kind === 'levelUp') {
-          tryAgentSound(playLevelUpFanfare);
-          if (!reduceMotion && canvasConfettiAvailable()) {
-            try {
-              // Two-side burst so level-ups feel different from achievements.
-              confetti({
-                particleCount: 110,
-                spread: 75,
-                startVelocity: 55,
-                ticks: 220,
-                origin: { x: 0.18, y: 0.55 },
-                colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7']
-              });
-              confetti({
-                particleCount: 110,
-                spread: 75,
-                startVelocity: 55,
-                ticks: 220,
-                origin: { x: 0.82, y: 0.55 },
-                colors: ['#22d3ee', '#60a5fa', '#a855f7', '#f472b6', '#fde68a']
-              });
-            } catch {
-              // ignore
-            }
-          }
-        } else if (e.kind === 'achievement' || e.kind === 'prestige') {
-          tryAgentSound(playAchievementFanfare);
-          if (!reduceMotion && canvasConfettiAvailable()) {
-            try {
-              confetti({
-                particleCount: 160,
-                spread: 110,
-                startVelocity: 60,
-                ticks: 240,
-                origin: { x: 0.5, y: 0.35 },
-                colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7', '#22d3ee']
-              });
-            } catch {
-              // ignore
-            }
-          }
-        }
-      }
-    },
-    [tryAgentSound]
-  );
-
-  const triggerCompletionDelight = useCallback(
-    (entryId, variant = 'general', extras = {}) => {
-      // Let the office react to the response the user just got (IM ping).
-      setOfficeRunSignal((prev) => ({ id: (prev?.id ?? 0) + 1, variant }));
-      setCelebratingEntryId(entryId);
-      if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
-      const dwellMs = variant === 'goMad' ? 1100 : 900;
-      celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
-      if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
-      else if (variant === 'refine') tryAgentSound(playRefineCompletion);
-      else if (variant === 'innovate') tryAgentSound(playInnovateCompletion);
-      else if (variant === 'critique') tryAgentSound(playCritiqueCompletion);
-      else if (variant === 'explain') tryAgentSound(playExplainCompletion);
-      else tryAgentSound(playCompletionChimeTone);
-
-      const reduceMotion =
-        typeof globalThis.matchMedia === 'function' &&
-        globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const variantPalettes = {
-        refine: ['#2563eb', '#60a5fa', '#bfdbfe', '#1d4ed8'],
-        innovate: ['#9333ea', '#ec4899', '#f0abfc', '#a855f7'],
-        goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
-        critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
-        explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
-        exec: ['#1e3a8a', '#94a3b8', '#cbd5e1', '#1e293b'],
-        general: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
-      };
-      const palette = variantPalettes[variant] || variantPalettes.general;
-      if (!reduceMotion && canvasConfettiAvailable()) {
-        try {
-          const burstParticles = variant === 'goMad' ? 120 : 70;
-          confetti({
-            particleCount: burstParticles,
-            spread: variant === 'goMad' ? 92 : 70,
-            startVelocity: variant === 'goMad' ? 55 : 42,
-            ticks: 200,
-            origin: { x: 0.5, y: 0.4 },
-            colors: palette
-          });
-        } catch {
-          // canvas-confetti can throw in headless test envs; ignore.
-        }
-        tryAgentSound(playConfettiPop);
-      }
-
-      // Slopitect gamification: derive XP / streak / combo / achievement emissions.
-      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
-      if (knownVariants.includes(variant)) {
-        const now = Date.now();
-        // `goMadStreak` here is the closure-captured value at stream start (i.e. the
-        // count of previous successful Go Mads); the just-completed run pushes depth to +1.
-        const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;
-        setGamification((current) => {
-          const { state, emissions } = applyCompletedRun(current, {
-            variant,
-            now,
-            goMadDepth: extras?.goMadDepth ?? inferredGoMadDepth,
-            critiquePerfect: extras?.critiquePerfect,
-            runCostUsd: extras?.runCostUsd
-          });
-          if (typeof window !== 'undefined') {
-            writeGamificationToStorage(window.localStorage, state);
-          }
-          processSlopEmissions(emissions, now);
-          return state;
-        });
-      }
-    },
-    [tryAgentSound, goMadStreak, processSlopEmissions]
-  );
-
-  // Office ambience events (email read, coffee break, meeting attended…)
-  // reuse the same reducer + emission pipeline as completed runs.
-  const handleOfficeEvent = useCallback(
-    (kind, extras = {}) => {
-      const now = Date.now();
-      setGamification((current) => {
-        const { state, emissions } = applyOfficeEvent(current, { kind, now, ...extras });
-        if (typeof window !== 'undefined') {
-          writeGamificationToStorage(window.localStorage, state);
-        }
-        processSlopEmissions(emissions, now);
-        return state;
-      });
-    },
-    [processSlopEmissions]
-  );
+  const {
+    bootSeq,
+    setBootSeq,
+    streakHudToasts,
+    streakHudAchievement,
+    streakHudLevelUp,
+    xpBarFlashKey,
+    celebratingEntryId,
+    triggerCompletionDelight,
+    handleOfficeEvent
+  } = useRunCeremony({
+    prompt,
+    promptEasterEggs: slopitect.PROMPT_EASTER_EGGS,
+    konamiAchievement: slopitect.KONAMI_ACHIEVEMENT,
+    tryAgentSound,
+    goMadStreak,
+    setGamification,
+    setOfficeRunSignal,
+    celebrationTimerRef
+  });
 
   const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
     const previousState = stateRef.current;
@@ -2099,32 +1824,16 @@ ${requirementsBlock}`;
     getOfficeDirectoryUi
   );
 
-  // First visit: Meet the Office is the entire app until the tour is dismissed.
-  const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
-  /** After orientation, keep office pings quiet so the canvas welcome lands first. */
-  const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
-  const [entryDeskIntroSeen, setEntryDeskIntroSeen] = useState(() => readEntryDeskIntroSeen());
-  const [entryDeskPointersActive, setEntryDeskPointersActive] = useState(
-    () => !readEntryDeskIntroSeen()
-  );
+  const hasDiagramText = Boolean(state.diagramSource?.trim());
+  // Peer content in another slot keeps chrome visible after a mode switch into an
+  // empty target slot — do not dump the user back on the first-run intro.
+  const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
+
+  const { officeBootPending, officeCanvasGrace, handleOfficeBootComplete } = useOfficeBoot({
+    hasCanvasContent
+  });
+
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
-
-  const handleOfficeBootComplete = useCallback(() => {
-    setOfficeBootPending(false);
-    writeDayOneBadgeSeen();
-    setOfficeCanvasGrace(true);
-  }, []);
-
-  const markEntryDeskIntroSeen = useCallback(() => {
-    if (entryDeskIntroSeen) return;
-    writeEntryDeskIntroSeen();
-    setEntryDeskIntroSeen(true);
-    setEntryDeskPointersActive(false);
-  }, [entryDeskIntroSeen]);
-
-  const dismissEntryDeskPointers = useCallback(() => {
-    setEntryDeskPointersActive(false);
-  }, []);
 
   const advisorPause =
     loading ||
@@ -2161,23 +1870,24 @@ ${requirementsBlock}`;
     reportAdvisorUsage
   });
 
-  const modeRevealSeenRef = useRef(readModeRevealSeen());
-  const [modeRevealActive, setModeRevealActive] = useState(false);
-  const modeRevealTimerRef = useRef(null);
-
-  // Empty-state Render as: selecting a mode here teaches the headline feature
-  // before Settings, and marks the post-first-diagram mode reveal as seen so we
-  // don't re-teach the same beat.
-  const handleEntryRenderAsPick = useCallback(
-    (nextMode) => {
-      handleSelectContentMode(nextMode);
-      if (!modeRevealSeenRef.current) {
-        modeRevealSeenRef.current = true;
-        writeModeRevealSeen();
-      }
-    },
-    [handleSelectContentMode]
-  );
+  const {
+    showEntryDeskIntro,
+    showEntryDeskPointers,
+    showDeskChrome,
+    dismissEntryDeskPointers,
+    handleEntryRenderAsPick,
+    modeRevealActive,
+    dismissModeReveal,
+    handleModeRevealPick
+  } = useEntryDeskFlow({
+    hasCanvasContent,
+    hasDiagramText,
+    insightsOpen,
+    stakeholderIntroProps,
+    editorOpen,
+    hasInteractedRef,
+    handleSelectContentMode
+  });
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -2577,34 +2287,12 @@ ${requirementsBlock}`;
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
   );
-  const hasDiagramText = Boolean(state.diagramSource?.trim());
-  // Peer content in another slot keeps chrome visible after a mode switch into an
-  // empty target slot — do not dump the user back on the first-run intro.
-  const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
-  const showEntryDeskIntro = !hasCanvasContent && !insightsOpen && !entryDeskIntroSeen;
-  const showEntryDeskPointers = showEntryDeskIntro && entryDeskPointersActive;
-  const showDeskChrome = hasCanvasContent || showEntryDeskIntro;
 
   // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
   // routes to the persistent desk Work Order buffer whenever there's content.
   useEffect(() => {
     hasCanvasContentRef.current = hasCanvasContent;
   }, [hasCanvasContent]);
-
-  useEffect(() => {
-    if (!hasCanvasContent || !hasInteractedRef.current) return;
-    markEntryDeskIntroSeen();
-  }, [hasCanvasContent, markEntryDeskIntroSeen]);
-
-  useEffect(() => {
-    if (!officeCanvasGrace) return undefined;
-    if (hasCanvasContent) {
-      setOfficeCanvasGrace(false);
-      return undefined;
-    }
-    const timer = setTimeout(() => setOfficeCanvasGrace(false), OFFICE_CANVAS_GRACE_MS);
-    return () => clearTimeout(timer);
-  }, [officeCanvasGrace, hasCanvasContent]);
 
   const { critiqueActionableSplit, critiqueActionableUi } = useCritiqueActionableUi({
     activeRequest,
@@ -2620,47 +2308,6 @@ ${requirementsBlock}`;
       critiqueActionableSplit?.hasSection &&
       critiqueActionableSplit.items.length > 0
     ) && !busy;
-
-  // First-run mode reveal: after the first diagram, remind newcomers that modes
-  // also live in the bottom-bar Render as control (empty-state already surfaces
-  // Render as). Skipped when they already picked a mode on entry. Once-ever,
-  // persisted; stays clear of the stakeholder intro; dismisses on pick / close / timeout.
-  const dismissModeReveal = useCallback(() => {
-    if (modeRevealTimerRef.current) {
-      clearTimeout(modeRevealTimerRef.current);
-      modeRevealTimerRef.current = null;
-    }
-    setModeRevealActive(false);
-  }, []);
-
-  useEffect(() => {
-    if (modeRevealSeenRef.current) return;
-    if (!hasDiagramText) return;
-    // Don't stack onto the stakeholder intro or a busy editing surface.
-    if (stakeholderIntroProps || editorOpen || insightsOpen) return;
-    modeRevealSeenRef.current = true;
-    writeModeRevealSeen();
-    setModeRevealActive(true);
-    modeRevealTimerRef.current = setTimeout(() => {
-      modeRevealTimerRef.current = null;
-      setModeRevealActive(false);
-    }, 18_000);
-  }, [hasDiagramText, stakeholderIntroProps, editorOpen, insightsOpen]);
-
-  useEffect(
-    () => () => {
-      if (modeRevealTimerRef.current) clearTimeout(modeRevealTimerRef.current);
-    },
-    []
-  );
-
-  const handleModeRevealPick = useCallback(
-    (nextMode) => {
-      handleSelectContentMode(nextMode);
-      dismissModeReveal();
-    },
-    [handleSelectContentMode, dismissModeReveal]
-  );
 
   const { handleApplyStyleEdits } = useStyleEdits({
     activeSessionId,
@@ -2896,19 +2543,14 @@ ${requirementsBlock}`;
             onFormSubmit={handleFormSubmit}
           />
 
-          {modeRevealActive ? (
-            <ModeRevealSpotlight
-              eyebrow={controls.modeReveal.eyebrow}
-              body={controls.modeReveal.body}
-              modes={contentModeOptions.filter((m) => m.id !== 'auto')}
-              currentMode={contentMode}
-              onPickMode={handleModeRevealPick}
-              pickPrefix={controls.modeReveal.pickPrefix}
-              dismissLabel={controls.modeReveal.dismiss}
-              ariaLabel={controls.modeReveal.aria}
-              onDismiss={dismissModeReveal}
-            />
-          ) : null}
+          <ModeRevealSlot
+            active={modeRevealActive}
+            copy={controls.modeReveal}
+            modes={contentModeOptions.filter((m) => m.id !== 'auto')}
+            currentMode={contentMode}
+            onPickMode={handleModeRevealPick}
+            onDismiss={dismissModeReveal}
+          />
 
           <DiagramFullscreenOverlay
             isFullscreen={isFullscreen}
@@ -3190,341 +2832,57 @@ ${requirementsBlock}`;
               ) : null
             }
             actions={
-              !hasCanvasContent && !insightsOpen ? (
-                showEntryDeskIntro ? (
-                  <div className="entry-desk-integrated">
-                    <EntryDeskIntro
-                      copy={controls.prompt.entryIntro}
-                      userName={userName}
-                      role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
-                    />
-                    {showEntryDeskPointers ? (
-                      <EntryDeskPointers
-                        pointers={controls.prompt.entryPointers}
-                        onDismiss={dismissEntryDeskPointers}
-                      />
-                    ) : null}
-                    <div
-                      className={`prompt-actions prompt-actions--entry-desk${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
-                    >
-                      <div className="button-group desk-primary-group">
-                        <div
-                          id="office-desk-bottom-slot"
-                          ref={deskSlotRef}
-                          className="bottom-office-desk-slot"
-                        />
-                        <SlopNextPrompt
-                          layout="desk"
-                          prompt={deskPrompt}
-                          busy={busy}
-                          voiceSupported={voiceSupported}
-                          voiceListening={voiceListening}
-                          narrowLayout={narrowLayout}
-                          speechRecognitionCtor={SpeechRecognitionCtor}
-                          PromptIcon={PromptIcon}
-                          MicIcon={MicIcon}
-                          MicActiveIcon={MicActiveIcon}
-                          ButtonIcon={ButtonIcon}
-                          copy={controls.prompt}
-                          onPromptChange={setDeskPrompt}
-                          onSubmit={handleDeskPromptSubmit}
-                          onMicToggleClick={handleMicToggleClick}
-                          onMicPointerDown={handleMicPointerDown}
-                          onMicPointerUp={handleMicPointerUp}
-                          onMicLostPointerCapture={() => stopVoiceInput()}
-                        />
-                      </div>
-                    </div>
-                    <EntryRenderAs
-                      label={controls.prompt.renderAsLabel}
-                      hint={controls.prompt.renderAsHint}
-                      ariaLabel={controls.prompt.renderAsAria}
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleEntryRenderAsPick}
-                      pickPrefix={controls.modeReveal.pickPrefix}
-                      disabled={busy || loading || streamingPreview}
-                    />
-                  </div>
-                ) : (
-                  <div className="entry-desk-fallback">
-                    <EntryRenderAs
-                      label={controls.prompt.renderAsLabel}
-                      hint={controls.prompt.renderAsHint}
-                      ariaLabel={controls.prompt.renderAsAria}
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleEntryRenderAsPick}
-                      pickPrefix={controls.modeReveal.pickPrefix}
-                      disabled={busy || loading || streamingPreview}
-                    />
-                    <form className="prompt-control" onSubmit={runIntentChange}>
-                      <label className="sr-only" htmlFor="diagram-change-prompt">
-                        {controls.prompt.yourTopic}
-                      </label>
-                      <input
-                        id="diagram-change-prompt"
-                        value={prompt}
-                        onChange={(event) => setPrompt(event.target.value)}
-                        placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
-                        disabled={busy}
-                        aria-invalid={error ? 'true' : 'false'}
-                        aria-describedby={status ? 'app-status' : undefined}
-                      />
-                      <div className="prompt-actions-main">
-                        <button
-                          type="button"
-                          className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-                          disabled={!voiceSupported || busy}
-                          {...(narrowLayout
-                            ? {
-                                onPointerUp: (event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  handleMicToggleClick(event);
-                                }
-                              }
-                            : {
-                                onPointerDown: handleMicPointerDown,
-                                onPointerUp: handleMicPointerUp,
-                                onPointerCancel: handleMicPointerUp,
-                                onLostPointerCapture: () => stopVoiceInput(),
-                                onKeyDown: (event) => {
-                                  if (event.repeat) return;
-                                  if (event.key === ' ' || event.key === 'Enter') {
-                                    event.preventDefault();
-                                    startVoiceInput();
-                                  }
-                                },
-                                onKeyUp: (event) => {
-                                  if (event.key === ' ' || event.key === 'Enter') {
-                                    event.preventDefault();
-                                    stopVoiceInput();
-                                  }
-                                }
-                              })}
-                          aria-label={
-                            narrowLayout
-                              ? voiceListening
-                                ? controls.prompt.tapToStop
-                                : controls.prompt.tapToDictate
-                              : controls.prompt.holdToSpeak
-                          }
-                          aria-pressed={narrowLayout ? voiceListening : undefined}
-                          title={
-                            voiceSupported
-                              ? narrowLayout
-                                ? voiceListening
-                                  ? controls.prompt.tapToStop
-                                  : controls.prompt.tapToDictatePrompt
-                                : controls.prompt.holdToDictate
-                              : SpeechRecognitionCtor
-                                ? controls.prompt.voiceNeedsHttps
-                                : controls.prompt.voiceUnsupported
-                          }
-                        >
-                          <ButtonIcon>
-                            {voiceListening ? <MicActiveIcon /> : <MicIcon />}
-                          </ButtonIcon>
-                          <span className="button-label">{controls.prompt.mic}</span>
-                        </button>
-                        <button
-                          type="submit"
-                          className="overlay-button primary-button"
-                          disabled={busy || !prompt.trim()}
-                        >
-                          <ButtonIcon>{'>'}</ButtonIcon>
-                          <span className="button-label">{controls.prompt.doIt}</span>
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )
-              ) : hasCanvasContent && !narrowLayout ? (
-                <div className="prompt-actions prompt-actions--desktop">
-                  <div className="button-group desk-primary-group">
-                    <div
-                      id="office-desk-bottom-slot"
-                      ref={deskSlotRef}
-                      className="bottom-office-desk-slot"
-                    />
-                    <SlopNextPrompt
-                      layout="desk"
-                      prompt={deskPrompt}
-                      busy={busy}
-                      voiceSupported={voiceSupported}
-                      voiceListening={voiceListening}
-                      narrowLayout={narrowLayout}
-                      speechRecognitionCtor={SpeechRecognitionCtor}
-                      PromptIcon={PromptIcon}
-                      MicIcon={MicIcon}
-                      MicActiveIcon={MicActiveIcon}
-                      ButtonIcon={ButtonIcon}
-                      copy={controls.prompt}
-                      onPromptChange={setDeskPrompt}
-                      onSubmit={handleDeskPromptSubmit}
-                      onMicToggleClick={handleMicToggleClick}
-                      onMicPointerDown={handleMicPointerDown}
-                      onMicPointerUp={handleMicPointerUp}
-                      onMicLostPointerCapture={() => stopVoiceInput()}
-                    />
-                    <div className="desk-people-group">
-                      <StakeholdersMascot
-                        personas={[
-                          {
-                            variant: 'refine',
-                            onClick: () => runTransform('refine', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'innovate',
-                            onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'goMad',
-                            label: goMadShapeLabel(goMadStreak, controls.actions),
-                            onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'critique',
-                            onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'explain',
-                            onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                          },
-                          // Senior tier: the VP is not a teammate — this action preps
-                          // the diagram for upstairs (castTiers.js).
-                          {
-                            variant: 'exec',
-                            senior: true,
-                            onClick: () => runTransform('exec', { useDiagramFocus: true })
-                          }
-                        ]}
-                        activeAdvisorVariant={advisor.activePersona}
-                        thinkingPersona={advisor.thinkingPersona}
-                        busy={busy}
-                        bubbleProps={advisorBubbleProps}
-                        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                        castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                        introProps={stakeholderIntroProps}
-                        isMuted={advisor.isMuted}
-                        onToggleMute={() => advisor.toggleMute()}
-                        onTalkToTeam={() => advisor.promptNext({})}
-                        onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-                        canTalkToTeam={
-                          Boolean((state.diagramSource ?? '').trim()) &&
-                          !advisor.thinkingPersona &&
-                          !advisorPause
-                        }
-                        canCallMeeting={Boolean((state.diagramSource ?? '').trim())}
-                      />
-                    </div>
-                    <DeskDrawer
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleSelectContentMode}
-                      canFix={Boolean(latestCritique?.text)}
-                      fixDisabled={!canFixFromCritique}
-                      onFix={() => handleFixFromCritique('all')}
-                      onDemolish={() => handleClearDiagram()}
-                      busy={busy}
-                      modeDisabled={loading || streamingPreview}
-                    />
-                  </div>
-                </div>
-              ) : hasCanvasContent && narrowLayout ? (
-                <div className="prompt-actions prompt-actions--mobile">
-                  <div className="button-group desk-primary-group">
-                    <div
-                      id="office-desk-bottom-slot"
-                      ref={deskSlotRef}
-                      className="bottom-office-desk-slot"
-                    />
-                    <SlopNextPrompt
-                      layout="desk"
-                      prompt={deskPrompt}
-                      busy={busy}
-                      voiceSupported={voiceSupported}
-                      voiceListening={voiceListening}
-                      narrowLayout={narrowLayout}
-                      speechRecognitionCtor={SpeechRecognitionCtor}
-                      PromptIcon={PromptIcon}
-                      MicIcon={MicIcon}
-                      MicActiveIcon={MicActiveIcon}
-                      ButtonIcon={ButtonIcon}
-                      copy={controls.prompt}
-                      onPromptChange={setDeskPrompt}
-                      onSubmit={handleDeskPromptSubmit}
-                      onMicToggleClick={handleMicToggleClick}
-                      onMicPointerDown={handleMicPointerDown}
-                      onMicPointerUp={handleMicPointerUp}
-                      onMicLostPointerCapture={() => stopVoiceInput()}
-                    />
-                    <div className="desk-people-group">
-                      <StakeholdersMascot
-                        personas={[
-                          {
-                            variant: 'refine',
-                            onClick: () => runTransform('refine', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'innovate',
-                            onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'goMad',
-                            label: goMadShapeLabel(goMadStreak, controls.actions),
-                            onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'critique',
-                            onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'explain',
-                            onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                          },
-                          // Senior tier: the VP is not a teammate — this action preps
-                          // the diagram for upstairs (castTiers.js).
-                          {
-                            variant: 'exec',
-                            senior: true,
-                            onClick: () => runTransform('exec', { useDiagramFocus: true })
-                          }
-                        ]}
-                        activeAdvisorVariant={advisor.activePersona}
-                        thinkingPersona={advisor.thinkingPersona}
-                        busy={busy}
-                        bubbleProps={advisorBubbleProps}
-                        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                        castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                        introProps={stakeholderIntroProps}
-                        isMuted={advisor.isMuted}
-                        onToggleMute={() => advisor.toggleMute()}
-                        onTalkToTeam={() => advisor.promptNext({})}
-                        onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-                        canTalkToTeam={
-                          Boolean((state.diagramSource ?? '').trim()) &&
-                          !advisor.thinkingPersona &&
-                          !advisorPause
-                        }
-                        canCallMeeting={Boolean((state.diagramSource ?? '').trim())}
-                      />
-                    </div>
-                    <DeskDrawer
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleSelectContentMode}
-                      canFix={Boolean(latestCritique?.text)}
-                      fixDisabled={!canFixFromCritique}
-                      onFix={() => handleFixFromCritique('all')}
-                      onDemolish={() => handleClearDiagram()}
-                      busy={busy}
-                      modeDisabled={loading || streamingPreview}
-                    />
-                  </div>
-                </div>
-              ) : null
+              <DeskBottomActionsSlot
+                hasCanvasContent={hasCanvasContent}
+                insightsOpen={insightsOpen}
+                showEntryDeskIntro={showEntryDeskIntro}
+                showEntryDeskPointers={showEntryDeskPointers}
+                narrowLayout={narrowLayout}
+                busy={busy}
+                loading={loading}
+                streamingPreview={streamingPreview}
+                controls={controls}
+                userName={userName}
+                contentMode={contentMode}
+                contentModeOptions={contentModeOptions}
+                deskSlotRef={deskSlotRef}
+                deskPrompt={deskPrompt}
+                setDeskPrompt={setDeskPrompt}
+                prompt={prompt}
+                setPrompt={setPrompt}
+                voiceSupported={voiceSupported}
+                voiceListening={voiceListening}
+                speechRecognitionCtor={SpeechRecognitionCtor}
+                PromptIcon={PromptIcon}
+                MicIcon={MicIcon}
+                MicActiveIcon={MicActiveIcon}
+                ButtonIcon={ButtonIcon}
+                handleDeskPromptSubmit={handleDeskPromptSubmit}
+                handleMicToggleClick={handleMicToggleClick}
+                handleMicPointerDown={handleMicPointerDown}
+                handleMicPointerUp={handleMicPointerUp}
+                stopVoiceInput={stopVoiceInput}
+                startVoiceInput={startVoiceInput}
+                dismissEntryDeskPointers={dismissEntryDeskPointers}
+                handleEntryRenderAsPick={handleEntryRenderAsPick}
+                runIntentChange={runIntentChange}
+                runTransform={runTransform}
+                runAnalyze={runAnalyze}
+                advisor={advisor}
+                advisorBubbleProps={advisorBubbleProps}
+                stakeholderIntroProps={stakeholderIntroProps}
+                advisorPause={advisorPause}
+                goMadStreak={goMadStreak}
+                diagramSource={state.diagramSource}
+                onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+                handleSelectContentMode={handleSelectContentMode}
+                latestCritique={latestCritique}
+                canFixFromCritique={canFixFromCritique}
+                handleFixFromCritique={handleFixFromCritique}
+                handleClearDiagram={handleClearDiagram}
+                error={error}
+                status={status}
+              />
             }
             aiControls={
               // Empty intro: Settings only clutter the first screen. Keep the

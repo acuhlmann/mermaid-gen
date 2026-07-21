@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~3 590 LOC shell, -870 LOC total)
+### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~2 930 LOC shell, -~1 360 LOC total)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
@@ -70,12 +70,14 @@ they need access to outer-closure state.
   `features/session/` (`useSessionCollaboration`, `useSessionHydrate`,
   `SessionCollaborationSlot`), `features/prompt/` (`useSlopitectTips`,
   `useRadialMenu`, `SlopitectTipSlot`), `features/advisor/useAdvisorShell`,
+  `features/desk/` (`useOfficeBoot`, `useEntryDeskFlow`, `ModeRevealSlot`,
+  `DeskBottomActionsSlot`), `features/ceremony/useRunCeremony.js`,
   `components/buildRadialActions.jsx`, `utils/appConstants.js`,
   `utils/formatFormAnswer.js`.
   (JSX that imports `components/` must not live under `utils/` — see
   `web-non-component-no-components` in `.dependency-cruiser.cjs`.)
-- ⏳ Larger seam: lift remaining major JSX sections (radial menu handler, advisor
-  chrome) into wrapper components. Target: `ArchiSlop.jsx` < 1 000 LOC, mostly
+- ⏳ Larger seam: lift remaining major JSX sections (brand/TopShell chrome,
+  streaming agent wiring) into wrapper components. Target: `ArchiSlop.jsx` < 1 000 LOC, mostly
   layout + composition.
 
 ### Other targets
