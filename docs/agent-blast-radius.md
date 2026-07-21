@@ -76,6 +76,20 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 | Rule pack        | [`apps/server/src/prompts/mermaidSyntaxGuard.js`](../apps/server/src/prompts/mermaidSyntaxGuard.js)                     |
 | Tests            | [`packages/shared/test/mermaidSanitizer.test.ts`](../packages/shared/test/mermaidSanitizer.test.ts), server agent tests |
 
+## Deliverable format UI (mode picker)
+
+| Layer             | Location                                                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Mode labels       | [`apps/web/src/i18n/locales/controls.en.js`](../apps/web/src/i18n/locales/controls.en.js) `contentModes`                                                                 |
+| Option builder    | [`apps/web/src/utils/renderModeAction.js`](../apps/web/src/utils/renderModeAction.js)                                                                                    |
+| Empty-state chips | [`apps/web/src/components/EntryRenderAs.jsx`](../apps/web/src/components/EntryRenderAs.jsx)                                                                              |
+| Desk tray menu    | [`apps/web/src/components/DeskDrawer.jsx`](../apps/web/src/components/DeskDrawer.jsx)                                                                                    |
+| Radial picker     | [`apps/web/src/components/RadialActionMenu.jsx`](../apps/web/src/components/RadialActionMenu.jsx)                                                                        |
+| Integration       | [`apps/web/test/App.test.jsx`](../apps/web/test/App.test.jsx) (`pickContentMode` helper — menu rows expose label + tech subtitle)                                        |
+| Unit              | [`apps/web/test/entryRenderAs.test.jsx`](../apps/web/test/entryRenderAs.test.jsx), [`apps/web/test/renderModeAction.test.js`](../apps/web/test/renderModeAction.test.js) |
+
+`test:affected` pulls `App.test.jsx` when any of the above change (see `scripts/test-affected-lib.mjs`).
+
 ## Verification commands (quick reference)
 
 | Scope                         | Command                                                                 |

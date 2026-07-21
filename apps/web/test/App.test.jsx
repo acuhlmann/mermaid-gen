@@ -122,9 +122,18 @@ function openDeskDrawer() {
   fireEvent.click(screen.getByRole('button', { name: /desk tray/i }));
 }
 
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function pickContentMode(modeLabel) {
   openDeskDrawer();
-  fireEvent.click(screen.getByRole('menuitem', { name: new RegExp(`^${modeLabel}$`, 'i') }));
+  // Menu rows show the human label plus a tech subtitle (e.g. "Diagram" + "Mermaid").
+  fireEvent.click(
+    screen.getByRole('menuitem', {
+      name: new RegExp(`^${escapeRegExp(modeLabel)}`, 'i')
+    })
+  );
 }
 
 describe('App simplified controls', { timeout: 20_000 }, () => {
