@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~3 930 LOC shell, -530 LOC this slice)
+### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~3 590 LOC shell, -870 LOC total)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
@@ -68,8 +68,10 @@ they need access to outer-closure state.
 - ✅ **Feature modules:** `features/insights/InsightsSlot.jsx` (Thinking pane
   wiring + `useCritiqueActionableUi`), `features/ceremony/CeremonyOverlaysSlot.jsx`,
   `features/session/` (`useSessionCollaboration`, `useSessionHydrate`,
-  `SessionCollaborationSlot`), `components/buildRadialActions.jsx`,
-  `utils/appConstants.js`, `utils/formatFormAnswer.js`.
+  `SessionCollaborationSlot`), `features/prompt/` (`useSlopitectTips`,
+  `useRadialMenu`, `SlopitectTipSlot`), `features/advisor/useAdvisorShell`,
+  `components/buildRadialActions.jsx`, `utils/appConstants.js`,
+  `utils/formatFormAnswer.js`.
   (JSX that imports `components/` must not live under `utils/` — see
   `web-non-component-no-components` in `.dependency-cruiser.cjs`.)
 - ⏳ Larger seam: lift remaining major JSX sections (radial menu handler, advisor

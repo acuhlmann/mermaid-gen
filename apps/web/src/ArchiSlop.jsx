@@ -20,14 +20,7 @@ import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
 import DeskDrawer from './components/DeskDrawer.jsx';
-import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
-import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
-import {
-  readStakeholderIntroSeen,
-  writeStakeholderIntroSeen
-} from './utils/stakeholderIntroStorage.js';
 import { readModeRevealSeen, writeModeRevealSeen } from './utils/modeRevealStorage.js';
-import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
 import { joinRoomByPairingCode } from './state/sessionEventsClient.js';
 import {
   createEmptyCrossModeSyncMarkers,
@@ -99,6 +92,10 @@ import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
 import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
 import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
 import { useSessionHydrate } from './features/session/useSessionHydrate.js';
+import { SlopitectTipSlot } from './features/prompt/SlopitectTipSlot.jsx';
+import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
+import { useRadialMenu } from './features/prompt/useRadialMenu.js';
+import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
@@ -127,7 +124,6 @@ import {
   writeEntryDeskIntroSeen
 } from './utils/officeAmbienceStorage.js';
 import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
-import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import confetti from 'canvas-confetti';
 import { canvasConfettiAvailable } from './utils/appConfetti.js';
@@ -137,11 +133,7 @@ import {
   formatPatchApplyDetail
 } from './utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
-import {
-  focusPayload,
-  selectionActionTitle,
-  topicFromDescriptor
-} from './utils/appInsightHelpers.js';
+import { selectionActionTitle, topicFromDescriptor } from './utils/appInsightHelpers.js';
 import {
   MODEL_PROFILE_STORAGE_KEY,
   CONTENT_MODE_STORAGE_KEY,
@@ -165,7 +157,6 @@ import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
-import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import { buildAdvisorIntentPrompt } from './utils/advisorActionContext.js';
 import {
   useCompactBrandLayout,
@@ -191,11 +182,7 @@ import { useSubmitIntent } from './hooks/useSubmitIntent.js';
 import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
-import {
-  AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS,
-  RADIAL_MENU_CLOSE_GRACE_MS,
-  SpeechRecognitionCtor
-} from './utils/appConstants.js';
+import { AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS, SpeechRecognitionCtor } from './utils/appConstants.js';
 import { buildRadialActions } from './components/buildRadialActions.jsx';
 import {
   buildContentModeOptions,
@@ -209,6 +196,8 @@ export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
   const deskSlotRef = useDeskSlotRef();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
+  const { slopitectTip, slopitectTipRef, handleBrandClick, dismissSlopitectTip, focusTopicInput } =
+    useSlopitectTips({ idleTips: slopitect.IDLE_TIPS });
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
   // 404 handler uses this to decide whether to keep the same id or rotate to a new one.
@@ -310,8 +299,6 @@ export function ArchiSlop() {
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
-  /** Pinned radial menu; survives diagram hover leave until menu grace expires or explicit close. */
-  const [radialMenuSession, setRadialMenuSession] = useState(null);
   const [voiceSupported] = useState(() =>
     Boolean(
       SpeechRecognitionCtor &&
@@ -323,8 +310,6 @@ export function ArchiSlop() {
   const [slopPromptSource, setSlopPromptSource] = useState(null);
   /** Demolition confirmation overlay shown before the Clear action wipes the session. */
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-  /** Currently-displayed Slopitect Tip™ chip rendered below the brand control. */
-  const [slopitectTip, setSlopitectTip] = useState(null);
 
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
@@ -353,10 +338,6 @@ export function ArchiSlop() {
   const slopPromptSourceRef = useRef(null);
   const lastTokenSoundAtRef = useRef(0);
   const goMadTokenTickIndexRef = useRef(0);
-  const hoverCloseTimerRef = useRef(null);
-  /** False after pan or menu pointer-leave; re-opens when selection id changes. */
-  const [radialMenuVisible, setRadialMenuVisible] = useState(false);
-  const prevSelectedNodeIdRef = useRef(null);
   const diagramAutoHighlightTimerRef = useRef(null);
   /** Until SVG renders, { entryId, revisionId } — arms highlights via `onDiagramSvgRendered`. */
   const pendingAutoDiagramHighlightRef = useRef(null);
@@ -485,6 +466,31 @@ export function ArchiSlop() {
   }, [slopPromptSource]);
 
   const {
+    radialMenuSession,
+    radialMenuVisible,
+    openRadialSlopPrompt,
+    handleHoverTargetChange,
+    handleSelectedNodeChange,
+    dismissRadialMenu,
+    cancelMenuClose,
+    scheduleMenuClose,
+    closeRadialMenu,
+    resetRadialChrome
+  } = useRadialMenu({
+    selectedNode,
+    setSelectedNode,
+    toolbarAnchor,
+    setToolbarAnchor,
+    setHoverDescriptor,
+    setSlopNextPrompt,
+    setSlopPromptSource,
+    setSlopPromptExpanded,
+    slopPromptExpandedRef,
+    slopPromptSourceRef,
+    closeRadialMenuRef
+  });
+
+  const {
     voiceListening,
     voiceError,
     stopVoiceInput,
@@ -542,12 +548,6 @@ export function ArchiSlop() {
     setSlopPromptExpanded(false);
     setSlopPromptSource(null);
     setSlopNextPrompt('');
-  }, []);
-
-  const openRadialSlopPrompt = useCallback(() => {
-    setSlopNextPrompt('');
-    setSlopPromptSource('radial');
-    setSlopPromptExpanded(true);
   }, []);
 
   // Slopitect console stamp on first mount — pure flavor, no functional effect.
@@ -647,90 +647,6 @@ export function ArchiSlop() {
     // tryAgentSound is stable enough for this listener and we want a one-shot lifetime.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slopitect.KONAMI_ACHIEVEMENT]);
-
-  // Tip chip lives below the brand logo. A single click on the logo brings up
-  // a fresh tip; the idle scheduler below cycles them on its own.
-  const SLOPITECT_TIP_TTL_MS = 7000;
-  const tipSeqRef = useRef(0);
-  const tipDismissTimerRef = useRef(null);
-  const slopitectTipRef = useRef(null);
-  const showSlopitectTip = useCallback(() => {
-    const tips = slopitect.IDLE_TIPS ?? [];
-    const tip = tips[Math.floor(Math.random() * tips.length)] || '';
-    if (!tip) return;
-    const seq = tipSeqRef.current + 1;
-    tipSeqRef.current = seq;
-    const next = {
-      id: `tip-${Date.now()}-${seq}`,
-      text: tip
-    };
-    setSlopitectTip(next);
-    if (tipDismissTimerRef.current) clearTimeout(tipDismissTimerRef.current);
-    tipDismissTimerRef.current = setTimeout(() => {
-      setSlopitectTip((current) => (current?.id === next.id ? null : current));
-      tipDismissTimerRef.current = null;
-    }, SLOPITECT_TIP_TTL_MS);
-  }, [slopitect.IDLE_TIPS]);
-
-  const handleBrandClick = useCallback(() => {
-    showSlopitectTip();
-  }, [showSlopitectTip]);
-
-  // "Skip the ceremony" escape hatch from the orientation tour: drop the user
-  // straight on the empty-state work order so they can start generating.
-  const focusTopicInput = useCallback(() => {
-    if (typeof document === 'undefined') return;
-    const el =
-      document.getElementById('slop-prompt-desk-input') ??
-      document.getElementById('diagram-change-prompt');
-    if (!el) return;
-    try {
-      el.focus({ preventScroll: true });
-    } catch {
-      el.focus();
-    }
-    el.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-  }, []);
-
-  const dismissSlopitectTip = useCallback(() => {
-    if (tipDismissTimerRef.current) {
-      clearTimeout(tipDismissTimerRef.current);
-      tipDismissTimerRef.current = null;
-    }
-    setSlopitectTip(null);
-  }, []);
-
-  useEffect(() => {
-    if (!slopitectTip) return undefined;
-    const onDocPointer = (event) => {
-      if (slopitectTipRef.current?.contains(event.target)) return;
-      if (event.target?.closest?.('.brand-control')) return;
-      dismissSlopitectTip();
-    };
-    document.addEventListener('pointerdown', onDocPointer);
-    return () => document.removeEventListener('pointerdown', onDocPointer);
-  }, [slopitectTip, dismissSlopitectTip]);
-
-  // Auto-show a Slopitect Tip™ roughly every other minute, with jitter so it
-  // doesn't feel metronome-y. Range: ~60s–180s between tips.
-  useEffect(() => {
-    let cancelled = false;
-    let timeoutId = null;
-    function scheduleNext() {
-      if (cancelled) return;
-      const jitterMs = 60_000 + Math.random() * 120_000;
-      timeoutId = setTimeout(() => {
-        if (cancelled) return;
-        showSlopitectTip();
-        scheduleNext();
-      }, jitterMs);
-    }
-    scheduleNext();
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) clearTimeout(timeoutId);
-    };
-  }, [showSlopitectTip]);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -868,10 +784,6 @@ export function ArchiSlop() {
         clearTimeout(celebrationTimerRef.current);
       }
       cleanupVoiceInput();
-      if (hoverCloseTimerRef.current != null) {
-        window.clearTimeout(hoverCloseTimerRef.current);
-        hoverCloseTimerRef.current = null;
-      }
       if (diagramAutoHighlightTimerRef.current != null) {
         window.clearTimeout(diagramAutoHighlightTimerRef.current);
         diagramAutoHighlightTimerRef.current = null;
@@ -2233,60 +2145,21 @@ ${requirementsBlock}`;
 
   const officeDistractionsPaused = advisorPause || officeCanvasGrace;
 
-  // Focus priority: an explicit click (selectedNode) is a strong signal — comment
-  // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce
-  // so rapid pointer travel doesn't spam the LLM. Nothing focused → viewport mode.
-  const advisorFocusDescriptor = selectedNode
-    ? { ...focusPayload(selectedNode), source: 'selected' }
-    : hoverDescriptor?.id
-      ? { ...focusPayload(hoverDescriptor), source: 'hover' }
-      : null;
-  const advisorFocusKey = advisorFocusDescriptor
-    ? `${advisorFocusDescriptor.source}:${advisorFocusDescriptor.id}`
-    : null;
-
-  const advisor = useAdvisorOrchestrator({
-    getDiagramSource: () => stateRef.current?.diagramSource ?? '',
-    getContentType: () => contentMode,
-    getSessionId: () => activeSessionId,
-    getFocusDescriptor: () => advisorFocusDescriptor,
-    focusKey: advisorFocusKey,
-    focusSource: advisorFocusDescriptor?.source ?? null,
-    getSvgRoot: () => (typeof document !== 'undefined' ? document : null),
-    pause: advisorPause,
-    initialMuted: readAdvisorMuted(),
-    onAccept: (text, persona) => {
-      const hasDiagram = Boolean((stateRef.current?.diagramSource ?? '').trim());
-      const operation = resolveAdvisorAcceptOperation(persona, hasDiagram);
-      const advisorCtx = {
-        advisorPrompt: text,
-        advisorFocusDescriptor
-      };
-      if (operation === 'transform') {
-        void runTransform(persona, { ...advisorCtx, variantOverride: persona });
-        return;
-      }
-      if (operation === 'analyze') {
-        void runAnalyze(persona, advisorCtx);
-        return;
-      }
-      void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {
-        variantOverride: persona,
-        transformPersona: persona,
-        ...advisorCtx
-      });
-    },
-    // Fold stakeholder /suggest spend into the same estimated-cost tally as agent
-    // runs so it shows up in the Stakeholder Damage Report.
-    onUsage: reportAdvisorUsage
+  const { advisor, advisorBubbleProps, stakeholderIntroProps } = useAdvisorShell({
+    selectedNode,
+    hoverDescriptor,
+    stateRef,
+    contentMode,
+    activeSessionId,
+    advisorPause,
+    controls,
+    diagramRevisionId: state.revisionId,
+    diagramSource: state.diagramSource,
+    runTransform,
+    runAnalyze,
+    submitIntentWithPrompt,
+    reportAdvisorUsage
   });
-
-  // First-run stakeholder spotlight: a once-ever onboarding beat that frames the
-  // stakeholder mechanic the first time the roundtable surfaces (a persona
-  // thinking, or a live comment). Persisted so it never fires again.
-  const stakeholderIntroSeenRef = useRef(readStakeholderIntroSeen());
-  const [stakeholderIntroActive, setStakeholderIntroActive] = useState(false);
-  const stakeholderIntroTimerRef = useRef(null);
 
   const modeRevealSeenRef = useRef(readModeRevealSeen());
   const [modeRevealActive, setModeRevealActive] = useState(false);
@@ -2305,131 +2178,6 @@ ${requirementsBlock}`;
     },
     [handleSelectContentMode]
   );
-
-  const dismissStakeholderIntro = useCallback(() => {
-    if (stakeholderIntroTimerRef.current) {
-      clearTimeout(stakeholderIntroTimerRef.current);
-      stakeholderIntroTimerRef.current = null;
-    }
-    setStakeholderIntroActive(false);
-  }, []);
-
-  useEffect(() => {
-    if (stakeholderIntroSeenRef.current) return;
-    if (advisor.isMuted) return;
-    if (!advisor.thinkingPersona && !advisor.suggestion) return;
-    stakeholderIntroSeenRef.current = true;
-    writeStakeholderIntroSeen();
-    setStakeholderIntroActive(true);
-    stakeholderIntroTimerRef.current = setTimeout(() => {
-      stakeholderIntroTimerRef.current = null;
-      setStakeholderIntroActive(false);
-    }, 14_000);
-  }, [advisor.thinkingPersona, advisor.suggestion, advisor.isMuted]);
-
-  // Muting mid-spotlight is an implicit "understood, go away".
-  useEffect(() => {
-    if (advisor.isMuted && stakeholderIntroActive) dismissStakeholderIntro();
-  }, [advisor.isMuted, stakeholderIntroActive, dismissStakeholderIntro]);
-
-  useEffect(
-    () => () => {
-      if (stakeholderIntroTimerRef.current) clearTimeout(stakeholderIntroTimerRef.current);
-    },
-    []
-  );
-
-  const stakeholderIntroProps = stakeholderIntroActive
-    ? {
-        eyebrow: controls.stakeholders.introEyebrow,
-        body: controls.stakeholders.introBody,
-        dismissLabel: controls.stakeholders.introDismiss,
-        ariaLabel: controls.stakeholders.introAria,
-        onDismiss: dismissStakeholderIntro
-      }
-    : null;
-
-  const advisorBubbleProps = useMemo(() => {
-    if (!advisor.suggestion) return null;
-    return {
-      persona: advisor.activePersona ?? advisor.thinkingPersona,
-      suggestion: advisor.suggestion,
-      kind: advisor.suggestionKind,
-      isPinned: advisor.isPinned,
-      isDumbingDown: advisor.isDumbingDown,
-      architectDumbLevel: advisor.architectDumbLevel,
-      onGo: advisor.accept,
-      onDismiss: advisor.dismiss,
-      onTogglePin: advisor.togglePin,
-      onPauseTimer: advisor.pauseTimer,
-      onResumeTimer: advisor.resumeTimer,
-      onDumbDown: advisor.dumbDown,
-      onDrillDeeper: () => {
-        const suggestion = advisor.suggestion;
-        advisor.dismiss();
-        void runAnalyze('explain', {
-          advisorPrompt: suggestion ?? '',
-          advisorFocusDescriptor
-        });
-      },
-      showHistoryNav: advisor.showHistoryNav,
-      canGoBack: advisor.canGoBack,
-      canPromptNext: advisor.canPromptNext,
-      historyPositionLabel: advisor.historyPositionLabel,
-      onHistoryBack: advisor.goBack,
-      onPromptNext: () => advisor.promptNext(),
-      onSelectVariant: (variant) => advisor.promptNext({ persona: variant }),
-      castDisabled: false
-    };
-  }, [advisor, advisorFocusDescriptor]);
-
-  const advisorDiagramHighlight = useMemo(() => {
-    const ids = advisor.highlightIds ?? [];
-    const active =
-      ids.length > 0 && Boolean(advisor.suggestion || advisor.isPinned || advisor.thinkingPersona);
-    return active ? { addedIds: ids } : null;
-  }, [advisor.highlightIds, advisor.isPinned, advisor.suggestion, advisor.thinkingPersona]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return undefined;
-    const root = document.querySelector('.diagram-zoom-layer') ?? document;
-    const diagramOutput = document.querySelector('.diagram-output');
-    const accentPersona = advisor.activePersona ?? advisor.thinkingPersona;
-    const accentMeta = accentPersona ? getVariantPersona(accentPersona) : null;
-    const accentVar = accentMeta?.accentColorVar;
-    if (diagramOutput) {
-      if (advisorDiagramHighlight && accentVar) {
-        const resolved = accentVar.startsWith('--') ? `var(${accentVar})` : accentVar;
-        diagramOutput.style.setProperty('--advisor-highlight-accent', resolved);
-        diagramOutput.classList.toggle('has-advisor-highlight', true);
-        diagramOutput.classList.toggle('has-advisor-highlight-pinned', advisor.isPinned);
-      } else {
-        diagramOutput.style.removeProperty('--advisor-highlight-accent');
-        diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
-      }
-    }
-    applyDiagramHighlightToSvg(root, advisorDiagramHighlight, {
-      addedClass: 'is-advisor-pointing',
-      modifiedClass: 'is-advisor-pointing'
-    });
-    return () => {
-      applyDiagramHighlightToSvg(root, null, {
-        addedClass: 'is-advisor-pointing',
-        modifiedClass: 'is-advisor-pointing'
-      });
-      if (diagramOutput) {
-        diagramOutput.style.removeProperty('--advisor-highlight-accent');
-        diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
-      }
-    };
-  }, [
-    advisor.activePersona,
-    advisor.isPinned,
-    advisor.thinkingPersona,
-    advisorDiagramHighlight,
-    state.revisionId,
-    state.diagramSource
-  ]);
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -2774,96 +2522,6 @@ ${requirementsBlock}`;
 
   const busy = loading || streamingPreview;
 
-  const clearHoverCloseTimer = useCallback(() => {
-    if (hoverCloseTimerRef.current != null) {
-      window.clearTimeout(hoverCloseTimerRef.current);
-      hoverCloseTimerRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    const id = selectedNode?.id ?? null;
-    if (id && id !== prevSelectedNodeIdRef.current) {
-      setRadialMenuVisible(true);
-    } else if (!id) {
-      setRadialMenuVisible(false);
-    }
-    prevSelectedNodeIdRef.current = id;
-  }, [selectedNode?.id]);
-
-  useEffect(() => {
-    if (!radialMenuVisible || !selectedNode?.id || !toolbarAnchor) {
-      setRadialMenuSession(null);
-      return;
-    }
-    setRadialMenuSession({ descriptor: selectedNode, anchor: toolbarAnchor });
-  }, [radialMenuVisible, selectedNode, toolbarAnchor]);
-
-  const handleHoverTargetChange = useCallback(
-    (descriptor) => {
-      if (descriptor) {
-        clearHoverCloseTimer();
-        setHoverDescriptor(descriptor);
-        return;
-      }
-      clearHoverCloseTimer();
-      hoverCloseTimerRef.current = window.setTimeout(() => {
-        hoverCloseTimerRef.current = null;
-        setHoverDescriptor(null);
-      }, 120);
-    },
-    [clearHoverCloseTimer]
-  );
-
-  const dismissRadialMenu = useCallback(() => {
-    clearHoverCloseTimer();
-    setRadialMenuVisible(false);
-  }, [clearHoverCloseTimer]);
-
-  const handleSelectedNodeChange = useCallback(
-    (next) => {
-      if (next?.id && radialMenuVisible && selectedNode?.id && next.id === selectedNode.id) {
-        dismissRadialMenu();
-        return;
-      }
-      if (next?.id && selectedNode?.id && next.id === selectedNode.id) {
-        setRadialMenuSession(null);
-        setRadialMenuVisible(true);
-        setSelectedNode(next);
-        return;
-      }
-      if (next?.id && selectedNode?.id && next.id !== selectedNode.id) {
-        setRadialMenuSession(null);
-        setRadialMenuVisible(true);
-      }
-      setSelectedNode(next);
-      if (!next) setToolbarAnchor(null);
-    },
-    [dismissRadialMenu, radialMenuVisible, selectedNode?.id]
-  );
-
-  const cancelMenuClose = useCallback(() => {
-    clearHoverCloseTimer();
-  }, [clearHoverCloseTimer]);
-
-  const scheduleMenuClose = useCallback(() => {
-    if (slopPromptExpandedRef.current && slopPromptSourceRef.current === 'radial') {
-      return;
-    }
-    clearHoverCloseTimer();
-    hoverCloseTimerRef.current = window.setTimeout(() => {
-      hoverCloseTimerRef.current = null;
-      setRadialMenuVisible(false);
-    }, RADIAL_MENU_CLOSE_GRACE_MS);
-  }, [clearHoverCloseTimer]);
-
-  const closeRadialMenu = useCallback(() => {
-    clearHoverCloseTimer();
-    setRadialMenuVisible(false);
-    setHoverDescriptor(null);
-  }, [clearHoverCloseTimer]);
-  closeRadialMenuRef.current = closeRadialMenu;
-
   const armAutoDiagramChangeHighlight = useCallback(
     (entryId) => {
       if (diagramAutoHighlightTimerRef.current != null) {
@@ -2874,12 +2532,7 @@ ${requirementsBlock}`;
         window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
         pendingAutoDiagramHighlightTimeoutRef.current = null;
       }
-      clearHoverCloseTimer();
-      setRadialMenuVisible(false);
-      setRadialMenuSession(null);
-      setSelectedNode(null);
-      setHoverDescriptor(null);
-      setToolbarAnchor(null);
+      resetRadialChrome();
       setDiagramChangeHighlightAddedOnly(false);
       setDiagramChangeHighlightEntryId(entryId);
       diagramAutoHighlightTimerRef.current = window.setTimeout(() => {
@@ -2887,7 +2540,7 @@ ${requirementsBlock}`;
         setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
       }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS);
     },
-    [clearHoverCloseTimer]
+    [resetRadialChrome]
   );
 
   useEffect(() => {
@@ -2984,7 +2637,7 @@ ${requirementsBlock}`;
     if (modeRevealSeenRef.current) return;
     if (!hasDiagramText) return;
     // Don't stack onto the stakeholder intro or a busy editing surface.
-    if (stakeholderIntroActive || editorOpen || insightsOpen) return;
+    if (stakeholderIntroProps || editorOpen || insightsOpen) return;
     modeRevealSeenRef.current = true;
     writeModeRevealSeen();
     setModeRevealActive(true);
@@ -2992,7 +2645,7 @@ ${requirementsBlock}`;
       modeRevealTimerRef.current = null;
       setModeRevealActive(false);
     }, 18_000);
-  }, [hasDiagramText, stakeholderIntroActive, editorOpen, insightsOpen]);
+  }, [hasDiagramText, stakeholderIntroProps, editorOpen, insightsOpen]);
 
   useEffect(
     () => () => {
@@ -3474,24 +3127,12 @@ ${requirementsBlock}`;
                   />
                 </div>
               ) : null}
-              {slopitectTip ? (
-                <div
-                  ref={slopitectTipRef}
-                  className="slopitect-tip-chip"
-                  role="status"
-                  aria-live="polite"
-                  data-testid="slopitect-tip-chip"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    dismissSlopitectTip();
-                  }}
-                >
-                  <span className="slopitect-tip-chip-label" aria-hidden="true">
-                    {controls.insights.tipLabel}
-                  </span>
-                  <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
-                </div>
-              ) : null}
+              <SlopitectTipSlot
+                tip={slopitectTip}
+                tipRef={slopitectTipRef}
+                tipLabel={controls.insights.tipLabel}
+                onDismiss={dismissSlopitectTip}
+              />
             </div>
 
             {fullscreenSupported && (hasCanvasContent || editorOpen) ? (

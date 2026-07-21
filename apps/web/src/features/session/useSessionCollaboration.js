@@ -195,7 +195,15 @@ export function useSessionCollaboration({
     });
 
     return close;
-  }, [activeSessionId, sessionHydrated, controlsLoading, contentMode, setInsightsEntries, setState, stateRef]);
+  }, [
+    activeSessionId,
+    sessionHydrated,
+    controlsLoading,
+    contentMode,
+    setInsightsEntries,
+    setState,
+    stateRef
+  ]);
 
   const handleApproveHandshake = useCallback(async () => {
     if (!pendingHandshake) return;
@@ -244,7 +252,13 @@ export function useSessionCollaboration({
         setState(body.state);
       }
     },
-    [activeSessionId, controlsLoading.proposalApplied, patchProposalInsightEntry, setState, stateRef]
+    [
+      activeSessionId,
+      controlsLoading.proposalApplied,
+      patchProposalInsightEntry,
+      setState,
+      stateRef
+    ]
   );
 
   const handleRejectProposal = useCallback(
