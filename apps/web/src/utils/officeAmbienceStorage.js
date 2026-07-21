@@ -199,7 +199,7 @@ export function writeDayOneBadgeSeen() {
 }
 
 /**
- * True once the first-run desk welcome (EntryDeskIntro + desk menu guide) has
+ * True once the first-run desk welcome (EntryDeskIntro + tooltip pointers) has
  * been shown and dismissed — either by shipping a first deliverable or by
  * completing the orientation skip path.
  */

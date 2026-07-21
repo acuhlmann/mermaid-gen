@@ -1,11 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useSyncExternalStore
-} from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
@@ -68,6 +61,7 @@ import {
   speakOfficeLine
 } from '../utils/officeNarration.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
+import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
 
 /**
  * The Office Update™ (docs/office-parody.md) — single mount point for all
@@ -112,7 +106,9 @@ export default function OfficeLayer({
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
   deskActionsAnchorReady = false,
   /** Desktop vs mobile bottom row — slot remounts when this flips. */
-  deskActionsLayoutKey = 'desktop'
+  deskActionsLayoutKey = 'desktop',
+  /** First-run empty state: open Your desk so the real menu is visible immediately. */
+  deskMenuInitialOpen = false
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
 
@@ -457,22 +453,18 @@ export default function OfficeLayer({
       editorOpen={editorOpen}
       canToggleThinking={canToggleThinking}
       thinkingOpen={thinkingOpen}
+      initialOpen={deskMenuInitialOpen}
     />
   );
-  const [deskSlot, setDeskSlot] = useState(null);
-  // Slot appears only after canvas content mounts the bottom row; a one-shot lookup
-  // on OfficeLayer mount misses it when session hydrate or first diagram lands later.
-  useLayoutEffect(() => {
-    if (!deskActionsAnchorReady) {
-      setDeskSlot(null);
-      return;
-    }
-    setDeskSlot(document.getElementById('office-desk-bottom-slot'));
-  }, [deskActionsAnchorReady, deskActionsLayoutKey]);
+  const deskSlot = useSyncExternalStore(
+    subscribeDeskSlotElement,
+    getDeskSlotElement,
+    getDeskSlotElement
+  );
 
   return (
     <div className="office-layer">
-      {deskSlot ? createPortal(deskDock, deskSlot) : null}
+      {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
       <OfficeInboxDock
         showTrigger={false}
         openSignal={inboxOpenSignal}

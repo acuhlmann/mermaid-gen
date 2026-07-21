@@ -33,13 +33,18 @@ export default function DeskActionsDock({
   thinkingOpen = false,
   unreadCount = 0,
   imUnreadCount = 0,
-  placement = 'corner'
+  placement = 'corner',
+  initialOpen = false
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initialOpen);
   const rootRef = useRef(null);
   const copy = officeChromeCopy().desk;
   const { controls } = useUiCopy();
   const settingsCopy = controls.settings;
+
+  useEffect(() => {
+    if (initialOpen) setOpen(true);
+  }, [initialOpen]);
 
   useEffect(() => {
     if (!open) return undefined;

@@ -29,6 +29,25 @@ function open(props = {}) {
 describe('DeskActionsDock', () => {
   afterEach(() => cleanup());
 
+  it('opens the desk menu on first render when initialOpen is set', () => {
+    render(
+      <DeskActionsDock
+        initialOpen
+        onGetCoffee={vi.fn()}
+        onWalkTheFloor={vi.fn()}
+        onCheckInbox={vi.fn()}
+        onOpenSlopChat={vi.fn()}
+        onCheckHrProgression={vi.fn()}
+        onOpenOutbox={vi.fn()}
+        onToggleEditor={vi.fn()}
+        onInviteAgent={vi.fn()}
+        onToggleThinking={vi.fn()}
+      />
+    );
+    expect(screen.getByRole('menu')).toBeTruthy();
+    expect(screen.getByText('Your seat')).toBeTruthy();
+  });
+
   it('shows the ArchiSlop mark on the desk stamp', () => {
     render(
       <DeskActionsDock

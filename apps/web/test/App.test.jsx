@@ -11,6 +11,7 @@ import {
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from '../src/App.jsx';
+import { setDeskSlotElement } from '../src/state/deskSlotStore.js';
 
 const {
   fetchSessionDiagramStateMock,
@@ -142,6 +143,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     configure({ asyncUtilTimeout: 10_000 });
     vi.useRealTimers();
     window.localStorage.clear();
+    setDeskSlotElement(null);
     window.localStorage.setItem('archislop:office-directory-seen', '1');
     window.localStorage.setItem('archislop:mode-reveal-seen', '1');
     window.history.replaceState({}, '', '/');
@@ -450,7 +452,12 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    expect(await screen.findByTestId('entry-desk-guide')).toBeTruthy();
+    expect(await screen.findByTestId('entry-desk-pointers')).toBeTruthy();
+    const deskButton = await screen.findByTestId('bottom-brand-mark');
+    await waitFor(() => {
+      expect(deskButton.getAttribute('aria-expanded')).toBe('true');
+    });
+    expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
 
     const input = await screen.findByLabelText(/Work order/i);
     fireEvent.change(input, { target: { value: 'Break down the global coffee supply chain' } });
