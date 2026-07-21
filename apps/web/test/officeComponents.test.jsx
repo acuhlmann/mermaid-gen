@@ -99,6 +99,55 @@ describe('OfficeInboxDock', () => {
     expect(screen.getByRole('button', { name: /Call a meeting/ }).disabled).toBe(true);
   });
 
+  it('calls a meeting with selected email senders and subjects', () => {
+    const onCallMeeting = vi.fn();
+    render(
+      <OfficeInboxDock
+        emails={EMAILS}
+        unreadCount={1}
+        focusTime={false}
+        onToggleFocusTime={vi.fn()}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={onCallMeeting}
+        canCallMeeting
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /1 unread/ }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select email from Gary/i }));
+    fireEvent.click(screen.getByRole('checkbox', { name: /Select email from Pam/i }));
+    fireEvent.click(screen.getByRole('button', { name: /Call a meeting \(2\)/ }));
+    expect(onCallMeeting).toHaveBeenCalledWith({
+      attendees: ['scrumMaster', 'facilities'],
+      topic: 'FRIDGE CLEANOUT FRIDAY; Story-point your diagram'
+    });
+  });
+
+  it('calls a meeting about the open email from the reading pane', () => {
+    const onCallMeeting = vi.fn();
+    render(
+      <OfficeInboxDock
+        emails={EMAILS}
+        unreadCount={0}
+        focusTime={false}
+        onToggleFocusTime={vi.fn()}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={onCallMeeting}
+        canCallMeeting
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /no unread/ }));
+    fireEvent.click(screen.getByText('FRIDGE CLEANOUT FRIDAY'));
+    fireEvent.click(screen.getByRole('button', { name: /Call a meeting about this email/i }));
+    expect(onCallMeeting).toHaveBeenCalledWith({
+      attendees: ['scrumMaster', 'facilities'],
+      topic: 'FRIDGE CLEANOUT FRIDAY'
+    });
+  });
+
   it('toggles the office soundscape', () => {
     const onToggleSoundscape = vi.fn();
     render(

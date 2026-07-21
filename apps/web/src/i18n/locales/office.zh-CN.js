@@ -766,9 +766,14 @@ export const OFFICE_ZH_CN = {
       back: '← 返回',
       emptyLine: '收件箱清零。HR 觉得这很可疑。且行且珍惜。',
       markAllRead: '全部标为已读',
+      selectEmailAria: '选择来自 {name} 的邮件以召开会议',
       callMeeting: '📅 召集会议',
+      callMeetingWithCount: '📅 召集会议 ({count})',
       callMeetingTitle: '就当前图表召集一场工作组会议',
-      callMeetingDisabledTitle: '先画点什么 — 这场会也需要议程'
+      callMeetingFromSelectionTitle: '与所选发件人召开会议，讨论他们的邮件',
+      callMeetingSelectTitle: '选择一封或多封邮件，然后与这些发件人召开会议',
+      callMeetingDisabledTitle: '先画点什么 — 这场会也需要议程',
+      callMeetingAboutEmail: '📅 就此邮件召集会议'
     },
     im: {
       kindLabel: 'Slop Chat™ · 即时消息',

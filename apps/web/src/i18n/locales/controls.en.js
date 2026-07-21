@@ -61,12 +61,25 @@ export const CONTROLS_EN = {
     entryIntro: {
       greeting: 'Welcome, {name}',
       role: 'Architect',
-      body: 'Turn any idea into a deliverable — your desk is command central on the floor.',
-      deskGuideHeading: 'Open Your desk (the stamp below) to explore:',
-      deskGuideHint: 'The menu is grouped like your cube — seat, get up, and under the desk.',
-      deskWorkOrderHint:
-        'Pitch your own topic in the Work order field beside Your desk, or check mail for floor assignments.'
+      body: 'Turn any idea into a deliverable — your desk is command central on the floor.'
     },
+    entryPointers: [
+      {
+        id: 'work-order',
+        label: 'Work order',
+        text: 'Pitch your own topic here, or check mail for floor assignments.'
+      },
+      {
+        id: 'desk',
+        label: 'Your desk',
+        text: 'The menu beside you — notebook, mail, export, settings, and more.'
+      },
+      {
+        id: 'format',
+        label: 'Deliverable format',
+        text: 'Pick Diagram, Chart, Anything, or another slot before you generate.'
+      }
+    ],
     renderAsHint:
       'Pick a format here before you generate. Your desk (bottom-right) has export, settings, and more.',
     // Starters double as in-fiction assignments: `fromId` names the requester

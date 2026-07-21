@@ -17,6 +17,7 @@ import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import EntryRenderAs from './components/EntryRenderAs.jsx';
 import EntryDeskIntro from './components/EntryDeskIntro.jsx';
+import EntryDeskPointers from './components/EntryDeskPointers.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import StakeholdersMascot from './components/StakeholdersMascot.jsx';
@@ -149,7 +150,6 @@ import {
   writeEntryDeskIntroSeen
 } from './utils/officeAmbienceStorage.js';
 import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
-import { officeChromeCopy } from './utils/officeCast.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import confetti from 'canvas-confetti';
@@ -216,6 +216,7 @@ import { useStyleEdits } from './hooks/useStyleEdits.js';
 import { useSubmitIntent } from './hooks/useSubmitIntent.js';
 import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
+import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import {
   AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS,
   RADIAL_MENU_CLOSE_GRACE_MS,
@@ -232,6 +233,7 @@ import {
 
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
+  const deskSlotRef = useDeskSlotRef();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
@@ -2717,8 +2719,10 @@ ${requirementsBlock}`;
   /** After orientation, keep office pings quiet so the canvas welcome lands first. */
   const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
   const [entryDeskIntroSeen, setEntryDeskIntroSeen] = useState(() => readEntryDeskIntroSeen());
+  const [entryDeskPointersActive, setEntryDeskPointersActive] = useState(
+    () => !readEntryDeskIntroSeen()
+  );
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
-  const deskChromeCopy = useMemo(() => officeChromeCopy().desk, []);
 
   const handleOfficeBootComplete = useCallback(() => {
     setOfficeBootPending(false);
@@ -2730,7 +2734,12 @@ ${requirementsBlock}`;
     if (entryDeskIntroSeen) return;
     writeEntryDeskIntroSeen();
     setEntryDeskIntroSeen(true);
+    setEntryDeskPointersActive(false);
   }, [entryDeskIntroSeen]);
+
+  const dismissEntryDeskPointers = useCallback(() => {
+    setEntryDeskPointersActive(false);
+  }, []);
 
   const advisorPause =
     loading ||
@@ -3447,6 +3456,7 @@ ${requirementsBlock}`;
   // empty target slot — do not dump the user back on the first-run intro.
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
   const showEntryDeskIntro = !hasCanvasContent && !insightsOpen && !entryDeskIntroSeen;
+  const showEntryDeskPointers = showEntryDeskIntro && entryDeskPointersActive;
   const showDeskChrome = hasCanvasContent || showEntryDeskIntro;
 
   // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
@@ -3872,6 +3882,7 @@ ${requirementsBlock}`;
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
             deskActionsAnchorReady={showDeskChrome}
+            deskMenuInitialOpen={showEntryDeskIntro}
             deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
           />
           <HotkeyOverlay
@@ -4075,17 +4086,22 @@ ${requirementsBlock}`;
                       copy={controls.prompt.entryIntro}
                       userName={userName}
                       role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
-                      deskCopy={{
-                        ...deskChromeCopy,
-                        concentrationLabel: controls.settings.brain
-                      }}
-                      showDeskGuide
                     />
+                    {showEntryDeskPointers ? (
+                      <EntryDeskPointers
+                        pointers={controls.prompt.entryPointers}
+                        onDismiss={dismissEntryDeskPointers}
+                      />
+                    ) : null}
                     <div
                       className={`prompt-actions prompt-actions--entry-desk${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
                     >
                       <div className="button-group desk-primary-group">
-                        <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                        <div
+                          id="office-desk-bottom-slot"
+                          ref={deskSlotRef}
+                          className="bottom-office-desk-slot"
+                        />
                         <SlopNextPrompt
                           layout="desk"
                           prompt={deskPrompt}
@@ -4216,7 +4232,11 @@ ${requirementsBlock}`;
               ) : hasCanvasContent && !narrowLayout ? (
                 <div className="prompt-actions prompt-actions--desktop">
                   <div className="button-group desk-primary-group">
-                    <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                    <div
+                      id="office-desk-bottom-slot"
+                      ref={deskSlotRef}
+                      className="bottom-office-desk-slot"
+                    />
                     <SlopNextPrompt
                       layout="desk"
                       prompt={deskPrompt}
@@ -4304,7 +4324,31 @@ ${requirementsBlock}`;
               ) : hasCanvasContent && narrowLayout ? (
                 <div className="prompt-actions prompt-actions--mobile">
                   <div className="button-group desk-primary-group">
-                    <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                    <div
+                      id="office-desk-bottom-slot"
+                      ref={deskSlotRef}
+                      className="bottom-office-desk-slot"
+                    />
+                    <SlopNextPrompt
+                      layout="desk"
+                      prompt={deskPrompt}
+                      busy={busy}
+                      voiceSupported={voiceSupported}
+                      voiceListening={voiceListening}
+                      narrowLayout={narrowLayout}
+                      speechRecognitionCtor={SpeechRecognitionCtor}
+                      PromptIcon={PromptIcon}
+                      MicIcon={MicIcon}
+                      MicActiveIcon={MicActiveIcon}
+                      ButtonIcon={ButtonIcon}
+                      copy={controls.prompt}
+                      onPromptChange={setDeskPrompt}
+                      onSubmit={handleDeskPromptSubmit}
+                      onMicToggleClick={handleMicToggleClick}
+                      onMicPointerDown={handleMicPointerDown}
+                      onMicPointerUp={handleMicPointerUp}
+                      onMicLostPointerCapture={() => stopVoiceInput()}
+                    />
                     <div className="desk-people-group">
                       <StakeholdersMascot
                         personas={[
@@ -4368,26 +4412,6 @@ ${requirementsBlock}`;
                       modeDisabled={loading || streamingPreview}
                     />
                   </div>
-                  <SlopNextPrompt
-                    layout="desk"
-                    prompt={deskPrompt}
-                    busy={busy}
-                    voiceSupported={voiceSupported}
-                    voiceListening={voiceListening}
-                    narrowLayout={narrowLayout}
-                    speechRecognitionCtor={SpeechRecognitionCtor}
-                    PromptIcon={PromptIcon}
-                    MicIcon={MicIcon}
-                    MicActiveIcon={MicActiveIcon}
-                    ButtonIcon={ButtonIcon}
-                    copy={controls.prompt}
-                    onPromptChange={setDeskPrompt}
-                    onSubmit={handleDeskPromptSubmit}
-                    onMicToggleClick={handleMicToggleClick}
-                    onMicPointerDown={handleMicPointerDown}
-                    onMicPointerUp={handleMicPointerUp}
-                    onMicLostPointerCapture={() => stopVoiceInput()}
-                  />
                 </div>
               ) : null
             }

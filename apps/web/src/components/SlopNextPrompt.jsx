@@ -104,7 +104,7 @@ export default function SlopNextPrompt({
       window.scrollTo(scrollX, scrollY);
     });
     try {
-      event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      event.target.focus({ preventScroll: true });
     } catch {
       // ignore
     }
