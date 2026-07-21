@@ -1,0 +1,116 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { DeskBottomActionsSlot } from '../src/features/desk/DeskBottomActionsSlot.jsx';
+import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
+import { ButtonIcon } from '../src/components/AppIcons.jsx';
+
+const MODES = [
+  { id: 'mermaid', label: 'Diagram', shortLabel: 'Diagram', techLabel: 'Mermaid' },
+  { id: 'chart', label: 'Chart', shortLabel: 'Chart', techLabel: 'Vega-Lite' }
+];
+const Icon = () => <span />;
+
+function baseProps(overrides = {}) {
+  return {
+    hasCanvasContent: false,
+    insightsOpen: false,
+    showEntryDeskIntro: false,
+    showEntryDeskPointers: false,
+    entryTourStep: null,
+    entryReveal: { workOrder: true, desk: true, team: true, drawer: true },
+    deskDrawerTourOpen: false,
+    narrowLayout: false,
+    busy: false,
+    loading: false,
+    streamingPreview: false,
+    controls: CONTROLS_EN,
+    userName: 'Gavin',
+    contentMode: 'mermaid',
+    contentModeOptions: MODES,
+    deskSlotRef: vi.fn(),
+    deskPrompt: '',
+    setDeskPrompt: vi.fn(),
+    voiceSupported: false,
+    voiceListening: false,
+    speechRecognitionCtor: null,
+    PromptIcon: Icon,
+    MicIcon: Icon,
+    MicActiveIcon: Icon,
+    ButtonIcon,
+    handleDeskPromptSubmit: vi.fn(),
+    handleMicToggleClick: vi.fn(),
+    handleMicPointerDown: vi.fn(),
+    handleMicPointerUp: vi.fn(),
+    stopVoiceInput: vi.fn(),
+    dismissEntryDeskPointers: vi.fn(),
+    advanceEntryTour: vi.fn(),
+    handleEntryModePick: vi.fn(),
+    runTransform: vi.fn(),
+    runAnalyze: vi.fn(),
+    advisor: {
+      activePersona: null,
+      thinkingPersona: null,
+      promptNext: vi.fn(),
+      isMuted: false,
+      toggleMute: vi.fn()
+    },
+    advisorBubbleProps: null,
+    stakeholderIntroProps: null,
+    advisorPause: false,
+    goMadStreak: 0,
+    diagramSource: '',
+    onCallMeeting: vi.fn(),
+    handleSelectContentMode: vi.fn(),
+    latestCritique: null,
+    canFixFromCritique: false,
+    handleFixFromCritique: vi.fn(),
+    handleClearDiagram: vi.fn(),
+    ...overrides
+  };
+}
+
+describe('DeskBottomActionsSlot empty canvas', () => {
+  afterEach(() => cleanup());
+
+  it('submits the work order without a separate format strip', async () => {
+    let deskPrompt = '';
+    const handleDeskPromptSubmit = vi.fn();
+    const props = baseProps({ deskPrompt, handleDeskPromptSubmit });
+    const setDeskPrompt = vi.fn((value) => {
+      deskPrompt = value;
+      view.rerender(
+        <DeskBottomActionsSlot {...props} deskPrompt={deskPrompt} setDeskPrompt={setDeskPrompt} />
+      );
+    });
+    props.setDeskPrompt = setDeskPrompt;
+    const view = render(<DeskBottomActionsSlot {...props} />);
+
+    expect(screen.queryByTestId('entry-render-as')).toBeNull();
+    expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+
+    const input = screen.getByLabelText(/Work order/i);
+    fireEvent.change(input, { target: { value: 'Coffee supply chain' } });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Do it' }).disabled).toBe(false);
+    });
+    fireEvent.submit(screen.getByLabelText(/Work order/i).closest('form'));
+    expect(handleDeskPromptSubmit).toHaveBeenCalledWith('Coffee supply chain');
+  });
+
+  it('opens the desk tray on the format tour step', () => {
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          showEntryDeskIntro: true,
+          showEntryDeskPointers: true,
+          entryTourStep: 'format',
+          deskDrawerTourOpen: true
+        })}
+      />
+    );
+    expect(screen.getByRole('menu', { name: /Desk tray/i })).toBeTruthy();
+    expect(screen.getByText('Deliverable format')).toBeTruthy();
+    expect(screen.queryByTestId('entry-render-as')).toBeNull();
+  });
+});

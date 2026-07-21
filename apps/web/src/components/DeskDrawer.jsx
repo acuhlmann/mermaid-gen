@@ -22,27 +22,34 @@ export default function DeskDrawer({
   onFix,
   onDemolish,
   busy = false,
-  modeDisabled = false
+  modeDisabled = false,
+  /** First-run tour: keep the tray open while walking Deliverable format. */
+  forceOpen = false
 }) {
   const { controls } = useUiCopy();
   const actions = controls.actions;
   const drawer = controls.deskDrawer ?? {};
   const modeOptions = Array.isArray(modes) ? modes.filter((m) => m && m.id && m.label) : [];
 
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(forceOpen);
   const rootRef = useRef(null);
+
+  useEffect(() => {
+    if (forceOpen) setOpen(true);
+  }, [forceOpen]);
 
   useEffect(() => {
     if (!open) return undefined;
     const onPointerDown = (event) => {
+      if (forceOpen) return;
       if (!rootRef.current?.contains(event.target)) setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
+  }, [open, forceOpen]);
 
   const runAndClose = (fn) => {
-    setOpen(false);
+    if (!forceOpen) setOpen(false);
     void fn?.();
   };
 

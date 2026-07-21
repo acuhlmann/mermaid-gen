@@ -107,7 +107,7 @@ export default function OfficeLayer({
   deskActionsAnchorReady = false,
   /** Desktop vs mobile bottom row — slot remounts when this flips. */
   deskActionsLayoutKey = 'desktop',
-  /** First-run empty state: open Your desk so the real menu is visible immediately. */
+  /** First-run empty state: reserved for callers that still want the menu open. */
   deskMenuInitialOpen = false
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);

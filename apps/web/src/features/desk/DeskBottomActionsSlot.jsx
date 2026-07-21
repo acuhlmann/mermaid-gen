@@ -1,6 +1,5 @@
 import EntryDeskIntro from '../../components/EntryDeskIntro.jsx';
 import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
-import EntryRenderAs from '../../components/EntryRenderAs.jsx';
 import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
@@ -61,8 +60,11 @@ function DeskPeopleCluster({
   );
 }
 
-function DeskWorkOrderPrompt({
+function DeskChromeRow({
   deskSlotRef,
+  showDeskSlot = true,
+  showTeam = true,
+  showDrawer = true,
   deskPrompt,
   busy,
   voiceSupported,
@@ -79,37 +81,112 @@ function DeskWorkOrderPrompt({
   onMicToggleClick,
   onMicPointerDown,
   onMicPointerUp,
-  onMicLostPointerCapture
+  onMicLostPointerCapture,
+  goMadStreak,
+  controls,
+  runTransform,
+  runAnalyze,
+  advisor,
+  advisorBubbleProps,
+  stakeholderIntroProps,
+  advisorPause,
+  diagramSource,
+  onCallMeeting,
+  contentModeOptions,
+  contentMode,
+  onPickMode,
+  latestCritique,
+  canFixFromCritique,
+  handleFixFromCritique,
+  handleClearDiagram,
+  loading,
+  streamingPreview,
+  deskDrawerTourOpen = false,
+  tourHighlight = null
 }) {
   return (
     <div className="button-group desk-primary-group">
-      <div id="office-desk-bottom-slot" ref={deskSlotRef} className="bottom-office-desk-slot" />
-      <SlopNextPrompt
-        layout="desk"
-        prompt={deskPrompt}
-        busy={busy}
-        voiceSupported={voiceSupported}
-        voiceListening={voiceListening}
-        narrowLayout={narrowLayout}
-        speechRecognitionCtor={speechRecognitionCtor}
-        PromptIcon={PromptIcon}
-        MicIcon={MicIcon}
-        MicActiveIcon={MicActiveIcon}
-        ButtonIcon={ButtonIcon}
-        copy={copy}
-        onPromptChange={onPromptChange}
-        onSubmit={onSubmit}
-        onMicToggleClick={onMicToggleClick}
-        onMicPointerDown={onMicPointerDown}
-        onMicPointerUp={onMicPointerUp}
-        onMicLostPointerCapture={onMicLostPointerCapture}
-      />
+      {showDeskSlot ? (
+        <div
+          id="office-desk-bottom-slot"
+          ref={deskSlotRef}
+          className={`bottom-office-desk-slot${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
+        />
+      ) : null}
+      <div
+        className={`desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
+      >
+        <SlopNextPrompt
+          layout="desk"
+          prompt={deskPrompt}
+          busy={busy}
+          voiceSupported={voiceSupported}
+          voiceListening={voiceListening}
+          narrowLayout={narrowLayout}
+          speechRecognitionCtor={speechRecognitionCtor}
+          PromptIcon={PromptIcon}
+          MicIcon={MicIcon}
+          MicActiveIcon={MicActiveIcon}
+          ButtonIcon={ButtonIcon}
+          copy={copy}
+          onPromptChange={onPromptChange}
+          onSubmit={onSubmit}
+          onMicToggleClick={onMicToggleClick}
+          onMicPointerDown={onMicPointerDown}
+          onMicPointerUp={onMicPointerUp}
+          onMicLostPointerCapture={onMicLostPointerCapture}
+        />
+        <span hidden data-testid="desk-prompt-change-wired">
+          {typeof onPromptChange === 'function' ? 'yes' : 'no'}
+        </span>
+        {/* remove after debug */}
+        {null}
+      </div>
+      {showTeam ? (
+        <div
+          className={`desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
+        >
+          <DeskPeopleCluster
+            goMadStreak={goMadStreak}
+            controls={controls}
+            runTransform={runTransform}
+            runAnalyze={runAnalyze}
+            advisor={advisor}
+            advisorBubbleProps={advisorBubbleProps}
+            stakeholderIntroProps={stakeholderIntroProps}
+            advisorPause={advisorPause}
+            diagramSource={diagramSource}
+            busy={busy}
+            onCallMeeting={onCallMeeting}
+          />
+        </div>
+      ) : null}
+      {showDrawer ? (
+        <div
+          className={`desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
+        >
+          <DeskDrawer
+            modes={contentModeOptions}
+            currentMode={contentMode}
+            onPickMode={onPickMode}
+            canFix={Boolean(latestCritique?.text)}
+            fixDisabled={!canFixFromCritique}
+            onFix={() => handleFixFromCritique('all')}
+            onDemolish={() => handleClearDiagram()}
+            busy={busy}
+            modeDisabled={loading || streamingPreview}
+            forceOpen={deskDrawerTourOpen}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }
 
 /**
- * Bottom-row desk actions: empty-state entry desk, fallback topic form, and canvas chrome.
+ * Bottom-row desk actions: empty-state entry desk tour and canvas chrome.
+ * Empty canvas uses the same Work order · Your Team · Desk tray end-state row;
+ * first-run only adds a stepped coach tour that opens the real desk tray for format.
  *
  * @param {object} props
  */
@@ -118,6 +195,9 @@ export function DeskBottomActionsSlot({
   insightsOpen,
   showEntryDeskIntro,
   showEntryDeskPointers,
+  entryTourStep = null,
+  entryReveal = null,
+  deskDrawerTourOpen = false,
   narrowLayout,
   busy,
   loading,
@@ -129,8 +209,6 @@ export function DeskBottomActionsSlot({
   deskSlotRef,
   deskPrompt,
   setDeskPrompt,
-  prompt,
-  setPrompt,
   voiceSupported,
   voiceListening,
   speechRecognitionCtor,
@@ -143,10 +221,9 @@ export function DeskBottomActionsSlot({
   handleMicPointerDown,
   handleMicPointerUp,
   stopVoiceInput,
-  startVoiceInput,
   dismissEntryDeskPointers,
-  handleEntryRenderAsPick,
-  runIntentChange,
+  advanceEntryTour,
+  handleEntryModePick,
   runTransform,
   runAnalyze,
   advisor,
@@ -160,210 +237,99 @@ export function DeskBottomActionsSlot({
   latestCritique,
   canFixFromCritique,
   handleFixFromCritique,
-  handleClearDiagram,
-  error,
-  status
+  handleClearDiagram
 }) {
+  const reveal = entryReveal ?? {
+    workOrder: true,
+    desk: true,
+    team: true,
+    drawer: true
+  };
+  const tourCopy = controls.prompt.entryTour ?? {};
+  const layoutClass = narrowLayout ? 'prompt-actions--mobile' : 'prompt-actions--desktop';
+
+  const chromeProps = {
+    deskSlotRef,
+    showDeskSlot: reveal.desk,
+    showTeam: reveal.team,
+    showDrawer: reveal.drawer,
+    deskPrompt,
+    busy,
+    voiceSupported,
+    voiceListening,
+    narrowLayout,
+    speechRecognitionCtor,
+    PromptIcon,
+    MicIcon,
+    MicActiveIcon,
+    ButtonIcon,
+    copy: controls.prompt,
+    onPromptChange: setDeskPrompt,
+    onSubmit: handleDeskPromptSubmit,
+    onMicToggleClick: handleMicToggleClick,
+    onMicPointerDown: handleMicPointerDown,
+    onMicPointerUp: handleMicPointerUp,
+    onMicLostPointerCapture: () => stopVoiceInput(),
+    goMadStreak,
+    controls,
+    runTransform,
+    runAnalyze,
+    advisor,
+    advisorBubbleProps,
+    stakeholderIntroProps,
+    advisorPause,
+    diagramSource,
+    onCallMeeting,
+    contentModeOptions,
+    contentMode,
+    onPickMode: showEntryDeskIntro ? handleEntryModePick : handleSelectContentMode,
+    latestCritique,
+    canFixFromCritique,
+    handleFixFromCritique,
+    handleClearDiagram,
+    loading,
+    streamingPreview,
+    deskDrawerTourOpen,
+    tourHighlight: showEntryDeskPointers ? entryTourStep : null
+  };
+
   if (!hasCanvasContent && !insightsOpen) {
-    if (showEntryDeskIntro) {
-      return (
-        <div className="entry-desk-integrated">
+    return (
+      <div
+        className={`entry-desk-integrated${showEntryDeskIntro ? ' entry-desk-tour-reveal' : ''}`}
+        data-tour-step={entryTourStep ?? ''}
+      >
+        {showEntryDeskIntro && entryTourStep === 'welcome' ? (
           <EntryDeskIntro
             copy={controls.prompt.entryIntro}
             userName={userName}
             role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
           />
-          {showEntryDeskPointers ? (
-            <EntryDeskPointers
-              pointers={controls.prompt.entryPointers}
-              onDismiss={dismissEntryDeskPointers}
-            />
-          ) : null}
-          <div
-            className={`prompt-actions prompt-actions--entry-desk${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
-          >
-            <DeskWorkOrderPrompt
-              deskSlotRef={deskSlotRef}
-              deskPrompt={deskPrompt}
-              busy={busy}
-              voiceSupported={voiceSupported}
-              voiceListening={voiceListening}
-              narrowLayout={narrowLayout}
-              speechRecognitionCtor={speechRecognitionCtor}
-              PromptIcon={PromptIcon}
-              MicIcon={MicIcon}
-              MicActiveIcon={MicActiveIcon}
-              ButtonIcon={ButtonIcon}
-              copy={controls.prompt}
-              onPromptChange={setDeskPrompt}
-              onSubmit={handleDeskPromptSubmit}
-              onMicToggleClick={handleMicToggleClick}
-              onMicPointerDown={handleMicPointerDown}
-              onMicPointerUp={handleMicPointerUp}
-              onMicLostPointerCapture={() => stopVoiceInput()}
-            />
-          </div>
-          <EntryRenderAs
-            label={controls.prompt.renderAsLabel}
-            hint={controls.prompt.renderAsHint}
-            ariaLabel={controls.prompt.renderAsAria}
-            modes={contentModeOptions}
-            currentMode={contentMode}
-            onPickMode={handleEntryRenderAsPick}
-            pickPrefix={controls.modeReveal.pickPrefix}
-            disabled={busy || loading || streamingPreview}
+        ) : null}
+        {showEntryDeskPointers && entryTourStep && entryTourStep !== 'welcome' ? (
+          <EntryDeskPointers
+            pointers={controls.prompt.entryPointers}
+            activeId={entryTourStep}
+            onDismiss={dismissEntryDeskPointers}
+            onAdvance={advanceEntryTour}
+            nextLabel={tourCopy.next ?? 'Next'}
+            skipLabel={tourCopy.skip ?? 'Skip'}
           />
-        </div>
-      );
-    }
-
-    return (
-      <div className="entry-desk-fallback">
-        <EntryRenderAs
-          label={controls.prompt.renderAsLabel}
-          hint={controls.prompt.renderAsHint}
-          ariaLabel={controls.prompt.renderAsAria}
-          modes={contentModeOptions}
-          currentMode={contentMode}
-          onPickMode={handleEntryRenderAsPick}
-          pickPrefix={controls.modeReveal.pickPrefix}
-          disabled={busy || loading || streamingPreview}
-        />
-        <form className="prompt-control" onSubmit={runIntentChange}>
-          <label className="sr-only" htmlFor="diagram-change-prompt">
-            {controls.prompt.yourTopic}
-          </label>
-          <input
-            id="diagram-change-prompt"
-            value={prompt}
-            onChange={(event) => setPrompt(event.target.value)}
-            placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
-            disabled={busy}
-            aria-invalid={error ? 'true' : 'false'}
-            aria-describedby={status ? 'app-status' : undefined}
-          />
-          <div className="prompt-actions-main">
-            <button
-              type="button"
-              className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-              disabled={!voiceSupported || busy}
-              {...(narrowLayout
-                ? {
-                    onPointerUp: (event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      handleMicToggleClick(event);
-                    }
-                  }
-                : {
-                    onPointerDown: handleMicPointerDown,
-                    onPointerUp: handleMicPointerUp,
-                    onPointerCancel: handleMicPointerUp,
-                    onLostPointerCapture: () => stopVoiceInput(),
-                    onKeyDown: (event) => {
-                      if (event.repeat) return;
-                      if (event.key === ' ' || event.key === 'Enter') {
-                        event.preventDefault();
-                        startVoiceInput();
-                      }
-                    },
-                    onKeyUp: (event) => {
-                      if (event.key === ' ' || event.key === 'Enter') {
-                        event.preventDefault();
-                        stopVoiceInput();
-                      }
-                    }
-                  })}
-              aria-label={
-                narrowLayout
-                  ? voiceListening
-                    ? controls.prompt.tapToStop
-                    : controls.prompt.tapToDictate
-                  : controls.prompt.holdToSpeak
-              }
-              aria-pressed={narrowLayout ? voiceListening : undefined}
-              title={
-                voiceSupported
-                  ? narrowLayout
-                    ? voiceListening
-                      ? controls.prompt.tapToStop
-                      : controls.prompt.tapToDictatePrompt
-                    : controls.prompt.holdToDictate
-                  : speechRecognitionCtor
-                    ? controls.prompt.voiceNeedsHttps
-                    : controls.prompt.voiceUnsupported
-              }
-            >
-              <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-              <span className="button-label">{controls.prompt.mic}</span>
-            </button>
-            <button
-              type="submit"
-              className="overlay-button primary-button"
-              disabled={busy || !prompt.trim()}
-            >
-              <ButtonIcon>{'>'}</ButtonIcon>
-              <span className="button-label">{controls.prompt.doIt}</span>
-            </button>
+        ) : null}
+        {reveal.workOrder ? (
+          <div className={`prompt-actions prompt-actions--entry-desk ${layoutClass}`}>
+            <DeskChromeRow {...chromeProps} />
           </div>
-        </form>
+        ) : null}
       </div>
     );
   }
 
   if (!hasCanvasContent) return null;
 
-  const layoutClass = narrowLayout ? 'prompt-actions--mobile' : 'prompt-actions--desktop';
-
   return (
     <div className={`prompt-actions ${layoutClass}`}>
-      <div className="button-group desk-primary-group">
-        <div id="office-desk-bottom-slot" ref={deskSlotRef} className="bottom-office-desk-slot" />
-        <SlopNextPrompt
-          layout="desk"
-          prompt={deskPrompt}
-          busy={busy}
-          voiceSupported={voiceSupported}
-          voiceListening={voiceListening}
-          narrowLayout={narrowLayout}
-          speechRecognitionCtor={speechRecognitionCtor}
-          PromptIcon={PromptIcon}
-          MicIcon={MicIcon}
-          MicActiveIcon={MicActiveIcon}
-          ButtonIcon={ButtonIcon}
-          copy={controls.prompt}
-          onPromptChange={setDeskPrompt}
-          onSubmit={handleDeskPromptSubmit}
-          onMicToggleClick={handleMicToggleClick}
-          onMicPointerDown={handleMicPointerDown}
-          onMicPointerUp={handleMicPointerUp}
-          onMicLostPointerCapture={() => stopVoiceInput()}
-        />
-        <DeskPeopleCluster
-          goMadStreak={goMadStreak}
-          controls={controls}
-          runTransform={runTransform}
-          runAnalyze={runAnalyze}
-          advisor={advisor}
-          advisorBubbleProps={advisorBubbleProps}
-          stakeholderIntroProps={stakeholderIntroProps}
-          advisorPause={advisorPause}
-          diagramSource={diagramSource}
-          busy={busy}
-          onCallMeeting={onCallMeeting}
-        />
-        <DeskDrawer
-          modes={contentModeOptions}
-          currentMode={contentMode}
-          onPickMode={handleSelectContentMode}
-          canFix={Boolean(latestCritique?.text)}
-          fixDisabled={!canFixFromCritique}
-          onFix={() => handleFixFromCritique('all')}
-          onDemolish={() => handleClearDiagram()}
-          busy={busy}
-          modeDisabled={loading || streamingPreview}
-        />
-      </div>
+      <DeskChromeRow {...chromeProps} showDeskSlot showTeam showDrawer />
     </div>
   );
 }

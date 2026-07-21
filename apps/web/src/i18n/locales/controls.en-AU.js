@@ -56,27 +56,36 @@ export const CONTROLS_EN_AU = {
     entryIntro: {
       greeting: 'Welcome, {name}',
       role: 'Architect',
-      body: 'Turn any idea into a deliverable — your desk is command central on the floor.'
+      body: 'This is your desk — the same controls you will use every day. We will walk through them next.'
     },
     entryPointers: [
       {
         id: 'work-order',
         label: 'Work order',
-        text: 'Pitch your own topic here, or check mail for floor assignments.'
+        text: 'Pitch your topic here. This is the prompt that builds the deliverable.'
       },
       {
         id: 'desk',
         label: 'Your desk',
-        text: 'The menu beside you — notebook, mail, export, settings, and more.'
+        text: 'Tap the helmet for notebook, mail, export, settings, and more.'
+      },
+      {
+        id: 'team',
+        label: 'Your Team',
+        text: 'Colleagues live here. They weigh in once you have a diagram on the canvas.'
       },
       {
         id: 'format',
-        label: 'Deliverable format',
-        text: 'Pick Diagram, Chart, Anything, or another slot before you generate.'
+        label: 'Desk tray',
+        text: 'Open the tray for Deliverable format — Diagram, Chart, Anything, and the rest. Pick one before you generate.'
       }
     ],
+    entryTour: {
+      next: 'Next',
+      skip: 'Skip tour'
+    },
     renderAsHint:
-      'Pick a format here before you generate. Your desk (bottom-right) has export, settings, and more.',
+      'Pick a format from the Desk tray before you generate. Your desk helmet has export, settings, and more.',
     starters: [
       {
         label: 'Coffee supply chain',
@@ -210,7 +219,7 @@ export const CONTROLS_EN_AU = {
   },
   modeReveal: {
     eyebrow: 'Same topic, another form',
-    body: 'You can switch modes anytime from the Knock it out as button in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
+    body: 'Switch modes anytime from the Desk tray (🗄️) in the bottom bar — try the same idea as a 3D scene, chart, infographic, or freeform page.',
     pickPrefix: 'Knock it out as',
     dismiss: 'Gotcha',
     aria: 'Try rendering your topic in another mode'

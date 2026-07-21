@@ -1,43 +1,55 @@
 import { useEffect } from 'react';
 
 /**
- * Brief first-run callouts that point newcomers at the real desk chrome —
- * Work order, Your desk menu, and Deliverable format — without duplicating
- * the menu listing. Auto-dismisses after a short beat or on first interaction.
+ * First-run coach tips that walk newcomers through the real desk chrome —
+ * one control at a time — without duplicating the Deliverable format strip.
+ * Auto-advances with the tour step timer; Next / Skip dismiss or advance.
  */
-export default function EntryDeskPointers({ pointers, onDismiss, autoDismissMs = 16_000 }) {
+export default function EntryDeskPointers({
+  pointers,
+  activeId = null,
+  onDismiss,
+  onAdvance,
+  nextLabel = 'Next',
+  skipLabel = 'Skip'
+}) {
   const items = Array.isArray(pointers) ? pointers.filter((p) => p && p.text) : [];
+  const tip = activeId ? items.find((p) => p.id === activeId) : null;
 
   useEffect(() => {
-    if (!onDismiss || autoDismissMs <= 0 || items.length === 0) return undefined;
-    const timer = setTimeout(onDismiss, autoDismissMs);
-    return () => clearTimeout(timer);
-  }, [onDismiss, autoDismissMs, items.length]);
-
-  useEffect(() => {
-    if (!onDismiss || items.length === 0) return undefined;
-    const dismiss = () => onDismiss();
-    document.addEventListener('pointerdown', dismiss, { once: true });
-    document.addEventListener('keydown', dismiss, { once: true });
-    return () => {
-      document.removeEventListener('pointerdown', dismiss);
-      document.removeEventListener('keydown', dismiss);
+    if (!onDismiss || !tip) return undefined;
+    const onKey = (event) => {
+      if (event.key === 'Escape') onDismiss();
     };
-  }, [onDismiss, items.length]);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onDismiss, tip]);
 
-  if (items.length === 0) return null;
+  if (!tip) return null;
 
   return (
-    <div className="entry-desk-pointers" data-testid="entry-desk-pointers" role="status">
-      {items.map((pointer) => (
-        <div
-          key={pointer.id ?? pointer.text}
-          className={`entry-desk-pointer${pointer.id ? ` entry-desk-pointer--${pointer.id}` : ''}`}
-        >
-          {pointer.label ? <span className="entry-desk-pointer-label">{pointer.label}</span> : null}
-          <span className="entry-desk-pointer-text">{pointer.text}</span>
+    <div
+      className={`entry-desk-pointers entry-desk-pointers--tour entry-desk-pointers--${tip.id ?? 'tip'}`}
+      data-testid="entry-desk-pointers"
+      data-tour-step={tip.id ?? ''}
+      role="status"
+    >
+      <div className="entry-desk-pointer is-active">
+        {tip.label ? <span className="entry-desk-pointer-label">{tip.label}</span> : null}
+        <span className="entry-desk-pointer-text">{tip.text}</span>
+        <div className="entry-desk-pointer-actions">
+          {onAdvance ? (
+            <button type="button" className="entry-desk-pointer-next" onClick={onAdvance}>
+              {nextLabel}
+            </button>
+          ) : null}
+          {onDismiss ? (
+            <button type="button" className="entry-desk-pointer-skip" onClick={onDismiss}>
+              {skipLabel}
+            </button>
+          ) : null}
         </div>
-      ))}
+      </div>
     </div>
   );
 }

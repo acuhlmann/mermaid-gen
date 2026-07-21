@@ -68,13 +68,10 @@ export function useVoiceInput({
       voiceTargetRef.current = 'slop';
       return slopNextPromptRef?.current ?? '';
     }
-    if (hasCanvasContentRef.current) {
-      voiceTargetRef.current = 'desk';
-      return deskPromptRef?.current ?? '';
-    }
-    voiceTargetRef.current = 'prompt';
-    return promptRef.current ?? '';
-  }, [deskPromptRef, hasCanvasContentRef, promptRef, slopNextPromptRef, slopPromptExpandedRef]);
+    // Desk Work Order is the primary field on both empty canvas and content mode.
+    voiceTargetRef.current = 'desk';
+    return deskPromptRef?.current ?? '';
+  }, [deskPromptRef, slopNextPromptRef, slopPromptExpandedRef]);
 
   const writeActivePrompt = useCallback(
     (next) => {
