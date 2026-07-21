@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import AgentPresenceBar from './AgentPresenceBar.jsx';
 import OutboxDock from './OutboxDock.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 
@@ -33,6 +34,7 @@ export function AiCornerControlsInner({
   const [settingsOpen, setSettingsOpen] = useState(startExpanded);
   const effectiveOpen = settingsOpen || Boolean(pendingHandshake);
   const renderAsPopover = popoverMode && !pendingHandshake;
+  const settingsZIndex = useOverlayLayer('ai-corner-settings', effectiveOpen && renderAsPopover);
   const panelClass = renderAsPopover
     ? 'ai-corner-settings-panel bottom-row-popover bottom-row-popover--settings'
     : 'ai-corner-settings-panel';
@@ -57,6 +59,7 @@ export function AiCornerControlsInner({
         <div
           id="ai-corner-settings-panel"
           className={`${panelClass}${effectiveOpen ? ' is-open' : ''}`}
+          style={overlayLayerStyle(settingsZIndex)}
           role="region"
           aria-label={controls.region}
           hidden={!effectiveOpen}

@@ -38,7 +38,9 @@
   --z-bottom-popover: 31;
   /* Level-up info panel + brand chrome when the XP popover is open — above bottom
      dock (26) and bottom-row popovers (31), below modals and ceremony overlays. */
-  --z-brand-elevated: 9100;
+  --z-brand-elevated: 115;
+  /* Portaled advisor speech / thinking bubble — above anchored popovers, below modals. */
+  --z-advisor-float: 80;
   --z-radial-popover: 120;
   --z-modal: 220;
   --z-modal-strong: 250;
@@ -9648,7 +9650,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: var(--z-modal);
   padding: 16px;
   backdrop-filter: blur(2px);
 }
@@ -9707,7 +9709,7 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: var(--z-modal);
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   backdrop-filter: blur(2px);
@@ -14453,6 +14455,7 @@ body.slopitect-rainbow-tint::before {
 
 /* Body portal — escapes `.app-shell { overflow: hidden }` and streaming GPU layers. */
 .advisor-float-portal {
+  z-index: var(--z-advisor-float);
   display: flex;
   flex-direction: column;
   align-items: flex-start;

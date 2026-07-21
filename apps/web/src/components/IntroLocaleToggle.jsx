@@ -1,5 +1,6 @@
 /** @typedef {import('@archislop/shared').UiLocale} UiLocale */
 import { useEffect, useRef, useState } from 'react';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const LOCALE_OPTIONS = [
   { id: 'en', label: 'EN' },
@@ -16,6 +17,7 @@ const LOCALE_OPTIONS = [
 export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
+  const menuZIndex = useOverlayLayer('intro-locale-menu', open);
 
   const optionLabels = {
     en: copy.en,
@@ -62,7 +64,12 @@ export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
         </span>
       </button>
       {open ? (
-        <div className="intro-locale-menu" role="listbox" aria-label={copy.aria}>
+        <div
+          className="intro-locale-menu"
+          style={overlayLayerStyle(menuZIndex)}
+          role="listbox"
+          aria-label={copy.aria}
+        >
           {alternatives.map((option) => (
             <button
               key={option.id}

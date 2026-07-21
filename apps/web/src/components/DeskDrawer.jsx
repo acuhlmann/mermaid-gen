@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ButtonIcon } from './AppIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const DRAWER_EMOJI = '🗄️';
 
@@ -33,6 +34,7 @@ export default function DeskDrawer({
 
   const [open, setOpen] = useState(forceOpen);
   const rootRef = useRef(null);
+  const menuZIndex = useOverlayLayer('desk-drawer-menu', open);
 
   useEffect(() => {
     if (forceOpen) setOpen(true);
@@ -86,6 +88,7 @@ export default function DeskDrawer({
       {open ? (
         <div
           className="desk-actions-menu desk-drawer-menu"
+          style={overlayLayerStyle(menuZIndex)}
           role="menu"
           aria-label={drawer.menuAria ?? drawer.label ?? 'Desk tray'}
         >

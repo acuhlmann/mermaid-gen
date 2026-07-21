@@ -7,6 +7,7 @@ import {
 } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
@@ -34,6 +35,7 @@ export default function OfficeInboxDock({
   showTrigger = true
 }) {
   const [open, setOpen] = useState(false);
+  const inboxZIndex = useOverlayLayer('office-inbox', open, 'officeChrome');
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEmailIds, setSelectedEmailIds] = useState(() => new Set());
   const selected = emails.find((email) => email.id === selectedId) ?? null;
@@ -125,7 +127,12 @@ export default function OfficeInboxDock({
         </button>
       ) : null}
       {open ? (
-        <div className="office-inbox-popover" role="dialog" aria-label={copy.inbox.buttonTitle}>
+        <div
+          className="office-inbox-popover"
+          style={overlayLayerStyle(inboxZIndex)}
+          role="dialog"
+          aria-label={copy.inbox.buttonTitle}
+        >
           <div className="office-inbox-header">
             <div className="office-inbox-header-row">
               <span className="office-inbox-title">{copy.inbox.title}</span>

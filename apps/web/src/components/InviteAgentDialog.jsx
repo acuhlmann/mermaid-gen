@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { fetchInvite, rotatePairingCode } from '../state/sessionEventsClient.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 export default function InviteAgentDialog({ sessionId, open, onClose }) {
+  const modalZIndex = useOverlayLayer('invite-agent', open, 'modal');
   const { controls } = useUiCopy();
   const copy = controls.invite;
   const [invite, setInvite] = useState(null);
@@ -59,7 +61,13 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
   }
 
   return (
-    <div className="invite-overlay" role="dialog" aria-modal="true" aria-labelledby="invite-title">
+    <div
+      className="invite-overlay"
+      style={overlayLayerStyle(modalZIndex)}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-title"
+    >
       <div className="invite-card">
         <header className="invite-header">
           <div className="invite-header-titlebar">

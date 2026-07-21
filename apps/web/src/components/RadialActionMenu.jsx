@@ -18,6 +18,7 @@ import { fetchLabelExplanation } from '../utils/fetchLabelExplanation.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { getVariantPersona } from '../utils/slopitectCopy.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 const WISE_ARCHITECT_EMOJI = getVariantPersona('explain').avatarEmoji || '🧙';
 const STAKEHOLDERS_EMOJI = '👥';
@@ -180,6 +181,7 @@ export default function RadialActionMenu({
   }, [descriptor]);
 
   const popoverMode = explainerOpen || stakeholdersExpanded || renderModesExpanded;
+  const radialPopoverZIndex = useOverlayLayer('radial-action-popover', popoverMode);
   /** Modal trays (explainer, stakeholders, slop prompt) must not inherit the
    * 450ms hover-close grace timer from the arc buttons they replace. */
   const modalSurfaceOpen = popoverMode || slopPromptOpen;
@@ -689,6 +691,7 @@ export default function RadialActionMenu({
     <div
       ref={wrapperRef}
       className={`radial-action-menu${popoverMode ? ' is-popover' : ''}${slopPrompt ? ' is-slop-prompt' : ''}`}
+      style={overlayLayerStyle(popoverMode ? radialPopoverZIndex : undefined)}
       role="menu"
       aria-label={radial.selectionActions}
       onKeyDown={handleArcKeyDown}

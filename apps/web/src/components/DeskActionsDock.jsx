@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
@@ -30,6 +31,7 @@ export default function DeskActionsDock({
 }) {
   const [open, setOpen] = useState(initialOpen);
   const rootRef = useRef(null);
+  const menuZIndex = useOverlayLayer('desk-actions-menu', open);
   const copy = officeChromeCopy().desk;
 
   useEffect(() => {
@@ -155,7 +157,12 @@ export default function DeskActionsDock({
         ) : null}
       </button>
       {open ? (
-        <div className="desk-actions-menu" role="menu" aria-label={copy.menuAria}>
+        <div
+          className="desk-actions-menu"
+          style={overlayLayerStyle(menuZIndex)}
+          role="menu"
+          aria-label={copy.menuAria}
+        >
           <p className="desk-actions-heading">{copy.sectionGetUp ?? 'Get up'}</p>
           {getUpVerbs.map(renderVerb)}
           <p className="desk-actions-heading">{copy.sectionUnderDesk ?? 'Under the desk'}</p>
