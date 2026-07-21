@@ -14126,13 +14126,17 @@ body.slopitect-rainbow-tint::before {
   );
 }
 
-/* Mobile / foldable: anchor the drawer menu to its trigger (right-aligned). */
+/* Mobile / foldable: pin Deliverable format to the viewport's right edge. Absolute
+   anchoring to the tray trigger can spill off the left when the menu is nearly
+   as wide as the screen (trigger sits on the right of the icon row). */
 @media (max-width: 1024px) {
   .desk-actions-menu.desk-drawer-menu {
-    position: absolute;
+    position: fixed;
     left: auto;
-    right: 0;
-    bottom: calc(100% + 0.45rem);
+    right: max(0.5rem, env(safe-area-inset-right, 0px));
+    bottom: calc(
+      var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.35rem
+    );
     width: fit-content;
     min-inline-size: min(
       12.5rem,
@@ -14142,6 +14146,15 @@ body.slopitect-rainbow-tint::before {
       17.5rem,
       calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
     );
+  }
+
+  .prompt-actions--mobile .desk-chrome-tool,
+  .prompt-actions--mobile .desk-drawer {
+    overflow: visible;
+  }
+
+  .desk-actions-menu.desk-drawer-menu .desk-actions-item {
+    white-space: normal;
   }
 }
 
