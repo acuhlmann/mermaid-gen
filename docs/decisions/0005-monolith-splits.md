@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + 4 320 LOC shell, -221 LOC this slice)
+### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~2 660 LOC shell, -~1 630 LOC total)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
@@ -67,12 +67,19 @@ they need access to outer-closure state.
 - ✅ **Feature hooks:** `useVoiceInput`, `useStyleEdits`, `useSubmitIntent`, `useAnalyzeFlow` under `hooks/`.
 - ✅ **Feature modules:** `features/insights/InsightsSlot.jsx` (Thinking pane
   wiring + `useCritiqueActionableUi`), `features/ceremony/CeremonyOverlaysSlot.jsx`,
-  `components/buildRadialActions.jsx`, `utils/appConstants.js`, `utils/formatFormAnswer.js`.
+  `features/session/` (`useSessionCollaboration`, `useSessionHydrate`,
+  `SessionCollaborationSlot`), `features/prompt/` (`useSlopitectTips`,
+  `useRadialMenu`, `SlopitectTipSlot`), `features/advisor/useAdvisorShell`,
+  `features/desk/` (`useOfficeBoot`, `useEntryDeskFlow`, `ModeRevealSlot`,
+  `DeskBottomActionsSlot`), `features/ceremony/useRunCeremony.js`,
+  `features/shell/BrandChromeSlot.jsx`, `features/streaming/useRunStreamingAgent.js`,
+  `components/buildRadialActions.jsx`, `utils/appConstants.js`,
+  `utils/formatFormAnswer.js`.
   (JSX that imports `components/` must not live under `utils/` — see
   `web-non-component-no-components` in `.dependency-cruiser.cjs`.)
-- ⏳ Larger seam: extract `useAdvisorOverlays` and lift remaining major JSX sections
-  (radial menu handler, session hydrate) into wrapper components. Target:
-  `ArchiSlop.jsx` < 1 000 LOC, mostly layout + composition.
+- ⏳ Larger seam: lift remaining major JSX sections (streaming insight helpers,
+  radial handler wiring) into wrapper components. Target: `ArchiSlop.jsx` < 1 000 LOC, mostly
+  layout + composition.
 
 ### Other targets
 

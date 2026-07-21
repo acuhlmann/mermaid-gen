@@ -23,10 +23,10 @@ Local dev: Husky runs `lint-staged` on commit and `check:affected` on push.
 
 ```bash
 npm run precommit
-git add -u
+git add -A
 ```
 
-`precommit` = `format:affected` (write Prettier fixes) + `check:affected` (verify). CI runs `format:check` on the whole repo first — unformatted edits fail even when tests pass.
+`precommit` = `format:affected` (write Prettier fixes on branch diff **plus untracked** paths) + `check:affected` (verify). CI runs `format:check` on the whole repo first — unformatted edits fail even when tests pass. Use `git add -A` (not `-u`) so new files Prettier rewrote are re-staged.
 
 ## Reading sensor output
 

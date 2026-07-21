@@ -8,58 +8,18 @@ import {
   useSyncExternalStore
 } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
-import DiagramFullscreenButton from './components/DiagramFullscreenButton.jsx';
 import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx';
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
-import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
-import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
-import EntryRenderAs from './components/EntryRenderAs.jsx';
-import EntryDeskIntro from './components/EntryDeskIntro.jsx';
-import EntryDeskPointers from './components/EntryDeskPointers.jsx';
-import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
-import StakeholdersMascot from './components/StakeholdersMascot.jsx';
-import DeskDrawer from './components/DeskDrawer.jsx';
-import { useAdvisorOrchestrator } from './hooks/useAdvisorOrchestrator.js';
-import { readAdvisorMuted } from './utils/advisorMuteStorage.js';
+import { joinRoomByPairingCode } from './state/sessionEventsClient.js';
 import {
-  readStakeholderIntroSeen,
-  writeStakeholderIntroSeen
-} from './utils/stakeholderIntroStorage.js';
-import { readModeRevealSeen, writeModeRevealSeen } from './utils/modeRevealStorage.js';
-import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
-import {
-  openSessionEventsStream,
-  approveHandshake,
-  denyHandshake,
-  acceptProposal as acceptProposalApi,
-  rejectProposal as rejectProposalApi,
-  joinRoomByPairingCode
-} from './state/sessionEventsClient.js';
-import {
-  buildIntentPeerContext,
-  CONTENT_MODES,
   createEmptyCrossModeSyncMarkers,
   createSessionId,
   fallbackState,
-  fetchSessionDiagramState,
-  isSlotCustomized,
-  isSlotInSyncForTopic,
-  mergeLeavingSlotSnapshot,
-  needsModeSwitchPeerSync,
   normalizeSessionId,
-  peerRequiresModeSwitchTranslation,
-  pickPrimaryPeerMode,
-  resolveModeSwitchCandidate,
-  isDiagramCacheSubstantial,
-  isServerSessionPristine,
-  mintFreshServerSession,
   readDiagramCache,
-  SESSION_NOT_FOUND_CODE,
-  shouldAutoSubmitModeSwitchIntent,
-  streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
   submitDiagramRenderRepair,
@@ -67,70 +27,37 @@ import {
 } from './state/diagramStore.js';
 import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
 import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
-import {
-  applyAgentStreamInsightEvent,
-  closeOpenInsightPhases
-} from './state/applyAgentStreamInsightEvent';
-import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
-import { markAppReady } from './utils/appReadySignal.js';
 import './App.css';
 import './components/RunTimeline.css';
 import {
-  playAchievementFanfare,
-  playKonamiRainbow,
-  playRefinePolishLoop,
-  playInnovateSynthLoop,
-  playGoMadKlaxonLoop,
-  playGoMadAirhornBlast,
-  playCritiqueScribbleLoop,
-  playCritiquePenStab,
-  playExplainPageFlipLoop,
-  playComboStinger,
-  playCompletionChime as playCompletionChimeTone,
-  playConfettiPop,
   playCritiqueBoot,
-  playCritiqueCompletion,
-  playDraftTick,
   playExplainBoot,
-  playExplainCompletion,
-  playFailureChime,
   playGoMadBoot,
-  playGoMadCompletionChime,
-  playGoMadStreamStart,
-  playGoMadTokenTick,
-  playCritiqueTokenTick,
-  playExplainTokenTick,
   playInnovateBoot,
-  playInnovateCompletion,
-  playInnovateStreamStart,
-  playInnovateTokenTick,
-  playLevelUpFanfare,
   playModeSwoosh,
-  playPhaseChangePluck,
-  playRefineBoot,
-  playRefineCompletion,
-  playRefineStreamStart,
-  playRefineTokenTick,
-  playStreakStinger,
-  playStreamStartChime,
-  playTokenTickChime,
-  playToolEndChime,
-  playToolStartChime,
-  playXpPickup
+  playRefineBoot
 } from './utils/agentChimes.js';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
 import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
+import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
+import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
+import { useSessionHydrate } from './features/session/useSessionHydrate.js';
+import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
+import { useRadialMenu } from './features/prompt/useRadialMenu.js';
+import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
+import { useRunCeremony } from './features/ceremony/useRunCeremony.js';
+import { DeskBottomActionsSlot } from './features/desk/DeskBottomActionsSlot.jsx';
+import { ModeRevealSlot } from './features/desk/ModeRevealSlot.jsx';
+import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
+import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
+import { BrandChromeSlot } from './features/shell/BrandChromeSlot.jsx';
+import { useRunStreamingAgent } from './features/streaming/useRunStreamingAgent.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
-import { pushError } from './state/errorToastStore.js';
 import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
-import XpProgressBar from './components/XpProgressBar.jsx';
-import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
 import {
-  applyCompletedRun,
-  applyOfficeEvent,
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
   writeToStorage as writeGamificationToStorage,
@@ -143,31 +70,14 @@ import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
 } from './state/officeDirectoryUiStore.js';
-import {
-  readOfficeDirectorySeen,
-  writeDayOneBadgeSeen,
-  readEntryDeskIntroSeen,
-  writeEntryDeskIntroSeen
-} from './utils/officeAmbienceStorage.js';
-import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
-import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
-import confetti from 'canvas-confetti';
-import { canvasConfettiAvailable } from './utils/appConfetti.js';
 import { formatToolLabel } from './utils/appToolLabels.js';
 import {
   coercePatchApplyDisplayStats,
   formatPatchApplyDetail
 } from './utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
-import {
-  proposalToInsightEntry,
-  enrichProposalForInsight,
-  attributedInsightToInsightEntry,
-  focusPayload,
-  selectionActionTitle,
-  topicFromDescriptor
-} from './utils/appInsightHelpers.js';
+import { selectionActionTitle, topicFromDescriptor } from './utils/appInsightHelpers.js';
 import {
   MODEL_PROFILE_STORAGE_KEY,
   CONTENT_MODE_STORAGE_KEY,
@@ -186,12 +96,9 @@ import {
 } from '@archislop/shared';
 import { collapseConsecutiveApplyPatchActions } from './utils/collapsePatchTechnicalActions.js';
 import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
-import { resolveAgentStreamFailureStatus } from './utils/agentStreamFailureStatus.js';
-import { buildInsightRetryDescriptor } from './utils/insightRetryDescriptor.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
-import { resolveAdvisorAcceptOperation } from './utils/advisorAcceptRouting.js';
 import { buildAdvisorIntentPrompt } from './utils/advisorActionContext.js';
 import {
   useCompactBrandLayout,
@@ -201,15 +108,8 @@ import {
   useWideMobileLayout
 } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
-import {
-  ButtonIcon,
-  ArchiSlopMarkIcon,
-  PromptIcon,
-  MicIcon,
-  MicActiveIcon
-} from './components/AppIcons.jsx';
+import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from './components/AppIcons.jsx';
 import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
-import { TopShell } from './components/TopShell.jsx';
 import { BottomRow } from './components/BottomRow.jsx';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import { useStyleEdits } from './hooks/useStyleEdits.js';
@@ -217,16 +117,11 @@ import { useSubmitIntent } from './hooks/useSubmitIntent.js';
 import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
-import {
-  AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS,
-  RADIAL_MENU_CLOSE_GRACE_MS,
-  SpeechRecognitionCtor
-} from './utils/appConstants.js';
+import { AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS, SpeechRecognitionCtor } from './utils/appConstants.js';
 import { buildRadialActions } from './components/buildRadialActions.jsx';
 import {
   buildContentModeOptions,
   buildRenderSelectionPrompt,
-  goMadShapeLabel,
   isConcreteContentMode,
   isContentMode
 } from './utils/renderModeAction.js';
@@ -235,6 +130,8 @@ export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
   const deskSlotRef = useDeskSlotRef();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
+  const { slopitectTip, slopitectTipRef, handleBrandClick, dismissSlopitectTip, focusTopicInput } =
+    useSlopitectTips({ idleTips: slopitect.IDLE_TIPS });
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
   // 404 handler uses this to decide whether to keep the same id or rotate to a new one.
@@ -252,7 +149,6 @@ export function ArchiSlop() {
   const cacheRef = useRef(
     sessionIdFromUrlRef.current ? null : readDiagramCache(initialSessionIdRef.current)
   );
-  const [sessionHydrated, setSessionHydrated] = useState(false);
   const [state, setState] = useState(fallbackState);
   const [prompt, setPrompt] = useState('');
   /** Fresh instruction for the inline “slop next” prompt — never prefilled from the session topic. */
@@ -296,7 +192,6 @@ export function ArchiSlop() {
   const leavingSlotSnapshotRef = useRef({});
   /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
   const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
-  const [celebratingEntryId, setCelebratingEntryId] = useState(null);
   // Bumped on every completed run so the office can ping the user about it.
   const [officeRunSignal, setOfficeRunSignal] = useState(null);
   const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
@@ -315,11 +210,6 @@ export function ArchiSlop() {
     if (typeof window === 'undefined') return createInitialGamificationState();
     return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
   });
-  const [streakHudToasts, setStreakHudToasts] = useState([]);
-  const [streakHudAchievement, setStreakHudAchievement] = useState(null);
-  const [streakHudLevelUp, setStreakHudLevelUp] = useState(null);
-  /** Bumped each time the player crosses a level. The XP bar uses it as a flash key. */
-  const [xpBarFlashKey, setXpBarFlashKey] = useState(0);
   /** Mobile-only: XP bar starts collapsed below the brand row; toggled by tapping the role badge. */
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   /** Click-to-open level/XP info popover anchored to the XP bar. */
@@ -330,33 +220,21 @@ export function ArchiSlop() {
   /** Bumped from Your Team menu to start a WG meeting via OfficeLayer. */
   const [callMeetingSignal, setCallMeetingSignal] = useState(0);
   const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
-  const streakEmissionSeqRef = useRef(0);
-  /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
-  const [bootSeq, setBootSeq] = useState({ trigger: 0, variant: null });
   const [selectedNode, setSelectedNode] = useState(null);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
   const [toolbarAnchor, setToolbarAnchor] = useState(null);
-  /** Pinned radial menu; survives diagram hover leave until menu grace expires or explicit close. */
-  const [radialMenuSession, setRadialMenuSession] = useState(null);
   const [voiceSupported] = useState(() =>
     Boolean(
       SpeechRecognitionCtor &&
       (typeof globalThis.isSecureContext === 'boolean' ? globalThis.isSecureContext : true)
     )
   );
-  /** External-agent collaboration: handshake awaiting user action, connected agents, ephemeral reactions, invite dialog. */
-  const [pendingHandshake, setPendingHandshake] = useState(null);
-  const [externalAgentPresence, setExternalAgentPresence] = useState([]);
-  const [agentReactions, setAgentReactions] = useState([]);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   /** Inline slop-next prompt expanded from the action bar or radial menu. */
   const [slopPromptExpanded, setSlopPromptExpanded] = useState(false);
   const [slopPromptSource, setSlopPromptSource] = useState(null);
   /** Demolition confirmation overlay shown before the Clear action wipes the session. */
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-  /** Currently-displayed Slopitect Tip™ chip rendered below the brand control. */
-  const [slopitectTip, setSlopitectTip] = useState(null);
 
   const syncTimerRef = useRef(null);
   const streamTimerRef = useRef(null);
@@ -385,10 +263,6 @@ export function ArchiSlop() {
   const slopPromptSourceRef = useRef(null);
   const lastTokenSoundAtRef = useRef(0);
   const goMadTokenTickIndexRef = useRef(0);
-  const hoverCloseTimerRef = useRef(null);
-  /** False after pan or menu pointer-leave; re-opens when selection id changes. */
-  const [radialMenuVisible, setRadialMenuVisible] = useState(false);
-  const prevSelectedNodeIdRef = useRef(null);
   const diagramAutoHighlightTimerRef = useRef(null);
   /** Until SVG renders, { entryId, revisionId } — arms highlights via `onDiagramSvgRendered`. */
   const pendingAutoDiagramHighlightRef = useRef(null);
@@ -425,6 +299,62 @@ export function ArchiSlop() {
   const skipHydrateOnceRef = useRef(false);
   const pendingRenderModeRequestRef = useRef(null);
 
+  const { sessionHydrated } = useSessionHydrate({
+    activeSessionId,
+    contentMode,
+    freshlyMintedSessionIdsRef,
+    sessionIdFromUrlRef,
+    sessionTopicRef,
+    previousContentModeRef,
+    sourceRevisionAtViewRef,
+    leavingSlotSnapshotRef,
+    crossModeSyncRef,
+    suppressNextModeSwitchRerunRef,
+    skipHydrateOnceRef,
+    pendingRenderModeRequestRef,
+    stateRef,
+    promptRef,
+    loadingRef,
+    submitIntentWithPromptRef,
+    cacheRef,
+    setActiveSessionId,
+    setState,
+    setSessionHasPeerContent,
+    setLoading,
+    setActiveRequest,
+    setPrompt,
+    setError,
+    setInsightsEntries,
+    setLatestCritique,
+    setCritiqueActionableSelected,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    setGoMadStreak,
+    setModelProfile,
+    setContentMode
+  });
+
+  const {
+    pendingHandshake,
+    externalAgentPresence,
+    agentReactions,
+    inviteDialogOpen,
+    setInviteDialogOpen,
+    handleApproveHandshake,
+    handleDenyHandshake,
+    handleAcceptProposal,
+    handleRejectProposal,
+    resetCollaborationState
+  } = useSessionCollaboration({
+    activeSessionId,
+    sessionHydrated,
+    contentMode,
+    controlsLoading: controls.loading,
+    setInsightsEntries,
+    stateRef,
+    setState
+  });
+
   const clearPendingAutoDiagramHighlight = useCallback(() => {
     pendingAutoDiagramHighlightRef.current = null;
     if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
@@ -459,6 +389,31 @@ export function ArchiSlop() {
   useEffect(() => {
     slopPromptSourceRef.current = slopPromptSource;
   }, [slopPromptSource]);
+
+  const {
+    radialMenuSession,
+    radialMenuVisible,
+    openRadialSlopPrompt,
+    handleHoverTargetChange,
+    handleSelectedNodeChange,
+    dismissRadialMenu,
+    cancelMenuClose,
+    scheduleMenuClose,
+    closeRadialMenu,
+    resetRadialChrome
+  } = useRadialMenu({
+    selectedNode,
+    setSelectedNode,
+    toolbarAnchor,
+    setToolbarAnchor,
+    setHoverDescriptor,
+    setSlopNextPrompt,
+    setSlopPromptSource,
+    setSlopPromptExpanded,
+    slopPromptExpandedRef,
+    slopPromptSourceRef,
+    closeRadialMenuRef
+  });
 
   const {
     voiceListening,
@@ -520,12 +475,6 @@ export function ArchiSlop() {
     setSlopNextPrompt('');
   }, []);
 
-  const openRadialSlopPrompt = useCallback(() => {
-    setSlopNextPrompt('');
-    setSlopPromptSource('radial');
-    setSlopPromptExpanded(true);
-  }, []);
-
   // Slopitect console stamp on first mount — pure flavor, no functional effect.
   useEffect(() => {
     if (typeof console === 'undefined' || typeof console.log !== 'function') return;
@@ -538,26 +487,6 @@ export function ArchiSlop() {
     }
   }, [slopitect.CONSOLE_STAMP_LINES]);
 
-  // Slopitect prompt easter eggs: fire each keyword's toast at most once per session.
-  const promptEasterEggsFiredRef = useRef(new Set());
-  const promptEasterEggSeqRef = useRef(0);
-  useEffect(() => {
-    if (!prompt) return;
-    const eggs = slopitect.PROMPT_EASTER_EGGS ?? [];
-    for (const egg of eggs) {
-      if (egg.match.test(prompt) && !promptEasterEggsFiredRef.current.has(egg.toast)) {
-        promptEasterEggsFiredRef.current.add(egg.toast);
-        const seq = promptEasterEggSeqRef.current + 1;
-        promptEasterEggSeqRef.current = seq;
-        const toast = { id: `easter-${Date.now()}-${seq}`, kind: 'text', label: egg.toast };
-        setStreakHudToasts((q) => [...q, toast]);
-        setTimeout(() => {
-          setStreakHudToasts((q) => q.filter((x) => x.id !== toast.id));
-        }, 1800);
-      }
-    }
-  }, [prompt, slopitect.PROMPT_EASTER_EGGS]);
-
   useEffect(() => {
     if (!latestCritique?.text) {
       setCritiqueActionableSelected([]);
@@ -566,147 +495,6 @@ export function ArchiSlop() {
     const { items } = splitCritiqueActionableSections(latestCritique.text);
     setCritiqueActionableSelected(items.map(() => false));
   }, [latestCritique?.createdAt, latestCritique?.text]);
-
-  // Konami code (↑↑↓↓←→←→BA) easter egg → "SLOPITECT AWAKENED" banner + rainbow body tint + fanfare.
-  const konamiBufferRef = useRef([]);
-  const konamiFiredRef = useRef(false);
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    const sequence = [
-      'ArrowUp',
-      'ArrowUp',
-      'ArrowDown',
-      'ArrowDown',
-      'ArrowLeft',
-      'ArrowRight',
-      'ArrowLeft',
-      'ArrowRight',
-      'b',
-      'a'
-    ];
-    function isEditable(target) {
-      if (!target) return false;
-      const tag = (target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
-      return target.isContentEditable === true;
-    }
-    function handleKey(e) {
-      if (konamiFiredRef.current) return;
-      if (isEditable(e.target)) return;
-      const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-      konamiBufferRef.current = [...konamiBufferRef.current, key].slice(-sequence.length);
-      const buf = konamiBufferRef.current;
-      if (buf.length !== sequence.length) return;
-      for (let i = 0; i < sequence.length; i++) {
-        if (buf[i] !== sequence[i]) return;
-      }
-      konamiFiredRef.current = true;
-      const konami = slopitect.KONAMI_ACHIEVEMENT;
-      const banner = {
-        id: `konami-${Date.now()}`,
-        title: konami?.title ?? '',
-        subtitle: konami?.subtitle ?? ''
-      };
-      setStreakHudAchievement(banner);
-      setTimeout(() => {
-        setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
-      }, 3200);
-      tryAgentSound(playAchievementFanfare);
-      setTimeout(() => tryAgentSound(playKonamiRainbow), 120);
-      if (typeof document !== 'undefined' && document.body) {
-        document.body.classList.add('slopitect-rainbow-tint');
-        setTimeout(() => document.body.classList.remove('slopitect-rainbow-tint'), 5200);
-      }
-    }
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-    // tryAgentSound is stable enough for this listener and we want a one-shot lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slopitect.KONAMI_ACHIEVEMENT]);
-
-  // Tip chip lives below the brand logo. A single click on the logo brings up
-  // a fresh tip; the idle scheduler below cycles them on its own.
-  const SLOPITECT_TIP_TTL_MS = 7000;
-  const tipSeqRef = useRef(0);
-  const tipDismissTimerRef = useRef(null);
-  const slopitectTipRef = useRef(null);
-  const showSlopitectTip = useCallback(() => {
-    const tips = slopitect.IDLE_TIPS ?? [];
-    const tip = tips[Math.floor(Math.random() * tips.length)] || '';
-    if (!tip) return;
-    const seq = tipSeqRef.current + 1;
-    tipSeqRef.current = seq;
-    const next = {
-      id: `tip-${Date.now()}-${seq}`,
-      text: tip
-    };
-    setSlopitectTip(next);
-    if (tipDismissTimerRef.current) clearTimeout(tipDismissTimerRef.current);
-    tipDismissTimerRef.current = setTimeout(() => {
-      setSlopitectTip((current) => (current?.id === next.id ? null : current));
-      tipDismissTimerRef.current = null;
-    }, SLOPITECT_TIP_TTL_MS);
-  }, [slopitect.IDLE_TIPS]);
-
-  const handleBrandClick = useCallback(() => {
-    showSlopitectTip();
-  }, [showSlopitectTip]);
-
-  // "Skip the ceremony" escape hatch from the orientation tour: drop the user
-  // straight on the empty-state work order so they can start generating.
-  const focusTopicInput = useCallback(() => {
-    if (typeof document === 'undefined') return;
-    const el =
-      document.getElementById('slop-prompt-desk-input') ??
-      document.getElementById('diagram-change-prompt');
-    if (!el) return;
-    try {
-      el.focus({ preventScroll: true });
-    } catch {
-      el.focus();
-    }
-    el.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
-  }, []);
-
-  const dismissSlopitectTip = useCallback(() => {
-    if (tipDismissTimerRef.current) {
-      clearTimeout(tipDismissTimerRef.current);
-      tipDismissTimerRef.current = null;
-    }
-    setSlopitectTip(null);
-  }, []);
-
-  useEffect(() => {
-    if (!slopitectTip) return undefined;
-    const onDocPointer = (event) => {
-      if (slopitectTipRef.current?.contains(event.target)) return;
-      if (event.target?.closest?.('.brand-control')) return;
-      dismissSlopitectTip();
-    };
-    document.addEventListener('pointerdown', onDocPointer);
-    return () => document.removeEventListener('pointerdown', onDocPointer);
-  }, [slopitectTip, dismissSlopitectTip]);
-
-  // Auto-show a Slopitect Tip™ roughly every other minute, with jitter so it
-  // doesn't feel metronome-y. Range: ~60s–180s between tips.
-  useEffect(() => {
-    let cancelled = false;
-    let timeoutId = null;
-    function scheduleNext() {
-      if (cancelled) return;
-      const jitterMs = 60_000 + Math.random() * 120_000;
-      timeoutId = setTimeout(() => {
-        if (cancelled) return;
-        showSlopitectTip();
-        scheduleNext();
-      }, jitterMs);
-    }
-    scheduleNext();
-    return () => {
-      cancelled = true;
-      if (timeoutId !== null) clearTimeout(timeoutId);
-    };
-  }, [showSlopitectTip]);
 
   useEffect(() => {
     loadingRef.current = loading;
@@ -786,559 +574,8 @@ export function ArchiSlop() {
     setActiveRequest(null);
     clearPendingAutoDiagramHighlight();
     setError('');
-    setPendingHandshake(null);
-    setExternalAgentPresence([]);
-    setAgentReactions([]);
-  }, [activeSessionId, clearPendingAutoDiagramHighlight]);
-
-  // Let the cold-start gate dismiss only after the shell has painted real UI.
-  useEffect(() => {
-    if (!sessionHydrated) return undefined;
-    let cancelled = false;
-    const frame = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cancelled) markAppReady();
-      });
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
-  }, [sessionHydrated]);
-
-  // External-agent session events: handshake requests, proposals, presence, reactions, attributed insights.
-  // One always-open SSE stream per active session (after hydrate so SSE cannot register a phantom room).
-  useEffect(() => {
-    if (!activeSessionId || !sessionHydrated) return undefined;
-
-    const close = openSessionEventsStream({
-      sessionId: activeSessionId,
-      onEvent: (envelope) => {
-        if (!envelope || typeof envelope !== 'object') return;
-        const { type, payload } = envelope;
-
-        if (type === 'snapshot') {
-          setExternalAgentPresence(Array.isArray(payload?.presence) ? payload.presence : []);
-          // Re-hydrate any proposals that arrived before this client connected.
-          const proposals = Array.isArray(payload?.pendingProposals)
-            ? payload.pendingProposals
-            : [];
-          if (proposals.length > 0) {
-            fetchSessionDiagramState({ sessionId: activeSessionId })
-              .then((session) => {
-                setInsightsEntries((prev) => {
-                  const existingIds = new Set(prev.map((e) => e.id));
-                  const additions = proposals
-                    .filter((p) => !existingIds.has(p.proposalId))
-                    .map((p) =>
-                      proposalToInsightEntry(enrichProposalForInsight(p, session, activeSessionId))
-                    );
-                  return additions.length > 0 ? [...prev, ...additions] : prev;
-                });
-              })
-              .catch(() => {
-                setInsightsEntries((prev) => {
-                  const existingIds = new Set(prev.map((e) => e.id));
-                  const additions = proposals
-                    .filter((p) => !existingIds.has(p.proposalId))
-                    .map((p) => proposalToInsightEntry(p));
-                  return additions.length > 0 ? [...prev, ...additions] : prev;
-                });
-              });
-          }
-          return;
-        }
-
-        if (type === 'pairing_rotated') {
-          return;
-        }
-
-        if (type === 'handshake_request') {
-          // Newest pending handshake wins (one modal at a time is enough for v1).
-          setPendingHandshake(payload ?? null);
-          return;
-        }
-
-        if (type === 'handshake_resolved') {
-          setPendingHandshake((current) =>
-            current && current.requestId === payload?.requestId ? null : current
-          );
-          return;
-        }
-
-        if (type === 'presence_update') {
-          setExternalAgentPresence(Array.isArray(payload) ? payload : []);
-          return;
-        }
-
-        if (type === 'proposal_received' && payload?.proposalId) {
-          fetchSessionDiagramState({ sessionId: activeSessionId })
-            .then((session) => {
-              setInsightsEntries((prev) => {
-                if (prev.some((e) => e.id === payload.proposalId)) return prev;
-                return [
-                  ...prev,
-                  proposalToInsightEntry(
-                    enrichProposalForInsight(payload, session, activeSessionId)
-                  )
-                ];
-              });
-            })
-            .catch(() => {
-              setInsightsEntries((prev) => {
-                if (prev.some((e) => e.id === payload.proposalId)) return prev;
-                return [...prev, proposalToInsightEntry(payload)];
-              });
-            });
-          return;
-        }
-
-        if (type === 'proposal_resolved' && payload?.proposalId) {
-          setInsightsEntries((prev) =>
-            prev.map((entry) =>
-              entry.id === payload.proposalId
-                ? {
-                    ...entry,
-                    proposalStatus: payload.status ?? 'rejected',
-                    status: 'done',
-                    statusText:
-                      payload.status === 'accepted'
-                        ? controls.loading.proposalApplied
-                        : payload.status === 'rejected'
-                          ? controls.loading.proposalRejected
-                          : payload.status === 'stale'
-                            ? controls.loading.proposalStale
-                            : controls.loading.proposalResolved,
-                    completedAt: Date.now()
-                  }
-                : entry
-            )
-          );
-          return;
-        }
-
-        if (type === 'attributed_insight' && payload?.insightId) {
-          setInsightsEntries((prev) => [...prev, attributedInsightToInsightEntry(payload)]);
-          return;
-        }
-
-        if (type === 'reaction' && payload?.reactionId) {
-          setAgentReactions((prev) => [...prev, payload]);
-          // Auto-expire after 4s so the UI doesn't grow unbounded.
-          setTimeout(() => {
-            setAgentReactions((prev) => prev.filter((r) => r.reactionId !== payload.reactionId));
-          }, 4000);
-          return;
-        }
-
-        if (type === 'state_changed') {
-          // An external proposal was accepted (or otherwise mutated state). Refetch session
-          // state so the canvas + insights reflect the new revision.
-          fetchSessionDiagramState({ sessionId: activeSessionId })
-            .then((session) => {
-              const data = session?.[contentMode];
-              if (data) {
-                stateRef.current = data;
-                setState(data);
-              }
-            })
-            .catch(() => {
-              // Non-fatal; the next user action will resync.
-            });
-        }
-      },
-      onError: () => {
-        // The browser auto-reconnects EventSource; nothing to do here for now.
-      }
-    });
-
-    return close;
-  }, [activeSessionId, sessionHydrated, controls.loading]);
-
-  const handleApproveHandshake = useCallback(async () => {
-    if (!pendingHandshake) return;
-    try {
-      await approveHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
-    } catch (err) {
-      console.error('handshake approve failed', err);
-      pushError(`Handshake approve failed: ${err?.message ?? 'unknown error'}`);
-    }
-    setPendingHandshake(null);
-  }, [pendingHandshake, activeSessionId]);
-
-  const handleDenyHandshake = useCallback(async () => {
-    if (!pendingHandshake) return;
-    try {
-      await denyHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
-    } catch (err) {
-      console.error('handshake deny failed', err);
-      pushError(`Handshake deny failed: ${err?.message ?? 'unknown error'}`);
-    }
-    setPendingHandshake(null);
-  }, [pendingHandshake, activeSessionId]);
-
-  const patchProposalInsightEntry = useCallback((proposalId, patch) => {
-    if (!proposalId) return;
-    setInsightsEntries((prev) =>
-      prev.map((entry) => (entry.id === proposalId ? { ...entry, ...patch } : entry))
-    );
-  }, []);
-
-  const handleAcceptProposal = useCallback(
-    async (proposalId) => {
-      if (!proposalId) throw new Error('Missing proposal id.');
-      const body = await acceptProposalApi({ sessionId: activeSessionId, proposalId });
-      patchProposalInsightEntry(proposalId, {
-        proposalStatus: 'accepted',
-        status: 'done',
-        statusText: controls.loading.proposalApplied,
-        completedAt: Date.now()
-      });
-      if (body?.state?.diagramSource != null) {
-        stateRef.current = body.state;
-        setState(body.state);
-      }
-    },
-    [activeSessionId, contentMode, controls.loading.proposalApplied, patchProposalInsightEntry]
-  );
-
-  const handleRejectProposal = useCallback(
-    async (proposalId) => {
-      if (!proposalId) throw new Error('Missing proposal id.');
-      await rejectProposalApi({ sessionId: activeSessionId, proposalId });
-      patchProposalInsightEntry(proposalId, {
-        proposalStatus: 'rejected',
-        status: 'done',
-        statusText: controls.loading.proposalRejected,
-        completedAt: Date.now()
-      });
-    },
-    [activeSessionId, controls.loading.proposalRejected, patchProposalInsightEntry]
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    // Capture the textarea state at the moment the user toggled mode. Used below to gate
-    // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
-    const promptAtSwitch = promptRef.current;
-    const sourceMode =
-      previousContentModeRef.current !== contentMode &&
-      isConcreteContentMode(previousContentModeRef.current)
-        ? previousContentModeRef.current
-        : null;
-    const sourceRevisionAtLastView =
-      sourceMode != null ? (sourceRevisionAtViewRef.current[sourceMode] ?? null) : null;
-    // Keep loading true across the hydrate → auto-submit microtask gap so an empty sibling
-    // slot never flashes the first-run intro between those two phases.
-    let keepLoadingForModeSwitch = false;
-
-    // Auto is not a server slot — keep a blank local canvas and skip mode-switch auto-intent.
-    if (contentMode === 'auto') {
-      if (skipHydrateOnceRef.current) {
-        skipHydrateOnceRef.current = false;
-        setSessionHydrated(true);
-        return undefined;
-      }
-      const empty = createInitialDiagramState('mermaid');
-      stateRef.current = empty;
-      setState(empty);
-      setSessionHasPeerContent(false);
-      setSessionHydrated(true);
-      setLoading(false);
-      setActiveRequest(null);
-      return undefined;
-    }
-
-    // Mid-stream Auto → concrete resolve: update the picker without re-hydrating.
-    if (skipHydrateOnceRef.current) {
-      skipHydrateOnceRef.current = false;
-      setSessionHydrated(true);
-      return undefined;
-    }
-
-    setSessionHydrated(false);
-    setLoading(true);
-    setActiveRequest('hydrate');
-    const leavingSnapshot = sourceMode ? leavingSlotSnapshotRef.current[sourceMode] : null;
-
-    const flushLeavingSlot = async () => {
-      if (!sourceMode || !leavingSnapshot || !isSlotCustomized(leavingSnapshot)) return;
-      try {
-        await syncClientDiagramState({
-          contentType: sourceMode,
-          diagramSource: leavingSnapshot.diagramSource,
-          ...(leavingSnapshot.styleConfig != null
-            ? { styleConfig: leavingSnapshot.styleConfig }
-            : {}),
-          sessionId: activeSessionId
-        });
-      } catch {
-        // Best-effort — mergeLeavingSlotSnapshot below still enables peer detection.
-      }
-    };
-
-    flushLeavingSlot()
-      .then(() => fetchSessionDiagramState({ sessionId: activeSessionId }))
-      .then((fetchedSession) => {
-        const session = mergeLeavingSlotSnapshot(fetchedSession, sourceMode, leavingSnapshot);
-        if (sourceMode) {
-          delete leavingSlotSnapshotRef.current[sourceMode];
-        }
-        return session;
-      })
-      .then((session) => {
-        if (cancelled) return;
-        freshlyMintedSessionIdsRef.current.delete(activeSessionId);
-        const staleLocalCache = readDiagramCache(activeSessionId);
-        if (
-          sessionIdFromUrlRef.current &&
-          isServerSessionPristine(session) &&
-          isDiagramCacheSubstantial(staleLocalCache)
-        ) {
-          const err = new Error('Session not found');
-          err.code = SESSION_NOT_FOUND_CODE;
-          throw err;
-        }
-        const data = session?.[contentMode];
-        if (!data) {
-          throw new Error('Invalid session state');
-        }
-        stateRef.current = data;
-        setState(data);
-        setSessionHasPeerContent(
-          CONTENT_MODES.some((mode) => mode !== contentMode && isSlotCustomized(session?.[mode]))
-        );
-
-        const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
-        let candidate = resolveModeSwitchCandidate({
-          contentMode,
-          session,
-          sessionTopic: sessionTopicRef.current,
-          promptAtSwitch: trimmedAtSwitch,
-          sourceMode
-        });
-
-        if (candidate) {
-          sessionTopicRef.current = candidate;
-        }
-
-        const primaryPeerMode = pickPrimaryPeerMode({
-          contentMode,
-          session,
-          candidate,
-          sourceMode
-        });
-        const peerSlot = primaryPeerMode ? session?.[primaryPeerMode] : null;
-
-        const newSlotInSync = isSlotInSyncForTopic(data, candidate);
-        const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
-        const peerRequiresTranslation = peerRequiresModeSwitchTranslation({
-          contentMode,
-          session,
-          candidate,
-          syncMarkers: crossModeSyncRef.current,
-          sourceMode,
-          sourceRevisionAtLastView
-        });
-        const needsPeerSync = needsModeSwitchPeerSync({
-          contentMode,
-          session,
-          candidate,
-          syncMarkers: crossModeSyncRef.current,
-          sourceMode,
-          sourceRevisionAtLastView
-        });
-
-        if (candidate && !textareaDirty) {
-          setPrompt(candidate);
-          promptRef.current = candidate;
-        }
-
-        const peerContext = buildIntentPeerContext(contentMode, session, candidate, sourceMode);
-        const pendingRenderModeRequest = pendingRenderModeRequestRef.current;
-        if (pendingRenderModeRequest?.targetMode === contentMode) {
-          pendingRenderModeRequestRef.current = null;
-          keepLoadingForModeSwitch = true;
-          Promise.resolve().then(async () => {
-            if (cancelled) return;
-            try {
-              await submitIntentWithPromptRef.current?.(pendingRenderModeRequest.promptText, {
-                stateOverride: data,
-                peerContext: pendingRenderModeRequest.peerContext,
-                focusTarget: pendingRenderModeRequest.descriptor,
-                contentTypeOverride: contentMode,
-                skipLoadingGuard: true
-              });
-            } catch (err) {
-              if (!cancelled) setError(err.message);
-            }
-          });
-          return;
-        }
-        // Cross-mode Restore intentionally jumps to a specific snapshot — don't let the auto
-        // mode-switch rerun overwrite it on the very next hydrate pass.
-        const restoreSuppressed = suppressNextModeSwitchRerunRef.current;
-        if (restoreSuppressed) suppressNextModeSwitchRerunRef.current = false;
-        if (
-          !restoreSuppressed &&
-          shouldAutoSubmitModeSwitchIntent({
-            candidate,
-            textareaDirty,
-            newSlotInSync,
-            peerRequiresTranslation,
-            needsPeerSync
-          })
-        ) {
-          const peerRevisionAtSubmit = peerSlot?.revisionId ?? 0;
-          keepLoadingForModeSwitch = true;
-          // Defer to a microtask so React has committed the state update before the auto
-          // submit kicks off; pass the override anyway so revisionId is correct regardless.
-          Promise.resolve().then(async () => {
-            if (cancelled) return;
-            try {
-              if (!peerContext) {
-                const cleared = await syncClientDiagramState({
-                  contentType: contentMode,
-                  diagramSource: '',
-                  sessionId: activeSessionId
-                });
-                if (cancelled) return;
-                stateRef.current = cleared;
-                setState(cleared);
-                await submitIntentWithPromptRef.current?.(candidate, {
-                  stateOverride: cleared,
-                  skipLoadingGuard: true
-                });
-                return;
-              }
-              await submitIntentWithPromptRef.current?.(candidate, {
-                stateOverride: data,
-                peerContext,
-                skipLoadingGuard: true,
-                modeSwitchSync: true,
-                modeSwitchPeerRevisionId: peerRevisionAtSubmit,
-                modeSwitchPeerMode: primaryPeerMode
-              });
-            } catch (err) {
-              if (!cancelled) {
-                setError(err.message);
-                setLoading(false);
-                setActiveRequest(null);
-              }
-            }
-          });
-        }
-        if (isConcreteContentMode(contentMode)) {
-          sourceRevisionAtViewRef.current[contentMode] = data.revisionId ?? 0;
-        }
-        previousContentModeRef.current = contentMode;
-      })
-      .catch(async (err) => {
-        if (cancelled) return;
-        if (err?.code === SESSION_NOT_FOUND_CODE) {
-          setInsightsEntries([]);
-          setLatestCritique(null);
-          setCritiqueActionableSelected([]);
-          setPrompt('');
-          promptRef.current = '';
-          setLiveDraftSource('');
-          setLiveDraftContentType(null);
-          setGoMadStreak(0);
-          sessionTopicRef.current = null;
-          setSessionHasPeerContent(false);
-          crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
-          sourceRevisionAtViewRef.current = {};
-          cacheRef.current = null;
-          sessionIdFromUrlRef.current = false;
-          setModelProfile('fast');
-          setContentMode('mermaid');
-          // Two cases:
-          //  (a) Stale URL/bookmark after a server restart — rotate to a new room id + wipe storage.
-          //  (b) Client-minted id on first visit — 404 is expected; keep id and prime the server.
-          const wasFreshlyMinted = freshlyMintedSessionIdsRef.current.has(activeSessionId);
-          let targetId = activeSessionId;
-          if (!wasFreshlyMinted) {
-            const fresh = createInitialDiagramState('mermaid');
-            stateRef.current = fresh;
-            setState(fresh);
-            try {
-              targetId = await mintFreshServerSession();
-            } catch {
-              targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
-            }
-            freshlyMintedSessionIdsRef.current.add(targetId);
-          } else {
-            try {
-              await Promise.all([
-                syncClientDiagramState({
-                  contentType: 'mermaid',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'infographic',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'metaphor3d',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'chart',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'forms',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'anything',
-                  diagramSource: '',
-                  sessionId: targetId
-                })
-              ]);
-            } catch {
-              // best-effort — if priming sync fails the next user action will create the session
-            }
-          }
-          if (cancelled) return;
-          if (targetId !== activeSessionId) {
-            // Keep targetId in freshlyMintedSessionIdsRef so the next hydration cycle
-            // treats it as client-minted and primes the server if it lands on a different
-            // Cloud Run instance. The .then() path cleans it up after a successful fetch.
-            window.history.replaceState({}, '', `${sessionPathFor(targetId)}`);
-            setActiveSessionId(targetId);
-          } else {
-            freshlyMintedSessionIdsRef.current.delete(targetId);
-            const fresh = createInitialDiagramState('mermaid');
-            stateRef.current = fresh;
-            setState(fresh);
-          }
-          return;
-        }
-        setError(err?.message ?? String(err));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        sessionIdFromUrlRef.current = false;
-        setSessionHydrated(true);
-        if (keepLoadingForModeSwitch) {
-          // submitIntentWithPrompt owns loading for the follow-on mode-switch run.
-          return;
-        }
-        loadingRef.current = false;
-        setLoading(false);
-        setActiveRequest(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSessionId, contentMode]);
+    resetCollaborationState();
+  }, [activeSessionId, clearPendingAutoDiagramHighlight, resetCollaborationState]);
 
   useEffect(() => {
     writeDiagramCache(
@@ -1395,10 +632,6 @@ export function ArchiSlop() {
         clearTimeout(celebrationTimerRef.current);
       }
       cleanupVoiceInput();
-      if (hoverCloseTimerRef.current != null) {
-        window.clearTimeout(hoverCloseTimerRef.current);
-        hoverCloseTimerRef.current = null;
-      }
       if (diagramAutoHighlightTimerRef.current != null) {
         window.clearTimeout(diagramAutoHighlightTimerRef.current);
         diagramAutoHighlightTimerRef.current = null;
@@ -1424,188 +657,26 @@ export function ArchiSlop() {
     [soundEnabled]
   );
 
-  // Shared gamification-emission pipeline (XP toasts, streak/combo stingers,
-  // level-up banners, achievement fanfares). Fed by both completed runs
-  // (applyCompletedRun) and office ambience events (applyOfficeEvent).
-  const processSlopEmissions = useCallback(
-    (emissions, now) => {
-      if (!Array.isArray(emissions) || emissions.length === 0) return;
-      const reduceMotion =
-        typeof globalThis.matchMedia === 'function' &&
-        globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const stamped = emissions.map((e) => {
-        const seq = streakEmissionSeqRef.current + 1;
-        streakEmissionSeqRef.current = seq;
-        return { ...e, id: `slop-${now}-${seq}` };
-      });
-      const toasts = stamped.filter(
-        (e) => e.kind === 'xp' || e.kind === 'streak' || e.kind === 'combo' || e.kind === 'text'
-      );
-      const banner = stamped.find((e) => e.kind === 'achievement' || e.kind === 'prestige');
-      const levelUpEmission = stamped.find((e) => e.kind === 'levelUp');
-      if (toasts.length > 0) {
-        setStreakHudToasts((q) => [...q, ...toasts]);
-        for (const t of toasts) {
-          setTimeout(() => {
-            setStreakHudToasts((q) => q.filter((x) => x.id !== t.id));
-          }, 1800);
-        }
-      }
-      if (levelUpEmission) {
-        setStreakHudLevelUp(levelUpEmission);
-        setXpBarFlashKey((n) => n + 1);
-        setTimeout(() => {
-          setStreakHudLevelUp((current) => (current?.id === levelUpEmission.id ? null : current));
-        }, 5200);
-      }
-      if (banner) {
-        setStreakHudAchievement(banner);
-        setTimeout(() => {
-          setStreakHudAchievement((current) => (current?.id === banner.id ? null : current));
-        }, 3200);
-      }
-      // Audio: xp pickup / streak / combo / level-up / achievement.
-      for (const e of emissions) {
-        if (e.kind === 'xp') {
-          tryAgentSound(playXpPickup);
-        } else if (e.kind === 'streak' && e.streak >= 2) {
-          tryAgentSound((ctx) => playStreakStinger(ctx, e.streak));
-        } else if (e.kind === 'combo') {
-          tryAgentSound((ctx) => playComboStinger(ctx, e.combo));
-        } else if (e.kind === 'levelUp') {
-          tryAgentSound(playLevelUpFanfare);
-          if (!reduceMotion && canvasConfettiAvailable()) {
-            try {
-              // Two-side burst so level-ups feel different from achievements.
-              confetti({
-                particleCount: 110,
-                spread: 75,
-                startVelocity: 55,
-                ticks: 220,
-                origin: { x: 0.18, y: 0.55 },
-                colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7']
-              });
-              confetti({
-                particleCount: 110,
-                spread: 75,
-                startVelocity: 55,
-                ticks: 220,
-                origin: { x: 0.82, y: 0.55 },
-                colors: ['#22d3ee', '#60a5fa', '#a855f7', '#f472b6', '#fde68a']
-              });
-            } catch {
-              // ignore
-            }
-          }
-        } else if (e.kind === 'achievement' || e.kind === 'prestige') {
-          tryAgentSound(playAchievementFanfare);
-          if (!reduceMotion && canvasConfettiAvailable()) {
-            try {
-              confetti({
-                particleCount: 160,
-                spread: 110,
-                startVelocity: 60,
-                ticks: 240,
-                origin: { x: 0.5, y: 0.35 },
-                colors: ['#fde68a', '#fcd34d', '#f59e0b', '#ec4899', '#a855f7', '#22d3ee']
-              });
-            } catch {
-              // ignore
-            }
-          }
-        }
-      }
-    },
-    [tryAgentSound]
-  );
-
-  const triggerCompletionDelight = useCallback(
-    (entryId, variant = 'general', extras = {}) => {
-      // Let the office react to the response the user just got (IM ping).
-      setOfficeRunSignal((prev) => ({ id: (prev?.id ?? 0) + 1, variant }));
-      setCelebratingEntryId(entryId);
-      if (celebrationTimerRef.current) clearTimeout(celebrationTimerRef.current);
-      const dwellMs = variant === 'goMad' ? 1100 : 900;
-      celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
-      if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
-      else if (variant === 'refine') tryAgentSound(playRefineCompletion);
-      else if (variant === 'innovate') tryAgentSound(playInnovateCompletion);
-      else if (variant === 'critique') tryAgentSound(playCritiqueCompletion);
-      else if (variant === 'explain') tryAgentSound(playExplainCompletion);
-      else tryAgentSound(playCompletionChimeTone);
-
-      const reduceMotion =
-        typeof globalThis.matchMedia === 'function' &&
-        globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      const variantPalettes = {
-        refine: ['#2563eb', '#60a5fa', '#bfdbfe', '#1d4ed8'],
-        innovate: ['#9333ea', '#ec4899', '#f0abfc', '#a855f7'],
-        goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
-        critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
-        explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
-        exec: ['#1e3a8a', '#94a3b8', '#cbd5e1', '#1e293b'],
-        general: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
-      };
-      const palette = variantPalettes[variant] || variantPalettes.general;
-      if (!reduceMotion && canvasConfettiAvailable()) {
-        try {
-          const burstParticles = variant === 'goMad' ? 120 : 70;
-          confetti({
-            particleCount: burstParticles,
-            spread: variant === 'goMad' ? 92 : 70,
-            startVelocity: variant === 'goMad' ? 55 : 42,
-            ticks: 200,
-            origin: { x: 0.5, y: 0.4 },
-            colors: palette
-          });
-        } catch {
-          // canvas-confetti can throw in headless test envs; ignore.
-        }
-        tryAgentSound(playConfettiPop);
-      }
-
-      // Slopitect gamification: derive XP / streak / combo / achievement emissions.
-      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
-      if (knownVariants.includes(variant)) {
-        const now = Date.now();
-        // `goMadStreak` here is the closure-captured value at stream start (i.e. the
-        // count of previous successful Go Mads); the just-completed run pushes depth to +1.
-        const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;
-        setGamification((current) => {
-          const { state, emissions } = applyCompletedRun(current, {
-            variant,
-            now,
-            goMadDepth: extras?.goMadDepth ?? inferredGoMadDepth,
-            critiquePerfect: extras?.critiquePerfect,
-            runCostUsd: extras?.runCostUsd
-          });
-          if (typeof window !== 'undefined') {
-            writeGamificationToStorage(window.localStorage, state);
-          }
-          processSlopEmissions(emissions, now);
-          return state;
-        });
-      }
-    },
-    [tryAgentSound, goMadStreak, processSlopEmissions]
-  );
-
-  // Office ambience events (email read, coffee break, meeting attended…)
-  // reuse the same reducer + emission pipeline as completed runs.
-  const handleOfficeEvent = useCallback(
-    (kind, extras = {}) => {
-      const now = Date.now();
-      setGamification((current) => {
-        const { state, emissions } = applyOfficeEvent(current, { kind, now, ...extras });
-        if (typeof window !== 'undefined') {
-          writeGamificationToStorage(window.localStorage, state);
-        }
-        processSlopEmissions(emissions, now);
-        return state;
-      });
-    },
-    [processSlopEmissions]
-  );
+  const {
+    bootSeq,
+    setBootSeq,
+    streakHudToasts,
+    streakHudAchievement,
+    streakHudLevelUp,
+    xpBarFlashKey,
+    celebratingEntryId,
+    triggerCompletionDelight,
+    handleOfficeEvent
+  } = useRunCeremony({
+    prompt,
+    promptEasterEggs: slopitect.PROMPT_EASTER_EGGS,
+    konamiAchievement: slopitect.KONAMI_ACHIEVEMENT,
+    tryAgentSound,
+    goMadStreak,
+    setGamification,
+    setOfficeRunSignal,
+    celebrationTimerRef
+  });
 
   const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
     const previousState = stateRef.current;
@@ -2002,174 +1073,39 @@ export function ArchiSlop() {
     }
   }
 
-  const runStreamingAgent = useCallback(
-    async ({
-      operation,
-      payload,
-      title,
-      onFinal,
-      variant = 'general',
-      diagramUndoBaseline,
-      topic,
-      modeSwitchSync = false,
-      modeSwitchPeerRevisionId = null,
-      modeSwitchPeerMode = null
-    }) => {
-      setInsightsOpen(true);
-      const retryDescriptor = buildInsightRetryDescriptor({
-        operation,
-        payload,
-        variant,
-        topic,
-        modelProfile: payload.modelProfile ?? modelProfile,
-        modeSwitchSync,
-        modeSwitchPeerRevisionId,
-        modeSwitchPeerMode,
-        focusNode: payload.focusNode
-      });
-      const sectionId = appendInsightEntry(title, variant, {
-        diagramUndoBaseline,
-        topic,
-        retryDescriptor,
-        contentType: payload.contentType ?? contentMode,
-        modelProfile: payload.modelProfile ?? modelProfile
-      });
-      if (diagramUndoBaseline) {
-        autoCloseActiveEntryIdRef.current = sectionId;
-      }
-      if (variant === 'goMad') tryAgentSound(playGoMadStreamStart);
-      else if (variant === 'innovate') tryAgentSound(playInnovateStreamStart);
-      else if (variant === 'refine') tryAgentSound(playRefineStreamStart);
-      else tryAgentSound(playStreamStartChime);
-      lastTokenSoundAtRef.current = 0;
-      goMadTokenTickIndexRef.current = 0;
-      const streamAcc = { text: '', estimatedCostUsd: 0 };
-      const abortCtrl = new AbortController();
-      streamAgentAbortRef.current = abortCtrl;
-      const streamCtx = buildAgentStreamInsightContext(
-        sectionId,
-        operation,
-        variant,
-        diagramUndoBaseline,
-        {
-          patchInsightEntry,
-          appendToInsight,
-          setInsightStatus,
-          appendTechnicalAction,
-          annotateTechnicalActionResult,
-          finalizeTechnicalActionResult,
-          enrichTechnicalActionDetail,
-          lastTokenSoundAtRef,
-          goMadTokenTickIndexRef,
-          lastDraftTickAtRef,
-          tryAgentSound,
-          playGoMadTokenTick,
-          playTokenTickChime,
-          playToolStartChime,
-          playToolEndChime,
-          playDraftTick,
-          playFailureChime,
-          playPhaseChangePluck,
-          playRefineTokenTick,
-          playInnovateTokenTick,
-          playCritiqueTokenTick,
-          playExplainTokenTick,
-          playRefinePolishLoop,
-          playInnovateSynthLoop,
-          playGoMadKlaxonLoop,
-          playGoMadAirhornBlast,
-          playCritiqueScribbleLoop,
-          playCritiquePenStab,
-          playExplainPageFlipLoop,
-          setLiveDraftSource,
-          setLiveDraftContentType,
-          setGoMadStreak,
-          sessionTopicRef,
-          crossModeSyncRef,
-          modeSwitchSync,
-          modeSwitchPeerRevisionId,
-          modeSwitchPeerMode,
-          animateAcceptedSource,
-          pendingAutoDiagramHighlightRef,
-          pendingAutoDiagramHighlightTimeoutRef,
-          triggerCompletionDelight,
-          onFinal,
-          onContentTypeResolved: ({ contentType }) => {
-            applyResolvedContentMode(contentType);
-          },
-          agentCostEstimates: agentCostEstimatesRef.current
-        }
-      );
-      try {
-        await streamDiagramAgent(
-          payload,
-          (evt) => {
-            appendStreamDebugLog(sectionId, evt);
-            applyAgentStreamInsightEvent(streamAcc, streamCtx, evt);
-          },
-          { signal: abortCtrl.signal, sessionId: activeSessionId }
-        );
-      } catch (err) {
-        const aborted =
-          err?.name === 'AbortError' ||
-          (typeof DOMException !== 'undefined' &&
-            err instanceof DOMException &&
-            err.name === 'AbortError');
-        if (aborted) {
-          patchInsightEntry(sectionId, (entry) => ({
-            ...entry,
-            status: 'cancelled',
-            statusText: controls.loading.stopped,
-            completedAt: Date.now(),
-            phases: closeOpenInsightPhases(entry.phases, Date.now())
-          }));
-        } else {
-          appendToInsight(
-            sectionId,
-            `\n\n**${controls.insights?.errorPrefix ?? 'Error'}:** ${err.message}\n`
-          );
-          tryAgentSound(playFailureChime);
-          const failure = resolveAgentStreamFailureStatus({
-            operation,
-            message: err.message,
-            copy: controls.insights?.streamFailures
-          });
-          patchInsightEntry(sectionId, (entry) => ({
-            ...entry,
-            status: 'failed',
-            statusText: failure.statusText,
-            failureClass: failure.failureClass,
-            failureDetail: failure.detail,
-            completedAt: Date.now(),
-            phases: closeOpenInsightPhases(entry.phases, Date.now())
-          }));
-        }
-      } finally {
-        if (streamAgentAbortRef.current === abortCtrl) {
-          streamAgentAbortRef.current = null;
-        }
-      }
-    },
-    [
-      animateAcceptedSource,
-      appendInsightEntry,
-      appendStreamDebugLog,
-      appendTechnicalAction,
-      annotateTechnicalActionResult,
-      finalizeTechnicalActionResult,
-      enrichTechnicalActionDetail,
-      appendToInsight,
-      activeSessionId,
-      applyResolvedContentMode,
-      contentMode,
-      modelProfile,
-      patchInsightEntry,
-      setGoMadStreak,
-      setInsightStatus,
-      triggerCompletionDelight,
-      tryAgentSound
-    ]
-  );
+  const { runStreamingAgent } = useRunStreamingAgent({
+    activeSessionId,
+    contentMode,
+    modelProfile,
+    controls,
+    streamAgentAbortRef,
+    lastTokenSoundAtRef,
+    goMadTokenTickIndexRef,
+    lastDraftTickAtRef,
+    sessionTopicRef,
+    crossModeSyncRef,
+    pendingAutoDiagramHighlightRef,
+    pendingAutoDiagramHighlightTimeoutRef,
+    agentCostEstimatesRef,
+    autoCloseActiveEntryIdRef,
+    setInsightsOpen,
+    setGoMadStreak,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    appendInsightEntry,
+    patchInsightEntry,
+    appendToInsight,
+    setInsightStatus,
+    appendTechnicalAction,
+    annotateTechnicalActionResult,
+    finalizeTechnicalActionResult,
+    enrichTechnicalActionDetail,
+    appendStreamDebugLog,
+    animateAcceptedSource,
+    applyResolvedContentMode,
+    triggerCompletionDelight,
+    tryAgentSound
+  });
 
   const insightsEntriesRef = useRef(insightsEntries);
   useEffect(() => {
@@ -2714,32 +1650,16 @@ ${requirementsBlock}`;
     getOfficeDirectoryUi
   );
 
-  // First visit: Meet the Office is the entire app until the tour is dismissed.
-  const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
-  /** After orientation, keep office pings quiet so the canvas welcome lands first. */
-  const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
-  const [entryDeskIntroSeen, setEntryDeskIntroSeen] = useState(() => readEntryDeskIntroSeen());
-  const [entryDeskPointersActive, setEntryDeskPointersActive] = useState(
-    () => !readEntryDeskIntroSeen()
-  );
+  const hasDiagramText = Boolean(state.diagramSource?.trim());
+  // Peer content in another slot keeps chrome visible after a mode switch into an
+  // empty target slot — do not dump the user back on the first-run intro.
+  const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
+
+  const { officeBootPending, officeCanvasGrace, handleOfficeBootComplete } = useOfficeBoot({
+    hasCanvasContent
+  });
+
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
-
-  const handleOfficeBootComplete = useCallback(() => {
-    setOfficeBootPending(false);
-    writeDayOneBadgeSeen();
-    setOfficeCanvasGrace(true);
-  }, []);
-
-  const markEntryDeskIntroSeen = useCallback(() => {
-    if (entryDeskIntroSeen) return;
-    writeEntryDeskIntroSeen();
-    setEntryDeskIntroSeen(true);
-    setEntryDeskPointersActive(false);
-  }, [entryDeskIntroSeen]);
-
-  const dismissEntryDeskPointers = useCallback(() => {
-    setEntryDeskPointersActive(false);
-  }, []);
 
   const advisorPause =
     loading ||
@@ -2760,203 +1680,40 @@ ${requirementsBlock}`;
 
   const officeDistractionsPaused = advisorPause || officeCanvasGrace;
 
-  // Focus priority: an explicit click (selectedNode) is a strong signal — comment
-  // on THAT. A hover (hoverDescriptor) is weaker — comment on it after a debounce
-  // so rapid pointer travel doesn't spam the LLM. Nothing focused → viewport mode.
-  const advisorFocusDescriptor = selectedNode
-    ? { ...focusPayload(selectedNode), source: 'selected' }
-    : hoverDescriptor?.id
-      ? { ...focusPayload(hoverDescriptor), source: 'hover' }
-      : null;
-  const advisorFocusKey = advisorFocusDescriptor
-    ? `${advisorFocusDescriptor.source}:${advisorFocusDescriptor.id}`
-    : null;
-
-  const advisor = useAdvisorOrchestrator({
-    getDiagramSource: () => stateRef.current?.diagramSource ?? '',
-    getContentType: () => contentMode,
-    getSessionId: () => activeSessionId,
-    getFocusDescriptor: () => advisorFocusDescriptor,
-    focusKey: advisorFocusKey,
-    focusSource: advisorFocusDescriptor?.source ?? null,
-    getSvgRoot: () => (typeof document !== 'undefined' ? document : null),
-    pause: advisorPause,
-    initialMuted: readAdvisorMuted(),
-    onAccept: (text, persona) => {
-      const hasDiagram = Boolean((stateRef.current?.diagramSource ?? '').trim());
-      const operation = resolveAdvisorAcceptOperation(persona, hasDiagram);
-      const advisorCtx = {
-        advisorPrompt: text,
-        advisorFocusDescriptor
-      };
-      if (operation === 'transform') {
-        void runTransform(persona, { ...advisorCtx, variantOverride: persona });
-        return;
-      }
-      if (operation === 'analyze') {
-        void runAnalyze(persona, advisorCtx);
-        return;
-      }
-      void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {
-        variantOverride: persona,
-        transformPersona: persona,
-        ...advisorCtx
-      });
-    },
-    // Fold stakeholder /suggest spend into the same estimated-cost tally as agent
-    // runs so it shows up in the Stakeholder Damage Report.
-    onUsage: reportAdvisorUsage
+  const { advisor, advisorBubbleProps, stakeholderIntroProps } = useAdvisorShell({
+    selectedNode,
+    hoverDescriptor,
+    stateRef,
+    contentMode,
+    activeSessionId,
+    advisorPause,
+    controls,
+    diagramRevisionId: state.revisionId,
+    diagramSource: state.diagramSource,
+    runTransform,
+    runAnalyze,
+    submitIntentWithPrompt,
+    reportAdvisorUsage
   });
 
-  // First-run stakeholder spotlight: a once-ever onboarding beat that frames the
-  // stakeholder mechanic the first time the roundtable surfaces (a persona
-  // thinking, or a live comment). Persisted so it never fires again.
-  const stakeholderIntroSeenRef = useRef(readStakeholderIntroSeen());
-  const [stakeholderIntroActive, setStakeholderIntroActive] = useState(false);
-  const stakeholderIntroTimerRef = useRef(null);
-
-  const modeRevealSeenRef = useRef(readModeRevealSeen());
-  const [modeRevealActive, setModeRevealActive] = useState(false);
-  const modeRevealTimerRef = useRef(null);
-
-  // Empty-state Render as: selecting a mode here teaches the headline feature
-  // before Settings, and marks the post-first-diagram mode reveal as seen so we
-  // don't re-teach the same beat.
-  const handleEntryRenderAsPick = useCallback(
-    (nextMode) => {
-      handleSelectContentMode(nextMode);
-      if (!modeRevealSeenRef.current) {
-        modeRevealSeenRef.current = true;
-        writeModeRevealSeen();
-      }
-    },
-    [handleSelectContentMode]
-  );
-
-  const dismissStakeholderIntro = useCallback(() => {
-    if (stakeholderIntroTimerRef.current) {
-      clearTimeout(stakeholderIntroTimerRef.current);
-      stakeholderIntroTimerRef.current = null;
-    }
-    setStakeholderIntroActive(false);
-  }, []);
-
-  useEffect(() => {
-    if (stakeholderIntroSeenRef.current) return;
-    if (advisor.isMuted) return;
-    if (!advisor.thinkingPersona && !advisor.suggestion) return;
-    stakeholderIntroSeenRef.current = true;
-    writeStakeholderIntroSeen();
-    setStakeholderIntroActive(true);
-    stakeholderIntroTimerRef.current = setTimeout(() => {
-      stakeholderIntroTimerRef.current = null;
-      setStakeholderIntroActive(false);
-    }, 14_000);
-  }, [advisor.thinkingPersona, advisor.suggestion, advisor.isMuted]);
-
-  // Muting mid-spotlight is an implicit "understood, go away".
-  useEffect(() => {
-    if (advisor.isMuted && stakeholderIntroActive) dismissStakeholderIntro();
-  }, [advisor.isMuted, stakeholderIntroActive, dismissStakeholderIntro]);
-
-  useEffect(
-    () => () => {
-      if (stakeholderIntroTimerRef.current) clearTimeout(stakeholderIntroTimerRef.current);
-    },
-    []
-  );
-
-  const stakeholderIntroProps = stakeholderIntroActive
-    ? {
-        eyebrow: controls.stakeholders.introEyebrow,
-        body: controls.stakeholders.introBody,
-        dismissLabel: controls.stakeholders.introDismiss,
-        ariaLabel: controls.stakeholders.introAria,
-        onDismiss: dismissStakeholderIntro
-      }
-    : null;
-
-  const advisorBubbleProps = useMemo(() => {
-    if (!advisor.suggestion) return null;
-    return {
-      persona: advisor.activePersona ?? advisor.thinkingPersona,
-      suggestion: advisor.suggestion,
-      kind: advisor.suggestionKind,
-      isPinned: advisor.isPinned,
-      isDumbingDown: advisor.isDumbingDown,
-      architectDumbLevel: advisor.architectDumbLevel,
-      onGo: advisor.accept,
-      onDismiss: advisor.dismiss,
-      onTogglePin: advisor.togglePin,
-      onPauseTimer: advisor.pauseTimer,
-      onResumeTimer: advisor.resumeTimer,
-      onDumbDown: advisor.dumbDown,
-      onDrillDeeper: () => {
-        const suggestion = advisor.suggestion;
-        advisor.dismiss();
-        void runAnalyze('explain', {
-          advisorPrompt: suggestion ?? '',
-          advisorFocusDescriptor
-        });
-      },
-      showHistoryNav: advisor.showHistoryNav,
-      canGoBack: advisor.canGoBack,
-      canPromptNext: advisor.canPromptNext,
-      historyPositionLabel: advisor.historyPositionLabel,
-      onHistoryBack: advisor.goBack,
-      onPromptNext: () => advisor.promptNext(),
-      onSelectVariant: (variant) => advisor.promptNext({ persona: variant }),
-      castDisabled: false
-    };
-  }, [advisor, advisorFocusDescriptor]);
-
-  const advisorDiagramHighlight = useMemo(() => {
-    const ids = advisor.highlightIds ?? [];
-    const active =
-      ids.length > 0 && Boolean(advisor.suggestion || advisor.isPinned || advisor.thinkingPersona);
-    return active ? { addedIds: ids } : null;
-  }, [advisor.highlightIds, advisor.isPinned, advisor.suggestion, advisor.thinkingPersona]);
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return undefined;
-    const root = document.querySelector('.diagram-zoom-layer') ?? document;
-    const diagramOutput = document.querySelector('.diagram-output');
-    const accentPersona = advisor.activePersona ?? advisor.thinkingPersona;
-    const accentMeta = accentPersona ? getVariantPersona(accentPersona) : null;
-    const accentVar = accentMeta?.accentColorVar;
-    if (diagramOutput) {
-      if (advisorDiagramHighlight && accentVar) {
-        const resolved = accentVar.startsWith('--') ? `var(${accentVar})` : accentVar;
-        diagramOutput.style.setProperty('--advisor-highlight-accent', resolved);
-        diagramOutput.classList.toggle('has-advisor-highlight', true);
-        diagramOutput.classList.toggle('has-advisor-highlight-pinned', advisor.isPinned);
-      } else {
-        diagramOutput.style.removeProperty('--advisor-highlight-accent');
-        diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
-      }
-    }
-    applyDiagramHighlightToSvg(root, advisorDiagramHighlight, {
-      addedClass: 'is-advisor-pointing',
-      modifiedClass: 'is-advisor-pointing'
-    });
-    return () => {
-      applyDiagramHighlightToSvg(root, null, {
-        addedClass: 'is-advisor-pointing',
-        modifiedClass: 'is-advisor-pointing'
-      });
-      if (diagramOutput) {
-        diagramOutput.style.removeProperty('--advisor-highlight-accent');
-        diagramOutput.classList.remove('has-advisor-highlight', 'has-advisor-highlight-pinned');
-      }
-    };
-  }, [
-    advisor.activePersona,
-    advisor.isPinned,
-    advisor.thinkingPersona,
-    advisorDiagramHighlight,
-    state.revisionId,
-    state.diagramSource
-  ]);
+  const {
+    showEntryDeskIntro,
+    showEntryDeskPointers,
+    showDeskChrome,
+    dismissEntryDeskPointers,
+    handleEntryRenderAsPick,
+    modeRevealActive,
+    dismissModeReveal,
+    handleModeRevealPick
+  } = useEntryDeskFlow({
+    hasCanvasContent,
+    hasDiagramText,
+    insightsOpen,
+    stakeholderIntroProps,
+    editorOpen,
+    hasInteractedRef,
+    handleSelectContentMode
+  });
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -3301,96 +2058,6 @@ ${requirementsBlock}`;
 
   const busy = loading || streamingPreview;
 
-  const clearHoverCloseTimer = useCallback(() => {
-    if (hoverCloseTimerRef.current != null) {
-      window.clearTimeout(hoverCloseTimerRef.current);
-      hoverCloseTimerRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    const id = selectedNode?.id ?? null;
-    if (id && id !== prevSelectedNodeIdRef.current) {
-      setRadialMenuVisible(true);
-    } else if (!id) {
-      setRadialMenuVisible(false);
-    }
-    prevSelectedNodeIdRef.current = id;
-  }, [selectedNode?.id]);
-
-  useEffect(() => {
-    if (!radialMenuVisible || !selectedNode?.id || !toolbarAnchor) {
-      setRadialMenuSession(null);
-      return;
-    }
-    setRadialMenuSession({ descriptor: selectedNode, anchor: toolbarAnchor });
-  }, [radialMenuVisible, selectedNode, toolbarAnchor]);
-
-  const handleHoverTargetChange = useCallback(
-    (descriptor) => {
-      if (descriptor) {
-        clearHoverCloseTimer();
-        setHoverDescriptor(descriptor);
-        return;
-      }
-      clearHoverCloseTimer();
-      hoverCloseTimerRef.current = window.setTimeout(() => {
-        hoverCloseTimerRef.current = null;
-        setHoverDescriptor(null);
-      }, 120);
-    },
-    [clearHoverCloseTimer]
-  );
-
-  const dismissRadialMenu = useCallback(() => {
-    clearHoverCloseTimer();
-    setRadialMenuVisible(false);
-  }, [clearHoverCloseTimer]);
-
-  const handleSelectedNodeChange = useCallback(
-    (next) => {
-      if (next?.id && radialMenuVisible && selectedNode?.id && next.id === selectedNode.id) {
-        dismissRadialMenu();
-        return;
-      }
-      if (next?.id && selectedNode?.id && next.id === selectedNode.id) {
-        setRadialMenuSession(null);
-        setRadialMenuVisible(true);
-        setSelectedNode(next);
-        return;
-      }
-      if (next?.id && selectedNode?.id && next.id !== selectedNode.id) {
-        setRadialMenuSession(null);
-        setRadialMenuVisible(true);
-      }
-      setSelectedNode(next);
-      if (!next) setToolbarAnchor(null);
-    },
-    [dismissRadialMenu, radialMenuVisible, selectedNode?.id]
-  );
-
-  const cancelMenuClose = useCallback(() => {
-    clearHoverCloseTimer();
-  }, [clearHoverCloseTimer]);
-
-  const scheduleMenuClose = useCallback(() => {
-    if (slopPromptExpandedRef.current && slopPromptSourceRef.current === 'radial') {
-      return;
-    }
-    clearHoverCloseTimer();
-    hoverCloseTimerRef.current = window.setTimeout(() => {
-      hoverCloseTimerRef.current = null;
-      setRadialMenuVisible(false);
-    }, RADIAL_MENU_CLOSE_GRACE_MS);
-  }, [clearHoverCloseTimer]);
-
-  const closeRadialMenu = useCallback(() => {
-    clearHoverCloseTimer();
-    setRadialMenuVisible(false);
-    setHoverDescriptor(null);
-  }, [clearHoverCloseTimer]);
-  closeRadialMenuRef.current = closeRadialMenu;
-
   const armAutoDiagramChangeHighlight = useCallback(
     (entryId) => {
       if (diagramAutoHighlightTimerRef.current != null) {
@@ -3401,12 +2068,7 @@ ${requirementsBlock}`;
         window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
         pendingAutoDiagramHighlightTimeoutRef.current = null;
       }
-      clearHoverCloseTimer();
-      setRadialMenuVisible(false);
-      setRadialMenuSession(null);
-      setSelectedNode(null);
-      setHoverDescriptor(null);
-      setToolbarAnchor(null);
+      resetRadialChrome();
       setDiagramChangeHighlightAddedOnly(false);
       setDiagramChangeHighlightEntryId(entryId);
       diagramAutoHighlightTimerRef.current = window.setTimeout(() => {
@@ -3414,7 +2076,7 @@ ${requirementsBlock}`;
         setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
       }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS);
     },
-    [clearHoverCloseTimer]
+    [resetRadialChrome]
   );
 
   useEffect(() => {
@@ -3451,34 +2113,12 @@ ${requirementsBlock}`;
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
     [loading, insightsEntries]
   );
-  const hasDiagramText = Boolean(state.diagramSource?.trim());
-  // Peer content in another slot keeps chrome visible after a mode switch into an
-  // empty target slot — do not dump the user back on the first-run intro.
-  const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
-  const showEntryDeskIntro = !hasCanvasContent && !insightsOpen && !entryDeskIntroSeen;
-  const showEntryDeskPointers = showEntryDeskIntro && entryDeskPointersActive;
-  const showDeskChrome = hasCanvasContent || showEntryDeskIntro;
 
   // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
   // routes to the persistent desk Work Order buffer whenever there's content.
   useEffect(() => {
     hasCanvasContentRef.current = hasCanvasContent;
   }, [hasCanvasContent]);
-
-  useEffect(() => {
-    if (!hasCanvasContent || !hasInteractedRef.current) return;
-    markEntryDeskIntroSeen();
-  }, [hasCanvasContent, markEntryDeskIntroSeen]);
-
-  useEffect(() => {
-    if (!officeCanvasGrace) return undefined;
-    if (hasCanvasContent) {
-      setOfficeCanvasGrace(false);
-      return undefined;
-    }
-    const timer = setTimeout(() => setOfficeCanvasGrace(false), OFFICE_CANVAS_GRACE_MS);
-    return () => clearTimeout(timer);
-  }, [officeCanvasGrace, hasCanvasContent]);
 
   const { critiqueActionableSplit, critiqueActionableUi } = useCritiqueActionableUi({
     activeRequest,
@@ -3494,47 +2134,6 @@ ${requirementsBlock}`;
       critiqueActionableSplit?.hasSection &&
       critiqueActionableSplit.items.length > 0
     ) && !busy;
-
-  // First-run mode reveal: after the first diagram, remind newcomers that modes
-  // also live in the bottom-bar Render as control (empty-state already surfaces
-  // Render as). Skipped when they already picked a mode on entry. Once-ever,
-  // persisted; stays clear of the stakeholder intro; dismisses on pick / close / timeout.
-  const dismissModeReveal = useCallback(() => {
-    if (modeRevealTimerRef.current) {
-      clearTimeout(modeRevealTimerRef.current);
-      modeRevealTimerRef.current = null;
-    }
-    setModeRevealActive(false);
-  }, []);
-
-  useEffect(() => {
-    if (modeRevealSeenRef.current) return;
-    if (!hasDiagramText) return;
-    // Don't stack onto the stakeholder intro or a busy editing surface.
-    if (stakeholderIntroActive || editorOpen || insightsOpen) return;
-    modeRevealSeenRef.current = true;
-    writeModeRevealSeen();
-    setModeRevealActive(true);
-    modeRevealTimerRef.current = setTimeout(() => {
-      modeRevealTimerRef.current = null;
-      setModeRevealActive(false);
-    }, 18_000);
-  }, [hasDiagramText, stakeholderIntroActive, editorOpen, insightsOpen]);
-
-  useEffect(
-    () => () => {
-      if (modeRevealTimerRef.current) clearTimeout(modeRevealTimerRef.current);
-    },
-    []
-  );
-
-  const handleModeRevealPick = useCallback(
-    (nextMode) => {
-      handleSelectContentMode(nextMode);
-      dismissModeReveal();
-    },
-    [handleSelectContentMode, dismissModeReveal]
-  );
 
   const { handleApplyStyleEdits } = useStyleEdits({
     activeSessionId,
@@ -3770,19 +2369,14 @@ ${requirementsBlock}`;
             onFormSubmit={handleFormSubmit}
           />
 
-          {modeRevealActive ? (
-            <ModeRevealSpotlight
-              eyebrow={controls.modeReveal.eyebrow}
-              body={controls.modeReveal.body}
-              modes={contentModeOptions.filter((m) => m.id !== 'auto')}
-              currentMode={contentMode}
-              onPickMode={handleModeRevealPick}
-              pickPrefix={controls.modeReveal.pickPrefix}
-              dismissLabel={controls.modeReveal.dismiss}
-              ariaLabel={controls.modeReveal.aria}
-              onDismiss={dismissModeReveal}
-            />
-          ) : null}
+          <ModeRevealSlot
+            active={modeRevealActive}
+            copy={controls.modeReveal}
+            modes={contentModeOptions.filter((m) => m.id !== 'auto')}
+            currentMode={contentMode}
+            onPickMode={handleModeRevealPick}
+            onDismiss={dismissModeReveal}
+          />
 
           <DiagramFullscreenOverlay
             isFullscreen={isFullscreen}
@@ -3891,157 +2485,38 @@ ${requirementsBlock}`;
             copy={controls.hotkeys}
           />
 
-          <TopShell>
-            <div
-              className={`brand-control ${narrowLayout ? 'is-mobile' : ''} ${narrowLayout && compactBrand ? 'is-compact' : ''} ${narrowLayout && (xpBarMobileOpen || !compactBrand) ? 'is-xp-open' : ''} ${slopitectTip ? 'has-tip' : ''} ${xpInfoPanelOpen ? 'is-info-panel-open' : ''}`}
-              aria-label="ArchiSlop"
-              onClick={handleBrandClick}
-            >
-              <div className="brand-control-chip">
-                <div className="brand-control-chip-row">
-                  <span className="brand-mark" aria-hidden="true">
-                    <ArchiSlopMarkIcon />
-                  </span>
-                  <span className="brand-name">ArchiSlop</span>
-                  {gamification?.prestigeShortLabel ? (
-                    narrowLayout && compactBrand ? (
-                      <button
-                        type="button"
-                        className="brand-prestige-badge"
-                        title={`${controls.brand.totalSlopRuns.replace('{count}', String(gamification.totalRuns ?? 0))} · ${xpBarMobileOpen ? controls.brand.tapToHideXp : controls.brand.tapToShowXp}`}
-                        data-testid="brand-prestige-badge"
-                        aria-expanded={xpBarMobileOpen}
-                        aria-controls="brand-xp-mobile-slot"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setXpBarMobileOpen((current) => !current);
-                        }}
-                      >
-                        {gamification.prestigeShortLabel}
-                      </button>
-                    ) : (
-                      <span
-                        className="brand-prestige-badge"
-                        title={controls.brand.totalSlopRuns.replace(
-                          '{count}',
-                          String(gamification.totalRuns ?? 0)
-                        )}
-                        data-testid="brand-prestige-badge"
-                      >
-                        {gamification.prestigeShortLabel}
-                      </span>
-                    )
-                  ) : null}
-                  {gamification?.level && !narrowLayout ? (
-                    <XpProgressBar
-                      level={gamification.level}
-                      short={gamification.levelShortLabel}
-                      flair={gamification.levelFlair}
-                      progressRatio={gamification.levelProgressRatio}
-                      xpInto={gamification.xpIntoLevel}
-                      xpForNext={gamification.xpForNextLevel}
-                      totalXp={gamification.xp}
-                      isMaxLevel={gamification.xpForNextLevel == null}
-                      flashKey={xpBarFlashKey}
-                      variant={liveVariant}
-                      onClick={() => setXpInfoPanelOpen((open) => !open)}
-                      expanded={xpInfoPanelOpen}
-                      controlsId="levelup-info-panel"
-                    />
-                  ) : null}
-                </div>
-                {gamification?.level && narrowLayout ? (
-                  <div
-                    id="brand-xp-mobile-slot"
-                    className={`brand-xp-mobile-slot ${xpBarMobileOpen || !compactBrand ? 'is-open' : ''} ${compactBrand ? '' : 'is-always-on'}`}
-                    aria-hidden={compactBrand ? !xpBarMobileOpen : false}
-                  >
-                    <XpProgressBar
-                      level={gamification.level}
-                      short={gamification.levelShortLabel}
-                      flair={gamification.levelFlair}
-                      progressRatio={gamification.levelProgressRatio}
-                      xpInto={gamification.xpIntoLevel}
-                      xpForNext={gamification.xpForNextLevel}
-                      totalXp={gamification.xp}
-                      isMaxLevel={gamification.xpForNextLevel == null}
-                      flashKey={xpBarFlashKey}
-                      variant={liveVariant}
-                      onClick={() => setXpInfoPanelOpen((open) => !open)}
-                      expanded={xpInfoPanelOpen}
-                      controlsId="levelup-info-panel"
-                    />
-                  </div>
-                ) : null}
-              </div>
-              {xpInfoPanelOpen && gamification?.level ? (
-                <div
-                  id="levelup-info-panel"
-                  className="levelup-info-panel-mount"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <LevelUpInfoPanel
-                    level={gamification.level}
-                    levelTitle={gamification.levelTitle}
-                    levelFlair={gamification.levelFlair}
-                    levelShortLabel={gamification.levelShortLabel}
-                    progressRatio={gamification.levelProgressRatio}
-                    xpInto={gamification.xpIntoLevel}
-                    xpForNext={gamification.xpForNextLevel}
-                    totalXp={gamification.xp}
-                    isMaxLevel={gamification.xpForNextLevel == null}
-                    prestigeShortLabel={gamification.prestigeShortLabel}
-                    totalRuns={gamification.totalRuns}
-                    runsByVariant={gamification.runsByVariant}
-                    achievements={gamification.achievements}
-                    lifetimeLlmCostUsd={gamification.lifetimeLlmCostUsd ?? 0}
-                    costTrackingEnabled={costTrackingEnabled}
-                    userName={resolveUserName()}
-                    onClose={() => setXpInfoPanelOpen(false)}
-                  />
-                </div>
-              ) : null}
-              {slopitectTip ? (
-                <div
-                  ref={slopitectTipRef}
-                  className="slopitect-tip-chip"
-                  role="status"
-                  aria-live="polite"
-                  data-testid="slopitect-tip-chip"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    dismissSlopitectTip();
-                  }}
-                >
-                  <span className="slopitect-tip-chip-label" aria-hidden="true">
-                    {controls.insights.tipLabel}
-                  </span>
-                  <span className="slopitect-tip-chip-text">{slopitectTip.text}</span>
-                </div>
-              ) : null}
-            </div>
-
-            {fullscreenSupported && (hasCanvasContent || editorOpen) ? (
-              <div className="top-corner-controls" aria-label={controls.diagramSurface.controls}>
-                <DiagramFullscreenButton
-                  isFullscreen={isFullscreen}
-                  disabled={streamingPreview}
-                  onToggle={toggleFullscreen}
-                />
-              </div>
-            ) : null}
-          </TopShell>
-
-          <AgentHandshakeDialog
-            request={pendingHandshake}
-            onApprove={handleApproveHandshake}
-            onDeny={handleDenyHandshake}
+          <BrandChromeSlot
+            narrowLayout={narrowLayout}
+            compactBrand={compactBrand}
+            xpBarMobileOpen={xpBarMobileOpen}
+            onToggleXpBarMobile={() => setXpBarMobileOpen((current) => !current)}
+            slopitectTip={slopitectTip}
+            slopitectTipRef={slopitectTipRef}
+            onDismissSlopitectTip={dismissSlopitectTip}
+            xpInfoPanelOpen={xpInfoPanelOpen}
+            onToggleXpInfoPanel={() => setXpInfoPanelOpen((open) => !open)}
+            onCloseXpInfoPanel={() => setXpInfoPanelOpen(false)}
+            gamification={gamification}
+            xpBarFlashKey={xpBarFlashKey}
+            liveVariant={liveVariant}
+            controls={controls}
+            onBrandClick={handleBrandClick}
+            costTrackingEnabled={costTrackingEnabled}
+            fullscreenSupported={fullscreenSupported}
+            hasCanvasContent={hasCanvasContent}
+            editorOpen={editorOpen}
+            isFullscreen={isFullscreen}
+            streamingPreview={streamingPreview}
+            onToggleFullscreen={toggleFullscreen}
           />
 
-          <InviteAgentDialog
-            sessionId={activeSessionId}
-            open={inviteDialogOpen}
-            onClose={() => setInviteDialogOpen(false)}
+          <SessionCollaborationSlot
+            activeSessionId={activeSessionId}
+            pendingHandshake={pendingHandshake}
+            onApproveHandshake={handleApproveHandshake}
+            onDenyHandshake={handleDenyHandshake}
+            inviteDialogOpen={inviteDialogOpen}
+            onInviteDialogClose={() => setInviteDialogOpen(false)}
           />
 
           <ClearConfirmDialog
@@ -4079,341 +2554,57 @@ ${requirementsBlock}`;
               ) : null
             }
             actions={
-              !hasCanvasContent && !insightsOpen ? (
-                showEntryDeskIntro ? (
-                  <div className="entry-desk-integrated">
-                    <EntryDeskIntro
-                      copy={controls.prompt.entryIntro}
-                      userName={userName}
-                      role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
-                    />
-                    {showEntryDeskPointers ? (
-                      <EntryDeskPointers
-                        pointers={controls.prompt.entryPointers}
-                        onDismiss={dismissEntryDeskPointers}
-                      />
-                    ) : null}
-                    <div
-                      className={`prompt-actions prompt-actions--entry-desk${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
-                    >
-                      <div className="button-group desk-primary-group">
-                        <div
-                          id="office-desk-bottom-slot"
-                          ref={deskSlotRef}
-                          className="bottom-office-desk-slot"
-                        />
-                        <SlopNextPrompt
-                          layout="desk"
-                          prompt={deskPrompt}
-                          busy={busy}
-                          voiceSupported={voiceSupported}
-                          voiceListening={voiceListening}
-                          narrowLayout={narrowLayout}
-                          speechRecognitionCtor={SpeechRecognitionCtor}
-                          PromptIcon={PromptIcon}
-                          MicIcon={MicIcon}
-                          MicActiveIcon={MicActiveIcon}
-                          ButtonIcon={ButtonIcon}
-                          copy={controls.prompt}
-                          onPromptChange={setDeskPrompt}
-                          onSubmit={handleDeskPromptSubmit}
-                          onMicToggleClick={handleMicToggleClick}
-                          onMicPointerDown={handleMicPointerDown}
-                          onMicPointerUp={handleMicPointerUp}
-                          onMicLostPointerCapture={() => stopVoiceInput()}
-                        />
-                      </div>
-                    </div>
-                    <EntryRenderAs
-                      label={controls.prompt.renderAsLabel}
-                      hint={controls.prompt.renderAsHint}
-                      ariaLabel={controls.prompt.renderAsAria}
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleEntryRenderAsPick}
-                      pickPrefix={controls.modeReveal.pickPrefix}
-                      disabled={busy || loading || streamingPreview}
-                    />
-                  </div>
-                ) : (
-                  <div className="entry-desk-fallback">
-                    <EntryRenderAs
-                      label={controls.prompt.renderAsLabel}
-                      hint={controls.prompt.renderAsHint}
-                      ariaLabel={controls.prompt.renderAsAria}
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleEntryRenderAsPick}
-                      pickPrefix={controls.modeReveal.pickPrefix}
-                      disabled={busy || loading || streamingPreview}
-                    />
-                    <form className="prompt-control" onSubmit={runIntentChange}>
-                      <label className="sr-only" htmlFor="diagram-change-prompt">
-                        {controls.prompt.yourTopic}
-                      </label>
-                      <input
-                        id="diagram-change-prompt"
-                        value={prompt}
-                        onChange={(event) => setPrompt(event.target.value)}
-                        placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
-                        disabled={busy}
-                        aria-invalid={error ? 'true' : 'false'}
-                        aria-describedby={status ? 'app-status' : undefined}
-                      />
-                      <div className="prompt-actions-main">
-                        <button
-                          type="button"
-                          className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-                          disabled={!voiceSupported || busy}
-                          {...(narrowLayout
-                            ? {
-                                onPointerUp: (event) => {
-                                  event.preventDefault();
-                                  event.stopPropagation();
-                                  handleMicToggleClick(event);
-                                }
-                              }
-                            : {
-                                onPointerDown: handleMicPointerDown,
-                                onPointerUp: handleMicPointerUp,
-                                onPointerCancel: handleMicPointerUp,
-                                onLostPointerCapture: () => stopVoiceInput(),
-                                onKeyDown: (event) => {
-                                  if (event.repeat) return;
-                                  if (event.key === ' ' || event.key === 'Enter') {
-                                    event.preventDefault();
-                                    startVoiceInput();
-                                  }
-                                },
-                                onKeyUp: (event) => {
-                                  if (event.key === ' ' || event.key === 'Enter') {
-                                    event.preventDefault();
-                                    stopVoiceInput();
-                                  }
-                                }
-                              })}
-                          aria-label={
-                            narrowLayout
-                              ? voiceListening
-                                ? controls.prompt.tapToStop
-                                : controls.prompt.tapToDictate
-                              : controls.prompt.holdToSpeak
-                          }
-                          aria-pressed={narrowLayout ? voiceListening : undefined}
-                          title={
-                            voiceSupported
-                              ? narrowLayout
-                                ? voiceListening
-                                  ? controls.prompt.tapToStop
-                                  : controls.prompt.tapToDictatePrompt
-                                : controls.prompt.holdToDictate
-                              : SpeechRecognitionCtor
-                                ? controls.prompt.voiceNeedsHttps
-                                : controls.prompt.voiceUnsupported
-                          }
-                        >
-                          <ButtonIcon>
-                            {voiceListening ? <MicActiveIcon /> : <MicIcon />}
-                          </ButtonIcon>
-                          <span className="button-label">{controls.prompt.mic}</span>
-                        </button>
-                        <button
-                          type="submit"
-                          className="overlay-button primary-button"
-                          disabled={busy || !prompt.trim()}
-                        >
-                          <ButtonIcon>{'>'}</ButtonIcon>
-                          <span className="button-label">{controls.prompt.doIt}</span>
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                )
-              ) : hasCanvasContent && !narrowLayout ? (
-                <div className="prompt-actions prompt-actions--desktop">
-                  <div className="button-group desk-primary-group">
-                    <div
-                      id="office-desk-bottom-slot"
-                      ref={deskSlotRef}
-                      className="bottom-office-desk-slot"
-                    />
-                    <SlopNextPrompt
-                      layout="desk"
-                      prompt={deskPrompt}
-                      busy={busy}
-                      voiceSupported={voiceSupported}
-                      voiceListening={voiceListening}
-                      narrowLayout={narrowLayout}
-                      speechRecognitionCtor={SpeechRecognitionCtor}
-                      PromptIcon={PromptIcon}
-                      MicIcon={MicIcon}
-                      MicActiveIcon={MicActiveIcon}
-                      ButtonIcon={ButtonIcon}
-                      copy={controls.prompt}
-                      onPromptChange={setDeskPrompt}
-                      onSubmit={handleDeskPromptSubmit}
-                      onMicToggleClick={handleMicToggleClick}
-                      onMicPointerDown={handleMicPointerDown}
-                      onMicPointerUp={handleMicPointerUp}
-                      onMicLostPointerCapture={() => stopVoiceInput()}
-                    />
-                    <div className="desk-people-group">
-                      <StakeholdersMascot
-                        personas={[
-                          {
-                            variant: 'refine',
-                            onClick: () => runTransform('refine', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'innovate',
-                            onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'goMad',
-                            label: goMadShapeLabel(goMadStreak, controls.actions),
-                            onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'critique',
-                            onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'explain',
-                            onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                          },
-                          // Senior tier: the VP is not a teammate — this action preps
-                          // the diagram for upstairs (castTiers.js).
-                          {
-                            variant: 'exec',
-                            senior: true,
-                            onClick: () => runTransform('exec', { useDiagramFocus: true })
-                          }
-                        ]}
-                        activeAdvisorVariant={advisor.activePersona}
-                        thinkingPersona={advisor.thinkingPersona}
-                        busy={busy}
-                        bubbleProps={advisorBubbleProps}
-                        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                        castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                        introProps={stakeholderIntroProps}
-                        isMuted={advisor.isMuted}
-                        onToggleMute={() => advisor.toggleMute()}
-                        onTalkToTeam={() => advisor.promptNext({})}
-                        onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-                        canTalkToTeam={
-                          Boolean((state.diagramSource ?? '').trim()) &&
-                          !advisor.thinkingPersona &&
-                          !advisorPause
-                        }
-                        canCallMeeting={Boolean((state.diagramSource ?? '').trim())}
-                      />
-                    </div>
-                    <DeskDrawer
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleSelectContentMode}
-                      canFix={Boolean(latestCritique?.text)}
-                      fixDisabled={!canFixFromCritique}
-                      onFix={() => handleFixFromCritique('all')}
-                      onDemolish={() => handleClearDiagram()}
-                      busy={busy}
-                      modeDisabled={loading || streamingPreview}
-                    />
-                  </div>
-                </div>
-              ) : hasCanvasContent && narrowLayout ? (
-                <div className="prompt-actions prompt-actions--mobile">
-                  <div className="button-group desk-primary-group">
-                    <div
-                      id="office-desk-bottom-slot"
-                      ref={deskSlotRef}
-                      className="bottom-office-desk-slot"
-                    />
-                    <SlopNextPrompt
-                      layout="desk"
-                      prompt={deskPrompt}
-                      busy={busy}
-                      voiceSupported={voiceSupported}
-                      voiceListening={voiceListening}
-                      narrowLayout={narrowLayout}
-                      speechRecognitionCtor={SpeechRecognitionCtor}
-                      PromptIcon={PromptIcon}
-                      MicIcon={MicIcon}
-                      MicActiveIcon={MicActiveIcon}
-                      ButtonIcon={ButtonIcon}
-                      copy={controls.prompt}
-                      onPromptChange={setDeskPrompt}
-                      onSubmit={handleDeskPromptSubmit}
-                      onMicToggleClick={handleMicToggleClick}
-                      onMicPointerDown={handleMicPointerDown}
-                      onMicPointerUp={handleMicPointerUp}
-                      onMicLostPointerCapture={() => stopVoiceInput()}
-                    />
-                    <div className="desk-people-group">
-                      <StakeholdersMascot
-                        personas={[
-                          {
-                            variant: 'refine',
-                            onClick: () => runTransform('refine', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'innovate',
-                            onClick: () => runTransform('innovate', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'goMad',
-                            label: goMadShapeLabel(goMadStreak, controls.actions),
-                            onClick: () => runTransform('goMad', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'critique',
-                            onClick: () => runAnalyze('critique', { useDiagramFocus: true })
-                          },
-                          {
-                            variant: 'explain',
-                            onClick: () => runAnalyze('explain', { useDiagramFocus: true })
-                          },
-                          // Senior tier: the VP is not a teammate — this action preps
-                          // the diagram for upstairs (castTiers.js).
-                          {
-                            variant: 'exec',
-                            senior: true,
-                            onClick: () => runTransform('exec', { useDiagramFocus: true })
-                          }
-                        ]}
-                        activeAdvisorVariant={advisor.activePersona}
-                        thinkingPersona={advisor.thinkingPersona}
-                        busy={busy}
-                        bubbleProps={advisorBubbleProps}
-                        onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
-                        castDisabled={busy || Boolean(advisor.thinkingPersona)}
-                        introProps={stakeholderIntroProps}
-                        isMuted={advisor.isMuted}
-                        onToggleMute={() => advisor.toggleMute()}
-                        onTalkToTeam={() => advisor.promptNext({})}
-                        onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-                        canTalkToTeam={
-                          Boolean((state.diagramSource ?? '').trim()) &&
-                          !advisor.thinkingPersona &&
-                          !advisorPause
-                        }
-                        canCallMeeting={Boolean((state.diagramSource ?? '').trim())}
-                      />
-                    </div>
-                    <DeskDrawer
-                      modes={contentModeOptions}
-                      currentMode={contentMode}
-                      onPickMode={handleSelectContentMode}
-                      canFix={Boolean(latestCritique?.text)}
-                      fixDisabled={!canFixFromCritique}
-                      onFix={() => handleFixFromCritique('all')}
-                      onDemolish={() => handleClearDiagram()}
-                      busy={busy}
-                      modeDisabled={loading || streamingPreview}
-                    />
-                  </div>
-                </div>
-              ) : null
+              <DeskBottomActionsSlot
+                hasCanvasContent={hasCanvasContent}
+                insightsOpen={insightsOpen}
+                showEntryDeskIntro={showEntryDeskIntro}
+                showEntryDeskPointers={showEntryDeskPointers}
+                narrowLayout={narrowLayout}
+                busy={busy}
+                loading={loading}
+                streamingPreview={streamingPreview}
+                controls={controls}
+                userName={userName}
+                contentMode={contentMode}
+                contentModeOptions={contentModeOptions}
+                deskSlotRef={deskSlotRef}
+                deskPrompt={deskPrompt}
+                setDeskPrompt={setDeskPrompt}
+                prompt={prompt}
+                setPrompt={setPrompt}
+                voiceSupported={voiceSupported}
+                voiceListening={voiceListening}
+                speechRecognitionCtor={SpeechRecognitionCtor}
+                PromptIcon={PromptIcon}
+                MicIcon={MicIcon}
+                MicActiveIcon={MicActiveIcon}
+                ButtonIcon={ButtonIcon}
+                handleDeskPromptSubmit={handleDeskPromptSubmit}
+                handleMicToggleClick={handleMicToggleClick}
+                handleMicPointerDown={handleMicPointerDown}
+                handleMicPointerUp={handleMicPointerUp}
+                stopVoiceInput={stopVoiceInput}
+                startVoiceInput={startVoiceInput}
+                dismissEntryDeskPointers={dismissEntryDeskPointers}
+                handleEntryRenderAsPick={handleEntryRenderAsPick}
+                runIntentChange={runIntentChange}
+                runTransform={runTransform}
+                runAnalyze={runAnalyze}
+                advisor={advisor}
+                advisorBubbleProps={advisorBubbleProps}
+                stakeholderIntroProps={stakeholderIntroProps}
+                advisorPause={advisorPause}
+                goMadStreak={goMadStreak}
+                diagramSource={state.diagramSource}
+                onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+                handleSelectContentMode={handleSelectContentMode}
+                latestCritique={latestCritique}
+                canFixFromCritique={canFixFromCritique}
+                handleFixFromCritique={handleFixFromCritique}
+                handleClearDiagram={handleClearDiagram}
+                error={error}
+                status={status}
+              />
             }
             aiControls={
               // Empty intro: Settings only clutter the first screen. Keep the
