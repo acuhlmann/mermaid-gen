@@ -746,7 +746,12 @@ export const OFFICE_EN_AU = {
       narrationTitle:
         'Speak walk-bys, meetings, cubicle battles, and coffee chat aloud — emails and IMs stay silent',
       emptyLine: "Inbox zero. HR reckons that's suss. Enjoy it while it lasts.",
-      callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda, mate'
+      selectEmailAria: 'Select email from {name} for a meeting',
+      callMeetingFromSelectionTitle:
+        'Call a meeting with the selected senders about their email thread',
+      callMeetingSelectTitle: 'Select one or more emails, then call a meeting with those senders',
+      callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda, mate',
+      callMeetingAboutEmail: '📅 Call a meeting about this email'
     },
     coffee: {
       inviteLine: 'Coffee break? {name} is holding court at the machine.',
