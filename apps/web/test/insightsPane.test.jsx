@@ -243,7 +243,7 @@ describe('InsightsPane', () => {
     );
 
     expect(screen.getAllByText('Done').length).toBeGreaterThan(0);
-    expect(screen.getByText('Thinking')).toBeTruthy();
+    expect(screen.getByText('Notebook')).toBeTruthy();
     expect(screen.getByTestId('run-timeline-terminal')).toBeTruthy();
     expect(screen.queryByTestId('insights-pane-persona')).toBeNull();
     expect(screen.queryByTestId('insights-tagline')).toBeNull();

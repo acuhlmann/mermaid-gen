@@ -154,7 +154,7 @@ export default function OfficeLayer({
     [narrateLine]
   );
 
-  const { meeting, startMeeting, interject, leaveMeeting, closeMeeting } = useMeetingPlayback({
+  const { meeting, startMeeting, interject, closeMeeting } = useMeetingPlayback({
     getSessionId,
     getContentType,
     getDiagramSource,
@@ -368,17 +368,23 @@ export default function OfficeLayer({
     if (callMeetingSignal > 0) handleCallMeeting();
   }, [callMeetingSignal, handleCallMeeting]);
 
-  const handleMeetingClose = useCallback(() => {
+  const handleMeetingDismiss = useCallback(() => {
     const current = meeting;
-    if (current && current.state === 'ended') {
+    if (!current) {
+      closeMeeting();
+      return;
+    }
+    if (current.state === 'ended' && current.completed) {
       onMeetingMinutes?.(
         officeMinutesToInsightEntry({
           title: current.title,
           minutes: meetingMinutes(current),
-          completed: current.completed
+          completed: true
         })
       );
-      onOfficeEvent?.(current.completed ? 'meetingSurvived' : 'meetingLeftEarly');
+      onOfficeEvent?.('meetingSurvived');
+    } else {
+      onOfficeEvent?.('meetingLeftEarly');
     }
     closeMeeting();
   }, [meeting, onMeetingMinutes, onOfficeEvent, closeMeeting]);
@@ -531,8 +537,8 @@ export default function OfficeLayer({
       <MeetingOverlay
         meeting={meeting}
         onInterject={interject}
-        onLeave={leaveMeeting}
-        onClose={handleMeetingClose}
+        onLeave={handleMeetingDismiss}
+        onClose={handleMeetingDismiss}
         onAdoptPrompt={handleAdopt}
       />
     </div>
