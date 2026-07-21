@@ -3,6 +3,8 @@ import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
 import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
+import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
+import ConcentrationControl from '../../components/ConcentrationControl.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
 function DeskPeopleCluster({
@@ -64,6 +66,7 @@ function DeskChromeRow({
   deskSlotRef,
   showDeskSlot = true,
   showTeam = true,
+  showNotebook = true,
   showDrawer = true,
   deskPrompt,
   busy,
@@ -82,6 +85,11 @@ function DeskChromeRow({
   onMicPointerDown,
   onMicPointerUp,
   onMicLostPointerCapture,
+  modelProfile,
+  onSelectModelProfile,
+  thinkingOpen,
+  onToggleThinking,
+  canToggleThinking = true,
   goMadStreak,
   controls,
   runTransform,
@@ -105,16 +113,16 @@ function DeskChromeRow({
   tourHighlight = null
 }) {
   return (
-    <div className="button-group desk-primary-group">
+    <div className="button-group desk-primary-group desk-chrome-layout">
       {showDeskSlot ? (
         <div
           id="office-desk-bottom-slot"
           ref={deskSlotRef}
-          className={`bottom-office-desk-slot${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
+          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--desk${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
         />
       ) : null}
       <div
-        className={`desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
+        className={`desk-work-order-group desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
       >
         <SlopNextPrompt
           layout="desk"
@@ -136,15 +144,18 @@ function DeskChromeRow({
           onMicPointerUp={onMicPointerUp}
           onMicLostPointerCapture={onMicLostPointerCapture}
         />
+        <ConcentrationControl
+          variant="footer"
+          modelProfile={modelProfile}
+          onSelectModelProfile={onSelectModelProfile}
+        />
         <span hidden data-testid="desk-prompt-change-wired">
           {typeof onPromptChange === 'function' ? 'yes' : 'no'}
         </span>
-        {/* remove after debug */}
-        {null}
       </div>
       {showTeam ? (
         <div
-          className={`desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
+          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
         >
           <DeskPeopleCluster
             goMadStreak={goMadStreak}
@@ -161,9 +172,21 @@ function DeskChromeRow({
           />
         </div>
       ) : null}
+      {showNotebook ? (
+        <div
+          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
+        >
+          <DeskNotebookButton
+            thinkingOpen={thinkingOpen}
+            onToggleThinking={onToggleThinking}
+            disabled={!canToggleThinking}
+            busy={busy}
+          />
+        </div>
+      ) : null}
       {showDrawer ? (
         <div
-          className={`desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
+          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
         >
           <DeskDrawer
             modes={contentModeOptions}
@@ -237,12 +260,17 @@ export function DeskBottomActionsSlot({
   latestCritique,
   canFixFromCritique,
   handleFixFromCritique,
-  handleClearDiagram
+  handleClearDiagram,
+  modelProfile,
+  onSelectModelProfile,
+  onToggleThinking,
+  canToggleThinking = true
 }) {
   const reveal = entryReveal ?? {
     workOrder: true,
     desk: true,
     team: true,
+    notebook: true,
     drawer: true
   };
   const tourCopy = controls.prompt.entryTour ?? {};
@@ -252,6 +280,7 @@ export function DeskBottomActionsSlot({
     deskSlotRef,
     showDeskSlot: reveal.desk,
     showTeam: reveal.team,
+    showNotebook: reveal.notebook,
     showDrawer: reveal.drawer,
     deskPrompt,
     busy,
@@ -270,6 +299,11 @@ export function DeskBottomActionsSlot({
     onMicPointerDown: handleMicPointerDown,
     onMicPointerUp: handleMicPointerUp,
     onMicLostPointerCapture: () => stopVoiceInput(),
+    modelProfile,
+    onSelectModelProfile,
+    thinkingOpen: insightsOpen,
+    onToggleThinking,
+    canToggleThinking,
     goMadStreak,
     controls,
     runTransform,
@@ -329,7 +363,7 @@ export function DeskBottomActionsSlot({
 
   return (
     <div className={`prompt-actions ${layoutClass}`}>
-      <DeskChromeRow {...chromeProps} showDeskSlot showTeam showDrawer />
+      <DeskChromeRow {...chromeProps} showDeskSlot showTeam showNotebook showDrawer />
     </div>
   );
 }

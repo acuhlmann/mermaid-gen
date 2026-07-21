@@ -1104,6 +1104,8 @@ export const OFFICE_CHROME_COPY = {
     onboardContractorTitle: 'Invite an external agent over MCP',
     thinking: 'Open your notebook',
     thinkingClose: 'Close your notebook',
+    thinkingShort: 'Notebook',
+    thinkingRole: 'Thinking',
     thinkingTitle: 'Your notebook · notes, critiques, and run history',
     blocked: {
       busy: 'Deploy in progress — nobody leaves their desk.',

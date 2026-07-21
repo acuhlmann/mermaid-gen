@@ -43,6 +43,8 @@ import {
   statusLabel
 } from './insightsPaneEntryUi.js';
 import { ThinkingPanelIcon } from './AppIcons.jsx';
+import ConcentrationControl from './ConcentrationControl.jsx';
+import { officeChromeCopy } from '../utils/officeCast.js';
 import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
@@ -1111,10 +1113,16 @@ export default function InsightsPane({
   explainDumbLevelByEntryId = null,
   explainDumbLoadingEntryId = null,
   explainDumbSurrenderedEntryIds = null,
-  onExplainDumbDown
+  onExplainDumbDown,
+  modelProfile = 'fast',
+  onSelectModelProfile = null,
+  editorOpen = false,
+  onToggleEditor = null,
+  canToggleEditor = false
 }) {
   const { controls } = useUiCopy();
   const insightsCopy = controls.insights;
+  const deskCopy = officeChromeCopy().desk;
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
   const hasLiveAgent = entries.some((e) => (e.status ?? 'running') === 'running');
@@ -1182,6 +1190,37 @@ export default function InsightsPane({
               <span className="insights-live-dot" aria-hidden="true" />
               {insightsCopy.live}
             </span>
+          ) : null}
+        </div>
+        <div className="insights-pane-header-tools" data-testid="insights-pane-header-tools">
+          <ConcentrationControl
+            variant="header"
+            modelProfile={modelProfile}
+            onSelectModelProfile={onSelectModelProfile}
+          />
+          {typeof onToggleEditor === 'function' ? (
+            <button
+              type="button"
+              className={`insights-pane-tool-btn${editorOpen ? ' is-active' : ''}`}
+              aria-pressed={editorOpen}
+              disabled={!canToggleEditor}
+              title={
+                canToggleEditor
+                  ? editorOpen
+                    ? deskCopy.codeDrawerClose
+                    : deskCopy.codeDrawerTitle
+                  : deskCopy.blocked?.noCode
+              }
+              data-testid="insights-code-drawer-toggle"
+              onClick={() => onToggleEditor()}
+            >
+              <span className="insights-pane-tool-emoji" aria-hidden="true">
+                {'</>'}
+              </span>
+              <span className="insights-pane-tool-label">
+                {editorOpen ? deskCopy.codeDrawerClose : deskCopy.codeDrawer}
+              </span>
+            </button>
           ) : null}
         </div>
         {hasLiveAgent && liveEntry?.variant ? (

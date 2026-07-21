@@ -72,7 +72,12 @@ export const CONTROLS_EN = {
       {
         id: 'desk',
         label: 'Your desk',
-        text: 'Tap the helmet for notebook, mail, export, settings, and more.'
+        text: 'Tap the helmet for mail, export, and more. The notebook icon beside the desk tray opens your thinking notes.'
+      },
+      {
+        id: 'notebook',
+        label: 'Notebook',
+        text: 'Open your notebook for run history, critiques, and the code drawer.'
       },
       {
         id: 'team',
@@ -90,7 +95,7 @@ export const CONTROLS_EN = {
       skip: 'Skip tour'
     },
     renderAsHint:
-      'Pick a format from the Desk tray before you generate. Your desk helmet has export, settings, and more.',
+      'Pick a format from the Desk tray before you generate. Your desk helmet has export and mail; the notebook icon opens thinking notes and the code drawer.',
     // Starters double as in-fiction assignments: `fromId` names the requester
     // (any cast id officeSenderInfo can resolve) and `ask` is their one-line
     // justification. `label`/`prompt` stay the real generation inputs — locale
@@ -181,7 +186,7 @@ export const CONTROLS_EN = {
     externalAgents: 'External agents',
     waitingHandshake: 'Waiting for handshake:',
     externalAgentFallback: 'External agent',
-    // Concentration lives on Your seat (desk menu); labels still used in run meta.
+    // Concentration lives on the Work Order footer and Thinking header.
     brain: 'Concentration',
     fast: 'Rush job',
     quality: 'Deep work',

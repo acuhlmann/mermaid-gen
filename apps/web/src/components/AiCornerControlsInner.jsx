@@ -9,8 +9,8 @@ const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 /**
  * Right-cluster of the bottom row: Outbox + Settings panels live here as
  * headless chrome opened from desk verbs (and force-opened for a pending
- * handshake). Concentration lives on Your seat in the desk menu; Thinking
- * (notebook) toggles from there too. The Settings panel renders as a floating
+ * handshake). Concentration lives on the Work Order footer and Thinking header;
+ * the notebook icon toggles Thinking from the bottom chrome. The Settings panel renders as a floating
  * popover when `popoverMode` is true (desktop) and inline when false. A pending
  * handshake force-opens the panel inline regardless of mode so the user can't
  * accidentally dismiss it.

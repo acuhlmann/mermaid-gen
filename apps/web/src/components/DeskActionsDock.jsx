@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
-import { useUiCopy } from '../i18n/useUiLocale.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a geography-grouped menu — Your seat (notebook
- * + concentration), Get up (wander / bother), Under the desk (workstation / HR).
+ * ArchiSlop helmet stamp opens a geography-grouped menu — Get up (wander /
+ * bother), Under the desk (contractor / HR). Notebook, concentration, and the
+ * code drawer live on the bottom chrome and Thinking pane header.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
@@ -21,17 +21,9 @@ export default function DeskActionsDock({
   onOpenSlopChat,
   onCheckHrProgression,
   onOpenOutbox,
-  onToggleEditor,
   onInviteAgent,
-  onToggleThinking,
-  modelProfile = 'fast',
-  onSelectModelProfile = null,
   blockedReason = null,
   canOpenOutbox = false,
-  canToggleThinking = false,
-  canToggleEditor = false,
-  editorOpen = false,
-  thinkingOpen = false,
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
@@ -41,8 +33,6 @@ export default function DeskActionsDock({
   const rootRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-actions-menu', open);
   const copy = officeChromeCopy().desk;
-  const { controls } = useUiCopy();
-  const settingsCopy = controls.settings;
 
   useEffect(() => {
     if (initialOpen) setOpen(true);
@@ -58,19 +48,6 @@ export default function DeskActionsDock({
   }, [open]);
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
-
-  const seatVerbs = [
-    {
-      id: 'thinking',
-      label: thinkingOpen ? copy.thinkingClose : copy.thinking,
-      emoji: '📓',
-      run: onToggleThinking,
-      alwaysEnabled: true,
-      disabled: !canToggleThinking,
-      disabledTitle: copy.blocked?.noThinking,
-      title: copy.thinkingTitle
-    }
-  ];
 
   const getUpVerbs = [
     {
@@ -105,16 +82,6 @@ export default function DeskActionsDock({
   ];
 
   const underDeskVerbs = [
-    {
-      id: 'code',
-      label: editorOpen ? copy.codeDrawerClose : copy.codeDrawer,
-      emoji: '</>',
-      run: onToggleEditor,
-      alwaysEnabled: true,
-      disabled: !canToggleEditor,
-      disabledTitle: copy.blocked?.noCode,
-      title: copy.codeDrawerTitle
-    },
     {
       id: 'contractor',
       label: copy.onboardContractor,
@@ -196,39 +163,6 @@ export default function DeskActionsDock({
           role="menu"
           aria-label={copy.menuAria}
         >
-          <p className="desk-actions-heading">{copy.sectionSeat ?? 'Your seat'}</p>
-          {seatVerbs.map(renderVerb)}
-          <div
-            className="desk-actions-concentration"
-            role="group"
-            aria-label={settingsCopy.brain}
-            title={settingsCopy.concentrationTitle ?? settingsCopy.brain}
-          >
-            <span className="desk-actions-concentration-label">
-              <span className="desk-actions-item-emoji" aria-hidden="true">
-                🎚️
-              </span>
-              {settingsCopy.brain}
-            </span>
-            <div className="desk-actions-concentration-segment">
-              <button
-                type="button"
-                className={`desk-actions-concentration-option${modelProfile === 'fast' ? ' is-selected' : ''}`}
-                aria-pressed={modelProfile === 'fast'}
-                onClick={() => onSelectModelProfile?.('fast')}
-              >
-                {settingsCopy.fast}
-              </button>
-              <button
-                type="button"
-                className={`desk-actions-concentration-option${modelProfile === 'quality' ? ' is-selected' : ''}`}
-                aria-pressed={modelProfile === 'quality'}
-                onClick={() => onSelectModelProfile?.('quality')}
-              >
-                {settingsCopy.quality}
-              </button>
-            </div>
-          </div>
           <p className="desk-actions-heading">{copy.sectionGetUp ?? 'Get up'}</p>
           {getUpVerbs.map(renderVerb)}
           <p className="desk-actions-heading">{copy.sectionUnderDesk ?? 'Under the desk'}</p>

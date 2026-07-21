@@ -834,13 +834,10 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     try {
       render(<App />);
-      await waitFor(() => expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy());
-      fireEvent.click(screen.getByTestId('bottom-brand-mark'));
-      await waitFor(() => {
-        const item = screen.getByRole('menuitem', { name: /Open your notebook/ });
-        expect(item.disabled).toBe(false);
-      });
-      fireEvent.click(screen.getByRole('menuitem', { name: /Open your notebook/ }));
+      await waitFor(() => expect(screen.getByTestId('desk-notebook-button')).toBeTruthy());
+      const notebookBtn = screen.getByTestId('desk-notebook-button');
+      expect(notebookBtn.disabled).toBe(false);
+      fireEvent.click(notebookBtn);
       await waitFor(() =>
         expect(document.querySelector('.app-shell')?.className).toContain('is-insights-open')
       );

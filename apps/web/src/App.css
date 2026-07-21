@@ -5527,7 +5527,8 @@
      via #office-desk-bottom-slot and shares stamp sizing/baseline. */
   .prompt-actions--mobile .overlay-button.slop-action-button,
   .prompt-actions--mobile .stakeholders-mascot.slop-action-button,
-  .prompt-actions--mobile .render-as-mascot.slop-action-button {
+  .prompt-actions--mobile .render-as-mascot.slop-action-button,
+  .prompt-actions--mobile .slop-action-button.is-desk-notebook {
     flex: 0 0 auto;
     min-width: 0;
     width: auto;
@@ -5547,7 +5548,8 @@
 
   .prompt-actions--mobile .overlay-button.slop-action-button::before,
   .prompt-actions--mobile .stakeholders-mascot.slop-action-button::before,
-  .prompt-actions--mobile .render-as-mascot.slop-action-button::before {
+  .prompt-actions--mobile .render-as-mascot.slop-action-button::before,
+  .prompt-actions--mobile .slop-action-button.is-desk-notebook::before {
     content: none;
   }
 
@@ -5556,7 +5558,9 @@
   .prompt-actions--mobile .stakeholders-mascot:hover:not(:disabled),
   .prompt-actions--mobile .stakeholders-mascot:focus-visible:not(:disabled),
   .prompt-actions--mobile .render-as-mascot:hover:not(:disabled),
-  .prompt-actions--mobile .render-as-mascot:focus-visible:not(:disabled) {
+  .prompt-actions--mobile .render-as-mascot:focus-visible:not(:disabled),
+  .prompt-actions--mobile .slop-action-button.is-desk-notebook:hover:not(:disabled),
+  .prompt-actions--mobile .slop-action-button.is-desk-notebook:focus-visible:not(:disabled) {
     border: none;
     background: transparent;
     box-shadow: none;
@@ -5568,6 +5572,7 @@
   }
 
   .prompt-actions--mobile .overlay-button.slop-action-button .action-persona-icon,
+  .prompt-actions--mobile .slop-action-button.is-desk-notebook .action-persona-icon,
   .prompt-actions--mobile .stakeholders-mascot .stakeholders-mascot-emoji {
     width: 2.15rem;
     height: 2.15rem;
@@ -5580,6 +5585,12 @@
     .action-persona-icon,
   .prompt-actions--mobile
     .overlay-button.slop-action-button:focus-visible:not(:disabled)
+    .action-persona-icon,
+  .prompt-actions--mobile
+    .slop-action-button.is-desk-notebook:hover:not(:disabled)
+    .action-persona-icon,
+  .prompt-actions--mobile
+    .slop-action-button.is-desk-notebook:focus-visible:not(:disabled)
     .action-persona-icon,
   .prompt-actions--mobile .stakeholders-mascot:hover:not(:disabled) .stakeholders-mascot-emoji,
   .prompt-actions--mobile
@@ -8762,7 +8773,7 @@ button {
 @media (max-width: 1024px) {
   :root {
     --app-vvh: 100svh;
-    --mobile-bottom-chrome-est: 8.75rem;
+    --mobile-bottom-chrome-est: 10.5rem;
   }
 
   .insights-pane-dismiss.overlay-button {
@@ -8980,7 +8991,7 @@ button {
   .diagram-canvas.is-insights-open.is-editor-open .diagram-editor-panel {
     position: fixed;
     inset: 0;
-    z-index: 47;
+    z-index: 49;
     padding-top: 0;
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
@@ -13827,15 +13838,14 @@ body.slopitect-rainbow-tint::before {
   background: rgba(148, 163, 184, 0.12);
 }
 
-/* Your seat · Concentration dial inside the desk menu. */
-.desk-actions-concentration {
+/* Your seat · Concentration dial — Work Order footer + Thinking header. */
+.concentration-control {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  padding: 0.35rem 0.65rem 0.55rem;
 }
 
-.desk-actions-concentration-label {
+.concentration-control-label {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -13844,13 +13854,17 @@ body.slopitect-rainbow-tint::before {
   color: var(--text-muted, #64748b);
 }
 
-.desk-actions-concentration-segment {
+.concentration-control-emoji {
+  line-height: 1;
+}
+
+.concentration-control-segment {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.25rem;
 }
 
-.desk-actions-concentration-option {
+.concentration-control-option {
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 0.55rem;
   background: rgba(255, 255, 255, 0.75);
@@ -13862,22 +13876,124 @@ body.slopitect-rainbow-tint::before {
   cursor: pointer;
 }
 
-.desk-actions-concentration-option:hover {
+.concentration-control-option:hover {
   border-color: rgba(56, 189, 248, 0.55);
 }
 
-.desk-actions-concentration-option.is-selected {
+.concentration-control-option.is-selected {
   border-color: rgba(14, 165, 233, 0.65);
   background: rgba(14, 165, 233, 0.12);
   color: var(--accent, #0ea5e9);
 }
 
+/* Work Order footer: concentration sits under the prompt pill. */
+.concentration-control--footer {
+  padding: 0.15rem 0.35rem 0;
+}
+
+.concentration-control--footer .concentration-control-segment {
+  max-width: 16rem;
+}
+
+/* Thinking header: inline concentration beside code drawer toggle. */
+.concentration-control--header {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 0.25rem;
+}
+
+.concentration-control--header .concentration-control-label {
+  font-size: 0.72rem;
+}
+
+.concentration-control--header .concentration-control-option {
+  font-size: 0.72rem;
+  padding: 0.32rem 0.45rem;
+}
+
+.insights-pane-header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.45rem;
+}
+
+.insights-pane-tool-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.82);
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+.insights-pane-tool-btn:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.insights-pane-tool-btn.is-active {
+  border-color: rgba(14, 165, 233, 0.65);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent, #0ea5e9);
+}
+
+.insights-pane-tool-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.insights-pane-tool-emoji {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.insights-pane-tool-label {
+  white-space: nowrap;
+}
+
+/* Desk chrome layout — Work Order group + tool icons. */
+.desk-chrome-layout {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: center;
+}
+
+.desk-work-order-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 24rem;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.desk-chrome-tool {
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.slop-action-button.is-desk-notebook.is-active .action-persona-icon.is-desk-notebook {
+  border-color: rgba(14, 165, 233, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 0 0 2px rgba(14, 165, 233, 0.18),
+    0 6px 16px rgba(14, 165, 233, 0.2);
+}
+
 /* The Work Order — a persistent inline prompt (layout="desk"), not a popover. */
 .slop-prompt-panel--desk {
-  flex: 1 1 24rem;
+  flex: 1 1 auto;
   flex-direction: row;
   align-items: center;
   gap: 0.4rem;
+  width: 100%;
   min-width: 14rem;
   padding: 0.28rem 0.42rem 0.28rem 0.5rem;
   border-radius: 999px;
@@ -13909,7 +14025,7 @@ body.slopitect-rainbow-tint::before {
 
 .slop-prompt-panel--desk .slop-prompt-panel-input {
   flex: 1 1 auto;
-  min-width: 10rem;
+  min-width: 17rem;
   padding: 0.5rem 0.7rem;
   border-radius: 999px;
   border-color: transparent;
@@ -13960,16 +14076,13 @@ body.slopitect-rainbow-tint::before {
   );
 }
 
-/* Mobile / foldable: anchor a compact sheet to the desk-tray side so Deliverable
-   format stays inside the visual viewport without spanning the full row. */
+/* Mobile / foldable: anchor the drawer menu to its trigger (right-aligned). */
 @media (max-width: 1024px) {
   .desk-actions-menu.desk-drawer-menu {
-    position: fixed;
+    position: absolute;
     left: auto;
-    right: max(0.5rem, env(safe-area-inset-right, 0px));
-    bottom: calc(
-      var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.35rem
-    );
+    right: 0;
+    bottom: calc(100% + 0.45rem);
     width: fit-content;
     min-inline-size: min(
       12.5rem,
@@ -14042,21 +14155,40 @@ body.slopitect-rainbow-tint::before {
   display: none;
 }
 
-/* Mobile: keep the Work Order on the same row as team controls instead of a
-   second full-width row that eats canvas when the input is focused. */
+/* Mobile: tools on the top row; Work Order (+ concentration) on its own bottom line. */
+.prompt-actions--mobile .desk-chrome-layout {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.45rem;
+}
+
+.prompt-actions--mobile .desk-work-order-group {
+  flex: 1 1 100%;
+  order: 10;
+  min-width: 0;
+  width: 100%;
+}
+
 .prompt-actions--mobile .slop-prompt-panel--desk {
-  flex: 1 1 12rem;
+  flex: 1 1 auto;
   min-width: 0;
   max-width: 100%;
-  width: auto;
-  order: unset;
+  width: 100%;
+}
+
+.prompt-actions--mobile .slop-prompt-panel--desk .slop-prompt-panel-input {
+  /* Fit "Prompt anything into reality…" without clipping on narrow screens. */
+  min-width: min(100%, 17.5rem);
+}
+
+.prompt-actions--mobile .desk-chrome-tool {
+  order: 1;
 }
 
 .prompt-actions--mobile .desk-primary-group {
   flex: 1 1 auto;
   min-width: 0;
   width: 100%;
-  order: unset;
 }
 
 @media (max-width: 1024px) {
@@ -18877,6 +19009,15 @@ body.slopitect-rainbow-tint::before {
     padding: 4.25rem 0.75rem var(--mobile-bottom-chrome-est);
   }
 
+  .app-shell.is-wide-mobile .slop-prompt-panel--desk .slop-prompt-panel-input {
+    min-width: min(100%, 18rem);
+  }
+
+  .app-shell.is-wide-mobile .desk-work-order-group {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+
   .forms-renderer-root {
     --forms-top-chrome-est: 4.25rem;
   }
@@ -18910,7 +19051,17 @@ body.slopitect-rainbow-tint::before {
     }
 
     .app-shell.is-foldable-dual .slop-prompt-panel--desk {
-      max-width: min(24rem, 100%);
+      max-width: none;
+      width: 100%;
+    }
+
+    .app-shell.is-foldable-dual .slop-prompt-panel--desk .slop-prompt-panel-input {
+      min-width: min(100%, 18rem);
+    }
+
+    .app-shell.is-foldable-dual .desk-work-order-group {
+      flex: 1 1 auto;
+      max-width: none;
     }
   }
 }

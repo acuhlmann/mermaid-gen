@@ -67,7 +67,12 @@ export const CONTROLS_EN_AU = {
       {
         id: 'desk',
         label: 'Your desk',
-        text: 'Tap the helmet for notebook, mail, export, settings, and more.'
+        text: 'Tap the helmet for mail, export, and more. The notebook icon beside the desk tray opens your thinking notes.'
+      },
+      {
+        id: 'notebook',
+        label: 'Notebook',
+        text: 'Open your notebook for run history, critiques, and the code drawer.'
       },
       {
         id: 'team',

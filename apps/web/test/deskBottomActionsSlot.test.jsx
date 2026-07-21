@@ -113,4 +113,22 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(screen.getByText('Deliverable format')).toBeTruthy();
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
   });
+
+  it('renders notebook and concentration on the work order group', () => {
+    const onToggleThinking = vi.fn();
+    render(
+      <DeskBottomActionsSlot
+        {...baseProps({
+          hasCanvasContent: true,
+          modelProfile: 'fast',
+          onSelectModelProfile: vi.fn(),
+          onToggleThinking
+        })}
+      />
+    );
+    expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
+    expect(screen.getByTestId('concentration-control')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('desk-notebook-button'));
+    expect(onToggleThinking).toHaveBeenCalledTimes(1);
+  });
 });

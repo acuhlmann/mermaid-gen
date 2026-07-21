@@ -450,17 +450,9 @@ export default function OfficeLayer({
       onOpenSlopChat={handleOpenMessenger}
       onCheckHrProgression={onCheckHrProgression}
       onOpenOutbox={onOpenOutbox}
-      onToggleEditor={onToggleEditor}
       onInviteAgent={onInviteAgent}
-      onToggleThinking={onToggleThinking}
-      modelProfile={modelProfile}
-      onSelectModelProfile={onSelectModelProfile}
       blockedReason={desk.blockedReason}
       canOpenOutbox={canOpenOutbox}
-      canToggleEditor={canToggleEditor}
-      editorOpen={editorOpen}
-      canToggleThinking={canToggleThinking}
-      thinkingOpen={thinkingOpen}
       initialOpen={deskMenuInitialOpen}
     />
   );

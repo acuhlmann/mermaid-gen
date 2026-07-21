@@ -2316,6 +2316,11 @@ ${requirementsBlock}`;
       explainDumbLoadingEntryId={explainDumbLoadingEntryId}
       explainDumbSurrenderedEntryIds={explainDumbSurrenderedEntryIds}
       onExplainDumbDown={handleExplainDumbDown}
+      modelProfile={modelProfile}
+      onSelectModelProfile={setModelProfile}
+      editorOpen={editorOpen}
+      onToggleEditor={() => setEditorOpen((current) => !current)}
+      canToggleEditor={hasCanvasContent || editorOpen}
     />
   );
 
@@ -2475,7 +2480,7 @@ ${requirementsBlock}`;
             onSelectModelProfile={setModelProfile}
             callMeetingSignal={callMeetingSignal}
             canOpenOutbox={Boolean((state.diagramSource ?? '').trim())}
-            canToggleThinking={insightsEntries.length > 0}
+            canToggleThinking
             thinkingOpen={insightsOpen}
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
@@ -2606,6 +2611,10 @@ ${requirementsBlock}`;
                 canFixFromCritique={canFixFromCritique}
                 handleFixFromCritique={handleFixFromCritique}
                 handleClearDiagram={handleClearDiagram}
+                modelProfile={modelProfile}
+                onSelectModelProfile={setModelProfile}
+                onToggleThinking={() => setInsightsOpen((v) => !v)}
+                canToggleThinking
               />
             }
             aiControls={
