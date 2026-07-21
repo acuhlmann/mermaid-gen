@@ -1,17 +1,25 @@
 import { useCallback, useRef, useState } from 'react';
 import {
-  extractSpeechResultSnapshot,
-  sliceInterimBeyondFinals,
-  sliceNewSpeechText
+  buildSessionTranscript,
+  combinePromptWithVoiceSession,
+  speechRecognitionLangForUiLocale
 } from '../utils/voiceInputCommit.js';
 import { SpeechRecognitionCtor } from '../utils/appConstants.js';
+
+/** Grace period after release so Chrome can finalize the last utterance. */
+const VOICE_STOP_GRACE_MS = 320;
 
 /**
  * Hold-to-speak and tap-to-toggle voice dictation for prompt fields.
  *
+ * Rebuilds the full session transcript on every SpeechRecognition result and
+ * replaces the voice contribution on the active prompt (instead of appending
+ * deltas). That avoids Chrome's continuous-mode word-boundary repeats.
+ *
  * @param {{
  *   voiceSupported: boolean;
  *   controls: { loading: { micDenied: string, voiceFailed: string, voiceUnavailable: string } };
+ *   uiLocale?: string;
  *   loadingRef: import('react').MutableRefObject<boolean>;
  *   streamingPreviewRef: import('react').MutableRefObject<boolean>;
  *   slopPromptExpandedRef: import('react').MutableRefObject<boolean>;
@@ -20,12 +28,15 @@ import { SpeechRecognitionCtor } from '../utils/appConstants.js';
  *   setDeskPrompt: (value: string | ((prev: string) => string)) => void;
  *   setPrompt: (value: string | ((prev: string) => string)) => void;
  *   promptRef: import('react').MutableRefObject<string>;
+ *   deskPromptRef?: import('react').MutableRefObject<string>;
+ *   slopNextPromptRef?: import('react').MutableRefObject<string>;
  *   hasInteractedRef: import('react').MutableRefObject<boolean>;
  * }} deps
  */
 export function useVoiceInput({
   voiceSupported,
   controls,
+  uiLocale = 'en',
   loadingRef,
   streamingPreviewRef,
   slopPromptExpandedRef,
@@ -34,6 +45,8 @@ export function useVoiceInput({
   setDeskPrompt,
   setPrompt,
   promptRef,
+  deskPromptRef,
+  slopNextPromptRef,
   hasInteractedRef
 }) {
   const [voiceListening, setVoiceListening] = useState(false);
@@ -41,138 +54,114 @@ export function useVoiceInput({
 
   const recognitionRef = useRef(null);
   const voicePressedRef = useRef(false);
-  const lastSpeechInterimRef = useRef('');
   const voiceStopTimerRef = useRef(null);
   const voiceCapturedAnyRef = useRef(false);
   const voiceAccumulatedRef = useRef('');
-  const voiceFinalsTextRef = useRef('');
-  const voiceFinalsCommittedLengthRef = useRef(0);
+  const voiceBasePromptRef = useRef('');
+  const voiceTargetRef = useRef('prompt');
   const micSessionRef = useRef(0);
+  const uiLocaleRef = useRef(uiLocale);
+  uiLocaleRef.current = uiLocale;
 
-  const appendActivePromptText = useCallback(
-    (text) => {
-      if (!text) return;
-      const trimmed = text.trim();
-      if (!trimmed) return;
-      if (slopPromptExpandedRef.current) {
-        setSlopNextPrompt((current) => (current ? `${current.trimEnd()} ${trimmed}` : trimmed));
+  const readActivePromptBase = useCallback(() => {
+    if (slopPromptExpandedRef.current) {
+      voiceTargetRef.current = 'slop';
+      return slopNextPromptRef?.current ?? '';
+    }
+    if (hasCanvasContentRef.current) {
+      voiceTargetRef.current = 'desk';
+      return deskPromptRef?.current ?? '';
+    }
+    voiceTargetRef.current = 'prompt';
+    return promptRef.current ?? '';
+  }, [deskPromptRef, hasCanvasContentRef, promptRef, slopNextPromptRef, slopPromptExpandedRef]);
+
+  const writeActivePrompt = useCallback(
+    (next) => {
+      const target = voiceTargetRef.current;
+      if (target === 'slop') {
+        setSlopNextPrompt(next);
+        if (slopNextPromptRef) slopNextPromptRef.current = next;
         return;
       }
-      if (hasCanvasContentRef.current) {
-        setDeskPrompt((current) => (current ? `${current.trimEnd()} ${trimmed}` : trimmed));
+      if (target === 'desk') {
+        setDeskPrompt(next);
+        if (deskPromptRef) deskPromptRef.current = next;
         return;
       }
-      setPrompt((current) => {
-        const next = current ? `${current.trimEnd()} ${trimmed}` : trimmed;
-        promptRef.current = next;
-        return next;
-      });
+      promptRef.current = next;
+      setPrompt(next);
     },
-    [
-      hasCanvasContentRef,
-      promptRef,
-      setDeskPrompt,
-      setPrompt,
-      setSlopNextPrompt,
-      slopPromptExpandedRef
-    ]
+    [deskPromptRef, promptRef, setDeskPrompt, setPrompt, setSlopNextPrompt, slopNextPromptRef]
   );
 
-  const commitVoiceSessionDelta = useCallback(
-    ({ finalsText, interim }) => {
-      const delta = sliceNewSpeechText(finalsText, voiceFinalsCommittedLengthRef.current);
-      if (delta) {
-        voiceCapturedAnyRef.current = true;
-        voiceAccumulatedRef.current = voiceAccumulatedRef.current
-          ? `${voiceAccumulatedRef.current.trimEnd()} ${delta}`
-          : delta;
-        appendActivePromptText(delta);
-        voiceFinalsCommittedLengthRef.current = finalsText.length;
-      }
-      voiceFinalsTextRef.current = finalsText;
-      lastSpeechInterimRef.current = interim;
+  const applyVoiceSessionText = useCallback(
+    (sessionText) => {
+      const next = combinePromptWithVoiceSession(voiceBasePromptRef.current, sessionText);
+      voiceAccumulatedRef.current = String(sessionText ?? '').trim();
+      if (voiceAccumulatedRef.current) voiceCapturedAnyRef.current = true;
+      writeActivePrompt(next);
     },
-    [appendActivePromptText]
+    [writeActivePrompt]
   );
 
-  const flushVoiceInterim = useCallback(() => {
-    const delta = sliceInterimBeyondFinals(
-      voiceFinalsTextRef.current,
-      lastSpeechInterimRef.current
-    );
-    lastSpeechInterimRef.current = '';
-    if (!delta) return;
-    voiceCapturedAnyRef.current = true;
-    voiceAccumulatedRef.current = voiceAccumulatedRef.current
-      ? `${voiceAccumulatedRef.current.trimEnd()} ${delta}`
-      : delta;
-    appendActivePromptText(delta);
-  }, [appendActivePromptText]);
+  const stopVoiceInput = useCallback((options = {}) => {
+    const immediate = Boolean(options.immediate);
+    voicePressedRef.current = false;
+    if (voiceStopTimerRef.current) {
+      clearTimeout(voiceStopTimerRef.current);
+      voiceStopTimerRef.current = null;
+    }
 
-  const stopVoiceInput = useCallback(
-    (options = {}) => {
-      const immediate = Boolean(options.immediate);
-      voicePressedRef.current = false;
-      if (voiceStopTimerRef.current) {
-        clearTimeout(voiceStopTimerRef.current);
-        voiceStopTimerRef.current = null;
-      }
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      setVoiceListening(false);
+      return;
+    }
 
-      const recognition = recognitionRef.current;
-      if (!recognition) {
-        setVoiceListening(false);
-        return;
-      }
-
-      if (immediate) {
-        micSessionRef.current += 1;
-        lastSpeechInterimRef.current = '';
-        voiceFinalsTextRef.current = '';
-        voiceFinalsCommittedLengthRef.current = 0;
+    if (immediate) {
+      micSessionRef.current += 1;
+      try {
+        recognition.abort();
+      } catch {
         try {
-          recognition.abort();
-        } catch {
-          try {
-            recognition.stop();
-          } catch {
-            // ignore
-          }
-        }
-        try {
-          recognition.onresult = null;
-          recognition.onerror = null;
-          recognition.onend = null;
+          recognition.stop();
         } catch {
           // ignore
         }
-        recognitionRef.current = null;
-        setVoiceListening(false);
-        return;
       }
+      try {
+        recognition.onresult = null;
+        recognition.onerror = null;
+        recognition.onend = null;
+      } catch {
+        // ignore
+      }
+      recognitionRef.current = null;
+      setVoiceListening(false);
+      return;
+    }
 
-      const recInstance = recognition;
-      voiceStopTimerRef.current = globalThis.setTimeout(() => {
-        voiceStopTimerRef.current = null;
-        if (recognitionRef.current !== recInstance) return;
+    const recInstance = recognition;
+    voiceStopTimerRef.current = globalThis.setTimeout(() => {
+      voiceStopTimerRef.current = null;
+      if (recognitionRef.current !== recInstance) return;
+      try {
+        recInstance.stop();
+      } catch {
+        micSessionRef.current += 1;
         try {
-          recInstance.stop();
+          recInstance.onresult = null;
+          recInstance.onerror = null;
+          recInstance.onend = null;
         } catch {
-          micSessionRef.current += 1;
-          flushVoiceInterim();
-          try {
-            recInstance.onresult = null;
-            recInstance.onerror = null;
-            recInstance.onend = null;
-          } catch {
-            // ignore
-          }
-          if (recognitionRef.current === recInstance) recognitionRef.current = null;
-          setVoiceListening(false);
+          // ignore
         }
-      }, 220);
-    },
-    [flushVoiceInterim]
-  );
+        if (recognitionRef.current === recInstance) recognitionRef.current = null;
+        setVoiceListening(false);
+      }
+    }, VOICE_STOP_GRACE_MS);
+  }, []);
 
   const startVoiceInput = useCallback(() => {
     if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
@@ -199,25 +188,21 @@ export function useVoiceInput({
     const sessionAtStart = micSessionRef.current;
     voiceCapturedAnyRef.current = false;
     voiceAccumulatedRef.current = '';
-    voiceFinalsTextRef.current = '';
-    voiceFinalsCommittedLengthRef.current = 0;
+    voiceBasePromptRef.current = readActivePromptBase();
 
     hasInteractedRef.current = true;
     setVoiceError('');
     voicePressedRef.current = true;
-    lastSpeechInterimRef.current = '';
     try {
       const recognition = new SpeechRecognitionCtor();
-      recognition.lang = 'en-US';
+      recognition.lang = speechRecognitionLangForUiLocale(uiLocaleRef.current);
       recognition.interimResults = true;
       recognition.continuous = true;
       recognition.maxAlternatives = 1;
       recognition.onresult = (event) => {
-        const snapshot = extractSpeechResultSnapshot(event.results);
-        if (snapshot.finalsText || snapshot.interim?.trim()) {
-          voiceCapturedAnyRef.current = true;
-        }
-        commitVoiceSessionDelta(snapshot);
+        const snapshot = buildSessionTranscript(event.results, { includeInterim: true });
+        if (snapshot.sessionText) voiceCapturedAnyRef.current = true;
+        applyVoiceSessionText(snapshot.sessionText);
       };
       recognition.onerror = (event) => {
         if (event?.error === 'no-speech' || event?.error === 'aborted') return;
@@ -230,7 +215,14 @@ export function useVoiceInput({
       recognition.onend = () => {
         if (sessionAtStart !== micSessionRef.current) return;
 
-        flushVoiceInterim();
+        // Prefer finals-only on settle so a stale interim hypothesis does not stick.
+        const recognitionResults = recognition.results;
+        if (recognitionResults?.length) {
+          const finalsOnly = buildSessionTranscript(recognitionResults, {
+            includeInterim: false
+          });
+          applyVoiceSessionText(finalsOnly.sessionText || voiceAccumulatedRef.current);
+        }
 
         try {
           recognition.onresult = null;
@@ -252,11 +244,11 @@ export function useVoiceInput({
       voicePressedRef.current = false;
     }
   }, [
-    commitVoiceSessionDelta,
+    applyVoiceSessionText,
     controls.loading,
-    flushVoiceInterim,
     hasInteractedRef,
     loadingRef,
+    readActivePromptBase,
     streamingPreviewRef,
     voiceSupported
   ]);
@@ -295,7 +287,8 @@ export function useVoiceInput({
       event?.stopPropagation?.();
       if (!voiceSupported || loadingRef.current || streamingPreviewRef.current) return;
       if (voiceListening) {
-        stopVoiceInput({ immediate: true });
+        // Graceful stop (not abort) so the last utterance can finalize.
+        stopVoiceInput();
         return;
       }
       startVoiceInput();

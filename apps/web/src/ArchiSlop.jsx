@@ -231,7 +231,7 @@ import {
 } from './utils/renderModeAction.js';
 
 export function ArchiSlop() {
-  const { controls, slopitect, applyLocaleFromText } = useUiCopy();
+  const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const initialSessionIdRef = useRef(null);
   // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
@@ -258,6 +258,8 @@ export function ArchiSlop() {
   /** The persistent desk Work Order (content mode) — its own buffer so the radial
    * prompt clearing slopNextPrompt on open can't wipe what you've typed here. */
   const [deskPrompt, setDeskPrompt] = useState('');
+  const deskPromptRef = useRef('');
+  const slopNextPromptRef = useRef('');
   const [loading, setLoading] = useState(false);
   const [activeRequest, setActiveRequest] = useState(null);
   const [error, setError] = useState('');
@@ -441,6 +443,14 @@ export function ArchiSlop() {
   }, [prompt]);
 
   useEffect(() => {
+    deskPromptRef.current = deskPrompt;
+  }, [deskPrompt]);
+
+  useEffect(() => {
+    slopNextPromptRef.current = slopNextPrompt;
+  }, [slopNextPrompt]);
+
+  useEffect(() => {
     slopPromptExpandedRef.current = slopPromptExpanded;
   }, [slopPromptExpanded]);
 
@@ -461,6 +471,7 @@ export function ArchiSlop() {
   } = useVoiceInput({
     voiceSupported,
     controls,
+    uiLocale,
     loadingRef,
     streamingPreviewRef,
     slopPromptExpandedRef,
@@ -469,6 +480,8 @@ export function ArchiSlop() {
     setDeskPrompt,
     setPrompt,
     promptRef,
+    deskPromptRef,
+    slopNextPromptRef,
     hasInteractedRef
   });
 
