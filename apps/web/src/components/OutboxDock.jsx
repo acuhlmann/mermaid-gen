@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { ButtonIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import {
   EXPORT_PREVIEW_URL_TTL_MS,
@@ -72,6 +73,7 @@ export default function OutboxDock({
   const panelClass = popoverMode
     ? 'outbox-panel bottom-row-popover bottom-row-popover--outbox'
     : 'outbox-panel';
+  const outboxZIndex = useOverlayLayer('outbox-panel', panelOpen && popoverMode);
   const hasSource = Boolean((diagramSource ?? '').trim());
   const exportFormats = useMemo(
     () => (hasSource ? listExportFormats(contentType, diagramSource) : []),
@@ -400,6 +402,7 @@ export default function OutboxDock({
       <div
         id="outbox-panel"
         className={`${panelClass}${panelOpen ? ' is-open' : ''}`}
+        style={overlayLayerStyle(outboxZIndex)}
         role="region"
         aria-label={controls.outboxRegion ?? outboxLabel}
         hidden={!panelOpen}

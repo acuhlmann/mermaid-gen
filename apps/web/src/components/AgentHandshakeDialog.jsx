@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import AgentBadge from './AgentBadge.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
+  const modalZIndex = useOverlayLayer('agent-handshake', Boolean(request), 'modal');
   const { controls } = useUiCopy();
   const handshakeCopy = controls.handshake;
   const [submitting, setSubmitting] = useState(null);
@@ -27,6 +29,7 @@ export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
   return (
     <div
       className="agent-handshake-overlay"
+      style={overlayLayerStyle(modalZIndex)}
       role="dialog"
       aria-modal="true"
       aria-labelledby="agent-handshake-title"

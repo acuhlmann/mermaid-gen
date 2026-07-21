@@ -5,6 +5,7 @@ import LevelUpInfoPanel from '../../components/LevelUpInfoPanel.jsx';
 import { TopShell } from '../../components/TopShell.jsx';
 import { SlopitectTipSlot } from '../prompt/SlopitectTipSlot.jsx';
 import { resolveUserName } from '../../state/userIdentityStore.js';
+import { overlayLayerStyle, useOverlayLayer } from '../../hooks/useOverlayLayer.js';
 
 /**
  * Top shell: brand chip, XP/progression chrome, Slopitect tip, and fullscreen control.
@@ -35,6 +36,8 @@ export function BrandChromeSlot({
   streamingPreview,
   onToggleFullscreen
 }) {
+  const levelUpZIndex = useOverlayLayer('levelup-info-panel', xpInfoPanelOpen);
+
   return (
     <TopShell>
       <div
@@ -123,6 +126,7 @@ export function BrandChromeSlot({
           <div
             id="levelup-info-panel"
             className="levelup-info-panel-mount"
+            style={overlayLayerStyle(levelUpZIndex)}
             onClick={(event) => event.stopPropagation()}
           >
             <LevelUpInfoPanel
