@@ -6543,6 +6543,29 @@
 }
 
 /* Senior-tier divider in the team roster: everything below reports upward. */
+.stakeholders-roster-heading {
+  margin: 0;
+  padding: 0.2rem 0.5rem 0.05rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.stakeholders-roster-team-action.is-muted {
+  border-color: rgba(100, 116, 139, 0.45);
+  background: rgba(148, 163, 184, 0.12);
+}
+
+.stakeholders-roster-team-emoji {
+  flex: 0 0 auto;
+  width: 1.75rem;
+  text-align: center;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 .stakeholders-roster-divider {
   padding: 0.3rem 0.5rem 0.1rem;
   font-size: 0.62rem;
@@ -13915,18 +13938,25 @@ body.slopitect-rainbow-tint::before {
   );
 }
 
-/* Mobile / foldable: fixed bottom sheet so Deliverable format stays inside the
-   visual viewport instead of clipping above the hinge or safe-area chrome. */
+/* Mobile / foldable: anchor a compact sheet to the desk-tray side so Deliverable
+   format stays inside the visual viewport without spanning the full row. */
 @media (max-width: 1024px) {
   .desk-actions-menu.desk-drawer-menu {
     position: fixed;
-    left: max(0.5rem, env(safe-area-inset-left, 0px));
+    left: auto;
     right: max(0.5rem, env(safe-area-inset-right, 0px));
     bottom: calc(
       var(--mobile-bottom-chrome-est, 5.5rem) + env(safe-area-inset-bottom, 0px) + 0.35rem
     );
-    width: auto;
-    max-inline-size: none;
+    width: fit-content;
+    min-inline-size: min(
+      12.5rem,
+      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+    );
+    max-inline-size: min(
+      17.5rem,
+      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+    );
   }
 }
 
@@ -16830,6 +16860,20 @@ body.slopitect-rainbow-tint::before {
   gap: 6px;
   max-width: min(360px, calc(100vw - 28px));
 }
+.office-moment-kind--walkby {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: color-mix(in srgb, #b45309 70%, var(--text));
+}
+.office-walkby-preamble {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+}
 .office-walkby-row {
   display: flex;
   align-items: flex-end;
@@ -18673,8 +18717,11 @@ body.slopitect-rainbow-tint::before {
       var(--mobile-bottom-chrome-est, 8.75rem) + env(safe-area-inset-bottom, 0px) + 0.5rem
     );
     left: max(0.5rem, env(safe-area-inset-left, 0px));
-    right: max(0.5rem, env(safe-area-inset-right, 0px));
-    max-width: none;
+    right: auto;
+    max-width: min(
+      360px,
+      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+    );
   }
   /* Phone: a corner card would be unreadable, so a docked meeting becomes a
      bottom sheet instead — canvas visible above, meeting thumbable below. */

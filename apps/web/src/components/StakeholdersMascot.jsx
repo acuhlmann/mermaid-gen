@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { getVariantPersona, stakeholderTooltip } from '../utils/slopitectCopy.js';
+import { officeChromeCopy } from '../utils/officeCast.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import AdvisorFloatPortal from './AdvisorFloatPortal.jsx';
@@ -54,10 +55,17 @@ export default function StakeholdersMascot({
   bubbleProps = null,
   onSelectVariant = null,
   castDisabled = false,
-  introProps = null
+  introProps = null,
+  isMuted = false,
+  onToggleMute = null,
+  onTalkToTeam = null,
+  onCallMeeting = null,
+  canTalkToTeam = true,
+  canCallMeeting = true
 }) {
   const { controls } = useUiCopy();
   const stakeholdersCopy = controls.stakeholders;
+  const deskCopy = officeChromeCopy().desk;
   const castVariants = personas.map((p) => p.variant).filter(Boolean);
 
   const bubbleReady = Boolean(
@@ -187,6 +195,40 @@ export default function StakeholdersMascot({
     : 'var(--accent)';
   const style = { '--stakeholders-accent': accentStyle };
 
+  const runTeamAction = (fn) => {
+    armCollapseTimer();
+    void fn?.();
+  };
+
+  const teamActions = [
+    {
+      id: 'talk-team',
+      label: deskCopy.team,
+      emoji: '👥',
+      run: onTalkToTeam,
+      disabled: !canTalkToTeam,
+      disabledTitle: deskCopy.blocked?.noTeam ?? deskCopy.blocked?.noAgenda
+    },
+    {
+      id: 'call-meeting',
+      label: deskCopy.meeting,
+      emoji: '📅',
+      run: onCallMeeting,
+      disabled: !canCallMeeting,
+      disabledTitle: deskCopy.blocked?.noAgenda
+    },
+    {
+      id: 'headphones',
+      label: isMuted ? controls.actions.unmute : controls.actions.mute,
+      emoji: isMuted ? '🎧' : '🔊',
+      run: onToggleMute,
+      alwaysEnabled: true,
+      ariaPressed: isMuted,
+      title: isMuted ? controls.actions.unmuteTitle : controls.actions.muteTitle,
+      ariaLabel: isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
+    }
+  ];
+
   return (
     <div
       className={[
@@ -249,6 +291,46 @@ export default function StakeholdersMascot({
           onPointerEnter={armCollapseTimer}
           onPointerMove={armCollapseTimer}
         >
+          <p className="stakeholders-roster-heading">
+            {stakeholdersCopy.teamActionsHeading ?? 'Your team'}
+          </p>
+          {teamActions.map((action) => {
+            const disabled = action.disabled && !action.alwaysEnabled;
+            const title = action.disabled ? action.disabledTitle : (action.title ?? action.label);
+            return (
+              <button
+                key={action.id}
+                type="button"
+                role="menuitem"
+                className={[
+                  'stakeholders-roster-row',
+                  'stakeholders-roster-team-action',
+                  'slop-action-button',
+                  action.id === 'headphones' && isMuted ? 'is-muted' : ''
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+                disabled={disabled}
+                aria-pressed={action.ariaPressed}
+                aria-label={action.ariaLabel ?? action.label}
+                title={title ?? action.label}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  runTeamAction(action.run);
+                }}
+              >
+                <span className="stakeholders-roster-team-emoji" aria-hidden="true">
+                  {action.emoji}
+                </span>
+                <span className="stakeholders-roster-label">
+                  <span className="stakeholders-roster-name">{action.label}</span>
+                </span>
+              </button>
+            );
+          })}
+          <span className="stakeholders-roster-divider" role="presentation">
+            {stakeholdersCopy.teammatesDivider ?? 'Teammates'}
+          </span>
           {personas.map((p) => {
             const meta = getVariantPersona(p.variant);
             const actionLabel = p.label ?? resolveActionLabel(p.variant, controls) ?? meta.name;

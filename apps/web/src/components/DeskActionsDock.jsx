@@ -18,8 +18,6 @@ export default function DeskActionsDock({
   onWalkTheFloor,
   onCheckInbox,
   onOpenSlopChat,
-  onCallMeeting,
-  onTalkToTeam,
   onCheckHrProgression,
   onOpenOutbox,
   onToggleEditor,
@@ -28,8 +26,6 @@ export default function DeskActionsDock({
   modelProfile = 'fast',
   onSelectModelProfile = null,
   blockedReason = null,
-  canCallMeeting = true,
-  canTalkToTeam = true,
   canOpenOutbox = false,
   canToggleThinking = false,
   canToggleEditor = false,
@@ -70,22 +66,6 @@ export default function DeskActionsDock({
   ];
 
   const getUpVerbs = [
-    {
-      id: 'team',
-      label: copy.team,
-      emoji: '👥',
-      run: onTalkToTeam,
-      disabled: !canTalkToTeam,
-      disabledTitle: copy.blocked?.noTeam ?? copy.blocked?.noAgenda
-    },
-    {
-      id: 'meeting',
-      label: copy.meeting,
-      emoji: '📅',
-      run: onCallMeeting,
-      disabled: !canCallMeeting,
-      disabledTitle: copy.blocked?.noAgenda
-    },
     {
       id: 'inbox',
       label: copy.inbox,

@@ -92,7 +92,6 @@ export default function OfficeLayer({
   onAdoptPrompt,
   onMeetingMinutes,
   onOfficeEvent,
-  onTalkToTeam,
   onCheckHrProgression,
   onOpenOutbox,
   onToggleEditor,
@@ -100,7 +99,6 @@ export default function OfficeLayer({
   onToggleThinking,
   modelProfile = 'fast',
   onSelectModelProfile = null,
-  canTalkToTeam: canTalkToTeamProp,
   canOpenOutbox = false,
   canToggleThinking = false,
   canToggleEditor = false,
@@ -109,6 +107,8 @@ export default function OfficeLayer({
   playChime,
   /** Bumped by App when an agent run completes, so a colleague can react to it. */
   runSignal = null,
+  /** Bumped from Your Team menu to start a WG meeting. */
+  callMeetingSignal = 0,
   /** When false, #office-desk-bottom-slot is not in the bottom row (empty intro). */
   deskActionsAnchorReady = false,
   /** Desktop vs mobile bottom row — slot remounts when this flips. */
@@ -360,6 +360,10 @@ export default function OfficeLayer({
     void startMeeting({ attendees: pickMeetingAttendees() });
   }, [meeting, startMeeting]);
 
+  useEffect(() => {
+    if (callMeetingSignal > 0) handleCallMeeting();
+  }, [callMeetingSignal, handleCallMeeting]);
+
   const handleMeetingClose = useCallback(() => {
     const current = meeting;
     if (current && current.state === 'ended') {
@@ -377,13 +381,6 @@ export default function OfficeLayer({
 
   const hasDiagramSource = Boolean((getDiagramSource?.() ?? '').trim());
   const canCallMeeting = hasDiagramSource && !meeting;
-  // Roundtable nudge needs a diagram and a free advisor; mute is cleared on
-  // click (desk initiative bypasses Focus Time). Prefer the App-supplied gate
-  // when present so streaming / thinking stay in sync with canPromptNext.
-  const canTalkToTeam =
-    typeof canTalkToTeamProp === 'boolean'
-      ? canTalkToTeamProp
-      : hasDiagramSource && !pause && !advisorBusy;
 
   // Bumping this counter opens the inbox popover from the desk menu without
   // lifting the dock's own open/close state.
@@ -399,9 +396,7 @@ export default function OfficeLayer({
     getUserName,
     onUsage,
     onOfficeEvent,
-    onCallMeeting: handleCallMeeting,
-    onCheckInbox: () => setInboxOpenSignal((n) => n + 1),
-    onTalkToTeam
+    onCheckInbox: () => setInboxOpenSignal((n) => n + 1)
   });
 
   // Slop Chat™ sending reuses the desk's "IM someone" verb, so a reply comes
@@ -449,8 +444,6 @@ export default function OfficeLayer({
       onWalkTheFloor={desk.walkTheFloor}
       onCheckInbox={desk.checkInbox}
       onOpenSlopChat={handleOpenMessenger}
-      onCallMeeting={desk.callMeeting}
-      onTalkToTeam={desk.talkToTeam}
       onCheckHrProgression={onCheckHrProgression}
       onOpenOutbox={onOpenOutbox}
       onToggleEditor={onToggleEditor}
@@ -459,8 +452,6 @@ export default function OfficeLayer({
       modelProfile={modelProfile}
       onSelectModelProfile={onSelectModelProfile}
       blockedReason={desk.blockedReason}
-      canCallMeeting={canCallMeeting}
-      canTalkToTeam={canTalkToTeam}
       canOpenOutbox={canOpenOutbox}
       canToggleEditor={canToggleEditor}
       editorOpen={editorOpen}

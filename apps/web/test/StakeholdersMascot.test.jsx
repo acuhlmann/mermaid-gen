@@ -15,6 +15,47 @@ const TEST_PERSONAS = [
 describe('StakeholdersMascot', () => {
   afterEach(() => cleanup());
 
+  it('lists team huddle verbs and headphones in the roster when expanded (test mode)', () => {
+    const onTalkToTeam = vi.fn();
+    const onCallMeeting = vi.fn();
+    const onToggleMute = vi.fn();
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        onTalkToTeam={onTalkToTeam}
+        onCallMeeting={onCallMeeting}
+        onToggleMute={onToggleMute}
+        canTalkToTeam
+        canCallMeeting
+      />
+    );
+    expect(screen.getByRole('menuitem', { name: /Talk to your team/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Call a meeting/ })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: /Put headphones on/ })).toBeTruthy();
+    fireEvent.click(screen.getByRole('menuitem', { name: /Talk to your team/ }));
+    expect(onTalkToTeam).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('menuitem', { name: /Call a meeting/ }));
+    expect(onCallMeeting).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('menuitem', { name: /Put headphones on/ }));
+    expect(onToggleMute).toHaveBeenCalledTimes(1);
+  });
+
+  it('blocks team huddle verbs on an empty canvas', () => {
+    render(
+      <StakeholdersMascot
+        personas={TEST_PERSONAS}
+        onTalkToTeam={vi.fn()}
+        onCallMeeting={vi.fn()}
+        onToggleMute={vi.fn()}
+        canTalkToTeam={false}
+        canCallMeeting={false}
+      />
+    );
+    expect(screen.getByRole('menuitem', { name: /Talk to your team/ }).disabled).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Call a meeting/ }).disabled).toBe(true);
+    expect(screen.getByRole('menuitem', { name: /Put headphones on/ }).disabled).toBe(false);
+  });
+
   it('lists all stakeholder names in the roster when expanded (test mode)', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     expect(screen.getByRole('menu', { name: 'Your team' })).toBeTruthy();
