@@ -12,8 +12,6 @@ import DiagramFullscreenButton from './components/DiagramFullscreenButton.jsx';
 import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx';
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import RadialActionMenu from './components/RadialActionMenu.jsx';
-import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
-import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import EntryRenderAs from './components/EntryRenderAs.jsx';
 import EntryDeskIntro from './components/EntryDeskIntro.jsx';
@@ -30,35 +28,13 @@ import {
 } from './utils/stakeholderIntroStorage.js';
 import { readModeRevealSeen, writeModeRevealSeen } from './utils/modeRevealStorage.js';
 import { applyDiagramHighlightToSvg } from './utils/applyDiagramHighlightToSvg.js';
+import { joinRoomByPairingCode } from './state/sessionEventsClient.js';
 import {
-  openSessionEventsStream,
-  approveHandshake,
-  denyHandshake,
-  acceptProposal as acceptProposalApi,
-  rejectProposal as rejectProposalApi,
-  joinRoomByPairingCode
-} from './state/sessionEventsClient.js';
-import {
-  buildIntentPeerContext,
-  CONTENT_MODES,
   createEmptyCrossModeSyncMarkers,
   createSessionId,
   fallbackState,
-  fetchSessionDiagramState,
-  isSlotCustomized,
-  isSlotInSyncForTopic,
-  mergeLeavingSlotSnapshot,
-  needsModeSwitchPeerSync,
   normalizeSessionId,
-  peerRequiresModeSwitchTranslation,
-  pickPrimaryPeerMode,
-  resolveModeSwitchCandidate,
-  isDiagramCacheSubstantial,
-  isServerSessionPristine,
-  mintFreshServerSession,
   readDiagramCache,
-  SESSION_NOT_FOUND_CODE,
-  shouldAutoSubmitModeSwitchIntent,
   streamDiagramAgent,
   syncClientDiagramState,
   submitDiagramIntent,
@@ -73,7 +49,6 @@ import {
 } from './state/applyAgentStreamInsightEvent';
 import { buildAgentStreamInsightContext } from './state/agentStreamInsightContext';
 import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
-import { markAppReady } from './utils/appReadySignal.js';
 import './App.css';
 import './components/RunTimeline.css';
 import {
@@ -121,10 +96,12 @@ import {
 } from './utils/agentChimes.js';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
 import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
+import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
+import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
+import { useSessionHydrate } from './features/session/useSessionHydrate.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
-import { pushError } from './state/errorToastStore.js';
 import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
 import XpProgressBar from './components/XpProgressBar.jsx';
 import LevelUpInfoPanel from './components/LevelUpInfoPanel.jsx';
@@ -161,9 +138,6 @@ import {
 } from './utils/formatTechnicalActionDetail.js';
 import { readStreamDebugEnabled, snapshotStreamEventForDebug } from './utils/appStreamDebug.js';
 import {
-  proposalToInsightEntry,
-  enrichProposalForInsight,
-  attributedInsightToInsightEntry,
   focusPayload,
   selectionActionTitle,
   topicFromDescriptor
@@ -252,7 +226,6 @@ export function ArchiSlop() {
   const cacheRef = useRef(
     sessionIdFromUrlRef.current ? null : readDiagramCache(initialSessionIdRef.current)
   );
-  const [sessionHydrated, setSessionHydrated] = useState(false);
   const [state, setState] = useState(fallbackState);
   const [prompt, setPrompt] = useState('');
   /** Fresh instruction for the inline “slop next” prompt — never prefilled from the session topic. */
@@ -345,11 +318,6 @@ export function ArchiSlop() {
       (typeof globalThis.isSecureContext === 'boolean' ? globalThis.isSecureContext : true)
     )
   );
-  /** External-agent collaboration: handshake awaiting user action, connected agents, ephemeral reactions, invite dialog. */
-  const [pendingHandshake, setPendingHandshake] = useState(null);
-  const [externalAgentPresence, setExternalAgentPresence] = useState([]);
-  const [agentReactions, setAgentReactions] = useState([]);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   /** Inline slop-next prompt expanded from the action bar or radial menu. */
   const [slopPromptExpanded, setSlopPromptExpanded] = useState(false);
   const [slopPromptSource, setSlopPromptSource] = useState(null);
@@ -424,6 +392,62 @@ export function ArchiSlop() {
    */
   const skipHydrateOnceRef = useRef(false);
   const pendingRenderModeRequestRef = useRef(null);
+
+  const { sessionHydrated } = useSessionHydrate({
+    activeSessionId,
+    contentMode,
+    freshlyMintedSessionIdsRef,
+    sessionIdFromUrlRef,
+    sessionTopicRef,
+    previousContentModeRef,
+    sourceRevisionAtViewRef,
+    leavingSlotSnapshotRef,
+    crossModeSyncRef,
+    suppressNextModeSwitchRerunRef,
+    skipHydrateOnceRef,
+    pendingRenderModeRequestRef,
+    stateRef,
+    promptRef,
+    loadingRef,
+    submitIntentWithPromptRef,
+    cacheRef,
+    setActiveSessionId,
+    setState,
+    setSessionHasPeerContent,
+    setLoading,
+    setActiveRequest,
+    setPrompt,
+    setError,
+    setInsightsEntries,
+    setLatestCritique,
+    setCritiqueActionableSelected,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    setGoMadStreak,
+    setModelProfile,
+    setContentMode
+  });
+
+  const {
+    pendingHandshake,
+    externalAgentPresence,
+    agentReactions,
+    inviteDialogOpen,
+    setInviteDialogOpen,
+    handleApproveHandshake,
+    handleDenyHandshake,
+    handleAcceptProposal,
+    handleRejectProposal,
+    resetCollaborationState
+  } = useSessionCollaboration({
+    activeSessionId,
+    sessionHydrated,
+    contentMode,
+    controlsLoading: controls.loading,
+    setInsightsEntries,
+    stateRef,
+    setState
+  });
 
   const clearPendingAutoDiagramHighlight = useCallback(() => {
     pendingAutoDiagramHighlightRef.current = null;
@@ -786,559 +810,8 @@ export function ArchiSlop() {
     setActiveRequest(null);
     clearPendingAutoDiagramHighlight();
     setError('');
-    setPendingHandshake(null);
-    setExternalAgentPresence([]);
-    setAgentReactions([]);
-  }, [activeSessionId, clearPendingAutoDiagramHighlight]);
-
-  // Let the cold-start gate dismiss only after the shell has painted real UI.
-  useEffect(() => {
-    if (!sessionHydrated) return undefined;
-    let cancelled = false;
-    const frame = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        if (!cancelled) markAppReady();
-      });
-    });
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(frame);
-    };
-  }, [sessionHydrated]);
-
-  // External-agent session events: handshake requests, proposals, presence, reactions, attributed insights.
-  // One always-open SSE stream per active session (after hydrate so SSE cannot register a phantom room).
-  useEffect(() => {
-    if (!activeSessionId || !sessionHydrated) return undefined;
-
-    const close = openSessionEventsStream({
-      sessionId: activeSessionId,
-      onEvent: (envelope) => {
-        if (!envelope || typeof envelope !== 'object') return;
-        const { type, payload } = envelope;
-
-        if (type === 'snapshot') {
-          setExternalAgentPresence(Array.isArray(payload?.presence) ? payload.presence : []);
-          // Re-hydrate any proposals that arrived before this client connected.
-          const proposals = Array.isArray(payload?.pendingProposals)
-            ? payload.pendingProposals
-            : [];
-          if (proposals.length > 0) {
-            fetchSessionDiagramState({ sessionId: activeSessionId })
-              .then((session) => {
-                setInsightsEntries((prev) => {
-                  const existingIds = new Set(prev.map((e) => e.id));
-                  const additions = proposals
-                    .filter((p) => !existingIds.has(p.proposalId))
-                    .map((p) =>
-                      proposalToInsightEntry(enrichProposalForInsight(p, session, activeSessionId))
-                    );
-                  return additions.length > 0 ? [...prev, ...additions] : prev;
-                });
-              })
-              .catch(() => {
-                setInsightsEntries((prev) => {
-                  const existingIds = new Set(prev.map((e) => e.id));
-                  const additions = proposals
-                    .filter((p) => !existingIds.has(p.proposalId))
-                    .map((p) => proposalToInsightEntry(p));
-                  return additions.length > 0 ? [...prev, ...additions] : prev;
-                });
-              });
-          }
-          return;
-        }
-
-        if (type === 'pairing_rotated') {
-          return;
-        }
-
-        if (type === 'handshake_request') {
-          // Newest pending handshake wins (one modal at a time is enough for v1).
-          setPendingHandshake(payload ?? null);
-          return;
-        }
-
-        if (type === 'handshake_resolved') {
-          setPendingHandshake((current) =>
-            current && current.requestId === payload?.requestId ? null : current
-          );
-          return;
-        }
-
-        if (type === 'presence_update') {
-          setExternalAgentPresence(Array.isArray(payload) ? payload : []);
-          return;
-        }
-
-        if (type === 'proposal_received' && payload?.proposalId) {
-          fetchSessionDiagramState({ sessionId: activeSessionId })
-            .then((session) => {
-              setInsightsEntries((prev) => {
-                if (prev.some((e) => e.id === payload.proposalId)) return prev;
-                return [
-                  ...prev,
-                  proposalToInsightEntry(
-                    enrichProposalForInsight(payload, session, activeSessionId)
-                  )
-                ];
-              });
-            })
-            .catch(() => {
-              setInsightsEntries((prev) => {
-                if (prev.some((e) => e.id === payload.proposalId)) return prev;
-                return [...prev, proposalToInsightEntry(payload)];
-              });
-            });
-          return;
-        }
-
-        if (type === 'proposal_resolved' && payload?.proposalId) {
-          setInsightsEntries((prev) =>
-            prev.map((entry) =>
-              entry.id === payload.proposalId
-                ? {
-                    ...entry,
-                    proposalStatus: payload.status ?? 'rejected',
-                    status: 'done',
-                    statusText:
-                      payload.status === 'accepted'
-                        ? controls.loading.proposalApplied
-                        : payload.status === 'rejected'
-                          ? controls.loading.proposalRejected
-                          : payload.status === 'stale'
-                            ? controls.loading.proposalStale
-                            : controls.loading.proposalResolved,
-                    completedAt: Date.now()
-                  }
-                : entry
-            )
-          );
-          return;
-        }
-
-        if (type === 'attributed_insight' && payload?.insightId) {
-          setInsightsEntries((prev) => [...prev, attributedInsightToInsightEntry(payload)]);
-          return;
-        }
-
-        if (type === 'reaction' && payload?.reactionId) {
-          setAgentReactions((prev) => [...prev, payload]);
-          // Auto-expire after 4s so the UI doesn't grow unbounded.
-          setTimeout(() => {
-            setAgentReactions((prev) => prev.filter((r) => r.reactionId !== payload.reactionId));
-          }, 4000);
-          return;
-        }
-
-        if (type === 'state_changed') {
-          // An external proposal was accepted (or otherwise mutated state). Refetch session
-          // state so the canvas + insights reflect the new revision.
-          fetchSessionDiagramState({ sessionId: activeSessionId })
-            .then((session) => {
-              const data = session?.[contentMode];
-              if (data) {
-                stateRef.current = data;
-                setState(data);
-              }
-            })
-            .catch(() => {
-              // Non-fatal; the next user action will resync.
-            });
-        }
-      },
-      onError: () => {
-        // The browser auto-reconnects EventSource; nothing to do here for now.
-      }
-    });
-
-    return close;
-  }, [activeSessionId, sessionHydrated, controls.loading]);
-
-  const handleApproveHandshake = useCallback(async () => {
-    if (!pendingHandshake) return;
-    try {
-      await approveHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
-    } catch (err) {
-      console.error('handshake approve failed', err);
-      pushError(`Handshake approve failed: ${err?.message ?? 'unknown error'}`);
-    }
-    setPendingHandshake(null);
-  }, [pendingHandshake, activeSessionId]);
-
-  const handleDenyHandshake = useCallback(async () => {
-    if (!pendingHandshake) return;
-    try {
-      await denyHandshake({ sessionId: activeSessionId, requestId: pendingHandshake.requestId });
-    } catch (err) {
-      console.error('handshake deny failed', err);
-      pushError(`Handshake deny failed: ${err?.message ?? 'unknown error'}`);
-    }
-    setPendingHandshake(null);
-  }, [pendingHandshake, activeSessionId]);
-
-  const patchProposalInsightEntry = useCallback((proposalId, patch) => {
-    if (!proposalId) return;
-    setInsightsEntries((prev) =>
-      prev.map((entry) => (entry.id === proposalId ? { ...entry, ...patch } : entry))
-    );
-  }, []);
-
-  const handleAcceptProposal = useCallback(
-    async (proposalId) => {
-      if (!proposalId) throw new Error('Missing proposal id.');
-      const body = await acceptProposalApi({ sessionId: activeSessionId, proposalId });
-      patchProposalInsightEntry(proposalId, {
-        proposalStatus: 'accepted',
-        status: 'done',
-        statusText: controls.loading.proposalApplied,
-        completedAt: Date.now()
-      });
-      if (body?.state?.diagramSource != null) {
-        stateRef.current = body.state;
-        setState(body.state);
-      }
-    },
-    [activeSessionId, contentMode, controls.loading.proposalApplied, patchProposalInsightEntry]
-  );
-
-  const handleRejectProposal = useCallback(
-    async (proposalId) => {
-      if (!proposalId) throw new Error('Missing proposal id.');
-      await rejectProposalApi({ sessionId: activeSessionId, proposalId });
-      patchProposalInsightEntry(proposalId, {
-        proposalStatus: 'rejected',
-        status: 'done',
-        statusText: controls.loading.proposalRejected,
-        completedAt: Date.now()
-      });
-    },
-    [activeSessionId, controls.loading.proposalRejected, patchProposalInsightEntry]
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    // Capture the textarea state at the moment the user toggled mode. Used below to gate
-    // auto-rerun: if the user is actively typing a different prompt, don't clobber it.
-    const promptAtSwitch = promptRef.current;
-    const sourceMode =
-      previousContentModeRef.current !== contentMode &&
-      isConcreteContentMode(previousContentModeRef.current)
-        ? previousContentModeRef.current
-        : null;
-    const sourceRevisionAtLastView =
-      sourceMode != null ? (sourceRevisionAtViewRef.current[sourceMode] ?? null) : null;
-    // Keep loading true across the hydrate → auto-submit microtask gap so an empty sibling
-    // slot never flashes the first-run intro between those two phases.
-    let keepLoadingForModeSwitch = false;
-
-    // Auto is not a server slot — keep a blank local canvas and skip mode-switch auto-intent.
-    if (contentMode === 'auto') {
-      if (skipHydrateOnceRef.current) {
-        skipHydrateOnceRef.current = false;
-        setSessionHydrated(true);
-        return undefined;
-      }
-      const empty = createInitialDiagramState('mermaid');
-      stateRef.current = empty;
-      setState(empty);
-      setSessionHasPeerContent(false);
-      setSessionHydrated(true);
-      setLoading(false);
-      setActiveRequest(null);
-      return undefined;
-    }
-
-    // Mid-stream Auto → concrete resolve: update the picker without re-hydrating.
-    if (skipHydrateOnceRef.current) {
-      skipHydrateOnceRef.current = false;
-      setSessionHydrated(true);
-      return undefined;
-    }
-
-    setSessionHydrated(false);
-    setLoading(true);
-    setActiveRequest('hydrate');
-    const leavingSnapshot = sourceMode ? leavingSlotSnapshotRef.current[sourceMode] : null;
-
-    const flushLeavingSlot = async () => {
-      if (!sourceMode || !leavingSnapshot || !isSlotCustomized(leavingSnapshot)) return;
-      try {
-        await syncClientDiagramState({
-          contentType: sourceMode,
-          diagramSource: leavingSnapshot.diagramSource,
-          ...(leavingSnapshot.styleConfig != null
-            ? { styleConfig: leavingSnapshot.styleConfig }
-            : {}),
-          sessionId: activeSessionId
-        });
-      } catch {
-        // Best-effort — mergeLeavingSlotSnapshot below still enables peer detection.
-      }
-    };
-
-    flushLeavingSlot()
-      .then(() => fetchSessionDiagramState({ sessionId: activeSessionId }))
-      .then((fetchedSession) => {
-        const session = mergeLeavingSlotSnapshot(fetchedSession, sourceMode, leavingSnapshot);
-        if (sourceMode) {
-          delete leavingSlotSnapshotRef.current[sourceMode];
-        }
-        return session;
-      })
-      .then((session) => {
-        if (cancelled) return;
-        freshlyMintedSessionIdsRef.current.delete(activeSessionId);
-        const staleLocalCache = readDiagramCache(activeSessionId);
-        if (
-          sessionIdFromUrlRef.current &&
-          isServerSessionPristine(session) &&
-          isDiagramCacheSubstantial(staleLocalCache)
-        ) {
-          const err = new Error('Session not found');
-          err.code = SESSION_NOT_FOUND_CODE;
-          throw err;
-        }
-        const data = session?.[contentMode];
-        if (!data) {
-          throw new Error('Invalid session state');
-        }
-        stateRef.current = data;
-        setState(data);
-        setSessionHasPeerContent(
-          CONTENT_MODES.some((mode) => mode !== contentMode && isSlotCustomized(session?.[mode]))
-        );
-
-        const trimmedAtSwitch = (promptAtSwitch ?? '').trim();
-        let candidate = resolveModeSwitchCandidate({
-          contentMode,
-          session,
-          sessionTopic: sessionTopicRef.current,
-          promptAtSwitch: trimmedAtSwitch,
-          sourceMode
-        });
-
-        if (candidate) {
-          sessionTopicRef.current = candidate;
-        }
-
-        const primaryPeerMode = pickPrimaryPeerMode({
-          contentMode,
-          session,
-          candidate,
-          sourceMode
-        });
-        const peerSlot = primaryPeerMode ? session?.[primaryPeerMode] : null;
-
-        const newSlotInSync = isSlotInSyncForTopic(data, candidate);
-        const textareaDirty = trimmedAtSwitch.length > 0 && trimmedAtSwitch !== candidate;
-        const peerRequiresTranslation = peerRequiresModeSwitchTranslation({
-          contentMode,
-          session,
-          candidate,
-          syncMarkers: crossModeSyncRef.current,
-          sourceMode,
-          sourceRevisionAtLastView
-        });
-        const needsPeerSync = needsModeSwitchPeerSync({
-          contentMode,
-          session,
-          candidate,
-          syncMarkers: crossModeSyncRef.current,
-          sourceMode,
-          sourceRevisionAtLastView
-        });
-
-        if (candidate && !textareaDirty) {
-          setPrompt(candidate);
-          promptRef.current = candidate;
-        }
-
-        const peerContext = buildIntentPeerContext(contentMode, session, candidate, sourceMode);
-        const pendingRenderModeRequest = pendingRenderModeRequestRef.current;
-        if (pendingRenderModeRequest?.targetMode === contentMode) {
-          pendingRenderModeRequestRef.current = null;
-          keepLoadingForModeSwitch = true;
-          Promise.resolve().then(async () => {
-            if (cancelled) return;
-            try {
-              await submitIntentWithPromptRef.current?.(pendingRenderModeRequest.promptText, {
-                stateOverride: data,
-                peerContext: pendingRenderModeRequest.peerContext,
-                focusTarget: pendingRenderModeRequest.descriptor,
-                contentTypeOverride: contentMode,
-                skipLoadingGuard: true
-              });
-            } catch (err) {
-              if (!cancelled) setError(err.message);
-            }
-          });
-          return;
-        }
-        // Cross-mode Restore intentionally jumps to a specific snapshot — don't let the auto
-        // mode-switch rerun overwrite it on the very next hydrate pass.
-        const restoreSuppressed = suppressNextModeSwitchRerunRef.current;
-        if (restoreSuppressed) suppressNextModeSwitchRerunRef.current = false;
-        if (
-          !restoreSuppressed &&
-          shouldAutoSubmitModeSwitchIntent({
-            candidate,
-            textareaDirty,
-            newSlotInSync,
-            peerRequiresTranslation,
-            needsPeerSync
-          })
-        ) {
-          const peerRevisionAtSubmit = peerSlot?.revisionId ?? 0;
-          keepLoadingForModeSwitch = true;
-          // Defer to a microtask so React has committed the state update before the auto
-          // submit kicks off; pass the override anyway so revisionId is correct regardless.
-          Promise.resolve().then(async () => {
-            if (cancelled) return;
-            try {
-              if (!peerContext) {
-                const cleared = await syncClientDiagramState({
-                  contentType: contentMode,
-                  diagramSource: '',
-                  sessionId: activeSessionId
-                });
-                if (cancelled) return;
-                stateRef.current = cleared;
-                setState(cleared);
-                await submitIntentWithPromptRef.current?.(candidate, {
-                  stateOverride: cleared,
-                  skipLoadingGuard: true
-                });
-                return;
-              }
-              await submitIntentWithPromptRef.current?.(candidate, {
-                stateOverride: data,
-                peerContext,
-                skipLoadingGuard: true,
-                modeSwitchSync: true,
-                modeSwitchPeerRevisionId: peerRevisionAtSubmit,
-                modeSwitchPeerMode: primaryPeerMode
-              });
-            } catch (err) {
-              if (!cancelled) {
-                setError(err.message);
-                setLoading(false);
-                setActiveRequest(null);
-              }
-            }
-          });
-        }
-        if (isConcreteContentMode(contentMode)) {
-          sourceRevisionAtViewRef.current[contentMode] = data.revisionId ?? 0;
-        }
-        previousContentModeRef.current = contentMode;
-      })
-      .catch(async (err) => {
-        if (cancelled) return;
-        if (err?.code === SESSION_NOT_FOUND_CODE) {
-          setInsightsEntries([]);
-          setLatestCritique(null);
-          setCritiqueActionableSelected([]);
-          setPrompt('');
-          promptRef.current = '';
-          setLiveDraftSource('');
-          setLiveDraftContentType(null);
-          setGoMadStreak(0);
-          sessionTopicRef.current = null;
-          setSessionHasPeerContent(false);
-          crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
-          sourceRevisionAtViewRef.current = {};
-          cacheRef.current = null;
-          sessionIdFromUrlRef.current = false;
-          setModelProfile('fast');
-          setContentMode('mermaid');
-          // Two cases:
-          //  (a) Stale URL/bookmark after a server restart — rotate to a new room id + wipe storage.
-          //  (b) Client-minted id on first visit — 404 is expected; keep id and prime the server.
-          const wasFreshlyMinted = freshlyMintedSessionIdsRef.current.has(activeSessionId);
-          let targetId = activeSessionId;
-          if (!wasFreshlyMinted) {
-            const fresh = createInitialDiagramState('mermaid');
-            stateRef.current = fresh;
-            setState(fresh);
-            try {
-              targetId = await mintFreshServerSession();
-            } catch {
-              targetId = normalizeSessionId(createSessionId()) ?? `session-${Date.now()}`;
-            }
-            freshlyMintedSessionIdsRef.current.add(targetId);
-          } else {
-            try {
-              await Promise.all([
-                syncClientDiagramState({
-                  contentType: 'mermaid',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'infographic',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'metaphor3d',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'chart',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'forms',
-                  diagramSource: '',
-                  sessionId: targetId
-                }),
-                syncClientDiagramState({
-                  contentType: 'anything',
-                  diagramSource: '',
-                  sessionId: targetId
-                })
-              ]);
-            } catch {
-              // best-effort — if priming sync fails the next user action will create the session
-            }
-          }
-          if (cancelled) return;
-          if (targetId !== activeSessionId) {
-            // Keep targetId in freshlyMintedSessionIdsRef so the next hydration cycle
-            // treats it as client-minted and primes the server if it lands on a different
-            // Cloud Run instance. The .then() path cleans it up after a successful fetch.
-            window.history.replaceState({}, '', `${sessionPathFor(targetId)}`);
-            setActiveSessionId(targetId);
-          } else {
-            freshlyMintedSessionIdsRef.current.delete(targetId);
-            const fresh = createInitialDiagramState('mermaid');
-            stateRef.current = fresh;
-            setState(fresh);
-          }
-          return;
-        }
-        setError(err?.message ?? String(err));
-      })
-      .finally(() => {
-        if (cancelled) return;
-        sessionIdFromUrlRef.current = false;
-        setSessionHydrated(true);
-        if (keepLoadingForModeSwitch) {
-          // submitIntentWithPrompt owns loading for the follow-on mode-switch run.
-          return;
-        }
-        loadingRef.current = false;
-        setLoading(false);
-        setActiveRequest(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSessionId, contentMode]);
+    resetCollaborationState();
+  }, [activeSessionId, clearPendingAutoDiagramHighlight, resetCollaborationState]);
 
   useEffect(() => {
     writeDiagramCache(
@@ -4032,16 +3505,13 @@ ${requirementsBlock}`;
             ) : null}
           </TopShell>
 
-          <AgentHandshakeDialog
-            request={pendingHandshake}
-            onApprove={handleApproveHandshake}
-            onDeny={handleDenyHandshake}
-          />
-
-          <InviteAgentDialog
-            sessionId={activeSessionId}
-            open={inviteDialogOpen}
-            onClose={() => setInviteDialogOpen(false)}
+          <SessionCollaborationSlot
+            activeSessionId={activeSessionId}
+            pendingHandshake={pendingHandshake}
+            onApproveHandshake={handleApproveHandshake}
+            onDenyHandshake={handleDenyHandshake}
+            inviteDialogOpen={inviteDialogOpen}
+            onInviteDialogClose={() => setInviteDialogOpen(false)}
           />
 
           <ClearConfirmDialog
