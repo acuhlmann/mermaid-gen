@@ -4,9 +4,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import EntryRenderAs from '../src/components/EntryRenderAs.jsx';
 
 const MODES = [
-  { id: 'mermaid', shortLabel: 'Diagram', subtitle: 'Mermaid graph' },
-  { id: 'chart', shortLabel: 'Chart', subtitle: 'Vega-Lite data view' },
-  { id: 'metaphor3d', shortLabel: '3D', subtitle: 'Three.js scene' }
+  { id: 'mermaid', shortLabel: 'Diagram', techLabel: 'Mermaid', subtitle: 'Mermaid graph' },
+  { id: 'chart', shortLabel: 'Chart', techLabel: 'Vega-Lite', subtitle: 'Vega-Lite data view' },
+  { id: 'metaphor3d', shortLabel: '3D', techLabel: 'Three.js', subtitle: 'Three.js scene' }
 ];
 
 describe('EntryRenderAs', () => {

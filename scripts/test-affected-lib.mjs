@@ -87,6 +87,15 @@ export const BLAST_RADIUS_RULES = [
   {
     match: /apps\/web\/src\/utils\/officeCast\.js|apps\/web\/src\/i18n\/locales\/office\./,
     tests: ['apps/web/test/officeLocale.test.js', 'apps/web/test/officeDirectory.test.jsx']
+  },
+  {
+    match:
+      /apps\/web\/src\/(components\/(DeskDrawer|EntryRenderAs)|utils\/renderModeAction)|apps\/web\/src\/i18n\/locales\/controls\.(en|en-AU)\.js/,
+    tests: [
+      'apps/web/test/entryRenderAs.test.jsx',
+      'apps/web/test/renderModeAction.test.js',
+      'apps/web/test/App.test.jsx'
+    ]
   }
 ];
 

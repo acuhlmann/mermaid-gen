@@ -5076,6 +5076,11 @@
   align-items: stretch;
   gap: 0.45rem;
   pointer-events: none;
+  max-width: min(
+    100%,
+    calc(100vw - 2rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+  margin-inline: auto;
   /* Sit above .brand-control (var(--z-brand)) so the stakeholders speech bubble
      — which pops up from the dock at the bottom — can render over the top-left
      logo on short screens where the two regions overlap. Modals still win
@@ -6898,11 +6903,26 @@
   line-height: 1.2;
   cursor: pointer;
   backdrop-filter: blur(18px);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.05rem;
   transition:
     border-color 0.15s ease,
     transform 0.1s ease,
     box-shadow 0.15s ease,
     background 0.15s ease;
+}
+
+.entry-render-as-chip-label {
+  font-weight: 600;
+}
+
+.entry-render-as-chip-tech {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0.01em;
 }
 
 .entry-render-as-chip:hover:not(:disabled) {
@@ -13914,6 +13934,21 @@ body.slopitect-rainbow-tint::before {
   opacity: 0.7;
 }
 
+.desk-actions-item-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.desk-actions-item-subtitle {
+  font-size: 0.68rem;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
 .desk-drawer-current-tag {
   margin-left: auto;
   font-size: 0.62rem;
@@ -13955,16 +13990,21 @@ body.slopitect-rainbow-tint::before {
   display: none;
 }
 
-/* Mobile: the Work Order sits on the bottom row under Team + drawer. */
+/* Mobile: keep the Work Order on the same row as team controls when possible
+   instead of forcing a second full-width row that eats canvas on focus. */
 .prompt-actions--mobile .slop-prompt-panel--desk {
-  flex-basis: 100%;
-  width: 100%;
-  order: 2;
+  flex: 1 1 10rem;
+  min-width: 0;
+  max-width: min(28rem, 100%);
+  width: auto;
+  order: unset;
 }
 
 .prompt-actions--mobile .desk-primary-group {
-  width: 100%;
-  order: 1;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  order: unset;
 }
 
 @media (max-width: 1024px) {
@@ -16680,6 +16720,41 @@ body.slopitect-rainbow-tint::before {
   padding: 18px 14px;
   text-align: center;
 }
+
+.office-messenger-empty-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.35rem 0.5rem 0.75rem;
+}
+
+.office-messenger-empty-panel .office-messenger-empty {
+  padding: 0.35rem 0.5rem;
+}
+
+.office-messenger-message-someone {
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  box-shadow: var(--control-shadow);
+}
+
+.office-messenger-message-someone:hover:not(:disabled) {
+  border-color: rgba(56, 189, 248, 0.55);
+}
+
+.office-messenger-message-someone:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .office-messenger-quick {
   display: flex;
   flex: 0 0 auto;
@@ -18726,6 +18801,15 @@ body.slopitect-rainbow-tint::before {
     .app-shell.is-foldable-dual .bottom-chrome {
       padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
       padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+      max-width: min(
+        28rem,
+        env(viewport-segment-width 0 0, 100vw) - 1.5rem - env(safe-area-inset-left, 0px) -
+          env(safe-area-inset-right, 0px)
+      );
+    }
+
+    .app-shell.is-foldable-dual .slop-prompt-panel--desk {
+      max-width: min(24rem, 100%);
     }
   }
 }

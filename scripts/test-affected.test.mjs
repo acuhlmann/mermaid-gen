@@ -81,6 +81,13 @@ test('touchesAnythingRuntime matches anything modules only', () => {
   assert.equal(touchesAnythingRuntime('apps/server/src/agents/mermaidLangChainAgent.js'), false);
 });
 
+test('resolveAffectedTests adds deliverable-format blast-radius tests for DeskDrawer edits', () => {
+  const plan = resolveAffectedTests(['apps/web/src/components/DeskDrawer.jsx'], { root: ROOT });
+  assert.ok(plan.tests.includes('apps/web/test/App.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/entryRenderAs.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/renderModeAction.test.js'));
+});
+
 test('summarizeAffectedTestPlan is human-readable', () => {
   const summary = summarizeAffectedTestPlan(
     resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT })
