@@ -6348,6 +6348,109 @@
   max-width: 36rem;
 }
 
+.entry-desk-guide {
+  margin-top: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, var(--accent) 12%);
+}
+
+.entry-desk-guide-heading {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.entry-desk-guide-hint {
+  margin: 0.2rem 0 0.35rem;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.entry-desk-guide-sections {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.entry-desk-guide-section {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, auto) 1fr;
+  gap: 0.35rem 0.55rem;
+  align-items: start;
+}
+
+.entry-desk-guide-section dt {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+}
+
+.entry-desk-guide-section dd {
+  margin: 0;
+}
+
+.entry-desk-guide-section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.35rem;
+}
+
+.entry-desk-guide-section li {
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: var(--text);
+  padding: 0.12rem 0.38rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 70%, var(--text) 8%);
+  border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
+}
+
+.entry-desk-guide-work-order {
+  margin: 0.4rem 0 0;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+/* First-run desk screen: welcome guide + the same bottom-row desk chrome. */
+.entry-desk-integrated {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: stretch;
+}
+
+.entry-desk-integrated .prompt-actions--entry-desk {
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+
+.entry-desk-integrated .prompt-actions--entry-desk .desk-primary-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: flex-end;
+}
+
+.entry-desk-fallback {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .topic-starters {
   animation: topic-starters-in 0.35s ease both;
 }
