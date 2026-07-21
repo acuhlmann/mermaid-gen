@@ -38,7 +38,12 @@ export function InsightsSlot({
   explainDumbLevelByEntryId,
   explainDumbLoadingEntryId,
   explainDumbSurrenderedEntryIds,
-  onExplainDumbDown
+  onExplainDumbDown,
+  modelProfile,
+  onSelectModelProfile,
+  editorOpen,
+  onToggleEditor,
+  canToggleEditor
 }) {
   if (!mounted) return null;
 
@@ -77,6 +82,11 @@ export function InsightsSlot({
       explainDumbLoadingEntryId={explainDumbLoadingEntryId}
       explainDumbSurrenderedEntryIds={explainDumbSurrenderedEntryIds}
       onExplainDumbDown={onExplainDumbDown}
+      modelProfile={modelProfile}
+      onSelectModelProfile={onSelectModelProfile}
+      editorOpen={editorOpen}
+      onToggleEditor={onToggleEditor}
+      canToggleEditor={canToggleEditor}
     />
   );
 }

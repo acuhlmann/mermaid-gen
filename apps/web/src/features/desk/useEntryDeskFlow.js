@@ -72,6 +72,7 @@ export function useEntryDeskFlow({
     workOrder: showFullDesk,
     desk: showFullDesk,
     team: showFullDesk,
+    notebook: showFullDesk,
     drawer: showFullDesk
   };
 
