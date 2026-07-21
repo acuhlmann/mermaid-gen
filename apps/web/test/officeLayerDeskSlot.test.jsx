@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import OfficeLayer from '../src/components/OfficeLayer.jsx';
+import { setDeskSlotElement } from '../src/state/deskSlotStore.js';
 
 const BASE_PROPS = {
   pause: false,
@@ -21,11 +22,21 @@ const BASE_PROPS = {
 };
 
 function BottomNavSlot({ ready = false }) {
-  return ready ? <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" /> : null;
+  if (!ready) return null;
+  return (
+    <div
+      id="office-desk-bottom-slot"
+      className="bottom-office-desk-slot"
+      ref={(el) => setDeskSlotElement(el)}
+    />
+  );
 }
 
 describe('OfficeLayer desk actions portal', () => {
-  afterEach(() => cleanup());
+  afterEach(() => {
+    setDeskSlotElement(null);
+    cleanup();
+  });
 
   it('portals the desk trigger once the bottom nav slot mounts after hydrate', () => {
     const view = render(
@@ -46,6 +57,30 @@ describe('OfficeLayer desk actions portal', () => {
 
     expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Your desk/i })).toBeTruthy();
+  });
+
+  it('finds the slot when OfficeLayer renders before the bottom nav in tree order', () => {
+    render(
+      <>
+        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady deskMenuInitialOpen />
+        <BottomNavSlot ready />
+      </>
+    );
+
+    expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
+    expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
+  });
+
+  it('opens the desk menu when deskMenuInitialOpen is set', () => {
+    render(
+      <>
+        <OfficeLayer {...BASE_PROPS} deskActionsAnchorReady deskMenuInitialOpen />
+        <BottomNavSlot ready />
+      </>
+    );
+
+    expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
+    expect(screen.getByText('Your seat')).toBeTruthy();
   });
 
   it('rebinds when the bottom nav layout key changes', () => {
