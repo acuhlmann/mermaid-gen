@@ -1144,6 +1144,7 @@ export const OFFICE_CHROME_COPY = {
   },
   walkby: {
     kindLabel: 'Walk-by · Over your shoulder',
+    preamble: 'Someone just appeared behind you and is reading your screen. Act natural.',
     dismissAria: 'Wave off {name}'
   },
   coffee: {

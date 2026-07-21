@@ -323,6 +323,8 @@ export function ArchiSlop() {
   /** Desk verbs bump these to open headless Outbox / Settings panels. */
   const [outboxOpenSignal, setOutboxOpenSignal] = useState(0);
   const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
+  /** Bumped from Your Team menu to start a WG meeting via OfficeLayer. */
+  const [callMeetingSignal, setCallMeetingSignal] = useState(0);
   const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
   const streakEmissionSeqRef = useRef(0);
   /** Boot-sequence trigger: counter + variant. Each pick increments → overlay re-mounts. */
@@ -3841,7 +3843,6 @@ ${requirementsBlock}`;
             }}
             onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
             onOfficeEvent={handleOfficeEvent}
-            onTalkToTeam={() => advisor.promptNext({})}
             onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
             onOpenOutbox={() => setOutboxOpenSignal((n) => n + 1)}
             onToggleEditor={() => setEditorOpen((current) => !current)}
@@ -3851,11 +3852,7 @@ ${requirementsBlock}`;
             onToggleThinking={() => setInsightsOpen((v) => !v)}
             modelProfile={modelProfile}
             onSelectModelProfile={setModelProfile}
-            canTalkToTeam={
-              Boolean((state.diagramSource ?? '').trim()) &&
-              !advisor.thinkingPersona &&
-              !advisorPause
-            }
+            callMeetingSignal={callMeetingSignal}
             canOpenOutbox={Boolean((state.diagramSource ?? '').trim())}
             canToggleThinking={insightsEntries.length > 0}
             thinkingOpen={insightsOpen}
@@ -4266,28 +4263,17 @@ ${requirementsBlock}`;
                         onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
                         castDisabled={busy || Boolean(advisor.thinkingPersona)}
                         introProps={stakeholderIntroProps}
+                        isMuted={advisor.isMuted}
+                        onToggleMute={() => advisor.toggleMute()}
+                        onTalkToTeam={() => advisor.promptNext({})}
+                        onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+                        canTalkToTeam={
+                          Boolean((state.diagramSource ?? '').trim()) &&
+                          !advisor.thinkingPersona &&
+                          !advisorPause
+                        }
+                        canCallMeeting={Boolean((state.diagramSource ?? '').trim())}
                       />
-                      <button
-                        type="button"
-                        className={`overlay-button compact-button desk-headphones-button${advisor.isMuted ? ' is-muted' : ''}`}
-                        aria-pressed={advisor.isMuted}
-                        aria-label={
-                          advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
-                        }
-                        title={
-                          advisor.isMuted
-                            ? controls.actions.unmuteTitle
-                            : controls.actions.muteTitle
-                        }
-                        onClick={() => advisor.toggleMute()}
-                      >
-                        <span className="desk-headphones-emoji" aria-hidden="true">
-                          {advisor.isMuted ? '🎧' : '🔊'}
-                        </span>
-                        <span className="button-label">
-                          {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
-                        </span>
-                      </button>
                     </div>
                     <DeskDrawer
                       modes={contentModeOptions}
@@ -4345,28 +4331,17 @@ ${requirementsBlock}`;
                         onSelectVariant={(variant) => advisor.promptNext({ persona: variant })}
                         castDisabled={busy || Boolean(advisor.thinkingPersona)}
                         introProps={stakeholderIntroProps}
+                        isMuted={advisor.isMuted}
+                        onToggleMute={() => advisor.toggleMute()}
+                        onTalkToTeam={() => advisor.promptNext({})}
+                        onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+                        canTalkToTeam={
+                          Boolean((state.diagramSource ?? '').trim()) &&
+                          !advisor.thinkingPersona &&
+                          !advisorPause
+                        }
+                        canCallMeeting={Boolean((state.diagramSource ?? '').trim())}
                       />
-                      <button
-                        type="button"
-                        className={`overlay-button compact-button desk-headphones-button${advisor.isMuted ? ' is-muted' : ''}`}
-                        aria-pressed={advisor.isMuted}
-                        aria-label={
-                          advisor.isMuted ? controls.actions.unmuteAria : controls.actions.muteAria
-                        }
-                        title={
-                          advisor.isMuted
-                            ? controls.actions.unmuteTitle
-                            : controls.actions.muteTitle
-                        }
-                        onClick={() => advisor.toggleMute()}
-                      >
-                        <span className="desk-headphones-emoji" aria-hidden="true">
-                          {advisor.isMuted ? '🎧' : '🔊'}
-                        </span>
-                        <span className="button-label">
-                          {advisor.isMuted ? controls.actions.unmute : controls.actions.mute}
-                        </span>
-                      </button>
                     </div>
                     <DeskDrawer
                       modes={contentModeOptions}

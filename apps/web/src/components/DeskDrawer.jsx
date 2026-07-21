@@ -7,8 +7,8 @@ const DRAWER_EMOJI = '🗄️';
 /**
  * The desk tray: work-surface tools (Deliverable format, Facilities, Shredder)
  * collapse into one grouped office tray so the always-visible surface stays the
- * Work Order + Your Team. Headphones live beside Your Team (people zone), not
- * here. One pill opens a menu (mirrors DeskActionsDock's open / outside-click
+ * Work Order + Your Team. Team audio and huddle verbs live in the Your Team
+ * roster menu. One pill opens a menu (mirrors DeskActionsDock's open / outside-click
  * pattern).
  *
  * Behavior-only props — App owns the handlers; copy comes from the locale bundle.

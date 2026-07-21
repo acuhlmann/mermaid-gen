@@ -14,9 +14,10 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
   const sender = officeSenderInfo(walkBy.colleagueId);
   return (
     <div className="office-walkby" role="status" aria-live="polite">
-      <p className="office-moment-kind office-moment-kind--walkby" aria-hidden="true">
-        {copy.walkby.kindLabel}
-      </p>
+      <p className="office-moment-kind office-moment-kind--walkby">{copy.walkby.kindLabel}</p>
+      {copy.walkby.preamble ? (
+        <p className="office-walkby-preamble">{copy.walkby.preamble}</p>
+      ) : null}
       <div className="office-walkby-row">
         <PersonaFace id={walkBy.colleagueId} size={40} className="office-walkby-avatar" />
         <div className="office-walkby-bubble">

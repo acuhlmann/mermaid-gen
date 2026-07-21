@@ -308,7 +308,7 @@ export const CONTROLS_EN_AU = {
     seniorDivider: 'Upstairs',
     introEyebrow: '👥 Your mob has opinions',
     introBody:
-      'One of your mob is weighing in on your diagram — they chip in as you work, whether you asked or not. It is literally their job. Put on Headphones anytime to shut them out.',
+      'One of your mob is weighing in on your diagram — they chip in as you work, whether you asked or not. It is literally their job. Open Your Team and put on Headphones anytime to shut them out.',
     introDismiss: 'Gotcha',
     introAria: 'Meet the mob'
   },

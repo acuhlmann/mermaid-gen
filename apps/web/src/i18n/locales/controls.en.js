@@ -357,10 +357,12 @@ export const CONTROLS_EN = {
     castAskCommentary: 'Ask {name} for commentary',
     align: 'Prep for the VP',
     seniorDivider: 'Upstairs',
+    teamActionsHeading: 'Your team',
+    teammatesDivider: 'Teammates',
     // One-time first-run spotlight framing the team mechanic.
     introEyebrow: '👥 Your team has opinions',
     introBody:
-      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Put on Headphones anytime to shut them out.',
+      'A teammate is weighing in on your diagram — they chime in as you work, whether you asked or not. It is literally their job. Open Your Team and put on Headphones anytime to shut them out.',
     introDismiss: 'Got it',
     introAria: 'Meet your team'
   },
