@@ -83,4 +83,41 @@ describe('useEntryDeskFlow', () => {
     expect(result.current.entryReveal.desk).toBe(true);
     expect(result.current.entryReveal.drawer).toBe(true);
   });
+
+  it('reveals alternate content modes after the first diagram lands', () => {
+    window.localStorage.setItem(OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY, '1');
+    const handleSelectContentMode = vi.fn();
+    const { result, rerender } = renderHook((props) => useEntryDeskFlow(props), {
+      initialProps: {
+        hasCanvasContent: true,
+        hasDiagramText: false,
+        insightsOpen: false,
+        stakeholderIntroProps: null,
+        editorOpen: false,
+        hasInteractedRef: { current: true },
+        handleSelectContentMode
+      }
+    });
+
+    expect(result.current.modeRevealActive).toBe(false);
+
+    rerender({
+      hasCanvasContent: true,
+      hasDiagramText: true,
+      insightsOpen: false,
+      stakeholderIntroProps: null,
+      editorOpen: false,
+      hasInteractedRef: { current: true },
+      handleSelectContentMode
+    });
+
+    expect(result.current.modeRevealActive).toBe(true);
+    expect(window.localStorage.getItem(MODE_REVEAL_SEEN_KEY)).toBe('1');
+
+    act(() => {
+      result.current.handleModeRevealPick('infographic');
+    });
+    expect(handleSelectContentMode).toHaveBeenCalledWith('infographic');
+    expect(result.current.modeRevealActive).toBe(false);
+  });
 });
