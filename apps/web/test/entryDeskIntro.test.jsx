@@ -19,10 +19,10 @@ const DESK_COPY = {
   thinking: 'Open your notebook',
   inbox: 'Check your mail',
   slopChat: 'Open Slop Chat',
-  im: 'Message someone',
   coffee: 'Get a coffee',
   walk: 'Walk the floor',
-  settings: 'Adjust your workstation',
+  codeDrawer: 'Open code drawer',
+  onboardContractor: 'Onboard a contractor',
   hrProgress: 'Check my HR progression'
 };
 

@@ -95,13 +95,16 @@ export default function OfficeLayer({
   onTalkToTeam,
   onCheckHrProgression,
   onOpenOutbox,
-  onOpenSettings,
+  onToggleEditor,
+  onInviteAgent,
   onToggleThinking,
   modelProfile = 'fast',
   onSelectModelProfile = null,
   canTalkToTeam: canTalkToTeamProp,
   canOpenOutbox = false,
   canToggleThinking = false,
+  canToggleEditor = false,
+  editorOpen = false,
   thinkingOpen = false,
   playChime,
   /** Bumped by App when an agent run completes, so a colleague can react to it. */
@@ -420,6 +423,11 @@ export default function OfficeLayer({
     [desk, onOfficeEvent]
   );
 
+  const handleMessageSomeone = useCallback(async () => {
+    setMessengerOpen(true);
+    await desk.imSomeone();
+  }, [desk]);
+
   const handleQuickReply = useCallback(
     async (ping, reply) => {
       pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
@@ -439,14 +447,14 @@ export default function OfficeLayer({
       imUnreadCount={snapshot.imUnreadCount}
       onGetCoffee={desk.getCoffee}
       onWalkTheFloor={desk.walkTheFloor}
-      onImSomeone={desk.imSomeone}
       onCheckInbox={desk.checkInbox}
       onOpenSlopChat={handleOpenMessenger}
       onCallMeeting={desk.callMeeting}
       onTalkToTeam={desk.talkToTeam}
       onCheckHrProgression={onCheckHrProgression}
       onOpenOutbox={onOpenOutbox}
-      onOpenSettings={onOpenSettings}
+      onToggleEditor={onToggleEditor}
+      onInviteAgent={onInviteAgent}
       onToggleThinking={onToggleThinking}
       modelProfile={modelProfile}
       onSelectModelProfile={onSelectModelProfile}
@@ -454,6 +462,8 @@ export default function OfficeLayer({
       canCallMeeting={canCallMeeting}
       canTalkToTeam={canTalkToTeam}
       canOpenOutbox={canOpenOutbox}
+      canToggleEditor={canToggleEditor}
+      editorOpen={editorOpen}
       canToggleThinking={canToggleThinking}
       thinkingOpen={thinkingOpen}
     />
@@ -503,6 +513,7 @@ export default function OfficeLayer({
             onClose={handleCloseMessenger}
             onMarkRead={markOfficeImsRead}
             onSend={handleMessengerSend}
+            onMessageSomeone={handleMessageSomeone}
           />
           <OfficeWalkBy
             walkBy={snapshot.walkBy}

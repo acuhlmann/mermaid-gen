@@ -7,18 +7,19 @@ function open(props = {}) {
   const handlers = {
     onGetCoffee: vi.fn(),
     onWalkTheFloor: vi.fn(),
-    onImSomeone: vi.fn(),
     onCheckInbox: vi.fn(),
     onOpenSlopChat: vi.fn(),
     onCallMeeting: vi.fn(),
     onTalkToTeam: vi.fn(),
     onCheckHrProgression: vi.fn(),
     onOpenOutbox: vi.fn(),
-    onOpenSettings: vi.fn(),
+    onToggleEditor: vi.fn(),
+    onInviteAgent: vi.fn(),
     onToggleThinking: vi.fn(),
     onSelectModelProfile: vi.fn(),
     canOpenOutbox: true,
     canToggleThinking: true,
+    canToggleEditor: true,
     modelProfile: 'fast',
     ...props
   };
@@ -35,14 +36,14 @@ describe('DeskActionsDock', () => {
       <DeskActionsDock
         onGetCoffee={vi.fn()}
         onWalkTheFloor={vi.fn()}
-        onImSomeone={vi.fn()}
         onCheckInbox={vi.fn()}
         onOpenSlopChat={vi.fn()}
         onCallMeeting={vi.fn()}
         onTalkToTeam={vi.fn()}
         onCheckHrProgression={vi.fn()}
         onOpenOutbox={vi.fn()}
-        onOpenSettings={vi.fn()}
+        onToggleEditor={vi.fn()}
+        onInviteAgent={vi.fn()}
         onToggleThinking={vi.fn()}
       />
     );
@@ -70,22 +71,29 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Ship from the Outbox/ })).toBeTruthy();
     for (const label of [
       'Open Slop Chat',
-      'Message someone',
       'Walk the floor',
       'Get a coffee',
-      'Adjust your workstation',
+      'Open code drawer',
+      'Onboard a contractor',
       'Check my HR progression'
     ]) {
       expect(screen.getByRole('menuitem', { name: new RegExp(label) })).toBeTruthy();
     }
+    expect(screen.queryByRole('menuitem', { name: /Message someone/ })).toBeNull();
+    expect(screen.queryByRole('menuitem', { name: /Adjust your workstation/ })).toBeNull();
     expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
   });
 
-  it('runs Settings and Notebook verbs and closes the menu', () => {
-    const handlers = open({ canToggleThinking: true });
-    fireEvent.click(screen.getByRole('menuitem', { name: /Adjust your workstation/ }));
-    expect(handlers.onOpenSettings).toHaveBeenCalledTimes(1);
+  it('runs code drawer and contractor verbs and closes the menu', () => {
+    const handlers = open({ canToggleEditor: true });
+    fireEvent.click(screen.getByRole('menuitem', { name: /Open code drawer/ }));
+    expect(handlers.onToggleEditor).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: /Your desk/i }));
+    fireEvent.click(screen.getByRole('menuitem', { name: /Onboard a contractor/ }));
+    expect(handlers.onInviteAgent).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
@@ -137,15 +145,13 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('disables verbs with an in-fiction reason while blocked, but never inbox, settings, or HR', () => {
+  it('disables verbs with an in-fiction reason while blocked, but never inbox, contractor, or HR', () => {
     open({ blockedReason: 'meeting' });
     const coffee = screen.getByRole('menuitem', { name: /Get a coffee/ });
     expect(coffee.disabled).toBe(true);
     expect(coffee.getAttribute('title')).toMatch(/in a meeting/i);
-    // Reading your mail / tweaking the desk is always allowed — popovers, not
-    // another office surface on screen.
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).disabled).toBe(false);
-    expect(screen.getByRole('menuitem', { name: /Adjust your workstation/ }).disabled).toBe(false);
+    expect(screen.getByRole('menuitem', { name: /Onboard a contractor/ }).disabled).toBe(false);
     expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
   });
 
@@ -171,13 +177,16 @@ describe('DeskActionsDock', () => {
     expect(handlers.onTalkToTeam).toHaveBeenCalledTimes(1);
   });
 
-  it('blocks Outbox and Notebook when there is nothing to open', () => {
-    open({ canOpenOutbox: false, canToggleThinking: false });
+  it('blocks Outbox, Notebook, and code drawer when there is nothing to open', () => {
+    open({ canOpenOutbox: false, canToggleThinking: false, canToggleEditor: false });
     const outbox = screen.getByRole('menuitem', { name: /Ship from the Outbox/ });
     const thinking = screen.getByRole('menuitem', { name: /Open your notebook/ });
+    const code = screen.getByRole('menuitem', { name: /Open code drawer/ });
     expect(outbox.disabled).toBe(true);
     expect(thinking.disabled).toBe(true);
+    expect(code.disabled).toBe(true);
     expect(outbox.getAttribute('title')).toMatch(/Nothing to ship/i);
     expect(thinking.getAttribute('title')).toMatch(/empty/i);
+    expect(code.getAttribute('title')).toMatch(/Generate something first/i);
   });
 });

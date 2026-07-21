@@ -146,6 +146,7 @@ export default function OfficeMessenger({
   onClose,
   onMarkRead,
   onSend,
+  onMessageSomeone,
   busy = false
 }) {
   const chat = officeChromeCopy().messenger;
@@ -197,7 +198,20 @@ export default function OfficeMessenger({
       </div>
 
       {threads.length === 0 ? (
-        <p className="office-messenger-empty">{chat.emptyThreads}</p>
+        <div className="office-messenger-empty-panel">
+          <p className="office-messenger-empty">{chat.emptyThreads}</p>
+          {typeof onMessageSomeone === 'function' ? (
+            <button
+              type="button"
+              className="office-messenger-message-someone"
+              disabled={busy}
+              title={chat.messageSomeoneTitle}
+              onClick={() => onMessageSomeone()}
+            >
+              {chat.messageSomeone}
+            </button>
+          ) : null}
+        </div>
       ) : (
         <div className="office-messenger-body">
           <MessengerThreadList

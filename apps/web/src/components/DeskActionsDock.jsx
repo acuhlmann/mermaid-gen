@@ -16,14 +16,14 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 export default function DeskActionsDock({
   onGetCoffee,
   onWalkTheFloor,
-  onImSomeone,
   onCheckInbox,
   onOpenSlopChat,
   onCallMeeting,
   onTalkToTeam,
   onCheckHrProgression,
   onOpenOutbox,
-  onOpenSettings,
+  onToggleEditor,
+  onInviteAgent,
   onToggleThinking,
   modelProfile = 'fast',
   onSelectModelProfile = null,
@@ -32,6 +32,8 @@ export default function DeskActionsDock({
   canTalkToTeam = true,
   canOpenOutbox = false,
   canToggleThinking = false,
+  canToggleEditor = false,
+  editorOpen = false,
   thinkingOpen = false,
   unreadCount = 0,
   imUnreadCount = 0,
@@ -111,19 +113,28 @@ export default function DeskActionsDock({
       title: copy.slopChatTitle,
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
     },
-    { id: 'im', label: copy.im, emoji: '💬', run: () => onImSomeone?.() },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
     { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee }
   ];
 
   const underDeskVerbs = [
     {
-      id: 'settings',
-      label: copy.settings,
-      emoji: '⚙️',
-      run: onOpenSettings,
+      id: 'code',
+      label: editorOpen ? copy.codeDrawerClose : copy.codeDrawer,
+      emoji: '</>',
+      run: onToggleEditor,
       alwaysEnabled: true,
-      title: copy.settingsTitle
+      disabled: !canToggleEditor,
+      disabledTitle: copy.blocked?.noCode,
+      title: copy.codeDrawerTitle
+    },
+    {
+      id: 'contractor',
+      label: copy.onboardContractor,
+      emoji: '🤝',
+      run: onInviteAgent,
+      alwaysEnabled: true,
+      title: copy.onboardContractorTitle
     },
     {
       id: 'hr',

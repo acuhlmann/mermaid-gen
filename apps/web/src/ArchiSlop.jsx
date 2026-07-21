@@ -643,8 +643,12 @@ export function ArchiSlop() {
       document.getElementById('slop-prompt-desk-input') ??
       document.getElementById('diagram-change-prompt');
     if (!el) return;
-    el.focus();
-    el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+    el.scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, []);
 
   const dismissSlopitectTip = useCallback(() => {
@@ -3840,7 +3844,10 @@ ${requirementsBlock}`;
             onTalkToTeam={() => advisor.promptNext({})}
             onCheckHrProgression={() => setXpInfoPanelOpen((open) => !open)}
             onOpenOutbox={() => setOutboxOpenSignal((n) => n + 1)}
-            onOpenSettings={() => setSettingsOpenSignal((n) => n + 1)}
+            onToggleEditor={() => setEditorOpen((current) => !current)}
+            onInviteAgent={() => setInviteDialogOpen(true)}
+            canToggleEditor={hasCanvasContent || editorOpen}
+            editorOpen={editorOpen}
             onToggleThinking={() => setInsightsOpen((v) => !v)}
             modelProfile={modelProfile}
             onSelectModelProfile={setModelProfile}

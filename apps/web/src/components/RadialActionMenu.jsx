@@ -1080,12 +1080,12 @@ export default function RadialActionMenu({
                 data-mode-id={mode.id}
               >
                 <span className="radial-render-mode-row-icon" aria-hidden="true">
-                  {mode.shortLabel}
-                </span>
+                  {mode.shortLabel !== mode.label ? mode.shortLabel : ''}
+                </span>{' '}
                 <span className="radial-render-mode-row-text">
                   <span className="radial-render-mode-row-name">{mode.label}</span>
                   <span className="radial-render-mode-row-title">
-                    {mode.disabled ? radial.currentMode : mode.subtitle}
+                    {mode.disabled ? radial.currentMode : (mode.techLabel ?? mode.subtitle)}
                   </span>
                 </span>
               </button>

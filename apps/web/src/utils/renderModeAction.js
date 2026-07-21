@@ -14,37 +14,43 @@ export function buildContentModeOptions(controls) {
       id: 'mermaid',
       label: m.mermaid,
       shortLabel: m.mermaidShort,
-      subtitle: m.mermaidSubtitle
+      subtitle: m.mermaidSubtitle,
+      techLabel: m.mermaidTech
     },
     {
       id: 'infographic',
       label: m.infographic,
       shortLabel: m.infographicShort,
-      subtitle: m.infographicSubtitle
+      subtitle: m.infographicSubtitle,
+      techLabel: m.infographicTech
     },
     {
       id: 'metaphor3d',
       label: m.metaphor3d,
       shortLabel: m.metaphor3dShort,
-      subtitle: m.metaphor3dSubtitle
+      subtitle: m.metaphor3dSubtitle,
+      techLabel: m.metaphor3dTech
     },
     {
       id: 'chart',
       label: m.chart,
       shortLabel: m.chartShort,
-      subtitle: m.chartSubtitle
+      subtitle: m.chartSubtitle,
+      techLabel: m.chartTech
     },
     {
       id: 'forms',
       label: m.forms,
       shortLabel: m.formsShort,
-      subtitle: m.formsSubtitle
+      subtitle: m.formsSubtitle,
+      techLabel: m.formsTech
     },
     {
       id: 'anything',
       label: m.anything,
       shortLabel: m.anythingShort,
-      subtitle: m.anythingSubtitle
+      subtitle: m.anythingSubtitle,
+      techLabel: m.anythingTech
     }
   ];
 }

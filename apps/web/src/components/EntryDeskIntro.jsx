@@ -43,7 +43,6 @@ export default function EntryDeskIntro({ copy, userName, role, deskCopy, showDes
                 <ul>
                   <li>{deskCopy.inbox}</li>
                   <li>{deskCopy.slopChat}</li>
-                  <li>{deskCopy.im}</li>
                   <li>{deskCopy.coffee}</li>
                   <li>{deskCopy.walk}</li>
                 </ul>
@@ -53,7 +52,8 @@ export default function EntryDeskIntro({ copy, userName, role, deskCopy, showDes
               <dt>{deskCopy.sectionUnderDesk}</dt>
               <dd>
                 <ul>
-                  <li>{deskCopy.settings}</li>
+                  <li>{deskCopy.codeDrawer}</li>
+                  <li>{deskCopy.onboardContractor}</li>
                   <li>{deskCopy.hrProgress}</li>
                 </ul>
               </dd>

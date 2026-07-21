@@ -45,9 +45,18 @@ export default function EntryRenderAs({
             onClick={() => onPickMode?.(option.id)}
             title={option.subtitle || option.label}
             aria-pressed={option.id === currentMode}
-            aria-label={pickPrefix ? `${pickPrefix} ${option.shortLabel}` : undefined}
+            aria-label={
+              pickPrefix
+                ? `${pickPrefix} ${option.shortLabel}${option.techLabel ? ` (${option.techLabel})` : ''}`
+                : undefined
+            }
           >
-            {option.shortLabel}
+            <span className="entry-render-as-chip-label">{option.shortLabel}</span>
+            {option.techLabel ? (
+              <span className="entry-render-as-chip-tech" aria-hidden="true">
+                {option.techLabel}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>

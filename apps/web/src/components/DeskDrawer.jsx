@@ -89,6 +89,7 @@ export default function DeskDrawer({
               </p>
               {modeOptions.map((mode) => {
                 const isCurrent = mode.id === currentMode;
+                const techLabel = mode.techLabel ?? mode.subtitle;
                 return (
                   <button
                     key={mode.id}
@@ -99,10 +100,12 @@ export default function DeskDrawer({
                     aria-current={isCurrent ? 'true' : undefined}
                     onClick={() => runAndClose(() => onPickMode?.(mode.id))}
                   >
-                    <span className="desk-actions-item-emoji" aria-hidden="true">
-                      {mode.shortLabel ?? mode.label}
+                    <span className="desk-actions-item-stack">
+                      <span className="desk-actions-item-label">{mode.label}</span>
+                      {techLabel ? (
+                        <span className="desk-actions-item-subtitle">{techLabel}</span>
+                      ) : null}
                     </span>
-                    <span className="desk-actions-item-label">{mode.label}</span>
                     {isCurrent ? (
                       <span className="desk-drawer-current-tag" aria-hidden="true">
                         {controls.radial?.currentMode ?? 'Current'}

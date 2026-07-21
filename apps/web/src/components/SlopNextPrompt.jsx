@@ -93,6 +93,23 @@ export default function SlopNextPrompt({
         onLostPointerCapture: onMicLostPointerCapture
       };
 
+  function handleDeskInputFocus(event) {
+    if (!isDesk || typeof window === 'undefined') return;
+    // The desk Work Order is always visible in the bottom chrome; letting the
+    // browser scroll it into view on focus steals canvas space (especially on
+    // mobile keyboards and foldable hinges).
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    requestAnimationFrame(() => {
+      window.scrollTo(scrollX, scrollY);
+    });
+    try {
+      event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    } catch {
+      // ignore
+    }
+  }
+
   return (
     <form
       className={`slop-prompt-panel slop-prompt-panel--${layout}${narrowLayout ? ' is-narrow' : ''}`}
@@ -140,6 +157,7 @@ export default function SlopNextPrompt({
         disabled={busy}
         autoComplete="off"
         autoCapitalize="sentences"
+        onFocus={isDesk ? handleDeskInputFocus : undefined}
         // Desk layout has no title element; the sr-only <label htmlFor> names it.
         aria-labelledby={isDesk ? undefined : `${inputId}-label`}
       />
