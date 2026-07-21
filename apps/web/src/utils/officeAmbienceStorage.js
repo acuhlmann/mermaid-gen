@@ -13,6 +13,7 @@ export const OFFICE_CADENCE_STORAGE_KEY = 'archislop:office-cadence';
 export const OFFICE_WELCOME_STORAGE_KEY = 'archislop:office-welcomed';
 export const OFFICE_DIRECTORY_STORAGE_KEY = 'archislop:office-directory-seen';
 export const OFFICE_DAY_ONE_BADGE_STORAGE_KEY = 'archislop:day-one-badge-seen';
+export const OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY = 'archislop:entry-desk-intro-seen';
 export const OFFICE_USER_NAME_STORAGE_KEY = 'archislop:user-name';
 
 const SEEN_TEMPLATE_CAP = 60;
@@ -192,6 +193,29 @@ export function writeDayOneBadgeSeen() {
   if (typeof window === 'undefined') return;
   try {
     window.localStorage.setItem(OFFICE_DAY_ONE_BADGE_STORAGE_KEY, '1');
+  } catch {
+    // Ignore quota / privacy errors.
+  }
+}
+
+/**
+ * True once the first-run desk welcome (EntryDeskIntro + desk menu guide) has
+ * been shown and dismissed — either by shipping a first deliverable or by
+ * completing the orientation skip path.
+ */
+export function readEntryDeskIntroSeen() {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY) === '1';
+  } catch {
+    return true;
+  }
+}
+
+export function writeEntryDeskIntroSeen() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY, '1');
   } catch {
     // Ignore quota / privacy errors.
   }

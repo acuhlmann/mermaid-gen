@@ -134,6 +134,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     vi.useRealTimers();
     window.localStorage.clear();
     window.localStorage.setItem('archislop:office-directory-seen', '1');
+    window.localStorage.setItem('archislop:mode-reveal-seen', '1');
     window.history.replaceState({}, '', '/');
     const oscillator = {
       type: 'triangle',
@@ -397,6 +398,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   }, 15_000);
 
   it('streams intent when submitting the prompt control', async () => {
+    // Fallback topic input only after the first-run desk intro has been dismissed.
+    window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     // Prompt input is only shown when no diagram is set (initial topic-setting state).
     fetchSessionDiagramStateMock.mockResolvedValueOnce({
       activeContentType: 'mermaid',
@@ -428,9 +431,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     await screen.findAllByText('Done');
   });
 
-  it('streams intent when a first-run topic starter chip is tapped', async () => {
-    // Starter chips only render in the empty state alongside the topic input.
-    fetchSessionDiagramStateMock.mockResolvedValueOnce({
+  it('streams intent from the first-run desk work order on an empty canvas', async () => {
+    window.localStorage.setItem('archislop:mode-reveal-seen', '1');
+    fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
       mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
       infographic: createInitialDiagramState('infographic')
@@ -438,11 +441,11 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    // The chip's accessible name includes the Day One attribution (requester +
-    // ask) and the example CTA also names the topic — the chip's title (the raw
-    // prompt) is the unique handle.
-    const chip = await screen.findByTitle('Break down the global coffee supply chain');
-    fireEvent.click(chip);
+    expect(await screen.findByTestId('entry-desk-guide')).toBeTruthy();
+
+    const input = await screen.findByLabelText(/Work order/i);
+    fireEvent.change(input, { target: { value: 'Break down the global coffee supply chain' } });
+    fireEvent.submit(input.closest('form'));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
     expect(streamDiagramAgentMock).toHaveBeenCalledWith(
@@ -588,6 +591,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   });
 
   it('plays a completion sound when a request finishes', async () => {
+    window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     // Prompt input is only shown when no diagram is set (initial topic-setting state).
     fetchSessionDiagramStateMock.mockResolvedValueOnce({
       activeContentType: 'mermaid',
@@ -678,6 +682,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     });
 
     // Prompt input is only shown when no diagram is set (initial topic-setting state).
+    window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     fetchSessionDiagramStateMock.mockResolvedValueOnce({
       activeContentType: 'mermaid',
       mermaid: { ...initialState, diagramSource: '', revisionId: 0 },

@@ -15,7 +15,6 @@ import RadialActionMenu from './components/RadialActionMenu.jsx';
 import AgentHandshakeDialog from './components/AgentHandshakeDialog.jsx';
 import InviteAgentDialog from './components/InviteAgentDialog.jsx';
 import SlopNextPrompt from './components/SlopNextPrompt.jsx';
-import TopicStarters from './components/TopicStarters.jsx';
 import EntryRenderAs from './components/EntryRenderAs.jsx';
 import EntryDeskIntro from './components/EntryDeskIntro.jsx';
 import ModeRevealSpotlight from './components/ModeRevealSpotlight.jsx';
@@ -143,8 +142,14 @@ import {
   getOfficeDirectoryUi,
   subscribeOfficeDirectoryUi
 } from './state/officeDirectoryUiStore.js';
-import { readOfficeDirectorySeen, writeDayOneBadgeSeen } from './utils/officeAmbienceStorage.js';
+import {
+  readOfficeDirectorySeen,
+  writeDayOneBadgeSeen,
+  readEntryDeskIntroSeen,
+  writeEntryDeskIntroSeen
+} from './utils/officeAmbienceStorage.js';
 import { OFFICE_CANVAS_GRACE_MS } from './utils/officeCanvasGrace.js';
+import { officeChromeCopy } from './utils/officeCast.js';
 import { getVariantPersona } from './utils/slopitectCopy.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import confetti from 'canvas-confetti';
@@ -631,10 +636,12 @@ export function ArchiSlop() {
   }, [showSlopitectTip]);
 
   // "Skip the ceremony" escape hatch from the orientation tour: drop the user
-  // straight on the empty-state topic input so they can start generating.
+  // straight on the empty-state work order so they can start generating.
   const focusTopicInput = useCallback(() => {
     if (typeof document === 'undefined') return;
-    const el = document.getElementById('diagram-change-prompt');
+    const el =
+      document.getElementById('slop-prompt-desk-input') ??
+      document.getElementById('diagram-change-prompt');
     if (!el) return;
     el.focus();
     el.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
@@ -2501,7 +2508,6 @@ export function ArchiSlop() {
     submitIntentWithPrompt,
     runIntentChange,
     handleFormSubmit,
-    handleStarterPick,
     handleSlopPromptSubmit,
     handleDeskPromptSubmit
   } = useSubmitIntent({
@@ -2691,13 +2697,21 @@ ${requirementsBlock}`;
   const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
   /** After orientation, keep office pings quiet so the canvas welcome lands first. */
   const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
+  const [entryDeskIntroSeen, setEntryDeskIntroSeen] = useState(() => readEntryDeskIntroSeen());
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
+  const deskChromeCopy = useMemo(() => officeChromeCopy().desk, []);
 
   const handleOfficeBootComplete = useCallback(() => {
     setOfficeBootPending(false);
     writeDayOneBadgeSeen();
     setOfficeCanvasGrace(true);
   }, []);
+
+  const markEntryDeskIntroSeen = useCallback(() => {
+    if (entryDeskIntroSeen) return;
+    writeEntryDeskIntroSeen();
+    setEntryDeskIntroSeen(true);
+  }, [entryDeskIntroSeen]);
 
   const advisorPause =
     loading ||
@@ -3413,12 +3427,19 @@ ${requirementsBlock}`;
   // Peer content in another slot keeps chrome visible after a mode switch into an
   // empty target slot — do not dump the user back on the first-run intro.
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
+  const showEntryDeskIntro = !hasCanvasContent && !insightsOpen && !entryDeskIntroSeen;
+  const showDeskChrome = hasCanvasContent || showEntryDeskIntro;
 
   // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
   // routes to the persistent desk Work Order buffer whenever there's content.
   useEffect(() => {
     hasCanvasContentRef.current = hasCanvasContent;
   }, [hasCanvasContent]);
+
+  useEffect(() => {
+    if (!hasCanvasContent || !hasInteractedRef.current) return;
+    markEntryDeskIntroSeen();
+  }, [hasCanvasContent, markEntryDeskIntroSeen]);
 
   useEffect(() => {
     if (!officeCanvasGrace) return undefined;
@@ -3668,7 +3689,7 @@ ${requirementsBlock}`;
 
   return (
     <main
-      className={`app-shell${editorOpen ? ' is-editor-open' : ''}${insightsOpen ? ' is-insights-open' : ''}${narrowLayout ? ' is-narrow-layout' : ''}${phoneLayout ? ' is-phone-layout' : ''}${wideMobileLayout ? ' is-wide-mobile' : ''}${foldableDualScreen ? ' is-foldable-dual' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${hasCanvasContent ? ' has-bottom-brand' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
+      className={`app-shell${editorOpen ? ' is-editor-open' : ''}${insightsOpen ? ' is-insights-open' : ''}${narrowLayout ? ' is-narrow-layout' : ''}${phoneLayout ? ' is-phone-layout' : ''}${wideMobileLayout ? ' is-wide-mobile' : ''}${foldableDualScreen ? ' is-foldable-dual' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${showDeskChrome ? ' has-bottom-brand' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -3833,7 +3854,7 @@ ${requirementsBlock}`;
             thinkingOpen={insightsOpen}
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
-            deskActionsAnchorReady={hasCanvasContent}
+            deskActionsAnchorReady={showDeskChrome}
             deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
           />
           <HotkeyOverlay
@@ -4031,108 +4052,150 @@ ${requirementsBlock}`;
             }
             actions={
               !hasCanvasContent && !insightsOpen ? (
-                <div className="entry-cluster">
-                  <EntryDeskIntro
-                    copy={controls.prompt.entryIntro}
-                    userName={userName}
-                    role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
-                  />
-                  <TopicStarters
-                    hint={controls.prompt.starterHint}
-                    ariaLabel={controls.prompt.starterAria}
-                    starters={controls.prompt.starters}
-                    busy={busy}
-                    onPick={handleStarterPick}
-                  />
-                  <EntryRenderAs
-                    label={controls.prompt.renderAsLabel}
-                    hint={controls.prompt.renderAsHint}
-                    ariaLabel={controls.prompt.renderAsAria}
-                    modes={contentModeOptions}
-                    currentMode={contentMode}
-                    onPickMode={handleEntryRenderAsPick}
-                    pickPrefix={controls.modeReveal.pickPrefix}
-                    disabled={busy || loading || streamingPreview}
-                  />
-                  <form className="prompt-control" onSubmit={runIntentChange}>
-                    <label className="sr-only" htmlFor="diagram-change-prompt">
-                      {controls.prompt.yourTopic}
-                    </label>
-                    <input
-                      id="diagram-change-prompt"
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.target.value)}
-                      placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
-                      disabled={busy}
-                      aria-invalid={error ? 'true' : 'false'}
-                      aria-describedby={status ? 'app-status' : undefined}
+                showEntryDeskIntro ? (
+                  <div className="entry-desk-integrated">
+                    <EntryDeskIntro
+                      copy={controls.prompt.entryIntro}
+                      userName={userName}
+                      role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
+                      deskCopy={{
+                        ...deskChromeCopy,
+                        concentrationLabel: controls.settings.brain
+                      }}
+                      showDeskGuide
                     />
-                    <div className="prompt-actions-main">
-                      <button
-                        type="button"
-                        className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
-                        disabled={!voiceSupported || busy}
-                        {...(narrowLayout
-                          ? {
-                              onPointerUp: (event) => {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                handleMicToggleClick(event);
-                              }
-                            }
-                          : {
-                              onPointerDown: handleMicPointerDown,
-                              onPointerUp: handleMicPointerUp,
-                              onPointerCancel: handleMicPointerUp,
-                              onLostPointerCapture: () => stopVoiceInput(),
-                              onKeyDown: (event) => {
-                                if (event.repeat) return;
-                                if (event.key === ' ' || event.key === 'Enter') {
+                    <div
+                      className={`prompt-actions prompt-actions--entry-desk${narrowLayout ? ' prompt-actions--mobile' : ' prompt-actions--desktop'}`}
+                    >
+                      <div className="button-group desk-primary-group">
+                        <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                        <SlopNextPrompt
+                          layout="desk"
+                          prompt={deskPrompt}
+                          busy={busy}
+                          voiceSupported={voiceSupported}
+                          voiceListening={voiceListening}
+                          narrowLayout={narrowLayout}
+                          speechRecognitionCtor={SpeechRecognitionCtor}
+                          PromptIcon={PromptIcon}
+                          MicIcon={MicIcon}
+                          MicActiveIcon={MicActiveIcon}
+                          ButtonIcon={ButtonIcon}
+                          copy={controls.prompt}
+                          onPromptChange={setDeskPrompt}
+                          onSubmit={handleDeskPromptSubmit}
+                          onMicToggleClick={handleMicToggleClick}
+                          onMicPointerDown={handleMicPointerDown}
+                          onMicPointerUp={handleMicPointerUp}
+                          onMicLostPointerCapture={() => stopVoiceInput()}
+                        />
+                      </div>
+                    </div>
+                    <EntryRenderAs
+                      label={controls.prompt.renderAsLabel}
+                      hint={controls.prompt.renderAsHint}
+                      ariaLabel={controls.prompt.renderAsAria}
+                      modes={contentModeOptions}
+                      currentMode={contentMode}
+                      onPickMode={handleEntryRenderAsPick}
+                      pickPrefix={controls.modeReveal.pickPrefix}
+                      disabled={busy || loading || streamingPreview}
+                    />
+                  </div>
+                ) : (
+                  <div className="entry-desk-fallback">
+                    <EntryRenderAs
+                      label={controls.prompt.renderAsLabel}
+                      hint={controls.prompt.renderAsHint}
+                      ariaLabel={controls.prompt.renderAsAria}
+                      modes={contentModeOptions}
+                      currentMode={contentMode}
+                      onPickMode={handleEntryRenderAsPick}
+                      pickPrefix={controls.modeReveal.pickPrefix}
+                      disabled={busy || loading || streamingPreview}
+                    />
+                    <form className="prompt-control" onSubmit={runIntentChange}>
+                      <label className="sr-only" htmlFor="diagram-change-prompt">
+                        {controls.prompt.yourTopic}
+                      </label>
+                      <input
+                        id="diagram-change-prompt"
+                        value={prompt}
+                        onChange={(event) => setPrompt(event.target.value)}
+                        placeholder={controls.prompt.topicPlaceholder || controls.prompt.yourTopic}
+                        disabled={busy}
+                        aria-invalid={error ? 'true' : 'false'}
+                        aria-describedby={status ? 'app-status' : undefined}
+                      />
+                      <div className="prompt-actions-main">
+                        <button
+                          type="button"
+                          className={`overlay-button ${voiceListening ? 'is-listening' : ''}`}
+                          disabled={!voiceSupported || busy}
+                          {...(narrowLayout
+                            ? {
+                                onPointerUp: (event) => {
                                   event.preventDefault();
-                                  startVoiceInput();
-                                }
-                              },
-                              onKeyUp: (event) => {
-                                if (event.key === ' ' || event.key === 'Enter') {
-                                  event.preventDefault();
-                                  stopVoiceInput();
+                                  event.stopPropagation();
+                                  handleMicToggleClick(event);
                                 }
                               }
-                            })}
-                        aria-label={
-                          narrowLayout
-                            ? voiceListening
-                              ? controls.prompt.tapToStop
-                              : controls.prompt.tapToDictate
-                            : controls.prompt.holdToSpeak
-                        }
-                        aria-pressed={narrowLayout ? voiceListening : undefined}
-                        title={
-                          voiceSupported
-                            ? narrowLayout
+                            : {
+                                onPointerDown: handleMicPointerDown,
+                                onPointerUp: handleMicPointerUp,
+                                onPointerCancel: handleMicPointerUp,
+                                onLostPointerCapture: () => stopVoiceInput(),
+                                onKeyDown: (event) => {
+                                  if (event.repeat) return;
+                                  if (event.key === ' ' || event.key === 'Enter') {
+                                    event.preventDefault();
+                                    startVoiceInput();
+                                  }
+                                },
+                                onKeyUp: (event) => {
+                                  if (event.key === ' ' || event.key === 'Enter') {
+                                    event.preventDefault();
+                                    stopVoiceInput();
+                                  }
+                                }
+                              })}
+                          aria-label={
+                            narrowLayout
                               ? voiceListening
                                 ? controls.prompt.tapToStop
-                                : controls.prompt.tapToDictatePrompt
-                              : controls.prompt.holdToDictate
-                            : SpeechRecognitionCtor
-                              ? controls.prompt.voiceNeedsHttps
-                              : controls.prompt.voiceUnsupported
-                        }
-                      >
-                        <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-                        <span className="button-label">{controls.prompt.mic}</span>
-                      </button>
-                      <button
-                        type="submit"
-                        className="overlay-button primary-button"
-                        disabled={busy || !prompt.trim()}
-                      >
-                        <ButtonIcon>{'>'}</ButtonIcon>
-                        <span className="button-label">{controls.prompt.doIt}</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
+                                : controls.prompt.tapToDictate
+                              : controls.prompt.holdToSpeak
+                          }
+                          aria-pressed={narrowLayout ? voiceListening : undefined}
+                          title={
+                            voiceSupported
+                              ? narrowLayout
+                                ? voiceListening
+                                  ? controls.prompt.tapToStop
+                                  : controls.prompt.tapToDictatePrompt
+                                : controls.prompt.holdToDictate
+                              : SpeechRecognitionCtor
+                                ? controls.prompt.voiceNeedsHttps
+                                : controls.prompt.voiceUnsupported
+                          }
+                        >
+                          <ButtonIcon>
+                            {voiceListening ? <MicActiveIcon /> : <MicIcon />}
+                          </ButtonIcon>
+                          <span className="button-label">{controls.prompt.mic}</span>
+                        </button>
+                        <button
+                          type="submit"
+                          className="overlay-button primary-button"
+                          disabled={busy || !prompt.trim()}
+                        >
+                          <ButtonIcon>{'>'}</ButtonIcon>
+                          <span className="button-label">{controls.prompt.doIt}</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )
               ) : hasCanvasContent && !narrowLayout ? (
                 <div className="prompt-actions prompt-actions--desktop">
                   <div className="button-group desk-primary-group">

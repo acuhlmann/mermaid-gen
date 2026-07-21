@@ -56,7 +56,11 @@ export const CONTROLS_EN_AU = {
     entryIntro: {
       greeting: 'Welcome, {name}',
       role: 'Architect',
-      body: 'Turn any idea into a deliverable — pitch your own topic below, or pick up an assignment from the floor.'
+      body: 'Turn any idea into a deliverable — your desk is command central on the floor.',
+      deskGuideHeading: 'Open Your desk (the stamp below) to explore:',
+      deskGuideHint: 'The menu is grouped like your cube — seat, get up, and under the desk.',
+      deskWorkOrderHint:
+        'Pitch your own topic in the Work order field beside Your desk, or check mail for floor assignments.'
     },
     renderAsHint:
       'Pick a format here before you generate. Your desk (bottom-right) has export, settings, and more.',
