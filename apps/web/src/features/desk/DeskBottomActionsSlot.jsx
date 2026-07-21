@@ -24,7 +24,10 @@ function DeskPeopleCluster({
       <StakeholdersMascot
         personas={[
           { variant: 'refine', onClick: () => runTransform('refine', { useDiagramFocus: true }) },
-          { variant: 'innovate', onClick: () => runTransform('innovate', { useDiagramFocus: true }) },
+          {
+            variant: 'innovate',
+            onClick: () => runTransform('innovate', { useDiagramFocus: true })
+          },
           {
             variant: 'goMad',
             label: goMadShapeLabel(goMadStreak, controls.actions),

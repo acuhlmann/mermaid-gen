@@ -57,6 +57,18 @@ function gitLines(args) {
  * @param {string} [baseRef='origin/main']
  * @returns {string[]}
  */
+/**
+ * Merge git path lists from branch diff, index, working tree, and untracked files.
+ * Exported for unit tests — `format:affected` / `check:affected` must see new files
+ * before first `git add`, or Prettier fixes never run and CI `format:check` fails.
+ *
+ * @param {string[][]} lists
+ * @returns {string[]}
+ */
+export function mergeChangedFileSets(...lists) {
+  return [...new Set(lists.flat().filter(Boolean))];
+}
+
 export function changedFiles(baseRef = 'origin/main') {
   const mergeBase = spawnSync('git', ['merge-base', 'HEAD', baseRef], {
     cwd: repoRoot,
@@ -68,5 +80,6 @@ export function changedFiles(baseRef = 'origin/main') {
   const committed = gitLines(['diff', '--name-only', `${diffBase}...HEAD`]);
   const unstaged = gitLines(['diff', '--name-only']);
   const staged = gitLines(['diff', '--name-only', '--cached']);
-  return [...new Set([...committed, ...unstaged, ...staged])];
+  const untracked = gitLines(['ls-files', '--others', '--exclude-standard']);
+  return mergeChangedFileSets(committed, unstaged, staged, untracked);
 }

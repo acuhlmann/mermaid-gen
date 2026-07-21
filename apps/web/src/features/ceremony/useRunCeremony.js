@@ -209,7 +209,14 @@ export function useRunCeremony({
         });
       }
     },
-    [celebrationTimerRef, goMadStreak, processSlopEmissions, setGamification, setOfficeRunSignal, tryAgentSound]
+    [
+      celebrationTimerRef,
+      goMadStreak,
+      processSlopEmissions,
+      setGamification,
+      setOfficeRunSignal,
+      tryAgentSound
+    ]
   );
 
   const handleOfficeEvent = useCallback(
