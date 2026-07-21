@@ -234,6 +234,30 @@ export function pickMeetingAttendees(random = Math.random) {
   return seats;
 }
 
+/**
+ * Build steering-meeting seats from one or more colleague IDs (e.g. inbox senders).
+ * Pam always facilitates; duplicates are dropped; capped at eight seats.
+ */
+export function buildMeetingAttendeesFromColleagues(colleagueIds) {
+  const unique = [...new Set((colleagueIds ?? []).filter(Boolean))];
+  const seats = [MEETING_FACILITATOR];
+  for (const id of unique) {
+    if (id === MEETING_FACILITATOR) continue;
+    if (seats.length >= 8) break;
+    if (!seats.includes(id)) seats.push(id);
+  }
+  return seats;
+}
+
+/** Collapse selected email subjects into a short meeting topic (max 200 chars). */
+export function meetingTopicFromEmailSubjects(subjects) {
+  const topics = (subjects ?? []).map((subject) => String(subject ?? '').trim()).filter(Boolean);
+  if (topics.length === 0) return undefined;
+  const joined = topics.slice(0, 3).join('; ');
+  if (joined.length <= 200) return joined;
+  return `${joined.slice(0, 197)}...`;
+}
+
 /** Localized safe defaults for empty `{label}` / `{userTitle}` / `{userName}` slot fills. */
 export const OFFICE_SLOT_FALLBACKS = {
   label: 'the diagram',
@@ -1112,9 +1136,15 @@ export const OFFICE_CHROME_COPY = {
     back: '← Back',
     emptyLine: 'Inbox zero. HR finds this suspicious. Enjoy it while it lasts.',
     markAllRead: 'Mark all read',
+    selectEmailAria: 'Select email from {name} for a meeting',
     callMeeting: '📅 Call a meeting',
+    callMeetingWithCount: '📅 Call a meeting ({count})',
     callMeetingTitle: 'Summon a working-group meeting about the current diagram',
-    callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda'
+    callMeetingFromSelectionTitle:
+      'Call a meeting with the selected senders about their email thread',
+    callMeetingSelectTitle: 'Select one or more emails, then call a meeting with those senders',
+    callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda',
+    callMeetingAboutEmail: '📅 Call a meeting about this email'
   },
   im: {
     regionAria: 'Slop Chat instant messages',

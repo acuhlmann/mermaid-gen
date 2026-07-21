@@ -766,9 +766,14 @@ export const OFFICE_ZH_TW = {
       back: '← 返回',
       emptyLine: '收件匣清空。HR 覺得這很可疑。好好珍惜。',
       markAllRead: '全部標為已讀',
+      selectEmailAria: '選擇來自 {name} 的郵件以召開會議',
       callMeeting: '📅 召開會議',
+      callMeetingWithCount: '📅 召開會議 ({count})',
       callMeetingTitle: '針對目前的圖召開一場工作小組會議',
-      callMeetingDisabledTitle: '先畫點東西 — 這場會也需要議程'
+      callMeetingFromSelectionTitle: '與所選寄件人召開會議，討論他們的郵件',
+      callMeetingSelectTitle: '選擇一封或多封郵件，然後與這些寄件人召開會議',
+      callMeetingDisabledTitle: '先畫點東西 — 這場會也需要議程',
+      callMeetingAboutEmail: '📅 就此郵件召開會議'
     },
     im: {
       kindLabel: 'Slop Chat™ · 即時訊息',

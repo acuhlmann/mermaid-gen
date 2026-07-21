@@ -4292,6 +4292,26 @@ ${requirementsBlock}`;
                 <div className="prompt-actions prompt-actions--mobile">
                   <div className="button-group desk-primary-group">
                     <div id="office-desk-bottom-slot" className="bottom-office-desk-slot" />
+                    <SlopNextPrompt
+                      layout="desk"
+                      prompt={deskPrompt}
+                      busy={busy}
+                      voiceSupported={voiceSupported}
+                      voiceListening={voiceListening}
+                      narrowLayout={narrowLayout}
+                      speechRecognitionCtor={SpeechRecognitionCtor}
+                      PromptIcon={PromptIcon}
+                      MicIcon={MicIcon}
+                      MicActiveIcon={MicActiveIcon}
+                      ButtonIcon={ButtonIcon}
+                      copy={controls.prompt}
+                      onPromptChange={setDeskPrompt}
+                      onSubmit={handleDeskPromptSubmit}
+                      onMicToggleClick={handleMicToggleClick}
+                      onMicPointerDown={handleMicPointerDown}
+                      onMicPointerUp={handleMicPointerUp}
+                      onMicLostPointerCapture={() => stopVoiceInput()}
+                    />
                     <div className="desk-people-group">
                       <StakeholdersMascot
                         personas={[
@@ -4355,26 +4375,6 @@ ${requirementsBlock}`;
                       modeDisabled={loading || streamingPreview}
                     />
                   </div>
-                  <SlopNextPrompt
-                    layout="desk"
-                    prompt={deskPrompt}
-                    busy={busy}
-                    voiceSupported={voiceSupported}
-                    voiceListening={voiceListening}
-                    narrowLayout={narrowLayout}
-                    speechRecognitionCtor={SpeechRecognitionCtor}
-                    PromptIcon={PromptIcon}
-                    MicIcon={MicIcon}
-                    MicActiveIcon={MicActiveIcon}
-                    ButtonIcon={ButtonIcon}
-                    copy={controls.prompt}
-                    onPromptChange={setDeskPrompt}
-                    onSubmit={handleDeskPromptSubmit}
-                    onMicToggleClick={handleMicToggleClick}
-                    onMicPointerDown={handleMicPointerDown}
-                    onMicPointerUp={handleMicPointerUp}
-                    onMicLostPointerCapture={() => stopVoiceInput()}
-                  />
                 </div>
               ) : null
             }
