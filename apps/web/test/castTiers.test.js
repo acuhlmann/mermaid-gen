@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CAST_TIERS, tierOf } from '../src/utils/castTiers.js';
 import {
+  MEETING_FACILITATOR,
   MEETING_PRESENTER_POOL,
   MEETING_SENIOR_POOL,
   OFFICE_COLLEAGUES,
@@ -9,6 +10,8 @@ import {
   OFFICE_WALKBY_LLM_CAST,
   SENIOR_EMAIL_TEMPLATES,
   SENIOR_STAKEHOLDERS,
+  buildMeetingAttendeesFromColleagues,
+  meetingTopicFromEmailSubjects,
   officeSenderInfo,
   pickMeetingAttendees
 } from '../src/utils/officeCast.js';
@@ -78,5 +81,23 @@ describe('pickMeetingAttendees', () => {
       expect(seniors.length).toBeGreaterThanOrEqual(1);
       expect(presenters.length).toBe(1);
     }
+  });
+});
+
+describe('buildMeetingAttendeesFromColleagues', () => {
+  it('always includes the facilitator and dedupes senders', () => {
+    const seats = buildMeetingAttendeesFromColleagues(['intern', 'greybeard', 'intern']);
+    expect(seats[0]).toBe(MEETING_FACILITATOR);
+    expect(seats).toEqual(['scrumMaster', 'intern', 'greybeard']);
+  });
+});
+
+describe('meetingTopicFromEmailSubjects', () => {
+  it('joins up to three subjects and truncates long topics', () => {
+    expect(meetingTopicFromEmailSubjects(['A', 'B', 'C', 'D'])).toBe('A; B; C');
+    const long = 'x'.repeat(120);
+    const topic = meetingTopicFromEmailSubjects([long, long]);
+    expect(topic?.length).toBe(200);
+    expect(topic?.endsWith('...')).toBe(true);
   });
 });

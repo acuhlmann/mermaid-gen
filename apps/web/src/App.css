@@ -13814,11 +13814,11 @@ body.slopitect-rainbow-tint::before {
 
 /* The Work Order — a persistent inline prompt (layout="desk"), not a popover. */
 .slop-prompt-panel--desk {
-  flex: 1 1 16rem;
+  flex: 1 1 24rem;
   flex-direction: row;
   align-items: center;
   gap: 0.4rem;
-  min-width: 8rem;
+  min-width: 14rem;
   padding: 0.28rem 0.42rem 0.28rem 0.5rem;
   border-radius: 999px;
   background:
@@ -13849,7 +13849,7 @@ body.slopitect-rainbow-tint::before {
 
 .slop-prompt-panel--desk .slop-prompt-panel-input {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: 10rem;
   padding: 0.5rem 0.7rem;
   border-radius: 999px;
   border-color: transparent;
@@ -13982,20 +13982,20 @@ body.slopitect-rainbow-tint::before {
   display: none;
 }
 
-/* Mobile: keep the Work Order on the same row as team controls when possible
-   instead of forcing a second full-width row that eats canvas on focus. */
+/* Mobile: keep the Work Order on the same row as team controls instead of a
+   second full-width row that eats canvas when the input is focused. */
 .prompt-actions--mobile .slop-prompt-panel--desk {
-  flex: 1 1 10rem;
+  flex: 1 1 12rem;
   min-width: 0;
-  max-width: min(28rem, 100%);
+  max-width: 100%;
   width: auto;
   order: unset;
 }
 
 .prompt-actions--mobile .desk-primary-group {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
   min-width: 0;
-  width: auto;
+  width: 100%;
   order: unset;
 }
 
@@ -16250,6 +16250,32 @@ body.slopitect-rainbow-tint::before {
   font-size: 12px;
   color: var(--muted);
 }
+.office-email-row-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  border-radius: 8px;
+}
+.office-email-row-wrap.is-selected {
+  background: rgba(14, 165, 233, 0.08);
+}
+.office-email-select {
+  display: flex;
+  align-items: center;
+  padding-left: 4px;
+  flex: 0 0 auto;
+}
+.office-email-select-input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--accent, #0ea5e9);
+}
+.office-email-row-wrap .office-email-row {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 .office-email-row {
   width: 100%;
   display: flex;
@@ -16336,6 +16362,11 @@ body.slopitect-rainbow-tint::before {
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
+}
+.office-email-call-meeting {
+  margin-top: 10px;
+  width: 100%;
+  justify-content: center;
 }
 .office-inbox-footer {
   display: flex;

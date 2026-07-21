@@ -34,9 +34,7 @@ export default function EntryDeskPointers({ pointers, onDismiss, autoDismissMs =
           key={pointer.id ?? pointer.text}
           className={`entry-desk-pointer${pointer.id ? ` entry-desk-pointer--${pointer.id}` : ''}`}
         >
-          {pointer.label ? (
-            <span className="entry-desk-pointer-label">{pointer.label}</span>
-          ) : null}
+          {pointer.label ? <span className="entry-desk-pointer-label">{pointer.label}</span> : null}
           <span className="entry-desk-pointer-text">{pointer.text}</span>
         </div>
       ))}

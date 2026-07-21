@@ -64,4 +64,24 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(props.onMicPointerUp).toHaveBeenCalledTimes(1);
     expect(props.onMicToggleClick).not.toHaveBeenCalled();
   });
+
+  it('does not scroll the page when the desk input is focused', () => {
+    const scrollIntoView = vi.fn();
+    const focus = vi.fn();
+    const inputProto = HTMLInputElement.prototype;
+    const originalScrollIntoView = inputProto.scrollIntoView;
+    const originalFocus = inputProto.focus;
+    inputProto.scrollIntoView = scrollIntoView;
+    inputProto.focus = focus;
+
+    renderPrompt({ layout: 'desk', narrowLayout: false });
+    const input = screen.getByLabelText(/Work order/i);
+    fireEvent.focus(input);
+
+    expect(scrollIntoView).not.toHaveBeenCalled();
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true });
+
+    inputProto.scrollIntoView = originalScrollIntoView;
+    inputProto.focus = originalFocus;
+  });
 });

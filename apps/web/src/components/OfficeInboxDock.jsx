@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react';
-import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
+import {
+  buildMeetingAttendeesFromColleagues,
+  meetingTopicFromEmailSubjects,
+  officeChromeCopy,
+  officeSenderInfo
+} from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 
@@ -30,8 +35,11 @@ export default function OfficeInboxDock({
 }) {
   const [open, setOpen] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
+  const [selectedEmailIds, setSelectedEmailIds] = useState(() => new Set());
   const selected = emails.find((email) => email.id === selectedId) ?? null;
   const copy = officeChromeCopy();
+  const selectedCount = selectedEmailIds.size;
+  const canCallFromSelection = canCallMeeting && selectedCount > 0;
 
   // The desk menu's "Check your mail" verb bumps openSignal; 0 is the initial
   // value, so the inbox never pops open on mount.
@@ -41,7 +49,10 @@ export default function OfficeInboxDock({
 
   const toggleOpen = () => {
     setOpen((prev) => {
-      if (prev) setSelectedId(null);
+      if (prev) {
+        setSelectedId(null);
+        setSelectedEmailIds(new Set());
+      }
       return !prev;
     });
   };
@@ -50,6 +61,45 @@ export default function OfficeInboxDock({
     setSelectedId(email.id);
     if (!email.read) onMarkRead?.(email.id);
   };
+
+  const toggleEmailSelection = (emailId) => {
+    setSelectedEmailIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(emailId)) next.delete(emailId);
+      else next.add(emailId);
+      return next;
+    });
+  };
+
+  const callMeetingFromEmails = (emailList) => {
+    if (!canCallMeeting || emailList.length === 0) return;
+    const colleagueIds = [...new Set(emailList.map((email) => email.colleagueId))];
+    onCallMeeting?.({
+      attendees: buildMeetingAttendeesFromColleagues(colleagueIds),
+      topic: meetingTopicFromEmailSubjects(emailList.map((email) => email.subject))
+    });
+  };
+
+  const handleCallMeeting = () => {
+    const selectedEmails = emails.filter((email) => selectedEmailIds.has(email.id));
+    callMeetingFromEmails(selectedEmails);
+  };
+
+  const handleCallMeetingAboutOpenEmail = () => {
+    if (!selected) return;
+    callMeetingFromEmails([selected]);
+  };
+
+  const callMeetingLabel =
+    selectedCount > 0
+      ? formatLocale(copy.inbox.callMeetingWithCount, { count: selectedCount })
+      : copy.inbox.callMeeting;
+
+  const callMeetingTitle = !canCallMeeting
+    ? copy.inbox.callMeetingDisabledTitle
+    : selectedCount > 0
+      ? copy.inbox.callMeetingFromSelectionTitle
+      : copy.inbox.callMeetingSelectTitle;
 
   return (
     <div className={`office-inbox${showTrigger ? '' : ' office-inbox--headless'}`}>
@@ -135,6 +185,15 @@ export default function OfficeInboxDock({
                   {copy.doIt}
                 </button>
               ) : null}
+              <button
+                type="button"
+                className="office-call-meeting office-email-call-meeting"
+                onClick={handleCallMeetingAboutOpenEmail}
+                disabled={!canCallMeeting}
+                title={canCallMeeting ? copy.inbox.callMeetingFromSelectionTitle : callMeetingTitle}
+              >
+                {copy.inbox.callMeetingAboutEmail}
+              </button>
             </div>
           ) : (
             <>
@@ -144,30 +203,49 @@ export default function OfficeInboxDock({
                 ) : (
                   emails.map((email) => {
                     const sender = officeSenderInfo(email.colleagueId);
+                    const isChecked = selectedEmailIds.has(email.id);
                     return (
                       <li key={email.id}>
-                        <button
-                          type="button"
-                          className={`office-email-row${email.read ? '' : ' is-unread'}`}
-                          onClick={() => openEmail(email)}
-                        >
-                          <span
-                            className="office-email-avatar"
-                            aria-hidden="true"
-                            title={sender.title ? `${sender.name} · ${sender.title}` : sender.name}
+                        <div className={`office-email-row-wrap${isChecked ? ' is-selected' : ''}`}>
+                          <label className="office-email-select">
+                            <input
+                              type="checkbox"
+                              className="office-email-select-input"
+                              checked={isChecked}
+                              onChange={() => toggleEmailSelection(email.id)}
+                              aria-label={formatLocale(copy.inbox.selectEmailAria, {
+                                name: sender.name
+                              })}
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className={`office-email-row${email.read ? '' : ' is-unread'}`}
+                            onClick={() => openEmail(email)}
                           >
-                            <PersonaFace id={email.colleagueId} size={24} />
-                          </span>
-                          <span className="office-email-meta">
-                            <span className="office-email-sender">
-                              {sender.name}
-                              {sender.title ? (
-                                <span className="office-email-sender-role"> · {sender.title}</span>
-                              ) : null}
+                            <span
+                              className="office-email-avatar"
+                              aria-hidden="true"
+                              title={
+                                sender.title ? `${sender.name} · ${sender.title}` : sender.name
+                              }
+                            >
+                              <PersonaFace id={email.colleagueId} size={24} />
                             </span>
-                            <span className="office-email-subject">{email.subject}</span>
-                          </span>
-                        </button>
+                            <span className="office-email-meta">
+                              <span className="office-email-sender">
+                                {sender.name}
+                                {sender.title ? (
+                                  <span className="office-email-sender-role">
+                                    {' '}
+                                    · {sender.title}
+                                  </span>
+                                ) : null}
+                              </span>
+                              <span className="office-email-subject">{email.subject}</span>
+                            </span>
+                          </button>
+                        </div>
                       </li>
                     );
                   })
@@ -186,15 +264,11 @@ export default function OfficeInboxDock({
                 <button
                   type="button"
                   className="office-inbox-footer-action office-call-meeting"
-                  onClick={onCallMeeting}
-                  disabled={!canCallMeeting}
-                  title={
-                    canCallMeeting
-                      ? copy.inbox.callMeetingTitle
-                      : copy.inbox.callMeetingDisabledTitle
-                  }
+                  onClick={handleCallMeeting}
+                  disabled={!canCallFromSelection}
+                  title={callMeetingTitle}
                 >
-                  {copy.inbox.callMeeting}
+                  {callMeetingLabel}
                 </button>
               </div>
             </>

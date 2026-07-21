@@ -350,11 +350,19 @@ export default function OfficeLayer({
     void startMeeting({ attendees: invite.attendees });
   }, [startMeeting]);
 
-  const handleCallMeeting = useCallback(() => {
-    if (meeting) return;
-    dismissOfficeMeetingInvite();
-    void startMeeting({ attendees: pickMeetingAttendees() });
-  }, [meeting, startMeeting]);
+  const handleCallMeeting = useCallback(
+    (options) => {
+      if (meeting) return;
+      dismissOfficeMeetingInvite();
+      const attendees = options?.attendees ?? pickMeetingAttendees();
+      const topic = options?.topic;
+      void startMeeting({
+        attendees,
+        ...(topic ? { topic } : {})
+      });
+    },
+    [meeting, startMeeting]
+  );
 
   useEffect(() => {
     if (callMeetingSignal > 0) handleCallMeeting();
