@@ -6353,23 +6353,54 @@
   max-width: 36rem;
 }
 
+/* First-run desk screen: welcome guide + the same bottom-row desk chrome. */
+.entry-desk-integrated {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: stretch;
+  position: relative;
+}
+
+.entry-desk-integrated .prompt-actions--entry-desk {
+  flex-wrap: nowrap;
+  align-items: flex-end;
+}
+
+.entry-desk-integrated .prompt-actions--entry-desk .desk-primary-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-items: flex-end;
+}
+
 .entry-desk-pointers {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.45rem;
-  max-width: 40rem;
+  justify-content: flex-start;
+  margin-top: 0.15rem;
+  max-width: min(22rem, 100%);
   animation: topic-starters-in 0.35s ease both;
 }
 
+/* Float coach tips into the canvas so an open Desk tray never covers the copy. */
+.entry-desk-pointers--tour {
+  position: absolute;
+  left: 0.15rem;
+  right: auto;
+  bottom: calc(100% + 0.55rem);
+  z-index: calc(var(--z-bottom-popover) + 2);
+  margin-top: 0;
+  max-width: min(20rem, calc(100vw - 1.5rem));
+  pointer-events: auto;
+}
+
 .entry-desk-pointer {
-  flex: 1 1 9.5rem;
-  min-width: min(100%, 9.5rem);
-  padding: 0.42rem 0.55rem 0.48rem;
-  border-radius: 10px;
+  padding: 0.5rem 0.65rem 0.55rem;
+  border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-  background: color-mix(in srgb, var(--surface) 92%, var(--accent) 8%);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 10%, rgba(15, 23, 42, 0.06));
+  background: color-mix(in srgb, var(--surface) 94%, var(--accent) 6%);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 12%, rgba(15, 23, 42, 0.08));
 }
 
 .entry-desk-pointer-label {
@@ -6384,30 +6415,57 @@
 
 .entry-desk-pointer-text {
   display: block;
-  font-size: 0.74rem;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  line-height: 1.4;
   color: var(--text);
 }
 
-/* First-run desk screen: welcome guide + the same bottom-row desk chrome. */
-.entry-desk-integrated {
+.entry-desk-pointer-actions {
   display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  flex: 1 1 auto;
-  min-width: 0;
-  align-items: stretch;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.45rem;
 }
 
-.entry-desk-integrated .prompt-actions--entry-desk {
-  flex-wrap: nowrap;
-  align-items: flex-end;
+.entry-desk-pointer-next,
+.entry-desk-pointer-skip {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--surface) 88%, white);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 650;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
 }
 
-.entry-desk-integrated .prompt-actions--entry-desk .desk-primary-group {
-  flex: 1 1 auto;
-  min-width: 0;
-  align-items: flex-end;
+.entry-desk-pointer-next {
+  background: color-mix(in srgb, var(--accent) 18%, white);
+  border-color: color-mix(in srgb, var(--accent) 48%, transparent);
+}
+
+.entry-desk-pointer-skip {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.desk-tour-piece {
+  display: inline-flex;
+  align-items: center;
+  animation: topic-starters-in 0.4s ease both;
+}
+
+.desk-tour-piece.is-tour-highlight,
+.bottom-office-desk-slot.is-tour-highlight {
+  border-radius: 12px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.entry-desk-tour-reveal[data-tour-step='welcome'] .entry-desk-intro {
+  animation: topic-starters-in 0.45s ease both;
 }
 
 .entry-desk-fallback {

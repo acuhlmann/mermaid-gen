@@ -409,7 +409,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   }, 15_000);
 
   it('streams intent when submitting the prompt control', async () => {
-    // Fallback topic input only after the first-run desk intro has been dismissed.
+    // Empty canvas uses the real Work order after the first-run desk intro is seen.
     window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     // Prompt input is only shown when no diagram is set (initial topic-setting state).
     fetchSessionDiagramStateMock.mockResolvedValueOnce({
@@ -420,9 +420,17 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    const input = await screen.findByLabelText('Your Topic');
+    await screen.findByLabelText(/Work order/i);
+    await waitFor(() => {
+      expect(document.documentElement.getAttribute('data-archislop-app-ready')).toBe('true');
+      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+    });
+    const input = screen.getByLabelText(/Work order/i);
     fireEvent.change(input, { target: { value: 'Add a payment step' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Do it' }).disabled).toBe(false);
+    });
+    fireEvent.submit(screen.getByLabelText(/Work order/i).closest('form'));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
 
@@ -452,16 +460,27 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    expect(await screen.findByTestId('entry-desk-pointers')).toBeTruthy();
-    const deskButton = await screen.findByTestId('bottom-brand-mark');
-    await waitFor(() => {
-      expect(deskButton.getAttribute('aria-expanded')).toBe('true');
-    });
-    expect(screen.getByRole('menu', { name: /Desk actions/i })).toBeTruthy();
+    expect(await screen.findByTestId('entry-desk-intro')).toBeTruthy();
+    // Welcome auto-advances into the end-state desk chrome (no duplicate format strip).
+    await screen.findByTestId('entry-desk-intro');
+    await waitFor(
+      () => {
+        expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
+        expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy();
+        expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+      },
+      { timeout: 6_000 }
+    );
+    expect(screen.queryByTestId('entry-render-as')).toBeNull();
+    expect(screen.getByTestId('bottom-brand-mark').getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('button', { name: /Open your team|Hide team actions/i })).toBeTruthy();
 
-    const input = await screen.findByLabelText(/Work order/i);
+    const input = screen.getByLabelText(/Work order/i);
     fireEvent.change(input, { target: { value: 'Break down the global coffee supply chain' } });
-    fireEvent.submit(input.closest('form'));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Do it' }).disabled).toBe(false);
+    });
+    fireEvent.submit(screen.getByLabelText(/Work order/i).closest('form'));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());
     expect(streamDiagramAgentMock).toHaveBeenCalledWith(
@@ -617,8 +636,16 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    const input = await screen.findByLabelText('Your Topic');
-    fireEvent.change(input, { target: { value: 'Tighten wording' } });
+    await screen.findByLabelText(/Work order/i);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+    });
+    fireEvent.change(screen.getByLabelText(/Work order/i), {
+      target: { value: 'Tighten wording' }
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Do it' }).disabled).toBe(false);
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
     await waitFor(() => expect(globalThis.AudioContext).toHaveBeenCalled());
@@ -707,8 +734,16 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    const input = await screen.findByLabelText('Your Topic');
-    fireEvent.change(input, { target: { value: 'Long request' } });
+    await screen.findByLabelText(/Work order/i);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+    });
+    fireEvent.change(screen.getByLabelText(/Work order/i), {
+      target: { value: 'Long request' }
+    });
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Do it' }).disabled).toBe(false);
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Do it' }));
 
     await waitFor(() => expect(streamDiagramAgentMock).toHaveBeenCalled());

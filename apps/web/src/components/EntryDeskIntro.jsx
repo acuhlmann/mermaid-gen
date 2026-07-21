@@ -2,8 +2,8 @@ import { formatLocale } from '../i18n/formatLocale.js';
 
 /**
  * Compact empty-state explainer — greets newcomers after the office voice intro.
- * The real Your desk menu opens beside the Work order; brief pointers (not a
- * second menu listing) cover where to look.
+ * The stepped desk tour then reveals the real bottom chrome (Work order, Your desk,
+ * Your Team, Desk tray) instead of a duplicate format strip.
  */
 export default function EntryDeskIntro({ copy, userName, role }) {
   if (!copy) return null;

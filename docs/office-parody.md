@@ -222,8 +222,9 @@ newest architect on the floor and the diagram slots are their work deliverables:
   without `fromId` (untranslated locale bundles) fall back to plain chips. The
   `label`/`prompt` fields stay the real generation inputs — the fiction never touches
   prompt quality.
-- **"Pitch your own initiative"** — the free-prompt placeholder; the entry "Render as"
-  strip is labeled **"Deliverable format"**.
+- **"Pitch your own initiative"** — the free-prompt placeholder; Deliverable format
+  lives in the **Desk tray** (🗄️), walked through on first visit instead of a separate
+  empty-state chip row.
 
 Assignments are canned-only for now. Roadmap: an LLM-refreshable assignment inbox
 (new requests referencing the user's recent work), budgeted like other office LLM calls.

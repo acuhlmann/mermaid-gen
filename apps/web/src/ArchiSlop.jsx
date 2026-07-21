@@ -1700,8 +1700,12 @@ ${requirementsBlock}`;
     showEntryDeskIntro,
     showEntryDeskPointers,
     showDeskChrome,
+    entryTourStep,
+    entryReveal,
+    deskDrawerTourOpen,
     dismissEntryDeskPointers,
-    handleEntryRenderAsPick,
+    advanceEntryTour,
+    handleEntryModePick,
     modeRevealActive,
     dismissModeReveal,
     handleModeRevealPick
@@ -2475,8 +2479,8 @@ ${requirementsBlock}`;
             thinkingOpen={insightsOpen}
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
-            deskActionsAnchorReady={showDeskChrome}
-            deskMenuInitialOpen={showEntryDeskIntro}
+            deskActionsAnchorReady={showDeskChrome && entryReveal.desk}
+            deskMenuInitialOpen={false}
             deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
           />
           <HotkeyOverlay
@@ -2559,6 +2563,9 @@ ${requirementsBlock}`;
                 insightsOpen={insightsOpen}
                 showEntryDeskIntro={showEntryDeskIntro}
                 showEntryDeskPointers={showEntryDeskPointers}
+                entryTourStep={entryTourStep}
+                entryReveal={entryReveal}
+                deskDrawerTourOpen={deskDrawerTourOpen}
                 narrowLayout={narrowLayout}
                 busy={busy}
                 loading={loading}
@@ -2570,8 +2577,6 @@ ${requirementsBlock}`;
                 deskSlotRef={deskSlotRef}
                 deskPrompt={deskPrompt}
                 setDeskPrompt={setDeskPrompt}
-                prompt={prompt}
-                setPrompt={setPrompt}
                 voiceSupported={voiceSupported}
                 voiceListening={voiceListening}
                 speechRecognitionCtor={SpeechRecognitionCtor}
@@ -2584,10 +2589,9 @@ ${requirementsBlock}`;
                 handleMicPointerDown={handleMicPointerDown}
                 handleMicPointerUp={handleMicPointerUp}
                 stopVoiceInput={stopVoiceInput}
-                startVoiceInput={startVoiceInput}
                 dismissEntryDeskPointers={dismissEntryDeskPointers}
-                handleEntryRenderAsPick={handleEntryRenderAsPick}
-                runIntentChange={runIntentChange}
+                advanceEntryTour={advanceEntryTour}
+                handleEntryModePick={handleEntryModePick}
                 runTransform={runTransform}
                 runAnalyze={runAnalyze}
                 advisor={advisor}
@@ -2602,8 +2606,6 @@ ${requirementsBlock}`;
                 canFixFromCritique={canFixFromCritique}
                 handleFixFromCritique={handleFixFromCritique}
                 handleClearDiagram={handleClearDiagram}
-                error={error}
-                status={status}
               />
             }
             aiControls={
