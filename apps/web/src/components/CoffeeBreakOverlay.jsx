@@ -3,6 +3,7 @@ import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 export const COFFEE_BREAK_DURATION_MS = 15_000;
 /** Reading-pace gap between watercooler lines when narration is off / muted. */
@@ -77,10 +78,23 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
   if (!accepted) {
     const inviter = officeSenderInfo(coffee.lines[0]?.speakerId ?? 'facilities');
     return (
-      <div className="office-coffee-invite" role="status" aria-live="polite">
-        <p className="office-moment-kind office-moment-kind--coffee" aria-hidden="true">
-          {copy.coffee.kindLabel}
-        </p>
+      <FloatingWindow
+        id="office-coffee-invite"
+        open
+        group="officeChrome"
+        className="office-coffee-invite"
+        defaultCorner="top-center"
+        defaultOffsetX={16}
+        defaultOffsetY={76}
+        cascade={0}
+        role="status"
+        aria-live="polite"
+      >
+        <FloatingWindowDragHandle className="office-coffee-invite-head" title="Drag to move">
+          <p className="office-moment-kind office-moment-kind--coffee" aria-hidden="true">
+            {copy.coffee.kindLabel}
+          </p>
+        </FloatingWindowDragHandle>
         <span aria-hidden="true">☕</span>
         <span
           className="office-coffee-invite-text"
@@ -96,7 +110,7 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
             {copy.coffee.decline}
           </button>
         </div>
-      </div>
+      </FloatingWindow>
     );
   }
 

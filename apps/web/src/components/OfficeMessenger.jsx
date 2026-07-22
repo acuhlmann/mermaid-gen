@@ -3,6 +3,7 @@ import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../uti
 import { formatLocale } from '../i18n/formatLocale.js';
 import { groupImThreads } from '../utils/officeImThreads.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 function MessengerThreadList({ threads, activeId, label, unreadLabel, onSelect }) {
   return (
@@ -185,8 +186,20 @@ export default function OfficeMessenger({
   if (!open) return null;
 
   return (
-    <div className="office-messenger" role="dialog" aria-label={chat.title} aria-modal="false">
-      <div className="office-messenger-titlebar">
+    <FloatingWindow
+      id="office-messenger"
+      open={open}
+      group="officeModal"
+      className="office-messenger"
+      defaultCorner="bottom-right"
+      defaultOffsetX={14}
+      defaultOffsetY={96}
+      cascade={1}
+      role="dialog"
+      aria-label={chat.title}
+      aria-modal="false"
+    >
+      <FloatingWindowDragHandle className="office-messenger-titlebar" title={chat.dragHint}>
         <span className="office-messenger-title">{chat.title}</span>
         <span className="office-messenger-tagline">{chat.tagline}</span>
         {typeof onCallMeeting === 'function' ? (
@@ -220,7 +233,7 @@ export default function OfficeMessenger({
         >
           ×
         </button>
-      </div>
+      </FloatingWindowDragHandle>
 
       {threads.length === 0 ? (
         <div className="office-messenger-empty-panel">
@@ -264,6 +277,6 @@ export default function OfficeMessenger({
           </div>
         </div>
       )}
-    </div>
+    </FloatingWindow>
   );
 }

@@ -30,6 +30,12 @@ const stacks = new Map(
 /** @type {Map<string, number>} */
 const zIndexById = new Map();
 
+/** @type {Map<string, OverlayGroupId>} */
+const groupById = new Map();
+
+/** @type {string | null} */
+let focusedOverlayId = null;
+
 /** @type {Set<() => void>} */
 const listeners = new Set();
 
@@ -43,6 +49,7 @@ function recompute() {
     const band = OVERLAY_GROUP[groupId];
     ids.forEach((id, index) => {
       zIndexById.set(id, Math.min(band.base + index, band.max));
+      groupById.set(id, groupId);
     });
   }
 }
@@ -82,9 +89,41 @@ export function unregisterOverlay(id) {
     }
   }
   if (changed) {
+    if (focusedOverlayId === id) focusedOverlayId = null;
+    groupById.delete(id);
     recompute();
     notify();
   }
+}
+
+/**
+ * Move an already-registered overlay to the top of its group (click-to-focus).
+ * @param {string} id
+ */
+export function bringOverlayToFront(id) {
+  const group = groupById.get(id);
+  if (!group) return;
+  const list = stacks.get(group) ?? [];
+  const idx = list.indexOf(id);
+  if (idx === -1) return;
+  list.splice(idx, 1);
+  list.push(id);
+  stacks.set(group, list);
+  focusedOverlayId = id;
+  recompute();
+  notify();
+}
+
+/**
+ * @param {string} id
+ */
+export function focusOverlay(id) {
+  bringOverlayToFront(id);
+}
+
+/** @returns {string | null} */
+export function getFocusedOverlayId() {
+  return focusedOverlayId;
 }
 
 /**
@@ -105,5 +144,7 @@ export function subscribe(listener) {
 export function resetOverlayStackForTests() {
   for (const ids of stacks.values()) ids.length = 0;
   zIndexById.clear();
+  groupById.clear();
+  focusedOverlayId = null;
   notify();
 }

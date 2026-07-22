@@ -16078,6 +16078,97 @@ body.slopitect-rainbow-tint::before {
   --z-office-modal: 240;
 }
 
+/* --- Draggable floating window shell --- */
+.floating-window {
+  position: fixed;
+  pointer-events: auto;
+  touch-action: none;
+  transition:
+    box-shadow 160ms ease,
+    opacity 160ms ease,
+    filter 160ms ease;
+}
+
+.floating-window.is-unfocused {
+  opacity: 0.94;
+  filter: saturate(0.92);
+}
+
+.floating-window.is-focused {
+  opacity: 1;
+  filter: none;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent),
+    var(--control-shadow);
+}
+
+.floating-window.is-dragging {
+  cursor: grabbing;
+  user-select: none;
+  transition: none;
+}
+
+.floating-window-drag-handle {
+  cursor: grab;
+  touch-action: none;
+  position: relative;
+}
+
+.floating-window-drag-handle:active,
+.floating-window.is-dragging .floating-window-drag-handle {
+  cursor: grabbing;
+}
+
+.floating-window-drag-grip {
+  position: absolute;
+  left: 0.45rem;
+  top: 50%;
+  width: 0.45rem;
+  height: 0.85rem;
+  transform: translateY(-50%);
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    transparent 20%,
+    color-mix(in srgb, var(--muted) 70%, transparent) 20%,
+    color-mix(in srgb, var(--muted) 70%, transparent) 35%,
+    transparent 35%,
+    transparent 55%,
+    color-mix(in srgb, var(--muted) 70%, transparent) 55%,
+    color-mix(in srgb, var(--muted) 70%, transparent) 70%,
+    transparent 70%,
+    transparent 100%
+  );
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.office-messenger-titlebar.floating-window-drag-handle,
+.office-inbox-header.floating-window-drag-handle,
+.office-meeting-picker-header.floating-window-drag-handle {
+  padding-left: 1.35rem;
+}
+
+.advisor-float-drag-handle {
+  position: absolute;
+  inset: 0.35rem auto auto 0.35rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  z-index: 2;
+  border-radius: 6px;
+  opacity: 0.65;
+}
+
+.advisor-float-drag-handle:hover {
+  opacity: 1;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.advisor-float-portal .advisor-float-portal-inner {
+  pointer-events: auto;
+}
+
 /* --- Inbox dock --- */
 .office-inbox {
   position: fixed;
@@ -16097,14 +16188,6 @@ body.slopitect-rainbow-tint::before {
 
 .office-inbox--headless .office-inbox-popover {
   pointer-events: auto;
-  /* The headless container is bottom-anchored and zero-height (the desk dock
-     opens it; there is no envelope button to hang off). Inheriting the base
-     `top: 46px` would open the popover DOWNWARD from that bottom edge and push
-     the footer — "Mark all read" / "Call a meeting" — below the viewport. Open
-     upward instead, at every width. */
-  top: auto;
-  bottom: calc(100% + 0.45rem);
-  --office-inbox-anchor: calc(var(--mobile-bottom-chrome-est, 5.5rem) + 3rem);
 }
 
 /* Desk verbs: your side of the office, stacked under the inbox envelope. */
@@ -16376,13 +16459,26 @@ body.slopitect-rainbow-tint::before {
   .desk-actions:not(.desk-actions--bottom) {
     top: calc(7.4rem + env(safe-area-inset-top, 0px));
   }
-  /* Open upward on short viewports so the verb list stays on-screen. */
   .desk-actions-menu {
     top: auto;
     bottom: calc(100% + 6px);
     --desk-menu-max-block-size: calc(
       100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-top, 0px) -
         env(safe-area-inset-bottom, 0px) - 1.5rem
+    );
+  }
+  .office-battle-invite,
+  .office-meeting-invite,
+  .office-coffee-invite {
+    border-radius: 14px;
+    justify-content: flex-start;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+    padding: 0.72rem 0.85rem;
+    max-width: min(
+      480px,
+      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
     );
   }
 }
@@ -16420,9 +16516,6 @@ body.slopitect-rainbow-tint::before {
   text-align: center;
 }
 .office-inbox-popover {
-  position: absolute;
-  top: 46px;
-  right: 0;
   container-type: inline-size;
   container-name: office-inbox;
   width: min(
@@ -16675,14 +16768,8 @@ body.slopitect-rainbow-tint::before {
 
 /* --- Call a meeting people/group picker --- */
 .office-meeting-picker {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.35);
-  z-index: var(--z-office-chrome);
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 32px));
 }
 .office-meeting-picker-panel {
   width: min(440px, calc(100vw - 32px));
@@ -17078,10 +17165,6 @@ body.slopitect-rainbow-tint::before {
    Deliberately NOT a modal: chat is something you read while working, so this
    is a floating window over the canvas rather than a backdrop. */
 .office-messenger {
-  position: fixed;
-  right: 14px;
-  bottom: 96px;
-  z-index: var(--z-office-modal);
   width: min(460px, calc(100vw - 28px));
   height: min(440px, calc(var(--app-vvh, 100dvh) - 160px));
   display: flex;
@@ -17363,10 +17446,6 @@ body.slopitect-rainbow-tint::before {
 
 /* --- Walk-by --- */
 .office-walkby {
-  position: fixed;
-  left: 14px;
-  bottom: 130px;
-  z-index: var(--z-office-chrome);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -17499,11 +17578,6 @@ body.slopitect-rainbow-tint::before {
 
 /* --- Coffee break --- */
 .office-coffee-invite {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 76px;
-  z-index: var(--z-office-chrome);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -17522,20 +17596,18 @@ body.slopitect-rainbow-tint::before {
 }
 @media (max-width: 720px) {
   .office-battle-invite,
-  .office-meeting-invite {
-    top: calc(4.4rem + env(safe-area-inset-top, 0px));
-    left: max(0.5rem, env(safe-area-inset-left, 0px));
-    right: max(0.5rem, env(safe-area-inset-right, 0px));
-    bottom: auto;
-    width: auto;
-    max-width: none;
-    transform: none;
+  .office-meeting-invite,
+  .office-coffee-invite {
     border-radius: 14px;
     justify-content: flex-start;
     flex-direction: column;
     align-items: stretch;
     gap: 0.55rem;
     padding: 0.72rem 0.85rem;
+    max-width: min(
+      480px,
+      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+    );
   }
   .office-meeting-invite {
     border-radius: 12px;
@@ -17793,11 +17865,6 @@ body.slopitect-rainbow-tint::before {
 
 /* --- Cubicle battle --- */
 .office-battle-invite {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  top: calc(4.4rem + env(safe-area-inset-top, 0px));
-  z-index: var(--z-office-chrome);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -19165,28 +19232,13 @@ body.slopitect-rainbow-tint::before {
 
 /* Small screens: keep office overlays clear of bottom controls. */
 @media (max-width: 640px) {
-  .office-inbox:not(.office-inbox--headless) {
-    top: auto;
-    bottom: 150px;
-    right: 10px;
-  }
-  .office-inbox:not(.office-inbox--headless) .office-inbox-popover {
-    top: auto;
-    bottom: 46px;
-    /* Bottom-anchored at 150px + 46px; leave room above for the top chrome. */
-    --office-inbox-anchor: 232px;
-  }
   .office-inbox--headless {
     left: max(0.75rem, env(safe-area-inset-left, 0px));
     right: max(0.75rem, env(safe-area-inset-right, 0px));
     width: auto;
   }
-  /* Upward anchoring is now unconditional (see the base rule); this only
-     stretches the popover to the full width of the phone. */
   .office-inbox--headless .office-inbox-popover {
-    left: 0;
-    right: 0;
-    width: auto;
+    width: min(22rem, calc(100vw - 1.5rem));
     max-width: none;
   }
   .office-im-stack {
@@ -19200,11 +19252,11 @@ body.slopitect-rainbow-tint::before {
   /* Phone: full-width sheet, and the thread list becomes a horizontal strip so
      the message log keeps the width it needs to be readable. */
   .office-messenger {
-    left: 10px;
-    right: 10px;
-    bottom: 150px;
-    width: auto;
-    height: min(58dvh, calc(var(--app-vvh, 100dvh) - 210px));
+    width: min(460px, calc(100vw - 20px));
+    height: min(
+      58dvh,
+      calc(var(--app-vvh, 100dvh) - var(--mobile-bottom-chrome-est, 10.5rem) - 4rem)
+    );
   }
   .office-messenger-body {
     grid-template-columns: 1fr;
@@ -19226,11 +19278,6 @@ body.slopitect-rainbow-tint::before {
     display: none;
   }
   .office-walkby {
-    bottom: calc(
-      var(--mobile-bottom-chrome-est, 8.75rem) + env(safe-area-inset-bottom, 0px) + 0.5rem
-    );
-    left: max(0.5rem, env(safe-area-inset-left, 0px));
-    right: auto;
     max-width: min(
       360px,
       calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))

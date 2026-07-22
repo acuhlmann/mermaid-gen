@@ -1201,6 +1201,7 @@ export const OFFICE_CHROME_COPY = {
     unreadAria: 'Inbox — {count} unread emails',
     noUnreadAria: 'Inbox — no unread email',
     title: '📥 Inbox',
+    dragHint: 'Drag to move',
     mailAnnounce: 'You’ve got mail!',
     mailAnnounceLang: 'en-US',
     togglesAria: 'Inbox ambience controls',
@@ -1228,6 +1229,7 @@ export const OFFICE_CHROME_COPY = {
   meetingPicker: {
     title: '📅 Call a meeting',
     titleHuddle: '📅 Pull someone in',
+    dragHint: 'Drag to move',
     tagline: 'Grab people like you would on the floor — one person or a whole circus.',
     topicLabel: 'What is this about?',
     topicPlaceholder: 'Optional agenda (they will ignore it either way)',
@@ -1268,6 +1270,7 @@ export const OFFICE_CHROME_COPY = {
   messenger: {
     title: '💬 Slop Chat™',
     tagline: 'Now with 40% more presence indicators',
+    dragHint: 'Drag to move',
     closeAria: 'Close Slop Chat',
     threadsAria: 'Conversations',
     emptyThreads: 'No messages yet. Enjoy it while it lasts.',

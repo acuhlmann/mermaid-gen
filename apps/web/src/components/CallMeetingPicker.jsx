@@ -10,7 +10,7 @@ import {
 } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 const TIER_LABEL_KEYS = {
   team: 'tierTeam',
@@ -34,7 +34,6 @@ export default function CallMeetingPicker({
   onCancel
 }) {
   const copy = officeChromeCopy().meetingPicker;
-  const zIndex = useOverlayLayer('call-meeting-picker', open, 'officeChrome');
   const directory = useMemo(() => listMeetingDirectory(), []);
   const [selected, setSelected] = useState(() => new Set(seedAttendees));
   const [topic, setTopic] = useState(seedTopic ?? '');
@@ -107,15 +106,24 @@ export default function CallMeetingPicker({
   const tiers = ['team', 'senior', 'office'];
 
   return (
-    <div
+    <FloatingWindow
+      id="call-meeting-picker"
+      open={open}
+      group="officeChrome"
       className="office-meeting-picker"
-      style={overlayLayerStyle(zIndex)}
+      defaultCorner="top-center"
+      defaultOffsetX={16}
+      defaultOffsetY={72}
+      cascade={2}
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}
     >
       <div className="office-meeting-picker-panel">
-        <div className="office-meeting-picker-header">
+        <FloatingWindowDragHandle
+          className="office-meeting-picker-header"
+          title={copy.dragHint ?? 'Drag to move'}
+        >
           <div>
             <div className="office-meeting-picker-title">
               {isHuddle ? copy.titleHuddle : copy.title}
@@ -131,7 +139,7 @@ export default function CallMeetingPicker({
           >
             ×
           </button>
-        </div>
+        </FloatingWindowDragHandle>
 
         <label className="office-meeting-picker-topic">
           <span>{copy.topicLabel}</span>
@@ -237,6 +245,6 @@ export default function CallMeetingPicker({
           </div>
         </div>
       </div>
-    </div>
+    </FloatingWindow>
   );
 }

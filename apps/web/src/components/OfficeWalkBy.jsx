@@ -1,6 +1,7 @@
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 /**
  * Over-the-shoulder walk-by (docs/office-parody.md): a colleague slides in
@@ -13,8 +14,21 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
   const copy = officeChromeCopy();
   const sender = officeSenderInfo(walkBy.colleagueId);
   return (
-    <div className="office-walkby" role="status" aria-live="polite">
-      <p className="office-moment-kind office-moment-kind--walkby">{copy.walkby.kindLabel}</p>
+    <FloatingWindow
+      id="office-walkby"
+      open={Boolean(walkBy)}
+      group="officeChrome"
+      className="office-walkby"
+      defaultCorner="bottom-left"
+      defaultOffsetX={14}
+      defaultOffsetY={130}
+      cascade={0}
+      role="status"
+      aria-live="polite"
+    >
+      <FloatingWindowDragHandle className="office-walkby-drag-head" title="Drag to move">
+        <p className="office-moment-kind office-moment-kind--walkby">{copy.walkby.kindLabel}</p>
+      </FloatingWindowDragHandle>
       {copy.walkby.preamble ? (
         <p className="office-walkby-preamble">{copy.walkby.preamble}</p>
       ) : null}
@@ -45,6 +59,6 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
           ) : null}
         </div>
       </div>
-    </div>
+    </FloatingWindow>
   );
 }
