@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
@@ -24,6 +25,7 @@ export const BATTLE_LINE_PACE_MS = 1900;
  * }} props
  */
 export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, narrateLine }) {
+  const narrowLayout = useNarrowLayout();
   const accepted = Boolean(battle?.accepted);
   const battleId = battle?.id ?? null;
   const lineCount = battle?.lines?.length ?? 0;
@@ -109,7 +111,7 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
         className="office-battle-invite"
         defaultCorner="top-center"
         defaultOffsetX={16}
-        defaultOffsetY={76}
+        defaultOffsetY={narrowLayout ? 92 : 76}
         cascade={1}
         role="status"
         aria-live="polite"

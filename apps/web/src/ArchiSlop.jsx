@@ -1339,7 +1339,13 @@ ${requirementsBlock}`;
   // empty target slot — do not dump the user back on the first-run intro.
   const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
 
-  const { officeBootPending, officeCanvasGrace, handleOfficeBootComplete } = useOfficeBoot({
+  const {
+    officeBootPending,
+    officeCanvasGrace,
+    deskTourPending,
+    handleOfficeBootComplete,
+    completeDeskTour
+  } = useOfficeBoot({
     hasCanvasContent
   });
 
@@ -1380,14 +1386,28 @@ ${requirementsBlock}`;
     reportAdvisorUsage
   });
 
-  const { showDeskChrome, entryReveal, modeRevealActive, dismissModeReveal, handleModeRevealPick } =
-    useEntryDeskFlow({
-      hasDiagramText,
-      insightsOpen,
-      stakeholderIntroProps,
-      editorOpen,
-      handleSelectContentMode
-    });
+  const {
+    showDeskChrome,
+    entryReveal,
+    entryTourActive,
+    entryTourStep,
+    entryTourProgress,
+    showEntryDeskIntro,
+    modeRevealActive,
+    dismissModeReveal,
+    handleModeRevealPick,
+    advanceEntryTour,
+    dismissEntryDeskTour
+  } = useEntryDeskFlow({
+    hasDiagramText,
+    insightsOpen,
+    stakeholderIntroProps,
+    editorOpen,
+    handleSelectContentMode,
+    deskTourPending,
+    onDeskTourComplete: completeDeskTour,
+    entryPointers: controls.prompt.entryPointers ?? []
+  });
 
   const showEmptyCanvas =
     !hasCanvasContent &&
@@ -1397,6 +1417,10 @@ ${requirementsBlock}`;
     !modeRevealActive &&
     !isFullscreen &&
     !loading;
+  const entryTourCopy = {
+    ...(controls.prompt.entryTour ?? {}),
+    deskEyebrow: controls.prompt.entryIntro?.deskEyebrow ?? 'Your desk'
+  };
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -2077,6 +2101,14 @@ ${requirementsBlock}`;
             copy={controls.prompt}
             userName={userName}
             onPickTopic={handleStarterPick}
+            showEntryDeskIntro={showEntryDeskIntro}
+            entryIntroCopy={controls.prompt.entryIntro}
+            entryRole={
+              controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'
+            }
+            entryTourCopy={entryTourCopy}
+            onAdvanceEntryTour={advanceEntryTour}
+            onDismissEntryTour={dismissEntryDeskTour}
           />
 
           <DiagramFullscreenOverlay
@@ -2297,6 +2329,15 @@ ${requirementsBlock}`;
                 handleClearDiagram={handleClearDiagram}
                 onToggleThinking={() => setInsightsOpen((v) => !v)}
                 canToggleThinking
+                modelProfile={modelProfile}
+                onSelectModelProfile={setModelProfile}
+                entryTourActive={entryTourActive}
+                entryTourStep={entryTourStep}
+                entryTourProgress={entryTourProgress}
+                entryPointers={controls.prompt.entryPointers ?? []}
+                entryTourCopy={entryTourCopy}
+                onAdvanceEntryTour={advanceEntryTour}
+                onDismissEntryTour={dismissEntryDeskTour}
               />
             }
             aiControls={

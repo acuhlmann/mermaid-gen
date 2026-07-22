@@ -2,6 +2,8 @@ import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
+import DeskConcentrationChip from '../../components/DeskConcentrationChip.jsx';
+import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
 function DeskPeopleCluster({
@@ -64,6 +66,7 @@ function DeskChromeRow({
   showDeskSlot = true,
   showTeam = true,
   showNotebook = true,
+  showConcentration = true,
   showDrawer = true,
   deskPrompt,
   busy,
@@ -85,6 +88,8 @@ function DeskChromeRow({
   thinkingOpen,
   onToggleThinking,
   canToggleThinking = true,
+  modelProfile = 'fast',
+  onSelectModelProfile,
   goMadStreak,
   controls,
   runTransform,
@@ -105,20 +110,59 @@ function DeskChromeRow({
   loading,
   streamingPreview,
   deskDrawerTourOpen = false,
-  tourHighlight = null
+  tourHighlight = null,
+  entryTourActive = false,
+  entryTourStep = null,
+  entryTourProgress = null,
+  entryPointers = [],
+  entryTourCopy = null,
+  onAdvanceEntryTour,
+  onDismissEntryTour
 }) {
+  const tourTip =
+    entryTourActive && entryTourStep && entryTourStep !== 'welcome' ? entryTourStep : null;
+
   return (
-    <div className="button-group desk-primary-group desk-chrome-layout">
+    <div
+      className={`button-group desk-primary-group desk-chrome-layout${entryTourActive ? ' is-entry-tour-active' : ''}`}
+    >
       {showDeskSlot ? (
         <div
           id="office-desk-bottom-slot"
           ref={deskSlotRef}
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--desk${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
-        />
+        >
+          {tourTip === 'desk' ? (
+            <EntryDeskPointers
+              pointers={entryPointers}
+              activeId="desk"
+              eyebrow={entryTourCopy?.deskEyebrow}
+              progress={entryTourProgress}
+              onAdvance={onAdvanceEntryTour}
+              onDismiss={onDismissEntryTour}
+              nextLabel={entryTourCopy?.next}
+              doneLabel={entryTourCopy?.done}
+              skipLabel={entryTourCopy?.skip}
+            />
+          ) : null}
+        </div>
       ) : null}
       <div
         className={`desk-work-order-group desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
       >
+        {tourTip === 'work-order' ? (
+          <EntryDeskPointers
+            pointers={entryPointers}
+            activeId="work-order"
+            eyebrow={entryTourCopy?.deskEyebrow}
+            progress={entryTourProgress}
+            onAdvance={onAdvanceEntryTour}
+            onDismiss={onDismissEntryTour}
+            nextLabel={entryTourCopy?.next}
+            doneLabel={entryTourCopy?.done}
+            skipLabel={entryTourCopy?.skip}
+          />
+        ) : null}
         <SlopNextPrompt
           layout="desk"
           prompt={deskPrompt}
@@ -147,6 +191,19 @@ function DeskChromeRow({
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
         >
+          {tourTip === 'team' ? (
+            <EntryDeskPointers
+              pointers={entryPointers}
+              activeId="team"
+              eyebrow={entryTourCopy?.deskEyebrow}
+              progress={entryTourProgress}
+              onAdvance={onAdvanceEntryTour}
+              onDismiss={onDismissEntryTour}
+              nextLabel={entryTourCopy?.next}
+              doneLabel={entryTourCopy?.done}
+              skipLabel={entryTourCopy?.skip}
+            />
+          ) : null}
           <DeskPeopleCluster
             goMadStreak={goMadStreak}
             controls={controls}
@@ -166,6 +223,19 @@ function DeskChromeRow({
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
         >
+          {tourTip === 'notebook' ? (
+            <EntryDeskPointers
+              pointers={entryPointers}
+              activeId="notebook"
+              eyebrow={entryTourCopy?.deskEyebrow}
+              progress={entryTourProgress}
+              onAdvance={onAdvanceEntryTour}
+              onDismiss={onDismissEntryTour}
+              nextLabel={entryTourCopy?.next}
+              doneLabel={entryTourCopy?.done}
+              skipLabel={entryTourCopy?.skip}
+            />
+          ) : null}
           <DeskNotebookButton
             thinkingOpen={thinkingOpen}
             onToggleThinking={onToggleThinking}
@@ -174,10 +244,32 @@ function DeskChromeRow({
           />
         </div>
       ) : null}
+      {showConcentration ? (
+        <div className="desk-chrome-tool desk-tour-piece desk-tour-piece--concentration">
+          <DeskConcentrationChip
+            modelProfile={modelProfile}
+            onSelectModelProfile={onSelectModelProfile}
+            disabled={busy}
+          />
+        </div>
+      ) : null}
       {showDrawer ? (
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
         >
+          {tourTip === 'format' ? (
+            <EntryDeskPointers
+              pointers={entryPointers}
+              activeId="format"
+              eyebrow={entryTourCopy?.deskEyebrow}
+              progress={entryTourProgress}
+              onAdvance={onAdvanceEntryTour}
+              onDismiss={onDismissEntryTour}
+              nextLabel={entryTourCopy?.next}
+              doneLabel={entryTourCopy?.done}
+              skipLabel={entryTourCopy?.skip}
+            />
+          ) : null}
           <DeskDrawer
             modes={contentModeOptions}
             currentMode={contentMode}
@@ -242,7 +334,16 @@ export function DeskBottomActionsSlot({
   handleFixFromCritique,
   handleClearDiagram,
   onToggleThinking,
-  canToggleThinking = true
+  canToggleThinking = true,
+  modelProfile = 'fast',
+  onSelectModelProfile,
+  entryTourActive = false,
+  entryTourStep = null,
+  entryTourProgress = null,
+  entryPointers = [],
+  entryTourCopy = null,
+  onAdvanceEntryTour,
+  onDismissEntryTour
 }) {
   const reveal = entryReveal ?? {
     workOrder: true,
@@ -258,6 +359,7 @@ export function DeskBottomActionsSlot({
     showDeskSlot: reveal.desk,
     showTeam: reveal.team,
     showNotebook: reveal.notebook,
+    showConcentration: reveal.concentration,
     showDrawer: reveal.drawer,
     deskPrompt,
     busy,
@@ -279,6 +381,8 @@ export function DeskBottomActionsSlot({
     thinkingOpen: insightsOpen,
     onToggleThinking,
     canToggleThinking,
+    modelProfile,
+    onSelectModelProfile,
     goMadStreak,
     controls,
     runTransform,
@@ -298,13 +402,23 @@ export function DeskBottomActionsSlot({
     handleClearDiagram,
     loading,
     streamingPreview,
-    deskDrawerTourOpen: false,
-    tourHighlight: null
+    deskDrawerTourOpen: entryTourActive && entryTourStep === 'format',
+    tourHighlight: entryTourActive && entryTourStep !== 'welcome' ? entryTourStep : null,
+    entryTourActive,
+    entryTourStep,
+    entryTourProgress,
+    entryPointers,
+    entryTourCopy,
+    onAdvanceEntryTour,
+    onDismissEntryTour
   };
 
   if (!hasCanvasContent && !insightsOpen) {
     return (
-      <div className={`prompt-actions prompt-actions--entry-desk ${layoutClass}`}>
+      <div
+        className={`prompt-actions prompt-actions--entry-desk entry-desk-integrated${entryTourActive ? ' entry-desk-tour-reveal' : ''}${entryTourStep ? ` entry-desk-tour-reveal--${entryTourStep}` : ''} ${layoutClass}`}
+        data-tour-step={entryTourStep ?? undefined}
+      >
         <DeskChromeRow {...chromeProps} />
       </div>
     );

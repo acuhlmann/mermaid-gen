@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { readModeRevealSeen, writeModeRevealSeen } from '../../utils/modeRevealStorage.js';
 
 const FULL_DESK_REVEAL = {
@@ -6,21 +6,39 @@ const FULL_DESK_REVEAL = {
   desk: true,
   team: true,
   notebook: true,
+  concentration: true,
   drawer: true
 };
 
+/** Tour steps after the welcome beat on the empty canvas. */
+export const ENTRY_DESK_TOUR_STEPS = ['work-order', 'desk', 'notebook', 'team', 'format'];
+
+function revealForTourStep(step) {
+  if (!step || step === 'welcome') return FULL_DESK_REVEAL;
+  return {
+    workOrder: true,
+    desk: ['desk', 'notebook', 'team', 'format'].includes(step),
+    notebook: ['notebook', 'team', 'format'].includes(step),
+    concentration: ['notebook', 'team', 'format'].includes(step),
+    team: ['team', 'format'].includes(step),
+    drawer: step === 'format'
+  };
+}
+
 /**
- * Post-first-diagram mode reveal spotlight. Desk-control onboarding now lives in
- * Meet the Office (OfficeDirectory) instead of a separate empty-canvas tour.
+ * Post-first-diagram mode reveal spotlight plus the first-run desk-control tour
+ * that starts after Meet the Office dismisses onto the real empty-canvas desk.
  *
  * @param {{
- *   hasCanvasContent: boolean;
  *   hasDiagramText: boolean;
  *   insightsOpen: boolean;
  *   stakeholderIntroProps: object | null;
  *   editorOpen: boolean;
  *   hasInteractedRef: import('react').MutableRefObject<boolean>;
  *   handleSelectContentMode: (mode: string) => void;
+ *   deskTourPending?: boolean;
+ *   onDeskTourComplete?: () => void;
+ *   entryPointers?: Array<{ id?: string; label?: string; text?: string }>;
  * }} deps
  */
 export function useEntryDeskFlow({
@@ -28,13 +46,54 @@ export function useEntryDeskFlow({
   insightsOpen,
   stakeholderIntroProps,
   editorOpen,
-  handleSelectContentMode
+  handleSelectContentMode,
+  deskTourPending = false,
+  onDeskTourComplete,
+  entryPointers = []
 }) {
   const modeRevealSeenRef = useRef(readModeRevealSeen());
   const [modeRevealActive, setModeRevealActive] = useState(false);
   const modeRevealTimerRef = useRef(null);
+  const [entryTourStep, setEntryTourStep] = useState(null);
+  const deskTourStartedRef = useRef(false);
+
+  const pointerSteps = useMemo(
+    () =>
+      (Array.isArray(entryPointers) ? entryPointers : [])
+        .map((pointer) => pointer?.id)
+        .filter((id) => typeof id === 'string' && id.length > 0),
+    [entryPointers]
+  );
 
   const showDeskChrome = true;
+  const entryTourActive = entryTourStep != null;
+  const showEntryDeskIntro = entryTourStep === 'welcome';
+
+  useEffect(() => {
+    if (!deskTourPending || deskTourStartedRef.current) return;
+    deskTourStartedRef.current = true;
+    setEntryTourStep('welcome');
+  }, [deskTourPending]);
+
+  const dismissEntryDeskTour = useCallback(() => {
+    setEntryTourStep(null);
+    onDeskTourComplete?.();
+  }, [onDeskTourComplete]);
+
+  const advanceEntryTour = useCallback(() => {
+    setEntryTourStep((current) => {
+      if (current == null) return current;
+      if (current === 'welcome') {
+        return pointerSteps[0] ?? null;
+      }
+      const index = pointerSteps.indexOf(current);
+      if (index < 0 || index >= pointerSteps.length - 1) {
+        onDeskTourComplete?.();
+        return null;
+      }
+      return pointerSteps[index + 1];
+    });
+  }, [onDeskTourComplete, pointerSteps]);
 
   const dismissModeReveal = useCallback(() => {
     if (modeRevealTimerRef.current) {
@@ -72,9 +131,28 @@ export function useEntryDeskFlow({
     [handleSelectContentMode, dismissModeReveal]
   );
 
+  const entryReveal = entryTourActive ? revealForTourStep(entryTourStep) : FULL_DESK_REVEAL;
+  const tourHighlight = entryTourActive && entryTourStep !== 'welcome' ? entryTourStep : null;
+  const deskDrawerTourOpen = entryTourStep === 'format';
+  const entryTourProgress =
+    entryTourStep && entryTourStep !== 'welcome'
+      ? {
+          index: Math.max(0, pointerSteps.indexOf(entryTourStep)),
+          total: pointerSteps.length
+        }
+      : null;
+
   return {
     showDeskChrome,
-    entryReveal: FULL_DESK_REVEAL,
+    entryReveal,
+    entryTourActive,
+    entryTourStep,
+    entryTourProgress,
+    showEntryDeskIntro,
+    tourHighlight,
+    deskDrawerTourOpen,
+    advanceEntryTour,
+    dismissEntryDeskTour,
     modeRevealActive,
     dismissModeReveal,
     handleModeRevealPick
