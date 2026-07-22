@@ -90,6 +90,18 @@ Run: `npm run check:fast` when only shared changed; `npm run check` otherwise.
 
 `test:affected` pulls `App.test.jsx` when any of the above change (see `scripts/test-affected-lib.mjs`).
 
+## Desk chrome (concentration + bottom row)
+
+| Layer              | Location                                                                                                                                                                                                                                                                                |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Rush / Deep toggle | [`apps/web/src/components/DeskConcentrationChip.jsx`](../apps/web/src/components/DeskConcentrationChip.jsx) on the bottom chrome row via [`DeskBottomActionsSlot.jsx`](../apps/web/src/features/desk/DeskBottomActionsSlot.jsx)                                                         |
+| Desk verb menu     | [`apps/web/src/components/DeskActionsDock.jsx`](../apps/web/src/components/DeskActionsDock.jsx) — verbs only; concentration is not duplicated in the helmet menu                                                                                                                        |
+| Thinking pane      | [`apps/web/src/components/InsightsPane.jsx`](../apps/web/src/components/InsightsPane.jsx) still hosts `ConcentrationControl` in the header tools                                                                                                                                        |
+| Integration        | [`apps/web/test/App.test.jsx`](../apps/web/test/App.test.jsx) (`sends quality modelProfile after selecting Deep work` — targets `desk-concentration-chip`)                                                                                                                              |
+| Unit               | [`apps/web/test/deskBottomActionsSlot.test.jsx`](../apps/web/test/deskBottomActionsSlot.test.jsx), [`apps/web/test/deskActionsDock.test.jsx`](../apps/web/test/deskActionsDock.test.jsx), [`apps/web/test/officeLayerDeskSlot.test.jsx`](../apps/web/test/officeLayerDeskSlot.test.jsx) |
+
+`test:affected` pulls the integration + unit files above when desk chrome or concentration modules change (see `scripts/test-affected-lib.mjs`).
+
 ## Verification commands (quick reference)
 
 | Scope                         | Command                                                                 |

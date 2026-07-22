@@ -2200,8 +2200,6 @@ ${requirementsBlock}`;
             canToggleEditor={hasCanvasContent || editorOpen}
             editorOpen={editorOpen}
             onToggleThinking={() => setInsightsOpen((v) => !v)}
-            modelProfile={modelProfile}
-            onSelectModelProfile={setModelProfile}
             callMeetingSignal={callMeetingSignal}
             canOpenOutbox={Boolean((state.diagramSource ?? '').trim())}
             canToggleThinking
