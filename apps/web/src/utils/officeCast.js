@@ -12,6 +12,7 @@
  * prompts in apps/server/src/agents/officePersonas.js.
  */
 
+import { CAST_TIERS } from './castTiers.js';
 import { getVariantPersona } from './slopitectCopy.js';
 
 let activeOfficeBundle = null;
@@ -193,6 +194,89 @@ export const MEETING_SENIOR_POOL = ['exec', 'ciso', 'cto', 'cfo'];
 /** Team members who can be sent upstairs to defend the diagram. */
 export const MEETING_PRESENTER_POOL = ['refine', 'critique', 'explain'];
 export const MEETING_FACILITATOR = 'scrumMaster';
+/** Matches packages/shared MEETING_MAX_ATTENDEES / the /meeting route. */
+export const MEETING_ROSTER_MAX = 8;
+/** Matches packages/shared MEETING_MIN_ATTENDEES — enough for a huddle. */
+export const MEETING_ROSTER_MIN = 2;
+
+/**
+ * Group presets for the Call-a-meeting picker — like grabbing people in a real
+ * office ("pull in your team", "book steering", "yell across the floor").
+ * Member lists are resolved at click time so steering can stay slightly random.
+ */
+export const MEETING_GROUP_PRESETS = [
+  {
+    id: 'team',
+    labelKey: 'groupTeam',
+    titleKey: 'groupTeamTitle',
+    resolve: () => ['refine', 'innovate', 'goMad', 'critique', 'explain']
+  },
+  {
+    id: 'steering',
+    labelKey: 'groupSteering',
+    titleKey: 'groupSteeringTitle',
+    resolve: (random = Math.random) => pickMeetingAttendees(random)
+  },
+  {
+    id: 'floor',
+    labelKey: 'groupFloor',
+    titleKey: 'groupFloorTitle',
+    resolve: () => ['intern', 'scrumMaster', 'greybeard', 'facilities', 'hr', 'helpdesk']
+  },
+  {
+    id: 'seniors',
+    labelKey: 'groupSeniors',
+    titleKey: 'groupSeniorsTitle',
+    resolve: () => [...MEETING_SENIOR_POOL]
+  }
+];
+
+/**
+ * Directory rows for the meeting picker, grouped by org tier. Anyone the
+ * server will accept as a speaker is inviteable — calling Gary about the fridge
+ * is the whole joke.
+ * @returns {{ tier: 'team' | 'senior' | 'office', id: string }[]}
+ */
+export function listMeetingDirectory() {
+  /** @type {{ tier: 'team' | 'senior' | 'office', id: string }[]} */
+  const rows = [];
+  for (const tier of /** @type {const} */ (['team', 'senior', 'office'])) {
+    for (const id of CAST_TIERS[tier]) {
+      rows.push({ tier, id });
+    }
+  }
+  return rows;
+}
+
+/**
+ * Normalize a user-picked roster into a seat list the meeting route accepts:
+ * unique speakers, optional Pam-as-facilitator, pad to the huddle minimum,
+ * cap at MEETING_ROSTER_MAX.
+ */
+export function normalizeMeetingRoster(colleagueIds, { forceFacilitator = true } = {}) {
+  const unique = [...new Set((colleagueIds ?? []).filter(Boolean))];
+  let seats = [];
+  for (const id of unique) {
+    if (seats.includes(id)) continue;
+    seats.push(id);
+  }
+  if (forceFacilitator && !seats.includes(MEETING_FACILITATOR)) {
+    seats = [MEETING_FACILITATOR, ...seats];
+  } else if (seats.includes(MEETING_FACILITATOR) && seats[0] !== MEETING_FACILITATOR) {
+    seats = [MEETING_FACILITATOR, ...seats.filter((id) => id !== MEETING_FACILITATOR)];
+  }
+  if (seats.length > MEETING_ROSTER_MAX) {
+    seats = seats.slice(0, MEETING_ROSTER_MAX);
+  }
+  if (seats.length < MEETING_ROSTER_MIN) {
+    for (const id of MEETING_PRESENTER_POOL) {
+      if (seats.includes(id)) continue;
+      seats.push(id);
+      if (seats.length >= MEETING_ROSTER_MIN) break;
+    }
+  }
+  return seats;
+}
 
 /**
  * Who can deliver an LLM-personalized moment of each kind. Team + office only —
@@ -235,23 +319,12 @@ export function pickMeetingAttendees(random = Math.random) {
 }
 
 /**
- * Build steering-meeting seats from one or more colleague IDs (e.g. inbox senders).
- * Pam always facilitates; duplicates are dropped; capped at eight seats.
+ * Build meeting seats from one or more colleague IDs (e.g. inbox senders or a
+ * Slop Chat thread). Pam facilitates by default; roster is normalized to the
+ * huddle min / group max the meeting route accepts.
  */
 export function buildMeetingAttendeesFromColleagues(colleagueIds) {
-  const unique = [...new Set((colleagueIds ?? []).filter(Boolean))];
-  const seats = [MEETING_FACILITATOR];
-  for (const id of unique) {
-    if (id === MEETING_FACILITATOR) continue;
-    if (seats.length >= 8) break;
-    if (!seats.includes(id)) seats.push(id);
-  }
-  // Pam-only is a calendar invite to herself — pull in a presenter.
-  if (seats.length === 1) {
-    const presenter = pickRandomFrom(MEETING_PRESENTER_POOL) ?? 'refine';
-    if (!seats.includes(presenter)) seats.push(presenter);
-  }
-  return seats;
+  return normalizeMeetingRoster(colleagueIds, { forceFacilitator: true });
 }
 
 /** Collapse selected email subjects into a short meeting topic (max 200 chars). */
@@ -1147,11 +1220,43 @@ export const OFFICE_CHROME_COPY = {
     callMeeting: '📅 Call a meeting',
     callMeetingWithCount: '📅 Call a meeting ({count})',
     callMeetingTitle: 'Summon a working-group meeting about the current diagram',
-    callMeetingFromSelectionTitle:
-      'Call a meeting with the selected senders about their email thread',
-    callMeetingSelectTitle: 'Select one or more emails, then call a meeting with those senders',
+    callMeetingFromSelectionTitle: 'Pick who to pull in about the selected email thread',
+    callMeetingSelectTitle: 'Select emails for a topic, or open the picker to grab anyone',
     callMeetingDisabledTitle: 'Draw something first — even this meeting needs an agenda',
     callMeetingAboutEmail: '📅 Call a meeting about this email'
+  },
+  meetingPicker: {
+    title: '📅 Call a meeting',
+    titleHuddle: '📅 Pull someone in',
+    tagline: 'Grab people like you would on the floor — one person or a whole circus.',
+    topicLabel: 'What is this about?',
+    topicPlaceholder: 'Optional agenda (they will ignore it either way)',
+    topicAria: 'Meeting topic',
+    groupsAria: 'Quick groups',
+    groupTeam: 'Your team',
+    groupTeamTitle: 'Pull in the day-to-day collaborators',
+    groupSteering: 'Steering',
+    groupSteeringTitle: 'Pam + seniors + someone to present the diagram',
+    groupFloor: 'The floor',
+    groupFloorTitle: 'Yell across the cubicles',
+    groupSeniors: 'Leadership',
+    groupSeniorsTitle: 'Book the people who ask what it costs',
+    directoryAria: 'Who to invite',
+    tierTeam: 'Your team',
+    tierSenior: 'Leadership',
+    tierOffice: 'The floor',
+    facilitatorBadge: 'Facilitates',
+    selectedCount: '{count} invited',
+    selectedCountOne: '1 invited',
+    maxHint: 'Room holds {max} — drop someone before adding more.',
+    needSomeone: 'Pick at least one person (Pam alone is a meeting with herself).',
+    start: 'Start meeting',
+    startHuddle: 'Start huddle',
+    cancel: 'Never mind',
+    closeAria: 'Close meeting picker',
+    sourceEmail: 'From your inbox',
+    sourceChat: 'From Slop Chat',
+    sourceDesk: 'From your desk'
   },
   im: {
     regionAria: 'Slop Chat instant messages',
@@ -1177,7 +1282,12 @@ export const OFFICE_CHROME_COPY = {
     unreadDot: 'Unread',
     you: 'You',
     statusOnline: 'Available',
-    statusBusy: 'In a meeting'
+    statusBusy: 'In a meeting',
+    callMeeting: '📅 Call to talk',
+    callMeetingTitle: 'Pull this person into a meeting — add more people if you want',
+    callMeetingDisabledTitle: 'Draw something first — even a huddle needs an agenda',
+    callMeetingNoThread: '📅 Call a meeting',
+    callMeetingNoThreadTitle: 'Open the roster and grab whoever you need'
   },
   walkby: {
     kindLabel: 'Walk-by · Over your shoulder',

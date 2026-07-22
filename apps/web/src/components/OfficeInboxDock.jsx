@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import {
-  buildMeetingAttendeesFromColleagues,
   meetingTopicFromEmailSubjects,
   officeChromeCopy,
   officeSenderInfo
@@ -16,6 +15,11 @@ import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js'
  * title), and the "Call a meeting" shortcut. Pure props — OfficeLayer owns
  * the store subscription. Narration covers walk-bys and meetings only;
  * emails stay silent (nobody reads your inbox out loud).
+ *
+ * "Call a meeting" opens the people/group picker (seeded with selected
+ * senders + email subjects as the topic) rather than instantly summoning a
+ * random steering committee — like grabbing people after a thread in a real
+ * office.
  */
 export default function OfficeInboxDock({
   openSignal = 0,
@@ -97,8 +101,9 @@ export default function OfficeInboxDock({
     if (!canCallMeeting || emailList.length === 0) return;
     const colleagueIds = [...new Set(emailList.map((email) => email.colleagueId))];
     onCallMeeting?.({
-      attendees: buildMeetingAttendeesFromColleagues(colleagueIds),
-      topic: meetingTopicFromEmailSubjects(emailList.map((email) => email.subject))
+      seedAttendees: colleagueIds,
+      topic: meetingTopicFromEmailSubjects(emailList.map((email) => email.subject)),
+      source: 'email'
     });
     setOpen(false);
     setSelectedId(null);

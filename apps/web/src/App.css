@@ -16673,6 +16673,250 @@ body.slopitect-rainbow-tint::before {
   margin-left: auto;
 }
 
+/* --- Call a meeting people/group picker --- */
+.office-meeting-picker {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.35);
+  z-index: var(--z-office-chrome);
+}
+.office-meeting-picker-panel {
+  width: min(440px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  background: var(--office-surface-bg);
+  border: 1px solid var(--control-border);
+  border-radius: 14px;
+  box-shadow: var(--control-shadow);
+}
+.office-meeting-picker-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.office-meeting-picker-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.office-meeting-picker-tagline,
+.office-meeting-picker-source {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.office-meeting-picker-source {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+.office-meeting-picker-close {
+  margin-left: auto;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.office-meeting-picker-close:hover {
+  color: var(--text);
+}
+.office-meeting-picker-topic {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.office-meeting-picker-topic input {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: var(--bg, #fff);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 400;
+  padding: 8px 10px;
+}
+.office-meeting-picker-topic input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.office-meeting-picker-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.office-meeting-picker-group {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.03);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.office-meeting-picker-group:hover {
+  background: rgba(15, 23, 42, 0.07);
+  border-color: var(--accent);
+}
+.office-meeting-picker-directory {
+  overflow: auto;
+  flex: 1;
+  min-height: 160px;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 2px;
+}
+.office-meeting-picker-tier-label {
+  margin: 0 0 4px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.office-meeting-picker-people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.office-meeting-picker-person {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+.office-meeting-picker-person:hover {
+  background: rgba(15, 23, 42, 0.04);
+}
+.office-meeting-picker-person.is-selected {
+  background: rgba(14, 165, 233, 0.08);
+  border-color: rgba(14, 165, 233, 0.35);
+}
+.office-meeting-picker-person.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.office-meeting-picker-person input {
+  margin: 0;
+}
+.office-meeting-picker-person-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.office-meeting-picker-person-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.office-meeting-picker-person-title {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.office-meeting-picker-facilitator {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.office-meeting-picker-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--control-border);
+}
+.office-meeting-picker-count {
+  font-size: 11px;
+  color: var(--muted);
+  flex: 1;
+  min-width: 120px;
+}
+.office-meeting-picker-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.office-meeting-picker-cancel,
+.office-meeting-picker-start {
+  appearance: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+.office-meeting-picker-cancel {
+  border: 1px solid var(--control-border);
+  background: transparent;
+  color: var(--text);
+}
+.office-meeting-picker-start {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+}
+.office-meeting-picker-start:hover:not(:disabled) {
+  background: var(--accent-dark);
+}
+.office-meeting-picker-start:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.office-messenger-call-meeting {
+  appearance: none;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.03);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.office-messenger-call-meeting:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(14, 165, 233, 0.08);
+}
+.office-messenger-call-meeting:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* Shared "Do it" adopt button */
 .office-do-it {
   align-self: flex-start;

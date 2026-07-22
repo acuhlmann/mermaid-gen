@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
+import CallMeetingPicker from './CallMeetingPicker.jsx';
 import CoffeeBreakOverlay from './CoffeeBreakOverlay.jsx';
 import DeskActionsDock from './DeskActionsDock.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
@@ -52,8 +53,7 @@ import {
   MEETING_FACILITATOR,
   officeChromeCopy,
   officeDialogueLocale,
-  officeMeetingCopy,
-  pickMeetingAttendees
+  officeMeetingCopy
 } from '../utils/officeCast.js';
 import {
   cancelOfficeNarration,
@@ -343,10 +343,13 @@ export default function OfficeLayer({
     dismissOfficeBattle();
   }, []);
 
+  const [meetingPicker, setMeetingPicker] = useState(null);
+
   const handleAcceptInvite = useCallback(() => {
     const invite = getOfficeSnapshot().meetingInvite;
     if (!invite) return;
     dismissOfficeMeetingInvite();
+    setMeetingPicker(null);
     void startMeeting({ attendees: invite.attendees });
   }, [startMeeting]);
 
@@ -354,18 +357,39 @@ export default function OfficeLayer({
     (options) => {
       if (meeting) return;
       dismissOfficeMeetingInvite();
-      const attendees = options?.attendees ?? pickMeetingAttendees();
-      const topic = options?.topic;
+      const seedAttendees = Array.isArray(options?.seedAttendees)
+        ? options.seedAttendees
+        : Array.isArray(options?.attendees)
+          ? options.attendees
+          : [];
+      setMeetingPicker({
+        seedAttendees,
+        topic: typeof options?.topic === 'string' ? options.topic : '',
+        source: options?.source === 'email' || options?.source === 'chat' ? options.source : 'desk',
+        forceFacilitator: options?.forceFacilitator !== false
+      });
+    },
+    [meeting]
+  );
+
+  const handleConfirmMeetingPicker = useCallback(
+    ({ attendees, topic }) => {
+      setMeetingPicker(null);
+      setMessengerOpen(false);
       void startMeeting({
         attendees,
         ...(topic ? { topic } : {})
       });
     },
-    [meeting, startMeeting]
+    [startMeeting]
   );
 
+  const handleCancelMeetingPicker = useCallback(() => {
+    setMeetingPicker(null);
+  }, []);
+
   useEffect(() => {
-    if (callMeetingSignal > 0) handleCallMeeting();
+    if (callMeetingSignal > 0) handleCallMeeting({ source: 'desk' });
   }, [callMeetingSignal, handleCallMeeting]);
 
   const handleMeetingDismiss = useCallback(() => {
@@ -506,6 +530,8 @@ export default function OfficeLayer({
             onMarkRead={markOfficeImsRead}
             onSend={handleMessengerSend}
             onMessageSomeone={handleMessageSomeone}
+            onCallMeeting={handleCallMeeting}
+            canCallMeeting={canCallMeeting}
           />
           <OfficeWalkBy
             walkBy={snapshot.walkBy}
@@ -535,6 +561,15 @@ export default function OfficeLayer({
           ) : null}
         </>
       )}
+      <CallMeetingPicker
+        open={Boolean(meetingPicker)}
+        seedAttendees={meetingPicker?.seedAttendees ?? []}
+        topic={meetingPicker?.topic ?? ''}
+        source={meetingPicker?.source ?? 'desk'}
+        forceFacilitator={meetingPicker?.forceFacilitator !== false}
+        onConfirm={handleConfirmMeetingPicker}
+        onCancel={handleCancelMeetingPicker}
+      />
       <MeetingOverlay
         meeting={meeting}
         onInterject={interject}
