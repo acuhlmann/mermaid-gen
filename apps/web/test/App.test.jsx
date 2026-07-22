@@ -146,6 +146,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     setDeskSlotElement(null);
     window.localStorage.setItem('archislop:office-directory-seen', '1');
     window.localStorage.setItem('archislop:mode-reveal-seen', '1');
+    // Most integration tests assume a concrete slot with server-backed diagram state.
+    window.localStorage.setItem('archislop:content-mode', 'mermaid');
     window.history.replaceState({}, '', '/');
     const oscillator = {
       type: 'triangle',
@@ -1141,6 +1143,23 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       );
       expect(intentCalls).toHaveLength(1);
     });
+  });
+
+  it('defaults deliverable format to Auto on a fresh visit', async () => {
+    window.localStorage.removeItem('archislop:content-mode');
+    fetchSessionDiagramStateMock.mockResolvedValue({
+      activeContentType: 'mermaid',
+      mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
+      infographic: createInitialDiagramState('infographic')
+    });
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+    });
+    openDeskDrawer();
+    expect(screen.getByRole('menuitem', { name: /^Auto/i }).getAttribute('aria-current')).toBe(
+      'true'
+    );
   });
 
   it('shows Meet the Office alone on first visit, then reveals the entry screen', async () => {
