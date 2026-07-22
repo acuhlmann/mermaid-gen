@@ -2,10 +2,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   cancelOfficeNarration,
+  clearOfficeNarrationPrefetch,
   isOfficeNarrationAvailable,
   OFFICE_VOICE_PROFILES,
   officeVoiceProfile,
   pickOfficeNarrationVoice,
+  prefetchOfficeLine,
   sanitizeOfficeNarrationText,
   speakOfficeLine
 } from '../src/utils/officeNarration.js';
@@ -54,11 +56,13 @@ function installSpeechMock({
 
 beforeEach(() => {
   cancelOfficeNarration();
+  clearOfficeNarrationPrefetch();
   clearNarrationStorage();
 });
 
 afterEach(() => {
   cancelOfficeNarration();
+  clearOfficeNarrationPrefetch();
   clearNarrationStorage();
   delete globalThis.speechSynthesis;
   delete globalThis.SpeechSynthesisUtterance;
@@ -140,40 +144,6 @@ describe('speakOfficeLine', () => {
     });
   });
 
-  it('chunks long lines across multiple cloud requests', async () => {
-    const fetchCloudAudio = vi.fn(async () => ({
-      audioBase64: btoa('hi'),
-      mimeType: 'audio/mpeg'
-    }));
-    function FakeAudio() {
-      this.volume = 1;
-      this.onended = null;
-      this.onerror = null;
-      this.play = () => {
-        queueMicrotask(() => this.onended?.());
-        return Promise.resolve();
-      };
-      this.pause = () => {};
-      this.removeAttribute = () => {};
-      this.load = () => {};
-    }
-    const globalObj = {
-      Audio: FakeAudio,
-      speechSynthesis: { cancel: vi.fn(), speak: vi.fn(), getVoices: () => [] },
-      SpeechSynthesisUtterance: function SpeechSynthesisUtterance() {}
-    };
-    const long = `${'A'.repeat(700)}. ${'B'.repeat(700)}.`;
-    const result = await speakOfficeLine({
-      speakerId: 'intern',
-      text: long,
-      lang: 'en-US',
-      fetchCloudAudio,
-      globalObj
-    });
-    expect(result.spoken).toBe(true);
-    expect(fetchCloudAudio.mock.calls.length).toBeGreaterThanOrEqual(2);
-  });
-
   it('prefers cloud audio when fetchCloudAudio returns a payload', async () => {
     const fetchCloudAudio = vi.fn(async () => ({
       audioBase64: btoa('hi'),
@@ -209,6 +179,80 @@ describe('speakOfficeLine', () => {
     expect(result).toEqual({ spoken: true, source: 'cloud' });
     expect(fetchCloudAudio).toHaveBeenCalledOnce();
     expect(playCalls[0]).toMatch(/^data:audio\/mpeg;base64,/);
+  });
+
+  it('chunks long lines across multiple cloud requests', async () => {
+    const fetchCloudAudio = vi.fn(async () => ({
+      audioBase64: btoa('hi'),
+      mimeType: 'audio/mpeg'
+    }));
+    function FakeAudio() {
+      this.volume = 1;
+      this.onended = null;
+      this.onerror = null;
+      this.play = () => {
+        queueMicrotask(() => this.onended?.());
+        return Promise.resolve();
+      };
+      this.pause = () => {};
+      this.removeAttribute = () => {};
+      this.load = () => {};
+    }
+    const globalObj = {
+      Audio: FakeAudio,
+      speechSynthesis: { cancel: vi.fn(), speak: vi.fn(), getVoices: () => [] },
+      SpeechSynthesisUtterance: function SpeechSynthesisUtterance() {}
+    };
+    const long = `${'A'.repeat(700)}. ${'B'.repeat(700)}.`;
+    const result = await speakOfficeLine({
+      speakerId: 'intern',
+      text: long,
+      lang: 'en-US',
+      fetchCloudAudio,
+      globalObj
+    });
+    expect(result.spoken).toBe(true);
+    expect(fetchCloudAudio.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('consumes prefetched cloud audio without a second fetch', async () => {
+    const fetchCloudAudio = vi.fn(async () => ({
+      audioBase64: btoa('hi'),
+      mimeType: 'audio/mpeg'
+    }));
+    function FakeAudio() {
+      this.volume = 1;
+      this.onended = null;
+      this.onerror = null;
+      this.play = () => {
+        queueMicrotask(() => this.onended?.());
+        return Promise.resolve();
+      };
+      this.pause = () => {};
+      this.removeAttribute = () => {};
+      this.load = () => {};
+    }
+    const globalObj = {
+      Audio: FakeAudio,
+      speechSynthesis: { cancel: vi.fn(), speak: vi.fn(), getVoices: () => [] },
+      SpeechSynthesisUtterance: function SpeechSynthesisUtterance() {}
+    };
+    prefetchOfficeLine({
+      speakerId: 'intern',
+      text: 'next up',
+      lang: 'en-US',
+      fetchCloudAudio
+    });
+    await Promise.resolve();
+    const result = await speakOfficeLine({
+      speakerId: 'intern',
+      text: 'next up',
+      lang: 'en-US',
+      fetchCloudAudio,
+      globalObj
+    });
+    expect(result).toEqual({ spoken: true, source: 'cloud' });
+    expect(fetchCloudAudio).toHaveBeenCalledOnce();
   });
 
   it('falls back to Web Speech when cloud audio playback fails', async () => {
