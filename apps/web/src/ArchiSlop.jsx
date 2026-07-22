@@ -15,7 +15,6 @@ import SlopNextPrompt from './components/SlopNextPrompt.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import { joinRoomByPairingCode } from './state/sessionEventsClient.js';
 import {
-  createEmptyCrossModeSyncMarkers,
   createSessionId,
   fallbackState,
   normalizeSessionId,
@@ -43,6 +42,7 @@ import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
 import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
 import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
 import { useSessionHydrate } from './features/session/useSessionHydrate.js';
+import { useContentModeSwitch } from './features/session/useContentModeSwitch.js';
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
 import { useRadialMenu } from './features/prompt/useRadialMenu.js';
 import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
@@ -76,11 +76,9 @@ import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
 import { selectionActionTitle, topicFromDescriptor } from './utils/appInsightHelpers.js';
 import {
   MODEL_PROFILE_STORAGE_KEY,
-  CONTENT_MODE_STORAGE_KEY,
   sessionPathFor,
   ensureUrlBackedSession,
-  readStoredModelProfile,
-  readStoredContentMode
+  readStoredModelProfile
 } from './utils/appSessionLocation.js';
 import {
   createInitialDiagramState,
@@ -114,12 +112,7 @@ import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS, SpeechRecognitionCtor } from './utils/appConstants.js';
 import { buildRadialActions } from './components/buildRadialActions.jsx';
-import {
-  buildContentModeOptions,
-  buildRenderSelectionPrompt,
-  isConcreteContentMode,
-  isContentMode
-} from './utils/renderModeAction.js';
+import { buildContentModeOptions, isConcreteContentMode } from './utils/renderModeAction.js';
 
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
@@ -191,18 +184,6 @@ export function ArchiSlop() {
   const [explainDumbSurrenderedEntryIds, setExplainDumbSurrenderedEntryIds] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
-  const [contentMode, setContentMode] = useState(() => readStoredContentMode());
-  /** Mode the user switched from — drives peer takeover vs cached-slot reuse on hydrate. */
-  const previousContentModeRef = useRef(contentMode);
-  /** Per-mode revision id when the user last left that mode — detects unchanged source on return. */
-  const sourceRevisionAtViewRef = useRef({});
-  /**
-   * Snapshot of the slot the user just left. Hydrate merges this when GET /session-state
-   * is behind the client (debounced editor sync or a race with the final stream write).
-   */
-  const leavingSlotSnapshotRef = useRef({});
-  /** Bumped on every mode switch so the diagram canvas can remount renderers for a fresh layout pass. */
-  const [rendererRefreshKey, setRendererRefreshKey] = useState(0);
   // Bumped on every completed run so the office can ping the user about it.
   const [officeRunSignal, setOfficeRunSignal] = useState(null);
   const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
@@ -291,24 +272,45 @@ export function ArchiSlop() {
    */
   const [sessionHasPeerContent, setSessionHasPeerContent] = useState(false);
 
-  /**
-   * Per target mode: revision ids of the last successful peer→target mode-switch translation.
-   * Prevents ping-pong re-translation when toggling Diagram/Infographic without new edits.
-   */
-  const crossModeSyncRef = useRef(createEmptyCrossModeSyncMarkers());
+  const syncDiagramOrThrowRef = useRef(async () => {
+    throw new Error('syncDiagramOrThrow not ready');
+  });
+  const tryAgentSoundRef = useRef(null);
 
-  /**
-   * One-shot flag set by handleRestoreToEntry when restoring across modes. The hydrate effect
-   * fires on contentMode change and would otherwise auto-rerun the topic in the new mode,
-   * clobbering the just-restored snapshot.
-   */
-  const suppressNextModeSwitchRerunRef = useRef(false);
-  /**
-   * Skip one hydrate when Auto mode resolves mid-stream — changing contentMode must not
-   * abort the in-flight agent run or overwrite live draft state.
-   */
-  const skipHydrateOnceRef = useRef(false);
-  const pendingRenderModeRequestRef = useRef(null);
+  const {
+    contentMode,
+    setContentMode,
+    rendererRefreshKey,
+    hydrateRefs,
+    crossModeSyncRef,
+    handleSelectContentMode,
+    applyResolvedContentMode,
+    renderSelectionInMode,
+    resetModeSwitchTracking,
+    armSuppressHydrateRerun,
+    disarmSuppressHydrateRerun,
+    switchContentModeForRestore
+  } = useContentModeSwitch({
+    stateRef,
+    syncTimerRef,
+    streamTimerRef,
+    streamingPreviewRef,
+    streamAgentAbortRef,
+    loadingRef,
+    hasInteractedRef,
+    syncDiagramOrThrowRef,
+    closeRadialMenuRef,
+    tryAgentSoundRef,
+    contentModeOptions,
+    setStreamingPreview,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    setSelectedNode,
+    setHoverDescriptor,
+    setToolbarAnchor,
+    setLatestCritique,
+    setError
+  });
 
   const { sessionHydrated } = useSessionHydrate({
     activeSessionId,
@@ -316,13 +318,7 @@ export function ArchiSlop() {
     freshlyMintedSessionIdsRef,
     sessionIdFromUrlRef,
     sessionTopicRef,
-    previousContentModeRef,
-    sourceRevisionAtViewRef,
-    leavingSlotSnapshotRef,
-    crossModeSyncRef,
-    suppressNextModeSwitchRerunRef,
-    skipHydrateOnceRef,
-    pendingRenderModeRequestRef,
+    modeSwitch: hydrateRefs,
     stateRef,
     promptRef,
     loadingRef,
@@ -620,14 +616,6 @@ export function ArchiSlop() {
     }
   }, [modelProfile]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(CONTENT_MODE_STORAGE_KEY, contentMode);
-    } catch {
-      // ignore quota / privacy mode
-    }
-  }, [contentMode]);
-
   useEffect(
     () => () => {
       if (syncTimerRef.current) {
@@ -667,6 +655,7 @@ export function ArchiSlop() {
     },
     [soundEnabled]
   );
+  tryAgentSoundRef.current = tryAgentSound;
 
   const {
     bootSeq,
@@ -769,89 +758,6 @@ export function ArchiSlop() {
   const stopStreamingAgentRequest = useCallback(() => {
     streamAgentAbortRef.current?.abort();
   }, []);
-
-  const handleSelectContentMode = useCallback(
-    (nextMode) => {
-      if (nextMode === contentMode) return;
-      if (!isContentMode(nextMode)) return;
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = null;
-      }
-      if (streamTimerRef.current != null) {
-        cancelAnimationFrame(streamTimerRef.current);
-        streamTimerRef.current = null;
-      }
-      const wasTypewriterPreview = streamingPreviewRef.current;
-      setStreamingPreview(false);
-      streamingPreviewRef.current = false;
-      if (isConcreteContentMode(contentMode) && !wasTypewriterPreview) {
-        leavingSlotSnapshotRef.current[contentMode] = { ...stateRef.current };
-        sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
-      } else if (isConcreteContentMode(contentMode)) {
-        sourceRevisionAtViewRef.current[contentMode] = stateRef.current.revisionId ?? 0;
-      }
-      stopStreamingAgentRequest();
-      setLiveDraftSource('');
-      setLiveDraftContentType(null);
-      setSelectedNode(null);
-      setHoverDescriptor(null);
-      setToolbarAnchor(null);
-      setLatestCritique(null);
-      tryAgentSound(playModeSwoosh);
-      setContentMode(nextMode);
-      // Force renderers to fully recompute layout on every mode switch — the
-      // infographic engine in particular caches per-instance layout state and
-      // a fresh render is the only way to guarantee a clean layout pass.
-      setRendererRefreshKey((n) => n + 1);
-    },
-    [contentMode, stopStreamingAgentRequest]
-  );
-
-  /** Auto-mode mid-stream: switch the picker without aborting the agent run. */
-  const applyResolvedContentMode = useCallback(
-    (nextMode) => {
-      if (!isConcreteContentMode(nextMode) || nextMode === contentMode) return;
-      skipHydrateOnceRef.current = true;
-      suppressNextModeSwitchRerunRef.current = true;
-      setLiveDraftContentType(nextMode);
-      setContentMode(nextMode);
-      setRendererRefreshKey((n) => n + 1);
-    },
-    [contentMode]
-  );
-
-  async function renderSelectionInMode(targetMode, descriptor) {
-    if (!isConcreteContentMode(targetMode) || targetMode === contentMode) return;
-    if (contentMode === 'auto') return;
-    if (loadingRef.current || streamingPreviewRef.current) return;
-    if (!stateRef.current.diagramSource.trim()) return;
-
-    const sourceMode = contentMode;
-    const promptText = buildRenderSelectionPrompt({
-      descriptor,
-      sourceMode,
-      targetMode,
-      options: contentModeOptions
-    });
-    hasInteractedRef.current = true;
-    closeRadialMenu();
-
-    try {
-      const sourceState = await syncDiagramOrThrow();
-      pendingRenderModeRequestRef.current = {
-        targetMode,
-        sourceMode,
-        promptText,
-        descriptor,
-        peerContext: { contentType: sourceMode, diagramSource: sourceState.diagramSource }
-      };
-      handleSelectContentMode(targetMode);
-    } catch (err) {
-      pendingRenderModeRequestRef.current = null;
-      setError(err.message);
-    }
-  }
 
   const { runStreamingAgent } = useRunStreamingAgent({
     activeSessionId,
@@ -1235,6 +1141,7 @@ export function ArchiSlop() {
     setState(syncedState);
     return syncedState;
   }
+  syncDiagramOrThrowRef.current = syncDiagramOrThrow;
 
   const {
     submitIntentWithPrompt,
@@ -1519,8 +1426,7 @@ ${requirementsBlock}`;
     setInsightsEntries([]);
     setCritiqueActionableSelected([]);
     sessionTopicRef.current = null;
-    crossModeSyncRef.current = createEmptyCrossModeSyncMarkers();
-    sourceRevisionAtViewRef.current = {};
+    resetModeSwitchTracking();
     if (diagramAutoHighlightTimerRef.current != null) {
       window.clearTimeout(diagramAutoHighlightTimerRef.current);
       diagramAutoHighlightTimerRef.current = null;
@@ -1593,7 +1499,7 @@ ${requirementsBlock}`;
         streamTimerRef.current = null;
       }
       setStreamingPreview(false);
-      if (needsModeSwitch) suppressNextModeSwitchRerunRef.current = true;
+      if (needsModeSwitch) armSuppressHydrateRerun();
 
       try {
         const payload = {
@@ -1614,11 +1520,18 @@ ${requirementsBlock}`;
         clearPendingAutoDiagramHighlight();
         setDiagramChangeHighlightEntryId(null);
       } catch (err) {
-        if (needsModeSwitch) suppressNextModeSwitchRerunRef.current = false;
+        if (needsModeSwitch) disarmSuppressHydrateRerun();
         setError(err.message);
       }
     },
-    [activeSessionId, clearPendingAutoDiagramHighlight, contentMode]
+    [
+      activeSessionId,
+      armSuppressHydrateRerun,
+      clearPendingAutoDiagramHighlight,
+      contentMode,
+      disarmSuppressHydrateRerun,
+      setContentMode
+    ]
   );
 
   const handleRestoreToEntry = useCallback(
@@ -1690,9 +1603,7 @@ ${requirementsBlock}`;
       const entry = insightsEntries.find((e) => e.id === entryId);
       const targetContentType = entry?.diagramAfterContentType;
       if (isConcreteContentType(targetContentType) && targetContentType !== contentMode) {
-        suppressNextModeSwitchRerunRef.current = true;
-        setContentMode(targetContentType);
-        setRendererRefreshKey((n) => n + 1);
+        switchContentModeForRestore(targetContentType);
       }
 
       setDiagramChangeHighlightEntryId(entryId);
@@ -1707,7 +1618,8 @@ ${requirementsBlock}`;
       diagramChangeHighlightEntryId,
       insightsEntries,
       insightsOpen,
-      narrowLayout
+      narrowLayout,
+      switchContentModeForRestore
     ]
   );
 
