@@ -351,13 +351,7 @@ export function DeskBottomActionsSlot({
 
   return (
     <div className={`prompt-actions ${layoutClass}`}>
-      <DeskChromeRow
-        {...chromeProps}
-        showDeskSlot={!insightsOpen}
-        showTeam
-        showNotebook
-        showDrawer
-      />
+      <DeskChromeRow {...chromeProps} showTeam showNotebook showDrawer />
     </div>
   );
 }

@@ -1118,8 +1118,7 @@ export default function InsightsPane({
   onSelectModelProfile = null,
   editorOpen = false,
   onToggleEditor = null,
-  canToggleEditor = false,
-  deskSlotRef = null
+  canToggleEditor = false
 }) {
   const { controls } = useUiCopy();
   const insightsCopy = controls.insights;
@@ -1192,16 +1191,8 @@ export default function InsightsPane({
               {insightsCopy.live}
             </span>
           ) : null}
-          {typeof deskSlotRef === 'function' ? (
-            <div
-              id="office-desk-bottom-slot"
-              ref={deskSlotRef}
-              className="insights-pane-desk-slot desk-chrome-tool"
-            />
-          ) : null}
           <ConcentrationControl
             variant="header"
-            compact
             modelProfile={modelProfile}
             onSelectModelProfile={onSelectModelProfile}
           />

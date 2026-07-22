@@ -5769,7 +5769,11 @@
     width: min(17.5rem, calc(100vw - 2rem));
     min-width: min(13.5rem, calc(100vw - 2rem));
     max-width: calc(100vw - 2rem);
-    max-height: min(50vh, 22rem);
+    --desk-menu-max-block-size: calc(
+      100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
+        env(safe-area-inset-top, 0px) - 1.5rem
+    );
+    max-height: var(--desk-menu-max-block-size);
     overflow-y: auto;
     padding: 0.28rem 0.35rem;
     background: rgba(255, 255, 255, 0.96);
@@ -13908,23 +13912,35 @@ body.slopitect-rainbow-tint::before {
 
 /* Thinking header: inline concentration beside code drawer toggle. */
 .concentration-control--header {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
-  gap: 0.25rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.22rem 0.4rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.82);
 }
 
-.concentration-control--header.concentration-control:has(.concentration-control-segment:only-child),
-.concentration-control--header .concentration-control-segment:only-child {
-  margin-left: 0;
+.concentration-control--header .concentration-control-label {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
-.concentration-control--header:has(.concentration-control-segment:only-child) {
-  gap: 0;
+.concentration-control--header .concentration-control-segment {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.15rem;
+  grid-template-columns: unset;
 }
 
 .concentration-control--header .concentration-control-option {
-  font-size: 0.72rem;
-  padding: 0.32rem 0.45rem;
+  font-size: 0.68rem;
+  padding: 0.28rem 0.42rem;
+  white-space: nowrap;
 }
 
 .insights-pane-header-top {
@@ -13943,14 +13959,8 @@ body.slopitect-rainbow-tint::before {
   flex: 0 0 auto;
 }
 
-.insights-pane-desk-slot {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-}
-
 .insights-pane-header-top .concentration-control--header {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   flex-wrap: nowrap;
 }
@@ -14939,7 +14949,11 @@ body.slopitect-rainbow-tint::before {
   width: min(17.5rem, calc(100vw - 2rem));
   min-width: 0;
   max-width: min(17.5rem, calc(100vw - 2rem));
-  max-height: min(21rem, 50vh);
+  --desk-menu-max-block-size: calc(
+    100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
+      env(safe-area-inset-top, 0px) - 1.5rem
+  );
+  max-height: var(--desk-menu-max-block-size);
   overflow-y: auto;
   padding: 0.28rem 0.35rem;
   border-radius: 0.8rem;

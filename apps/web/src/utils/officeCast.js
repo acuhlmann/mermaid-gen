@@ -246,6 +246,11 @@ export function buildMeetingAttendeesFromColleagues(colleagueIds) {
     if (seats.length >= 8) break;
     if (!seats.includes(id)) seats.push(id);
   }
+  // Pam-only is a calendar invite to herself — pull in a presenter.
+  if (seats.length === 1) {
+    const presenter = pickRandomFrom(MEETING_PRESENTER_POOL) ?? 'refine';
+    if (!seats.includes(presenter)) seats.push(presenter);
+  }
   return seats;
 }
 

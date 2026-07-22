@@ -84,6 +84,23 @@ describe('useEntryDeskFlow', () => {
     expect(result.current.entryReveal.drawer).toBe(true);
   });
 
+  it('keeps desk chrome visible while the notebook is open', () => {
+    window.localStorage.setItem(OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY, '1');
+    const { result } = renderHook(() =>
+      useEntryDeskFlow({
+        hasCanvasContent: true,
+        hasDiagramText: true,
+        insightsOpen: true,
+        stakeholderIntroProps: null,
+        editorOpen: false,
+        hasInteractedRef: { current: true },
+        handleSelectContentMode: vi.fn()
+      })
+    );
+
+    expect(result.current.showDeskChrome).toBe(true);
+  });
+
   it('reveals alternate content modes after the first diagram lands', () => {
     window.localStorage.setItem(OFFICE_ENTRY_DESK_INTRO_STORAGE_KEY, '1');
     const handleSelectContentMode = vi.fn();

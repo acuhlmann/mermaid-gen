@@ -2321,7 +2321,6 @@ ${requirementsBlock}`;
       editorOpen={editorOpen}
       onToggleEditor={() => setEditorOpen((current) => !current)}
       canToggleEditor={hasCanvasContent || editorOpen}
-      deskSlotRef={insightsOpen ? deskSlotRef : null}
     />
   );
 

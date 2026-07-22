@@ -41,13 +41,25 @@ export default function OfficeInboxDock({
   const selected = emails.find((email) => email.id === selectedId) ?? null;
   const copy = officeChromeCopy();
   const selectedCount = selectedEmailIds.size;
-  const canCallFromSelection = canCallMeeting && selectedCount > 0;
+  const implicitSingleEmail = emails.length === 1 && selectedCount === 0 ? emails[0] : null;
+  const meetingEmailCount = selectedCount > 0 ? selectedCount : implicitSingleEmail ? 1 : 0;
+  const canCallFromSelection = canCallMeeting && meetingEmailCount > 0;
 
   // The desk menu's "Check your mail" verb bumps openSignal; 0 is the initial
   // value, so the inbox never pops open on mount.
   useEffect(() => {
     if (openSignal > 0) setOpen(true);
   }, [openSignal]);
+
+  // One email in the tray — pre-select it so "Call a meeting" works without an
+  // extra checkbox tap (multi-email still requires explicit selection).
+  useEffect(() => {
+    if (!open || emails.length !== 1 || selectedId) return;
+    setSelectedEmailIds((prev) => {
+      if (prev.size > 0) return prev;
+      return new Set([emails[0].id]);
+    });
+  }, [open, emails, selectedId]);
 
   const toggleOpen = () => {
     setOpen((prev) => {
@@ -73,6 +85,14 @@ export default function OfficeInboxDock({
     });
   };
 
+  const resolveMeetingEmails = () => {
+    if (selectedEmailIds.size > 0) {
+      return emails.filter((email) => selectedEmailIds.has(email.id));
+    }
+    if (emails.length === 1) return emails;
+    return [];
+  };
+
   const callMeetingFromEmails = (emailList) => {
     if (!canCallMeeting || emailList.length === 0) return;
     const colleagueIds = [...new Set(emailList.map((email) => email.colleagueId))];
@@ -80,11 +100,13 @@ export default function OfficeInboxDock({
       attendees: buildMeetingAttendeesFromColleagues(colleagueIds),
       topic: meetingTopicFromEmailSubjects(emailList.map((email) => email.subject))
     });
+    setOpen(false);
+    setSelectedId(null);
+    setSelectedEmailIds(new Set());
   };
 
   const handleCallMeeting = () => {
-    const selectedEmails = emails.filter((email) => selectedEmailIds.has(email.id));
-    callMeetingFromEmails(selectedEmails);
+    callMeetingFromEmails(resolveMeetingEmails());
   };
 
   const handleCallMeetingAboutOpenEmail = () => {
@@ -93,13 +115,13 @@ export default function OfficeInboxDock({
   };
 
   const callMeetingLabel =
-    selectedCount > 0
-      ? formatLocale(copy.inbox.callMeetingWithCount, { count: selectedCount })
+    meetingEmailCount > 0
+      ? formatLocale(copy.inbox.callMeetingWithCount, { count: meetingEmailCount })
       : copy.inbox.callMeeting;
 
   const callMeetingTitle = !canCallMeeting
     ? copy.inbox.callMeetingDisabledTitle
-    : selectedCount > 0
+    : meetingEmailCount > 0
       ? copy.inbox.callMeetingFromSelectionTitle
       : copy.inbox.callMeetingSelectTitle;
 
