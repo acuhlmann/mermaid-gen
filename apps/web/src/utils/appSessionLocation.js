@@ -73,12 +73,13 @@ export function readStoredModelProfile() {
   return raw === 'quality' ? 'quality' : 'fast';
 }
 
-/** Default content mode is Diagram (Mermaid). Other modes are opt-in and persisted. */
+/** Default deliverable format is Auto — server classifies the best slot per prompt. */
 export function readStoredContentMode() {
-  if (typeof window === 'undefined') return 'mermaid';
+  if (typeof window === 'undefined') return 'auto';
   const raw = window.localStorage.getItem(CONTENT_MODE_STORAGE_KEY);
   if (
     raw === 'auto' ||
+    raw === 'mermaid' ||
     raw === 'infographic' ||
     raw === 'metaphor3d' ||
     raw === 'chart' ||
@@ -87,5 +88,5 @@ export function readStoredContentMode() {
   ) {
     return raw;
   }
-  return 'mermaid';
+  return 'auto';
 }
