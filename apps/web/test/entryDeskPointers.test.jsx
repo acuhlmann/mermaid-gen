@@ -35,9 +35,12 @@ describe('EntryDeskPointers', () => {
       <EntryDeskPointers
         pointers={POINTERS}
         activeId="work-order"
+        eyebrow="Your desk"
+        progress={{ index: 0, total: 4 }}
         onDismiss={onDismiss}
         onAdvance={onAdvance}
         nextLabel="Next"
+        doneLabel="Start working"
         skipLabel="Skip tour"
       />
     );

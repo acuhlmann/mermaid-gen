@@ -96,6 +96,16 @@ export const BLAST_RADIUS_RULES = [
       'apps/web/test/renderModeAction.test.js',
       'apps/web/test/App.test.jsx'
     ]
+  },
+  {
+    match:
+      /apps\/web\/src\/(components\/(DeskActionsDock|DeskConcentrationChip|ConcentrationControl)|features\/desk\/(DeskBottomActionsSlot|useEntryDeskFlow|useOfficeBoot))/,
+    tests: [
+      'apps/web/test/App.test.jsx',
+      'apps/web/test/deskActionsDock.test.jsx',
+      'apps/web/test/deskBottomActionsSlot.test.jsx',
+      'apps/web/test/officeLayerDeskSlot.test.jsx'
+    ]
   }
 ];
 

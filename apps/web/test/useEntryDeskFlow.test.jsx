@@ -3,6 +3,7 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEntryDeskFlow } from '../src/features/desk/useEntryDeskFlow.js';
 import { MODE_REVEAL_SEEN_KEY } from '../src/utils/modeRevealStorage.js';
+import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
 
 describe('useEntryDeskFlow', () => {
   beforeEach(() => {
@@ -32,8 +33,71 @@ describe('useEntryDeskFlow', () => {
       desk: true,
       team: true,
       notebook: true,
+      concentration: true,
       drawer: true
     });
+  });
+
+  it('starts the desk welcome beat when the office tour hands off', () => {
+    const onDeskTourComplete = vi.fn();
+    const { result, rerender } = renderHook((props) => useEntryDeskFlow(props), {
+      initialProps: {
+        hasDiagramText: false,
+        insightsOpen: false,
+        stakeholderIntroProps: null,
+        editorOpen: false,
+        handleSelectContentMode: vi.fn(),
+        deskTourPending: false,
+        onDeskTourComplete,
+        entryPointers: CONTROLS_EN.prompt.entryPointers
+      }
+    });
+
+    expect(result.current.entryTourActive).toBe(false);
+
+    rerender({
+      hasDiagramText: false,
+      insightsOpen: false,
+      stakeholderIntroProps: null,
+      editorOpen: false,
+      handleSelectContentMode: vi.fn(),
+      deskTourPending: true,
+      onDeskTourComplete,
+      entryPointers: CONTROLS_EN.prompt.entryPointers
+    });
+
+    expect(result.current.entryTourActive).toBe(true);
+    expect(result.current.showEntryDeskIntro).toBe(true);
+    expect(result.current.entryTourStep).toBe('welcome');
+  });
+
+  it('walks desk controls on the real chrome after the welcome beat', () => {
+    const onDeskTourComplete = vi.fn();
+    const { result } = renderHook(() =>
+      useEntryDeskFlow({
+        hasDiagramText: false,
+        insightsOpen: false,
+        stakeholderIntroProps: null,
+        editorOpen: false,
+        handleSelectContentMode: vi.fn(),
+        deskTourPending: true,
+        onDeskTourComplete,
+        entryPointers: CONTROLS_EN.prompt.entryPointers
+      })
+    );
+
+    act(() => {
+      result.current.advanceEntryTour();
+    });
+    expect(result.current.entryTourStep).toBe('work-order');
+    expect(result.current.tourHighlight).toBe('work-order');
+    expect(result.current.showEntryDeskIntro).toBe(false);
+
+    act(() => {
+      result.current.advanceEntryTour();
+    });
+    expect(result.current.entryTourStep).toBe('desk');
+    expect(result.current.tourHighlight).toBe('desk');
   });
 
   it('keeps desk chrome visible while the notebook is open', () => {

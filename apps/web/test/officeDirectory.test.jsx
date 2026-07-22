@@ -67,7 +67,7 @@ describe('OfficeDirectory', () => {
     expect(screen.getByTestId('office-directory-start-tour')).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Begin Day One/i })).toBeNull();
     expect(screen.getAllByTestId('office-directory-colleague-card').length).toBe(COLLEAGUE_COUNT);
-    expect(screen.queryByTestId('office-directory-desk')).toBeNull();
+    expect(screen.queryByTestId('entry-desk-pointers')).toBeNull();
     expect(screen.queryByTestId('intro-voice-button')).toBeNull();
     await waitFor(() => expect(getOfficeDirectoryUi().open).toBe(true));
   });
@@ -115,8 +115,9 @@ describe('OfficeDirectory', () => {
     expect(screen.getAllByText(lindaLine).length).toBe(1);
   });
 
-  it('auto-introduces colleagues by voice, then walks desk controls before day one', async () => {
-    renderDirectory({ showChip: false });
+  it('auto-introduces colleagues by voice, then hands off to the desk tour on the canvas', async () => {
+    const onBootComplete = vi.fn();
+    renderDirectory({ showChip: false, onBootComplete });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
 
@@ -128,17 +129,9 @@ describe('OfficeDirectory', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Begin Day One/i }));
-    expect(screen.getByTestId('office-directory-desk')).toBeTruthy();
-    expect(screen.getByText('Work order')).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
-    expect(
-      screen.getByText(
-        'Tap the helmet for mail, export, and more. The notebook icon beside the desk tray opens your thinking notes.'
-      )
-    ).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Skip tour' }));
+    expect(screen.queryByTestId('office-directory-tour')).toBeNull();
+    expect(screen.queryByTestId('entry-desk-pointers')).toBeNull();
+    expect(onBootComplete).toHaveBeenCalledWith({ startDeskTour: true });
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
   });
@@ -149,7 +142,7 @@ describe('OfficeDirectory', () => {
     renderDirectory({ onSkipToBuild, onBootComplete, showChip: false });
     fireEvent.click(screen.getByTestId('office-directory-skip-build'));
     expect(onSkipToBuild).toHaveBeenCalledTimes(1);
-    expect(onBootComplete).toHaveBeenCalledTimes(1);
+    expect(onBootComplete).toHaveBeenCalledWith({ skipDeskTour: true });
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
   });

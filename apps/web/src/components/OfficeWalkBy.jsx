@@ -1,5 +1,6 @@
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
@@ -10,6 +11,7 @@ import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
  * coupled to pin/history/dumb-down mechanics the walk-by doesn't want.
  */
 export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
+  const narrowLayout = useNarrowLayout();
   if (!walkBy) return null;
   const copy = officeChromeCopy();
   const sender = officeSenderInfo(walkBy.colleagueId);
@@ -19,9 +21,9 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
       open={Boolean(walkBy)}
       group="officeChrome"
       className="office-walkby"
-      defaultCorner="bottom-left"
+      defaultCorner={narrowLayout ? 'bottom-left' : 'bottom-left'}
       defaultOffsetX={14}
-      defaultOffsetY={130}
+      defaultOffsetY={narrowLayout ? 240 : 130}
       cascade={0}
       role="status"
       aria-live="polite"

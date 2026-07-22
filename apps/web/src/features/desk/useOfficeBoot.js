@@ -14,12 +14,26 @@ import { OFFICE_CANVAS_GRACE_MS } from '../../utils/officeCanvasGrace.js';
 export function useOfficeBoot({ hasCanvasContent }) {
   const [officeBootPending, setOfficeBootPending] = useState(() => !readOfficeDirectorySeen());
   const [officeCanvasGrace, setOfficeCanvasGrace] = useState(false);
+  const [deskTourPending, setDeskTourPending] = useState(false);
 
-  const handleOfficeBootComplete = useCallback(() => {
+  const handleOfficeBootComplete = useCallback((options = {}) => {
     setOfficeBootPending(false);
     writeDayOneBadgeSeen();
-    writeEntryDeskIntroSeen();
+    if (options.skipDeskTour) {
+      writeEntryDeskIntroSeen();
+      setDeskTourPending(false);
+    } else if (options.startDeskTour) {
+      setDeskTourPending(true);
+    } else {
+      writeEntryDeskIntroSeen();
+      setDeskTourPending(false);
+    }
     setOfficeCanvasGrace(true);
+  }, []);
+
+  const completeDeskTour = useCallback(() => {
+    writeEntryDeskIntroSeen();
+    setDeskTourPending(false);
   }, []);
 
   useEffect(() => {
@@ -35,6 +49,8 @@ export function useOfficeBoot({ hasCanvasContent }) {
   return {
     officeBootPending,
     officeCanvasGrace,
-    handleOfficeBootComplete
+    deskTourPending,
+    handleOfficeBootComplete,
+    completeDeskTour
   };
 }

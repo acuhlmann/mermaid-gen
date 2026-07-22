@@ -111,44 +111,6 @@ function OnboardingColleagueCard({ colleague, colleagueId, isSpeaking, showTrans
   );
 }
 
-/** One skippable desk-control tip at the end of Meet the Office. */
-function OnboardingDeskTips({ pointers, index, tourCopy, onNext, onSkip }) {
-  const items = Array.isArray(pointers) ? pointers.filter((p) => p && p.text) : [];
-  const tip = items[index];
-  if (!tip) return null;
-  const isLast = index >= items.length - 1;
-
-  return (
-    <section
-      className="office-directory-desk-tips"
-      data-testid="office-directory-desk"
-      aria-live="polite"
-    >
-      <p className="office-directory-desk-tips-eyebrow">{tourCopy.deskEyebrow ?? 'Your desk'}</p>
-      {tip.label ? <p className="office-directory-desk-tips-label">{tip.label}</p> : null}
-      <p className="office-directory-desk-tips-text">{tip.text}</p>
-      <div className="office-directory-desk-tips-progress" aria-hidden="true">
-        {items.map((item, itemIndex) => (
-          <span
-            key={item.id ?? item.label ?? itemIndex}
-            className={`office-directory-desk-tips-dot${itemIndex === index ? ' is-active' : ''}${
-              itemIndex < index ? ' is-done' : ''
-            }`}
-          />
-        ))}
-      </div>
-      <div className="office-directory-desk-tips-actions">
-        <button type="button" className="office-directory-dismiss" onClick={onNext}>
-          {isLast ? (tourCopy.done ?? 'Start working') : (tourCopy.next ?? 'Next')}
-        </button>
-        <button type="button" className="office-directory-skip-build" onClick={onSkip}>
-          {tourCopy.skip ?? 'Skip'}
-        </button>
-      </div>
-    </section>
-  );
-}
-
 /**
  * First-run orientation: Linda (HR) + name badge → auto-voiced colleague intros.
  */
@@ -162,18 +124,12 @@ function OnboardingPage({
   onDismiss,
   onSkip,
   onStartTour,
-  onBeginDeskTips,
-  deskPointers = [],
-  deskTipIndex = 0,
-  onAdvanceDeskTip,
-  onSkipDeskTips,
-  deskTourCopy = {},
+  onBeginDeskTour,
   showTranscript,
   onToggleTranscript,
   localeToolbar
 }) {
-  const touring = tourPhase !== 'idle' && tourPhase !== 'desk';
-  const deskTour = tourPhase === 'desk';
+  const touring = tourPhase !== 'idle';
 
   return (
     <div
@@ -239,10 +195,7 @@ function OnboardingPage({
           ) : null}
         </section>
 
-        <section
-          className={`office-directory-onboarding-cast${deskTour ? ' is-desk-tour' : ''}`}
-          aria-label={copy.title}
-        >
+        <section className="office-directory-onboarding-cast" aria-label={copy.title}>
           <ul className="office-directory-onboarding-roster">
             {COLLEAGUE_IDS.map((colleagueId, index) => {
               const colleague = officeSenderInfo(colleagueId);
@@ -258,21 +211,11 @@ function OnboardingPage({
             })}
           </ul>
         </section>
-
-        {deskTour ? (
-          <OnboardingDeskTips
-            pointers={deskPointers}
-            index={deskTipIndex}
-            tourCopy={deskTourCopy}
-            onNext={onAdvanceDeskTip}
-            onSkip={onSkipDeskTips}
-          />
-        ) : null}
       </div>
 
       <div className="office-directory-onboarding-footer">
-        {deskTour ? null : touring ? (
-          <button type="button" className="office-directory-dismiss" onClick={onBeginDeskTips}>
+        {touring ? (
+          <button type="button" className="office-directory-dismiss" onClick={onBeginDeskTour}>
             {copy.beginLabel ?? copy.dismissLabel}
           </button>
         ) : (
@@ -371,7 +314,6 @@ export default function OfficeDirectory({
   const [tourOpen, setTourOpen] = useState(() => firstRunRef.current);
   const [tourPhase, setTourPhase] = useState('idle');
   const [colleagueIndex, setColleagueIndex] = useState(-1);
-  const [deskTipIndex, setDeskTipIndex] = useState(0);
   const [autoPlaying, setAutoPlaying] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
@@ -385,11 +327,6 @@ export default function OfficeDirectory({
   const autoGenRef = useRef(0);
   const { speakingId, play, stop } = useIntroNarrator({ getSessionId });
   const copy = officeChromeCopy().directory;
-  const deskPointers = controls.prompt.entryPointers ?? [];
-  const deskTourCopy = {
-    ...(controls.prompt.entryTour ?? {}),
-    deskEyebrow: controls.prompt.entryIntro?.deskEyebrow ?? 'Your desk'
-  };
 
   useEffect(() => {
     setOfficeDirectoryOpen(open);
@@ -409,7 +346,6 @@ export default function OfficeDirectory({
     autoGenRef.current += 1;
     setTourPhase('idle');
     setColleagueIndex(-1);
-    setDeskTipIndex(0);
     setAutoPlaying(false);
     setShowTranscript(false);
     setOpen(true);
@@ -424,45 +360,31 @@ export default function OfficeDirectory({
     return play(id, line);
   };
 
-  const dismiss = () => {
+  const dismiss = (options = {}) => {
     const wasFirstRun = !readOfficeDirectorySeen();
     autoGenRef.current += 1;
     stop();
     setTourPhase('idle');
     setColleagueIndex(-1);
-    setDeskTipIndex(0);
     setAutoPlaying(false);
     setShowTranscript(false);
     writeOfficeDirectorySeen();
     firstRunRef.current = false;
     setTourOpen(null);
     setOpen(false);
-    if (wasFirstRun) onBootComplete?.();
+    if (wasFirstRun) onBootComplete?.(options);
   };
 
   const skipToBuild = () => {
-    dismiss();
+    dismiss({ skipDeskTour: true });
     onSkipToBuild?.();
   };
 
-  const beginDeskTips = () => {
+  const beginDeskTour = () => {
     autoGenRef.current += 1;
     stop();
     setAutoPlaying(false);
-    setTourPhase('desk');
-    setDeskTipIndex(0);
-  };
-
-  const advanceDeskTip = () => {
-    if (deskTipIndex >= deskPointers.length - 1) {
-      dismiss();
-      return;
-    }
-    setDeskTipIndex((index) => index + 1);
-  };
-
-  const skipDeskTips = () => {
-    dismiss();
+    dismiss({ startDeskTour: true });
   };
 
   const startTour = () => {
@@ -584,12 +506,7 @@ export default function OfficeDirectory({
           onDismiss={dismiss}
           onSkip={skipToBuild}
           onStartTour={startTour}
-          onBeginDeskTips={beginDeskTips}
-          deskPointers={deskPointers}
-          deskTipIndex={deskTipIndex}
-          onAdvanceDeskTip={advanceDeskTip}
-          onSkipDeskTips={skipDeskTips}
-          deskTourCopy={deskTourCopy}
+          onBeginDeskTour={beginDeskTour}
           showTranscript={showTranscript}
           onToggleTranscript={() => setShowTranscript((value) => !value)}
           localeToolbar={

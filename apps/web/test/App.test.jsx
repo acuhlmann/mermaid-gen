@@ -696,9 +696,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   it('sends quality modelProfile after selecting Deep work', async () => {
     render(<App />);
 
-    await waitFor(() => expect(screen.getByTestId('bottom-brand-mark')).toBeTruthy());
-    fireEvent.click(screen.getByTestId('bottom-brand-mark'));
-    fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }));
+    const chip = await screen.findByTestId('desk-concentration-chip');
+    fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }, { container: chip }));
 
     const refineButton = await screen.findByRole('button', { name: 'Refine' });
     fireEvent.click(refineButton);

@@ -88,6 +88,16 @@ test('resolveAffectedTests adds deliverable-format blast-radius tests for DeskDr
   assert.ok(plan.tests.includes('apps/web/test/renderModeAction.test.js'));
 });
 
+test('resolveAffectedTests adds desk-chrome blast-radius tests for concentration chip edits', () => {
+  const plan = resolveAffectedTests(['apps/web/src/components/DeskConcentrationChip.jsx'], {
+    root: ROOT
+  });
+  assert.ok(plan.tests.includes('apps/web/test/App.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/deskBottomActionsSlot.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/deskActionsDock.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/officeLayerDeskSlot.test.jsx'));
+});
+
 test('summarizeAffectedTestPlan is human-readable', () => {
   const summary = summarizeAffectedTestPlan(
     resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT })
