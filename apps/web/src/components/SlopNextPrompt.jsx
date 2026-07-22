@@ -116,6 +116,7 @@ export default function SlopNextPrompt({
       style={style}
       onSubmit={handleSubmit}
       data-testid={`slop-prompt-panel-${layout}`}
+      autoComplete="off"
     >
       {isDesk ? (
         <span
@@ -149,14 +150,20 @@ export default function SlopNextPrompt({
         id={inputId}
         ref={inputRef}
         className="slop-prompt-panel-input"
+        type="text"
+        name={isDesk ? 'work-order' : 'slop-prompt'}
         value={prompt ?? ''}
         onChange={(event) => onPromptChange?.(event.target.value)}
         placeholder={
           isDesk ? (copy.deskPlaceholder ?? copy.slopNextPlaceholder) : copy.slopNextPlaceholder
         }
         disabled={busy}
-        autoComplete="off"
+        inputMode="text"
+        enterKeyHint="go"
+        autoComplete="on"
         autoCapitalize="sentences"
+        autoCorrect="on"
+        spellCheck
         onFocus={isDesk ? handleDeskInputFocus : undefined}
         // Desk layout has no title element; the sr-only <label htmlFor> names it.
         aria-labelledby={isDesk ? undefined : `${inputId}-label`}
