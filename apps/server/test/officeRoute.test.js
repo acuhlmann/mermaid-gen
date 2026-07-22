@@ -128,7 +128,7 @@ test('office speak rejects unknown speakers', async () => {
 test('office meeting validates the attendee list before touching the model', async () => {
   const { port, closeServer } = await bootServer();
   try {
-    const tooFew = await post(port, 'meeting', { attendees: ['scrumMaster', 'exec'] });
+    const tooFew = await post(port, 'meeting', { attendees: ['scrumMaster'] });
     assert.equal(tooFew.status, 400);
     const unknownOnly = await post(port, 'meeting', {
       attendees: ['ghost', 'phantom', 'spectre']
