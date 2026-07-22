@@ -167,7 +167,7 @@ describe('InsightsPane', () => {
     expect(screen.queryByTestId('insights-tagline')).toBeNull();
   });
 
-  it('shows the diagram mode, brain, and start time on each run entry', () => {
+  it('shows the diagram mode and brain on each run entry', () => {
     const fixedTime = new Date('2024-04-05T09:07:00').getTime();
     render(
       <InsightsPane
@@ -218,10 +218,8 @@ describe('InsightsPane', () => {
     expect(within(metas[0]).getByText('Deep work')).toBeTruthy();
     expect(within(metas[1]).getByText('3D')).toBeTruthy();
     expect(within(metas[2]).getByText('Chart')).toBeTruthy();
-    const timeEl = metas[0].querySelector('time');
-    expect(timeEl).toBeTruthy();
-    expect(timeEl.dateTime).toBe(new Date(fixedTime).toISOString());
-    expect(timeEl.textContent.trim().length).toBeGreaterThan(0);
+    // Duration lives in the sticky live-meta clock + end-of-run summary, not entry chips.
+    expect(metas[0].querySelector('time')).toBeNull();
   });
 
   it('shows done state in the thinking pane', () => {
@@ -724,7 +722,7 @@ flowchart TB
     expect(screen.getByText('Read snapshot')).toBeTruthy();
   });
 
-  it('shows run-level estimated cost in the timeline header and footer', () => {
+  it('shows run-level estimated cost once in the end-of-run summary', () => {
     render(
       <InsightsPane
         entries={[
@@ -755,9 +753,39 @@ flowchart TB
       />
     );
 
-    expect(screen.getAllByText('~$0.05 est.').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByTestId('run-timeline-run-cost-header')).toBeTruthy();
-    expect(screen.getByTestId('run-timeline-run-cost-footer')).toBeTruthy();
+    expect(screen.getAllByText('~$0.05 est.').length).toBe(1);
+    expect(screen.getByTestId('run-timeline-run-cost-summary')).toBeTruthy();
+    expect(screen.getByTestId('run-timeline-summary')).toBeTruthy();
+    expect(screen.queryByTestId('run-timeline-run-cost-header')).toBeNull();
+    expect(screen.queryByTestId('run-timeline-run-cost-footer')).toBeNull();
+  });
+
+  it('places the run-activity summary after the chronological track', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-summary-order',
+            title: 'Go — diagram',
+            status: 'done',
+            statusText: 'Done',
+            content: 'Applied.',
+            startedAt: Date.now() - 5000,
+            completedAt: Date.now(),
+            phases: [{ id: 'agent_run', label: 'Planning…', at: 1000 }],
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+      />
+    );
+
+    const timeline = screen.getByTestId('run-timeline');
+    const track = timeline.querySelector('.run-timeline-track');
+    const summary = screen.getByTestId('run-timeline-summary');
+    expect(track).toBeTruthy();
+    expect(summary).toBeTruthy();
+    expect(track.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('renders model reasoning turns with model name and usage in the timeline', () => {

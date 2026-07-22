@@ -719,7 +719,7 @@ export const CONTROLS_ZH_CN = {
       live: '实时活动',
       issue: '运行问题',
       stopped: '运行已停止',
-      activity: '运行活动'
+      activity: '运行摘要'
     },
     headline: {
       working: '处理中…',

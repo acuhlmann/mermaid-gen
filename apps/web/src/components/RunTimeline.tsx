@@ -5,7 +5,8 @@
  * model turns, syntax-fixer passes, patch results — into one chronological rail
  * with live per-step timing. Content-domain beats stay visible; technical steps
  * fold into per-phase summaries once a phase completes (expanded by default). The streamed response
- * (children) renders as the final segment so the whole run reads as one story.
+ * (children) renders near the end of the track; a single run-activity summary
+ * (totals, cost, stat chips) follows so wrap-up metrics are not duplicated up top.
  * Derivation logic lives in `runTimelineModel.ts`.
  */
 
@@ -322,7 +323,8 @@ const RAIL_CLASS_BY_STATE: Record<SegmentState, string> = {
   'stopped-at': 'is-stopped'
 };
 
-function TimelineOverview({
+/** End-of-run summary: stats, cost, and total time (once). Lives after the track. */
+function TimelineSummary({
   segments,
   runStatus,
   runLive,
@@ -344,8 +346,9 @@ function TimelineOverview({
   runCostLabel: string;
 }) {
   const copy = useUiCopy().controls.runTimeline;
+  const costLabel = runLive ? copy.runCostEstimateLabel : copy.runCostTotalLabel;
   return (
-    <header className="run-timeline-overview">
+    <footer className="run-timeline-overview is-summary" data-testid="run-timeline-summary">
       <div className="run-timeline-overview-copy">
         <span className="run-timeline-kicker">
           <span className="run-timeline-live-dot" aria-hidden="true" />
@@ -354,11 +357,11 @@ function TimelineOverview({
         <strong className="run-timeline-headline">{headline}</strong>
         {runCostLabel ? (
           <span
-            className="run-timeline-run-cost is-header"
-            data-testid="run-timeline-run-cost-header"
+            className="run-timeline-run-cost is-summary"
+            data-testid="run-timeline-run-cost-summary"
             title={copy.runCostEstimateTitle}
           >
-            <span className="run-timeline-run-cost-label">{copy.runCostEstimateLabel}</span>
+            <span className="run-timeline-run-cost-label">{costLabel}</span>
             <span className="run-timeline-run-cost-value">{runCostLabel}</span>
           </span>
         ) : null}
@@ -397,7 +400,7 @@ function TimelineOverview({
           />
         ) : null}
       </div>
-    </header>
+    </footer>
   );
 }
 
@@ -407,7 +410,6 @@ function PhaseSegment({
   variant,
   showRawPhaseIds,
   durationLabel,
-  statusText,
   runLive,
   now,
   planContentType = null,
@@ -418,7 +420,6 @@ function PhaseSegment({
   variant: string;
   showRawPhaseIds: boolean;
   durationLabel: string;
-  statusText: string;
   runLive: boolean;
   now: number;
   planContentType?: ContentType | null;
@@ -460,7 +461,6 @@ function PhaseSegment({
             </span>
           ) : null}
         </div>
-        {isActive && statusText ? <p className="run-timeline-segment-now">{statusText}</p> : null}
         <SegmentItems
           items={seg.items}
           variant={variant}
@@ -505,15 +505,8 @@ function ResponseSegment({
   );
 }
 
-function TerminalRow({
-  runStatus,
-  totalLabel,
-  runCostLabel
-}: {
-  runStatus: RunStatus;
-  totalLabel: string;
-  runCostLabel: string;
-}) {
+/** Thin track closer — outcome only. Duration and cost live in TimelineSummary. */
+function TerminalRow({ runStatus }: { runStatus: RunStatus }) {
   const copy = useUiCopy().controls.runTimeline;
   const state: SegmentState =
     runStatus === 'failed' ? 'failed-at' : runStatus === 'cancelled' ? 'stopped-at' : 'complete';
@@ -529,20 +522,7 @@ function TerminalRow({
         {segmentGlyph(state)}
       </span>
       <span className="run-timeline-terminal-body">
-        <span className="run-timeline-terminal-label">
-          {label}
-          {totalLabel ? <em> · {totalLabel}</em> : null}
-        </span>
-        {runCostLabel && runStatus !== 'running' ? (
-          <span
-            className="run-timeline-run-cost is-footer"
-            data-testid="run-timeline-run-cost-footer"
-            title={copy.runCostEstimateTitle}
-          >
-            <span className="run-timeline-run-cost-label">{copy.runCostTotalLabel}</span>
-            <span className="run-timeline-run-cost-value">{runCostLabel}</span>
-          </span>
-        ) : null}
+        <span className="run-timeline-terminal-label">{label}</span>
       </span>
     </li>
   );
@@ -579,16 +559,7 @@ export default function RunTimeline({
     now,
     copy: { ...copy, insightsNow: controls.insights?.nowStatus }
   });
-  const {
-    runStatus,
-    runLive,
-    segments,
-    totalLabel,
-    headline,
-    statusText,
-    statChips,
-    runCostLabel
-  } = view;
+  const { runStatus, runLive, segments, totalLabel, headline, statChips, runCostLabel } = view;
 
   const planContentType = normalizePlanContentType(entry.contentType);
   const previewReuseByBeatIndex = useMemo(
@@ -604,18 +575,6 @@ export default function RunTimeline({
       aria-label={copy.activity}
       data-testid="run-timeline"
     >
-      <TimelineOverview
-        segments={segments}
-        runStatus={runStatus}
-        runLive={runLive}
-        responseActive={responseActive}
-        hasResponse={hasResponse}
-        headline={headline}
-        totalLabel={totalLabel}
-        statChips={statChips}
-        runCostLabel={runCostLabel}
-      />
-
       <ol className="run-timeline-track">
         {segments.map((seg, idx) => {
           const state = segmentStateFor(
@@ -634,7 +593,6 @@ export default function RunTimeline({
               durationLabel={formatActionDurationMs(
                 segmentDurationMs(seg, segments[idx + 1], entry, state === 'active', now)
               )}
-              statusText={statusText}
               runLive={runLive}
               now={now}
               planContentType={planContentType}
@@ -653,10 +611,20 @@ export default function RunTimeline({
           </ResponseSegment>
         ) : null}
 
-        {!runLive ? (
-          <TerminalRow runStatus={runStatus} totalLabel={totalLabel} runCostLabel={runCostLabel} />
-        ) : null}
+        {!runLive ? <TerminalRow runStatus={runStatus} /> : null}
       </ol>
+
+      <TimelineSummary
+        segments={segments}
+        runStatus={runStatus}
+        runLive={runLive}
+        responseActive={responseActive}
+        hasResponse={hasResponse}
+        headline={headline}
+        totalLabel={totalLabel}
+        statChips={statChips}
+        runCostLabel={runCostLabel}
+      />
     </section>
   );
 }
