@@ -712,10 +712,11 @@ export const OFFICE_EN_AU = {
       expandLabel: '🏢 Meet the Office',
       expandTitle: 'Who keeps interrupting me? (Spoiler: all of them.)',
       startLabel: 'Meet the team →',
-      skipToBuildLabel: 'Skip the ceremony — just let me ship →',
+      beginLabel: 'Begin Day One',
+      skipToBuildLabel: 'Skip to canvas →',
       skipToBuildTitle:
         'Close orientation and drop me on the canvas. No offence taken. (Some taken. Noted in your file.)',
-      dismissLabel: 'Clock on — begin Day One',
+      dismissLabel: 'Done',
       replayTourLabel: '↻ Replay intro',
       closeAria: 'Close Meet the Office',
       hearLabel: '▶ Hear intro',

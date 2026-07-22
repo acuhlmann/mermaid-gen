@@ -187,16 +187,7 @@ function OnboardingPage({
               />
             </div>
           )}
-          {!touring ? (
-            <button
-              type="button"
-              className="office-directory-dismiss office-directory-start-tour"
-              data-testid="office-directory-start-tour"
-              onClick={onStartTour}
-            >
-              {copy.startLabel}
-            </button>
-          ) : autoPlaying ? (
+          {touring && autoPlaying ? (
             <p className="office-directory-autoplay-hint" data-testid="office-directory-autoplay">
               {copy.autoplayHint}
             </p>
@@ -221,21 +212,33 @@ function OnboardingPage({
         </section>
       </div>
 
-      <div className="office-directory-tour-actions">
-        <button type="button" className="office-directory-dismiss" onClick={onDismiss}>
-          {copy.dismissLabel}
-        </button>
+      <div className="office-directory-onboarding-footer">
+        {touring ? (
+          <button type="button" className="office-directory-dismiss" onClick={onDismiss}>
+            {copy.beginLabel ?? copy.dismissLabel}
+          </button>
+        ) : (
+          <>
+            <button
+              type="button"
+              className="office-directory-dismiss office-directory-start-tour"
+              data-testid="office-directory-start-tour"
+              onClick={onStartTour}
+            >
+              {copy.startLabel}
+            </button>
+            <button
+              type="button"
+              className="office-directory-skip-build"
+              title={copy.skipToBuildTitle}
+              data-testid="office-directory-skip-build"
+              onClick={onSkip}
+            >
+              {copy.skipToBuildLabel}
+            </button>
+          </>
+        )}
       </div>
-
-      <button
-        type="button"
-        className="office-directory-skip-build"
-        title={copy.skipToBuildTitle}
-        data-testid="office-directory-skip-build"
-        onClick={onSkip}
-      >
-        {copy.skipToBuildLabel}
-      </button>
     </div>
   );
 }

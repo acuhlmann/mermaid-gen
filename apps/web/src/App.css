@@ -18592,6 +18592,30 @@ body.slopitect-rainbow-tint::before {
 .office-directory-start-tour {
   margin-top: 6px;
 }
+.office-directory-onboarding-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--control-border);
+  flex-shrink: 0;
+}
+.office-directory-onboarding-footer .office-directory-dismiss {
+  align-self: stretch;
+  width: 100%;
+  text-align: center;
+  padding: 10px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+.office-directory-onboarding-footer .office-directory-skip-build {
+  align-self: center;
+  margin-top: 0;
+  font-size: 12px;
+  padding: 6px 8px;
+}
 .office-directory-onboarding-roster {
   list-style: none;
   margin: 0;
@@ -18924,6 +18948,44 @@ body.slopitect-rainbow-tint::before {
   justify-content: space-between;
   gap: 8px;
   margin-top: 2px;
+}
+@media (max-width: 640px) {
+  .office-directory-host--overlay {
+    padding: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+    align-items: stretch;
+  }
+  .office-directory-host--overlay .office-directory {
+    max-height: min(92dvh, 720px);
+    border-radius: 14px;
+  }
+  .office-directory--onboarding {
+    max-height: min(92dvh, 720px);
+  }
+  .office-directory-onboarding-footer {
+    margin-top: 6px;
+    padding-top: 8px;
+    gap: 6px;
+  }
+  .office-directory-onboarding-footer .office-directory-dismiss {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .office-directory-onboarding-footer .office-directory-skip-build {
+    font-size: 11px;
+  }
+  .office-directory-roster-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .office-directory-roster-actions .office-directory-dismiss,
+  .office-directory-roster-actions .office-directory-secondary {
+    width: 100%;
+    text-align: center;
+    min-height: 44px;
+    font-size: 13px;
+    padding: 10px 14px;
+  }
 }
 .office-directory-roster-actions {
   display: flex;
