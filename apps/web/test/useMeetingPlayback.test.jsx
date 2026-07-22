@@ -145,11 +145,13 @@ describe('useMeetingPlayback', () => {
   it('paces beats to narrateBeat when synthesis speaks, and cancels on leave', async () => {
     vi.stubGlobal('fetch', mockFetchWith({ script: SCRIPT }));
     const narrateBeat = vi.fn(() => Promise.resolve({ spoken: true }));
+    const prefetchBeat = vi.fn();
     const onCancelNarration = vi.fn();
     const { result } = renderHook(() =>
       useMeetingPlayback({
         ...PARAMS,
         narrateBeat,
+        prefetchBeat,
         narrationGapMs: 50,
         onCancelNarration
       })
@@ -159,12 +161,15 @@ describe('useMeetingPlayback', () => {
       await result.current.startMeeting({ attendees: ATTENDEES });
     });
 
+    expect(prefetchBeat).toHaveBeenCalledWith(SCRIPT.beats[0]);
+
     // First beat reveals immediately under narration, then waits for speak + gap.
     await act(async () => {
       await Promise.resolve();
     });
     expect(result.current.meeting.transcript).toHaveLength(1);
     expect(narrateBeat).toHaveBeenCalledWith(SCRIPT.beats[0]);
+    expect(prefetchBeat).toHaveBeenCalledWith(SCRIPT.beats[1]);
 
     for (let i = 1; i < SCRIPT.beats.length; i += 1) {
       await act(async () => {

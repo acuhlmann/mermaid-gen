@@ -59,6 +59,7 @@ import {
 import {
   cancelOfficeNarration,
   OFFICE_NARRATION_GAP_MS,
+  prefetchOfficeLine,
   speakOfficeLine
 } from '../utils/officeNarration.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
@@ -150,9 +151,30 @@ export default function OfficeLayer({
     [playChime, fetchCloudAudio]
   );
 
+  const prefetchLine = useCallback(
+    (line) => {
+      if (!getOfficeSnapshot().narration) return;
+      const text = typeof line?.text === 'string' ? line.text : '';
+      const speakerId = typeof line?.speakerId === 'string' ? line.speakerId : '';
+      if (!text || !speakerId) return;
+      prefetchOfficeLine({
+        speakerId,
+        text,
+        lang: officeDialogueLocale(),
+        fetchCloudAudio
+      });
+    },
+    [fetchCloudAudio]
+  );
+
   const narrateBeat = useCallback(
     (beat) => narrateLine({ speakerId: beat?.speakerId, text: beat?.text }),
     [narrateLine]
+  );
+
+  const prefetchBeat = useCallback(
+    (beat) => prefetchLine({ speakerId: beat?.speakerId, text: beat?.text }),
+    [prefetchLine]
   );
 
   const { meeting, startMeeting, interject, closeMeeting } = useMeetingPlayback({
@@ -162,6 +184,7 @@ export default function OfficeLayer({
     getSvgRoot,
     onUsage,
     narrateBeat: snapshot.narration ? narrateBeat : undefined,
+    prefetchBeat: snapshot.narration ? prefetchBeat : undefined,
     narrationGapMs: OFFICE_NARRATION_GAP_MS,
     onCancelNarration: cancelOfficeNarration
   });
@@ -548,6 +571,7 @@ export default function OfficeLayer({
             onDecline={dismissOfficeCoffee}
             onDone={handleCoffeeDone}
             narrateLine={snapshot.narration ? narrateLine : undefined}
+            prefetchLine={snapshot.narration ? prefetchLine : undefined}
           />
           <OfficeBattleOverlay
             battle={snapshot.battle}
@@ -555,6 +579,7 @@ export default function OfficeLayer({
             onVote={handleBattleVote}
             onDone={handleBattleDone}
             narrateLine={snapshot.narration ? narrateLine : undefined}
+            prefetchLine={snapshot.narration ? prefetchLine : undefined}
           />
           {!meeting && snapshot.meetingInvite ? (
             <MeetingInviteToast

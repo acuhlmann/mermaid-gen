@@ -23,14 +23,23 @@ export const BATTLE_LINE_PACE_MS = 1900;
  *   narrateLine?: (line: { speakerId: string, text: string }) => Promise<{ spoken?: boolean } | void>
  * }} props
  */
-export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, narrateLine }) {
+export default function OfficeBattleOverlay({
+  battle,
+  onAccept,
+  onVote,
+  onDone,
+  narrateLine,
+  prefetchLine
+}) {
   const accepted = Boolean(battle?.accepted);
   const battleId = battle?.id ?? null;
   const lineCount = battle?.lines?.length ?? 0;
   const [visibleLines, setVisibleLines] = useState(1);
   const narrateRef = useRef(narrateLine);
+  const prefetchRef = useRef(prefetchLine);
   useEffect(() => {
     narrateRef.current = narrateLine;
+    prefetchRef.current = prefetchLine;
   });
 
   // Restart the pacing whenever a new battle enters the arena.
@@ -50,6 +59,8 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
         if (cancelled) return;
         setVisibleLines(index + 1);
         const line = lines[index];
+        const nextLine = lines[index + 1];
+        if (nextLine) prefetchRef.current?.(nextLine);
         const narrate = narrateRef.current;
         let spoken = false;
         if (typeof narrate === 'function' && line) {
