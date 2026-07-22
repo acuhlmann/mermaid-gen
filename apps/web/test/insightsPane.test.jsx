@@ -222,6 +222,34 @@ describe('InsightsPane', () => {
     expect(metas[0].querySelector('time')).toBeNull();
   });
 
+  it('groups notebook header title and controls for narrow panes', () => {
+    render(
+      <InsightsPane
+        entries={[
+          {
+            id: 'entry-live',
+            title: 'Refine — diagram',
+            variant: 'refine',
+            status: 'running',
+            statusText: 'Working…',
+            content: '',
+            technicalActions: []
+          }
+        ]}
+        celebratingEntryId={null}
+        onToggleEditor={() => {}}
+        canToggleEditor
+      />
+    );
+
+    const headerTools = screen.getByTestId('insights-pane-header-tools');
+    expect(headerTools.querySelector('.insights-pane-header-brand')).toBeTruthy();
+    expect(headerTools.querySelector('.insights-pane-header-actions')).toBeTruthy();
+    expect(within(headerTools).getByText('Notebook')).toBeTruthy();
+    expect(within(headerTools).getByTestId('concentration-control')).toBeTruthy();
+    expect(screen.getByTestId('insights-code-drawer-toggle')).toBeTruthy();
+  });
+
   it('shows done state in the thinking pane', () => {
     render(
       <InsightsPane

@@ -454,6 +454,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
   it('streams intent from the first-run desk work order on an empty canvas', async () => {
     window.localStorage.setItem('archislop:mode-reveal-seen', '1');
+    window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
       mermaid: { ...initialState, diagramSource: '', revisionId: 0 },
@@ -462,9 +463,6 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     render(<App />);
 
-    expect(await screen.findByTestId('entry-desk-intro')).toBeTruthy();
-    // Welcome auto-advances into the end-state desk chrome (no duplicate format strip).
-    await screen.findByTestId('entry-desk-intro');
     await waitFor(
       () => {
         expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
@@ -473,6 +471,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       },
       { timeout: 6_000 }
     );
+    expect(screen.queryByTestId('entry-desk-intro')).toBeNull();
+    expect(screen.queryByTestId('topic-starters')).toBeNull();
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
     expect(screen.getByTestId('bottom-brand-mark').getAttribute('aria-expanded')).toBe('false');
     expect(screen.getByRole('button', { name: /Open your team|Hide team actions/i })).toBeTruthy();
@@ -676,7 +676,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     );
 
     await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
-    expect(screen.getByTestId('topic-starters')).toBeTruthy();
+    expect(screen.queryByTestId('topic-starters')).toBeNull();
+    expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
   });
 
   it('does not let cached diagram source override URL session server state on load', async () => {

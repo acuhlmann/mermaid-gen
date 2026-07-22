@@ -22,6 +22,7 @@ import {
   dismissOfficeBattle,
   dismissOfficeCoffee,
   dismissOfficeImPing,
+  clearOfficeImPings,
   dismissOfficeMeetingInvite,
   dismissOfficeWalkBy,
   getOfficeSnapshot,
@@ -310,7 +311,10 @@ export default function OfficeLayer({
 
   const [messengerOpen, setMessengerOpen] = useState(false);
   const [messengerBusy, setMessengerBusy] = useState(false);
-  const handleOpenMessenger = useCallback(() => setMessengerOpen(true), []);
+  const handleOpenMessenger = useCallback(() => {
+    clearOfficeImPings();
+    setMessengerOpen(true);
+  }, []);
   const handleCloseMessenger = useCallback(() => setMessengerOpen(false), []);
 
   const handleAdopt = useCallback(
@@ -518,7 +522,7 @@ export default function OfficeLayer({
       {suppressDistractions ? null : (
         <>
           <OfficeImPing
-            pings={snapshot.imPings}
+            pings={messengerOpen ? [] : snapshot.imPings}
             onDismiss={dismissOfficeImPing}
             onQuickReply={handleQuickReply}
           />

@@ -216,6 +216,13 @@ export function dismissOfficeImPing(id) {
   update({ imPings });
 }
 
+/** Clears transient IM toasts without touching durable chat history. */
+export function clearOfficeImPings() {
+  for (const ping of state.imPings) clearExpiry(ping.id);
+  if (state.imPings.length === 0) return;
+  update({ imPings: [] });
+}
+
 export function pushOfficeWalkBy({ colleagueId, body, actionPrompt }) {
   if (state.walkBy) clearExpiry(state.walkBy.id);
   const walkBy = {

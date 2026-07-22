@@ -7,6 +7,7 @@ import {
   dismissOfficeBattle,
   dismissOfficeCoffee,
   dismissOfficeImPing,
+  clearOfficeImPings,
   dismissOfficeMeetingInvite,
   dismissOfficeWalkBy,
   getOfficeSnapshot,
@@ -90,6 +91,14 @@ describe('officeMomentStore', () => {
     dismissOfficeImPing(id);
     expect(getOfficeSnapshot().imPings).toHaveLength(0);
     expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['still here']);
+  });
+
+  it('clearOfficeImPings drops toasts without touching history', () => {
+    pushOfficeImPing({ colleagueId: 'intern', body: 'ping one' });
+    pushOfficeImPing({ colleagueId: 'greybeard', body: 'ping two' });
+    clearOfficeImPings();
+    expect(getOfficeSnapshot().imPings).toHaveLength(0);
+    expect(getOfficeSnapshot().imHistory.map((m) => m.body)).toEqual(['ping one', 'ping two']);
   });
 
   it('records outbound replies without counting them as unread', () => {

@@ -73,10 +73,11 @@ function baseProps(overrides = {}) {
 describe('DeskBottomActionsSlot empty canvas', () => {
   afterEach(() => cleanup());
 
-  it('shows assignment starters on an empty canvas', () => {
+  it('shows desk chrome on an empty canvas without assignment tabs', () => {
     render(<DeskBottomActionsSlot {...baseProps()} />);
-    expect(screen.getByTestId('topic-starters')).toBeTruthy();
-    expect(screen.getByTitle('Break down the global coffee supply chain')).toBeTruthy();
+    expect(screen.queryByTestId('topic-starters')).toBeNull();
+    expect(screen.getByLabelText(/Work order/i)).toBeTruthy();
+    expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
   });
 
   it('submits the work order without a separate format strip', async () => {
@@ -104,19 +105,10 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(handleDeskPromptSubmit).toHaveBeenCalledWith('Coffee supply chain');
   });
 
-  it('opens the desk tray on the format tour step', () => {
-    render(
-      <DeskBottomActionsSlot
-        {...baseProps({
-          showEntryDeskIntro: true,
-          showEntryDeskPointers: true,
-          entryTourStep: 'format',
-          deskDrawerTourOpen: true
-        })}
-      />
-    );
-    expect(screen.getByRole('menu', { name: /Desk tray/i })).toBeTruthy();
-    expect(screen.queryByText('Deliverable format')).toBeNull();
+  it('keeps the desk tray closed by default on an empty canvas', () => {
+    render(<DeskBottomActionsSlot {...baseProps()} />);
+    expect(screen.getByRole('button', { name: /desk tray/i })).toBeTruthy();
+    expect(screen.queryByRole('menu', { name: /Desk tray/i })).toBeNull();
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
   });
 

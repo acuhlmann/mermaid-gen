@@ -156,7 +156,7 @@ export default function OfficeInboxDock({
         <FloatingWindow
           id="office-inbox"
           open={open}
-          group="officeChrome"
+          group="officeModal"
           className="office-inbox-popover"
           defaultCorner={showTrigger ? 'top-right' : 'bottom-left'}
           defaultOffsetX={showTrigger ? 14 : 12}

@@ -115,7 +115,7 @@ describe('OfficeDirectory', () => {
     expect(screen.getAllByText(lindaLine).length).toBe(1);
   });
 
-  it('auto-introduces colleagues by voice, then begins day one', async () => {
+  it('auto-introduces colleagues by voice, then walks desk controls before day one', async () => {
     renderDirectory({ showChip: false });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
@@ -128,6 +128,17 @@ describe('OfficeDirectory', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /Begin Day One/i }));
+    expect(screen.getByTestId('office-directory-desk')).toBeTruthy();
+    expect(screen.getByText('Work order')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    expect(
+      screen.getByText(
+        'Tap the helmet for mail, export, and more. The notebook icon beside the desk tray opens your thinking notes.'
+      )
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Skip tour' }));
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
   });

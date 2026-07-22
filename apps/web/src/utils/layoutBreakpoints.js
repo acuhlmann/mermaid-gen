@@ -25,3 +25,6 @@ export const COMPACT_BRAND_MEDIA_QUERY = `(max-width: ${COMPACT_BRAND_MAX_WIDTH_
 
 /** Bottom chrome reserve for radial menu clamping — mirrors --mobile-bottom-chrome-est (8.75rem). */
 export const MOBILE_BOTTOM_CHROME_RESERVE_PX = 140;
+
+/** Thinking pane header: shorten controls when the pane column is this narrow or less. */
+export const INSIGHTS_HEADER_COMPACT_MAX_PX = 400;

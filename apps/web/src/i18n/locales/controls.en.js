@@ -92,7 +92,9 @@ export const CONTROLS_EN = {
     ],
     entryTour: {
       next: 'Next',
-      skip: 'Skip tour'
+      skip: 'Skip tour',
+      done: 'Start working',
+      deskEyebrow: 'Your desk'
     },
     renderAsHint:
       'Pick a format from the Desk tray before you generate. Your desk helmet has export and mail; the notebook icon opens thinking notes and the code drawer.',
@@ -189,7 +191,9 @@ export const CONTROLS_EN = {
     // Concentration lives on the Work Order footer and Thinking header.
     brain: 'Concentration',
     fast: 'Rush job',
+    fastShort: 'Rush',
     quality: 'Deep work',
+    qualityShort: 'Deep',
     concentrationTitle: 'How hard you are thinking before the next deliverable',
     mode: 'Mode',
     thinking: 'Notebook',

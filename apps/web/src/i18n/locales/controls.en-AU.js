@@ -87,7 +87,9 @@ export const CONTROLS_EN_AU = {
     ],
     entryTour: {
       next: 'Next',
-      skip: 'Skip tour'
+      skip: 'Skip tour',
+      done: 'Start working',
+      deskEyebrow: 'Your desk'
     },
     renderAsHint:
       'Pick a format from the Desk tray before you generate. Your desk helmet has export, settings, and more.',
@@ -157,7 +159,9 @@ export const CONTROLS_EN_AU = {
     externalAgentFallback: 'External agent',
     brain: 'Concentration',
     fast: 'Rush job',
+    fastShort: 'Rush',
     quality: 'Deep work',
+    qualityShort: 'Deep',
     concentrationTitle: 'How hard you are thinking before the next deliverable',
     mode: 'Mode',
     thinking: 'Notebook',
