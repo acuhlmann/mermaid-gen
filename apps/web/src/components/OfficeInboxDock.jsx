@@ -6,7 +6,7 @@ import {
 } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 /**
  * The corporate inbox (docs/office-parody.md): an envelope button with an
@@ -39,7 +39,6 @@ export default function OfficeInboxDock({
   showTrigger = true
 }) {
   const [open, setOpen] = useState(false);
-  const inboxZIndex = useOverlayLayer('office-inbox', open, 'officeChrome');
   const [selectedId, setSelectedId] = useState(null);
   const [selectedEmailIds, setSelectedEmailIds] = useState(() => new Set());
   const selected = emails.find((email) => email.id === selectedId) ?? null;
@@ -154,13 +153,22 @@ export default function OfficeInboxDock({
         </button>
       ) : null}
       {open ? (
-        <div
+        <FloatingWindow
+          id="office-inbox"
+          open={open}
+          group="officeChrome"
           className="office-inbox-popover"
-          style={overlayLayerStyle(inboxZIndex)}
+          defaultCorner={showTrigger ? 'top-right' : 'bottom-left'}
+          defaultOffsetX={showTrigger ? 14 : 12}
+          defaultOffsetY={showTrigger ? 122 : 12}
+          cascade={0}
           role="dialog"
           aria-label={copy.inbox.buttonTitle}
         >
-          <div className="office-inbox-header">
+          <FloatingWindowDragHandle
+            className="office-inbox-header"
+            title={copy.inbox.dragHint ?? 'Drag to move'}
+          >
             <div className="office-inbox-header-row">
               <span className="office-inbox-title">{copy.inbox.title}</span>
               <button
@@ -198,7 +206,7 @@ export default function OfficeInboxDock({
                 <span>{copy.inbox.narrationLabel}</span>
               </label>
             </div>
-          </div>
+          </FloatingWindowDragHandle>
           {selected ? (
             <div className="office-email-view">
               <button
@@ -307,7 +315,7 @@ export default function OfficeInboxDock({
               </div>
             </>
           )}
-        </div>
+        </FloatingWindow>
       ) : null}
     </div>
   );

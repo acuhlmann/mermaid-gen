@@ -49,6 +49,7 @@ import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
 import { useRunCeremony } from './features/ceremony/useRunCeremony.js';
 import { DeskBottomActionsSlot } from './features/desk/DeskBottomActionsSlot.jsx';
 import { ModeRevealSlot } from './features/desk/ModeRevealSlot.jsx';
+import { EmptyCanvasSlot } from './features/desk/EmptyCanvasSlot.jsx';
 import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
 import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
 import { BrandChromeSlot } from './features/shell/BrandChromeSlot.jsx';
@@ -1147,6 +1148,7 @@ export function ArchiSlop() {
     submitIntentWithPrompt,
     runIntentChange,
     handleFormSubmit,
+    handleStarterPick,
     handleSlopPromptSubmit,
     handleDeskPromptSubmit
   } = useSubmitIntent({
@@ -1400,6 +1402,15 @@ ${requirementsBlock}`;
     hasInteractedRef,
     handleSelectContentMode
   });
+
+  const showEmptyCanvas =
+    !hasCanvasContent &&
+    !insightsOpen &&
+    !editorOpen &&
+    !officeBootPending &&
+    !modeRevealActive &&
+    !isFullscreen &&
+    !loading;
 
   async function performClearDiagram() {
     setClearConfirmOpen(false);
@@ -2074,6 +2085,14 @@ ${requirementsBlock}`;
             onDismiss={dismissModeReveal}
           />
 
+          <EmptyCanvasSlot
+            active={showEmptyCanvas}
+            busy={loading || streamingPreview}
+            copy={controls.prompt}
+            userName={userName}
+            onPickTopic={handleStarterPick}
+          />
+
           <DiagramFullscreenOverlay
             isFullscreen={isFullscreen}
             host={diagramSurfaceRef.current}
@@ -2300,6 +2319,7 @@ ${requirementsBlock}`;
                 handleClearDiagram={handleClearDiagram}
                 onToggleThinking={() => setInsightsOpen((v) => !v)}
                 canToggleThinking
+                onPickStarterTopic={handleStarterPick}
               />
             }
             aiControls={

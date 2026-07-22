@@ -3,6 +3,7 @@ import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
 
 export const BATTLE_LINE_PACE_MS = 1900;
 
@@ -101,10 +102,23 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
 
   if (!accepted) {
     return (
-      <div className="office-battle-invite" role="status" aria-live="polite">
-        <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
-          {copy.battle.kindLabel}
-        </p>
+      <FloatingWindow
+        id="office-battle-invite"
+        open
+        group="officeChrome"
+        className="office-battle-invite"
+        defaultCorner="top-center"
+        defaultOffsetX={16}
+        defaultOffsetY={76}
+        cascade={1}
+        role="status"
+        aria-live="polite"
+      >
+        <FloatingWindowDragHandle className="office-battle-invite-head" title="Drag to move">
+          <p className="office-moment-kind office-moment-kind--battle" aria-hidden="true">
+            {copy.battle.kindLabel}
+          </p>
+        </FloatingWindowDragHandle>
         <span aria-hidden="true">🥊</span>
         <span className="office-battle-invite-text">
           {formatLocale(copy.battle.inviteLine, {
@@ -121,7 +135,7 @@ export default function OfficeBattleOverlay({ battle, onAccept, onVote, onDone, 
             {copy.battle.decline}
           </button>
         </div>
-      </div>
+      </FloatingWindow>
     );
   }
 

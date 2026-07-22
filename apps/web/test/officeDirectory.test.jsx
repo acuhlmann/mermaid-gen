@@ -65,6 +65,7 @@ describe('OfficeDirectory', () => {
     expect(screen.getByTestId('name-tag')).toBeTruthy();
     expect(document.querySelector('.office-directory-chapter')?.textContent).toMatch(/PEOPLE OPS/i);
     expect(screen.getByTestId('office-directory-start-tour')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Begin Day One/i })).toBeNull();
     expect(screen.getAllByTestId('office-directory-colleague-card').length).toBe(COLLEAGUE_COUNT);
     expect(screen.queryByTestId('office-directory-desk')).toBeNull();
     expect(screen.queryByTestId('intro-voice-button')).toBeNull();
@@ -114,19 +115,19 @@ describe('OfficeDirectory', () => {
     expect(screen.getAllByText(lindaLine).length).toBe(1);
   });
 
-  it('auto-introduces colleagues by voice, then clocks in', async () => {
+  it('auto-introduces colleagues by voice, then begins day one', async () => {
     renderDirectory({ showChip: false });
     fireEvent.click(screen.getByRole('button', { name: 'Meet the team →' }));
     await waitFor(() => expect(playMock).toHaveBeenCalled());
 
     await waitFor(
       () => {
-        expect(screen.getByRole('button', { name: /Clock in/ })).toBeTruthy();
+        expect(screen.getByRole('button', { name: /Begin Day One/i })).toBeTruthy();
       },
       { timeout: 4000 }
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Clock in/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Begin Day One/i }));
     expect(readOfficeDirectorySeen()).toBe(true);
     expect(getOfficeDirectoryUi().open).toBe(false);
   });

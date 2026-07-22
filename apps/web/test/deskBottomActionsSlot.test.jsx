@@ -73,6 +73,12 @@ function baseProps(overrides = {}) {
 describe('DeskBottomActionsSlot empty canvas', () => {
   afterEach(() => cleanup());
 
+  it('shows assignment starters on an empty canvas', () => {
+    render(<DeskBottomActionsSlot {...baseProps()} />);
+    expect(screen.getByTestId('topic-starters')).toBeTruthy();
+    expect(screen.getByTitle('Break down the global coffee supply chain')).toBeTruthy();
+  });
+
   it('submits the work order without a separate format strip', async () => {
     let deskPrompt = '';
     const handleDeskPromptSubmit = vi.fn();
