@@ -47,6 +47,8 @@ function reportUsage(onUsage, payload) {
  * non-user line (walk-bys/meetings are the spoken surfaces — emails stay
  * silent). When synthesis actually speaks, pacing follows the voice; when it
  * returns spoken:false (muted / unavailable), the reading-pace timer is used.
+ * Optional `prefetchBeat(beat)` warms cloud TTS for the next line while the
+ * current speaker is still talking so hand-offs feel tighter.
  *
  * States: null → 'joining' → 'playing' → 'ended' (completed or left early),
  * or 'cancelled' when the script fetch fails (OfficeLayer converts that into
@@ -59,6 +61,7 @@ export function useMeetingPlayback({
   getSvgRoot,
   onUsage,
   narrateBeat,
+  prefetchBeat,
   narrationGapMs,
   onCancelNarration
 }) {
@@ -70,6 +73,7 @@ export function useMeetingPlayback({
     getSvgRoot,
     onUsage,
     narrateBeat,
+    prefetchBeat,
     narrationGapMs,
     onCancelNarration
   });
@@ -81,6 +85,7 @@ export function useMeetingPlayback({
       getSvgRoot,
       onUsage,
       narrateBeat,
+      prefetchBeat,
       narrationGapMs,
       onCancelNarration
     };
@@ -156,6 +161,14 @@ export function useMeetingPlayback({
     }
   }, []);
 
+  const prefetchUpcomingBeat = useCallback(() => {
+    const prefetch = paramsRef.current.prefetchBeat;
+    if (typeof prefetch !== 'function') return;
+    const upcoming = pendingBeatsRef.current[0];
+    if (!upcoming || upcoming.speakerId === MEETING_USER_SPEAKER) return;
+    prefetch(upcoming);
+  }, []);
+
   const scheduleNextBeat = useCallback(
     (generation) => {
       clearTimer();
@@ -176,6 +189,7 @@ export function useMeetingPlayback({
         // speak it, then advance — falls back to the reading-pace delay when
         // synthesis is muted/unavailable (narrateBeat returns spoken:false).
         pendingBeatsRef.current = pendingBeatsRef.current.slice(1);
+        prefetchUpcomingBeat();
         applyMeeting((prev) => {
           if (!prev || prev.state !== 'playing') return prev;
           return { ...prev, transcript: [...prev.transcript, nextBeat] };
@@ -189,7 +203,7 @@ export function useMeetingPlayback({
             spoken = false;
           }
           if (generation !== generationRef.current) return;
-          const waitMs = spoken ? (paramsRef.current.narrationGapMs ?? 400) : beatDelayMs(nextBeat);
+          const waitMs = spoken ? (paramsRef.current.narrationGapMs ?? 180) : beatDelayMs(nextBeat);
           timerRef.current = setTimeout(() => {
             timerRef.current = null;
             if (generation !== generationRef.current) return;
@@ -210,7 +224,7 @@ export function useMeetingPlayback({
         scheduleNextBeat(generation);
       }, beatDelayMs(nextBeat));
     },
-    [clearTimer, applyMeeting]
+    [clearTimer, applyMeeting, prefetchUpcomingBeat]
   );
 
   const startMeeting = useCallback(
@@ -245,9 +259,10 @@ export function useMeetingPlayback({
       applyMeeting((prev) =>
         prev ? { ...prev, state: 'playing', title: script.title || prev.title } : prev
       );
+      prefetchUpcomingBeat();
       scheduleNextBeat(generation);
     },
-    [clearTimer, diagramContext, postJson, scheduleNextBeat, applyMeeting]
+    [clearTimer, diagramContext, postJson, scheduleNextBeat, applyMeeting, prefetchUpcomingBeat]
   );
 
   const interject = useCallback(
@@ -296,9 +311,10 @@ export function useMeetingPlayback({
           ...remainingBeats
         ];
       }
+      prefetchUpcomingBeat();
       scheduleNextBeat(generation);
     },
-    [clearTimer, diagramContext, postJson, scheduleNextBeat, applyMeeting]
+    [clearTimer, diagramContext, postJson, scheduleNextBeat, applyMeeting, prefetchUpcomingBeat]
   );
 
   const leaveMeeting = useCallback(() => {

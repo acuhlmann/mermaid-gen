@@ -53,8 +53,73 @@ export const OFFICE_VOICE_PROFILES = {
   cfo: { pitch: 0.88, rate: 0.9, volume: 0.78 }
 };
 
-/** Gap after a spoken line before the next speaker starts. */
-export const OFFICE_NARRATION_GAP_MS = 400;
+/** Brief breath between speakers in sequential dialogue (meetings, battles, coffee). */
+export const OFFICE_NARRATION_GAP_MS = 180;
+
+/** @type {Map<string, Promise<OfficeCloudAudio | null>>} */
+const cloudPrefetchCache = new Map();
+
+function cloudPrefetchKey(speakerId, text, lang) {
+  return `${lang ?? ''}\0${speakerId}\0${text}`;
+}
+
+/**
+ * Warm cloud TTS for an upcoming line while the current speaker is still
+ * talking. `speakOfficeLine` consumes and removes matching entries.
+ *
+ * @param {{
+ *   speakerId?: string,
+ *   text?: string,
+ *   lang?: string,
+ *   fetchCloudAudio?: (args: { speakerId: string, text: string, lang?: string }) =>
+ *     Promise<OfficeCloudAudio | null | undefined>
+ * }} opts
+ */
+export function prefetchOfficeLine({ speakerId = '', text = '', lang, fetchCloudAudio } = {}) {
+  if (typeof fetchCloudAudio !== 'function') return;
+  const cleaned = sanitizeOfficeNarrationText(text);
+  if (!cleaned) return;
+  for (const chunk of chunkOfficeNarrationText(cleaned)) {
+    const key = cloudPrefetchKey(speakerId, chunk, lang);
+    if (cloudPrefetchCache.has(key)) continue;
+    cloudPrefetchCache.set(
+      key,
+      Promise.resolve(fetchCloudAudio({ speakerId, text: chunk, lang })).catch(() => null)
+    );
+  }
+}
+
+export function clearOfficeNarrationPrefetch() {
+  cloudPrefetchCache.clear();
+}
+
+/**
+ * @param {string} speakerId
+ * @param {string} chunk
+ * @param {string | undefined} lang
+ * @param {(args: { speakerId: string, text: string, lang?: string }) =>
+ *   Promise<OfficeCloudAudio | null | undefined>} fetchCloudAudio
+ * @returns {Promise<OfficeCloudAudio | null | undefined>}
+ */
+async function resolveCloudAudio(speakerId, chunk, lang, fetchCloudAudio) {
+  const key = cloudPrefetchKey(speakerId, chunk, lang);
+  const prefetched = cloudPrefetchCache.get(key);
+  if (prefetched) {
+    cloudPrefetchCache.delete(key);
+    try {
+      const audio = await prefetched;
+      if (audio?.audioBase64) return audio;
+    } catch {
+      // Fall through to a live fetch.
+    }
+  }
+  if (typeof fetchCloudAudio !== 'function') return null;
+  try {
+    return await fetchCloudAudio({ speakerId, text: chunk, lang });
+  } catch {
+    return null;
+  }
+}
 
 /** @type {((result: OfficeSpeakResult) => void) | null} */
 let pendingResolve = null;
@@ -153,6 +218,7 @@ function stopActiveAudio() {
  */
 export function cancelOfficeNarration(globalObj = globalThis) {
   speakGeneration += 1;
+  clearOfficeNarrationPrefetch();
   try {
     globalObj.speechSynthesis?.cancel();
   } catch {
@@ -344,7 +410,7 @@ export async function speakOfficeLine({
 
     if (typeof fetchCloudAudio === 'function') {
       try {
-        const cloud = await fetchCloudAudio({ speakerId, text: chunk, lang });
+        const cloud = await resolveCloudAudio(speakerId, chunk, lang, fetchCloudAudio);
         if (generation !== speakGeneration) {
           return { spoken: spokeAny, cancelled: true };
         }

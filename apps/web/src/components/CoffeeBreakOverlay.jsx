@@ -17,14 +17,23 @@ export const COFFEE_LINE_PACE_MS = 2200;
  * COFFEE_BREAK_DURATION_MS. Accepting is worth a small work-life-balance
  * XP nudge (wired by OfficeLayer via onAccept/onDone).
  */
-export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone, narrateLine }) {
+export default function CoffeeBreakOverlay({
+  coffee,
+  onAccept,
+  onDecline,
+  onDone,
+  narrateLine,
+  prefetchLine
+}) {
   const accepted = Boolean(coffee?.accepted);
   const coffeeId = coffee?.id ?? null;
   const lineCount = coffee?.lines?.length ?? 0;
   const [visibleLines, setVisibleLines] = useState(lineCount);
   const narrateRef = useRef(narrateLine);
+  const prefetchRef = useRef(prefetchLine);
   useEffect(() => {
     narrateRef.current = narrateLine;
+    prefetchRef.current = prefetchLine;
   });
 
   useEffect(() => {
@@ -49,6 +58,8 @@ export default function CoffeeBreakOverlay({ coffee, onAccept, onDecline, onDone
         if (cancelled) return;
         setVisibleLines(index + 1);
         const line = coffee.lines[index];
+        const nextLine = coffee.lines[index + 1];
+        if (nextLine) prefetchRef.current?.(nextLine);
         let spoken = false;
         try {
           const result = await narrateRef.current?.(line);
