@@ -757,7 +757,7 @@ export const CONTROLS_EN_AU = {
       live: 'Live activity',
       issue: 'Run issue',
       stopped: 'Run stopped',
-      activity: 'Run activity'
+      activity: 'Run summary'
     },
     headline: {
       working: 'Cracking on…',

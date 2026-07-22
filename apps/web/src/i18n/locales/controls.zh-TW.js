@@ -719,7 +719,7 @@ export const CONTROLS_ZH_TW = {
       live: '即時活動',
       issue: '執行問題',
       stopped: '執行已停止',
-      activity: '執行活動'
+      activity: '執行摘要'
     },
     headline: {
       working: '處理中…',

@@ -7,11 +7,12 @@
   --timeline-green: #1f9d68;
   --timeline-amber: #d97706;
   --timeline-rail: rgba(102, 87, 232, 0.22);
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.55rem;
 }
 
-/* ---------- Overview header ---------- */
+/* ---------- Run summary (after the track) ---------- */
 
 .run-timeline-overview {
   position: relative;
@@ -29,6 +30,11 @@
   box-shadow:
     0 12px 25px rgba(23, 18, 47, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.run-timeline-overview.is-summary {
+  order: 1;
+  margin-top: 0.15rem;
 }
 
 .run-timeline-overview::after {
@@ -112,13 +118,8 @@
   line-height: 1.2;
 }
 
-.run-timeline-run-cost.is-header {
+.run-timeline-run-cost.is-summary {
   width: fit-content;
-}
-
-.run-timeline-run-cost.is-footer {
-  margin-top: 0.08rem;
-  font-size: 0.64rem;
 }
 
 .run-timeline-run-cost-label {
@@ -134,10 +135,6 @@
   font-size: 0.82rem;
   font-weight: 850;
   font-variant-numeric: tabular-nums;
-}
-
-.run-timeline-run-cost.is-footer .run-timeline-run-cost-value {
-  font-size: 0.76rem;
 }
 
 .run-timeline-total {
@@ -727,20 +724,6 @@
   display: grid;
   gap: 0.08rem;
   min-width: 0;
-}
-
-.run-timeline-terminal .run-timeline-run-cost {
-  border-color: rgba(31, 157, 104, 0.22);
-  background: rgba(236, 253, 245, 0.92);
-  color: #065f46;
-}
-
-.run-timeline-terminal .run-timeline-run-cost-label {
-  color: rgba(6, 95, 70, 0.72);
-}
-
-.run-timeline-terminal .run-timeline-run-cost-value {
-  color: #047857;
 }
 
 .run-timeline-terminal .run-timeline-node {

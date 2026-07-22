@@ -811,7 +811,7 @@ export const CONTROLS_EN = {
       live: 'Live activity',
       issue: 'Run issue',
       stopped: 'Run stopped',
-      activity: 'Run activity'
+      activity: 'Run summary'
     },
     headline: {
       working: 'Working…',

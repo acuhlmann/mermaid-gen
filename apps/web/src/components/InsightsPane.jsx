@@ -431,19 +431,18 @@ function useElapsedNow(running) {
   return now;
 }
 
+/**
+ * Mode + brain chips for an entry. Elapsed/total duration lives once in the
+ * run-timeline summary (and the sticky live-meta clock while a run is open) —
+ * not again here.
+ */
 function EntryRunMeta({ entry }) {
   const { controls } = useUiCopy();
   const modeMeta = contentTypeMeta(controls);
   const brainMetaMap = modelProfileMeta(controls);
   const contentMeta = entry?.contentType ? modeMeta[entry.contentType] : null;
   const brainMeta = entry?.modelProfile ? brainMetaMap[entry.modelProfile] : null;
-  const startedAt = Number.isFinite(entry?.startedAt) ? entry.startedAt : null;
-  const completedAt = Number.isFinite(entry?.completedAt) ? entry.completedAt : null;
-  const isRunning = startedAt != null && completedAt == null;
-  const now = useElapsedNow(isRunning);
-  const elapsedMs = startedAt == null ? null : (completedAt ?? now) - startedAt;
-  const elapsedLabel = elapsedMs != null ? formatElapsedDuration(elapsedMs) : '';
-  if (!contentMeta && !brainMeta && !elapsedLabel) return null;
+  if (!contentMeta && !brainMeta) return null;
   return (
     <div className="insights-entry-meta" aria-label={controls.insights.runDetails}>
       {contentMeta ? (
@@ -467,18 +466,6 @@ function EntryRunMeta({ entry }) {
           </span>
           <span>{brainMeta.label}</span>
         </span>
-      ) : null}
-      {elapsedLabel ? (
-        <time
-          className={`insights-entry-meta-chip is-time${isRunning ? ' is-running' : ''}`}
-          dateTime={startedAt != null ? new Date(startedAt).toISOString() : undefined}
-          title={isRunning ? controls.insights.elapsedTime : controls.insights.totalTime}
-        >
-          <span className="insights-entry-meta-emoji" aria-hidden="true">
-            ⏱️
-          </span>
-          <span>{elapsedLabel}</span>
-        </time>
       ) : null}
     </div>
   );

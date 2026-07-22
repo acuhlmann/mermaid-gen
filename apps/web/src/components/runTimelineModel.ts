@@ -462,7 +462,7 @@ export function runKicker(runStatus: RunStatus, copy?: RunTimelineCopy): string 
   if (runStatus === 'running') return copy?.kicker?.live ?? 'Live activity';
   if (runStatus === 'failed') return copy?.kicker?.issue ?? 'Run issue';
   if (runStatus === 'cancelled') return copy?.kicker?.stopped ?? 'Run stopped';
-  return copy?.kicker?.activity ?? 'Run activity';
+  return copy?.kicker?.activity ?? 'Run summary';
 }
 
 export function runHeadline({

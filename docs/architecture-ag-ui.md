@@ -101,11 +101,11 @@ All `/api/copilotkit/*` routes use this resolver. The web client persists a UUID
 
 ## What the web renders (Gen UI surface)
 
-Every progress signal below lands on the **unified run timeline** ([`RunTimeline.tsx`](../apps/web/src/components/RunTimeline.tsx)) inside a Thinking-pane entry: phases become timed segments, and plan beats, tool calls, model turns, and fixer passes interleave chronologically inside them. The streamed response renders as the timeline's final segment.
+Every progress signal below lands on the **unified run timeline** ([`RunTimeline.tsx`](../apps/web/src/components/RunTimeline.tsx)) inside a Thinking-pane entry: phases become timed segments, and plan beats, tool calls, model turns, and fixer passes interleave chronologically inside them. The streamed response renders near the end of the track; a single **run-activity summary** (totals, cost, stat chips) follows so wrap-up metrics are not duplicated at the top.
 
 | Stream data | AG-UI mechanism | Web consumer |
 | --------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| Status line | `CUSTOM(status)` | Pinned "Now" strip + live sublabel on the active timeline segment |
+| Status line | `CUSTOM(status)` | Pinned "Now" strip in the Thinking pane header |
 | Diagram intent (why) | `CUSTOM(plan_beat)` | Beat cards on the run timeline (+ latest beat in status strip) |
 | Streaming prose | `TEXT_MESSAGE_*` | Response segment of the run timeline (critique / explain text) |
 | Run phases | `STEP_STARTED` / `STEP_FINISHED` | Timeline segments with per-phase live durations |
@@ -114,7 +114,7 @@ Every progress signal below lands on the **unified run timeline** ([`RunTimeline
 | Live diagram while patching | `STATE_DELTA` `/mermaid                      | infographic/draftSource` | Draft preview on canvas |
 | Patch stats | `STATE_DELTA` revision + `/lastPatchSummary` | Lines-changed bar on the matching patch step |
 | Critique checkboxes | `CUSTOM(a2ui)` | [`CritiqueA2uiSurface.jsx`](../apps/web/src/components/CritiqueA2uiSurface.jsx) — see [`architecture-a2ui.md`](architecture-a2ui.md) |
-| Final diagram | `STATE_SNAPSHOT` + `RUN_FINISHED` | `diagramStore` applies revision; timeline shows the terminal row with total time |
+| Final diagram | `STATE_SNAPSHOT` + `RUN_FINISHED` | `diagramStore` applies revision; timeline ends with a Done row, then the run-activity summary (total time + cost once) |
 
 External agents do **not** consume this stream; they use MCP + MCP Apps ([`architecture-generative-ui.md`](architecture-generative-ui.md)).
 
