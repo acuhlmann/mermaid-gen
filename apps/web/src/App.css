@@ -14126,22 +14126,29 @@ body.slopitect-rainbow-tint::before {
   );
 }
 
-/* Mobile / foldable: anchor the drawer menu to its trigger (right-aligned). */
+/* Mobile / foldable: the menu is portaled to document.body (see DeskDrawer.jsx) so it
+   escapes .app-shell overflow and the bottom-chrome GPU layer. Inline styles set the
+   viewport anchor; these rules handle width and readable wrapping. */
+.desk-drawer-menu--portaled {
+  top: auto;
+  right: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-inline-size: min(
+    17.5rem,
+    calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
+  );
+}
+
 @media (max-width: 1024px) {
-  .desk-actions-menu.desk-drawer-menu {
-    position: absolute;
-    left: auto;
-    right: 0;
-    bottom: calc(100% + 0.45rem);
-    width: fit-content;
-    min-inline-size: min(
-      12.5rem,
-      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
-    );
-    max-inline-size: min(
-      17.5rem,
-      calc(100vw - 1rem - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px))
-    );
+  .prompt-actions--mobile .desk-chrome-tool,
+  .prompt-actions--mobile .desk-drawer {
+    overflow: visible;
+  }
+
+  .desk-drawer-menu--portaled .desk-actions-item {
+    white-space: normal;
   }
 }
 
