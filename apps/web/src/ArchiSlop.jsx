@@ -1380,28 +1380,14 @@ ${requirementsBlock}`;
     reportAdvisorUsage
   });
 
-  const {
-    showEntryDeskIntro,
-    showEntryDeskPointers,
-    showDeskChrome,
-    entryTourStep,
-    entryReveal,
-    deskDrawerTourOpen,
-    dismissEntryDeskPointers,
-    advanceEntryTour,
-    handleEntryModePick,
-    modeRevealActive,
-    dismissModeReveal,
-    handleModeRevealPick
-  } = useEntryDeskFlow({
-    hasCanvasContent,
-    hasDiagramText,
-    insightsOpen,
-    stakeholderIntroProps,
-    editorOpen,
-    hasInteractedRef,
-    handleSelectContentMode
-  });
+  const { showDeskChrome, entryReveal, modeRevealActive, dismissModeReveal, handleModeRevealPick } =
+    useEntryDeskFlow({
+      hasDiagramText,
+      insightsOpen,
+      stakeholderIntroProps,
+      editorOpen,
+      handleSelectContentMode
+    });
 
   const showEmptyCanvas =
     !hasCanvasContent &&
@@ -2190,7 +2176,7 @@ ${requirementsBlock}`;
             thinkingOpen={insightsOpen}
             playChime={tryAgentSound}
             runSignal={officeRunSignal}
-            deskActionsAnchorReady={entryReveal.desk && (hasCanvasContent || showEntryDeskIntro)}
+            deskActionsAnchorReady={entryReveal.desk}
             deskMenuInitialOpen={false}
             deskActionsLayoutKey={narrowLayout ? 'mobile' : 'desktop'}
           />
@@ -2272,17 +2258,12 @@ ${requirementsBlock}`;
               <DeskBottomActionsSlot
                 hasCanvasContent={hasCanvasContent}
                 insightsOpen={insightsOpen}
-                showEntryDeskIntro={showEntryDeskIntro}
-                showEntryDeskPointers={showEntryDeskPointers}
-                entryTourStep={entryTourStep}
                 entryReveal={entryReveal}
-                deskDrawerTourOpen={deskDrawerTourOpen}
                 narrowLayout={narrowLayout}
                 busy={busy}
                 loading={loading}
                 streamingPreview={streamingPreview}
                 controls={controls}
-                userName={userName}
                 contentMode={contentMode}
                 contentModeOptions={contentModeOptions}
                 deskSlotRef={deskSlotRef}
@@ -2300,9 +2281,6 @@ ${requirementsBlock}`;
                 handleMicPointerDown={handleMicPointerDown}
                 handleMicPointerUp={handleMicPointerUp}
                 stopVoiceInput={stopVoiceInput}
-                dismissEntryDeskPointers={dismissEntryDeskPointers}
-                advanceEntryTour={advanceEntryTour}
-                handleEntryModePick={handleEntryModePick}
                 runTransform={runTransform}
                 runAnalyze={runAnalyze}
                 advisor={advisor}
@@ -2319,7 +2297,6 @@ ${requirementsBlock}`;
                 handleClearDiagram={handleClearDiagram}
                 onToggleThinking={() => setInsightsOpen((v) => !v)}
                 canToggleThinking
-                onPickStarterTopic={handleStarterPick}
               />
             }
             aiControls={

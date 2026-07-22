@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   readOfficeDirectorySeen,
-  writeDayOneBadgeSeen
+  writeDayOneBadgeSeen,
+  writeEntryDeskIntroSeen
 } from '../../utils/officeAmbienceStorage.js';
 import { OFFICE_CANVAS_GRACE_MS } from '../../utils/officeCanvasGrace.js';
 
@@ -17,6 +18,7 @@ export function useOfficeBoot({ hasCanvasContent }) {
   const handleOfficeBootComplete = useCallback(() => {
     setOfficeBootPending(false);
     writeDayOneBadgeSeen();
+    writeEntryDeskIntroSeen();
     setOfficeCanvasGrace(true);
   }, []);
 

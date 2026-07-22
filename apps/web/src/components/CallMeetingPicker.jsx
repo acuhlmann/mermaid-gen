@@ -109,7 +109,7 @@ export default function CallMeetingPicker({
     <FloatingWindow
       id="call-meeting-picker"
       open={open}
-      group="officeChrome"
+      group="officeModal"
       className="office-meeting-picker"
       defaultCorner="top-center"
       defaultOffsetX={16}

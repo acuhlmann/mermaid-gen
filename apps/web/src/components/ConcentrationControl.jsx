@@ -15,6 +15,7 @@ export default function ConcentrationControl({
   const { controls } = useUiCopy();
   const narrowLayout = useNarrowLayout();
   const iconOnly = compact || (variant === 'header' && narrowLayout);
+  const segmentCompact = compact && variant === 'header';
   const settingsCopy = controls.settings;
   const rootClass = ['concentration-control', `concentration-control--${variant}`, className]
     .filter(Boolean)
@@ -49,7 +50,7 @@ export default function ConcentrationControl({
           aria-pressed={modelProfile === 'fast'}
           onClick={() => onSelectModelProfile?.('fast')}
         >
-          {settingsCopy.fast}
+          {segmentCompact ? (settingsCopy.fastShort ?? settingsCopy.fast) : settingsCopy.fast}
         </button>
         <button
           type="button"
@@ -57,7 +58,9 @@ export default function ConcentrationControl({
           aria-pressed={modelProfile === 'quality'}
           onClick={() => onSelectModelProfile?.('quality')}
         >
-          {settingsCopy.quality}
+          {segmentCompact
+            ? (settingsCopy.qualityShort ?? settingsCopy.quality)
+            : settingsCopy.quality}
         </button>
       </div>
     </div>

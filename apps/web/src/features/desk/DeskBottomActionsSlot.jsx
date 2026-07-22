@@ -1,10 +1,7 @@
-import EntryDeskIntro from '../../components/EntryDeskIntro.jsx';
-import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
 import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
-import TopicStarters from '../../components/TopicStarters.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
 function DeskPeopleCluster({
@@ -200,26 +197,19 @@ function DeskChromeRow({
 }
 
 /**
- * Bottom-row desk actions: empty-state entry desk tour and canvas chrome.
- * Empty canvas uses the same Work order · Your Team · Desk tray end-state row;
- * first-run only adds a stepped coach tour that opens the real desk tray for format.
+ * Bottom-row desk actions: Work order, team, notebook, and desk tray chrome.
  *
  * @param {object} props
  */
 export function DeskBottomActionsSlot({
   hasCanvasContent,
   insightsOpen,
-  showEntryDeskIntro,
-  showEntryDeskPointers,
-  entryTourStep = null,
   entryReveal = null,
-  deskDrawerTourOpen = false,
   narrowLayout,
   busy,
   loading,
   streamingPreview,
   controls,
-  userName,
   contentMode,
   contentModeOptions,
   deskSlotRef,
@@ -237,9 +227,6 @@ export function DeskBottomActionsSlot({
   handleMicPointerDown,
   handleMicPointerUp,
   stopVoiceInput,
-  dismissEntryDeskPointers,
-  advanceEntryTour,
-  handleEntryModePick,
   runTransform,
   runAnalyze,
   advisor,
@@ -255,8 +242,7 @@ export function DeskBottomActionsSlot({
   handleFixFromCritique,
   handleClearDiagram,
   onToggleThinking,
-  canToggleThinking = true,
-  onPickStarterTopic
+  canToggleThinking = true
 }) {
   const reveal = entryReveal ?? {
     workOrder: true,
@@ -265,7 +251,6 @@ export function DeskBottomActionsSlot({
     notebook: true,
     drawer: true
   };
-  const tourCopy = controls.prompt.entryTour ?? {};
   const layoutClass = narrowLayout ? 'prompt-actions--mobile' : 'prompt-actions--desktop';
 
   const chromeProps = {
@@ -306,52 +291,21 @@ export function DeskBottomActionsSlot({
     onCallMeeting,
     contentModeOptions,
     contentMode,
-    onPickMode: showEntryDeskIntro ? handleEntryModePick : handleSelectContentMode,
+    onPickMode: handleSelectContentMode,
     latestCritique,
     canFixFromCritique,
     handleFixFromCritique,
     handleClearDiagram,
     loading,
     streamingPreview,
-    deskDrawerTourOpen,
-    tourHighlight: showEntryDeskPointers ? entryTourStep : null
+    deskDrawerTourOpen: false,
+    tourHighlight: null
   };
 
   if (!hasCanvasContent && !insightsOpen) {
     return (
-      <div
-        className={`entry-desk-integrated${showEntryDeskIntro ? ' entry-desk-tour-reveal' : ''}`}
-        data-tour-step={entryTourStep ?? ''}
-      >
-        {showEntryDeskIntro && entryTourStep === 'welcome' ? (
-          <EntryDeskIntro
-            copy={controls.prompt.entryIntro}
-            userName={userName}
-            role={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole}
-          />
-        ) : null}
-        {showEntryDeskPointers && entryTourStep && entryTourStep !== 'welcome' ? (
-          <EntryDeskPointers
-            pointers={controls.prompt.entryPointers}
-            activeId={entryTourStep}
-            onDismiss={dismissEntryDeskPointers}
-            onAdvance={advanceEntryTour}
-            nextLabel={tourCopy.next ?? 'Next'}
-            skipLabel={tourCopy.skip ?? 'Skip'}
-          />
-        ) : null}
-        {reveal.workOrder ? (
-          <div className={`prompt-actions prompt-actions--entry-desk ${layoutClass}`}>
-            <TopicStarters
-              hint={controls.prompt.starterHint}
-              ariaLabel={controls.prompt.starterAria}
-              starters={controls.prompt.starters}
-              busy={busy || loading || streamingPreview}
-              onPick={onPickStarterTopic}
-            />
-            <DeskChromeRow {...chromeProps} />
-          </div>
-        ) : null}
+      <div className={`prompt-actions prompt-actions--entry-desk ${layoutClass}`}>
+        <DeskChromeRow {...chromeProps} />
       </div>
     );
   }

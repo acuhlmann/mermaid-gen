@@ -7,6 +7,11 @@ import {
   WIDE_MOBILE_MEDIA_QUERY
 } from '../utils/layoutBreakpoints.js';
 
+function readInlineSize(entry) {
+  const size = entry?.contentBoxSize?.[0]?.inlineSize ?? entry?.contentRect?.width ?? 0;
+  return typeof size === 'number' ? size : 0;
+}
+
 function useMatchMedia(query) {
   const [matches, setMatches] = useState(
     () =>
@@ -55,4 +60,28 @@ export function useFoldableDualScreen() {
  */
 export function useCompactBrandLayout() {
   return useMatchMedia(COMPACT_BRAND_MEDIA_QUERY);
+}
+
+/** True when a measured element's inline size is below the given pixel threshold. */
+export function useElementNarrow(ref, maxWidthPx) {
+  const [narrow, setNarrow] = useState(false);
+
+  useEffect(() => {
+    const el = ref?.current;
+    if (!el || typeof ResizeObserver === 'undefined') return undefined;
+
+    const sync = (width) => {
+      setNarrow(width > 0 && width < maxWidthPx);
+    };
+
+    const ro = new ResizeObserver((entries) => {
+      sync(readInlineSize(entries[0]));
+    });
+    ro.observe(el);
+    sync(el.getBoundingClientRect().width);
+
+    return () => ro.disconnect();
+  }, [ref, maxWidthPx]);
+
+  return narrow;
 }
