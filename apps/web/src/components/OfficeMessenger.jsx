@@ -147,6 +147,8 @@ export default function OfficeMessenger({
   onMarkRead,
   onSend,
   onMessageSomeone,
+  onCallMeeting,
+  canCallMeeting = false,
   busy = false
 }) {
   const chat = officeChromeCopy().messenger;
@@ -187,6 +189,29 @@ export default function OfficeMessenger({
       <div className="office-messenger-titlebar">
         <span className="office-messenger-title">{chat.title}</span>
         <span className="office-messenger-tagline">{chat.tagline}</span>
+        {typeof onCallMeeting === 'function' ? (
+          <button
+            type="button"
+            className="office-messenger-call-meeting"
+            disabled={!canCallMeeting}
+            title={
+              !canCallMeeting
+                ? chat.callMeetingDisabledTitle
+                : activeId
+                  ? chat.callMeetingTitle
+                  : chat.callMeetingNoThreadTitle
+            }
+            onClick={() =>
+              onCallMeeting?.({
+                seedAttendees: activeId ? [activeId] : [],
+                source: 'chat',
+                forceFacilitator: Boolean(activeId)
+              })
+            }
+          >
+            {activeId ? chat.callMeeting : chat.callMeetingNoThread}
+          </button>
+        ) : null}
         <button
           type="button"
           className="office-messenger-close"

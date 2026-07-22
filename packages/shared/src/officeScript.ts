@@ -45,8 +45,10 @@ export type MeetingBeatKind = z.infer<typeof MeetingBeatKindSchema>;
 export const MEETING_BEAT_TEXT_MAX_CHARS = 280;
 export const MEETING_MIN_BEATS = 6;
 export const MEETING_MAX_BEATS = 14;
-export const MEETING_MIN_ATTENDEES = 3;
-export const MEETING_MAX_ATTENDEES = 4;
+/** Floor for a huddle (1:1 + facilitator, or two peers). */
+export const MEETING_MIN_ATTENDEES = 2;
+/** Ceiling for a pulled-together group (route + client roster share this). */
+export const MEETING_MAX_ATTENDEES = 8;
 
 /** One utterance in a WG meeting. */
 export const MeetingBeatSchema = z.object({

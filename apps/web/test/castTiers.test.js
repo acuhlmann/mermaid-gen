@@ -3,6 +3,7 @@ import { CAST_TIERS, tierOf } from '../src/utils/castTiers.js';
 import {
   MEETING_FACILITATOR,
   MEETING_PRESENTER_POOL,
+  MEETING_ROSTER_MAX,
   MEETING_SENIOR_POOL,
   OFFICE_COLLEAGUES,
   OFFICE_EMAIL_LLM_CAST,
@@ -11,7 +12,9 @@ import {
   SENIOR_EMAIL_TEMPLATES,
   SENIOR_STAKEHOLDERS,
   buildMeetingAttendeesFromColleagues,
+  listMeetingDirectory,
   meetingTopicFromEmailSubjects,
+  normalizeMeetingRoster,
   officeSenderInfo,
   pickMeetingAttendees
 } from '../src/utils/officeCast.js';
@@ -89,6 +92,43 @@ describe('buildMeetingAttendeesFromColleagues', () => {
     const seats = buildMeetingAttendeesFromColleagues(['intern', 'greybeard', 'intern']);
     expect(seats[0]).toBe(MEETING_FACILITATOR);
     expect(seats).toEqual(['scrumMaster', 'intern', 'greybeard']);
+  });
+
+  it('pads a single invitee so the huddle meets the seat floor', () => {
+    const seats = buildMeetingAttendeesFromColleagues([]);
+    expect(seats[0]).toBe(MEETING_FACILITATOR);
+    expect(seats.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('normalizeMeetingRoster', () => {
+  it('caps at eight and can skip forcing Pam for a true huddle', () => {
+    const many = normalizeMeetingRoster([
+      'intern',
+      'greybeard',
+      'facilities',
+      'hr',
+      'helpdesk',
+      'refine',
+      'critique',
+      'explain',
+      'exec'
+    ]);
+    expect(many[0]).toBe('scrumMaster');
+    expect(many.length).toBe(MEETING_ROSTER_MAX);
+    expect(normalizeMeetingRoster(['intern'], { forceFacilitator: false })).toEqual([
+      'intern',
+      'refine'
+    ]);
+  });
+});
+
+describe('listMeetingDirectory', () => {
+  it('lists every tier so the picker can grab anyone', () => {
+    const rows = listMeetingDirectory();
+    expect(rows.some((row) => row.id === 'facilities' && row.tier === 'office')).toBe(true);
+    expect(rows.some((row) => row.id === 'exec' && row.tier === 'senior')).toBe(true);
+    expect(rows.some((row) => row.id === 'refine' && row.tier === 'team')).toBe(true);
   });
 });
 

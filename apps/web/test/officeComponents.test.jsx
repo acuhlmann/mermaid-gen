@@ -2,10 +2,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import CoffeeBreakOverlay from '../src/components/CoffeeBreakOverlay.jsx';
+import CallMeetingPicker from '../src/components/CallMeetingPicker.jsx';
 import MeetingInviteToast from '../src/components/MeetingInviteToast.jsx';
 import MeetingOverlay from '../src/components/MeetingOverlay.jsx';
 import OfficeImPing from '../src/components/OfficeImPing.jsx';
 import OfficeInboxDock from '../src/components/OfficeInboxDock.jsx';
+import OfficeMessenger from '../src/components/OfficeMessenger.jsx';
 
 afterEach(() => {
   cleanup();
@@ -117,8 +119,9 @@ describe('OfficeInboxDock', () => {
     fireEvent.click(screen.getByRole('button', { name: /1 unread/ }));
     fireEvent.click(screen.getByRole('button', { name: /Call a meeting \(1\)/ }));
     expect(onCallMeeting).toHaveBeenCalledWith({
-      attendees: ['scrumMaster', 'facilities'],
-      topic: 'FRIDGE CLEANOUT FRIDAY'
+      seedAttendees: ['facilities'],
+      topic: 'FRIDGE CLEANOUT FRIDAY',
+      source: 'email'
     });
   });
 
@@ -142,8 +145,9 @@ describe('OfficeInboxDock', () => {
     fireEvent.click(screen.getByRole('checkbox', { name: /Select email from Pam/i }));
     fireEvent.click(screen.getByRole('button', { name: /Call a meeting \(2\)/ }));
     expect(onCallMeeting).toHaveBeenCalledWith({
-      attendees: ['scrumMaster', 'facilities'],
-      topic: 'FRIDGE CLEANOUT FRIDAY; Story-point your diagram'
+      seedAttendees: ['facilities', 'scrumMaster'],
+      topic: 'FRIDGE CLEANOUT FRIDAY; Story-point your diagram',
+      source: 'email'
     });
   });
 
@@ -166,8 +170,9 @@ describe('OfficeInboxDock', () => {
     fireEvent.click(screen.getByText('FRIDGE CLEANOUT FRIDAY'));
     fireEvent.click(screen.getByRole('button', { name: /Call a meeting about this email/i }));
     expect(onCallMeeting).toHaveBeenCalledWith({
-      attendees: ['scrumMaster', 'facilities'],
-      topic: 'FRIDGE CLEANOUT FRIDAY'
+      seedAttendees: ['facilities'],
+      topic: 'FRIDGE CLEANOUT FRIDAY',
+      source: 'email'
     });
   });
 
@@ -221,6 +226,80 @@ describe('OfficeInboxDock', () => {
     expect(toggle.checked).toBe(true);
     fireEvent.click(toggle);
     expect(onToggleNarration).toHaveBeenCalledWith(false);
+  });
+});
+
+describe('CallMeetingPicker', () => {
+  it('seeds senders, applies a quick group, and confirms a normalized roster', () => {
+    const onConfirm = vi.fn();
+    render(
+      <CallMeetingPicker
+        open
+        seedAttendees={['facilities']}
+        topic="FRIDGE CLEANOUT FRIDAY"
+        source="email"
+        onConfirm={onConfirm}
+        onCancel={vi.fn()}
+      />
+    );
+    expect(screen.getByDisplayValue('FRIDGE CLEANOUT FRIDAY')).toBeTruthy();
+    expect(screen.getByText(/From your inbox/i)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Your team' }));
+    fireEvent.click(screen.getByRole('button', { name: /Start meeting|Start huddle/ }));
+    expect(onConfirm).toHaveBeenCalled();
+    const payload = onConfirm.mock.calls[0][0];
+    expect(payload.attendees[0]).toBe('scrumMaster');
+    expect(payload.attendees).toEqual(
+      expect.arrayContaining(['refine', 'innovate', 'goMad', 'critique', 'explain'])
+    );
+    expect(payload.topic).toBe('FRIDGE CLEANOUT FRIDAY');
+  });
+
+  it('lets the user cancel without starting', () => {
+    const onCancel = vi.fn();
+    render(
+      <CallMeetingPicker
+        open
+        seedAttendees={['intern']}
+        source="chat"
+        onConfirm={vi.fn()}
+        onCancel={onCancel}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Never mind' }));
+    expect(onCancel).toHaveBeenCalled();
+  });
+});
+
+describe('OfficeMessenger call-to-talk', () => {
+  it('seeds the active thread into the meeting picker', () => {
+    const onCallMeeting = vi.fn();
+    render(
+      <OfficeMessenger
+        open
+        messages={[
+          {
+            id: 'im-1',
+            colleagueId: 'intern',
+            body: 'quick question',
+            createdAt: 1,
+            read: true,
+            outbound: false
+          }
+        ]}
+        onClose={vi.fn()}
+        onMarkRead={vi.fn()}
+        onSend={vi.fn()}
+        onCallMeeting={onCallMeeting}
+        canCallMeeting
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /Call to talk/i }));
+    expect(onCallMeeting).toHaveBeenCalledWith({
+      seedAttendees: ['intern'],
+      source: 'chat',
+      forceFacilitator: true
+    });
   });
 });
 

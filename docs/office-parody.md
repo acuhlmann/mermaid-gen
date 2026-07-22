@@ -255,7 +255,7 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 | 📓 Open your notebook       | Toggles the Thinking / insights pane — Your seat; replaces the old Thinking board label                                                                                                                                                                                                               |
 | 🎚️ Concentration            | Rush job / Deep work segment on Your seat (was Brain Fast/Quality in Settings). Wire value unchanged: `modelProfile: "fast" \| "quality"`                                                                                                                                                             |
 | 👥 Talk to your team        | `advisor.promptNext({})` — in the **Your Team** roster menu (not the desk stamp). Disabled (in-fiction `blocked.noTeam`) on a blank canvas or while streaming/thinking. Explicit click clears Focus Time mute and ambient backoffs so the verb never silently no-ops when the roundtable _can_ speak. |
-| 📅 Call a meeting           | Same handler as the inbox's shortcut — also in the **Your Team** roster menu                                                                                                                                                                                                                          |
+| 📅 Call a meeting           | Opens the people/group picker (same as inbox / Slop Chat) — also in the **Your Team** roster menu                                                                                                                                                                                                     |
 | 📥 Check your mail          | Opens the inbox popover (`openSignal` counter prop)                                                                                                                                                                                                                                                   |
 | 📤 Ship from the Outbox     | Opens the headless Outbox export/share panel (`openSignal`) — no dedicated bottom-row icon                                                                                                                                                                                                            |
 | 💬 Open Slop Chat / Message | Messenger history / DM a teammate or colleague                                                                                                                                                                                                                                                        |
@@ -284,9 +284,20 @@ LLM-moment paths live there, so a desk verb and an ambient moment resolve conten
 
 ## 5. The WG meeting system (flagship)
 
-**Invite** (cadence-driven, max 1/session) or **"Call a meeting"** button in the inbox dock →
-**meeting room overlay**: avatar row with speaking highlight, transcript bubbles pacing in,
-"Raise hand ✋" input, leave button, and a **minutes card** at the end.
+**Invite** (cadence-driven, max 1/session) or **"Call a meeting"** (inbox, Slop Chat, or Your
+Team) → **people/group picker** → **meeting room overlay**: avatar row with speaking highlight,
+transcript bubbles pacing in, "Raise hand ✋" input, leave button, and a **minutes card** at the
+end.
+
+Calling a meeting works like grabbing people on a real floor:
+
+- **Inbox** — select one or more emails (or open one) → picker opens seeded with those senders and
+  the subject(s) as the topic; add or drop anyone before starting.
+- **Slop Chat™** — "Call to talk" on the active thread seeds that colleague (Pam still facilitates
+  the room); open the roster with no thread to grab a group cold.
+- **Your Team / desk** — empty picker with quick groups: Your team, Steering, The floor, Leadership.
+- **Ambient calendar invite** — still accepts straight into the room (no picker); roster stays the
+  steering draw from `pickMeetingAttendees`.
 
 - **One LLM call generates the whole beat script** (`POST /api/office/meeting`, `scriptVersion: 1`);
   the client paces playback beat-by-beat so it feels live. Join latency hides behind an in-fiction
@@ -297,12 +308,12 @@ LLM-moment paths live there, so a desk verb and an ambient moment resolve conten
   (derailments: tangents, fridge politics, war stories), `substantive` (a concrete diagram idea
   with an `actionPrompt`). Server enforces: 6–14 beats, ≥1 substantive, speakers from the attendee
   list only, facilitator opens and closes.
-- **Attendees**: 3–4 seats, drawn as a **steering committee** (`pickMeetingAttendees`) — Pam always
-  facilitates, 1–2 **senior stakeholders** from {`exec`, `ciso`, `cto`, `cfo`} outrank the room, and
-  exactly one **team presenter** from {`refine`, `critique`, `explain`} walks the deck upstairs. The
-  showrunner prompt tells the seniors to ask for the headline, the cost, and the risk while the
+- **Attendees**: user-picked roster via `CallMeetingPicker` / `normalizeMeetingRoster` (2–8 seats;
+  Pam facilitates by default). Ambient invites and the **Steering** preset still draw a
+  **steering committee** (`pickMeetingAttendees`) — Pam + 1–2 seniors + one team presenter. The
+  showrunner prompt tells seniors to ask for the headline, the cost, and the risk while the
   presenter defends the diagram. Server-side the seat allowlist is `isOfficeSpeaker`
-  (`officePersonas.js`), which now spans colleagues + stakeholders + `SENIOR_MEETING_VOICES`.
+  (`officePersonas.js`), which spans colleagues + stakeholders + `SENIOR_MEETING_VOICES`.
 - **Interjections**: the user speaks up to 2× per meeting; `POST /api/office/meeting/interject`
   rewrites only the remaining beats to react to the user's point. On failure, Pam parks the point
   ("Great point — parking-lotting that.") and the meeting rolls on.
@@ -310,10 +321,9 @@ LLM-moment paths live there, so a desk verb and an ambient moment resolve conten
   attributed note (origin "📅 WG Meeting") with per-item "Do it" buttons. Surviving a full meeting
   is +25 XP and an achievement; leaving early is +5 XP and zero judgment (some judgment).
 
-Roadmap: user-picked attendees, recurring meeting series with memory ("as discussed last sync"),
-the escalation ladder (WG → steering committee → CAB hearing, each stricter and less useful; CAB
-approval unlocks an achievement), and the all-hands (CEO cameo, everyone attends, nothing is
-decided, confetti).
+Roadmap: recurring meeting series with memory ("as discussed last sync"), the escalation ladder
+(WG → steering committee → CAB hearing, each stricter and less useful; CAB approval unlocks an
+achievement), and the all-hands (CEO cameo, everyone attends, nothing is decided, confetti).
 
 ## 6. Cadence & cost policy
 
@@ -397,9 +407,10 @@ model?}`.
   `{beats: MeetingBeat[] | null, usage?, model?}`.
 
 `attendees` accepts any id that passes `isOfficeSpeaker` — colleagues, stakeholders, and (since the
-tier split) the senior execs. No shared-schema change was needed: `speakerId`/`colleagueId` are
-plain strings and the allowlist is the trust boundary. Producer is the client's
-`pickMeetingAttendees`; consumer is `normalizeAttendees`.
+tier split) the senior execs. Seat bounds are **2–8** (`MEETING_MIN_ATTENDEES` /
+`MEETING_MAX_ATTENDEES` in `packages/shared`). Producer is the client's `CallMeetingPicker` →
+`normalizeMeetingRoster` (ambient invites still use `pickMeetingAttendees`); consumer is
+`normalizeAttendees`.
 
 The session-events bus is **not involved in v1** (client-driven request/response, no second
 consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started` event types (per
@@ -429,7 +440,7 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | Cast tiers (team / senior / office)                                    | `apps/web/src/utils/castTiers.js`                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Day One entry framing                                                  | `apps/web/src/components/DayOneBadge.jsx` + attributed `controls.prompt.starters` (`TopicStarters.jsx`)                                                                                                                                                                                                                                                                                                                                  |
 | Meeting playback state machine                                         | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                                                                                                                                                                                                                                                                                               |
-| Chrome                                                                 | `apps/web/src/components/OfficeLayer.jsx` (+ `DeskActionsDock`, `OfficeInboxDock`, `OfficeImPing`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                                                                                  |
+| Chrome                                                                 | `apps/web/src/components/OfficeLayer.jsx` (+ `DeskActionsDock`, `OfficeInboxDock`, `OfficeImPing`, `OfficeMessenger`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `CallMeetingPicker`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                                          |
 | Office XP reducer                                                      | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                       |
 | Minutes → Thinking pane                                                | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                               |
 | SFX                                                                    | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape cues (`playKeyboardClatter` / `playMouseClicks` / `playPaperShuffle` / `playDistantPrinter` / `playChairSqueak` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine` / `playVendingMachine` / `playElevatorDing`) in `apps/web/src/utils/agentChimes.js` |
