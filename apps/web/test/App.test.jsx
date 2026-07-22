@@ -652,6 +652,7 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   });
 
   it('clears to an empty diagram instead of seeded sample', async () => {
+    window.localStorage.setItem('archislop:entry-desk-intro-seen', '1');
     render(<App />);
     await waitForControlsReady();
     // Shredder lives inside the Desk tray now.
@@ -671,6 +672,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
         })
       )
     );
+
+    await waitFor(() => expect(screen.getByTestId('entry-example')).toBeTruthy());
+    expect(screen.getByTestId('topic-starters')).toBeTruthy();
   });
 
   it('does not let cached diagram source override URL session server state on load', async () => {

@@ -16078,6 +16078,14 @@ body.slopitect-rainbow-tint::before {
   --z-office-modal: 240;
 }
 
+/* Empty canvas guidance — sample card centered above bottom chrome. */
+.empty-canvas-slot {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
 /* --- Draggable floating window shell --- */
 .floating-window {
   position: fixed;

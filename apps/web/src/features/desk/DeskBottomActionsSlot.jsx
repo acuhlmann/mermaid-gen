@@ -4,6 +4,7 @@ import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
+import TopicStarters from '../../components/TopicStarters.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
 function DeskPeopleCluster({
@@ -254,7 +255,8 @@ export function DeskBottomActionsSlot({
   handleFixFromCritique,
   handleClearDiagram,
   onToggleThinking,
-  canToggleThinking = true
+  canToggleThinking = true,
+  onPickStarterTopic
 }) {
   const reveal = entryReveal ?? {
     workOrder: true,
@@ -340,6 +342,13 @@ export function DeskBottomActionsSlot({
         ) : null}
         {reveal.workOrder ? (
           <div className={`prompt-actions prompt-actions--entry-desk ${layoutClass}`}>
+            <TopicStarters
+              hint={controls.prompt.starterHint}
+              ariaLabel={controls.prompt.starterAria}
+              starters={controls.prompt.starters}
+              busy={busy || loading || streamingPreview}
+              onPick={onPickStarterTopic}
+            />
             <DeskChromeRow {...chromeProps} />
           </div>
         ) : null}
