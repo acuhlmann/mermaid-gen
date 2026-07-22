@@ -13849,6 +13849,20 @@ body.slopitect-rainbow-tint::before {
   gap: 0.35rem;
 }
 
+.concentration-control-label--icon-only {
+  margin-inline-end: 0;
+}
+
+.concentration-control--header .concentration-control-label--icon-only {
+  flex: 0 0 auto;
+}
+
+.concentration-control--header
+  .concentration-control-label--icon-only
+  .concentration-control-emoji {
+  font-size: 0.95rem;
+}
+
 .concentration-control-label {
   display: inline-flex;
   align-items: center;

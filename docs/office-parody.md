@@ -268,9 +268,11 @@ desk verb — first-visit boot and the level panel's "Meet the team" CTA cover t
 (inbox) mutes office interruptions only — desk verbs still bypass it.
 
 **Gating differs from the ambient director on purpose.** Verbs skip the random scheduler and
-**bypass Focus Time** (it mutes interruptions, not your own initiative), but still respect
-one-surface-at-a-time, an open meeting, and a streaming agent run. Blocked verbs stay visible and
-disabled with an in-fiction tooltip ("Deploy in progress — nobody leaves their desk."), so the menu
+**bypass Focus Time** (it mutes interruptions, not your own initiative). Coffee and walk the floor
+also bypass a streaming agent run — you can step away from a deliverable in progress (colleagues may
+comment on your diagram if you wander). Other verbs still respect one-surface-at-a-time, an open
+meeting, and a streaming agent run. Blocked verbs stay visible and disabled with an in-fiction
+tooltip ("Deploy in progress — nobody leaves their desk." for deliverable-tied verbs), so the menu
 never silently no-ops.
 
 **Budget.** Verb-triggered LLM calls have their own cap (`DESK_LLM_CAP` = 3/session) and never

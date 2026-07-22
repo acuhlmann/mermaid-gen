@@ -1,4 +1,5 @@
 import { useUiCopy } from '../i18n/useUiLocale.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 
 /**
  * Fast / quality model profile toggle — shared by the desk menu footer and the
@@ -12,6 +13,8 @@ export default function ConcentrationControl({
   className = ''
 }) {
   const { controls } = useUiCopy();
+  const narrowLayout = useNarrowLayout();
+  const iconOnly = compact || (variant === 'header' && narrowLayout);
   const settingsCopy = controls.settings;
   const rootClass = ['concentration-control', `concentration-control--${variant}`, className]
     .filter(Boolean)
@@ -25,10 +28,16 @@ export default function ConcentrationControl({
       title={settingsCopy.concentrationTitle ?? settingsCopy.brain}
       data-testid="concentration-control"
     >
-      {compact ? null : (
+      {iconOnly ? (
+        <span className="concentration-control-label concentration-control-label--icon-only">
+          <span className="concentration-control-emoji" aria-hidden="true">
+            🧠
+          </span>
+        </span>
+      ) : (
         <span className="concentration-control-label">
           <span className="concentration-control-emoji" aria-hidden="true">
-            🎚️
+            🧠
           </span>
           {settingsCopy.brain}
         </span>

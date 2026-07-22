@@ -132,13 +132,19 @@ describe('DeskActionsDock', () => {
   });
 
   it('disables verbs with an in-fiction reason while blocked, but never inbox, contractor, or HR', () => {
-    open({ blockedReason: 'meeting' });
+    open({ blockedReason: 'meeting', ambientBlockedReason: 'meeting' });
     const coffee = screen.getByRole('menuitem', { name: /Get a coffee/ });
     expect(coffee.disabled).toBe(true);
     expect(coffee.getAttribute('title')).toMatch(/in a meeting/i);
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).disabled).toBe(false);
     expect(screen.getByRole('menuitem', { name: /Onboard a contractor/ }).disabled).toBe(false);
     expect(screen.getByRole('menuitem', { name: /Check my HR progression/ }).disabled).toBe(false);
+  });
+
+  it('keeps coffee and walk available while a deliverable streams', () => {
+    open({ blockedReason: 'busy', ambientBlockedReason: null });
+    expect(screen.getByRole('menuitem', { name: /Get a coffee/ }).disabled).toBe(false);
+    expect(screen.getByRole('menuitem', { name: /Walk the floor/ }).disabled).toBe(false);
   });
 
   it('blocks Outbox when there is nothing to ship', () => {

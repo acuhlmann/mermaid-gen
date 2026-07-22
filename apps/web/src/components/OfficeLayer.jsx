@@ -458,6 +458,7 @@ export default function OfficeLayer({
       onOpenOutbox={onOpenOutbox}
       onInviteAgent={onInviteAgent}
       blockedReason={desk.blockedReason}
+      ambientBlockedReason={desk.ambientBlockedReason}
       canOpenOutbox={canOpenOutbox}
       initialOpen={deskMenuInitialOpen}
       modelProfile={modelProfile}
