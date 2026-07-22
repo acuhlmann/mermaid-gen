@@ -36,13 +36,7 @@ import { isConcreteContentMode } from '../../utils/renderModeAction.js';
  *   freshlyMintedSessionIdsRef: import('react').MutableRefObject<Set<string>>;
  *   sessionIdFromUrlRef: import('react').MutableRefObject<boolean>;
  *   sessionTopicRef: import('react').MutableRefObject<string | null>;
- *   previousContentModeRef: import('react').MutableRefObject<string>;
- *   sourceRevisionAtViewRef: import('react').MutableRefObject<Record<string, number>>;
- *   leavingSlotSnapshotRef: import('react').MutableRefObject<Record<string, object>>;
- *   crossModeSyncRef: import('react').MutableRefObject<object>;
- *   suppressNextModeSwitchRerunRef: import('react').MutableRefObject<boolean>;
- *   skipHydrateOnceRef: import('react').MutableRefObject<boolean>;
- *   pendingRenderModeRequestRef: import('react').MutableRefObject<object | null>;
+ *   modeSwitch: import('./useContentModeSwitch.js').ContentModeSwitchRefs;
  *   stateRef: import('react').MutableRefObject<object>;
  *   promptRef: import('react').MutableRefObject<string>;
  *   loadingRef: import('react').MutableRefObject<boolean>;
@@ -71,13 +65,7 @@ export function useSessionHydrate({
   freshlyMintedSessionIdsRef,
   sessionIdFromUrlRef,
   sessionTopicRef,
-  previousContentModeRef,
-  sourceRevisionAtViewRef,
-  leavingSlotSnapshotRef,
-  crossModeSyncRef,
-  suppressNextModeSwitchRerunRef,
-  skipHydrateOnceRef,
-  pendingRenderModeRequestRef,
+  modeSwitch,
   stateRef,
   promptRef,
   loadingRef,
@@ -99,6 +87,16 @@ export function useSessionHydrate({
   setModelProfile,
   setContentMode
 }) {
+  const {
+    previousContentModeRef,
+    sourceRevisionAtViewRef,
+    leavingSlotSnapshotRef,
+    crossModeSyncRef,
+    suppressNextModeSwitchRerunRef,
+    skipHydrateOnceRef,
+    pendingRenderModeRequestRef
+  } = modeSwitch;
+
   const [sessionHydrated, setSessionHydrated] = useState(false);
 
   // Let the cold-start gate dismiss only after the shell has painted real UI.
