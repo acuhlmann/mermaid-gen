@@ -24,6 +24,7 @@ export default function DeskActionsDock({
   onOpenOutbox,
   onInviteAgent,
   blockedReason = null,
+  ambientBlockedReason = null,
   canOpenOutbox = false,
   unreadCount = 0,
   imUnreadCount = 0,
@@ -51,6 +52,9 @@ export default function DeskActionsDock({
   }, [open]);
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
+  const ambientBlockedTitle = ambientBlockedReason
+    ? (copy.blocked?.[ambientBlockedReason] ?? null)
+    : null;
 
   const deskVerbs = [
     {
@@ -80,8 +84,8 @@ export default function DeskActionsDock({
       title: copy.slopChatTitle,
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
     },
-    { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor },
-    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee },
+    { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor, ambient: true },
+    { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee, ambient: true },
     {
       id: 'contractor',
       label: copy.onboardContractor,
@@ -103,11 +107,13 @@ export default function DeskActionsDock({
   const placementClass = placement === 'bottom' ? ' desk-actions--bottom' : '';
 
   const renderVerb = (verb) => {
-    const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(blockedReason));
+    const verbBlockedReason = verb.ambient ? ambientBlockedReason : blockedReason;
+    const verbBlockedTitle = verb.ambient ? ambientBlockedTitle : blockedTitle;
+    const disabled = verb.disabled || (!verb.alwaysEnabled && Boolean(verbBlockedReason));
     const title = verb.disabled
       ? verb.disabledTitle
       : disabled
-        ? blockedTitle
+        ? verbBlockedTitle
         : (verb.title ?? verb.label);
     return (
       <button

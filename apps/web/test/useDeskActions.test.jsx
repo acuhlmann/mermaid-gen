@@ -127,6 +127,22 @@ describe('useDeskActions', () => {
     expect(getOfficeSnapshot().coffee).toBeTruthy();
   });
 
+  it('runs coffee and walk while a deliverable streams', async () => {
+    const { result } = renderHook(() => useDeskActions({ ...BASE_PARAMS, pause: true }));
+    expect(result.current.blockedReason).toBe('busy');
+    expect(result.current.ambientBlockedReason).toBeNull();
+    await act(async () => {
+      await result.current.getCoffee();
+    });
+    expect(getOfficeSnapshot().coffee).toBeTruthy();
+    _resetForTests();
+    const walk = renderHook(() => useDeskActions({ ...BASE_PARAMS, pause: true }));
+    await act(async () => {
+      await walk.result.current.walkTheFloor();
+    });
+    expect(Boolean(getOfficeSnapshot().walkBy || getOfficeSnapshot().coffee)).toBe(true);
+  });
+
   it('refuses to stack a second surface, and reports why', async () => {
     pushOfficeWalkBy({ colleagueId: 'intern', body: 'nice boxes' });
     const { result } = renderHook(() => useDeskActions(BASE_PARAMS));

@@ -43,8 +43,9 @@ export const DESK_IM_CAST = [
  *
  * Gating differs from the ambient director on purpose: verbs **bypass Focus
  * Time** (it mutes interruptions, not your own initiative) and skip the random
- * scheduler entirely, but still respect one-surface-at-a-time, an open
- * meeting, and a streaming agent run. They stamp `lastFiredAt` so the ambient
+ * scheduler entirely. Coffee and walk also bypass a streaming agent run — you
+ * can step away from deliverables (colleagues may comment). Other verbs still
+ * respect one-surface-at-a-time, an open meeting, and a streaming agent run.
  * director backs off afterwards, but never spend its session caps.
  *
  * @param {{
@@ -89,6 +90,17 @@ export function useDeskActions(params) {
     return null;
   }, []);
 
+  /**
+   * Gating for ambient desk verbs (coffee, walk) that are independent of canvas
+   * deliverables — you can step away while a run streams; colleagues may comment.
+   */
+  const ambientBlockedReason = useCallback(() => {
+    const p = paramsRef.current;
+    if (p.meetingActive) return 'meeting';
+    if (hasActiveOfficeSurface()) return 'surface';
+    return null;
+  }, []);
+
   const deliveryOptions = useCallback(
     (extra = {}) => ({
       memory: memory(),
@@ -99,8 +111,10 @@ export function useDeskActions(params) {
   );
 
   const runVerb = useCallback(
-    async (fn) => {
-      if (busyRef.current || blockedReason()) return false;
+    async (fn, { bypassPause = false } = {}) => {
+      if (busyRef.current) return false;
+      const reason = bypassPause ? ambientBlockedReason() : blockedReason();
+      if (reason) return false;
       busyRef.current = true;
       try {
         return await fn();
@@ -109,18 +123,21 @@ export function useDeskActions(params) {
         if (memoryRef.current) writeOfficeCadenceMemory(memoryRef.current);
       }
     },
-    [blockedReason]
+    [ambientBlockedReason, blockedReason]
   );
 
   /** Walk to the machine yourself — no invite pill, you're already standing there. */
   const getCoffee = useCallback(
     () =>
-      runVerb(() => {
-        const ctx = readSlotContext(paramsRef.current, random);
-        const delivered = deliverCannedMoment('coffee', ctx, deliveryOptions());
-        if (delivered) acceptOfficeCoffee();
-        return delivered;
-      }),
+      runVerb(
+        () => {
+          const ctx = readSlotContext(paramsRef.current, random);
+          const delivered = deliverCannedMoment('coffee', ctx, deliveryOptions());
+          if (delivered) acceptOfficeCoffee();
+          return delivered;
+        },
+        { bypassPause: true }
+      ),
     [deliveryOptions, random, runVerb]
   );
 
@@ -131,34 +148,37 @@ export function useDeskActions(params) {
    */
   const walkTheFloor = useCallback(
     () =>
-      runVerb(async () => {
-        const p = paramsRef.current;
-        const ctx = readSlotContext(p, random);
-        const hasDiagram = Boolean((p.getDiagramSource?.() ?? '').trim());
-        if (!hasDiagram) {
-          const scene = random() < 0.5 || !canOfferOfficeBattle() ? 'coffee' : 'battle';
-          const delivered = deliverCannedMoment(scene, ctx, deliveryOptions());
-          if (delivered) p.onOfficeEvent?.('walkedFloor');
+      runVerb(
+        async () => {
+          const p = paramsRef.current;
+          const ctx = readSlotContext(p, random);
+          const hasDiagram = Boolean((p.getDiagramSource?.() ?? '').trim());
+          if (!hasDiagram) {
+            const scene = random() < 0.5 || !canOfferOfficeBattle() ? 'coffee' : 'battle';
+            const delivered = deliverCannedMoment(scene, ctx, deliveryOptions());
+            if (delivered) p.onOfficeEvent?.('walkedFloor');
+            return delivered;
+          }
+          let delivered = false;
+          if (deskLlmCountRef.current < DESK_LLM_CAP) {
+            delivered = await deliverLlmMoment(
+              'walkby',
+              ctx,
+              deliveryOptions({
+                sessionId: p.getSessionId?.() ?? '',
+                onUsage: (usage) => paramsRef.current.onUsage?.(usage),
+                onLlmSpent: () => {
+                  deskLlmCountRef.current += 1;
+                }
+              })
+            );
+          }
+          if (!delivered) delivered = deliverCannedMoment('walkby', ctx, deliveryOptions());
+          if (delivered) paramsRef.current.onOfficeEvent?.('walkedFloor');
           return delivered;
-        }
-        let delivered = false;
-        if (deskLlmCountRef.current < DESK_LLM_CAP) {
-          delivered = await deliverLlmMoment(
-            'walkby',
-            ctx,
-            deliveryOptions({
-              sessionId: p.getSessionId?.() ?? '',
-              onUsage: (usage) => paramsRef.current.onUsage?.(usage),
-              onLlmSpent: () => {
-                deskLlmCountRef.current += 1;
-              }
-            })
-          );
-        }
-        if (!delivered) delivered = deliverCannedMoment('walkby', ctx, deliveryOptions());
-        if (delivered) paramsRef.current.onOfficeEvent?.('walkedFloor');
-        return delivered;
-      }),
+        },
+        { bypassPause: true }
+      ),
     [deliveryOptions, random, runVerb]
   );
 
@@ -237,9 +257,11 @@ export function useDeskActions(params) {
       callMeeting,
       talkToTeam,
       blockedReason: blockedReason(),
+      ambientBlockedReason: ambientBlockedReason(),
       unreadCount: snapshot.unreadCount
     }),
     [
+      ambientBlockedReason,
       blockedReason,
       callMeeting,
       checkInbox,
