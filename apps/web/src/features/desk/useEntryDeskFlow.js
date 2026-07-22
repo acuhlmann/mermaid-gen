@@ -53,9 +53,9 @@ export function useEntryDeskFlow({
 
   const showEntryDeskIntro = !hasCanvasContent && !insightsOpen && !entryDeskIntroSeen;
   const showEntryDeskPointers = showEntryDeskIntro && entryTourStep != null;
-  // Always mount the desk stamp on the empty canvas and when content exists —
-  // the empty fallback used to hide Your desk / Team / Desk tray.
-  const showDeskChrome = !insightsOpen;
+  // Keep the desk helmet on the bottom row even when the notebook is open —
+  // concentration lives in the Thinking header instead of relocating Your desk.
+  const showDeskChrome = true;
 
   const revealedFrom = (step) => {
     if (!showEntryDeskIntro) return true;

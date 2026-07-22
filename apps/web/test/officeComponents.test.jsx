@@ -99,6 +99,29 @@ describe('OfficeInboxDock', () => {
     expect(screen.getByRole('button', { name: /Call a meeting/ }).disabled).toBe(true);
   });
 
+  it('calls a meeting with a single email without requiring a checkbox tap', () => {
+    const onCallMeeting = vi.fn();
+    render(
+      <OfficeInboxDock
+        emails={[EMAILS[0]]}
+        unreadCount={1}
+        focusTime={false}
+        onToggleFocusTime={vi.fn()}
+        onMarkRead={vi.fn()}
+        onMarkAllRead={vi.fn()}
+        onAdoptPrompt={vi.fn()}
+        onCallMeeting={onCallMeeting}
+        canCallMeeting
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /1 unread/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Call a meeting \(1\)/ }));
+    expect(onCallMeeting).toHaveBeenCalledWith({
+      attendees: ['scrumMaster', 'facilities'],
+      topic: 'FRIDGE CLEANOUT FRIDAY'
+    });
+  });
+
   it('calls a meeting with selected email senders and subjects', () => {
     const onCallMeeting = vi.fn();
     render(
