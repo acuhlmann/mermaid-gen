@@ -65,6 +65,16 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(props.onMicToggleClick).not.toHaveBeenCalled();
   });
 
+  it('enables mobile keyboard suggestions on the desk work order input', () => {
+    renderPrompt({ layout: 'desk', narrowLayout: true });
+    const input = screen.getByLabelText(/Work order/i);
+    expect(input.getAttribute('autocomplete')).toBe('on');
+    expect(input.getAttribute('autocorrect')).toBe('on');
+    expect(input.getAttribute('inputmode')).toBe('text');
+    expect(input.getAttribute('spellcheck')).not.toBe('false');
+    expect(input.getAttribute('name')).toBe('work-order');
+  });
+
   it('does not scroll the page when the desk input is focused', () => {
     const scrollIntoView = vi.fn();
     const focus = vi.fn();
