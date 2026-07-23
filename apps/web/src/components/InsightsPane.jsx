@@ -1212,7 +1212,7 @@ export default function InsightsPane({
                 onClick={() => onToggleEditor()}
               >
                 <span className="insights-pane-tool-emoji" aria-hidden="true">
-                  🍝
+                  {'</>'}
                 </span>
                 <span className="insights-pane-tool-label">
                   {editorOpen

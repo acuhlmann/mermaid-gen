@@ -2,7 +2,6 @@ import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
-import ConcentrationControl from '../../components/ConcentrationControl.jsx';
 import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
@@ -87,8 +86,6 @@ function DeskChromeRow({
   thinkingOpen,
   onToggleThinking,
   canToggleThinking = true,
-  modelProfile = 'fast',
-  onSelectModelProfile,
   goMadStreak,
   controls,
   runTransform,
@@ -162,14 +159,6 @@ function DeskChromeRow({
             skipLabel={entryTourCopy?.skip}
           />
         ) : null}
-        <div className="desk-work-order-concentration">
-          <ConcentrationControl
-            variant="footer"
-            modelProfile={modelProfile}
-            onSelectModelProfile={onSelectModelProfile}
-            compact
-          />
-        </div>
         <SlopNextPrompt
           layout="desk"
           prompt={deskPrompt}
@@ -333,8 +322,6 @@ export function DeskBottomActionsSlot({
   handleClearDiagram,
   onToggleThinking,
   canToggleThinking = true,
-  modelProfile = 'fast',
-  onSelectModelProfile,
   entryTourActive = false,
   entryTourStep = null,
   entryTourProgress = null,
@@ -378,8 +365,6 @@ export function DeskBottomActionsSlot({
     thinkingOpen: insightsOpen,
     onToggleThinking,
     canToggleThinking,
-    modelProfile,
-    onSelectModelProfile,
     goMadStreak,
     controls,
     runTransform,

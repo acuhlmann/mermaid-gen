@@ -27,7 +27,7 @@ export const IM_PING_MAX_VISIBLE = 2;
  * this is ambience, not a compliance archive.
  */
 export const IM_HISTORY_MAX = 60;
-export const WALKBY_TTL_MS = 11_000;
+export const WALKBY_TTL_MS = 24_000;
 /** After the user walks away from a battle, hold off the next invite. */
 export const OFFICE_BATTLE_REENTRY_COOLDOWN_MS = 90_000;
 

@@ -14018,46 +14018,13 @@ body.slopitect-rainbow-tint::before {
   width: 100%;
 }
 
-/* Work Order: concentration dial above the persistent prompt. */
+/* Work Order footer: legacy hook — concentration lives in the desk helmet menu. */
 .concentration-control--footer {
-  flex-direction: row;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0;
-}
-
-.concentration-control--footer .concentration-control-label {
-  flex: 0 0 auto;
-  font-size: 0.62rem;
-  font-weight: 650;
-  white-space: nowrap;
+  padding: 0.15rem 0.35rem 0;
 }
 
 .concentration-control--footer .concentration-control-segment {
-  display: flex;
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: none;
-  gap: 0.12rem;
-}
-
-.concentration-control--footer .concentration-control-option {
-  flex: 1 1 auto;
-  min-width: 0;
-  font-size: 0.62rem;
-  padding: 0.22rem 0.38rem;
-  white-space: nowrap;
-}
-
-.desk-work-order-concentration {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  width: 100%;
-}
-
-.desk-work-order-concentration .concentration-control--footer {
-  width: 100%;
+  max-width: 16rem;
 }
 
 /* Thinking header: inline concentration beside code drawer toggle. */

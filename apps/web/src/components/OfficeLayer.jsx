@@ -132,20 +132,15 @@ export default function OfficeLayer({
       const speakerId = typeof line?.speakerId === 'string' ? line.speakerId : '';
       if (!text || !speakerId) return Promise.resolve({ spoken: false });
       const lang = officeDialogueLocale();
-      return new Promise((resolve) => {
-        let invoked = false;
-        playChime?.(() => {
-          invoked = true;
-          void speakOfficeLine({
-            speakerId,
-            text,
-            lang,
-            fetchCloudAudio
-          }).then(resolve);
-        });
-        queueMicrotask(() => {
-          if (!invoked) resolve({ spoken: false });
-        });
+      // Narration is independent of SFX chimes — the narration toggle controls
+      // speech, not the global soundscape mute. Still prime the audio context
+      // when the sound gate is open so cloud TTS can play on mobile.
+      playChime?.(() => {});
+      return speakOfficeLine({
+        speakerId,
+        text,
+        lang,
+        fetchCloudAudio
       });
     },
     [playChime, fetchCloudAudio]
@@ -275,8 +270,6 @@ export default function OfficeLayer({
       if (snapshot.narration && walkBy?.body) {
         void narrateLine({ speakerId: walkBy.colleagueId, text: walkBy.body });
       }
-    } else if (!walkById && prevWalkByIdRef.current) {
-      cancelOfficeNarration();
     }
     prevWalkByIdRef.current = walkById;
   }, [snapshot.walkBy, snapshot.narration, playChime, narrateLine]);

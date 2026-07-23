@@ -1185,7 +1185,7 @@ export const OFFICE_CHROME_COPY = {
     codeDrawerShort: 'Spaghetti',
     codeDrawerClose: 'Close spaghetti',
     codeDrawerCloseShort: 'Close',
-    codeDrawerTitle: 'Peek at the spaghetti behind the drywall',
+    codeDrawerTitle: 'Peek at the spaghetti code behind the drywall',
     onboardContractor: 'Onboard a contractor',
     onboardContractorTitle: 'Invite an external agent over MCP',
     thinking: 'Open your notebook',

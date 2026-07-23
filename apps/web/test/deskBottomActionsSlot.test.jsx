@@ -118,22 +118,21 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
   });
 
-  it('renders concentration controls in the work order group', () => {
-    const onSelectModelProfile = vi.fn();
+  it('does not render concentration controls on the desk chrome row', () => {
+    const onToggleThinking = vi.fn();
     render(
       <DeskBottomActionsSlot
         {...baseProps({
           hasCanvasContent: true,
-          modelProfile: 'fast',
-          onSelectModelProfile
+          onToggleThinking
         })}
       />
     );
-    expect(screen.getByTestId('concentration-control')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Rush' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Deep' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Deep' }));
-    expect(onSelectModelProfile).toHaveBeenCalledWith('quality');
+    expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
+    expect(screen.queryByTestId('concentration-control')).toBeNull();
+    expect(screen.queryByTestId('desk-concentration-chip')).toBeNull();
+    fireEvent.click(screen.getByTestId('desk-notebook-button'));
+    expect(onToggleThinking).toHaveBeenCalledTimes(1);
   });
 
   it('anchors desk tour pointers on the real chrome row', () => {

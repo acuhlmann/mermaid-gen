@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
-import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 /**
@@ -38,7 +37,6 @@ export default function DeskActionsDock({
   const rootRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-actions-menu', open);
   const copy = officeChromeCopy().desk;
-  const narrowLayout = useNarrowLayout();
 
   useEffect(() => {
     if (initialOpen) setOpen(true);
@@ -172,13 +170,11 @@ export default function DeskActionsDock({
           aria-label={copy.menuAria}
         >
           {deskVerbs.map(renderVerb)}
-          {narrowLayout ? null : (
-            <ConcentrationControl
-              variant="menu"
-              modelProfile={modelProfile}
-              onSelectModelProfile={onSelectModelProfile}
-            />
-          )}
+          <ConcentrationControl
+            variant="menu"
+            modelProfile={modelProfile}
+            onSelectModelProfile={onSelectModelProfile}
+          />
         </div>
       ) : null}
     </div>
