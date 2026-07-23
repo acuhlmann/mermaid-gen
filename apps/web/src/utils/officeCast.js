@@ -1091,7 +1091,8 @@ export const OFFICE_MEETING_COPY = {
   minutesTitle: 'Meeting minutes',
   actionItemsLabel: 'Action items',
   actionItemsCount: '{count} to do',
-  minutesActionLede: 'Tap Do it to turn a line into your next work order.',
+  minutesActionLede:
+    'Check items and tap Do selected, or Do it all to ship every action item to the canvas.',
   minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
   discussionNotesLabel: 'Discussion notes',
   raiseHandPlaceholder: 'Say something to the room… (keep it one-pager)',
@@ -1118,6 +1119,8 @@ export const OFFICE_IM_QUICK_REPLIES = [
  */
 export const OFFICE_CHROME_COPY = {
   doIt: 'Do it',
+  doSelected: 'Do selected',
+  doItAll: 'Do it all',
   directory: {
     title: 'Meet the team',
     tourEyebrow: 'NEW HIRE ORIENTATION™',

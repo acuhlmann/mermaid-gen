@@ -39,3 +39,27 @@ export function buildAdvisorIntentPrompt(suggestionText) {
     `Suggestion: "${trimmed}"`
   ].join('\n');
 }
+
+/**
+ * Batch intent prompt for multiple office action items (meeting minutes, etc.).
+ * @param {string[]} suggestionTexts
+ */
+export function buildOfficeBatchIntentPrompt(suggestionTexts) {
+  const items = (suggestionTexts ?? [])
+    .map((text) =>
+      String(text ?? '')
+        .trim()
+        .slice(0, 400)
+    )
+    .filter(Boolean);
+  if (items.length === 0) return '';
+  if (items.length === 1) return buildAdvisorIntentPrompt(items[0]);
+  const bullets = items.map((text) => `- ${text}`).join('\n');
+  return [
+    'Apply these stakeholder suggestions to the diagram.',
+    'Change only what each suggestion targets; do not rewrite unrelated parts unless required for valid syntax or connectivity.',
+    '',
+    'Suggestions:',
+    bullets
+  ].join('\n');
+}

@@ -17,6 +17,7 @@ import { ThinkingSyntaxCodeBlock } from '../utils/thinkingSyntaxCode';
 import AgentProposalCard from './AgentProposalCard.jsx';
 import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
+import OfficeActionableChecklist from './OfficeActionableChecklist.jsx';
 import ExplainSectionsPanel from './ExplainSectionsPanel';
 import ExplainDumbDownControls from './ExplainDumbDownControls.jsx';
 import RunTimeline, { RunTimelineSummary } from './RunTimeline';
@@ -44,7 +45,7 @@ import {
 } from './insightsPaneEntryUi.js';
 import { ThinkingPanelIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
-import { officeChromeCopy } from '../utils/officeCast.js';
+import { officeChromeCopy, officeMeetingCopy } from '../utils/officeCast.js';
 import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { useElementNarrow } from '../hooks/useAppLayoutMedia.js';
@@ -1092,6 +1093,7 @@ export default function InsightsPane({
   onDismiss,
   onAcceptProposal,
   onRejectProposal,
+  onApplyOfficeActionItems,
   agentReactions = [],
   onApplyStyleEdits,
   styleEditsApplyBusy = false,
@@ -1276,6 +1278,9 @@ export default function InsightsPane({
               );
               const noteVariant = entry.variant ?? 'general';
               const noteAccentuate = isAccentuatedInsightVariant(noteVariant);
+              const officeActionItems = Array.isArray(entry.actionItems)
+                ? entry.actionItems.map((item) => item.text).filter(Boolean)
+                : [];
               return (
                 <div
                   key={entry.id}
@@ -1324,6 +1329,20 @@ export default function InsightsPane({
                       )
                     )}
                   </div>
+                  {officeActionItems.length > 0 ? (
+                    <OfficeActionableChecklist
+                      headingText={officeMeetingCopy().actionItemsLabel}
+                      items={officeActionItems}
+                      busy={retryActionsDisabled}
+                      onApplySelected={(mask) =>
+                        onApplyOfficeActionItems?.(
+                          'selected',
+                          officeActionItems.filter((_, index) => mask[index])
+                        )
+                      }
+                      onApplyAll={() => onApplyOfficeActionItems?.('all', officeActionItems)}
+                    />
+                  ) : null}
                   {noteReactions.length > 0 ? (
                     <div className="insights-entry-note-reactions">
                       {noteReactions.map((r) => (

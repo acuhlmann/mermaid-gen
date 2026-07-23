@@ -50,6 +50,17 @@ export function attributedInsightToInsightEntry(insight) {
  * meeting itself, so InsightsPane needs no office-specific branch.
  */
 export function officeMinutesToInsightEntry({ title, minutes, completed }) {
+  const actionItems = (minutes ?? [])
+    .filter((beat) => beat.actionPrompt)
+    .map((beat) => {
+      const speaker = officeSenderInfo(beat.speakerId);
+      return {
+        text: beat.actionPrompt,
+        speakerId: beat.speakerId,
+        speakerName: speaker.name,
+        context: beat.text !== beat.actionPrompt ? beat.text : undefined
+      };
+    });
   const items = (minutes ?? []).map((beat) => {
     const speaker = officeSenderInfo(beat.speakerId);
     const action = beat.actionPrompt ? ` — _action item:_ ${beat.actionPrompt}` : '';
@@ -70,6 +81,7 @@ export function officeMinutesToInsightEntry({ title, minutes, completed }) {
     statusText: 'Meeting minutes',
     createdAt: new Date().toISOString(),
     content,
+    actionItems,
     origin: {
       kind: 'external-agent',
       agentId: 'office-meeting',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildAdvisorIntentPrompt,
+  buildOfficeBatchIntentPrompt,
   focusNodeFromAdvisorDescriptor,
   resolveAdvisorFocusNode
 } from '../src/utils/advisorActionContext.js';
@@ -30,5 +31,15 @@ describe('advisorActionContext', () => {
     expect(prompt).toContain('stakeholder suggestion');
     expect(prompt).toContain('Rename Cache to Redis');
     expect(prompt).toContain('do not rewrite unrelated');
+  });
+
+  it('batches multiple office action items into one intent prompt', () => {
+    const prompt = buildOfficeBatchIntentPrompt([
+      'Label the Retail node',
+      'Add an owner to Consumption'
+    ]);
+    expect(prompt).toContain('stakeholder suggestions');
+    expect(prompt).toContain('Label the Retail node');
+    expect(prompt).toContain('Add an owner to Consumption');
   });
 });

@@ -93,7 +93,10 @@ import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
 import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
 import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
 import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
-import { buildAdvisorIntentPrompt } from './utils/advisorActionContext.js';
+import {
+  buildAdvisorIntentPrompt,
+  buildOfficeBatchIntentPrompt
+} from './utils/advisorActionContext.js';
 import {
   useCompactBrandLayout,
   useFoldableDualScreen,
@@ -2014,6 +2017,11 @@ ${requirementsBlock}`;
       onDismiss={() => setInsightsOpen(false)}
       onAcceptProposal={handleAcceptProposal}
       onRejectProposal={handleRejectProposal}
+      onApplyOfficeActionItems={(_scope, items) => {
+        const prompt = buildOfficeBatchIntentPrompt(items);
+        if (!prompt) return;
+        void submitIntentWithPrompt(prompt, {});
+      }}
       agentReactions={agentReactions}
       onApplyStyleEdits={handleApplyStyleEdits}
       styleEditsApplyBusy={loading}
@@ -2190,6 +2198,11 @@ ${requirementsBlock}`;
             onUsage={reportAdvisorUsage}
             onAdoptPrompt={(text) => {
               void submitIntentWithPrompt(buildAdvisorIntentPrompt(text), {});
+            }}
+            onAdoptAllPrompts={(prompts) => {
+              const prompt = buildOfficeBatchIntentPrompt(prompts);
+              if (!prompt) return;
+              void submitIntentWithPrompt(prompt, {});
             }}
             onMeetingMinutes={(entry) => setInsightsEntries((prev) => [...prev, entry])}
             onOfficeEvent={handleOfficeEvent}

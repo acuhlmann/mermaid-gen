@@ -86,6 +86,7 @@ export default function OfficeLayer({
   getUserName,
   onUsage,
   onAdoptPrompt,
+  onAdoptAllPrompts,
   onMeetingMinutes,
   onOfficeEvent,
   onCheckHrProgression,
@@ -339,6 +340,14 @@ export default function OfficeLayer({
       onAdoptPrompt?.(prompt, colleagueId);
     },
     [onAdoptPrompt]
+  );
+
+  const handleAdoptAll = useCallback(
+    (prompts) => {
+      dismissOfficeWalkBy();
+      onAdoptAllPrompts?.(prompts);
+    },
+    [onAdoptAllPrompts]
   );
 
   const handleCoffeeDone = useCallback(() => {
@@ -598,6 +607,7 @@ export default function OfficeLayer({
         onLeave={handleMeetingDismiss}
         onClose={handleMeetingDismiss}
         onAdoptPrompt={handleAdopt}
+        onAdoptAllPrompts={handleAdoptAll}
       />
     </div>
   );
