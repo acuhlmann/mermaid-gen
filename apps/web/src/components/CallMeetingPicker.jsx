@@ -111,6 +111,7 @@ export default function CallMeetingPicker({
       open={open}
       group="officeModal"
       className="office-meeting-picker"
+      kind="meeting-picker"
       defaultCorner="top-center"
       defaultOffsetX={16}
       defaultOffsetY={72}

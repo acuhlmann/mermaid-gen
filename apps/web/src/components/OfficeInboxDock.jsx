@@ -158,6 +158,7 @@ export default function OfficeInboxDock({
           open={open}
           group="officeModal"
           className="office-inbox-popover"
+          kind="inbox"
           defaultCorner={showTrigger ? 'top-right' : 'bottom-left'}
           defaultOffsetX={showTrigger ? 14 : 12}
           defaultOffsetY={showTrigger ? 122 : 12}

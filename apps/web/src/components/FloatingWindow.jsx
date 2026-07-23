@@ -20,6 +20,10 @@ const FloatingWindowContext = createContext(null);
  *   defaultOffsetY?: number,
  *   cascade?: number,
  *   storageKey?: string | null,
+ *   title?: string,
+ *   kind?: string,
+ *   senderId?: string | null,
+ *   manageable?: boolean,
  *   style?: import('react').CSSProperties,
  *   onFocusWindow?: () => void
  * } & import('react').HTMLAttributes<HTMLDivElement>} props
@@ -36,12 +40,16 @@ export default function FloatingWindow({
   defaultOffsetY = 96,
   cascade = 0,
   storageKey = null,
+  title,
+  kind,
+  senderId,
+  manageable = true,
   style,
   onFocusWindow,
   onPointerDown,
   ...rest
 }) {
-  const zIndex = useOverlayLayer(id, open, group);
+  const zIndex = useOverlayLayer(id, open, group, { title, kind, senderId, manageable });
   const focusedId = useSyncExternalStore(subscribe, getFocusedOverlayId, getFocusedOverlayId);
   const isFocused = focusedId === id;
 

@@ -120,6 +120,7 @@ export default function OfficeBattleOverlay({
         open
         group="officeChrome"
         className="office-battle-invite"
+        manageable={false}
         defaultCorner="top-center"
         defaultOffsetX={16}
         defaultOffsetY={narrowLayout ? 92 : 76}
