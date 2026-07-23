@@ -19,7 +19,7 @@ import AgentBadge from './AgentBadge.jsx';
 import CritiqueActionablePanel from './CritiqueActionablePanel.jsx';
 import ExplainSectionsPanel from './ExplainSectionsPanel';
 import ExplainDumbDownControls from './ExplainDumbDownControls.jsx';
-import RunTimeline from './RunTimeline';
+import RunTimeline, { RunTimelineSummary } from './RunTimeline';
 import StyleEditsPanel, { stripStyleEditLinesFromContent } from './StyleEditsPanel';
 import { normalizeCritiqueMarkdownForMatch, isLabelExplainGibberishLevel } from '@archislop/shared';
 import { summarizeInsightNowStatus } from '../utils/insightNowStatus.js';
@@ -1179,47 +1179,49 @@ export default function InsightsPane({
           className={`insights-pane-toolbar${compactHeader ? ' is-compact' : ''}`}
           data-testid="insights-pane-header-tools"
         >
-          <ConcentrationControl
-            variant="header"
-            modelProfile={modelProfile}
-            onSelectModelProfile={onSelectModelProfile}
-            compact
-          />
-          {typeof onToggleEditor === 'function' ? (
-            <button
-              type="button"
-              className={`insights-pane-tool-btn${editorOpen ? ' is-active' : ''}`}
-              aria-pressed={editorOpen}
-              disabled={!canToggleEditor}
-              title={
-                canToggleEditor
-                  ? editorOpen
-                    ? deskCopy.codeDrawerClose
-                    : deskCopy.codeDrawerTitle
-                  : deskCopy.blocked?.noCode
-              }
-              data-testid="insights-code-drawer-toggle"
-              onClick={() => onToggleEditor()}
-            >
-              <span className="insights-pane-tool-emoji" aria-hidden="true">
-                {'</>'}
+          <div className="insights-pane-header-brand">
+            <span className="insights-pane-title">{insightsCopy.title}</span>
+            {hasLiveAgent ? (
+              <span className="insights-live-badge" aria-live="polite">
+                <span className="insights-live-dot" aria-hidden="true" />
+                {insightsCopy.live}
               </span>
-              <span className="insights-pane-tool-label">
-                {editorOpen
-                  ? (deskCopy.codeDrawerCloseShort ?? deskCopy.codeDrawerClose)
-                  : (deskCopy.codeDrawerShort ?? deskCopy.codeDrawer)}
-              </span>
-            </button>
-          ) : null}
-        </div>
-        <div className="insights-pane-header-brand">
-          <span className="insights-pane-title">{insightsCopy.title}</span>
-          {hasLiveAgent ? (
-            <span className="insights-live-badge" aria-live="polite">
-              <span className="insights-live-dot" aria-hidden="true" />
-              {insightsCopy.live}
-            </span>
-          ) : null}
+            ) : null}
+          </div>
+          <div className="insights-pane-header-actions">
+            <ConcentrationControl
+              variant="header"
+              modelProfile={modelProfile}
+              onSelectModelProfile={onSelectModelProfile}
+              compact
+            />
+            {typeof onToggleEditor === 'function' ? (
+              <button
+                type="button"
+                className={`insights-pane-tool-btn${editorOpen ? ' is-active' : ''}`}
+                aria-pressed={editorOpen}
+                disabled={!canToggleEditor}
+                title={
+                  canToggleEditor
+                    ? editorOpen
+                      ? deskCopy.codeDrawerClose
+                      : deskCopy.codeDrawerTitle
+                    : deskCopy.blocked?.noCode
+                }
+                data-testid="insights-code-drawer-toggle"
+                onClick={() => onToggleEditor()}
+              >
+                <span className="insights-pane-tool-emoji" aria-hidden="true">
+                  🍝
+                </span>
+                <span className="insights-pane-tool-label">
+                  {editorOpen
+                    ? (deskCopy.codeDrawerCloseShort ?? deskCopy.codeDrawerClose)
+                    : (deskCopy.codeDrawerShort ?? deskCopy.codeDrawer)}
+                </span>
+              </button>
+            ) : null}
+          </div>
         </div>
         {hasLiveAgent && liveEntry?.variant ? (
           <div className="insights-pane-header-meta">
@@ -1559,6 +1561,7 @@ export default function InsightsPane({
                   entry={entry}
                   variant={variant}
                   showRawPhaseIds={!phaseIdsHidden}
+                  deferSummary
                   responseTitle={contentUpdatesTitle(variant, insightsCopy)}
                   responseHead={
                     <h4
@@ -1725,6 +1728,14 @@ export default function InsightsPane({
                     ) : null}
                   </div>
                 ) : null}
+
+                <RunTimelineSummary
+                  entry={entry}
+                  variant={variant}
+                  responseTitle={contentUpdatesTitle(variant, insightsCopy)}
+                  hasResponse={Boolean(displayContent || explainStructured || showLiveDraftPreview)}
+                  responseActive={isRunning && (isStreaming || showLiveDraftPreview)}
+                />
 
                 {streamDebugEnabled && entry.streamDebugLog?.length ? (
                   <details className="insights-stream-debug">

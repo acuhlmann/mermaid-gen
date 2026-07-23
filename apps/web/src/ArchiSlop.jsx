@@ -2329,6 +2329,8 @@ ${requirementsBlock}`;
                 handleClearDiagram={handleClearDiagram}
                 onToggleThinking={() => setInsightsOpen((v) => !v)}
                 canToggleThinking
+                modelProfile={modelProfile}
+                onSelectModelProfile={setModelProfile}
                 entryTourActive={entryTourActive}
                 entryTourStep={entryTourStep}
                 entryTourProgress={entryTourProgress}

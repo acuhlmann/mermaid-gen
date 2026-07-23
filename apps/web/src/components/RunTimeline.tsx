@@ -528,26 +528,20 @@ function TerminalRow({ runStatus }: { runStatus: RunStatus }) {
   );
 }
 
-export default function RunTimeline({
-  entry,
-  variant = 'general',
-  showRawPhaseIds = false,
-  responseTitle = 'Content updates',
-  responseHead = null,
-  hasResponse = false,
-  responseActive = false,
-  children = null
-}: {
-  entry: InsightEntry;
-  variant?: string;
-  showRawPhaseIds?: boolean;
-  responseTitle?: string;
-  /** Custom head (e.g. the accent variant title) rendered instead of `responseTitle`. */
-  responseHead?: ReactNode;
-  hasResponse?: boolean;
-  responseActive?: boolean;
-  children?: ReactNode;
-}) {
+function useRunTimelineView(
+  entry: InsightEntry,
+  {
+    variant = 'general',
+    responseTitle = 'Content updates',
+    responseActive = false,
+    hasResponse = false
+  }: {
+    variant?: string;
+    responseTitle?: string;
+    responseActive?: boolean;
+    hasResponse?: boolean;
+  }
+) {
   const { controls } = useUiCopy();
   const copy = controls.runTimeline;
   const now = useNowTicker((entry.status ?? 'running') === 'running');
@@ -558,6 +552,74 @@ export default function RunTimeline({
     hasResponse,
     now,
     copy: { ...copy, insightsNow: controls.insights?.nowStatus }
+  });
+  return { view, copy, now };
+}
+
+export function RunTimelineSummary({
+  entry,
+  variant = 'general',
+  responseTitle = 'Content updates',
+  hasResponse = false,
+  responseActive = false
+}: {
+  entry: InsightEntry;
+  variant?: string;
+  responseTitle?: string;
+  hasResponse?: boolean;
+  responseActive?: boolean;
+}) {
+  const { view } = useRunTimelineView(entry, {
+    variant,
+    responseTitle,
+    responseActive,
+    hasResponse
+  });
+  if (view.empty) return null;
+  const { runStatus, runLive, segments, totalLabel, headline, statChips, runCostLabel } = view;
+  return (
+    <TimelineSummary
+      segments={segments}
+      runStatus={runStatus}
+      runLive={runLive}
+      responseActive={responseActive}
+      hasResponse={hasResponse}
+      headline={headline}
+      totalLabel={totalLabel}
+      statChips={statChips}
+      runCostLabel={runCostLabel}
+    />
+  );
+}
+
+export default function RunTimeline({
+  entry,
+  variant = 'general',
+  showRawPhaseIds = false,
+  responseTitle = 'Content updates',
+  responseHead = null,
+  hasResponse = false,
+  responseActive = false,
+  deferSummary = false,
+  children = null
+}: {
+  entry: InsightEntry;
+  variant?: string;
+  showRawPhaseIds?: boolean;
+  responseTitle?: string;
+  /** Custom head (e.g. the accent variant title) rendered instead of `responseTitle`. */
+  responseHead?: ReactNode;
+  hasResponse?: boolean;
+  responseActive?: boolean;
+  /** When true, omit the end-of-run summary card (render via `RunTimelineSummary`). */
+  deferSummary?: boolean;
+  children?: ReactNode;
+}) {
+  const { view, copy, now } = useRunTimelineView(entry, {
+    variant,
+    responseTitle,
+    responseActive,
+    hasResponse
   });
   const { runStatus, runLive, segments, totalLabel, headline, statChips, runCostLabel } = view;
 
@@ -614,17 +676,19 @@ export default function RunTimeline({
         {!runLive ? <TerminalRow runStatus={runStatus} /> : null}
       </ol>
 
-      <TimelineSummary
-        segments={segments}
-        runStatus={runStatus}
-        runLive={runLive}
-        responseActive={responseActive}
-        hasResponse={hasResponse}
-        headline={headline}
-        totalLabel={totalLabel}
-        statChips={statChips}
-        runCostLabel={runCostLabel}
-      />
+      {deferSummary ? null : (
+        <TimelineSummary
+          segments={segments}
+          runStatus={runStatus}
+          runLive={runLive}
+          responseActive={responseActive}
+          hasResponse={hasResponse}
+          headline={headline}
+          totalLabel={totalLabel}
+          statChips={statChips}
+          runCostLabel={runCostLabel}
+        />
+      )}
     </section>
   );
 }

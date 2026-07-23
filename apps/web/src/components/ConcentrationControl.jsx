@@ -15,7 +15,7 @@ export default function ConcentrationControl({
   const { controls } = useUiCopy();
   const narrowLayout = useNarrowLayout();
   const iconOnly = compact || (variant === 'header' && narrowLayout);
-  const segmentCompact = compact && variant === 'header';
+  const segmentCompact = compact && (variant === 'header' || variant === 'footer');
   const settingsCopy = controls.settings;
   const rootClass = ['concentration-control', `concentration-control--${variant}`, className]
     .filter(Boolean)

@@ -691,7 +691,7 @@ export const OFFICE_EN_AU = {
       hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya',
       outbox: 'Ship from the Outbox',
       codeDrawer: 'Open the code drawer',
-      codeDrawerShort: 'Code',
+      codeDrawerShort: 'Spaghetti',
       codeDrawerClose: 'Close the code drawer',
       codeDrawerCloseShort: 'Close',
       codeDrawerTitle: 'Peek at the diagram source',

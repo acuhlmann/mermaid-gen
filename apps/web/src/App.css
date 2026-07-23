@@ -14018,13 +14018,46 @@ body.slopitect-rainbow-tint::before {
   width: 100%;
 }
 
-/* Work Order footer: legacy hook — concentration now lives in the desk menu. */
+/* Work Order: concentration dial above the persistent prompt. */
 .concentration-control--footer {
-  padding: 0.15rem 0.35rem 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0;
+}
+
+.concentration-control--footer .concentration-control-label {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  font-weight: 650;
+  white-space: nowrap;
 }
 
 .concentration-control--footer .concentration-control-segment {
-  max-width: 16rem;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: none;
+  gap: 0.12rem;
+}
+
+.concentration-control--footer .concentration-control-option {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.62rem;
+  padding: 0.22rem 0.38rem;
+  white-space: nowrap;
+}
+
+.desk-work-order-concentration {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.desk-work-order-concentration .concentration-control--footer {
+  width: 100%;
 }
 
 /* Thinking header: inline concentration beside code drawer toggle. */
@@ -14062,29 +14095,38 @@ body.slopitect-rainbow-tint::before {
 
 .insights-pane-toolbar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: space-between;
+  gap: 0.3rem 0.4rem;
   min-width: 0;
   width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.insights-pane-toolbar::-webkit-scrollbar {
-  display: none;
 }
 
 .insights-pane-header-brand {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.insights-pane-header-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
   flex: 1 1 auto;
   min-width: 0;
+  margin-left: auto;
 }
 
 .insights-pane-toolbar .insights-pane-title {
   flex: 0 0 auto;
+  font-size: 1rem;
+  line-height: 1.1;
+  white-space: nowrap;
 }
 
 .insights-pane-toolbar .insights-live-badge {
@@ -14092,7 +14134,7 @@ body.slopitect-rainbow-tint::before {
 }
 
 .insights-pane-toolbar .concentration-control--header {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   flex-wrap: nowrap;
 }
@@ -14121,9 +14163,13 @@ body.slopitect-rainbow-tint::before {
   font-size: 0.62rem;
 }
 
+.insights-pane-toolbar.is-compact .insights-pane-tool-label {
+  display: none;
+}
+
 @container insights-pane (max-width: 25rem) {
   .insights-pane-toolbar {
-    gap: 0.28rem;
+    gap: 0.25rem 0.32rem;
   }
 }
 

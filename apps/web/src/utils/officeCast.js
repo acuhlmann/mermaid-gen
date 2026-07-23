@@ -1182,7 +1182,7 @@ export const OFFICE_CHROME_COPY = {
     outbox: 'Ship from the Outbox',
     outboxTitle: 'Export or share the deliverable on your desk',
     codeDrawer: 'Spaghetti',
-    codeDrawerShort: 'Code',
+    codeDrawerShort: 'Spaghetti',
     codeDrawerClose: 'Close spaghetti',
     codeDrawerCloseShort: 'Close',
     codeDrawerTitle: 'Peek at the spaghetti behind the drywall',
