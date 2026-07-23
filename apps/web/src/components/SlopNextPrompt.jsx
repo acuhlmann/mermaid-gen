@@ -93,6 +93,9 @@ export default function SlopNextPrompt({
         onLostPointerCapture: onMicLostPointerCapture
       };
 
+  const isEmptyPrompt = !(prompt ?? '').trim();
+  const hideDeskIdleChrome = isDesk && isEmptyPrompt && !busy;
+
   function handleDeskInputFocus(event) {
     if (!isDesk || typeof window === 'undefined') return;
     // The desk Work Order is always visible in the bottom chrome; letting the
@@ -112,19 +115,21 @@ export default function SlopNextPrompt({
 
   return (
     <form
-      className={`slop-prompt-panel slop-prompt-panel--${layout}${narrowLayout ? ' is-narrow' : ''}`}
+      className={`slop-prompt-panel slop-prompt-panel--${layout}${narrowLayout ? ' is-narrow' : ''}${hideDeskIdleChrome ? ' is-desk-idle' : ''}`}
       style={style}
       onSubmit={handleSubmit}
       data-testid={`slop-prompt-panel-${layout}`}
       autoComplete="off"
     >
       {isDesk ? (
-        <span
-          className="slop-prompt-panel-eyebrow slop-prompt-panel-eyebrow--desk"
-          aria-hidden="true"
-        >
-          {PromptIcon ? <PromptIcon /> : '📝'}
-        </span>
+        hideDeskIdleChrome ? null : (
+          <span
+            className="slop-prompt-panel-eyebrow slop-prompt-panel-eyebrow--desk"
+            aria-hidden="true"
+          >
+            {PromptIcon ? <PromptIcon /> : '📝'}
+          </span>
+        )
       ) : (
         <div className="slop-prompt-panel-head">
           <span className="slop-prompt-panel-eyebrow" aria-hidden="true">
@@ -168,42 +173,48 @@ export default function SlopNextPrompt({
         // Desk layout has no title element; the sr-only <label htmlFor> names it.
         aria-labelledby={isDesk ? undefined : `${inputId}-label`}
       />
-      <div className="slop-prompt-panel-actions">
-        <button
-          type="button"
-          className={`overlay-button is-mic-toggle ${voiceListening ? 'is-listening' : ''}`}
-          disabled={!voiceSupported || busy}
-          {...micProps}
-          aria-label={
-            narrowLayout ? (voiceListening ? copy.tapToStop : copy.tapToDictate) : copy.holdToSpeak
-          }
-          aria-pressed={narrowLayout ? voiceListening : undefined}
-          title={
-            voiceSupported
-              ? narrowLayout
+      {hideDeskIdleChrome ? null : (
+        <div className="slop-prompt-panel-actions">
+          <button
+            type="button"
+            className={`overlay-button is-mic-toggle ${voiceListening ? 'is-listening' : ''}`}
+            disabled={!voiceSupported || busy}
+            {...micProps}
+            aria-label={
+              narrowLayout
                 ? voiceListening
                   ? copy.tapToStop
-                  : copy.tapToDictatePrompt
-                : copy.holdToDictate
-              : speechRecognitionCtor
-                ? copy.voiceNeedsHttps
-                : copy.voiceUnsupported
-          }
-        >
-          {ButtonIcon ? (
-            <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
-          ) : null}
-          <span className="button-label">{copy.mic}</span>
-        </button>
-        <button
-          type="submit"
-          className="overlay-button primary-button"
-          disabled={busy || !(prompt ?? '').trim()}
-        >
-          {ButtonIcon ? <ButtonIcon>{'>'}</ButtonIcon> : '>'}
-          <span className="button-label">{copy.doIt}</span>
-        </button>
-      </div>
+                  : copy.tapToDictate
+                : copy.holdToSpeak
+            }
+            aria-pressed={narrowLayout ? voiceListening : undefined}
+            title={
+              voiceSupported
+                ? narrowLayout
+                  ? voiceListening
+                    ? copy.tapToStop
+                    : copy.tapToDictatePrompt
+                  : copy.holdToDictate
+                : speechRecognitionCtor
+                  ? copy.voiceNeedsHttps
+                  : copy.voiceUnsupported
+            }
+          >
+            {ButtonIcon ? (
+              <ButtonIcon>{voiceListening ? <MicActiveIcon /> : <MicIcon />}</ButtonIcon>
+            ) : null}
+            <span className="button-label">{copy.mic}</span>
+          </button>
+          <button
+            type="submit"
+            className="overlay-button primary-button"
+            disabled={busy || isEmptyPrompt}
+          >
+            {ButtonIcon ? <ButtonIcon>{'>'}</ButtonIcon> : '>'}
+            <span className="button-label">{copy.doIt}</span>
+          </button>
+        </div>
+      )}
     </form>
   );
 }

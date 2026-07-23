@@ -65,8 +65,24 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(props.onMicToggleClick).not.toHaveBeenCalled();
   });
 
+  it('hides desk idle chrome when the work order is empty', () => {
+    renderPrompt({ layout: 'desk', narrowLayout: true, prompt: '' });
+    const panel = screen.getByTestId('slop-prompt-panel-desk');
+    expect(panel.className).toContain('is-desk-idle');
+    expect(screen.queryByRole('button', { name: 'Tap to dictate' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '>' })).toBeNull();
+  });
+
+  it('shows desk actions once the user starts typing', () => {
+    renderPrompt({ layout: 'desk', narrowLayout: true, prompt: 'OAuth flow' });
+    const panel = screen.getByTestId('slop-prompt-panel-desk');
+    expect(panel.className).not.toContain('is-desk-idle');
+    expect(screen.getByRole('button', { name: 'Tap to dictate' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
+  });
+
   it('enables mobile keyboard suggestions on the desk work order input', () => {
-    renderPrompt({ layout: 'desk', narrowLayout: true });
+    renderPrompt({ layout: 'desk', narrowLayout: true, prompt: 'OAuth flow' });
     const input = screen.getByLabelText(/Work order/i);
     expect(input.getAttribute('autocomplete')).toBe('on');
     expect(input.getAttribute('autocorrect')).toBe('on');

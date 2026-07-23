@@ -7,21 +7,16 @@ import { CONTROLS_EN } from '../src/i18n/locales/controls.en.js';
 describe('EmptyCanvasSlot', () => {
   afterEach(() => cleanup());
 
-  it('renders the sample card and forwards the CTA to onPickTopic', () => {
-    const onPickTopic = vi.fn();
-    render(
-      <EmptyCanvasSlot
-        active
-        copy={CONTROLS_EN.prompt}
-        userName="Gavin"
-        onPickTopic={onPickTopic}
-      />
-    );
+  it('renders the welcome card without a try CTA', () => {
+    render(<EmptyCanvasSlot active copy={CONTROLS_EN.prompt} userName="Gavin" />);
 
     expect(screen.getByTestId('empty-canvas-slot')).toBeTruthy();
     expect(screen.getByTestId('entry-example')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('entry-example-try'));
-    expect(onPickTopic).toHaveBeenCalledWith('Break down the global coffee supply chain');
+    expect(screen.getByText('Welcome aboard, Gavin')).toBeTruthy();
+    expect(screen.queryByTestId('entry-example-try')).toBeNull();
+    expect(
+      screen.queryByText('Turn any topic into a deliverable. Start with whatever you care about.')
+    ).toBeNull();
   });
 
   it('renders nothing when inactive', () => {

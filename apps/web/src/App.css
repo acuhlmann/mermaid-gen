@@ -6554,6 +6554,7 @@
   margin: 0 auto;
   padding: 0.5rem 0.25rem 0;
   text-align: center;
+  pointer-events: auto;
 }
 
 .entry-desk-welcome-actions {
@@ -6584,8 +6585,12 @@
 }
 
 .empty-canvas-slot--desk-welcome {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  padding: calc(4.5rem + env(safe-area-inset-top, 0px)) 1rem
+    calc(10.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 .entry-desk-fallback {
@@ -6822,21 +6827,16 @@
   color: var(--text);
 }
 
-/* First-run purpose card: compact copy + tiny matching sample in the canvas
-   safe area above the bottom dock. Non-interactive except the CTA.
-   Constrained with an explicit bottom inset so it cannot paint over Render as /
-   starters / the topic input on short or narrow viewports. */
+/* First-run purpose card: compact welcome copy in the canvas safe area above
+   the bottom dock. Non-interactive decoration only. */
 .entry-example {
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: min(48vh, 22rem);
+  position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4.75rem 1.25rem 0.75rem;
+  width: min(34rem, 100%);
+  max-height: 100%;
   overflow: hidden;
   pointer-events: none;
 }
@@ -6964,14 +6964,10 @@
   }
 }
 
-/* Phones: drop the canvas purpose card body/demo — the bottom entry cluster
-   (topic input + Render as + starters) already carries the first-run path. */
+/* Phones: keep the welcome card centered; body/demo/CTA are no longer shown. */
 @media (max-width: 640px) {
   .entry-example {
-    bottom: auto;
-    top: calc(4.75rem + env(safe-area-inset-top, 0px));
-    left: 0.75rem;
-    right: 0.75rem;
+    width: min(100%, 24rem);
     padding: 0;
     pointer-events: none;
   }
@@ -6979,7 +6975,7 @@
   .entry-example-card {
     gap: 0.35rem;
     max-width: 100%;
-    padding: 0.7rem 0.85rem 0.8rem;
+    padding: 0.85rem 1rem 0.95rem;
     border-radius: 14px;
     box-shadow: var(--control-shadow);
     backdrop-filter: blur(18px);
@@ -6992,18 +6988,6 @@
 
   .entry-example-eyebrow {
     font-size: 0.68rem;
-  }
-
-  .entry-example-body,
-  .entry-example-demo {
-    display: none;
-  }
-
-  .entry-example-try {
-    align-self: flex-start;
-    min-height: 2.5rem;
-    padding-inline: 0.9rem;
-    pointer-events: auto;
   }
 }
 
@@ -14321,6 +14305,20 @@ body.slopitect-rainbow-tint::before {
   font-size: 0.82rem;
 }
 
+/* Empty desk Work Order: let the placeholder breathe on narrow screens. */
+.slop-prompt-panel--desk.is-desk-idle {
+  padding-inline: 0.85rem;
+}
+
+.slop-prompt-panel--desk.is-desk-idle .slop-prompt-panel-input {
+  padding-inline: 0.55rem;
+  text-align: center;
+}
+
+.slop-prompt-panel--desk.is-desk-idle .slop-prompt-panel-input::placeholder {
+  text-align: center;
+}
+
 /* Desk drawer — the trigger reuses the slop-action pill; the menu (which reuses
    the desk-actions-menu chrome) opens upward out of the bottom row. */
 .desk-drawer {
@@ -14469,6 +14467,13 @@ body.slopitect-rainbow-tint::before {
   min-width: 0;
   flex: 1 1 5rem;
   max-width: 100%;
+}
+
+.prompt-actions--mobile .slop-prompt-panel--desk.is-desk-idle .slop-prompt-panel-input {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-width: 100%;
+  font-size: 0.92rem;
 }
 
 .prompt-actions--mobile .slop-prompt-panel--desk .slop-prompt-panel-actions {
@@ -16305,12 +16310,18 @@ body.slopitect-rainbow-tint::before {
   --z-office-modal: 240;
 }
 
-/* Empty canvas guidance — sample card centered above bottom chrome. */
+/* Empty canvas guidance — welcome card centered in the canvas safe area. */
 .empty-canvas-slot {
   position: absolute;
   inset: 0;
   z-index: 2;
   pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(4.5rem + env(safe-area-inset-top, 0px)) 1rem
+    calc(10.5rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* --- Draggable floating window shell --- */

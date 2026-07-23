@@ -2108,7 +2108,6 @@ ${requirementsBlock}`;
             busy={loading || streamingPreview}
             copy={controls.prompt}
             userName={userName}
-            onPickTopic={handleStarterPick}
             showEntryDeskIntro={showEntryDeskIntro}
             entryIntroCopy={controls.prompt.entryIntro}
             entryRole={

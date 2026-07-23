@@ -64,14 +64,7 @@ export const CONTROLS_ZH_TW = {
     exampleEyebrow: 'ArchiSlop 公司 · IT 事業部',
     exampleHeadline: '歡迎入職，{name}',
     exampleRole: '架構師',
-    exampleBody: '把任何主題變成可交付成果。從你最關心的內容開始。',
-    exampleTopic: '全球咖啡供應鏈',
-    exampleAria: '可立即產生的視覺化範例',
-    exampleCta: '試試：咖啡供應鏈 →',
-    exampleDiagramSource: `flowchart TD
-    A["農場"] --> B["烘焙廠"]
-    B --> C["經銷商"]
-    C --> D["咖啡館"]`,
+    exampleAria: '歡迎來到你的 ArchiSlop 工位',
     renderAsLabel: '渲染為',
     renderAsAria: '選擇主題的渲染形態'
   },
