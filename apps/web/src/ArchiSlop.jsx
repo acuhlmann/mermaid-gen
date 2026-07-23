@@ -1,12 +1,4 @@
-import {
-  startTransition,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useSyncExternalStore
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import DiagramCanvas from './components/DiagramCanvas.jsx';
 import DiagramFullscreenOverlay from './components/DiagramFullscreenOverlay.jsx';
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
@@ -20,23 +12,12 @@ import {
   normalizeSessionId,
   readDiagramCache,
   syncClientDiagramState,
-  submitDiagramIntent,
-  submitDiagramRenderRepair,
   writeDiagramCache
 } from './state/diagramStore.js';
-import { isMermaidInfrastructureError } from './utils/mermaidRenderErrors.js';
-import { buildAutoFixPrompt } from './utils/autoFixPrompt.js';
 import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
 import './App.css';
 import './components/RunTimeline.css';
-import {
-  playCritiqueBoot,
-  playExplainBoot,
-  playGoMadBoot,
-  playInnovateBoot,
-  playModeSwoosh,
-  playRefineBoot
-} from './utils/agentChimes.js';
+import { playExplainBoot } from './utils/agentChimes.js';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
 import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
 import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
@@ -54,11 +35,17 @@ import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
 import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
 import { BrandChromeSlot } from './features/shell/BrandChromeSlot.jsx';
 import { useRunStreamingAgent } from './features/streaming/useRunStreamingAgent.js';
+import { useAnimateAcceptedSource } from './features/streaming/useAnimateAcceptedSource.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
+import { useDiagramChangeHighlight } from './features/insights/useDiagramChangeHighlight.js';
+import { useExplainDumbDown } from './features/insights/useExplainDumbDown.js';
+import { useFixFromCritique } from './features/insights/useFixFromCritique.js';
 import { useInsightsLedger } from './features/insights/useInsightsLedger.js';
+import { useRetryFailedInsight } from './features/insights/useRetryFailedInsight.js';
+import { useDiagramAutoFix } from './features/canvas/useDiagramAutoFix.js';
+import { useRadialActionHandler } from './features/prompt/useRadialActionHandler.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
-import { useDiagramHotkeys } from './hooks/useDiagramHotkeys.js';
 import {
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage,
@@ -74,7 +61,6 @@ import {
 } from './state/officeDirectoryUiStore.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
-import { selectionActionTitle, topicFromDescriptor } from './utils/appInsightHelpers.js';
 import {
   MODEL_PROFILE_STORAGE_KEY,
   sessionPathFor,
@@ -84,15 +70,8 @@ import {
 import {
   createInitialDiagramState,
   splitCritiqueActionableSections,
-  isLabelExplainGiveUpLevel,
-  LABEL_EXPLAIN_GIBBERISH_LEVEL,
-  MAX_LABEL_EXPLAIN_DUMB_LEVEL,
   isConcreteContentType
 } from '@archislop/shared';
-import { computeDiagramStructuralDiff } from './utils/diagramChangeDiff.js';
-import { fetchExplainDumbDown } from './utils/fetchExplainDumbDown.js';
-import { explainEntryMarkdown } from './utils/explainEntryMarkdown.js';
-import { reportAdvisorLlmUsage } from './utils/reportAdvisorLlmUsage.js';
 import {
   buildAdvisorIntentPrompt,
   buildOfficeBatchIntentPrompt
@@ -114,8 +93,7 @@ import { useSubmitIntent } from './hooks/useSubmitIntent.js';
 import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
-import { AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS, SpeechRecognitionCtor } from './utils/appConstants.js';
-import { buildRadialActions } from './components/buildRadialActions.jsx';
+import { SpeechRecognitionCtor } from './utils/appConstants.js';
 import { buildContentModeOptions, isConcreteContentMode } from './utils/renderModeAction.js';
 
 export function ArchiSlop() {
@@ -159,8 +137,6 @@ export function ArchiSlop() {
   // on final/error. Separate from `streamingPreview` (the post-patch typewriter).
   const [liveDraftSource, setLiveDraftSource] = useState('');
   const [liveDraftContentType, setLiveDraftContentType] = useState(null);
-  const [validationError, setValidationError] = useState(null);
-  const [autoFixAttempted, setAutoFixAttempted] = useState(false);
   const [editorOpen, setEditorOpen] = useState(Boolean(cacheRef.current?.editorOpen));
   const [insightsOpen, setInsightsOpen] = useState(Boolean(cacheRef.current?.insightsOpen));
   const {
@@ -182,17 +158,10 @@ export function ArchiSlop() {
       : [],
     workingStatusText: controls.loading.working
   });
-  /** Per explain insight entry: progressive dumb-down depth (0 = original Wise Architect brief). */
-  const [explainDumbLevelByEntryId, setExplainDumbLevelByEntryId] = useState({});
-  const [explainDumbLoadingEntryId, setExplainDumbLoadingEntryId] = useState(null);
-  const [explainDumbSurrenderedEntryIds, setExplainDumbSurrenderedEntryIds] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   // Bumped on every completed run so the office can ping the user about it.
   const [officeRunSignal, setOfficeRunSignal] = useState(null);
-  const [diagramChangeHighlightEntryId, setDiagramChangeHighlightEntryId] = useState(null);
-  /** Auto pulse focuses on newly added nodes; manual "Highlight changes" shows full diff. */
-  const [diagramChangeHighlightAddedOnly, setDiagramChangeHighlightAddedOnly] = useState(false);
   const [latestCritique, setLatestCritique] = useState(() => {
     const cachedCritique = cacheRef.current?.latestCritique;
     return cachedCritique?.text ? cachedCritique : null;
@@ -238,18 +207,12 @@ export function ArchiSlop() {
   const streamAgentAbortRef = useRef(null);
   const agentCostEstimatesRef = useRef(getCachedAgentCostEstimates());
   const autoCloseActiveEntryIdRef = useRef(null);
-  const autoFixTimerRef = useRef(null);
   const stateRef = useRef(state);
-  const lastAutoFixSourceRef = useRef(null);
-  /** Mirrors latest client-side Mermaid render validation (debounced in DiagramCanvas). */
-  const clientValidationRef = useRef({ source: null, error: null });
-  const autoFixAttemptedRef = useRef(false);
   const loadingRef = useRef(false);
   const submitIntentWithPromptRef = useRef(null);
   const closeRadialMenuRef = useRef(null);
   const streamingPreviewRef = useRef(false);
   const lastDraftTickAtRef = useRef(0);
-  const autoFixAlwaysOnRef = useRef(true);
   const hasInteractedRef = useRef(false);
   const audioContextRef = useRef(null);
   const celebrationTimerRef = useRef(null);
@@ -259,13 +222,6 @@ export function ArchiSlop() {
   const slopPromptSourceRef = useRef(null);
   const lastTokenSoundAtRef = useRef(0);
   const goMadTokenTickIndexRef = useRef(0);
-  const diagramAutoHighlightTimerRef = useRef(null);
-  /** Until SVG renders, { entryId, revisionId } — arms highlights via `onDiagramSvgRendered`. */
-  const pendingAutoDiagramHighlightRef = useRef(null);
-  /** Watchdog that clears stale pending highlights if the SVG-render handshake never matches. */
-  const pendingAutoDiagramHighlightTimeoutRef = useRef(null);
-  /** Forward ref so the streaming `final` callback can call the latest arm fn without dep churn. */
-  const armAutoDiagramChangeHighlightRef = useRef(null);
 
   /** Single session topic; seeded from hydrate and updated on successful intent revisions. */
   const sessionTopicRef = useRef(null);
@@ -366,14 +322,6 @@ export function ArchiSlop() {
     setState
   });
 
-  const clearPendingAutoDiagramHighlight = useCallback(() => {
-    pendingAutoDiagramHighlightRef.current = null;
-    if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
-      window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
-      pendingAutoDiagramHighlightTimeoutRef.current = null;
-    }
-  }, []);
-
   useSyncVisualViewportHeight();
   const narrowLayout = useNarrowLayout();
   const phoneLayout = usePhoneLayout();
@@ -424,6 +372,72 @@ export function ArchiSlop() {
     slopPromptExpandedRef,
     slopPromptSourceRef,
     closeRadialMenuRef
+  });
+
+  const { animateAcceptedSource } = useAnimateAcceptedSource({
+    stateRef,
+    streamTimerRef,
+    setState,
+    setStreamingPreview,
+    setLoading,
+    setActiveRequest
+  });
+
+  const {
+    validationError,
+    autoFixAttempted,
+    clientValidationRef,
+    autoFixTimerRef,
+    handleValidationChange,
+    resetAutoFixState
+  } = useDiagramAutoFix({
+    activeSessionId,
+    animateAcceptedSource,
+    contentMode,
+    loading,
+    loadingRef,
+    modelProfile,
+    setActiveRequest,
+    setError,
+    setLoading,
+    streamingPreview,
+    streamingPreviewRef
+  });
+
+  const {
+    diagramChangeHighlightEntryId,
+    pendingAutoDiagramHighlightRef,
+    pendingAutoDiagramHighlightTimeoutRef,
+    diagramAutoHighlightTimerRef,
+    clearDiagramHighlightTimers,
+    handleDiagramSvgRendered,
+    handleRestoreToEntry,
+    handleRestoreDiagramSnapshot,
+    handleOpenProposalFullPreview,
+    handleToggleDiagramChangeHighlight,
+    changeHighlightForCanvas,
+    changeHighlightContentType,
+    diagramChangeHighlightSummary,
+    entryDiagramDiffById
+  } = useDiagramChangeHighlight({
+    activeSessionId,
+    contentMode,
+    insightsEntries,
+    insightsOpen,
+    loadingRef,
+    narrowLayout,
+    setContentMode,
+    setError,
+    setInsightsOpen,
+    setState,
+    setStreamingPreview,
+    state,
+    streamTimerRef,
+    syncTimerRef,
+    armSuppressHydrateRerun,
+    disarmSuppressHydrateRerun,
+    resetRadialChrome,
+    switchContentModeForRestore
   });
 
   const {
@@ -578,15 +592,14 @@ export function ArchiSlop() {
     setSelectedNode(null);
     setHoverDescriptor(null);
     setToolbarAnchor(null);
-    setDiagramChangeHighlightEntryId(null);
-    setDiagramChangeHighlightAddedOnly(false);
+    clearDiagramHighlightTimers();
     setStreamingPreview(false);
     setLoading(false);
     setActiveRequest(null);
-    clearPendingAutoDiagramHighlight();
+    clearDiagramHighlightTimers();
     setError('');
     resetCollaborationState();
-  }, [activeSessionId, clearPendingAutoDiagramHighlight, resetCollaborationState]);
+  }, [activeSessionId, clearDiagramHighlightTimers, resetCollaborationState]);
 
   useEffect(() => {
     writeDiagramCache(
@@ -682,83 +695,6 @@ export function ArchiSlop() {
     celebrationTimerRef
   });
 
-  const animateAcceptedSource = useCallback((nextState, onFullyApplied, opts = {}) => {
-    const previousState = stateRef.current;
-    const nextSource = nextState.diagramSource;
-
-    if (streamTimerRef.current != null) {
-      cancelAnimationFrame(streamTimerRef.current);
-      streamTimerRef.current = null;
-    }
-
-    if (
-      previousState.revisionId === nextState.revisionId ||
-      previousState.diagramSource === nextSource
-    ) {
-      setState(nextState);
-      setStreamingPreview(false);
-      setLoading(false);
-      setActiveRequest(null);
-      queueMicrotask(() => onFullyApplied?.());
-      return;
-    }
-
-    const reduceMotion =
-      typeof globalThis.matchMedia === 'function' &&
-      globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // Forms A2UI is a single JSON document — character-sliced typewriter
-    // previews are invalid mid-stream and flash the error/"garbled" canvas.
-    // Apply the next form atomically (same as reduced-motion).
-    const skipTypewriter = reduceMotion || nextState.contentType === 'forms';
-
-    if (skipTypewriter) {
-      setState(nextState);
-      setStreamingPreview(false);
-      setLoading(false);
-      setActiveRequest(null);
-      queueMicrotask(() => onFullyApplied?.());
-      return;
-    }
-
-    /** Fewer steps than legacy ÷90 so acceptance finishes sooner; Go Mad uses even fewer (heavy agents). */
-    const stepBudget = opts.denseSteps ? 26 : 40;
-    const chunkSize = Math.max(1, Math.ceil(nextSource.length / stepBudget));
-    let cursor = 0;
-
-    setStreamingPreview(true);
-
-    function pump() {
-      cursor = Math.min(nextSource.length, cursor + chunkSize);
-      if (cursor >= nextSource.length) {
-        streamTimerRef.current = null;
-        setState(nextState);
-        setStreamingPreview(false);
-        setLoading(false);
-        setActiveRequest(null);
-        queueMicrotask(() => onFullyApplied?.());
-        return;
-      }
-
-      startTransition(() => {
-        setState((prev) => {
-          const slice = nextSource.slice(0, cursor);
-          if (prev.diagramSource === slice && prev.revisionId === nextState.revisionId) {
-            return prev;
-          }
-          return {
-            ...nextState,
-            diagramSource: slice,
-            updatedAt: nextState.updatedAt ?? previousState.updatedAt
-          };
-        });
-      });
-
-      streamTimerRef.current = requestAnimationFrame(pump);
-    }
-
-    streamTimerRef.current = requestAnimationFrame(pump);
-  }, []);
-
   const stopStreamingAgentRequest = useCallback(() => {
     streamAgentAbortRef.current?.abort();
   }, []);
@@ -796,287 +732,6 @@ export function ArchiSlop() {
     triggerCompletionDelight,
     tryAgentSound
   });
-
-  const retryFailedInsight = useCallback(
-    async (entryId, options = {}) => {
-      const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
-      const desc = entry?.retryDescriptor;
-      if (!desc || loadingRef.current || streamingPreviewRef.current) return;
-
-      const useQuality = Boolean(options.useQuality);
-      const profile = useQuality ? 'quality' : (desc.modelProfile ?? modelProfile);
-
-      setLoading(true);
-      setActiveRequest(desc.operation === 'intent' ? 'intent' : `transform:${desc.mode}`);
-      setError('');
-      if (desc.variant !== 'goMad') setGoMadStreak(0);
-
-      try {
-        const syncedState = await syncDiagramOrThrow();
-        const sharedPayload = {
-          revisionId: syncedState.revisionId,
-          diagramSource: syncedState.diagramSource,
-          contentType: contentMode,
-          modelProfile: profile,
-          focusNode: desc.focusNode ?? undefined,
-          ...(desc.peerContext ? { peerContext: desc.peerContext } : {})
-        };
-
-        if (desc.operation === 'intent') {
-          await runStreamingAgent({
-            operation: 'intent',
-            payload: {
-              operation: 'intent',
-              prompt: desc.prompt,
-              settings: desc.settings ?? {},
-              ...sharedPayload
-            },
-            title: entry.title,
-            variant: desc.variant,
-            diagramUndoBaseline: { ...syncedState },
-            topic: desc.topic,
-            modeSwitchSync: desc.modeSwitchSync,
-            modeSwitchPeerRevisionId: desc.modeSwitchPeerRevisionId,
-            modeSwitchPeerMode: desc.modeSwitchPeerMode
-          });
-        } else {
-          await runStreamingAgent({
-            operation: 'transform',
-            payload: {
-              operation: 'transform',
-              mode: desc.mode,
-              ...(desc.goMadDepth != null ? { goMadDepth: desc.goMadDepth } : {}),
-              ...sharedPayload
-            },
-            title: entry.title,
-            variant: desc.variant,
-            diagramUndoBaseline: { ...syncedState },
-            topic: desc.topic
-          });
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-        setActiveRequest(null);
-      }
-    },
-    [contentMode, modelProfile, runStreamingAgent, syncDiagramOrThrow]
-  );
-
-  const reportAdvisorUsage = useCallback(
-    ({ usage, model, inputTokens, outputTokens }) => {
-      const resolvedUsage =
-        usage && typeof usage === 'object'
-          ? usage
-          : {
-              ...(Number.isFinite(inputTokens) ? { inputTokens } : {}),
-              ...(Number.isFinite(outputTokens) ? { outputTokens } : {})
-            };
-      reportAdvisorLlmUsage({
-        costTrackingEnabled,
-        rates: agentCostEstimatesRef.current?.rates,
-        usage: resolvedUsage,
-        model,
-        setGamification
-      });
-    },
-    [costTrackingEnabled]
-  );
-
-  const handleExplainDumbDown = useCallback(
-    async (entryId) => {
-      const entry = insightsEntriesRef.current.find((e) => e.id === entryId);
-      if (!entry || entry.variant !== 'explain' || (entry.status ?? 'running') !== 'done') return;
-      if (explainDumbLoadingEntryId) return;
-
-      const currentLevel = explainDumbLevelByEntryId[entryId] ?? 0;
-      if (explainDumbSurrenderedEntryIds[entryId]) return;
-
-      if (isLabelExplainGiveUpLevel(currentLevel)) {
-        setExplainDumbSurrenderedEntryIds((prev) => ({ ...prev, [entryId]: true }));
-        return;
-      }
-
-      const nextLevel =
-        currentLevel >= MAX_LABEL_EXPLAIN_DUMB_LEVEL
-          ? LABEL_EXPLAIN_GIBBERISH_LEVEL
-          : currentLevel <= 0
-            ? 1
-            : currentLevel + 1;
-      const isGibberish = nextLevel === LABEL_EXPLAIN_GIBBERISH_LEVEL;
-      const previousExplain = explainEntryMarkdown(entry);
-      if (!previousExplain) return;
-
-      setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: nextLevel }));
-      setExplainDumbLoadingEntryId(entryId);
-
-      try {
-        const { markdown, explainSections, usage, model } = await fetchExplainDumbDown({
-          previousExplain,
-          contentType: entry.contentType ?? contentMode,
-          sessionId: activeSessionId,
-          style: isGibberish ? 'gibberish' : 'simple',
-          simpleLevel: isGibberish ? undefined : nextLevel
-        });
-        reportAdvisorUsage({ usage, model });
-        if (!markdown) {
-          setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: currentLevel }));
-          return;
-        }
-        setInsightsEntries((prev) =>
-          prev.map((e) =>
-            e.id === entryId
-              ? {
-                  ...e,
-                  content: markdown,
-                  ...(explainSections?.sections?.length
-                    ? { explainSections }
-                    : { explainSections: undefined })
-                }
-              : e
-          )
-        );
-      } catch (err) {
-        setExplainDumbLevelByEntryId((prev) => ({ ...prev, [entryId]: currentLevel }));
-        if (err?.name !== 'AbortError') {
-          setError(err?.message || controls.loading.simplifyFailed);
-        }
-      } finally {
-        setExplainDumbLoadingEntryId(null);
-      }
-    },
-    [
-      activeSessionId,
-      contentMode,
-      explainDumbLevelByEntryId,
-      explainDumbLoadingEntryId,
-      explainDumbSurrenderedEntryIds,
-      reportAdvisorUsage
-    ]
-  );
-
-  const runAutoFix = useCallback(
-    async (brokenSource, errorMessage) => {
-      lastAutoFixSourceRef.current = brokenSource;
-      autoFixAttemptedRef.current = true;
-      setAutoFixAttempted(true);
-      setLoading(true);
-      setActiveRequest('autofix');
-      setError('');
-      try {
-        const syncedState = await syncClientDiagramState({
-          contentType: contentMode,
-          diagramSource: brokenSource,
-          sessionId: activeSessionId
-        });
-        setState(syncedState);
-
-        // Fast path: ask the cheap syntax-fixer model directly via the render-error endpoint.
-        // One LLM call vs an entire agent turn. Fall back to the full intent pipeline only when
-        // the fixer rejects (e.g., fixer model not configured, repair didn't validate, stale).
-        // Mermaid render errors and Anything load-phase iframe errors both take this rung; the
-        // Anything store-apply re-runs the full ladder (runtime check included), so no gate is
-        // skipped by taking the cheaper path first.
-        if (contentMode === 'mermaid' || contentMode === 'anything') {
-          const fast = await submitDiagramRenderRepair({
-            revisionId: syncedState.revisionId,
-            source: syncedState.diagramSource,
-            renderError: errorMessage,
-            contentType: contentMode,
-            sessionId: activeSessionId
-          });
-          if (fast?.repaired && fast.state) {
-            animateAcceptedSource(fast.state);
-            return;
-          }
-        }
-
-        const result = await submitDiagramIntent({
-          contentType: contentMode,
-          prompt: buildAutoFixPrompt({ contentType: contentMode, errorMessage, brokenSource }),
-          revisionId: syncedState.revisionId,
-          diagramSource: syncedState.diagramSource,
-          settings: {},
-          modelProfile,
-          sessionId: activeSessionId
-        });
-
-        animateAcceptedSource(result.state);
-      } catch (err) {
-        setError(err.message);
-        setLoading(false);
-        setActiveRequest(null);
-      }
-    },
-    [activeSessionId, animateAcceptedSource, contentMode, modelProfile]
-  );
-
-  const scheduleAutoFix = useCallback(
-    ({ source, error: nextError }) => {
-      if (autoFixTimerRef.current) {
-        clearTimeout(autoFixTimerRef.current);
-        autoFixTimerRef.current = null;
-      }
-
-      if (!autoFixAlwaysOnRef.current) return;
-      if (!nextError) return;
-      if (isMermaidInfrastructureError(nextError)) return;
-      if (autoFixAttemptedRef.current) return;
-      if (lastAutoFixSourceRef.current === source) return;
-      if (loadingRef.current || streamingPreviewRef.current) return;
-
-      autoFixTimerRef.current = setTimeout(() => {
-        autoFixTimerRef.current = null;
-        if (
-          loadingRef.current ||
-          streamingPreviewRef.current ||
-          !autoFixAlwaysOnRef.current ||
-          autoFixAttemptedRef.current ||
-          lastAutoFixSourceRef.current === source
-        ) {
-          return;
-        }
-        runAutoFix(source, nextError);
-      }, 1500);
-    },
-    [runAutoFix]
-  );
-
-  const handleValidationChange = useCallback(({ source, error: nextError }) => {
-    clientValidationRef.current = nextError
-      ? { source, error: nextError }
-      : { source: null, error: null };
-    setValidationError(nextError ? { source, error: nextError } : null);
-
-    if (!nextError) {
-      autoFixAttemptedRef.current = false;
-      setAutoFixAttempted(false);
-      if (lastAutoFixSourceRef.current && lastAutoFixSourceRef.current !== source) {
-        lastAutoFixSourceRef.current = null;
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!validationError) {
-      if (autoFixTimerRef.current) {
-        clearTimeout(autoFixTimerRef.current);
-        autoFixTimerRef.current = null;
-      }
-      return;
-    }
-
-    if (streamingPreview) {
-      if (autoFixTimerRef.current) {
-        clearTimeout(autoFixTimerRef.current);
-        autoFixTimerRef.current = null;
-      }
-      return;
-    }
-
-    scheduleAutoFix(validationError);
-  }, [loading, scheduleAutoFix, streamingPreview, validationError]);
 
   function handleManualEdit(nextSource) {
     let scheduledSource = null;
@@ -1147,6 +802,38 @@ export function ArchiSlop() {
   }
   syncDiagramOrThrowRef.current = syncDiagramOrThrow;
 
+  const { retryFailedInsight } = useRetryFailedInsight({
+    contentMode,
+    insightsEntriesRef,
+    loadingRef,
+    modelProfile,
+    runStreamingAgent,
+    setActiveRequest,
+    setError,
+    setGoMadStreak,
+    setLoading,
+    streamingPreviewRef,
+    syncDiagramOrThrow
+  });
+
+  const {
+    explainDumbLevelByEntryId,
+    explainDumbLoadingEntryId,
+    explainDumbSurrenderedEntryIds,
+    handleExplainDumbDown,
+    reportAdvisorUsage
+  } = useExplainDumbDown({
+    activeSessionId,
+    contentMode,
+    controls,
+    costTrackingEnabled,
+    agentCostEstimatesRef,
+    insightsEntriesRef,
+    setError,
+    setGamification,
+    setInsightsEntries
+  });
+
   const {
     submitIntentWithPrompt,
     runIntentChange,
@@ -1202,125 +889,22 @@ export function ArchiSlop() {
     syncDiagramOrThrow
   });
 
-  const handleFixFromCritique = useCallback(
-    async (scope = 'all', options = {}) => {
-      hasInteractedRef.current = true;
-      if (!latestCritique?.text || loadingRef.current || streamingPreviewRef.current) return;
-
-      const split = splitCritiqueActionableSections(latestCritique.text);
-      const actionableItems = split.items;
-      const checkValues = options.checkValues;
-      const selectedMask =
-        checkValues != null
-          ? actionableItems.map((_, i) => Boolean(checkValues[i]))
-          : actionableItems.map((_, i) => Boolean(critiqueActionableSelected[i]));
-
-      if (scope === 'selected') {
-        if (actionableItems.length === 0) return;
-        const chosen = actionableItems.filter((_, i) => selectedMask[i]);
-        if (chosen.length === 0) return;
-      }
-
-      const itemsToApply =
-        scope === 'selected' ? actionableItems.filter((_, i) => selectedMask[i]) : actionableItems;
-
-      const useActionableBullets = itemsToApply.length > 0;
-      let critiqueBlock;
-      if (useActionableBullets) {
-        critiqueBlock = itemsToApply.map((t) => `- ${t}`).join('\n');
-      } else {
-        critiqueBlock = latestCritique.text;
-      }
-
-      const FIX_PROMPT_MAX_CRITIQUE_CHARS = 2000;
-      if (critiqueBlock.length > FIX_PROMPT_MAX_CRITIQUE_CHARS) {
-        critiqueBlock = `${critiqueBlock.slice(0, FIX_PROMPT_MAX_CRITIQUE_CHARS).trimEnd()}\n…`;
-      }
-
-      const contentLabelByMode = {
-        mermaid: 'Mermaid diagram',
-        infographic: 'infographic',
-        metaphor3d: '3D metaphor view',
-        chart: 'Vega-Lite chart'
-      };
-      const contentLabel = contentLabelByMode[contentMode] ?? 'diagram';
-      const outputHintByMode = {
-        mermaid:
-          'Output one full valid Mermaid diagram in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.\n- Keep Mermaid syntax valid and deliver the entire diagram source in one go.',
-        infographic:
-          'Output one full valid AntV Infographic DSL in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.',
-        metaphor3d:
-          'Output one full valid metaphor JSON DSL in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.',
-        chart:
-          'Output one full valid chart JSON wrapper (Vega-Lite spec inside) in a single apply step, then briefly summarize — do not iterate multiple cosmetic patches.'
-      };
-      const outputHint =
-        outputHintByMode[contentMode] ??
-        'Output one full valid diagram update in a single apply step, then briefly summarize.';
-
-      const intro = useActionableBullets
-        ? `Improve the current ${contentLabel} by applying ONLY the following improvements. Do not implement other critique suggestions.`
-        : `Improve the current ${contentLabel} based on this critique. Apply concrete fixes as a single complete update.`;
-      const critiqueLabel = useActionableBullets ? 'Improvements to apply:' : 'Critique:';
-      const requirementsBlock = useActionableBullets
-        ? `- Implement only the improvements listed above.
-- Preserve the original intent and main story.
-- Prioritize readability and clarity within that scope.
-- ${outputHint}`
-        : `- Preserve the original intent and main story.
-- Address the critique fully, including structure, labels, and any visual/style points raised.
-- Prioritize readability and clarity improvements first.
-- ${outputHint}`;
-
-      const fixPrompt = `${intro}
-
-${critiqueLabel}
-${critiqueBlock}
-
-Requirements:
-${requirementsBlock}`;
-
-      setLoading(true);
-      setActiveRequest('fix');
-      setError('');
-      setGoMadStreak(0);
-
-      try {
-        const syncedState = await syncDiagramOrThrow();
-        await runStreamingAgent({
-          operation: 'intent',
-          payload: {
-            operation: 'intent',
-            prompt: fixPrompt,
-            revisionId: syncedState.revisionId,
-            diagramSource: syncedState.diagramSource,
-            contentType: contentMode,
-            settings: {},
-            focusNode: latestCritique.focusNode,
-            modelProfile
-          },
-          title: selectionActionTitle(latestCritique.focusNode, 'Fix from critique'),
-          variant: 'intent',
-          diagramUndoBaseline: { ...syncedState },
-          topic: latestCritique.topic ?? topicFromDescriptor(latestCritique.focusNode)
-        });
-        setLatestCritique(null);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-        setActiveRequest(null);
-      }
-    },
-    [
-      contentMode,
-      critiqueActionableSelected,
-      latestCritique,
-      modelProfile,
-      runStreamingAgent,
-      syncDiagramOrThrow
-    ]
-  );
+  const { handleFixFromCritique } = useFixFromCritique({
+    contentMode,
+    critiqueActionableSelected,
+    hasInteractedRef,
+    latestCritique,
+    loadingRef,
+    modelProfile,
+    runStreamingAgent,
+    setActiveRequest,
+    setError,
+    setGoMadStreak,
+    setLatestCritique,
+    setLoading,
+    streamingPreviewRef,
+    syncDiagramOrThrow
+  });
 
   function handleClearDiagram() {
     if (loadingRef.current || streamingPreviewRef.current) return;
@@ -1451,19 +1035,10 @@ ${requirementsBlock}`;
     setCritiqueActionableSelected([]);
     sessionTopicRef.current = null;
     resetModeSwitchTracking();
-    if (diagramAutoHighlightTimerRef.current != null) {
-      window.clearTimeout(diagramAutoHighlightTimerRef.current);
-      diagramAutoHighlightTimerRef.current = null;
-    }
-    clearPendingAutoDiagramHighlight();
-    setDiagramChangeHighlightEntryId(null);
-    setDiagramChangeHighlightAddedOnly(false);
+    clearDiagramHighlightTimers();
     setError('');
     clearVoiceError();
-    setValidationError(null);
-    setAutoFixAttempted(false);
-    autoFixAttemptedRef.current = false;
-    lastAutoFixSourceRef.current = null;
+    resetAutoFixState();
     setLoading(true);
     setActiveRequest('clear');
     try {
@@ -1498,240 +1073,6 @@ ${requirementsBlock}`;
       setActiveRequest(null);
     }
   }
-
-  /**
-   * Restore the canvas to the version produced by an entry's run — i.e., the diagram shown
-   * in that entry's "Resulting diagram" preview. This is a per-version bookmark: the user
-   * can click Restore on any past entry to jump back to that snapshot.
-   *
-   * If the entry was created in a different mode than the current one, switch modes first —
-   * otherwise the restored DSL would be fed to the wrong renderer and fail to draw.
-   */
-  const applyDiagramSnapshotToCanvas = useCallback(
-    async ({ diagramSource, contentType, styleConfig }) => {
-      if (typeof diagramSource !== 'string' || !diagramSource.trim()) return;
-      if (!isConcreteContentType(contentType)) return;
-
-      const needsModeSwitch = contentType !== contentMode;
-
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current);
-        syncTimerRef.current = null;
-      }
-      if (streamTimerRef.current != null) {
-        cancelAnimationFrame(streamTimerRef.current);
-        streamTimerRef.current = null;
-      }
-      setStreamingPreview(false);
-      if (needsModeSwitch) armSuppressHydrateRerun();
-
-      try {
-        const payload = {
-          contentType,
-          diagramSource,
-          sessionId: activeSessionId
-        };
-        if (styleConfig != null) {
-          payload.styleConfig = styleConfig;
-        }
-        const synced = await syncClientDiagramState(payload);
-        setState(synced);
-        if (needsModeSwitch) setContentMode(contentType);
-        if (diagramAutoHighlightTimerRef.current != null) {
-          window.clearTimeout(diagramAutoHighlightTimerRef.current);
-          diagramAutoHighlightTimerRef.current = null;
-        }
-        clearPendingAutoDiagramHighlight();
-        setDiagramChangeHighlightEntryId(null);
-      } catch (err) {
-        if (needsModeSwitch) disarmSuppressHydrateRerun();
-        setError(err.message);
-      }
-    },
-    [
-      activeSessionId,
-      armSuppressHydrateRerun,
-      clearPendingAutoDiagramHighlight,
-      contentMode,
-      disarmSuppressHydrateRerun,
-      setContentMode
-    ]
-  );
-
-  const handleRestoreToEntry = useCallback(
-    async (entryId) => {
-      if (loadingRef.current) return;
-
-      const entry = insightsEntries.find((e) => e.id === entryId);
-      const targetSource = entry?.diagramAfterSource;
-      const targetContentType = entry?.diagramAfterContentType;
-      if (typeof targetSource !== 'string' || !targetSource.trim()) return;
-      if (!isConcreteContentType(targetContentType)) return;
-
-      const baseline = entry?.diagramUndoBaseline;
-      await applyDiagramSnapshotToCanvas({
-        diagramSource: targetSource,
-        contentType: targetContentType,
-        styleConfig: baseline?.styleConfig
-      });
-
-      if (narrowLayout && insightsOpen) {
-        setInsightsOpen(false);
-      }
-    },
-    [applyDiagramSnapshotToCanvas, insightsEntries, insightsOpen, narrowLayout]
-  );
-
-  const handleRestoreDiagramSnapshot = useCallback(
-    async ({ diagramSource, contentType }) => {
-      if (loadingRef.current) return;
-      await applyDiagramSnapshotToCanvas({ diagramSource, contentType });
-
-      if (narrowLayout && insightsOpen) {
-        setInsightsOpen(false);
-      }
-    },
-    [applyDiagramSnapshotToCanvas, insightsOpen, narrowLayout]
-  );
-
-  const handleOpenProposalFullPreview = useCallback(
-    async ({ diagramSource, contentType }) => {
-      if (loadingRef.current) return;
-      await applyDiagramSnapshotToCanvas({ diagramSource, contentType });
-      requestAnimationFrame(() => {
-        document.querySelector('.diagram-output')?.scrollIntoView?.({
-          behavior: 'smooth',
-          block: 'nearest',
-          inline: 'nearest'
-        });
-      });
-    },
-    [applyDiagramSnapshotToCanvas]
-  );
-
-  const handleToggleDiagramChangeHighlight = useCallback(
-    (entryId) => {
-      clearPendingAutoDiagramHighlight();
-      if (diagramAutoHighlightTimerRef.current != null) {
-        window.clearTimeout(diagramAutoHighlightTimerRef.current);
-        diagramAutoHighlightTimerRef.current = null;
-      }
-      setDiagramChangeHighlightAddedOnly(false);
-
-      const isClearing = diagramChangeHighlightEntryId === entryId;
-      if (isClearing) {
-        setDiagramChangeHighlightEntryId(null);
-        return;
-      }
-
-      const entry = insightsEntries.find((e) => e.id === entryId);
-      const targetContentType = entry?.diagramAfterContentType;
-      if (isConcreteContentType(targetContentType) && targetContentType !== contentMode) {
-        switchContentModeForRestore(targetContentType);
-      }
-
-      setDiagramChangeHighlightEntryId(entryId);
-
-      if (narrowLayout && insightsOpen) {
-        setInsightsOpen(false);
-      }
-    },
-    [
-      clearPendingAutoDiagramHighlight,
-      contentMode,
-      diagramChangeHighlightEntryId,
-      insightsEntries,
-      insightsOpen,
-      narrowLayout,
-      switchContentModeForRestore
-    ]
-  );
-
-  const changeHighlightDiff = useMemo(() => {
-    if (!diagramChangeHighlightEntryId) return null;
-    const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
-    const baseline = entry?.diagramUndoBaseline?.diagramSource;
-    const after =
-      typeof entry?.diagramAfterSource === 'string'
-        ? entry.diagramAfterSource
-        : (state.diagramSource ?? '');
-    const kind = entry?.diagramAfterContentType ?? contentMode;
-    return computeDiagramStructuralDiff(kind, baseline, after);
-  }, [contentMode, diagramChangeHighlightEntryId, insightsEntries, state.diagramSource]);
-
-  const changeHighlightForCanvas = useMemo(() => {
-    if (!diagramChangeHighlightEntryId || !changeHighlightDiff) return null;
-    if (diagramChangeHighlightAddedOnly) {
-      return {
-        addedIds: changeHighlightDiff.addedIds,
-        modifiedIds: [],
-        removedIds: changeHighlightDiff.removedIds
-      };
-    }
-    return {
-      addedIds: changeHighlightDiff.addedIds,
-      modifiedIds: changeHighlightDiff.modifiedIds,
-      removedIds: changeHighlightDiff.removedIds
-    };
-  }, [changeHighlightDiff, diagramChangeHighlightEntryId, diagramChangeHighlightAddedOnly]);
-
-  const changeHighlightContentType = useMemo(() => {
-    if (!diagramChangeHighlightEntryId) return null;
-    const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
-    return entry?.diagramAfterContentType ?? contentMode;
-  }, [contentMode, diagramChangeHighlightEntryId, insightsEntries]);
-
-  const diagramChangeHighlightSummary = useMemo(() => {
-    if (!diagramChangeHighlightEntryId || !changeHighlightDiff) return null;
-    const { addedIds, modifiedIds, removedIds } = changeHighlightDiff;
-    const isStructuralEmpty =
-      addedIds.length === 0 && modifiedIds.length === 0 && removedIds.length === 0;
-    return { addedIds, modifiedIds, removedIds, isStructuralEmpty };
-  }, [changeHighlightDiff, diagramChangeHighlightEntryId]);
-
-  // Per-entry structural diff used to auto-highlight changes inside the embedded
-  // "Resulting diagram" preview. Mermaid uses flowchart parser; infographic walks the
-  // indented item tree (see infographicDiff.js).
-  const entryDiagramDiffById = useMemo(() => {
-    const map = {};
-    for (const entry of insightsEntries) {
-      if (!entry?.diagramRevisionApplied) continue;
-      const kind = entry.diagramAfterContentType;
-      const baseline = entry.diagramUndoBaseline?.diagramSource;
-      const after = entry.diagramAfterSource;
-      if (typeof baseline !== 'string' || typeof after !== 'string') continue;
-      const diff = computeDiagramStructuralDiff(kind, baseline, after);
-      if (diff) map[entry.id] = diff;
-    }
-    return map;
-  }, [insightsEntries]);
-
-  useEffect(() => {
-    if (!diagramChangeHighlightEntryId) return;
-    const entry = insightsEntries.find((e) => e.id === diagramChangeHighlightEntryId);
-    const shouldClear =
-      !entry?.diagramUndoBaseline ||
-      entry.diagramUndoConsumed ||
-      (entry.status ?? 'running') === 'failed' ||
-      (entry.status ?? 'running') === 'cancelled' ||
-      ((entry.status ?? 'running') === 'done' && !entry.diagramRevisionApplied);
-    if (shouldClear) {
-      clearPendingAutoDiagramHighlight();
-      setDiagramChangeHighlightEntryId(null);
-    }
-  }, [clearPendingAutoDiagramHighlight, diagramChangeHighlightEntryId, insightsEntries]);
-
-  useEffect(() => {
-    if (!diagramChangeHighlightEntryId) {
-      setDiagramChangeHighlightAddedOnly(false);
-    }
-  }, [diagramChangeHighlightEntryId]);
-
-  useEffect(() => {
-    if (!state.diagramSource?.trim()) {
-      clearPendingAutoDiagramHighlight();
-    }
-  }, [clearPendingAutoDiagramHighlight, state.diagramSource]);
 
   // On mobile, when a run completes and produces a new diagram revision, auto-collapse the
   // insights pane so the freshly-rendered diagram becomes visible without the user manually
@@ -1772,57 +1113,6 @@ ${requirementsBlock}`;
   }, [insightsEntries, phoneLayout, insightsOpen, state.revisionId, state.diagramSource]);
 
   const busy = loading || streamingPreview;
-
-  const armAutoDiagramChangeHighlight = useCallback(
-    (entryId) => {
-      if (diagramAutoHighlightTimerRef.current != null) {
-        window.clearTimeout(diagramAutoHighlightTimerRef.current);
-        diagramAutoHighlightTimerRef.current = null;
-      }
-      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
-        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
-        pendingAutoDiagramHighlightTimeoutRef.current = null;
-      }
-      resetRadialChrome();
-      setDiagramChangeHighlightAddedOnly(false);
-      setDiagramChangeHighlightEntryId(entryId);
-      diagramAutoHighlightTimerRef.current = window.setTimeout(() => {
-        diagramAutoHighlightTimerRef.current = null;
-        setDiagramChangeHighlightEntryId((prev) => (prev === entryId ? null : prev));
-      }, AUTO_DIAGRAM_CHANGE_HIGHLIGHT_MS);
-    },
-    [resetRadialChrome]
-  );
-
-  useEffect(() => {
-    armAutoDiagramChangeHighlightRef.current = armAutoDiagramChangeHighlight;
-  }, [armAutoDiagramChangeHighlight]);
-
-  /**
-   * Confirms a pending auto-highlight when DiagramCanvas reports that the matching revision's SVG is on screen.
-   *
-   * Notes:
-   * - Only revisionId is matched; the source string is intentionally not compared because chunked streaming
-   *   plus React commit ordering can leave a transient editorSource snapshot, while the *next* render fires
-   *   with the final source under the same revisionId.
-   * - A non-matching revisionId is ignored so a stale render notification cannot wipe out a still-correct
-   *   pending arming. The watchdog set in the streaming `final` handler only clears stale pending state;
-   *   it does not start the pulse on an old SVG.
-   */
-  const handleDiagramSvgRendered = useCallback(
-    ({ revisionId: renderedRevisionId }) => {
-      const pending = pendingAutoDiagramHighlightRef.current;
-      if (!pending) return;
-      if (renderedRevisionId !== pending.revisionId) return;
-      pendingAutoDiagramHighlightRef.current = null;
-      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
-        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
-        pendingAutoDiagramHighlightTimeoutRef.current = null;
-      }
-      armAutoDiagramChangeHighlight(pending.entryId);
-    },
-    [armAutoDiagramChangeHighlight]
-  );
 
   const agentThinkingChrome = useMemo(
     () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
@@ -1909,64 +1199,27 @@ ${requirementsBlock}`;
     );
   }, [activeRequest, loading]);
 
-  const handleRadialAction = (action, descriptor) => {
-    if (!descriptor) return;
-    setSelectedNode(descriptor);
-    if (action.id === 'prompt') {
-      openRadialSlopPrompt();
-      return;
-    }
-    if (action.id === 'renderMode') {
-      renderSelectionInMode(action.targetMode, descriptor);
-      return;
-    }
-    closeRadialMenu();
-    const runOpts = { focusTarget: descriptor };
-    const variantForBoot =
-      action.id === 'refine' ||
-      action.id === 'innovate' ||
-      action.id === 'goMad' ||
-      action.id === 'critique' ||
-      action.id === 'explain' ||
-      action.id === 'exec'
-        ? action.id
-        : null;
-    if (variantForBoot) {
-      setBootSeq((prev) => ({ trigger: prev.trigger + 1, variant: variantForBoot }));
-      if (variantForBoot === 'refine') tryAgentSound(playRefineBoot);
-      else if (variantForBoot === 'innovate') tryAgentSound(playInnovateBoot);
-      else if (variantForBoot === 'goMad') tryAgentSound(playGoMadBoot);
-      else if (variantForBoot === 'critique') tryAgentSound(playCritiqueBoot);
-      else if (variantForBoot === 'explain') tryAgentSound(playExplainBoot);
-    }
-    if (action.id === 'refine') runTransform('refine', runOpts);
-    else if (action.id === 'innovate') runTransform('innovate', runOpts);
-    else if (action.id === 'goMad') runTransform('goMad', runOpts);
-    else if (action.id === 'exec') runTransform('exec', runOpts);
-    else if (action.id === 'critique') runAnalyze('critique', runOpts);
-    else if (action.id === 'explain') runAnalyze('explain', runOpts);
-    else if (action.id === 'fix') handleFixFromCritique('all');
-  };
-
-  useDiagramHotkeys({
-    enabled: Boolean(radialMenuVisible && selectedNode && !busy),
-    descriptor: selectedNode,
-    onAction: handleRadialAction,
-    onToggleHelp: () => setHotkeyOverlayOpen((v) => !v)
+  const { handleRadialAction, radialActions } = useRadialActionHandler({
+    busy,
+    canFixFromCritique,
+    closeRadialMenu,
+    contentMode,
+    contentModeOptions,
+    controls,
+    goMadStreak,
+    handleFixFromCritique,
+    openRadialSlopPrompt,
+    radialMenuVisible,
+    renderSelectionInMode,
+    runAnalyze,
+    runTransform,
+    selectedNode,
+    setBootSeq,
+    setHotkeyOverlayOpen,
+    setSelectedNode,
+    slopitect,
+    tryAgentSound
   });
-
-  const radialActions = useMemo(
-    () =>
-      buildRadialActions({
-        controls,
-        slopitect,
-        goMadStreak,
-        contentMode,
-        contentModeOptions,
-        canFixFromCritique
-      }),
-    [canFixFromCritique, contentMode, contentModeOptions, controls, goMadStreak, slopitect]
-  );
 
   const { mounted: insightsMounted, closing: insightsClosing } = useDelayedUnmount(
     insightsOpen,
