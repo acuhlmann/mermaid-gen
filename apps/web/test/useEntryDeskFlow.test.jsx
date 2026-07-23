@@ -33,7 +33,6 @@ describe('useEntryDeskFlow', () => {
       desk: true,
       team: true,
       notebook: true,
-      concentration: true,
       drawer: true
     });
   });

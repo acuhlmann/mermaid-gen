@@ -2200,6 +2200,8 @@ ${requirementsBlock}`;
             canToggleEditor={hasCanvasContent || editorOpen}
             editorOpen={editorOpen}
             onToggleThinking={() => setInsightsOpen((v) => !v)}
+            modelProfile={modelProfile}
+            onSelectModelProfile={setModelProfile}
             callMeetingSignal={callMeetingSignal}
             canOpenOutbox={Boolean((state.diagramSource ?? '').trim())}
             canToggleThinking
@@ -2327,8 +2329,6 @@ ${requirementsBlock}`;
                 handleClearDiagram={handleClearDiagram}
                 onToggleThinking={() => setInsightsOpen((v) => !v)}
                 canToggleThinking
-                modelProfile={modelProfile}
-                onSelectModelProfile={setModelProfile}
                 entryTourActive={entryTourActive}
                 entryTourStep={entryTourStep}
                 entryTourProgress={entryTourProgress}

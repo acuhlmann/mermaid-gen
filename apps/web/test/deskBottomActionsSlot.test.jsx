@@ -23,7 +23,6 @@ function baseProps(overrides = {}) {
       desk: true,
       team: true,
       notebook: true,
-      concentration: true,
       drawer: true
     },
     deskDrawerTourOpen: false,
@@ -119,7 +118,7 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(screen.queryByTestId('entry-render-as')).toBeNull();
   });
 
-  it('renders notebook on the desk chrome row', () => {
+  it('does not render concentration controls on the desk chrome row', () => {
     const onToggleThinking = vi.fn();
     render(
       <DeskBottomActionsSlot
@@ -131,6 +130,7 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     );
     expect(screen.getByTestId('desk-notebook-button')).toBeTruthy();
     expect(screen.queryByTestId('concentration-control')).toBeNull();
+    expect(screen.queryByTestId('desk-concentration-chip')).toBeNull();
     fireEvent.click(screen.getByTestId('desk-notebook-button'));
     expect(onToggleThinking).toHaveBeenCalledTimes(1);
   });
@@ -150,21 +150,5 @@ describe('DeskBottomActionsSlot empty canvas', () => {
     expect(screen.getByTestId('entry-desk-pointers')).toBeTruthy();
     expect(screen.getByText('Work order')).toBeTruthy();
     expect(screen.getByText(/Pitch your topic here/i)).toBeTruthy();
-  });
-
-  it('shows rush job and deep work beside the notebook on the desk row', () => {
-    const onSelectModelProfile = vi.fn();
-    render(
-      <DeskBottomActionsSlot
-        {...baseProps({
-          modelProfile: 'fast',
-          onSelectModelProfile
-        })}
-      />
-    );
-    expect(screen.getByTestId('desk-concentration-chip')).toBeTruthy();
-    expect(screen.getByRole('button', { name: /Deep work/i })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /Deep work/i }));
-    expect(onSelectModelProfile).toHaveBeenCalledWith('quality');
   });
 });

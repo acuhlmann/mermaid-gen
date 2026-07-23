@@ -6,7 +6,6 @@ const FULL_DESK_REVEAL = {
   desk: true,
   team: true,
   notebook: true,
-  concentration: true,
   drawer: true
 };
 
@@ -19,7 +18,6 @@ function revealForTourStep(step) {
     workOrder: true,
     desk: ['desk', 'notebook', 'team', 'format'].includes(step),
     notebook: ['notebook', 'team', 'format'].includes(step),
-    concentration: ['notebook', 'team', 'format'].includes(step),
     team: ['team', 'format'].includes(step),
     drawer: step === 'format'
   };

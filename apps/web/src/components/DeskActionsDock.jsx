@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
+import ConcentrationControl from './ConcentrationControl.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
+import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a flat verb menu. Rush job / Deep work and the
- * notebook live on the bottom chrome row; the code drawer lives on the Thinking
+ * ArchiSlop helmet stamp opens a flat verb menu with concentration at the
+ * bottom. Notebook and the code drawer live on the bottom chrome and Thinking
  * pane header.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
@@ -28,12 +30,15 @@ export default function DeskActionsDock({
   unreadCount = 0,
   imUnreadCount = 0,
   placement = 'corner',
-  initialOpen = false
+  initialOpen = false,
+  modelProfile = 'fast',
+  onSelectModelProfile = null
 }) {
   const [open, setOpen] = useState(initialOpen);
   const rootRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-actions-menu', open);
   const copy = officeChromeCopy().desk;
+  const narrowLayout = useNarrowLayout();
 
   useEffect(() => {
     if (initialOpen) setOpen(true);
@@ -167,6 +172,13 @@ export default function DeskActionsDock({
           aria-label={copy.menuAria}
         >
           {deskVerbs.map(renderVerb)}
+          {narrowLayout ? null : (
+            <ConcentrationControl
+              variant="menu"
+              modelProfile={modelProfile}
+              onSelectModelProfile={onSelectModelProfile}
+            />
+          )}
         </div>
       ) : null}
     </div>

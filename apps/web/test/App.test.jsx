@@ -696,8 +696,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
   it('sends quality modelProfile after selecting Deep work', async () => {
     render(<App />);
 
-    const chip = await screen.findByTestId('desk-concentration-chip');
-    fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }, { container: chip }));
+    fireEvent.click(await screen.findByRole('button', { name: /Your desk/i }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Deep work' }));
 
     const refineButton = await screen.findByRole('button', { name: 'Refine' });
     fireEvent.click(refineButton);
