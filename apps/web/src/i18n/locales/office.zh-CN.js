@@ -666,7 +666,7 @@ export const OFFICE_ZH_CN = {
     minutesTitle: '会议纪要',
     actionItemsLabel: '行动项',
     actionItemsCount: '{count} 项待办',
-    minutesActionLede: '点「就这么办」把一条纪要变成下一条工作指令。',
+    minutesActionLede: '勾选项目后点「应用所选」，或点「全部应用」一次送到画布。',
     minutesEmptyLede: '没有行动项 — 按公司标准，这是完美会议。',
     discussionNotesLabel: '讨论纪要',
     raiseHandPlaceholder: '对全场说点什么…',
@@ -676,6 +676,8 @@ export const OFFICE_ZH_CN = {
   OFFICE_IM_QUICK_REPLIES: ['👍', '开会中', '回头聊', '先放停车场', '已记入档案'],
   OFFICE_CHROME_COPY: {
     doIt: '就这么办',
+    doSelected: '应用所选',
+    doItAll: '全部应用',
     desk: {
       buttonLabel: '你的工位',
       buttonAria: '你的工位 — 你可以做的事',

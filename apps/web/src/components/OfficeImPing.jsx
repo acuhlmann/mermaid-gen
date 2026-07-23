@@ -1,6 +1,7 @@
 import { officeChromeCopy, officeImQuickReplies, officeSenderInfo } from '../utils/officeCast.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import OfficeMomentShell from './OfficeMomentShell.jsx';
 
 /**
  * Slop Chat™ — stacked IM ping bubbles (docs/office-parody.md). Auto-expire is
@@ -22,42 +23,48 @@ export default function OfficeImPing({ pings, onDismiss, onQuickReply }) {
       aria-label={copy.im.regionAria}
       aria-live="polite"
     >
-      <div className="office-moment-kind office-moment-kind--im" aria-hidden="true">
-        {copy.im.kindLabel}
-      </div>
       {(pings ?? []).map((ping) => {
         const sender = officeSenderInfo(ping.colleagueId);
         return (
-          <div key={ping.id} className="office-im-ping" style={{ borderColor: sender.accentColor }}>
-            <PersonaFace id={ping.colleagueId} size={26} className="office-im-avatar" />
-            <div className="office-im-content">
+          <OfficeMomentShell
+            key={ping.id}
+            className="office-moment-shell--im office-im-ping-shell"
+            kindClass="office-moment-kind--im"
+            kindLabel={copy.im.kindLabel}
+            headExtra={
               <button
                 type="button"
-                className="office-im-dismiss"
+                className="office-im-dismiss office-moment-shell-dismiss"
                 aria-label={formatLocale(copy.im.dismissAria, { name: sender.name })}
                 onClick={() => onDismiss?.(ping.id)}
               >
                 ×
               </button>
-              <span className="office-im-sender">
-                {sender.name}
-                {sender.title ? <span className="office-im-title"> · {sender.title}</span> : null}
-              </span>
-              <p className="office-im-body">{ping.body}</p>
-              <div className="office-im-replies">
-                {quickReplies.map((reply) => (
-                  <button
-                    key={reply}
-                    type="button"
-                    className="office-im-reply"
-                    onClick={() => onQuickReply?.(ping, reply)}
-                  >
-                    {reply}
-                  </button>
-                ))}
+            }
+          >
+            <div className="office-im-ping" style={{ borderColor: sender.accentColor }}>
+              <PersonaFace id={ping.colleagueId} size={26} className="office-im-avatar" />
+              <div className="office-im-content">
+                <span className="office-im-sender">
+                  {sender.name}
+                  {sender.title ? <span className="office-im-title"> · {sender.title}</span> : null}
+                </span>
+                <p className="office-im-body">{ping.body}</p>
+                <div className="office-im-replies">
+                  {quickReplies.map((reply) => (
+                    <button
+                      key={reply}
+                      type="button"
+                      className="office-im-reply"
+                      onClick={() => onQuickReply?.(ping, reply)}
+                    >
+                      {reply}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          </div>
+          </OfficeMomentShell>
         );
       })}
     </div>

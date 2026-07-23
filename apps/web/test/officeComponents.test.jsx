@@ -454,8 +454,8 @@ describe('MeetingOverlay', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('shows minutes with Do it action items once the meeting ends', () => {
-    const onAdoptPrompt = vi.fn();
+  it('shows minutes with Do selected / Do it all once the meeting ends', () => {
+    const onAdoptAllPrompts = vi.fn();
     const ended = {
       ...PLAYING_MEETING,
       state: 'ended',
@@ -476,11 +476,12 @@ describe('MeetingOverlay', () => {
         onInterject={vi.fn()}
         onLeave={vi.fn()}
         onClose={vi.fn()}
-        onAdoptPrompt={onAdoptPrompt}
+        onAdoptPrompt={vi.fn()}
+        onAdoptAllPrompts={onAdoptAllPrompts}
       />
     );
     expect(screen.getByText('Meeting minutes')).toBeTruthy();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Do it' })[0]);
-    expect(onAdoptPrompt).toHaveBeenCalledWith('Merge the Discovery and Research nodes', 'exec');
+    fireEvent.click(screen.getByRole('button', { name: 'Do it all' }));
+    expect(onAdoptAllPrompts).toHaveBeenCalledWith(['Merge the Discovery and Research nodes']);
   });
 });

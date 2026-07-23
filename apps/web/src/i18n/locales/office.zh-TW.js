@@ -666,7 +666,7 @@ export const OFFICE_ZH_TW = {
     minutesTitle: '會議紀錄',
     actionItemsLabel: '行動項目',
     actionItemsCount: '{count} 項待辦',
-    minutesActionLede: '點「就這麼辦」把一條紀要變成下一條工作指令。',
+    minutesActionLede: '勾選項目後點「套用所選」，或點「全部套用」一次送到畫布。',
     minutesEmptyLede: '沒有行動項目 — 依公司標準，這是完美會議。',
     discussionNotesLabel: '討論紀要',
     raiseHandPlaceholder: '對大家說點什麼…',
@@ -676,6 +676,8 @@ export const OFFICE_ZH_TW = {
   OFFICE_IM_QUICK_REPLIES: ['👍', '會議中', '晚點回', '先丟停車場', '已記入檔案'],
   OFFICE_CHROME_COPY: {
     doIt: '就這麼辦',
+    doSelected: '套用所選',
+    doItAll: '全部套用',
     desk: {
       buttonLabel: '你的工位',
       buttonAria: '你的工位 — 你可以做的事',

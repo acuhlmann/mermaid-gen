@@ -29,6 +29,7 @@ export function InsightsSlot({
   onDismiss,
   onAcceptProposal,
   onRejectProposal,
+  onApplyOfficeActionItems,
   agentReactions,
   onApplyStyleEdits,
   styleEditsApplyBusy,
@@ -71,6 +72,7 @@ export function InsightsSlot({
       onDismiss={onDismiss}
       onAcceptProposal={onAcceptProposal}
       onRejectProposal={onRejectProposal}
+      onApplyOfficeActionItems={onApplyOfficeActionItems}
       agentReactions={agentReactions}
       onApplyStyleEdits={onApplyStyleEdits}
       styleEditsApplyBusy={styleEditsApplyBusy}

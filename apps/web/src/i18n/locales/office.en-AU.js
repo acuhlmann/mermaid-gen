@@ -670,7 +670,8 @@ export const OFFICE_EN_AU = {
     minutesTitle: 'Meeting minutes',
     actionItemsLabel: 'Action items',
     actionItemsCount: '{count} to do',
-    minutesActionLede: 'Tap Have a go to turn a line into your next work order.',
+    minutesActionLede:
+      'Tick items and tap Do selected, or Do the lot to ship every action item to the canvas.',
     minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
     discussionNotesLabel: 'Discussion notes',
     raiseHandPlaceholder: 'Say something to the room…',
@@ -686,6 +687,8 @@ export const OFFICE_EN_AU = {
   ],
   OFFICE_CHROME_COPY: {
     doIt: 'Have a go',
+    doSelected: 'Do selected',
+    doItAll: 'Do the lot',
     desk: {
       hrProgress: 'Check me HR progression',
       hrProgressTitle: 'People Ops scorecard — levels, XP, and whatever Linda reckons of ya',

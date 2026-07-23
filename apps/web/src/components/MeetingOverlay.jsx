@@ -7,6 +7,7 @@ import {
 } from '../utils/officeAmbienceStorage.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
+import OfficeActionableChecklist from './OfficeActionableChecklist.jsx';
 
 function speakerInfo(speakerId, chrome) {
   if (speakerId === MEETING_USER_SPEAKER) {
@@ -119,9 +120,16 @@ function MeetingTranscript({ transcript, chrome, ended, playing, onAdoptPrompt, 
   );
 }
 
-function MeetingMinutes({ minutes, copy, chrome, onAdoptPrompt }) {
+function MeetingMinutes({ minutes, copy, chrome, onAdoptAllPrompts }) {
   const actionItems = minutes.filter((beat) => beat.actionPrompt);
   const discussionItems = minutes.filter((beat) => !beat.actionPrompt);
+  const actionPrompts = actionItems.map((beat) => beat.actionPrompt);
+
+  const handleApplySelected = (mask) => {
+    const chosen = actionPrompts.filter((_, index) => mask[index]);
+    if (chosen.length === 0) return;
+    onAdoptAllPrompts?.(chosen);
+  };
 
   return (
     <section className="office-meeting-minutes" aria-labelledby="office-meeting-minutes-heading">
@@ -147,11 +155,17 @@ function MeetingMinutes({ minutes, copy, chrome, onAdoptPrompt }) {
           {actionItems.length > 0 ? (
             <div className="office-meeting-minutes-group">
               <div className="office-meeting-minutes-group-label">{copy.actionItemsLabel}</div>
-              <ul className="office-meeting-minute-list">
+              <OfficeActionableChecklist
+                headingText={null}
+                items={actionPrompts}
+                onApplySelected={handleApplySelected}
+                onApplyAll={() => onAdoptAllPrompts?.(actionPrompts)}
+              />
+              <ul className="office-meeting-minute-list office-meeting-minute-list--context">
                 {actionItems.map((beat, index) => {
                   const speaker = speakerInfo(beat.speakerId, chrome);
                   return (
-                    <li key={`action-${index}`} className="office-meeting-minute-card">
+                    <li key={`action-${index}`} className="office-meeting-minute-card is-readonly">
                       <div className="office-meeting-minute-card-head">
                         <PersonaFace
                           id={beat.speakerId}
@@ -170,13 +184,6 @@ function MeetingMinutes({ minutes, copy, chrome, onAdoptPrompt }) {
                         <p className="office-meeting-minute-context">{beat.text}</p>
                       ) : null}
                       <p className="office-meeting-minute-action">{beat.actionPrompt}</p>
-                      <button
-                        type="button"
-                        className="office-do-it office-meeting-minute-do-it"
-                        onClick={() => onAdoptPrompt?.(beat.actionPrompt, beat.speakerId)}
-                      >
-                        {chrome.doIt}
-                      </button>
                     </li>
                   );
                 })}
@@ -220,7 +227,14 @@ function MeetingMinutes({ minutes, copy, chrome, onAdoptPrompt }) {
  * cast is arguing about. The choice persists (readOfficeMeetingDocked), so
  * anyone who prefers to multitask only has to say so once.
  */
-export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose, onAdoptPrompt }) {
+export default function MeetingOverlay({
+  meeting,
+  onInterject,
+  onLeave,
+  onClose,
+  onAdoptPrompt,
+  onAdoptAllPrompts
+}) {
   const [handText, setHandText] = useState('');
   const [docked, setDocked] = useState(readOfficeMeetingDocked);
   const transcriptRef = useRef(null);
@@ -306,7 +320,7 @@ export default function MeetingOverlay({ meeting, onInterject, onLeave, onClose,
             minutes={minutes}
             copy={copy}
             chrome={chrome}
-            onAdoptPrompt={onAdoptPrompt}
+            onAdoptAllPrompts={onAdoptAllPrompts}
           />
         ) : playing ? (
           <form className="office-meeting-hand" onSubmit={submitHand}>
