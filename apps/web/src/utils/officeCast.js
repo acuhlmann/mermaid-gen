@@ -1089,6 +1089,11 @@ export const OFFICE_MEETING_COPY = {
   proposeNewTimeGag:
     'New time proposed. The organizer has declined your proposed time. And your backup time. And time.',
   minutesTitle: 'Meeting minutes',
+  actionItemsLabel: 'Action items',
+  actionItemsCount: '{count} to do',
+  minutesActionLede: 'Tap Do it to turn a line into your next work order.',
+  minutesEmptyLede: 'No action items — a perfect meeting, by corporate standards.',
+  discussionNotesLabel: 'Discussion notes',
   raiseHandPlaceholder: 'Say something to the room… (keep it one-pager)',
   leaveLabel: 'Leave meeting',
   interjectCapLine: 'Pam: "Great point — let\'s parking-lot it. We\'re at time. Amazing energy."'
@@ -1177,7 +1182,9 @@ export const OFFICE_CHROME_COPY = {
     outbox: 'Ship from the Outbox',
     outboxTitle: 'Export or share the deliverable on your desk',
     codeDrawer: 'Spaghetti',
+    codeDrawerShort: 'Code',
     codeDrawerClose: 'Close spaghetti',
+    codeDrawerCloseShort: 'Close',
     codeDrawerTitle: 'Peek at the spaghetti behind the drywall',
     onboardContractor: 'Onboard a contractor',
     onboardContractorTitle: 'Invite an external agent over MCP',

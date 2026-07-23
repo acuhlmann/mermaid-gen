@@ -93,6 +93,8 @@ export default function OfficeLayer({
   onToggleEditor,
   onInviteAgent,
   onToggleThinking,
+  modelProfile = 'fast',
+  onSelectModelProfile = null,
   canOpenOutbox = false,
   canToggleThinking = false,
   canToggleEditor = false,
@@ -510,6 +512,8 @@ export default function OfficeLayer({
       ambientBlockedReason={desk.ambientBlockedReason}
       canOpenOutbox={canOpenOutbox}
       initialOpen={deskMenuInitialOpen}
+      modelProfile={modelProfile}
+      onSelectModelProfile={onSelectModelProfile}
     />
   );
   const deskSlot = useSyncExternalStore(

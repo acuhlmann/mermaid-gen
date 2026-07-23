@@ -120,35 +120,90 @@ function MeetingTranscript({ transcript, chrome, ended, playing, onAdoptPrompt, 
 }
 
 function MeetingMinutes({ minutes, copy, chrome, onAdoptPrompt }) {
+  const actionItems = minutes.filter((beat) => beat.actionPrompt);
+  const discussionItems = minutes.filter((beat) => !beat.actionPrompt);
+
   return (
-    <div className="office-meeting-minutes">
-      <div className="office-meeting-minutes-title">{copy.minutesTitle}</div>
+    <section className="office-meeting-minutes" aria-labelledby="office-meeting-minutes-heading">
+      <div className="office-meeting-minutes-head">
+        <div className="office-meeting-minutes-headline">
+          <h3 id="office-meeting-minutes-heading" className="office-meeting-minutes-title">
+            {copy.minutesTitle}
+          </h3>
+          {actionItems.length > 0 ? (
+            <span className="office-meeting-minutes-count">
+              {formatLocale(copy.actionItemsCount, { count: actionItems.length })}
+            </span>
+          ) : null}
+        </div>
+        <p className="office-meeting-minutes-lede">
+          {actionItems.length > 0 ? copy.minutesActionLede : copy.minutesEmptyLede}
+        </p>
+      </div>
       {minutes.length === 0 ? (
         <p className="office-meeting-minutes-empty">{chrome.meeting.noMinutes}</p>
       ) : (
-        <ul>
-          {minutes.map((beat, index) => {
-            const speaker = speakerInfo(beat.speakerId, chrome);
-            return (
-              <li key={index} className="office-meeting-minute">
-                <span>
-                  {speaker.avatarEmoji} {beat.actionPrompt ?? beat.text}
-                </span>
-                {beat.actionPrompt ? (
-                  <button
-                    type="button"
-                    className="office-do-it"
-                    onClick={() => onAdoptPrompt?.(beat.actionPrompt, beat.speakerId)}
-                  >
-                    {chrome.doIt}
-                  </button>
-                ) : null}
-              </li>
-            );
-          })}
-        </ul>
+        <div className="office-meeting-minutes-groups">
+          {actionItems.length > 0 ? (
+            <div className="office-meeting-minutes-group">
+              <div className="office-meeting-minutes-group-label">{copy.actionItemsLabel}</div>
+              <ul className="office-meeting-minute-list">
+                {actionItems.map((beat, index) => {
+                  const speaker = speakerInfo(beat.speakerId, chrome);
+                  return (
+                    <li key={`action-${index}`} className="office-meeting-minute-card">
+                      <div className="office-meeting-minute-card-head">
+                        <PersonaFace
+                          id={beat.speakerId}
+                          size={24}
+                          className="office-meeting-minute-avatar"
+                          fallbackEmoji={speaker.avatarEmoji}
+                        />
+                        <div className="office-meeting-minute-card-meta">
+                          <span className="office-meeting-minute-speaker">{speaker.name}</span>
+                          {speaker.title ? (
+                            <span className="office-meeting-minute-role">{speaker.title}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      {beat.text && beat.text !== beat.actionPrompt ? (
+                        <p className="office-meeting-minute-context">{beat.text}</p>
+                      ) : null}
+                      <p className="office-meeting-minute-action">{beat.actionPrompt}</p>
+                      <button
+                        type="button"
+                        className="office-do-it office-meeting-minute-do-it"
+                        onClick={() => onAdoptPrompt?.(beat.actionPrompt, beat.speakerId)}
+                      >
+                        {chrome.doIt}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+          {discussionItems.length > 0 ? (
+            <div className="office-meeting-minutes-group">
+              <div className="office-meeting-minutes-group-label">{copy.discussionNotesLabel}</div>
+              <ul className="office-meeting-minute-list office-meeting-minute-list--notes">
+                {discussionItems.map((beat, index) => {
+                  const speaker = speakerInfo(beat.speakerId, chrome);
+                  return (
+                    <li key={`note-${index}`} className="office-meeting-minute-note">
+                      <span className="office-meeting-minute-note-speaker">
+                        {speaker.avatarEmoji} {speaker.name}
+                      </span>
+                      <p className="office-meeting-minute-note-text">{beat.text}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+        </div>
       )}
-    </div>
+    </section>
   );
 }
 

@@ -62,11 +62,10 @@ describe('DeskActionsDock', () => {
     expect(screen.getByRole('menuitem', { name: /Check your mail/ }).textContent).toContain('3');
   });
 
-  it('lists desk verbs in a flat menu without concentration controls', () => {
-    open();
+  it('lists desk verbs in a flat menu with concentration controls in the footer', () => {
+    open({ modelProfile: 'fast', onSelectModelProfile: vi.fn() });
     const items = screen.getAllByRole('menuitem').map((el) => el.textContent);
     expect(items.join('\n')).not.toMatch(/Meet the Office/);
-    expect(screen.queryByText('Your seat')).toBeNull();
     expect(screen.queryByText('Get up')).toBeNull();
     expect(screen.queryByText('Under the desk')).toBeNull();
     expect(items[0]).toMatch(/Check your mail/);
@@ -86,9 +85,9 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menuitem', { name: /Open code drawer/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Message someone/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Adjust your workstation/ })).toBeNull();
-    expect(screen.queryByTestId('concentration-control')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Rush job' })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Deep work' })).toBeNull();
+    expect(screen.getByTestId('concentration-control')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
   });
 
   it('runs contractor verb and closes the menu', () => {

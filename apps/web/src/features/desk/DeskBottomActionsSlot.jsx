@@ -2,7 +2,6 @@ import SlopNextPrompt from '../../components/SlopNextPrompt.jsx';
 import StakeholdersMascot from '../../components/StakeholdersMascot.jsx';
 import DeskDrawer from '../../components/DeskDrawer.jsx';
 import DeskNotebookButton from '../../components/DeskNotebookButton.jsx';
-import DeskConcentrationChip from '../../components/DeskConcentrationChip.jsx';
 import EntryDeskPointers from '../../components/EntryDeskPointers.jsx';
 import { goMadShapeLabel } from '../../utils/renderModeAction.js';
 
@@ -66,7 +65,6 @@ function DeskChromeRow({
   showDeskSlot = true,
   showTeam = true,
   showNotebook = true,
-  showConcentration = true,
   showDrawer = true,
   deskPrompt,
   busy,
@@ -88,8 +86,6 @@ function DeskChromeRow({
   thinkingOpen,
   onToggleThinking,
   canToggleThinking = true,
-  modelProfile = 'fast',
-  onSelectModelProfile,
   goMadStreak,
   controls,
   runTransform,
@@ -244,15 +240,6 @@ function DeskChromeRow({
           />
         </div>
       ) : null}
-      {showConcentration ? (
-        <div className="desk-chrome-tool desk-tour-piece desk-tour-piece--concentration">
-          <DeskConcentrationChip
-            modelProfile={modelProfile}
-            onSelectModelProfile={onSelectModelProfile}
-            disabled={busy}
-          />
-        </div>
-      ) : null}
       {showDrawer ? (
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
@@ -335,8 +322,6 @@ export function DeskBottomActionsSlot({
   handleClearDiagram,
   onToggleThinking,
   canToggleThinking = true,
-  modelProfile = 'fast',
-  onSelectModelProfile,
   entryTourActive = false,
   entryTourStep = null,
   entryTourProgress = null,
@@ -359,7 +344,6 @@ export function DeskBottomActionsSlot({
     showDeskSlot: reveal.desk,
     showTeam: reveal.team,
     showNotebook: reveal.notebook,
-    showConcentration: reveal.concentration,
     showDrawer: reveal.drawer,
     deskPrompt,
     busy,
@@ -381,8 +365,6 @@ export function DeskBottomActionsSlot({
     thinkingOpen: insightsOpen,
     onToggleThinking,
     canToggleThinking,
-    modelProfile,
-    onSelectModelProfile,
     goMadStreak,
     controls,
     runTransform,

@@ -222,7 +222,7 @@ describe('InsightsPane', () => {
     expect(metas[0].querySelector('time')).toBeNull();
   });
 
-  it('groups notebook header title and controls for narrow panes', () => {
+  it('groups notebook toolbar controls on one line above the title', () => {
     render(
       <InsightsPane
         entries={[
@@ -243,11 +243,10 @@ describe('InsightsPane', () => {
     );
 
     const headerTools = screen.getByTestId('insights-pane-header-tools');
-    expect(headerTools.querySelector('.insights-pane-header-brand')).toBeTruthy();
-    expect(headerTools.querySelector('.insights-pane-header-actions')).toBeTruthy();
-    expect(within(headerTools).getByText('Notebook')).toBeTruthy();
+    expect(headerTools.className).toContain('insights-pane-toolbar');
     expect(within(headerTools).getByTestId('concentration-control')).toBeTruthy();
-    expect(screen.getByTestId('insights-code-drawer-toggle')).toBeTruthy();
+    expect(within(headerTools).getByTestId('insights-code-drawer-toggle')).toBeTruthy();
+    expect(screen.getByText('Notebook')).toBeTruthy();
   });
 
   it('shows done state in the thinking pane', () => {

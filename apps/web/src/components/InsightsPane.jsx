@@ -1176,50 +1176,50 @@ export default function InsightsPane({
       <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
         <div
           ref={headerTopRef}
-          className={`insights-pane-header-top${compactHeader ? ' is-compact' : ''}`}
+          className={`insights-pane-toolbar${compactHeader ? ' is-compact' : ''}`}
           data-testid="insights-pane-header-tools"
         >
-          <div className="insights-pane-header-brand">
-            <span className="insights-pane-title">{insightsCopy.title}</span>
-            {hasLiveAgent ? (
-              <span className="insights-live-badge" aria-live="polite">
-                <span className="insights-live-dot" aria-hidden="true" />
-                {insightsCopy.live}
+          <ConcentrationControl
+            variant="header"
+            modelProfile={modelProfile}
+            onSelectModelProfile={onSelectModelProfile}
+            compact
+          />
+          {typeof onToggleEditor === 'function' ? (
+            <button
+              type="button"
+              className={`insights-pane-tool-btn${editorOpen ? ' is-active' : ''}`}
+              aria-pressed={editorOpen}
+              disabled={!canToggleEditor}
+              title={
+                canToggleEditor
+                  ? editorOpen
+                    ? deskCopy.codeDrawerClose
+                    : deskCopy.codeDrawerTitle
+                  : deskCopy.blocked?.noCode
+              }
+              data-testid="insights-code-drawer-toggle"
+              onClick={() => onToggleEditor()}
+            >
+              <span className="insights-pane-tool-emoji" aria-hidden="true">
+                {'</>'}
               </span>
-            ) : null}
-          </div>
-          <div className="insights-pane-header-actions">
-            <ConcentrationControl
-              variant="header"
-              modelProfile={modelProfile}
-              onSelectModelProfile={onSelectModelProfile}
-              compact={compactHeader}
-            />
-            {typeof onToggleEditor === 'function' ? (
-              <button
-                type="button"
-                className={`insights-pane-tool-btn${editorOpen ? ' is-active' : ''}`}
-                aria-pressed={editorOpen}
-                disabled={!canToggleEditor}
-                title={
-                  canToggleEditor
-                    ? editorOpen
-                      ? deskCopy.codeDrawerClose
-                      : deskCopy.codeDrawerTitle
-                    : deskCopy.blocked?.noCode
-                }
-                data-testid="insights-code-drawer-toggle"
-                onClick={() => onToggleEditor()}
-              >
-                <span className="insights-pane-tool-emoji" aria-hidden="true">
-                  {'</>'}
-                </span>
-                <span className="insights-pane-tool-label">
-                  {editorOpen ? deskCopy.codeDrawerClose : deskCopy.codeDrawer}
-                </span>
-              </button>
-            ) : null}
-          </div>
+              <span className="insights-pane-tool-label">
+                {editorOpen
+                  ? (deskCopy.codeDrawerCloseShort ?? deskCopy.codeDrawerClose)
+                  : (deskCopy.codeDrawerShort ?? deskCopy.codeDrawer)}
+              </span>
+            </button>
+          ) : null}
+        </div>
+        <div className="insights-pane-header-brand">
+          <span className="insights-pane-title">{insightsCopy.title}</span>
+          {hasLiveAgent ? (
+            <span className="insights-live-badge" aria-live="polite">
+              <span className="insights-live-dot" aria-hidden="true" />
+              {insightsCopy.live}
+            </span>
+          ) : null}
         </div>
         {hasLiveAgent && liveEntry?.variant ? (
           <div className="insights-pane-header-meta">
