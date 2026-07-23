@@ -1176,7 +1176,8 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
 
     fireEvent.click(screen.getByTestId('office-directory-skip-build'));
 
-    expect(await screen.findByRole('button', { name: /Do it/i })).toBeTruthy();
+    expect(await screen.findByPlaceholderText(/Prompt anything into reality/i)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
     expect(screen.queryByTestId('office-directory-modal')).toBeNull();
     expect(screen.queryByTestId('day-one-badge')).toBeNull();
   });

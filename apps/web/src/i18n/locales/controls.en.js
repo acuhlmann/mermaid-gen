@@ -133,15 +133,7 @@ export const CONTROLS_EN = {
     exampleEyebrow: 'ArchiSlop Corp. · IT Division',
     exampleHeadline: 'Welcome aboard, {name}',
     exampleRole: 'Architect',
-    exampleBody: 'Turn any topic into a deliverable. Start with whatever you care about.',
-    exampleTopic: 'Global coffee supply chain',
-    exampleAria: 'Example of an archislop visualization you can generate',
-    // CTA names the sample topic so it stays clear even when the preview is hidden.
-    exampleCta: 'Try it: Coffee supply chain →',
-    exampleDiagramSource: `flowchart TD
-    A["Farm"] --> B["Roaster"]
-    B --> C["Distributor"]
-    C --> D["Cafe"]`,
+    exampleAria: 'Welcome to your archislop desk',
     // Empty-state Render as strip — introduce modes before Settings.
     renderAsLabel: 'Deliverable format',
     renderAsAria: 'Choose how to render your topic'

@@ -122,14 +122,7 @@ export const CONTROLS_EN_AU = {
     exampleEyebrow: 'ArchiSlop Corp. · IT Division',
     exampleHeadline: 'Welcome aboard, {name}',
     exampleRole: 'Architect',
-    exampleBody: 'Turn any topic into a deliverable. Start with whatever you care about.',
-    exampleTopic: 'Global coffee supply chain',
-    exampleAria: 'Example of an archislop visualisation you can generate',
-    exampleCta: 'Try it: Coffee supply chain →',
-    exampleDiagramSource: `flowchart TD
-    A["Farm"] --> B["Roaster"]
-    B --> C["Distributor"]
-    C --> D["Cafe"]`,
+    exampleAria: 'Welcome to your archislop desk',
     renderAsLabel: 'Hand it in as',
     renderAsAria: 'Choose how to render your topic'
   },

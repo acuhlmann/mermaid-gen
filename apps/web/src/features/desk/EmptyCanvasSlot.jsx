@@ -1,19 +1,17 @@
 import ExampleDiagramPreview from '../../components/ExampleDiagramPreview.jsx';
 import EntryDeskIntro from '../../components/EntryDeskIntro.jsx';
 import { formatLocale } from '../../i18n/formatLocale.js';
-import { EXAMPLE_TRY_PROMPT } from '../../utils/exampleDiagram.js';
 
 /**
- * Empty-canvas guidance: sample preview + CTA in the canvas safe area above the
- * bottom chrome. Shown whenever the desk has no deliverable yet — first visit
- * and after Demolish — so users are not left staring at a blank grid.
+ * Empty-canvas guidance: welcome card in the canvas safe area above the bottom
+ * chrome. Shown whenever the desk has no deliverable yet — first visit and
+ * after Demolish — so users are not left staring at a blank grid.
  */
 export function EmptyCanvasSlot({
   active,
   busy: _busy,
   copy,
   userName,
-  onPickTopic,
   showEntryDeskIntro = false,
   entryIntroCopy = null,
   entryRole = 'Architect',
@@ -23,8 +21,6 @@ export function EmptyCanvasSlot({
 }) {
   if (!active || !copy) return null;
 
-  const starters = Array.isArray(copy.starters) ? copy.starters : [];
-  const tryPrompt = starters[0]?.prompt ?? EXAMPLE_TRY_PROMPT;
   const introCopy = entryIntroCopy ?? copy.entryIntro;
 
   return (
@@ -51,15 +47,10 @@ export function EmptyCanvasSlot({
       ) : (
         <ExampleDiagramPreview
           active={active}
-          source={copy.exampleDiagramSource}
           eyebrow={copy.exampleEyebrow}
           headline={formatLocale(copy.exampleHeadline, { name: userName })}
           role={copy.exampleRole}
-          body={copy.exampleBody}
-          topicLabel={copy.exampleTopic}
           ariaLabel={copy.exampleAria}
-          ctaLabel={copy.exampleCta}
-          onTry={() => onPickTopic?.(tryPrompt)}
         />
       )}
     </div>
