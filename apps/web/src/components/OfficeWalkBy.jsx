@@ -22,6 +22,8 @@ export default function OfficeWalkBy({ walkBy, onDismiss, onAdoptPrompt }) {
       open={Boolean(walkBy)}
       group="officeChrome"
       className="office-walkby-host"
+      kind="walkby"
+      senderId={walkBy.colleagueId}
       defaultCorner={narrowLayout ? 'bottom-left' : 'bottom-left'}
       defaultOffsetX={14}
       defaultOffsetY={narrowLayout ? 240 : 130}

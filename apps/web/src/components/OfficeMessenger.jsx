@@ -191,6 +191,8 @@ export default function OfficeMessenger({
       open={open}
       group="officeModal"
       className="office-messenger"
+      kind="messenger"
+      senderId={activeId}
       defaultCorner="bottom-right"
       defaultOffsetX={14}
       defaultOffsetY={96}

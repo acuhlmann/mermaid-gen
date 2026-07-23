@@ -10,6 +10,7 @@ import OfficeImPing from './OfficeImPing.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
 import OfficeWalkBy from './OfficeWalkBy.jsx';
+import OfficeWindowBar from './OfficeWindowBar.jsx';
 import { useDeskActions } from '../hooks/useDeskActions.js';
 import { meetingMinutes, useMeetingPlayback } from '../hooks/useMeetingPlayback.js';
 import { useOfficeAmbience } from '../hooks/useOfficeAmbience.js';
@@ -527,6 +528,7 @@ export default function OfficeLayer({
   return (
     <div className="office-layer">
       {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
+      <OfficeWindowBar />
       <OfficeInboxDock
         showTrigger={false}
         openSignal={inboxOpenSignal}

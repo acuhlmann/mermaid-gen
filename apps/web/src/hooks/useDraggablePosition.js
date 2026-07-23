@@ -1,4 +1,12 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore
+} from 'react';
+import { getResetVersion, subscribeFloatingWindowReset } from '../state/floatingWindowControl.js';
 import {
   clampWindowPosition,
   defaultWindowPosition,
@@ -106,6 +114,21 @@ export function useDraggablePosition(options = {}) {
     readStoredPosition,
     respectMobileChrome
   ]);
+
+  // Re-place at the default corner when this window (or the whole desk) is
+  // reset — the "recall a lost window" path from the office window bar.
+  const resetVersion = useSyncExternalStore(
+    subscribeFloatingWindowReset,
+    () => (storageKey ? getResetVersion(storageKey) : 0),
+    () => (storageKey ? getResetVersion(storageKey) : 0)
+  );
+  const resetVersionRef = useRef(resetVersion);
+  useEffect(() => {
+    if (!enabled) return;
+    if (resetVersionRef.current === resetVersion) return;
+    resetVersionRef.current = resetVersion;
+    measureAndPlace();
+  }, [resetVersion, enabled, measureAndPlace]);
 
   useLayoutEffect(() => {
     if (!enabled) return undefined;
