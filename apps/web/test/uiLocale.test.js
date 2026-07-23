@@ -19,7 +19,8 @@ describe('ui locale bundles', () => {
     expect(bundle.controls.checklist.fixSelected).toBe('修复所选');
     expect(bundle.controls.contentModes.mermaidShort).toBe('架构图');
     expect(bundle.controls.contentModes.chartShort).toBe('数据图');
-    expect(bundle.controls.prompt.exampleDiagramSource).toContain('农场');
+    expect(bundle.controls.prompt.exampleHeadline).toContain('{name}');
+    expect(bundle.controls.prompt.exampleAria).toMatch(/欢迎/);
     expect(bundle.controls.insights.tipLabel).not.toBe('Slopitect Tip™');
     expect(bundle.controls.insights.phaseStep).toBe('阶段 {step}');
     expect(bundle.controls.insights.diffAdded).toBe('+{count} 新增');
