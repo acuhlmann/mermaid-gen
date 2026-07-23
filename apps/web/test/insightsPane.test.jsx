@@ -222,7 +222,7 @@ describe('InsightsPane', () => {
     expect(metas[0].querySelector('time')).toBeNull();
   });
 
-  it('groups notebook toolbar controls on one line above the title', () => {
+  it('groups notebook title and toolbar controls on one line', () => {
     render(
       <InsightsPane
         entries={[
@@ -244,9 +244,10 @@ describe('InsightsPane', () => {
 
     const headerTools = screen.getByTestId('insights-pane-header-tools');
     expect(headerTools.className).toContain('insights-pane-toolbar');
+    expect(within(headerTools).getByText('Notebook')).toBeTruthy();
     expect(within(headerTools).getByTestId('concentration-control')).toBeTruthy();
     expect(within(headerTools).getByTestId('insights-code-drawer-toggle')).toBeTruthy();
-    expect(screen.getByText('Notebook')).toBeTruthy();
+    expect(within(headerTools).getByText('Spaghetti')).toBeTruthy();
   });
 
   it('shows done state in the thinking pane', () => {
@@ -787,7 +788,7 @@ flowchart TB
     expect(screen.queryByTestId('run-timeline-run-cost-footer')).toBeNull();
   });
 
-  it('places the run-activity summary after the chronological track', () => {
+  it('places the run-activity summary after the resulting diagram section', () => {
     render(
       <InsightsPane
         entries={[
@@ -800,7 +801,10 @@ flowchart TB
             startedAt: Date.now() - 5000,
             completedAt: Date.now(),
             phases: [{ id: 'agent_run', label: 'Planning…', at: 1000 }],
-            technicalActions: []
+            technicalActions: [],
+            diagramRevisionApplied: true,
+            diagramAfterSource: 'flowchart TD\n  A --> B',
+            diagramAfterContentType: 'mermaid'
           }
         ]}
         celebratingEntryId={null}
@@ -810,8 +814,13 @@ flowchart TB
     const timeline = screen.getByTestId('run-timeline');
     const track = timeline.querySelector('.run-timeline-track');
     const summary = screen.getByTestId('run-timeline-summary');
+    const diagramSection = screen.getByText('Resulting diagram').closest('section');
     expect(track).toBeTruthy();
     expect(summary).toBeTruthy();
+    expect(diagramSection).toBeTruthy();
+    expect(
+      diagramSection.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(track.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 

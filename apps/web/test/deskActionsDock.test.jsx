@@ -85,7 +85,9 @@ describe('DeskActionsDock', () => {
     expect(screen.queryByRole('menuitem', { name: /Open code drawer/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Message someone/ })).toBeNull();
     expect(screen.queryByRole('menuitem', { name: /Adjust your workstation/ })).toBeNull();
-    expect(screen.getByTestId('concentration-control')).toBeTruthy();
+    const concentration = screen.getByTestId('concentration-control');
+    expect(concentration.className).toContain('concentration-control--menu');
+    expect(screen.getByText('Concentration')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
   });
