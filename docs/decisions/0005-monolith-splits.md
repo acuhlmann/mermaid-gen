@@ -51,7 +51,7 @@ they need access to outer-closure state.
   Mermaid and Infographic keep bespoke loops (stable-agent fallback) until they
   converge on the same helper.
 
-### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~1 291 LOC shell, -~3 000 LOC total)
+### `App.jsx` / `ArchiSlop.jsx` (4 292 → 12 LOC entry + ~1 057 LOC shell, -~3 200 LOC total)
 
 - ✅ Module-scope helpers extracted to `apps/web/src/utils/app*.js`
   (`appConfetti`, `appToolLabels`, `appStreamDebug`, `appInsightHelpers`,
@@ -85,6 +85,8 @@ they need access to outer-closure state.
   `features/canvas/DiagramCanvasSlot.jsx`, `features/insights/ThinkingPaneSlot.jsx`,
   `features/insights/useCritiqueActionableSelection.js`,
   `features/ceremony/useGamificationPersistence.js`,
+  `features/streaming/useAgentRunPipeline.js`, `features/shell/useShellAdvisorContext.js`,
+  `features/insights/useThinkingPaneSlot.jsx`, `features/shell/AppWorkspaceSlot.jsx`,
   `components/buildRadialActions.jsx`, `utils/appConstants.js`,
   `utils/formatFormAnswer.js`.
   (JSX that imports `components/` must not live under `utils/` — see

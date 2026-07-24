@@ -1,62 +1,40 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
-import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { fallbackState, readDiagramCache } from './state/diagramStore.js';
 import { getCachedAgentCostEstimates } from './state/agentCostEstimates';
 import './App.css';
 import './components/RunTimeline.css';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
-import { ThinkingPaneSlot } from './features/insights/ThinkingPaneSlot.jsx';
+import { useThinkingPaneSlot } from './features/insights/useThinkingPaneSlot.jsx';
 import { useCritiqueActionableSelection } from './features/insights/useCritiqueActionableSelection.js';
-import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
 import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
 import { useSessionHydrate } from './features/session/useSessionHydrate.js';
 import { useContentModeSwitch } from './features/session/useContentModeSwitch.js';
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
 import { useRadialMenu } from './features/prompt/useRadialMenu.js';
-import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
-import { useAdvisorPause } from './features/advisor/useAdvisorPause.js';
 import { useRunCeremony } from './features/ceremony/useRunCeremony.js';
 import { useGamificationPersistence } from './features/ceremony/useGamificationPersistence.js';
-import { ModeRevealSlot } from './features/desk/ModeRevealSlot.jsx';
-import { EmptyCanvasSlot } from './features/desk/EmptyCanvasSlot.jsx';
-import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
-import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
-import { BrandChromeSlot } from './features/shell/BrandChromeSlot.jsx';
-import { useRunStreamingAgent } from './features/streaming/useRunStreamingAgent.js';
+import { useAgentRunPipeline } from './features/streaming/useAgentRunPipeline.js';
 import { useAnimateAcceptedSource } from './features/streaming/useAnimateAcceptedSource.js';
 import { useLiveRunContext } from './features/streaming/useLiveRunContext.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import { useDiagramChangeHighlight } from './features/insights/useDiagramChangeHighlight.js';
-import { useExplainDumbDown } from './features/insights/useExplainDumbDown.js';
-import { useFixFromCritique } from './features/insights/useFixFromCritique.js';
 import { useInsightsLedger } from './features/insights/useInsightsLedger.js';
-import { useRetryFailedInsight } from './features/insights/useRetryFailedInsight.js';
 import { useDiagramAutoFix } from './features/canvas/useDiagramAutoFix.js';
 import { useDiagramManualSync } from './features/canvas/useDiagramManualSync.js';
-import { DiagramCanvasSlot } from './features/canvas/DiagramCanvasSlot.jsx';
 import { useRadialActionHandler } from './features/prompt/useRadialActionHandler.js';
-import { RadialMenuSlot } from './features/prompt/RadialMenuSlot.jsx';
 import { useClearDiagram } from './features/session/useClearDiagram.js';
 import { useSessionCacheLifecycle } from './features/session/useSessionCacheLifecycle.js';
 import { useInsightsAutoClose } from './features/insights/useInsightsAutoClose.js';
 import { useAppStatus } from './features/shell/useAppStatus.js';
-import { OfficeLayerSlot } from './features/shell/OfficeLayerSlot.jsx';
-import { ShellBottomRowSlot } from './features/shell/ShellBottomRowSlot.jsx';
+import { AppWorkspaceSlot } from './features/shell/AppWorkspaceSlot.jsx';
 import { buildAppShellClassName } from './features/shell/buildAppShellClassName.js';
+import { useShellAdvisorContext } from './features/shell/useShellAdvisorContext.js';
 import { useShellRefSync } from './features/shell/useShellRefSync.js';
-import ErrorToast from './components/ErrorToast.jsx';
-import HotkeyOverlay from './components/HotkeyOverlay.jsx';
 import {
   createInitialState as createInitialGamificationState,
   readFromStorage as readGamificationFromStorage
 } from './state/runGamificationStore.js';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
-import { subscribe as subscribeUserName, resolveUserName } from './state/userIdentityStore.js';
-import {
-  getOfficeDirectoryUi,
-  subscribeOfficeDirectoryUi
-} from './state/officeDirectoryUiStore.js';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
 import { ensureUrlBackedSession, readStoredModelProfile } from './utils/appSessionLocation.js';
@@ -68,11 +46,8 @@ import {
   useWideMobileLayout
 } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
-import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from './components/AppIcons.jsx';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import { useStyleEdits } from './hooks/useStyleEdits.js';
-import { useSubmitIntent } from './hooks/useSubmitIntent.js';
-import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { SpeechRecognitionCtor } from './utils/appConstants.js';
@@ -573,146 +548,80 @@ export function ArchiSlop() {
     syncTimerRef
   });
 
-  const stopStreamingAgentRequest = useCallback(() => {
-    streamAgentAbortRef.current?.abort();
-  }, []);
-
-  const { runStreamingAgent } = useRunStreamingAgent({
-    activeSessionId,
-    contentMode,
-    modelProfile,
-    controls,
-    streamAgentAbortRef,
-    lastTokenSoundAtRef,
-    goMadTokenTickIndexRef,
-    lastDraftTickAtRef,
-    sessionTopicRef,
-    crossModeSyncRef,
-    pendingAutoDiagramHighlightRef,
-    pendingAutoDiagramHighlightTimeoutRef,
-    agentCostEstimatesRef,
-    autoCloseActiveEntryIdRef,
-    setInsightsOpen,
-    setGoMadStreak,
-    setLiveDraftSource,
-    setLiveDraftContentType,
-    appendInsightEntry,
-    patchInsightEntry,
-    appendToInsight,
-    setInsightStatus,
-    appendTechnicalAction,
-    annotateTechnicalActionResult,
-    finalizeTechnicalActionResult,
-    enrichTechnicalActionDetail,
-    appendStreamDebugLog,
-    animateAcceptedSource,
-    applyResolvedContentMode,
-    triggerCompletionDelight,
-    tryAgentSound
-  });
-
-  const { retryFailedInsight } = useRetryFailedInsight({
-    contentMode,
-    insightsEntriesRef,
-    loadingRef,
-    modelProfile,
-    runStreamingAgent,
-    setActiveRequest,
-    setError,
-    setGoMadStreak,
-    setLoading,
-    streamingPreviewRef,
-    syncDiagramOrThrow
-  });
-
   const {
+    stopStreamingAgentRequest,
+    retryFailedInsight,
     explainDumbLevelByEntryId,
     explainDumbLoadingEntryId,
     explainDumbSurrenderedEntryIds,
     handleExplainDumbDown,
-    reportAdvisorUsage
-  } = useExplainDumbDown({
-    activeSessionId,
-    contentMode,
-    controls,
-    costTrackingEnabled,
-    agentCostEstimatesRef,
-    insightsEntriesRef,
-    setError,
-    setGamification,
-    setInsightsEntries
-  });
-
-  const {
+    reportAdvisorUsage,
     submitIntentWithPrompt,
-    runIntentChange,
     handleFormSubmit,
-    handleStarterPick,
     handleSlopPromptSubmit,
-    handleDeskPromptSubmit
-  } = useSubmitIntent({
+    handleDeskPromptSubmit,
+    runTransform,
+    runAnalyze,
+    handleFixFromCritique
+  } = useAgentRunPipeline({
+    activeSessionId,
+    agentCostEstimatesRef,
+    animateAcceptedSource,
+    appendInsightEntry,
+    appendStreamDebugLog,
+    appendTechnicalAction,
+    appendToInsight,
     applyLocaleFromText,
+    applyResolvedContentMode,
+    autoCloseActiveEntryIdRef,
     closeRadialMenuRef,
     closeSlopPrompt,
     contentMode,
     controls,
+    costTrackingEnabled,
+    critiqueActionableSelected,
+    crossModeSyncRef,
+    goMadStreak,
+    goMadTokenTickIndexRef,
     hasInteractedRef,
+    insightsEntriesRef,
+    lastDraftTickAtRef,
+    lastTokenSoundAtRef,
+    latestCritique,
     loadingRef,
     modelProfile,
+    pendingAutoDiagramHighlightRef,
+    pendingAutoDiagramHighlightTimeoutRef,
     prompt,
     radialMenuSession,
-    runStreamingAgent,
     selectedNode,
+    sessionTopicRef,
     setActiveRequest,
     setDeskPrompt,
     setError,
+    setGamification,
     setGoMadStreak,
+    setInsightsEntries,
     setInsightsOpen,
     setLatestCritique,
+    setLiveDraftContentType,
+    setLiveDraftSource,
     setLoading,
     setPrompt,
     setSelectedNode,
     slopPromptSource,
-    streamingPreviewRef,
-    syncDiagramOrThrow,
-    tryAgentSound
-  });
-  submitIntentWithPromptRef.current = submitIntentWithPrompt;
-
-  const { runTransform, runAnalyze } = useAnalyzeFlow({
-    contentMode,
-    controls,
-    goMadStreak,
-    hasInteractedRef,
-    loadingRef,
-    modelProfile,
-    runStreamingAgent,
-    selectedNode,
-    setActiveRequest,
-    setError,
-    setGoMadStreak,
-    setLatestCritique,
-    setLoading,
     stateRef,
+    streamAgentAbortRef,
     streamingPreviewRef,
-    syncDiagramOrThrow
-  });
-
-  const { handleFixFromCritique } = useFixFromCritique({
-    contentMode,
-    critiqueActionableSelected,
-    hasInteractedRef,
-    latestCritique,
-    loadingRef,
-    modelProfile,
-    runStreamingAgent,
-    setActiveRequest,
-    setError,
-    setGoMadStreak,
-    setLatestCritique,
-    setLoading,
-    streamingPreviewRef,
-    syncDiagramOrThrow
+    submitIntentWithPromptRef,
+    syncDiagramOrThrow,
+    triggerCompletionDelight,
+    tryAgentSound,
+    patchInsightEntry,
+    setInsightStatus,
+    annotateTechnicalActionResult,
+    finalizeTechnicalActionResult,
+    enrichTechnicalActionDetail
   });
 
   const { handleClearDiagram, performClearDiagram } = useClearDiagram({
@@ -751,68 +660,21 @@ export function ArchiSlop() {
     syncTimerRef
   });
 
-  const diagramSurfaceRef = useRef(null);
-  const { fullscreenSupported, isFullscreen, toggleFullscreen } =
-    useDiagramFullscreen(diagramSurfaceRef);
-
-  const officeDirectoryUi = useSyncExternalStore(
-    subscribeOfficeDirectoryUi,
-    getOfficeDirectoryUi,
-    getOfficeDirectoryUi
-  );
-
-  const hasDiagramText = Boolean(state.diagramSource?.trim());
-  // Peer content in another slot keeps chrome visible after a mode switch into an
-  // empty target slot — do not dump the user back on the first-run intro.
-  const hasCanvasContent = hasDiagramText || sessionHasPeerContent;
-
   const {
+    diagramSurfaceRef,
+    fullscreenSupported,
+    isFullscreen,
+    toggleFullscreen,
+    hasCanvasContent,
     officeBootPending,
     officeCanvasGrace,
-    deskTourPending,
     handleOfficeBootComplete,
-    completeDeskTour
-  } = useOfficeBoot({
-    hasCanvasContent
-  });
-
-  const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
-
-  const { advisorPause, officeDistractionsPaused } = useAdvisorPause({
-    clearConfirmOpen,
-    contentMode,
-    editorOpen,
-    insightsEntries,
-    insightsOpen,
-    isFullscreen,
-    liveDraftContentType,
-    liveDraftSource,
-    loading,
-    narrowLayout,
-    officeCanvasGrace,
-    officeDirectoryOpen: officeDirectoryUi.open,
-    slopPromptExpanded,
-    streamingPreview,
-    voiceListening
-  });
-
-  const { advisor, advisorBubbleProps, stakeholderIntroProps } = useAdvisorShell({
-    selectedNode,
-    hoverDescriptor,
-    stateRef,
-    contentMode,
-    activeSessionId,
+    userName,
     advisorPause,
-    controls,
-    diagramRevisionId: state.revisionId,
-    diagramSource: state.diagramSource,
-    runTransform,
-    runAnalyze,
-    submitIntentWithPrompt,
-    reportAdvisorUsage
-  });
-
-  const {
+    officeDistractionsPaused,
+    advisor,
+    advisorBubbleProps,
+    stakeholderIntroProps,
     showDeskChrome,
     entryReveal,
     entryTourActive,
@@ -823,30 +685,35 @@ export function ArchiSlop() {
     dismissModeReveal,
     handleModeRevealPick,
     advanceEntryTour,
-    dismissEntryDeskTour
-  } = useEntryDeskFlow({
-    hasDiagramText,
-    insightsOpen,
-    stakeholderIntroProps,
+    dismissEntryDeskTour,
+    showEmptyCanvas,
+    entryTourCopy
+  } = useShellAdvisorContext({
+    activeSessionId,
+    clearConfirmOpen,
+    contentMode,
+    controls,
     editorOpen,
     handleSelectContentMode,
-    deskTourPending,
-    onDeskTourComplete: completeDeskTour,
-    entryPointers: controls.prompt.entryPointers ?? []
+    hoverDescriptor,
+    insightsEntries,
+    insightsOpen,
+    liveDraftContentType,
+    liveDraftSource,
+    loading,
+    narrowLayout,
+    reportAdvisorUsage,
+    runAnalyze,
+    runTransform,
+    selectedNode,
+    sessionHasPeerContent,
+    slopPromptExpanded,
+    state,
+    stateRef,
+    streamingPreview,
+    submitIntentWithPrompt,
+    voiceListening
   });
-
-  const showEmptyCanvas =
-    !hasCanvasContent &&
-    !insightsOpen &&
-    !editorOpen &&
-    !officeBootPending &&
-    !modeRevealActive &&
-    !isFullscreen &&
-    !loading;
-  const entryTourCopy = {
-    ...(controls.prompt.entryTour ?? {}),
-    deskEyebrow: controls.prompt.entryIntro?.deskEyebrow ?? 'Your desk'
-  };
 
   useInsightsAutoClose({
     autoCloseActiveEntryIdRef,
@@ -960,46 +827,44 @@ export function ArchiSlop() {
       insightsOpen={insightsMounted && insightsOpen}
     />
   );
-  const insightsSlot = (
-    <ThinkingPaneSlot
-      mounted={insightsMounted}
-      closing={insightsClosing}
-      entries={insightsEntries}
-      streakByVariant={gamification?.streakByVariant}
-      celebratingEntryId={celebratingEntryId}
-      streamDebugEnabled={streamDebugEnabled}
-      critiqueActionableUi={critiqueActionableUi}
-      loading={loading}
-      onRestoreToEntry={handleRestoreToEntry}
-      onRestoreDiagramSnapshot={handleRestoreDiagramSnapshot}
-      onOpenProposalFullPreview={handleOpenProposalFullPreview}
-      entryDiagramDiffById={entryDiagramDiffById}
-      diagramChangeHighlightEntryId={diagramChangeHighlightEntryId}
-      diagramChangeHighlightSummary={diagramChangeHighlightSummary}
-      onToggleDiagramChangeHighlight={handleToggleDiagramChangeHighlight}
-      streamingAgentStoppable={streamingAgentStoppable}
-      onStopStreamingAgent={stopStreamingAgentRequest}
-      onRetryInsightEntry={retryFailedInsight}
-      onDismiss={() => setInsightsOpen(false)}
-      onAcceptProposal={handleAcceptProposal}
-      onRejectProposal={handleRejectProposal}
-      submitIntentWithPrompt={submitIntentWithPrompt}
-      agentReactions={agentReactions}
-      onApplyStyleEdits={handleApplyStyleEdits}
-      liveDraftSource={liveDraftSource}
-      liveDraftContentType={liveDraftContentType}
-      contentMode={contentMode}
-      explainDumbLevelByEntryId={explainDumbLevelByEntryId}
-      explainDumbLoadingEntryId={explainDumbLoadingEntryId}
-      explainDumbSurrenderedEntryIds={explainDumbSurrenderedEntryIds}
-      onExplainDumbDown={handleExplainDumbDown}
-      modelProfile={modelProfile}
-      onSelectModelProfile={setModelProfile}
-      editorOpen={editorOpen}
-      onToggleEditor={() => setEditorOpen((current) => !current)}
-      canToggleEditor={hasCanvasContent || editorOpen}
-    />
-  );
+  const insightsSlot = useThinkingPaneSlot({
+    insightsMounted,
+    insightsClosing,
+    insightsEntries,
+    streakByVariant: gamification?.streakByVariant,
+    celebratingEntryId,
+    streamDebugEnabled,
+    critiqueActionableUi,
+    loading,
+    handleRestoreToEntry,
+    handleRestoreDiagramSnapshot,
+    handleOpenProposalFullPreview,
+    entryDiagramDiffById,
+    diagramChangeHighlightEntryId,
+    diagramChangeHighlightSummary,
+    handleToggleDiagramChangeHighlight,
+    streamingAgentStoppable,
+    stopStreamingAgentRequest,
+    retryFailedInsight,
+    setInsightsOpen,
+    handleAcceptProposal,
+    handleRejectProposal,
+    submitIntentWithPrompt,
+    agentReactions,
+    handleApplyStyleEdits,
+    liveDraftSource,
+    liveDraftContentType,
+    contentMode,
+    explainDumbLevelByEntryId,
+    explainDumbLoadingEntryId,
+    explainDumbSurrenderedEntryIds,
+    handleExplainDumbDown,
+    modelProfile,
+    setModelProfile,
+    editorOpen,
+    setEditorOpen,
+    hasCanvasContent
+  });
 
   return (
     <main
@@ -1022,250 +887,157 @@ export function ArchiSlop() {
       }
     >
       {!officeBootPending ? (
-        <>
-          <DiagramCanvasSlot
-            revisionId={state.revisionId}
-            diagramSource={
-              liveDraftSource && liveDraftContentType === contentMode
-                ? liveDraftSource
-                : state.diagramSource
-            }
-            contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
-            rendererRefreshKey={rendererRefreshKey}
-            onManualEdit={handleManualEdit}
-            onValidationChange={handleValidationChange}
-            streamingPreview={
-              streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)
-            }
-            agentThinkingChrome={agentThinkingChrome && !streamingPreview}
-            editorOpen={editorOpen}
-            insightsMounted={insightsMounted}
-            insightsSlot={insightsSlot}
-            selectedNode={selectedNode}
-            hoverDescriptor={hoverDescriptor}
-            onSelectedNodeChange={handleSelectedNodeChange}
-            onHoverTargetChange={handleHoverTargetChange}
-            onPanGestureStart={dismissRadialMenu}
-            onNodeToolbarAnchor={setToolbarAnchor}
-            onEditorClose={() => setEditorOpen(false)}
-            changeHighlight={changeHighlightForCanvas}
-            changeHighlightContentType={changeHighlightContentType}
-            onDiagramSvgRendered={handleDiagramSvgRendered}
-            runFx={runFx}
-            diagramSurfaceRef={diagramSurfaceRef}
-            isFullscreen={isFullscreen}
-            onFormSubmit={handleFormSubmit}
-          />
-
-          <ModeRevealSlot
-            active={modeRevealActive}
-            copy={controls.modeReveal}
-            modes={contentModeOptions.filter((m) => m.id !== 'auto')}
-            currentMode={contentMode}
-            onPickMode={handleModeRevealPick}
-            onDismiss={dismissModeReveal}
-          />
-
-          <EmptyCanvasSlot
-            active={showEmptyCanvas}
-            busy={loading || streamingPreview}
-            copy={controls.prompt}
-            userName={userName}
-            showEntryDeskIntro={showEntryDeskIntro}
-            entryIntroCopy={controls.prompt.entryIntro}
-            entryRole={
-              controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'
-            }
-            entryTourCopy={entryTourCopy}
-            onAdvanceEntryTour={advanceEntryTour}
-            onDismissEntryTour={dismissEntryDeskTour}
-          />
-
-          <RadialMenuSlot
-            isFullscreen={isFullscreen}
-            diagramSurfaceRef={diagramSurfaceRef}
-            toggleFullscreen={toggleFullscreen}
-            radialMenuSession={radialMenuSession}
-            radialActions={radialActions}
-            busy={busy}
-            diagramSource={state.diagramSource}
-            contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
-            sessionId={activeSessionId}
-            slopPromptExpanded={slopPromptExpanded}
-            slopPromptSource={slopPromptSource}
-            slopNextPrompt={slopNextPrompt}
-            voiceSupported={voiceSupported}
-            voiceListening={voiceListening}
-            narrowLayout={narrowLayout}
-            speechRecognitionCtor={SpeechRecognitionCtor}
-            PromptIcon={PromptIcon}
-            MicIcon={MicIcon}
-            MicActiveIcon={MicActiveIcon}
-            ButtonIcon={ButtonIcon}
-            promptCopy={controls.prompt}
-            onSlopPromptClose={closeSlopPrompt}
-            onPromptChange={setSlopNextPrompt}
-            onSlopPromptSubmit={handleSlopPromptSubmit}
-            onMicToggleClick={handleMicToggleClick}
-            onMicPointerDown={handleMicPointerDown}
-            onMicPointerUp={handleMicPointerUp}
-            onMicLostPointerCapture={() => stopVoiceInput()}
-            onActionPick={handleRadialAction}
-            setSelectedNode={setSelectedNode}
-            closeRadialMenu={closeRadialMenu}
-            setBootSeq={setBootSeq}
-            tryAgentSound={tryAgentSound}
-            runAnalyze={runAnalyze}
-            cancelMenuClose={cancelMenuClose}
-            scheduleMenuClose={scheduleMenuClose}
-            dismissRadialMenu={dismissRadialMenu}
-            onAdvisorUsage={reportAdvisorUsage}
-          />
-
-          {ceremonyOverlays}
-          <ErrorToast />
-          <OfficeLayerSlot
-            officeDistractionsPaused={officeDistractionsPaused}
-            officeCanvasGrace={officeCanvasGrace}
-            advisor={advisor}
-            stateRef={stateRef}
-            contentMode={contentMode}
-            activeSessionId={activeSessionId}
-            gamification={gamification}
-            reportAdvisorUsage={reportAdvisorUsage}
-            submitIntentWithPrompt={submitIntentWithPrompt}
-            setInsightsEntries={setInsightsEntries}
-            handleOfficeEvent={handleOfficeEvent}
-            setXpInfoPanelOpen={setXpInfoPanelOpen}
-            setOutboxOpenSignal={setOutboxOpenSignal}
-            setEditorOpen={setEditorOpen}
-            setInviteDialogOpen={setInviteDialogOpen}
-            hasCanvasContent={hasCanvasContent}
-            editorOpen={editorOpen}
-            setInsightsOpen={setInsightsOpen}
-            modelProfile={modelProfile}
-            setModelProfile={setModelProfile}
-            callMeetingSignal={callMeetingSignal}
-            diagramSource={state.diagramSource}
-            insightsOpen={insightsOpen}
-            tryAgentSound={tryAgentSound}
-            officeRunSignal={officeRunSignal}
-            entryReveal={entryReveal}
-            narrowLayout={narrowLayout}
-          />
-          <HotkeyOverlay
-            open={hotkeyOverlayOpen}
-            onClose={() => setHotkeyOverlayOpen(false)}
-            copy={controls.hotkeys}
-          />
-
-          <BrandChromeSlot
-            narrowLayout={narrowLayout}
-            compactBrand={compactBrand}
-            xpBarMobileOpen={xpBarMobileOpen}
-            onToggleXpBarMobile={() => setXpBarMobileOpen((current) => !current)}
-            slopitectTip={slopitectTip}
-            slopitectTipRef={slopitectTipRef}
-            onDismissSlopitectTip={dismissSlopitectTip}
-            xpInfoPanelOpen={xpInfoPanelOpen}
-            onToggleXpInfoPanel={() => setXpInfoPanelOpen((open) => !open)}
-            onCloseXpInfoPanel={() => setXpInfoPanelOpen(false)}
-            gamification={gamification}
-            xpBarFlashKey={xpBarFlashKey}
-            liveVariant={liveVariant}
-            controls={controls}
-            onBrandClick={handleBrandClick}
-            costTrackingEnabled={costTrackingEnabled}
-            fullscreenSupported={fullscreenSupported}
-            hasCanvasContent={hasCanvasContent}
-            editorOpen={editorOpen}
-            isFullscreen={isFullscreen}
-            streamingPreview={streamingPreview}
-            onToggleFullscreen={toggleFullscreen}
-          />
-
-          <SessionCollaborationSlot
-            activeSessionId={activeSessionId}
-            pendingHandshake={pendingHandshake}
-            onApproveHandshake={handleApproveHandshake}
-            onDenyHandshake={handleDenyHandshake}
-            inviteDialogOpen={inviteDialogOpen}
-            onInviteDialogClose={() => setInviteDialogOpen(false)}
-          />
-
-          <ClearConfirmDialog
-            key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
-            open={clearConfirmOpen}
-            copy={controls.clearDialog}
-            onConfirm={() => {
-              void performClearDiagram();
-            }}
-            onCancel={() => setClearConfirmOpen(false)}
-          />
-
-          <ShellBottomRowSlot
-            narrowLayout={narrowLayout}
-            status={status}
-            error={error}
-            streamingAgentStoppable={streamingAgentStoppable}
-            insightsOpen={insightsOpen}
-            stopStreamingAgentLabel={controls.insights.stopRequest}
-            onStopStreamingAgent={stopStreamingAgentRequest}
-            hasCanvasContent={hasCanvasContent}
-            pendingHandshake={pendingHandshake}
-            editorOpen={editorOpen}
-            contentMode={contentMode}
-            diagramSource={state.diagramSource}
-            stateContentType={state.contentType}
-            controls={controls}
-            settingsOpenSignal={settingsOpenSignal}
-            outboxOpenSignal={outboxOpenSignal}
-            onInviteAgent={() => setInviteDialogOpen(true)}
-            onToggleEditor={() => setEditorOpen((current) => !current)}
-            externalAgentPresence={externalAgentPresence}
-            deskSlotRef={deskSlotRef}
-            entryReveal={entryReveal}
-            busy={busy}
-            loading={loading}
-            streamingPreview={streamingPreview}
-            contentModeOptions={contentModeOptions}
-            deskPrompt={deskPrompt}
-            setDeskPrompt={setDeskPrompt}
-            voiceSupported={voiceSupported}
-            voiceListening={voiceListening}
-            speechRecognitionCtor={SpeechRecognitionCtor}
-            PromptIcon={PromptIcon}
-            MicIcon={MicIcon}
-            MicActiveIcon={MicActiveIcon}
-            ButtonIcon={ButtonIcon}
-            handleDeskPromptSubmit={handleDeskPromptSubmit}
-            handleMicToggleClick={handleMicToggleClick}
-            handleMicPointerDown={handleMicPointerDown}
-            handleMicPointerUp={handleMicPointerUp}
-            stopVoiceInput={stopVoiceInput}
-            runTransform={runTransform}
-            runAnalyze={runAnalyze}
-            advisor={advisor}
-            advisorBubbleProps={advisorBubbleProps}
-            stakeholderIntroProps={stakeholderIntroProps}
-            advisorPause={advisorPause}
-            goMadStreak={goMadStreak}
-            onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-            handleSelectContentMode={handleSelectContentMode}
-            latestCritique={latestCritique}
-            canFixFromCritique={canFixFromCritique}
-            handleFixFromCritique={handleFixFromCritique}
-            handleClearDiagram={handleClearDiagram}
-            onToggleThinking={() => setInsightsOpen((v) => !v)}
-            entryTourActive={entryTourActive}
-            entryTourStep={entryTourStep}
-            entryTourProgress={entryTourProgress}
-            entryPointers={controls.prompt.entryPointers ?? []}
-            entryTourCopy={entryTourCopy}
-            onAdvanceEntryTour={advanceEntryTour}
-            onDismissEntryTour={dismissEntryDeskTour}
-          />
-        </>
+        <AppWorkspaceSlot
+          state={state}
+          contentMode={contentMode}
+          contentModeOptions={contentModeOptions}
+          rendererRefreshKey={rendererRefreshKey}
+          liveDraftSource={liveDraftSource}
+          liveDraftContentType={liveDraftContentType}
+          streamingPreview={streamingPreview}
+          agentThinkingChrome={agentThinkingChrome && !streamingPreview}
+          editorOpen={editorOpen}
+          setEditorOpen={setEditorOpen}
+          insightsMounted={insightsMounted}
+          insightsSlot={insightsSlot}
+          selectedNode={selectedNode}
+          hoverDescriptor={hoverDescriptor}
+          onSelectedNodeChange={handleSelectedNodeChange}
+          onHoverTargetChange={handleHoverTargetChange}
+          dismissRadialMenu={dismissRadialMenu}
+          setToolbarAnchor={setToolbarAnchor}
+          changeHighlightForCanvas={changeHighlightForCanvas}
+          changeHighlightContentType={changeHighlightContentType}
+          onDiagramSvgRendered={handleDiagramSvgRendered}
+          runFx={runFx}
+          diagramSurfaceRef={diagramSurfaceRef}
+          isFullscreen={isFullscreen}
+          onFormSubmit={handleFormSubmit}
+          onManualEdit={handleManualEdit}
+          onValidationChange={handleValidationChange}
+          modeRevealActive={modeRevealActive}
+          modeRevealCopy={controls.modeReveal}
+          onModeRevealPick={handleModeRevealPick}
+          onDismissModeReveal={dismissModeReveal}
+          showEmptyCanvas={showEmptyCanvas}
+          loading={loading}
+          promptCopy={controls.prompt}
+          userName={userName}
+          showEntryDeskIntro={showEntryDeskIntro}
+          entryIntroCopy={controls.prompt.entryIntro}
+          entryRole={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'}
+          entryTourCopy={entryTourCopy}
+          onAdvanceEntryTour={advanceEntryTour}
+          onDismissEntryTour={dismissEntryDeskTour}
+          toggleFullscreen={toggleFullscreen}
+          radialMenuSession={radialMenuSession}
+          radialActions={radialActions}
+          busy={busy}
+          activeSessionId={activeSessionId}
+          slopPromptExpanded={slopPromptExpanded}
+          slopPromptSource={slopPromptSource}
+          slopNextPrompt={slopNextPrompt}
+          voiceSupported={voiceSupported}
+          voiceListening={voiceListening}
+          narrowLayout={narrowLayout}
+          onSlopPromptClose={closeSlopPrompt}
+          onSlopNextPromptChange={setSlopNextPrompt}
+          onSlopPromptSubmit={handleSlopPromptSubmit}
+          onMicToggleClick={handleMicToggleClick}
+          onMicPointerDown={handleMicPointerDown}
+          onMicPointerUp={handleMicPointerUp}
+          stopVoiceInput={stopVoiceInput}
+          onRadialActionPick={handleRadialAction}
+          setSelectedNode={setSelectedNode}
+          closeRadialMenu={closeRadialMenu}
+          setBootSeq={setBootSeq}
+          tryAgentSound={tryAgentSound}
+          runAnalyze={runAnalyze}
+          cancelMenuClose={cancelMenuClose}
+          scheduleMenuClose={scheduleMenuClose}
+          onAdvisorUsage={reportAdvisorUsage}
+          ceremonyOverlays={ceremonyOverlays}
+          officeDistractionsPaused={officeDistractionsPaused}
+          officeCanvasGrace={officeCanvasGrace}
+          advisor={advisor}
+          stateRef={stateRef}
+          gamification={gamification}
+          submitIntentWithPrompt={submitIntentWithPrompt}
+          setInsightsEntries={setInsightsEntries}
+          onOfficeEvent={handleOfficeEvent}
+          setXpInfoPanelOpen={setXpInfoPanelOpen}
+          setOutboxOpenSignal={setOutboxOpenSignal}
+          setInviteDialogOpen={setInviteDialogOpen}
+          hasCanvasContent={hasCanvasContent}
+          setInsightsOpen={setInsightsOpen}
+          modelProfile={modelProfile}
+          setModelProfile={setModelProfile}
+          callMeetingSignal={callMeetingSignal}
+          insightsOpen={insightsOpen}
+          officeRunSignal={officeRunSignal}
+          entryReveal={entryReveal}
+          hotkeyOverlayOpen={hotkeyOverlayOpen}
+          onCloseHotkeyOverlay={() => setHotkeyOverlayOpen(false)}
+          hotkeyCopy={controls.hotkeys}
+          compactBrand={compactBrand}
+          xpBarMobileOpen={xpBarMobileOpen}
+          onToggleXpBarMobile={() => setXpBarMobileOpen((current) => !current)}
+          slopitectTip={slopitectTip}
+          slopitectTipRef={slopitectTipRef}
+          onDismissSlopitectTip={dismissSlopitectTip}
+          xpInfoPanelOpen={xpInfoPanelOpen}
+          onToggleXpInfoPanel={() => setXpInfoPanelOpen((open) => !open)}
+          onCloseXpInfoPanel={() => setXpInfoPanelOpen(false)}
+          xpBarFlashKey={xpBarFlashKey}
+          liveVariant={liveVariant}
+          shellControls={controls}
+          onBrandClick={handleBrandClick}
+          costTrackingEnabled={costTrackingEnabled}
+          fullscreenSupported={fullscreenSupported}
+          onToggleFullscreen={toggleFullscreen}
+          pendingHandshake={pendingHandshake}
+          onApproveHandshake={handleApproveHandshake}
+          onDenyHandshake={handleDenyHandshake}
+          inviteDialogOpen={inviteDialogOpen}
+          onInviteDialogClose={() => setInviteDialogOpen(false)}
+          clearConfirmOpen={clearConfirmOpen}
+          clearDialogCopy={controls.clearDialog}
+          onConfirmClear={() => {
+            void performClearDiagram();
+          }}
+          onCancelClear={() => setClearConfirmOpen(false)}
+          status={status}
+          error={error}
+          streamingAgentStoppable={streamingAgentStoppable}
+          stopStreamingAgentLabel={controls.insights.stopRequest}
+          onStopStreamingAgent={stopStreamingAgentRequest}
+          pendingHandshakeForAi={pendingHandshake}
+          stateContentType={state.contentType}
+          settingsOpenSignal={settingsOpenSignal}
+          outboxOpenSignal={outboxOpenSignal}
+          onInviteAgent={() => setInviteDialogOpen(true)}
+          externalAgentPresence={externalAgentPresence}
+          deskSlotRef={deskSlotRef}
+          deskPrompt={deskPrompt}
+          setDeskPrompt={setDeskPrompt}
+          handleDeskPromptSubmit={handleDeskPromptSubmit}
+          runTransform={runTransform}
+          advisorBubbleProps={advisorBubbleProps}
+          stakeholderIntroProps={stakeholderIntroProps}
+          advisorPause={advisorPause}
+          goMadStreak={goMadStreak}
+          onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+          handleSelectContentMode={handleSelectContentMode}
+          latestCritique={latestCritique}
+          canFixFromCritique={canFixFromCritique}
+          handleFixFromCritique={handleFixFromCritique}
+          handleClearDiagram={handleClearDiagram}
+          onToggleThinking={() => setInsightsOpen((v) => !v)}
+          entryTourActive={entryTourActive}
+          entryTourStep={entryTourStep}
+          entryTourProgress={entryTourProgress}
+          entryPointers={controls.prompt.entryPointers ?? []}
+        />
       ) : null}
       <div className="office-directory-root-mount">
         <OfficeDirectory

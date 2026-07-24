@@ -1,0 +1,405 @@
+import ClearConfirmDialog from '../../components/ClearConfirmDialog.jsx';
+import ErrorToast from '../../components/ErrorToast.jsx';
+import HotkeyOverlay from '../../components/HotkeyOverlay.jsx';
+import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from '../../components/AppIcons.jsx';
+import { SpeechRecognitionCtor } from '../../utils/appConstants.js';
+import { DiagramCanvasSlot } from '../canvas/DiagramCanvasSlot.jsx';
+import { EmptyCanvasSlot } from '../desk/EmptyCanvasSlot.jsx';
+import { ModeRevealSlot } from '../desk/ModeRevealSlot.jsx';
+import { RadialMenuSlot } from '../prompt/RadialMenuSlot.jsx';
+import { BrandChromeSlot } from './BrandChromeSlot.jsx';
+import { OfficeLayerSlot } from './OfficeLayerSlot.jsx';
+import { SessionCollaborationSlot } from '../session/SessionCollaborationSlot.jsx';
+import { ShellBottomRowSlot } from './ShellBottomRowSlot.jsx';
+
+/**
+ * Post-boot workspace: canvas, desk overlays, shell chrome, and bottom row.
+ */
+export function AppWorkspaceSlot({
+  state,
+  contentMode,
+  contentModeOptions,
+  rendererRefreshKey,
+  liveDraftSource,
+  liveDraftContentType,
+  streamingPreview,
+  agentThinkingChrome,
+  editorOpen,
+  setEditorOpen,
+  insightsMounted,
+  insightsSlot,
+  selectedNode,
+  hoverDescriptor,
+  onSelectedNodeChange,
+  onHoverTargetChange,
+  dismissRadialMenu,
+  setToolbarAnchor,
+  changeHighlightForCanvas,
+  changeHighlightContentType,
+  onDiagramSvgRendered,
+  runFx,
+  diagramSurfaceRef,
+  isFullscreen,
+  onFormSubmit,
+  onManualEdit,
+  onValidationChange,
+  modeRevealActive,
+  modeRevealCopy,
+  onModeRevealPick,
+  onDismissModeReveal,
+  showEmptyCanvas,
+  loading,
+  promptCopy,
+  userName,
+  showEntryDeskIntro,
+  entryIntroCopy,
+  entryRole,
+  entryTourCopy,
+  onAdvanceEntryTour,
+  onDismissEntryTour,
+  toggleFullscreen,
+  radialMenuSession,
+  radialActions,
+  busy,
+  activeSessionId,
+  slopPromptExpanded,
+  slopPromptSource,
+  slopNextPrompt,
+  voiceSupported,
+  voiceListening,
+  narrowLayout,
+  onSlopPromptClose,
+  onSlopNextPromptChange,
+  onSlopPromptSubmit,
+  onMicToggleClick,
+  onMicPointerDown,
+  onMicPointerUp,
+  stopVoiceInput,
+  onRadialActionPick,
+  setSelectedNode,
+  closeRadialMenu,
+  setBootSeq,
+  tryAgentSound,
+  runAnalyze,
+  cancelMenuClose,
+  scheduleMenuClose,
+  onAdvisorUsage,
+  ceremonyOverlays,
+  officeDistractionsPaused,
+  officeCanvasGrace,
+  advisor,
+  stateRef,
+  gamification,
+  submitIntentWithPrompt,
+  setInsightsEntries,
+  onOfficeEvent,
+  setXpInfoPanelOpen,
+  setOutboxOpenSignal,
+  setInviteDialogOpen,
+  hasCanvasContent,
+  setInsightsOpen,
+  modelProfile,
+  setModelProfile,
+  callMeetingSignal,
+  insightsOpen,
+  officeRunSignal,
+  entryReveal,
+  hotkeyOverlayOpen,
+  onCloseHotkeyOverlay,
+  hotkeyCopy,
+  compactBrand,
+  xpBarMobileOpen,
+  onToggleXpBarMobile,
+  slopitectTip,
+  slopitectTipRef,
+  onDismissSlopitectTip,
+  xpInfoPanelOpen,
+  onToggleXpInfoPanel,
+  onCloseXpInfoPanel,
+  xpBarFlashKey,
+  liveVariant,
+  shellControls,
+  onBrandClick,
+  costTrackingEnabled,
+  fullscreenSupported,
+  onToggleFullscreen,
+  pendingHandshake,
+  onApproveHandshake,
+  onDenyHandshake,
+  inviteDialogOpen,
+  onInviteDialogClose,
+  clearConfirmOpen,
+  clearDialogCopy,
+  onConfirmClear,
+  onCancelClear,
+  status,
+  error,
+  streamingAgentStoppable,
+  stopStreamingAgentLabel,
+  onStopStreamingAgent,
+  pendingHandshakeForAi,
+  stateContentType,
+  settingsOpenSignal,
+  outboxOpenSignal,
+  onInviteAgent,
+  externalAgentPresence,
+  deskSlotRef,
+  deskPrompt,
+  setDeskPrompt,
+  handleDeskPromptSubmit,
+  runTransform,
+  advisorBubbleProps,
+  stakeholderIntroProps,
+  advisorPause,
+  goMadStreak,
+  onCallMeeting,
+  handleSelectContentMode,
+  latestCritique,
+  canFixFromCritique,
+  handleFixFromCritique,
+  handleClearDiagram,
+  onToggleThinking,
+  entryTourActive,
+  entryTourStep,
+  entryTourProgress,
+  entryPointers
+}) {
+  return (
+    <>
+      <DiagramCanvasSlot
+        revisionId={state.revisionId}
+        diagramSource={
+          liveDraftSource && liveDraftContentType === contentMode
+            ? liveDraftSource
+            : state.diagramSource
+        }
+        contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
+        rendererRefreshKey={rendererRefreshKey}
+        onManualEdit={onManualEdit}
+        onValidationChange={onValidationChange}
+        streamingPreview={
+          streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)
+        }
+        agentThinkingChrome={agentThinkingChrome}
+        editorOpen={editorOpen}
+        insightsMounted={insightsMounted}
+        insightsSlot={insightsSlot}
+        selectedNode={selectedNode}
+        hoverDescriptor={hoverDescriptor}
+        onSelectedNodeChange={onSelectedNodeChange}
+        onHoverTargetChange={onHoverTargetChange}
+        onPanGestureStart={dismissRadialMenu}
+        onNodeToolbarAnchor={setToolbarAnchor}
+        onEditorClose={() => setEditorOpen(false)}
+        changeHighlight={changeHighlightForCanvas}
+        changeHighlightContentType={changeHighlightContentType}
+        onDiagramSvgRendered={onDiagramSvgRendered}
+        runFx={runFx}
+        diagramSurfaceRef={diagramSurfaceRef}
+        isFullscreen={isFullscreen}
+        onFormSubmit={onFormSubmit}
+      />
+
+      <ModeRevealSlot
+        active={modeRevealActive}
+        copy={modeRevealCopy}
+        modes={contentModeOptions.filter((m) => m.id !== 'auto')}
+        currentMode={contentMode}
+        onPickMode={onModeRevealPick}
+        onDismiss={onDismissModeReveal}
+      />
+
+      <EmptyCanvasSlot
+        active={showEmptyCanvas}
+        busy={loading || streamingPreview}
+        copy={promptCopy}
+        userName={userName}
+        showEntryDeskIntro={showEntryDeskIntro}
+        entryIntroCopy={entryIntroCopy}
+        entryRole={entryRole}
+        entryTourCopy={entryTourCopy}
+        onAdvanceEntryTour={onAdvanceEntryTour}
+        onDismissEntryTour={onDismissEntryTour}
+      />
+
+      <RadialMenuSlot
+        isFullscreen={isFullscreen}
+        diagramSurfaceRef={diagramSurfaceRef}
+        toggleFullscreen={toggleFullscreen}
+        radialMenuSession={radialMenuSession}
+        radialActions={radialActions}
+        busy={busy}
+        diagramSource={state.diagramSource}
+        contentType={contentMode === 'auto' ? 'mermaid' : contentMode}
+        sessionId={activeSessionId}
+        slopPromptExpanded={slopPromptExpanded}
+        slopPromptSource={slopPromptSource}
+        slopNextPrompt={slopNextPrompt}
+        voiceSupported={voiceSupported}
+        voiceListening={voiceListening}
+        narrowLayout={narrowLayout}
+        speechRecognitionCtor={SpeechRecognitionCtor}
+        PromptIcon={PromptIcon}
+        MicIcon={MicIcon}
+        MicActiveIcon={MicActiveIcon}
+        ButtonIcon={ButtonIcon}
+        promptCopy={promptCopy}
+        onSlopPromptClose={onSlopPromptClose}
+        onPromptChange={onSlopNextPromptChange}
+        onSlopPromptSubmit={onSlopPromptSubmit}
+        onMicToggleClick={onMicToggleClick}
+        onMicPointerDown={onMicPointerDown}
+        onMicPointerUp={onMicPointerUp}
+        onMicLostPointerCapture={() => stopVoiceInput()}
+        onActionPick={onRadialActionPick}
+        setSelectedNode={setSelectedNode}
+        closeRadialMenu={closeRadialMenu}
+        setBootSeq={setBootSeq}
+        tryAgentSound={tryAgentSound}
+        runAnalyze={runAnalyze}
+        cancelMenuClose={cancelMenuClose}
+        scheduleMenuClose={scheduleMenuClose}
+        dismissRadialMenu={dismissRadialMenu}
+        onAdvisorUsage={onAdvisorUsage}
+      />
+
+      {ceremonyOverlays}
+      <ErrorToast />
+      <OfficeLayerSlot
+        officeDistractionsPaused={officeDistractionsPaused}
+        officeCanvasGrace={officeCanvasGrace}
+        advisor={advisor}
+        stateRef={stateRef}
+        contentMode={contentMode}
+        activeSessionId={activeSessionId}
+        gamification={gamification}
+        reportAdvisorUsage={onAdvisorUsage}
+        submitIntentWithPrompt={submitIntentWithPrompt}
+        setInsightsEntries={setInsightsEntries}
+        handleOfficeEvent={onOfficeEvent}
+        setXpInfoPanelOpen={setXpInfoPanelOpen}
+        setOutboxOpenSignal={setOutboxOpenSignal}
+        setEditorOpen={setEditorOpen}
+        setInviteDialogOpen={setInviteDialogOpen}
+        hasCanvasContent={hasCanvasContent}
+        editorOpen={editorOpen}
+        setInsightsOpen={setInsightsOpen}
+        modelProfile={modelProfile}
+        setModelProfile={setModelProfile}
+        callMeetingSignal={callMeetingSignal}
+        diagramSource={state.diagramSource}
+        insightsOpen={insightsOpen}
+        tryAgentSound={tryAgentSound}
+        officeRunSignal={officeRunSignal}
+        entryReveal={entryReveal}
+        narrowLayout={narrowLayout}
+      />
+      <HotkeyOverlay open={hotkeyOverlayOpen} onClose={onCloseHotkeyOverlay} copy={hotkeyCopy} />
+
+      <BrandChromeSlot
+        narrowLayout={narrowLayout}
+        compactBrand={compactBrand}
+        xpBarMobileOpen={xpBarMobileOpen}
+        onToggleXpBarMobile={onToggleXpBarMobile}
+        slopitectTip={slopitectTip}
+        slopitectTipRef={slopitectTipRef}
+        onDismissSlopitectTip={onDismissSlopitectTip}
+        xpInfoPanelOpen={xpInfoPanelOpen}
+        onToggleXpInfoPanel={onToggleXpInfoPanel}
+        onCloseXpInfoPanel={onCloseXpInfoPanel}
+        gamification={gamification}
+        xpBarFlashKey={xpBarFlashKey}
+        liveVariant={liveVariant}
+        controls={shellControls}
+        onBrandClick={onBrandClick}
+        costTrackingEnabled={costTrackingEnabled}
+        fullscreenSupported={fullscreenSupported}
+        hasCanvasContent={hasCanvasContent}
+        editorOpen={editorOpen}
+        isFullscreen={isFullscreen}
+        streamingPreview={streamingPreview}
+        onToggleFullscreen={onToggleFullscreen}
+      />
+
+      <SessionCollaborationSlot
+        activeSessionId={activeSessionId}
+        pendingHandshake={pendingHandshake}
+        onApproveHandshake={onApproveHandshake}
+        onDenyHandshake={onDenyHandshake}
+        inviteDialogOpen={inviteDialogOpen}
+        onInviteDialogClose={onInviteDialogClose}
+      />
+
+      <ClearConfirmDialog
+        key={clearConfirmOpen ? 'clear-confirm-open' : 'clear-confirm-closed'}
+        open={clearConfirmOpen}
+        copy={clearDialogCopy}
+        onConfirm={onConfirmClear}
+        onCancel={onCancelClear}
+      />
+
+      <ShellBottomRowSlot
+        narrowLayout={narrowLayout}
+        status={status}
+        error={error}
+        streamingAgentStoppable={streamingAgentStoppable}
+        insightsOpen={insightsOpen}
+        stopStreamingAgentLabel={stopStreamingAgentLabel}
+        onStopStreamingAgent={onStopStreamingAgent}
+        hasCanvasContent={hasCanvasContent}
+        pendingHandshake={pendingHandshakeForAi}
+        editorOpen={editorOpen}
+        contentMode={contentMode}
+        diagramSource={state.diagramSource}
+        stateContentType={stateContentType}
+        controls={shellControls}
+        settingsOpenSignal={settingsOpenSignal}
+        outboxOpenSignal={outboxOpenSignal}
+        onInviteAgent={onInviteAgent}
+        onToggleEditor={() => setEditorOpen((current) => !current)}
+        externalAgentPresence={externalAgentPresence}
+        deskSlotRef={deskSlotRef}
+        entryReveal={entryReveal}
+        busy={busy}
+        loading={loading}
+        streamingPreview={streamingPreview}
+        contentModeOptions={contentModeOptions}
+        deskPrompt={deskPrompt}
+        setDeskPrompt={setDeskPrompt}
+        voiceSupported={voiceSupported}
+        voiceListening={voiceListening}
+        speechRecognitionCtor={SpeechRecognitionCtor}
+        PromptIcon={PromptIcon}
+        MicIcon={MicIcon}
+        MicActiveIcon={MicActiveIcon}
+        ButtonIcon={ButtonIcon}
+        handleDeskPromptSubmit={handleDeskPromptSubmit}
+        handleMicToggleClick={onMicToggleClick}
+        handleMicPointerDown={onMicPointerDown}
+        handleMicPointerUp={onMicPointerUp}
+        stopVoiceInput={stopVoiceInput}
+        runTransform={runTransform}
+        runAnalyze={runAnalyze}
+        advisor={advisor}
+        advisorBubbleProps={advisorBubbleProps}
+        stakeholderIntroProps={stakeholderIntroProps}
+        advisorPause={advisorPause}
+        goMadStreak={goMadStreak}
+        onCallMeeting={onCallMeeting}
+        handleSelectContentMode={handleSelectContentMode}
+        latestCritique={latestCritique}
+        canFixFromCritique={canFixFromCritique}
+        handleFixFromCritique={handleFixFromCritique}
+        handleClearDiagram={handleClearDiagram}
+        onToggleThinking={onToggleThinking}
+        entryTourActive={entryTourActive}
+        entryTourStep={entryTourStep}
+        entryTourProgress={entryTourProgress}
+        entryPointers={entryPointers}
+        entryTourCopy={entryTourCopy}
+        onAdvanceEntryTour={onAdvanceEntryTour}
+        onDismissEntryTour={onDismissEntryTour}
+      />
+    </>
+  );
+}
