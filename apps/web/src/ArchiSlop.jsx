@@ -1,43 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { fallbackState, readDiagramCache } from './state/diagramStore.js';
-import { getCachedAgentCostEstimates } from './state/agentCostEstimates';
+import { useCallback, useEffect, useMemo } from 'react';
 import './App.css';
 import './components/RunTimeline.css';
-import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
 import { useThinkingPaneSlot } from './features/insights/useThinkingPaneSlot.jsx';
 import { useCritiqueActionableSelection } from './features/insights/useCritiqueActionableSelection.js';
-import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
-import { useSessionHydrate } from './features/session/useSessionHydrate.js';
-import { useContentModeSwitch } from './features/session/useContentModeSwitch.js';
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
-import { useRadialMenu } from './features/prompt/useRadialMenu.js';
 import { useRunCeremony } from './features/ceremony/useRunCeremony.js';
 import { useGamificationPersistence } from './features/ceremony/useGamificationPersistence.js';
+import { useCeremonyOverlays } from './features/ceremony/useCeremonyOverlays.jsx';
 import { useAgentRunPipeline } from './features/streaming/useAgentRunPipeline.js';
-import { useAnimateAcceptedSource } from './features/streaming/useAnimateAcceptedSource.js';
 import { useLiveRunContext } from './features/streaming/useLiveRunContext.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
-import { useDiagramChangeHighlight } from './features/insights/useDiagramChangeHighlight.js';
-import { useInsightsLedger } from './features/insights/useInsightsLedger.js';
-import { useDiagramAutoFix } from './features/canvas/useDiagramAutoFix.js';
 import { useDiagramManualSync } from './features/canvas/useDiagramManualSync.js';
 import { useRadialActionHandler } from './features/prompt/useRadialActionHandler.js';
 import { useClearDiagram } from './features/session/useClearDiagram.js';
-import { useSessionCacheLifecycle } from './features/session/useSessionCacheLifecycle.js';
 import { useInsightsAutoClose } from './features/insights/useInsightsAutoClose.js';
 import { useAppStatus } from './features/shell/useAppStatus.js';
 import { AppWorkspaceSlot } from './features/shell/AppWorkspaceSlot.jsx';
 import { buildAppShellClassName } from './features/shell/buildAppShellClassName.js';
 import { useShellAdvisorContext } from './features/shell/useShellAdvisorContext.js';
 import { useShellRefSync } from './features/shell/useShellRefSync.js';
-import {
-  createInitialState as createInitialGamificationState,
-  readFromStorage as readGamificationFromStorage
-} from './state/runGamificationStore.js';
+import { useArchiSlopSessionState } from './features/session/useArchiSlopSessionState.js';
+import { useDiagramSessionRuntime } from './features/session/useDiagramSessionRuntime.js';
+import { useCanvasInteractionRuntime } from './features/session/useCanvasInteractionRuntime.js';
+import { usePromptBufferSync } from './features/session/usePromptBufferSync.js';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
-import { ensureUrlBackedSession, readStoredModelProfile } from './utils/appSessionLocation.js';
 import {
   useCompactBrandLayout,
   useFoldableDualScreen,
@@ -50,7 +38,6 @@ import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight
 import { useStyleEdits } from './hooks/useStyleEdits.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
-import { SpeechRecognitionCtor } from './utils/appConstants.js';
 import { buildContentModeOptions } from './utils/renderModeAction.js';
 
 export function ArchiSlop() {
@@ -59,44 +46,38 @@ export function ArchiSlop() {
   const contentModeOptions = useMemo(() => buildContentModeOptions(controls), [controls]);
   const { slopitectTip, slopitectTipRef, handleBrandClick, dismissSlopitectTip, focusTopicInput } =
     useSlopitectTips({ idleTips: slopitect.IDLE_TIPS });
-  const initialSessionIdRef = useRef(null);
-  // Tracks session ids that the client minted (server hasn't seen them yet). The hydration
-  // 404 handler uses this to decide whether to keep the same id or rotate to a new one.
-  const freshlyMintedSessionIdsRef = useRef(new Set());
-  /** True when the boot URL already contained `/sessions/:id` (bookmark / share link). */
-  const sessionIdFromUrlRef = useRef(false);
-  if (initialSessionIdRef.current == null) {
-    const { sessionId: bootId, fromUrl } = ensureUrlBackedSession();
-    initialSessionIdRef.current = bootId;
-    sessionIdFromUrlRef.current = fromUrl;
-    if (!fromUrl) freshlyMintedSessionIdsRef.current.add(bootId);
-  }
-  const [activeSessionId, setActiveSessionId] = useState(initialSessionIdRef.current);
-  /** Skip local cache for URL-backed sessions until hydrate proves the server still has that room. */
-  const cacheRef = useRef(
-    sessionIdFromUrlRef.current ? null : readDiagramCache(initialSessionIdRef.current)
-  );
-  const [state, setState] = useState(fallbackState);
-  const [prompt, setPrompt] = useState('');
-  /** Fresh instruction for the inline “slop next” prompt — never prefilled from the session topic. */
-  const [slopNextPrompt, setSlopNextPrompt] = useState('');
-  /** The persistent desk Work Order (content mode) — its own buffer so the radial
-   * prompt clearing slopNextPrompt on open can't wipe what you've typed here. */
-  const [deskPrompt, setDeskPrompt] = useState('');
-  const deskPromptRef = useRef('');
-  const slopNextPromptRef = useRef('');
-  const [loading, setLoading] = useState(false);
-  const [activeRequest, setActiveRequest] = useState(null);
-  const [error, setError] = useState('');
-  const [streamingPreview, setStreamingPreview] = useState(false);
-  // In-flight draft DSL streamed from the agent's tool-call args, used to render
-  // an infographic incrementally before the final patch revision lands. Cleared
-  // on final/error. Separate from `streamingPreview` (the post-patch typewriter).
-  const [liveDraftSource, setLiveDraftSource] = useState('');
-  const [liveDraftContentType, setLiveDraftContentType] = useState(null);
-  const [editorOpen, setEditorOpen] = useState(Boolean(cacheRef.current?.editorOpen));
-  const [insightsOpen, setInsightsOpen] = useState(Boolean(cacheRef.current?.insightsOpen));
+
+  const session = useArchiSlopSessionState({ controls });
   const {
+    activeSessionId,
+    setActiveSessionId,
+    cacheRef,
+    state,
+    setState,
+    prompt,
+    setPrompt,
+    slopNextPrompt,
+    setSlopNextPrompt,
+    deskPrompt,
+    setDeskPrompt,
+    deskPromptRef,
+    slopNextPromptRef,
+    loading,
+    setLoading,
+    activeRequest,
+    setActiveRequest,
+    error,
+    setError,
+    streamingPreview,
+    setStreamingPreview,
+    liveDraftSource,
+    setLiveDraftSource,
+    liveDraftContentType,
+    setLiveDraftContentType,
+    editorOpen,
+    setEditorOpen,
+    insightsOpen,
+    setInsightsOpen,
     insightsEntries,
     setInsightsEntries,
     insightsEntriesRef,
@@ -108,118 +89,95 @@ export function ArchiSlop() {
     enrichTechnicalActionDetail,
     finalizeTechnicalActionResult,
     annotateTechnicalActionResult,
-    appendStreamDebugLog
-  } = useInsightsLedger({
-    initialEntries: Array.isArray(cacheRef.current?.insightsEntries)
-      ? cacheRef.current.insightsEntries
-      : [],
-    workingStatusText: controls.loading.working
-  });
-
-  const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
-  const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
-  // Bumped on every completed run so the office can ping the user about it.
-  const [officeRunSignal, setOfficeRunSignal] = useState(null);
-  const [latestCritique, setLatestCritique] = useState(() => {
-    const cachedCritique = cacheRef.current?.latestCritique;
-    return cachedCritique?.text ? cachedCritique : null;
-  });
-  const [critiqueActionableSelected, setCritiqueActionableSelected] = useState([]);
-  /** A2UI v0.9 messages from the latest critique stream (`CUSTOM a2ui`), when present. */
-  /** Successful consecutive Go Mad transforms; resets after Refine/Innovate/Intent/Clear/fix-from-critique. */
-  const [goMadStreak, setGoMadStreak] = useState(0);
-  /** Slopitect gamification state (persisted) + transient emissions queue for StreakHud. */
-  const [gamification, setGamification] = useState(() => {
-    if (typeof window === 'undefined') return createInitialGamificationState();
-    return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
-  });
-
-  /** Mobile-only: XP bar starts collapsed below the brand row; toggled by tapping the role badge. */
-  const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
-  /** Click-to-open level/XP info popover anchored to the XP bar. */
-  const [xpInfoPanelOpen, setXpInfoPanelOpen] = useState(false);
-  /** Desk verbs bump these to open headless Outbox / Settings panels. */
-  const [outboxOpenSignal, setOutboxOpenSignal] = useState(0);
-  const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
-  /** Bumped from Your Team menu to start a WG meeting via OfficeLayer. */
-  const [callMeetingSignal, setCallMeetingSignal] = useState(0);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
-  const [hoverDescriptor, setHoverDescriptor] = useState(null);
-  const [toolbarAnchor, setToolbarAnchor] = useState(null);
-  const [voiceSupported] = useState(() =>
-    Boolean(
-      SpeechRecognitionCtor &&
-      (typeof globalThis.isSecureContext === 'boolean' ? globalThis.isSecureContext : true)
-    )
-  );
-  /** Inline slop-next prompt expanded from the action bar or radial menu. */
-  const [slopPromptExpanded, setSlopPromptExpanded] = useState(false);
-  const [slopPromptSource, setSlopPromptSource] = useState(null);
-  /** Demolition confirmation overlay shown before the Clear action wipes the session. */
-  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
-
-  const syncTimerRef = useRef(null);
-  const streamTimerRef = useRef(null);
-  /** AbortController for in-flight `streamDiagramAgent` (Thinking panel / transforms). */
-  const streamAgentAbortRef = useRef(null);
-  const agentCostEstimatesRef = useRef(getCachedAgentCostEstimates());
-  const autoCloseActiveEntryIdRef = useRef(null);
-  const stateRef = useRef(state);
-  const loadingRef = useRef(false);
-  const submitIntentWithPromptRef = useRef(null);
-  const closeRadialMenuRef = useRef(null);
-  const streamingPreviewRef = useRef(false);
-  const lastDraftTickAtRef = useRef(0);
-  const hasInteractedRef = useRef(false);
-  const audioContextRef = useRef(null);
-  const celebrationTimerRef = useRef(null);
-  const promptRef = useRef('');
-  const hasCanvasContentRef = useRef(false);
-  const slopPromptExpandedRef = useRef(false);
-  const slopPromptSourceRef = useRef(null);
-  const lastTokenSoundAtRef = useRef(0);
-  const goMadTokenTickIndexRef = useRef(0);
-
-  /** Single session topic; seeded from hydrate and updated on successful intent revisions. */
-  const sessionTopicRef = useRef(null);
-
-  /**
-   * True when any sibling slot already has customized content. Used to keep the first-run
-   * empty intro from reclaiming the chrome when switching into an empty sibling mode.
-   */
-  const [sessionHasPeerContent, setSessionHasPeerContent] = useState(false);
-
-  const syncDiagramOrThrowRef = useRef(async () => {
-    throw new Error('syncDiagramOrThrow not ready');
-  });
-  const tryAgentSoundRef = useRef(null);
-
-  const {
-    contentMode,
-    setContentMode,
-    rendererRefreshKey,
-    hydrateRefs,
-    crossModeSyncRef,
-    handleSelectContentMode,
-    applyResolvedContentMode,
-    renderSelectionInMode,
-    resetModeSwitchTracking,
-    armSuppressHydrateRerun,
-    disarmSuppressHydrateRerun,
-    switchContentModeForRestore
-  } = useContentModeSwitch({
+    appendStreamDebugLog,
+    soundEnabled,
+    setSoundEnabled,
+    modelProfile,
+    setModelProfile,
+    officeRunSignal,
+    setOfficeRunSignal,
+    latestCritique,
+    setLatestCritique,
+    critiqueActionableSelected,
+    setCritiqueActionableSelected,
+    goMadStreak,
+    setGoMadStreak,
+    gamification,
+    setGamification,
+    xpBarMobileOpen,
+    setXpBarMobileOpen,
+    xpInfoPanelOpen,
+    setXpInfoPanelOpen,
+    outboxOpenSignal,
+    setOutboxOpenSignal,
+    settingsOpenSignal,
+    setSettingsOpenSignal,
+    callMeetingSignal,
+    setCallMeetingSignal,
+    selectedNode,
+    setSelectedNode,
+    hotkeyOverlayOpen,
+    setHotkeyOverlayOpen,
+    hoverDescriptor,
+    setHoverDescriptor,
+    toolbarAnchor,
+    setToolbarAnchor,
+    voiceSupported,
+    slopPromptExpanded,
+    setSlopPromptExpanded,
+    slopPromptSource,
+    setSlopPromptSource,
+    clearConfirmOpen,
+    setClearConfirmOpen,
+    syncTimerRef,
+    streamTimerRef,
+    streamAgentAbortRef,
+    agentCostEstimatesRef,
+    autoCloseActiveEntryIdRef,
     stateRef,
+    loadingRef,
+    submitIntentWithPromptRef,
+    closeRadialMenuRef,
+    streamingPreviewRef,
+    lastDraftTickAtRef,
+    hasInteractedRef,
+    audioContextRef,
+    celebrationTimerRef,
+    promptRef,
+    hasCanvasContentRef,
+    slopPromptExpandedRef,
+    slopPromptSourceRef,
+    lastTokenSoundAtRef,
+    goMadTokenTickIndexRef,
+    sessionTopicRef,
+    sessionHasPeerContent,
+    setSessionHasPeerContent,
+    syncDiagramOrThrowRef,
+    tryAgentSoundRef,
+    freshlyMintedSessionIdsRef,
+    sessionIdFromUrlRef
+  } = session;
+
+  const runtime = useDiagramSessionRuntime({
+    activeSessionId,
+    contentModeOptions,
+    controls,
+    freshlyMintedSessionIdsRef,
+    sessionIdFromUrlRef,
+    sessionTopicRef,
+    stateRef,
+    promptRef,
+    loadingRef,
+    submitIntentWithPromptRef,
+    cacheRef,
     syncTimerRef,
     streamTimerRef,
     streamingPreviewRef,
     streamAgentAbortRef,
-    loadingRef,
     hasInteractedRef,
     syncDiagramOrThrowRef,
     closeRadialMenuRef,
     tryAgentSoundRef,
-    contentModeOptions,
     setStreamingPreview,
     setLiveDraftSource,
     setLiveDraftContentType,
@@ -227,39 +185,30 @@ export function ArchiSlop() {
     setHoverDescriptor,
     setToolbarAnchor,
     setLatestCritique,
-    setError
-  });
-
-  const { sessionHydrated } = useSessionHydrate({
-    activeSessionId,
-    contentMode,
-    freshlyMintedSessionIdsRef,
-    sessionIdFromUrlRef,
-    sessionTopicRef,
-    modeSwitch: hydrateRefs,
-    stateRef,
-    promptRef,
-    loadingRef,
-    submitIntentWithPromptRef,
-    cacheRef,
+    setError,
     setActiveSessionId,
     setState,
     setSessionHasPeerContent,
     setLoading,
     setActiveRequest,
     setPrompt,
-    setError,
     setInsightsEntries,
-    setLatestCritique,
     setCritiqueActionableSelected,
-    setLiveDraftSource,
-    setLiveDraftContentType,
     setGoMadStreak,
-    setModelProfile,
-    setContentMode
+    setModelProfile
   });
 
   const {
+    contentMode,
+    rendererRefreshKey,
+    crossModeSyncRef,
+    handleSelectContentMode,
+    applyResolvedContentMode,
+    renderSelectionInMode,
+    resetModeSwitchTracking,
+    armSuppressHydrateRerun,
+    disarmSuppressHydrateRerun,
+    switchContentModeForRestore,
     pendingHandshake,
     externalAgentPresence,
     agentReactions,
@@ -270,15 +219,7 @@ export function ArchiSlop() {
     handleAcceptProposal,
     handleRejectProposal,
     resetCollaborationState
-  } = useSessionCollaboration({
-    activeSessionId,
-    sessionHydrated,
-    contentMode,
-    controlsLoading: controls.loading,
-    setInsightsEntries,
-    stateRef,
-    setState
-  });
+  } = runtime;
 
   useSyncVisualViewportHeight();
   const narrowLayout = useNarrowLayout();
@@ -287,25 +228,71 @@ export function ArchiSlop() {
   const foldableDualScreen = useFoldableDualScreen();
   const compactBrand = useCompactBrandLayout();
 
-  useEffect(() => {
-    promptRef.current = prompt;
-  }, [prompt]);
+  usePromptBufferSync({
+    prompt,
+    promptRef,
+    deskPrompt,
+    deskPromptRef,
+    slopNextPrompt,
+    slopNextPromptRef,
+    slopPromptExpanded,
+    slopPromptExpandedRef,
+    slopPromptSource,
+    slopPromptSourceRef
+  });
 
-  useEffect(() => {
-    deskPromptRef.current = deskPrompt;
-  }, [deskPrompt]);
-
-  useEffect(() => {
-    slopNextPromptRef.current = slopNextPrompt;
-  }, [slopNextPrompt]);
-
-  useEffect(() => {
-    slopPromptExpandedRef.current = slopPromptExpanded;
-  }, [slopPromptExpanded]);
-
-  useEffect(() => {
-    slopPromptSourceRef.current = slopPromptSource;
-  }, [slopPromptSource]);
+  const canvas = useCanvasInteractionRuntime({
+    activeSessionId,
+    armSuppressHydrateRerun,
+    cacheRef,
+    contentMode,
+    controls,
+    disarmSuppressHydrateRerun,
+    editorOpen,
+    freshlyMintedSessionIdsRef,
+    insightsEntries,
+    insightsOpen,
+    latestCritique,
+    loading,
+    loadingRef,
+    modelProfile,
+    narrowLayout,
+    promptRef,
+    resetCollaborationState,
+    selectedNode,
+    setActiveRequest,
+    setActiveSessionId,
+    setContentMode: runtime.setContentMode,
+    setEditorOpen,
+    setError,
+    setHoverDescriptor,
+    setInsightsEntries,
+    setInsightsOpen,
+    setLatestCritique,
+    setLoading,
+    setPrompt,
+    setSelectedNode,
+    setSoundEnabled,
+    setState,
+    setStreamingPreview,
+    setToolbarAnchor,
+    setSlopNextPrompt,
+    setSlopPromptExpanded,
+    setSlopPromptSource,
+    slopPromptExpandedRef,
+    slopPromptSourceRef,
+    soundEnabled,
+    state,
+    stateRef,
+    streamAgentAbortRef,
+    streamTimerRef,
+    streamingPreview,
+    streamingPreviewRef,
+    switchContentModeForRestore,
+    syncTimerRef,
+    toolbarAnchor,
+    closeRadialMenuRef
+  });
 
   const {
     radialMenuSession,
@@ -317,52 +304,13 @@ export function ArchiSlop() {
     cancelMenuClose,
     scheduleMenuClose,
     closeRadialMenu,
-    resetRadialChrome
-  } = useRadialMenu({
-    selectedNode,
-    setSelectedNode,
-    toolbarAnchor,
-    setToolbarAnchor,
-    setHoverDescriptor,
-    setSlopNextPrompt,
-    setSlopPromptSource,
-    setSlopPromptExpanded,
-    slopPromptExpandedRef,
-    slopPromptSourceRef,
-    closeRadialMenuRef
-  });
-
-  const { animateAcceptedSource } = useAnimateAcceptedSource({
-    stateRef,
-    streamTimerRef,
-    setState,
-    setStreamingPreview,
-    setLoading,
-    setActiveRequest
-  });
-
-  const {
+    animateAcceptedSource,
     validationError,
     autoFixAttempted,
     clientValidationRef,
     autoFixTimerRef,
     handleValidationChange,
-    resetAutoFixState
-  } = useDiagramAutoFix({
-    activeSessionId,
-    animateAcceptedSource,
-    contentMode,
-    loading,
-    loadingRef,
-    modelProfile,
-    setActiveRequest,
-    setError,
-    setLoading,
-    streamingPreview,
-    streamingPreviewRef
-  });
-
-  const {
+    resetAutoFixState,
     diagramChangeHighlightEntryId,
     pendingAutoDiagramHighlightRef,
     pendingAutoDiagramHighlightTimeoutRef,
@@ -377,67 +325,12 @@ export function ArchiSlop() {
     changeHighlightContentType,
     diagramChangeHighlightSummary,
     entryDiagramDiffById
-  } = useDiagramChangeHighlight({
-    activeSessionId,
-    contentMode,
-    insightsEntries,
-    insightsOpen,
-    loadingRef,
-    narrowLayout,
-    setContentMode,
-    setError,
-    setInsightsOpen,
-    setState,
-    setStreamingPreview,
-    state,
-    streamTimerRef,
-    syncTimerRef,
-    armSuppressHydrateRerun,
-    disarmSuppressHydrateRerun,
-    resetRadialChrome,
-    switchContentModeForRestore
-  });
-
-  useSessionCacheLifecycle({
-    activeSessionId,
-    clearDiagramHighlightTimers,
-    contentMode,
-    controls,
-    editorOpen,
-    freshlyMintedSessionIdsRef,
-    insightsEntries,
-    insightsOpen,
-    latestCritique,
-    modelProfile,
-    promptRef,
-    resetCollaborationState,
-    setActiveRequest,
-    setActiveSessionId,
-    setEditorOpen,
-    setError,
-    setHoverDescriptor,
-    setInsightsEntries,
-    setInsightsOpen,
-    setLatestCritique,
-    setLoading,
-    setPrompt,
-    setSelectedNode,
-    setSoundEnabled,
-    setStreamingPreview,
-    setToolbarAnchor,
-    soundEnabled,
-    state,
-    streamAgentAbortRef,
-    streamTimerRef,
-    syncTimerRef,
-    cacheRef
-  });
+  } = canvas;
 
   const {
     voiceListening,
     voiceError,
     stopVoiceInput,
-    startVoiceInput,
     handleMicPointerDown,
     handleMicPointerUp,
     handleMicToggleClick,
@@ -473,7 +366,7 @@ export function ArchiSlop() {
     setSlopPromptExpanded(false);
     setSlopPromptSource(null);
     setSlopNextPrompt('');
-  }, []);
+  }, [setSlopNextPrompt, setSlopPromptExpanded, setSlopPromptSource]);
 
   useShellRefSync({
     autoFixTimerRef,
@@ -492,7 +385,6 @@ export function ArchiSlop() {
     streamTimerRef
   });
 
-  // Slopitect console stamp on first mount — pure flavor, no functional effect.
   useEffect(() => {
     if (typeof console === 'undefined' || typeof console.log !== 'function') return;
     const lines = slopitect.CONSOLE_STAMP_LINES;
@@ -513,7 +405,7 @@ export function ArchiSlop() {
         // Ignore audio issues (autoplay restrictions, unsupported browser, etc).
       }
     },
-    [soundEnabled]
+    [soundEnabled, audioContextRef, hasInteractedRef]
   );
   tryAgentSoundRef.current = tryAgentSound;
 
@@ -660,6 +552,33 @@ export function ArchiSlop() {
     syncTimerRef
   });
 
+  const shell = useShellAdvisorContext({
+    activeSessionId,
+    clearConfirmOpen,
+    contentMode,
+    controls,
+    editorOpen,
+    handleSelectContentMode,
+    hoverDescriptor,
+    insightsEntries,
+    insightsOpen,
+    liveDraftContentType,
+    liveDraftSource,
+    loading,
+    narrowLayout,
+    reportAdvisorUsage,
+    runAnalyze,
+    runTransform,
+    selectedNode,
+    sessionHasPeerContent,
+    slopPromptExpanded,
+    state,
+    stateRef,
+    streamingPreview,
+    submitIntentWithPrompt,
+    voiceListening
+  });
+
   const {
     diagramSurfaceRef,
     fullscreenSupported,
@@ -688,32 +607,7 @@ export function ArchiSlop() {
     dismissEntryDeskTour,
     showEmptyCanvas,
     entryTourCopy
-  } = useShellAdvisorContext({
-    activeSessionId,
-    clearConfirmOpen,
-    contentMode,
-    controls,
-    editorOpen,
-    handleSelectContentMode,
-    hoverDescriptor,
-    insightsEntries,
-    insightsOpen,
-    liveDraftContentType,
-    liveDraftSource,
-    loading,
-    narrowLayout,
-    reportAdvisorUsage,
-    runAnalyze,
-    runTransform,
-    selectedNode,
-    sessionHasPeerContent,
-    slopPromptExpanded,
-    state,
-    stateRef,
-    streamingPreview,
-    submitIntentWithPrompt,
-    voiceListening
-  });
+  } = shell;
 
   useInsightsAutoClose({
     autoCloseActiveEntryIdRef,
@@ -726,11 +620,9 @@ export function ArchiSlop() {
 
   const busy = loading || streamingPreview;
 
-  // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
-  // routes to the persistent desk Work Order buffer whenever there's content.
   useEffect(() => {
     hasCanvasContentRef.current = hasCanvasContent;
-  }, [hasCanvasContent]);
+  }, [hasCanvasContent, hasCanvasContentRef]);
 
   const { critiqueActionableSplit, critiqueActionableUi } = useCritiqueActionableUi({
     activeRequest,
@@ -813,20 +705,20 @@ export function ArchiSlop() {
       loading,
       phoneLayout
     });
-  const ceremonyOverlays = (
-    <CeremonyOverlaysSlot
-      anchor={ceremonyAnchor}
-      bootSeq={bootSeq}
-      toasts={streakHudToasts}
-      achievement={streakHudAchievement}
-      levelUp={streakHudLevelUp}
-      liveVariant={liveVariant}
-      liveStreaming={Boolean(liveStreamingEntry)}
-      showLiveRunHud={Boolean(liveStreamingEntry) && !insightsOpen}
-      liveStreak={gamification?.streakByVariant?.[liveVariant] ?? 0}
-      insightsOpen={insightsMounted && insightsOpen}
-    />
-  );
+
+  const ceremonyOverlays = useCeremonyOverlays({
+    ceremonyAnchor,
+    bootSeq,
+    streakHudToasts,
+    streakHudAchievement,
+    streakHudLevelUp,
+    liveVariant,
+    liveStreamingEntry,
+    insightsOpen,
+    insightsMounted,
+    gamification
+  });
+
   const insightsSlot = useThinkingPaneSlot({
     insightsMounted,
     insightsClosing,

@@ -1,0 +1,156 @@
+import { useContentModeSwitch } from './useContentModeSwitch.js';
+import { useSessionHydrate } from './useSessionHydrate.js';
+import { useSessionCollaboration } from './useSessionCollaboration.js';
+
+/**
+ * Content-mode switching, server hydration, and collaboration session wiring.
+ */
+export function useDiagramSessionRuntime({
+  activeSessionId,
+  contentModeOptions,
+  controls,
+  freshlyMintedSessionIdsRef,
+  sessionIdFromUrlRef,
+  sessionTopicRef,
+  stateRef,
+  promptRef,
+  loadingRef,
+  submitIntentWithPromptRef,
+  cacheRef,
+  syncTimerRef,
+  streamTimerRef,
+  streamingPreviewRef,
+  streamAgentAbortRef,
+  hasInteractedRef,
+  syncDiagramOrThrowRef,
+  closeRadialMenuRef,
+  tryAgentSoundRef,
+  setStreamingPreview,
+  setLiveDraftSource,
+  setLiveDraftContentType,
+  setSelectedNode,
+  setHoverDescriptor,
+  setToolbarAnchor,
+  setLatestCritique,
+  setError,
+  setActiveSessionId,
+  setState,
+  setSessionHasPeerContent,
+  setLoading,
+  setActiveRequest,
+  setPrompt,
+  setInsightsEntries,
+  setCritiqueActionableSelected,
+  setGoMadStreak,
+  setModelProfile
+}) {
+  const {
+    contentMode,
+    setContentMode,
+    rendererRefreshKey,
+    hydrateRefs,
+    crossModeSyncRef,
+    handleSelectContentMode,
+    applyResolvedContentMode,
+    renderSelectionInMode,
+    resetModeSwitchTracking,
+    armSuppressHydrateRerun,
+    disarmSuppressHydrateRerun,
+    switchContentModeForRestore
+  } = useContentModeSwitch({
+    stateRef,
+    syncTimerRef,
+    streamTimerRef,
+    streamingPreviewRef,
+    streamAgentAbortRef,
+    loadingRef,
+    hasInteractedRef,
+    syncDiagramOrThrowRef,
+    closeRadialMenuRef,
+    tryAgentSoundRef,
+    contentModeOptions,
+    setStreamingPreview,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    setSelectedNode,
+    setHoverDescriptor,
+    setToolbarAnchor,
+    setLatestCritique,
+    setError
+  });
+
+  const { sessionHydrated } = useSessionHydrate({
+    activeSessionId,
+    contentMode,
+    freshlyMintedSessionIdsRef,
+    sessionIdFromUrlRef,
+    sessionTopicRef,
+    modeSwitch: hydrateRefs,
+    stateRef,
+    promptRef,
+    loadingRef,
+    submitIntentWithPromptRef,
+    cacheRef,
+    setActiveSessionId,
+    setState,
+    setSessionHasPeerContent,
+    setLoading,
+    setActiveRequest,
+    setPrompt,
+    setError,
+    setInsightsEntries,
+    setLatestCritique,
+    setCritiqueActionableSelected,
+    setLiveDraftSource,
+    setLiveDraftContentType,
+    setGoMadStreak,
+    setModelProfile,
+    setContentMode
+  });
+
+  const {
+    pendingHandshake,
+    externalAgentPresence,
+    agentReactions,
+    inviteDialogOpen,
+    setInviteDialogOpen,
+    handleApproveHandshake,
+    handleDenyHandshake,
+    handleAcceptProposal,
+    handleRejectProposal,
+    resetCollaborationState
+  } = useSessionCollaboration({
+    activeSessionId,
+    sessionHydrated,
+    contentMode,
+    controlsLoading: controls.loading,
+    setInsightsEntries,
+    stateRef,
+    setState
+  });
+
+  return {
+    contentMode,
+    setContentMode,
+    rendererRefreshKey,
+    crossModeSyncRef,
+    handleSelectContentMode,
+    applyResolvedContentMode,
+    renderSelectionInMode,
+    resetModeSwitchTracking,
+    armSuppressHydrateRerun,
+    disarmSuppressHydrateRerun,
+    switchContentModeForRestore,
+    sessionHydrated,
+    pendingHandshake,
+    externalAgentPresence,
+    agentReactions,
+    inviteDialogOpen,
+    setInviteDialogOpen,
+    handleApproveHandshake,
+    handleDenyHandshake,
+    handleAcceptProposal,
+    handleRejectProposal,
+    resetCollaborationState
+  };
+}
