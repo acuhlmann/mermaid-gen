@@ -62,4 +62,13 @@ describe('PersonaFace', () => {
     expect(titled.querySelector('svg').getAttribute('aria-hidden')).toBeNull();
     expect(titled.querySelector('title').textContent).toBe('Linda');
   });
+
+  it('can omit the accent ring when an outer frame already provides one', () => {
+    const { container: ringed } = render(<PersonaFace id="hr" />);
+    const ringedCircles = ringed.querySelectorAll('svg > circle').length;
+    cleanup();
+    const { container: plain } = render(<PersonaFace id="hr" accentRing={false} />);
+    expect(plain.querySelectorAll('svg > circle').length).toBeLessThan(ringedCircles);
+    expect(plain.querySelectorAll('svg > circle').length).toBe(0);
+  });
 });

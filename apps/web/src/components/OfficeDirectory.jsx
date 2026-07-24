@@ -95,6 +95,7 @@ function OnboardingColleagueCard({ colleague, colleagueId, isSpeaking, showTrans
         <PersonaFace
           id={colleagueId}
           size={44}
+          accentRing={false}
           className="office-directory-avatar office-directory-avatar--hero"
         />
       </div>

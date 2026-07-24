@@ -316,10 +316,11 @@ function Accessory({ style, accent }) {
  *   size?: number,
  *   className?: string,
  *   title?: string,
- *   fallbackEmoji?: string
+ *   fallbackEmoji?: string,
+ *   accentRing?: boolean
  * }} props
  */
-export function PersonaFace({ id, size = 40, className, title, fallbackEmoji }) {
+export function PersonaFace({ id, size = 40, className, title, fallbackEmoji, accentRing = true }) {
   const traits = personaFaceTraits(id);
   const sender = officeSenderInfo(id);
 
@@ -352,9 +353,13 @@ export function PersonaFace({ id, size = 40, className, title, fallbackEmoji }) 
     >
       {title ? <title>{title}</title> : null}
 
-      {/* Accent disc — the per-character color the emoji could never carry. */}
-      <circle cx="20" cy="20" r="20" fill={accent} opacity="0.16" />
-      <circle cx="20" cy="20" r="19.2" fill="none" stroke={accent} strokeWidth="1.6" />
+      {accentRing ? (
+        <>
+          {/* Accent disc — the per-character color the emoji could never carry. */}
+          <circle cx="20" cy="20" r="20" fill={accent} opacity="0.16" />
+          <circle cx="20" cy="20" r="19.2" fill="none" stroke={accent} strokeWidth="1.6" />
+        </>
+      ) : null}
 
       {/* Clip the shoulders to the disc so the garment reads as a portrait crop. */}
       <clipPath id={`persona-face-clip-${id}`}>

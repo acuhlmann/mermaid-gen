@@ -6432,12 +6432,25 @@
   pointer-events: auto;
 }
 
+.desk-chrome-layout.is-entry-tour-active {
+  position: relative;
+}
+
+.desk-chrome-layout > .entry-desk-pointers--tour {
+  left: 0;
+  right: 0;
+  width: 100%;
+  max-width: none;
+}
+
 .entry-desk-pointer {
   padding: 0.5rem 0.65rem 0.55rem;
   border-radius: 12px;
   border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-  background: color-mix(in srgb, var(--surface) 94%, var(--accent) 6%);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 12%, rgba(15, 23, 42, 0.08));
+  background: #fff;
+  box-shadow:
+    0 6px 18px color-mix(in srgb, var(--accent) 12%, rgba(15, 23, 42, 0.08)),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
 }
 
 .entry-desk-pointer-label {
@@ -6538,7 +6551,18 @@
 .desk-tour-piece.is-tour-highlight,
 .bottom-office-desk-slot.is-tour-highlight {
   border-radius: 12px;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+.desk-tour-piece.is-tour-highlight > .desk-actions-button-stamp,
+.desk-tour-piece.is-tour-highlight > .action-persona-icon,
+.desk-tour-piece.is-tour-highlight .stakeholders-mascot-emoji,
+.desk-tour-piece.is-tour-highlight .render-as-mascot-emoji,
+.bottom-office-desk-slot.is-tour-highlight > .desk-actions-button-stamp {
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 34%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -2px 6px color-mix(in srgb, var(--accent) 22%, transparent),
+    0 6px 16px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .entry-desk-tour-reveal[data-tour-step='welcome'] .entry-desk-intro {
@@ -19317,7 +19341,6 @@ body.slopitect-rainbow-tint::before {
 }
 .office-directory-avatar--welcome {
   border-radius: 50%;
-  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.06);
 }
 .office-directory-transcript-line {
   margin: 6px 0 0;
@@ -19575,9 +19598,11 @@ body.slopitect-rainbow-tint::before {
   .office-directory-host--overlay .office-directory {
     max-height: min(92dvh, 720px);
     border-radius: 14px;
+    background: #fff;
   }
   .office-directory--onboarding {
     max-height: min(92dvh, 720px);
+    background: #fff;
   }
   .office-directory-onboarding-scroll {
     gap: 10px;
@@ -19593,6 +19618,7 @@ body.slopitect-rainbow-tint::before {
   .office-directory-hero-ring--compact {
     width: 40px;
     height: 40px;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
   }
   .office-directory-onboarding-card {
     padding: 6px 8px;
@@ -19619,11 +19645,16 @@ body.slopitect-rainbow-tint::before {
   .entry-desk-pointers--tour {
     left: 0;
     right: 0;
-    max-width: min(20rem, calc(100vw - 1rem));
+    max-width: none;
+    width: 100%;
   }
+
+  .desk-chrome-layout > .entry-desk-pointers--tour .entry-desk-pointer {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
   .entry-desk-pointers--work-order {
-    left: 0;
-    right: 0;
     bottom: calc(100% + 0.35rem);
   }
   .entry-desk-pointer-actions {
@@ -19824,6 +19855,7 @@ body.slopitect-rainbow-tint::before {
   font-weight: 700;
   color: #1e293b;
   font-family: 'Segoe Script', 'Bradley Hand', 'Comic Sans MS', cursive;
+  background: #fff;
 }
 .name-tag-value.is-placeholder {
   color: #94a3b8;
