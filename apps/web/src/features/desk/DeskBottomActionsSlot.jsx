@@ -117,48 +117,33 @@ function DeskChromeRow({
 }) {
   const tourTip =
     entryTourActive && entryTourStep && entryTourStep !== 'welcome' ? entryTourStep : null;
+  const tourPointerProps = {
+    pointers: entryPointers,
+    activeId: tourTip,
+    eyebrow: entryTourCopy?.deskEyebrow,
+    progress: entryTourProgress,
+    onAdvance: onAdvanceEntryTour,
+    onDismiss: onDismissEntryTour,
+    nextLabel: entryTourCopy?.next,
+    doneLabel: entryTourCopy?.done,
+    skipLabel: entryTourCopy?.skip
+  };
 
   return (
     <div
       className={`button-group desk-primary-group desk-chrome-layout${entryTourActive ? ' is-entry-tour-active' : ''}`}
     >
+      {tourTip ? <EntryDeskPointers {...tourPointerProps} /> : null}
       {showDeskSlot ? (
         <div
           id="office-desk-bottom-slot"
           ref={deskSlotRef}
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--desk${tourHighlight === 'desk' ? ' is-tour-highlight' : ''}`}
-        >
-          {tourTip === 'desk' ? (
-            <EntryDeskPointers
-              pointers={entryPointers}
-              activeId="desk"
-              eyebrow={entryTourCopy?.deskEyebrow}
-              progress={entryTourProgress}
-              onAdvance={onAdvanceEntryTour}
-              onDismiss={onDismissEntryTour}
-              nextLabel={entryTourCopy?.next}
-              doneLabel={entryTourCopy?.done}
-              skipLabel={entryTourCopy?.skip}
-            />
-          ) : null}
-        </div>
+        />
       ) : null}
       <div
         className={`desk-work-order-group desk-tour-piece desk-tour-piece--work-order${tourHighlight === 'work-order' ? ' is-tour-highlight' : ''}`}
       >
-        {tourTip === 'work-order' ? (
-          <EntryDeskPointers
-            pointers={entryPointers}
-            activeId="work-order"
-            eyebrow={entryTourCopy?.deskEyebrow}
-            progress={entryTourProgress}
-            onAdvance={onAdvanceEntryTour}
-            onDismiss={onDismissEntryTour}
-            nextLabel={entryTourCopy?.next}
-            doneLabel={entryTourCopy?.done}
-            skipLabel={entryTourCopy?.skip}
-          />
-        ) : null}
         <SlopNextPrompt
           layout="desk"
           prompt={deskPrompt}
@@ -187,19 +172,6 @@ function DeskChromeRow({
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--team${tourHighlight === 'team' ? ' is-tour-highlight' : ''}`}
         >
-          {tourTip === 'team' ? (
-            <EntryDeskPointers
-              pointers={entryPointers}
-              activeId="team"
-              eyebrow={entryTourCopy?.deskEyebrow}
-              progress={entryTourProgress}
-              onAdvance={onAdvanceEntryTour}
-              onDismiss={onDismissEntryTour}
-              nextLabel={entryTourCopy?.next}
-              doneLabel={entryTourCopy?.done}
-              skipLabel={entryTourCopy?.skip}
-            />
-          ) : null}
           <DeskPeopleCluster
             goMadStreak={goMadStreak}
             controls={controls}
@@ -219,19 +191,6 @@ function DeskChromeRow({
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
         >
-          {tourTip === 'notebook' ? (
-            <EntryDeskPointers
-              pointers={entryPointers}
-              activeId="notebook"
-              eyebrow={entryTourCopy?.deskEyebrow}
-              progress={entryTourProgress}
-              onAdvance={onAdvanceEntryTour}
-              onDismiss={onDismissEntryTour}
-              nextLabel={entryTourCopy?.next}
-              doneLabel={entryTourCopy?.done}
-              skipLabel={entryTourCopy?.skip}
-            />
-          ) : null}
           <DeskNotebookButton
             thinkingOpen={thinkingOpen}
             onToggleThinking={onToggleThinking}
@@ -244,19 +203,6 @@ function DeskChromeRow({
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
         >
-          {tourTip === 'format' ? (
-            <EntryDeskPointers
-              pointers={entryPointers}
-              activeId="format"
-              eyebrow={entryTourCopy?.deskEyebrow}
-              progress={entryTourProgress}
-              onAdvance={onAdvanceEntryTour}
-              onDismiss={onDismissEntryTour}
-              nextLabel={entryTourCopy?.next}
-              doneLabel={entryTourCopy?.done}
-              skipLabel={entryTourCopy?.skip}
-            />
-          ) : null}
           <DeskDrawer
             modes={contentModeOptions}
             currentMode={contentMode}
