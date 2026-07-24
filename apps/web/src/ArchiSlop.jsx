@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import DiagramCanvas from './components/DiagramCanvas.jsx';
 import ClearConfirmDialog from './components/ClearConfirmDialog.jsx';
 import { useDiagramFullscreen } from './hooks/useDiagramFullscreen.js';
 import { fallbackState, readDiagramCache } from './state/diagramStore.js';
-import { getCachedAgentCostEstimates, loadAgentCostEstimates } from './state/agentCostEstimates';
+import { getCachedAgentCostEstimates } from './state/agentCostEstimates';
 import './App.css';
 import './components/RunTimeline.css';
 import { CeremonyOverlaysSlot } from './features/ceremony/CeremonyOverlaysSlot.jsx';
-import { InsightsSlot } from './features/insights/InsightsSlot.jsx';
+import { ThinkingPaneSlot } from './features/insights/ThinkingPaneSlot.jsx';
+import { useCritiqueActionableSelection } from './features/insights/useCritiqueActionableSelection.js';
 import { SessionCollaborationSlot } from './features/session/SessionCollaborationSlot.jsx';
 import { useSessionCollaboration } from './features/session/useSessionCollaboration.js';
 import { useSessionHydrate } from './features/session/useSessionHydrate.js';
@@ -15,8 +15,9 @@ import { useContentModeSwitch } from './features/session/useContentModeSwitch.js
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
 import { useRadialMenu } from './features/prompt/useRadialMenu.js';
 import { useAdvisorShell } from './features/advisor/useAdvisorShell.js';
+import { useAdvisorPause } from './features/advisor/useAdvisorPause.js';
 import { useRunCeremony } from './features/ceremony/useRunCeremony.js';
-import { DeskBottomActionsSlot } from './features/desk/DeskBottomActionsSlot.jsx';
+import { useGamificationPersistence } from './features/ceremony/useGamificationPersistence.js';
 import { ModeRevealSlot } from './features/desk/ModeRevealSlot.jsx';
 import { EmptyCanvasSlot } from './features/desk/EmptyCanvasSlot.jsx';
 import { useEntryDeskFlow } from './features/desk/useEntryDeskFlow.js';
@@ -24,6 +25,7 @@ import { useOfficeBoot } from './features/desk/useOfficeBoot.js';
 import { BrandChromeSlot } from './features/shell/BrandChromeSlot.jsx';
 import { useRunStreamingAgent } from './features/streaming/useRunStreamingAgent.js';
 import { useAnimateAcceptedSource } from './features/streaming/useAnimateAcceptedSource.js';
+import { useLiveRunContext } from './features/streaming/useLiveRunContext.js';
 import { useCritiqueActionableUi } from './features/insights/useCritiqueActionableUi.js';
 import { useDiagramChangeHighlight } from './features/insights/useDiagramChangeHighlight.js';
 import { useExplainDumbDown } from './features/insights/useExplainDumbDown.js';
@@ -32,6 +34,7 @@ import { useInsightsLedger } from './features/insights/useInsightsLedger.js';
 import { useRetryFailedInsight } from './features/insights/useRetryFailedInsight.js';
 import { useDiagramAutoFix } from './features/canvas/useDiagramAutoFix.js';
 import { useDiagramManualSync } from './features/canvas/useDiagramManualSync.js';
+import { DiagramCanvasSlot } from './features/canvas/DiagramCanvasSlot.jsx';
 import { useRadialActionHandler } from './features/prompt/useRadialActionHandler.js';
 import { RadialMenuSlot } from './features/prompt/RadialMenuSlot.jsx';
 import { useClearDiagram } from './features/session/useClearDiagram.js';
@@ -39,13 +42,14 @@ import { useSessionCacheLifecycle } from './features/session/useSessionCacheLife
 import { useInsightsAutoClose } from './features/insights/useInsightsAutoClose.js';
 import { useAppStatus } from './features/shell/useAppStatus.js';
 import { OfficeLayerSlot } from './features/shell/OfficeLayerSlot.jsx';
+import { ShellBottomRowSlot } from './features/shell/ShellBottomRowSlot.jsx';
+import { buildAppShellClassName } from './features/shell/buildAppShellClassName.js';
+import { useShellRefSync } from './features/shell/useShellRefSync.js';
 import ErrorToast from './components/ErrorToast.jsx';
 import HotkeyOverlay from './components/HotkeyOverlay.jsx';
 import {
   createInitialState as createInitialGamificationState,
-  readFromStorage as readGamificationFromStorage,
-  writeToStorage as writeGamificationToStorage,
-  reconcileLifetimeLlmCostUsd
+  readFromStorage as readGamificationFromStorage
 } from './state/runGamificationStore.js';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
 import { subscribe as subscribeUserName, resolveUserName } from './state/userIdentityStore.js';
@@ -56,8 +60,6 @@ import {
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
 import { ensureUrlBackedSession, readStoredModelProfile } from './utils/appSessionLocation.js';
-import { splitCritiqueActionableSections, isConcreteContentType } from '@archislop/shared';
-import { buildOfficeBatchIntentPrompt } from './utils/advisorActionContext.js';
 import {
   useCompactBrandLayout,
   useFoldableDualScreen,
@@ -67,8 +69,6 @@ import {
 } from './hooks/useAppLayoutMedia.js';
 import { useDelayedUnmount } from './utils/useDelayedUnmount.js';
 import { ButtonIcon, PromptIcon, MicIcon, MicActiveIcon } from './components/AppIcons.jsx';
-import { AiCornerControlsInner } from './components/AiCornerControlsInner.jsx';
-import { BottomRow } from './components/BottomRow.jsx';
 import { useSyncVisualViewportHeight } from './hooks/useSyncVisualViewportHeight.js';
 import { useStyleEdits } from './hooks/useStyleEdits.js';
 import { useSubmitIntent } from './hooks/useSubmitIntent.js';
@@ -76,7 +76,7 @@ import { useAnalyzeFlow } from './hooks/useAnalyzeFlow.js';
 import { useVoiceInput } from './hooks/useVoiceInput.js';
 import { useDeskSlotRef } from './hooks/useDeskSlotRef.js';
 import { SpeechRecognitionCtor } from './utils/appConstants.js';
-import { buildContentModeOptions, isConcreteContentMode } from './utils/renderModeAction.js';
+import { buildContentModeOptions } from './utils/renderModeAction.js';
 
 export function ArchiSlop() {
   const { controls, slopitect, applyLocaleFromText, locale: uiLocale } = useUiCopy();
@@ -140,6 +140,7 @@ export function ArchiSlop() {
       : [],
     workingStatusText: controls.loading.working
   });
+
   const [soundEnabled, setSoundEnabled] = useState(cacheRef.current?.soundEnabled ?? true);
   const [modelProfile, setModelProfile] = useState(() => readStoredModelProfile());
   // Bumped on every completed run so the office can ping the user about it.
@@ -157,6 +158,7 @@ export function ArchiSlop() {
     if (typeof window === 'undefined') return createInitialGamificationState();
     return readGamificationFromStorage(window.localStorage) ?? createInitialGamificationState();
   });
+
   /** Mobile-only: XP bar starts collapsed below the brand row; toggled by tapping the role badge. */
   const [xpBarMobileOpen, setXpBarMobileOpen] = useState(false);
   /** Click-to-open level/XP info popover anchored to the XP bar. */
@@ -166,7 +168,6 @@ export function ArchiSlop() {
   const [settingsOpenSignal, setSettingsOpenSignal] = useState(0);
   /** Bumped from Your Team menu to start a WG meeting via OfficeLayer. */
   const [callMeetingSignal, setCallMeetingSignal] = useState(0);
-  const [costTrackingEnabled, setCostTrackingEnabled] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
   const [hotkeyOverlayOpen, setHotkeyOverlayOpen] = useState(false);
   const [hoverDescriptor, setHoverDescriptor] = useState(null);
@@ -484,38 +485,37 @@ export function ArchiSlop() {
     hasInteractedRef
   });
 
-  useEffect(() => {
-    let cancelled = false;
-    loadAgentCostEstimates().then((payload) => {
-      if (!cancelled) {
-        agentCostEstimatesRef.current = payload;
-        setCostTrackingEnabled(payload.enabled === true);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { costTrackingEnabled } = useGamificationPersistence({
+    agentCostEstimatesRef,
+    gamification,
+    insightsEntries,
+    setGamification
+  });
 
-  useEffect(() => {
-    if (!costTrackingEnabled) return;
-    setGamification((current) => {
-      const reconciled = reconcileLifetimeLlmCostUsd(current, insightsEntries);
-      if (reconciled.lifetimeLlmCostUsd === current.lifetimeLlmCostUsd) return current;
-      return reconciled;
-    });
-  }, [costTrackingEnabled, insightsEntries]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    writeGamificationToStorage(window.localStorage, gamification);
-  }, [gamification]);
+  useCritiqueActionableSelection({ latestCritique, setCritiqueActionableSelected });
 
   const closeSlopPrompt = useCallback(() => {
     setSlopPromptExpanded(false);
     setSlopPromptSource(null);
     setSlopNextPrompt('');
   }, []);
+
+  useShellRefSync({
+    autoFixTimerRef,
+    celebrationTimerRef,
+    cleanupVoiceInput,
+    diagramAutoHighlightTimerRef,
+    loading,
+    loadingRef,
+    pendingAutoDiagramHighlightRef,
+    pendingAutoDiagramHighlightTimeoutRef,
+    state,
+    stateRef,
+    streamingPreview,
+    streamingPreviewRef,
+    syncTimerRef,
+    streamTimerRef
+  });
 
   // Slopitect console stamp on first mount — pure flavor, no functional effect.
   useEffect(() => {
@@ -528,55 +528,6 @@ export function ArchiSlop() {
       // ignore
     }
   }, [slopitect.CONSOLE_STAMP_LINES]);
-
-  useEffect(() => {
-    if (!latestCritique?.text) {
-      setCritiqueActionableSelected([]);
-      return;
-    }
-    const { items } = splitCritiqueActionableSections(latestCritique.text);
-    setCritiqueActionableSelected(items.map(() => false));
-  }, [latestCritique?.createdAt, latestCritique?.text]);
-
-  useEffect(() => {
-    loadingRef.current = loading;
-  }, [loading]);
-
-  useEffect(() => {
-    streamingPreviewRef.current = streamingPreview;
-  }, [streamingPreview]);
-
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  useEffect(
-    () => () => {
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current);
-      }
-      if (streamTimerRef.current != null) {
-        cancelAnimationFrame(streamTimerRef.current);
-      }
-      if (autoFixTimerRef.current) {
-        clearTimeout(autoFixTimerRef.current);
-      }
-      if (celebrationTimerRef.current) {
-        clearTimeout(celebrationTimerRef.current);
-      }
-      cleanupVoiceInput();
-      if (diagramAutoHighlightTimerRef.current != null) {
-        window.clearTimeout(diagramAutoHighlightTimerRef.current);
-        diagramAutoHighlightTimerRef.current = null;
-      }
-      if (pendingAutoDiagramHighlightTimeoutRef.current != null) {
-        window.clearTimeout(pendingAutoDiagramHighlightTimeoutRef.current);
-        pendingAutoDiagramHighlightTimeoutRef.current = null;
-      }
-      pendingAutoDiagramHighlightRef.current = null;
-    },
-    []
-  );
 
   const tryAgentSound = useCallback(
     (playFn) => {
@@ -827,24 +778,23 @@ export function ArchiSlop() {
 
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
 
-  const advisorPause =
-    loading ||
-    streamingPreview ||
-    (Boolean(liveDraftSource) && liveDraftContentType === contentMode) ||
-    insightsEntries.some((e) => (e.status ?? 'running') === 'running') ||
-    voiceListening ||
-    slopPromptExpanded ||
-    clearConfirmOpen ||
-    editorOpen ||
-    (narrowLayout && insightsOpen) ||
-    // Fullscreen hides the advisor bubble + cast chrome entirely, so pause the
-    // proactive loop — otherwise stakeholders keep pulsing nodes (and chiming)
-    // over the bare canvas with no visible way to mute them.
-    isFullscreen ||
-    // Meet the Office orientation/roster owns the stage — no competing popups.
-    officeDirectoryUi.open;
-
-  const officeDistractionsPaused = advisorPause || officeCanvasGrace;
+  const { advisorPause, officeDistractionsPaused } = useAdvisorPause({
+    clearConfirmOpen,
+    contentMode,
+    editorOpen,
+    insightsEntries,
+    insightsOpen,
+    isFullscreen,
+    liveDraftContentType,
+    liveDraftSource,
+    loading,
+    narrowLayout,
+    officeCanvasGrace,
+    officeDirectoryOpen: officeDirectoryUi.open,
+    slopPromptExpanded,
+    streamingPreview,
+    voiceListening
+  });
 
   const { advisor, advisorBubbleProps, stakeholderIntroProps } = useAdvisorShell({
     selectedNode,
@@ -908,11 +858,6 @@ export function ArchiSlop() {
   });
 
   const busy = loading || streamingPreview;
-
-  const agentThinkingChrome = useMemo(
-    () => loading || insightsEntries.some((e) => (e.status ?? 'running') === 'running'),
-    [loading, insightsEntries]
-  );
 
   // Mirror for appendActivePromptText (a []-dep callback) so voice dictation
   // routes to the persistent desk Work Order buffer whenever there's content.
@@ -991,10 +936,16 @@ export function ArchiSlop() {
     insightsOpen,
     240
   );
-  const liveStreamingEntry = insightsEntries.find((e) => (e.status ?? 'running') === 'running');
-  const liveVariant = liveStreamingEntry?.variant ?? null;
-  const ceremonyAnchor =
-    insightsMounted && insightsOpen ? (phoneLayout ? 'insights' : 'canvas') : 'viewport';
+  const { liveStreamingEntry, liveVariant, ceremonyAnchor, agentThinkingChrome, runFx } =
+    useLiveRunContext({
+      gamification,
+      goMadStreak,
+      insightsEntries,
+      insightsMounted,
+      insightsOpen,
+      loading,
+      phoneLayout
+    });
   const ceremonyOverlays = (
     <CeremonyOverlaysSlot
       anchor={ceremonyAnchor}
@@ -1010,7 +961,7 @@ export function ArchiSlop() {
     />
   );
   const insightsSlot = (
-    <InsightsSlot
+    <ThinkingPaneSlot
       mounted={insightsMounted}
       closing={insightsClosing}
       entries={insightsEntries}
@@ -1018,35 +969,26 @@ export function ArchiSlop() {
       celebratingEntryId={celebratingEntryId}
       streamDebugEnabled={streamDebugEnabled}
       critiqueActionableUi={critiqueActionableUi}
-      diagramUndoDisabled={loading}
+      loading={loading}
       onRestoreToEntry={handleRestoreToEntry}
       onRestoreDiagramSnapshot={handleRestoreDiagramSnapshot}
       onOpenProposalFullPreview={handleOpenProposalFullPreview}
       entryDiagramDiffById={entryDiagramDiffById}
       diagramChangeHighlightEntryId={diagramChangeHighlightEntryId}
       diagramChangeHighlightSummary={diagramChangeHighlightSummary}
-      diagramChangeHighlightDisabled={loading}
       onToggleDiagramChangeHighlight={handleToggleDiagramChangeHighlight}
-      onStopStreamingAgent={streamingAgentStoppable ? stopStreamingAgentRequest : undefined}
+      streamingAgentStoppable={streamingAgentStoppable}
+      onStopStreamingAgent={stopStreamingAgentRequest}
       onRetryInsightEntry={retryFailedInsight}
-      onRetryInsightEntryWithQuality={(entryId) =>
-        retryFailedInsight(entryId, { useQuality: true })
-      }
-      retryActionsDisabled={loading}
       onDismiss={() => setInsightsOpen(false)}
       onAcceptProposal={handleAcceptProposal}
       onRejectProposal={handleRejectProposal}
-      onApplyOfficeActionItems={(_scope, items) => {
-        const prompt = buildOfficeBatchIntentPrompt(items);
-        if (!prompt) return;
-        void submitIntentWithPrompt(prompt, {});
-      }}
+      submitIntentWithPrompt={submitIntentWithPrompt}
       agentReactions={agentReactions}
       onApplyStyleEdits={handleApplyStyleEdits}
-      styleEditsApplyBusy={loading}
       liveDraftSource={liveDraftSource}
       liveDraftContentType={liveDraftContentType}
-      activeContentType={contentMode}
+      contentMode={contentMode}
       explainDumbLevelByEntryId={explainDumbLevelByEntryId}
       explainDumbLoadingEntryId={explainDumbLoadingEntryId}
       explainDumbSurrenderedEntryIds={explainDumbSurrenderedEntryIds}
@@ -1061,7 +1003,17 @@ export function ArchiSlop() {
 
   return (
     <main
-      className={`app-shell${editorOpen ? ' is-editor-open' : ''}${insightsOpen ? ' is-insights-open' : ''}${narrowLayout ? ' is-narrow-layout' : ''}${phoneLayout ? ' is-phone-layout' : ''}${wideMobileLayout ? ' is-wide-mobile' : ''}${foldableDualScreen ? ' is-foldable-dual' : ''}${hasCanvasContent || editorOpen ? ' has-edit-control' : ''}${showDeskChrome ? ' has-bottom-brand' : ''}${officeBootPending ? ' is-office-boot' : ''}`}
+      className={buildAppShellClassName({
+        editorOpen,
+        insightsOpen,
+        narrowLayout,
+        phoneLayout,
+        wideMobileLayout,
+        foldableDualScreen,
+        hasCanvasContent,
+        showDeskChrome,
+        officeBootPending
+      })}
       aria-label="ArchiSlop"
       data-live-variant={liveStreamingEntry ? liveVariant : undefined}
       data-streaming={liveStreamingEntry ? 'true' : undefined}
@@ -1071,7 +1023,7 @@ export function ArchiSlop() {
     >
       {!officeBootPending ? (
         <>
-          <DiagramCanvas
+          <DiagramCanvasSlot
             revisionId={state.revisionId}
             diagramSource={
               liveDraftSource && liveDraftContentType === contentMode
@@ -1085,11 +1037,10 @@ export function ArchiSlop() {
             streamingPreview={
               streamingPreview || (Boolean(liveDraftSource) && liveDraftContentType === contentMode)
             }
-            agentThinking={agentThinkingChrome && !streamingPreview}
+            agentThinkingChrome={agentThinkingChrome && !streamingPreview}
             editorOpen={editorOpen}
-            insightsOpen={insightsMounted && Boolean(insightsSlot)}
+            insightsMounted={insightsMounted}
             insightsSlot={insightsSlot}
-            ceremonySlot={null}
             selectedNode={selectedNode}
             hoverDescriptor={hoverDescriptor}
             onSelectedNodeChange={handleSelectedNodeChange}
@@ -1100,14 +1051,7 @@ export function ArchiSlop() {
             changeHighlight={changeHighlightForCanvas}
             changeHighlightContentType={changeHighlightContentType}
             onDiagramSvgRendered={handleDiagramSvgRendered}
-            runFx={{
-              variant: liveVariant,
-              streaming: Boolean(liveStreamingEntry) && (!insightsOpen || liveVariant === 'goMad'),
-              intensity:
-                (gamification?.streakByVariant?.[liveVariant] ?? 0) >= 2 || goMadStreak >= 2
-                  ? 'high'
-                  : 'normal'
-            }}
+            runFx={runFx}
             diagramSurfaceRef={diagramSurfaceRef}
             isFullscreen={isFullscreen}
             onFormSubmit={handleFormSubmit}
@@ -1259,107 +1203,67 @@ export function ArchiSlop() {
             onCancel={() => setClearConfirmOpen(false)}
           />
 
-          <BottomRow
+          <ShellBottomRowSlot
             narrowLayout={narrowLayout}
-            statusRow={
-              status ? (
-                <div className="overlay-status-row">
-                  <p
-                    id="app-status"
-                    className={`overlay-status ${error ? 'is-error' : ''}`}
-                    role="status"
-                  >
-                    {status}
-                  </p>
-                  {streamingAgentStoppable && !insightsOpen ? (
-                    <button
-                      type="button"
-                      className="overlay-button compact-button overlay-status-stop"
-                      onClick={stopStreamingAgentRequest}
-                    >
-                      {controls.insights.stopRequest}
-                    </button>
-                  ) : null}
-                </div>
-              ) : null
-            }
-            actions={
-              <DeskBottomActionsSlot
-                hasCanvasContent={hasCanvasContent}
-                insightsOpen={insightsOpen}
-                entryReveal={entryReveal}
-                narrowLayout={narrowLayout}
-                busy={busy}
-                loading={loading}
-                streamingPreview={streamingPreview}
-                controls={controls}
-                contentMode={contentMode}
-                contentModeOptions={contentModeOptions}
-                deskSlotRef={deskSlotRef}
-                deskPrompt={deskPrompt}
-                setDeskPrompt={setDeskPrompt}
-                voiceSupported={voiceSupported}
-                voiceListening={voiceListening}
-                speechRecognitionCtor={SpeechRecognitionCtor}
-                PromptIcon={PromptIcon}
-                MicIcon={MicIcon}
-                MicActiveIcon={MicActiveIcon}
-                ButtonIcon={ButtonIcon}
-                handleDeskPromptSubmit={handleDeskPromptSubmit}
-                handleMicToggleClick={handleMicToggleClick}
-                handleMicPointerDown={handleMicPointerDown}
-                handleMicPointerUp={handleMicPointerUp}
-                stopVoiceInput={stopVoiceInput}
-                runTransform={runTransform}
-                runAnalyze={runAnalyze}
-                advisor={advisor}
-                advisorBubbleProps={advisorBubbleProps}
-                stakeholderIntroProps={stakeholderIntroProps}
-                advisorPause={advisorPause}
-                goMadStreak={goMadStreak}
-                diagramSource={state.diagramSource}
-                onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
-                handleSelectContentMode={handleSelectContentMode}
-                latestCritique={latestCritique}
-                canFixFromCritique={canFixFromCritique}
-                handleFixFromCritique={handleFixFromCritique}
-                handleClearDiagram={handleClearDiagram}
-                onToggleThinking={() => setInsightsOpen((v) => !v)}
-                canToggleThinking
-                entryTourActive={entryTourActive}
-                entryTourStep={entryTourStep}
-                entryTourProgress={entryTourProgress}
-                entryPointers={controls.prompt.entryPointers ?? []}
-                entryTourCopy={entryTourCopy}
-                onAdvanceEntryTour={advanceEntryTour}
-                onDismissEntryTour={dismissEntryDeskTour}
-              />
-            }
-            aiControls={
-              // Empty intro: Settings only clutter the first screen. Keep the
-              // headless Outbox/Settings panels once a diagram exists, or whenever
-              // a handshake needs the panel. Peer content also keeps chrome after
-              // a mode switch into an empty slot.
-              hasCanvasContent || pendingHandshake ? (
-                <AiCornerControlsInner
-                  controls={controls.settings}
-                  pendingHandshake={pendingHandshake}
-                  externalAgentPresence={externalAgentPresence}
-                  onInviteAgent={() => setInviteDialogOpen(true)}
-                  popoverMode={!narrowLayout}
-                  contentType={
-                    isConcreteContentMode(contentMode) ? contentMode : (state.contentType ?? null)
-                  }
-                  diagramSource={state.diagramSource}
-                  showEditorToggle={hasCanvasContent || editorOpen}
-                  editorOpen={editorOpen}
-                  onToggleEditor={() => setEditorOpen((current) => !current)}
-                  editorControls={controls.editor}
-                  settingsOpenSignal={settingsOpenSignal}
-                  outboxOpenSignal={outboxOpenSignal}
-                />
-              ) : null
-            }
+            status={status}
+            error={error}
+            streamingAgentStoppable={streamingAgentStoppable}
+            insightsOpen={insightsOpen}
+            stopStreamingAgentLabel={controls.insights.stopRequest}
+            onStopStreamingAgent={stopStreamingAgentRequest}
+            hasCanvasContent={hasCanvasContent}
+            pendingHandshake={pendingHandshake}
+            editorOpen={editorOpen}
+            contentMode={contentMode}
+            diagramSource={state.diagramSource}
+            stateContentType={state.contentType}
+            controls={controls}
+            settingsOpenSignal={settingsOpenSignal}
+            outboxOpenSignal={outboxOpenSignal}
+            onInviteAgent={() => setInviteDialogOpen(true)}
+            onToggleEditor={() => setEditorOpen((current) => !current)}
+            externalAgentPresence={externalAgentPresence}
+            deskSlotRef={deskSlotRef}
+            entryReveal={entryReveal}
+            busy={busy}
+            loading={loading}
+            streamingPreview={streamingPreview}
+            contentModeOptions={contentModeOptions}
+            deskPrompt={deskPrompt}
+            setDeskPrompt={setDeskPrompt}
+            voiceSupported={voiceSupported}
+            voiceListening={voiceListening}
+            speechRecognitionCtor={SpeechRecognitionCtor}
+            PromptIcon={PromptIcon}
+            MicIcon={MicIcon}
+            MicActiveIcon={MicActiveIcon}
+            ButtonIcon={ButtonIcon}
+            handleDeskPromptSubmit={handleDeskPromptSubmit}
+            handleMicToggleClick={handleMicToggleClick}
+            handleMicPointerDown={handleMicPointerDown}
+            handleMicPointerUp={handleMicPointerUp}
+            stopVoiceInput={stopVoiceInput}
+            runTransform={runTransform}
+            runAnalyze={runAnalyze}
+            advisor={advisor}
+            advisorBubbleProps={advisorBubbleProps}
+            stakeholderIntroProps={stakeholderIntroProps}
+            advisorPause={advisorPause}
+            goMadStreak={goMadStreak}
+            onCallMeeting={() => setCallMeetingSignal((n) => n + 1)}
+            handleSelectContentMode={handleSelectContentMode}
+            latestCritique={latestCritique}
+            canFixFromCritique={canFixFromCritique}
+            handleFixFromCritique={handleFixFromCritique}
+            handleClearDiagram={handleClearDiagram}
+            onToggleThinking={() => setInsightsOpen((v) => !v)}
+            entryTourActive={entryTourActive}
+            entryTourStep={entryTourStep}
+            entryTourProgress={entryTourProgress}
+            entryPointers={controls.prompt.entryPointers ?? []}
+            entryTourCopy={entryTourCopy}
+            onAdvanceEntryTour={advanceEntryTour}
+            onDismissEntryTour={dismissEntryDeskTour}
           />
         </>
       ) : null}
