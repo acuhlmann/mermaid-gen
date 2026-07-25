@@ -20,7 +20,7 @@ import {
  *
  * @param {{
  *   enabled?: boolean,
- *   defaultCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center',
+ *   defaultCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'center',
  *   defaultOffsetX?: number,
  *   defaultOffsetY?: number,
  *   cascade?: number,
@@ -116,7 +116,7 @@ export function useDraggablePosition(options = {}) {
   ]);
 
   // Re-place at the default corner when this window (or the whole desk) is
-  // reset — the "recall a lost window" path from the office window bar.
+  // reset via floatingWindowControl.
   const resetVersion = useSyncExternalStore(
     subscribeFloatingWindowReset,
     () => (storageKey ? getResetVersion(storageKey) : 0),

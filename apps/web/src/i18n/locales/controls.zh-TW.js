@@ -90,6 +90,12 @@ export const CONTROLS_ZH_TW = {
     zhCn: '簡體中文',
     zhTw: '繁體中文'
   },
+  languagePack: {
+    label: '語言包',
+    tag: 'IT 工單',
+    title: '向 IT 提工單，更換工位介面方言',
+    aria: '語言包 — 向 IT 申請更換介面語言'
+  },
   settings: {
     label: '設定',
     show: '顯示設定',

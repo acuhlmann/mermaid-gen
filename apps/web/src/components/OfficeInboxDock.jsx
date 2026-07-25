@@ -159,9 +159,9 @@ export default function OfficeInboxDock({
           group="officeModal"
           className="office-inbox-popover"
           kind="inbox"
-          defaultCorner={showTrigger ? 'top-right' : 'bottom-left'}
-          defaultOffsetX={showTrigger ? 14 : 12}
-          defaultOffsetY={showTrigger ? 122 : 12}
+          defaultCorner="center"
+          defaultOffsetX={0}
+          defaultOffsetY={0}
           cascade={0}
           role="dialog"
           aria-label={copy.inbox.buttonTitle}

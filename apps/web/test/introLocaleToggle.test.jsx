@@ -42,4 +42,18 @@ describe('IntroLocaleToggle', () => {
     fireEvent.click(aussie);
     expect(onSelectLocale).toHaveBeenCalledWith('en-AU');
   });
+
+  it('lays out all locales inline without a popup menu', () => {
+    const onSelectLocale = vi.fn();
+    render(
+      <IntroLocaleToggle variant="inline" locale="en" copy={COPY} onSelectLocale={onSelectLocale} />
+    );
+    expect(screen.getByRole('radiogroup', { name: 'Interface language' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'English' }).getAttribute('aria-checked')).toBe(
+      'true'
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Simplified Chinese' }));
+    expect(onSelectLocale).toHaveBeenCalledWith('zh-CN');
+    expect(screen.queryByRole('listbox')).toBeNull();
+  });
 });

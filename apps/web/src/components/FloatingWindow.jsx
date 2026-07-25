@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { useDraggablePosition } from '../hooks/useDraggablePosition.js';
 import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
 import { bringOverlayToFront, getFocusedOverlayId, subscribe } from '../state/overlayStack.js';
@@ -15,7 +16,7 @@ const FloatingWindowContext = createContext(null);
  *   className?: string,
  *   children: import('react').ReactNode,
  *   draggable?: boolean,
- *   defaultCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center',
+ *   defaultCorner?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'center',
  *   defaultOffsetX?: number,
  *   defaultOffsetY?: number,
  *   cascade?: number,
@@ -99,18 +100,22 @@ export default function FloatingWindow({
     .filter(Boolean)
     .join(' ');
 
+  const windowEl = (
+    <div
+      ref={nodeRef}
+      className={classNames}
+      style={overlayLayerStyle(zIndex, { ...positionedStyle, ...style })}
+      onPointerDown={handlePointerDown}
+      data-floating-window={id}
+      {...rest}
+    >
+      {children}
+    </div>
+  );
+
   return (
     <FloatingWindowContext.Provider value={{ dragHandleProps, focusWindow }}>
-      <div
-        ref={nodeRef}
-        className={classNames}
-        style={overlayLayerStyle(zIndex, { ...positionedStyle, ...style })}
-        onPointerDown={handlePointerDown}
-        data-floating-window={id}
-        {...rest}
-      >
-        {children}
-      </div>
+      {typeof document !== 'undefined' ? createPortal(windowEl, document.body) : windowEl}
     </FloatingWindowContext.Provider>
   );
 }
@@ -118,11 +123,27 @@ export default function FloatingWindow({
 /**
  * Title bar / header region that starts a drag. Skips interactive children.
  */
-export function FloatingWindowDragHandle({ className = '', children, title, ...rest }) {
+export function FloatingWindowDragHandle({
+  className = '',
+  children,
+  title,
+  onPointerDown,
+  ...rest
+}) {
   const ctx = useContext(FloatingWindowContext);
+
+  const handlePointerDown = useCallback(
+    (event) => {
+      ctx?.focusWindow();
+      ctx?.dragHandleProps.onPointerDown?.(event);
+      onPointerDown?.(event);
+    },
+    [ctx, onPointerDown]
+  );
+
   if (!ctx) {
     return (
-      <div className={className} {...rest}>
+      <div className={className} onPointerDown={onPointerDown} {...rest}>
         {children}
       </div>
     );
@@ -132,7 +153,10 @@ export function FloatingWindowDragHandle({ className = '', children, title, ...r
     <div
       className={`floating-window-drag-handle${className ? ` ${className}` : ''}`}
       title={title}
-      {...ctx.dragHandleProps}
+      onPointerDown={handlePointerDown}
+      onPointerMove={ctx.dragHandleProps.onPointerMove}
+      onPointerUp={ctx.dragHandleProps.onPointerUp}
+      onPointerCancel={ctx.dragHandleProps.onPointerCancel}
       {...rest}
     >
       <span className="floating-window-drag-grip" aria-hidden="true" />

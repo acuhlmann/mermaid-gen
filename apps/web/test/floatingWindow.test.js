@@ -3,7 +3,6 @@ import {
   bringOverlayToFront,
   getFocusedOverlayId,
   getOverlayZIndex,
-  OVERLAY_GROUP,
   registerOverlay,
   resetOverlayStackForTests
 } from '../src/state/overlayStack.js';
@@ -18,9 +17,9 @@ describe('overlayStack focus', () => {
     resetOverlayStackForTests();
   });
 
-  it('bringOverlayToFront moves an overlay above siblings in its group', () => {
-    registerOverlay('office-inbox', 'officeChrome');
-    registerOverlay('office-messenger', 'officeChrome');
+  it('bringOverlayToFront moves an overlay above siblings globally', () => {
+    registerOverlay('office-inbox', 'officeModal');
+    registerOverlay('office-messenger', 'officeModal');
 
     expect(getOverlayZIndex('office-messenger')).toBeGreaterThan(getOverlayZIndex('office-inbox'));
 
@@ -48,6 +47,25 @@ describe('viewportBounds', () => {
     );
     expect(pos.left).toBe(400 - 20 - 200);
     expect(pos.top).toBe(800 - 40 - 300);
+    vi.unstubAllGlobals();
+  });
+
+  it('defaultWindowPosition centers in the usable viewport', () => {
+    vi.stubGlobal('window', {
+      innerWidth: 400,
+      innerHeight: 800,
+      visualViewport: null
+    });
+    const pos = defaultWindowPosition(
+      'center',
+      { width: 200, height: 300 },
+      {
+        bottomReservePx: 100
+      }
+    );
+    expect(pos.left).toBe((400 - 200) / 2);
+    // Vertical center of the area above the bottom chrome reserve.
+    expect(pos.top).toBe((800 - 100 - 300) / 2);
     vi.unstubAllGlobals();
   });
 

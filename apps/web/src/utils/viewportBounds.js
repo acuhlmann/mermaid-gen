@@ -47,8 +47,8 @@ export function clampWindowPosition(left, top, size, viewport, options = {}) {
 }
 
 /**
- * Resolve a default window position from a corner anchor.
- * @param {'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center'} corner
+ * Resolve a default window position from a corner or center anchor.
+ * @param {'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'top-center' | 'center'} corner
  * @param {{ width: number, height: number }} size
  * @param {{ offsetX?: number, offsetY?: number, cascade?: number, bottomReservePx?: number }} [options]
  */
@@ -77,6 +77,16 @@ export function defaultWindowPosition(corner, size, options = {}) {
         vv,
         options
       );
+    case 'center': {
+      const usableHeight = Math.max(0, bottomLimit - vv.top);
+      return clampWindowPosition(
+        vv.left + (vv.right - vv.left - size.width) / 2 + cascade,
+        vv.top + (usableHeight - size.height) / 2 + cascade,
+        size,
+        vv,
+        options
+      );
+    }
     case 'top-right':
       return clampWindowPosition(
         vv.right - offsetX - size.width - cascade,

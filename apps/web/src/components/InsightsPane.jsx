@@ -49,6 +49,11 @@ import { officeChromeCopy, officeMeetingCopy } from '../utils/officeCast.js';
 import { AntVModeIcon, ThreeJsModeIcon, VegaLiteModeIcon } from './ContentModeIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { useElementNarrow } from '../hooks/useAppLayoutMedia.js';
+import {
+  overlayFocusHandlers,
+  overlayLayerStyle,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 import { INSIGHTS_HEADER_COMPACT_MAX_PX } from '../utils/layoutBreakpoints.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 
@@ -1118,6 +1123,11 @@ export default function InsightsPane({
   const compactHeader = useElementNarrow(headerTopRef, INSIGHTS_HEADER_COMPACT_MAX_PX);
   const bodyRef = useRef(null);
   const stickToBottomRef = useRef(true);
+  const thinkingPaneZIndex = useOverlayLayer('thinking-pane', true, 'modal', {
+    title: insightsCopy.title,
+    kind: 'thinking-pane',
+    manageable: true
+  });
   const hasLiveAgent = entries.some((e) => (e.status ?? 'running') === 'running');
 
   function buildEmbedOpts(base, { showEmbeddedRestore = false, expectedPreviewKind = null } = {}) {
@@ -1173,9 +1183,13 @@ export default function InsightsPane({
       className={`insights-pane ${slopitectVariantClass} ${closing ? 'is-closing' : ''}`.trim()}
       aria-label={insightsCopy.paneLabel}
       data-variant={activeVariant || undefined}
+      style={overlayLayerStyle(thinkingPaneZIndex)}
     >
       {ceremonySlot}
-      <header className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}>
+      <header
+        className={`insights-pane-header ${hasLiveAgent ? 'is-live' : ''}`}
+        {...overlayFocusHandlers('thinking-pane')}
+      >
         <div
           ref={headerTopRef}
           className={`insights-pane-toolbar${compactHeader ? ' is-compact' : ''}`}

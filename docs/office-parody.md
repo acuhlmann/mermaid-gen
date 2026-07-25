@@ -192,8 +192,10 @@ Three things make the orientation more than a static list:
 - **Name yourself in the intro.** The welcome step embeds the editable **name badge**
   (`NameTag`, see Day One below). Spoken copy stays voice-first; a **Transcript (CC)**
   toggle at reception reveals text for users who cannot listen.
-- **Language at reception.** The orientation welcome step includes the compact
-  **IntroLocaleToggle** so locale is chosen before check-in — not on the entry screen.
+- **Language at reception — and on the desk.** The orientation welcome step includes the
+  compact **IntroLocaleToggle** so locale is chosen before check-in. After check-in, the same
+  control lives in the desk actions menu as **Language pack** (IT TICKET), next to Concentration,
+  because sticky `archislop.uiLocale` survives session wipes and reception only shows sometimes.
 - **Skip the ceremony.** A persistent "Skip the ceremony — just let me build →" button dismisses
   the whole orientation (marking it seen) and focuses the empty-state topic input, for anyone who
   has seen the bit or just wants the canvas.
@@ -442,9 +444,8 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 | Cast tiers (team / senior / office)                                    | `apps/web/src/utils/castTiers.js`                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Day One entry framing                                                  | `apps/web/src/components/DayOneBadge.jsx` + attributed `controls.prompt.starters` (`TopicStarters.jsx`)                                                                                                                                                                                                                                                                                                                                  |
 | Meeting playback state machine                                         | `apps/web/src/hooks/useMeetingPlayback.js`                                                                                                                                                                                                                                                                                                                                                                                               |
-| Chrome                                                                 | `apps/web/src/components/OfficeLayer.jsx` (+ `DeskActionsDock`, `OfficeWindowBar`, `OfficeInboxDock`, `OfficeImPing`, `OfficeMessenger`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `CallMeetingPicker`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                       |
-| Window management (draggable shell + z-stack + focus + recall)         | `FloatingWindow.jsx`, `hooks/useDraggablePosition.js` (+ `utils/viewportBounds.js`), `hooks/useOverlayLayer.js` + `state/overlayStack.js` (z-bands, focus, `getOpenOverlays`), `state/floatingWindowControl.js` (per-window / tidy-all position reset)                                                                                                                                                                                   |
-| Window bar (desk taskbar)                                              | `apps/web/src/components/OfficeWindowBar.jsx` (subscribes to `getOpenOverlays`; copy in `OFFICE_CHROME_COPY.windows`)                                                                                                                                                                                                                                                                                                                    |
+| Chrome                                                                 | `apps/web/src/components/OfficeLayer.jsx` (+ `DeskActionsDock`, `OfficeInboxDock`, `OfficeImPing`, `OfficeMessenger`, `OfficeWalkBy`, `CoffeeBreakOverlay`, `OfficeBattleOverlay`, `CallMeetingPicker`, `MeetingInviteToast`, `MeetingOverlay`)                                                                                                                                                                                          |
+| Window management (draggable shell + global focus z + center open)     | `FloatingWindow.jsx`, `hooks/useDraggablePosition.js` (+ `utils/viewportBounds.js` `center`), `hooks/useOverlayLayer.js` + `state/overlayStack.js` (global focus elevation so desk menus / level panel / office windows cover each other by last focus), `state/floatingWindowControl.js` (programmatic position reset)                                                                                                                  |
 | Office XP reducer                                                      | `applyOfficeEvent` in `apps/web/src/state/runGamificationStore.js`                                                                                                                                                                                                                                                                                                                                                                       |
 | Minutes → Thinking pane                                                | `officeMinutesToInsightEntry` in `apps/web/src/utils/appInsightHelpers.js`                                                                                                                                                                                                                                                                                                                                                               |
 | SFX                                                                    | `playMailChime` / `playYouveGotMail` / `playImPing` / `playFootsteps` / `playCalendarDing` / `playMeetingJoinBlip` / `playBattleBell` / `playVictoryDing` + soundscape cues (`playKeyboardClatter` / `playMouseClicks` / `playPaperShuffle` / `playDistantPrinter` / `playChairSqueak` / `playDeskPhone` / `playWaterCooler` / `playEspressoMachine` / `playVendingMachine` / `playElevatorDing`) in `apps/web/src/utils/agentChimes.js` |
@@ -518,20 +519,14 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
     `imSomeone` verb — replies come back through the same LLM/canned ladder as any other IM. Also
     non-modal. Follow-ups: per-thread "poke" targeting a specific colleague, and persisting history
     across reloads.
-19. ~~**Coherent window management**~~ — ✅ shipped: every floating office surface now shares one
-    window model instead of each rolling its own. The shell is `FloatingWindow` (drag by the
-    titlebar via `FloatingWindowDragHandle`, click-to-focus with a focus ring, viewport-clamped
-    placement that reserves the mobile bottom chrome + safe areas, and per-window position memory in
-    `sessionStorage`). Stacking is centralised in `overlayStack.js` z-bands (`anchored` < `advisor` <
-    `officeChrome` < `modal` < `officeModal`) so a newly-opened or clicked window always paints on
-    top of its peers — nothing a colleague opens can be hidden behind another surface. The new
-    **office window bar** (`OfficeWindowBar`, a desk taskbar pinned bottom-centre) reads
-    `overlayStack.getOpenOverlays()` and lists every open, user-manageable window with **who it is
-    from** (inbox, Slop Chat, a walk-by by name, the meeting picker); a click raises it, **↺**
-    recalls one that a drag or a device fold stranded off-screen (`floatingWindowControl.js` resets
-    its stored position), and **Tidy up** snaps them all back. Transient toasts (coffee/battle/
-    meeting invites, IM pings) opt out of the bar with `manageable={false}` — they are momentary, not
-    windows you arrange. Responsive: the bar sits above the mobile bottom-chrome reserve on small
-    screens and drops its label on phones; the shell already understands foldable segments via
-    `useFoldableDualScreen`. Follow-ups: minimise-to-taskbar, remembering positions across reloads
-    (currently per-session), and snapping a stranded window to the nearest foldable segment on unfold.
+19. ~~**Coherent window management**~~ — ✅ shipped (taskbar removed): every floating office surface
+    shares one window model. The shell is `FloatingWindow` (drag by the titlebar via
+    `FloatingWindowDragHandle`, click-to-focus with a focus ring, viewport-clamped placement that
+    reserves the mobile bottom chrome + safe areas, centered open defaults, and per-window position
+    memory in `sessionStorage`). Stacking uses a **global focus z** in `overlayStack.js` (above the
+    legacy group bands) so opening a desk menu / ArchiSlop level panel covers office windows, and
+    focusing a floating window brings it back to the front — like a real windowing UI. Desk menus
+    and the level panel portal to `document.body` so they escape the low `.bottom-chrome` /
+    `.top-shell` stacking contexts. There is no separate Windows/Tidy-up bar; users drag and focus
+    windows themselves. Follow-ups: minimise, remembering positions across reloads (currently
+    per-session), and snapping a stranded window to the nearest foldable segment on unfold.

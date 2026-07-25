@@ -1,7 +1,12 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ButtonIcon } from './AppIcons.jsx';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  overlayFocusHandlers,
+  overlayLayerStyle,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import {
   EXPORT_PREVIEW_URL_TTL_MS,
@@ -22,6 +27,32 @@ import {
 
 const DEFAULT_CONTROLS = CONTROLS_EN.settings;
 const COPY_TOAST_TTL_MS = 2000;
+const POPOVER_GAP_PX = 9;
+
+/**
+ * @param {DOMRect} anchorRect
+ * @returns {import('react').CSSProperties}
+ */
+function computePortaledOutboxStyle(anchorRect) {
+  const viewportWidth = window.innerWidth;
+  const maxWidth = Math.min(352, viewportWidth - 32);
+  const right = Math.max(8, viewportWidth - anchorRect.right);
+
+  return {
+    position: 'fixed',
+    right,
+    left: 'auto',
+    bottom: window.innerHeight - anchorRect.top + POPOVER_GAP_PX,
+    top: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    width: 'max-content',
+    minWidth: 0,
+    maxWidth,
+    boxSizing: 'border-box'
+  };
+}
 
 /**
  * Brief auto-dismiss feedback for copy/share; download keeps the fuller panel.
@@ -70,10 +101,37 @@ export default function OutboxDock({
   const exportPayloadCacheRef = useRef(new Map());
   const [exportReadyIds, setExportReadyIds] = useState(() => new Set());
   const exportListId = useId();
+  const rootRef = useRef(null);
+  const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
   const panelClass = popoverMode
-    ? 'outbox-panel bottom-row-popover bottom-row-popover--outbox'
+    ? 'outbox-panel bottom-row-popover bottom-row-popover--outbox outbox-panel--portaled'
     : 'outbox-panel';
   const outboxZIndex = useOverlayLayer('outbox-panel', panelOpen && popoverMode);
+
+  useLayoutEffect(() => {
+    if (!panelOpen || !popoverMode) {
+      setAnchorRect(null);
+      return undefined;
+    }
+    const measure = () => {
+      const node = rootRef.current;
+      if (!node) return;
+      setAnchorRect(node.getBoundingClientRect());
+    };
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (rootRef.current) ro?.observe(rootRef.current);
+    window.addEventListener('resize', measure);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', measure);
+    vv?.addEventListener('scroll', measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+      vv?.removeEventListener('resize', measure);
+      vv?.removeEventListener('scroll', measure);
+    };
+  }, [panelOpen, popoverMode]);
   const hasSource = Boolean((diagramSource ?? '').trim());
   const exportFormats = useMemo(
     () => (hasSource ? listExportFormats(contentType, diagramSource) : []),
@@ -377,8 +435,169 @@ export default function OutboxDock({
   const primaryShareBusy = Boolean(exportBusyId) && exportBusyId === preferredShareFormatId;
   const outboxLabel = controls.outboxLabel ?? 'Outbox';
 
+  const panelNode = (
+    <div
+      id="outbox-panel"
+      className={`${panelClass}${panelOpen ? ' is-open' : ''}`}
+      style={overlayLayerStyle(
+        outboxZIndex,
+        popoverMode && anchorRect ? computePortaledOutboxStyle(anchorRect) : undefined
+      )}
+      role="region"
+      aria-label={controls.outboxRegion ?? outboxLabel}
+      hidden={!panelOpen}
+      {...overlayFocusHandlers('outbox-panel', panelOpen && popoverMode)}
+    >
+      {!showTrigger ? (
+        <button
+          type="button"
+          className="outbox-panel-dismiss"
+          onClick={() => setPanelOpen(false)}
+          aria-label={controls.outboxHide ?? outboxLabel}
+        >
+          {controls.outboxHide ?? 'Hide Outbox'}
+        </button>
+      ) : null}
+      <div className="settings-export" role="group" aria-label={controls.export}>
+        {hasSource && canPrimaryShare ? (
+          <button
+            type="button"
+            className="settings-export-share-primary"
+            disabled={Boolean(exportBusyId) || !primaryShareReady}
+            aria-busy={primaryShareBusy}
+            onClick={handlePrimaryShare}
+          >
+            <span className="settings-export-share-primary-icon" aria-hidden="true">
+              ↗
+            </span>
+            <span className="settings-export-share-primary-label">
+              {primaryShareReady
+                ? (controls.exportSharePrimary ?? controls.exportShare ?? 'Share')
+                : (controls.exportSharePreparing ?? 'Preparing…')}
+            </span>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          className={`settings-export-toggle${exportOpen ? ' is-open' : ''}`}
+          aria-expanded={exportOpen}
+          aria-controls={exportListId}
+          disabled={!hasSource || exportFormats.length === 0}
+          onClick={() => setExportOpen((v) => !v)}
+        >
+          <span className="settings-export-toggle-label">{controls.export}</span>
+          <span className="settings-export-chevron" aria-hidden="true">
+            {exportOpen ? '▴' : '▾'}
+          </span>
+        </button>
+        {!hasSource ? <p className="settings-export-empty">{controls.exportEmpty}</p> : null}
+        {hasSource && exportOpen ? (
+          <ul id={exportListId} className="settings-export-list" role="list">
+            {exportFormats.map((format) => {
+              const busy = exportBusyId === format.id;
+              const label = controls[format.labelKey] ?? format.id;
+              const canCopy = isFormatCopyable(format);
+              return (
+                <li key={format.id} className="settings-export-item">
+                  <span className="settings-export-format-label">{label}</span>
+                  <div
+                    className="settings-export-row-actions"
+                    role="group"
+                    aria-label={formatLocale(controls.exportActionsFor ?? 'Actions for {label}', {
+                      label
+                    })}
+                  >
+                    <button
+                      type="button"
+                      className="settings-export-action"
+                      disabled={Boolean(exportBusyId)}
+                      aria-busy={busy}
+                      title={controls.exportSave ?? 'Save'}
+                      onClick={() => handleExport(format.id, 'download')}
+                    >
+                      {busy ? (controls.exportWorking ?? '…') : (controls.exportSave ?? 'Save')}
+                    </button>
+                    {canCopy ? (
+                      <button
+                        type="button"
+                        className="settings-export-action"
+                        disabled={Boolean(exportBusyId)}
+                        title={controls.exportCopy ?? 'Copy'}
+                        onClick={() => handleExport(format.id, 'copy')}
+                      >
+                        {controls.exportCopy ?? 'Copy'}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        ) : null}
+        {exportFeedback ? (
+          isQuickToastMethod(exportFeedback.method) ? (
+            <div className="settings-export-toast" role="status" aria-live="polite">
+              {exportSuccessMessage(exportFeedback.method)}
+            </div>
+          ) : (
+            <div className="settings-export-feedback" role="status" aria-live="polite">
+              <p className="settings-export-feedback-title">
+                {exportSuccessMessage(exportFeedback.method)}
+              </p>
+              <p className="settings-export-feedback-filename">{exportFeedback.filename}</p>
+              {showDownloadHint ? (
+                <p className="settings-export-feedback-hint">
+                  {controls.exportDownloadHint ??
+                    'Check your notification shade or Files → Downloads.'}
+                </p>
+              ) : null}
+              <div className="settings-export-feedback-actions">
+                {exportFeedback.previewUrl ? (
+                  <a
+                    className="settings-export-feedback-link"
+                    href={exportFeedback.previewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {controls.exportOpenPreview ?? 'Open preview'}
+                  </a>
+                ) : null}
+                {canShareExportPayload(exportFeedback.payload) ? (
+                  <button
+                    type="button"
+                    className="settings-export-feedback-button"
+                    onClick={() => handleShare(exportFeedback.formatId, exportFeedback.payload)}
+                  >
+                    {controls.exportShareAgain ?? 'Share again'}
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="settings-export-feedback-button is-muted"
+                  onClick={dismissExportFeedback}
+                >
+                  {controls.exportDismiss ?? 'Dismiss'}
+                </button>
+              </div>
+            </div>
+          )
+        ) : null}
+        {exportError ? (
+          <p className="settings-export-error" role="alert">
+            {exportError}
+          </p>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  const portaledPanel =
+    popoverMode && panelOpen && typeof document !== 'undefined'
+      ? createPortal(panelNode, document.body)
+      : null;
+
   return (
-    <div className={`outbox-dock${showTrigger ? '' : ' outbox-dock--headless'}`}>
+    <div ref={rootRef} className={`outbox-dock${showTrigger ? '' : ' outbox-dock--headless'}`}>
       {showTrigger ? (
         <button
           type="button"
@@ -399,155 +618,7 @@ export default function OutboxDock({
           <span className="button-label">{outboxLabel}</span>
         </button>
       ) : null}
-      <div
-        id="outbox-panel"
-        className={`${panelClass}${panelOpen ? ' is-open' : ''}`}
-        style={overlayLayerStyle(outboxZIndex)}
-        role="region"
-        aria-label={controls.outboxRegion ?? outboxLabel}
-        hidden={!panelOpen}
-      >
-        {!showTrigger ? (
-          <button
-            type="button"
-            className="outbox-panel-dismiss"
-            onClick={() => setPanelOpen(false)}
-            aria-label={controls.outboxHide ?? outboxLabel}
-          >
-            {controls.outboxHide ?? 'Hide Outbox'}
-          </button>
-        ) : null}
-        <div className="settings-export" role="group" aria-label={controls.export}>
-          {hasSource && canPrimaryShare ? (
-            <button
-              type="button"
-              className="settings-export-share-primary"
-              disabled={Boolean(exportBusyId) || !primaryShareReady}
-              aria-busy={primaryShareBusy}
-              onClick={handlePrimaryShare}
-            >
-              <span className="settings-export-share-primary-icon" aria-hidden="true">
-                ↗
-              </span>
-              <span className="settings-export-share-primary-label">
-                {primaryShareReady
-                  ? (controls.exportSharePrimary ?? controls.exportShare ?? 'Share')
-                  : (controls.exportSharePreparing ?? 'Preparing…')}
-              </span>
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className={`settings-export-toggle${exportOpen ? ' is-open' : ''}`}
-            aria-expanded={exportOpen}
-            aria-controls={exportListId}
-            disabled={!hasSource || exportFormats.length === 0}
-            onClick={() => setExportOpen((v) => !v)}
-          >
-            <span className="settings-export-toggle-label">{controls.export}</span>
-            <span className="settings-export-chevron" aria-hidden="true">
-              {exportOpen ? '▴' : '▾'}
-            </span>
-          </button>
-          {!hasSource ? <p className="settings-export-empty">{controls.exportEmpty}</p> : null}
-          {hasSource && exportOpen ? (
-            <ul id={exportListId} className="settings-export-list" role="list">
-              {exportFormats.map((format) => {
-                const busy = exportBusyId === format.id;
-                const label = controls[format.labelKey] ?? format.id;
-                const canCopy = isFormatCopyable(format);
-                return (
-                  <li key={format.id} className="settings-export-item">
-                    <span className="settings-export-format-label">{label}</span>
-                    <div
-                      className="settings-export-row-actions"
-                      role="group"
-                      aria-label={formatLocale(controls.exportActionsFor ?? 'Actions for {label}', {
-                        label
-                      })}
-                    >
-                      <button
-                        type="button"
-                        className="settings-export-action"
-                        disabled={Boolean(exportBusyId)}
-                        aria-busy={busy}
-                        title={controls.exportSave ?? 'Save'}
-                        onClick={() => handleExport(format.id, 'download')}
-                      >
-                        {busy ? (controls.exportWorking ?? '…') : (controls.exportSave ?? 'Save')}
-                      </button>
-                      {canCopy ? (
-                        <button
-                          type="button"
-                          className="settings-export-action"
-                          disabled={Boolean(exportBusyId)}
-                          title={controls.exportCopy ?? 'Copy'}
-                          onClick={() => handleExport(format.id, 'copy')}
-                        >
-                          {controls.exportCopy ?? 'Copy'}
-                        </button>
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : null}
-          {exportFeedback ? (
-            isQuickToastMethod(exportFeedback.method) ? (
-              <div className="settings-export-toast" role="status" aria-live="polite">
-                {exportSuccessMessage(exportFeedback.method)}
-              </div>
-            ) : (
-              <div className="settings-export-feedback" role="status" aria-live="polite">
-                <p className="settings-export-feedback-title">
-                  {exportSuccessMessage(exportFeedback.method)}
-                </p>
-                <p className="settings-export-feedback-filename">{exportFeedback.filename}</p>
-                {showDownloadHint ? (
-                  <p className="settings-export-feedback-hint">
-                    {controls.exportDownloadHint ??
-                      'Check your notification shade or Files → Downloads.'}
-                  </p>
-                ) : null}
-                <div className="settings-export-feedback-actions">
-                  {exportFeedback.previewUrl ? (
-                    <a
-                      className="settings-export-feedback-link"
-                      href={exportFeedback.previewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {controls.exportOpenPreview ?? 'Open preview'}
-                    </a>
-                  ) : null}
-                  {canShareExportPayload(exportFeedback.payload) ? (
-                    <button
-                      type="button"
-                      className="settings-export-feedback-button"
-                      onClick={() => handleShare(exportFeedback.formatId, exportFeedback.payload)}
-                    >
-                      {controls.exportShareAgain ?? 'Share again'}
-                    </button>
-                  ) : null}
-                  <button
-                    type="button"
-                    className="settings-export-feedback-button is-muted"
-                    onClick={dismissExportFeedback}
-                  >
-                    {controls.exportDismiss ?? 'Dismiss'}
-                  </button>
-                </div>
-              </div>
-            )
-          ) : null}
-          {exportError ? (
-            <p className="settings-export-error" role="alert">
-              {exportError}
-            </p>
-          ) : null}
-        </div>
-      </div>
+      {popoverMode ? portaledPanel : panelNode}
     </div>
   );
 }

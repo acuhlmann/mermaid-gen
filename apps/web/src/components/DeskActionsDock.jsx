@@ -1,19 +1,59 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArchiSlopMarkIcon } from './AppIcons.jsx';
 import ConcentrationControl from './ConcentrationControl.jsx';
+import IntroLocaleToggle from './IntroLocaleToggle.jsx';
 import { officeChromeCopy } from '../utils/officeCast.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import { useUiCopy } from '../i18n/useUiLocale.js';
+import {
+  overlayLayerStyle,
+  overlayFocusHandlers,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
+import { FOCUS_Z_BASE } from '../state/overlayStack.js';
+
+const MENU_GAP_PX = 7;
+const SAFE_INSET_PX = 8;
+const MAX_MENU_WIDTH_PX = 280;
+const MIN_MENU_WIDTH_PX = 200;
+
+/**
+ * @param {DOMRect} anchorRect
+ * @returns {import('react').CSSProperties}
+ */
+function computePortaledMenuStyle(anchorRect) {
+  const viewportWidth = window.innerWidth;
+  const maxWidth = Math.min(MAX_MENU_WIDTH_PX, viewportWidth - SAFE_INSET_PX * 2);
+  const minWidth = Math.min(MIN_MENU_WIDTH_PX, maxWidth);
+  let left = anchorRect.left;
+  left = Math.max(SAFE_INSET_PX, Math.min(left, viewportWidth - minWidth - SAFE_INSET_PX));
+  const width = Math.min(maxWidth, viewportWidth - left - SAFE_INSET_PX);
+
+  return {
+    position: 'fixed',
+    top: 'auto',
+    left,
+    width,
+    minWidth: Math.min(minWidth, width),
+    maxWidth: width,
+    bottom: Math.max(SAFE_INSET_PX, window.innerHeight - anchorRect.top + MENU_GAP_PX),
+    boxSizing: 'border-box'
+  };
+}
 
 /**
  * Your desk (docs/office-parody.md § Desk verbs): the things *you* can decide
  * to do in the office, as opposed to the things the office does to you. The
- * ArchiSlop helmet stamp opens a flat verb menu with concentration at the
- * bottom. Notebook and the code drawer live on the bottom chrome and Thinking
- * pane header.
+ * ArchiSlop helmet stamp opens a flat verb menu with concentration + language
+ * pack at the bottom. Notebook and the code drawer live on the bottom chrome
+ * and Thinking pane header.
  *
  * Pure props: OfficeLayer owns the store subscription and wires the handlers
  * from useDeskActions. Verbs that cannot run right now stay visible but
  * disabled with an in-fiction reason, so the menu never silently no-ops.
+ *
+ * The menu portals to document.body so focus z-index can stack above floating
+ * office windows (inbox, Slop Chat) that live outside .bottom-chrome.
  */
 export default function DeskActionsDock({
   onGetCoffee,
@@ -34,21 +74,63 @@ export default function DeskActionsDock({
   onSelectModelProfile = null
 }) {
   const [open, setOpen] = useState(initialOpen);
+  const [anchorRect, setAnchorRect] = useState(/** @type {DOMRect | null} */ (null));
   const rootRef = useRef(null);
+  const triggerRef = useRef(null);
+  const menuRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-actions-menu', open);
+  const { locale, setLocale, controls } = useUiCopy();
   const copy = officeChromeCopy().desk;
+  const languagePack = controls.languagePack ?? {};
 
   useEffect(() => {
     if (initialOpen) setOpen(true);
   }, [initialOpen]);
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setAnchorRect(null);
+      return undefined;
+    }
+    const measure = () => {
+      const node = triggerRef.current;
+      if (!node) return;
+      setAnchorRect(node.getBoundingClientRect());
+    };
+    measure();
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (triggerRef.current) ro?.observe(triggerRef.current);
+    window.addEventListener('resize', measure);
+    const vv = window.visualViewport;
+    vv?.addEventListener('resize', measure);
+    vv?.addEventListener('scroll', measure);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', measure);
+      vv?.removeEventListener('resize', measure);
+      vv?.removeEventListener('scroll', measure);
+    };
+  }, [open]);
+
+  // Defer dismiss binding so the opening click cannot immediately close the menu.
   useEffect(() => {
     if (!open) return undefined;
+    let active = false;
+    const activateTimer = window.setTimeout(() => {
+      active = true;
+    }, 0);
     const onPointerDown = (event) => {
-      if (!rootRef.current?.contains(event.target)) setOpen(false);
+      if (!active) return;
+      const target = event.target;
+      if (rootRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.clearTimeout(activateTimer);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
   }, [open]);
 
   const blockedTitle = blockedReason ? (copy.blocked?.[blockedReason] ?? null) : null;
@@ -141,13 +223,77 @@ export default function DeskActionsDock({
     );
   };
 
+  const resolvedAnchor =
+    anchorRect ?? (open && triggerRef.current ? triggerRef.current.getBoundingClientRect() : null);
+
+  const menuStyle = resolvedAnchor
+    ? overlayLayerStyle(menuZIndex ?? FOCUS_Z_BASE + 1, computePortaledMenuStyle(resolvedAnchor))
+    : overlayLayerStyle(menuZIndex ?? FOCUS_Z_BASE + 1, {
+        position: 'fixed',
+        top: 'auto',
+        left: SAFE_INSET_PX,
+        bottom: SAFE_INSET_PX + 48,
+        width: MIN_MENU_WIDTH_PX,
+        boxSizing: 'border-box'
+      });
+
+  const portaledMenu =
+    open && typeof document !== 'undefined'
+      ? createPortal(
+          <div
+            ref={menuRef}
+            className="desk-actions-menu desk-actions-menu--portaled"
+            style={menuStyle}
+            role="menu"
+            aria-label={copy.menuAria}
+            data-testid="desk-actions-menu"
+            {...overlayFocusHandlers('desk-actions-menu', open)}
+          >
+            {deskVerbs.map(renderVerb)}
+            <div className="desk-actions-menu-footer" role="none">
+              <ConcentrationControl
+                variant="menu"
+                modelProfile={modelProfile}
+                onSelectModelProfile={onSelectModelProfile}
+              />
+              <div
+                className="desk-language-pack"
+                role="group"
+                aria-label={languagePack.aria ?? languagePack.label}
+                title={languagePack.title}
+                data-testid="desk-language-pack"
+              >
+                <span className="desk-language-pack-label">
+                  <span className="desk-language-pack-emoji" aria-hidden="true">
+                    🌐
+                  </span>
+                  {languagePack.label ?? 'Language pack'}
+                  <span className="desk-language-pack-tag" aria-hidden="true">
+                    {languagePack.tag ?? 'IT TICKET'}
+                  </span>
+                </span>
+                <IntroLocaleToggle
+                  variant="inline"
+                  locale={locale}
+                  copy={controls.introLocale}
+                  onSelectLocale={setLocale}
+                />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div className={`desk-actions${placementClass}`} ref={rootRef}>
       <button
+        ref={triggerRef}
         type="button"
         className={`desk-actions-button${open ? ' is-open' : ''}`}
         aria-label={copy.buttonAria}
         aria-expanded={open}
+        aria-haspopup="menu"
         title={copy.buttonTitle}
         data-testid="bottom-brand-mark"
         onClick={() => setOpen((prev) => !prev)}
@@ -162,21 +308,7 @@ export default function DeskActionsDock({
           </span>
         ) : null}
       </button>
-      {open ? (
-        <div
-          className="desk-actions-menu"
-          style={overlayLayerStyle(menuZIndex)}
-          role="menu"
-          aria-label={copy.menuAria}
-        >
-          {deskVerbs.map(renderVerb)}
-          <ConcentrationControl
-            variant="menu"
-            modelProfile={modelProfile}
-            onSelectModelProfile={onSelectModelProfile}
-          />
-        </div>
-      ) : null}
+      {portaledMenu}
     </div>
   );
 }

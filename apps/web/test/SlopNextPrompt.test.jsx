@@ -65,7 +65,7 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(props.onMicToggleClick).not.toHaveBeenCalled();
   });
 
-  it('hides desk idle chrome when the work order is empty', () => {
+  it('hides desk idle chrome when the work order is empty and unfocused', () => {
     renderPrompt({ layout: 'desk', narrowLayout: true, prompt: '' });
     const panel = screen.getByTestId('slop-prompt-panel-desk');
     expect(panel.className).toContain('is-desk-idle');
@@ -73,11 +73,43 @@ describe('SlopNextPrompt mobile chrome', () => {
     expect(screen.queryByRole('button', { name: '>' })).toBeNull();
   });
 
-  it('shows desk actions once the user starts typing', () => {
-    renderPrompt({ layout: 'desk', narrowLayout: true, prompt: 'OAuth flow' });
+  it('shows the microphone when the empty work order is focused on mobile', () => {
+    renderPrompt({ layout: 'desk', narrowLayout: true, prompt: '' });
+    const input = screen.getByLabelText(/Work order/i);
+    fireEvent.focus(input);
     const panel = screen.getByTestId('slop-prompt-panel-desk');
     expect(panel.className).not.toContain('is-desk-idle');
     expect(screen.getByRole('button', { name: 'Tap to dictate' })).toBeTruthy();
+    // Save space for the placeholder — no eyebrow or primary until there is text.
+    expect(panel.querySelector('.slop-prompt-panel-eyebrow--desk')).toBeNull();
+    expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
+  });
+
+  it('shows eyebrow and primary once the user starts typing on mobile', () => {
+    renderPrompt({
+      layout: 'desk',
+      narrowLayout: true,
+      prompt: 'OAuth flow',
+      PromptIcon: () => <span>P</span>
+    });
+    const panel = screen.getByTestId('slop-prompt-panel-desk');
+    expect(panel.className).not.toContain('is-desk-idle');
+    expect(panel.querySelector('.slop-prompt-panel-eyebrow--desk')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Tap to dictate' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
+  });
+
+  it('shows desk chrome on wide layouts when the empty work order is focused', () => {
+    renderPrompt({
+      layout: 'desk',
+      narrowLayout: false,
+      prompt: '',
+      PromptIcon: () => <span>P</span>
+    });
+    fireEvent.focus(screen.getByLabelText(/Work order/i));
+    const panel = screen.getByTestId('slop-prompt-panel-desk');
+    expect(panel.querySelector('.slop-prompt-panel-eyebrow--desk')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Hold to speak' })).toBeTruthy();
     expect(screen.getByRole('button', { name: /Do it/i })).toBeTruthy();
   });
 

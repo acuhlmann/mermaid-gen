@@ -896,18 +896,6 @@ export const OFFICE_ZH_TW = {
       dockTitle: '把會議縮到角落,騰出手來改圖',
       undock: '🗖 回到會議室',
       undockTitle: '把會議放回螢幕中央'
-    },
-    windows: {
-      barAria: '開啟的辦公室視窗',
-      label: '視窗',
-      focusTitle: '把「{name}」移到最前',
-      recallTitle: '把「{name}」拉回螢幕內',
-      tidyLabel: '↺ 整理一下',
-      tidyTitle: '把每個視窗都歸回預設位置',
-      kindInbox: '收件匣',
-      kindMessenger: 'Slop Chat',
-      kindWalkby: '路過',
-      kindMeetingPicker: '開個會'
     }
   }
 };

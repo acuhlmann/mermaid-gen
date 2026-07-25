@@ -1,6 +1,10 @@
 import { useEffect } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  overlayFocusHandlers,
+  overlayLayerStyle,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 
 const DEFAULT_COPY = CONTROLS_EN.hotkeys;
 
@@ -43,6 +47,7 @@ export default function HotkeyOverlay({ open, onClose, copy = DEFAULT_COPY }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="hotkey-overlay-title"
+      {...overlayFocusHandlers('hotkey-overlay', open)}
       onClick={onClose}
       data-testid="hotkey-overlay"
     >

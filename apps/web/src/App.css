@@ -56,6 +56,8 @@
   height: var(--app-vvh, 100dvh);
   min-height: 0;
   overflow: hidden;
+  font-family: var(--font-sans);
+  font-synthesis: none;
   background:
     radial-gradient(circle at top left, rgba(96, 165, 250, 0.2), transparent 34rem),
     linear-gradient(135deg, #f8fafc 0%, #eef2ff 52%, #f8fafc 100%);
@@ -5427,16 +5429,6 @@
   /* Desktop popover menus: slightly larger, tighter type than the cramped
      mobile roster sizes. */
   .prompt-actions--desktop .stakeholders-roster {
-    font-family:
-      Inter,
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      Roboto,
-      Helvetica,
-      Arial,
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
     padding: 0.35rem 0.4rem;
   }
 
@@ -5450,19 +5442,6 @@
     font-size: 0.68rem;
     font-weight: 550;
     letter-spacing: 0.02em;
-  }
-
-  .prompt-actions--desktop .render-as-mascot-menu {
-    font-family:
-      Inter,
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      Roboto,
-      Helvetica,
-      Arial,
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
   }
 
   .prompt-actions--desktop .render-as-mascot-menu .radial-render-mode-row-name {
@@ -5513,7 +5492,7 @@
   .prompt-actions--mobile .button-group {
     display: flex;
     flex-wrap: nowrap;
-    gap: 0.45rem;
+    gap: 0.75rem;
     align-items: center;
     width: 100%;
   }
@@ -11778,6 +11757,18 @@ button {
   z-index: 2;
 }
 
+/* Portaled out of .top-shell so focus z can cover floating office windows. */
+.levelup-info-panel-mount--portaled {
+  position: fixed;
+  margin-top: 0;
+  align-self: auto;
+  pointer-events: auto;
+}
+
+.levelup-info-panel-mount--portaled.is-mobile {
+  width: min(22rem, calc(100vw - 1rem));
+}
+
 .levelup-info-panel {
   position: relative;
   box-sizing: border-box;
@@ -14015,15 +14006,111 @@ body.slopitect-rainbow-tint::before {
   color: var(--accent, #0ea5e9);
 }
 
-/* Desk menu footer: concentration sits at the bottom of the verb list. */
-.concentration-control--menu {
+/* Desk menu footer: concentration + language pack sit at the bottom of the verb list. */
+.desk-actions-menu-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
   margin-top: 0.2rem;
-  padding: 0.35rem 0.45rem 0.15rem;
+  padding: 0.35rem 0.45rem 0.2rem;
   border-top: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.concentration-control--menu {
+  margin-top: 0;
+  padding: 0;
+  border-top: none;
 }
 
 .concentration-control--menu .concentration-control-segment {
   width: 100%;
+}
+
+.desk-language-pack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding-top: 0.2rem;
+}
+
+.desk-language-pack-label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.desk-language-pack-emoji {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.desk-language-pack-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.08rem 0.32rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent, #0ea5e9) 35%, transparent);
+  background: color-mix(in srgb, var(--accent, #0ea5e9) 12%, white);
+  color: var(--accent, #0ea5e9);
+  font-size: 0.52rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+/* Inline locale segment — second line of the Language pack footer (no popup). */
+.intro-locale-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.28rem;
+  width: 100%;
+}
+
+.intro-locale-inline-option {
+  appearance: none;
+  flex: 1 1 0;
+  min-width: 2.6rem;
+  margin: 0;
+  padding: 0.32rem 0.4rem;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  cursor: pointer;
+  text-align: center;
+}
+
+.intro-locale-inline-option:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--text);
+}
+
+.intro-locale-inline-option.is-selected {
+  border-color: rgba(14, 165, 233, 0.65);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--accent, #0ea5e9);
+}
+
+.intro-locale-inline-option:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.intro-locale-inline-short {
+  display: block;
 }
 
 /* Work Order footer: legacy hook — concentration lives in the desk helmet menu. */
@@ -14201,6 +14288,17 @@ body.slopitect-rainbow-tint::before {
   flex: 1 1 auto;
   min-width: 0;
   align-items: center;
+  flex-wrap: wrap;
+  /* Row gap when Desk tray (or tools) wrap under the Work Order line. */
+  gap: 0.9rem 0.85rem;
+}
+
+/* Wide desk: keep helmet + Work Order + tools on one row with clear gutters.
+   nowrap avoids Notebook dropping alone under the prompt; work order shrinks. */
+.prompt-actions--desktop .desk-chrome-layout {
+  flex-wrap: nowrap;
+  gap: 1.1rem 1.25rem;
+  align-items: center;
 }
 
 .desk-work-order-group {
@@ -14211,9 +14309,36 @@ body.slopitect-rainbow-tint::before {
   gap: 0.2rem;
 }
 
+.prompt-actions--desktop .desk-work-order-group {
+  flex: 1 1 auto;
+  /* Floor keeps the Work Order typable when eyebrow + mic + Do It appear. */
+  min-width: min(100%, 12rem);
+}
+
+.prompt-actions--desktop .slop-prompt-panel--desk {
+  min-width: min(100%, 12rem);
+  max-width: 100%;
+}
+
+.prompt-actions--desktop .slop-prompt-panel--desk .slop-prompt-panel-input {
+  /* Smaller than the old 17rem floor (overflowed under Your Team) but never
+     collapses to a sliver once chrome appears on focus/type. */
+  min-width: 8rem;
+  flex: 1 1 8rem;
+}
+
+.prompt-actions--desktop .slop-prompt-panel--desk .slop-prompt-panel-actions,
+.prompt-actions--desktop .slop-prompt-panel--desk .slop-prompt-panel-eyebrow--desk {
+  flex-shrink: 0;
+}
+
 .desk-chrome-tool {
   flex: 0 0 auto;
   align-self: center;
+}
+
+.prompt-actions--desktop .desk-chrome-tool {
+  margin-inline: 0;
 }
 
 .slop-action-button.is-desk-notebook.is-active .action-persona-icon.is-desk-notebook {
@@ -14312,6 +14437,7 @@ body.slopitect-rainbow-tint::before {
 .slop-prompt-panel--desk .slop-prompt-panel-input {
   flex: 1 1 auto;
   min-width: 17rem;
+  width: auto;
   padding: 0.5rem 0.7rem;
   border-radius: 999px;
   border-color: transparent;
@@ -14353,8 +14479,9 @@ body.slopitect-rainbow-tint::before {
 }
 
 /* Compound selector so these win over .desk-actions-menu (defined later in the
-   file with equal specificity) — the drawer opens upward out of the bottom row. */
-.desk-actions-menu.desk-drawer-menu {
+   file with equal specificity) — inline drawer only. Portaled menus use fixed
+   inline coords; % bottom would throw them off-screen. */
+.desk-actions-menu.desk-drawer-menu:not(.desk-drawer-menu--portaled) {
   top: auto;
   bottom: calc(100% + 0.45rem);
   right: 0;
@@ -14373,10 +14500,11 @@ body.slopitect-rainbow-tint::before {
   );
 }
 
-/* Mobile / foldable: the menu is portaled to document.body (see DeskDrawer.jsx) so it
-   escapes .app-shell overflow and the bottom-chrome GPU layer. Inline styles set the
-   viewport anchor; these rules handle width and readable wrapping. */
+/* Desk tray menu is always portaled to document.body (see DeskDrawer.jsx) so it
+   escapes .bottom-chrome stacking and can cover floating office windows. Inline
+   styles set the viewport anchor; these rules handle width and readable wrapping. */
 .desk-drawer-menu--portaled {
+  position: fixed;
   top: auto;
   right: auto;
   overflow-x: hidden;
@@ -14463,13 +14591,18 @@ body.slopitect-rainbow-tint::before {
 .prompt-actions--mobile .desk-chrome-layout {
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem 0.45rem;
+  gap: 0.9rem 0.85rem;
 }
 
 .prompt-actions--mobile .desk-chrome-tool,
 .prompt-actions--mobile .desk-tour-piece--concentration {
   order: 1;
   align-self: center;
+}
+
+/* Keep Notebook at the trailing edge of the tool row (nearest Thinking pane). */
+.prompt-actions--mobile .desk-tour-piece--notebook {
+  order: 2;
 }
 
 .prompt-actions--mobile .desk-work-order-group {
@@ -16439,156 +16572,6 @@ body.slopitect-rainbow-tint::before {
   pointer-events: auto;
 }
 
-/* --- Office window bar (taskbar for the floating office surfaces) ---
-   A slim bottom-centre strip listing every open, user-manageable office window
-   so none can get buried or stranded off-screen. Sits above the whole office
-   z-band (officeModal max 279) so its controls stay reachable even when a
-   window is focused. Bottom-centre clears the bottom-left (walk-by/inbox),
-   bottom-right (Slop Chat / docked meeting) and top-centre (picker/invites)
-   lanes the surfaces default into. Only mounts when a managed window is open. */
-.office-window-bar {
-  position: fixed;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: 4.75rem;
-  z-index: 285;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  max-width: min(680px, calc(100vw - 1.5rem));
-  padding: 0.3rem 0.5rem;
-  border-radius: 999px;
-  background: var(--office-surface-bg);
-  border: 1px solid var(--control-border);
-  box-shadow: var(--control-shadow);
-  pointer-events: auto;
-}
-.office-window-bar-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  flex: 0 0 auto;
-  padding-left: 0.35rem;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-.office-window-bar-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.1rem;
-  height: 1.1rem;
-  padding: 0 0.3rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--accent) 16%, var(--office-surface-bg));
-  color: color-mix(in srgb, var(--accent) 75%, var(--text));
-  font-size: 10px;
-}
-.office-window-bar-list {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-.office-window-bar-list::-webkit-scrollbar {
-  display: none;
-}
-.office-window-bar-item {
-  display: inline-flex;
-  align-items: stretch;
-  flex: 0 0 auto;
-}
-.office-window-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  max-width: 11rem;
-  padding: 0.28rem 0.5rem;
-  border: 1px solid var(--control-border);
-  border-radius: 999px 0 0 999px;
-  background: transparent;
-  color: var(--text);
-  font-size: 12px;
-  line-height: 1.2;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.office-window-chip.is-focused {
-  border-color: color-mix(in srgb, var(--accent) 55%, var(--control-border));
-  background: color-mix(in srgb, var(--accent) 12%, var(--office-surface-bg));
-}
-.office-window-chip-icon {
-  font-size: 13px;
-  line-height: 1;
-}
-.office-window-chip-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.office-window-recall {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.7rem;
-  border: 1px solid var(--control-border);
-  border-left: 0;
-  border-radius: 0 999px 999px 0;
-  background: transparent;
-  color: var(--muted);
-  font-size: 13px;
-  cursor: pointer;
-}
-.office-window-recall:hover {
-  color: var(--text);
-  background: rgba(15, 23, 42, 0.05);
-}
-.office-window-bar-tidy {
-  flex: 0 0 auto;
-  border: 1px solid var(--control-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 11px;
-  padding: 0.28rem 0.55rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.office-window-bar-tidy:hover {
-  color: var(--text);
-}
-.office-window-chip:focus-visible,
-.office-window-recall:focus-visible,
-.office-window-bar-tidy:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-@media (max-width: 1024px) {
-  .office-window-bar {
-    bottom: calc(var(--mobile-bottom-chrome-est, 11.75rem) + env(safe-area-inset-bottom, 0px));
-    max-width: calc(100vw - 1rem);
-  }
-}
-@media (max-width: 639px) {
-  .office-window-bar-label {
-    display: none;
-  }
-  .office-window-chip-label {
-    max-width: 6rem;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .office-window-bar {
-    transition: none;
-  }
-}
-
 /* --- Inbox dock --- */
 .office-inbox {
   position: fixed;
@@ -16710,9 +16693,8 @@ body.slopitect-rainbow-tint::before {
   display: none;
 }
 
-.desk-actions--bottom .desk-actions-menu {
-  /* Dock sits at the left of the bottom row — open upward and flush-left so
-     the verb list grows into the canvas instead of off the left edge. */
+.desk-actions--bottom .desk-actions-menu:not(.desk-actions-menu--portaled) {
+  /* Inline (non-portaled) dock menu — open upward flush-left into the canvas. */
   top: auto;
   bottom: calc(100% + 0.45rem);
   left: 0;
@@ -16777,18 +16759,21 @@ body.slopitect-rainbow-tint::before {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
-  font-family:
-    Inter,
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
+
+/* Must follow .desk-actions-menu so top:auto wins over top:calc(100% + 6px).
+   For position:fixed, 100% is the viewport — that calc parks the menu off-screen. */
+.desk-actions-menu.desk-actions-menu--portaled,
+.desk-actions-menu.desk-drawer-menu--portaled {
+  position: fixed;
+  top: auto;
+  right: auto;
+  --desk-menu-max-block-size: calc(
+    100dvh - var(--mobile-bottom-chrome-est, 5.5rem) - env(safe-area-inset-bottom, 0px) -
+      env(safe-area-inset-top, 0px) - 1.5rem
+  );
+}
+
 .desk-actions-heading {
   margin: 0;
   padding: 0.3rem 0.55rem 0.35rem;

@@ -193,9 +193,9 @@ export default function OfficeMessenger({
       className="office-messenger"
       kind="messenger"
       senderId={activeId}
-      defaultCorner="bottom-right"
-      defaultOffsetX={14}
-      defaultOffsetY={96}
+      defaultCorner="center"
+      defaultOffsetX={0}
+      defaultOffsetY={0}
       cascade={1}
       role="dialog"
       aria-label={chat.title}

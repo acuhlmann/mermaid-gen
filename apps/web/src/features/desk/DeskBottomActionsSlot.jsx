@@ -187,18 +187,6 @@ function DeskChromeRow({
           />
         </div>
       ) : null}
-      {showNotebook ? (
-        <div
-          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
-        >
-          <DeskNotebookButton
-            thinkingOpen={thinkingOpen}
-            onToggleThinking={onToggleThinking}
-            disabled={!canToggleThinking}
-            busy={busy}
-          />
-        </div>
-      ) : null}
       {showDrawer ? (
         <div
           className={`desk-chrome-tool desk-tour-piece desk-tour-piece--drawer${tourHighlight === 'format' ? ' is-tour-highlight' : ''}`}
@@ -214,6 +202,19 @@ function DeskChromeRow({
             busy={busy}
             modeDisabled={loading || streamingPreview}
             forceOpen={deskDrawerTourOpen}
+          />
+        </div>
+      ) : null}
+      {/* Notebook last so it sits nearest the right-side Notebook / Thinking pane. */}
+      {showNotebook ? (
+        <div
+          className={`desk-chrome-tool desk-tour-piece desk-tour-piece--notebook${tourHighlight === 'notebook' ? ' is-tour-highlight' : ''}`}
+        >
+          <DeskNotebookButton
+            thinkingOpen={thinkingOpen}
+            onToggleThinking={onToggleThinking}
+            disabled={!canToggleThinking}
+            busy={busy}
           />
         </div>
       ) : null}

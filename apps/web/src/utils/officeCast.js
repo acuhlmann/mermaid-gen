@@ -1352,21 +1352,6 @@ export const OFFICE_CHROME_COPY = {
     dockTitle: 'Shrink the meeting to a corner so you can work on the diagram',
     undock: '🗖 Back to the room',
     undockTitle: 'Bring the meeting back to the centre of the screen'
-  },
-  // Office window bar — a taskbar for the floating office surfaces. Every
-  // colleague-opened window shows up here so none can get buried or stranded
-  // off-screen; ↺ snaps one back to its default spot.
-  windows: {
-    barAria: 'Open office windows',
-    label: 'Windows',
-    focusTitle: 'Bring {name} to the front',
-    recallTitle: 'Snap {name} back on-screen',
-    tidyLabel: '↺ Tidy up',
-    tidyTitle: 'Snap every window back to its default spot',
-    kindInbox: 'Inbox',
-    kindMessenger: 'Slop Chat',
-    kindWalkby: 'Walk-by',
-    kindMeetingPicker: 'Call a meeting'
   }
 };
 

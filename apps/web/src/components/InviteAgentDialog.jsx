@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { fetchInvite, rotatePairingCode } from '../state/sessionEventsClient.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  overlayFocusHandlers,
+  overlayLayerStyle,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 
 export default function InviteAgentDialog({ sessionId, open, onClose }) {
   const modalZIndex = useOverlayLayer('invite-agent', open, 'modal');
@@ -67,6 +71,7 @@ export default function InviteAgentDialog({ sessionId, open, onClose }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="invite-title"
+      {...overlayFocusHandlers('invite-agent', open)}
     >
       <div className="invite-card">
         <header className="invite-header">

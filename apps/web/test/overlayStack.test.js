@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import {
-  OVERLAY_GROUP,
+  FOCUS_Z_BASE,
   bringOverlayToFront,
   getOpenOverlays,
   getOverlayZIndex,
@@ -15,37 +15,47 @@ describe('overlayStack', () => {
     resetOverlayStackForTests();
   });
 
-  it('stacks later anchored overlays above earlier ones', () => {
+  it('stacks later opens above earlier ones via global focus z', () => {
     const releaseA = registerOverlay('settings', 'anchored');
     const releaseB = registerOverlay('outbox', 'anchored');
 
-    expect(getOverlayZIndex('settings')).toBe(OVERLAY_GROUP.anchored.base);
-    expect(getOverlayZIndex('outbox')).toBe(OVERLAY_GROUP.anchored.base + 1);
+    expect(getOverlayZIndex('settings')).toBe(FOCUS_Z_BASE + 1);
+    expect(getOverlayZIndex('outbox')).toBe(FOCUS_Z_BASE + 2);
+    expect(getOverlayZIndex('outbox')).toBeGreaterThan(getOverlayZIndex('settings'));
 
     releaseA();
-    expect(getOverlayZIndex('outbox')).toBe(OVERLAY_GROUP.anchored.base);
+    expect(getOverlayZIndex('outbox')).toBe(FOCUS_Z_BASE + 2);
 
     releaseB();
     expect(getOverlayZIndex('outbox')).toBeUndefined();
   });
 
-  it('re-opening the same overlay brings it to the front of its group', () => {
+  it('re-opening the same overlay brings it to the global front', () => {
     registerOverlay('settings', 'anchored');
     registerOverlay('outbox', 'anchored');
     registerOverlay('settings', 'anchored');
 
-    expect(getOverlayZIndex('outbox')).toBe(OVERLAY_GROUP.anchored.base);
-    expect(getOverlayZIndex('settings')).toBe(OVERLAY_GROUP.anchored.base + 1);
+    expect(getOverlayZIndex('settings')).toBeGreaterThan(getOverlayZIndex('outbox'));
   });
 
-  it('keeps modals above anchored overlays regardless of open order', () => {
-    registerOverlay('settings', 'anchored');
-    registerOverlay('invite', 'modal');
+  it('lets a later anchored menu stack above an earlier office window', () => {
+    registerOverlay('office-inbox', 'officeModal');
+    registerOverlay('desk-actions-menu', 'anchored');
 
-    expect(getOverlayZIndex('invite')).toBeGreaterThan(getOverlayZIndex('settings'));
+    expect(getOverlayZIndex('desk-actions-menu')).toBeGreaterThan(getOverlayZIndex('office-inbox'));
   });
 
-  it('stacks modals within the modal group', () => {
+  it('lets focusing an office window stack above an open desk menu', () => {
+    registerOverlay('desk-actions-menu', 'anchored');
+    registerOverlay('office-inbox', 'officeModal');
+    bringOverlayToFront('desk-actions-menu');
+    expect(getOverlayZIndex('desk-actions-menu')).toBeGreaterThan(getOverlayZIndex('office-inbox'));
+
+    bringOverlayToFront('office-inbox');
+    expect(getOverlayZIndex('office-inbox')).toBeGreaterThan(getOverlayZIndex('desk-actions-menu'));
+  });
+
+  it('stacks modals within global focus order', () => {
     registerOverlay('clear', 'modal');
     registerOverlay('hotkeys', 'modal');
 
@@ -58,7 +68,7 @@ describe('overlayStack', () => {
     unregisterOverlay('a');
 
     expect(getOverlayZIndex('a')).toBeUndefined();
-    expect(getOverlayZIndex('b')).toBe(OVERLAY_GROUP.anchored.base);
+    expect(getOverlayZIndex('b')).toBeDefined();
   });
 });
 
@@ -83,9 +93,7 @@ describe('overlayStack metadata + open-windows snapshot', () => {
 
     bringOverlayToFront('a');
 
-    // Chip order stays put (registration order) so the taskbar doesn't jump...
     expect(getOpenOverlays().map((o) => o.id)).toEqual(['a', 'b']);
-    // ...but the focused window is flagged and painted on top.
     expect(getOpenOverlays().find((o) => o.id === 'a').focused).toBe(true);
     expect(getOverlayZIndex('a')).toBeGreaterThan(getOverlayZIndex('b'));
   });
@@ -104,8 +112,6 @@ describe('overlayStack metadata + open-windows snapshot', () => {
   it('treats manageable as opt-in: explicit true shows, absent/false stay out', () => {
     registerOverlay('managed', 'officeModal', { kind: 'inbox', manageable: true });
     registerOverlay('toast', 'officeChrome', { kind: 'coffee', manageable: false });
-    // A raw overlay (settings, radial menu, app modal) registers with no meta —
-    // it must never leak into the office window bar.
     registerOverlay('raw-modal', 'modal');
 
     const byId = Object.fromEntries(getOpenOverlays().map((o) => [o.id, o.manageable]));

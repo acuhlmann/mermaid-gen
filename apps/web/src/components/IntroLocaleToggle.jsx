@@ -10,14 +10,14 @@ const LOCALE_OPTIONS = [
 ];
 
 /**
- * Compact language picker for the empty-state intro only. Shows the active
- * locale as a single pill; other choices expand in a small menu on tap.
- * Menu rows use the full name from copy so options like Aussie Slang stay clear.
+ * Compact language picker. Default: single pill that expands a menu (reception).
+ * `variant="inline"`: all options laid out in a row (desk Language pack footer —
+ * menu opens upward and a downward submenu would sit off-screen).
  */
-export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
+export default function IntroLocaleToggle({ locale, copy, onSelectLocale, variant = 'menu' }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef(null);
-  const menuZIndex = useOverlayLayer('intro-locale-menu', open);
+  const menuZIndex = useOverlayLayer('intro-locale-menu', open && variant === 'menu');
 
   const optionLabels = {
     en: copy.en,
@@ -30,18 +30,47 @@ export default function IntroLocaleToggle({ locale, copy, onSelectLocale }) {
   const alternatives = LOCALE_OPTIONS.filter((option) => option.id !== current.id);
 
   useEffect(() => {
-    if (!open) return undefined;
+    if (!open || variant !== 'menu') return undefined;
     const onPointerDown = (event) => {
       if (!rootRef.current?.contains(event.target)) setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
-  }, [open]);
+  }, [open, variant]);
 
   const handleSelect = (/** @type {UiLocale} */ nextLocale) => {
     onSelectLocale?.(nextLocale);
     setOpen(false);
   };
+
+  if (variant === 'inline') {
+    return (
+      <div
+        className="intro-locale-inline"
+        role="radiogroup"
+        aria-label={copy.aria}
+        data-testid="intro-locale-toggle"
+      >
+        {LOCALE_OPTIONS.map((option) => {
+          const selected = option.id === current.id;
+          return (
+            <button
+              key={option.id}
+              type="button"
+              role="radio"
+              className={`intro-locale-inline-option${selected ? ' is-selected' : ''}`}
+              aria-checked={selected}
+              aria-label={optionLabels[option.id]}
+              title={optionLabels[option.id]}
+              onClick={() => handleSelect(/** @type {UiLocale} */ (option.id))}
+            >
+              <span className="intro-locale-inline-short">{option.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div

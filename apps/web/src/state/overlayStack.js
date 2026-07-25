@@ -1,14 +1,14 @@
 /**
  * Lightweight overlay stack for pop-ups, menus, and modals.
  *
- * Each overlay belongs to a group with a fixed base z-index band. Within a group,
- * later opens stack above earlier ones. Higher groups always paint above lower
- * groups (modals above anchored popovers, etc.).
+ * Each overlay still belongs to a group (for metadata / callers), but paint
+ * order is a global focus stack: open and bring-to-front assign a
+ * monotonically increasing z-index above FOCUS_Z_BASE so desk menus, the
+ * ArchiSlop level panel, and floating office windows can cover each other
+ * like a real windowing UI — whichever surface was focused last wins.
  *
  * Overlays can also carry display metadata (title, kind, who it is from) and a
- * `manageable` flag. Anything manageable shows up in `getOpenOverlays()` — the
- * feed behind the office window bar (a taskbar for the floating office
- * surfaces), so nothing a colleague opens can get buried or lost off-screen.
+ * `manageable` flag for callers that list open surfaces.
  */
 
 /** @typedef {'anchored' | 'advisor' | 'officeChrome' | 'modal' | 'officeModal'} OverlayGroupId */
@@ -35,6 +35,9 @@
  * }} OpenOverlay
  */
 
+/** Floor for global focus z — above legacy group band maxima (officeModal ≤ 279). */
+export const FOCUS_Z_BASE = 300;
+
 /** @type {Record<OverlayGroupId, { base: number, max: number }>} */
 export const OVERLAY_GROUP = {
   /** Bottom-row popovers, desk menus, locale pickers, XP panel, radial popover. */
@@ -43,9 +46,9 @@ export const OVERLAY_GROUP = {
   advisor: { base: 80, max: 99 },
   /** Office parody floating panels (inbox, IM ping stack). */
   officeChrome: { base: 205, max: 214 },
-  /** App modals: clear confirm, invite, handshake, hotkeys. Above office chrome (210). */
+  /** App modals: clear confirm, invite, handshake, hotkeys. */
   modal: { base: 215, max: 239 },
-  /** Office parody full-screen scenes (meeting, battle, messenger). */
+  /** Office parody floating windows (meeting picker, messenger, inbox). */
   officeModal: { base: 240, max: 279 }
 };
 
@@ -64,15 +67,17 @@ const groupById = new Map();
 const metaById = new Map();
 
 /**
- * Stable registration order of currently-open overlays. Unlike the per-group
- * z-stacks, this never reshuffles on focus, so the window bar chips stay put
- * instead of jumping around every time the user clicks one.
+ * Stable registration order of currently-open overlays. Unlike the focus
+ * z-order, this never reshuffles on focus.
  * @type {string[]}
  */
 const openOrder = [];
 
 /** @type {string | null} */
 let focusedOverlayId = null;
+
+/** Monotonic counter for global focus elevation. */
+let focusSeq = 0;
 
 /** @type {OpenOverlay[]} */
 let openOverlaysSnapshot = [];
@@ -84,12 +89,24 @@ function notify() {
   listeners.forEach((fn) => fn());
 }
 
-function recompute() {
-  zIndexById.clear();
+/**
+ * Assign the next global focus z to `id` and mark it focused.
+ * @param {string} id
+ */
+function elevateFocus(id) {
+  focusSeq += 1;
+  zIndexById.set(id, FOCUS_Z_BASE + focusSeq);
+  focusedOverlayId = id;
+}
+
+/**
+ * Rebuild group membership maps; z-index for open overlays comes from focus
+ * elevation (elevateFocus), not group bands.
+ */
+function recomputeGroups() {
+  groupById.clear();
   for (const [groupId, ids] of stacks) {
-    const band = OVERLAY_GROUP[groupId];
-    ids.forEach((id, index) => {
-      zIndexById.set(id, Math.min(band.base + index, band.max));
+    ids.forEach((id) => {
       groupById.set(id, groupId);
     });
   }
@@ -107,9 +124,6 @@ function rebuildSnapshot() {
       group: groupById.get(id) ?? 'officeChrome',
       zIndex: zIndexById.get(id) ?? 0,
       focused: focusedOverlayId === id,
-      // Opt-in: only surfaces that explicitly declare `manageable: true`
-      // (the office FloatingWindows) show up in the window bar. Raw overlays
-      // registered without meta — settings, radial menu, app modals — stay out.
       manageable: meta.manageable === true,
       title: typeof meta.title === 'string' ? meta.title : '',
       kind: typeof meta.kind === 'string' ? meta.kind : '',
@@ -137,7 +151,8 @@ export function registerOverlay(id, group, meta) {
   stacks.set(group, list);
   if (!openOrder.includes(id)) openOrder.push(id);
   if (meta) metaById.set(id, { ...(metaById.get(id) ?? {}), ...meta });
-  recompute();
+  elevateFocus(id);
+  recomputeGroups();
   rebuildSnapshot();
   notify();
 
@@ -183,14 +198,15 @@ export function unregisterOverlay(id) {
     if (focusedOverlayId === id) focusedOverlayId = null;
     groupById.delete(id);
     metaById.delete(id);
-    recompute();
+    zIndexById.delete(id);
+    recomputeGroups();
     rebuildSnapshot();
     notify();
   }
 }
 
 /**
- * Move an already-registered overlay to the top of its group (click-to-focus).
+ * Move an already-registered overlay to the global front (click-to-focus).
  * @param {string} id
  */
 export function bringOverlayToFront(id) {
@@ -202,8 +218,8 @@ export function bringOverlayToFront(id) {
   list.splice(idx, 1);
   list.push(id);
   stacks.set(group, list);
-  focusedOverlayId = id;
-  recompute();
+  elevateFocus(id);
+  recomputeGroups();
   rebuildSnapshot();
   notify();
 }
@@ -252,6 +268,7 @@ export function resetOverlayStackForTests() {
   metaById.clear();
   openOrder.length = 0;
   focusedOverlayId = null;
+  focusSeq = 0;
   openOverlaysSnapshot = [];
   notify();
 }

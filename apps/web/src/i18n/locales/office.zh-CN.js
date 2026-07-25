@@ -896,18 +896,6 @@ export const OFFICE_ZH_CN = {
       dockTitle: '把会议缩到角落,腾出手来改图',
       undock: '🗖 回到会议室',
       undockTitle: '把会议放回屏幕中央'
-    },
-    windows: {
-      barAria: '打开的办公室窗口',
-      label: '窗口',
-      focusTitle: '把「{name}」置于最前',
-      recallTitle: '把「{name}」拉回屏幕内',
-      tidyLabel: '↺ 收拾一下',
-      tidyTitle: '把每个窗口都归回默认位置',
-      kindInbox: '收件箱',
-      kindMessenger: 'Slop Chat',
-      kindWalkby: '路过',
-      kindMeetingPicker: '开个会'
     }
   }
 };

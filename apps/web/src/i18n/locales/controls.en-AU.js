@@ -141,6 +141,12 @@ export const CONTROLS_EN_AU = {
     zhCn: 'Simplified Chinese',
     zhTw: 'Traditional Chinese'
   },
+  languagePack: {
+    label: 'Language pack',
+    tag: 'IT TICKET',
+    title: 'Raise a ticket with IT to change the workstation dialect',
+    aria: 'Language pack — request a different UI dialect from IT'
+  },
   settings: {
     label: 'Settings',
     show: 'Show settings',

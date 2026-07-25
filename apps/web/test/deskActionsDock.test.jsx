@@ -90,6 +90,10 @@ describe('DeskActionsDock', () => {
     expect(screen.getByText('Concentration')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Rush job' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Deep work' })).toBeTruthy();
+    expect(screen.getByTestId('desk-language-pack')).toBeTruthy();
+    expect(screen.getByText('Language pack')).toBeTruthy();
+    expect(screen.getByRole('radiogroup', { name: /language/i })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: /English/i })).toBeTruthy();
   });
 
   it('runs contractor verb and closes the menu', () => {

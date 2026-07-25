@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import AgentBadge from './AgentBadge.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  overlayFocusHandlers,
+  overlayLayerStyle,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 
 export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
   const modalZIndex = useOverlayLayer('agent-handshake', Boolean(request), 'modal');
@@ -33,6 +37,7 @@ export default function AgentHandshakeDialog({ request, onApprove, onDeny }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="agent-handshake-title"
+      {...overlayFocusHandlers('agent-handshake', Boolean(request))}
     >
       <div className="agent-handshake-card">
         <h2 id="agent-handshake-title" className="agent-handshake-title">

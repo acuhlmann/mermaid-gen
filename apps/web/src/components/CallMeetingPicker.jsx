@@ -112,9 +112,9 @@ export default function CallMeetingPicker({
       group="officeModal"
       className="office-meeting-picker"
       kind="meeting-picker"
-      defaultCorner="top-center"
-      defaultOffsetX={16}
-      defaultOffsetY={72}
+      defaultCorner="center"
+      defaultOffsetX={0}
+      defaultOffsetY={0}
       cascade={2}
       role="dialog"
       aria-modal="true"

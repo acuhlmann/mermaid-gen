@@ -3,8 +3,11 @@ import { createPortal } from 'react-dom';
 import { ButtonIcon } from './AppIcons.jsx';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 import { useAdvisorFloatAnchor } from '../hooks/useAdvisorFloatAnchor.js';
-import { useNarrowLayout } from '../hooks/useAppLayoutMedia.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  overlayLayerStyle,
+  overlayFocusHandlers,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 
 const DRAWER_EMOJI = '🗄️';
 const MENU_GAP_PX = 7;
@@ -26,6 +29,7 @@ function computePortaledMenuStyle(anchorRect) {
 
   return {
     position: 'fixed',
+    top: 'auto',
     left,
     width,
     minWidth: Math.min(minWidth, width),
@@ -61,30 +65,37 @@ export default function DeskDrawer({
   const actions = controls.actions;
   const drawer = controls.deskDrawer ?? {};
   const modeOptions = Array.isArray(modes) ? modes.filter((m) => m && m.id && m.label) : [];
-  const narrowLayout = useNarrowLayout();
-
   const [open, setOpen] = useState(forceOpen);
   const rootRef = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const menuZIndex = useOverlayLayer('desk-drawer-menu', open);
-  const anchorRect = useAdvisorFloatAnchor(triggerRef, open && narrowLayout);
+  // Always portal so focus z can stack above floating office windows.
+  const anchorRect = useAdvisorFloatAnchor(triggerRef, open);
 
   useEffect(() => {
     if (forceOpen) setOpen(true);
   }, [forceOpen]);
 
+  // Defer dismiss binding so the opening click cannot immediately close the menu.
   useEffect(() => {
     if (!open) return undefined;
+    let active = false;
+    const activateTimer = window.setTimeout(() => {
+      active = true;
+    }, 0);
     const onPointerDown = (event) => {
-      if (forceOpen) return;
+      if (!active || forceOpen) return;
       const target = event.target;
       if (rootRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
       setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
-    return () => document.removeEventListener('pointerdown', onPointerDown);
+    return () => {
+      window.clearTimeout(activateTimer);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
   }, [open, forceOpen]);
 
   const runAndClose = (fn) => {
@@ -96,25 +107,31 @@ export default function DeskDrawer({
     .filter(Boolean)
     .join(' ');
 
-  const menuReady = open && (!narrowLayout || anchorRect);
+  const resolvedAnchor =
+    anchorRect ?? (open && triggerRef.current ? triggerRef.current.getBoundingClientRect() : null);
   const menuStyle = overlayLayerStyle(
     menuZIndex,
-    narrowLayout && anchorRect ? computePortaledMenuStyle(anchorRect) : undefined
+    resolvedAnchor
+      ? computePortaledMenuStyle(resolvedAnchor)
+      : {
+          position: 'fixed',
+          top: 'auto',
+          right: SAFE_INSET_PX,
+          bottom: SAFE_INSET_PX + 48,
+          width: MIN_MENU_WIDTH_PX,
+          boxSizing: 'border-box'
+        }
   );
 
-  const menu = menuReady ? (
+  const menu = open ? (
     <div
       ref={menuRef}
-      className={[
-        'desk-actions-menu',
-        'desk-drawer-menu',
-        narrowLayout ? 'desk-drawer-menu--portaled' : ''
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className="desk-actions-menu desk-drawer-menu desk-drawer-menu--portaled"
       style={menuStyle}
       role="menu"
       aria-label={drawer.menuAria ?? drawer.label ?? 'Desk tray'}
+      data-testid="desk-drawer-menu"
+      {...overlayFocusHandlers('desk-drawer-menu', open)}
     >
       {modeOptions.length > 0
         ? modeOptions.map((mode) => {
@@ -177,9 +194,7 @@ export default function DeskDrawer({
   ) : null;
 
   const portaledMenu =
-    narrowLayout && menu && anchorRect && typeof document !== 'undefined'
-      ? createPortal(menu, document.body)
-      : null;
+    menu && typeof document !== 'undefined' ? createPortal(menu, document.body) : null;
 
   return (
     <div className="desk-drawer" ref={rootRef}>
@@ -208,7 +223,7 @@ export default function DeskDrawer({
           {drawer.roleTag ?? 'Work surface'}
         </span>
       </button>
-      {narrowLayout ? portaledMenu : menu}
+      {portaledMenu}
     </div>
   );
 }

@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
-import { overlayLayerStyle, useOverlayLayer } from '../hooks/useOverlayLayer.js';
+import {
+  overlayFocusHandlers,
+  overlayLayerStyle,
+  useOverlayLayer
+} from '../hooks/useOverlayLayer.js';
 
 const DEFAULT_COPY = CONTROLS_EN.clearDialog;
 
@@ -38,6 +42,7 @@ export default function ClearConfirmDialog({ open, onConfirm, onCancel, copy = D
       role="dialog"
       aria-modal="true"
       aria-labelledby="clear-confirm-title"
+      {...overlayFocusHandlers('clear-confirm', open)}
       onPointerDown={handleBackdropClick}
     >
       <div className="clear-confirm-card">

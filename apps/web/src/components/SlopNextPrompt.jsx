@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CONTROLS_EN } from '../i18n/locales/controls.en.js';
 
 const DEFAULT_COPY = CONTROLS_EN.prompt;
@@ -30,6 +30,7 @@ export default function SlopNextPrompt({
   style
 }) {
   const inputRef = useRef(null);
+  const [inputFocused, setInputFocused] = useState(false);
   const isDesk = layout === 'desk';
   const inputId =
     layout === 'radial'
@@ -94,7 +95,14 @@ export default function SlopNextPrompt({
       };
 
   const isEmptyPrompt = !(prompt ?? '').trim();
-  const hideDeskIdleChrome = isDesk && isEmptyPrompt && !busy;
+  // Idle desk hides mic/submit until the user engages — typing OR focusing so
+  // voice-first users can dictate without typing a character first.
+  const hideDeskIdleChrome = isDesk && isEmptyPrompt && !busy && !inputFocused && !voiceListening;
+  // Narrow desk: keep the placeholder fully visible on focus — no eyebrow /
+  // primary until there's text. Mic still appears so voice-first works.
+  const showDeskEyebrow = isDesk && (narrowLayout ? !isEmptyPrompt : !hideDeskIdleChrome);
+  const showDeskActionRow = !isDesk || !hideDeskIdleChrome;
+  const showDeskPrimary = !isDesk || !narrowLayout || !isEmptyPrompt;
 
   function handleDeskInputFocus(event) {
     if (!isDesk || typeof window === 'undefined') return;
@@ -113,23 +121,35 @@ export default function SlopNextPrompt({
     }
   }
 
+  function handleFormFocus() {
+    setInputFocused(true);
+  }
+
+  function handleFormBlur(event) {
+    // Keep chrome visible while focus moves to the mic/submit inside this form.
+    if (event.currentTarget.contains(event.relatedTarget)) return;
+    setInputFocused(false);
+  }
+
   return (
     <form
       className={`slop-prompt-panel slop-prompt-panel--${layout}${narrowLayout ? ' is-narrow' : ''}${hideDeskIdleChrome ? ' is-desk-idle' : ''}`}
       style={style}
       onSubmit={handleSubmit}
+      onFocus={handleFormFocus}
+      onBlur={handleFormBlur}
       data-testid={`slop-prompt-panel-${layout}`}
       autoComplete="off"
     >
       {isDesk ? (
-        hideDeskIdleChrome ? null : (
+        showDeskEyebrow ? (
           <span
             className="slop-prompt-panel-eyebrow slop-prompt-panel-eyebrow--desk"
             aria-hidden="true"
           >
             {PromptIcon ? <PromptIcon /> : '📝'}
           </span>
-        )
+        ) : null
       ) : (
         <div className="slop-prompt-panel-head">
           <span className="slop-prompt-panel-eyebrow" aria-hidden="true">
@@ -173,7 +193,7 @@ export default function SlopNextPrompt({
         // Desk layout has no title element; the sr-only <label htmlFor> names it.
         aria-labelledby={isDesk ? undefined : `${inputId}-label`}
       />
-      {hideDeskIdleChrome ? null : (
+      {showDeskActionRow ? (
         <div className="slop-prompt-panel-actions">
           <button
             type="button"
@@ -205,16 +225,18 @@ export default function SlopNextPrompt({
             ) : null}
             <span className="button-label">{copy.mic}</span>
           </button>
-          <button
-            type="submit"
-            className="overlay-button primary-button"
-            disabled={busy || isEmptyPrompt}
-          >
-            {ButtonIcon ? <ButtonIcon>{'>'}</ButtonIcon> : '>'}
-            <span className="button-label">{copy.doIt}</span>
-          </button>
+          {showDeskPrimary ? (
+            <button
+              type="submit"
+              className="overlay-button primary-button"
+              disabled={busy || isEmptyPrompt}
+            >
+              {ButtonIcon ? <ButtonIcon>{'>'}</ButtonIcon> : '>'}
+              <span className="button-label">{copy.doIt}</span>
+            </button>
+          ) : null}
         </div>
-      )}
+      ) : null}
     </form>
   );
 }
