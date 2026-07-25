@@ -573,6 +573,13 @@ export default function OfficeLayer({
           onVoteBattle: handleBattleVote,
           onBattleDone: handleBattleDone
         }}
+        // Pacing, narration and minutes stay in useMeetingPlayback above, so the
+        // glass room only reads state — no double narration to guard against.
+        meeting={meeting}
+        meetingHandlers={{
+          onInterject: interject,
+          onLeave: handleMeetingDismiss
+        }}
       />
       <OfficeInboxDock
         showTrigger={false}
@@ -656,14 +663,20 @@ export default function OfficeLayer({
         onConfirm={handleConfirmMeetingPicker}
         onCancel={handleCancelMeetingPicker}
       />
-      <MeetingOverlay
-        meeting={meeting}
-        onInterject={interject}
-        onLeave={handleMeetingDismiss}
-        onClose={handleMeetingDismiss}
-        onAdoptPrompt={handleAdopt}
-        onAdoptAllPrompts={handleAdoptAll}
-      />
+      {/* The call window is renderer #1 of a meeting; the glass room above is
+          renderer #2. Standing up hands the running meeting to the floor and
+          sitting down hands it back — including the ended state, so the minutes
+          card is always read on a screen. */}
+      {onFloor ? null : (
+        <MeetingOverlay
+          meeting={meeting}
+          onInterject={interject}
+          onLeave={handleMeetingDismiss}
+          onClose={handleMeetingDismiss}
+          onAdoptPrompt={handleAdopt}
+          onAdoptAllPrompts={handleAdoptAll}
+        />
+      )}
     </div>
   );
 }

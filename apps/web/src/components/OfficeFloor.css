@@ -542,11 +542,13 @@
 }
 
 /*
- * Whoever is introducing themselves glows. A ring on the floor would be the
- * obvious choice and is completely wrong: their own desk stands on that tile
- * and hides it. The head clears the desk, so the highlight goes there.
+ * Whoever is introducing themselves — or holding the floor in the glass room —
+ * glows. A ring on the floor would be the obvious choice and is completely
+ * wrong: their own desk (or the meeting table) stands on that tile and hides it.
+ * The head clears both, so the highlight goes there.
  */
-.office-floor-person.is-speaking .office-floor-person-figure {
+.office-floor-person.is-speaking .office-floor-person-figure,
+.office-floor-meeting-actor.is-speaking .office-floor-person-figure {
   filter: drop-shadow(0 0 9px var(--floor-accent, var(--accent)))
     drop-shadow(0 0 20px rgba(37, 99, 235, 0.55));
   animation: office-floor-speaking 1.9s ease-in-out infinite;
@@ -589,24 +591,27 @@
   color: #fff;
 }
 
-/* ── set pieces on the floor (slice 4) ───────────────────────────────────── */
+/* ── the shared floor panel (set pieces, meetings) ───────────────────────── */
 
-.office-floor-scene-panel-anchor {
+.office-floor-panel-anchor {
   position: absolute;
   width: 0;
   height: 0;
 }
 
 /*
- * Pinned between the two participants and counter-scaled like a speech bubble,
- * so the ask ("coffee?", "someone has to be wrong") appears where the scene is
- * happening rather than in a corner divorced from the people it is about.
+ * Pinned to a tile and counter-scaled like a speech bubble, so the ask
+ * ("coffee?", "someone has to be wrong", "raise a hand") appears where the
+ * thing is happening rather than in a corner divorced from the people it is
+ * about. `--floor-panel-lift` is how far above the anchor it floats: set pieces
+ * clear two standing figures, the meeting hangs below its anchor instead.
  */
-.office-floor-scene-panel {
+.office-floor-panel {
   position: absolute;
   left: 0;
   bottom: 0;
-  transform: translate(-50%, -132px) scale(var(--floor-inverse-scale, 1));
+  transform: translate(-50%, calc(-1 * var(--floor-panel-lift, 132px)))
+    scale(var(--floor-inverse-scale, 1));
   transform-origin: bottom center;
   width: 19rem;
   max-width: 70vw;
@@ -618,16 +623,72 @@
   text-align: center;
 }
 
-.office-floor-scene-panel-line {
+.office-floor-panel-line {
   margin: 0 0 0.5rem;
   font-size: 0.78rem;
   line-height: 1.35;
 }
 
-.office-floor-scene-panel .office-floor-card-actions {
+.office-floor-panel .office-floor-card-actions {
   margin-top: 0;
   justify-content: center;
   flex-wrap: wrap;
+}
+
+/* ── meetings in the glass room (slice 5) ────────────────────────────────── */
+
+/*
+ * The meeting's chrome is a floor card, not a panel over the table. The glass
+ * room renders ~170 px wide and a counter-scaled panel is ~300 px, so pinning
+ * the controls to the table hid all nine people sitting at it (§ 6 rule 12).
+ */
+.office-floor-card--meeting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.office-floor-card--meeting .office-floor-card-blurb,
+.office-floor-card--meeting .office-floor-card-actions {
+  margin: 0;
+}
+
+.office-floor-card-heading {
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+/* Raise a hand: the same one-line interjection the call window offers. */
+.office-floor-card-hand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.office-floor-card-hand input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  color: inherit;
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.office-floor-card-hand input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.office-floor-card-hand button {
+  flex: none;
+}
+
+.office-floor-card-hand button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .office-floor-arrival-actions {
@@ -681,6 +742,7 @@
   .office-floor,
   .office-floor-person-figure,
   .office-floor-person.is-speaking .office-floor-person-figure,
+  .office-floor-meeting-actor.is-speaking .office-floor-person-figure,
   .office-floor-you-tile,
   .office-floor-bubble,
   .floor-screen {

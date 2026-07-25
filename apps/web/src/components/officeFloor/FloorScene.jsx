@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react';
 import FloorBubble from './FloorBubble.jsx';
 import FloorFigure from './FloorFigure.jsx';
+import FloorPanel from './FloorPanel.jsx';
 import { useScenePacing } from '../../hooks/useScenePacing.js';
 import { BATTLE_LINE_PACE_MS } from '../OfficeBattleOverlay.jsx';
 import { COFFEE_BREAK_DURATION_MS, COFFEE_LINE_PACE_MS } from '../CoffeeBreakOverlay.jsx';
@@ -45,8 +46,8 @@ const SCENE_KINDS = {
   }
 };
 
-/** Above the bubbles, which are already above the signage layer. */
-const PANEL_Z = 9700;
+/** Above the signage layer, so a spoken line clears the zone labels. */
+const SPEAKING_Z = 9600;
 
 /** One participant standing at their mark, optionally saying something. */
 function SceneActor({ castId, tile, line, scale }) {
@@ -56,7 +57,7 @@ function SceneActor({ castId, tile, line, scale }) {
     <div
       className="office-floor-walker"
       data-testid={`office-floor-scene-actor-${castId}`}
-      style={{ left, top, zIndex: line ? PANEL_Z - 100 : depthOf(tile.x, tile.y) + 5 }}
+      style={{ left, top, zIndex: line ? SPEAKING_Z : depthOf(tile.x, tile.y) + 5 }}
     >
       <div className="office-floor-walker-anchor">
         {line ? (
@@ -70,23 +71,16 @@ function SceneActor({ castId, tile, line, scale }) {
   );
 }
 
-/** A panel pinned between the participants, at constant on-screen size. */
+/** The shared floor panel, pinned to the midpoint between the participants. */
 function ScenePanel({ tiles, scale, children, testId }) {
   const mid = {
     x: (tiles[0].x + tiles[1].x) / 2,
     y: (tiles[0].y + tiles[1].y) / 2
   };
-  const { left, top } = projectIso(mid.x, mid.y);
   return (
-    <div className="office-floor-scene-panel-anchor" style={{ left, top, zIndex: PANEL_Z }}>
-      <div
-        className="office-floor-scene-panel"
-        style={{ '--floor-inverse-scale': 1 / (scale || 1) }}
-        data-testid={testId}
-      >
-        {children}
-      </div>
-    </div>
+    <FloorPanel tile={mid} scale={scale} testId={testId}>
+      {children}
+    </FloorPanel>
   );
 }
 
@@ -106,7 +100,7 @@ function SceneInvite({ isBattle, scene, names, copy, tiles, scale, onAccept, onD
       scale={scale}
       testId={`office-floor-${isBattle ? 'battle' : 'coffee'}-invite`}
     >
-      <p className="office-floor-scene-panel-line">{line}</p>
+      <p className="office-floor-panel-line">{line}</p>
       <div className="office-floor-card-actions">
         <button
           type="button"
@@ -143,7 +137,7 @@ function BattleVerdict({ scene, participants, votedFor, copy, tiles, scale, onVo
 
   return (
     <ScenePanel tiles={tiles} scale={scale} testId="office-floor-battle-verdict">
-      <p className="office-floor-scene-panel-line">{copy.battle.settleLine}</p>
+      <p className="office-floor-panel-line">{copy.battle.settleLine}</p>
       <div className="office-floor-card-actions">
         {participants.map((castId) => (
           <button

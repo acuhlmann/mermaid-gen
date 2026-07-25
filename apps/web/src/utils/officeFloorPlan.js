@@ -230,6 +230,98 @@ export const BATTLE_TILES = [
   { x: 5, y: 4 }
 ];
 
+/**
+ * Seats around the meeting table, inside the glass room (slice 5). Eight of
+ * them — `MEETING_ROSTER_MAX` — in seating order, so a two-person huddle and a
+ * full steering committee both look deliberate.
+ *
+ * The room is 2 tiles wide and the table is nearly all of it, so there is no
+ * mark at either *end* of the table: screen-left is the glass wall (with
+ * Ulrich's desk a tile beyond it), screen-right is the edge of the floor plate.
+ * The head of the table is therefore seat 0, the far-centre mark **across the
+ * table from you** — which is where a facilitator stands anyway, facing the room.
+ *
+ * Three geometry rules decide the two rows (see § 6 of the design doc):
+ *
+ * 1. **The far row must paint before the table** (`x + y` < the table's 17.3)
+ *    and the near row after it, so the table hides the far side's laps and the
+ *    near side's torsos sit in front of it. That single ordering is what makes
+ *    eight people read as *seated around* a table rather than standing near one.
+ * 2. **The far row keeps out of Ulrich's screen column** (rule 10). His desk at
+ *    (9, 6) is one tile beyond the glass, only ~1 tile of depth behind the far
+ *    row, so a mark in his column would drop a head onto his. `x - y > 3.6`
+ *    clears him; the near row is 2+ tiles nearer and clears him on depth alone.
+ * 3. **Neighbours may overlap; strangers may not.** A tile of screen column is
+ *    56 px and a head is 34, so four people along one side of a 1.9-tile table
+ *    must overlap a little — which is exactly what a crowded table looks like,
+ *    and the nearer one paints in front. What must never overlap is a meeting
+ *    attendee and somebody working at their own desk.
+ *
+ * @type {Array<{ x: number, y: number }>}
+ */
+export const MEETING_SEATS = [
+  { x: 10.3, y: 6.1 }, // the head — across the table from you
+  { x: 10.1, y: 7.7 }, // beside you, screen-left
+  { x: 10.9, y: 7.7 }, // beside you, screen-right
+  { x: 10.7, y: 6.1 }, // across, next to the head
+  { x: 9.7, y: 7.7 }, // near side, outer left
+  { x: 11.3, y: 7.7 }, // near side, outer right
+  { x: 9.9, y: 6.1 }, // far side, outer left
+  { x: 11.1, y: 6.1 } // far side, outer right
+];
+
+/**
+ * Your chair: the near-centre mark. The meeting is the one place "you" should
+ * be visibly in the room rather than at your desk, and the near centre is both
+ * the most legible spot and the one that reads as the room facing you.
+ */
+export const MEETING_PLAYER_TILE = { x: 10.5, y: 7.7 };
+
+/**
+ * The depth line (`x + y`) a meeting speech bubble sits on, whoever is talking.
+ *
+ * Anchored on the speaker's own tile the bubble is a disaster, and only a
+ * capture shows it: the glass room renders ~170 px wide, a `FloorBubble` is
+ * ~264 px, so a line spoken *in* the room blankets the room. Parked on one
+ * depth line above the back wall it clears every head, stops jumping about
+ * between beats, and still points down the speaker's column.
+ */
+export const MEETING_BUBBLE_DEPTH = 12.8;
+
+/**
+ * The point straight above a tile in screen space: same column, lifted onto the
+ * given depth line. Moving equally along `-x` and `-y` cancels in screen `x`,
+ * which is the same trick that shifts a monitor sideways (§ 6 rule 1) run the
+ * other way round.
+ *
+ * @param {{ x: number, y: number }} tile
+ * @param {number} depth target `x + y`
+ * @returns {{ x: number, y: number }}
+ */
+export function liftToDepth(tile, depth) {
+  const half = (tile.x + tile.y - depth) / 2;
+  return { x: tile.x - half, y: tile.y - half };
+}
+
+/**
+ * Who sits on which mark. The facilitator takes the head; everyone else keeps
+ * the order they were invited in, so the first few attendees land beside you.
+ *
+ * @param {string[]} attendees
+ * @param {string} [facilitatorId]
+ * @returns {Array<{ id: string, tile: { x: number, y: number } }>}
+ */
+export function meetingSeating(attendees, facilitatorId = '') {
+  const ids = (Array.isArray(attendees) ? attendees : []).filter(
+    (id, index, all) => typeof id === 'string' && id.length > 0 && all.indexOf(id) === index
+  );
+  const head = ids.includes(facilitatorId) ? facilitatorId : null;
+  const ordered = head ? [head, ...ids.filter((id) => id !== head)] : ids;
+  return ordered
+    .slice(0, MEETING_SEATS.length)
+    .map((id, index) => ({ id, tile: MEETING_SEATS[index] }));
+}
+
 /** Tiles closer than this to a path count as walking through the furniture. */
 const OBSTACLE_RADIUS = 0.55;
 

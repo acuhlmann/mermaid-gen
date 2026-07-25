@@ -95,12 +95,22 @@ track touches chrome only, never the floor, and never blocks the floor slices.
    from `CoffeeBreakOverlay`, so a scene performs identically in both worlds — and, as with
    the walk-by, `OfficeLayer` renders its overlays **or** the floor scene, never both, or
    every line would be spoken twice.
-5. **Meetings in the glass room** — floor-side render of the meeting whose screen-side
-   render is the call window. Plan: §7.1.
+5. ~~**Meetings in the glass room**~~ — ✅ **shipped**: the meeting whose screen-side render
+   is the call window now also happens as a place. Attendees leave their desks (which stay,
+   empty) for chairs around the table — the facilitator at the head, across from you — and
+   the meeting is the one place **you** are visibly in the room rather than at your screen.
+   The newest transcript beat appears as a speech bubble in the speaker's column while they
+   glow. `useMeetingPlayback` already owned pacing, narration, interjections and minutes, so
+   the floor renderer only _reads_ state and there was no double-narration to guard against;
+   `OfficeLayer` still hides the call window while you stand, for the visual reason alone.
+   Sitting down leaves the meeting running and hands it back to the window — the floor's
+   equivalent of the window's docked mode — which is also how you read the minutes, since
+   paperwork belongs on a screen. Two geometry surprises, both caught by a capture: see §6
+   rules 12–14.
 6. **Desk peeking** — walk over to "see what they're working on": the _Their-own-work_
    fiction visualized on colleague monitors (Ulrich's green terminal, Chad's forty tabs).
    Fiction only — the cast produces no real artifacts (Sign-off rule / one-producer model).
-   Plan: §7.2.
+   Plan: §7.1.
 
 ## 6. Geometry constraints (learned by looking at it)
 
@@ -144,8 +154,35 @@ preserve them:
 11. **Props stand where people need to.** The water cooler sat exactly on a coffee-break
     mark and hid a participant from the chest up. When a mark and a prop collide, move the
     prop — the marks are column-validated, the furniture is not.
+12. **Counter-scaled chrome does not fit in a small room.** The glass room renders ~170 px
+    wide; a `FloorBubble` is ~264 px and a `FloorPanel` ~300 px. A panel pinned to the
+    meeting table — the obvious choice, and the one slice 5's plan called for — covered all
+    nine people sitting at it. Chrome for a crowded room goes in the floor **card** slot,
+    which is off the stage and never occludes anything. Diegesis is the room; the controls
+    are allowed to be controls (rule 2 wants a labelled conventional path anyway).
+13. **A bubble for somebody in a crowd parks on a depth line, not on their tile.** Anchored
+    per-speaker it blankets the room and leaps across the table every beat. `liftToDepth`
+    keeps the speaker's screen column — so the tail still points at them — while pinning
+    every bubble to one baseline above the back row (`MEETING_BUBBLE_DEPTH`).
+14. **A figure is 48 px tall, not 58.** Head (34) plus torso (24) minus the head's −10 px
+    `margin-bottom`, which is what fuses them into one figure. Anything that reasons about
+    occlusion has to use the real number; `officeFloorPlan.test.js` measures with it, and
+    the value was confirmed against `getBoundingClientRect()` rather than read off the
+    stylesheet.
 
-Verification recipe (this is how 1–3, 5 and 6 were caught): temporary Vite harness + headless
+Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
+does not survive fractional marks — the glass room is a diagonal strip in column space, so
+every seat around its table has a fractional column. The precise form of the rule (screen
+boxes must not intersect, and no figure may cover another's head) lives in the meeting-seat
+suite in `apps/web/test/officeFloorPlan.test.js`; prefer it for any new mark family.
+
+One more paint-order rule the meeting table forced: a big prop has **one** z-index, so a
+mark's depth decides which side of it that figure lands on. `MEETING_SEATS` is arranged so
+the far row paints before the table (their laps disappear behind it) and the near row after
+(their torsos sit in front). A cosmetic `depthOf(...) + 5` nudge — copied from `FloorScene` —
+is enough to push the outermost far mark past the table and float that attendee over it.
+
+Verification recipe (this is how 1–3, 5, 6 and 12–14 were caught): temporary Vite harness + headless
 Edge screenshot, per the `apps/web:verify` skill. Two Windows gotchas worth knowing before
 you trust a capture:
 
@@ -158,55 +195,22 @@ you trust a capture:
   `--force-prefers-reduced-motion`: the walker then skips travel by design, which is exactly
   the state you want to inspect.
 
-## 7. Plan for the remaining slices
+## 7. Plan for the remaining slice
 
-Written at the end of slice 4 so a fresh session can pick either slice up cold. Read §2
-(binding rules) and §6 (geometry constraints) first — every one of those cost a screenshot
-to find. Verification recipe is in §6; repo commands are in `CLAUDE.md`
-(`npm run check:affected`, `npm run format:affected`).
+Written so a fresh session can pick it up cold. Read §2 (binding rules) and §6 (geometry
+constraints) first — every one of those cost a screenshot to find. Verification recipe is in
+§6; repo commands are in `CLAUDE.md` (`npm run check:affected`, `npm run format:affected`).
 
 **What already exists to build on** (`apps/web/src/components/officeFloor/`):
 `FloorStage` (scaled stage; takes `vacantIds`, `speakingId`, `interactive`, and arbitrary
 `children` as extra actors), `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled
-speech), `FloorWalker` + `useWalkAnimation` (WAAPI path walking), `FloorScene` (set pieces),
+speech), `FloorPanel` (counter-scaled panel pinned to a tile — mind §6 rule 12),
+`FloorWalker` + `useWalkAnimation` (WAAPI path walking), `FloorScene` (set pieces),
+`FloorMeeting` + `FloorMeetingCard` (the glass room, and why its chrome is a card),
 `FloorArrival` (the ceremony, including an `ArrivalPlayer` that walks you to your desk).
 Layout and routing: `apps/web/src/utils/officeFloorPlan.js`.
 
-### 7.1 Slice 5 — meetings in the glass room
-
-**The key fact that makes this cheap:** `useMeetingPlayback` (mounted in `OfficeLayer`)
-already owns beat pacing, narration, interjections and minutes. It appends one beat at a
-time to `meeting.transcript`, so a floor renderer only has to _read_ state:
-`{ state, title, attendees[], facilitatorId, transcript[], completed, interjectionsLeft }`.
-Nothing needs extracting — unlike slice 4, **there is no double-narration risk**, because
-pacing lives in the hook rather than in the view. The reason to hide one renderer is purely
-visual.
-
-Steps:
-
-1. **Seats around the table.** Add `MEETING_SEATS` to `officeFloorPlan.js` — 8 marks ringing
-   `meetingTable` (10.4, 6.9) inside the glass room, ordered so the first 2–4 fill the near
-   side. Obey §6 rule 10: no mark may share `x - y` with a desk. Extend the existing
-   set-piece test to cover them.
-2. **`FloorMeeting.jsx`** — seat `meeting.attendees` on those marks (the facilitator at the
-   head), render the newest `transcript` beat as a `FloorBubble` above its speaker, and
-   glow the speaker with the `is-speaking` treatment from slice 3. Attendees' own desks go
-   into `vacantIds`; the player takes a seat too (the meeting is the one place "you" should
-   be visibly in the room rather than at your desk).
-3. **Chrome for the two inputs**: "Raise hand" (`interject`, capped by `interjectionsLeft`)
-   and leave. Reuse `ScenePanel`'s counter-scale trick anchored on the table, or the floor
-   card — the panel is the closer fit.
-4. **Wiring**: `OfficeLayer` passes `meeting` + handlers into `OfficeFloor` (same shape as
-   `sceneHandlers`) and renders `MeetingOverlay` only when `!onFloor`. Careful: the overlay's
-   **docked mode** exists so a meeting doesn't confiscate your screen; on the floor the
-   equivalent escape is sitting down, which should leave the meeting running and hand it
-   back to the overlay. Verify that round trip explicitly.
-5. **Minutes** still post to the Thinking pane through the existing path — do not duplicate.
-
-Risks: `MeetingOverlay` is 333 lines with its own layout; resist porting it. The floor
-version renders _state_, not the overlay's markup.
-
-### 7.2 Slice 6 — desk peeking
+### 7.1 Slice 6 — desk peeking
 
 This slice needs **new data**, which slices 1–5 did not: the _Their-own-work_ fiction
 (`GLOSSARY.md`) has never been written down. Follow the established parametric pattern —
@@ -222,11 +226,13 @@ Steps:
    test that every `CAST_TIERS` member has a row.
 2. **Screen looks in `isoArt.jsx`**: a `MonitorScreen({ look })` that draws a few coloured
    bars per look on the existing monitor face. Boxes only — no new art pipeline (§3).
-3. **Walking to them.** Today `OfficeFloor` renders you _seated_ at your desk even while
-   you are standing on the floor. To walk over, vacate `you` and render a player actor —
+3. **Walking to them.** `OfficeFloor` renders you _seated_ at your desk even while you are
+   standing on the floor — except in a meeting, where slice 5 already vacates `you` and
+   draws a player actor at `MEETING_PLAYER_TILE`. Do the same to walk over: vacate `you` and
    generalize `FloorArrival`'s `ArrivalPlayer` into a shared `FloorPlayer` taking a target
    tile, driven by the existing `useWalkAnimation`. Clicking a colleague's desk walks you
-   there; the person card gains a "look at their screen" action.
+   there; the person card gains a "look at their screen" action. Mind that the card slot is
+   single-occupancy (a meeting already claims it over the person card).
 4. **Sign-off rule (ADR-0010) applies literally here**: what you see is fiction. No slot
    content, no artifacts, no implication the cast produced anything.
 

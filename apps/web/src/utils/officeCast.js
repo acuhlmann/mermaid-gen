@@ -1374,6 +1374,18 @@ export const OFFICE_CHROME_COPY = {
     messageTitle: 'Open Slop Chat™ with them',
     seniorNote: 'Not without a calendar invite.',
     teamNote: 'On your team — brief them from the canvas.',
+    // The meeting, staged in the glass room instead of a window on your screen.
+    // Labels stay short: two of them share one row of a 21 rem card.
+    meeting: {
+      eyebrow: 'GLASS ROOM',
+      leave: '🚪 Leave',
+      leaveTitle: 'Walk out mid-sentence. Pam will note it in the minutes.',
+      sitOut: '🪑 My screen',
+      sitOutTitle: 'Sit back down — the meeting keeps going without you in the room',
+      endedLine: "That's a wrap. The minutes are on your screen.",
+      readMinutes: '🪑 Read the minutes',
+      readMinutesTitle: 'Sit back down — the meeting hands the minutes to your screen'
+    },
     zones: {
       reception: 'Reception',
       leadership: 'Leadership',

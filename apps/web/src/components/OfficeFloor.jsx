@@ -14,6 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import FloorMeeting, { FloorMeetingCard } from './officeFloor/FloorMeeting.jsx';
 import FloorPersonCard from './officeFloor/FloorPersonCard.jsx';
 import FloorScene from './officeFloor/FloorScene.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
@@ -21,7 +22,7 @@ import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { useStageScale } from '../hooks/useStageScale.js';
 import { YOU_SEAT_ID } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { sceneParticipants } from '../utils/officeSceneCast.js';
+import { awayFromDeskIds } from '../utils/officeSceneCast.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
 import {
@@ -32,8 +33,9 @@ import {
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
- * Everything the person card needs about whoever is selected. `'you'` is in no
- * cast bank, so the player's row comes from the floor copy + their name badge.
+ * Everything the person card needs about whoever is selected — including
+ * whether Slop Chat™ is on offer, which only the office tier gets. `'you'` is
+ * in no cast bank, so the player's row comes from the floor copy + name badge.
  */
 function usePersonDetails(selectedId, copy) {
   const userName = useSyncExternalStore(subscribeUserName, resolveUserName, resolveUserName);
@@ -46,16 +48,19 @@ function usePersonDetails(selectedId, copy) {
         name: userName,
         title: copy.youTitle,
         blurb: copy.youBlurb,
-        tier: 'you'
+        tier: 'you',
+        canMessage: false
       };
     }
     const sender = officeSenderInfo(selectedId);
+    const tier = tierOf(selectedId);
     return {
       id: selectedId,
       name: sender?.name ?? selectedId,
       title: sender?.title ?? '',
       blurb: sender?.blurb ?? '',
-      tier: tierOf(selectedId)
+      tier,
+      canMessage: tier === 'office' && isOfficeColleagueId(selectedId)
     };
   }, [selectedId, userName, copy]);
 }
@@ -66,7 +71,8 @@ function usePersonDetails(selectedId, copy) {
  *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onDismissWalkBy?: (id: string) => void,
- *   coffee?: any, battle?: any, sceneHandlers?: any
+ *   coffee?: any, battle?: any, sceneHandlers?: any,
+ *   meeting?: any, meetingHandlers?: any
  * }} props
  */
 function OfficeFloorView({
@@ -76,7 +82,9 @@ function OfficeFloorView({
   onDismissWalkBy,
   coffee = null,
   battle = null,
-  sceneHandlers = {}
+  sceneHandlers = {},
+  meeting = null,
+  meetingHandlers = {}
 }) {
   // Subscribes this component to locale changes; the copy itself comes from the
   // office bundle below, exactly like DeskActionsDock.
@@ -133,8 +141,7 @@ function OfficeFloorView({
           onWalkerAdopt={onAdoptPrompt}
           onWalkerDismiss={onDismissWalkBy}
           onWalkerDeparted={handleDeparted}
-          // Anyone at the coffee machine or mid-argument is not at their desk.
-          vacantIds={[...sceneParticipants(coffee?.lines), ...sceneParticipants(battle?.lines)]}
+          vacantIds={awayFromDeskIds({ coffee, battle, meeting, playerId: YOU_SEAT_ID })}
         >
           {coffee ? (
             <FloorScene
@@ -161,14 +168,24 @@ function OfficeFloorView({
               onDone={sceneHandlers.onBattleDone}
             />
           ) : null}
+          {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}
         </FloorStage>
       </div>
 
-      {person ? (
+      {/* One card slot, and a meeting outranks idle curiosity: you are in it. */}
+      {meeting ? (
+        <FloorMeetingCard
+          meeting={meeting}
+          copy={copy}
+          onInterject={meetingHandlers.onInterject}
+          onLeave={meetingHandlers.onLeave}
+          onSitDown={() => sitDown()}
+        />
+      ) : person ? (
         <FloorPersonCard
           person={person}
           copy={copy}
-          canMessage={person.tier === 'office' && isOfficeColleagueId(person.id)}
+          canMessage={person.canMessage}
           onMessage={onMessage}
           onSitDown={() => sitDown()}
           onClose={() => setSelectedId(null)}
@@ -185,11 +202,15 @@ function OfficeFloorView({
  * costs one store subscription while you are working. Office state arrives as
  * props: `OfficeLayer` owns the store subscription for both renderers.
  *
+ * Everything below is forwarded to `OfficeFloorView` untouched.
+ *
  * @param {{
  *   onMessage?: (colleagueId: string) => void,
  *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
- *   onDismissWalkBy?: (id: string) => void
+ *   onDismissWalkBy?: (id: string) => void,
+ *   coffee?: any, battle?: any, sceneHandlers?: any,
+ *   meeting?: any, meetingHandlers?: any
  * }} props
  */
 export default function OfficeFloor(props) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CAST_TIERS } from '../src/utils/castTiers.js';
+import { MEETING_ROSTER_MAX } from '../src/utils/officeCast.js';
 import {
   BATTLE_TILES,
   COFFEE_TILES,
@@ -8,6 +9,9 @@ import {
   FLOOR_ZONES,
   GRID_H,
   GRID_W,
+  MEETING_BUBBLE_DEPTH,
+  MEETING_PLAYER_TILE,
+  MEETING_SEATS,
   ORIGIN_X,
   ORIGIN_Y,
   STAGE_H,
@@ -19,6 +23,8 @@ import {
   depthOf,
   floorSeatIds,
   isOnFloor,
+  liftToDepth,
+  meetingSeating,
   pathCost,
   projectIso,
   seatFor,
@@ -26,6 +32,39 @@ import {
   zoneCentre,
   zonePolygon
 } from '../src/utils/officeFloorPlan.js';
+
+/**
+ * A figure's screen footprint, in stage px: a 34 px `PersonaFace` head over a
+ * 24 px torso pulled up 10 px to overlap it (`.office-floor-person-head`), so
+ * 34 wide by 48 tall — lifted 30 px when seated (§ 6 rule 2). Confirmed against
+ * `getBoundingClientRect()` in a capture rather than read off the stylesheet.
+ *
+ * This is the honest form of § 6 rule 10. "No mark may share `x - y` with a
+ * desk" is the integer shorthand for it, and it does not survive fractional
+ * marks: the glass room is a diagonal strip in column space, so every seat
+ * around its table has a fractional column. What the rule is actually about is
+ * one figure's head landing on another's, which is a rectangle intersection.
+ */
+const FIGURE_HALF_W = 17;
+const FIGURE_H = 48;
+const HEAD_H = 34;
+const SEATED_LIFT = 30;
+
+function figureBox(tile, { seated = true } = {}) {
+  const { left, top } = projectIso(tile.x, tile.y);
+  const feet = top - (seated ? SEATED_LIFT : 0);
+  return { x0: left - FIGURE_HALF_W, x1: left + FIGURE_HALF_W, y0: feet - FIGURE_H, y1: feet };
+}
+
+/** Just the head — the part that must never be covered. */
+function headBox(tile, options) {
+  const box = figureBox(tile, options);
+  return { ...box, y1: box.y0 + HEAD_H };
+}
+
+function overlaps(a, b) {
+  return a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+}
 
 describe('isometric projection', () => {
   it('puts tile 0,0 at the stage origin', () => {
@@ -195,6 +234,121 @@ describe('set-piece marks', () => {
         expect(onSeat, `${label} mark is on a desk`).toBe(false);
       }
     }
+  });
+});
+
+describe('meeting seats (slice 5)', () => {
+  const table = FLOOR_PROPS.find((prop) => prop.kind === 'meetingTable');
+  const meetingZone = FLOOR_ZONES.find((zone) => zone.id === 'meeting');
+  /** Everyone the glass room seats: the eight attendees plus your chair. */
+  const allMarks = [...MEETING_SEATS, MEETING_PLAYER_TILE];
+
+  it('seats a full roster, once each, with your own chair kept clear', () => {
+    // Drift guard: the picker lets you invite MEETING_ROSTER_MAX people, so the
+    // room has to hold exactly that many — plus you, on a mark of your own.
+    expect(MEETING_SEATS).toHaveLength(MEETING_ROSTER_MAX);
+    const keys = allMarks.map((tile) => `${tile.x},${tile.y}`);
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('keeps every mark inside the glass room', () => {
+    const [x0, y0, x1, y1] = meetingZone.rect;
+    for (const tile of allMarks) {
+      const where = `${tile.x},${tile.y}`;
+      expect(isOnFloor(tile.x, tile.y), `${where} is off the floor`).toBe(true);
+      expect(tile.x > x0 && tile.x < x1, `${where} is outside the meeting zone`).toBe(true);
+      expect(tile.y > y0 && tile.y < y1, `${where} is outside the meeting zone`).toBe(true);
+    }
+  });
+
+  it('paints the far row behind the table and the near row in front of it', () => {
+    // The table is one prop with one z-index, so this ordering is the whole
+    // trick that makes eight people read as seated *around* it: the far row is
+    // cut off at the tabletop, the near row's torsos sit over it.
+    const tableDepth = depthOf(table.x, table.y);
+    for (const tile of allMarks) {
+      const behindTheTable = tile.y < table.y;
+      expect(
+        depthOf(tile.x, tile.y) < tableDepth,
+        `${tile.x},${tile.y} paints on the wrong side of the table`
+      ).toBe(behindTheTable);
+      // …and nobody stands *on* it (the art is 1.1 tiles deep, so 0.55 either
+      // side of its anchor is tabletop).
+      expect(Math.abs(tile.y - table.y), `${tile.x},${tile.y} is on the tabletop`).toBeGreaterThan(
+        0.6
+      );
+    }
+  });
+
+  it('never drops a meeting attendee on top of somebody at their desk', () => {
+    for (const tile of allMarks) {
+      for (const seat of FLOOR_SEATS) {
+        if (!seat.desk) continue;
+        expect(
+          overlaps(figureBox(tile), figureBox({ x: seat.x, y: seat.y })),
+          `a seat at ${tile.x},${tile.y} covers ${seat.id} at their desk`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('lets neighbours overlap but never hides a face across the table', () => {
+    // Four heads along one 1.9-tile side of a table cannot avoid overlapping —
+    // 56 px of screen column per tile, 34 px per head — and side-by-side
+    // shoulders are exactly what a crowded table looks like. What must stay
+    // clear is the row opposite: an eclipsed attendee is a missing attendee.
+    for (const near of allMarks) {
+      for (const far of allMarks) {
+        if (near.y === far.y) continue;
+        expect(
+          overlaps(figureBox(near), headBox(far)),
+          `${near.x},${near.y} covers the face at ${far.x},${far.y}`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('parks a speech bubble in the speaker’s column, clear of every head', () => {
+    // A bubble anchored on the speaker's own tile covered the whole room — the
+    // room renders ~170 px wide and a FloorBubble is ~264. Lifting it onto one
+    // depth line keeps the tail pointing at them and the room visible.
+    const headTop = (tile) => figureBox(tile).y0;
+    const highestHead = Math.min(...allMarks.map(headTop));
+    for (const tile of allMarks) {
+      const above = liftToDepth(tile, MEETING_BUBBLE_DEPTH);
+      const where = `${tile.x},${tile.y}`;
+      // Same screen column as the speaker: the tail has to point at somebody.
+      expect(projectIso(above.x, above.y).left, `${where} bubble drifted sideways`).toBe(
+        projectIso(tile.x, tile.y).left
+      );
+      // The bubble's bottom edge sits above the tallest head in the room.
+      expect(projectIso(above.x, above.y).top, `${where} bubble covers a face`).toBeLessThan(
+        highestHead
+      );
+    }
+  });
+
+  it('gives the facilitator the head of the table and keeps invite order after', () => {
+    const seating = meetingSeating(['refine', 'scrumMaster', 'critique'], 'scrumMaster');
+    expect(seating.map((seat) => seat.id)).toEqual(['scrumMaster', 'refine', 'critique']);
+    expect(seating[0].tile).toEqual(MEETING_SEATS[0]);
+    expect(seating[1].tile).toEqual(MEETING_SEATS[1]);
+  });
+
+  it('seats whoever showed up when the facilitator is not in the room', () => {
+    const seating = meetingSeating(['refine', 'critique'], 'scrumMaster');
+    expect(seating.map((seat) => seat.id)).toEqual(['refine', 'critique']);
+  });
+
+  it('drops duplicates and anyone past the last chair', () => {
+    const crowd = [...CAST_TIERS.team, ...CAST_TIERS.senior, ...CAST_TIERS.office];
+    expect(crowd.length).toBeGreaterThan(MEETING_SEATS.length);
+    expect(meetingSeating(crowd)).toHaveLength(MEETING_SEATS.length);
+    expect(meetingSeating(['refine', 'refine', 'critique']).map((s) => s.id)).toEqual([
+      'refine',
+      'critique'
+    ]);
+    expect(meetingSeating(undefined)).toEqual([]);
   });
 });
 

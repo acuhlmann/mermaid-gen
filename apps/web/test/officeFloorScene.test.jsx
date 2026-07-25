@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import OfficeFloor from '../src/components/OfficeFloor.jsx';
-import { sceneParticipants } from '../src/utils/officeSceneCast.js';
+import { awayFromDeskIds, sceneParticipants } from '../src/utils/officeSceneCast.js';
 import { _resetOfficeViewModeForTests, standUp } from '../src/state/officeViewModeStore.js';
 
 const COFFEE = {
@@ -41,6 +41,27 @@ describe('sceneParticipants', () => {
     expect(sceneParticipants(COFFEE.lines)).toEqual(['intern', 'greybeard']);
     expect(sceneParticipants([])).toEqual([]);
     expect(sceneParticipants(undefined)).toEqual([]);
+  });
+});
+
+describe('awayFromDeskIds', () => {
+  it('collects everyone up and about, and nobody when the floor is working', () => {
+    expect(awayFromDeskIds({ playerId: 'you' })).toEqual([]);
+    expect(awayFromDeskIds({ coffee: COFFEE, battle: BATTLE, playerId: 'you' })).toEqual([
+      'intern',
+      'greybeard',
+      'scrumMaster',
+      'greybeard'
+    ]);
+  });
+
+  it('takes you out of your own chair for a meeting, and only then', () => {
+    const meeting = { attendees: ['scrumMaster', 'refine'] };
+    expect(awayFromDeskIds({ meeting, playerId: 'you' })).toEqual(['you', 'scrumMaster', 'refine']);
+    expect(awayFromDeskIds({ meeting: { attendees: undefined }, playerId: 'you' })).toEqual([
+      'you'
+    ]);
+    expect(awayFromDeskIds({ coffee: COFFEE, playerId: 'you' })).not.toContain('you');
   });
 });
 
