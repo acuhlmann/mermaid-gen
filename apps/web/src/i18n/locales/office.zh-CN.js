@@ -60,6 +60,10 @@ export const OFFICE_ZH_CN = {
     cfo: {
       title: 'CFO — 预算就是不行',
       blurb: '每个方框都是成本中心。会问这张图每月要花多少钱。什么都不批。'
+    },
+    barker: {
+      title: 'CEO — 成功表演学',
+      blurb: '为兴奋而兴奋。布道"成功连体三角"。已经擅自替你决定了。'
     }
   },
   OFFICE_SLOT_FALLBACKS: { label: '这张图', userTitle: '实习架构师', userName: '新人' },
@@ -223,6 +227,19 @@ export const OFFICE_ZH_CN = {
       subject: '在某场主题演讲上见过一模一样的(想法?)',
       body: '刚从 VisionaryConf 回来。有一页幻灯片和你的 {label} 几乎一样 — 只不过他们的会脉动,还带 AI 光环。我们的能脉动吗?把负责脉动的人拉进来。\n\n向前,\nMarcus',
       actionPrompt: '加一个大胆的愿景元素,让整张图更有未来感'
+    },
+    {
+      id: 'email-barker-liberty',
+      colleagueId: 'barker',
+      subject: '我擅自做了决定(天大的好消息)',
+      body: '{userName} — 今天早上我花时间看了你的 {label},我很兴奋。不是因为它本身,而是因为我们可以围绕它讲出的故事。所以我擅自为它成立了一个小型工作组 — 没什么正式的,只是一个例行同步会、一个指导委员会和一份一页纸报告。一家人就该这样。\n\n温暖的问候,\nJack Barker',
+      actionPrompt: '添加一个名为"董事会级成果"的节点,并连接到最后一步'
+    },
+    {
+      id: 'email-barker-excited',
+      colleagueId: 'barker',
+      subject: '我不知道你怎么样,反正我很兴奋',
+      body: '{userName} — {label} 进展得非常漂亮,我这么说可是看过无数图表的人。记住:打动不了董事会的图只是爱好,而我们不是一家做爱好的公司。故事要简单,价值要明显,协同要可见。\n\n我们是一家人。\n\n温暖的问候,\nJack'
     }
   ],
   OFFICE_IM_TEMPLATES: [

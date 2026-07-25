@@ -33,7 +33,7 @@ test('office colleague registry covers the v1 cast and stakeholders stay separat
 });
 
 test('senior stakeholders are valid meeting speakers with real voice blocks', () => {
-  for (const id of ['cto', 'cfo']) {
+  for (const id of ['cto', 'cfo', 'barker']) {
     assert.equal(isOfficeSpeaker(id), true, `${id} should be able to take a seat`);
     assert.equal(isOfficeColleague(id), false, `${id} is not an ambient colleague`);
     assert.ok(SENIOR_MEETING_VOICES[id].voice.length > 40, `${id} needs a real voice block`);
@@ -46,6 +46,18 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   assert.match(prompt, /Diane \(CFO/);
   assert.match(prompt, /speakerId "cfo"/);
   assert.match(prompt, /Senior attendees/);
+  // Jack Barker (Silicon Valley replication experiment): named in the prompt, seat-able.
+  const barkerPrompt = buildMeetingSystemPrompt({
+    attendees: ['scrumMaster', 'barker', 'refine'],
+    facilitatorId: 'scrumMaster'
+  });
+  assert.match(barkerPrompt, /Jack Barker \(CEO/);
+  assert.match(barkerPrompt, /speakerId "barker"/);
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker', 'refine']), [
+    'scrumMaster',
+    'barker',
+    'refine'
+  ]);
 });
 
 test('moment system prompt carries the voice, strict-JSON rule, and kind rules', () => {

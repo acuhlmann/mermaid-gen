@@ -43,11 +43,11 @@ The cast is split into **three tiers** (`apps/web/src/utils/castTiers.js` — `C
 `tierOf`). The tier is a tag, not a data move: `exec` still lives in `VARIANT_PERSONAS` and
 `ciso` in `OFFICE_COLLEAGUES`.
 
-| Tier       | Who                                                      | How they reach you                                                              |
-| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **team**   | refine, innovate, goMad, critique, explain               | Proactive roundtable (`ADVISOR_ORDER`) + the agent actions. Your collaborators. |
-| **senior** | exec (VP), ciso (Sasha), cto (Marcus), cfo (Diane)       | Steering meetings + ≤1 high-stakes email/session. Never ambient pings.          |
-| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard | Emails, IMs, walk-bys, coffee, battles. The floor around you.                   |
+| Tier       | Who                                                               | How they reach you                                                              |
+| ---------- | ----------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| **team**   | refine, innovate, goMad, critique, explain                        | Proactive roundtable (`ADVISOR_ORDER`) + the agent actions. Your collaborators. |
+| **senior** | exec (VP), ciso (Sasha), cto (Marcus), cfo (Diane), barker (Jack) | Steering meetings + ≤1 high-stakes email/session. Never ambient pings.          |
+| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard          | Emails, IMs, walk-bys, coffee, battles. The floor around you.                   |
 
 Boundary rules worth keeping: senior stakeholders are excluded from
 `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and from the canned day-to-day banks — their one ambient
@@ -57,12 +57,23 @@ leadership pinging your desk.
 
 ### Senior stakeholders
 
-| id     | Name   | Title                          | Emoji | Bit                                                                 |
-| ------ | ------ | ------------------------------ | ----- | ------------------------------------------------------------------- |
-| `exec` | The VP | SVP of Synergy & Co-Design     | 👔    | Subtractive; wants the one-pager; hard stop in four minutes         |
-| `ciso` | Sasha  | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims             |
-| `cto`  | Marcus | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016 |
-| `cfo`  | Diane  | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month   |
+| id       | Name        | Title                          | Emoji | Bit                                                                 |
+| -------- | ----------- | ------------------------------ | ----- | ------------------------------------------------------------------- |
+| `exec`   | The VP      | SVP of Synergy & Co-Design     | 👔    | Subtractive; wants the one-pager; hard stop in four minutes         |
+| `ciso`   | Sasha       | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims             |
+| `cto`    | Marcus      | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016 |
+| `cfo`    | Diane       | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month   |
+| `barker` | Jack Barker | CEO — Success Theater          | 🧘    | **Experiment:** named Silicon Valley replication (see note below)   |
+
+> **The Barker experiment.** `barker` is a deliberate replication of Jack Barker from HBO's
+> _Silicon Valley_ — the first test of how faithfully a named TV character can live in this cast.
+> His voice card (`SENIOR_MEETING_VOICES.barker` in `apps/server/src/agents/officePersonas.js`)
+> was tuned against `scripts/barker-fidelity.mjs`, an LLM-as-judge harness that scores generated
+> beats/emails for recognizability, voice mechanics, catchphrase budget, and in-world fit
+> (final sustained score ≈ 4.2/5). Status: **local experiment** — if this cast ever ships to the
+> public deployment, decide first whether he keeps the real name or moves to a legally-distinct
+> alias (the way Marcus is a Gavin Belson _homage_, not Gavin Belson). The full program status and
+> the replication playbook live in [docs/recipes/replicate-tv-character.md](recipes/replicate-tv-character.md).
 
 ### Shipped colleagues (v1)
 

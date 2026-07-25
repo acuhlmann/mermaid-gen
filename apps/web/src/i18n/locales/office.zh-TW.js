@@ -60,6 +60,10 @@ export const OFFICE_ZH_TW = {
     cfo: {
       title: 'CFO — 預算就是不行',
       blurb: '每個方塊都是成本中心。會問這張圖每月要花多少錢。什麼都不批。'
+    },
+    barker: {
+      title: 'CEO — 成功表演學',
+      blurb: '為興奮而興奮。布道「成功連體三角」。已經擅自替你決定了。'
     }
   },
   OFFICE_SLOT_FALLBACKS: { label: '這張圖', userTitle: '實習架構師', userName: '新人' },
@@ -223,6 +227,19 @@ export const OFFICE_ZH_TW = {
       subject: '在某場主題演講上看過一模一樣的(想法?)',
       body: '剛從 VisionaryConf 回來。有一頁投影片和你的 {label} 幾乎一樣 — 只不過他們的會脈動,還帶 AI 光環。我們的能脈動嗎?把負責脈動的人拉進來。\n\n向前,\nMarcus',
       actionPrompt: '加一個大膽的願景元素,讓整張圖更有未來感'
+    },
+    {
+      id: 'email-barker-liberty',
+      colleagueId: 'barker',
+      subject: '我擅自做了決定(天大的好消息)',
+      body: '{userName} — 今天早上我花時間看了你的 {label},我很興奮。不是因為它本身,而是因為我們可以圍繞它講出的故事。所以我擅自為它成立了一個小型工作組 — 沒什麼正式的,只是一個例行同步會、一個指導委員會和一份一頁報告。一家人就該這樣。\n\n溫暖的問候,\nJack Barker',
+      actionPrompt: '新增一個名為「董事會級成果」的節點,並連接到最後一步'
+    },
+    {
+      id: 'email-barker-excited',
+      colleagueId: 'barker',
+      subject: '我不知道你怎麼樣,反正我很興奮',
+      body: '{userName} — {label} 進展得非常漂亮,我這麼說可是看過無數圖表的人。記住:打動不了董事會的圖只是愛好,而我們不是一家做愛好的公司。故事要簡單,價值要明顯,協同要可見。\n\n我們是一家人。\n\n溫暖的問候,\nJack'
     }
   ],
   OFFICE_IM_TEMPLATES: [

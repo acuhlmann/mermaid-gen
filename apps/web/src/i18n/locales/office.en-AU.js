@@ -204,6 +204,19 @@ export const OFFICE_EN_AU = {
       subject: 'Saw this exact thing at a keynote (thoughts?)',
       body: 'Just back from VisionaryConf. There was a slide almost identical to your {label} — except theirs pulsed and had an AI halo. Can ours pulse? Loop in whoever owns pulsing.\n\nOnwards,\nMarcus',
       actionPrompt: 'Add a bold visionary element that makes the diagram feel futuristic'
+    },
+    {
+      id: 'email-barker-liberty',
+      colleagueId: 'barker',
+      subject: "I've taken the liberty (terrific news)",
+      body: "{userName} — I spent some time with {label} this morning, and I am excited. Not just about what it is, but about the story we can tell about it. So I've taken the liberty of setting up a little working group around it — nothing formal, just a recurring sync, a steering committee, and a one-pager. That's what families do.\n\nWarmly,\nJack Barker",
+      actionPrompt: 'Add a node named "Board-Ready Outcome" and connect it to the final step'
+    },
+    {
+      id: 'email-barker-excited',
+      colleagueId: 'barker',
+      subject: "I don't know about you, but I am excited",
+      body: "{userName} — {label} is coming along beautifully, and I say that as someone who has seen many, many diagrams. Remember: a diagram that can't impress a board is a hobby, and we're not a hobby company. Keep the story simple, the value obvious, and the synergy visible.\n\nWe're a family here.\n\nWarmly,\nJack"
     }
   ],
   OFFICE_IM_TEMPLATES: [

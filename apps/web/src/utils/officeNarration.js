@@ -50,7 +50,8 @@ export const OFFICE_VOICE_PROFILES = {
   explain: { pitch: 0.94, rate: 0.92, volume: 0.8 },
   exec: { pitch: 0.78, rate: 0.94, volume: 0.84 },
   cto: { pitch: 1.08, rate: 1.05, volume: 0.85 },
-  cfo: { pitch: 0.88, rate: 0.9, volume: 0.78 }
+  cfo: { pitch: 0.88, rate: 0.9, volume: 0.78 },
+  barker: { pitch: 0.8, rate: 0.9, volume: 0.82 }
 };
 
 /** Brief breath between speakers in sequential dialogue (meetings, battles, coffee). */

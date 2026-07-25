@@ -154,6 +154,15 @@ export const SENIOR_STAKEHOLDERS = {
     blurb: 'Every box is a cost center. Asks what the diagram costs per month. Approves nothing.',
     avatarEmoji: '🧮',
     accentColor: '#065f46'
+  },
+  barker: {
+    id: 'barker',
+    name: 'Jack Barker',
+    title: 'CEO — Success Theater',
+    blurb:
+      'Thrilled to be thrilled. Preaches the Conjoined Triangles of Success. Has taken the liberty.',
+    avatarEmoji: '🧘',
+    accentColor: '#ca8a04'
   }
 };
 
@@ -190,7 +199,7 @@ export function officeSenderInfo(id) {
 }
 
 /** Steering-meeting seats: senior stakeholders the team presents to. */
-export const MEETING_SENIOR_POOL = ['exec', 'ciso', 'cto', 'cfo'];
+export const MEETING_SENIOR_POOL = ['exec', 'ciso', 'cto', 'cfo', 'barker'];
 /** Team members who can be sent upstairs to defend the diagram. */
 export const MEETING_PRESENTER_POOL = ['refine', 'critique', 'explain'];
 export const MEETING_FACILITATOR = 'scrumMaster';
@@ -525,6 +534,19 @@ export const SENIOR_EMAIL_TEMPLATES = [
     subject: 'Saw this exact thing at a keynote (thoughts?)',
     body: 'Just got back from VisionaryConf. There was a slide almost identical to your {label} — except theirs pulsed and had an AI halo. Can ours pulse? Loop in whoever owns pulsing.\n\nOnwards,\nMarcus',
     actionPrompt: 'Add a bold visionary element that makes the diagram feel futuristic'
+  },
+  {
+    id: 'email-barker-liberty',
+    colleagueId: 'barker',
+    subject: "I've taken the liberty (terrific news)",
+    body: "{userName} — I spent some time with {label} this morning, and I am excited. Not just about what it is, but about the story we can tell about it. So I've taken the liberty of forming a small working group around it — nothing formal, just a recurring sync, a steering committee, and a one-pager. That's what families do.\n\nWarmly,\nJack Barker",
+    actionPrompt: 'Add a node named "Board-Ready Outcome" and connect it to the final step'
+  },
+  {
+    id: 'email-barker-excited',
+    colleagueId: 'barker',
+    subject: "I don't know about you, but I am excited",
+    body: "{userName} — {label} is coming along beautifully, and I say that as someone who has seen many, many diagrams. Remember: a diagram that can't impress a board is a hobby, and we are not a hobby company. Keep the story simple, the value obvious, and the synergy visible.\n\nWe're a family here.\n\nWarmly,\nJack"
   }
 ];
 

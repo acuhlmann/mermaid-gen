@@ -128,6 +128,15 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'lanyard',
     expression: 'neutral'
   },
+  barker: {
+    skin: 'tan',
+    hair: 'short',
+    hairColor: 'grey',
+    facialHair: 'none',
+    glasses: 'none',
+    accessory: 'tie',
+    expression: 'smile'
+  },
 
   // ── office floor ────────────────────────────────────────────────────────
   intern: {

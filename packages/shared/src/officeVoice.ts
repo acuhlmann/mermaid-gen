@@ -28,6 +28,7 @@ export const OFFICE_SPEAKER_IDS = [
   'ciso',
   'cto',
   'cfo',
+  'barker',
   // office
   'intern',
   'scrumMaster',
