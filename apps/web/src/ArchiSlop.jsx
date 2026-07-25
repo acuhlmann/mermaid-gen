@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import './App.css';
 import './components/RunTimeline.css';
+import './components/OfficeFloor.css';
 import { useThinkingPaneSlot } from './features/insights/useThinkingPaneSlot.jsx';
 import { useCritiqueActionableSelection } from './features/insights/useCritiqueActionableSelection.js';
 import { useSlopitectTips } from './features/prompt/useSlopitectTips.js';
@@ -24,6 +25,7 @@ import { useDiagramSessionRuntime } from './features/session/useDiagramSessionRu
 import { useCanvasInteractionRuntime } from './features/session/useCanvasInteractionRuntime.js';
 import { usePromptBufferSync } from './features/session/usePromptBufferSync.js';
 import OfficeDirectory from './components/OfficeDirectory.jsx';
+import FloorArrival from './components/officeFloor/FloorArrival.jsx';
 import { useUiCopy } from './i18n/useUiLocale.js';
 import { readStreamDebugEnabled } from './utils/appStreamDebug.js';
 import {
@@ -931,17 +933,28 @@ export function ArchiSlop() {
           entryPointers={controls.prompt.entryPointers ?? []}
         />
       ) : null}
-      <div className="office-directory-root-mount">
-        <OfficeDirectory
-          placement={officeBootPending ? 'boot' : hasCanvasContent ? 'overlay' : 'entry'}
-          isBoot={officeBootPending}
-          showChip={false}
+      {/* First run arrives through the floor (ADR-0011 slice 3); the card tour
+          stays mounted afterwards for replays from the level panel. */}
+      {officeBootPending ? (
+        <FloorArrival
+          onComplete={handleOfficeBootComplete}
           onSkipToBuild={focusTopicInput}
-          onBootComplete={handleOfficeBootComplete}
           getSessionId={() => activeSessionId}
-          userRole={controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'}
         />
-      </div>
+      ) : (
+        <div className="office-directory-root-mount">
+          <OfficeDirectory
+            placement={hasCanvasContent ? 'overlay' : 'entry'}
+            showChip={false}
+            onSkipToBuild={focusTopicInput}
+            onBootComplete={handleOfficeBootComplete}
+            getSessionId={() => activeSessionId}
+            userRole={
+              controls.prompt.entryIntro?.role ?? controls.prompt.exampleRole ?? 'Architect'
+            }
+          />
+        </div>
+      )}
     </main>
   );
 }

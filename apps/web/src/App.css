@@ -42,6 +42,10 @@
   /* Portaled advisor speech / thinking bubble — above anchored popovers, below modals. */
   --z-advisor-float: 80;
   --z-radial-popover: 120;
+  /* Isometric mode (ADR-0011): a *view*, not an overlay — it covers the whole
+     workstation screen, but office windows (inbox, Slop Chat, meetings) still
+     float above it, so standing up never takes functionality away. */
+  --z-office-floor: 150;
   --z-modal: 220;
   --z-modal-strong: 250;
   /* Ephemeral persona / ceremony animations (boot headline, streak banners, run mascots). */

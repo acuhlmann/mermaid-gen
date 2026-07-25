@@ -58,6 +58,7 @@ function computePortaledMenuStyle(anchorRect) {
 export default function DeskActionsDock({
   onGetCoffee,
   onWalkTheFloor,
+  onStandUp,
   onCheckInbox,
   onOpenSlopChat,
   onCheckHrProgression,
@@ -165,6 +166,14 @@ export default function DeskActionsDock({
       alwaysEnabled: true,
       title: copy.slopChatTitle,
       badge: imUnreadCount > 0 ? (imUnreadCount > 9 ? '9+' : String(imUnreadCount)) : null
+    },
+    {
+      id: 'standUp',
+      label: copy.standUp,
+      emoji: '🧍',
+      run: onStandUp,
+      alwaysEnabled: true,
+      title: copy.standUpTitle
     },
     { id: 'walk', label: copy.walk, emoji: '🚶', run: onWalkTheFloor, ambient: true },
     { id: 'coffee', label: copy.coffee, emoji: '☕', run: onGetCoffee, ambient: true },

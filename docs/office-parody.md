@@ -470,11 +470,46 @@ consumer). Reserved for later MCP-app parity: `office_moment` / `meeting_started
 7. **Seasonal events** — Q4 budget freeze (Auditor rampant), Hackathon week (SLOPITECT rampant),
    "no-meeting Wednesday" (meetings double).
 8. **Multiplayer watercooler** — real external MCP agents (System B) join coffee breaks alongside
-   the fictional cast via the session event bus.
+   the fictional cast via the session event bus. Superseded by the full multi-human design spec:
+   [`docs/multi-human-office.md`](multi-human-office.md) (backburnered; adopted decisions + vocabulary).
 9. **Desk booking / hybrid days** — some days a colleague "isn't in" and IMs instead of walk-bys.
 10. **Meeting escalation ladder** — WG → steering committee → CAB hearing; CAB approval achievement.
 11. **The Consultant's invoice** — while the Consultant is in any meeting, the Damage Report ticks
     visibly per minute.
+
+## 11. Agency & reactivity doctrine (adopted 2026-07-25)
+
+Decisions from the design grilling; canonical vocabulary in [`GLOSSARY.md`](../GLOSSARY.md)
+(entries: _Sign-off rule / one-producer model_, _Pitch_, _Reactive vs. ambient_, _Office log_,
+_Their own work_). The isometric floor design is [`office-isometric-mode.md`](office-isometric-mode.md);
+the backburnered multi-human future is [`multi-human-office.md`](multi-human-office.md).
+
+- **One producer, many commentators.** The human's pipeline is the sole producer of slot
+  content. The built-in cast (all tiers) never generates DSLs or code and never initiates
+  runs — they comment, pitch, and chat. Contractors (explicitly invited external MCP agents)
+  keep their validated-proposal path. The discovery loop stays exactly as-is: the user
+  decides what they work on.
+- **Pitch / proposal split.** A cast suggestion is a **pitch** — instruction + rationale,
+  attributed, persistent as a card in the unified review queue; accepting it triggers a run
+  through the user's own pipeline, attributed to the pitcher. Today's ephemeral "Do it"
+  `actionPrompt` is the pitch's ancestor. Concrete validated **proposals** remain
+  contractor-only.
+- **Reactive vs. ambient spend.** Ambient (timer-driven) content stays canned-heavy on the
+  existing tiny budget. _Reactive_ content — anything the user initiates or directly answers
+  (IM/DM replies, email replies, walk-by responses, meeting interjections) — is **always
+  LLM** in persona voice, under a generous per-session reactive cap, degrading in character
+  when exhausted ("gotta run, sprint planning 🏃"), never with an error. Carve-outs by
+  character design: Ticket Bot Dave stays 100% canned (being a bot is the bit); battles and
+  coffee scenes stay canned theater.
+- **Context contract.** Reactive calls carry: token-capped per-character thread memory; the
+  **office log** (a rolling client-built digest of runs, pitches, meetings, notable
+  moments — what makes six voices one office); deliverable context (source, labels, last-run
+  summary); persisted across reloads (capped localStorage). **DM privacy:** a character never
+  sees the user's threads with other characters.
+- **Their own work.** Each character carries a slowly-evolving _fictional_ workload they
+  reference and can discuss when asked — conversational color (and, later, desk-peeking
+  visuals on the floor), never a real pipeline.
+
 12. ~~**Locale bundles**~~ — ✅ shipped: the full office copy bank (colleague titles, canned
     emails/IMs/walk-bys/coffee scenes/battle scenes, meeting copy, chrome strings, quick replies,
     `{label}` slot fallbacks) localizes to en-AU / zh-CN / zh-TW via `office.*.js` bundles merged

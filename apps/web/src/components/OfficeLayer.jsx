@@ -6,6 +6,7 @@ import DeskActionsDock from './DeskActionsDock.jsx';
 import MeetingInviteToast from './MeetingInviteToast.jsx';
 import MeetingOverlay from './MeetingOverlay.jsx';
 import OfficeBattleOverlay from './OfficeBattleOverlay.jsx';
+import OfficeFloor from './OfficeFloor.jsx';
 import OfficeImPing from './OfficeImPing.jsx';
 import OfficeInboxDock from './OfficeInboxDock.jsx';
 import OfficeMessenger from './OfficeMessenger.jsx';
@@ -64,6 +65,11 @@ import {
 } from '../utils/officeNarration.js';
 import { threadTranscriptFor } from '../utils/officeImThreads.js';
 import { getDeskSlotElement, subscribeDeskSlotElement } from '../state/deskSlotStore.js';
+import {
+  getOfficeViewMode,
+  standUp,
+  subscribe as subscribeOfficeViewMode
+} from '../state/officeViewModeStore.js';
 
 /**
  * The Office Update™ (docs/office-parody.md) — single mount point for all
@@ -114,6 +120,14 @@ export default function OfficeLayer({
   deskMenuInitialOpen = false
 }) {
   const snapshot = useSyncExternalStore(subscribe, getOfficeSnapshot, getOfficeSnapshot);
+  // Which renderer is on screen (ADR-0011). Surfaces that exist in both worlds
+  // — the walk-by is the first — render here *or* on the floor, never twice.
+  const viewMode = useSyncExternalStore(
+    subscribeOfficeViewMode,
+    getOfficeViewMode,
+    getOfficeViewMode
+  );
+  const onFloor = viewMode === 'floor';
 
   // Cloud TTS ladder via POST /api/office/speak; null → Web Speech fallback.
   const fetchCloudAudio = useCallback(
@@ -486,6 +500,17 @@ export default function OfficeLayer({
     await desk.imSomeone();
   }, [desk]);
 
+  // Walking up to somebody on the isometric floor reuses the desk's IM verb —
+  // renderer #2 gets no private dialogue path of its own (ADR-0011).
+  const handleFloorMessage = useCallback(
+    (colleagueId) => {
+      clearOfficeImPings();
+      setMessengerOpen(true);
+      void desk.imSomeone(colleagueId);
+    },
+    [desk]
+  );
+
   const handleQuickReply = useCallback(
     async (ping, reply) => {
       pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
@@ -505,6 +530,7 @@ export default function OfficeLayer({
       imUnreadCount={snapshot.imUnreadCount}
       onGetCoffee={desk.getCoffee}
       onWalkTheFloor={desk.walkTheFloor}
+      onStandUp={standUp}
       onCheckInbox={desk.checkInbox}
       onOpenSlopChat={handleOpenMessenger}
       onCheckHrProgression={onCheckHrProgression}
@@ -527,6 +553,27 @@ export default function OfficeLayer({
   return (
     <div className="office-layer">
       {deskActionsAnchorReady && deskSlot ? createPortal(deskDock, deskSlot) : null}
+      {/* Renderer #2 of the same office state (ADR-0011). Renders null at your
+          desk; office windows below still float above it when you stand up. */}
+      <OfficeFloor
+        onMessage={handleFloorMessage}
+        walkBy={snapshot.walkBy}
+        onAdoptPrompt={handleAdopt}
+        onDismissWalkBy={dismissOfficeWalkBy}
+        coffee={snapshot.coffee}
+        battle={snapshot.battle}
+        sceneHandlers={{
+          narrateLine: snapshot.narration ? narrateLine : undefined,
+          prefetchLine: snapshot.narration ? prefetchLine : undefined,
+          onAcceptCoffee: acceptOfficeCoffee,
+          onDeclineCoffee: dismissOfficeCoffee,
+          onCoffeeDone: handleCoffeeDone,
+          onAcceptBattle: acceptOfficeBattle,
+          onDeclineBattle: dismissOfficeBattle,
+          onVoteBattle: handleBattleVote,
+          onBattleDone: handleBattleDone
+        }}
+      />
       <OfficeInboxDock
         showTrigger={false}
         openSignal={inboxOpenSignal}
@@ -562,27 +609,35 @@ export default function OfficeLayer({
             onCallMeeting={handleCallMeeting}
             canCallMeeting={canCallMeeting}
           />
-          <OfficeWalkBy
-            walkBy={snapshot.walkBy}
-            onDismiss={dismissOfficeWalkBy}
-            onAdoptPrompt={handleAdopt}
-          />
-          <CoffeeBreakOverlay
-            coffee={snapshot.coffee}
-            onAccept={acceptOfficeCoffee}
-            onDecline={dismissOfficeCoffee}
-            onDone={handleCoffeeDone}
-            narrateLine={snapshot.narration ? narrateLine : undefined}
-            prefetchLine={snapshot.narration ? prefetchLine : undefined}
-          />
-          <OfficeBattleOverlay
-            battle={snapshot.battle}
-            onAccept={acceptOfficeBattle}
-            onVote={handleBattleVote}
-            onDone={handleBattleDone}
-            narrateLine={snapshot.narration ? narrateLine : undefined}
-            prefetchLine={snapshot.narration ? prefetchLine : undefined}
-          />
+          {onFloor ? null : (
+            <OfficeWalkBy
+              walkBy={snapshot.walkBy}
+              onDismiss={dismissOfficeWalkBy}
+              onAdoptPrompt={handleAdopt}
+            />
+          )}
+          {/* Set pieces render here or on the floor, never both — two paced
+              performances of one scene would speak every line twice. */}
+          {onFloor ? null : (
+            <>
+              <CoffeeBreakOverlay
+                coffee={snapshot.coffee}
+                onAccept={acceptOfficeCoffee}
+                onDecline={dismissOfficeCoffee}
+                onDone={handleCoffeeDone}
+                narrateLine={snapshot.narration ? narrateLine : undefined}
+                prefetchLine={snapshot.narration ? prefetchLine : undefined}
+              />
+              <OfficeBattleOverlay
+                battle={snapshot.battle}
+                onAccept={acceptOfficeBattle}
+                onVote={handleBattleVote}
+                onDone={handleBattleDone}
+                narrateLine={snapshot.narration ? narrateLine : undefined}
+                prefetchLine={snapshot.narration ? prefetchLine : undefined}
+              />
+            </>
+          )}
           {!meeting && snapshot.meetingInvite ? (
             <MeetingInviteToast
               invite={snapshot.meetingInvite}

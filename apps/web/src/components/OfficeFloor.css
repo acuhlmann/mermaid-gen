@@ -1,0 +1,693 @@
+/*
+ * Isometric mode (ADR-0011). The floor is plain positioned DOM + SVG: one
+ * scaled stage, absolutely-positioned props and people, painter's-algorithm
+ * z-index from officeFloorPlan.depthOf. No engine, no canvas, no second input
+ * system — which is what keeps every character a focusable button.
+ */
+
+.office-floor {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-office-floor, 150);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Opaque: this is a view, not an overlay — the workstation screen is behind
+     it and must not show through the carpet. */
+  background:
+    radial-gradient(circle at 22% 12%, rgba(191, 219, 254, 0.55), transparent 42rem),
+    linear-gradient(168deg, #e7edf7 0%, #dde5f2 46%, #cfd9ea 100%);
+  color: var(--text);
+  animation: office-floor-stand-up 260ms ease-out;
+}
+
+@keyframes office-floor-stand-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.995);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── top bar ─────────────────────────────────────────────────────────────── */
+
+.office-floor-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.1rem 0.6rem;
+  padding-top: max(0.85rem, env(safe-area-inset-top));
+}
+
+/* Flexible + min-width:0 so the copy yields and the sit button is never
+   pushed off a narrow screen. */
+.office-floor-bar-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.office-floor-eyebrow {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+
+.office-floor-title {
+  margin: 0.1rem 0 0;
+  font-size: 1.12rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.office-floor-subtitle {
+  margin: 0.12rem 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  max-width: 46ch;
+}
+
+.office-floor-sit {
+  flex: none;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--office-surface-bg, #fff);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 0.95rem;
+  cursor: pointer;
+  box-shadow: var(--control-shadow);
+}
+
+.office-floor-sit:hover,
+.office-floor-sit:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+/* ── the stage ───────────────────────────────────────────────────────────── */
+
+.office-floor-viewport {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* When the room is clamped at MIN_SCALE (narrow phones) it overflows and the
+     viewport pans — native scrolling, so touch drag works with no gesture code. */
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0.25rem;
+}
+
+.office-floor-stage {
+  position: relative;
+  flex: none;
+  margin: auto;
+}
+
+.office-floor-stage-inner {
+  position: absolute;
+  inset: 0;
+  transform-origin: top left;
+}
+
+.office-floor-room {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+/* Signage layer: above the furniture, never in the way of it. */
+.office-floor-signage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 9000;
+  pointer-events: none;
+}
+
+.office-floor-zone-label {
+  fill: rgba(15, 23, 42, 0.5);
+  /* White halo under the glyphs so a label stays readable over a desk, a
+     glass wall, or the carpet alike. */
+  stroke: rgba(255, 255, 255, 0.85);
+  stroke-width: 3.5px;
+  paint-order: stroke fill;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.office-floor-you-tile {
+  fill: rgba(37, 99, 235, 0.14);
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 7 6;
+  animation: office-floor-tile-pulse 3.4s ease-in-out infinite;
+}
+
+@keyframes office-floor-tile-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.office-floor-prop {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* ── seats and people ────────────────────────────────────────────────────── */
+
+.office-floor-seat {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+.office-floor-seat-art {
+  position: absolute;
+  pointer-events: none;
+}
+
+.office-floor-person {
+  position: absolute;
+  left: 0;
+  top: 0;
+  /* Standing on the tile: the figure's feet land on the tile centre. */
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/*
+ * Seated cast sit *behind* their desk, which in screen space means higher up:
+ * a desk's top-back edge is ~42 px above the tile centre, so an unlifted figure
+ * shows only a sliver of scalp. This lift clears the desk with head, shoulders
+ * and a little torso — the rest is hidden by the desk, which is what reads as
+ * "sitting at" rather than "standing in".
+ */
+.office-floor-person.is-seated {
+  transform: translate(-50%, calc(-100% - 30px));
+}
+
+.office-floor-person-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: office-floor-idle 4.6s ease-in-out infinite;
+  animation-delay: var(--idle-delay, 0s);
+  filter: drop-shadow(0 4px 5px rgba(15, 23, 42, 0.22));
+}
+
+@keyframes office-floor-idle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+.office-floor-person-head {
+  /* Overlap the circular-clipped shoulders of PersonaFace with the torso below
+     so head and body read as one figure. */
+  margin-bottom: -10px;
+  z-index: 1;
+}
+
+.office-floor-person-body {
+  display: block;
+}
+
+.office-floor-person-name {
+  order: -1;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  padding: 0.16rem 0.36rem;
+  border-radius: 999px;
+  background: var(--office-surface-bg, #fff);
+  border: 1px solid var(--control-border);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+  pointer-events: none;
+}
+
+/* Names stay out of the way until you look for them — except your own desk,
+   which you must be able to find at a glance. */
+.office-floor-person.is-you .office-floor-person-name,
+.office-floor-person.is-selected .office-floor-person-name,
+.office-floor-person:hover .office-floor-person-name,
+.office-floor-person:focus-visible .office-floor-person-name {
+  opacity: 1;
+}
+
+.office-floor-person.is-selected .office-floor-person-name {
+  border-color: var(--floor-accent, var(--accent));
+  color: var(--floor-accent, var(--accent));
+}
+
+.office-floor-person:focus-visible {
+  outline: none;
+}
+
+.office-floor-person:focus-visible .office-floor-person-figure,
+.office-floor-person.is-selected .office-floor-person-figure {
+  filter: drop-shadow(0 0 0 2px var(--floor-accent, var(--accent)))
+    drop-shadow(0 4px 5px rgba(15, 23, 42, 0.25));
+}
+
+.office-floor-person:hover .office-floor-person-figure {
+  transform: translateY(-3px);
+}
+
+/* ── the walker (slice 2) ────────────────────────────────────────────────── */
+
+/*
+ * Positioned at the stage origin and moved entirely by transform, because the
+ * Web Animations API drives that transform off the main thread — a walk costs
+ * zero React renders. The inner anchor does the -50%/-100% foot placement so
+ * the outer transform stays purely positional.
+ */
+.office-floor-walker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+.office-floor-walker-anchor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translate(-50%, -100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* A quicker bob while travelling reads as walking rather than idling. */
+.office-floor-person-figure.is-walking {
+  animation-duration: 0.62s;
+}
+
+.office-floor-bubble {
+  position: relative;
+  /* Stays the same size on screen however far the stage is zoomed out —
+     otherwise the line is ~6 px tall on a phone. */
+  transform: scale(var(--floor-inverse-scale, 1));
+  transform-origin: bottom center;
+  width: 15rem;
+  max-width: 60vw;
+  margin-bottom: 0.4rem;
+  padding: 0.55rem 0.7rem 0.6rem;
+  border-radius: 14px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg, #fff);
+  box-shadow: var(--control-shadow);
+  text-align: left;
+  animation: office-floor-bubble-in 180ms ease-out;
+}
+
+/* The tail: a small rotated square pinned under the bubble, pointing at them. */
+.office-floor-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  transform: translateX(-50%) rotate(45deg);
+  background: var(--office-surface-bg, #fff);
+  border-right: 1px solid var(--control-border);
+  border-bottom: 1px solid var(--control-border);
+}
+
+@keyframes office-floor-bubble-in {
+  from {
+    opacity: 0;
+    transform: scale(calc(var(--floor-inverse-scale, 1) * 0.92));
+  }
+}
+
+.office-floor-bubble-dismiss {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.25rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.2rem;
+  cursor: pointer;
+}
+
+.office-floor-bubble-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding-right: 1rem;
+}
+
+.office-floor-bubble-name span {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.office-floor-bubble-body {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.office-floor-bubble-action {
+  margin-top: 0.5rem;
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
+}
+
+.office-floor-bubble-action:hover,
+.office-floor-bubble-action:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.floor-screen {
+  animation: office-floor-screen 6.5s ease-in-out infinite;
+}
+
+.floor-screen--you {
+  animation-duration: 3.6s;
+}
+
+@keyframes office-floor-screen {
+  0%,
+  100% {
+    opacity: 0.86;
+  }
+  45% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.92;
+  }
+}
+
+/* ── person card + hint ──────────────────────────────────────────────────── */
+
+.office-floor-card {
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  width: min(21rem, calc(100vw - 2rem));
+  padding: 0.85rem 0.95rem;
+  border-radius: 16px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg, #fff);
+  box-shadow: var(--control-shadow);
+}
+
+.office-floor-card-close {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.45rem;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+.office-floor-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.office-floor-card-id {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.office-floor-card-id strong {
+  font-size: 0.95rem;
+}
+
+.office-floor-card-id span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.office-floor-card-blurb {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.office-floor-card-actions {
+  margin-top: 0.7rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.office-floor-card-action {
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--control-bg);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+}
+
+.office-floor-card-action:hover,
+.office-floor-card-action:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.office-floor-card-note {
+  font-size: 0.74rem;
+  font-style: italic;
+  color: var(--muted);
+}
+
+.office-floor-hint {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(0.9rem, env(safe-area-inset-bottom));
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  padding: 0.28rem 0.75rem;
+  pointer-events: none;
+  max-width: calc(100vw - 2rem);
+  text-align: center;
+}
+
+/* ── the arrival ceremony (slice 3) ──────────────────────────────────────── */
+
+/*
+ * Must come after the card rules above: `--primary` and the base action button
+ * are both single-class selectors, so source order decides. Earlier, the base
+ * rule won the background and left white text on a white pill.
+ */
+
+/* Seated speakers get their bubble lifted clear of their own desk. */
+.office-floor-walker-anchor--seated {
+  transform: translate(-50%, calc(-100% - 30px));
+}
+
+/*
+ * Whoever is introducing themselves glows. A ring on the floor would be the
+ * obvious choice and is completely wrong: their own desk stands on that tile
+ * and hides it. The head clears the desk, so the highlight goes there.
+ */
+.office-floor-person.is-speaking .office-floor-person-figure {
+  filter: drop-shadow(0 0 9px var(--floor-accent, var(--accent)))
+    drop-shadow(0 0 20px rgba(37, 99, 235, 0.55));
+  animation: office-floor-speaking 1.9s ease-in-out infinite;
+}
+
+/* Their name rides along while they introduce themselves — the tour is
+   supposed to teach you who sits where, not just play voices. */
+.office-floor-person.is-speaking .office-floor-person-name {
+  opacity: 1;
+  border-color: var(--floor-accent, var(--accent));
+  color: var(--floor-accent, var(--accent));
+}
+
+@keyframes office-floor-speaking {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.office-floor-card--reception {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.office-floor-card-action--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.office-floor-card-action--primary:hover,
+.office-floor-card-action--primary:focus-visible {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: #fff;
+}
+
+/* ── set pieces on the floor (slice 4) ───────────────────────────────────── */
+
+.office-floor-scene-panel-anchor {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+
+/*
+ * Pinned between the two participants and counter-scaled like a speech bubble,
+ * so the ask ("coffee?", "someone has to be wrong") appears where the scene is
+ * happening rather than in a corner divorced from the people it is about.
+ */
+.office-floor-scene-panel {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  transform: translate(-50%, -132px) scale(var(--floor-inverse-scale, 1));
+  transform-origin: bottom center;
+  width: 19rem;
+  max-width: 70vw;
+  padding: 0.6rem 0.75rem;
+  border-radius: 14px;
+  border: 1px solid var(--control-border);
+  background: var(--office-surface-bg, #fff);
+  box-shadow: var(--control-shadow);
+  text-align: center;
+}
+
+.office-floor-scene-panel-line {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.office-floor-scene-panel .office-floor-card-actions {
+  margin-top: 0;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.office-floor-arrival-actions {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .office-floor-bar {
+    padding: 0.6rem 0.7rem 0.4rem;
+    gap: 0.6rem;
+  }
+
+  .office-floor-subtitle {
+    display: none;
+  }
+
+  .office-floor-eyebrow {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .office-floor-title {
+    font-size: 1rem;
+  }
+
+  .office-floor-sit {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  .office-floor-card {
+    left: 0.6rem;
+    right: 0.6rem;
+    width: auto;
+  }
+
+  .office-floor-hint {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .office-floor,
+  .office-floor-person-figure,
+  .office-floor-person.is-speaking .office-floor-person-figure,
+  .office-floor-you-tile,
+  .office-floor-bubble,
+  .floor-screen {
+    animation: none;
+  }
+
+  .office-floor-person:hover .office-floor-person-figure {
+    transform: none;
+  }
+}

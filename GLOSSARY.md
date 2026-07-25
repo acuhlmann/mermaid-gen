@@ -60,6 +60,44 @@ Short definitions for the recurring vocabulary in this repo. Cross-references in
 
 **Attributed insight.** A free-text note an external agent can drop into the session (`drop_insight`); rendered in the Insights pane with the agent's emoji/color/name. Stored in the session event bus, not in slot state.
 
+## Multiplayer (design-stage — adopted terms, not yet shipped)
+
+Vocabulary fixed during the multi-human/NPC-participant design sessions. No code implements these yet; entries here are the canonical names for the design docs and future schemas. Full spec: [`docs/multi-human-office.md`](docs/multi-human-office.md).
+
+**Participant.** Any actor with presence in a session: `kind: "human" | "npc" | "agent"`. Generalizes today's agent-only presence model — humans, the built-in NPC cast, and external MCP agents all appear on one floor. The wire term; the fiction never says "participant".
+
+**Coworker / working group.** Fiction terms for a _human_ participant and for the humans collectively. Never "colleague" — that word is reserved for the NPC office-tier cast (`OFFICE_COLLEAGUES`).
+
+**Contractor.** Fiction term for an external MCP agent participant (Cursor, Claude Desktop, VS Code). Already established by the desk fiction ("Adjust workstation — contractors"); the [[Handshake]] is vendor onboarding.
+
+**Host / Office Manager.** The human participant whose token created the session — wire term **host**, fiction title **Office Manager** ("your name's on the lease"). Holds moderation keys (kick, lock canvas, end session) and anchors per-session LLM budgets. Deliberately not "team lead": _team_ and _leadership_ are taken by cast tiers.
+
+**Shared canvas.** The multiplayer state model: one session = one topic = one six-slot deliverable set, slot authority server-side, every coworker seeing and shaping the same slots. There is no per-human slot state; a coworker's _desk_ is where they sit, not where their state lives.
+
+**Acting role.** A cast role worn by a coworker as a _mask_: the participant stays `kind: "human"`; the role is presence dressing plus a persona voice pack. Scene-scoped by default (claimed for a meeting, reverts after), session-scoped allowed; attribution always visible ("The VP — played by Sam"; badge reads "Acting CFO"). Claimable tiers: **senior** and **office** only — never **team**, whose members are functional agents wired to real diagram actions. While claimed, the NPC's ambient self goes quiet.
+
+**Employee of the Month.** The ephemeral per-session scoreboard: per-participant session XP tallied on an office wall plaque, awarded when the session ends. NPCs are eligible (Chad can beat three real humans — by design, it keeps human rivalry a joke). Personal careers (XP/levels/achievements) stay local-per-browser as in single-player; the scoreboard is throwaway. The Damage Report™ is session-scoped and visible to the whole working group.
+
+**Slot lanes.** The named multiplayer discovery pattern: the run lock is per-slot and there are six slots, so a working group parallelizes by lane (one coworker per slot), then reconvenes in a meeting to compare deliverables. Acknowledged in UI (presence shows who's in which lane), never enforced as workflow. Session genesis is organic — host starts solo, invites; late join is always allowed, and a joining coworker's compressed check-in renders only in their own viewport.
+
+**Session locale.** The language of everything _generated_ in a shared session (LLM moments, meeting scripts, agent outputs, deliverable labels) — chosen by the host at creation, defaulting to their UI locale, announced at the invite link and reception check-in. Canned moments and UI chrome stay per-viewer (template ids localize at render time). Changing it mid-session affects only future generation.
+
+**Pitch.** An actionable _suggestion_ from an NPC or team participant: instruction + rationale, attributed, persistent as a card in the review queue. Accepting a pitch triggers a run — commissioned by the human, attributed to the pitcher. Distinct from a [[Proposal]], which is a concrete server-validated change (contractors; commissioned lane work). One queue, two honest card types. A pitch is today's "Do it" `actionPrompt` promoted from an ephemeral toast to a reviewable card.
+
+**Sign-off rule / one-producer model.** Doctrine, two clauses. (1) **No agent-initiated runs**: agent spend follows human initiative. (2) **The built-in cast never produces slot content** — no DSLs, no code, no lane work; NPCs and team personas comment, pitch, and chat, and the human's own pipeline is the sole producer. The only exception is a **contractor** (a real external agent the human explicitly invited), which keeps its validated-proposal path. The cast may have [[Their own work]] — as fiction only.
+
+**Reactive vs. ambient.** The two spend classes of office dialogue. _Ambient_ = agent-initiated, timer-driven (cadence director): canned-heavy, tiny LLM budget, unchanged. _Reactive_ = human-addressed (IM/DM and email replies, walk-by responses, meeting interjections): always LLM in persona voice, governed by a generous per-session **reactive cap**, degrading in character when exhausted — never an error. Carve-outs by character design, not cost: Ticket Bot Dave stays 100% canned (being a bot is the bit); battles and coffee scenes stay canned theater. Corollary of the [[Sign-off rule]]: spend follows human initiative.
+
+**Office log.** A rolling client-built digest of session happenings (commissioned runs and their effects, pitches accepted/rejected, meetings, notable moments), sent as compact context lines with every reactive LLM call — the artifact that makes the cast one office instead of isolated chatbots. Part of the **context contract**: thread memory (token-capped history per character), office log, deliverable context, persistence across reloads (capped localStorage), and DM privacy (a character never sees your threads with other characters — the context boundary preserves the illusion of separate minds).
+
+**Their own work.** Each character carries a slowly-evolving _fictional_ workload (Ulrich's mainframe migration, Gary's Q3 fridge audit, Pam's ceremony-cadence review) they reference in ambient moments and can discuss consistently when asked — conversational color carried through the context contract's character state. Never a real pipeline, never produced artifacts; the fiction of colleagues being busy, not the compute. (Replaces the retracted "commission/lane-work" concept: the cast does not do delegated production — see [[Sign-off rule / one-producer model]].)
+
+**Desktop screen mode / Isometric mode.** The two renderers of one office. _Desktop screen mode_ is the work mode — today's UI, canvas + chrome, functionally untouched. _Isometric mode_ is the arrival + social space — the office floor embodied: cast avatars situated and interactive, walk-bys walk, coffee happens at the machine. Transitions are diegetic: **sit down** (floor → desk) and **stand up** (desk → floor). First run begins isometric: reception → walk the floor → your desk → sit down (replaces the card-based Meet-the-Office tour when ready). Vision text: `docs/original-prompt-isometric-mode.md`.
+
+**One state, two renderers.** Binding architecture rule for the two modes: all office life (moment store, cadence, threads, presence) stays presentation-agnostic in stores; `OfficeLayer`'s chrome windows and the isometric floor are two renderers of the same events. A moment fires once and renders per mode. No forked state, no mode-exclusive functionality — the floor ships surface-by-surface and desktop users lose nothing. Responsive (desktop / mobile / foldable) from day one.
+
+**Workstation diegesis (screen world vs. floor world).** Desktop screen mode's set dressing is a parody corporate desktop OS — you are looking at your standard-issue workstation screen, not a physical desk (clean desk policy: no phones, no drawers). The existing `FloatingWindow` chrome leans into OS-window fiction: mail client, messenger, control panel; a WG meeting renders as a video-call window on screen and as the glass room on the floor. Hard rule: diegesis may _duplicate_ an affordance, never be its sole path — every function keeps its labeled conventional control. The only physical world is the isometric floor; you either look at your screen or you stand up.
+
 ## Misc
 
 **Mermaid metrics.** Optional structured JSON line per agent turn — mode, model, validator outcome, repair attempts, sanitizer hits, latency. Toggle with `MERMAID_METRICS=1`. Emitter: `apps/server/src/metrics/agentTurnMetrics.js`.

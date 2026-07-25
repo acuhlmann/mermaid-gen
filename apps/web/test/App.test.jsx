@@ -1162,7 +1162,9 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
     );
   });
 
-  it('shows Meet the Office alone on first visit, then reveals the entry screen', async () => {
+  // First run arrives through the isometric floor (ADR-0011 slice 3); the card
+  // tour stays mounted afterwards for replays.
+  it('shows the floor arrival alone on first visit, then reveals the entry screen', async () => {
     window.localStorage.removeItem('archislop:office-directory-seen');
     fetchSessionDiagramStateMock.mockResolvedValue({
       activeContentType: 'mermaid',
@@ -1170,15 +1172,16 @@ describe('App simplified controls', { timeout: 20_000 }, () => {
       infographic: createInitialDiagramState('infographic')
     });
     render(<App />);
-    expect(screen.getByTestId('office-directory-modal')).toBeTruthy();
+    expect(screen.getByTestId('office-floor-arrival')).toBeTruthy();
+    expect(screen.queryByTestId('office-directory-modal')).toBeNull();
     expect(screen.queryByTestId('day-one-badge')).toBeNull();
     expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
 
-    fireEvent.click(screen.getByTestId('office-directory-skip-build'));
+    fireEvent.click(screen.getByTestId('office-floor-arrival-skip'));
 
     expect(await screen.findByPlaceholderText(/Prompt anything into reality/i)).toBeTruthy();
     expect(screen.queryByRole('button', { name: /Do it/i })).toBeNull();
-    expect(screen.queryByTestId('office-directory-modal')).toBeNull();
+    expect(screen.queryByTestId('office-floor-arrival')).toBeNull();
     expect(screen.queryByTestId('day-one-badge')).toBeNull();
   });
 });

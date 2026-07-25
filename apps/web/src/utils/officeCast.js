@@ -1191,6 +1191,8 @@ export const OFFICE_CHROME_COPY = {
     codeDrawerTitle: 'Peek at the spaghetti code behind the drywall',
     onboardContractor: 'Onboard a contractor',
     onboardContractorTitle: 'Invite an external agent over MCP',
+    standUp: 'Stand up and look around',
+    standUpTitle: 'Leave your screen for the floor — see the office you keep hearing',
     thinking: 'Open your notebook',
     thinkingClose: 'Close your notebook',
     thinkingShort: 'Notebook',
@@ -1339,6 +1341,47 @@ export const OFFICE_CHROME_COPY = {
     accept: 'Accept',
     decline: "Can't — I'm shipping",
     proposeNewTime: 'Propose new time'
+  },
+  // Isometric mode — the floor you stand up into (docs/office-isometric-mode.md).
+  floor: {
+    eyebrow: 'ARCHISLOP CORP. · FLOOR 3',
+    title: 'The floor',
+    subtitle: 'Open plan. They took the walls away for collaboration and kept all the meetings.',
+    stageAria: 'Isometric view of the office floor',
+    back: '🪑 Back to your screen',
+    backTitle: 'Sit down and get back to the deliverable',
+    hint: 'Click somebody to see who they are. Escape sits you back down.',
+    // Day One, staged on the floor (isometric arrival).
+    arrival: {
+      eyebrow: 'ARCHISLOP CORP. · YOUR FIRST DAY',
+      title: 'Welcome to the floor',
+      subtitle: 'Somebody will be with you shortly. They will not.',
+      skip: 'Skip the ceremony →',
+      receptionEyebrow: 'RECEPTION',
+      receptionBody:
+        'Sign in, take a lanyard, and try to look like you have done this before. The floor would like to introduce itself.',
+      checkIn: 'Check in →',
+      clockIn: '🪑 Clock in — take your desk',
+      clockInEarly: '🪑 Take my desk (I get the idea)'
+    },
+    close: 'Close',
+    youName: 'You',
+    youTitle: 'Architect — New Hire',
+    youBlurb:
+      'Your desk. Your deliverable. Your monitor, which is the only one on this floor doing any work.',
+    sitHere: '🪑 Sit down here',
+    message: '💬 Message',
+    messageTitle: 'Open Slop Chat™ with them',
+    seniorNote: 'Not without a calendar invite.',
+    teamNote: 'On your team — brief them from the canvas.',
+    zones: {
+      reception: 'Reception',
+      leadership: 'Leadership',
+      kitchen: 'Kitchen',
+      meeting: 'Meeting room',
+      pod: 'Your pod',
+      hrCorner: 'People Ops'
+    }
   },
   meeting: {
     youName: 'You',

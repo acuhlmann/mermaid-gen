@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
 import { officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
-import { OFFICE_NARRATION_GAP_MS } from '../utils/officeNarration.js';
+import { useScenePacing } from '../hooks/useScenePacing.js';
 import { formatLocale } from '../i18n/formatLocale.js';
 import { PersonaFace } from './personaFaces/index.jsx';
 import FloatingWindow, { FloatingWindowDragHandle } from './FloatingWindow.jsx';
@@ -26,62 +25,17 @@ export default function CoffeeBreakOverlay({
   prefetchLine
 }) {
   const accepted = Boolean(coffee?.accepted);
-  const coffeeId = coffee?.id ?? null;
   const lineCount = coffee?.lines?.length ?? 0;
-  const [visibleLines, setVisibleLines] = useState(lineCount);
-  const narrateRef = useRef(narrateLine);
-  const prefetchRef = useRef(prefetchLine);
-  useEffect(() => {
-    narrateRef.current = narrateLine;
-    prefetchRef.current = prefetchLine;
+  const visibleLines = useScenePacing({
+    lines: coffee?.lines ?? [],
+    active: accepted && Boolean(coffee),
+    narrateLine,
+    prefetchLine,
+    paceMs: COFFEE_LINE_PACE_MS,
+    silentDurationMs: COFFEE_BREAK_DURATION_MS,
+    sceneId: coffee?.id ?? null,
+    onDone
   });
-
-  useEffect(() => {
-    if (!accepted || !coffee) return undefined;
-    const shouldNarrate = typeof narrateRef.current === 'function';
-    if (!shouldNarrate) {
-      setVisibleLines(lineCount);
-      const timer = setTimeout(() => onDone?.(), COFFEE_BREAK_DURATION_MS);
-      return () => clearTimeout(timer);
-    }
-
-    let cancelled = false;
-    setVisibleLines(1);
-
-    const wait = (ms) =>
-      new Promise((resolve) => {
-        setTimeout(resolve, ms);
-      });
-
-    void (async () => {
-      for (let index = 0; index < lineCount; index += 1) {
-        if (cancelled) return;
-        setVisibleLines(index + 1);
-        const line = coffee.lines[index];
-        const nextLine = coffee.lines[index + 1];
-        if (nextLine) prefetchRef.current?.(nextLine);
-        let spoken = false;
-        try {
-          const result = await narrateRef.current?.(line);
-          spoken = Boolean(result?.spoken);
-        } catch {
-          spoken = false;
-        }
-        if (cancelled) return;
-        if (index < lineCount - 1) {
-          await wait(spoken ? OFFICE_NARRATION_GAP_MS : COFFEE_LINE_PACE_MS);
-        }
-      }
-      if (!cancelled) {
-        await wait(1200);
-        if (!cancelled) onDone?.();
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [accepted, coffeeId, lineCount, coffee, onDone]);
 
   if (!coffee) return null;
   const copy = officeChromeCopy();
