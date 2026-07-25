@@ -34,6 +34,7 @@ import {
   peekableSeatIds,
   projectIso,
   seatFor,
+  unprojectIso,
   walkPathBetween,
   walkPathFrom,
   zoneCentre,
@@ -72,6 +73,35 @@ describe('isometric projection', () => {
     expect(depthOf(0, 0)).toBeLessThan(depthOf(1, 0));
     expect(depthOf(3, 4)).toBe(depthOf(4, 3));
     expect(depthOf(11, 8)).toBeGreaterThan(depthOf(11, 7));
+  });
+
+  /*
+   * `unprojectIso` is what turns a click into a destination and what reads a
+   * walker's live position back off its transform, so a drift between the two
+   * directions would put you somewhere other than where you pointed.
+   */
+  it('unprojects back to the tile it projected, fractions included', () => {
+    for (let x = -1; x <= GRID_W; x += 1) {
+      for (let y = -1; y <= GRID_H; y += 1) {
+        const { left, top } = projectIso(x, y);
+        const back = unprojectIso(left, top);
+        expect(back.x).toBeCloseTo(x, 10);
+        expect(back.y).toBeCloseTo(y, 10);
+      }
+    }
+    for (const [x, y] of [
+      [0.5, 0.5],
+      [10.4, 6.9],
+      [-0.5, 8.5]
+    ]) {
+      const { left, top } = projectIso(x, y);
+      expect(unprojectIso(left, top).x).toBeCloseTo(x, 10);
+      expect(unprojectIso(left, top).y).toBeCloseTo(y, 10);
+    }
+  });
+
+  it('reads the stage origin as tile 0,0', () => {
+    expect(unprojectIso(ORIGIN_X, ORIGIN_Y)).toEqual({ x: 0, y: 0 });
   });
 });
 

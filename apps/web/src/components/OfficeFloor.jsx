@@ -9,20 +9,24 @@
  * floor-only state.
  *
  * Layout lives in `officeFloorPlan.js`; the stage and the person card are
- * siblings under ./officeFloor. This file owns the view: scale, chrome, and
- * which person is selected.
+ * siblings under ./officeFloor. This file owns the view: scale, chrome, which
+ * person is selected, and — since slice 7 — where you are standing.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import FloorMeeting, { FloorMeetingCard } from './officeFloor/FloorMeeting.jsx';
-import FloorPeek, { FloorPeekCard } from './officeFloor/FloorPeek.jsx';
-import FloorPersonCard from './officeFloor/FloorPersonCard.jsx';
-import FloorScene from './officeFloor/FloorScene.jsx';
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import FloorCardSlot from './officeFloor/FloorCardSlot.jsx';
+import FloorMeeting from './officeFloor/FloorMeeting.jsx';
+import FloorPeek from './officeFloor/FloorPeek.jsx';
+import FloorPlayer from './officeFloor/FloorPlayer.jsx';
+import FloorScenes from './officeFloor/FloorScenes.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
+import FloorTopBar from './officeFloor/FloorTopBar.jsx';
+import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
+import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
+import { useFloorPresence } from './officeFloor/useFloorPresence.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
-import { prefersReducedMotion } from './officeFloor/useWalkAnimation.js';
 import { useStageScale } from '../hooks/useStageScale.js';
-import { YOU_SEAT_ID, peekTileFor, projectIso, seatFor } from '../utils/officeFloorPlan.js';
+import { YOU_SEAT_ID, peekTileFor, seatFor } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { awayFromDeskIds } from '../utils/officeSceneCast.js';
 import { tierOf } from '../utils/castTiers.js';
@@ -71,39 +75,16 @@ function usePersonDetails(selectedId, copy) {
 }
 
 /**
- * Walking over to somebody's desk and back: 'walking' → 'looking' → 'returning'.
- *
- * View state, deliberately — a peek writes nothing to any store, produces no
- * artifact, and dies when you sit down (ADR-0010, and `FloorPeek`'s header).
- * The arrive handler is phase-driven rather than closure-driven because
- * `useWalkAnimation` keeps the callback it was mounted with.
+ * A peek, as the person card and the speech bubble still want to see it. Since
+ * slice 7 it is one flavour of *being somewhere* rather than its own state
+ * machine: 'looking' is simply having arrived somewhere you went on purpose.
  */
-function usePeek(suspended) {
-  const [peek, setPeek] = useState(null);
-
-  // A meeting takes the room, and you with it — two of you on the floor at once
-  // would give the game away.
-  useEffect(() => {
-    if (suspended) setPeek(null);
-  }, [suspended]);
-
-  const startPeek = useCallback((colleagueId) => {
-    setPeek({ colleagueId, phase: 'walking' });
-  }, []);
-
-  const endPeek = useCallback(() => {
-    setPeek((current) => (current ? { ...current, phase: 'returning' } : current));
-  }, []);
-
-  const handleArrive = useCallback(() => {
-    setPeek((current) => {
-      if (current?.phase === 'walking') return { ...current, phase: 'looking' };
-      if (current?.phase === 'returning') return null;
-      return current;
-    });
-  }, []);
-
-  return { peek: suspended ? null : peek, startPeek, endPeek, handleArrive };
+function peekViewOf(presence) {
+  if (presence?.intent?.kind !== 'peek') return null;
+  return {
+    colleagueId: presence.intent.colleagueId,
+    phase: presence.phase === 'standing' ? 'looking' : 'walking'
+  };
 }
 
 /**
@@ -137,23 +118,22 @@ function OfficeFloorView({
   const [selectedId, setSelectedId] = useState(null);
   const person = usePersonDetails(selectedId, copy);
   const { walker, departing, handleDeparted } = useFloorWalker(walkBy);
-  const { peek, startPeek, endPeek, handleArrive } = usePeek(Boolean(meeting));
+  const { presence, playerRef, walkTo, peekAt, goHome, handleArrive } = useFloorPresence(
+    Boolean(meeting)
+  );
 
-  // Escape sits you back down — unless a surface above the floor (Slop Chat, a
-  // meeting) already handled it. Mid-peek it walks you home first: you are
-  // standing at somebody else's desk, and your chair is over there.
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      if (peek) {
-        endPeek();
-        return;
-      }
-      sitDown();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [peek, endPeek]);
+  const peek = peekViewOf(presence);
+  // Where you are for the purposes of "can I get there from here". While a walk
+  // is in flight that is where it is taking you: the next click queues from the
+  // destination, not from the corridor.
+  const origin = useMemo(() => {
+    if (presence) return presence.to;
+    const home = seatFor(YOU_SEAT_ID);
+    return home ? { x: home.x, y: home.y } : null;
+  }, [presence]);
+
+  useFloorKeyboard({ presence, origin, goHome, walkTo });
+  useFloorAutoPan(viewportRef, presence, scale);
 
   const handleSelect = useCallback((id) => {
     setSelectedId((current) => (current === id ? null : id));
@@ -161,55 +141,19 @@ function OfficeFloorView({
 
   const handlePeek = useCallback(
     (id) => {
+      const mark = peekTileFor(id);
+      if (!mark) return;
       setSelectedId(null);
-      startPeek(id);
+      peekAt(id, mark);
     },
-    [startPeek]
+    [peekAt]
   );
 
-  // Binding rule 3: on a narrow screen the room is wider than the viewport and
-  // pans, so a walk can finish off-screen — you tap "their screen" and nothing
-  // appears to happen. Bring wherever you are walking to into view.
-  const walkingTo = peek ? (peek.phase === 'returning' ? YOU_SEAT_ID : peek.colleagueId) : null;
-  useEffect(() => {
-    const viewport = viewportRef.current;
-    if (!viewport || !walkingTo || typeof viewport.scrollTo !== 'function') return;
-    // Nothing to pan when the whole room already fits — which is the desktop
-    // case, and the reason this is a mobile affordance rather than a camera.
-    if (
-      viewport.scrollWidth <= viewport.clientWidth &&
-      viewport.scrollHeight <= viewport.clientHeight
-    ) {
-      return;
-    }
-    const mark = walkingTo === YOU_SEAT_ID ? seatFor(YOU_SEAT_ID) : peekTileFor(walkingTo);
-    if (!mark) return;
-    const stage = viewport.querySelector('.office-floor-stage');
-    const { left, top } = projectIso(mark.x, mark.y);
-    viewport.scrollTo({
-      left: (stage?.offsetLeft ?? 0) + left * scale - viewport.clientWidth / 2,
-      top: (stage?.offsetTop ?? 0) + top * scale - viewport.clientHeight / 2,
-      behavior: prefersReducedMotion() ? 'auto' : 'smooth'
-    });
-  }, [walkingTo, scale]);
+  const handleClosePerson = useCallback(() => setSelectedId(null), []);
 
   return (
     <div className="office-floor" data-testid="office-floor">
-      <header className="office-floor-bar">
-        <div className="office-floor-bar-copy">
-          <span className="office-floor-eyebrow">{copy.eyebrow}</span>
-          <h2 className="office-floor-title">{copy.title}</h2>
-          <p className="office-floor-subtitle">{copy.subtitle}</p>
-        </div>
-        <button
-          type="button"
-          className="office-floor-sit"
-          onClick={() => sitDown()}
-          title={copy.backTitle}
-        >
-          {copy.back}
-        </button>
-      </header>
+      <FloorTopBar copy={copy} standing={Boolean(presence) && !peek} onGoHome={goHome} />
 
       <div className="office-floor-viewport" ref={viewportRef}>
         <FloorStage
@@ -222,68 +166,55 @@ function OfficeFloorView({
           onWalkerAdopt={onAdoptPrompt}
           onWalkerDismiss={onDismissWalkBy}
           onWalkerDeparted={handleDeparted}
-          vacantIds={awayFromDeskIds({ coffee, battle, meeting, peek, playerId: YOU_SEAT_ID })}
+          // A meeting has you in a chair in the glass room; the floor is not
+          // yours to wander until you leave it.
+          onWalkTo={meeting ? null : walkTo}
+          roamOrigin={origin}
+          vacantIds={awayFromDeskIds({
+            coffee,
+            battle,
+            meeting,
+            standing: presence,
+            playerId: YOU_SEAT_ID
+          })}
           // Whoever you are looking at holds the floor, the same glow the
           // arrival ceremony and the glass room use.
           speakingId={peek?.phase === 'looking' ? peek.colleagueId : null}
         >
-          {coffee ? (
-            <FloorScene
-              kind="coffee"
-              scene={coffee}
-              scale={scale}
-              narrateLine={sceneHandlers.narrateLine}
-              prefetchLine={sceneHandlers.prefetchLine}
-              onAccept={sceneHandlers.onAcceptCoffee}
-              onDecline={sceneHandlers.onDeclineCoffee}
-              onDone={sceneHandlers.onCoffeeDone}
-            />
-          ) : null}
-          {battle ? (
-            <FloorScene
-              kind="battle"
-              scene={battle}
-              scale={scale}
-              narrateLine={sceneHandlers.narrateLine}
-              prefetchLine={sceneHandlers.prefetchLine}
-              onAccept={sceneHandlers.onAcceptBattle}
-              onDecline={sceneHandlers.onDeclineBattle}
-              onVote={sceneHandlers.onVoteBattle}
-              onDone={sceneHandlers.onBattleDone}
-            />
-          ) : null}
+          <FloorScenes
+            coffee={coffee}
+            battle={battle}
+            scale={scale}
+            sceneHandlers={sceneHandlers}
+          />
           {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}
-          {peek ? <FloorPeek peek={peek} scale={scale} onArrive={handleArrive} /> : null}
+          {peek ? <FloorPeek peek={peek} scale={scale} /> : null}
+          {/* One of you on the floor, whatever your reason for being up. */}
+          {presence ? (
+            <FloorPlayer
+              from={presence.from}
+              to={presence.to}
+              walking
+              walkKey={`roam:${presence.key}`}
+              onArrive={handleArrive}
+              elementRef={playerRef}
+              testId={peek ? 'office-floor-peek-player' : 'office-floor-player'}
+            />
+          ) : null}
         </FloorStage>
       </div>
 
-      {/* One card slot, in order of how much of your body is committed: a
-          meeting has you in a chair, a peek has you on your feet at somebody
-          else's desk, a person card is idle curiosity. */}
-      {meeting ? (
-        <FloorMeetingCard
-          meeting={meeting}
-          copy={copy}
-          onInterject={meetingHandlers.onInterject}
-          onLeave={meetingHandlers.onLeave}
-          onSitDown={() => sitDown()}
-        />
-      ) : peek ? (
-        <FloorPeekCard peek={peek} copy={copy} onBack={endPeek} />
-      ) : person ? (
-        <FloorPersonCard
-          person={person}
-          copy={copy}
-          canMessage={person.canMessage}
-          canPeek={person.canPeek}
-          onMessage={onMessage}
-          onPeek={handlePeek}
-          onSitDown={() => sitDown()}
-          onClose={() => setSelectedId(null)}
-        />
-      ) : (
-        <p className="office-floor-hint">{copy.hint}</p>
-      )}
+      <FloorCardSlot
+        copy={copy}
+        meeting={meeting}
+        meetingHandlers={meetingHandlers}
+        peek={peek}
+        person={person}
+        onGoHome={goHome}
+        onMessage={onMessage}
+        onPeek={handlePeek}
+        onClosePerson={handleClosePerson}
+      />
     </div>
   );
 }

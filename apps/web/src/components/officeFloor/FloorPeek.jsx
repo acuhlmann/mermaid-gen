@@ -16,56 +16,37 @@
  * Two exports for the same reason `FloorMeeting` has two (§ 6 rule 12): the
  * room is diegesis, the controls are chrome in the floor card slot, off the
  * stage where they cannot occlude the person you walked over to look at.
+ *
+ * Since slice 7 this renders only what they *say*: walking is `useFloorPresence`
+ * and there is one of you on the floor whatever your reason for being up.
+ * Rendering a second player from here would have snapped you home before every
+ * peek, because this one always started from your desk.
  */
 
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
-import FloorPlayer from './FloorPlayer.jsx';
 import { PersonaFace } from '../personaFaces/index.jsx';
 import { officeSenderInfo } from '../../utils/officeCast.js';
 import { deskWorkFor } from '../../utils/officeDeskWork.js';
-import { YOU_SEAT_ID, peekTileFor, seatFor } from '../../utils/officeFloorPlan.js';
 
 /**
- * You at their desk, and what they say about it.
+ * What they say about what is on their screen, once you have got there.
  *
  * @param {{
  *   peek: { colleagueId: string, phase: 'walking' | 'looking' | 'returning' },
- *   scale?: number,
- *   onArrive?: () => void
+ *   scale?: number
  * }} props
  */
-export function FloorPeek({ peek, scale = 1, onArrive }) {
-  const mark = peekTileFor(peek.colleagueId);
-  const desk = seatFor(YOU_SEAT_ID);
-  if (!mark || !desk) return null;
-
-  const home = { x: desk.x, y: desk.y };
-  const returning = peek.phase === 'returning';
+export function FloorPeek({ peek, scale = 1 }) {
   const work = deskWorkFor(peek.colleagueId);
+  if (peek.phase !== 'looking' || !work) return null;
 
   return (
-    <>
-      <FloorPlayer
-        /*
-         * One walk per direction, not per phase: 'walking' and 'looking' share
-         * a key so arriving does not restart the journey you just finished.
-         */
-        from={returning ? mark : home}
-        to={returning ? home : mark}
-        walking
-        walkKey={`peek:${peek.colleagueId}:${returning ? 'back' : 'over'}`}
-        onArrive={onArrive}
-        testId="office-floor-peek-player"
-      />
-      {peek.phase === 'looking' && work ? (
-        <FloorDeskSpeech
-          castId={peek.colleagueId}
-          line={work.line}
-          scale={scale}
-          testId="office-floor-peek-line"
-        />
-      ) : null}
-    </>
+    <FloorDeskSpeech
+      castId={peek.colleagueId}
+      line={work.line}
+      scale={scale}
+      testId="office-floor-peek-line"
+    />
   );
 }
 

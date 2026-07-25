@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { projectIso } from '../../utils/officeFloorPlan.js';
+import { projectIso, unprojectIso } from '../../utils/officeFloorPlan.js';
 
 /** Walking pace, ms per stage pixel, clamped so no leg drags or teleports. */
 const MS_PER_PX = 3.2;
@@ -31,6 +31,35 @@ function transformFor(point) {
 export function prefersReducedMotion() {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches === true;
+}
+
+/**
+ * Where a walker actually is right now, in tiles — read back off the element's
+ * animated transform.
+ *
+ * Only free roam needs this, and it needs it for one reason: a new `walkKey`
+ * re-places the element at its new path's *start*, so interrupting a walk with
+ * a fresh destination teleports you back to where the old one began unless the
+ * caller hands the new walk the position you had reached. Computed style
+ * reflects the running animation, which is exactly the number we want.
+ *
+ * @param {HTMLElement | null | undefined} el
+ * @returns {{ x: number, y: number } | null} `null` where there is no engine
+ *   (jsdom) or nothing has moved yet — callers fall back to their known tile.
+ */
+export function liveTileOf(el) {
+  if (!el || typeof window === 'undefined' || typeof window.getComputedStyle !== 'function') {
+    return null;
+  }
+  if (typeof DOMMatrixReadOnly !== 'function') return null;
+  const { transform } = window.getComputedStyle(el);
+  if (!transform || transform === 'none') return null;
+  try {
+    const matrix = new DOMMatrixReadOnly(transform);
+    return unprojectIso(matrix.m41, matrix.m42);
+  } catch {
+    return null; // a transform we did not write; the caller's known tile is fine
+  }
 }
 
 /**
@@ -59,6 +88,7 @@ export function useWalkAnimation(ref, path, { walkKey, onArrive, enabled = true 
     const el = ref.current;
     if (!el || !enabled || path.length === 0) return undefined;
     let cancelled = false;
+    let running = null;
 
     const settle = () => {
       if (cancelled) return;
@@ -92,10 +122,11 @@ export function useWalkAnimation(ref, path, { walkKey, onArrive, enabled = true 
             fill: 'forwards'
           }
         );
+        running = animation;
         try {
           await animation.finished;
         } catch {
-          return; // cancelled mid-walk (unmount)
+          return; // cancelled mid-walk (unmount, or a new destination)
         }
       }
       settle();
@@ -104,6 +135,13 @@ export function useWalkAnimation(ref, path, { walkKey, onArrive, enabled = true 
     void run();
     return () => {
       cancelled = true;
+      /*
+       * A `fill: forwards` animation outranks inline style, so an abandoned
+       * walk would go on holding the figure at the leg it reached and the next
+       * walk would never appear to start. Harmless while walks could not
+       * overlap; free roam (slice 7) interrupts them by design.
+       */
+      running?.cancel();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- (reason: one walk per walkKey; re-running on every render would restart the animation)
   }, [walkKey, enabled]);

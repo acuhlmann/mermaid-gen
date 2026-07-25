@@ -25,21 +25,23 @@ export function sceneParticipants(lines) {
  * Everybody who is up and about, and whose desk should therefore stand empty
  * (§ 6 rule 5 — the furniture stays, the person doesn't). Two things take *you*
  * out of your chair: a meeting, where you are visibly in the room rather than
- * at your screen, and a peek, where you are at somebody else's desk. The
- * colleague being peeked at does not move — you went to them.
+ * at your screen, and standing on the floor at all — peeking at somebody's
+ * desk, or just walking about since slice 7. Whoever you walked over to look at
+ * does not move: you went to them.
  *
  * @param {{
  *   coffee?: { lines?: Array<{speakerId?: string}> } | null,
  *   battle?: { lines?: Array<{speakerId?: string}> } | null,
  *   meeting?: { attendees?: string[] } | null,
- *   peek?: { colleagueId?: string } | null,
+ *   standing?: unknown,
  *   playerId: string
- * }} state
+ * }} state `standing` is truthy whenever you are on your feet somewhere that
+ *   is not your own chair.
  * @returns {string[]}
  */
-export function awayFromDeskIds({ coffee, battle, meeting, peek, playerId }) {
+export function awayFromDeskIds({ coffee, battle, meeting, standing, playerId }) {
   const away = [...sceneParticipants(coffee?.lines), ...sceneParticipants(battle?.lines)];
   if (meeting) away.push(playerId, ...(meeting.attendees ?? []));
-  if (peek) away.push(playerId);
+  if (standing) away.push(playerId);
   return away;
 }

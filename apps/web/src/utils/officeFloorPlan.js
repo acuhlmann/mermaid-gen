@@ -69,6 +69,23 @@ export function projectIso(x, y) {
 }
 
 /**
+ * `projectIso` backwards: a point on the stage to the (fractional) tile under
+ * it. Two callers need this and both are about *you* rather than the layout —
+ * turning a click on the floor into somewhere to walk, and reading a walker's
+ * live position off its transform so an interrupted walk can carry on from
+ * where it actually got to rather than snapping back.
+ *
+ * @param {number} left
+ * @param {number} top
+ * @returns {{ x: number, y: number }}
+ */
+export function unprojectIso(left, top) {
+  const dx = (left - ORIGIN_X) / (TILE_W / 2);
+  const dy = (top - ORIGIN_Y) / (TILE_H / 2);
+  return { x: (dx + dy) / 2, y: (dy - dx) / 2 };
+}
+
+/**
  * Painter's-algorithm depth for a tile: things closer to the viewer (larger
  * x + y) paint on top. Scaled by 10 so a seat's own parts (chair / person /
  * desk) can interleave within one tile without colliding with the next.
@@ -189,8 +206,21 @@ export const FLOOR_PROPS = [
   { kind: 'plant', x: 0, y: 3.6 },
   { kind: 'plant', x: 11.2, y: 3 },
   { kind: 'plant', x: 3, y: 8.2 },
-  // Glass: the leadership row, then the two walls of the meeting room.
-  { kind: 'glassPanel', x: 7.5, y: 1.05, span: 4.6, axis: 'x' },
+  /*
+   * Glass: the leadership row, then the two walls of the meeting room.
+   *
+   * The leadership panel and its two returns enclose the `leadership` zone
+   * exactly (rect `[5.3, -0.5, 10.7, 1.0]`), with the floor plate's own back
+   * edge closing the fourth side. The front panel used to stop at x 9.8 while
+   * the row runs x 6…10, which sealed the fishbowl only from the south — the
+   * direction `PEEK_OFFSETS` happen to approach from. Free roam (slice 7) can
+   * walk at the ends, and walked straight round the partition to stand beside
+   * the CTO. § 6 rule 17's payoff is that the room refuses entry by being a
+   * room; that only holds if the walls actually meet.
+   */
+  { kind: 'glassPanel', x: 8, y: 1.05, span: 5.4, axis: 'x' },
+  { kind: 'glassPanel', x: 5.3, y: 0.275, span: 1.55, axis: 'y' },
+  { kind: 'glassPanel', x: 10.7, y: 0.275, span: 1.55, axis: 'y' },
   { kind: 'glassPanel', x: 9.45, y: 7.1, span: 2.8, axis: 'y' },
   { kind: 'glassPanel', x: 10.45, y: 5.65, span: 2.1, axis: 'x' }
 ];
@@ -535,10 +565,10 @@ function reservedMarks() {
   return [VISITOR_TILE, ...COFFEE_TILES, ...BATTLE_TILES, MEETING_PLAYER_TILE, ...MEETING_SEATS];
 }
 
-const PEEK_SEAT_CLEARANCE = 0.8;
-const PEEK_PROP_CLEARANCE = 0.7;
-/** A prop nearer than this that paints later stands in front of the peeker. */
-const PEEK_PROP_OCCLUSION_RANGE = 1.5;
+const STAND_SEAT_CLEARANCE = 0.8;
+const STAND_PROP_CLEARANCE = 0.7;
+/** A prop nearer than this that paints later stands in front of whoever stands here. */
+const STAND_PROP_OCCLUSION_RANGE = 1.5;
 
 /**
  * The monitor sits ~34 px to the screen-left of its desk and is ~26 px wide
@@ -585,28 +615,45 @@ function hasClearSightTo(mark, seat) {
 
 /**
  * Is this a tile somebody could actually stand on and be seen? Furniture, other
- * people's marks, other people's heads, and the screen itself all veto it.
+ * people's marks and other people's heads all veto it.
+ *
+ * This is the room's own answer to "may a figure stand here", with nothing
+ * peek-specific in it, so free roam (slice 7) and the peek marks share one
+ * definition — the geometry rules in § 6 are expensive to rediscover and there
+ * should only ever be one place that encodes them.
+ *
+ * @param {{ x: number, y: number }} mark
+ * @returns {boolean}
  */
-function isPeekMarkClear(mark, seat) {
+export function isStandableTile(mark) {
   if (!isOnFloor(mark.x, mark.y)) return false;
-  if (coversTheMonitor(mark, seat)) return false;
   if (reservedMarks().some((tile) => distance(tile, mark) < 0.5)) return false;
+  return clearsFurniture(mark) && clearsFaces(mark);
+}
 
+/** Room to stand: not inside a desk, not inside the furniture, not behind it. */
+function clearsFurniture(mark) {
   for (const other of FLOOR_SEATS) {
-    if (distance(other, mark) < PEEK_SEAT_CLEARANCE) return false;
+    if (distance(other, mark) < STAND_SEAT_CLEARANCE) return false;
   }
   for (const prop of FLOOR_PROPS) {
     if (prop.kind === 'glassPanel') continue;
     const gap = distance(prop, mark);
-    if (gap < PEEK_PROP_CLEARANCE) return false;
+    if (gap < STAND_PROP_CLEARANCE) return false;
     // § 6 rule 11 the other way round: the marks move, the furniture does not.
-    if (gap < PEEK_PROP_OCCLUSION_RANGE && depthOf(prop.x, prop.y) >= depthOf(mark.x, mark.y)) {
+    if (gap < STAND_PROP_OCCLUSION_RANGE && depthOf(prop.x, prop.y) >= depthOf(mark.x, mark.y)) {
       return false;
     }
   }
+  return true;
+}
 
-  // Nobody's face may be covered — theirs least of all, since you came to look
-  // at their desk, and the bubble's tail has to point at somebody.
+/**
+ * Nobody's face may be covered, in either direction — § 6 rules 10 and 14,
+ * measured with the real 48 px figure rather than the stylesheet's apparent
+ * height.
+ */
+function clearsFaces(mark) {
   const standing = { seated: false };
   for (const other of FLOOR_SEATS) {
     if (other.id === YOU_SEAT_ID) continue; // you are the one doing the walking
@@ -615,6 +662,15 @@ function isPeekMarkClear(mark, seat) {
     if (boxesOverlap(figureBox(theirs), headBox(mark, standing))) return false;
   }
   return true;
+}
+
+/**
+ * A standable tile that also clears the screen you walked over to read — the
+ * one extra thing a peek asks for beyond standing room (§ 6 rule 16).
+ */
+function isPeekMarkClear(mark, seat) {
+  if (coversTheMonitor(mark, seat)) return false;
+  return isStandableTile(mark);
 }
 
 /**

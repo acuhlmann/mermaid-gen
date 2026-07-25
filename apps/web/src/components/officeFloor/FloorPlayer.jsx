@@ -25,9 +25,11 @@ import { YOU_SEAT_ID, depthOf, walkPathBetween } from '../../utils/officeFloorPl
  *   walkKey: string,
  *   onArrive?: () => void,
  *   testId?: string,
+ *   elementRef?: { current: HTMLElement | null },
  *   children?: import('react').ReactNode
  * }} props `children` ride above the figure inside its anchor (a speech
- *   bubble); changing `walkKey` starts a new walk.
+ *   bubble); changing `walkKey` starts a new walk. `elementRef` lets free roam
+ *   read where you actually got to when it interrupts a walk (`liveTileOf`).
  */
 export function FloorPlayer({
   from,
@@ -36,9 +38,11 @@ export function FloorPlayer({
   walkKey,
   onArrive,
   testId,
+  elementRef,
   children
 }) {
-  const ref = useRef(null);
+  const ownRef = useRef(null);
+  const ref = elementRef ?? ownRef;
   const path = walking && to ? walkPathBetween(from, to, YOU_SEAT_ID) : [from];
 
   const { tile, arrived } = useWalkAnimation(ref, path, { walkKey, onArrive });

@@ -1372,7 +1372,7 @@ export const OFFICE_CHROME_COPY = {
     stageAria: 'Isometric view of the office floor',
     back: '🪑 Back to your screen',
     backTitle: 'Sit down and get back to the deliverable',
-    hint: 'Click somebody to see who they are. Escape sits you back down.',
+    hint: 'Click the floor to walk there, or somebody to see who they are. Escape sits you back down.',
     // Day One, staged on the floor (isometric arrival).
     arrival: {
       eyebrow: 'ARCHISLOP CORP. · YOUR FIRST DAY',

@@ -120,6 +120,19 @@ track touches chrome only, never the floor, and never blocks the floor slices.
    the nearest tile that clears their monitor, their neighbours' faces, and the furniture.
    Three geometry surprises: see §6 rules 15–17.
 
+7. ~~**Free roam**~~ — ✅ **shipped**: the floor is walkable. Click any clear tile (or press an
+   arrow key) and you walk there; you stay a visible figure until you go back to your chair,
+   and your desk stands empty the whole time. Before this the room had **no camera to move**
+   — `useStageScale` fits the whole stage to the viewport, so you always see all of it — and
+   what was actually pinned was _you_: every walk was scripted, with `peekTileFor` deriving
+   _the_ mark and you never choosing one. Where you may stand is **derived** from the
+   furniture (`standableTileAt`, built on `isStandableTile`, which slice 6's
+   `isPeekMarkClear` now delegates to) rather than authored as a walkable mask, so the same
+   § 6 rules that place a peek mark also decide where a click puts you. Clicking a desk steps
+   you beside it; clicking somewhere with nothing legal within a tile does nothing, which is
+   what keeps the rooms you cannot enter reading as rooms you cannot enter. Two surprises,
+   both real bugs: see § 6 rules 18–19.
+
 ## 6. Geometry constraints (learned by looking at it)
 
 The layout is `apps/web/src/utils/officeFloorPlan.js` — tiles, seats, props, zones, plus
@@ -199,6 +212,29 @@ preserve them:
     The pay-off is that the fishbowl seals itself: no list of who is off-limits, just a
     room you cannot walk into.
 
+18. **The leadership fishbowl was only sealed from the south.** Rule 17's payoff — "no list of
+    who is off-limits, just a room you cannot walk into" — held only because `PEEK_OFFSETS`
+    all approach from `+x/+y`. The glass ran x 5.2…9.8 while the row runs x 6…10, so the
+    first thing free roam did was walk **around the end of the partition** and stand beside
+    the CTO. The panel now spans the `leadership` zone rect exactly (`[5.3, -0.5, 10.7, 1.0]`)
+    with two short returns closing the ends, and the floor plate's own edge closing the back.
+    The lesson generalises: a barrier derived for one family of marks is only tested by the
+    directions that family approaches from. The assertion to write is the one about the
+    _room_ ("no click anywhere puts you inside this rect"), not the one about the marks
+    ("clicking a director returns null") — the latter is both weaker and wrong, since tiles
+    just _outside_ the west wall are ordinary floor you may stand on.
+19. **A `fill: forwards` animation outranks inline style.** `useWalkAnimation`'s cleanup set a
+    `cancelled` flag but never called `animation.cancel()`, and the `animation` was scoped
+    inside the leg loop where the cleanup could not reach it. Harmless for six slices because
+    walks could never overlap; free roam interrupts them by design, and an abandoned walk
+    would have gone on holding the figure at the leg it reached while the next walk silently
+    did nothing. Its sibling: a new `walkKey` re-places the element at the _new_ path's start,
+    so an interrupted walk snaps back across the room unless the caller passes the position
+    you had actually reached — which is what `liveTileOf` reads back off the transform, and
+    the second reason `unprojectIso` exists. Neither is visible in a capture (
+    `--virtual-time-budget` fast-forwards timers but not WAAPI frames), so both are asserted
+    in `useWalkAnimation.test.jsx` against a stubbed engine instead.
+
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
 every seat around its table has a fractional column. The precise form of the rule (screen
@@ -234,14 +270,17 @@ a phone. Two Windows gotchas worth knowing before you trust a capture:
 
 ## 7. The bench (for whatever comes next)
 
-The phased program in §5 is complete. Anything new on the floor should be built out of the
+Slices 1–7 have shipped. Anything new on the floor should be built out of the
 pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
 constraints) first, because every one of those cost a screenshot to find. Verification
 recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
 `npm run format:affected`).
 
 **Components** (`apps/web/src/components/officeFloor/`): `FloorStage` (scaled stage; takes
-`vacantIds`, `speakingId`, `interactive`, and arbitrary `children` as extra actors),
+`vacantIds`, `speakingId`, `interactive`, `onWalkTo`/`roamOrigin`, and arbitrary `children` as
+extra actors), `FloorRoam` (the click surface + hover marker), `useFloorPresence` (where you
+are standing — view state, like the peek it absorbed), `useFloorKeyboard` (Escape ladder +
+arrow stepping), `useFloorAutoPan`, `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
 `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled speech), `FloorDeskSpeech` (a line
 above somebody at their own desk — mind §6 rule 15), `FloorPanel` (counter-scaled panel
 pinned to a tile — mind §6 rule 12), `FloorWalker` + `useWalkAnimation` (WAAPI path
@@ -250,8 +289,9 @@ walking), `FloorPlayer` (you, walking, wherever you are not at your own desk), `
 card), `FloorPeek` + `FloorPeekCard` (desk peeking), `FloorArrival` (the ceremony).
 
 **Data**: layout, routing and mark derivation in `apps/web/src/utils/officeFloorPlan.js`;
-the cast's fictional workload in `apps/web/src/utils/officeDeskWork.js`; who is away from
-their desk in `apps/web/src/utils/officeSceneCast.js`.
+where you may walk in `apps/web/src/utils/officeFloorMovement.js`; the cast's fictional
+workload in `apps/web/src/utils/officeDeskWork.js`; who is away from their desk in
+`apps/web/src/utils/officeSceneCast.js`.
 
 **Two habits worth keeping.** A new mark family should be _derived and asserted_ rather than
 hand-placed (see the note under §6 rule 10) — the geometry rules are cheap to encode and
@@ -263,9 +303,11 @@ Still open, and deliberately not designed yet: §8.
 
 ## 8. Open implementation questions (deferred to build time)
 
-- Floor layout source of truth (a small declarative map module, presumably shared with
-  walk-path waypoints).
-- Camera/controls detail: zoom levels, tap-to-walk vs. tap-to-talk on mobile.
+- ~~Floor layout source of truth~~ — `officeFloorPlan.js`, with `officeFloorMovement.js` as
+  its sibling for "where may _you_ go".
+- ~~Camera/controls detail~~ — answered by slice 7, and the answer is that there is no camera
+  to control: the stage fits the viewport, so tap-to-walk and tap-to-talk are both just taps
+  on the same stage, distinguished by whether they land on a person. Zoom levels stay out.
 - Reduced-motion behavior on the floor itself (beyond the card-tour fallback).
 - Screen-reader narrative for spatial events ("Chad is walking to your desk").
 - Where the mode toggle lives in desktop chrome ("stand up" affordance + shortcut).

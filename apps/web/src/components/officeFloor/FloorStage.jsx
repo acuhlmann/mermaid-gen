@@ -5,6 +5,7 @@
  * is purely "put the office on the stage".
  */
 
+import FloorRoam from './FloorRoam.jsx';
 import FloorRoom, { FloorZoneLabels } from './FloorRoom.jsx';
 import FloorSeat from './FloorSeat.jsx';
 import FloorWalker from './FloorWalker.jsx';
@@ -54,9 +55,12 @@ function seatDisplay(seat, copy) {
  *   onWalkerDeparted?: () => void,
  *   vacantIds?: string[],
  *   interactive?: boolean,
+ *   onWalkTo?: ((tile: { x: number, y: number }) => void) | null,
+ *   roamOrigin?: { x: number, y: number } | null,
  *   children?: import('react').ReactNode
  * }} props `children` are extra actors placed in stage coordinates (the
- *   arrival ceremony puts you and its spotlight there).
+ *   arrival ceremony puts you and its spotlight there). Passing `onWalkTo`
+ *   makes the floor itself walkable (slice 7).
  */
 export function FloorStage({
   scale,
@@ -71,6 +75,8 @@ export function FloorStage({
   vacantIds = [],
   interactive = true,
   speakingId = null,
+  onWalkTo = null,
+  roamOrigin = null,
   children
 }) {
   return (
@@ -82,6 +88,13 @@ export function FloorStage({
         aria-label={copy.stageAria}
       >
         <FloorRoom youTile={seatFor(YOU_SEAT_ID)} />
+
+        {/* Under everything that paints (lowest prop depth is 20), so people
+            keep their clicks and only bare floor reaches it. During the
+            arrival ceremony the room is scenery, not a place you may wander. */}
+        {interactive && onWalkTo ? (
+          <FloorRoam scale={scale} origin={roamOrigin} onWalkTo={onWalkTo} />
+        ) : null}
 
         {FLOOR_PROPS.map((prop, index) => {
           const { left, top } = projectIso(prop.x, prop.y);

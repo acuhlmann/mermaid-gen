@@ -92,6 +92,23 @@
   color: var(--accent-dark);
 }
 
+/* Declared after the base: both are single-class selectors, so source order is
+   what decides the winner (§ 6 rule 9). */
+.office-floor-sit--home {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+/* Wraps so two pills never push each other off a narrow bar. */
+.office-floor-bar-actions {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ── the stage ───────────────────────────────────────────────────────────── */
 
 .office-floor-viewport {
@@ -163,6 +180,34 @@
   50% {
     opacity: 1;
   }
+}
+
+/* Free roam's click surface (slice 7). z-index 1 puts it under every prop and
+   person — the lowest prop depth is 20 — so the cast keep their clicks and only
+   bare floor lands here. The furniture is `pointer-events: none`, so clicking a
+   desk walks you to it rather than doing nothing. */
+.office-floor-roam {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+.office-floor-roam-marker {
+  position: absolute;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+}
+
+/* Deliberately quieter than `.office-floor-you-tile`, and unanimated: it tracks
+   the pointer, so a pulse on top of that is just noise. */
+.office-floor-roam-marker polygon {
+  fill: rgba(37, 99, 235, 0.1);
+  stroke: var(--accent);
+  stroke-width: 2;
+  opacity: 0.75;
 }
 
 .office-floor-prop {
@@ -766,6 +811,22 @@
 
   .office-floor-hint {
     display: none;
+  }
+}
+
+/* Two pills plus a title do not fit a small phone. Verified clear down to a
+   492 px viewport (the narrowest headless Edge will report on Windows — it
+   clamps `--window-size`), so this is insurance for the widths a capture
+   cannot reach: the actions drop to their own row rather than pushing "back to
+   your screen" off the edge. */
+@media (max-width: 460px) {
+  .office-floor-bar {
+    flex-wrap: wrap;
+  }
+
+  .office-floor-bar-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 }
 
