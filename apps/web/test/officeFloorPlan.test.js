@@ -20,51 +20,39 @@ import {
   TILE_W,
   VISITOR_TILE,
   YOU_SEAT_ID,
+  boxesOverlap,
   depthOf,
+  figureBox,
   floorSeatIds,
+  headBox,
   isOnFloor,
   liftToDepth,
   meetingSeating,
   pathCost,
+  pathCrossesGlass,
+  peekTileFor,
+  peekableSeatIds,
   projectIso,
   seatFor,
+  walkPathBetween,
   walkPathFrom,
   zoneCentre,
   zonePolygon
 } from '../src/utils/officeFloorPlan.js';
 
 /**
- * A figure's screen footprint, in stage px: a 34 px `PersonaFace` head over a
- * 24 px torso pulled up 10 px to overlap it (`.office-floor-person-head`), so
- * 34 wide by 48 tall — lifted 30 px when seated (§ 6 rule 2). Confirmed against
- * `getBoundingClientRect()` in a capture rather than read off the stylesheet.
+ * `figureBox` / `headBox` / `boxesOverlap` are the honest form of § 6 rule 10,
+ * and they live in the layout module rather than here because `peekTileFor`
+ * derives its marks with them — one definition of "a figure is 48 px tall, not
+ * 58" (§ 6 rule 14), measured with `getBoundingClientRect()` in a capture.
  *
- * This is the honest form of § 6 rule 10. "No mark may share `x - y` with a
- * desk" is the integer shorthand for it, and it does not survive fractional
- * marks: the glass room is a diagonal strip in column space, so every seat
- * around its table has a fractional column. What the rule is actually about is
- * one figure's head landing on another's, which is a rectangle intersection.
+ * "No mark may share `x - y` with a desk" is the integer shorthand for the same
+ * rule, and it does not survive fractional marks: the glass room is a diagonal
+ * strip in column space, so every seat around its table has a fractional
+ * column. What the rule is actually about is one figure's head landing on
+ * another's, which is a rectangle intersection.
  */
-const FIGURE_HALF_W = 17;
-const FIGURE_H = 48;
-const HEAD_H = 34;
-const SEATED_LIFT = 30;
-
-function figureBox(tile, { seated = true } = {}) {
-  const { left, top } = projectIso(tile.x, tile.y);
-  const feet = top - (seated ? SEATED_LIFT : 0);
-  return { x0: left - FIGURE_HALF_W, x1: left + FIGURE_HALF_W, y0: feet - FIGURE_H, y1: feet };
-}
-
-/** Just the head — the part that must never be covered. */
-function headBox(tile, options) {
-  const box = figureBox(tile, options);
-  return { ...box, y1: box.y0 + HEAD_H };
-}
-
-function overlaps(a, b) {
-  return a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
-}
+const overlaps = boxesOverlap;
 
 describe('isometric projection', () => {
   it('puts tile 0,0 at the stage origin', () => {
@@ -349,6 +337,108 @@ describe('meeting seats (slice 5)', () => {
       'critique'
     ]);
     expect(meetingSeating(undefined)).toEqual([]);
+  });
+});
+
+describe('peek marks (slice 6)', () => {
+  const marks = () =>
+    peekableSeatIds().map((id) => ({ id, tile: peekTileFor(id), seat: seatFor(id) }));
+
+  it('offers a peek at every colleague with a desk on your side of the glass', () => {
+    // Pinned deliberately rather than derived: this list *is* the feature's
+    // reach, and a layout change that silently drops somebody from it (or
+    // hands you a way into the leadership fishbowl) should fail here.
+    expect(peekableSeatIds()).toEqual([
+      'refine',
+      'innovate',
+      'critique',
+      'explain',
+      'goMad',
+      'helpdesk',
+      'scrumMaster',
+      'intern',
+      'greybeard',
+      'hr'
+    ]);
+  });
+
+  it('will not peek at your own desk, at Gary, or through the leadership glass', () => {
+    expect(peekTileFor(YOU_SEAT_ID)).toBeNull();
+    // Gary lives at the fridge: no desk, no monitor, nothing to look at.
+    expect(seatFor('facilities').desk).toBe(false);
+    expect(peekTileFor('facilities')).toBeNull();
+    // Leadership sit behind a glass wall with no way in from the floor. That
+    // is the fiction the card already tells you: not without a calendar invite.
+    for (const id of CAST_TIERS.senior) {
+      expect(peekTileFor(id), `${id} is peekable through glass`).toBeNull();
+    }
+    expect(peekTileFor('nobody-here')).toBeNull();
+  });
+
+  it('stands you nearer the viewer than the desk, so you are not buried in it', () => {
+    for (const { id, tile, seat } of marks()) {
+      expect(depthOf(tile.x, tile.y), `${id}`).toBeGreaterThan(depthOf(seat.x, seat.y));
+      expect(isOnFloor(tile.x, tile.y), `${id} mark is off the floor`).toBe(true);
+    }
+  });
+
+  it('never parks you in front of the screen you came to read', () => {
+    // The monitor sits ~34 px to the desk's screen-left and is ~26 px wide
+    // (§ 6 rule 1), so a mark one tile along +y — the obvious "beside them"
+    // choice — lands 56 px screen-left and covers it. Nothing else does.
+    for (const { id, tile, seat } of marks()) {
+      const monitor = projectIso(seat.x, seat.y).left - 34;
+      const gap = Math.abs(projectIso(tile.x, tile.y).left - monitor);
+      expect(gap, `${id}'s peeker stands on their screen`).toBeGreaterThanOrEqual(30);
+    }
+  });
+
+  it('keeps one mark per person and off everybody else’s staging', () => {
+    const tiles = marks().map(({ tile }) => `${tile.x},${tile.y}`);
+    expect(new Set(tiles).size, 'two people share a peek mark').toBe(tiles.length);
+
+    const reserved = [VISITOR_TILE, ...COFFEE_TILES, ...BATTLE_TILES, MEETING_PLAYER_TILE];
+    for (const { id, tile } of marks()) {
+      for (const other of reserved) {
+        expect(tile.x === other.x && tile.y === other.y, `${id} mark is a set-piece mark`).toBe(
+          false
+        );
+      }
+      for (const seat of FLOOR_SEATS) {
+        expect(tile.x === seat.x && tile.y === seat.y, `${id} mark is on ${seat.id}'s tile`).toBe(
+          false
+        );
+      }
+    }
+  });
+
+  it('covers nobody’s face, standing (no seated lift) at a desk full of them', () => {
+    const standing = { seated: false };
+    for (const { id, tile } of marks()) {
+      for (const seat of FLOOR_SEATS) {
+        if (seat.id === YOU_SEAT_ID) continue; // your chair is empty while you peek
+        const theirs = { x: seat.x, y: seat.y };
+        expect(
+          overlaps(figureBox(tile, standing), headBox(theirs)),
+          `peeking at ${id} covers ${seat.id}'s face`
+        ).toBe(false);
+        expect(
+          overlaps(figureBox(theirs), headBox(tile, standing)),
+          `${seat.id} covers the peeker at ${id}'s desk`
+        ).toBe(false);
+      }
+    }
+  });
+
+  it('walks you there without going through a wall, and leaves the glass rooms sealed', () => {
+    const you = seatFor(YOU_SEAT_ID);
+    for (const { id, tile } of marks()) {
+      const path = walkPathBetween({ x: you.x, y: you.y }, tile, YOU_SEAT_ID);
+      expect(pathCrossesGlass(path), `the walk to ${id} goes through glass`).toBe(false);
+    }
+    // The test above only proves the marks we kept are reachable. This proves
+    // the check has teeth: a chair in the glass room is not.
+    expect(pathCrossesGlass(walkPathBetween({ x: you.x, y: you.y }, MEETING_SEATS[0]))).toBe(true);
   });
 });
 

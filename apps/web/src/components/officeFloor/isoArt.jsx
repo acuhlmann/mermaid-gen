@@ -122,14 +122,133 @@ const DESK_X = 0.12;
 const DESK_Y = 0.12;
 const DESK_H = 26;
 
+/** The monitor's screen face: 0.32 tiles wide, 19 px tall, on top of the stalk. */
+const SCREEN_X = DESK_X - 0.34;
+const SCREEN_Y = DESK_Y + 0.3;
+const SCREEN_LIFT = DESK_H + 4;
+const SCREEN_W = 0.32;
+const SCREEN_H = 19;
+
+/**
+ * *Their own work*, as rectangles (docs/office-isometric-mode.md § 5 slice 6).
+ *
+ * A look is a background wash plus a handful of bars in screen-face fractions —
+ * `x`/`w` across the panel, `y`/`h` down from its top. At 19 px tall on a stage
+ * that scales below 1 on a phone, the wash is what actually reads; the bars are
+ * texture. That is the intended fidelity (§ 3): a look costs a data row, not an
+ * art asset, and nothing here implies the cast produced anything (ADR-0010).
+ */
+const SCREEN_LOOKS = {
+  terminal: {
+    bg: '#0b2b1d',
+    bars: [
+      { x: 0.08, y: 0.14, w: 0.56, h: 0.12, c: '#4ade80' },
+      { x: 0.08, y: 0.36, w: 0.78, h: 0.12, c: '#4ade80' },
+      { x: 0.08, y: 0.58, w: 0.34, h: 0.12, c: '#86efac' },
+      { x: 0.08, y: 0.8, w: 0.14, h: 0.12, c: '#bbf7d0' }
+    ]
+  },
+  tabs: {
+    bg: '#dfe6ef',
+    bars: [
+      { x: 0.04, y: 0.06, w: 0.14, h: 0.16, c: '#94a3b8' },
+      { x: 0.22, y: 0.06, w: 0.14, h: 0.16, c: '#cbd5e1' },
+      { x: 0.4, y: 0.06, w: 0.14, h: 0.16, c: '#94a3b8' },
+      { x: 0.58, y: 0.06, w: 0.14, h: 0.16, c: '#cbd5e1' },
+      { x: 0.76, y: 0.06, w: 0.14, h: 0.16, c: '#94a3b8' },
+      { x: 0.08, y: 0.36, w: 0.82, h: 0.52, c: '#f8fafc' }
+    ]
+  },
+  spreadsheet: {
+    bg: '#f1f5f9',
+    bars: [
+      { x: 0.06, y: 0.1, w: 0.88, h: 0.14, c: '#15803d' },
+      { x: 0.06, y: 0.36, w: 0.4, h: 0.12, c: '#94a3b8' },
+      { x: 0.54, y: 0.36, w: 0.4, h: 0.12, c: '#94a3b8' },
+      { x: 0.06, y: 0.58, w: 0.4, h: 0.12, c: '#cbd5e1' },
+      { x: 0.54, y: 0.58, w: 0.4, h: 0.12, c: '#cbd5e1' }
+    ]
+  },
+  slides: {
+    bg: '#1e3a8a',
+    bars: [
+      { x: 0.1, y: 0.14, w: 0.62, h: 0.16, c: '#f8fafc' },
+      { x: 0.1, y: 0.42, w: 0.34, h: 0.42, c: '#38bdf8' },
+      { x: 0.52, y: 0.5, w: 0.36, h: 0.1, c: '#bfdbfe' },
+      { x: 0.52, y: 0.68, w: 0.28, h: 0.1, c: '#bfdbfe' }
+    ]
+  },
+  tickets: {
+    bg: '#fef6ec',
+    bars: [
+      { x: 0.06, y: 0.12, w: 0.12, h: 0.16, c: '#f97316' },
+      { x: 0.24, y: 0.14, w: 0.68, h: 0.12, c: '#cbd5e1' },
+      { x: 0.06, y: 0.42, w: 0.12, h: 0.16, c: '#f97316' },
+      { x: 0.24, y: 0.44, w: 0.56, h: 0.12, c: '#cbd5e1' },
+      { x: 0.06, y: 0.72, w: 0.12, h: 0.16, c: '#dc2626' },
+      { x: 0.24, y: 0.74, w: 0.68, h: 0.12, c: '#cbd5e1' }
+    ]
+  },
+  calendar: {
+    bg: '#eef2ff',
+    bars: [
+      { x: 0.06, y: 0.08, w: 0.88, h: 0.1, c: '#6366f1' },
+      { x: 0.06, y: 0.28, w: 0.4, h: 0.26, c: '#a5b4fc' },
+      { x: 0.54, y: 0.28, w: 0.4, h: 0.26, c: '#c7d2fe' },
+      { x: 0.06, y: 0.62, w: 0.4, h: 0.26, c: '#c7d2fe' },
+      { x: 0.54, y: 0.62, w: 0.4, h: 0.26, c: '#a5b4fc' }
+    ]
+  }
+};
+
+/**
+ * The monitor, with whatever that character is pretending to work on.
+ *
+ * Bars are drawn *after* the panel in the same group — SVG paint order does the
+ * layering, so they need no depth trickery, only a hair of `+y` to sit proud of
+ * the face they are on.
+ *
+ * @param {{ look?: string, you?: boolean }} props
+ */
+export function MonitorScreen({ look, you = false }) {
+  const art = you ? null : SCREEN_LOOKS[look];
+  const bg = you ? '#3b82f6' : (art?.bg ?? SCREEN);
+
+  return (
+    <g className={you ? 'floor-screen floor-screen--you' : 'floor-screen'}>
+      <IsoBox
+        w={SCREEN_W}
+        d={0.04}
+        h={SCREEN_H}
+        color={bg}
+        x={SCREEN_X}
+        y={SCREEN_Y}
+        lift={SCREEN_LIFT}
+      />
+      {(art?.bars ?? []).map((bar, index) => (
+        <IsoBox
+          key={index}
+          w={SCREEN_W * bar.w}
+          d={0.012}
+          h={SCREEN_H * bar.h}
+          color={bar.c}
+          x={SCREEN_X - SCREEN_W / 2 + SCREEN_W * (bar.x + bar.w / 2)}
+          y={SCREEN_Y + 0.02}
+          lift={SCREEN_LIFT + SCREEN_H * (1 - bar.y - bar.h)}
+        />
+      ))}
+    </g>
+  );
+}
+
 /**
  * A desk with its chair — the seat's furniture, drawn around the occupant.
  * `part: 'chair'` renders behind the person, `'desk'` in front of them, which
  * is what makes them read as *sitting* rather than standing in a desk.
  *
- * @param {{ part: 'chair' | 'desk', you?: boolean }} props
+ * @param {{ part: 'chair' | 'desk', you?: boolean, look?: string }} props
  */
-export function DeskFurniture({ part, you = false }) {
+export function DeskFurniture({ part, you = false, look }) {
   if (part === 'chair') {
     return (
       <g>
@@ -156,17 +275,7 @@ export function DeskFurniture({ part, you = false }) {
         y={DESK_Y + 0.26}
         lift={DESK_H}
       />
-      <g className={you ? 'floor-screen floor-screen--you' : 'floor-screen'}>
-        <IsoBox
-          w={0.32}
-          d={0.04}
-          h={19}
-          color={you ? '#3b82f6' : SCREEN}
-          x={DESK_X - 0.34}
-          y={DESK_Y + 0.3}
-          lift={DESK_H + 4}
-        />
-      </g>
+      <MonitorScreen look={look} you={you} />
       <IsoBox
         w={0.3}
         d={0.14}

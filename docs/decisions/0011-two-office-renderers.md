@@ -30,9 +30,10 @@ The app is gaining an **isometric mode**: the office floor embodied — situated
 
 ## Where this lives in code
 
-Slices 1–4 (the floor substrate, walk-bys embodied, the isometric arrival, set pieces at their locations) have shipped; slices 5–6 in `docs/office-isometric-mode.md` § 5 are pending.
+All six slices in `docs/office-isometric-mode.md` § 5 have shipped: the floor substrate, walk-bys embodied, the isometric arrival, set pieces at their locations, meetings in the glass room, and desk peeking.
 
-- Renderer #2: `apps/web/src/components/OfficeFloor.jsx` + `components/officeFloor/` (`FloorStage`, `FloorRoom`, `FloorSeat`, `FloorFigure`, `FloorWalker`, `FloorBubble`, `useFloorWalker`, `useWalkAnimation`, `FloorPersonCard`, `FloorArrival`, `isoArt`) + `components/OfficeFloor.css`; stage scaling in `hooks/useStageScale.js`
+- Renderer #2: `apps/web/src/components/OfficeFloor.jsx` + `components/officeFloor/` (`FloorStage`, `FloorRoom`, `FloorSeat`, `FloorFigure`, `FloorWalker`, `FloorBubble`, `FloorDeskSpeech`, `FloorPlayer`, `useFloorWalker`, `useWalkAnimation`, `FloorPersonCard`, `FloorMeeting`, `FloorPeek`, `FloorArrival`, `isoArt`) + `components/OfficeFloor.css`; stage scaling in `hooks/useStageScale.js`
+- Where rule 1 stops applying, and why that is still fine: **desk peeking** is a floor-only _interaction_ (walking to a desk), not a moment — nothing fires, nothing is stored, and the fiction it shows (`utils/officeDeskWork.js`) is presentation-agnostic data both renderers could read. "No mode-exclusive functionality" binds office _state_; a view affordance that produces nothing costs desktop users nothing
 - Third worked example of rule 1: **set pieces**. `FloorScene` and the `CoffeeBreakOverlay` / `OfficeBattleOverlay` cards drive one scene through the shared `hooks/useScenePacing.js`; participants come from `utils/officeSceneCast.js`, marks from `COFFEE_TILES` / `BATTLE_TILES`. The mount-one-renderer-at-a-time rule is load-bearing here: two paced performances would speak every line twice
 - Second worked example of rule 1: **the orientation**. `FloorArrival` (boot) and `OfficeDirectory` (replays, and the skip fallback) render the same roster, `introLine`s, narrator and pacing — two renderers of one ceremony, not two ceremonies. Mounted in `ArchiSlop.jsx` on `officeBootPending`
 - Layout source of truth (pure): `apps/web/src/utils/officeFloorPlan.js` — tiles, seats, props, zones, `projectIso` / `depthOf`, and walk routing (`walkPathFrom` / `pathCost` / `VISITOR_TILE`)
@@ -40,4 +41,4 @@ Slices 1–4 (the floor substrate, walk-bys embodied, the isometric arrival, set
 - Mode: `apps/web/src/state/officeViewModeStore.js` (`standUp` / `sitDown`; not persisted)
 - Mounted by renderer #1 so both share one wiring point: `OfficeLayer.jsx` (also supplies the floor's "Message" action from the existing desk IM verb); entered via the **Stand up** desk verb in `DeskActionsDock.jsx`
 - Presentation-agnostic stores rule 1 depends on, unchanged: `state/officeMomentStore.js`, `utils/officeCadence.js`, `hooks/useOfficeAmbience.js`
-- Tests: `apps/web/test/officeFloorPlan.test.js` (projection, layout invariants, and a drift guard that every `CAST_TIERS` member has a seat), `apps/web/test/officeFloor.test.jsx`
+- Tests: `apps/web/test/officeFloorPlan.test.js` (projection, layout invariants, derived mark families, and a drift guard that every `CAST_TIERS` member has a seat), `apps/web/test/officeFloor.test.jsx`, `officeFloorMeeting.test.jsx`, `officeFloorPeek.test.jsx`, `officeDeskWork.test.js`

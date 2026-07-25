@@ -32,7 +32,7 @@ const ART_STYLE = {
   height: PROP_VIEW.h
 };
 
-function SeatArt({ part, you }) {
+function SeatArt({ part, you, look }) {
   return (
     <svg
       className="office-floor-seat-art"
@@ -43,7 +43,7 @@ function SeatArt({ part, you }) {
       aria-hidden="true"
       focusable="false"
     >
-      <DeskFurniture part={part} you={you} />
+      <DeskFurniture part={part} you={you} look={look} />
     </svg>
   );
 }
@@ -59,8 +59,10 @@ function SeatArt({ part, you }) {
  *   idleIndex?: number,
  *   vacant?: boolean,
  *   interactive?: boolean,
+ *   look?: string,
  *   onSelect: (id: string) => void
- * }} props
+ * }} props `look` is what is on their monitor (`officeDeskWork.js`) — always
+ *   drawn, for everyone; walking over is only how you get close enough to read it.
  */
 export function FloorSeat({
   seat,
@@ -73,6 +75,7 @@ export function FloorSeat({
   vacant = false,
   interactive = true,
   speaking = false,
+  look,
   onSelect
 }) {
   const { left, top } = projectIso(seat.x, seat.y);
@@ -106,7 +109,7 @@ export function FloorSeat({
         </button>
       )}
 
-      {seat.desk ? <SeatArt part="desk" you={isYou} /> : null}
+      {seat.desk ? <SeatArt part="desk" you={isYou} look={look} /> : null}
     </div>
   );
 }

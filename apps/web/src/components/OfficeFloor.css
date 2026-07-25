@@ -536,9 +536,22 @@
  * rule won the background and left white text on a white pill.
  */
 
-/* Seated speakers get their bubble lifted clear of their own desk. */
+/* A figure sitting at a tile it does not own a `FloorSeat` for (the glass
+   room): the same 30 px lift `.office-floor-person.is-seated` applies. */
 .office-floor-walker-anchor--seated {
   transform: translate(-50%, calc(-100% - 30px));
+}
+
+/*
+ * A bubble *above* somebody who is sitting down — which is 30 px of seat lift
+ * plus the whole 48 px figure, not just the lift. At 30 px the bubble's bottom
+ * edge lands on their feet and the balloon covers them from the chest up: in
+ * the arrival ceremony that hid the colleague introducing themselves, glow and
+ * all, and in a desk peek it hid the person you had just walked across the
+ * floor to look at. Only a capture shows it (§ 6 rule 15).
+ */
+.office-floor-walker-anchor--over-seat {
+  transform: translate(-50%, calc(-100% - 82px));
 }
 
 /*
@@ -689,6 +702,24 @@
 .office-floor-card-hand button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* ── desk peeking (slice 6) ──────────────────────────────────────────────── */
+
+/*
+ * Same reasoning as the meeting card: the pod is dense with desks and a
+ * counter-scaled panel pinned to one of them covers the neighbours. The room is
+ * the diegesis; the way back to your own screen is allowed to be a button.
+ */
+.office-floor-card--peek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.office-floor-card--peek .office-floor-card-blurb,
+.office-floor-card--peek .office-floor-card-actions {
+  margin: 0;
 }
 
 .office-floor-arrival-actions {

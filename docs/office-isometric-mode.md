@@ -107,10 +107,18 @@ track touches chrome only, never the floor, and never blocks the floor slices.
    equivalent of the window's docked mode — which is also how you read the minutes, since
    paperwork belongs on a screen. Two geometry surprises, both caught by a capture: see §6
    rules 12–14.
-6. **Desk peeking** — walk over to "see what they're working on": the _Their-own-work_
-   fiction visualized on colleague monitors (Ulrich's green terminal, Chad's forty tabs).
-   Fiction only — the cast produces no real artifacts (Sign-off rule / one-producer model).
-   Plan: §7.1.
+6. ~~**Desk peeking**~~ — ✅ **shipped**: every monitor on the floor now shows what its
+   owner is pretending to work on (`officeDeskWork.js` — Ulrich's green terminal, Chad's
+   forty tabs, Pam's wall-to-wall calendar), and the person card gains **👀 Their screen**,
+   which empties your own desk and walks you to a mark beside theirs. They glow, say one
+   line about it, and **Back to my desk** walks you home; Escape does the same before it
+   sits you down. Fiction only — no slot content, no artifacts (Sign-off rule /
+   one-producer model), and the peek writes to no store at all: it is view state that dies
+   when you sit down. The marks are **derived, not authored** (`peekTileFor`), which is
+   what makes "who can you peek at" fall out of the room rather than out of a list:
+   leadership sit behind glass with no route in, Gary has no desk, and everyone else gets
+   the nearest tile that clears their monitor, their neighbours' faces, and the furniture.
+   Three geometry surprises: see §6 rules 15–17.
 
 ## 6. Geometry constraints (learned by looking at it)
 
@@ -168,13 +176,40 @@ preserve them:
     `margin-bottom`, which is what fuses them into one figure. Anything that reasons about
     occlusion has to use the real number; `officeFloorPlan.test.js` measures with it, and
     the value was confirmed against `getBoundingClientRect()` rather than read off the
-    stylesheet.
+    stylesheet. It now lives in `officeFloorPlan.js` (`figureBox` / `headBox` /
+    `boxesOverlap`) so the marks and the tests measure with one definition.
+15. **A bubble over a seated speaker must clear the figure, not the chair.** The seated
+    anchor lifts by 30 px — the seat lift — which puts the balloon's bottom edge on their
+    feet, and a ~70 px bubble then covers them from the chest up. It hid the colleague
+    introducing themselves in the arrival ceremony (glow and all, since slice 3) and hid
+    the person you had walked across the floor to look at. The lift is 30 + 48 = the whole
+    figure: `.office-floor-walker-anchor--over-seat`, kept separate from `--seated`, which
+    still means "a figure sitting on a tile that owns no `FloorSeat`" in the glass room.
+16. **Stand to the screen-right of a desk, never one tile along `+y`.** The monitor sits
+    ~34 px screen-left of its desk (rule 1) and is ~26 px wide, so the obvious "beside
+    them" mark lands 56 px screen-left — squarely between the viewer and the screen you
+    walked over to read. Column offsets of 0 or ±112 clear it; −56 is the only one that
+    does not, and `coversTheMonitor` is that arithmetic.
+17. **Glass answers "can I see it?" and "can I walk there?" differently.** A proximity test
+    is wrong for both: the meeting-room wall runs _parallel_ to goMad's mark half a tile
+    away and blocks nothing, while the leadership wall is exactly what stands between you
+    and the CFO. Sight lines and walk routes therefore use a segment-**crossing** test
+    (`pathCrossesGlass`), and proximity is kept for furniture, which is what makes the CEO
+    unpeekable — there is a standable tile in front of him and a server rack in the way.
+    The pay-off is that the fishbowl seals itself: no list of who is off-limits, just a
+    room you cannot walk into.
 
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
 every seat around its table has a fractional column. The precise form of the rule (screen
-boxes must not intersect, and no figure may cover another's head) lives in the meeting-seat
-suite in `apps/web/test/officeFloorPlan.test.js`; prefer it for any new mark family.
+boxes must not intersect, and no figure may cover another's head) is `figureBox` /
+`headBox` / `boxesOverlap` in `officeFloorPlan.js`, asserted by the meeting-seat and
+peek-mark suites in `apps/web/test/officeFloorPlan.test.js`; prefer it for any new mark
+family. Slice 6 went one step further and let the derivation _apply_ the rule rather than
+be checked against it: `peekTileFor` walks a preference ladder of offsets and returns the
+first that survives every constraint, so "there is nowhere to stand" is an answer the room
+gives (leadership, Gary) instead of a list somebody maintains. The suite then pins the
+resulting roster, which is what catches a layout change that silently opens the fishbowl.
 
 One more paint-order rule the meeting table forced: a big prop has **one** z-index, so a
 mark's depth decides which side of it that figure lands on. `MEETING_SEATS` is arranged so
@@ -182,9 +217,11 @@ the far row paints before the table (their laps disappear behind it) and the nea
 (their torsos sit in front). A cosmetic `depthOf(...) + 5` nudge — copied from `FloorScene` —
 is enough to push the outermost far mark past the table and float that attendee over it.
 
-Verification recipe (this is how 1–3, 5, 6 and 12–14 were caught): temporary Vite harness + headless
-Edge screenshot, per the `apps/web:verify` skill. Two Windows gotchas worth knowing before
-you trust a capture:
+Verification recipe (this is how 1–3, 5, 6 and 12–17 were caught): temporary Vite harness + headless
+Edge screenshot, per the `apps/web:verify` skill. Drive the real UI from the harness rather
+than faking state — slice 6's harness took a `?peek=<castId>` param and clicked the person
+and then the card action, which is also how it found that the walk can finish off-screen on
+a phone. Two Windows gotchas worth knowing before you trust a capture:
 
 - Edge **crops** to the requested `--window-size` rather than scaling, and display scaling
   inflates the CSS viewport (a 390 px window reported a 492 px viewport). Measure
@@ -195,49 +232,34 @@ you trust a capture:
   `--force-prefers-reduced-motion`: the walker then skips travel by design, which is exactly
   the state you want to inspect.
 
-## 7. Plan for the remaining slice
+## 7. The bench (for whatever comes next)
 
-Written so a fresh session can pick it up cold. Read §2 (binding rules) and §6 (geometry
-constraints) first — every one of those cost a screenshot to find. Verification recipe is in
-§6; repo commands are in `CLAUDE.md` (`npm run check:affected`, `npm run format:affected`).
+The phased program in §5 is complete. Anything new on the floor should be built out of the
+pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
+constraints) first, because every one of those cost a screenshot to find. Verification
+recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
+`npm run format:affected`).
 
-**What already exists to build on** (`apps/web/src/components/officeFloor/`):
-`FloorStage` (scaled stage; takes `vacantIds`, `speakingId`, `interactive`, and arbitrary
-`children` as extra actors), `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled
-speech), `FloorPanel` (counter-scaled panel pinned to a tile — mind §6 rule 12),
-`FloorWalker` + `useWalkAnimation` (WAAPI path walking), `FloorScene` (set pieces),
-`FloorMeeting` + `FloorMeetingCard` (the glass room, and why its chrome is a card),
-`FloorArrival` (the ceremony, including an `ArrivalPlayer` that walks you to your desk).
-Layout and routing: `apps/web/src/utils/officeFloorPlan.js`.
+**Components** (`apps/web/src/components/officeFloor/`): `FloorStage` (scaled stage; takes
+`vacantIds`, `speakingId`, `interactive`, and arbitrary `children` as extra actors),
+`FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled speech), `FloorDeskSpeech` (a line
+above somebody at their own desk — mind §6 rule 15), `FloorPanel` (counter-scaled panel
+pinned to a tile — mind §6 rule 12), `FloorWalker` + `useWalkAnimation` (WAAPI path
+walking), `FloorPlayer` (you, walking, wherever you are not at your own desk), `FloorScene`
+(set pieces), `FloorMeeting` + `FloorMeetingCard` (the glass room, and why its chrome is a
+card), `FloorPeek` + `FloorPeekCard` (desk peeking), `FloorArrival` (the ceremony).
 
-### 7.1 Slice 6 — desk peeking
+**Data**: layout, routing and mark derivation in `apps/web/src/utils/officeFloorPlan.js`;
+the cast's fictional workload in `apps/web/src/utils/officeDeskWork.js`; who is away from
+their desk in `apps/web/src/utils/officeSceneCast.js`.
 
-This slice needs **new data**, which slices 1–5 did not: the _Their-own-work_ fiction
-(`GLOSSARY.md`) has never been written down. Follow the established parametric pattern —
-one row per cast member, like `personaFaceTraits` and the floor's seat rows.
+**Two habits worth keeping.** A new mark family should be _derived and asserted_ rather than
+hand-placed (see the note under §6 rule 10) — the geometry rules are cheap to encode and
+expensive to rediscover. And a new surface belongs in the floor **card slot** unless it has
+earned a place on the stage: the slot is single-occupancy and ordered by how much of your
+body is committed (meeting → peek → person card → hint).
 
-Steps:
-
-1. **`officeDeskWork.js`** (new, in `apps/web/src/utils/`): one row per cast id —
-   a screen "look" (`terminal` | `tabs` | `spreadsheet` | `slides` | `tickets` | `calendar`),
-   and a short line they say when you look over their shoulder. Traits read off their
-   existing prose, never invented: Ulrich is `terminal`, Chad is `tabs`, Diane is
-   `spreadsheet`, Marcus is `slides`, Dave is `tickets`, Pam is `calendar`. Add a drift-guard
-   test that every `CAST_TIERS` member has a row.
-2. **Screen looks in `isoArt.jsx`**: a `MonitorScreen({ look })` that draws a few coloured
-   bars per look on the existing monitor face. Boxes only — no new art pipeline (§3).
-3. **Walking to them.** `OfficeFloor` renders you _seated_ at your desk even while you are
-   standing on the floor — except in a meeting, where slice 5 already vacates `you` and
-   draws a player actor at `MEETING_PLAYER_TILE`. Do the same to walk over: vacate `you` and
-   generalize `FloorArrival`'s `ArrivalPlayer` into a shared `FloorPlayer` taking a target
-   tile, driven by the existing `useWalkAnimation`. Clicking a colleague's desk walks you
-   there; the person card gains a "look at their screen" action. Mind that the card slot is
-   single-occupancy (a meeting already claims it over the person card).
-4. **Sign-off rule (ADR-0010) applies literally here**: what you see is fiction. No slot
-   content, no artifacts, no implication the cast produced anything.
-
-Risk: this is the slice most likely to grow. The screen looks are ambience — a handful of
-rectangles each is the right fidelity.
+Still open, and deliberately not designed yet: §8.
 
 ## 8. Open implementation questions (deferred to build time)
 

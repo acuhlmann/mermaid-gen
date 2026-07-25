@@ -15,24 +15,16 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import FloorBubble from './FloorBubble.jsx';
-import FloorFigure from './FloorFigure.jsx';
+import FloorDeskSpeech from './FloorDeskSpeech.jsx';
+import FloorPlayer from './FloorPlayer.jsx';
 import FloorStage from './FloorStage.jsx';
-import { useWalkAnimation } from './useWalkAnimation.js';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
 import { useStageScale } from '../../hooks/useStageScale.js';
 import { OFFICE_COLLEAGUES, officeChromeCopy, officeSenderInfo } from '../../utils/officeCast.js';
 import { OFFICE_NARRATION_GAP_MS } from '../../utils/officeNarration.js';
 import { writeOfficeDirectorySeen } from '../../utils/officeAmbienceStorage.js';
-import {
-  RECEPTION_TILE,
-  YOU_SEAT_ID,
-  depthOf,
-  projectIso,
-  seatFor,
-  walkPathBetween
-} from '../../utils/officeFloorPlan.js';
+import { RECEPTION_TILE, YOU_SEAT_ID, seatFor } from '../../utils/officeFloorPlan.js';
 import { useUiCopy } from '../../i18n/useUiLocale.js';
 
 const COLLEAGUE_IDS = Object.keys(OFFICE_COLLEAGUES);
@@ -82,45 +74,19 @@ function sleep(ms, signal) {
 
 /** You, on the floor: at reception, then walking to your desk. */
 function ArrivalPlayer({ walking, onSeated }) {
-  const ref = useRef(null);
   const desk = seatFor(YOU_SEAT_ID) ?? RECEPTION_TILE;
-  const path = walking
-    ? walkPathBetween(RECEPTION_TILE, { x: desk.x, y: desk.y }, YOU_SEAT_ID)
-    : [RECEPTION_TILE];
-
-  const { tile } = useWalkAnimation(ref, path, {
-    walkKey: walking ? 'you:to-desk' : 'you:reception',
-    onArrive: walking ? onSeated : undefined
-  });
-
   return (
-    <div
-      ref={ref}
-      className="office-floor-walker"
-      data-testid="office-floor-arrival-player"
-      style={{ zIndex: depthOf(tile.x, tile.y) + 6 }}
-    >
-      <div className="office-floor-walker-anchor">
-        <FloorFigure id={YOU_SEAT_ID} accent="var(--accent)" isYou walking={walking} />
-      </div>
-    </div>
-  );
-}
-
-/** Their intro line, above their own desk. */
-function ArrivalSpeaker({ castId, line, scale }) {
-  const seat = seatFor(castId);
-  if (!seat) return null;
-  const sender = officeSenderInfo(castId);
-  const { left, top } = projectIso(seat.x, seat.y);
-  return (
-    <div className="office-floor-walker" style={{ left, top, zIndex: 9600 }}>
-      <div className="office-floor-walker-anchor office-floor-walker-anchor--seated">
-        <FloorBubble name={sender?.name ?? castId} title={sender?.title} scale={scale}>
-          {line}
-        </FloorBubble>
-      </div>
-    </div>
+    <FloorPlayer
+      from={RECEPTION_TILE}
+      to={{ x: desk.x, y: desk.y }}
+      walking={walking}
+      walkKey={walking ? 'you:to-desk' : 'you:reception'}
+      // Standing at reception is a walk of length one, and `useWalkAnimation`
+      // settles immediately — an unconditional handler would finish the
+      // ceremony before it started.
+      onArrive={walking ? onSeated : undefined}
+      testId="office-floor-arrival-player"
+    />
   );
 }
 
@@ -247,7 +213,7 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
             onSeated={() => finish({ startDeskTour: true })}
           />
           {speakingId && speakingLine ? (
-            <ArrivalSpeaker castId={speakingId} line={speakingLine} scale={scale} />
+            <FloorDeskSpeech castId={speakingId} line={speakingLine} scale={scale} />
           ) : null}
         </FloorStage>
       </div>

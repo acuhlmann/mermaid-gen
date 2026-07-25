@@ -22,6 +22,7 @@ import {
   seatFor
 } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
+import { deskWorkFor } from '../../utils/officeDeskWork.js';
 
 /**
  * Display fields for one seat. The player is in no cast bank, so their row
@@ -116,6 +117,7 @@ export function FloorStage({
             vacant={(walker && seat.id === walker.colleagueId) || vacantIds.includes(seat.id)}
             interactive={interactive}
             speaking={speakingId === seat.id}
+            look={deskWorkFor(seat.id)?.look}
             onSelect={onSelect}
           />
         ))}

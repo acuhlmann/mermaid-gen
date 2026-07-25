@@ -1396,6 +1396,24 @@ export const OFFICE_CHROME_COPY = {
     messageTitle: 'Open Slop Chat™ with them',
     seniorNote: 'Not without a calendar invite.',
     teamNote: 'On your team — brief them from the canvas.',
+    // Desk peeking. Everything you see over a shoulder is fiction: the cast
+    // produces nothing (ADR-0010), they are just visibly busy.
+    peek: {
+      eyebrow: 'OVER THEIR SHOULDER',
+      action: '👀 Their screen',
+      actionTitle: 'Walk over and see what they are working on',
+      walking: 'Walking over. Try to look like you need something.',
+      back: '🪑 Back to my desk',
+      backTitle: 'Walk back to your own screen',
+      looks: {
+        terminal: 'A terminal. Green on black, scrollback to the horizon.',
+        tabs: 'Forty tabs. One of them is the work.',
+        spreadsheet: 'A spreadsheet. The tab is called FINAL_v7_actual.',
+        slides: 'Slides. Slide four is titled “Slide 4”.',
+        tickets: 'A ticket queue, sorted by how long it has been ignored.',
+        calendar: 'A calendar. Solid colour, wall to wall.'
+      }
+    },
     // The meeting, staged in the glass room instead of a window on your screen.
     // Labels stay short: two of them share one row of a 21 rem card.
     meeting: {

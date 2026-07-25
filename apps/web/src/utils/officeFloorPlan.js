@@ -175,7 +175,10 @@ export const YOU_SEAT_ID = 'you';
 export const FLOOR_PROPS = [
   { kind: 'receptionDesk', x: 1, y: 1 },
   { kind: 'printer', x: 3.4, y: 0.6 },
-  { kind: 'whiteboard', x: 6.8, y: 2.2 },
+  // Nudged a tile screen-right of 6.8/2.2 (§ 6 rule 11): it stood a third of a
+  // tile from the only spot you can look at Pam's calendar from, and pushed
+  // that mark two tiles down the aisle — a peek that read as loitering.
+  { kind: 'whiteboard', x: 7.8, y: 2.4 },
   { kind: 'serverRack', x: 10.4, y: 1.2 },
   { kind: 'fridge', x: 0.2, y: 6.6 },
   { kind: 'coffeeMachine', x: 1, y: 7.4 },
@@ -323,6 +326,50 @@ export function meetingSeating(attendees, facilitatorId = '') {
     .map((id, index) => ({ id, tile: MEETING_SEATS[index] }));
 }
 
+/**
+ * A figure's screen footprint, in stage px: a 34 px `PersonaFace` head over a
+ * 24 px torso pulled up 10 px to overlap it, so 34 wide by **48** tall — not 58
+ * (§ 6 rule 14; the overlap is what fuses head and body into one figure).
+ * Confirmed against `getBoundingClientRect()` in a capture rather than read off
+ * the stylesheet, and lifted 30 px when seated (§ 6 rule 2).
+ *
+ * These are the honest form of § 6 rule 10. "No mark may share `x - y` with a
+ * desk" is the integer shorthand, and it does not survive fractional marks —
+ * what the rule is actually about is one figure's head landing on another's,
+ * which is a rectangle intersection. Every mark family that came after the
+ * meeting seats is validated with these boxes rather than the shorthand.
+ */
+export const FIGURE_HALF_W = 17;
+export const FIGURE_H = 48;
+export const FIGURE_HEAD_H = 34;
+export const SEATED_LIFT = 30;
+
+/**
+ * @param {{ x: number, y: number }} tile
+ * @param {{ seated?: boolean }} [options] seated by default — every mark family
+ *   so far is a chair; the peeker standing at somebody's desk is the exception.
+ * @returns {{ x0: number, x1: number, y0: number, y1: number }}
+ */
+export function figureBox(tile, { seated = true } = {}) {
+  const { left, top } = projectIso(tile.x, tile.y);
+  const feet = top - (seated ? SEATED_LIFT : 0);
+  return { x0: left - FIGURE_HALF_W, x1: left + FIGURE_HALF_W, y0: feet - FIGURE_H, y1: feet };
+}
+
+/** Just the head — the part that must never be covered. */
+export function headBox(tile, options) {
+  const box = figureBox(tile, options);
+  return { ...box, y1: box.y0 + FIGURE_HEAD_H };
+}
+
+/**
+ * @param {{ x0: number, x1: number, y0: number, y1: number }} a
+ * @param {{ x0: number, x1: number, y0: number, y1: number }} b
+ */
+export function boxesOverlap(a, b) {
+  return a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+}
+
 /** Tiles closer than this to a path count as walking through the furniture. */
 const OBSTACLE_RADIUS = 0.55;
 
@@ -416,6 +463,193 @@ export function walkPathBetween(from, to, walkerId = '') {
  */
 export function floorSeatIds() {
   return FLOOR_SEATS.map((seat) => seat.id);
+}
+
+/* ── desk peeking (slice 6) ─────────────────────────────────────────────── */
+
+/**
+ * The glass partitions as line segments in tile space. `FLOOR_PROPS` stores a
+ * panel as centre + span; a walk has to be checked against the whole wall, and
+ * the sampled points `obstaclesFor` uses are a cost heuristic, not a barrier.
+ *
+ * @returns {Array<{ from: {x: number, y: number}, to: {x: number, y: number} }>}
+ */
+export function glassSegments() {
+  return FLOOR_PROPS.filter((prop) => prop.kind === 'glassPanel').map((prop) => {
+    const half = (prop.span ?? 2) / 2;
+    return prop.axis === 'y'
+      ? { from: { x: prop.x, y: prop.y - half }, to: { x: prop.x, y: prop.y + half } }
+      : { from: { x: prop.x - half, y: prop.y }, to: { x: prop.x + half, y: prop.y } };
+  });
+}
+
+function orientation(a, b, c) {
+  const value = (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  if (Math.abs(value) < 1e-9) return 0;
+  return value > 0 ? 1 : -1;
+}
+
+/** Proper crossing only: a path that merely touches a wall's end is fine. */
+function segmentsCross(a1, a2, b1, b2) {
+  return (
+    orientation(a1, a2, b1) !== orientation(a1, a2, b2) &&
+    orientation(b1, b2, a1) !== orientation(b1, b2, a2)
+  );
+}
+
+/**
+ * Does this route walk through a glass wall? Clipping a desk is fine — depth
+ * ordering makes it read as passing behind — but a wall is a wall, and it is
+ * what keeps the leadership fishbowl a fishbowl.
+ *
+ * @param {Array<{x: number, y: number}>} path
+ * @returns {boolean}
+ */
+export function pathCrossesGlass(path) {
+  const walls = glassSegments();
+  for (let leg = 1; leg < path.length; leg += 1) {
+    for (const wall of walls) {
+      if (segmentsCross(path[leg - 1], path[leg], wall.from, wall.to)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Where you might stand to look over somebody's shoulder, in preference order.
+ * Every offset moves **nearer the viewer** (so you paint in front of their desk
+ * instead of behind it) and lands in a screen column that clears their monitor
+ * — see `coversTheMonitor`. `{ dx: 0, dy: 1 }`, the obvious "beside them"
+ * choice, is exactly the one that does not: it parks you on the screen.
+ */
+export const PEEK_OFFSETS = [
+  { dx: 1, dy: 0 },
+  { dx: 1, dy: 1 },
+  { dx: 2, dy: 0 },
+  { dx: 0, dy: 2 },
+  { dx: 2, dy: 1 }
+];
+
+/** Marks that belong to another staging; two people on one tile is one person. */
+function reservedMarks() {
+  return [VISITOR_TILE, ...COFFEE_TILES, ...BATTLE_TILES, MEETING_PLAYER_TILE, ...MEETING_SEATS];
+}
+
+const PEEK_SEAT_CLEARANCE = 0.8;
+const PEEK_PROP_CLEARANCE = 0.7;
+/** A prop nearer than this that paints later stands in front of the peeker. */
+const PEEK_PROP_OCCLUSION_RANGE = 1.5;
+
+/**
+ * The monitor sits ~34 px to the screen-left of its desk and is ~26 px wide
+ * (§ 6 rule 1, `DeskFurniture` in isoArt.jsx). A peeker one tile along `+y`
+ * lands 56 px screen-left — squarely between the viewer and the screen they
+ * walked over to read.
+ */
+const MONITOR_LEFT_PX = -34;
+const MONITOR_HALF_W = 13;
+
+function coversTheMonitor(mark, seat) {
+  const monitor = projectIso(seat.x, seat.y).left + MONITOR_LEFT_PX;
+  return Math.abs(projectIso(mark.x, mark.y).left - monitor) < FIGURE_HALF_W + MONITOR_HALF_W;
+}
+
+/**
+ * Can you see the desk from the mark? Two different questions, deliberately
+ * asked with two different tests:
+ *
+ * - **Glass** blocks only when the sight line properly *crosses* it. A radius
+ *   test gets this wrong in both directions — the meeting-room wall runs
+ *   parallel to goMad's mark half a tile away and blocks nothing, while the
+ *   leadership row's wall is exactly what stands between you and the CFO.
+ * - **Furniture and colleagues** block by proximity to the line. The server
+ *   rack is what makes the CEO unpeekable: there is a standable tile in front
+ *   of him, and a rack of blinkenlights between it and his desk.
+ */
+function hasClearSightTo(mark, seat) {
+  const desk = { x: seat.x, y: seat.y };
+  if (pathCrossesGlass([mark, desk])) return false;
+
+  const blockers = [
+    ...FLOOR_SEATS.filter((other) => other.id !== seat.id && other.id !== YOU_SEAT_ID),
+    ...FLOOR_PROPS.filter((prop) => prop.kind !== 'glassPanel')
+  ];
+  const steps = Math.max(1, Math.ceil(distance(mark, desk) * 4));
+  for (let step = 1; step < steps; step += 1) {
+    const t = step / steps;
+    const point = { x: mark.x + (desk.x - mark.x) * t, y: mark.y + (desk.y - mark.y) * t };
+    if (blockers.some((blocker) => distance(point, blocker) < OBSTACLE_RADIUS)) return false;
+  }
+  return true;
+}
+
+/**
+ * Is this a tile somebody could actually stand on and be seen? Furniture, other
+ * people's marks, other people's heads, and the screen itself all veto it.
+ */
+function isPeekMarkClear(mark, seat) {
+  if (!isOnFloor(mark.x, mark.y)) return false;
+  if (coversTheMonitor(mark, seat)) return false;
+  if (reservedMarks().some((tile) => distance(tile, mark) < 0.5)) return false;
+
+  for (const other of FLOOR_SEATS) {
+    if (distance(other, mark) < PEEK_SEAT_CLEARANCE) return false;
+  }
+  for (const prop of FLOOR_PROPS) {
+    if (prop.kind === 'glassPanel') continue;
+    const gap = distance(prop, mark);
+    if (gap < PEEK_PROP_CLEARANCE) return false;
+    // § 6 rule 11 the other way round: the marks move, the furniture does not.
+    if (gap < PEEK_PROP_OCCLUSION_RANGE && depthOf(prop.x, prop.y) >= depthOf(mark.x, mark.y)) {
+      return false;
+    }
+  }
+
+  // Nobody's face may be covered — theirs least of all, since you came to look
+  // at their desk, and the bubble's tail has to point at somebody.
+  const standing = { seated: false };
+  for (const other of FLOOR_SEATS) {
+    if (other.id === YOU_SEAT_ID) continue; // you are the one doing the walking
+    const theirs = { x: other.x, y: other.y };
+    if (boxesOverlap(figureBox(mark, standing), headBox(theirs))) return false;
+    if (boxesOverlap(figureBox(theirs), headBox(mark, standing))) return false;
+  }
+  return true;
+}
+
+/**
+ * Where you stand to see what somebody is working on, or `null` if there is
+ * nowhere to stand — which is a feature, not a gap: leadership sit behind
+ * glass with no way in from the floor, and Gary has no desk to peek at. The
+ * person card offers the walk only where this returns a tile.
+ *
+ * @param {string} seatId
+ * @returns {{ x: number, y: number } | null}
+ */
+export function peekTileFor(seatId) {
+  const seat = seatFor(seatId);
+  if (!seat || !seat.desk || seat.id === YOU_SEAT_ID) return null;
+  const you = seatFor(YOU_SEAT_ID);
+  if (!you) return null;
+
+  for (const { dx, dy } of PEEK_OFFSETS) {
+    const mark = { x: seat.x + dx, y: seat.y + dy };
+    if (!isPeekMarkClear(mark, seat)) continue;
+    if (!hasClearSightTo(mark, seat)) continue;
+    // You have to be able to *get* there without walking through a wall.
+    if (pathCrossesGlass(walkPathBetween({ x: you.x, y: you.y }, mark, YOU_SEAT_ID))) continue;
+    return mark;
+  }
+  return null;
+}
+
+/**
+ * Everyone whose desk you can walk over to. Order follows `FLOOR_SEATS`.
+ *
+ * @returns {string[]}
+ */
+export function peekableSeatIds() {
+  return FLOOR_SEATS.filter((seat) => peekTileFor(seat.id) !== null).map((seat) => seat.id);
 }
 
 /**
