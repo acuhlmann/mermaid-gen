@@ -15,6 +15,7 @@
 
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import FloorCardSlot from './officeFloor/FloorCardSlot.jsx';
+import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
 import FloorMeeting from './officeFloor/FloorMeeting.jsx';
 import FloorPeek from './officeFloor/FloorPeek.jsx';
 import FloorPlayer from './officeFloor/FloorPlayer.jsx';
@@ -22,6 +23,7 @@ import FloorScenes from './officeFloor/FloorScenes.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
 import FloorTalk from './officeFloor/FloorTalk.jsx';
 import FloorTopBar from './officeFloor/FloorTopBar.jsx';
+import { floorAnnouncement } from './officeFloor/floorAnnouncement.js';
 import { useFloorActivity } from './officeFloor/useFloorActivity.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
@@ -143,8 +145,26 @@ function OfficeFloorView({
     setSelectedId((current) => (current === id ? null : id));
   }, []);
 
+  // The room in one sentence, for whoever is not looking at it. Derived from
+  // the state already on this component, so it can never disagree with what the
+  // stage is drawing — the two-renderer rule, applied to a third renderer.
+  const said = floorAnnouncement({
+    copy,
+    meeting,
+    talk,
+    peek,
+    prop,
+    presence,
+    walkBy: walker,
+    walkerDeparting: departing
+  });
+
   return (
     <div className="office-floor" data-testid="office-floor">
+      {/* Mounted before it has anything to say, which is the only shape a live
+          region reliably announces in — see `FloorLiveRegion`. */}
+      <FloorLiveRegion message={said.text} eventKey={said.key} />
+
       {/* The peek and talk cards each carry their own way back, so the bar's
           copy of it would be a second button with the same label. */}
       <FloorTopBar copy={copy} standing={activity.standingFree} onGoHome={goHome} />

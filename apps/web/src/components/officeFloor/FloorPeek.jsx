@@ -67,11 +67,16 @@ export function FloorPeekCard({ peek, copy, onBack }) {
   const work = deskWorkFor(peek.colleagueId);
   const arrived = peek.phase === 'looking';
 
+  /*
+   * Not a live region. The slot is single-occupancy, so this card arrives as a
+   * fresh node with its text already inside it — the one shape assistive
+   * technology is not required to announce. `FloorLiveRegion` says where you
+   * are instead, from a region that was already in the document (slice 10).
+   */
   return (
     <aside
       className="office-floor-card office-floor-card--peek"
       data-testid="office-floor-peek-card"
-      aria-live="polite"
     >
       <span className="office-floor-eyebrow">{peekCopy.eyebrow}</span>
       <div className="office-floor-card-head">
