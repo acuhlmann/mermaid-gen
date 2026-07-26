@@ -128,3 +128,18 @@ When you run `/to-spec` later: one GitHub epic issue for the program + one `read
 - Gilfoyle–Dinesh pod reads as a pair on the floor and still appears in occasional battles.
 - Marcus is gone from user-visible cast; Belson is unmistakably Belson in meetings/email.
 - Recipe status board is the single source of truth for “what’s left.”
+
+## Progress log
+
+- **2026-07-26 — Session 0 (doc-lock) ✅.** Recipe status board + Endgame and
+  `docs/office-parody.md` cast notes now reflect the locked map (7th engineer seat, Belson,
+  Richard=explain). Committed on main.
+- **2026-07-26 — Harness ✅.** `scripts/barker-fidelity.mjs` generalized: `CHARACTER_PROFILES`
+  registry, CLI `[characterId] [--no-judge] [--list]`, `seniorEmail`/`advisor` surface gates.
+  Barker rubric byte-identical post-refactor; judged regression run **4.20/5** (meeting 4.3,
+  interject 3.5/4.3, email 4.5, advisor 4.5).
+- **Next: Erlich session** on branch `feat/erlich-innovate-seat`. Start point: add the `erlich`
+  harness profile (`advisor: false`) + his `STAKEHOLDER_MEETING_VOICES.erlich` card → tune to ≥4/5
+  over two consecutive runs → §4b seat-inheritance drill on `innovate` → flip `advisor: true`,
+  tune the advisor card → registry/TTS/locale tests, `npm run precommit`, live smoke (meeting +
+  radial), fidelity report in the PR body.
