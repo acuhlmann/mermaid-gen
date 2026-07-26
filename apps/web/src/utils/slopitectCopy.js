@@ -41,14 +41,14 @@ export const VARIANT_PERSONAS = {
     xpAward: 25,
     xpStreakBonus: 5
   },
-  innovate: {
-    name: 'Chief Innovation Officer',
-    title: 'Disruptor at Large',
-    tagline: 'Courageous moves on the subject at hand.',
-    avatarEmoji: '⚡',
-    entryLine: 'Pivot incoming…',
-    exitLine: 'Disrupted 🚀',
-    accentColorVar: '#9333ea',
+  erlich: {
+    name: 'Erlich Bachman',
+    title: 'Founder, Hacker Hostel',
+    tagline: 'Courageous pivots, graciously elevated.',
+    avatarEmoji: '🕶',
+    entryLine: 'Let me ask you this…',
+    exitLine: 'Elevated. You’re welcome 🕶',
+    accentColorVar: '#ea580c',
     xpAward: 30,
     xpStreakBonus: 6
   },
@@ -129,17 +129,19 @@ export const VARIANT_QUOTES = {
     'One more block. The right one.',
     'Adds up over time.'
   ],
-  innovate: [
-    'What if we extended this further?',
-    'There’s a bolder shape hiding in here.',
-    'Half a step too far — on purpose.',
-    'New angle on the same subject.',
-    'Reframe before you redraw.',
-    'Two ideas, one canvas — try it.',
-    'Push the edge case, see what falls out.',
-    'Disrupt or be disrupted.',
-    'A flywheel could fit here.',
-    'It’s giving Series B.'
+  erlich: [
+    'I practically invented this diagram.',
+    'Let me ask you this.',
+    'This is how you change the world.',
+    'There’s a bolder shape here. There always is. For me.',
+    'Consider this graciously elevated.',
+    'Vision is a full-time job. Mine.',
+    'Big swings only. I do not bunt.',
+    'The pivot was obvious. To me.',
+    'You’re welcome, in advance.',
+    'History will cite this meeting.',
+    'I mentored everyone who ever mattered.',
+    'Disrupt or be disrupted — I choose disrupt. Obviously.'
   ],
   goMad: [
     'WHAT IF THERE WERE TWELVE OF THIS THING',
@@ -288,7 +290,7 @@ export function stakeholderTooltip(variant) {
 export const PHASE_CEREMONIES = {
   analyze: {
     refine: 'Reading the diagram…',
-    innovate: 'Scoping the pivot…',
+    erlich: 'Spotting the bolder shape…',
     goMad: 'Eyeballing the slop 👀',
     critique: 'Opening JIRA…',
     explain: 'Pondering the diagram…',
@@ -296,7 +298,7 @@ export const PHASE_CEREMONIES = {
   },
   analyze_stream: {
     refine: 'Sketching the next step…',
-    innovate: 'Storming the boardroom…',
+    erlich: 'Keynoting the pivot…',
     goMad: 'Yelling at it 📣',
     critique: 'Drafting findings…',
     explain: 'Composing the saga…',
@@ -304,7 +306,7 @@ export const PHASE_CEREMONIES = {
   },
   intent: {
     refine: 'Aligning intent…',
-    innovate: 'Aligning intent…',
+    erlich: 'Aligning the vision…',
     goMad: 'Skipping the meeting',
     critique: 'Citing the SOC 2 controls',
     explain: 'Aligning intent…',
@@ -312,7 +314,7 @@ export const PHASE_CEREMONIES = {
   },
   agent_run: {
     refine: 'Engineering the next piece…',
-    innovate: 'Pitching the bold move…',
+    erlich: 'Graciously elevating it…',
     goMad: 'GOING MAD ON YOUR TOPIC',
     critique: 'Filing tickets…',
     explain: 'Annotating the architecture…',
@@ -320,7 +322,7 @@ export const PHASE_CEREMONIES = {
   },
   transform: {
     refine: 'Adding the useful bit…',
-    innovate: 'Reshaping the layout…',
+    erlich: 'Elevating the layout…',
     goMad: 'Adding wonderfully strange things 🔥',
     critique: 'Red-penning the layout…',
     explain: 'Tracing the reshape…',
@@ -328,7 +330,7 @@ export const PHASE_CEREMONIES = {
   },
   run_started: {
     refine: 'Kicking off…',
-    innovate: 'Kicking off…',
+    erlich: 'Let me ask you this…',
     goMad: 'OK NOW HOLD ON 🪖',
     critique: 'Inspector inbound…',
     explain: 'Clearing the throat…',
@@ -336,7 +338,7 @@ export const PHASE_CEREMONIES = {
   },
   planning: {
     refine: 'Drafting deltas…',
-    innovate: 'Drafting deltas…',
+    erlich: 'Drafting the keynote…',
     goMad: 'Throwing darts at the diagram 🎯',
     critique: 'Building the findings outline…',
     explain: 'Drafting the chapter plan…',
@@ -344,7 +346,7 @@ export const PHASE_CEREMONIES = {
   },
   syntax_fixer: {
     refine: 'Mending syntax…',
-    innovate: 'Mending syntax…',
+    erlich: 'Mending syntax, brilliantly…',
     goMad: 'Duct-taping it back together',
     critique: 'Fixing syntax — audit trail updated…',
     explain: 'Smoothing a rough passage…',
@@ -352,7 +354,7 @@ export const PHASE_CEREMONIES = {
   },
   syntax_repair: {
     refine: 'Re-mending syntax…',
-    innovate: 'Re-mending syntax…',
+    erlich: 'Re-mending syntax, again brilliantly…',
     goMad: 'More duct tape',
     critique: 'Re-opening the syntax finding…',
     explain: 'Revising the rough draft…',
@@ -360,7 +362,7 @@ export const PHASE_CEREMONIES = {
   },
   style: {
     refine: 'Tuning the palette…',
-    innovate: 'Restyling for impact…',
+    erlich: 'Restyling for the keynote…',
     goMad: 'CHAOTIC COLOR SCHEMES 🔥',
     critique: 'Flagging contrast violations…',
     explain: 'On the history of this hue…',
@@ -368,7 +370,7 @@ export const PHASE_CEREMONIES = {
   },
   patch_retry: {
     refine: 'Awaiting CAB approval…',
-    innovate: 'Awaiting CAB approval…',
+    erlich: 'Awaiting the board’s approval…',
     goMad: 'Bribing the CAB',
     critique: 'Awaiting re-review sign-off…',
     explain: 'Taking another pass…',
@@ -376,7 +378,7 @@ export const PHASE_CEREMONIES = {
   },
   invoke: {
     refine: 'Patching prod 🛠',
-    innovate: 'Shipping it 🚀',
+    erlich: 'Elevating it 🕶',
     goMad: 'Setting buildings on fire 🔥',
     critique: 'Logging the generation ticket…',
     explain: 'Narrating the draft…',
@@ -384,7 +386,7 @@ export const PHASE_CEREMONIES = {
   },
   invoke_fallback: {
     refine: 'Hotfix in flight…',
-    innovate: 'Hotfix in flight…',
+    erlich: 'Pivot in flight…',
     goMad: 'WE PIVOT',
     critique: 'Filing a fallback finding…',
     explain: 'Closing the chapter gracefully…',
@@ -392,7 +394,7 @@ export const PHASE_CEREMONIES = {
   },
   repair_1: {
     refine: 'Hotfix in flight…',
-    innovate: 'Hotfix in flight…',
+    erlich: 'Vision repair in flight…',
     goMad: 'More hard hats! 🪖🪖',
     critique: 'Escalating to P1 repair…',
     explain: 'Rewinding the parchment…',
@@ -400,7 +402,7 @@ export const PHASE_CEREMONIES = {
   },
   repair_2: {
     refine: 'Second hotfix in flight…',
-    innovate: 'Second hotfix in flight…',
+    erlich: 'Second vision repair in flight…',
     goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
     critique: 'Second escalation — still non-compliant…',
     explain: 'Revising the footnotes…',
@@ -409,7 +411,7 @@ export const PHASE_CEREMONIES = {
 };
 
 /**
- * @param {string} variant - one of refine/innovate/goMad/critique/explain (or anything else → fallback).
+ * @param {string} variant - one of refine/erlich/goMad/critique/explain/barker (or anything else → fallback).
  * @param {string} phaseId - canonical phase id from SSE.
  * @param {string} fallbackLabel - the literal label that the server sent; rendered as-is when no override.
  */
@@ -423,7 +425,7 @@ export function phaseCeremonyLabel(variant, phaseId, fallbackLabel) {
 
 export const VARIANT_TAGLINES = {
   refine: 'Slopitect: THE Engineer extends the build',
-  innovate: 'Slopitect: CIO pitches the bold move',
+  erlich: 'Slopitect: Erlich Bachman pitches the bold move',
   goMad: 'Slopitect: GENIUS LOOSE 🚨',
   critique: 'Slopitect: Co-Design compliance review',
   explain: 'Slopitect: Co-Design story time',
@@ -433,7 +435,7 @@ export const VARIANT_TAGLINES = {
 
 export const VARIANT_BOOT_HEADLINES = {
   refine: 'Engineering the next useful step…',
-  innovate: 'CIO pitching the bold pivot…',
+  erlich: 'Erlich Bachman is graciously elevating…',
   goMad: 'BONK! THE SLOPITECT IS HERE',
   critique: 'CO-DESIGN REVIEW INCOMING',
   explain: 'Co-Design story time — gather round',
@@ -564,10 +566,10 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
     title: '👷 MASTER ENGINEER',
     subtitle: '10 useful extensions shipped. The site is yours.'
   },
-  innovate: {
-    id: 'serialDisruptor',
-    title: '⚡ SERIAL INNOVATOR',
-    subtitle: '10 bold pivots on-subject. C-suite material.'
+  erlich: {
+    id: 'tenPercentLegend',
+    title: '🕶 TEN PERCENT LEGEND',
+    subtitle: '10 bold pivots graciously elevated. The incubator approves.'
   },
   goMad: {
     id: 'distinguishedChaos',

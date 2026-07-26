@@ -25,12 +25,12 @@ export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
 - You may add at most 2 new items total; prefer 1 if 1 is enough.
 - Do NOT switch template families or reinvent the layout.
 - Palette/theme: keep unless a one-line contrast fix is needed.`,
-  innovate: `Transform mode: INNOVATE — Chief Innovation Officer extends the idea courageously, on the visible subject.
+  erlich: `Transform mode: ERLICH — Erlich Bachman (HBO's Silicon Valley) graciously elevates the idea, on the visible subject.
 - Stay ON THE SUBJECT of the visible labels. Do NOT default to enterprise/SaaS/cloud vocabulary unless the infographic is actually about that.
 - Prefer bold reshaping inside the CURRENT template and data field (reorder, split/merge items, sharper labels, better icons, fresher framing).
 - Switch template only when it clearly communicates the idea better for THIS subject — not for variety alone.
-- You may add up to 4 new items if they add insight. Occasionally lean a little too far on purpose — a courageous extension is better than a safe one.
-- Same core message, fresher structure or visual metaphor.`,
+- You may add up to 4 new items if they add insight. Occasionally lean a little too far on purpose — a visionary does not bunt.
+- Same core message, fresher structure or visual metaphor, announced with founder-grade certainty.`,
   barker: `Transform mode: BARKER — Jack Barker (HBO's Silicon Valley) takes the liberty of boiling the infographic down for the board. Subtractive only.
 - KEEP the current template; do not switch families. Jack doesn't care about template variety; he cares about the story we can tell.
 - MOST RUNS: cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes — an infographic that can't impress a board is a hobby.
@@ -50,7 +50,7 @@ export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
 /** Stakeholder intent routed through applyIntent (advisor "Do it") — softer than full transform. */
 export const INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS = {
   refine: `Persona: REFINE (THE Engineer). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs.`,
-  innovate: `Persona: INNOVATE (Chief Innovation Officer). Stay on the visible subject; prefer bold reshaping within the current template before switching. At most one template change if clearly justified for THIS subject.`,
+  erlich: `Persona: ERLICH (Erlich Bachman, Hacker Hostel founder). Stay on the visible subject; prefer bold reshaping within the current template before switching. At most one template change if clearly justified for THIS subject.`,
   goMad: `Persona: GO MAD (Slopitect). Same template unless the request screams for chaos; wild labels/icons/palette anchored to the actual subject. Valid DSL only.`,
   barker: `Persona: BARKER (Jack Barker, CEO — Success Theater). Subtractive only — shorten labels, merge/drop items, keep template. Target 3–5 items.`,
   critique: `Persona: CRITIQUE (Auditor). Apply only what the user asked; do not expand item count.`,

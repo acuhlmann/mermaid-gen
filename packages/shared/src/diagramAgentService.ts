@@ -127,7 +127,7 @@ export interface DiagramAgentService {
   /** Prompt-bar Go / Fix-from-critique. Always requires a patch. */
   applyIntent(input: ApplyIntentInput): Promise<AgentResult>;
 
-  /** Refine / Innovate / Go Mad / Align / Barker. Always requires a patch. */
+  /** Refine / Erlich / Go Mad / Align / Barker. Always requires a patch. */
   applyTransformIntent(input: ApplyTransformIntentInput): Promise<AgentResult>;
 
   /** Critique / Explain. Read-only — never mutates a slot. */

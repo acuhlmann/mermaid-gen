@@ -1,11 +1,11 @@
 # Recipe: add a transform / intent variant
 
-Use when you want a new top-level user action besides Go / Refine / Innovate / Go Mad / Critique / Explain / Fix / Style — e.g. "Simplify", "Pitch deck", "Storyboard".
+Use when you want a new top-level user action besides Go / Refine / Erlich / Go Mad / Critique / Explain / Fix / Style — e.g. "Simplify", "Pitch deck", "Storyboard".
 
 ## Decide which path it belongs to
 
 - **Intent path** — anything that takes user input and produces a diagram (like Go or Fix). Same system prompt, single user turn from user wording. Hits `POST /api/copilotkit/intent` or `agent-stream` with `operation: intent`.
-- **Transform path** — same tools, but the _user message_ is server-generated for the named mode. Hits `POST /api/copilotkit/transform` (or `agent-stream` with `operation: transform`). This is where Refine/Innovate/Go Mad live.
+- **Transform path** — same tools, but the _user message_ is server-generated for the named mode. Hits `POST /api/copilotkit/transform` (or `agent-stream` with `operation: transform`). This is where Refine/Erlich/Go Mad live.
 - **Analyze path** — read-only Markdown, no diagram tools. This is where Critique / Explain live.
 
 Pick by asking "does the user type the prompt?" — yes = intent; "does the server own the prompt for the named mode?" — yes = transform; "is the output Markdown only?" — yes = analyze.
@@ -14,8 +14,8 @@ Pick by asking "does the user type the prompt?" — yes = intent; "does the serv
 
 1. **Name the mode.** Use a short camelCase identifier like `simplify` or `pitch`. This will land in `TransformModeSchema` and many switch statements.
 2. **Schema.** Add the literal to `packages/shared/src/diagramSchema.ts` (`TransformModeSchema`) so the server and web both validate it.
-3. **User-message builder.** Add a branch in `buildTransformUserContent` (search for `'refine'` / `'innovate'` / `'goMad'`). Compose a clear instruction including the current diagram, the desired flavor, and a numeric budget (nodes / edges).
-4. **Sampling profile.** Add caps in `TRANSFORM_MODEL_LIMITS` (and `goMadTransformModelOptions(depth)` if it has a "depth" notion). Pick a starting `temperature` — Refine is ~0.42, Innovate ~0.82.
+3. **User-message builder.** Add a branch in `buildTransformUserContent` (search for `'refine'` / `'erlich'` / `'goMad'`). Compose a clear instruction including the current diagram, the desired flavor, and a numeric budget (nodes / edges).
+4. **Sampling profile.** Add caps in `TRANSFORM_MODEL_LIMITS` (and `goMadTransformModelOptions(depth)` if it has a "depth" notion). Pick a starting `temperature` — Refine is ~0.42, Erlich ~0.82.
 5. **Web wiring.**
    - Add a button in `apps/web/src/App.jsx` (or the relevant action surface like `RadialActionMenu.jsx`).
    - Add a copy entry in `apps/web/src/utils/slopitectCopy.js` (Slopitect persona reactions).

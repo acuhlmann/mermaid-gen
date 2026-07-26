@@ -71,7 +71,7 @@ describe('ui locale bundles', () => {
       const en = getUiLocaleBundle('en').slopitect.ACHIEVEMENTS;
       const localized = getUiLocaleBundle(locale).slopitect.ACHIEVEMENTS;
       expect(Object.keys(localized).sort()).toEqual(Object.keys(en).sort());
-      for (const variant of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
+      for (const variant of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
         expect(localized[variant].id).toBe(en[variant].id);
         expect(localized[variant].subtitle).not.toBe(en[variant].subtitle);
       }
@@ -83,7 +83,7 @@ describe('ui locale bundles', () => {
     (locale) => {
       const en = getUiLocaleBundle('en').slopitect.PHASE_CEREMONIES;
       const localized = getUiLocaleBundle(locale).slopitect.PHASE_CEREMONIES;
-      const stakeholderVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker'];
+      const stakeholderVariants = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
       const mutationPhases = [
         'analyze',
         'analyze_stream',

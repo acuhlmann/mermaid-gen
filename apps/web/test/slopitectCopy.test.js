@@ -20,7 +20,7 @@ import {
 
 describe('slopitectCopy', () => {
   it('has a ceremony label for every real phase id × all stakeholder variants', () => {
-    const stakeholderVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker'];
+    const stakeholderVariants = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
     const mutationPhases = [
       'analyze',
       'analyze_stream',
@@ -71,7 +71,7 @@ describe('slopitectCopy', () => {
   });
 
   it('returns a tagline for every variant', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
+    for (const v of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
       expect(VARIANT_TAGLINES[v]).toBeTruthy();
       expect(VARIANT_BOOT_HEADLINES[v]).toBeTruthy();
     }
@@ -99,7 +99,7 @@ describe('slopitectCopy', () => {
   });
 
   it('has at least 3 quotes for every variant', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
+    for (const v of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
       expect(VARIANT_QUOTES[v], `quotes for ${v}`).toBeDefined();
       expect(VARIANT_QUOTES[v].length).toBeGreaterThanOrEqual(3);
       for (const quote of VARIANT_QUOTES[v]) {
@@ -122,13 +122,13 @@ describe('slopitectCopy', () => {
     expect(stakeholderTooltip('refine')).toContain('THE Engineer');
   });
 
-  it('names the innovate persona Chief Innovation Officer', () => {
-    expect(VARIANT_PERSONAS.innovate.name).toBe('Chief Innovation Officer');
-    expect(stakeholderTooltip('innovate')).toContain('Chief Innovation Officer');
+  it('names the erlich persona Erlich Bachman', () => {
+    expect(VARIANT_PERSONAS.erlich.name).toBe('Erlich Bachman');
+    expect(stakeholderTooltip('erlich')).toContain('Erlich Bachman');
   });
 
   it('exposes avatar emoji and entry/exit lines per persona', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
+    for (const v of ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker']) {
       const persona = VARIANT_PERSONAS[v];
       expect(persona.avatarEmoji, `avatar for ${v}`).toBeTruthy();
       expect(persona.entryLine, `entry for ${v}`).toBeTruthy();

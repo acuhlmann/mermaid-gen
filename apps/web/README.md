@@ -6,7 +6,7 @@ UI package for ArchiSlop (`apps/web`). Human-facing overview: [root README](../.
 
 - **Diagram** vs **Infographic** — toolbar toggle; `contentType` on every API call; each slot has its own source and revision history.
 - **Go** — streams **intent** via `/api/copilotkit/agent-stream`; thoughts land in the Insights pane.
-- **Refine / Innovate / Go Mad** — **transform** stream with `mode` and optional `goMadDepth`.
+- **Refine / Erlich / Go Mad** — **transform** stream with `mode` and optional `goMadDepth`.
 - **Critique / Explain** — **analyze** stream (read-only); critique may emit A2UI checklists for **Fix selected** / **Fix all**.
 - **Fix** — another **intent** stream with a client-built prompt from critique (or checked actionable bullets).
 - **Syntax auto-fix** — debounced **intent** when Monaco reports a parse error.

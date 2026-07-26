@@ -1,6 +1,6 @@
 import { parseInfographicTree } from './infographicDiff.js';
 
-const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'barker']);
+const TRANSFORM_MODES = new Set(['refine', 'erlich', 'goMad', 'barker']);
 
 /** @param {string | null | undefined} template */
 export function templateFamilyFromTemplate(template: string | null | undefined) {
@@ -94,11 +94,11 @@ export function validateInfographicTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'innovate') {
+  if (mode === 'erlich') {
     if (afterCount > beforeCount + 4) {
       return {
         ok: false,
-        error: `Innovate may add at most 4 items (had ${beforeCount}, now ${afterCount}). Prefer reshaping within the current template first.`
+        error: `Erlich may add at most 4 items (had ${beforeCount}, now ${afterCount}). Prefer reshaping within the current template first.`
       };
     }
     return { ok: true };

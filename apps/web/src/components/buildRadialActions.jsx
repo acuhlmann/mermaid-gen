@@ -97,13 +97,13 @@ export function buildRadialActions({
       personaTitle: actionPersonaTitle('refine')
     },
     {
-      id: 'innovate',
-      label: a.innovate,
-      icon: <ActionPersonaIcon variant="innovate" />,
-      variant: 'innovate',
-      persona: actionPersonaName('innovate'),
-      personaEmoji: actionPersonaEmoji('innovate'),
-      personaTitle: actionPersonaTitle('innovate')
+      id: 'erlich',
+      label: a.erlich,
+      icon: <ActionPersonaIcon variant="erlich" />,
+      variant: 'erlich',
+      persona: actionPersonaName('erlich'),
+      personaEmoji: actionPersonaEmoji('erlich'),
+      personaTitle: actionPersonaTitle('erlich')
     },
     {
       id: 'goMad',

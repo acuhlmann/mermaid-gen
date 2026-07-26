@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 
 const ACTION_KEYS = {
   r: 'refine',
-  i: 'innovate',
+  l: 'erlich',
   m: 'goMad',
   c: 'critique',
   e: 'explain',

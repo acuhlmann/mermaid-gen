@@ -15,7 +15,7 @@ import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
  * steering meetings, not over your shoulder. The Barker transform still runs
  * on demand via the "Prep for the CEO" action.
  */
-const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
+const ADVISOR_ORDER = ['refine', 'erlich', 'goMad', 'critique', 'explain'];
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
 const ACTIVITY_THROTTLE_MS = 1000;
 const SHOW_MS = 10_000;

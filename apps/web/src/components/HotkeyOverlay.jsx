@@ -11,7 +11,7 @@ const DEFAULT_COPY = CONTROLS_EN.hotkeys;
 function buildEntries(copy) {
   return [
     { keys: ['R'], label: copy.refine },
-    { keys: ['I'], label: copy.innovate },
+    { keys: ['L'], label: copy.erlich },
     { keys: ['M'], label: copy.goMad },
     { keys: ['B'], label: copy.barker },
     { keys: ['C'], label: copy.critique },

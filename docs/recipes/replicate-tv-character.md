@@ -4,15 +4,18 @@ Playbook for the Silicon Valley character program: how one named character gets 
 the office cast. Proven out twice with Jack Barker — first as a senior stakeholder (fidelity ≈
 4.2/5 sustained), then by **inheriting The VP's team seat** (2026-07-25): Barker is now the sixth
 radial advisor, simplifying diagrams in his own voice (re-tuned to ≈3.95–4.0/5 on the extended
-harness, which added the harder advisor-suggestions probe). The cast map below is **locked**
-(2026-07-26 program plan) — one character per agent session, in the risk/dependency order listed.
+harness, which added the harder advisor-suggestions probe). Proven a third time with **Erlich
+Bachman inheriting the Chief Innovation Officer's team seat** (2026-07-27, `innovate` → `erlich`)
+— the first inheritance run against the generalized harness (§3), and the template for the
+remaining sessions. The cast map below is **locked** (2026-07-26 program plan) — one character
+per agent session, in the risk/dependency order listed.
 
 ## Status board
 
 | Character         | Target seat / tier                     | Status                                                                        |
 | ----------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
 | Jack Barker       | team+senior — 6th advisor (`barker`)   | ✅ Shipped — advisor seat (ex-`exec`), meetings, emails, TTS, face, desk      |
-| Erlich Bachman    | team — `innovate`                      | ⬜ Session 2 — seat inheritance; courageous pivots, incubator swagger         |
+| Erlich Bachman    | team — `erlich` (ex-`innovate`)        | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger           |
 | Bertram Gilfoyle  | team — `refine` → `gilfoyle`           | ⬜ Session 3 — engineer pod; battle-eligible (dual-home)                      |
 | Dinesh Chugtai    | team — **new** `dinesh` (refine-class) | ⬜ Session 4 — seventh seat; new wire mode cloned from refine budgets         |
 | Jared Dunn        | team — `critique` → `jared`            | ⬜ Session 5 — findings-only Auditor; anxious compliance                      |
@@ -41,7 +44,7 @@ card; the harness proves it; the wire-in is a mechanical drill whose size depend
 
 ### 1. Pick the tier (decides the touch list)
 
-- **team** (Erlich→innovate, Gilfoyle→refine, Jared→critique, Russ→goMad, Richard→explain): the
+- **team** (Erlich→innovate→`erlich`, Gilfoyle→refine, Jared→critique, Russ→goMad, Richard→explain): the
   character INHERITS an existing advisor seat — the generic persona id is retired and the
   character id takes over everything the seat touched, including the transform/analyze behavior
   and the wire enum. This is the seat-inheritance drill below; Barker proved it on the `exec`
@@ -76,6 +79,18 @@ template. Lessons burned in:
   Describe the _shape_ instead ("boardroom wisdom wearing a cardigan").
 - **Don't invent signature addresses/catchphrases** the character doesn't have — the judge (and
   fans) will flag them ("partner" wasn't Barker).
+- **If you must show examples, put them on a different subject than the harness's diagram.** Erlich
+  v2's advisor examples were written on the harness's own pizza flowchart and came back _verbatim_
+  — the judge saw parroting, not voice. Re-anchoring them on an unrelated subject (a hiring
+  pipeline) plus the house "don't copy — yours must fit THIS diagram's subject" guard fixed it.
+  Corollary: examples carry the voice as well as the subject, so when you move them off-subject,
+  restate the voice requirement **structurally** — Erlich v3 then generated on-subject but
+  off-voice (generic startup-speak) until the card spelled out "every suggestion is the pivot PLUS
+  a trailing self-referential flourish, and a business rationale is a failure."
+- **Write the "would never" list as a hard refusal, not a tendency.** The harness's interjection
+  probes are where a character quietly breaks: Erlich scored 1.8 on one sample by _agreeing_ with
+  "ship it" ("minimum viable pizza"). The card already described the right reaction — it took
+  naming the capitulation as flatly out of character to hold it (then 4.50 / 4.31).
 - Include: speech mechanics, values, a "would never" list, a catchphrase **budget** (max one per
   few lines), and how they treat others. The builders add the app rules (voice-not-topic, strict
   JSON, visible-label references) themselves.
@@ -205,7 +220,7 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
 ## Endgame: the SV team
 
 The destination is the locked cast map in the [Status board](#status-board) (program plan,
-2026-07-26): **Russ → `goMad`**, **Erlich → `innovate`**, **Gilfoyle → `refine` → `gilfoyle`**,
+2026-07-26): **Russ → `goMad`**, **Erlich → `innovate` → `erlich`** (shipped), **Gilfoyle → `refine` → `gilfoyle`**,
 **Dinesh → new seventh seat `dinesh`** (refine-class clone; floor desk next to Gilfoyle), **Jared →
 `critique` → `jared`**, **Richard → `explain` → `richard`**, **Barker → the sixth seat** (shipped),
 **Gavin Belson → senior `cto` → `belson`**. One character per agent session, each a
@@ -220,7 +235,7 @@ Hard decisions baked in (do not re-litigate per session):
   XP/radial/hotkey/mascot. Floor seat next to Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`.
 - **Richard stays on `explain`** — comment-only; does not gain invent-transform powers. Helpful +
   funny via pattern-naming and anxious over-explaining, not canvas mutation. His genius reads as
-  over-specific insight, not a second Innovate.
+  over-specific insight, not a second Erlich.
 - **Gavin Belson is a full named replication** of the CTO senior seat (retire the Marcus/`cto`
   display id to `belson`), fidelity-harnessed like Barker — larger than a blurb rename.
 - **Kept as-is (not this program):** Pam (SAFe ceremony), Linda (weaponized HR cheerfulness),

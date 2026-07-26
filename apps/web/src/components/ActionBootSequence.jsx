@@ -3,7 +3,7 @@ import { getVariantBootHeadline, getVariantPersona } from '../utils/slopitectCop
 
 const VARIANT_DURATION_MS = {
   refine: 660,
-  innovate: 660,
+  erlich: 660,
   goMad: 820,
   critique: 700,
   explain: 700
@@ -13,7 +13,7 @@ const REDUCED_DURATION_MS = 200;
 
 const VARIANT_CSS_CLASS = {
   refine: 'is-refine',
-  innovate: 'is-innovate',
+  erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain'
@@ -64,7 +64,7 @@ export default function ActionBootSequence({ trigger, variant }) {
       {playing.variant === 'critique' ? <div className="boot-clipboard">📋</div> : null}
       {playing.variant === 'explain' ? <div className="boot-scroll">📜</div> : null}
       {playing.variant === 'refine' ? <div className="boot-sparkle">✨</div> : null}
-      {playing.variant === 'innovate' ? <div className="boot-bolt">⚡</div> : null}
+      {playing.variant === 'erlich' ? <div className="boot-shades">🕶</div> : null}
       <span className="boot-sequence-headline">{headline}</span>
       <span className="boot-sequence-persona-name">{persona.name}</span>
       <span className="boot-sequence-persona-title">{persona.title}</span>

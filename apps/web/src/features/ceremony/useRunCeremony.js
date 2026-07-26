@@ -6,9 +6,9 @@ import {
   playCompletionChime as playCompletionChimeTone,
   playConfettiPop,
   playCritiqueCompletion,
+  playErlichCompletion,
   playExplainCompletion,
   playGoMadCompletionChime,
-  playInnovateCompletion,
   playKonamiRainbow,
   playLevelUpFanfare,
   playRefineCompletion,
@@ -154,7 +154,7 @@ export function useRunCeremony({
       celebrationTimerRef.current = setTimeout(() => setCelebratingEntryId(null), dwellMs);
       if (variant === 'goMad') tryAgentSound(playGoMadCompletionChime);
       else if (variant === 'refine') tryAgentSound(playRefineCompletion);
-      else if (variant === 'innovate') tryAgentSound(playInnovateCompletion);
+      else if (variant === 'erlich') tryAgentSound(playErlichCompletion);
       else if (variant === 'critique') tryAgentSound(playCritiqueCompletion);
       else if (variant === 'explain') tryAgentSound(playExplainCompletion);
       else tryAgentSound(playCompletionChimeTone);
@@ -164,7 +164,7 @@ export function useRunCeremony({
         globalThis.matchMedia('(prefers-reduced-motion: reduce)').matches;
       const variantPalettes = {
         refine: ['#2563eb', '#60a5fa', '#bfdbfe', '#1d4ed8'],
-        innovate: ['#9333ea', '#ec4899', '#f0abfc', '#a855f7'],
+        erlich: ['#ea580c', '#fb923c', '#fed7aa', '#c2410c'],
         goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
         critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
         explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
@@ -189,7 +189,7 @@ export function useRunCeremony({
         tryAgentSound(playConfettiPop);
       }
 
-      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker'];
+      const knownVariants = ['refine', 'erlich', 'goMad', 'critique', 'explain', 'barker'];
       if (knownVariants.includes(variant)) {
         const now = Date.now();
         const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;

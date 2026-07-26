@@ -20,7 +20,7 @@ test('resolveAgentRunBudgetMs gives Go Mad extra headroom for the patch_retry tu
   assert.equal(resolveAgentRunBudgetMs('quality', {}, 'goMad'), 240_000);
   // Other modes are unaffected by the mode argument.
   assert.equal(resolveAgentRunBudgetMs('quality', {}, 'refine'), 210_000);
-  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'innovate'), 210_000);
+  assert.equal(resolveAgentRunBudgetMs('quality', {}, 'erlich'), 210_000);
 });
 
 test('resolveAgentRunBudgetMs supports profile env overrides with clamps', () => {

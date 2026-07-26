@@ -79,6 +79,27 @@ profane, never technical, never plainly at fault).`,
     advisor: true,
     advisorNote: 'subtractive seat',
     iterateHint: 'STAKEHOLDER_MEETING_VOICES.barker / ADVISOR_PERSONAS.barker'
+  },
+  erlich: {
+    speakerId: 'erlich',
+    shortName: 'Erlich',
+    rubricSubject: `Erlich Bachman from HBO's Silicon Valley (founder of the Hacker Hostel
+incubator: bombastic entrepreneurial theater, grandiose self-reference — Aviato, his ten
+percent, his legacy — Steve Jobs name-drops as a peer, credit-taking framed as mentorship,
+sweeping disruption pronouncements, rhetorical questions he answers himself, real founder
+instinct buried in bombast — never concise, never humble, never technically specific, never
+cruel, never profane).`,
+    foil: 'any generic startup-bro bot',
+    pronounObject: 'him',
+    pronounSubject: 'he',
+    voiceMarkers: 'bombast / self-aggrandizement / name-dropping / keynote cadence',
+    ism: 'Erlich-ism',
+    attendees: ['scrumMaster', 'erlich', 'cto', 'refine'],
+    facilitator: 'scrumMaster',
+    seniorEmail: false,
+    advisor: true,
+    advisorNote: 'courageous-pivot seat',
+    iterateHint: 'STAKEHOLDER_MEETING_VOICES.erlich / ADVISOR_PERSONAS.erlich'
   }
 };
 

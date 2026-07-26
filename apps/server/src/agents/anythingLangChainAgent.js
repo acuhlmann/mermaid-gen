@@ -89,15 +89,15 @@ export function buildAnythingTransformUserContent({
   const modeInstructions = {
     refine:
       'Refine the current document — polish layout, typography, color, interaction feel, and copy. Keep the concept and structure.',
-    innovate:
-      'Innovate on the current document — rethink the presentation or interaction model for the same subject. You may restructure freely.',
+    erlich:
+      'Elevate the current document — rethink the presentation or interaction model for the same subject, the way only a visionary founder could. You may restructure freely.',
     goMad: `Go mad on this document — escalate the spectacle (depth ${goMadDepth ?? 1}). More motion, more interactivity, bolder visuals, still on-subject and still self-contained.`,
     barker:
       'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   // Refine and Barker are scoped changes to an existing document — targeted
   // edits keep the untouched 95% of the page byte-identical instead of
-  // trusting a full regeneration to reproduce it. Innovate and Go Mad
+  // trusting a full regeneration to reproduce it. Erlich and Go Mad
   // restructure freely, so a full rewrite is the honest tool there.
   const preferEdits = mode === 'refine' || mode === 'barker';
   return [

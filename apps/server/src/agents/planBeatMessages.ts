@@ -75,8 +75,8 @@ function syntaxGuidancePlanBeat(
   if (mode === 'goMad') {
     return `Current diagram reads as ${detected} — may pivot to another type for this run.`;
   }
-  if (mode === 'innovate') {
-    return `Starting from a ${detected} diagram; may restructure or switch type if it clarifies the idea.`;
+  if (mode === 'erlich') {
+    return `Starting from a ${detected} diagram; may restructure or switch type if it elevates the vision.`;
   }
   return `Keeping the ${detected} form and applying your request within that syntax.`;
 }
@@ -87,8 +87,8 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
   switch (mode) {
     case 'refine':
       return `Polishing the diagram for clarity and structure${req}.`;
-    case 'innovate':
-      return `Restructuring the diagram with a bolder layout${req}.`;
+    case 'erlich':
+      return `Graciously elevating the diagram with a bolder shape${req}.`;
     case 'barker':
       return `Taking the liberty of boiling it down for the board${req}.`;
     case 'style':

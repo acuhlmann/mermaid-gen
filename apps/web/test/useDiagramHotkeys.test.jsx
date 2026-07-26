@@ -25,7 +25,7 @@ describe('useDiagramHotkeys', () => {
 
     for (const [key, id] of [
       ['r', 'refine'],
-      ['i', 'innovate'],
+      ['l', 'erlich'],
       ['m', 'goMad'],
       ['c', 'critique'],
       ['e', 'explain'],

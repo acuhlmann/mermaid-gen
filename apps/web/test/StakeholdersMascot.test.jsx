@@ -5,7 +5,7 @@ import StakeholdersMascot from '../src/components/StakeholdersMascot.jsx';
 
 const TEST_PERSONAS = [
   { variant: 'refine', onClick: vi.fn() },
-  { variant: 'innovate', onClick: vi.fn() },
+  { variant: 'erlich', onClick: vi.fn() },
   { variant: 'goMad', onClick: vi.fn() },
   { variant: 'barker', onClick: vi.fn() },
   { variant: 'critique', onClick: vi.fn() },
@@ -60,7 +60,7 @@ describe('StakeholdersMascot', () => {
     render(<StakeholdersMascot personas={TEST_PERSONAS} />);
     expect(screen.getByRole('menu', { name: 'Your team' })).toBeTruthy();
     expect(screen.getByText('THE Engineer')).toBeTruthy();
-    expect(screen.getByText('Chief Innovation Officer')).toBeTruthy();
+    expect(screen.getByText('Erlich Bachman')).toBeTruthy();
     expect(screen.getByText('THE SLOPITECT')).toBeTruthy();
     expect(screen.getByText('Jack Barker')).toBeTruthy();
     expect(screen.getByText('The Auditor')).toBeTruthy();

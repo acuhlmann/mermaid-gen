@@ -37,7 +37,7 @@ describe('floorArrivalAnnouncement', () => {
       copy,
       phase: 'colleagues',
       colleagueIndex: 1,
-      speakingId: 'innovate'
+      speakingId: 'erlich'
     });
     expect(first.key).not.toBe(second.key);
   });

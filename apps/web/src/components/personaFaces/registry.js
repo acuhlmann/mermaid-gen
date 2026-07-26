@@ -54,12 +54,12 @@ export const PERSONA_FACE_TRAITS = {
     accessory: 'hardhat',
     expression: 'smile'
   },
-  innovate: {
+  erlich: {
     skin: 'light',
-    hair: 'buzz',
+    hair: 'long',
     hairColor: 'black',
-    facialHair: 'none',
-    glasses: 'round',
+    facialHair: 'beard',
+    glasses: 'none',
     accessory: 'none',
     expression: 'smirk'
   },

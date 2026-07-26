@@ -21,7 +21,7 @@ scripts/         Bash deploy + GCP secret push scripts
 
 | Axis                                      | Path                                 | Who uses it                                                     | Doc                                                                            |
 | ----------------------------------------- | ------------------------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
-| **Built-in agents (REST + AG-UI SSE)**    | `/api/copilotkit/*`                  | Web UI Go/Refine/Innovate/Go Mad/Critique/Explain/Fix/Style     | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     |
+| **Built-in agents (REST + AG-UI SSE)**    | `/api/copilotkit/*`                  | Web UI Go/Refine/Erlich/Go Mad/Critique/Explain/Fix/Style       | [`docs/architecture-ag-ui.md`](docs/architecture-ag-ui.md)                     |
 | **Collaboration (session-events SSE)**    | `GET /api/copilotkit/session-events` | Handshakes, proposals, presence, reactions, attributed insights | [`docs/architecture-external-agents.md`](docs/architecture-external-agents.md) |
 | **External agents (MCP Streamable HTTP)** | `GET/POST /mcp`                      | Cursor, Claude Desktop, VS Code Copilot                         | same                                                                           |
 

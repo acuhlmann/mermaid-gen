@@ -4,7 +4,7 @@ import { selectionActionTitle, topicFromDescriptor } from '../utils/appInsightHe
 import { resolveAdvisorFocusNode } from '../utils/advisorActionContext.js';
 
 /**
- * Transform (Refine / Innovate / Go Mad / Exec) and Analyze (Critique / Explain) flows.
+ * Transform (Refine / Erlich / Go Mad / Barker) and Analyze (Critique / Explain) flows.
  *
  * @param {{
  *   contentMode: string;
@@ -78,7 +78,7 @@ export function useAnalyzeFlow({
         const syncedState = await syncDiagramOrThrow();
         const labels = {
           refine: controls.actions.refine,
-          innovate: controls.actions.innovate,
+          erlich: controls.actions.erlich,
           goMad: controls.actions.goMad,
           barker: controls.actions.coDesign
         };
@@ -116,7 +116,7 @@ export function useAnalyzeFlow({
       contentMode,
       controls.actions.coDesign,
       controls.actions.goMad,
-      controls.actions.innovate,
+      controls.actions.erlich,
       controls.actions.refine,
       goMadStreak,
       hasInteractedRef,

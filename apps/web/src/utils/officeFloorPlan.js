@@ -177,7 +177,7 @@ export const FLOOR_SEATS = [
 
   // Your team — the five advisor personas at adjacent desks.
   { id: 'refine', x: 6, y: 4, desk: true, zone: 'pod' },
-  { id: 'innovate', x: 4, y: 6, desk: true, zone: 'pod' },
+  { id: 'erlich', x: 4, y: 6, desk: true, zone: 'pod' },
   { id: 'critique', x: 8, y: 5, desk: true, zone: 'pod' },
   { id: 'explain', x: 5, y: 8, desk: true, zone: 'pod' },
   { id: 'goMad', x: 9, y: 6, desk: true, zone: 'pod' },

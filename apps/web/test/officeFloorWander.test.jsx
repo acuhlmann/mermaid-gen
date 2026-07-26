@@ -68,7 +68,7 @@ describe('who wanders is an answer the room gives', () => {
   it('pins the roster, so a layout change cannot quietly grow it', () => {
     expect(wanderingSeatIds()).toEqual([
       'refine',
-      'innovate',
+      'erlich',
       'critique',
       'explain',
       'goMad',

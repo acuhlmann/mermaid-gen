@@ -11,7 +11,7 @@ import { useUiCopy } from '../i18n/useUiLocale.js';
 
 const VARIANT_CLASS = {
   refine: 'is-refine',
-  innovate: 'is-innovate',
+  erlich: 'is-erlich',
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain'
@@ -148,7 +148,7 @@ export default function DiagramRunFx({ variant, streaming = false, intensity = '
         </>
       ) : null}
 
-      {variant === 'innovate' ? (
+      {variant === 'erlich' ? (
         <>
           <div className="diagram-run-fx-synthgrid" />
           <span className="diagram-run-fx-zap diagram-run-fx-zap-1">

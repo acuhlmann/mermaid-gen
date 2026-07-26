@@ -8,7 +8,7 @@
 | `GET`  | `/api/copilotkit/session-state`                 | Full session payload (all six slots + `activeContentType`)                                                                                      |
 | `POST` | `/api/copilotkit/state`                         | Client sync of editor source into server state (`contentType` selects the slot)                                                                 |
 | `POST` | `/api/copilotkit/intent`                        | **Intent** path: prompt-bar **Go**, **Fix from critique**, and syntax **auto-fix** (JSON; `contentType` routes to the matching agent service)   |
-| `POST` | `/api/copilotkit/transform`                     | Refine / innovate / goMad / barker (JSON response; `contentType` forwarded)                                                                     |
+| `POST` | `/api/copilotkit/transform`                     | Refine / erlich / goMad / barker (JSON response; `contentType` forwarded)                                                                       |
 | `POST` | `/api/copilotkit/analyze`                       | Critique / explain (JSON response; `contentType` forwarded)                                                                                     |
 | `POST` | `/api/copilotkit/style`                         | Style-only patch (`%%init%%` / theme shaping) — **Mermaid and Chart**; rejects other `contentType` values                                       |
 | `POST` | `/api/copilotkit/agent-stream`                  | SSE: tokens, tool phases, `final`, `done` (`contentType` forwarded)                                                                             |

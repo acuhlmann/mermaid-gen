@@ -55,11 +55,10 @@ test('agent message conversion drops assistant replies that expose internal tool
 test('transform mode picks increasing temperatures', () => {
   assert.ok(
     transformModeModelOptions('refine').temperature <
-      transformModeModelOptions('innovate').temperature
+      transformModeModelOptions('erlich').temperature
   );
   assert.ok(
-    transformModeModelOptions('innovate').temperature <
-      transformModeModelOptions('goMad').temperature
+    transformModeModelOptions('erlich').temperature < transformModeModelOptions('goMad').temperature
   );
   // Go Mad chaos is prompt-driven; sampling stays in the range where tool calls
   // and Mermaid syntax remain reliable (see goMadTransformModelOptions).
@@ -479,9 +478,9 @@ test('buildSyntaxGuidanceSystemMessage marks rules advisory for type-changing mo
     diagramSource: 'flowchart TD\n  A --> B',
     reason: 'seed'
   });
-  const innovateMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'innovate' });
+  const erlichMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'erlich' });
   const goMadMsg = buildSyntaxGuidanceSystemMessage({ stateStore, mode: 'goMad' });
-  assert.match(innovateMsg.content, /no longer apply/);
+  assert.match(erlichMsg.content, /no longer apply/);
   assert.match(goMadMsg.content, /no longer apply/);
 });
 
@@ -765,7 +764,7 @@ test('transform syntax repair uses the stable fast agent after a quality failure
   });
 
   const result = await service.applyTransformIntent({
-    mode: 'innovate',
+    mode: 'erlich',
     modelProfile: 'quality'
   });
 

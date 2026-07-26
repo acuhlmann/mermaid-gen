@@ -12,11 +12,11 @@ export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
 
 const TRANSFORM_MODE_MODEL = Object.freeze({
   refine: { temperature: 0.42 },
-  innovate: { temperature: 0.82 },
+  erlich: { temperature: 0.82 },
   barker: { temperature: 0.35 }
 });
 
-const TRANSFORM_MODES = Object.freeze(['refine', 'innovate', 'goMad', 'barker']);
+const TRANSFORM_MODES = Object.freeze(['refine', 'erlich', 'goMad', 'barker']);
 
 export function isTransformMode(value) {
   return typeof value === 'string' && TRANSFORM_MODES.includes(value);
@@ -330,13 +330,14 @@ export function buildTransformUserContent({
 - Add ONE small useful extension or slight modification that obviously belongs: the missing step in the flow, a parent grouping the user implied, a named relationship that was hanging unlabeled, splitting a single too-broad node into two specific ones.
 - Subject-anchored: speak in whatever the diagram's actual subject is (recipe, org chart, biology, planning, software). Do NOT default to enterprise/cloud vocabulary unless the diagram is already enterprise/cloud — read the labels first.
 - Budget: prefer 1–3 new nodes and 2–5 new edges. If the diagram already says enough, tighten ONE label instead. Keep it readable; small wins compound.`
-      : mode === 'innovate'
-        ? `Transform mode: INNOVATE — Chief Innovation Officer extends the idea courageously, on the visible subject.
+      : mode === 'erlich'
+        ? `Transform mode: ERLICH — Erlich Bachman (HBO's Silicon Valley) graciously elevates the diagram with the bold pivot only he could see, on the visible subject.
 - Stay ON THE SUBJECT of the visible labels. Do NOT default to enterprise/SaaS/cloud vocabulary unless the diagram is enterprise/SaaS/cloud — read the labels first and speak in their world.
 - Add a fresh structural angle the user likely hasn't considered yet: split a node into two with different temperaments, fold two layers into a stronger one, introduce a feedback loop, add a parallel track, reframe a step as a phase.
 - It is OK to lean a bit too far on purpose — a courageous extension that surprises is better than a safe one that doesn't. Sometimes the diagram benefits from being bolder than the user asked.
-- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the new angle better; change type only when that shift clearly serves the subject. Otherwise innovate within the current type.
-- Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
+- Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the new angle better; change type only when that shift clearly serves the subject. Otherwise elevate within the current type.
+- Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.
+- Voice for any prose you emit after the patch: grandiose founder swagger — take warm credit in advance, frame the pivot as the bolder shape only you could see ("You're welcome — I elevated it."). Never humble, never technically specific, at most ONE signature prop (Aviato, the incubator, the ten percent) and usually none. Short.`
         : mode === 'barker'
           ? `Transform mode: BARKER — Jack Barker (HBO's Silicon Valley) takes the liberty of boiling the diagram down for the board. Subtractive only.
 - Keep the SAME diagram type — never switch types. Jack doesn't care about your craft; he cares about the story we can tell.

@@ -21,12 +21,12 @@ export const SLOPITECT_ZH_CN = {
       entryLine: '正在设计下一步…',
       exitLine: '交付了一块有用的砖 🧰'
     },
-    innovate: {
-      name: '首席创新官',
-      title: '首席颠覆官',
-      tagline: '围绕当前主题的大胆动作。',
-      entryLine: '颠覆性转折来了…',
-      exitLine: '已颠覆 🚀'
+    erlich: {
+      name: 'Erlich Bachman',
+      title: '创始人 — 黑客旅舍',
+      tagline: '大胆转向，由我亲自升华。',
+      entryLine: '我问你一个问题…',
+      exitLine: '已升华。不客气 🕶'
     },
     goMad: {
       name: '烂图建筑师',
@@ -59,7 +59,7 @@ export const SLOPITECT_ZH_CN = {
   },
   VARIANT_TAGLINES: {
     refine: '烂图建筑师：工程师扩展构建',
-    innovate: '烂图建筑师：首席创新官提出大胆方案',
+    erlich: '烂图建筑师：Erlich Bachman 提出大胆方案',
     goMad: '烂图建筑师：天才放飞 🚨',
     critique: '烂图建筑师：协同设计合规评审',
     explain: '烂图建筑师：协同设计故事会',
@@ -68,7 +68,7 @@ export const SLOPITECT_ZH_CN = {
   },
   VARIANT_BOOT_HEADLINES: {
     refine: '正在设计下一个有用步骤…',
-    innovate: '首席创新官正在推销大胆转折…',
+    erlich: 'Erlich Bachman 正在亲自升华…',
     goMad: '砰！烂图建筑师来了',
     critique: '协同设计评审即将开始',
     explain: '协同设计故事会 — 围过来',
@@ -76,7 +76,7 @@ export const SLOPITECT_ZH_CN = {
   },
   ACTION_PERSONA_SHORT_NAMES: {
     refine: '工程师',
-    innovate: '创新官',
+    erlich: 'Erlich',
     explain: '架构师'
   },
   ...SLOPITECT_GAMIFICATION_ZH_CN
