@@ -1396,6 +1396,19 @@ export const OFFICE_CHROME_COPY = {
     messageTitle: 'Open Slop Chat™ with them',
     seniorNote: 'Not without a calendar invite.',
     teamNote: 'On your team — brief them from the canvas.',
+    // Walking over for a word. The same Slop Chat™ thread either way — it is
+    // rendered in the room instead of in a window (ADR-0011 rule 1).
+    talk: {
+      eyebrow: 'HAVING A WORD',
+      action: '💬 Go and talk',
+      actionTitle: 'Walk over and say something',
+      walking: 'Walking over. Rehearse the opener.',
+      thinking: 'They are thinking of something to say…',
+      placeholder: 'Say something…',
+      send: 'Say it',
+      leave: '🪑 Back to my desk',
+      leaveTitle: 'End the conversation and walk back to your screen'
+    },
     // Desk peeking. Everything you see over a shoulder is fiction: the cast
     // produces nothing (ADR-0010), they are just visibly busy.
     peek: {

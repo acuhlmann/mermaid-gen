@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  approachTileFor,
+  approachableSeatIds,
   sameTile,
   standableTileAt,
   standableTileAtPoint
@@ -13,6 +15,7 @@ import {
   isOnFloor,
   isStandableTile,
   pathCrossesGlass,
+  peekTileFor,
   projectIso,
   seatFor,
   walkPathBetween
@@ -138,6 +141,64 @@ describe('standableTileAt', () => {
     const once = standableTileAt({ x: 6.5, y: 2.5 }, { from: HOME });
     const twice = standableTileAt({ x: 6.5, y: 2.5 }, { from: HOME });
     expect(once).toEqual(twice);
+  });
+});
+
+describe('approachTileFor', () => {
+  it('gives everyone off the leadership row somewhere to be talked to', () => {
+    const roster = approachableSeatIds();
+    // Pins the derivation the way slice 6 pins the peek roster: a layout change
+    // that quietly strands a colleague fails here.
+    expect(roster).toEqual([
+      'refine',
+      'innovate',
+      'critique',
+      'explain',
+      'goMad',
+      'helpdesk',
+      'scrumMaster',
+      'intern',
+      'greybeard',
+      'hr',
+      'facilities'
+    ]);
+  });
+
+  it('works for a colleague with no desk at all', () => {
+    // Gary lives at the fridge. A conversation needs somewhere to stand, not
+    // something to look at, which is why this is not `peekTileFor`.
+    expect(seatFor('facilities').desk).toBe(false);
+    expect(peekTileFor('facilities')).toBeNull();
+    expect(approachTileFor('facilities')).toBeTruthy();
+  });
+
+  it('refuses the leadership row — you cannot talk through glass', () => {
+    for (const seat of FLOOR_SEATS.filter((s) => s.zone === 'leadership')) {
+      expect(approachTileFor(seat.id), seat.id).toBeNull();
+    }
+  });
+
+  it('puts you somewhere standable with a clear line to them', () => {
+    for (const id of approachableSeatIds()) {
+      const mark = approachTileFor(id);
+      const seat = seatFor(id);
+      expect(isStandableTile(mark), id).toBe(true);
+      expect(pathCrossesGlass([mark, { x: seat.x, y: seat.y }]), id).toBe(false);
+      expect(pathCrossesGlass(walkPathBetween(HOME, mark, YOU_SEAT_ID)), id).toBe(false);
+    }
+  });
+
+  it('stands you next to them, not across the room', () => {
+    for (const id of approachableSeatIds()) {
+      const mark = approachTileFor(id);
+      const seat = seatFor(id);
+      expect(Math.hypot(mark.x - seat.x, mark.y - seat.y), id).toBeLessThanOrEqual(2.25);
+    }
+  });
+
+  it('has no mark for you, or for a stranger', () => {
+    expect(approachTileFor(YOU_SEAT_ID)).toBeNull();
+    expect(approachTileFor('nobody')).toBeNull();
   });
 });
 

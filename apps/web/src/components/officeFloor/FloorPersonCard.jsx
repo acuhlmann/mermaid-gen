@@ -13,24 +13,57 @@ import { PersonaFace } from '../personaFaces/index.jsx';
  *   copy: Record<string, any>,
  *   canMessage: boolean,
  *   canPeek?: boolean,
+ *   canTalk?: boolean,
  *   onMessage?: (colleagueId: string) => void,
  *   onPeek?: (colleagueId: string) => void,
+ *   onTalk?: (colleagueId: string) => void,
  *   onSitDown: () => void,
  *   onClose: () => void
  * }} props `canPeek` is false wherever there is nowhere to stand — leadership
- *   sit behind glass, and Gary has no desk (`peekTileFor`).
+ *   sit behind glass, and Gary has no desk (`peekTileFor`). `canTalk` asks a
+ *   different question and gets a different answer: Gary has nowhere to sit but
+ *   is perfectly easy to walk up to (`approachTileFor`).
  */
 export function FloorPersonCard({
   person,
   copy,
   canMessage,
   canPeek = false,
+  canTalk = false,
   onMessage,
   onPeek,
+  onTalk,
   onSitDown,
   onClose
 }) {
   const isYou = person.tier === 'you';
+
+  /*
+   * In offer order, and every one of them gated by a question the room already
+   * answered. Walking over comes first because it is the diegetic path; the
+   * window sits beside it as the labelled conventional one (binding rule 2).
+   */
+  const verbs = [
+    canTalk && {
+      key: 'talk',
+      label: copy.talk.action,
+      title: copy.talk.actionTitle,
+      run: onTalk,
+      primary: true
+    },
+    canMessage && {
+      key: 'message',
+      label: copy.message,
+      title: copy.messageTitle,
+      run: onMessage
+    },
+    canPeek && {
+      key: 'peek',
+      label: copy.peek.action,
+      title: copy.peek.actionTitle,
+      run: onPeek
+    }
+  ].filter(Boolean);
 
   return (
     <aside className="office-floor-card" aria-live="polite">
@@ -58,29 +91,20 @@ export function FloorPersonCard({
           </button>
         ) : (
           <>
-            {canMessage ? (
+            {verbs.map((verb) => (
               <button
+                key={verb.key}
                 type="button"
-                className="office-floor-card-action"
-                title={copy.messageTitle}
-                onClick={() => onMessage?.(person.id)}
+                className={`office-floor-card-action${verb.primary ? ' office-floor-card-action--primary' : ''}`}
+                title={verb.title}
+                onClick={() => verb.run?.(person.id)}
               >
-                {copy.message}
+                {verb.label}
               </button>
-            ) : null}
-            {canPeek ? (
-              <button
-                type="button"
-                className="office-floor-card-action"
-                title={copy.peek.actionTitle}
-                onClick={() => onPeek?.(person.id)}
-              >
-                {copy.peek.action}
-              </button>
-            ) : null}
+            ))}
             {/* Leadership and your own team get a line instead of a verb —
                 but only when there is no verb left to offer. */}
-            {!canMessage && !canPeek ? (
+            {verbs.length === 0 ? (
               <span className="office-floor-card-note">
                 {person.tier === 'senior' ? copy.seniorNote : copy.teamNote}
               </span>

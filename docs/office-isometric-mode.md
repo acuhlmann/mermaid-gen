@@ -133,6 +133,28 @@ track touches chrome only, never the floor, and never blocks the floor slices.
    what keeps the rooms you cannot enter reading as rooms you cannot enter. Two surprises,
    both real bugs: see § 6 rules 18–19.
 
+8. ~~**Conversation in the room**~~ — ✅ **shipped**: the person card's first verb is now **💬
+   Go and talk**, which walks you to a mark beside them, opens with a live line in persona
+   voice, and gives you quick replies and a composer in the card slot. This is the clearest
+   worked example of rule 1 yet: the conversation **is** the Slop Chat™ thread. The opener and
+   every reply go through the same `imSomeone` verb the messenger sends, land in the same
+   `imHistory`, and come back through the same reactive-LLM ladder — the floor just renders
+   the newest inbound line as a speech bubble over whoever said it, and the window renders the
+   same messages as a thread. Walk away and the whole exchange is still in Slop Chat, because
+   it was never anywhere else. The one thing that needed guarding is the mount-one-renderer
+   rule: `OfficeLayer` holds back the IM toast for whoever you are stood in front of, or their
+   answer arrives as a bubble _and_ a toast and the narrator reads it twice.
+
+   Marks are `approachTileFor`, deliberately **not** `peekTileFor`: a peek must clear the
+   monitor (§ 6 rule 16), a conversation must not — standing on somebody's screen is what
+   talking to them at their desk looks like. It also has to work for Gary, who has no desk to
+   peek at but is perfectly easy to walk up to. Both gates on the verb agree by accident
+   rather than by construction, which is worth knowing: the **tier** decides whether there is
+   anything to say (office tier only), the **room** decides whether you can get close enough
+   to say it — and the room's answer is what keeps leadership out of reach, since an approach
+   mark needs a clear line to the person and the glass is in the way. One geometry surprise:
+   see § 6 rule 20.
+
 ## 6. Geometry constraints (learned by looking at it)
 
 The layout is `apps/web/src/utils/officeFloorPlan.js` — tiles, seats, props, zones, plus
@@ -235,6 +257,15 @@ preserve them:
     `--virtual-time-budget` fast-forwards timers but not WAAPI frames), so both are asserted
     in `useWalkAnimation.test.jsx` against a stubbed engine instead.
 
+20. **A bubble's lift has to match whether they are actually sitting.** Rule 15 established
+    that a bubble over a seated speaker clears 30 px of seat lift _plus_ the 48 px figure.
+    `FloorDeskSpeech` applied that to everyone — including Gary, who has no desk and is
+    therefore never seat-lifted, so his balloon floated a clear tile above his head while
+    everybody else's sat on theirs. The lift is a property of the _speaker_, not of the
+    component: `--over-seat` (82 px) for somebody at a desk, `--over-standing` (52 px) for
+    somebody on their feet at their own tile. Slice 6 never hit this because Gary has nothing
+    to peek at; slice 8 walks up to him, which is the point of `approachTileFor` existing.
+
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
 every seat around its table has a fractional column. The precise form of the rule (screen
@@ -270,7 +301,7 @@ a phone. Two Windows gotchas worth knowing before you trust a capture:
 
 ## 7. The bench (for whatever comes next)
 
-Slices 1–7 have shipped. Anything new on the floor should be built out of the
+Slices 1–8 have shipped. Anything new on the floor should be built out of the
 pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
 constraints) first, because every one of those cost a screenshot to find. Verification
 recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
@@ -279,8 +310,10 @@ recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
 **Components** (`apps/web/src/components/officeFloor/`): `FloorStage` (scaled stage; takes
 `vacantIds`, `speakingId`, `interactive`, `onWalkTo`/`roamOrigin`, and arbitrary `children` as
 extra actors), `FloorRoam` (the click surface + hover marker), `useFloorPresence` (where you
-are standing — view state, like the peek it absorbed), `useFloorKeyboard` (Escape ladder +
-arrow stepping), `useFloorAutoPan`, `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
+are standing — view state, like the peek it absorbed), `useFloorActivity` (presence plus the
+reasons you went there, as one object), `useFloorTalk` (a conversation's composer, not its
+dialogue), `FloorTalk` + `FloorTalkCard`, `useFloorKeyboard` (Escape ladder + arrow stepping),
+`useFloorAutoPan`, `FloorTopBar`, `FloorCardSlot`, `FloorScenes`,
 `FloorSeat`, `FloorFigure`, `FloorBubble` (counter-scaled speech), `FloorDeskSpeech` (a line
 above somebody at their own desk — mind §6 rule 15), `FloorPanel` (counter-scaled panel
 pinned to a tile — mind §6 rule 12), `FloorWalker` + `useWalkAnimation` (WAAPI path
@@ -289,7 +322,8 @@ walking), `FloorPlayer` (you, walking, wherever you are not at your own desk), `
 card), `FloorPeek` + `FloorPeekCard` (desk peeking), `FloorArrival` (the ceremony).
 
 **Data**: layout, routing and mark derivation in `apps/web/src/utils/officeFloorPlan.js`;
-where you may walk in `apps/web/src/utils/officeFloorMovement.js`; the cast's fictional
+where you may walk and who you may walk up to in
+`apps/web/src/utils/officeFloorMovement.js`; the cast's fictional
 workload in `apps/web/src/utils/officeDeskWork.js`; who is away from their desk in
 `apps/web/src/utils/officeSceneCast.js`.
 

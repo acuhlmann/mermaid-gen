@@ -20,22 +20,20 @@ import FloorPeek from './officeFloor/FloorPeek.jsx';
 import FloorPlayer from './officeFloor/FloorPlayer.jsx';
 import FloorScenes from './officeFloor/FloorScenes.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
+import FloorTalk from './officeFloor/FloorTalk.jsx';
 import FloorTopBar from './officeFloor/FloorTopBar.jsx';
+import { useFloorActivity } from './officeFloor/useFloorActivity.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
-import { useFloorPresence } from './officeFloor/useFloorPresence.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
 import { useStageScale } from '../hooks/useStageScale.js';
-import { YOU_SEAT_ID, peekTileFor, seatFor } from '../utils/officeFloorPlan.js';
+import { approachTileFor } from '../utils/officeFloorMovement.js';
+import { YOU_SEAT_ID, peekTileFor } from '../utils/officeFloorPlan.js';
 import { isOfficeColleagueId, officeChromeCopy, officeSenderInfo } from '../utils/officeCast.js';
 import { awayFromDeskIds } from '../utils/officeSceneCast.js';
 import { tierOf } from '../utils/castTiers.js';
 import { resolveUserName, subscribe as subscribeUserName } from '../state/userIdentityStore.js';
-import {
-  getOfficeViewMode,
-  sitDown,
-  subscribe as subscribeViewMode
-} from '../state/officeViewModeStore.js';
+import { getOfficeViewMode, subscribe as subscribeViewMode } from '../state/officeViewModeStore.js';
 import { useUiCopy } from '../i18n/useUiLocale.js';
 
 /**
@@ -69,7 +67,12 @@ function usePersonDetails(selectedId, copy) {
       canMessage: tier === 'office' && isOfficeColleagueId(selectedId),
       // Pure geometry: there has to be somewhere to stand that is not inside
       // the furniture, behind glass, or in front of the screen you came to read.
-      canPeek: peekTileFor(selectedId) !== null
+      canPeek: peekTileFor(selectedId) !== null,
+      // Two independent gates, and they agree by accident rather than by
+      // construction: the tier decides whether there is anything to say,
+      // the room decides whether you can get close enough to say it.
+      canTalk:
+        tier === 'office' && isOfficeColleagueId(selectedId) && approachTileFor(selectedId) !== null
     };
   }, [selectedId, userName, copy]);
 }
@@ -79,20 +82,16 @@ function usePersonDetails(selectedId, copy) {
  * slice 7 it is one flavour of *being somewhere* rather than its own state
  * machine: 'looking' is simply having arrived somewhere you went on purpose.
  */
-function peekViewOf(presence) {
-  if (presence?.intent?.kind !== 'peek') return null;
-  return {
-    colleagueId: presence.intent.colleagueId,
-    phase: presence.phase === 'standing' ? 'looking' : 'walking'
-  };
-}
-
 /**
  * @param {{
  *   onMessage?: (colleagueId: string) => void,
  *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onDismissWalkBy?: (id: string) => void,
+ *   imHistory?: Array<{ colleagueId: string, body: string, outbound?: boolean }>,
+ *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
+ *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
+ *   onTalkingChange?: (colleagueId: string | null) => void,
  *   coffee?: any, battle?: any, sceneHandlers?: any,
  *   meeting?: any, meetingHandlers?: any
  * }} props
@@ -102,6 +101,10 @@ function OfficeFloorView({
   walkBy,
   onAdoptPrompt,
   onDismissWalkBy,
+  imHistory = [],
+  onTalkGreet,
+  onTalkReply,
+  onTalkingChange,
   coffee = null,
   battle = null,
   sceneHandlers = {},
@@ -118,42 +121,30 @@ function OfficeFloorView({
   const [selectedId, setSelectedId] = useState(null);
   const person = usePersonDetails(selectedId, copy);
   const { walker, departing, handleDeparted } = useFloorWalker(walkBy);
-  const { presence, playerRef, walkTo, peekAt, goHome, handleArrive } = useFloorPresence(
-    Boolean(meeting)
-  );
+  const handleClosePerson = useCallback(() => setSelectedId(null), []);
 
-  const peek = peekViewOf(presence);
-  // Where you are for the purposes of "can I get there from here". While a walk
-  // is in flight that is where it is taking you: the next click queues from the
-  // destination, not from the corridor.
-  const origin = useMemo(() => {
-    if (presence) return presence.to;
-    const home = seatFor(YOU_SEAT_ID);
-    return home ? { x: home.x, y: home.y } : null;
-  }, [presence]);
+  const activity = useFloorActivity({
+    suspended: Boolean(meeting),
+    imHistory,
+    onTalkGreet,
+    onTalkReply,
+    onTalkingChange,
+    onEngage: handleClosePerson
+  });
+  const { presence, peek, talk, conversation, origin, goHome } = activity;
 
-  useFloorKeyboard({ presence, origin, goHome, walkTo });
+  useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
 
   const handleSelect = useCallback((id) => {
     setSelectedId((current) => (current === id ? null : id));
   }, []);
 
-  const handlePeek = useCallback(
-    (id) => {
-      const mark = peekTileFor(id);
-      if (!mark) return;
-      setSelectedId(null);
-      peekAt(id, mark);
-    },
-    [peekAt]
-  );
-
-  const handleClosePerson = useCallback(() => setSelectedId(null), []);
-
   return (
     <div className="office-floor" data-testid="office-floor">
-      <FloorTopBar copy={copy} standing={Boolean(presence) && !peek} onGoHome={goHome} />
+      {/* The peek and talk cards each carry their own way back, so the bar's
+          copy of it would be a second button with the same label. */}
+      <FloorTopBar copy={copy} standing={activity.standingFree} onGoHome={goHome} />
 
       <div className="office-floor-viewport" ref={viewportRef}>
         <FloorStage
@@ -168,7 +159,7 @@ function OfficeFloorView({
           onWalkerDeparted={handleDeparted}
           // A meeting has you in a chair in the glass room; the floor is not
           // yours to wander until you leave it.
-          onWalkTo={meeting ? null : walkTo}
+          onWalkTo={meeting ? null : activity.walkTo}
           roamOrigin={origin}
           vacantIds={awayFromDeskIds({
             coffee,
@@ -177,9 +168,7 @@ function OfficeFloorView({
             standing: presence,
             playerId: YOU_SEAT_ID
           })}
-          // Whoever you are looking at holds the floor, the same glow the
-          // arrival ceremony and the glass room use.
-          speakingId={peek?.phase === 'looking' ? peek.colleagueId : null}
+          speakingId={activity.speakingId}
         >
           <FloorScenes
             coffee={coffee}
@@ -189,6 +178,7 @@ function OfficeFloorView({
           />
           {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}
           {peek ? <FloorPeek peek={peek} scale={scale} /> : null}
+          {talk ? <FloorTalk talk={talk} line={activity.talkLine} scale={scale} /> : null}
           {/* One of you on the floor, whatever your reason for being up. */}
           {presence ? (
             <FloorPlayer
@@ -196,8 +186,8 @@ function OfficeFloorView({
               to={presence.to}
               walking
               walkKey={`roam:${presence.key}`}
-              onArrive={handleArrive}
-              elementRef={playerRef}
+              onArrive={activity.handleArrive}
+              elementRef={activity.playerRef}
               testId={peek ? 'office-floor-peek-player' : 'office-floor-player'}
             />
           ) : null}
@@ -209,10 +199,13 @@ function OfficeFloorView({
         meeting={meeting}
         meetingHandlers={meetingHandlers}
         peek={peek}
+        talk={talk}
+        conversation={conversation}
         person={person}
         onGoHome={goHome}
         onMessage={onMessage}
-        onPeek={handlePeek}
+        onPeek={activity.startPeek}
+        onTalk={activity.startTalk}
         onClosePerson={handleClosePerson}
       />
     </div>

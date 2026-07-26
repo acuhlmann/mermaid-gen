@@ -511,6 +511,33 @@ export default function OfficeLayer({
     [desk]
   );
 
+  /*
+   * Talking on the floor (slice 8) is the same verb again, minus the window:
+   * the opener and every reply land in `imHistory` exactly as Slop Chat's do,
+   * and the floor renders the newest line as a speech bubble instead. Nothing
+   * here is floor-only state — walk away and the thread is still in the
+   * messenger, because it was never anywhere else.
+   */
+  const [floorTalkingTo, setFloorTalkingTo] = useState(null);
+
+  const handleTalkGreet = useCallback(
+    async (colleagueId) => {
+      await desk.imSomeone(colleagueId);
+    },
+    [desk]
+  );
+
+  const handleTalkReply = useCallback(
+    async (colleagueId, body) => {
+      pushOfficeImReply({ colleagueId, body });
+      onOfficeEvent?.('imReply');
+      const history = getOfficeSnapshot().imHistory;
+      const threadTranscript = threadTranscriptFor(history, colleagueId);
+      await desk.imSomeone(colleagueId, { userMessage: body, threadTranscript });
+    },
+    [desk, onOfficeEvent]
+  );
+
   const handleQuickReply = useCallback(
     async (ping, reply) => {
       pushOfficeImReply({ colleagueId: ping.colleagueId, body: reply });
@@ -557,6 +584,10 @@ export default function OfficeLayer({
           desk; office windows below still float above it when you stand up. */}
       <OfficeFloor
         onMessage={handleFloorMessage}
+        imHistory={snapshot.imHistory}
+        onTalkGreet={handleTalkGreet}
+        onTalkReply={handleTalkReply}
+        onTalkingChange={setFloorTalkingTo}
         walkBy={snapshot.walkBy}
         onAdoptPrompt={handleAdopt}
         onDismissWalkBy={dismissOfficeWalkBy}
@@ -600,8 +631,16 @@ export default function OfficeLayer({
       />
       {suppressDistractions ? null : (
         <>
+          {/* One renderer per line. The messenger being open already suppressed
+              the toast; standing in front of somebody has to do the same, or
+              their answer arrives as a bubble *and* a toast and the narrator
+              reads it out twice. */}
           <OfficeImPing
-            pings={messengerOpen ? [] : snapshot.imPings}
+            pings={
+              messengerOpen
+                ? []
+                : snapshot.imPings.filter((ping) => ping.colleagueId !== floorTalkingTo)
+            }
             onDismiss={dismissOfficeImPing}
             onQuickReply={handleQuickReply}
           />

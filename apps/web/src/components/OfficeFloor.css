@@ -600,6 +600,16 @@
 }
 
 /*
+ * The same bubble over somebody who is *standing* at their own tile — Gary, who
+ * lives at the fridge and owns no desk. `--over-seat` clears 30 px of seat lift
+ * he never gets, so his balloon floated a clear tile above his head while
+ * everybody else's sat on theirs. 82 − 30: the figure, not the furniture.
+ */
+.office-floor-walker-anchor--over-standing {
+  transform: translate(-50%, calc(-100% - 52px));
+}
+
+/*
  * Whoever is introducing themselves — or holding the floor in the glass room —
  * glows. A ring on the floor would be the obvious choice and is completely
  * wrong: their own desk (or the meeting table) stands on that tile and hides it.
@@ -765,6 +775,66 @@
 .office-floor-card--peek .office-floor-card-blurb,
 .office-floor-card--peek .office-floor-card-actions {
   margin: 0;
+}
+
+/* ── talking to somebody on the floor (slice 8) ──────────────────────────── */
+
+.office-floor-talk-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0.5rem 0 0;
+}
+
+.office-floor-talk-quick-reply {
+  border: 1px solid var(--control-border);
+  border-radius: 999px;
+  background: var(--office-surface-bg, #fff);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.6rem;
+  cursor: pointer;
+}
+
+.office-floor-talk-quick-reply:hover:not(:disabled),
+.office-floor-talk-quick-reply:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+}
+
+.office-floor-talk-quick-reply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.office-floor-talk-compose {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+}
+
+/* min-width:0 or the input refuses to shrink and the send button is pushed
+   out of a 21 rem card. */
+.office-floor-talk-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 0.5rem;
+  background: var(--office-surface-bg, #fff);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.3rem 0.5rem;
+}
+
+.office-floor-talk-input:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.office-floor-card--talk .office-floor-card-actions {
+  margin: 0.5rem 0 0;
 }
 
 .office-floor-arrival-actions {

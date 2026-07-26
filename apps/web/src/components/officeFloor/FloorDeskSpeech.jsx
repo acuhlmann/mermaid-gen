@@ -8,8 +8,12 @@
  * seat lift *plus* the 48 px figure, or the balloon covers the person talking
  * (§ 6 rule 15).
  *
- * Shared by the arrival ceremony (each colleague introducing themselves) and
- * desk peeking (what they say when you look over their shoulder).
+ * Which lift depends on whether they are actually sitting: a colleague with no
+ * desk is never seat-lifted, so clearing 30 px he does not have leaves the
+ * bubble floating a tile above his head (§ 6 rule 20).
+ *
+ * Shared by the arrival ceremony (each colleague introducing themselves), desk
+ * peeking (what they say over their shoulder) and floor conversation.
  */
 
 import FloorBubble from './FloorBubble.jsx';
@@ -28,6 +32,9 @@ export function FloorDeskSpeech({ castId, line, scale = 1, testId }) {
 
   const sender = officeSenderInfo(castId);
   const { left, top } = projectIso(seat.x, seat.y);
+  const lift = seat.desk
+    ? 'office-floor-walker-anchor--over-seat'
+    : 'office-floor-walker-anchor--over-standing';
 
   return (
     <div
@@ -35,7 +42,7 @@ export function FloorDeskSpeech({ castId, line, scale = 1, testId }) {
       data-testid={testId}
       style={{ left, top, zIndex: BUBBLE_Z }}
     >
-      <div className="office-floor-walker-anchor office-floor-walker-anchor--over-seat">
+      <div className={`office-floor-walker-anchor ${lift}`}>
         <FloorBubble name={sender?.name ?? castId} title={sender?.title} scale={scale}>
           {line}
         </FloorBubble>

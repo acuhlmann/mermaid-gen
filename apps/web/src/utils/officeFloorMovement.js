@@ -15,8 +15,10 @@
 
 import {
   YOU_SEAT_ID,
+  floorSeatIds,
   isStandableTile,
   pathCrossesGlass,
+  seatFor,
   unprojectIso,
   walkPathBetween
 } from './officeFloorPlan.js';
@@ -88,6 +90,72 @@ export function standableTileAt(point, { from = null, radius = SNAP_RADIUS } = {
  */
 export function standableTileAtPoint(left, top, options) {
   return standableTileAt(unprojectIso(left, top), options);
+}
+
+/**
+ * Where you stand to talk to somebody, in preference order (slice 8).
+ *
+ * Deliberately **not** `PEEK_OFFSETS`. That ladder exists to clear the monitor
+ * you walked over to read (§ 6 rule 16), which is why it excludes
+ * `{ dx: 0, dy: 1 }` — the obvious "beside them" tile that parks you on their
+ * screen. Standing on somebody's screen while *talking* to them is not a
+ * problem; it is what talking to somebody at their desk looks like. So the
+ * nearest tiles come first here, and the monitor is not consulted at all.
+ *
+ * Every offset still moves nearer the viewer, so you paint in front of their
+ * desk rather than behind it.
+ */
+const APPROACH_OFFSETS = [
+  { dx: 0, dy: 1 },
+  { dx: 1, dy: 0 },
+  { dx: 1, dy: 1 },
+  { dx: 0, dy: 2 },
+  { dx: 2, dy: 0 },
+  { dx: 2, dy: 1 },
+  { dx: 1, dy: 2 }
+];
+
+/**
+ * Where you stand to talk to somebody, or `null` if you cannot get to them.
+ *
+ * Reachability is from **your own desk**, the same static question
+ * `peekTileFor` asks, which is what lets the person card offer the verb before
+ * you have moved — and what keeps leadership unreachable without anybody
+ * maintaining a list. Unlike a peek this works for colleagues with no desk at
+ * all (Gary lives at the fridge), because a conversation needs somewhere to
+ * stand, not something to look at.
+ *
+ * @param {string} seatId
+ * @returns {{ x: number, y: number } | null}
+ */
+export function approachTileFor(seatId) {
+  const seat = seatFor(seatId);
+  if (!seat || seat.id === YOU_SEAT_ID) return null;
+  const you = seatFor(YOU_SEAT_ID);
+  if (!you) return null;
+
+  for (const { dx, dy } of APPROACH_OFFSETS) {
+    const mark = { x: seat.x + dx, y: seat.y + dy };
+    if (!isStandableTile(mark)) continue;
+    // You have to be able to *get* there…
+    if (pathCrossesGlass(walkPathBetween({ x: you.x, y: you.y }, mark, YOU_SEAT_ID))) continue;
+    // …and be able to talk to them once you have. Without this the ladder's
+    // outer offsets reach *past* the leadership wall and hand you a mark two
+    // tiles in front of the glass, which is not a conversation — it is you
+    // mouthing at the CEO through a window.
+    if (pathCrossesGlass([mark, { x: seat.x, y: seat.y }])) continue;
+    return mark;
+  }
+  return null;
+}
+
+/**
+ * Everybody you could walk over and talk to. Order follows the seat roster.
+ *
+ * @returns {string[]}
+ */
+export function approachableSeatIds() {
+  return floorSeatIds().filter((id) => approachTileFor(id) !== null);
 }
 
 /**

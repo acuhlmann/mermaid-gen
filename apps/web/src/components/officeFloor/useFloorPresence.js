@@ -33,12 +33,19 @@ function originOf(current, el) {
 }
 
 /**
+ * @typedef {{ kind: 'peek' | 'talk', colleagueId: string }} FloorIntent
+ *   Why you walked somewhere. A destination with a reason attached, rather
+ *   than a state machine per reason — which is what keeps there being exactly
+ *   one of you on the floor.
+ */
+
+/**
  * @typedef {{
  *   from: { x: number, y: number },
  *   to: { x: number, y: number },
  *   phase: 'walking' | 'standing',
  *   key: number,
- *   intent: { kind: 'peek', colleagueId: string } | null,
+ *   intent: FloorIntent | null,
  *   homeward: boolean
  * }} FloorPresence
  */
@@ -51,6 +58,7 @@ function originOf(current, el) {
  *   playerRef: { current: HTMLElement | null },
  *   walkTo: (tile: { x: number, y: number }) => void,
  *   peekAt: (colleagueId: string, tile: { x: number, y: number }) => void,
+ *   talkTo: (colleagueId: string, tile: { x: number, y: number }) => void,
  *   goHome: () => void,
  *   handleArrive: () => void
  * }} `presence` is `null` when you are at your own desk.
@@ -88,6 +96,11 @@ export function useFloorPresence(suspended) {
     [startWalk]
   );
 
+  const talkTo = useCallback(
+    (colleagueId, tile) => startWalk(tile, { kind: 'talk', colleagueId }, false),
+    [startWalk]
+  );
+
   const goHome = useCallback(() => {
     const home = seatFor(YOU_SEAT_ID);
     if (!home) return;
@@ -111,6 +124,7 @@ export function useFloorPresence(suspended) {
     playerRef,
     walkTo,
     peekAt,
+    talkTo,
     goHome,
     handleArrive
   };
