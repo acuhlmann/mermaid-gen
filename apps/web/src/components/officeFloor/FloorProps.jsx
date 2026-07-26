@@ -140,11 +140,11 @@ export function FloorPropCard({ prop, phase = 'idle', copy, onBack }) {
     return item.line;
   };
 
+  /* Not a live region — see `FloorLiveRegion`. */
   return (
     <aside
       className="office-floor-card office-floor-card--prop"
       data-testid="office-floor-prop-card"
-      aria-live="polite"
     >
       <span className="office-floor-eyebrow">{propsCopy.eyebrow}</span>
       <div className="office-floor-card-head">

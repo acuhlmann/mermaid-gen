@@ -68,11 +68,15 @@ export function FloorTalkCard({ talk, copy, busy = false, draft, onDraftChange, 
     onSend(body);
   };
 
+  /*
+   * Not a live region — see `FloorLiveRegion`. This one had a second reason to
+   * lose it: the composer below re-renders the card on every keystroke, and a
+   * region wrapping a text field is a region that reads itself out as you type.
+   */
   return (
     <aside
       className="office-floor-card office-floor-card--talk"
       data-testid="office-floor-talk-card"
-      aria-live="polite"
     >
       <span className="office-floor-eyebrow">{talkCopy.eyebrow}</span>
       <div className="office-floor-card-head">
