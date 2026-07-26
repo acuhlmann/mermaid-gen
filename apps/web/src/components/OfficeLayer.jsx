@@ -588,6 +588,10 @@ export default function OfficeLayer({
         onTalkGreet={handleTalkGreet}
         onTalkReply={handleTalkReply}
         onTalkingChange={setFloorTalkingTo}
+        // ADR-0011 rule 2: the coffee machine on the floor pours the same break
+        // the desk dock's labelled "Get coffee" pours. One verb, two ways to
+        // reach it — the diegetic one is the bonus, never the only path.
+        onGetCoffee={desk.getCoffee}
         walkBy={snapshot.walkBy}
         onAdoptPrompt={handleAdopt}
         onDismissWalkBy={dismissOfficeWalkBy}

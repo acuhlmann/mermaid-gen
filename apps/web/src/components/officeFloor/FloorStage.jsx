@@ -5,21 +5,16 @@
  * is purely "put the office on the stage".
  */
 
+import FloorProps from './FloorProps.jsx';
 import FloorRoam from './FloorRoam.jsx';
 import FloorRoom, { FloorZoneLabels } from './FloorRoom.jsx';
 import FloorSeat from './FloorSeat.jsx';
 import FloorWalker from './FloorWalker.jsx';
-import { FloorPropArt } from './isoArt.jsx';
 import {
-  FLOOR_PROPS,
   FLOOR_SEATS,
-  PROP_VIEW,
-  PROP_VIEW_BOX,
   STAGE_H,
   STAGE_W,
   YOU_SEAT_ID,
-  depthOf,
-  projectIso,
   seatFor
 } from '../../utils/officeFloorPlan.js';
 import { officeSenderInfo } from '../../utils/officeCast.js';
@@ -57,10 +52,13 @@ function seatDisplay(seat, copy) {
  *   interactive?: boolean,
  *   onWalkTo?: ((tile: { x: number, y: number }) => void) | null,
  *   roamOrigin?: { x: number, y: number } | null,
+ *   onUseProp?: ((kind: string) => void) | null,
+ *   activePropKind?: string | null,
  *   children?: import('react').ReactNode
  * }} props `children` are extra actors placed in stage coordinates (the
  *   arrival ceremony puts you and its spotlight there). Passing `onWalkTo`
- *   makes the floor itself walkable (slice 7).
+ *   makes the floor itself walkable (slice 7); passing `onUseProp` makes its
+ *   furniture usable (slice 9).
  */
 export function FloorStage({
   scale,
@@ -77,6 +75,8 @@ export function FloorStage({
   speakingId = null,
   onWalkTo = null,
   roamOrigin = null,
+  onUseProp = null,
+  activePropKind = null,
   children
 }) {
   return (
@@ -96,27 +96,12 @@ export function FloorStage({
           <FloorRoam scale={scale} origin={roamOrigin} onWalkTo={onWalkTo} />
         ) : null}
 
-        {FLOOR_PROPS.map((prop, index) => {
-          const { left, top } = projectIso(prop.x, prop.y);
-          return (
-            <svg
-              key={`${prop.kind}-${index}`}
-              className="office-floor-prop"
-              style={{
-                left: left + PROP_VIEW.minX,
-                top: top + PROP_VIEW.minY,
-                zIndex: depthOf(prop.x, prop.y)
-              }}
-              viewBox={PROP_VIEW_BOX}
-              width={PROP_VIEW.w}
-              height={PROP_VIEW.h}
-              aria-hidden="true"
-              focusable="false"
-            >
-              <FloorPropArt kind={prop.kind} span={prop.span} axis={prop.axis} />
-            </svg>
-          );
-        })}
+        <FloorProps
+          copy={copy}
+          interactive={interactive}
+          onUseProp={onUseProp}
+          activeKind={activePropKind}
+        />
 
         {FLOOR_SEATS.map((seat, index) => (
           <FloorSeat

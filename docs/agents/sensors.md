@@ -50,6 +50,26 @@ git stash pop
 
 `.gitattributes` overrides `core.autocrlf`; new clones and restores get LF. Do **not** "fix" a pure line-ending mismatch with a whole-repo `npm run format` unless you intend a mass formatting commit.
 
+## Known flake: `anythingRuntimeCheck` under a full-suite run
+
+`apps/server/test/anythingRuntimeCheck.test.js` can fail **six tests at once** ("accepts a
+working interactive page", "rejects a page whose script throws at load", …) during
+`npm run check` / `npm test`, while passing 16/16 when run on its own:
+
+```bash
+cd apps/server && node --import ../../scripts/register-antv-layout-esm.mjs --import tsx --test test/anythingRuntimeCheck.test.js
+```
+
+It is load contention, not a regression. Each case spawns a jsdom child process with a
+deadline; alone they take ~2 s each, and under a loaded full-suite run the same cases take
+~4 s and miss it. **The tell is the timing** — a real failure does not shift every duration in
+the file from 2 s to 4 s. Before assuming you broke something, check whether your diff touches
+`apps/server` at all, then re-run the file alone.
+
+Worth fixing properly (a deadline scaled to load, or serialising the sandbox cases) rather
+than living with it: an agent who has just changed unrelated code sees six red tests and a
+non-zero `npm run check`, which is the most expensive kind of false alarm.
+
 ## How to read verify:deps output
 
 On failure the script prints the mismatched install paths and a one-line `npm install` fix. No separate guidance file — the error _is_ the fix.

@@ -1421,6 +1421,45 @@ export const OFFICE_CHROME_COPY = {
         calendar: 'A calendar. Solid colour, wall to wall.'
       }
     },
+    // Props you can walk up to and use (slice 9). ADR-0011 rule 2: the coffee
+    // machine *duplicates* the desk dock's Get coffee, it does not replace it.
+    // The rest produce nothing at all — a printer that jams is a joke, not a
+    // feature (ADR-0010). Keyed by prop kind, like `peek.looks` is by look.
+    props: {
+      eyebrow: 'HANDS ON',
+      walking: 'Heading over.',
+      working: 'One moment…',
+      blocked: 'Not right now — something else has your attention.',
+      back: '🪑 Back to my desk',
+      backTitle: 'Walk back to your own screen',
+      items: {
+        coffeeMachine: {
+          glyph: '☕',
+          name: 'The coffee machine',
+          note: 'Kitchen · descaled never',
+          useLabel: 'Coffee machine — make one',
+          useTitle: 'Walk over and make one',
+          line: 'It grinds, it hisses, it produces something brown. Somebody will be along shortly to talk to you.',
+          blocked: 'It is already making one for somebody. Wait your turn.'
+        },
+        printer: {
+          glyph: '🖨️',
+          name: 'The printer',
+          note: 'Reception · MFP-3 "SLOPMASTER"',
+          useLabel: 'Printer — have a look at it',
+          useTitle: 'Walk over and look at it',
+          line: 'PC LOAD LETTER. Nobody on this floor has ever loaded letter. The queue says 41 jobs, all from 2023.'
+        },
+        whiteboard: {
+          glyph: '📋',
+          name: 'The whiteboard',
+          note: 'By the pod · DO NOT ERASE',
+          useLabel: 'Whiteboard — read what is on it',
+          useTitle: 'Walk over and read it',
+          line: 'An architecture from two re-orgs ago, in permanent marker. Three boxes, one arrow, and the word SYNERGY underlined twice.'
+        }
+      }
+    },
     // The meeting, staged in the glass room instead of a window on your screen.
     // Labels stay short: two of them share one row of a 21 rem card.
     meeting: {

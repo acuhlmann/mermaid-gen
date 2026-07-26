@@ -33,10 +33,13 @@ function originOf(current, el) {
 }
 
 /**
- * @typedef {{ kind: 'peek' | 'talk', colleagueId: string }} FloorIntent
+ * @typedef {{ kind: 'peek' | 'talk', colleagueId: string }
+ *   | { kind: 'use', propKind: string }} FloorIntent
  *   Why you walked somewhere. A destination with a reason attached, rather
  *   than a state machine per reason — which is what keeps there being exactly
- *   one of you on the floor.
+ *   one of you on the floor. Slice 9's reason is the first whose subject is not
+ *   a person, which is the whole of what it cost to add: a third `startWalk`
+ *   caller, not a third way of being somewhere.
  */
 
 /**
@@ -59,6 +62,7 @@ function originOf(current, el) {
  *   walkTo: (tile: { x: number, y: number }) => void,
  *   peekAt: (colleagueId: string, tile: { x: number, y: number }) => void,
  *   talkTo: (colleagueId: string, tile: { x: number, y: number }) => void,
+ *   reachFor: (propKind: string, tile: { x: number, y: number }) => void,
  *   goHome: () => void,
  *   handleArrive: () => void
  * }} `presence` is `null` when you are at your own desk.
@@ -101,6 +105,16 @@ export function useFloorPresence(suspended) {
     [startWalk]
   );
 
+  /*
+   * Not `useProp`: a `use[A-Z]` name makes `rules-of-hooks` treat every caller
+   * as a hook call, and `useFloorActivity` calls this from inside a
+   * `useCallback`. It joins the `walkTo` / `peekAt` / `talkTo` family instead.
+   */
+  const reachFor = useCallback(
+    (propKind, tile) => startWalk(tile, { kind: 'use', propKind }, false),
+    [startWalk]
+  );
+
   const goHome = useCallback(() => {
     const home = seatFor(YOU_SEAT_ID);
     if (!home) return;
@@ -125,6 +139,7 @@ export function useFloorPresence(suspended) {
     walkTo,
     peekAt,
     talkTo,
+    reachFor,
     goHome,
     handleArrive
   };

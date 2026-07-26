@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   approachTileFor,
   approachableSeatIds,
+  propTileFor,
   sameTile,
   standableTileAt,
-  standableTileAtPoint
+  standableTileAtPoint,
+  usablePropKinds
 } from '../src/utils/officeFloorMovement.js';
 import {
   FLOOR_PROPS,
@@ -199,6 +201,60 @@ describe('approachTileFor', () => {
   it('has no mark for you, or for a stranger', () => {
     expect(approachTileFor(YOU_SEAT_ID)).toBeNull();
     expect(approachTileFor('nobody')).toBeNull();
+  });
+});
+
+describe('propTileFor', () => {
+  it('gives you somewhere to stand at three of the four usable props', () => {
+    // Pinned like the peek and approach rosters. The water cooler's absence is
+    // the point rather than an omission: § 6 rule 11 tucked it into the kitchen
+    // corner so it would stop hiding people on coffee breaks, and § 6 rule 21
+    // is what that costs — there is no longer anywhere to stand at it.
+    expect(usablePropKinds()).toEqual(['coffeeMachine', 'printer', 'whiteboard']);
+    expect(propTileFor('waterCooler')).toBeNull();
+  });
+
+  it('puts you somewhere standable you can actually walk to', () => {
+    for (const kind of usablePropKinds()) {
+      const mark = propTileFor(kind);
+      expect(isStandableTile(mark), kind).toBe(true);
+      expect(pathCrossesGlass(walkPathBetween(HOME, mark, YOU_SEAT_ID)), kind).toBe(false);
+    }
+  });
+
+  it('stands you at the prop rather than near it', () => {
+    for (const kind of usablePropKinds()) {
+      const prop = FLOOR_PROPS.find((entry) => entry.kind === kind);
+      const mark = propTileFor(kind);
+      expect(Math.hypot(mark.x - prop.x, mark.y - prop.y), kind).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it('never sends two props to the same tile', () => {
+    // The bug this exists for: before nearest-prop-wins, the coffee machine and
+    // the water cooler both resolved to (2, 7), so "use the cooler" walked you
+    // to the machine and captioned it a cooler.
+    const marks = usablePropKinds().map((kind) => propTileFor(kind));
+    const unique = new Set(marks.map((mark) => `${mark.x},${mark.y}`));
+    expect(unique.size).toBe(marks.length);
+  });
+
+  it('is the rule that costs the cooler its mark, and the machine that keeps it', () => {
+    // Without nearest-prop-wins both props snap to the same tile — this is that
+    // collision, still reachable through the function the rule was added to.
+    const cooler = FLOOR_PROPS.find((entry) => entry.kind === 'waterCooler');
+    const naive = standableTileAt(cooler, { from: HOME, radius: 2 });
+    expect(naive).toEqual(propTileFor('coffeeMachine'));
+    // The machine is nearer that tile than the cooler is, so the machine keeps it.
+    const machine = FLOOR_PROPS.find((entry) => entry.kind === 'coffeeMachine');
+    expect(Math.hypot(machine.x - naive.x, machine.y - naive.y)).toBeLessThan(
+      Math.hypot(cooler.x - naive.x, cooler.y - naive.y)
+    );
+  });
+
+  it('has no mark for scenery, or for a prop that is not there', () => {
+    expect(propTileFor('plant')).toBeNull();
+    expect(propTileFor('nothing')).toBeNull();
   });
 });
 

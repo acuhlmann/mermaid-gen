@@ -92,6 +92,7 @@ function usePersonDetails(selectedId, copy) {
  *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
  *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
  *   onTalkingChange?: (colleagueId: string | null) => void,
+ *   onGetCoffee?: () => Promise<boolean> | boolean,
  *   coffee?: any, battle?: any, sceneHandlers?: any,
  *   meeting?: any, meetingHandlers?: any
  * }} props
@@ -105,6 +106,7 @@ function OfficeFloorView({
   onTalkGreet,
   onTalkReply,
   onTalkingChange,
+  onGetCoffee,
   coffee = null,
   battle = null,
   sceneHandlers = {},
@@ -129,9 +131,10 @@ function OfficeFloorView({
     onTalkGreet,
     onTalkReply,
     onTalkingChange,
+    onGetCoffee,
     onEngage: handleClosePerson
   });
-  const { presence, peek, talk, conversation, origin, goHome } = activity;
+  const { presence, peek, talk, conversation, prop, propUse, origin, goHome } = activity;
 
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
@@ -161,6 +164,10 @@ function OfficeFloorView({
           // yours to wander until you leave it.
           onWalkTo={meeting ? null : activity.walkTo}
           roamOrigin={origin}
+          // Same reason as the roam surface: a meeting has you in a chair, and
+          // the coffee machine is not yours to press from it.
+          onUseProp={meeting ? null : activity.startUseProp}
+          activePropKind={activity.activePropKind}
           vacantIds={awayFromDeskIds({
             coffee,
             battle,
@@ -201,6 +208,8 @@ function OfficeFloorView({
         peek={peek}
         talk={talk}
         conversation={conversation}
+        prop={prop}
+        propUse={propUse}
         person={person}
         onGoHome={goHome}
         onMessage={onMessage}
@@ -224,6 +233,7 @@ function OfficeFloorView({
  *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onDismissWalkBy?: (id: string) => void,
+ *   onGetCoffee?: () => Promise<boolean> | boolean,
  *   coffee?: any, battle?: any, sceneHandlers?: any,
  *   meeting?: any, meetingHandlers?: any
  * }} props

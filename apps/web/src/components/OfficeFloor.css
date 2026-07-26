@@ -215,6 +215,80 @@
   pointer-events: none;
 }
 
+/* The art is the same element in both branches; only the wrapper differs, so
+   the SVG never carries positioning of its own. */
+.office-floor-prop-art {
+  display: block;
+}
+
+/* Slice 9: a prop you can use is a real button, so it needs the button reset
+   the rest of the floor's controls get.
+ *
+ * The hit area is the tricky part. A prop's box is the whole 260×260 viewport
+ * (PROP_VIEW), most of which is empty air above the floor, and it paints at
+ * `depthOf` — far above the roam surface at z-index 1. Left solid, the coffee
+ * machine would swallow every click aimed at the kitchen around it and free
+ * roam would go dead in that corner. So the button itself takes no pointer
+ * events and the art inside takes them back as `visiblePainted` — the SVG
+ * default, meaning fill and stroke only. The hit target becomes the drawn
+ * machine, and the click still bubbles to the button's handler.
+ *
+ * `visiblePainted` has to land on the SVG *shapes*, not on the <svg> root: the
+ * root is an HTML-flow box, where Chrome treats an SVG-only pointer-events
+ * value as `auto` and hands you the whole 260×260 rectangle back. Confirmed
+ * with `elementFromPoint` on the box corners rather than by reading the spec —
+ * with the value on the root, a corner of the coffee machine's box a full tile
+ * away from the machine still answered to the machine. */
+.office-floor-prop--usable {
+  padding: 0;
+  border: 0;
+  background: none;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.office-floor-prop--usable .office-floor-prop-art {
+  pointer-events: none;
+}
+
+.office-floor-prop--usable .office-floor-prop-art * {
+  pointer-events: visiblePainted;
+}
+
+.office-floor-prop--usable:hover .office-floor-prop-art,
+.office-floor-prop--usable.is-active .office-floor-prop-art {
+  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 18px rgba(37, 99, 235, 0.5));
+}
+
+/* No outline: it would trace the 260×260 box rather than the machine. The glow
+   is the focus indicator, and it is deliberately stronger than the hover one so
+   a keyboard user can tell the two apart. */
+.office-floor-prop--usable:focus-visible {
+  outline: none;
+}
+
+.office-floor-prop--usable:focus-visible .office-floor-prop-art {
+  filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 14px var(--accent))
+    drop-shadow(0 0 26px rgba(37, 99, 235, 0.7));
+}
+
+.office-floor-prop--usable.is-active .office-floor-prop-art {
+  animation: office-floor-speaking 1.9s ease-in-out infinite;
+}
+
+/* Stands in for the PersonaFace the person/peek/talk cards put here — a machine
+   has no face, and an emoji is cheaper than a prop portrait. */
+.office-floor-prop-glyph {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--surface-2, rgba(148, 163, 184, 0.16));
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
 /* ── seats and people ────────────────────────────────────────────────────── */
 
 .office-floor-seat {
@@ -905,6 +979,7 @@
   .office-floor-person-figure,
   .office-floor-person.is-speaking .office-floor-person-figure,
   .office-floor-meeting-actor.is-speaking .office-floor-person-figure,
+  .office-floor-prop--usable.is-active .office-floor-prop-art,
   .office-floor-you-tile,
   .office-floor-bubble,
   .floor-screen {

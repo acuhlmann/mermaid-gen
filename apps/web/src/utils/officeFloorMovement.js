@@ -14,6 +14,7 @@
  */
 
 import {
+  FLOOR_PROPS,
   YOU_SEAT_ID,
   floorSeatIds,
   isStandableTile,
@@ -22,6 +23,7 @@ import {
   unprojectIso,
   walkPathBetween
 } from './officeFloorPlan.js';
+import { FLOOR_PROP_USES, isUsableProp } from './officeFloorProps.js';
 
 /**
  * How far from the tile you actually clicked we will look for somewhere legal
@@ -156,6 +158,94 @@ export function approachTileFor(seatId) {
  */
 export function approachableSeatIds() {
   return floorSeatIds().filter((id) => approachTileFor(id) !== null);
+}
+
+/**
+ * How far from a prop we will look for somewhere to stand (slice 9). Wider than
+ * `SNAP_RADIUS` because the target is the prop itself rather than a tile you
+ * aimed at: `isStandableTile` refuses everything within 0.7 of a prop and
+ * everything within 1.5 that would paint in front of you, so the tile you use a
+ * coffee machine from is never one of its neighbours — it is the next ring out.
+ */
+const PROP_REACH = 2;
+
+/**
+ * Distance between two points in tile space.
+ *
+ * @param {{ x: number, y: number }} a
+ * @param {{ x: number, y: number }} b
+ * @returns {number}
+ */
+function gap(a, b) {
+  return Math.hypot(a.x - b.x, a.y - b.y);
+}
+
+/**
+ * Where you stand to use a prop, or `null` if there is nowhere — the same shape
+ * of answer `peekTileFor` and `approachTileFor` give, and for the same reason:
+ * the room decides what you may do, nobody maintains a list.
+ *
+ * Mostly thin. A prop mark asks for nothing a *standing* mark does not already
+ * ask for, so rather than a third offset ladder this is `standableTileAt` aimed
+ * at the prop: nearest legal tile, reachable from your desk without walking
+ * through glass. Where a peek adds "and you can see their screen" (§ 6 rule 16)
+ * and an approach adds "and you can see them", using a thing you are stood next
+ * to adds nothing.
+ *
+ * It adds one thing: **the mark has to be nearer this prop than any other
+ * usable one.** Without that the coffee machine and the water cooler — 2 tiles
+ * apart in a kitchen corner where `isStandableTile` refuses almost everything —
+ * both resolved to the same tile, so "use the cooler" walked you to the coffee
+ * machine and told you it was a cooler. Nearest-prop-wins is the room settling
+ * the tie the way it settles every other one, and what it settles it with here
+ * is that the cooler has no mark at all (§ 6 rule 21).
+ *
+ * Scenery gets `null` rather than a tile beside it. The question this answers is
+ * "where do I stand to *use* this", and there is nowhere to stand to use a
+ * plant — asking the geometry politely would otherwise walk you to one.
+ *
+ * @param {string} kind a `FLOOR_PROPS` kind
+ * @returns {{ x: number, y: number } | null}
+ */
+export function propTileFor(kind) {
+  if (!isUsableProp(kind)) return null;
+  const prop = FLOOR_PROPS.find((entry) => entry.kind === kind);
+  if (!prop) return null;
+  const you = seatFor(YOU_SEAT_ID);
+  if (!you) return null;
+
+  const rivals = FLOOR_PROPS.filter((entry) => entry !== prop && isUsableProp(entry.kind));
+  const from = { x: you.x, y: you.y };
+
+  for (const tile of candidatesAround(prop, PROP_REACH)) {
+    if (!isStandableTile(tile)) continue;
+    if (pathCrossesGlass(walkPathBetween(from, tile, YOU_SEAT_ID))) continue;
+    // Whoever is nearest owns the tile. Ties go to neither, which cannot
+    // happen on this floor and would be a coin flip if it did.
+    if (rivals.some((rival) => gap(rival, tile) < gap(prop, tile))) continue;
+    return tile;
+  }
+  return null;
+}
+
+/** @type {string[] | null} */
+let usableCache = null;
+
+/**
+ * Every prop you could actually walk up to and use. Order follows
+ * `FLOOR_PROP_USES`.
+ *
+ * Computed once: the answer depends only on module constants, and `FloorProps`
+ * asks on every render of the stage. Each call is ~100 standability probes,
+ * every one of which allocates the reserved-marks list.
+ *
+ * @returns {string[]}
+ */
+export function usablePropKinds() {
+  usableCache ??= FLOOR_PROP_USES.filter((use) => propTileFor(use.kind) !== null).map(
+    (use) => use.kind
+  );
+  return usableCache;
 }
 
 /**

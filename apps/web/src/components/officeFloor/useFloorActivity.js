@@ -1,28 +1,34 @@
 /**
  * What you are doing on the floor, as one thing.
  *
- * `useFloorPresence` answers "where are you"; this composes it with the two
- * reasons you might have gone there (a peek, a conversation) and the derived
- * marks that decide whether either is possible at all. The view component then
- * consumes one object instead of assembling six.
+ * `useFloorPresence` answers "where are you"; this composes it with the three
+ * reasons you might have gone there (a peek, a conversation, a prop you went to
+ * use) and the derived marks that decide whether any of them is possible at
+ * all. The view component then consumes one object instead of assembling nine.
  *
- * Both reasons are the same shape on purpose: a destination with an `intent`,
- * projected into a `{ colleagueId, phase }` view that the cards and bubbles
- * read. Adding a third reason to walk somewhere should mean another projection
- * here, not another state machine.
+ * All three reasons are the same shape on purpose: a destination with an
+ * `intent`, projected into a `{ subject, phase }` view that the cards and
+ * bubbles read. Slice 9 is what that claim was written for — a third reason to
+ * walk somewhere cost one more projection and one more `start*`, and the only
+ * thing it had to generalize was that a subject need not be a person.
  */
 
 import { useCallback, useEffect, useMemo } from 'react';
 import { useFloorPresence } from './useFloorPresence.js';
+import { useFloorPropUse } from './useFloorPropUse.js';
 import { useFloorTalk } from './useFloorTalk.js';
-import { approachTileFor } from '../../utils/officeFloorMovement.js';
+import { approachTileFor, propTileFor } from '../../utils/officeFloorMovement.js';
 import { YOU_SEAT_ID, peekTileFor, seatFor } from '../../utils/officeFloorPlan.js';
 
-/** `phase` names differ because the cards read as sentences: looking / talking. */
-function intentView(presence, kind, arrivedName) {
+/**
+ * `phase` names differ because the cards read as sentences: looking / talking /
+ * using. `subjectKey` is which field of the intent names what you went there
+ * for — a colleague for the two social reasons, a prop kind for the third.
+ */
+function intentView(presence, kind, arrivedName, subjectKey = 'colleagueId') {
   if (presence?.intent?.kind !== kind) return null;
   return {
-    colleagueId: presence.intent.colleagueId,
+    [subjectKey]: presence.intent[subjectKey],
     phase: presence.phase === 'standing' ? arrivedName : 'walking'
   };
 }
@@ -54,6 +60,7 @@ function lastLineFrom(imHistory, colleagueId) {
  *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
  *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
  *   onTalkingChange?: (colleagueId: string | null) => void,
+ *   onGetCoffee?: () => Promise<boolean> | boolean,
  *   onEngage?: () => void
  * }} options `onEngage` fires when you set off somewhere with a reason — the
  *   person card that offered the verb has served its purpose.
@@ -64,13 +71,15 @@ export function useFloorActivity({
   onTalkGreet,
   onTalkReply,
   onTalkingChange,
+  onGetCoffee,
   onEngage
 }) {
-  const { presence, playerRef, walkTo, peekAt, talkTo, goHome, handleArrive } =
+  const { presence, playerRef, walkTo, peekAt, talkTo, reachFor, goHome, handleArrive } =
     useFloorPresence(suspended);
 
   const peek = intentView(presence, 'peek', 'looking');
   const talk = intentView(presence, 'talk', 'talking');
+  const prop = intentView(presence, 'use', 'using', 'propKind');
   const talkingTo = talk?.colleagueId ?? null;
   const talkLine = lastLineFrom(imHistory, talkingTo);
 
@@ -79,6 +88,12 @@ export function useFloorActivity({
     arrived: talk?.phase === 'talking',
     onGreet: onTalkGreet,
     onReply: onTalkReply
+  });
+
+  const propUse = useFloorPropUse({
+    propKind: prop?.propKind ?? null,
+    arrived: prop?.phase === 'using',
+    onGetCoffee
   });
 
   // Renderer #1 needs to know who you are stood in front of, so it can hold
@@ -117,6 +132,16 @@ export function useFloorActivity({
     [talkTo, onEngage]
   );
 
+  const startUseProp = useCallback(
+    (kind) => {
+      const mark = propTileFor(kind);
+      if (!mark) return;
+      onEngage?.();
+      reachFor(kind, mark);
+    },
+    [reachFor, onEngage]
+  );
+
   return {
     presence,
     playerRef,
@@ -124,20 +149,29 @@ export function useFloorActivity({
     talk,
     talkLine,
     conversation,
+    prop,
+    propUse,
     origin,
     walkTo,
     goHome,
     handleArrive,
     startPeek,
     startTalk,
+    startUseProp,
     /**
      * Whoever holds the floor gets the glow the ceremony and glass room use —
      * but only once you have arrived. Glowing somebody you are still walking
      * towards announces the beat before it happens.
      */
     speakingId: arrivedTarget(talk) ?? arrivedTarget(peek),
+    /**
+     * The prop you are actually stood at, so it can glow — the same "only once
+     * you have arrived" rule `speakingId` follows, for the same reason: a
+     * machine lighting up while you are still walking announces the beat early.
+     */
+    activePropKind: prop?.phase === 'using' ? prop.propKind : null,
     /** On your feet with no card of your own already offering a way back. */
-    standingFree: Boolean(presence) && !peek && !talk
+    standingFree: Boolean(presence) && !peek && !talk && !prop
   };
 }
 

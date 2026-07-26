@@ -155,12 +155,40 @@ track touches chrome only, never the floor, and never blocks the floor slices.
    mark needs a clear line to the person and the glass is in the way. One geometry surprise:
    see § 6 rule 20.
 
+9. ~~**Props you can use**~~ — ✅ **shipped**: the furniture answers to a click. Walk up to the
+   coffee machine and it pours a coffee break — the same break the desk dock's labelled **Get
+   coffee** pours, through the same `getCoffee` verb — while the printer and the whiteboard
+   have a line about themselves and nothing else. This is binding rule 2's first worked example
+   on the floor, and the rule's own illustration made literal: a diegetic object is a **bonus**
+   path to a function that keeps its conventional control, never a second way of doing
+   anything. The ones that produce nothing are not an unfinished state but the honest default —
+   a printer that jams is a joke, not a feature (Sign-off rule), and slice 6 set the precedent
+   that a look and a line are all a floor affordance is allowed to be.
+
+   Cost, in full: a third `startWalk` caller and a third projection in `useFloorActivity`,
+   which is that file's standing claim ("adding a third reason to walk somewhere should mean
+   another projection here, not another state machine") finally being tested. The only thing
+   that had to generalize was that an intent's subject need not be a person. Which props are
+   usable is **derived** (`propTileFor` → `usablePropKinds`), so a prop the room cannot give
+   you a mark for never renders a button at all — no dead click, and no disabled control
+   explaining why it is disabled. Two surprises, and this is the first slice where neither was
+   visible in a screenshot: see § 6 rules 21–22, and the hit-coverage recipe at the end of § 6
+   that found them.
+
+**There is no slice 10 yet, and that is deliberate.** The list above was written one slice at
+a time, each defined when it was picked up rather than planned in advance — so "continue with
+slice _n_" only means something once somebody has chosen what _n_ is. § 8 has the candidates,
+a recommendation, and the debts that argue for one over another. Pick from there, write the
+entry here when it ships, and add anything the room taught you to § 6.
+
 ## 6. Geometry constraints (learned by looking at it)
 
 The layout is `apps/web/src/utils/officeFloorPlan.js` — tiles, seats, props, zones, plus
-`projectIso` / `depthOf` and walk routing. These rules are invisible in code review and
-obvious in a screenshot; every one of them cost a capture to find, and later slices must
-preserve them:
+`projectIso` / `depthOf` and walk routing. These rules are invisible in code review, and
+1–20 are all obvious in a screenshot; every one of those cost a capture to find, and later
+slices must preserve them. Rules 21–22 are the exception and worth knowing as one: once the
+floor grew things you can _click_, a surface could be perfectly drawn and still not work, so
+the capture stopped being enough — see the hit-coverage recipe at the end of this section.
 
 1. **Monitors sit to the screen-left of a desk, never centred on it.** A centred monitor is
    ~26 px wide and eclipses the 34 px head behind it — every seated character vanishes. The
@@ -266,6 +294,27 @@ preserve them:
     somebody on their feet at their own tile. Slice 6 never hit this because Gary has nothing
     to peek at; slice 8 walks up to him, which is the point of `approachTileFor` existing.
 
+21. **A prop tucked out of everybody's way is a prop nobody can reach.** Rule 11 moved the
+    water cooler into the kitchen corner because it stood exactly where a coffee-break
+    participant has to and hid them from the chest up. Slice 9 is the bill for that: there is
+    no longer a standable tile nearer the cooler than the coffee machine, so it has no mark and
+    quietly went back to being scenery. The two rules pull opposite ways and rule 11 wins,
+    because being _seen_ beats being _usable_ — but the pair only stays honest because the
+    derivation reports it. `propTileFor` returning `null` removes the button entirely, so the
+    cooler reads as furniture rather than as a control that does nothing. The general form:
+    every "move the prop out of the way" is a decision that nobody will ever interact with it.
+22. **A figure's hit box is its _name chip_, which is invisible and wider than the figure.**
+    `.office-floor-person` is a flex column of the name span (opacity 0 until hover) above the
+    34 px figure, so a seat's clickable box is as wide as the longest name and reaches ~20 px
+    higher than any head. Harmless for eight slices, since the only thing under it was floor.
+    The printer at 3.4/0.6 sat on exactly that band between Linda's and Pam's chips: **11 of
+    441 sampled points on the printer reached the printer, and its own centre selected Pam.**
+    Nothing about this is visible in a capture — the printer looked perfect and simply did not
+    answer. Moving it one row back (2.4/0.6) clears both chips on depth alone and takes its
+    centre back. The lesson is that a new _clickable_ thing must be checked against the cast's
+    invisible boxes, not against what the room looks like; the coffee machine (32 cells) and
+    whiteboard (35) were fine because nothing overlaps them.
+
 Note on rule 10: "no mark may share `x − y` with a desk" is the integer shorthand, and it
 does not survive fractional marks — the glass room is a diagonal strip in column space, so
 every seat around its table has a fractional column. The precise form of the rule (screen
@@ -298,18 +347,44 @@ a phone. Two Windows gotchas worth knowing before you trust a capture:
   appears frozen partway however long the budget. To capture the arrival state, pass
   `--force-prefers-reduced-motion`: the walker then skips travel by design, which is exactly
   the state you want to inspect.
+- Headless Edge on this machine fails to write the PNG on roughly half of runs. A fresh
+  `--user-data-dir` per invocation and a retry is the whole workaround; the `LoadEnclaveImageW`
+  and `fallback_task_provider` lines on stderr are noise and appear on successful runs too.
+
+**Hit-coverage recipe (slice 9).** Rules 21–22 are the first two that a screenshot could not
+have found: the floor _looked_ right and the printer simply did not answer to a click. What
+finds them is `document.elementFromPoint` in the harness, scanned on a grid over each
+interactive element's box and tallied by what it actually reaches. Report the counts rather
+than a yes/no — "16 of 441 cells reach the printer, 30 reach Linda" is a diagnosis, where
+"the printer is not clickable" is only a symptom. Two things to get right: sample in
+**fractions of the client rect**, never in stage pixels (the stage is CSS-scaled to fit, so
+`PROP_VIEW`'s 260 px is ~215 on a 1440-wide viewport, and stage-unit offsets silently probe
+the wrong place); and check the empty corners of a box as well as its middle, which is how
+the `pointer-events` bug below was caught. Sanity-check any coverage number against the
+prop's own drawn area — a printer is a small object and will never score like a whiteboard.
+
+One CSS finding worth keeping, since it is the reason usable props do not swallow the floor:
+`pointer-events: visiblePainted` **has to land on the SVG shapes, not the `<svg>` root**. The
+root is an HTML-flow box, where Chrome treats an SVG-only value as `auto` and hands back the
+whole 260×260 rectangle — so a corner of the coffee machine's box a full tile away from the
+machine still answered to the machine, and free roam went dead around it. The working shape
+is `pointer-events: none` on the button _and_ the `<svg>`, re-enabled on `.office-floor-prop-art *`.
 
 ## 7. The bench (for whatever comes next)
 
-Slices 1–8 have shipped. Anything new on the floor should be built out of the
+Slices 1–9 have shipped. Anything new on the floor should be built out of the
 pieces below rather than beside them — and should read §2 (binding rules) and §6 (geometry
 constraints) first, because every one of those cost a screenshot to find. Verification
 recipe is in §6; repo commands are in `CLAUDE.md` (`npm run check:affected`,
 `npm run format:affected`).
 
 **Components** (`apps/web/src/components/officeFloor/`): `FloorStage` (scaled stage; takes
-`vacantIds`, `speakingId`, `interactive`, `onWalkTo`/`roamOrigin`, and arbitrary `children` as
-extra actors), `FloorRoam` (the click surface + hover marker), `useFloorPresence` (where you
+`vacantIds`, `speakingId`, `interactive`, `onWalkTo`/`roamOrigin`, `onUseProp`/`activePropKind`,
+and arbitrary `children` as
+extra actors), `FloorRoam` (the click surface + hover marker), `FloorProps` (the furniture, and
+the ones you can use — mind § 6 rule 22 before making anything else on the stage clickable) +
+`FloorPropCard`, `useFloorPropUse` (what happens when you get there, once), `useFloorPresence`
+(where you
 are standing — view state, like the peek it absorbed), `useFloorActivity` (presence plus the
 reasons you went there, as one object), `useFloorTalk` (a conversation's composer, not its
 dialogue), `FloorTalk` + `FloorTalkCard`, `useFloorKeyboard` (Escape ladder + arrow stepping),
@@ -322,26 +397,94 @@ walking), `FloorPlayer` (you, walking, wherever you are not at your own desk), `
 card), `FloorPeek` + `FloorPeekCard` (desk peeking), `FloorArrival` (the ceremony).
 
 **Data**: layout, routing and mark derivation in `apps/web/src/utils/officeFloorPlan.js`;
-where you may walk and who you may walk up to in
-`apps/web/src/utils/officeFloorMovement.js`; the cast's fictional
+where you may walk, who you may walk up to and which props you may walk over to use in
+`apps/web/src/utils/officeFloorMovement.js`; what using a prop does in
+`apps/web/src/utils/officeFloorProps.js`; the cast's fictional
 workload in `apps/web/src/utils/officeDeskWork.js`; who is away from their desk in
 `apps/web/src/utils/officeSceneCast.js`.
 
-**Two habits worth keeping.** A new mark family should be _derived and asserted_ rather than
+**Three habits worth keeping.** A new mark family should be _derived and asserted_ rather than
 hand-placed (see the note under §6 rule 10) — the geometry rules are cheap to encode and
-expensive to rediscover. And a new surface belongs in the floor **card slot** unless it has
+expensive to rediscover. A new surface belongs in the floor **card slot** unless it has
 earned a place on the stage: the slot is single-occupancy and ordered by how much of your
-body is committed (meeting → peek → person card → hint).
+body is committed (meeting → talk → peek → prop → person card → hint). And anything new that
+is **clickable on the stage** gets the hit-coverage scan from §6 before you believe it works —
+slice 9's printer was drawn perfectly and answered 11 clicks in 441.
 
-Still open, and deliberately not designed yet: §8.
+Still open, and what to do next: §8.
 
-## 8. Open implementation questions (deferred to build time)
+## 8. Where to take this next
+
+Nothing here is designed yet. The ordering below is a recommendation, not a queue.
+
+### The next slice
+
+**Floor accessibility is the one to do next.** It is the oldest thing on this list, it is the
+only item that makes the floor _worse_ the longer it waits, and every slice since 6 has added
+to the debt: walking, roaming, glowing, speech bubbles and now prop buttons are all motion and
+visual-only state. Two concrete halves, both previously deferred from build time:
+
+- **Reduced-motion behavior on the floor itself**, beyond the card-tour fallback. Note the
+  behaviour already exists by accident and is load-bearing for the tests: without a WAAPI
+  engine `useWalkAnimation` settles immediately, which is exactly what reduced motion should
+  do (arrive without travelling), and it is why the jsdom suites can click a verb and assert
+  the arrived state in one tick. Making it deliberate is mostly making it _stated_.
+- **A screen-reader narrative for spatial events** ("Chad is walking to your desk"). The floor
+  already has the state; what it lacks is a live region. Cards use `aria-live="polite"`
+  individually, which is not the same as narrating the room.
+- While in here, revisit **slice 9's focus indicator**: a usable prop suppresses its outline
+  (it would trace the 260×260 box, not the machine) and relies on a stronger glow. That is a
+  visible indicator and defensible, but it has not been checked against a contrast requirement
+  or in forced-colors mode.
+
+The two alternatives considered and not chosen, kept so nobody re-derives them: **ambient
+floor life** (the cast moving between moments, so the room breathes when nothing is scripted —
+careful, it must stay reactive/ambient colour and never agent initiative, per
+`office-parody.md` §11), and **where the mode toggle lives in desktop chrome** (the "stand up"
+affordance + a keyboard shortcut; small, and still genuinely open).
+
+### Debts the shipped slices left behind
+
+- **A figure's hit box is its name chip** (§6 rule 22) — this is the general form of the bug
+  that moved the printer, and moving the printer only dodged it. `.office-floor-person` is a
+  flex column of an invisible name span above the figure, so _every_ seat's clickable box is
+  as wide as the longest name and reaches ~20 px above every head, eating roam clicks around
+  desks as well. The fix is to constrain the button to the figure and position the name chip
+  as an overlay that does not contribute layout. Worth doing **before** anything else on the
+  stage becomes clickable; verify with the §6 hit-coverage scan, which will also tell you
+  whether free roam near the pod improves.
+- **The floor is English-only.** The `office.*.js` locale bundles (en-AU / zh-CN / zh-TW) have
+  no `floor` key at all — every slice from 3 onward has put its copy in `officeCast.js` only,
+  so this is a standing gap rather than one slice's oversight. It is invisible because the
+  merge falls back to English. Deciding to localize it is a real chunk of copy (arrival,
+  peek, talk, meeting, props, zones) and should be its own pass.
+- **The water cooler is unreachable** (§6 rule 21). Left as scenery on purpose, but the other
+  branch is open: move it and re-validate `COFFEE_TILES` against rule 11, which is what put it
+  in that corner in the first place. Only worth it if something wants a second kitchen prop.
+- **`FLOOR_ZONES.leadership` and the glass disagree.** The zone rect is `[5.3, -0.5, 9.7, 1.0]`
+  while the glass panel spans 5.3…10.7 and Barker sits at x 10 — so the tinted zone plate
+  probably stops short of his tile. Suspected cosmetic regression from adding Barker
+  (`f2ed7fe`); §6 rule 18's parenthetical quotes `10.7` as the zone rect, so the prose and the
+  code disagree and one of them is wrong. Confirm with a capture of the back-right corner
+  before changing either — the fishbowl-seal assertion passes today and must keep passing.
+- **Unverified composition:** standing at the coffee machine _while the coffee-break scene
+  plays around you_. Safe by construction (the mark passes `isStandableTile`, which rejects
+  anything within 0.5 of a `COFFEE_TILE`) and unit-tested at the verb, but never looked at —
+  the slice 9 harness stubbed `onGetCoffee`. Driving it for real needs `OfficeLayer`'s wiring
+  in the harness, not just `OfficeFloor`.
+- **Complexity warnings** (thresholds, so CI stays green): `FloorCardSlot` 16, `FloorStage` 14,
+  `useFloorActivity` 14, `OfficeFloorView` 14, against a max of 12. `FloorCardSlot`'s if-chain
+  is the ordering rule the file exists to express and should probably be left alone; the other
+  three would each shed a branch or two if a slice happens to be in them anyway.
+
+### Answered, kept for the reasoning
 
 - ~~Floor layout source of truth~~ — `officeFloorPlan.js`, with `officeFloorMovement.js` as
   its sibling for "where may _you_ go".
 - ~~Camera/controls detail~~ — answered by slice 7, and the answer is that there is no camera
   to control: the stage fits the viewport, so tap-to-walk and tap-to-talk are both just taps
   on the same stage, distinguished by whether they land on a person. Zoom levels stay out.
-- Reduced-motion behavior on the floor itself (beyond the card-tour fallback).
-- Screen-reader narrative for spatial events ("Chad is walking to your desk").
-- Where the mode toggle lives in desktop chrome ("stand up" affordance + shortcut).
+- ~~How much of the room should be interactive~~ — answered by slice 9, and the answer is
+  deliberately "not much": four props are usable and the rest is scenery, because a room where
+  a few things work teaches you to try things and a room where thirty things say "nothing
+  happens" teaches you to stop. Adding a fifth usable prop needs a reason beyond "it is there".

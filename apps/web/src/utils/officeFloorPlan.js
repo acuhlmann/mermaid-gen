@@ -190,7 +190,15 @@ export const YOU_SEAT_ID = 'you';
  */
 export const FLOOR_PROPS = [
   { kind: 'receptionDesk', x: 1, y: 1 },
-  { kind: 'printer', x: 3.4, y: 0.6 },
+  /*
+   * Moved back and screen-left from 3.4/0.6 when the printer became usable
+   * (§ 6 rule 22). At 3.4/0.6 it sat on the depth line where Pam's and Linda's
+   * *name chips* live — invisible, wider than the figures they label, and above
+   * the printer in paint order. Only 11 of 441 sampled points on the printer
+   * reached the printer; its own centre selected Pam. One row back clears both
+   * boxes on depth alone.
+   */
+  { kind: 'printer', x: 2.4, y: 0.6 },
   // Nudged a tile screen-right of 6.8/2.2 (§ 6 rule 11): it stood a third of a
   // tile from the only spot you can look at Pam's calendar from, and pushed
   // that mark two tiles down the aisle — a peek that read as loitering.
