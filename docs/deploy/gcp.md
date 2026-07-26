@@ -207,6 +207,38 @@ GCP_PROJECT_ID=mermaidgen REGION=us-central1 bash scripts/push-invite-token-secr
 
 This creates or rotates secret **`invite-token-secret`**, grants the runtime service account access, and attaches **`INVITE_TOKEN_SECRET`** to **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**. Deploy scripts also reference this secret when present ([`scripts/deploy-cloud-run.sh`](../../scripts/deploy-cloud-run.sh)).
 
+### Visitor Badge door codes (optional site gate)
+
+The public UI can require a parody **Visitor Badge** check-in before the SPA and most `/api/*` routes. Configure plaintext door codes (comma-separated for multiple friend groups) as **`VISITOR_BADGE_SECRETS`**. Leave unset to keep the gate off (default for local Vite).
+
+Locally, add to `.env`:
+
+```bash
+VISITOR_BADGE_SECRETS=your-friends-door-code
+```
+
+On Cloud Run, store the same value in Secret Manager and attach it:
+
+```bash
+chmod +x scripts/push-visitor-badge-secrets-cloud-run.sh
+VISITOR_BADGE_SECRETS='your-friends-door-code' \
+  GCP_PROJECT_ID=mermaidgen REGION=us-central1 \
+  bash scripts/push-visitor-badge-secrets-cloud-run.sh
+# or: npm run secret:visitor-badge:cloud-run
+```
+
+That creates or rotates secret **`visitor-badge-secrets`**, grants the runtime SA access, and mounts **`VISITOR_BADGE_SECRETS`** on **`mermaid-gen-main`** and **`mermaid-gen-hackathon`**. Deploy scripts attach the secret when it exists. `/api/health` and `/mcp` stay ungated; a successful check-in sets an HttpOnly cookie for ~30 days.
+
+To store the secret in Secret Manager **without** rolling a new Cloud Run revision yet:
+
+```bash
+SKIP_CLOUD_RUN_UPDATE=1 VISITOR_BADGE_SECRETS='your-friends-door-code' \
+  GCP_PROJECT_ID=mermaidgen REGION=us-central1 \
+  bash scripts/push-visitor-badge-secrets-cloud-run.sh
+```
+
+The next `npm run deploy:cloud-run` (or hackathon deploy) picks up `visitor-badge-secrets:latest` automatically when the secret exists.
+
 ### Manual steps
 
 ```bash

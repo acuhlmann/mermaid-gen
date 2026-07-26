@@ -31,6 +31,10 @@ import { createPairingCodeStoreFromEnv } from './state/pairingCodeStoreFactory.j
 import { createAgentTokenStore } from './state/agentTokenStore.js';
 import { createMcpRateLimiter } from './mcp/mcpRateLimit.js';
 import { assertProductionInviteSecret } from './utils/inviteToken.js';
+import {
+  createVisitorBadgeGate,
+  createVisitorBadgeUnlockHandler
+} from './middleware/visitorBadge.js';
 
 const envPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../.env');
 dotenv.config({ path: envPath });
@@ -103,6 +107,8 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json());
+app.post('/api/visitor-badge', createVisitorBadgeUnlockHandler());
+app.use(createVisitorBadgeGate());
 app.use(
   '/api/copilotkit',
   createCopilotRouter({

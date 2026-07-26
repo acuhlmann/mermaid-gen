@@ -3,6 +3,7 @@
 | Method | Path                                            | Purpose                                                                                                                                         |
 | ------ | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET`  | `/api/health`                                   | Liveness + `llmConfigured`, `runtimeReady`, `officeTtsConfigured`, `llmBackend`, `llmBackendsByProfile`, `agentCostEstimates`, `pairingStore`   |
+| `POST` | `/api/visitor-badge`                            | Visitor Badge unlock (`{ doorCode }`) when `VISITOR_BADGE_SECRETS` is set; sets ~30-day HttpOnly cookie. Ungated: `/api/health`, `/mcp`         |
 | `GET`  | `/api/copilotkit/state`                         | Current diagram state for session (active slot by default; pass `contentType` for a specific slot)                                              |
 | `GET`  | `/api/copilotkit/session-state`                 | Full session payload (all six slots + `activeContentType`)                                                                                      |
 | `POST` | `/api/copilotkit/state`                         | Client sync of editor source into server state (`contentType` selects the slot)                                                                 |

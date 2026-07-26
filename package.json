@@ -53,6 +53,7 @@
     "secret:openrouter:cloud-run": "bash scripts/push-openrouter-secret-cloud-run.sh",
     "secret:deepseek:cloud-run": "bash scripts/push-deepseek-secret-cloud-run.sh",
     "secret:invite-token:cloud-run": "bash scripts/push-invite-token-secret-cloud-run.sh",
+    "secret:visitor-badge:cloud-run": "bash scripts/push-visitor-badge-secrets-cloud-run.sh",
     "prepare": "husky || true"
   },
   "lint-staged": {

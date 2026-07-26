@@ -81,6 +81,11 @@ if gcloud secrets describe invite-token-secret --project="${PROJECT_ID}" &>/dev/
 else
   echo "Warning: Secret invite-token-secret not found; run npm run secret:invite-token:cloud-run (docs/deploy/gcp.md)." >&2
 fi
+if gcloud secrets describe visitor-badge-secrets --project="${PROJECT_ID}" &>/dev/null; then
+  CLOUD_RUN_SECRETS+=("VISITOR_BADGE_SECRETS=visitor-badge-secrets:latest")
+else
+  echo "Note: Secret visitor-badge-secrets not found; Visitor Badge gate stays off until you run npm run secret:visitor-badge:cloud-run." >&2
+fi
 if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
   DEPLOY_ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
 fi
