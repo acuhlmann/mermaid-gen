@@ -98,6 +98,13 @@ test('resolveAffectedTests adds desk-chrome blast-radius tests for concentration
   assert.ok(plan.tests.includes('apps/web/test/officeLayerDeskSlot.test.jsx'));
 });
 
+test('resolveAffectedTests adds isometric floor blast-radius tests for OfficeFloor edits', () => {
+  const plan = resolveAffectedTests(['apps/web/src/components/OfficeFloor.jsx'], { root: ROOT });
+  assert.ok(plan.tests.includes('apps/web/test/officeFloor.test.jsx'));
+  assert.ok(plan.tests.includes('apps/web/test/officeFloorContracts.test.js'));
+  assert.ok(plan.tests.includes('apps/web/test/officeLayerFloorRenderer.test.jsx'));
+});
+
 test('summarizeAffectedTestPlan is human-readable', () => {
   const summary = summarizeAffectedTestPlan(
     resolveAffectedTests(['packages/shared/src/diagramSchema.ts'], { root: ROOT })

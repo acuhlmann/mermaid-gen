@@ -29,6 +29,7 @@
     "test": "npm run test:scripts && npm run test -w packages/shared && npm run test -w apps/server && npm run test -w apps/web",
     "test:scripts": "node --test scripts/*.test.mjs",
     "test:affected": "node scripts/test-affected.mjs",
+    "test:floor": "npm run test:floor -w apps/web",
     "lint": "npm run lint -w packages/shared && npm run lint -w apps/server && npm run lint -w apps/web",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "typecheck:strict": "npm run typecheck:strict -w apps/server && npm run typecheck:strict -w apps/web",
