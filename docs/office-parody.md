@@ -43,11 +43,11 @@ The cast is split into **three tiers** (`apps/web/src/utils/castTiers.js` — `C
 `tierOf`). The tier is a tag, not a data move: `barker` lives in both `VARIANT_PERSONAS` (his
 advisor seat) and `SENIOR_STAKEHOLDERS` (his tier), and `ciso` in `OFFICE_COLLEAGUES`.
 
-| Tier       | Who                                                      | How they reach you                                                                                                                                     |
-| ---------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **team**   | refine, erlich, goMad, critique, explain                 | Proactive roundtable (`ADVISOR_ORDER`) + the agent actions. Your collaborators.                                                                        |
-| **senior** | barker (Jack), ciso (Sasha), cto (Marcus), cfo (Diane)   | Steering meetings + ≤1 high-stakes email/session. Never ambient pings. Barker also holds the 6th radial seat — summoned only, never in the roundtable. |
-| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                          |
+| Tier       | Who                                                             | How they reach you                                                                                                                                               |
+| ---------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **team**   | refine, erlich, goMad, critique, explain (+ `barker` dual-home) | Proactive roundtable (`ADVISOR_ORDER`) + agent actions. Full-weight peers; Barker at **throttled** pick weight (SV recipe Session 2).                            |
+| **senior** | barker (Jack), ciso (Sasha), cto (Marcus → Belson), cfo (Diane) | Steering meetings + ≤1 high-stakes email/session. Never ambient walk-bys/IMs. Belson (when shipped) scarcer than Barker — never roundtable; Jack reports to him. |
+| **office** | intern, scrumMaster, helpdesk, facilities, hr, greybeard        | Emails, IMs, walk-bys, coffee, battles. The floor around you.                                                                                                    |
 
 Boundary rules worth keeping: senior stakeholders are excluded from
 `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and from the canned day-to-day banks — their one ambient
@@ -57,30 +57,29 @@ leadership pinging your desk.
 
 ### Senior stakeholders
 
-| id       | Name        | Title                          | Emoji | Bit                                                                                                                                                           |
-| -------- | ----------- | ------------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `barker` | Jack Barker | CEO — Success Theater          | 🧘    | **Named Silicon Valley replication** — also the 6th radial advisor (see note)                                                                                 |
-| `ciso`   | Sasha       | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                       |
-| `cto`    | Marcus      | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016. **Slated:** replaced by a full Gavin Belson replication (`belson`) — see the Barker note |
-| `cfo`    | Diane       | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                             |
+| id       | Name        | Title                          | Emoji | Bit                                                                                                                                                                  |
+| -------- | ----------- | ------------------------------ | ----- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `barker` | Jack Barker | CEO — Success Theater          | 🧘    | **Named Silicon Valley replication** — 6th radial advisor; dual-home team+senior; throttled roundtable (see note)                                                    |
+| `ciso`   | Sasha       | CISO — The Department of No    | 🔐    | Everything is an attack surface; runs the phishing sims                                                                                                              |
+| `cto`    | Marcus      | CTO — Ships Keynotes, Not Code | 🚀    | Visionary word salad; wants the diagram to pulse; no IDE since 2016. **Slated:** full Gavin Belson replication (`belson`) — scarcer than Barker; Jack reports to him |
+| `cfo`    | Diane       | CFO — The Budget Is a No       | 🧮    | Every box is a cost center; asks what the diagram costs per month                                                                                                    |
 
-> **The Barker experiment.** `barker` is a deliberate replication of Jack Barker from HBO's
-> _Silicon Valley_ — the first test of how faithfully a named TV character can live in this cast.
-> His voice cards (`STAKEHOLDER_MEETING_VOICES.barker` in `apps/server/src/agents/officePersonas.js`,
-> `ADVISOR_PERSONAS.barker` in `apps/server/src/agents/advisorPrompts.js`) were tuned against
-> `scripts/barker-fidelity.mjs`, an LLM-as-judge harness that scores generated beats/emails/
-> suggestions for recognizability, voice mechanics, catchphrase budget, and in-world fit
+> **The Barker experiment / SV program.** `barker` is a deliberate replication of Jack Barker from
+> HBO's _Silicon Valley_ — the first test of how faithfully a named TV character can live in this
+> cast. His voice cards (`STAKEHOLDER_MEETING_VOICES.barker` in
+> `apps/server/src/agents/officePersonas.js`, `ADVISOR_PERSONAS.barker` in
+> `apps/server/src/agents/advisorPrompts.js`) were tuned against `scripts/barker-fidelity.mjs`
 > (final sustained score ≈ 4.2/5). In July 2026 he **inherited The VP's team seat** (the retired
-> `exec` id): he is now the sixth radial advisor, boiling diagrams down for the board in his own
-> voice, while keeping his senior-tier trappings (steering meetings, one rare email). Status:
-> **local experiment** — if this cast ever ships to the public deployment, decide first whether
-> the named cast keeps the real names or moves to legally-distinct aliases. The program is locked
-> for the full SV roster: Erlich → `innovate` (→ `erlich`, shipped 2026-07-27), Gilfoyle →
-> `refine` (→ `gilfoyle`), Dinesh → a new
-> seventh engineer seat (`dinesh`, refine-class), Jared → `critique` (→ `jared`), Russ → `goMad`,
-> Richard → `explain` (→ `richard`, comment-only), and a full **Gavin Belson** replication
-> replacing Marcus (`cto` → `belson`). Program status (the single source of truth for what's
-> left), the seat-inheritance drill, and the fidelity harness live in
+> `exec` id): sixth radial advisor, board-deck simplify, senior trappings (steering meetings, one
+> rare email). **Reachability (locked 2026-07-27):** he is part of Your Team and should appear in
+> the proactive roundtable at **throttled** weight — partly accessible, less often than peer
+> advisors — not summoned-only. He does not get office walk-by/IM spam. Fiction: he reports to
+> **Gavin Belson** (`belson`, Session 8), who stays harder to reach (senior-only; never
+> roundtable). Status: **local experiment** — before public deploy, decide real names vs
+> legally-distinct aliases. Locked roster: Erlich → `erlich` (shipped), Gilfoyle → `gilfoyle`,
+> Dinesh → new seventh engineer seat (`dinesh`, refine-class, core team + battle dual-home),
+> Jared → `jared`, Russ → `goMad`, Richard → `richard` (comment-only), Belson replaces Marcus.
+> Single source of truth for remaining sessions:
 > [docs/recipes/replicate-tv-character.md](recipes/replicate-tv-character.md).
 
 ### Shipped colleagues (v1)

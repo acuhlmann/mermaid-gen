@@ -96,8 +96,9 @@ Radial menu, hotkey, ceremony:
 - `src/features/prompt/useRadialActionHandler.js:78,92` — `exec` → `barker` (no boot chime, same
   as exec today).
 - `src/hooks/useAnalyzeFlow.js:83` — title-label map `exec` → `barker`.
-- `src/hooks/useAdvisorOrchestrator.js:13-18` — `ADVISOR_ORDER` still excludes the seat; update
-  the comment (Barker stays senior-tier, summoned only).
+- `src/hooks/useAdvisorOrchestrator.js:13-18` — at inheritance time `ADVISOR_ORDER` still excluded
+  the seat (summoned only). **Superseded 2026-07-27:** Session 2 in
+  `docs/recipes/replicate-tv-character.md` puts Barker in the roundtable at throttled weight.
 - `src/features/ceremony/useRunCeremony.js:171,192` — exec confetti palette → Barker gold
   (`#ca8a04`); `knownVariants` swap.
 - `src/features/desk/DeskBottomActionsSlot.jsx:37-41` — mascot roster row variant → `barker`

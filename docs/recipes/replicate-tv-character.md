@@ -7,27 +7,45 @@ radial advisor, simplifying diagrams in his own voice (re-tuned to ≈3.95–4.0
 harness, which added the harder advisor-suggestions probe). Proven a third time with **Erlich
 Bachman inheriting the Chief Innovation Officer's team seat** (2026-07-27, `innovate` → `erlich`)
 — the first inheritance run against the generalized harness (§3), and the template for the
-remaining sessions. The cast map below is **locked** (2026-07-26 program plan) — one character
-per agent session, in the risk/dependency order listed.
+remaining sessions. The cast map and **reachability ladder** below are **locked** (2026-07-26
+program plan; reachability 2026-07-27) — one character per agent session, in the order listed.
 
 ## Status board
 
-| Character         | Target seat / tier                     | Status                                                                        |
-| ----------------- | -------------------------------------- | ----------------------------------------------------------------------------- |
-| Jack Barker       | team+senior — 6th advisor (`barker`)   | ✅ Shipped — advisor seat (ex-`exec`), meetings, emails, TTS, face, desk      |
-| Erlich Bachman    | team — `erlich` (ex-`innovate`)        | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger           |
-| Bertram Gilfoyle  | team — `refine` → `gilfoyle`           | ⬜ Session 3 — engineer pod; battle-eligible (dual-home)                      |
-| Dinesh Chugtai    | team — **new** `dinesh` (refine-class) | ⬜ Session 4 — seventh seat; new wire mode cloned from refine budgets         |
-| Jared Dunn        | team — `critique` → `jared`            | ⬜ Session 5 — findings-only Auditor; anxious compliance                      |
-| Russ Hanneman     | team — `goMad`                         | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)          |
-| Richard Hendricks | team — `explain` → `richard`           | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)   |
-| Gavin Belson      | senior — `cto` → `belson`              | ⬜ Session 8 — full named replication of the CTO seat; retires Marcus         |
-| Marcus            | senior — `cto`                         | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication |
+| Character         | Target seat / tier                     | Status                                                                                             |
+| ----------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| Jack Barker       | team+senior — 6th advisor (`barker`)   | ✅ Advisor seat shipped — ⬜ Session 2: throttled roundtable (part of team, less often than peers) |
+| Erlich Bachman    | team — `erlich` (ex-`innovate`)        | ✅ Shipped — seat inheritance; courageous pivots, incubator swagger                                |
+| Bertram Gilfoyle  | team — `refine` → `gilfoyle`           | ⬜ Session 3 — engineer pod; battle-eligible (dual-home)                                           |
+| Dinesh Chugtai    | team — **new** `dinesh` (refine-class) | ⬜ Session 4 — seventh seat; new wire mode cloned from refine budgets; core team                   |
+| Jared Dunn        | team — `critique` → `jared`            | ⬜ Session 5 — findings-only Auditor; anxious compliance                                           |
+| Russ Hanneman     | team — `goMad`                         | ⬜ Session 6 — highest content-policy risk (innuendo, not profanity)                               |
+| Richard Hendricks | team — `explain` → `richard`           | ⬜ Session 7 — comment-only Wise Architect (no transform powers — ADR-0010)                        |
+| Gavin Belson      | senior — `cto` → `belson`              | ⬜ Session 8 — named CTO; scarcer than Barker; Jack reports to him; retires Marcus                 |
+| Marcus            | senior — `cto`                         | 🚮 Retires when Belson lands — currently a Belson _homage_, not a replication                      |
 
-Session 1 (this doc pass) locked the map; the fidelity harness (§3) is generalized — one profile
-per character, reused every session. Each character session ends with registry/TTS/locale tests
-green,
+Session 0 locked the map; the fidelity harness (§3) is generalized — one profile per character,
+reused every session. Each character session ends with registry/TTS/locale tests green,
 `npm run precommit`, live smoke, and the fidelity report in the PR body.
+
+### Reachability ladder (locked — do not re-litigate)
+
+| Who                                                                                              | How you reach them                          | Frequency                                                                                                                            |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Full-weight team advisors (Erlich, then Gilfoyle / Dinesh / Jared / Russ / Richard as they land) | Roundtable + radial / hotkey / mascot       | Peer weight in `pickNextPersona`                                                                                                     |
+| **Jack Barker**                                                                                  | Same Your Team surfaces                     | **Throttled** — in `ADVISOR_ORDER`, lower pick weight than peers (~half as often). Keep ≤1 senior email/session. No walk-by/IM spam. |
+| **Gavin Belson** (ex-Marcus)                                                                     | Steering meetings + ≤1 senior email/session | **Scarcer than Barker** — never proactive roundtable, never a team transform seat. Fiction: Barker reports to him.                   |
+
+### Session 2 drill — Barker throttled roundtable (small)
+
+Not a new character — accessibility only. When an agent runs this session:
+
+1. Add `barker` to `ADVISOR_ORDER` in `apps/web/src/hooks/useAdvisorOrchestrator.js`.
+2. Weight `pickNextPersona` so peers are weight 1 and Barker is ~0.5 (or equivalent skip) — he speaks less often than Erlich / the engineers / etc.
+3. Do **not** put Belson (or Marcus/`cto`) in `ADVISOR_ORDER`.
+4. Keep Barker's senior email cap; optional light roster/radial ordering so he is findable but not first.
+5. Update this status row to ✅ and flip the Guardrails / Endgame copy if any summoned-only wording remains.
+6. `npm run precommit` + smoke: "Talk to your team" eventually surfaces Jack, but not every other bubble.
 
 Note: **the user is basically Richard** — the fiction casts you as the anxious builder the office
 keeps interrupting. Richard-the-advisor (`explain`) is your alter-ego Wise Architect giving
@@ -169,8 +187,9 @@ seat. In priority order (the full worked example is the Barker/exec change itsel
    `VARIANT_MASTERY_ACHIEVEMENTS`. Then `runGamificationStore.js` `VARIANTS` (the seat earns XP).
 5. **Surfaces**: radial action (`buildRadialActions.jsx` + `controls.*` label keys),
    hotkey (`useDiagramHotkeys.js` + `HotkeyOverlay.jsx`), mascot roster
-   (`DeskBottomActionsSlot.jsx`), `ADVISOR_ORDER` comment (useAdvisorOrchestrator.js — senior-tier
-   seats stay OUT of the proactive roundtable), ceremony palette + `knownVariants`
+   (`DeskBottomActionsSlot.jsx`), `ADVISOR_ORDER` / `pickNextPersona` (useAdvisorOrchestrator.js —
+   full-weight team peers; Barker is in the pool at **throttled** weight after Session 2; pure
+   seniors like Belson stay OUT), ceremony palette + `knownVariants`
    (useRunCeremony.js), insights class maps + `insightsPaneEntryUi.js`, `advisorAcceptRouting.js`,
    `insightRetryDescriptor.js`, `insightNowStatus.js` + `insightStatusLocale.js`,
    `PlanBeatCard.tsx` emoji, App.css `is-*`/`is-variant-*` accents.
@@ -210,29 +229,33 @@ For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, 
   chats — it never produces diagram content or schedules its own runs. A character that "fixes
   your diagram" breaks the tool and the parody. (The transform seats are the sanctioned exception:
   the USER invokes them; the character never fires itself.)
-- Senior tier never pings ambiently (`OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and the day-to-day canned
-  banks stay team+office only); their one ambient outlet is `SENIOR_EMAIL_TEMPLATES`, capped at 1
-  per session. Senior-tier advisor seats (Barker) also stay out of the proactive roundtable —
-  summoned only, via radial / hotkey / mascot.
+- **Reachability ladder** (see [above](#reachability-ladder-locked--do-not-re-litigate)): senior
+  tier never pings ambiently (`OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and day-to-day canned banks stay
+  team+office only); their one ambient outlet is `SENIOR_EMAIL_TEMPLATES`, capped at 1 per session.
+  Barker is dual-home team+senior — after Session 2 he is **in** the proactive roundtable at
+  **throttled** weight (part of Your Team, less often than peers), still summonable via radial /
+  hotkey / mascot, still ≤1 senior email. Belson stays scarcer: never roundtable, never a team
+  transform seat. Do not give Barker full office walk-by/IM ambient.
 - Doc upkeep: add the character to the cast tables + a note in `docs/office-parody.md` (Barker's
   experiment note there is the template).
 
 ## Endgame: the SV team
 
 The destination is the locked cast map in the [Status board](#status-board) (program plan,
-2026-07-26): **Russ → `goMad`**, **Erlich → `innovate` → `erlich`** (shipped), **Gilfoyle → `refine` → `gilfoyle`**,
-**Dinesh → new seventh seat `dinesh`** (refine-class clone; floor desk next to Gilfoyle), **Jared →
-`critique` → `jared`**, **Richard → `explain` → `richard`**, **Barker → the sixth seat** (shipped),
-**Gavin Belson → senior `cto` → `belson`**. One character per agent session, each a
-seat-inheritance drill (§4b) — retire the generic persona id, port the behavior skeleton,
-re-voice, tune against the harness — except the two flagged exceptions: Dinesh is a new mode
-cloned from refine, and Belson is the senior drill (§4a) plus the Marcus retirement sweep.
+2026-07-26; reachability 2026-07-27): **Russ → `goMad`**, **Erlich → `erlich`** (shipped),
+**Gilfoyle → `gilfoyle`**, **Dinesh → new seventh seat `dinesh`** (refine-class; core team +
+battle dual-home), **Jared → `jared`**, **Richard → `richard`**, **Barker → sixth seat** (shipped;
+Session 2 throttled roundtable), **Gavin Belson → `belson`** (scarcer senior; Jack reports to
+him). One character (or Session 2 accessibility) per agent run — seat-inheritance (§4b) except
+Dinesh (new mode) and Belson (senior §4a + Marcus retirement).
 
 Hard decisions baked in (do not re-litigate per session):
 
-- **Seventh engineer seat for Dinesh** — add wire mode `dinesh` to `TransformModeSchema` (and
-  policies) as a refine clone: same node budgets/temps, distinct persona id,
-  XP/radial/hotkey/mascot. Floor seat next to Gilfoyle in `apps/web/src/utils/officeFloorPlan.js`.
+- **Reachability** — full-weight team peers; Barker throttled on Your Team; Belson harder to reach
+  than Barker (reports-to fiction). See the ladder table.
+- **Both engineers on the team** — Gilfoyle inherits `refine`; Dinesh is a new refine-class wire
+  mode (`TransformModeSchema` clone of refine budgets/temps); floor desks adjacent; cubicle
+  battles are extra, not their only home.
 - **Richard stays on `explain`** — comment-only; does not gain invent-transform powers. Helpful +
   funny via pattern-naming and anxious over-explaining, not canvas mutation. His genius reads as
   over-specific insight, not a second Erlich.
