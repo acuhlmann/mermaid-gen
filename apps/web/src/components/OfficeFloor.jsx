@@ -20,6 +20,7 @@ import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
 import FloorTopBar from './officeFloor/FloorTopBar.jsx';
 import { floorAnnouncement } from './officeFloor/floorAnnouncement.js';
+import { createOfficeFloorBridge } from './officeFloor/officeFloorBridge.js';
 import { useFloorActivity } from './officeFloor/useFloorActivity.js';
 import { useFloorWander } from './officeFloor/useFloorWander.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
@@ -88,36 +89,25 @@ function usePersonDetails(selectedId, copy) {
  * machine: 'looking' is simply having arrived somewhere you went on purpose.
  */
 /**
- * @param {{
- *   onMessage?: (colleagueId: string) => void,
- *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
- *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
- *   onDismissWalkBy?: (id: string) => void,
- *   imHistory?: Array<{ colleagueId: string, body: string, outbound?: boolean }>,
- *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
- *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
- *   onTalkingChange?: (colleagueId: string | null) => void,
- *   onGetCoffee?: () => Promise<boolean> | boolean,
- *   coffee?: any, battle?: any, sceneHandlers?: any,
- *   meeting?: any, meetingHandlers?: any
- * }} props
+ * @param {{ bridge: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge }} props
  */
-function OfficeFloorView({
-  onMessage,
-  walkBy,
-  onAdoptPrompt,
-  onDismissWalkBy,
-  imHistory = [],
-  onTalkGreet,
-  onTalkReply,
-  onTalkingChange,
-  onGetCoffee,
-  coffee = null,
-  battle = null,
-  sceneHandlers = {},
-  meeting = null,
-  meetingHandlers = {}
-}) {
+function OfficeFloorView({ bridge }) {
+  const {
+    imHistory = [],
+    walkBy,
+    onMessage,
+    onTalkGreet,
+    onTalkReply,
+    onTalkingChange,
+    onGetCoffee,
+    onAdoptPrompt,
+    onDismissWalkBy,
+    coffee = null,
+    battle = null,
+    sceneHandlers = {},
+    meeting = null,
+    meetingHandlers = {}
+  } = bridge;
   // Subscribes this component to locale changes; the copy itself comes from the
   // office bundle below, exactly like DeskActionsDock.
   useUiCopy();
@@ -282,23 +272,31 @@ function OfficeFloorView({
 
 /**
  * Mount point. Renders nothing at all in desktop screen mode, so the floor
- * costs one store subscription while you are working. Office state arrives as
- * props: `OfficeLayer` owns the store subscription for both renderers.
- *
- * Everything below is forwarded to `OfficeFloorView` untouched.
+ * costs one store subscription while you are working. Office state arrives via
+ * `bridge` from `OfficeLayer`, which owns the store subscription for both
+ * renderers.
  *
  * @param {{
- *   onMessage?: (colleagueId: string) => void,
+ *   bridge?: import('./officeFloor/officeFloorBridge.js').OfficeFloorBridge,
+ *   imHistory?: Array<{ colleagueId: string, body: string, outbound?: boolean }>,
  *   walkBy?: { id: string, colleagueId: string, body: string, actionPrompt?: string } | null,
+ *   onMessage?: (colleagueId: string) => void,
+ *   onTalkGreet?: (colleagueId: string) => Promise<void> | void,
+ *   onTalkReply?: (colleagueId: string, body: string) => Promise<void> | void,
+ *   onTalkingChange?: (colleagueId: string | null) => void,
+ *   onGetCoffee?: () => Promise<boolean> | boolean,
  *   onAdoptPrompt?: (prompt: string, colleagueId: string) => void,
  *   onDismissWalkBy?: (id: string) => void,
- *   onGetCoffee?: () => Promise<boolean> | boolean,
- *   coffee?: any, battle?: any, sceneHandlers?: any,
- *   meeting?: any, meetingHandlers?: any
- * }} props
+ *   coffee?: unknown,
+ *   battle?: unknown,
+ *   sceneHandlers?: Record<string, unknown>,
+ *   meeting?: unknown,
+ *   meetingHandlers?: Record<string, unknown>
+ * }} props Legacy flat props are still accepted for tests; `bridge` wins when both are set.
  */
-export default function OfficeFloor(props) {
+export default function OfficeFloor({ bridge: bridgeProp, ...legacy }) {
   const mode = useSyncExternalStore(subscribeViewMode, getOfficeViewMode, getOfficeViewMode);
   if (mode !== 'floor') return null;
-  return <OfficeFloorView {...props} />;
+  const bridge = bridgeProp ?? createOfficeFloorBridge(legacy);
+  return <OfficeFloorView bridge={bridge} />;
 }

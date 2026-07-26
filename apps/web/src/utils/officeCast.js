@@ -1401,7 +1401,14 @@ export const OFFICE_CHROME_COPY = {
         'Sign in, take a lanyard, and try to look like you have done this before. The floor would like to introduce itself.',
       checkIn: 'Check in →',
       clockIn: '🪑 Clock in — take your desk',
-      clockInEarly: '🪑 Take my desk (I get the idea)'
+      clockInEarly: '🪑 Take my desk (I get the idea)',
+      // Spatial only — what they say stays in bubbles / TTS (slice 10 parity).
+      narration: {
+        atReception: 'At reception. Sign in to begin.',
+        welcome: 'Linda is welcoming you.',
+        colleagueIntroducing: '{name} at their desk.',
+        walkingToDesk: 'Walking to your desk.'
+      }
     },
     close: 'Close',
     youName: 'You',

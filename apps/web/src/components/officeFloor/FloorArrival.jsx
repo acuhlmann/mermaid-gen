@@ -20,8 +20,10 @@
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import FloorDeskSpeech from './FloorDeskSpeech.jsx';
+import FloorLiveRegion from './FloorLiveRegion.jsx';
 import FloorPlayer from './FloorPlayer.jsx';
 import FloorStage from './FloorStage.jsx';
+import { floorArrivalAnnouncement } from './floorArrivalAnnouncement.js';
 import IntroTranscriptButton from '../IntroTranscriptButton.jsx';
 import NameTag from '../NameTag.jsx';
 import { useIntroNarrator } from '../../hooks/useIntroNarrator.js';
@@ -203,8 +205,16 @@ export default function FloorArrival({ onComplete, onSkipToBuild, getSessionId }
   const showBubble =
     Boolean(speakingId && speakingLine) && shouldShowSpokenText({ captions, voiceActive });
 
+  const said = floorArrivalAnnouncement({
+    copy,
+    phase,
+    colleagueIndex: index,
+    speakingId
+  });
+
   return (
     <div className="office-floor office-floor--arrival" data-testid="office-floor-arrival">
+      <FloorLiveRegion message={said.text} eventKey={said.key} />
       <header className="office-floor-bar">
         <div className="office-floor-bar-copy">
           <span className="office-floor-eyebrow">{arrival.eyebrow}</span>

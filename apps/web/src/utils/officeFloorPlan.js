@@ -653,12 +653,17 @@ function hasClearSightTo(mark, seat) {
  * should only ever be one place that encodes them.
  *
  * @param {{ x: number, y: number }} mark
+ * @param {{ excludeSeatId?: string }} [options] Whose seat to skip in the face
+ *   test. Defaults to you — the walker for most mark families. Pass a
+ *   wanderer's `seatId` when validating marks they will occupy while you stay
+ *   seated (§ 6 rule 27).
  * @returns {boolean}
  */
-export function isStandableTile(mark) {
+export function isStandableTile(mark, options = {}) {
+  const { excludeSeatId = YOU_SEAT_ID } = options;
   if (!isOnFloor(mark.x, mark.y)) return false;
   if (reservedMarks().some((tile) => distance(tile, mark) < 0.5)) return false;
-  return clearsFurniture(mark) && clearsFaces(mark);
+  return clearsFurniture(mark) && clearsFaces(mark, excludeSeatId);
 }
 
 /** Room to stand: not inside a desk, not inside the furniture, not behind it. */
@@ -683,10 +688,10 @@ function clearsFurniture(mark) {
  * measured with the real 48 px figure rather than the stylesheet's apparent
  * height.
  */
-function clearsFaces(mark) {
+function clearsFaces(mark, excludeSeatId = YOU_SEAT_ID) {
   const standing = { seated: false };
   for (const other of FLOOR_SEATS) {
-    if (other.id === YOU_SEAT_ID) continue; // you are the one doing the walking
+    if (other.id === excludeSeatId) continue;
     const theirs = { x: other.x, y: other.y };
     if (boxesOverlap(figureBox(mark, standing), headBox(theirs))) return false;
     if (boxesOverlap(figureBox(theirs), headBox(mark, standing))) return false;
