@@ -1367,6 +1367,26 @@ export const OFFICE_CHROME_COPY = {
     back: '🪑 Back to your screen',
     backTitle: 'Sit down and get back to the deliverable',
     hint: 'Click the floor to walk there, or somebody to see who they are. Escape sits you back down.',
+    // The floor's one live region (slice 10). Spatial only: where bodies are
+    // and where they are going. What anybody *says* stays in their speech
+    // bubble — narrating both would read every line twice, which is the trap
+    // ADR-0011 rule 1 sets for anything rendering the same beat in two places.
+    // Plain sentences on purpose: this is orientation, not a bit.
+    narration: {
+      atDesk: 'At your own desk.',
+      inMeeting: 'In the glass meeting room.',
+      walkingTo: 'Walking over to {name}.',
+      standingWith: 'Standing with {name}.',
+      walkingToDesk: "Walking over to {name}'s desk.",
+      standingAtDesk: "Standing at {name}'s desk.",
+      walkingToProp: 'Walking over to {prop}.',
+      standingAtProp: 'Standing at {prop}.',
+      walkingHome: 'Walking back to your desk.',
+      walkingFloor: 'Walking across the floor.',
+      standingFloor: 'Standing on the floor. Arrow keys step; Escape walks you back.',
+      arriving: '{name} is walking over to your desk.',
+      leaving: '{name} is walking back to their desk.'
+    },
     // Day One, staged on the floor (isometric arrival).
     arrival: {
       eyebrow: 'ARCHISLOP CORP. · YOUR FIRST DAY',

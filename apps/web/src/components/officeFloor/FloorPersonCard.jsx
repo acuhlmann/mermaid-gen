@@ -65,8 +65,13 @@ export function FloorPersonCard({
     }
   ].filter(Boolean);
 
+  /*
+   * Not a live region — see `FloorLiveRegion`. Selecting somebody is a click
+   * with a visible result and an `aria-pressed` button behind it, so the card
+   * has less to announce than the others did in the first place.
+   */
   return (
-    <aside className="office-floor-card" aria-live="polite">
+    <aside className="office-floor-card">
       <button
         type="button"
         className="office-floor-card-close"

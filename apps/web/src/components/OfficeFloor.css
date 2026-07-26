@@ -32,6 +32,26 @@
   }
 }
 
+/*
+ * The floor's one live region (slice 10). Off-screen rather than
+ * `display: none` or `visibility: hidden`, either of which takes it out of the
+ * accessibility tree and silences it. Its own rule rather than the global
+ * `.sr-only`: this stylesheet is what ships with the floor, and a region that
+ * stops being hidden because somebody edited a 9,000-line sheet elsewhere would
+ * put a stray sentence in the middle of the room.
+ */
+.office-floor-narration {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* ── top bar ─────────────────────────────────────────────────────────────── */
 
 .office-floor-bar {
@@ -302,16 +322,29 @@
   pointer-events: none;
 }
 
+/*
+ * The button *is* the figure — 34×48 and nothing else.
+ *
+ * The name chip below is out of flow on purpose. As a flex sibling it sized the
+ * button, so every seat's clickable box was as wide as the longest name and
+ * reached ~20 px above the head — invisibly, since the chip is transparent
+ * until you hover. That box ate clicks aimed at the floor around the pod and,
+ * where two of them overlapped a prop, the prop itself: the printer once
+ * answered 11 of 441 sampled points and its own centre selected Pam
+ * (§ 6 rule 22). Anything new that lands on the stage collides with the
+ * *figures*, which is what the room looks like it is made of.
+ */
 .office-floor-person {
   position: absolute;
   left: 0;
   top: 0;
-  /* Standing on the tile: the figure's feet land on the tile centre. */
+  /* Standing on the tile: the figure's feet land on the tile centre. Measured
+     from the bottom edge, so dropping the chip out of flow moved the box's top
+     down without moving the figure a pixel. */
   transform: translate(-50%, -100%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.15rem;
   padding: 0;
   border: 0;
   background: none;
@@ -362,8 +395,19 @@
   display: block;
 }
 
+/*
+ * Floated above the head rather than stacked over it: `bottom: 100%` is the top
+ * edge of the 48 px figure, and the margin is the gap the flex `gap` used to
+ * give it. `pointer-events: none` is load-bearing here and not decoration —
+ * the chip now hangs outside the button, and a child that took pointer events
+ * would hand the oversized hit box straight back.
+ */
 .office-floor-person-name {
-  order: -1;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.15rem;
   font-size: 0.6rem;
   font-weight: 700;
   line-height: 1;
@@ -392,13 +436,31 @@
   color: var(--floor-accent, var(--accent));
 }
 
+/*
+ * A real outline, which only became possible when the name chip left the flow:
+ * against the old box this traced a rectangle as wide as the longest name and
+ * ~20 px above the head, which is why it was turned off in the first place. Now
+ * the button is the 34×48 figure and an outline is simply the right answer —
+ * system-drawn, forced-colors-safe, and nothing to keep in sync with the art.
+ */
 .office-floor-person:focus-visible {
-  outline: none;
+  outline: 2px solid var(--floor-accent, var(--accent));
+  outline-offset: 3px;
+  border-radius: 8px;
 }
 
+/*
+ * Selection is not focus, so it keeps a glow of its own — and the glow had to
+ * be rewritten. It was `drop-shadow(0 0 0 2px …)`, which is four lengths;
+ * `drop-shadow()` takes at most three (x, y, blur) and has no spread, so the
+ * value was invalid and browsers threw the whole `filter` declaration away.
+ * Selecting somebody, and focusing them, had *no* indicator at all. Nothing
+ * about that is visible in review: the rule reads like a focus ring and parses
+ * like a mistake.
+ */
 .office-floor-person:focus-visible .office-floor-person-figure,
 .office-floor-person.is-selected .office-floor-person-figure {
-  filter: drop-shadow(0 0 0 2px var(--floor-accent, var(--accent)))
+  filter: drop-shadow(0 0 5px var(--floor-accent, var(--accent)))
     drop-shadow(0 4px 5px rgba(15, 23, 42, 0.25));
 }
 
@@ -971,6 +1033,34 @@
   .office-floor-bar-actions {
     width: 100%;
     justify-content: flex-start;
+  }
+}
+
+/*
+ * Every indicator on this floor is a coloured glow, and forced-colors mode is
+ * entitled to throw colours away — it substitutes a system palette so a user
+ * who needs one gets one. Focus is the part that must survive that, because
+ * without it a keyboard user cannot tell where they are.
+ *
+ * The person is easy now: an outline on the button traces the figure (see the
+ * `:focus-visible` rule above) and `Highlight` is a system colour, so it is
+ * already correct here — it only needs the accent swapped out.
+ *
+ * The prop is the interesting one. An outline on *it* would trace the 260×260
+ * `PROP_VIEW` box rather than the machine, which is the whole reason slice 9
+ * suppressed the outline and used a glow. The answer is the same one that made
+ * the machine clickable: go at the drawn shapes rather than the box. A
+ * `Highlight` stroke on every path in the art lights up the machine's own
+ * silhouette, in a colour the user chose, with no second geometry to maintain.
+ */
+@media (forced-colors: active) {
+  .office-floor-person:focus-visible {
+    outline-color: Highlight;
+  }
+
+  .office-floor-prop--usable:focus-visible .office-floor-prop-art * {
+    stroke: Highlight;
+    stroke-width: 2.5;
   }
 }
 
