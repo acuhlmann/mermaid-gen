@@ -93,8 +93,8 @@ test('buildAdvisorSystemPrompt swaps to explainer voice for explain dumb-down', 
   assert.match(architectNormal, /Principal Tech Evangelist/);
   assert.doesNotMatch(architectNormal, /DUMB-DOWN TASK/);
 
-  const execDumb = buildAdvisorSystemPrompt('exec', 'mermaid', { mode: 'dumb' });
-  assert.doesNotMatch(execDumb, /DUMB-DOWN TASK/);
+  const barkerDumb = buildAdvisorSystemPrompt('barker', 'mermaid', { mode: 'dumb' });
+  assert.doesNotMatch(barkerDumb, /DUMB-DOWN TASK/);
 });
 
 test('buildAdvisorSystemPrompt dumb-down reaches toddler and babble ladder', () => {

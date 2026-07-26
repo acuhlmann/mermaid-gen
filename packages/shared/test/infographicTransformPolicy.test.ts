@@ -35,10 +35,10 @@ test('refine allows label polish and one new item', () => {
   assert.equal(result.ok, true);
 });
 
-test('exec rejects extra items', () => {
+test('barker rejects extra items', () => {
   const after = BASE + '\n    - label Step 3\n' + '      desc Extra';
   const result = validateInfographicTransformConstraint({
-    transformMode: 'exec',
+    transformMode: 'barker',
     beforeSource: BASE,
     afterSource: after
   });

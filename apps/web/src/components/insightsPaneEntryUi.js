@@ -43,7 +43,7 @@ export function hidePhaseIds(variant, streamDebugEnabled) {
     variant === 'refine' ||
     variant === 'innovate' ||
     variant === 'goMad' ||
-    variant === 'exec'
+    variant === 'barker'
   );
 }
 

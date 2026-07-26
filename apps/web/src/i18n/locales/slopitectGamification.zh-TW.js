@@ -67,22 +67,20 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       '理論上很美，實踐上很尷尬——我最愛的類型。',
       '奇怪但真實：這個形狀比軟體還老。'
     ],
-    exec: [
-      '把這個精煉成董事會能看懂的版本。',
-      '這裡的北極星在哪裡？',
-      '就三個重點，謝謝。',
-      '把它對應到 OKR 上。',
-      '把一頁報告傳給我。',
-      '這對客戶旅程意味著什麼？',
-      '只要 MVP 切片。',
-      '你知道我四分鐘後有個硬截止吧？',
-      '協同化那些冗餘部分。',
-      '從三萬英尺的高度再看一遍。',
-      '捨棄你的寶貝。出貨標題。',
-      '這個方塊需要的是工作坊，不是圖表。',
-      '我們是在做決策，還是只是在畫方塊？',
-      '董事會要的是標題，不是子圖。',
-      '三個方塊。就這張投影片。'
+    barker: [
+      '我已經越權代勞了。',
+      '不知道你們怎樣，反正我很興奮。',
+      '我們在這裡是一家人。',
+      '成功聯合三角。',
+      '協同不是一個詞。它是一種信仰體系。',
+      '打動不了董事會的圖，只是嗜好。',
+      '這向投資者講述了什麼故事？',
+      '觀感勝過實質。溫暖地。',
+      '我很興奮。你很興奮。我們都很興奮。',
+      '三個方塊。就這張投影片。',
+      '濃縮一下——董事會只看三條。',
+      '成功是一座劇場。去表演吧。',
+      '每個方塊都是一個等待對齊的價值主張。'
     ]
   },
 
@@ -93,7 +91,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '用眼神掃描爛圖 👀',
       critique: '打開 JIRA……',
       explain: '沉思圖表中……',
-      exec: '略讀簡報中……'
+      barker: '欣賞故事中……'
     },
     analyze_stream: {
       refine: '草擬下一步中……',
@@ -101,7 +99,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '對著它大吼 📣',
       critique: '起草調查結果……',
       explain: '撰寫史詩……',
-      exec: '起草一頁報告……'
+      barker: '為董事會濃縮中……'
     },
     intent: {
       refine: '對齊意圖……',
@@ -109,7 +107,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '跳過會議',
       critique: '引用 SOC 2 控制項',
       explain: '對齊意圖……',
-      exec: '指向北極星……'
+      barker: '對齊聯合三角……'
     },
     agent_run: {
       refine: '工程化下一個部分……',
@@ -117,7 +115,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '對你的主題發瘋中',
       critique: '歸檔工單……',
       explain: '為架構添加注解……',
-      exec: '為董事會提煉精華……'
+      barker: '越權代勞中……'
     },
     transform: {
       refine: '添加有用的部分……',
@@ -125,7 +123,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '添加美妙奇異的事物 🔥',
       critique: '紅筆標註版面配置中……',
       explain: '追溯重塑過程……',
-      exec: '捨棄珍愛之物……'
+      barker: '溫暖地捨棄珍愛之物……'
     },
     run_started: {
       refine: '啟動中……',
@@ -133,7 +131,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '好了現在等等 🪖',
       critique: '稽查員進場……',
       explain: '清清喉嚨……',
-      exec: '四分鐘後硬截止……'
+      barker: '不知道你們怎樣，反正我很興奮……'
     },
     planning: {
       refine: '起草差異清單……',
@@ -141,7 +139,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '對圖表丟飛鏢 🎯',
       critique: '建構發現大綱……',
       explain: '起草章節計畫……',
-      exec: '起草標題……'
+      barker: '起草一頁報告……'
     },
     syntax_fixer: {
       refine: '修復語法……',
@@ -149,7 +147,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '用膠帶把它黏回去',
       critique: '修復語法——稽核軌跡已更新……',
       explain: '潤飾粗糙段落……',
-      exec: '緊縮簡報……'
+      barker: '緊縮簡報……'
     },
     syntax_repair: {
       refine: '再次修復語法……',
@@ -157,7 +155,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '再多一點膠帶',
       critique: '重新開啟語法發現……',
       explain: '修訂粗糙草稿……',
-      exec: '重新起草簡報……'
+      barker: '重新起草簡報……'
     },
     style: {
       refine: '調整調色盤……',
@@ -165,7 +163,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '混亂配色方案 🔥',
       critique: '標記對比度違規……',
       explain: '講述這種色調的歷史……',
-      exec: '只用一種品牌色。'
+      barker: '只用一種品牌色。'
     },
     patch_retry: {
       refine: '等待 CAB 核准……',
@@ -173,7 +171,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '賄賂 CAB',
       critique: '等待重新審查簽核……',
       explain: '再做一輪……',
-      exec: '請求董事會重新起草……'
+      barker: '請求董事會重新起草……'
     },
     invoke: {
       refine: '修補正式環境 🛠',
@@ -181,7 +179,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '點燃大樓 🔥',
       critique: '記錄生成工單……',
       explain: '敘述草稿……',
-      exec: '登上私人飛機 🛩️'
+      barker: '越權代勞 🧘'
     },
     invoke_fallback: {
       refine: '緊急修補飛行中……',
@@ -189,7 +187,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '我們轉型了',
       critique: '歸檔備用發現……',
       explain: '優雅地結束本章……',
-      exec: '重新路由一頁報告……'
+      barker: '重新路由一頁報告……'
     },
     repair_1: {
       refine: '緊急修補飛行中……',
@@ -197,7 +195,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '更多安全帽！ 🪖🪖',
       critique: '升級至 P1 修復……',
       explain: '倒回羊皮紙……',
-      exec: '滑動截止日期 🗓️'
+      barker: '溫暖地滑動時間線 🗓️'
     },
     repair_2: {
       refine: '第二次緊急修補飛行中……',
@@ -205,7 +203,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       goMad: '更更多安全帽 🪖🪖🪖',
       critique: '二次升級——仍不合規……',
       explain: '修訂註腳……',
-      exec: '再次滑動截止日期 🗓️🗓️'
+      barker: '為此成立委員會 🗓️🗓️'
     }
   },
 
@@ -222,7 +220,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     '九宮格矩陣能解決任何說不出口的問題——把第十個格子協同設計掉。',
     '當 CTO 問「是雲原生的嗎？」，答案是肯定的——我們協同設計就是這樣定的。',
     '重組只是帶有情感和協同異地活動的架構重構。',
-    '副總裁靠協同、協同設計和四分鐘硬截止運轉。'
+    'Jack Barker 已越權代勞，替你協同設計好了路線圖。溫暖地。'
   ],
 
   PRESTIGE_TIERS: [
@@ -274,10 +272,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🧙 封存說故事人',
       subtitle: '十次解說已載入架構傳說。'
     },
-    exec: {
-      id: 'serialAligner',
-      title: '👔 連環協同設計師',
-      subtitle: '十次協同協同設計已出貨。董事會批准了。'
+    barker: {
+      id: 'conjoinedTriangles',
+      title: '🧘 成功聯合三角',
+      subtitle: '10 次董事會級精簡。「大家庭」通過。'
     }
   },
 
@@ -295,7 +293,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     fullStackSlopitect: {
       id: 'fullStackSlopitect',
       title: '🥞 全棧爛圖建築師',
-      subtitle: '一個會話中使用全部五個角色。協同與協同設計最大化。'
+      subtitle: '一個會話中使用全部六個角色。協同與協同設計最大化。'
     },
     prestige: {
       id: 'prestige',
@@ -372,10 +370,10 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
       title: '🧙 封存說故事人',
       subtitle: '十次解說已載入架構傳說。'
     },
-    exec: {
-      id: 'serialAligner',
-      title: '👔 連環協同設計師',
-      subtitle: '十次協同協同設計已出貨。董事會批准了。'
+    barker: {
+      id: 'conjoinedTriangles',
+      title: '🧘 成功聯合三角',
+      subtitle: '10 次董事會級精簡。「大家庭」通過。'
     }
   },
 
@@ -399,7 +397,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
 
   PROMPT_EASTER_EGGS: [
     { match: /\bblockchain\b/i, toast: '🔗 爛圖建築師認可。' },
-    { match: /\bco[- ]?design/i, toast: '👔 偵測到協同與協同設計。副總裁點頭了。' },
+    { match: /\bco[- ]?design/i, toast: '🧘 偵測到協同與協同設計。Jack Barker 興奮不已。' },
     { match: /\bsynergy\b/i, toast: '🤝 偵測到協同。+1 協同設計對齊。' },
     { match: /\bmicroservice/i, toast: '🛎️ 一個微服務已加入爛圖。' },
     { match: /\bkubernetes\b|\bk8s\b/i, toast: '☸️ 容器已部署至你的靈魂。' },
@@ -443,7 +441,7 @@ export const SLOPITECT_GAMIFICATION_ZH_TW = {
     meetTeamLabel: '認識團隊 →',
     meetTeamTitle: '打開辦公室入職引導——聽聽 Chad、Pam、Linda 和其他人自我介紹',
     meetTeamLede:
-      '畫布下方的五位人設隊友會插話點評。辦公室樓層是另一套陣容——郵件、即時訊息、路過搭話。',
+      '畫布下方的六位人設隊友會插話點評。辦公室樓層是另一套陣容——郵件、即時訊息、路過搭話。',
     slotsLede:
       '六個圖表槽位——Mermaid、資訊圖、資料圖、3D 隱喻、任意頁、表單——各自保留獨立的修訂歷史。',
     nextLevelTaunts: [

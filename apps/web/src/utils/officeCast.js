@@ -133,9 +133,10 @@ export function isOfficeColleagueId(value) {
 
 /**
  * The invented senior-stakeholder executives (castTiers.js `senior` tier).
- * `exec` (The VP) and `ciso` (Sasha) are promoted members whose display data
- * already lives in VARIANT_PERSONAS / OFFICE_COLLEAGUES; only the new execs
- * are defined here. Keep voices aligned with SENIOR_MEETING_VOICES in
+ * `barker` (Jack Barker) also holds the sixth advisor seat — his
+ * VARIANT_PERSONAS row mirrors the entry below — and `ciso` (Sasha) is a
+ * promoted colleague whose display data lives in OFFICE_COLLEAGUES. Keep
+ * voices aligned with SENIOR_MEETING_VOICES / STAKEHOLDER_MEETING_VOICES in
  * apps/server/src/agents/officePersonas.js.
  */
 export const SENIOR_STAKEHOLDERS = {
@@ -199,7 +200,7 @@ export function officeSenderInfo(id) {
 }
 
 /** Steering-meeting seats: senior stakeholders the team presents to. */
-export const MEETING_SENIOR_POOL = ['exec', 'ciso', 'cto', 'cfo', 'barker'];
+export const MEETING_SENIOR_POOL = ['ciso', 'cto', 'cfo', 'barker'];
 /** Team members who can be sent upstairs to defend the diagram. */
 export const MEETING_PRESENTER_POOL = ['refine', 'critique', 'explain'];
 export const MEETING_FACILITATOR = 'scrumMaster';
@@ -514,13 +515,6 @@ export const SENIOR_EMAIL_TEMPLATES = [
     colleagueId: 'ciso',
     subject: 'Password policy update (effective yesterday)',
     body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
-  },
-  {
-    id: 'email-exec-board-preread',
-    colleagueId: 'exec',
-    subject: 'Pre-read needed: the board will ask about {label}',
-    body: "Team — the board offsite is Thursday and I need a one-pager on {label}. One page. One. If it can't fit on one page it isn't a strategy, it's a hobby.\n\nHard stop in four minutes,\nThe VP",
-    actionPrompt: 'Simplify the diagram to its three most essential elements'
   },
   {
     id: 'email-cfo-cloud-spend',

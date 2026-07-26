@@ -92,15 +92,6 @@ export const PERSONA_FACE_TRAITS = {
   },
 
   // ── senior ──────────────────────────────────────────────────────────────
-  exec: {
-    skin: 'light',
-    hair: 'receding',
-    hairColor: 'grey',
-    facialHair: 'none',
-    glasses: 'none',
-    accessory: 'tie',
-    expression: 'smirk'
-  },
   ciso: {
     skin: 'olive',
     hair: 'ponytail',

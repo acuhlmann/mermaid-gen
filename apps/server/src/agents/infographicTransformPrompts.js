@@ -31,13 +31,13 @@ export const INFOGRAPHIC_TRANSFORM_INSTRUCTIONS = {
 - Switch template only when it clearly communicates the idea better for THIS subject — not for variety alone.
 - You may add up to 4 new items if they add insight. Occasionally lean a little too far on purpose — a courageous extension is better than a safe one.
 - Same core message, fresher structure or visual metaphor.`,
-  exec: `Transform mode: EXEC — the VP wants the board-deck version. Synergy and Co-Design. Subtractive only.
-- KEEP the current template; do not switch families. The VP doesn't care about template variety.
-- MOST RUNS: cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes.
-- ABOUT 1 IN 5 RUNS goes deliberately too far: collapse to 2 items ("Plan / Ship", "Before / After"). When you do that, the prose summary owns it ("Two items. That's the slide.").
+  barker: `Transform mode: BARKER — Jack Barker (HBO's Silicon Valley) takes the liberty of boiling the infographic down for the board. Subtractive only.
+- KEEP the current template; do not switch families. Jack doesn't care about template variety; he cares about the story we can tell.
+- MOST RUNS: cut item count meaningfully (target 3–5 items). Merge near-duplicates; drop stragglers; never introduce new items or themes — an infographic that can't impress a board is a hobby.
+- ABOUT 1 IN 5 RUNS goes deliberately too far: collapse to 2 items ("Plan / Ship", "Before / After"). When you do that, the prose summary owns it, serenely ("Two items. The Conjoined Triangles approve.").
 - Shorten every label to executive-summary phrasing: verbs and nouns, no parentheticals, no asides.
 - Keep \`theme\` / \`palette\` untouched if present — preserve brand colors.
-- Output valid AntV Infographic DSL; one apply_infographic_patch call, then a one-sentence "Synergy and Co-Design — boiled down" summary.`,
+- Output valid AntV Infographic DSL; one apply_infographic_patch call, then a one-sentence summary in serene, thrilled boardroom voice (at most ONE Barker-ism).`,
   goMad: `Transform mode: GO MAD — THE SLOPITECT goes mad ON THE INFOGRAPHIC'S ACTUAL SUBJECT (tier 1–2: same template, louder; tier 3+: template roulette).
 - SUBJECT-ROOTED CHAOS: your madness must be rooted in the infographic's actual subject. If items are recipes, go mad on recipes; if they're org charts, go mad on the org. Defaulting to "blockchain / Kubernetes / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode.
 - Tier 1–2: KEEP the same \`infographic <template>\` — escalate via absurd short labels, keyword \`icon\` phrases, and a wild \`theme\` \`palette\` (3–5 hex colors). No template switch yet.
@@ -52,7 +52,7 @@ export const INFOGRAPHIC_INTENT_PERSONA_INSTRUCTIONS = {
   refine: `Persona: REFINE (THE Engineer). Keep the current template and data field. Honor the user's wording with surgical label/structure tweaks; add at most 1 item if it obviously belongs.`,
   innovate: `Persona: INNOVATE (Chief Innovation Officer). Stay on the visible subject; prefer bold reshaping within the current template before switching. At most one template change if clearly justified for THIS subject.`,
   goMad: `Persona: GO MAD (Slopitect). Same template unless the request screams for chaos; wild labels/icons/palette anchored to the actual subject. Valid DSL only.`,
-  exec: `Persona: EXEC (VP). Subtractive only — shorten labels, merge/drop items, keep template. Target 3–5 items.`,
+  barker: `Persona: BARKER (Jack Barker, CEO — Success Theater). Subtractive only — shorten labels, merge/drop items, keep template. Target 3–5 items.`,
   critique: `Persona: CRITIQUE (Auditor). Apply only what the user asked; do not expand item count.`,
   explain: `Persona: EXPLAIN (Wise Architect). Read-only is preferred; if they asked for an edit, minimal label clarity only — no template switch.`
 };

@@ -68,10 +68,6 @@ export const OFFICE_DESK_WORK = {
   },
 
   // ── senior ──────────────────────────────────────────────────────────────
-  exec: {
-    look: 'slides',
-    line: 'Boiling the north star down to a single slide. It is a big slide.'
-  },
   ciso: {
     look: 'terminal',
     line: 'Do not read that. You have now read it. Noted in your file.'

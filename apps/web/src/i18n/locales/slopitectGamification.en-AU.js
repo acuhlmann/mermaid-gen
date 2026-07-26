@@ -67,22 +67,20 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       'Beautiful in theory, awkward in practice — my favourite kind.',
       'Strange but true: this shape is older than the software.'
     ],
-    exec: [
-      'Boil this down for the board, mate.',
-      "Where's the north star here?",
-      'Just three bullets, please.',
-      'Ladder it up to the OKR.',
-      'Send me the one-pager.',
-      'What does this mean for the customer journey?',
-      'MVP slice only.',
-      'Did you know I have a hard stop in four minutes?',
-      'Synergise the redundancies.',
-      'Circle back at the 30,000-foot view.',
-      'Kill your darlings. Ship the headline.',
-      'This box needs a workshop, not a diagram.',
-      'Are we deciding or just drawing boxes?',
-      'The board wants the headline, not the subgraph.',
-      "Three boxes. That's the slide."
+    barker: [
+      'I’ve taken the liberty.',
+      'I don’t know about you, but I am excited.',
+      'We’re a family here.',
+      'The Conjoined Triangles of Success.',
+      'Synergy is not a word. It’s a belief system.',
+      'A diagram that can’t impress a board is a hobby.',
+      'What story does this tell investors?',
+      'Optics beat substance. Warmly.',
+      'I’m thrilled. You’re thrilled. We’re all thrilled.',
+      'Three boxes. That’s the slide.',
+      'Boil it down — the board reads three.',
+      'Success is a theatre. Perform it.',
+      'Every box is a value proposition waiting to align.'
     ]
   },
   PHASE_CEREMONIES: {
@@ -92,7 +90,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Eyeballing the slop 👀',
       critique: 'Opening JIRA…',
       explain: 'Pondering the diagram…',
-      exec: 'Skimming the deck…'
+      barker: 'Admiring the story…'
     },
     analyze_stream: {
       refine: 'Sketching the next step…',
@@ -100,7 +98,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Yelling at it 📣',
       critique: 'Drafting findings…',
       explain: 'Composing the saga…',
-      exec: 'Drafting the one-pager…'
+      barker: 'Boiling it down for the board…'
     },
     intent: {
       refine: 'Aligning intent…',
@@ -108,7 +106,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Skipping the meeting',
       critique: 'Citing the SOC 2 controls',
       explain: 'Aligning intent…',
-      exec: 'Pointing at the north star…'
+      barker: 'Aligning the triangles…'
     },
     agent_run: {
       refine: 'Engineering the next piece…',
@@ -116,7 +114,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'GOING TROPPO ON YOUR TOPIC',
       critique: 'Filing tickets…',
       explain: 'Annotating the architecture…',
-      exec: 'Boiling it down for the board…'
+      barker: 'Taking the liberty…'
     },
     transform: {
       refine: 'Adding the useful bit…',
@@ -124,7 +122,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Adding wonderfully strange things 🔥',
       critique: 'Red-penning the layout…',
       explain: 'Tracing the reshape…',
-      exec: 'Killing the darlings…'
+      barker: 'Killing the darlings, warmly…'
     },
     run_started: {
       refine: 'Kicking off…',
@@ -132,7 +130,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'OK NOW HOLD ON 🪖',
       critique: 'Inspector inbound…',
       explain: 'Clearing the throat…',
-      exec: 'Hard stop in four minutes…'
+      barker: 'I don’t know about you, but I am excited…'
     },
     planning: {
       refine: 'Drafting deltas…',
@@ -140,7 +138,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Throwing darts at the diagram 🎯',
       critique: 'Building the findings outline…',
       explain: 'Drafting the chapter plan…',
-      exec: 'Drafting the headline…'
+      barker: 'Drafting the one-pager…'
     },
     syntax_fixer: {
       refine: 'Mending syntax…',
@@ -148,7 +146,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Duct-taping it back together',
       critique: 'Fixing syntax — audit trail updated…',
       explain: 'Smoothing a rough passage…',
-      exec: 'Tightening the deck…'
+      barker: 'Tightening the deck…'
     },
     syntax_repair: {
       refine: 'Re-mending syntax…',
@@ -156,7 +154,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'More duct tape',
       critique: 'Re-opening the syntax finding…',
       explain: 'Revising the rough draft…',
-      exec: 'Re-drafting the deck…'
+      barker: 'Re-drafting the deck…'
     },
     style: {
       refine: 'Tuning the palette…',
@@ -164,7 +162,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'CHAOTIC COLOUR SCHEMES 🔥',
       critique: 'Flagging contrast violations…',
       explain: 'On the history of this hue…',
-      exec: 'One brand colour only.'
+      barker: 'One brand colour only.'
     },
     patch_retry: {
       refine: 'Awaiting CAB approval…',
@@ -172,7 +170,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Bribing the CAB',
       critique: 'Awaiting re-review sign-off…',
       explain: 'Taking another pass…',
-      exec: 'Asking the board for a redraft…'
+      barker: 'Asking the board for a redraft…'
     },
     invoke: {
       refine: 'Patching prod 🛠',
@@ -180,7 +178,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'Setting buildings on fire 🔥',
       critique: 'Logging the generation ticket…',
       explain: 'Narrating the draft…',
-      exec: 'Boarding the jet 🛩️'
+      barker: 'Taking the liberty 🧘'
     },
     invoke_fallback: {
       refine: 'Hotfix in flight…',
@@ -188,7 +186,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'WE PIVOT',
       critique: 'Filing a fallback finding…',
       explain: 'Closing the chapter gracefully…',
-      exec: 'Rerouting the one-pager…'
+      barker: 'Rerouting the one-pager…'
     },
     repair_1: {
       refine: 'Hotfix in flight…',
@@ -196,7 +194,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'More hard hats! 🪖🪖',
       critique: 'Escalating to P1 repair…',
       explain: 'Rewinding the parchment…',
-      exec: 'Sliding the deadline 🗓️'
+      barker: 'Sliding the timeline, warmly 🗓️'
     },
     repair_2: {
       refine: 'Second hotfix in flight…',
@@ -204,7 +202,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
       critique: 'Second escalation — still non-compliant…',
       explain: 'Revising the footnotes…',
-      exec: 'Sliding the deadline again 🗓️🗓️'
+      barker: 'Forming a committee about it 🗓️🗓️'
     }
   },
   IDLE_TIPS: [
@@ -220,7 +218,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
     'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
     'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
-    'The VP runs on synergy, Co-Design, and a hard stop in four minutes. Fair dinkum.'
+    'Jack Barker has taken the liberty of Co-Designing your roadmap. Warmly, mate.'
   ],
   PRESTIGE_TIERS: [
     { threshold: 0, label: 'Slop Trainee', short: 'Trainee' },
@@ -269,10 +267,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🧙 ARCHIVED STORYTELLER',
       subtitle: '10 explanations canonised in the architecture lore. Ripper yarns.'
     },
-    exec: {
-      id: 'serialAligner',
-      title: '👔 SERIAL CO-DESIGNER',
-      subtitle: '10 synergy Co-Designs shipped. The board approves. Good on ya.'
+    barker: {
+      id: 'conjoinedTriangles',
+      title: '🧘 CONJOINED TRIANGLES',
+      subtitle: '10 board-ready simplifications. The family approves. Good on ya.'
     }
   },
   ACHIEVEMENTS: {
@@ -289,7 +287,7 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
     fullStackSlopitect: {
       id: 'fullStackSlopitect',
       title: '🥞 FULL-STACK SLOPITECT',
-      subtitle: 'All five personas in one session. Synergy and Co-Design maximised, mate.'
+      subtitle: 'All six personas in one session. Synergy and Co-Design maximised, mate.'
     },
     prestige: {
       id: 'prestige',
@@ -366,10 +364,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
       title: '🧙 ARCHIVED STORYTELLER',
       subtitle: '10 explanations canonised in the architecture lore. Ripper yarns.'
     },
-    exec: {
-      id: 'serialAligner',
-      title: '👔 SERIAL CO-DESIGNER',
-      subtitle: '10 synergy Co-Designs shipped. The board approves. Good on ya.'
+    barker: {
+      id: 'conjoinedTriangles',
+      title: '🧘 CONJOINED TRIANGLES',
+      subtitle: '10 board-ready simplifications. The family approves. Good on ya.'
     }
   },
   LEVEL_UP_BANNER: {
@@ -390,7 +388,10 @@ export const SLOPITECT_GAMIFICATION_EN_AU = {
   ],
   PROMPT_EASTER_EGGS: [
     { match: /\bblockchain\b/i, toast: '🔗 Slopitect approves. Fair dinkum.' },
-    { match: /\bco[- ]?design/i, toast: '👔 Synergy and Co-Design detected. The VP nods.' },
+    {
+      match: /\bco[- ]?design/i,
+      toast: '🧘 Synergy and Co-Design detected. Jack Barker is thrilled.'
+    },
     { match: /\bsynergy\b/i, toast: '🤝 Synergy detected. +1 Co-Design alignment.' },
     { match: /\bmicroservice/i, toast: '🛎️ One microservice added to the slop, mate.' },
     { match: /\bkubernetes\b|\bk8s\b/i, toast: '☸️ The container has been deployed to your soul.' },

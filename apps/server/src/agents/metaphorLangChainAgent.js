@@ -91,7 +91,8 @@ function buildTransformUserContent({ mode, currentDsl, goMadDepth }) {
     innovate:
       'Innovate on the current metaphor — try a different metaphor type or a fresh angle on the subject. You may switch metaphors.',
     goMad: `Go mad on this metaphor — push the spatial story further (depth ${goMadDepth ?? 1}). Exaggerate, recombine, surprise.`,
-    exec: 'Execute the requested change tightly. No additions beyond the implied scope.'
+    barker:
+      'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   return [
     modeInstructions[mode] ?? modeInstructions.refine,

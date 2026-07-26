@@ -7,7 +7,7 @@ import {
   useMeetingPlayback
 } from '../src/hooks/useMeetingPlayback.js';
 
-const ATTENDEES = ['scrumMaster', 'exec', 'greybeard'];
+const ATTENDEES = ['scrumMaster', 'barker', 'greybeard'];
 
 const SCRIPT = {
   scriptVersion: 1,
@@ -16,7 +16,7 @@ const SCRIPT = {
     { speakerId: 'scrumMaster', kind: 'procedural', text: 'Welcome! Time-boxed to 15.' },
     { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 2009.' },
     {
-      speakerId: 'exec',
+      speakerId: 'barker',
       kind: 'substantive',
       text: 'Merge Discovery and Research.',
       actionPrompt: 'Merge the Discovery and Research nodes'
@@ -100,7 +100,7 @@ describe('useMeetingPlayback', () => {
           json: () =>
             Promise.resolve({
               beats: [
-                { speakerId: 'exec', kind: 'smalltalk', text: 'Great point. Hard stop in four.' }
+                { speakerId: 'barker', kind: 'smalltalk', text: 'Great point. Hard stop in four.' }
               ]
             })
         });

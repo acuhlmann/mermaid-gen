@@ -32,8 +32,8 @@ export const CONTROLS_ZH_TW = {
     unmuteTitle: '耳機已戴上 · 團隊已靜音 · 點擊摘下',
     facilities: '找物業',
     facilitiesTitle: '呼叫物業 · 修好這坨爛圖',
-    prepForVp: '給 VP 準備稿',
-    prepForVpTitle: '給 VP 準備稿 · 送上樓前先熬乾水分'
+    prepForCeo: '給 CEO 準備稿',
+    prepForCeoTitle: '給 CEO 準備稿 · 送上樓前先熬乾水分'
   },
   prompt: {
     yourTopic: '你的主題',
@@ -191,7 +191,7 @@ export const CONTROLS_ZH_TW = {
     refine: '精修 — 潤色標籤與結構',
     innovate: '創新 — 更大膽的重設計',
     goMad: '放飛 — 混沌變換',
-    exec: '高管 — 濃縮要點',
+    barker: 'Barker — 濃縮要點',
     critique: '評審 — 結構化審查',
     explain: '講解 — 這是什麼意思？',
     toggleHelp: '切換此說明',
@@ -295,7 +295,7 @@ export const CONTROLS_ZH_TW = {
     castOneOfMany: '{name} 是 {count} 位相關方之一',
     castSpeaking: '{name} 正在發言',
     castAskCommentary: '請 {name} 點評',
-    align: '給 VP 準備稿',
+    align: '給 CEO 準備稿',
     seniorDivider: '樓上',
     introEyebrow: '👥 圓桌會議已召開',
     introBody:
@@ -412,7 +412,7 @@ export const CONTROLS_ZH_TW = {
       explaining: '正在講解圖表…',
       goingOffScript: '正在放飛…',
       updatingStyle: '正在更新視覺樣式…',
-      simplifyingExec: '正在為高管精簡…',
+      simplifyingBarker: '正在為董事會精簡…',
       workingOnDiagram: '正在處理圖表…',
       workingOnRequest: '正在處理你的請求…'
     },

@@ -3,7 +3,7 @@ import { resolveAdvisorAcceptOperation } from '../src/utils/advisorAcceptRouting
 
 describe('resolveAdvisorAcceptOperation', () => {
   it('routes transform personas when a diagram exists', () => {
-    expect(resolveAdvisorAcceptOperation('exec', true)).toBe('transform');
+    expect(resolveAdvisorAcceptOperation('barker', true)).toBe('transform');
     expect(resolveAdvisorAcceptOperation('refine', true)).toBe('transform');
   });
 
@@ -14,6 +14,6 @@ describe('resolveAdvisorAcceptOperation', () => {
 
   it('falls back to intent without a diagram', () => {
     expect(resolveAdvisorAcceptOperation('critique', false)).toBe('intent');
-    expect(resolveAdvisorAcceptOperation('exec', false)).toBe('intent');
+    expect(resolveAdvisorAcceptOperation('barker', false)).toBe('intent');
   });
 });

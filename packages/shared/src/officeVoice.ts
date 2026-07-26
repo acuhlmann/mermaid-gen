@@ -24,7 +24,6 @@ export const OFFICE_SPEAKER_IDS = [
   'critique',
   'explain',
   // senior
-  'exec',
   'ciso',
   'cto',
   'cfo',

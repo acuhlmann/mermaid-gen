@@ -13,7 +13,7 @@ function buildEntries(copy) {
     { keys: ['R'], label: copy.refine },
     { keys: ['I'], label: copy.innovate },
     { keys: ['M'], label: copy.goMad },
-    { keys: ['X'], label: copy.exec },
+    { keys: ['B'], label: copy.barker },
     { keys: ['C'], label: copy.critique },
     { keys: ['E'], label: copy.explain },
     { keys: ['?'], label: copy.toggleHelp },

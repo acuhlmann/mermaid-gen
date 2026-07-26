@@ -89,8 +89,8 @@ function modeIntentPlanBeat(mode: string | null, requestSnippet: string): string
       return `Polishing the diagram for clarity and structure${req}.`;
     case 'innovate':
       return `Restructuring the diagram with a bolder layout${req}.`;
-    case 'exec':
-      return `Simplifying to an executive-level view${req}.`;
+    case 'barker':
+      return `Taking the liberty of boiling it down for the board${req}.`;
     case 'style':
       return `Updating visual theme and styling without changing structure${req}.`;
     case 'go':

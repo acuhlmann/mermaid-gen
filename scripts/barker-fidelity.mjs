@@ -1,12 +1,14 @@
 #!/usr/bin/env node
 /**
- * Jack Barker fidelity harness (experiment — see plan: senior-tier SV character replication).
+ * Jack Barker fidelity harness (experiment — see docs/recipes/replicate-tv-character.md).
  *
  * Generates Barker content through the REAL office prompt builders
- * (apps/server/src/agents/officePersonas.js) across the surfaces he will occupy —
- * steering-meeting beats, interjection reactions, a rare senior email — then has an
- * LLM judge score each artifact against a Barker rubric. This is the iteration loop
- * for tuning his voice card: edit SENIOR_MEETING_VOICES.barker, re-run, compare scores.
+ * (apps/server/src/agents/officePersonas.js) across the surfaces he occupies —
+ * steering-meeting beats, interjection reactions, a rare senior email — plus his
+ * advisor-seat suggestions (ADVISOR_PERSONAS.barker in advisorPrompts.js, the seat he
+ * inherited from The VP), then has an LLM judge score each artifact against a Barker
+ * rubric. This is the iteration loop for tuning his voice cards: edit
+ * STAKEHOLDER_MEETING_VOICES.barker / ADVISOR_PERSONAS.barker, re-run, compare scores.
  *
  * Usage:
  *   node scripts/barker-fidelity.mjs            # full run: generate + judge + report
@@ -32,6 +34,12 @@ import {
   parseMeetingScript,
   parseMomentReply
 } from '../apps/server/src/agents/officePersonas.js';
+import {
+  buildAdvisorSystemPrompt,
+  buildAdvisorUserPrompt,
+  createAdvisorChatModel,
+  parseAdvisorReply
+} from '../apps/server/src/agents/advisorPrompts.js';
 import { isLlmConfigured } from '../apps/server/src/agents/llmProvider.js';
 import { extractTextContent } from '../apps/server/src/utils/extractTextContent.js';
 
@@ -64,7 +72,7 @@ const FIXTURE = {
   ]
 };
 
-const ATTENDEES = ['scrumMaster', 'barker', 'exec', 'refine'];
+const ATTENDEES = ['scrumMaster', 'barker', 'cto', 'refine'];
 const FACILITATOR = 'scrumMaster';
 
 const INTERJECTIONS = [
@@ -230,6 +238,43 @@ async function main() {
     }
   }
 
+  // --- 4. Advisor-seat suggestions -------------------------------------------------
+  // The seat Barker inherited from The VP: short {suggestion, highlightIds, kind}
+  // replies through the real advisor prompt builders (ADVISOR_PERSONAS.barker).
+  console.log('\n=== 4. ADVISOR SUGGESTIONS (the team seat) ===');
+  const advisorModel = createAdvisorChatModel(process.env, 'barker');
+  if (!advisorModel) {
+    console.error('Advisor chat model unavailable.');
+    process.exitCode = 1;
+  } else {
+    const advisorSystem = buildAdvisorSystemPrompt('barker', FIXTURE.contentType);
+    const lastSuggestions = [];
+    const replies = [];
+    for (let i = 0; i < 3; i += 1) {
+      const advisorUser = buildAdvisorUserPrompt({ ...FIXTURE, lastSuggestions });
+      const raw = await invokeText(advisorModel, advisorSystem, advisorUser);
+      const parsed = parseAdvisorReply(raw, { persona: 'barker' });
+      if (!parsed) {
+        console.log('  PARSE FAILED — raw reply:\n', raw);
+        process.exitCode = 1;
+        continue;
+      }
+      replies.push(parsed);
+      lastSuggestions.push(parsed.suggestion);
+      console.log(
+        `  [${parsed.kind}] ${parsed.suggestion}  (ids: ${parsed.highlightIds.join(', ') || '—'})`
+      );
+    }
+    if (!NO_JUDGE && replies.length > 0) {
+      const scores = await judge(
+        judgeModel,
+        'advisor-seat suggestions about the diagram (short JSON one-liners, subtractive seat)',
+        replies.map((r) => `- [${r.kind}] ${r.suggestion}`).join('\n')
+      );
+      averages.push(printScores('advisor', scores));
+    }
+  }
+
   // --- Report -----------------------------------------------------------------------
   const valid = averages.filter((v) => typeof v === 'number');
   if (valid.length > 0) {
@@ -237,7 +282,9 @@ async function main() {
     console.log(
       `\n=== OVERALL: ${overall.toFixed(2)} / 5 across ${valid.length} judged samples ===`
     );
-    console.log('Target: >= 4.0 sustained. Iterate SENIOR_MEETING_VOICES.barker and re-run.');
+    console.log(
+      'Target: >= 4.0 sustained. Iterate STAKEHOLDER_MEETING_VOICES.barker / ADVISOR_PERSONAS.barker and re-run.'
+    );
   }
 }
 

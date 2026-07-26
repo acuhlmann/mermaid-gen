@@ -13,7 +13,7 @@ import {
   phaseIdLabel
 } from '../src/components/runTimelineModel.js';
 
-const STAKEHOLDER_VARIANTS = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
+const STAKEHOLDER_VARIANTS = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker'];
 
 const SLOT_PREFIXES = ['chart', 'anything', 'metaphor', 'forms'] as const;
 
@@ -57,7 +57,7 @@ describe('phaseLabelResolution', () => {
   });
 
   it('resolves style and repair rows for prefixed ids', () => {
-    expect(resolvePhaseCeremonyRow(PHASE_CEREMONIES, 'chart_style')?.exec).toBe(
+    expect(resolvePhaseCeremonyRow(PHASE_CEREMONIES, 'chart_style')?.barker).toBe(
       'One brand color only.'
     );
     expect(resolvePhaseCeremonyRow(PHASE_CEREMONIES, 'anything_repair_3')?.critique).toMatch(

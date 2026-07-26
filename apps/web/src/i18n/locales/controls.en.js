@@ -34,8 +34,8 @@ export const CONTROLS_EN = {
     unmuteAria: 'Take headphones off — unmute your team',
     muteTitle: 'Your team is hovering · put headphones on',
     unmuteTitle: 'Headphones on · team is muted · click to take them off',
-    prepForVp: 'Prep for the VP',
-    prepForVpTitle: 'Prep for the VP · Boil it down before it goes upstairs'
+    prepForCeo: 'Prep for the CEO',
+    prepForCeoTitle: 'Prep for the CEO · Boil it down before it goes upstairs'
   },
   prompt: {
     yourTopic: 'Your Topic',
@@ -106,8 +106,8 @@ export const CONTROLS_EN = {
       {
         label: 'Coffee supply chain',
         prompt: 'Break down the global coffee supply chain',
-        fromId: 'exec',
-        ask: 'Needs it before the board offsite. Non-negotiable.'
+        fromId: 'barker',
+        ask: 'He took the liberty of promising it to the board.'
       },
       {
         label: 'OAuth 2.0 flow',
@@ -278,7 +278,7 @@ export const CONTROLS_EN = {
     refine: 'Refine — polish labels & structure',
     innovate: 'Innovate — bolder redesign',
     goMad: 'Go Mad — chaos transformation',
-    exec: 'Exec — boil it down',
+    barker: 'Barker — boil it down',
     critique: 'Critique — structured review',
     explain: 'Explain — what does this mean?',
     toggleHelp: 'Toggle this help',
@@ -384,7 +384,7 @@ export const CONTROLS_EN = {
     castOneOfMany: '{name} is one of {count} teammates',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
-    align: 'Prep for the VP',
+    align: 'Prep for the CEO',
     seniorDivider: 'Upstairs',
     teamActionsHeading: 'Your team',
     teammatesDivider: 'Teammates',
@@ -505,7 +505,7 @@ export const CONTROLS_EN = {
       explaining: 'Explaining the diagram…',
       goingOffScript: 'Going off-script…',
       updatingStyle: 'Updating visual style…',
-      simplifyingExec: 'Simplifying for executives…',
+      simplifyingBarker: 'Simplifying for the board…',
       workingOnDiagram: 'Working on the diagram…',
       workingOnRequest: 'Working on your request...'
     },

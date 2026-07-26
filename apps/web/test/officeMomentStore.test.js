@@ -215,7 +215,7 @@ describe('officeMomentStore', () => {
       colleagueId: 'scrumMaster',
       title: 'WG',
       body: 'sync',
-      attendees: ['scrumMaster', 'exec', 'intern']
+      attendees: ['scrumMaster', 'barker', 'intern']
     });
     expect(hasActiveOfficeSurface()).toBe(true);
     dismissOfficeMeetingInvite();

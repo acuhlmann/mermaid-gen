@@ -3,21 +3,23 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import StakeholderCastStrip from '../src/components/StakeholderCastStrip.jsx';
 
-const CAST = ['refine', 'innovate', 'goMad', 'exec', 'critique', 'explain'];
+const CAST = ['refine', 'innovate', 'goMad', 'barker', 'critique', 'explain'];
 
 describe('StakeholderCastStrip', () => {
   afterEach(() => cleanup());
 
   it('renders the team tag and cast avatars when cast has multiple personas', () => {
-    render(<StakeholderCastStrip variants={CAST} activeVariant="exec" />);
+    render(<StakeholderCastStrip variants={CAST} activeVariant="barker" />);
     expect(screen.getByText('Your Team')).toBeTruthy();
-    expect(screen.getByLabelText(/The VP is one of 6 teammates/i)).toBeTruthy();
+    expect(screen.getByLabelText(/Jack Barker is one of 6 teammates/i)).toBeTruthy();
     expect(screen.getByTitle('THE Engineer')).toBeTruthy();
     expect(screen.getByTitle('Chief Innovation Officer')).toBeTruthy();
   });
 
   it('renders nothing for a single-persona cast', () => {
-    const { container } = render(<StakeholderCastStrip variants={['exec']} activeVariant="exec" />);
+    const { container } = render(
+      <StakeholderCastStrip variants={['barker']} activeVariant="barker" />
+    );
     expect(container.querySelector('.stakeholder-cast-strip')).toBeNull();
   });
 
@@ -26,7 +28,7 @@ describe('StakeholderCastStrip', () => {
     render(
       <StakeholderCastStrip
         variants={CAST}
-        activeVariant="exec"
+        activeVariant="barker"
         onSelectVariant={onSelectVariant}
       />
     );

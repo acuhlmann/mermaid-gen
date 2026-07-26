@@ -102,7 +102,7 @@ describe('useAdvisorOrchestrator', () => {
 
   /** Force pickNextPersona to return a specific persona (ADVISOR_ORDER index). */
   function mockPersonaPick(persona) {
-    // Mirrors ADVISOR_ORDER: your team only. `exec` is senior tier and is not
+    // Mirrors ADVISOR_ORDER: your team only. `barker` is senior tier and is not
     // in the proactive rotation (castTiers.js).
     const order = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
     const idx = order.indexOf(persona);
@@ -110,11 +110,11 @@ describe('useAdvisorOrchestrator', () => {
   }
 
   it('surfaces suggestionKind from the API payload', async () => {
-    mockPersonaPick('exec');
+    mockPersonaPick('barker');
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
-        persona: 'exec',
+        persona: 'barker',
         suggestion: 'Just give me three bullets.',
         highlightIds: [],
         kind: 'comment'
@@ -133,11 +133,11 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('reports token usage to onUsage so advisor spend can be billed', async () => {
-    mockPersonaPick('exec');
+    mockPersonaPick('barker');
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
-        persona: 'exec',
+        persona: 'barker',
         suggestion: 'Three boxes total.',
         highlightIds: [],
         usage: { inputTokens: 180, outputTokens: 24 },
@@ -160,10 +160,10 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('does not call onUsage when the server reported no usage', async () => {
-    mockPersonaPick('exec');
+    mockPersonaPick('barker');
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => ({ persona: 'exec', suggestion: 'No usage here.', highlightIds: [] })
+      json: async () => ({ persona: 'barker', suggestion: 'No usage here.', highlightIds: [] })
     });
     const onUsage = vi.fn();
     renderHook(() => useAdvisorOrchestrator(defaultParams({ onUsage })));
@@ -199,11 +199,11 @@ describe('useAdvisorOrchestrator', () => {
   });
 
   it('accept is a no-op for comment-kind bubbles', async () => {
-    mockPersonaPick('exec');
+    mockPersonaPick('barker');
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
-        persona: 'exec',
+        persona: 'barker',
         suggestion: 'I have a hard stop in 4 minutes.',
         highlightIds: [],
         kind: 'comment'
@@ -415,14 +415,14 @@ describe('useAdvisorOrchestrator', () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,
       json: async () => ({
-        persona: 'exec',
+        persona: 'barker',
         suggestion: 'Board-ready summary.',
         highlightIds: []
       })
     });
 
     act(() => {
-      result.current.promptNext({ persona: 'exec' });
+      result.current.promptNext({ persona: 'barker' });
     });
 
     await act(async () => {
@@ -432,7 +432,7 @@ describe('useAdvisorOrchestrator', () => {
     });
 
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
-    expect(body.persona).toBe('exec');
+    expect(body.persona).toBe('barker');
   });
 
   it('includes chart labels in proactive advisor requests', async () => {

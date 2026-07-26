@@ -1,45 +1,55 @@
 # Recipe: replicate a TV character as an office cast member
 
-Playbook for the Silicon Valley character program: how one named character gets replicated into the
-office cast, proven out with Jack Barker (shipped 2026-07-25, fidelity ≈ 4.2/5 sustained). Use this
-for the remaining characters — Richard, Erlich, Gilfoyle, Dinesh, Russ — and any future guest cast.
+Playbook for the Silicon Valley character program: how one named character gets replicated into
+the office cast. Proven out twice with Jack Barker — first as a senior stakeholder (fidelity ≈
+4.2/5 sustained), then by **inheriting The VP's team seat** (2026-07-25): Barker is now the sixth
+radial advisor, simplifying diagrams in his own voice (re-tuned to ≈3.95–4.0/5 on the extended
+harness, which added the harder advisor-suggestions probe). Use this for the remaining characters —
+Richard, Erlich, Russ, Jared — and any future guest cast.
 
 ## Status board
 
-| Character      | Target tier / seat       | Status                                                      |
-| -------------- | ------------------------ | ----------------------------------------------------------- |
-| Jack Barker    | senior (`barker`)        | ✅ Shipped — meetings, senior emails, TTS, face, floor desk |
-| Russ Hanneman  | senior or goMad skin     | ⬜ Next candidate — highest-risk voice (profanity, chaos)   |
-| Erlich Bachman | senior or innovate skin  | ⬜                                                          |
-| Gilfoyle       | office (battle surfaces) | ⬜ Pair with Dinesh — their bickering IS the content        |
-| Dinesh         | office (battle surfaces) | ⬜ Pair with Gilfoyle                                       |
-| Richard        | refine skin (defer)      | ⬜ Best done via the team-seat refactor — he IS the builder |
+| Character      | Target seat / tier              | Status                                                                         |
+| -------------- | ------------------------------- | ------------------------------------------------------------------------------ |
+| Jack Barker    | team — 6th advisor (`barker`)   | ✅ Shipped — advisor seat (ex-`exec`), meetings, emails, TTS, face, desk       |
+| Richard H.     | team — `refine` (the engineer)  | ⬜ Future — user-cast. He IS the builder; see [Endgame](#endgame-the-sv-team)  |
+| Erlich Bachman | team — `innovate` (CIO)         | ⬜ Future — user-cast. Chief Innovation Officer was already his job            |
+| Russ Hanneman  | team — `goMad`                  | ⬜ Future — user-cast. Highest-risk voice (profanity, chaos)                   |
+| Jared Dunn     | team — `critique` (the auditor) | ⬜ Future — user-cast. Anxious compliance energy, has notes                    |
+| Gilfoyle       | office (battle surfaces)        | ⬜ Optional — pair with Dinesh; their bickering IS the content                 |
+| Dinesh         | office (battle surfaces)        | ⬜ Optional — pair with Gilfoyle                                               |
+| `explain` seat | team — the Wise Architect       | ⬜ Unassigned — no SV character cast yet (see [Endgame](#endgame-the-sv-team)) |
 
 Note: **the user is basically Richard** — the fiction casts you as the anxious builder the office
-keeps interrupting. Richard-as-a-seat only makes sense once team seats are skinnable (see
-[Endgame](#endgame-team-seat-skins)).
+keeps interrupting. Richard-as-refine-advisor doesn't break that; the seat is your alter ego
+giving you advice, which is very Richard. No skinnable-seat machinery is needed: each character
+replaces the generic persona id wholesale, the way Barker replaced `exec`.
 
 ## The method (voice card → harness → wire-in)
 
-The experiment proved named-character replication works because the LLM already knows the show.
-The craft is the voice card; the harness proves it; the wire-in is a mechanical ~10-file drill.
+Named-character replication works because the LLM already knows the show. The craft is the voice
+card; the harness proves it; the wire-in is a mechanical drill whose size depends on the tier.
 
 ### 1. Pick the tier (decides the touch list)
 
-- **senior** (Barker, Russ, Erlich): steering meetings + ≤1 canned email/session. Smallest surface,
-  richest dialogue. Add to `SENIOR_MEETING_VOICES` + `SENIOR_STAKEHOLDERS` + `MEETING_SENIOR_POOL` +
-  `SENIOR_EMAIL_TEMPLATES`.
+- **team** (Richard→refine, Erlich→innovate, Russ→goMad, Jared→critique): the character INHERITS
+  an existing advisor seat — the generic persona id is retired and the character id takes over
+  everything the seat touched, including the transform/analyze behavior and the wire enum. This is
+  the seat-inheritance drill below; Barker proved it on the `exec` seat. ~40 files, mostly
+  mechanical, plus real prompt-craft on the behavior blocks.
+- **senior** (a future guest exec): steering meetings + ≤1 canned email/session. Smallest surface,
+  richest dialogue. Add to `SENIOR_MEETING_VOICES` + `SENIOR_STAKEHOLDERS` + `MEETING_SENIOR_POOL`
+  - `SENIOR_EMAIL_TEMPLATES`.
 - **office** (Gilfoyle, Dinesh): emails, IMs, walk-bys, coffee, **cubicle battles**. Bigger drill:
   `OFFICE_COLLEAGUES` (server + client), the `OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` arrays, canned
   template banks, `canJoinMeetings`. Pick this when the character lives in the day-to-day.
-- **team** (Richard, Erlich-as-CIO, Russ-as-goMad): NOT a drill — those ids drive real agent
-  behavior (`ADVISOR_PERSONAS` in `apps/server/src/agents/advisorPrompts.js` + the radial menu).
-  Don't replace them; wait for seat skins ([Endgame](#endgame-team-seat-skins)).
 
 ### 2. Write the voice card (server, the core artifact)
 
-Add the entry in `apps/server/src/agents/officePersonas.js` (`SENIOR_MEETING_VOICES` or
-`OFFICE_COLLEAGUES`). Barker's card is the template. Lessons burned in:
+Add the entry in `apps/server/src/agents/officePersonas.js` (`STAKEHOLDER_MEETING_VOICES`,
+`SENIOR_MEETING_VOICES`, or `OFFICE_COLLEAGUES`) — for team seats also rewrite
+`ADVISOR_PERSONAS.<seat>` in `apps/server/src/agents/advisorPrompts.js`. Barker's cards are the
+template. Lessons burned in:
 
 - **Name the character and the show** ("You are Jack Barker from HBO's Silicon Valley") — this does
   ~80% of the fidelity work.
@@ -51,6 +61,12 @@ Add the entry in `apps/server/src/agents/officePersonas.js` (`SENIOR_MEETING_VOI
 - Include: speech mechanics, values, a "would never" list, a catchphrase **budget** (max one per
   few lines), and how they treat others. The builders add the app rules (voice-not-topic, strict
   JSON, visible-label references) themselves.
+- **Team seats: keep the seat's behavior spec, change only the voice.** The seat's contract
+  (Barker: subtractive-only suggestions, ~1 in 5 deliberately too far, ~1 in 3 pure comment;
+  refine: always actionable; critique: findings only; goMad: escalation with diagram-type roulette)
+  lives in the persona block — port the skeleton verbatim, re-skin the voice, keep temperatures
+  and ratios. The wire validators (`mermaidTransformPolicy.ts` etc.) enforce the same budgets by
+  mode id, so renaming the mode renames the budget with it.
 - Keep the app's comedy contract: never mean, never blocking. Russ's profanity becomes innuendo
   ("this guy SHIPS" energy, tres commas, tequila, mocks synergy) — `MeetingScriptSchema` content
   policy will catch explicit content anyway.
@@ -58,16 +74,19 @@ Add the entry in `apps/server/src/agents/officePersonas.js` (`SENIOR_MEETING_VOI
 ### 3. Tune against the fidelity harness
 
 `node scripts/barker-fidelity.mjs [--no-judge]` generates meeting beats, interjection reactions,
-and an email through the real prompt builders, then LLM-judges 1–5 on recognizability, voice
-mechanics, catchphrase budget, in-world fit. It needs an LLM key in `.env` (a few cents per run)
-and is deliberately not in `npm test`.
+an email, and advisor-seat suggestions through the real prompt builders, then LLM-judges 1–5 on
+recognizability, voice mechanics, catchphrase budget, in-world fit. It needs an LLM key in `.env`
+(a few cents per run) and is deliberately not in `npm test`.
 
 The script is Barker-tuned: generalize by parameterizing the speaker id, attendee list, and the
 rubric paragraph at the top (or copy it per character — fine for a handful of runs). Iterate the
 card until ≥4/5 **sustained over two consecutive runs** (generation temp is 0.95 — single runs are
-noisy; don't chase one judge's nitpick, watch for repeat complaints across runs).
+noisy; don't chase one judge's nitpick, watch for repeat complaints across runs). Barker's seat
+run plateaued at ≈3.95–4.0: once judge notes start contradicting each other across runs (asks for
+a catchphrase, then calls it on-the-nose), you're at the noise ceiling — `recog`/`voice` axes are
+the stable signal, `world`/`budget` swing with generation luck. Stop there.
 
-### 4. Wire-in drill (every tier)
+### 4a. Wire-in drill (senior / office tiers)
 
 - `packages/shared/src/officeVoice.ts` — add the id to `OFFICE_SPEAKER_IDS`, then
   `npm run build -w packages/shared` (server/web consume shared via `dist/`).
@@ -84,18 +103,60 @@ noisy; don't chase one judge's nitpick, watch for repeat complaints across runs)
   distinct combo (asserted by `apps/web/test/personaFaces.test.jsx`). Stylized traits only, never
   actor likeness.
 - `apps/web/src/utils/officeFloorPlan.js` — a `FLOOR_SEATS` row; widen the zone rect if the row is
-  full (leadership went 9.7 → 10.7 for Barker). Guarded by `apps/web/test/officeFloorPlan.test.js`.
+  full (leadership went 9.7 → 10.7 for Barker, back to 9.7 when he took The VP's seat). Guarded by
+  `apps/web/test/officeFloorPlan.test.js`.
 - `apps/web/src/utils/officeCast.js` — display card (`SENIOR_STAKEHOLDERS` or `OFFICE_COLLEAGUES`:
   name, title, blurb, avatarEmoji, accentColor) + tier extras (`MEETING_SENIOR_POOL`,
   `SENIOR_EMAIL_TEMPLATES`, or the office LLM-cast arrays + canned banks).
 
-### 5. i18n mirrors (easy to forget — `officeLocale.test.js` guards it)
+### 4b. Seat-inheritance drill (team tier — Barker proved this)
+
+The character id **replaces** the retired persona id everywhere; behavior specs travel with the
+seat. In priority order (the full worked example is the Barker/exec change itself — see
+`docs/agents/barker-seat-inheritance-plan.md`):
+
+1. **Wire contract, both sides in one change** (AGENTS.md rule): `TransformModeSchema` in
+   `packages/shared/src/diagramSchema.ts`, the policy branches in `mermaidTransformPolicy.ts` /
+   `infographicTransformPolicy.ts` (mode string + any `*_MAX_NODES` consts), then
+   `npm run build -w packages/shared`. Constraint-error message strings can stay generic
+   ("Executive simplify…") — the retry regex keys off the phrase, not the persona.
+2. **Server behavior blocks**: `ADVISOR_PERSONAS` (advisorPrompts.js), the transform-mode branch +
+   `TRANSFORM_MODE_MODEL` temps (mermaidAnalysisPrompts.js), the mode keys in the per-content-type
+   agents (anything/chart/forms/metaphor/infographic `modeInstructions` +
+   `infographicTransformPrompts.js` + `INFOGRAPHIC_TRANSFORM_PERSONAS`), `planBeatMessages.ts`.
+   Keep temps, ratios, node budgets — re-voice only.
+3. **Meeting voice card**: move the character's card into `STAKEHOLDER_MEETING_VOICES`
+   (officePersonas.js); remove the retired persona's card. `isOfficeSpeaker`/`speakerVoice`/
+   `normalizeAttendees` are table-driven — no logic changes.
+4. **Client copy bank** (slopitectCopy.js): `VARIANT_PERSONAS`, `VARIANT_QUOTES`, all
+   `PHASE_CEREMONIES` rows, `VARIANT_TAGLINES`, `VARIANT_BOOT_HEADLINES`,
+   `VARIANT_MASTERY_ACHIEVEMENTS`. Then `runGamificationStore.js` `VARIANTS` (the seat earns XP).
+5. **Surfaces**: radial action (`buildRadialActions.jsx` + `controls.*` label keys),
+   hotkey (`useDiagramHotkeys.js` + `HotkeyOverlay.jsx`), mascot roster
+   (`DeskBottomActionsSlot.jsx`), `ADVISOR_ORDER` comment (useAdvisorOrchestrator.js — senior-tier
+   seats stay OUT of the proactive roundtable), ceremony palette + `knownVariants`
+   (useRunCeremony.js), insights class maps + `insightsPaneEntryUi.js`, `advisorAcceptRouting.js`,
+   `insightRetryDescriptor.js`, `insightNowStatus.js` + `insightStatusLocale.js`,
+   `PlanBeatCard.tsx` emoji, App.css `is-*`/`is-variant-*` accents.
+6. **Senior-tier trappings** if the seat is senior-tier like Barker's: `MEETING_SENIOR_POOL`,
+   `SENIOR_EMAIL_TEMPLATES` (retire the old persona's canned emails), `castTiers.js`,
+   TTS/narration/faces/floor rows for the retired id (delete; the character already has his).
+7. **i18n mirrors** — see §5; every renamed key (`prepForCeo`, `hotkeys.barker`,
+   `simplifyingBarker`, mastery id) exists in all locale files or `uiLocale.test.js` fails.
+8. **Tests**: ~25 files reference the persona id in fixtures — sweep
+   `grep -rn "oldId" apps/*/test` and update.
+
+### 5. i18n mirrors (easy to forget — `officeLocale.test.js` / `uiLocale.test.js` guard it)
 
 Every canned-template entry must be mirrored in `apps/web/src/i18n/locales/office.en-AU.js`,
 `office.zh-CN.js`, `office.zh-TW.js` with ids and `colleagueId`s aligned, `{label}`/`{userTitle}`
 slots preserved, and zh fully translated. zh bundles also localize `SENIOR_STAKEHOLDERS`
 title/blurb (names stay Latin); en-AU doesn't have that section. LLM-generated dialogue needs no
 i18n work — the language rule in `officePersonas.js` handles it.
+
+For team seats add: `slopitect.{en-AU,zh-CN,zh-TW}.js` (persona block, tagline, boot headline),
+`slopitectGamification.*.js` (quotes, all 14 phase-ceremony rows, mastery + achievements blocks),
+`controls.*.js` (action labels, hotkeys, `nowStatus`).
 
 ### 6. Verify
 
@@ -104,31 +165,34 @@ i18n work — the language rule in `officePersonas.js` handles it.
 2. `npm run precommit` — must exit 0 (format, typecheck, lint, boundaries, affected tests).
 3. Live smoke: `npm run dev`, Call-a-meeting picker → seat the character → interject once. Route
    level: `POST /api/office/meeting` with the id in `attendees`, `POST /api/office/speak` for TTS.
+   Team seats also: radial menu → run their transform/analyze on a real diagram.
 4. `node scripts/barker-fidelity.mjs` (or its successor) — final report goes in the PR description.
 
 ## Guardrails that apply to every character
 
 - **ADR-0010** (`docs/decisions/0010-cast-agency-sign-off.md`): the cast comments, pitches, and
   chats — it never produces diagram content or schedules its own runs. A character that "fixes
-  your diagram" breaks the tool and the parody.
+  your diagram" breaks the tool and the parody. (The transform seats are the sanctioned exception:
+  the USER invokes them; the character never fires itself.)
 - Senior tier never pings ambiently (`OFFICE_{WALKBY,EMAIL,IM}_LLM_CAST` and the day-to-day canned
   banks stay team+office only); their one ambient outlet is `SENIOR_EMAIL_TEMPLATES`, capped at 1
-  per session.
+  per session. Senior-tier advisor seats (Barker) also stay out of the proactive roundtable —
+  summoned only, via radial / hotkey / mascot.
 - Doc upkeep: add the character to the cast tables + a note in `docs/office-parody.md` (Barker's
   experiment note there is the template).
 
-## Endgame: team-seat skins
+## Endgame: the SV team
 
-The user's destination is "choose your own team": SV characters in the five team seats, unchosen
-characters demoted to office participants, a default team preserved. Today seat and character are
-the same id, fused across `CAST_TIERS`, `VARIANT_PERSONAS` (`apps/web/src/utils/slopitectCopy.js`),
-`ADVISOR_PERSONAS` (`apps/server/src/agents/advisorPrompts.js`), TTS tables, i18n, floor, faces,
-and the canned banks — and team ids drive real agent behavior (transform/analyze flows), so a
-naive "rename the persona" change hits the product's core, not just the ambience layer.
+The destination, as cast by the user: **Richard → `refine`** (the engineer), **Erlich →
+`innovate`** (Chief Innovation Officer), **Russ → `goMad`**, **Jared → `critique`** (the auditor),
+**Barker → the sixth seat** (shipped). One character at a time, each a seat-inheritance drill
+(§4b): retire the generic persona id, port the behavior skeleton, re-voice, tune against the
+harness. Gilfoyle + Dinesh stay optional office-tier work (battle surfaces, not seats).
 
-The shape that works: split **seat** (functional role: builder=refine, innovator=innovate,
-chaos=goMad, auditor=critique, sage=explain — keeps the agent behavior) from **character** (skin:
-voice card, display data, face, TTS fingerprint — swappable per seat, persisted as a user setting).
-Natural mapping: Richard→refine, Erlich→innovate, Russ→goMad, Gilfoyle→critique, Dinesh→snark
-seat TBD (weakest fit for explain's sage voice), Barker→exec (senior, presenting-to dynamic —
-already shipped). Design that when at least one more replication has landed; do not pre-build it.
+Open questions to decide when the next seat lands:
+
+- **`explain` (the Wise Architect)** has no SV casting yet. Candidates: drop the seat when the
+  four above are shipped, or cast a guest (Jian-Yang? Monica? — Monica fits the sage voice best).
+- **Richard vs the user** — the fiction already casts the user as the anxious builder. If
+  Richard-the-advisor feels redundant, Richard can instead narrate the "you" seat (floor tile,
+  meeting presenter label). Decide with a prototype, not a refactor.

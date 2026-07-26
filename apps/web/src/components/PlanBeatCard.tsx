@@ -16,7 +16,7 @@ const VARIANT_ICONS: Record<string, string> = {
   goMad: '🎲',
   critique: '🔍',
   explain: '📖',
-  exec: '📊',
+  barker: '🧘',
   style: '🎨',
   intent: '➡️',
   general: '▸'

@@ -67,12 +67,13 @@ test('transform mode picks increasing temperatures', () => {
   assert.ok(transformModeModelOptions('goMad').topP >= TRANSFORM_MODEL_LIMITS.topP);
   assert.equal(transformModeModelOptions('goMad').maxTokens, GO_MAD_TRANSFORM_MAX_TOKENS);
   assert.ok(GO_MAD_TRANSFORM_MAX_TOKENS < TRANSFORM_MODEL_LIMITS.maxTokens);
-  // exec is the focused, subtractive mode — lower temperature than refine so the
-  // VP doesn't get creative and start adding boxes.
+  // barker is the focused, subtractive mode — lower temperature than refine so
+  // Jack doesn't get creative and start adding boxes.
   assert.ok(
-    transformModeModelOptions('exec').temperature < transformModeModelOptions('refine').temperature
+    transformModeModelOptions('barker').temperature <
+      transformModeModelOptions('refine').temperature
   );
-  assert.equal(transformModeModelOptions('exec').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
+  assert.equal(transformModeModelOptions('barker').maxTokens, TRANSFORM_MODEL_LIMITS.maxTokens);
 });
 
 test('goMadTransformModelOptions ramps temperature and topP with depth', () => {
@@ -156,13 +157,13 @@ test('buildTransformUserContent ignores goMadDepth for refine', () => {
   assert.doesNotMatch(text, /GO MAD escalation/);
 });
 
-test('buildTransformUserContent emits exec policy that is subtractive only', () => {
+test('buildTransformUserContent emits barker policy that is subtractive only', () => {
   const text = buildTransformUserContent({
-    mode: 'exec',
+    mode: 'barker',
     diagramSource: 'flowchart TD\n  A --> B',
     focusScope: ''
   });
-  assert.match(text, /EXEC/);
+  assert.match(text, /BARKER/);
   assert.match(text, /Subtractive only/i);
   assert.match(text, /SAME diagram type/i);
   assert.doesNotMatch(text, /GO MAD escalation/);

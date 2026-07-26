@@ -17,8 +17,8 @@ test('buildAnythingTransformUserContent includes advisor prompt', () => {
   assert.match(body, /Start button/);
 });
 
-test('buildAnythingTransformUserContent prefers targeted edits for refine and exec', () => {
-  for (const mode of ['refine', 'exec']) {
+test('buildAnythingTransformUserContent prefers targeted edits for refine and barker', () => {
+  for (const mode of ['refine', 'barker']) {
     const body = buildAnythingTransformUserContent({ mode, currentHtml: HTML });
     assert.match(body, /apply_anything_edit/, `${mode} should prefer apply_anything_edit`);
     assert.match(body, /Fall back to apply_anything_patch/);

@@ -209,13 +209,6 @@ export const OFFICE_ZH_CN = {
       body: '密码现须包含 16 个字符、一个表情符号、一个质数,以及一个已弃用协议的亡魂。密码不得包含:单词、数字或字符。\n\n你当前的密码在 4 项检查中挂了 11 项。某种意义上,令人佩服。\n\nSasha'
     },
     {
-      id: 'email-exec-board-preread',
-      colleagueId: 'exec',
-      subject: '需要预读材料:董事会会问到 {label}',
-      body: '各位 — 董事会外出会议就在周四,我需要一份关于 {label} 的一页纸报告。一页。就一页。装不进一页的不是战略,是爱好。\n\n四分钟后有硬停,\nThe VP',
-      actionPrompt: '把图简化到最核心的三个要素'
-    },
-    {
       id: 'email-cfo-cloud-spend',
       colleagueId: 'cfo',
       subject: '已标记:无法解释的预算项("{label}")',

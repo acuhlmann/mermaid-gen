@@ -49,12 +49,12 @@ export const SLOPITECT_ZH_TW = {
       entryLine: '請想像…',
       exitLine: '架構已講清 📜'
     },
-    exec: {
-      name: '副總裁',
-      title: '協同與協同設計資深副總裁',
-      tagline: '為董事會濃縮協同與協同設計。',
-      entryLine: '正在協同設計北極星…',
-      exitLine: '協同設計完成 ✅'
+    barker: {
+      name: 'Jack Barker',
+      title: 'CEO — 成功劇場',
+      tagline: '很高興為董事會把圖濃縮。',
+      entryLine: '不知道你們怎樣，反正我很興奮……',
+      exitLine: '已濃縮。三角對齊 🧘'
     }
   },
   VARIANT_TAGLINES: {
@@ -63,7 +63,7 @@ export const SLOPITECT_ZH_TW = {
     goMad: '爛圖建築師：天才放飛 🚨',
     critique: '爛圖建築師：協同設計合規評審',
     explain: '爛圖建築師：協同設計故事會',
-    exec: '爛圖建築師：協同與協同設計模式',
+    barker: '爛圖建築師：成功劇場模式',
     fix: '爛圖建築師：現場工頭修復爛圖'
   },
   VARIANT_BOOT_HEADLINES: {
@@ -72,7 +72,7 @@ export const SLOPITECT_ZH_TW = {
     goMad: '砰！爛圖建築師來了',
     critique: '協同設計評審即將開始',
     explain: '協同設計故事會 — 圍過來',
-    exec: '協同與協同設計進行中…'
+    barker: 'Jack Barker 正在越權代勞……'
   },
   ACTION_PERSONA_SHORT_NAMES: {
     refine: '工程師',

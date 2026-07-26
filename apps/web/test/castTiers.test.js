@@ -112,7 +112,7 @@ describe('normalizeMeetingRoster', () => {
       'refine',
       'critique',
       'explain',
-      'exec'
+      'barker'
     ]);
     expect(many[0]).toBe('scrumMaster');
     expect(many.length).toBe(MEETING_ROSTER_MAX);
@@ -127,7 +127,7 @@ describe('listMeetingDirectory', () => {
   it('lists every tier so the picker can grab anyone', () => {
     const rows = listMeetingDirectory();
     expect(rows.some((row) => row.id === 'facilities' && row.tier === 'office')).toBe(true);
-    expect(rows.some((row) => row.id === 'exec' && row.tier === 'senior')).toBe(true);
+    expect(rows.some((row) => row.id === 'barker' && row.tier === 'senior')).toBe(true);
     expect(rows.some((row) => row.id === 'refine' && row.tier === 'team')).toBe(true);
   });
 });

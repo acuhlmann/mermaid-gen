@@ -410,7 +410,7 @@ describe('MeetingOverlay', () => {
   const PLAYING_MEETING = {
     state: 'playing',
     title: 'WG: Diagram Governance Sync (recurring)',
-    attendees: ['scrumMaster', 'exec', 'greybeard'],
+    attendees: ['scrumMaster', 'barker', 'greybeard'],
     facilitatorId: 'scrumMaster',
     completed: false,
     interjectionsLeft: 2,
@@ -463,7 +463,7 @@ describe('MeetingOverlay', () => {
       transcript: [
         ...PLAYING_MEETING.transcript,
         {
-          speakerId: 'exec',
+          speakerId: 'barker',
           kind: 'substantive',
           text: 'Merge Discovery and Research.',
           actionPrompt: 'Merge the Discovery and Research nodes'

@@ -1,5 +1,5 @@
 /** Transform modes runnable via `runTransform` (diagram must be non-empty). */
-export const ADVISOR_TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'exec']);
+export const ADVISOR_TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'barker']);
 
 /** Analyze kinds runnable via `runAnalyze` (diagram must be non-empty). */
 export const ADVISOR_ANALYZE_KINDS = new Set(['critique', 'explain']);

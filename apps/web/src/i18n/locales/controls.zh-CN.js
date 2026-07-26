@@ -32,8 +32,8 @@ export const CONTROLS_ZH_CN = {
     unmuteTitle: '耳机已戴上 · 团队已静音 · 点击摘下',
     facilities: '找物业',
     facilitiesTitle: '呼叫物业 · 修好这坨烂图',
-    prepForVp: '给 VP 准备稿',
-    prepForVpTitle: '给 VP 准备稿 · 送上楼前先熬干水分'
+    prepForCeo: '给 CEO 准备稿',
+    prepForCeoTitle: '给 CEO 准备稿 · 送上楼前先熬干水分'
   },
   prompt: {
     yourTopic: '你的主题',
@@ -191,7 +191,7 @@ export const CONTROLS_ZH_CN = {
     refine: '精修 — 润色标签与结构',
     innovate: '创新 — 更大胆的重设计',
     goMad: '放飞 — 混沌变换',
-    exec: '高管 — 浓缩要点',
+    barker: 'Barker — 浓缩要点',
     critique: '评审 — 结构化审查',
     explain: '讲解 — 这是什么意思？',
     toggleHelp: '切换此帮助',
@@ -295,7 +295,7 @@ export const CONTROLS_ZH_CN = {
     castOneOfMany: '{name} 是 {count} 位相关方之一',
     castSpeaking: '{name} 正在发言',
     castAskCommentary: '请 {name} 点评',
-    align: '给 VP 准备稿',
+    align: '给 CEO 准备稿',
     seniorDivider: '楼上',
     introEyebrow: '👥 圆桌会议已召开',
     introBody:
@@ -412,7 +412,7 @@ export const CONTROLS_ZH_CN = {
       explaining: '正在讲解图表…',
       goingOffScript: '正在放飞…',
       updatingStyle: '正在更新视觉样式…',
-      simplifyingExec: '正在为高管精简…',
+      simplifyingBarker: '正在为董事会精简…',
       workingOnDiagram: '正在处理图表…',
       workingOnRequest: '正在处理你的请求…'
     },

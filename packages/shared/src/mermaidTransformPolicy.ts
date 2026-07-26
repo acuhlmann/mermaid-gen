@@ -1,9 +1,9 @@
 import { countMermaidGraphElements, inferMermaidTopKeyword } from './mermaidGraphMetrics.js';
 
-const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'exec']);
+const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'barker']);
 
-const EXEC_MAX_NODES = 8;
-const EXEC_MAX_EDGES = 10;
+const BARKER_MAX_NODES = 8;
+const BARKER_MAX_EDGES = 10;
 
 /**
  * @param {string | null | undefined} message
@@ -43,23 +43,23 @@ export function validateMermaidTransformConstraint(opts: {
   const afterGraph = countMermaidGraphElements(after);
   const depth = Math.min(12, Math.max(1, Math.trunc(Number(opts.goMadDepth) || 1)));
 
-  if (mode === 'exec') {
+  if (mode === 'barker') {
     if (beforeType !== 'diagram' && afterType !== 'diagram' && beforeType !== afterType) {
       return {
         ok: false,
         error: `Executive simplify must keep diagram type "${beforeType}" (got "${afterType}").`
       };
     }
-    if (afterGraph.nodes > EXEC_MAX_NODES) {
+    if (afterGraph.nodes > BARKER_MAX_NODES) {
       return {
         ok: false,
-        error: `Executive simplify targets at most ${EXEC_MAX_NODES} nodes (got ${afterGraph.nodes}).`
+        error: `Executive simplify targets at most ${BARKER_MAX_NODES} nodes (got ${afterGraph.nodes}).`
       };
     }
-    if (afterGraph.edges > EXEC_MAX_EDGES) {
+    if (afterGraph.edges > BARKER_MAX_EDGES) {
       return {
         ok: false,
-        error: `Executive simplify targets at most ${EXEC_MAX_EDGES} edges (got ${afterGraph.edges}).`
+        error: `Executive simplify targets at most ${BARKER_MAX_EDGES} edges (got ${afterGraph.edges}).`
       };
     }
     if (afterGraph.nodes > beforeGraph.nodes) {

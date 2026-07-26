@@ -106,7 +106,8 @@ export function buildChartTransformUserContent({
     innovate:
       'Innovate on the current chart — try a different mark/encoding combination or reshape the data presentation. You may switch chart families.',
     goMad: `Go mad on this chart — push the data viz further (depth ${goMadDepth ?? 1}). Layered marks, faceted views, exaggerated encodings.`,
-    exec: 'Execute the requested change tightly. No additions beyond the implied scope.'
+    barker:
+      'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   return [
     modeInstructions[mode] ?? modeInstructions.refine,

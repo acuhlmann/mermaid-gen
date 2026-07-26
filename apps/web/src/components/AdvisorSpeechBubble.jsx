@@ -17,7 +17,7 @@ const PERSONA_CLASS = {
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain',
-  exec: 'is-exec'
+  barker: 'is-barker'
 };
 
 function IconChevronLeft() {

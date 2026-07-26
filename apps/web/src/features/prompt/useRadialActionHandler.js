@@ -75,7 +75,7 @@ export function useRadialActionHandler({
         action.id === 'goMad' ||
         action.id === 'critique' ||
         action.id === 'explain' ||
-        action.id === 'exec'
+        action.id === 'barker'
           ? action.id
           : null;
       if (variantForBoot) {
@@ -89,7 +89,7 @@ export function useRadialActionHandler({
       if (action.id === 'refine') runTransform('refine', runOpts);
       else if (action.id === 'innovate') runTransform('innovate', runOpts);
       else if (action.id === 'goMad') runTransform('goMad', runOpts);
-      else if (action.id === 'exec') runTransform('exec', runOpts);
+      else if (action.id === 'barker') runTransform('barker', runOpts);
       else if (action.id === 'critique') runAnalyze('critique', runOpts);
       else if (action.id === 'explain') runAnalyze('explain', runOpts);
       else if (action.id === 'fix') handleFixFromCritique('all');

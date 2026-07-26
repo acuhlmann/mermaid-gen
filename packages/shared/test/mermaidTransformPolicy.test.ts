@@ -13,10 +13,10 @@ const BUSY_FLOW =
   '  D --> E[Operate]\n' +
   '  E --> F[Retire]';
 
-test('exec rejects added nodes', () => {
+test('barker rejects added nodes', () => {
   const after = `${BUSY_FLOW}\n  F --> G[Extra]`;
   const result = validateMermaidTransformConstraint({
-    transformMode: 'exec',
+    transformMode: 'barker',
     beforeSource: BUSY_FLOW,
     afterSource: after
   });
@@ -24,10 +24,10 @@ test('exec rejects added nodes', () => {
   assert.match(result.error, /subtractive only/i);
 });
 
-test('exec rejects relabel-only on large diagrams', () => {
+test('barker rejects relabel-only on large diagrams', () => {
   const after = BUSY_FLOW.replace(/Acquire/g, 'Buy');
   const result = validateMermaidTransformConstraint({
-    transformMode: 'exec',
+    transformMode: 'barker',
     beforeSource: BUSY_FLOW,
     afterSource: after
   });
@@ -35,22 +35,22 @@ test('exec rejects relabel-only on large diagrams', () => {
   assert.match(result.error, /remove nodes or edges/i);
 });
 
-test('exec accepts merge that drops nodes', () => {
+test('barker accepts merge that drops nodes', () => {
   const after =
     'flowchart TD\n' + '  A[Acquire] --> B[Build]\n' + '  B --> C[Ship]\n' + '  C --> D[Operate]';
   const result = validateMermaidTransformConstraint({
-    transformMode: 'exec',
+    transformMode: 'barker',
     beforeSource: BUSY_FLOW,
     afterSource: after
   });
   assert.equal(result.ok, true);
 });
 
-test('exec allows label tighten on small diagrams', () => {
+test('barker allows label tighten on small diagrams', () => {
   const before = 'flowchart TD\n  A[Start] --> B[End]';
   const after = 'flowchart TD\n  A[Go] --> B[Done]';
   const result = validateMermaidTransformConstraint({
-    transformMode: 'exec',
+    transformMode: 'barker',
     beforeSource: before,
     afterSource: after
   });

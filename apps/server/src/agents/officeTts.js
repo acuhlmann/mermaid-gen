@@ -68,7 +68,6 @@ const VOICES_BY_LANG = {
     goMad: { name: 'en-US-Wavenet-J', languageCode: 'en-US', speakingRate: 1.14, pitch: 3.5 },
     critique: { name: 'en-US-Wavenet-B', languageCode: 'en-US', speakingRate: 0.88, pitch: -3.5 },
     explain: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.92, pitch: 0.5 },
-    exec: { name: 'en-US-Wavenet-I', languageCode: 'en-US', speakingRate: 0.94, pitch: -2.0 },
     cto: { name: 'en-US-Wavenet-A', languageCode: 'en-US', speakingRate: 1.05, pitch: 1.0 },
     cfo: { name: 'en-US-Wavenet-F', languageCode: 'en-US', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'en-US-Wavenet-C', languageCode: 'en-US', speakingRate: 0.9, pitch: -1.5 }
@@ -86,7 +85,6 @@ const VOICES_BY_LANG = {
     goMad: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 1.14, pitch: 3.0 },
     critique: { name: 'en-AU-Wavenet-D', languageCode: 'en-AU', speakingRate: 0.88, pitch: -3.5 },
     explain: { name: 'en-AU-Wavenet-C', languageCode: 'en-AU', speakingRate: 0.92, pitch: 0.5 },
-    exec: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.94, pitch: -2.0 },
     cto: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 1.05, pitch: 1.0 },
     cfo: { name: 'en-AU-Wavenet-A', languageCode: 'en-AU', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'en-AU-Wavenet-B', languageCode: 'en-AU', speakingRate: 0.9, pitch: -1.5 }
@@ -119,7 +117,6 @@ const VOICES_BY_LANG = {
     goMad: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 1.12, pitch: 3.0 },
     critique: { name: 'cmn-CN-Wavenet-C', languageCode: 'cmn-CN', speakingRate: 0.88, pitch: -3.0 },
     explain: { name: 'cmn-CN-Wavenet-A', languageCode: 'cmn-CN', speakingRate: 0.92, pitch: 0.5 },
-    exec: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.94, pitch: -2.0 },
     cto: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 1.04, pitch: 1.0 },
     cfo: { name: 'cmn-CN-Wavenet-D', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'cmn-CN-Wavenet-B', languageCode: 'cmn-CN', speakingRate: 0.9, pitch: -1.5 }
@@ -152,7 +149,6 @@ const VOICES_BY_LANG = {
     goMad: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 1.12, pitch: 3.0 },
     critique: { name: 'cmn-TW-Wavenet-C', languageCode: 'cmn-TW', speakingRate: 0.88, pitch: -3.0 },
     explain: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.92, pitch: 0.5 },
-    exec: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.94, pitch: -2.0 },
     cto: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 1.04, pitch: 1.0 },
     cfo: { name: 'cmn-TW-Wavenet-A', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -2.0 },
     barker: { name: 'cmn-TW-Wavenet-B', languageCode: 'cmn-TW', speakingRate: 0.9, pitch: -1.5 }
@@ -186,7 +182,6 @@ const NEURAL2_VOICE_NAMES = {
     goMad: 'en-US-Neural2-J',
     critique: 'en-US-Neural2-A',
     explain: 'en-US-Neural2-C',
-    exec: 'en-US-Neural2-I',
     cto: 'en-US-Neural2-A',
     cfo: 'en-US-Neural2-F',
     barker: 'en-US-Neural2-C'
@@ -204,7 +199,6 @@ const NEURAL2_VOICE_NAMES = {
     goMad: 'en-AU-Neural2-D',
     critique: 'en-AU-Neural2-D',
     explain: 'en-AU-Neural2-C',
-    exec: 'en-AU-Neural2-B',
     cto: 'en-AU-Neural2-B',
     cfo: 'en-AU-Neural2-A',
     barker: 'en-AU-Neural2-B'
@@ -235,7 +229,6 @@ const CHIRP3_VOICE_ROSTER = {
   critique: 'Charon',
   explain: 'Aoede',
   // senior
-  exec: 'Orus',
   ciso: 'Charon',
   cto: 'Puck',
   cfo: 'Kore',

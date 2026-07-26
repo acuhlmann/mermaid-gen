@@ -1017,10 +1017,10 @@
   background: rgba(13, 148, 136, 0.1);
 }
 
-.insights-pane-live-meta.is-variant-exec .insights-pane-live-chip.is-action {
-  color: #1e3a8a;
-  border-color: rgba(30, 58, 138, 0.28);
-  background: rgba(30, 58, 138, 0.1);
+.insights-pane-live-meta.is-variant-barker .insights-pane-live-chip.is-action {
+  color: #854d0e;
+  border-color: rgba(202, 138, 4, 0.28);
+  background: rgba(202, 138, 4, 0.1);
 }
 
 .insights-pane-header.is-live {
@@ -7377,11 +7377,11 @@
   --slop-action-glow: rgba(13, 148, 136, 0.3);
 }
 
-.slop-action-button.is-exec,
-.radial-action-button.is-exec {
-  --slop-action-accent: #1e3a8a;
-  --slop-action-accent-2: #94a3b8;
-  --slop-action-glow: rgba(30, 58, 138, 0.28);
+.slop-action-button.is-barker,
+.radial-action-button.is-barker {
+  --slop-action-accent: #ca8a04;
+  --slop-action-accent-2: #facc15;
+  --slop-action-glow: rgba(202, 138, 4, 0.28);
 }
 
 .slop-action-button.is-fix,
@@ -10770,8 +10770,8 @@ button {
 .insights-pane.is-variant-explain {
   border-left-color: rgba(13, 148, 136, 0.35);
 }
-.insights-pane.is-variant-exec {
-  border-left-color: rgba(30, 58, 138, 0.35);
+.insights-pane.is-variant-barker {
+  border-left-color: rgba(202, 138, 4, 0.35);
 }
 
 /* Persona attribution — who is driving this run in the Thinking pane. */
@@ -10858,9 +10858,9 @@ button {
   border-left-color: #0d9488;
   background: linear-gradient(90deg, rgba(13, 148, 136, 0.1), rgba(255, 255, 255, 0.82));
 }
-.insights-entry-persona.is-variant-exec {
-  border-left-color: #1e3a8a;
-  background: linear-gradient(90deg, rgba(30, 58, 138, 0.1), rgba(255, 255, 255, 0.82));
+.insights-entry-persona.is-variant-barker {
+  border-left-color: #ca8a04;
+  background: linear-gradient(90deg, rgba(202, 138, 4, 0.1), rgba(255, 255, 255, 0.82));
 }
 
 .insights-entry-note-agent {

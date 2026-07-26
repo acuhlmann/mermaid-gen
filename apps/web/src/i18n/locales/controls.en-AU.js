@@ -32,8 +32,8 @@ export const CONTROLS_EN_AU = {
     unmuteAria: 'Take headphones off — unmute the mob',
     muteTitle: 'The mob is hovering · put headphones on',
     unmuteTitle: 'Headphones on · mob is muted · click to take them off',
-    prepForVp: 'Prep for the VP',
-    prepForVpTitle: 'Prep for the VP · Boil it down before it goes upstairs'
+    prepForCeo: 'Prep for the CEO',
+    prepForCeoTitle: 'Prep for the CEO · Boil it down before it goes upstairs'
   },
   prompt: {
     yourTopic: 'Your topic, mate',
@@ -97,8 +97,8 @@ export const CONTROLS_EN_AU = {
       {
         label: 'Coffee supply chain',
         prompt: 'Break down the global coffee supply chain',
-        fromId: 'exec',
-        ask: 'Needs it before the board offsite. No wriggle room.'
+        fromId: 'barker',
+        ask: 'He took the liberty of promising it to the board.'
       },
       {
         label: 'OAuth 2.0 flow',
@@ -239,7 +239,7 @@ export const CONTROLS_EN_AU = {
     refine: 'Polish — tidy labels & structure',
     innovate: 'Have a crack — bolder redesign',
     goMad: 'Go troppo — chaos transformation',
-    exec: 'Exec — boil it down',
+    barker: 'Barker — boil it down',
     critique: 'Tear strips — structured review',
     explain: 'Explain — what does this mean?',
     toggleHelp: 'Toggle this help',
@@ -334,7 +334,7 @@ export const CONTROLS_EN_AU = {
     castOneOfMany: '{name} is one of {count} in your mob',
     castSpeaking: '{name} is speaking',
     castAskCommentary: 'Ask {name} for commentary',
-    align: 'Prep for the VP',
+    align: 'Prep for the CEO',
     seniorDivider: 'Upstairs',
     introEyebrow: '👥 Your mob has opinions',
     introBody:
@@ -452,7 +452,7 @@ export const CONTROLS_EN_AU = {
       explaining: 'Explaining the diagram…',
       goingOffScript: 'Going off-script…',
       updatingStyle: 'Updating visual style…',
-      simplifyingExec: 'Simplifying for executives…',
+      simplifyingBarker: 'Simplifying for the board…',
       workingOnDiagram: 'Working on the diagram…',
       workingOnRequest: 'Working on your request...'
     },

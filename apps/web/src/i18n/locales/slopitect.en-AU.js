@@ -49,12 +49,12 @@ export const SLOPITECT_EN_AU = {
       entryLine: 'Picture, if you will…',
       exitLine: 'Architecture explained 📜'
     },
-    exec: {
-      name: 'The VP',
-      title: 'SVP of Synergy & Co-Design',
-      tagline: 'Synergy and Co-Design — boiled down for the board.',
-      entryLine: 'Co-Designing the north star…',
-      exitLine: 'Synergy Co-Designed ✅'
+    barker: {
+      name: 'Jack Barker',
+      title: 'CEO — Success Theater',
+      tagline: 'Thrilled to boil this down for the board.',
+      entryLine: 'I don’t know about you, but I am excited…',
+      exitLine: 'Boiled down. The triangles align 🧘'
     }
   },
   VARIANT_TAGLINES: {
@@ -63,7 +63,7 @@ export const SLOPITECT_EN_AU = {
     goMad: 'Slopitect: GENIUS LOOSE 🚨',
     critique: 'Slopitect: Co-Design compliance review',
     explain: 'Slopitect: Co-Design story time',
-    exec: 'Slopitect: Synergy and Co-Design mode',
+    barker: 'Slopitect: Success Theater mode',
     fix: 'Slopitect: site foreman fixing the slop'
   },
   VARIANT_BOOT_HEADLINES: {
@@ -72,7 +72,7 @@ export const SLOPITECT_EN_AU = {
     goMad: 'BONK! THE SLOPITECT IS HERE',
     critique: 'CO-DESIGN REVIEW INCOMING',
     explain: 'Co-Design story time — gather round',
-    exec: 'Synergy and Co-Design in progress…'
+    barker: 'Jack Barker is taking the liberty…'
   },
   ACTION_PERSONA_SHORT_NAMES: {
     refine: 'Engineer',

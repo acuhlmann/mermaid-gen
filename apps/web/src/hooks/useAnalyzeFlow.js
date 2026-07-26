@@ -80,7 +80,7 @@ export function useAnalyzeFlow({
           refine: controls.actions.refine,
           innovate: controls.actions.innovate,
           goMad: controls.actions.goMad,
-          exec: controls.actions.coDesign
+          barker: controls.actions.coDesign
         };
         const goMadDepth = mode === 'goMad' ? goMadStreak + 1 : undefined;
         const transformTitleVerb =

@@ -29,7 +29,7 @@ describe('useDiagramHotkeys', () => {
       ['m', 'goMad'],
       ['c', 'critique'],
       ['e', 'explain'],
-      ['x', 'exec']
+      ['b', 'barker']
     ]) {
       fireEvent.keyDown(window, { key });
       expect(onAction).toHaveBeenCalledWith({ id }, desc);

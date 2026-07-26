@@ -7,7 +7,7 @@ import {
   OfficeMomentResponseSchema
 } from '../src/officeScript.js';
 
-const ATTENDEES = ['scrumMaster', 'exec', 'greybeard', 'intern'];
+const ATTENDEES = ['scrumMaster', 'barker', 'greybeard', 'intern'];
 
 function beat(overrides: Record<string, unknown> = {}) {
   return {
@@ -57,7 +57,7 @@ test('MeetingScriptSchema parses a valid script', () => {
       beat(),
       beat({ speakerId: 'intern', kind: 'smalltalk', text: 'did everyone see the fridge email' }),
       beat({
-        speakerId: 'exec',
+        speakerId: 'barker',
         kind: 'substantive',
         text: 'Merge Discovery and Research — the board hears one phase.',
         actionPrompt: 'Merge the Discovery and Research nodes into one phase'

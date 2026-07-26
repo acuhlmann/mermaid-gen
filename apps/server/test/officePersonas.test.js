@@ -20,24 +20,29 @@ import {
   STAKEHOLDER_MEETING_VOICES
 } from '../src/agents/officePersonas.js';
 
-const ATTENDEES = ['scrumMaster', 'exec', 'greybeard', 'intern'];
+const ATTENDEES = ['scrumMaster', 'barker', 'greybeard', 'intern'];
 
 test('office colleague registry covers the v1 cast and stakeholders stay separate', () => {
   for (const id of ['intern', 'scrumMaster', 'helpdesk', 'facilities', 'hr', 'greybeard']) {
     assert.equal(isOfficeColleague(id), true, `${id} should be a colleague`);
     assert.ok(OFFICE_COLLEAGUES[id].voice.length > 40, `${id} needs a real voice block`);
   }
-  assert.equal(isOfficeColleague('exec'), false);
-  assert.equal(isOfficeSpeaker('exec'), true);
+  assert.equal(isOfficeColleague('barker'), false);
+  assert.equal(isOfficeSpeaker('barker'), true);
+  assert.equal(isOfficeSpeaker('exec'), false);
   assert.equal(isOfficeSpeaker('ceo'), false);
 });
 
 test('senior stakeholders are valid meeting speakers with real voice blocks', () => {
-  for (const id of ['cto', 'cfo', 'barker']) {
+  for (const id of ['cto', 'cfo']) {
     assert.equal(isOfficeSpeaker(id), true, `${id} should be able to take a seat`);
     assert.equal(isOfficeColleague(id), false, `${id} is not an ambient colleague`);
     assert.ok(SENIOR_MEETING_VOICES[id].voice.length > 40, `${id} needs a real voice block`);
   }
+  // Barker's voice card lives with the six stakeholder voices, not the invented execs.
+  assert.equal(isOfficeSpeaker('barker'), true);
+  assert.equal(isOfficeColleague('barker'), false);
+  assert.ok(STAKEHOLDER_MEETING_VOICES.barker.length > 40, 'barker needs a real voice card');
   // Seated seniors must be introduced by name, not by bare id, in the script prompt.
   const prompt = buildMeetingSystemPrompt({
     attendees: ['scrumMaster', 'cfo', 'refine'],
@@ -46,12 +51,13 @@ test('senior stakeholders are valid meeting speakers with real voice blocks', ()
   assert.match(prompt, /Diane \(CFO/);
   assert.match(prompt, /speakerId "cfo"/);
   assert.match(prompt, /Senior attendees/);
-  // Jack Barker (Silicon Valley replication experiment): named in the prompt, seat-able.
+  // Jack Barker (Silicon Valley replication experiment): the card heading is the bare id
+  // (stakeholder voices have no name/title label), but the voice card itself names him.
   const barkerPrompt = buildMeetingSystemPrompt({
     attendees: ['scrumMaster', 'barker', 'refine'],
     facilitatorId: 'scrumMaster'
   });
-  assert.match(barkerPrompt, /Jack Barker \(CEO/);
+  assert.match(barkerPrompt, /You are Jack Barker from HBO's Silicon Valley, the CEO/);
   assert.match(barkerPrompt, /speakerId "barker"/);
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker', 'refine']), [
     'scrumMaster',
@@ -88,7 +94,7 @@ test('meeting system prompt seats only the attendees and names the facilitator',
   assert.match(prompt, /speakerId "greybeard"/);
   assert.doesNotMatch(prompt, /speakerId "critique"/);
   assert.match(prompt, /procedural beat from "scrumMaster"/);
-  assert.ok(STAKEHOLDER_MEETING_VOICES.exec.includes('Synergy'));
+  assert.ok(STAKEHOLDER_MEETING_VOICES.barker.includes('Success Theater made flesh'));
 });
 
 test('parseMomentReply tolerates fenced JSON and clamps output', () => {
@@ -114,7 +120,7 @@ test('parseMeetingScript massages stray kinds and enforces the attendee allowlis
     { speakerId: 'scrumMaster', kind: 'procedural', text: 'Welcome! Time-boxed to 15.' },
     { speakerId: 'intern', kind: 'vibes', text: 'did everyone see the fridge email' },
     {
-      speakerId: 'exec',
+      speakerId: 'barker',
       kind: 'substantive',
       text: 'Merge Discovery and Research.',
       actionPrompt: 'Merge the Discovery and Research nodes into one phase'
@@ -122,7 +128,7 @@ test('parseMeetingScript massages stray kinds and enforces the attendee allowlis
     { speakerId: 'ghost', kind: 'smalltalk', text: 'I was never invited.' },
     { speakerId: 'greybeard', kind: 'offRails', text: 'We had this diagram in 2009.' },
     { speakerId: 'intern', kind: 'smalltalk', text: 'wait we have a mainframe?' },
-    { speakerId: 'exec', kind: 'smalltalk', text: 'Hard stop in four minutes.' },
+    { speakerId: 'barker', kind: 'smalltalk', text: 'Hard stop in four minutes.' },
     {
       speakerId: 'scrumMaster',
       kind: 'procedural',
@@ -170,22 +176,18 @@ test('parseInterjectReply keeps only attendee beats and caps the tail', () => {
 });
 
 test('normalizeAttendees dedupes, drops unknowns, and enforces seat bounds', () => {
-  assert.deepEqual(normalizeAttendees(['scrumMaster', 'scrumMaster', 'exec', 'nobody', 'intern']), [
-    'scrumMaster',
-    'exec',
-    'intern'
-  ]);
+  assert.deepEqual(
+    normalizeAttendees(['scrumMaster', 'scrumMaster', 'barker', 'nobody', 'intern']),
+    ['scrumMaster', 'barker', 'intern']
+  );
   // Huddle floor: two seats is enough (1:1 + facilitator, or two peers).
-  assert.deepEqual(normalizeAttendees(['scrumMaster', 'exec']), ['scrumMaster', 'exec']);
+  assert.deepEqual(normalizeAttendees(['scrumMaster', 'barker']), ['scrumMaster', 'barker']);
   assert.equal(normalizeAttendees(['scrumMaster']), null);
   // Group ceiling matches the /meeting route (8).
-  assert.deepEqual(normalizeAttendees(['scrumMaster', 'exec', 'intern', 'greybeard', 'critique']), [
-    'scrumMaster',
-    'exec',
-    'intern',
-    'greybeard',
-    'critique'
-  ]);
+  assert.deepEqual(
+    normalizeAttendees(['scrumMaster', 'barker', 'intern', 'greybeard', 'critique']),
+    ['scrumMaster', 'barker', 'intern', 'greybeard', 'critique']
+  );
   // A steering-meeting roster (facilitator + seniors + a team presenter) must survive.
   assert.deepEqual(normalizeAttendees(['scrumMaster', 'cto', 'cfo', 'refine']), [
     'scrumMaster',

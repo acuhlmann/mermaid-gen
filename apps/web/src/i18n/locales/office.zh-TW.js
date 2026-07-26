@@ -209,13 +209,6 @@ export const OFFICE_ZH_TW = {
       body: '密碼現須包含 16 個字元、一個表情符號、一個質數,以及一個已棄用協定的亡魂。密碼不得包含:單字、數字或字元。\n\n你目前的密碼在 4 項檢查中不及格 11 項。就某種意義而言,令人佩服。\n\nSasha'
     },
     {
-      id: 'email-exec-board-preread',
-      colleagueId: 'exec',
-      subject: '需要預讀資料:董事會會問到 {label}',
-      body: '各位 — 董事會外地會議就在週四,我需要一份關於 {label} 的一頁報告。一頁。就一頁。裝不進一頁的不是戰略,是嗜好。\n\n四分鐘後有硬停,\nThe VP',
-      actionPrompt: '把圖簡化到最核心的三個要素'
-    },
-    {
       id: 'email-cfo-cloud-spend',
       colleagueId: 'cfo',
       subject: '已標記:無法解釋的預算項目(「{label}」)',

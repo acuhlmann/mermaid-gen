@@ -115,13 +115,13 @@ export function buildRadialActions({
       personaTitle: actionPersonaTitle('goMad')
     },
     {
-      id: 'exec',
-      label: a.prepForVp ?? a.coDesign,
-      icon: <ActionPersonaIcon variant="exec" />,
-      variant: 'exec',
-      persona: actionPersonaName('exec'),
-      personaEmoji: actionPersonaEmoji('exec'),
-      personaTitle: actionPersonaTitle('exec')
+      id: 'barker',
+      label: a.prepForCeo ?? a.coDesign,
+      icon: <ActionPersonaIcon variant="barker" />,
+      variant: 'barker',
+      persona: actionPersonaName('barker'),
+      personaEmoji: actionPersonaEmoji('barker'),
+      personaTitle: actionPersonaTitle('barker')
     },
     {
       id: 'critique',

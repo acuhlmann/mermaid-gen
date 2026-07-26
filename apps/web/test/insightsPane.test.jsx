@@ -875,7 +875,7 @@ flowchart TB
       <InsightsPane
         entries={[
           {
-            id: 'entry-exec-mode',
+            id: 'entry-barker-mode',
             title: 'Refine — diagram',
             status: 'done',
             content: 'Done.',

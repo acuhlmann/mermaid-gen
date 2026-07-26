@@ -85,14 +85,14 @@ export const VARIANT_PERSONAS = {
     xpAward: 25,
     xpStreakBonus: 5
   },
-  exec: {
-    name: 'The VP',
-    title: 'SVP of Synergy & Co-Design',
-    tagline: 'Synergy and Co-Design — boiled down for the board.',
-    avatarEmoji: '👔',
-    entryLine: 'Co-Designing the north star…',
-    exitLine: 'Synergy Co-Designed ✅',
-    accentColorVar: '#1e3a8a',
+  barker: {
+    name: 'Jack Barker',
+    title: 'CEO — Success Theater',
+    tagline: 'Thrilled to boil this down for the board.',
+    avatarEmoji: '🧘',
+    entryLine: 'I don’t know about you, but I am excited…',
+    exitLine: 'Boiled down. The triangles align 🧘',
+    accentColorVar: '#ca8a04',
     xpAward: 30,
     xpStreakBonus: 6
   }
@@ -184,22 +184,20 @@ export const VARIANT_QUOTES = {
     'Beautiful in theory, awkward in practice — my favorite kind.',
     'Strange but true: this shape is older than the software.'
   ],
-  exec: [
-    'Boil this down for the board.',
-    'Where’s the north star here?',
-    'Just three bullets, please.',
-    'Ladder it up to the OKR.',
-    'Send me the one-pager.',
-    'What does this mean for the customer journey?',
-    'MVP slice only.',
-    'Did you know I have a hard stop in four minutes?',
-    'Synergize the redundancies.',
-    'Circle back at the 30,000-foot view.',
-    'Kill your darlings. Ship the headline.',
-    'This box needs a workshop, not a diagram.',
-    'Are we deciding or just drawing boxes?',
-    'The board wants the headline, not the subgraph.',
-    'Three boxes. That’s the slide.'
+  barker: [
+    'I’ve taken the liberty.',
+    'I don’t know about you, but I am excited.',
+    'We’re a family here.',
+    'The Conjoined Triangles of Success.',
+    'Synergy is not a word. It’s a belief system.',
+    'A diagram that can’t impress a board is a hobby.',
+    'What story does this tell investors?',
+    'Optics beat substance. Warmly.',
+    'I’m thrilled. You’re thrilled. We’re all thrilled.',
+    'Three boxes. That’s the slide.',
+    'Boil it down — the board reads three.',
+    'Success is a theater. Perform it.',
+    'Every box is a value proposition waiting to align.'
   ]
 };
 
@@ -294,7 +292,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Eyeballing the slop 👀',
     critique: 'Opening JIRA…',
     explain: 'Pondering the diagram…',
-    exec: 'Skimming the deck…'
+    barker: 'Admiring the story…'
   },
   analyze_stream: {
     refine: 'Sketching the next step…',
@@ -302,7 +300,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Yelling at it 📣',
     critique: 'Drafting findings…',
     explain: 'Composing the saga…',
-    exec: 'Drafting the one-pager…'
+    barker: 'Boiling it down for the board…'
   },
   intent: {
     refine: 'Aligning intent…',
@@ -310,7 +308,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Skipping the meeting',
     critique: 'Citing the SOC 2 controls',
     explain: 'Aligning intent…',
-    exec: 'Pointing at the north star…'
+    barker: 'Aligning the triangles…'
   },
   agent_run: {
     refine: 'Engineering the next piece…',
@@ -318,7 +316,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'GOING MAD ON YOUR TOPIC',
     critique: 'Filing tickets…',
     explain: 'Annotating the architecture…',
-    exec: 'Boiling it down for the board…'
+    barker: 'Taking the liberty…'
   },
   transform: {
     refine: 'Adding the useful bit…',
@@ -326,7 +324,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Adding wonderfully strange things 🔥',
     critique: 'Red-penning the layout…',
     explain: 'Tracing the reshape…',
-    exec: 'Killing the darlings…'
+    barker: 'Killing the darlings, warmly…'
   },
   run_started: {
     refine: 'Kicking off…',
@@ -334,7 +332,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'OK NOW HOLD ON 🪖',
     critique: 'Inspector inbound…',
     explain: 'Clearing the throat…',
-    exec: 'Hard stop in four minutes…'
+    barker: 'I don’t know about you, but I am excited…'
   },
   planning: {
     refine: 'Drafting deltas…',
@@ -342,7 +340,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Throwing darts at the diagram 🎯',
     critique: 'Building the findings outline…',
     explain: 'Drafting the chapter plan…',
-    exec: 'Drafting the headline…'
+    barker: 'Drafting the one-pager…'
   },
   syntax_fixer: {
     refine: 'Mending syntax…',
@@ -350,7 +348,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Duct-taping it back together',
     critique: 'Fixing syntax — audit trail updated…',
     explain: 'Smoothing a rough passage…',
-    exec: 'Tightening the deck…'
+    barker: 'Tightening the deck…'
   },
   syntax_repair: {
     refine: 'Re-mending syntax…',
@@ -358,7 +356,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'More duct tape',
     critique: 'Re-opening the syntax finding…',
     explain: 'Revising the rough draft…',
-    exec: 'Re-drafting the deck…'
+    barker: 'Re-drafting the deck…'
   },
   style: {
     refine: 'Tuning the palette…',
@@ -366,7 +364,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'CHAOTIC COLOR SCHEMES 🔥',
     critique: 'Flagging contrast violations…',
     explain: 'On the history of this hue…',
-    exec: 'One brand color only.'
+    barker: 'One brand color only.'
   },
   patch_retry: {
     refine: 'Awaiting CAB approval…',
@@ -374,7 +372,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Bribing the CAB',
     critique: 'Awaiting re-review sign-off…',
     explain: 'Taking another pass…',
-    exec: 'Asking the board for a redraft…'
+    barker: 'Asking the board for a redraft…'
   },
   invoke: {
     refine: 'Patching prod 🛠',
@@ -382,7 +380,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'Setting buildings on fire 🔥',
     critique: 'Logging the generation ticket…',
     explain: 'Narrating the draft…',
-    exec: 'Boarding the jet 🛩️'
+    barker: 'Taking the liberty 🧘'
   },
   invoke_fallback: {
     refine: 'Hotfix in flight…',
@@ -390,7 +388,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'WE PIVOT',
     critique: 'Filing a fallback finding…',
     explain: 'Closing the chapter gracefully…',
-    exec: 'Rerouting the one-pager…'
+    barker: 'Rerouting the one-pager…'
   },
   repair_1: {
     refine: 'Hotfix in flight…',
@@ -398,7 +396,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'More hard hats! 🪖🪖',
     critique: 'Escalating to P1 repair…',
     explain: 'Rewinding the parchment…',
-    exec: 'Sliding the deadline 🗓️'
+    barker: 'Sliding the timeline, warmly 🗓️'
   },
   repair_2: {
     refine: 'Second hotfix in flight…',
@@ -406,7 +404,7 @@ export const PHASE_CEREMONIES = {
     goMad: 'EVEN MORE HARD HATS 🪖🪖🪖',
     critique: 'Second escalation — still non-compliant…',
     explain: 'Revising the footnotes…',
-    exec: 'Sliding the deadline again 🗓️🗓️'
+    barker: 'Forming a committee about it 🗓️🗓️'
   }
 };
 
@@ -429,7 +427,7 @@ export const VARIANT_TAGLINES = {
   goMad: 'Slopitect: GENIUS LOOSE 🚨',
   critique: 'Slopitect: Co-Design compliance review',
   explain: 'Slopitect: Co-Design story time',
-  exec: 'Slopitect: Synergy and Co-Design mode',
+  barker: 'Slopitect: Success Theater mode',
   fix: 'Slopitect: site foreman fixing the slop'
 };
 
@@ -439,7 +437,7 @@ export const VARIANT_BOOT_HEADLINES = {
   goMad: 'BONK! THE SLOPITECT IS HERE',
   critique: 'CO-DESIGN REVIEW INCOMING',
   explain: 'Co-Design story time — gather round',
-  exec: 'Synergy and Co-Design in progress…'
+  barker: 'Jack Barker is taking the liberty…'
 };
 
 export const IDLE_TIPS = [
@@ -455,7 +453,7 @@ export const IDLE_TIPS = [
   "A 9-box matrix solves any problem you can't pronounce — Co-Design the tenth box away.",
   'When the CTO asks "is it cloud-native?", the answer is yes — we Co-Designed it that way.',
   'Re-orgs are just architecture refactors with feelings and a synergy offsite.',
-  'The VP runs on synergy, Co-Design, and a hard stop in four minutes.',
+  'Jack Barker has taken the liberty of Co-Designing your roadmap. Warmly.',
   'Slopitect Tip™: "It works on my machine" is not a deployment strategy. It is a lifestyle.',
   'Pivot means we kept the logo and replaced the product. Again.',
   'If your compression algorithm also compresses morale, call it culture.',
@@ -586,10 +584,10 @@ export const VARIANT_MASTERY_ACHIEVEMENTS = {
     title: '🧙 ARCHIVED STORYTELLER',
     subtitle: '10 explanations canonised in the architecture lore.'
   },
-  exec: {
-    id: 'serialAligner',
-    title: '👔 SERIAL CO-DESIGNER',
-    subtitle: '10 synergy Co-Designs shipped. The board approves.'
+  barker: {
+    id: 'conjoinedTriangles',
+    title: '🧘 CONJOINED TRIANGLES',
+    subtitle: '10 board-ready simplifications. The family approves.'
   }
 };
 
@@ -607,7 +605,7 @@ export const ACHIEVEMENTS = {
   fullStackSlopitect: {
     id: 'fullStackSlopitect',
     title: '🥞 FULL-STACK SLOPITECT',
-    subtitle: 'All five personas in one session. Synergy and Co-Design maximised.'
+    subtitle: 'All six personas in one session. Synergy and Co-Design maximised.'
   },
   prestige: {
     id: 'prestige',
@@ -686,7 +684,10 @@ export const CONSOLE_STAMP_LINES = [
 
 export const PROMPT_EASTER_EGGS = [
   { match: /\bblockchain\b/i, toast: '🔗 Slopitect approves.' },
-  { match: /\bco[- ]?design/i, toast: '👔 Synergy and Co-Design detected. The VP nods.' },
+  {
+    match: /\bco[- ]?design/i,
+    toast: '🧘 Synergy and Co-Design detected. Jack Barker is thrilled.'
+  },
   { match: /\bsynergy\b/i, toast: '🤝 Synergy detected. +1 Co-Design alignment.' },
   { match: /\bmicroservice/i, toast: '🛎️ One microservice added to the slop.' },
   { match: /\bkubernetes\b|\bk8s\b/i, toast: '☸️ The container has been deployed to your soul.' },

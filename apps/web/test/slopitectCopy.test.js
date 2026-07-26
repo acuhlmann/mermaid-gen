@@ -20,7 +20,7 @@ import {
 
 describe('slopitectCopy', () => {
   it('has a ceremony label for every real phase id × all stakeholder variants', () => {
-    const stakeholderVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
+    const stakeholderVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker'];
     const mutationPhases = [
       'analyze',
       'analyze_stream',
@@ -57,9 +57,11 @@ describe('slopitectCopy', () => {
   });
 
   it('maps slot-prefixed phase ids to base stakeholder ceremonies', () => {
-    expect(phaseCeremonyLabel('exec', 'chart_invoke', 'chart_invoke')).toBe('Boarding the jet 🛩️');
-    expect(phaseCeremonyLabel('exec', 'chart_transform', 'Transform')).toBe(
-      'Killing the darlings…'
+    expect(phaseCeremonyLabel('barker', 'chart_invoke', 'chart_invoke')).toBe(
+      'Taking the liberty 🧘'
+    );
+    expect(phaseCeremonyLabel('barker', 'chart_transform', 'Transform')).toBe(
+      'Killing the darlings, warmly…'
     );
     expect(phaseCeremonyLabel('goMad', 'anything_invoke', 'anything_invoke')).toMatch(/fire/);
     expect(phaseCeremonyLabel('critique', 'forms_repair_3', 'forms_repair_3')).toMatch(
@@ -69,7 +71,7 @@ describe('slopitectCopy', () => {
   });
 
   it('returns a tagline for every variant', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
+    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
       expect(VARIANT_TAGLINES[v]).toBeTruthy();
       expect(VARIANT_BOOT_HEADLINES[v]).toBeTruthy();
     }
@@ -97,7 +99,7 @@ describe('slopitectCopy', () => {
   });
 
   it('has at least 3 quotes for every variant', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
+    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
       expect(VARIANT_QUOTES[v], `quotes for ${v}`).toBeDefined();
       expect(VARIANT_QUOTES[v].length).toBeGreaterThanOrEqual(3);
       for (const quote of VARIANT_QUOTES[v]) {
@@ -126,7 +128,7 @@ describe('slopitectCopy', () => {
   });
 
   it('exposes avatar emoji and entry/exit lines per persona', () => {
-    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec']) {
+    for (const v of ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker']) {
       const persona = VARIANT_PERSONAS[v];
       expect(persona.avatarEmoji, `avatar for ${v}`).toBeTruthy();
       expect(persona.entryLine, `entry for ${v}`).toBeTruthy();

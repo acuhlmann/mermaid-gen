@@ -6,7 +6,7 @@ const ACTION_KEYS = {
   m: 'goMad',
   c: 'critique',
   e: 'explain',
-  x: 'exec'
+  b: 'barker'
 };
 
 function isTypingTarget(el) {

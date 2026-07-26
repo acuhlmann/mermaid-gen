@@ -49,12 +49,12 @@ export const SLOPITECT_ZH_CN = {
       entryLine: '请想象…',
       exitLine: '架构已讲清 📜'
     },
-    exec: {
-      name: '副总裁',
-      title: '协同与协同设计高级副总裁',
-      tagline: '为董事会浓缩协同与协同设计。',
-      entryLine: '正在协同设计北极星…',
-      exitLine: '协同设计完成 ✅'
+    barker: {
+      name: 'Jack Barker',
+      title: 'CEO — 成功剧场',
+      tagline: '很高兴为董事会把图浓缩。',
+      entryLine: '不知道你们怎样，反正我很兴奋……',
+      exitLine: '已浓缩。三角对齐 🧘'
     }
   },
   VARIANT_TAGLINES: {
@@ -63,7 +63,7 @@ export const SLOPITECT_ZH_CN = {
     goMad: '烂图建筑师：天才放飞 🚨',
     critique: '烂图建筑师：协同设计合规评审',
     explain: '烂图建筑师：协同设计故事会',
-    exec: '烂图建筑师：协同与协同设计模式',
+    barker: '烂图建筑师：成功剧场模式',
     fix: '烂图建筑师：现场工头修复烂图'
   },
   VARIANT_BOOT_HEADLINES: {
@@ -72,7 +72,7 @@ export const SLOPITECT_ZH_CN = {
     goMad: '砰！烂图建筑师来了',
     critique: '协同设计评审即将开始',
     explain: '协同设计故事会 — 围过来',
-    exec: '协同与协同设计进行中…'
+    barker: 'Jack Barker 正在越权代劳……'
   },
   ACTION_PERSONA_SHORT_NAMES: {
     refine: '工程师',

@@ -35,9 +35,9 @@ function DeskPeopleCluster({
           { variant: 'critique', onClick: () => runAnalyze('critique', { useDiagramFocus: true }) },
           { variant: 'explain', onClick: () => runAnalyze('explain', { useDiagramFocus: true }) },
           {
-            variant: 'exec',
+            variant: 'barker',
             senior: true,
-            onClick: () => runTransform('exec', { useDiagramFocus: true })
+            onClick: () => runTransform('barker', { useDiagramFocus: true })
           }
         ]}
         activeAdvisorVariant={advisor.activePersona}

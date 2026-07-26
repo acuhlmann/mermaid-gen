@@ -186,13 +186,6 @@ export const OFFICE_EN_AU = {
       body: 'Passwords must now contain 16 characters, one emoji, one prime number, and the ghost of a deprecated protocol. Passwords may not contain: words, numbers, or characters.\n\nYour current password fails 11 of the 4 checks. Impressive, in a way.\n\nSasha'
     },
     {
-      id: 'email-exec-board-preread',
-      colleagueId: 'exec',
-      subject: 'Pre-read needed: the board will ask about {label}',
-      body: "Team — the board offsite is Thursday and I need a one-pager on {label}. One page. One. If it can't fit on one page it isn't a strategy, it's a hobby.\n\nHard stop in four minutes,\nThe VP",
-      actionPrompt: 'Simplify the diagram to its three most essential elements'
-    },
-    {
       id: 'email-cfo-cloud-spend',
       colleagueId: 'cfo',
       subject: 'FLAGGED: unexplained line item ("{label}")',

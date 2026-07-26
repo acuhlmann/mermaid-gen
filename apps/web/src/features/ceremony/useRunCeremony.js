@@ -168,7 +168,7 @@ export function useRunCeremony({
         goMad: ['#f97316', '#ec4899', '#a855f7', '#22d3ee', '#fde047'],
         critique: ['#b91c1c', '#f97316', '#fde68a', '#7c2d12'],
         explain: ['#0d9488', '#22d3ee', '#ccfbf1', '#0f766e'],
-        exec: ['#1e3a8a', '#94a3b8', '#cbd5e1', '#1e293b'],
+        barker: ['#ca8a04', '#facc15', '#fde68a', '#854d0e'],
         general: ['#58cc02', '#1cb0f6', '#ffc800', '#ff4b4b', '#ce82ff']
       };
       const palette = variantPalettes[variant] || variantPalettes.general;
@@ -189,7 +189,7 @@ export function useRunCeremony({
         tryAgentSound(playConfettiPop);
       }
 
-      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'exec'];
+      const knownVariants = ['refine', 'innovate', 'goMad', 'critique', 'explain', 'barker'];
       if (knownVariants.includes(variant)) {
         const now = Date.now();
         const inferredGoMadDepth = variant === 'goMad' ? goMadStreak + 1 : undefined;

@@ -1,6 +1,6 @@
 import { parseInfographicTree } from './infographicDiff.js';
 
-const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'exec']);
+const TRANSFORM_MODES = new Set(['refine', 'innovate', 'goMad', 'barker']);
 
 /** @param {string | null | undefined} template */
 export function templateFamilyFromTemplate(template: string | null | undefined) {
@@ -69,7 +69,7 @@ export function validateInfographicTransformConstraint(opts: {
     return { ok: true };
   }
 
-  if (mode === 'exec') {
+  if (mode === 'barker') {
     if (beforeTemplate && afterTemplate && beforeTemplate !== afterTemplate) {
       return {
         ok: false,

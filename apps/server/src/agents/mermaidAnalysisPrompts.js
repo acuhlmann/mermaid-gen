@@ -13,10 +13,10 @@ export const GO_MAD_TRANSFORM_MAX_TOKENS = 1400;
 const TRANSFORM_MODE_MODEL = Object.freeze({
   refine: { temperature: 0.42 },
   innovate: { temperature: 0.82 },
-  exec: { temperature: 0.35 }
+  barker: { temperature: 0.35 }
 });
 
-const TRANSFORM_MODES = Object.freeze(['refine', 'innovate', 'goMad', 'exec']);
+const TRANSFORM_MODES = Object.freeze(['refine', 'innovate', 'goMad', 'barker']);
 
 export function isTransformMode(value) {
   return typeof value === 'string' && TRANSFORM_MODES.includes(value);
@@ -337,15 +337,15 @@ export function buildTransformUserContent({
 - It is OK to lean a bit too far on purpose — a courageous extension that surprises is better than a safe one that doesn't. Sometimes the diagram benefits from being bolder than the user asked.
 - Consider whether a different Mermaid diagram type (flowchart, sequenceDiagram, stateDiagram-v2, mindmap, classDiagram, etc.) would communicate the new angle better; change type only when that shift clearly serves the subject. Otherwise innovate within the current type.
 - Budget: roughly up to 10 nodes and 14 edges unless the diagram stays clearer with fewer.`
-        : mode === 'exec'
-          ? `Transform mode: EXEC — The VP wants the board-deck version. Subtractive only.
-- Keep the SAME diagram type — never switch types. The VP doesn't care about your craft.
-- Subtractive only: NEVER introduce new concepts, nodes, or edges that weren't already implied. Merge or drop near-duplicates, collapse intermediaries, kill stragglers.
-- MOST RUNS land at 4–8 nodes and 5–10 edges. ABOUT 1 IN 5 RUNS goes deliberately too far — collapse to 2–3 boxes (the slide-ready version: "Plan / Do / Review", "Discovery / Build / Ship"). When you do that, your prose summary after the patch should own it ("Boiled to three. The board reads three.").
+        : mode === 'barker'
+          ? `Transform mode: BARKER — Jack Barker (HBO's Silicon Valley) takes the liberty of boiling the diagram down for the board. Subtractive only.
+- Keep the SAME diagram type — never switch types. Jack doesn't care about your craft; he cares about the story we can tell.
+- Subtractive only: NEVER introduce new concepts, nodes, or edges that weren't already implied. Merge or drop near-duplicates, collapse intermediaries, kill stragglers — a diagram that can't impress a board is a hobby.
+- MOST RUNS land at 4–8 nodes and 5–10 edges. ABOUT 1 IN 5 RUNS goes deliberately too far — collapse to 2–3 boxes (the slide-ready version: "Plan / Do / Review", "Discovery / Build / Ship"). When you do that, your prose summary after the patch should own it, serenely ("Boiled to three. The Conjoined Triangles approve.").
 - Merge or remove subgraphs where one (or none) tells the same story; aim for ≤1 subgraph.
 - Keep classDef / linkStyle / %%init%% theme styling intact — preserve brand colors, just trim the noise.
 - Labels: shorten to executive-summary phrasing — verbs and nouns, no parentheticals, no "(optional)" / "(async)" asides. Adapt jargon to the diagram's subject (recipe → "menu items"; org → "functions"; software → "services").
-- Voice for any prose you emit after the patch: exec/Co-Design jargon ("Synergy and Co-Design", "Co-Designed", "aligned", "boiled down", "the MVP slice", "the headline"). Short.`
+- Voice for any prose you emit after the patch: avuncular, serene, thrilled — boardroom wisdom wearing a cardigan ("I've taken the liberty…", "we're a family here", the Conjoined Triangles of Success). At most ONE Barker-ism. Short.`
           : `Transform mode: GO MAD — THE SLOPITECT goes mad ON THE DIAGRAM'S ACTUAL SUBJECT.
 - Speed first: your FIRST assistant turn must call apply_mermaid_patch — no preamble, no reasoning essays. Skip get_diagram_state unless you truly suspect stale context.
 - SUBJECT-ROOTED CHAOS: your madness must be rooted in the diagram's actual subject. If the labels are recipes, go mad on recipes; if they're org charts, go mad on the org; if they're biology, go mad in biology terms. Defaulting to "blockchain / Kubernetes / lambdas / Web3 / microservices / DAOs" when the subject is NOT cloud infrastructure is a failure mode — earn the chaos from the actual visible labels.

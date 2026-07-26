@@ -10,10 +10,10 @@ import { writeAdvisorMuted } from '../utils/advisorMuteStorage.js';
 import { getAdvisorVisibleLabels } from '../utils/advisorVisibleLabels.js';
 
 /**
- * The proactive roundtable is YOUR TEAM (castTiers.js `team` tier). `exec` is
- * deliberately absent — the VP is senior tier: you meet them in steering
- * meetings, not over your shoulder. The exec transform still runs on demand
- * via the "Prep for the VP" action.
+ * The proactive roundtable is YOUR TEAM (castTiers.js `team` tier). `barker`
+ * is deliberately absent — Jack Barker is senior tier: you meet him in
+ * steering meetings, not over your shoulder. The Barker transform still runs
+ * on demand via the "Prep for the CEO" action.
  */
 const ADVISOR_ORDER = ['refine', 'innovate', 'goMad', 'critique', 'explain'];
 export const ADVISOR_IDLE_PAUSE_MS = 10 * 60 * 1000;
@@ -136,7 +136,7 @@ export function lastSuggestionTexts(entries) {
 /**
  * Proactive advisor orchestrator.
  *
- * Cycles through the five personas, each producing a single short in-character
+ * Cycles through the six personas, each producing a single short in-character
  * suggestion about the visible diagram. All loop machinery (timers, fetches,
  * pause checks) lives inside a single setup effect so render-time only reads
  * refs; setState happens off the render path inside async callbacks.

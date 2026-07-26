@@ -108,7 +108,8 @@ export function buildFormsTransformUserContent({ mode, currentDoc, goMadDepth, a
     innovate:
       'Innovate on the current form — same bureaucratic subject, a different form structure or gimmick. You may restructure freely.',
     goMad: `Go mad on this form — escalate the bureaucracy (depth ${goMadDepth ?? 1}). More sections, more mandatory attestations, more self-cancelling rules, nested sub-forms via Cards and Tabs. Still a working, submittable form.`,
-    exec: 'Execute the requested change tightly. No additions beyond the implied scope.'
+    barker:
+      'Take the liberty of executing the requested change tightly. No additions beyond the implied scope.'
   };
   return [
     modeInstructions[mode] ?? modeInstructions.refine,

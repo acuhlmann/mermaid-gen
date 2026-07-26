@@ -1,5 +1,5 @@
 const RETRYABLE_OPERATIONS = new Set(['intent', 'transform']);
-const RETRYABLE_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad', 'exec']);
+const RETRYABLE_VARIANTS = new Set(['intent', 'refine', 'innovate', 'goMad', 'barker']);
 
 /**
  * Snapshot of a stream run so a failed insight can be re-submitted after sync.

@@ -32,18 +32,18 @@ describe('insightRetryDescriptor', () => {
     ).toBeNull();
   });
 
-  it('builds transform descriptor for Co-Design (exec)', () => {
+  it('builds transform descriptor for the Barker simplify mode', () => {
     const d = buildInsightRetryDescriptor({
       operation: 'transform',
-      variant: 'exec',
+      variant: 'barker',
       modelProfile: 'fast',
-      payload: { mode: 'exec' }
+      payload: { mode: 'barker' }
     });
     expect(d).toEqual(
       expect.objectContaining({
         operation: 'transform',
-        variant: 'exec',
-        mode: 'exec'
+        variant: 'barker',
+        mode: 'barker'
       })
     );
   });

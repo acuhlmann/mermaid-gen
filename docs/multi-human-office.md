@@ -70,7 +70,7 @@ Each entry: the decision, then the load-bearing rationale.
 8. **Role-play = masks.** A cast role is worn by a coworker: participant stays
    `kind: "human"`; the role is presence dressing + a persona voice pack. Scene-scoped by
    default (claimed for a meeting), session-scoped allowed; attribution always visible
-   ("The VP — played by Sam"; badge: **Acting** CFO). Claimable: senior + office tiers
+   ("Jack Barker — played by Sam"; badge: **Acting** CFO). Claimable: senior + office tiers
    only — never team (functional agents; a human wearing Critique's face would make machine
    output attribution ambiguous). Claimed role ⇒ the NPC's ambient self goes quiet. The
    flagship scene: the review meeting — working group presents, human-played seniors grill,

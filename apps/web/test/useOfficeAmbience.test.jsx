@@ -90,7 +90,7 @@ describe('useOfficeAmbience', () => {
       colleagueId: 'scrumMaster',
       title: 'WG',
       body: 'sync',
-      attendees: ['scrumMaster', 'exec', 'intern']
+      attendees: ['scrumMaster', 'barker', 'intern']
     });
     await vi.advanceTimersByTimeAsync(FIRST_FIRE_MS + OFFICE_TICK_MS * 4);
     const snapshot = getOfficeSnapshot();

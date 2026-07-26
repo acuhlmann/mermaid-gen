@@ -9,12 +9,12 @@ const STARTERS = [
 ];
 
 // Day One shape: assignment chips attributed to a requester across both casts
-// (exec resolves via VARIANT_PERSONAS, ciso via OFFICE_COLLEAGUES).
+// (barker resolves via SENIOR_STAKEHOLDERS, ciso via OFFICE_COLLEAGUES).
 const ASSIGNMENT_STARTERS = [
   {
     label: 'Coffee supply chain',
     prompt: 'Break down the global coffee supply chain',
-    fromId: 'exec',
+    fromId: 'barker',
     ask: 'Needs it before the board offsite.'
   },
   {
@@ -56,7 +56,7 @@ describe('TopicStarters', () => {
     const chips = container.querySelectorAll('.topic-starter-chip.has-from');
     expect(chips.length).toBe(2);
     // Requester names resolve through officeSenderInfo — stakeholder + colleague.
-    expect(screen.getByText('The VP')).toBeTruthy();
+    expect(screen.getByText('Jack Barker')).toBeTruthy();
     expect(screen.getByText('Sasha')).toBeTruthy();
     expect(screen.getByText('Needs it before the board offsite.')).toBeTruthy();
     // The underlying generation prompt is untouched by the fiction.

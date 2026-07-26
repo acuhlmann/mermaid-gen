@@ -21,7 +21,7 @@ const VARIANT_CLASS = {
   goMad: 'is-go-mad',
   critique: 'is-critique',
   explain: 'is-explain',
-  exec: 'is-exec'
+  barker: 'is-barker'
 };
 
 const ACTION_LABEL = {
@@ -30,11 +30,11 @@ const ACTION_LABEL = {
   goMad: 'Go Mad',
   critique: 'Critique',
   explain: 'Explain',
-  exec: 'Align'
+  barker: 'Align'
 };
 
 function resolveActionLabel(variant, controls) {
-  if (variant === 'exec') return controls.stakeholders.align;
+  if (variant === 'barker') return controls.stakeholders.align;
   return controls.actions[variant] ?? ACTION_LABEL[variant] ?? variant;
 }
 

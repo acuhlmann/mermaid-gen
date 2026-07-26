@@ -87,7 +87,7 @@ describe('PlanBeatCard', () => {
       <ul>
         <PlanBeatCard
           beat={{ text, source: 'agent' }}
-          variant="exec"
+          variant="barker"
           index={0}
           contentType="chart"
         />

@@ -135,7 +135,7 @@ test('office meeting validates the attendee list before touching the model', asy
     });
     assert.equal(unknownOnly.status, 400);
     const valid = await post(port, 'meeting', {
-      attendees: ['scrumMaster', 'exec', 'greybeard', 'intern'],
+      attendees: ['scrumMaster', 'barker', 'greybeard', 'intern'],
       diagramSource: 'flowchart TD\n A-->B'
     });
     assert.equal(valid.status, 503, 'valid seats reach the (unconfigured) model gate');
@@ -148,7 +148,7 @@ test('office interject requires a non-empty interjection', async () => {
   const { port, closeServer } = await bootServer();
   try {
     const res = await post(port, 'meeting/interject', {
-      attendees: ['scrumMaster', 'exec', 'greybeard'],
+      attendees: ['scrumMaster', 'barker', 'greybeard'],
       interjection: ''
     });
     assert.equal(res.status, 400);

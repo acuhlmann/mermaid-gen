@@ -7,7 +7,7 @@ describe('AdvisorSpeechBubble', () => {
   afterEach(() => cleanup());
 
   const baseProps = {
-    persona: 'exec',
+    persona: 'barker',
     suggestion: 'Boil this down for the board.'
   };
 
@@ -37,7 +37,7 @@ describe('AdvisorSpeechBubble', () => {
   it('renders nothing when persona or suggestion missing', () => {
     const { container: a } = render(<AdvisorSpeechBubble suggestion="hi" />);
     expect(a.querySelector('.advisor-speech-bubble')).toBeNull();
-    const { container: b } = render(<AdvisorSpeechBubble persona="exec" />);
+    const { container: b } = render(<AdvisorSpeechBubble persona="barker" />);
     expect(b.querySelector('.advisor-speech-bubble')).toBeNull();
   });
 
@@ -96,7 +96,7 @@ describe('AdvisorSpeechBubble', () => {
     render(
       <AdvisorSpeechBubble
         {...baseProps}
-        castVariants={['refine', 'innovate', 'exec', 'critique', 'explain', 'goMad']}
+        castVariants={['refine', 'innovate', 'barker', 'critique', 'explain', 'goMad']}
       />
     );
     expect(screen.getByText('Your Team')).toBeTruthy();

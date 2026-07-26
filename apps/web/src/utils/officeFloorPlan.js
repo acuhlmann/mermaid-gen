@@ -116,7 +116,7 @@ export const FLOOR_BOUNDS = {
  */
 export const FLOOR_ZONES = [
   { id: 'reception', rect: [-0.5, -0.5, 2.3, 1.7], tone: 'neutral' },
-  { id: 'leadership', rect: [5.3, -0.5, 10.7, 1.0], tone: 'glass' },
+  { id: 'leadership', rect: [5.3, -0.5, 9.7, 1.0], tone: 'glass' },
   { id: 'kitchen', rect: [-0.5, 5.6, 2.7, 8.5], tone: 'kitchen' },
   { id: 'meeting', rect: [9.4, 5.7, 11.5, 8.5], tone: 'glass' },
   { id: 'pod', rect: [3.6, 3.6, 9.4, 8.5], tone: 'pod' },
@@ -172,12 +172,11 @@ export const FLOOR_SEATS = [
   { id: 'hr', x: 10, y: 4, desk: true, zone: 'hrCorner' },
   { id: 'facilities', x: 1, y: 6, desk: false, zone: 'kitchen' },
 
-  // Leadership, in a glass row along the back wall. Five people, one window.
+  // Leadership, in a glass row along the back wall. Four people, one window.
   { id: 'cto', x: 6, y: 0, desk: true, zone: 'leadership' },
-  { id: 'exec', x: 7, y: 0, desk: true, zone: 'leadership' },
-  { id: 'cfo', x: 8, y: 0, desk: true, zone: 'leadership' },
-  { id: 'ciso', x: 9, y: 0, desk: true, zone: 'leadership' },
-  { id: 'barker', x: 10, y: 0, desk: true, zone: 'leadership' }
+  { id: 'cfo', x: 7, y: 0, desk: true, zone: 'leadership' },
+  { id: 'ciso', x: 8, y: 0, desk: true, zone: 'leadership' },
+  { id: 'barker', x: 9, y: 0, desk: true, zone: 'leadership' }
 ];
 
 /** The player's seat id — the tile "sit down" returns you to. */

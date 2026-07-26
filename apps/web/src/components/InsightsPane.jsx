@@ -63,7 +63,7 @@ const SLOPITECT_VARIANT_CLASS = {
   goMad: 'is-variant-go-mad',
   critique: 'is-variant-critique',
   explain: 'is-variant-explain',
-  exec: 'is-variant-exec'
+  barker: 'is-variant-barker'
 };
 
 const TIP_ROTATION_MS = 7000;
@@ -200,7 +200,7 @@ function isAccentuatedInsightVariant(variant) {
     variant === 'refine' ||
     variant === 'innovate' ||
     variant === 'goMad' ||
-    variant === 'exec'
+    variant === 'barker'
   );
 }
 
