@@ -85,6 +85,9 @@ jobs:
           if gcloud secrets describe invite-token-secret --project="${PROJECT_ID}" &>/dev/null; then
             CLOUD_RUN_SECRETS+=("INVITE_TOKEN_SECRET=invite-token-secret:latest")
           fi
+          if gcloud secrets describe visitor-badge-secrets --project="${PROJECT_ID}" &>/dev/null; then
+            CLOUD_RUN_SECRETS+=("VISITOR_BADGE_SECRETS=visitor-badge-secrets:latest")
+          fi
           if ((${#CLOUD_RUN_SECRETS[@]} > 0)); then
             ARGS+=(--set-secrets="$(IFS=,; echo "${CLOUD_RUN_SECRETS[*]}")")
           fi
