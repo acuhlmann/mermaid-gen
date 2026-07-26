@@ -14,17 +14,14 @@
  */
 
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import FloorActors from './officeFloor/FloorActors.jsx';
 import FloorCardSlot from './officeFloor/FloorCardSlot.jsx';
 import FloorLiveRegion from './officeFloor/FloorLiveRegion.jsx';
-import FloorMeeting from './officeFloor/FloorMeeting.jsx';
-import FloorPeek from './officeFloor/FloorPeek.jsx';
-import FloorPlayer from './officeFloor/FloorPlayer.jsx';
-import FloorScenes from './officeFloor/FloorScenes.jsx';
 import FloorStage from './officeFloor/FloorStage.jsx';
-import FloorTalk from './officeFloor/FloorTalk.jsx';
 import FloorTopBar from './officeFloor/FloorTopBar.jsx';
 import { floorAnnouncement } from './officeFloor/floorAnnouncement.js';
 import { useFloorActivity } from './officeFloor/useFloorActivity.js';
+import { useFloorWander } from './officeFloor/useFloorWander.js';
 import { useFloorAutoPan } from './officeFloor/useFloorAutoPan.js';
 import { useFloorKeyboard } from './officeFloor/useFloorKeyboard.js';
 import { useFloorWalker } from './officeFloor/useFloorWalker.js';
@@ -141,6 +138,32 @@ function OfficeFloorView({
   useFloorKeyboard({ presence, origin, goHome, walkTo: activity.walkTo });
   useFloorAutoPan(viewportRef, presence, scale);
 
+  /*
+   * Whoever a real moment already has. Computed once because two things need
+   * it and they must agree: the stage empties their desks, and ambience must
+   * not send somebody a scene is already using — that would be the same person
+   * twice, which § 6 rule 5 exists to prevent.
+   */
+  const awayIds = awayFromDeskIds({
+    coffee,
+    battle,
+    meeting,
+    standing: presence,
+    playerId: YOU_SEAT_ID
+  });
+
+  const {
+    wanderer,
+    handleArrive: handleWanderArrive,
+    figureRef: wandererRef
+  } = useFloorWander({
+    suspended: Boolean(meeting),
+    busyIds: awayIds,
+    // Where you are or are heading. One rule for two cases: walking over to use
+    // a prop, and free-roaming onto the mark it is used from.
+    avoidTile: origin
+  });
+
   const handleSelect = useCallback((id) => {
     setSelectedId((current) => (current === id ? null : id));
   }, []);
@@ -188,36 +211,29 @@ function OfficeFloorView({
           // the coffee machine is not yours to press from it.
           onUseProp={meeting ? null : activity.startUseProp}
           activePropKind={activity.activePropKind}
-          vacantIds={awayFromDeskIds({
-            coffee,
-            battle,
-            meeting,
-            standing: presence,
-            playerId: YOU_SEAT_ID
-          })}
+          // § 6 rule 5 again: the desk stays, its owner doesn't — and somebody
+          // who has wandered off is away for exactly the same reason somebody
+          // in a coffee scene is.
+          vacantIds={wanderer ? [...awayIds, wanderer.seatId] : awayIds}
           speakingId={activity.speakingId}
         >
-          <FloorScenes
+          <FloorActors
+            scale={scale}
+            copy={copy}
             coffee={coffee}
             battle={battle}
-            scale={scale}
             sceneHandlers={sceneHandlers}
+            meeting={meeting}
+            wanderer={wanderer}
+            onWandererArrive={handleWanderArrive}
+            wandererRef={wandererRef}
+            peek={peek}
+            talk={talk}
+            talkLine={activity.talkLine}
+            presence={presence}
+            onPresenceArrive={activity.handleArrive}
+            playerRef={activity.playerRef}
           />
-          {meeting ? <FloorMeeting meeting={meeting} copy={copy} scale={scale} /> : null}
-          {peek ? <FloorPeek peek={peek} scale={scale} /> : null}
-          {talk ? <FloorTalk talk={talk} line={activity.talkLine} scale={scale} /> : null}
-          {/* One of you on the floor, whatever your reason for being up. */}
-          {presence ? (
-            <FloorPlayer
-              from={presence.from}
-              to={presence.to}
-              walking
-              walkKey={`roam:${presence.key}`}
-              onArrive={activity.handleArrive}
-              elementRef={activity.playerRef}
-              testId={peek ? 'office-floor-peek-player' : 'office-floor-player'}
-            />
-          ) : null}
         </FloorStage>
       </div>
 
