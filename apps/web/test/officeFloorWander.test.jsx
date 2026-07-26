@@ -79,7 +79,7 @@ describe('who wanders is an answer the room gives', () => {
         // The same tile you stand on to use the thing — one definition of
         // "somebody could stand here and be seen", not a second one.
         expect(trip.mark).toEqual(propTileFor(trip.kind));
-        expect(isStandableTile(trip.mark)).toBe(true);
+        expect(isStandableTile(trip.mark, { excludeSeatId: id })).toBe(true);
       }
     }
   });

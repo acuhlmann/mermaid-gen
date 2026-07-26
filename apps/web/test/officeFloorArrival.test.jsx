@@ -36,6 +36,8 @@ describe('FloorArrival (isometric first run)', () => {
     expect(screen.getByTestId('office-floor-arrival')).toBeTruthy();
     expect(screen.getByText(/RECEPTION/)).toBeTruthy();
     expect(screen.getByRole('button', { name: /Check in/i })).toBeTruthy();
+    // Spatial narration for whoever is not looking at the floor (slice 10 parity).
+    expect(screen.getByTestId('office-floor-narration').textContent).toMatch(/At reception/);
     // You are standing at reception, so your desk is empty.
     expect(screen.getByTestId('office-floor-arrival-player')).toBeTruthy();
     const yourSeat = document.querySelector('[data-seat="you"]');
@@ -61,6 +63,7 @@ describe('FloorArrival (isometric first run)', () => {
     await waitFor(() => {
       expect(document.querySelector('.office-floor-person.is-speaking')).toBeTruthy();
     });
+    expect(screen.getByTestId('office-floor-narration').textContent).toMatch(/Linda/);
     // Silent TTS falls back to the bubble so the line is never lost.
     expect(screen.getByText(/I'm Linda, from People Ops/)).toBeTruthy();
   });
